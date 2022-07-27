@@ -1,9 +1,9 @@
 // Test logical action with delay.
-target Rust;
+target Rust
 
 main reactor ActionIsPresentDouble {
-    logical action act0;
-    logical action act1(100 msec);
+    logical action act0
+    logical action act1(100 msec)
 
     reaction(startup) -> act0, act1 {=
         ctx.schedule(act0, after!(100 ms));
@@ -18,5 +18,4 @@ main reactor ActionIsPresentDouble {
             println!("success");
         }
     =}
-
 }

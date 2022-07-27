@@ -3,7 +3,7 @@ package org.lflang.federated.generator;
 import java.nio.file.Path;
 import java.util.stream.Collectors;
 
-import org.lflang.ast.ToLf;
+import org.lflang.ast.FormattingUtils;
 import org.lflang.lf.Model;
 
 public class FedImportEmitter {
@@ -30,7 +30,7 @@ public class FedImportEmitter {
         });
 
         return imports.stream()
-                      .map(ToLf.instance::doSwitch)
+                      .map(FormattingUtils.renderer(federate.target))
                       .collect(Collectors.joining("\n"));
     }
 }

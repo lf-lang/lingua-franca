@@ -60,11 +60,11 @@ public class RustExtension implements FedTargetExtension {
      * @return
      */
     @Override
-    public String generatePreamble(FederateInstance federate, LinkedHashMap<String, Object> federationRTIProperties, ErrorReporter errorReporter) {
+    public String generatePreamble(FederateInstance federate, FedFileConfig fileConfig, LinkedHashMap<String, Object> federationRTIProperties, ErrorReporter errorReporter) {
         return
         """
         preamble {=
-            %s
-        =}""".formatted("");
+        %s
+        =}""".formatted("".indent(4).stripTrailing());
     }
 }

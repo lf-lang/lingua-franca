@@ -1,6 +1,7 @@
-// Check that a state variable can have a statically initialized struct as a value.
-// Check how preambles work
-target Rust;
+// Check that a state variable can have a statically initialized struct as a
+// value. Check how preambles work
+target Rust
+
 main reactor StructAsState {
     preamble {=
         struct Hello {
@@ -8,12 +9,16 @@ main reactor StructAsState {
             value: i32,
         }
     =}
-    // notice this uses parentheses
-    // todo
-    // state s: Hello(name= "Earth".into(), value= 42);
-    // state s: Hello(name: "Earth".into(), value: 42);
-    // state s: Hello { name: "Earth".into(), value: 42 };
-    state s: Hello ({= Hello { name: "Earth".into(), value: 42 } =});
+
+    /**
+     * notice this uses parentheses
+     *
+     * todo
+     * * state s: Hello(name= "Earth".into(), value= 42);
+     * * state s: Hello(name: "Earth".into(), value: 42);
+     * * state s: Hello { name: "Earth".into(), value: 42 };
+     */
+    state s: Hello({= Hello { name: "Earth".into(), value: 42 } =})
 
     reaction(startup) {=
         println!("State s.name=\"{}\", s.value={}.", self.s.name, self.s.value);

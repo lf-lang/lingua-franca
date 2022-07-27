@@ -385,11 +385,13 @@ public class PythonGenerator extends CGenerator {
     }
 
     /**
-     * Override generate top-level preambles, but put the preambles in the
-     * .py file rather than the C file.
+     * Override generate top-level preambles, but put the user preambles in the
+     * .py file rather than the C file. Also handles including the federated
+     * execution setup preamble specified in the target config.
      */
     @Override
     protected String generateTopLevelPreambles() {
+        // user preambles
         Set<Model> models = new LinkedHashSet<>();
         for (Reactor r : ASTUtils.convertToEmptyListIfNull(reactors)) {
             // The following assumes all reactors have a container.
@@ -404,7 +406,13 @@ public class PythonGenerator extends CGenerator {
         for (Model m : models) {
             pythonPreamble.pr(PythonPreambleGenerator.generatePythonPreambles(m.getPreambles()));
         }
-        return "";
+
+        // C preamble for federated execution setup
+        String ret = "";
+        if (targetConfig.fedSetupPreamble != null) {
+            ret = "#include \"" + targetConfig.fedSetupPreamble + "\"";
+        }
+        return ret;
     }
 
     /**

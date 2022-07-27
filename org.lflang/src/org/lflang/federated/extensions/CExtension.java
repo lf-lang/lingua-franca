@@ -30,9 +30,11 @@ import static org.lflang.util.StringUtil.addDoubleQuotes;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.LinkedHashMap;
-import java.util.LinkedList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import org.eclipse.xtext.xbase.lib.Exceptions;
 
@@ -144,6 +146,10 @@ public class CExtension implements FedTargetExtension {
 
         generateDockerFile(federate, fileConfig, federationRTIProperties);
 
+        // Include the fed setup file for this federate in the target property
+        String relPath = "include" + File.separator + "_" + federate.name + "_preamble.c";
+        federate.targetConfig.fedSetupPreamble = relPath;
+        federate.targetConfig.setByUser.add(TargetProperty.FED_SETUP);
     }
 
     /**
@@ -223,25 +229,6 @@ public class CExtension implements FedTargetExtension {
         CoordinationType coordinationType,
         ErrorReporter errorReporter
     ) {
-        CTypes types = new CTypes(errorReporter);
-        // Adjust the type of the action and the receivingPort.
-        // If it is "string", then change it to "char*".
-        // This string is dynamically allocated, and type 'string' is to be
-        // used only for statically allocated strings.
-        // FIXME: Is the getTargetType method not responsible for generating the desired C code
-        //  (e.g., char* rather than string)? If not, what exactly is that method
-        //  responsible for? If generateNetworkReceiverBody has different requirements
-        //  than those that the method was designed to satisfy, should we use a different
-        //  method? The best course of action is not obvious, but we have a pattern of adding
-        //  downstream patches to generated strings rather than fixing them at their source.
-        if (types.getTargetType(action).equals("string")) {
-            action.getType().setCode(null);
-            action.getType().setId("char*");
-        }
-        if (types.getTargetType((Port) receivingPort.getVariable()).equals("string")) {
-            ((Port) receivingPort.getVariable()).getType().setCode(null);
-            ((Port) receivingPort.getVariable()).getType().setId("char*");
-        }
         var receiveRef = CUtil.portRefInReaction(receivingPort, connection.getDstBank(), connection.getDstChannel());
         var result = new CodeBuilder();
         // We currently have no way to mark a reaction "unordered"
@@ -568,16 +555,35 @@ public class CExtension implements FedTargetExtension {
     }
 
     /**
-     * Add necessary preamble to the source to set up federated execution.
-     * @return
+     * Add preamble to a separate file `include/_federateName_preamble.c` to set up federated execution.
+     * Return an empty string since no code generated needs to go in the source.
      */
     @Override
     public String generatePreamble(
         FederateInstance federate,
+        FedFileConfig fileConfig,
         LinkedHashMap<String, Object> federationRTIProperties,
         ErrorReporter errorReporter
-    ) {
-//        if (!IterableExtensions.isNullOrEmpty(targetConfig.protoFiles)) {
+    ) throws IOException {
+        // Put the C preamble in a `include/_federate.name + _preamble.c` file
+        String cPreamble = makePreamble(federate, federationRTIProperties, errorReporter);
+        String relPath = "include" + File.separator + "_" + federate.name + "_preamble.c";
+        Path fedPreamblePath = fileConfig.getFedSrcPath().resolve(relPath);
+        try (var writer = Files.newBufferedWriter(fedPreamblePath)) {
+            writer.write(cPreamble);
+        }
+
+        return "";
+    }
+
+    /**
+     * Generate the preamble to setup federated execution in C.
+     */
+    protected String makePreamble(
+        FederateInstance federate,
+        LinkedHashMap<String, Object> federationRTIProperties,
+        ErrorReporter errorReporter) {
+        //        if (!IterableExtensions.isNullOrEmpty(targetConfig.protoFiles)) {
 //            // Enable support for proto serialization
 //            enabledSerializers.add(SupportedSerializers.PROTO);
 //        }
@@ -627,34 +633,60 @@ public class CExtension implements FedTargetExtension {
                         GeneratorBase.timeInTargetLanguage(advanceMessageInterval));
         }
 
-        code.pr("#include \"federated/federate.c\"");
+        code.pr("#include \"../federated/federate.c\"");
 
         // Generate function to return a pointer to the action trigger_t
         // that handles incoming network messages destined to the specified
         // port. This will only be used if there are federates.
-        if (federate.networkMessageActions.size() > 0) {
-            code.pr(String.join("\n",
-                                "trigger_t* _lf_action_table["+federate.networkMessageActions.size()+"];",
-                                "trigger_t* _lf_action_for_port(int port_id) {",
-                                "        if (port_id < "+federate.networkMessageActions.size()+") {",
-                                "        return _lf_action_table[port_id];",
-                                "        } else {",
-                                "        return NULL;",
-                                "        }",
-                                "}"
-            ));
+        int numOfNetworkActions = federate.networkMessageActions.size();
+        code.pr("""
+        trigger_t* _lf_action_table[%1$s];
+        trigger_t* _lf_action_for_port(int port_id) {
+            if (port_id < %1$s) return _lf_action_table[port_id];
+            else return NULL;
         }
+        """.formatted(numOfNetworkActions));
 
         code.pr(generateExecutablePreamble(federate, federationRTIProperties, errorReporter));
 
+        code.pr(generateInitializeTriggers(federate, errorReporter));
+
         code.pr(CExtensionUtils.generateFederateNeighborStructure(federate));
 
-        return
-        """
-        preamble {=
-            %s
-            
-        =}""".formatted(code.getCode());
+        return code.getCode();
+    }
+
+    /**
+     * Create a macro that initializes necessary triggers for federated execution,
+     * which are the triggers for control reactions and references to all network
+     * actions (which are triggered upon receiving network messages).
+     *
+     * @param federate The federate to initialize triggers for.
+     * @param errorReporter Used to report errors.
+     * @return The generated code for the macro.
+     */
+    private String generateInitializeTriggers(FederateInstance federate, ErrorReporter errorReporter) {
+        CodeBuilder code = new CodeBuilder();
+        // Temporarily change the original federate reactor's name in the AST to
+        // the federate's name so that trigger references are accurate.
+        var federatedReactor = FedASTUtils.findFederatedReactor(federate.instantiation.eResource());
+        var oldFederatedReactorName = federatedReactor.getName();
+        federatedReactor.setName(federate.name);
+        var main = new ReactorInstance(federatedReactor, errorReporter, 1);
+        code.pr(CExtensionUtils.initializeTriggersForNetworkActions(federate, main));
+        code.pr(CExtensionUtils.initializeTriggerForControlReactions(main, main, federate));
+        federatedReactor.setName(oldFederatedReactorName);
+        var codeStringForMacro = code.getCode()
+                             .lines()
+                             .map(line -> (line + " \\"))
+                             .collect(Collectors.joining());
+        return """
+        #define initialize_triggers_for_federate() \\
+        do { \\
+        %s
+        } \\
+        while (0)
+        """.formatted((codeStringForMacro.isBlank() ? "\\" : codeStringForMacro).indent(4).stripTrailing());
     }
 
     /**
@@ -664,15 +696,14 @@ public class CExtension implements FedTargetExtension {
      */
     private String generateExecutablePreamble(FederateInstance federate, LinkedHashMap<String, Object> federationRTIProperties, ErrorReporter errorReporter) {
         CodeBuilder code = new CodeBuilder();
-        // If this program is federated with centralized coordination and this reactor
-        // instance is a federate, then check
-        // for outputs that depend on physical actions so that null messages can be
-        // sent to the RTI.
-        var federateClass = ASTUtils.toDefinition(federate.instantiation.getReactorClass());
-        var main = new ReactorInstance(FedASTUtils.findFederatedReactor(federate.instantiation.eResource()), errorReporter, 1);
 
         if (federate.targetConfig.coordination.equals(CoordinationType.CENTRALIZED)) {
-            var instance = new ReactorInstance(federateClass, errorReporter);
+            // If this program uses centralized coordination then check
+            // for outputs that depend on physical actions so that null messages can be
+            // sent to the RTI.
+            var federateClass = ASTUtils.toDefinition(federate.instantiation.getReactorClass());
+            var main = new ReactorInstance(FedASTUtils.findFederatedReactor(federate.instantiation.eResource()), errorReporter, 1);
+            var instance = new ReactorInstance(federateClass, main, errorReporter);
             var outputDelayMap = federate
                 .findOutputsConnectedToPhysicalActions(instance);
             var minDelay = TimeValue.MAX_VALUE;
@@ -807,33 +838,11 @@ public class CExtension implements FedTargetExtension {
 
         code.pr(CExtensionUtils.allocateTriggersForFederate(federate));
 
-        if (federate.networkMessageActions.size() > 0) {
-            // Create a static array of trigger_t pointers.
-            // networkMessageActions is a list of Actions, but we
-            // need a list of trigger struct names for ActionInstances.
-            // There should be exactly one ActionInstance in the
-            // main reactor for each Action.
-            var triggers = new LinkedList<String>();
-            for (Action action : federate.networkMessageActions) {
-                // Find the corresponding ActionInstance.
-                var actionInstance = main.lookupActionInstance(action);
-                triggers.add(CUtil.triggerRef(actionInstance, null));
-            }
-            var actionTableCount = 0;
-            for (String trigger : triggers) {
-                code.pr("_lf_action_table[" + (actionTableCount++) + "] = &"
-                            + trigger + ";");
-            }
-        }
-
-        // Assign appropriate pointers to the triggers
-        code.pr(CExtensionUtils.initializeTriggerForControlReactions(main, main, federate));
-
         return """
             void _lf_executable_preamble() {
-                %s
+            %s
             }
-            """.formatted(code.toString());
+            """.formatted(code.toString().indent(4).stripTrailing());
     }
 
 }

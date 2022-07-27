@@ -26,7 +26,10 @@
 
 package org.lflang.federated.extensions;
 
+import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.LinkedHashMap;
 import java.util.List;
 
@@ -34,13 +37,16 @@ import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
 import org.lflang.InferredType;
 import org.lflang.TargetConfig;
+import org.lflang.TargetProperty;
 import org.lflang.federated.generator.FedConnectionInstance;
+import org.lflang.federated.generator.FedFileConfig;
 import org.lflang.federated.generator.FederateInstance;
 import org.lflang.federated.launcher.FedPyLauncher;
 import org.lflang.federated.serialization.FedNativePythonSerialization;
 import org.lflang.federated.serialization.FedSerialization;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.generator.DockerGeneratorBase;
+import org.lflang.generator.LFGeneratorContext;
 import org.lflang.generator.python.PythonDockerGenerator;
 import org.lflang.generator.python.PythonInfoGenerator;
 import org.lflang.lf.Action;
@@ -86,7 +92,7 @@ public class PythonExtension extends CExtension {
             break;
         }
         case PROTO: {
-            throw new UnsupportedOperationException("Protbuf serialization is not supported yet.");
+            throw new UnsupportedOperationException("Protobuf serialization is not supported yet.");
         }
         case ROS2: {
             throw new UnsupportedOperationException("ROS2 serialization is not supported yet.");
@@ -170,17 +176,5 @@ public class PythonExtension extends CExtension {
         }
 
         System.out.println(PythonInfoGenerator.generateFedRunInfo(fileConfig));
-    }
-
-    @Override
-    public String generatePreamble(
-        FederateInstance federate,
-        LinkedHashMap<String, Object> federationRTIProperties,
-        ErrorReporter errorReporter
-    ) {
-        var cPreamble = super.generatePreamble(federate, federationRTIProperties, errorReporter);
-        // Put cPreamble in a `include/federate.name + __preamble.c`
-        // federate.targetConfig.c-preamble
-        return "";
     }
 }

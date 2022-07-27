@@ -1,12 +1,13 @@
 target Python {
     timeout: 2 sec
-};
+}
 
 reactor TakeTime {
-    input _in;
-    output out;
-    reaction(_in) -> out {=
+    input _in
 
+    output out
+
+    reaction(_in) -> out {=
         offset = 0
         for i in range(10000):
             offset+=1
@@ -16,9 +17,11 @@ reactor TakeTime {
 }
 
 reactor Print {
-    input _in;
-    state count(0);
-    state received(0);
+    input _in
+
+    state count(0)
+    state received(0)
+
     reaction(_in) {=
         self.received += 1
         print("Received: {:d} at logical time {:d}".format(_in.value, lf.time.logical_elapsed()))
@@ -27,6 +30,7 @@ reactor Print {
             exit(1)
         self.count+=1
     =}
+
     reaction(shutdown) {=
         if self.received == 0:
             sys.stderr.write("ERROR: Final reactor received no data.\n")
@@ -35,22 +39,23 @@ reactor Print {
 }
 
 main reactor Pipeline {
-    timer t(0, 200 msec);
-    state count(0);
+    timer t(0, 200 msec)
 
-    c1 = new TakeTime();
-    c2 = new TakeTime();
-    c3 = new TakeTime();
-    c4 = new TakeTime();
-    p = new Print();
+    c1 = new TakeTime()
+    c2 = new TakeTime()
+    c3 = new TakeTime()
+    c4 = new TakeTime()
+    p = new Print()
+
+    c1.out -> c2._in after 200 msec
+    c2.out -> c3._in after 200 msec
+    c3.out -> c4._in after 200 msec
+    c4.out -> p._in
+
+    state count(0)
 
     reaction(t) -> c1._in {=
         c1._in.set(self.count)
         self.count += 1
     =}
-
-    c1.out -> c2._in after 200 msec;
-    c2.out -> c3._in after 200 msec;
-    c3.out -> c4._in after 200 msec;
-    c4.out -> p._in;
 }

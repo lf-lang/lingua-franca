@@ -71,6 +71,9 @@ public class CTypes implements TargetTypes {
     @Override
     public String getTargetType(InferredType type) {
         var result = TargetTypes.super.getTargetType(type);
+        if (result.equals("string")) {
+            result = "char*";
+        }
         Matcher matcher = arrayPattern.matcher(result);
         if (matcher.find()) {
             return matcher.group(1) + '*';

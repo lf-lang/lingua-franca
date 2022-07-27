@@ -3,18 +3,19 @@
  *
  * @author Soroush Bateni
  */
+target Python
 
-target Python;
-
-preamble {=
-    import sys
-=}
+preamble {= import sys =}
 
 reactor Sender {
-    output out;
-    timer t(0, 1 usec);
-    logical action act;
-    state reaction_invoked_correctly(False);
+    output out
+
+    timer t(0, 1 usec)
+
+    logical action act
+
+    state reaction_invoked_correctly(False)
+
     reaction(t, act) -> out, act {=
         print("Sending 42 at ({}, {}).".format(
                      lf.time.logical_elapsed(),
@@ -61,11 +62,13 @@ reactor Sender {
     =}
 }
 
-reactor Receiver (
-    stp_offset(10 msec) // Used in the decentralized variant of the test
+reactor Receiver(
+    stp_offset(10 msec)  # Used in the decentralized variant of the test
 ) {
-    input in_;
+    input in_
+
     state reaction_invoked_correctly(False)
+
     reaction(in_) {=
         print("Received {} at ({}, {}).".format(
                      in_.value,
@@ -106,8 +109,8 @@ reactor Receiver (
 }
 
 federated reactor DistributedStop {
-    sender = new Sender();
-    receiver = new Receiver();
+    sender = new Sender()
+    receiver = new Receiver()
 
-    sender.out -> receiver.in_;
+    sender.out -> receiver.in_
 }

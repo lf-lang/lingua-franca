@@ -1,9 +1,11 @@
-// test a sparse connection between multiports (some channels are left disconnected)
-target Rust;
+// test a sparse connection between multiports (some channels are left
+// disconnected)
+target Rust
 
 reactor Source(width: usize(2)) {
-    output[width] out: usize;
-    reaction (startup) -> out {=
+    output[width] out: usize
+
+    reaction(startup) -> out {=
         for (i, out) in out.into_iter().enumerate() {
             ctx.set(out, i)
         }
@@ -11,8 +13,9 @@ reactor Source(width: usize(2)) {
 }
 
 reactor Destination(width: usize(2)) {
-    input[width] in: usize;
-    reaction (in) {=
+    input[width] in: usize
+
+    reaction(in) {=
         for (i, port) in r#in.into_iter().enumerate() {
             if let Some(v) = ctx.get(&port) {
                 // NOTE: For testing purposes, this assumes the specific
@@ -25,8 +28,9 @@ reactor Destination(width: usize(2)) {
 }
 
 main reactor MultiportToMultiport2 {
-    a1 = new Source(width = 3);
-    a2 = new Source(width = 2);
-    b = new Destination(width = 5);
-    a1.out, a2.out -> b.in;
+    a1 = new Source(width = 3)
+    a2 = new Source(width = 2)
+    b = new Destination(width = 5)
+
+    a1.out, a2.out -> b.in
 }

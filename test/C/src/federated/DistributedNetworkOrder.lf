@@ -1,22 +1,23 @@
-/*
- * This is a test for send_timed_message,
- * which is an internal API.
+/**
+ * This is a test for send_timed_message, which is an internal API.
  *
- * This test sends a second message at time 5 msec that has the same intended tag as
- * a message that it had previously sent at time 0 msec. This results in a warning,
- * but the message microstep is incremented and correctly received one microstep later.
+ * This test sends a second message at time 5 msec that has the same intended
+ * tag as a message that it had previously sent at time 0 msec. This results in
+ * a warning, but the message microstep is incremented and correctly received
+ * one microstep later.
  *
  * @author Soroush Bateni
  */
-
 target C {
     timeout: 1 sec,
-    build-type: RelWithDebInfo // Release with debug info
-};
+    build-type: RelWithDebInfo  // Release with debug info
+}
 
 reactor Sender {
-    output out:int;
-    timer t(0, 1 msec);
+    output out: int
+
+    timer t(0, 1 msec)
+
     reaction(t) -> out {=
         int payload = 1;
         if (lf_time_logical_elapsed() == 0LL) {
@@ -31,8 +32,9 @@ reactor Sender {
 }
 
 reactor Receiver {
-    input in:int;
-    state success:int(0);
+    input in: int
+
+    state success: int(0)
 
     reaction(in) {=
         tag_t current_tag = lf_tag();
@@ -59,8 +61,8 @@ reactor Receiver {
 }
 
 federated reactor DistributedNetworkOrder {
-    sender = new Sender();
-    receiver = new Receiver();
+    sender = new Sender()
+    receiver = new Receiver()
 
-    sender.out -> receiver.in;
+    sender.out -> receiver.in
 }

@@ -1,11 +1,15 @@
 // Check multiport capabilities on Outputs.
 target Rust {
-    timeout: 2 sec,
-};
+    timeout: 2 sec
+}
+
 reactor Source {
-    timer t(0, 200 msec);
-    output[4] out: u32;
-    state s: u32(0);
+    output[4] out: u32
+
+    timer t(0, 200 msec)
+
+    state s: u32(0)
+
     reaction(t) -> out {=
         for i in 0..out.len() {
             ctx.set(out.get(i), self.s);
@@ -13,9 +17,12 @@ reactor Source {
         self.s += 1;
     =}
 }
+
 reactor Computation {
-    input in: u32;
-    output out: u32;
+    input in: u32
+
+    output out: u32
+
     reaction(in) -> out {=
         // No need to sleep for this test.
         // struct timespec sleep_time = {(time_t) 0, (long)200000000};
@@ -24,9 +31,12 @@ reactor Computation {
         ctx.set(out, ctx.get(r#in).unwrap());
     =}
 }
+
 reactor Destination {
-    state s: u32(0);
-    input[4] in: u32;
+    input[4] in: u32
+
+    state s: u32(0)
+
     reaction(in) {=
         let mut sum = 0;
         for channel in r#in {
@@ -38,6 +48,7 @@ reactor Destination {
         assert_eq!(sum, self.s);
         self.s += 4;
     =}
+
     reaction(shutdown) {=
         assert_ne!(0, self.s);
         println!("Success");
@@ -45,12 +56,13 @@ reactor Destination {
 }
 
 main reactor {
-    a = new Source();
-    t1 = new Computation();
-    t2 = new Computation();
-    t3 = new Computation();
-    t4 = new Computation();
-    b = new Destination();
-    a.out -> t1.in, t2.in, t3.in, t4.in;
-    t1.out, t2.out, t3.out, t4.out -> b.in;
+    a = new Source()
+    t1 = new Computation()
+    t2 = new Computation()
+    t3 = new Computation()
+    t4 = new Computation()
+    b = new Destination()
+
+    a.out -> t1.in, t2.in, t3.in, t4.in
+    t1.out, t2.out, t3.out, t4.out -> b.in
 }

@@ -1,6 +1,5 @@
 /**
- * Check that request_stop() doesn't cause
- * any issues at the shutdown tag.
+ * Check that request_stop() doesn't cause any issues at the shutdown tag.
  *
  * Original bug discovered by Steven Wong <housengw@berkeley.edu>
  *
@@ -11,33 +10,28 @@ target Python {
 }
 
 reactor A {
-    input in_;
-    reaction(startup) {=
-        print("Hello World!")
-    =}
+    input in_
 
-    reaction(in_) {=
-        print("Got it")
-    =}
+    reaction(startup) {= print("Hello World!") =}
 
-    reaction(shutdown) {=
-        request_stop()
-    =}
+    reaction(in_) {= print("Got it") =}
+
+    reaction(shutdown) {= request_stop() =}
 }
 
 reactor B {
-    output out;
-    timer t(1 sec);
-    reaction(t) -> out {=
-        out.set(1)
-    =}
-    reaction(shutdown) {=
-        request_stop()
-    =}
+    output out
+
+    timer t(1 sec)
+
+    reaction(t) -> out {= out.set(1) =}
+
+    reaction(shutdown) {= request_stop() =}
 }
 
 federated reactor {
-    a = new A();
-    b = new B();
-    b.out -> a.in_;
+    a = new A()
+    b = new B()
+
+    b.out -> a.in_
 }

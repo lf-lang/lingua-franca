@@ -1,35 +1,46 @@
 // Test delaying a pointer type.
-target C;
-reactor DelayPointer2(delay:time(100 msec)) {
-    input in:int*;
-    output out:int*;
-    logical action a:int*;
+target C
+
+reactor DelayPointer2(delay: time(100 msec)) {
+    input in: int*
+
+    output out: int*
+
+    logical action a: int*
+
     reaction(a) -> out {=
         // Using lf_set_token delegates responsibility for
         // freeing the allocated memory downstream.
         lf_set_token(out, a->token);
     =}
+
     reaction(in) -> a {=
         // Schedule the actual token from the input rather than
         // a new token with a copy of the input value.
         lf_schedule_token(a, self->delay, in->token);
     =}
 }
+
 reactor Source {
-    output out:int*;
+    output out: int*
+
     reaction(startup) -> out {=
         SET_NEW(out);
         *(out->value) = 42;
     =}
 }
+
 reactor Test {
-    input in:int*;
-    state start_time:time(0);
-    state received_value:bool(false);
+    input in: int*
+
+    state start_time: time(0)
+    state received_value: bool(false)
+
     reaction(startup) {=
         // Record the logical time at the start.
         self->start_time = lf_time_logical();
     =}
+
     reaction(in) {=
         printf("Received: %d.\n", *(in->value));
         self->received_value = true;
@@ -46,6 +57,7 @@ reactor Test {
             exit(2);
         }
     =}
+
     reaction(shutdown) {=
         printf("Checking that communication occurred.\n");
         if (!self->received_value) {
@@ -55,10 +67,11 @@ reactor Test {
     =}
 }
 
-main reactor  {
-    s = new Source();
-    d = new DelayPointer2();
-    t = new Test();
-    s.out -> d.in;
-    d.out -> t.in;
+main reactor {
+    s = new Source()
+    d = new DelayPointer2()
+    t = new Test()
+
+    s.out -> d.in
+    d.out -> t.in
 }

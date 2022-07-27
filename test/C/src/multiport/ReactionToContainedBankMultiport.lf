@@ -1,16 +1,18 @@
-// Test reaction sending messages to a contained bank of reactors
-// with a multiport input.
+// Test reaction sending messages to a contained bank of reactors with a
+// multiport input.
 target C {
     timeout: 1 sec,
     fast: true
-};
-import TestCountMultiport from "../lib/TestCountMultiport.lf";
+}
 
-main reactor(width:int(2)) {
-    timer t(0, 100 msec);
-    state count:int(1);
+import TestCountMultiport from "../lib/TestCountMultiport.lf"
 
-    test = new[width] TestCountMultiport(num_inputs = 11, width = width);
+main reactor(width: int(2)) {
+    timer t(0, 100 msec)
+
+    test = new[width] TestCountMultiport(num_inputs = 11, width = width)
+
+    state count: int(1)
 
     reaction(t) -> test.in {=
         for (int i = 0; i < self->width; i++) {

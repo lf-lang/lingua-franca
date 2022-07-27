@@ -2,7 +2,7 @@ package org.lflang.federated.generator;
 
 import java.util.stream.Collectors;
 
-import org.lflang.ast.ToLf;
+import org.lflang.ast.FormattingUtils;
 import org.lflang.lf.Model;
 
 public class FedReactorEmitter {
@@ -18,7 +18,7 @@ public class FedReactorEmitter {
             .getReactors()
             .stream()
             .filter(federate::contains)
-            .map(ToLf.instance::doSwitch)
+            .map(FormattingUtils.renderer(federate.target))
             .collect(Collectors.joining("\n"));
     }
 }

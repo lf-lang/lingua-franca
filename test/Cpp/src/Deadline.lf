@@ -1,16 +1,21 @@
-// This example illustrates local deadline handling.
-// Even numbers are sent by the Source immediately, whereas odd numbers
-// are sent after a big enough delay to violate the deadline.
+// This example illustrates local deadline handling. Even numbers are sent by
+// the Source immediately, whereas odd numbers are sent after a big enough delay
+// to violate the deadline.
 target Cpp {
     timeout: 4 sec
-};
-reactor Source(period:time(2 sec)) {
+}
+
+reactor Source(period: time(2 sec)) {
     private preamble {=
         #include <thread>
     =}
-    output y:int;
-    timer t(0, period);
-    state count:int(0);
+
+    output y: int
+
+    timer t(0, period)
+
+    state count: int(0)
+
     reaction(t) -> y {=
         if (count % 2 == 1) {
             // The count variable is odd.
@@ -22,9 +27,12 @@ reactor Source(period:time(2 sec)) {
         count++;
     =}
 }
-reactor Destination(timeout:time(1 sec)) {
-    input x:int;
-    state count:int(0);
+
+reactor Destination(timeout: time(1 sec)) {
+    input x: int
+
+    state count: int(0)
+
     reaction(x) {=
         std::cout << "Destination receives: " << *x.get() << std::endl;
         if (count % 2 == 1) {
@@ -47,8 +55,10 @@ reactor Destination(timeout:time(1 sec)) {
         count++;
     =}
 }
+
 main reactor Deadline {
-    s = new Source();
-    d = new Destination(timeout = 200 msec);
-    s.y -> d.x;
+    s = new Source()
+    d = new Destination(timeout = 200 msec)
+
+    s.y -> d.x
 }

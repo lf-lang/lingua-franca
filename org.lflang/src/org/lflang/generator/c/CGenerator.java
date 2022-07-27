@@ -673,12 +673,6 @@ public class CGenerator extends GeneratorBase {
                 modalStateResetCount
             ));
 
-            code.pr(String.join("\n",
-                "trigger_t* _lf_action_for_port(int port_id) {",
-                "        return NULL;",
-                "}"
-            ));
-
             // Generate function to initialize the trigger objects for all reactors.
             code.pr(CTriggerObjectsGenerator.generateInitializeTriggerObjects(
                 main,
@@ -831,10 +825,10 @@ public class CGenerator extends GeneratorBase {
     }
 
     /**
-     * Copy all files or directories listed in the target property `files` and `cmake-include`
-     * into the src-gen folder of the main .lf file
+     * Copy all files or directories listed in the target property `files`, `cmake-include`,
+     * and `_fed_setup` into the src-gen folder of the main .lf file
      *
-     * @param targetConfig The targetConfig to read the `files` and `cmake-include` from.
+     * @param targetConfig The targetConfig to read the target properties from.
      * @param fileConfig The fileConfig used to make the copy and resolve paths.
      */
     @Override
@@ -880,6 +874,15 @@ public class CGenerator extends GeneratorBase {
                 this.targetConfig.cmakeIncludesWithoutPath.add(
                     relativeCMakeIncludeFileName
                 );
+            }
+        }
+
+        if (!StringExtensions.isNullOrEmpty(targetConfig.fedSetupPreamble)) {
+            try {
+                FileUtil.copyFile(fileConfig.srcFile.getParent().resolve(targetConfig.fedSetupPreamble),
+                                  targetDir.resolve(targetConfig.fedSetupPreamble));
+            } catch (IOException e) {
+                errorReporter.reportError("Failed to find _fed_setup file " + targetConfig.fedSetupPreamble);
             }
         }
     }
@@ -1089,11 +1092,11 @@ public class CGenerator extends GeneratorBase {
         federatedExtension.pr("""
             #ifdef FEDERATED
             #ifdef FEDERATED_DECENTRALIZED
-            %1$s intended_tag;
+            %s intended_tag;
             #endif
-            %1$s physical_time_of_arrival;
+            %s physical_time_of_arrival;
             #endif
-            """.formatted(types.getTargetTagType())
+            """.formatted(types.getTargetTagType(), types.getTargetTimeType())
         );
         
         // First, handle inputs.
@@ -2117,6 +2120,13 @@ public class CGenerator extends GeneratorBase {
      */
     protected String generateTopLevelPreambles() {
         CodeBuilder code = new CodeBuilder();
+
+        // preamble for federated execution setup
+        if (targetConfig.fedSetupPreamble != null) {
+            code.pr("#include \"" + targetConfig.fedSetupPreamble + "\"");
+        }
+
+        // user preambles
         if (this.mainDef != null) {
             var mainModel = (Model) toDefinition(mainDef.getReactorClass()).eContainer();
             for (Preamble p : mainModel.getPreambles()) {

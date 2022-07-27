@@ -1,21 +1,21 @@
 /**
- * This is a test that detects STP violations according to the
- * physical time of message arrival.
+ * This is a test that detects STP violations according to the physical time of
+ * message arrival.
  */
-
 target Python {
     timeout: 1900 msec,
     coordination: decentralized
-};
+}
 
-import Count from "../lib/Count.lf";
+import Count from "../lib/Count.lf"
 
-reactor Print (STP_offset(0)) {
-    preamble {=
-        import sys
-    =}
-    input in_;
-    state c(1);
+reactor Print(STP_offset(0)) {
+    preamble {= import sys =}
+
+    input in_
+
+    state c(1)
+
     reaction(in_) {=
         elapsed_time = lf.time.logical_elapsed()
         print("At time {}, received {}".format(elapsed_time, in_.value))
@@ -30,12 +30,13 @@ reactor Print (STP_offset(0)) {
         else:
             self.sys.stderr.write("Message arrived {} early.\n".format(STP_discrepency))
             self.sys.exit(1)
-    =} STP (STP_offset) {=
+    =} STP(STP_offset) {=
         # This STP handler should never be invoked because the only source of event
         # for Print is the Count reactor.
         self.sys.stderr.write("Logical STP violation was detected. Only physical STP violations are possible.\n")
         self.sys.exit(1)
     =}
+
     reaction(shutdown) {=
         if self.c != 3:
             self.sys.stderr.write("Expected to receive 2 items but got {}.\n".format(self.c))
@@ -44,8 +45,8 @@ reactor Print (STP_offset(0)) {
 }
 
 federated reactor {
-    c = new Count(offset = 1 msec, period = 1 sec);
-    p = new Print(STP_offset = 1 usec);
+    c = new Count(offset = 1 msec, period = 1 sec)
+    p = new Print(STP_offset = 1 usec)
 
-    c.out -> p.in_;
+    c.out -> p.in_
 }

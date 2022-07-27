@@ -1,32 +1,30 @@
-// This tests that "after" does not introduce spurious cycles.
-// Success if running without detected a cycle.
-target Python;
+# This tests that "after" does not introduce spurious cycles. Success if running
+# without detected a cycle.
+target Python
 
 reactor Source {
-    output out;
+    output out
 
-    reaction(startup) -> out {=
-        out.set(1)
-    =}
+    reaction(startup) -> out {= out.set(1) =}
 }
 
 reactor Work {
-    input _in;
-    output out;
+    input _in
 
-    reaction(_in) -> out {=
-        out.set(_in.value)
-    =}
+    output out
+
+    reaction(_in) -> out {= out.set(_in.value) =}
 }
 
 main reactor AfterCycles {
-    state count(0);
-    s = new Source();
-    w0 = new Work();
-    w1 = new Work();
+    s = new Source()
+    w0 = new Work()
+    w1 = new Work()
 
-    s.out -> w0._in after 10 msec;
-    s.out -> w1._in after 20 msec;
+    s.out -> w0._in after 10 msec
+    s.out -> w1._in after 20 msec
+
+    state count(0)
 
     reaction(w0.out) {=
         self.count+=1

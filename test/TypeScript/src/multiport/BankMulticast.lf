@@ -1,6 +1,6 @@
 /**
- * This tests that a contained bank can send not only to a local connection, but also
- * multicast via the container's output port.
+ * This tests that a contained bank can send not only to a local connection, but
+ * also multicast via the container's output port.
  */
 target TypeScript {
     timeout: 3 sec
@@ -10,28 +10,29 @@ import Count from "../lib/Count.lf"
 import TestCount from "../lib/TestCount.lf"
 
 reactor Foo {
-    input inp:number;
-    output out:number;
+    input inp: number
 
-    c = new Count();
-    c.out -> out;
+    output out: number
 
-    d = new TestCount(numInputs = 4);
-    inp -> d.inp;
+    c = new Count()
+    d = new TestCount(numInputs = 4)
+
+    c.out -> out
+    inp -> d.inp
 }
 
 reactor Bar {
-    output[4] out:number;
+    output[4] out: number
 
-    foo = new[4] Foo();
+    foo = new[4] Foo()
 
-    foo.out -> foo.inp;
-    foo.out -> out;
+    foo.out -> foo.inp
+    foo.out -> out
 }
 
 main reactor {
-    bar = new Bar();
+    bar = new Bar()
+    d = new[4] TestCount(numInputs = 4)
 
-    d = new[4] TestCount(numInputs = 4);
-    bar.out -> d.inp;
+    bar.out -> d.inp
 }

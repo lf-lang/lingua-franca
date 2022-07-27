@@ -1,42 +1,40 @@
 target C {
-    keepalive: false // Set keepalive to false since
-                     // this is a test and schedule is
-                     // called on a physical action from
-                     // within a reaction. This is one of
-                     // the special rare cases where the
-                     // user might want to manually override
-                     // keepalive.
-};
+    // Set keepalive to false since this is a test and schedule is called on a
+    // physical action from within a reaction. This is one of the special rare
+    // cases where the user might want to manually override keepalive.
+    keepalive: false
+}
 
 // That's the stuff that shall be generated for the after
 reactor GeneratedDelay {
-    input y_in:int;
-    output y_out:int;
-    state y_state:int(0);
+    input y_in: int
 
-    // TODO: delay in act or the schedule call?
-    physical action act(0 msec);
+    output y_out: int
+
+    physical action act(0 msec)  // TODO: delay in act or the schedule call?
+
+    state y_state: int(0)
 
     reaction(y_in) -> act {=
         self->y_state = y_in->value;
         lf_schedule(act, MSEC(100));
     =}
 
-    reaction(act) -> y_out {=
-        lf_set(y_out, self->y_state);
-    =}
+    reaction(act) -> y_out {= lf_set(y_out, self->y_state); =}
 }
+
 reactor Source {
-    output out:int;
-    timer t;
+    output out: int
+
+    timer t
+
     // reaction(t) -> out after 100 msec {=
-    reaction(t) -> out {=
-        lf_set(out, 1);
-    =}
+    reaction(t) -> out {= lf_set(out, 1); =}
 }
 
 reactor Sink {
-    input in:int;
+    input in: int
+
     reaction(in) {=
         interval_t elapsed_logical = lf_time_logical_elapsed();
         interval_t logical = lf_time_logical();
@@ -46,15 +44,14 @@ reactor Sink {
             printf("Expected %lld but got %lld.\n", MSEC(100), elapsed_logical);
             exit(1);
         }
-    =} deadline(200 msec) {= =}
+    =} deadline(200 msec) {=  =}
 }
-main reactor ManualDelayedReaction {
-    source = new Source();
-    sink = new Sink();
-    g = new GeneratedDelay();
 
-    // source.out -> sink.in;
-    // rewritten above
-    source.out -> g.y_in;
-    g.y_out -> sink.in;
+main reactor ManualDelayedReaction {
+    source = new Source()
+    sink = new Sink()
+    g = new GeneratedDelay()
+
+    source.out -> g.y_in  // source.out -> sink.in
+    g.y_out -> sink.in
 }

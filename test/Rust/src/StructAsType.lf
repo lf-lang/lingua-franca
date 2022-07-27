@@ -1,10 +1,7 @@
-// Source produces a struct directly, rather than a pointer to
-// a struct.
-target Rust;
+// Source produces a struct directly, rather than a pointer to a struct.
+target Rust
 
 reactor Source {
-    output out: Hello;
-
     preamble {=
         pub struct Hello {
             pub name: String,
@@ -12,16 +9,20 @@ reactor Source {
         }
     =}
 
+    output out: Hello
+
     reaction(startup) -> out {=
         // Create the struct on the stack and then copy
         // it to the output
         ctx.set(out, Hello { name: "Earth".into(), value: 42 })
     =}
 }
-// expected parameter is for testing.
-reactor Print(expected:i32(42)) {
-    input inp: {= super::source::Hello =};
-    state expected:i32(expected);
+
+reactor Print(expected: i32(42)) {  // expected parameter is for testing.
+    input inp: {= super::source::Hello =}
+
+    state expected: i32(expected)
+
     reaction(inp) {=
         ctx.use_ref_opt(inp, |hello| {
             println!("Received: name=\"{}\", value={}.", hello.name, hello.value);
@@ -31,8 +32,10 @@ reactor Print(expected:i32(42)) {
         });
     =}
 }
+
 main reactor StructAsType {
-    s = new Source();
-    p = new Print();
-    s.out -> p.inp;
+    s = new Source()
+    p = new Print()
+
+    s.out -> p.inp
 }

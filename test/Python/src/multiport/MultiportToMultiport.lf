@@ -1,13 +1,18 @@
-// Check multiport output to multiport input.
+# Check multiport output to multiport input.
 target Python {
     timeout: 2 sec,
     fast: true
-};
+}
+
 import Destination from "MultiportToHierarchy.lf"
+
 reactor Source(width(1)) {
-    timer t(0, 200 msec);
-    output[width] out;
-    state s(0);
+    output[width] out
+
+    timer t(0, 200 msec)
+
+    state s(0)
+
     reaction(t) -> out {=
         for i in range(len(out)):
             print("Before SET, out[{:d}]->is_present has value %d".format(i), out[i].is_present)
@@ -17,8 +22,10 @@ reactor Source(width(1)) {
             print("AFTER set, out[{:d}]->value has value ".format(i), out[i].value)
     =}
 }
+
 main reactor MultiportToMultiport {
-    a = new Source(width = 4);
-    b = new Destination(width = 4);
-    a.out -> b._in;
+    a = new Source(width = 4)
+    b = new Destination(width = 4)
+
+    a.out -> b._in
 }

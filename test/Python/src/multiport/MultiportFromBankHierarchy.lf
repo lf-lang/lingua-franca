@@ -1,25 +1,29 @@
-// Check multiport output to bank of recipients.
-// Here, the bank is smaller than the width of the sending port.
+# Check multiport output to bank of recipients. Here, the bank is smaller than
+# the width of the sending port.
 target Python {
     timeout: 2 sec,
     fast: true
-};
+}
+
 import Destination from "MultiportFromBank.lf"
-reactor Source(
-    bank_index(0)
-) {
-    output out;
-    reaction(startup) -> out {=
-        out.set(self.bank_index)
-    =}
+
+reactor Source(bank_index(0)) {
+    output out
+
+    reaction(startup) -> out {= out.set(self.bank_index) =}
 }
+
 reactor Container {
-    output[3] out;
-    s = new[3] Source();
-    s.out -> out;
+    output[3] out
+
+    s = new[3] Source()
+
+    s.out -> out
 }
+
 main reactor MultiportFromBankHierarchy {
-    a = new Container();
-    b = new Destination();
-    a.out -> b._in;
+    a = new Container()
+    b = new Destination()
+
+    a.out -> b._in
 }

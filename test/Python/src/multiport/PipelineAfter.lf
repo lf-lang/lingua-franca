@@ -1,26 +1,23 @@
-target Python;
+target Python
 
 reactor Source {
-    output out;
+    output out
 
-    reaction (startup) -> out {=
-        out.set(40)
-    =}
+    reaction(startup) -> out {= out.set(40) =}
 }
 
 reactor Compute {
-    input inp;
-    output out;
+    input inp
 
-    reaction (inp) -> out {=
-        out.set(inp.value + 2)
-    =}
+    output out
+
+    reaction(inp) -> out {= out.set(inp.value + 2) =}
 }
 
 reactor Sink {
-    input inp;
+    input inp
 
-    reaction (inp) {=
+    reaction(inp) {=
         print(f"Received {inp.value}")
         if inp.value != 42:
             sys.stderr.write("ERROR: expected 42!\n")
@@ -29,13 +26,12 @@ reactor Sink {
             sys.stderr.write("ERROR: Expected to receive input after one second.\n")
             exit(2)
     =}
-
 }
 
 main reactor {
-    source = new Source();
-    compute = new Compute();
-    sink = new Sink();
+    source = new Source()
+    compute = new Compute()
+    sink = new Sink()
 
-    source.out, compute.out -> compute.inp, sink.inp after 500 msec;
+    source.out, compute.out -> compute.inp, sink.inp after 500 msec
 }

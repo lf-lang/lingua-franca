@@ -1,11 +1,14 @@
-target TypeScript{
-    timeout : 3 sec
-};
+target TypeScript {
+    timeout: 3 sec
+}
 
-import Count from "lib/Count.lf";
+import Count from "lib/Count.lf"
+
 reactor Test {
-    input c:number;
-    state i:number(0);
+    input c: number
+
+    state i: number(0)
+
     reaction(c) {=
         console.log("Received " + c);
         i++;
@@ -14,8 +17,10 @@ reactor Test {
         }
     =}
 }
+
 main reactor CountTest {
-    count = new Count();
-    test = new Test();
-    count.out -> test.c;
+    count = new Count()
+    test = new Test()
+
+    count.out -> test.c
 }

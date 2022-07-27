@@ -1,12 +1,13 @@
-// This is used by the test for the ability to import a reactor definition
-// that itself imports a reactor definition.
-target Rust;
+// This is used by the test for the ability to import a reactor definition that
+// itself imports a reactor definition.
+target Rust
 
 reactor SomethingWithAPreamble {
-    input a: u32;
     preamble {=
         pub fn some_fun() -> u32 {
             4
         }
     =}
+
+    input a: u32
 }

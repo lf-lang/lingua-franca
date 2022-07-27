@@ -1,21 +1,23 @@
-// Check multiport output to bank of recipients.
-// Here, the bank is smaller than the width of the sending port.
+// Check multiport output to bank of recipients. Here, the bank is smaller than
+// the width of the sending port.
 target C {
     timeout: 2 sec,
     fast: true
-};
-reactor Source(
-    check_override:int(0),
-    bank_index:int(0)
-) {
-    output out:int;
+}
+
+reactor Source(check_override: int(0), bank_index: int(0)) {
+    output out: int
+
     reaction(startup) -> out {=
         lf_set(out, self->bank_index * self->check_override);
     =}
 }
-reactor Destination(port_width:int(3)) {
-    input[port_width] in:int;
-    state received:bool(false);
+
+reactor Destination(port_width: int(3)) {
+    input[port_width] in: int
+
+    state received: bool(false)
+
     reaction(in) {=
         for (int i = 0; i < in_width; i++) {
             printf("Destination channel %d received %d.\n", i, in[i]->value);
@@ -26,6 +28,7 @@ reactor Destination(port_width:int(3)) {
         }
         self->received = true;
     =}
+
     reaction(shutdown) {=
         if (!self->received) {
             fprintf(stderr, "ERROR: Destination received no input!\n");
@@ -35,8 +38,9 @@ reactor Destination(port_width:int(3)) {
     =}
 }
 
-main reactor MultiportFromBank(width:int(4)) {
-    a = new[width] Source(check_override = 1);
-    b = new Destination(port_width = width);
-    a.out -> b.in;
+main reactor MultiportFromBank(width: int(4)) {
+    a = new[width] Source(check_override = 1)
+    b = new Destination(port_width = width)
+
+    a.out -> b.in
 }

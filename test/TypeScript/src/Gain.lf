@@ -1,36 +1,41 @@
 // Example in the Wiki.
+target TypeScript
 
-    target TypeScript;
-    reactor Scale(scale:number(2)) {
-        input x:number;
-        output y:number;
-        reaction(x) -> y {=
-            y = (x as number) * scale;
-        =}
-    }
-    reactor Test {
-        input x:number;
-        state received_value:boolean(false);
-        reaction(x) {=
-            console.log("Received " + x + ".");
-            received_value = true;
-            if ((x as number) != 2) {
-                util.requestErrorStop("ERROR: Expected 2!");
-            }
-        =}
-        reaction(shutdown) {=
-            if (!received_value){
-                util.reportError("ERROR: No value received by Test reactor!");
-            } else {
-                console.log("Test passes");
-            }
-        =}
-    }
-    main reactor Gain {
-        g = new Scale();
-        d = new Test();
-        g.y -> d.x;
-        reaction(startup) -> g.x {=
-            g.x = 1;
-        =}
-    }
+reactor Scale(scale: number(2)) {
+    input x: number
+
+    output y: number
+
+    reaction(x) -> y {= y = (x as number) * scale; =}
+}
+
+reactor Test {
+    input x: number
+
+    state received_value: boolean(false)
+
+    reaction(x) {=
+        console.log("Received " + x + ".");
+        received_value = true;
+        if ((x as number) != 2) {
+            util.requestErrorStop("ERROR: Expected 2!");
+        }
+    =}
+
+    reaction(shutdown) {=
+        if (!received_value){
+            util.reportError("ERROR: No value received by Test reactor!");
+        } else {
+            console.log("Test passes");
+        }
+    =}
+}
+
+main reactor Gain {
+    g = new Scale()
+    d = new Test()
+
+    g.y -> d.x
+
+    reaction(startup) -> g.x {= g.x = 1; =}
+}

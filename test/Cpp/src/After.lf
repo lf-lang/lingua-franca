@@ -1,20 +1,24 @@
-// This checks that the after keyword adjusts logical time, not
-// using physical time.
+// This checks that the after keyword adjusts logical time, not using physical
+// time.
 target Cpp {
     fast: false,
     timeout: 3 sec
-};
-reactor foo {
-    input x:int;
-    output y:int;
-    reaction(x) -> y {=
-        y.set(2*(*x.get()));
-    =}
 }
+
+reactor foo {
+    input x: int
+
+    output y: int
+
+    reaction(x) -> y {= y.set(2*(*x.get())); =}
+}
+
 reactor print {
-    state expected_time:time(10 msec);
-    state i:int(0);
-    input x:int;
+    input x: int
+
+    state expected_time: time(10 msec)
+    state i: int(0)
+
     reaction(x) {=
         i++;
         auto elapsed_time = get_elapsed_logical_time();
@@ -31,6 +35,7 @@ reactor print {
         }
         expected_time += 1s;
     =}
+
     reaction(shutdown) {=
         if (i == 0) {
             std::cerr << "ERROR: Final reactor received no data.\n";
@@ -38,13 +43,17 @@ reactor print {
         }
     =}
 }
+
 main reactor {
-    f = new foo();
-    p = new print();
-    timer t(0, 1 sec);
+    timer t(0, 1 sec)
+
+    f = new foo()
+    p = new print()
+
+    f.y -> p.x after 10 msec
+
     reaction(t) -> f.x {=
         f.x.set(42);
         std::cout << "Timer!\n";
     =}
-    f.y -> p.x after 10 msec;
 }

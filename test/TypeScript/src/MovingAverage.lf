@@ -1,25 +1,32 @@
-// Demonstration of a state variable that is an array.
-// The MovingAverage reactor computes the moving average of the last
-// four inputs and produces that as output.  The source is a counting
-// sequence.
+// Demonstration of a state variable that is an array. The MovingAverage reactor
+// computes the moving average of the last four inputs and produces that as
+// output. The source is a counting sequence.
 target TypeScript {
     timeout: 1 sec,
     fast: true
-};
+}
+
 reactor Source {
-    output out:number;
-    state count:number(0);
-    timer clock(0, 200 msec);
+    output out: number
+
+    timer clock(0, 200 msec)
+
+    state count: number(0)
+
     reaction(clock) -> out {=
         out = count;
         count++;
     =}
 }
+
 reactor MovingAverageImpl {
-    state delay_line:{=Array<number>=}({= [0.0, 0.0, 0.0] =});
-    state index:number(0);
-    input x:number;
-    output out:number;
+    input x: number
+
+    output out: number
+
+    state delay_line: {= Array<number> =}({= [0.0, 0.0, 0.0] =})
+    state index: number(0)
+
     reaction(x) -> out {=
         x = x as number;
         // Calculate the output.
@@ -39,9 +46,12 @@ reactor MovingAverageImpl {
         }
     =}
 }
+
 reactor Print {
-    input x:number;
-    state count:number(0);
+    input x: number
+
+    state count: number(0)
+
     reaction(x) {=
         x = x as number;
         console.log("Received: " + x);
@@ -52,10 +62,12 @@ reactor Print {
         count++;
     =}
 }
+
 main reactor MovingAverage {
-    s = new Source();
-    m = new MovingAverageImpl();
-    p = new Print();
-    s.out -> m.x;
-    m.out -> p.x;
+    s = new Source()
+    m = new MovingAverageImpl()
+    p = new Print()
+
+    s.out -> m.x
+    m.out -> p.x
 }

@@ -1,21 +1,19 @@
-target C;
+target C
 
-reactor Node(
-    num_nodes: size_t(4),
-    bank_index: int(0)
-) {
-    input[num_nodes] in: int;
-    output out: int;
+reactor Node(num_nodes: size_t(4), bank_index: int(0)) {
+    input[num_nodes] in: int
 
-    state received: bool(false);
+    output out: int
 
-    reaction (startup) -> out{=
+    state received: bool(false)
+
+    reaction(startup) -> out {=
         lf_print("Hello from node %d!", self->bank_index);
         // broadcast my ID to everyone
         lf_set(out, self->bank_index);
     =}
 
-    reaction (in) {=
+    reaction(in) {=
         printf("Node %d received messages from ", self->bank_index);
         size_t count = 0;
         for (int i = 0; i < in_width; i++) {
@@ -30,13 +28,16 @@ reactor Node(
             lf_print_error_and_exit("Received fewer messages than expected!");
         }
     =}
-    reaction (shutdown) {=
+
+    reaction(shutdown) {=
         if (!self->received) {
             lf_print_error_and_exit("Received no input!");
         }
     =}
 }
+
 main reactor(num_nodes: size_t(4)) {
-    nodes = new[num_nodes] Node(num_nodes=num_nodes);
-    (nodes.out)+ -> nodes.in;
+    nodes = new[num_nodes] Node(num_nodes = num_nodes)
+
+    (nodes.out)+ -> nodes.in
 }

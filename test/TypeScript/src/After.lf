@@ -1,19 +1,23 @@
-// This checks that the after keyword adjusts logical time, not
-// using physical time.
+// This checks that the after keyword adjusts logical time, not using physical
+// time.
 target TypeScript {
     fast: true,
     timeout: 3 sec
-};
-reactor Foo {
-    input x:number;
-    output y:number;
-    reaction(x) -> y {=
-        y = 2 * (x as number);
-    =}
 }
+
+reactor Foo {
+    input x: number
+
+    output y: number
+
+    reaction(x) -> y {= y = 2 * (x as number); =}
+}
+
 reactor Print {
-    state expected_time:time(10 msec);
-    input x:number;
+    input x: number
+
+    state expected_time: time(10 msec)
+
     reaction(x) {=
         let elapsed_time = util.getElapsedLogicalTime();
         console.log("Result is " + x);
@@ -25,12 +29,14 @@ reactor Print {
         expected_time = expected_time.add(TimeValue.sec(1));
     =}
 }
+
 main reactor {
-    f = new Foo();
-    p = new Print();
-    timer t(0, 1 sec);
-    reaction(t) -> f.x {=
-        f.x = 42;
-    =}
-    f.y -> p.x after 10 msec;
+    timer t(0, 1 sec)
+
+    f = new Foo()
+    p = new Print()
+
+    f.y -> p.x after 10 msec
+
+    reaction(t) -> f.x {= f.x = 42; =}
 }

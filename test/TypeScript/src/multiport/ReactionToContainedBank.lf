@@ -1,14 +1,16 @@
 // Test reaction sending messages to a contained bank of reactors.
 target TypeScript {
     timeout: 1 sec
-};
-import TestCount from "../lib/TestCount.lf";
+}
 
-main reactor ReactionToContainedBank(width:number(2)) {
-    timer t(0, 100 msec);
-    state count:number(1);
+import TestCount from "../lib/TestCount.lf"
 
-    test = new[width] TestCount(numInputs = 11);
+main reactor ReactionToContainedBank(width: number(2)) {
+    timer t(0, 100 msec)
+
+    test = new[width] TestCount(numInputs = 11)
+
+    state count: number(1)
 
     reaction(t) -> test.inp {=
         for (let i = 0; i < width; i++) {

@@ -1,7 +1,6 @@
-// This is a smoke test of a minimal reactor.
-target Python;
+# This is a smoke test of a minimal reactor.
+target Python
+
 main reactor Minimal {
-    reaction(startup) {=
-        print("Hello World.")
-    =}
+    reaction(startup) {= print("Hello World.") =}
 }

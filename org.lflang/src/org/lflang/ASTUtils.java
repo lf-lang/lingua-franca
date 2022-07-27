@@ -33,9 +33,11 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Predicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
 import org.eclipse.emf.common.util.EList;
@@ -46,7 +48,6 @@ import org.eclipse.emf.ecore.util.EcoreUtil;
 import org.eclipse.xtext.TerminalRule;
 import org.eclipse.xtext.nodemodel.ICompositeNode;
 import org.eclipse.xtext.nodemodel.INode;
-import org.eclipse.xtext.nodemodel.impl.CompositeNode;
 import org.eclipse.xtext.nodemodel.impl.HiddenLeafNode;
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils;
 import org.eclipse.xtext.resource.XtextResource;
@@ -891,6 +892,7 @@ public class ASTUtils {
      * Given a single string, convert it into its AST representation.
      */
     public static Element toElement(String str) {
+        if (str == null) return null;
         Element e = LfFactory.eINSTANCE.createElement();
         e.setLiteral(str);
         return e;
@@ -1263,9 +1265,6 @@ public class ASTUtils {
         return t.isTime && !t.isList;
     }
 
-    
-
-        
     /**
      * Given a parameter, return its initial value.
      * The initial value is a list of instances of Expressions.
@@ -1740,11 +1739,66 @@ public class ASTUtils {
         }
         return null;
     }
+
+    /**
+     * Return all single-line or multi-line comments immediately preceding the
+     * given EObject.
+     */
+    public static Stream<String> getPrecedingComments(
+        ICompositeNode compNode,
+        Predicate<INode> filter
+    ) {
+        return getPrecedingCommentNodes(compNode, filter).map(INode::getText);
+    }
+
+    /**
+     * Return all single-line or multi-line comments immediately preceding the
+     * given EObject.
+     */
+    public static Stream<INode> getPrecedingCommentNodes(
+        ICompositeNode compNode,
+        Predicate<INode> filter
+    ) {
+        if (compNode == null) return Stream.of();
+        List<INode> ret = new ArrayList<>();
+        for (INode node : compNode.getAsTreeIterable()) {
+            if (!(node instanceof ICompositeNode)) {
+                if (isComment(node)) {
+                    if (filter.test(node)) ret.add(node);
+                } else if (!node.getText().isBlank()) {
+                    break;
+                }
+            }
+        }
+        return ret.stream();
+    }
+
+    /** Return whether {@code node} is a comment. */
+    public static boolean isComment(INode node) {
+        return node instanceof HiddenLeafNode hlNode
+            && hlNode.getGrammarElement() instanceof TerminalRule tRule
+            && tRule.getName().endsWith("_COMMENT");
+    }
+
+    /**
+     * Return true if the given node starts on the same line as the given other
+     * node.
+     */
+    public static Predicate<INode> sameLine(ICompositeNode compNode) {
+        return other -> {
+            for (INode node : compNode.getAsTreeIterable()) {
+                if (!(node instanceof ICompositeNode) && !node.getText().isBlank() && !isComment(node)) {
+                    return node.getStartLine() == other.getStartLine();
+                }
+            }
+            return false;
+        };
+    }
     
     /**
-     * Retrieve a specific annotation in a JavaDoc style comment associated with the given model element in the AST.
+     * Retrieve a specific annotation in a comment associated with the given model element in the AST.
      * 
-     * This will look for a JavaDoc style comment. If one is found, it searches for the given annotation `key`.
+     * This will look for a comment. If one is found, it searches for the given annotation `key`.
      * and extracts any string that follows the annotation marker.  
      * 
      * @param object the AST model element to search a comment for
@@ -1753,52 +1807,14 @@ public class ASTUtils {
      *     The string immediately following the annotation marker otherwise.
      */
     public static String findAnnotationInComments(EObject object, String key) {
-        if (object.eResource() instanceof XtextResource) {
-            ICompositeNode compNode = NodeModelUtils.findActualNodeFor(object);
-            if (compNode != null) {
-                // Find comment node in AST
-                // For reactions/timers/action/etc., it is usually the lowermost first child node
-                INode node = compNode.getFirstChild();
-                while (node instanceof CompositeNode) {
-                    node = ((CompositeNode) node).getFirstChild();
-                }
-                // For reactors, it seems to be the next sibling of the first child node
-                if (node == null && compNode.getFirstChild() != null) {
-                    node = compNode.getFirstChild().getNextSibling();
-                }
-                while (node instanceof HiddenLeafNode) { // Only comments preceding start of element
-                    HiddenLeafNode hlNode = (HiddenLeafNode) node;
-                    EObject rule = hlNode.getGrammarElement();
-                    if (rule instanceof TerminalRule) {
-                        String line = null;
-                        TerminalRule tRule = (TerminalRule) rule;
-                        if ("SL_COMMENT".equals(tRule.getName())) {
-                            if (hlNode.getText().contains(key)) {
-                                line = hlNode.getText();
-                            }
-                        } else if ("ML_COMMENT".equals(tRule.getName())) {
-                            boolean found = false;
-                            for (String str : hlNode.getText().split("\n")) {
-                                if (!found && str.contains(key)) {
-                                    line = str;
-                                }
-                            }
-                            // This is shorter but causes a warning:
-                            //line = node.text.split("\n").filterNull.findFirst[it.contains(key)]
-                        }
-                        if (line != null) {
-                            var value = line.substring(line.indexOf(key) + key.length()).trim();
-                            if (value.contains("*")) { // in case of single line block comment (e.g. /** @anno 1503 */)
-                                value = value.substring(0, value.indexOf("*")).trim();
-                            }
-                            return value;
-                        }
-                    }
-                    node = node.getNextSibling();
-                }
-            }
-        }
-        return null;
+        if (!(object.eResource() instanceof XtextResource)) return null;
+        ICompositeNode node = NodeModelUtils.findActualNodeFor(object);
+        return getPrecedingComments(node, n -> true).flatMap(String::lines)
+            .filter(line -> line.contains(key))
+            .map(String::trim)
+            .map(it -> it.substring(it.indexOf(key) + key.length()))
+            .map(it -> it.endsWith("*/") ? it.substring(0, it.length() - "*/".length()) : it)
+            .findFirst().orElse(null);
     }
 
     /**
@@ -1869,7 +1885,7 @@ public class ASTUtils {
     //// Private methods
     
     /**
-     * Returns the list if it is not null. Otherwise return an empty list.
+     * Returns the list if it is not null. Otherwise, return an empty list.
      */
     public static <T> List<T> convertToEmptyListIfNull(List<T> list) {
         return list != null ? list : new ArrayList<>();
