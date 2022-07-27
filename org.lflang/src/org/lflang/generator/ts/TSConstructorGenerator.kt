@@ -114,20 +114,17 @@ class TSConstructorGenerator (
     // this federate via ports in the TypeScript's FederatedApp.
     // These Fed IDs are used to let the RTI know about the connections
     // between federates during the initialization with the RTI.
-    // FIXME: Move this to FedGenerator
-//    fun generateFederateConfigurations(): String {
-//        val federateConfigurations = LinkedList<String>()
-//        if (reactor.isFederated) {
-//            for ((key, _) in federate.dependsOn) {
-//                // FIXME: Get delay properly considering the unit instead of hardcoded BigInt(0).
-//                federateConfigurations.add("this.addUpstreamFederate(${key.id}, BigInt(0));")
-//            }
-//            for ((key, _) in federate.sendsTo) {
-//                federateConfigurations.add("this.addDownstreamFederate(${key.id});")
-//            }
-//        }
-//        return federateConfigurations.joinToString("\n")
-//    }
+    fun generateFederateConfigurations(federateConfig: TSFederateConfig): String {
+        val federateConfigurations = LinkedList<String>()
+        for (id in federateConfig.getDependOnFedIds()) {
+            // FIXME: Get delay properly considering the unit instead of hardcoded BigInt(0).
+            federateConfigurations.add("this.addUpstreamFederate($id, BigInt(0));")
+        }
+        for (id in federateConfig.getSendsToFedIds()) {
+            federateConfigurations.add("this.addDownstreamFederate($id);")
+        }
+        return federateConfigurations.joinToString("\n")
+    }
 
     fun generateConstructor(
         instances: TSInstanceGenerator,
@@ -147,6 +144,7 @@ class TSConstructorGenerator (
             ${" |    "..generateConstructorArguments(reactor)}
                 |) {
             ${" |    "..generateSuperConstructorCall(reactor, federateConfig)}
+            ${" |    "..if (reactor.isMain && federateConfig != null) generateFederateConfigurations(federateConfig) else ""}
             ${" |    "..instances.generateInstantiations()}
             ${" |    "..timers.generateInstantiations()}
             ${" |    "..parameters.generateInstantiations()}
@@ -154,12 +152,10 @@ class TSConstructorGenerator (
             ${" |    "..actions.generateInstantiations()}
             ${" |    "..ports.generateInstantiations()}
             ${" |    "..connections.generateInstantiations()}
-            ${" |    "..if (reactor.isMain && federateConfig != null) generateFederatePortActionRegistrations(federateConfig!!) else ""}
+            ${" |    "..if (reactor.isMain && federateConfig != null) generateFederatePortActionRegistrations(federateConfig) else ""}
             ${" |    "..reactions.generateAllReactions()}
                 |}
             """.trimMargin()
-
-            // ${" |    "..generateFederateConfigurations()} FIXME: Move this to FedGenerator
         }
     }
 }

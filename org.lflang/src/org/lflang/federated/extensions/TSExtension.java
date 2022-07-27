@@ -118,13 +118,22 @@ public class TSExtension implements FedTargetExtension {
             id: %d,
             host: %s,
             port: %d,
-            network_message_actions: [%s]
+            network_message_actions: [%s],
+            depends_on: [%s],
+            sends_to: [%s]
         =}""".formatted(federate.id,
                         federationRTIProperties.get("host"),
                         federationRTIProperties.get("port"),
                         federate.networkMessageActions
                                     .stream()
                                     .map(Variable::getName)
-                                    .collect(Collectors.joining(";")));
+                                    .collect(Collectors.joining(";")),
+                        federate.dependsOn.keySet().stream()
+                                          .map(e->String.valueOf(e.id))
+                                          .collect(Collectors.joining(";")),
+                        federate.sendsTo.keySet().stream()
+                                        .map(e->String.valueOf(e.id))
+                                        .collect(Collectors.joining(";"))
+        );
     }
 }
