@@ -179,8 +179,8 @@ public class PythonExtension extends CExtension {
     }
 
     /**
-     * Use the code from CGenerator, but also set the fedSetupPreamble property
-     * to include the file produced by generatePreamble().
+     * Use code from CGenerator to set the fedSetupPreamble property
+     * and include the file produced by generatePreamble().
      */
     @Override
     public void initializeTargetConfig(LFGeneratorContext context, int numOfFederates,
@@ -189,9 +189,6 @@ public class PythonExtension extends CExtension {
                                        LinkedHashMap<String, Object> federationRTIProperties
     ) throws IOException {
         super.initializeTargetConfig(context, numOfFederates, federate, fileConfig, errorReporter, federationRTIProperties);
-        String relPath = "include" + File.separator + federate.name + "_preamble.c";
-        federate.targetConfig.fedSetupPreamble = relPath;
-        federate.targetConfig.setByUser.add(TargetProperty.FED_SETUP);
     }
 
     /**
@@ -204,13 +201,7 @@ public class PythonExtension extends CExtension {
         LinkedHashMap<String, Object> federationRTIProperties,
         ErrorReporter errorReporter
     ) throws IOException {
-        // Put the C preamble in a `include/federate.name + _preamble.c` file
-        String cPreamble = super.makePreamble(federate, fileConfig, federationRTIProperties, errorReporter);
-        String relPath = "include" + File.separator + federate.name + "_preamble.c";
-        Path fedPreamblePath = fileConfig.getFedSrcPath().resolve(relPath);
-        try (var writer = Files.newBufferedWriter(fedPreamblePath)) {
-            writer.write(cPreamble);
-        }
+        super.generatePreamble(federate, fileConfig, federationRTIProperties, errorReporter);
         return "";
     }
 }

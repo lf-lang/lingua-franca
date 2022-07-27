@@ -30,6 +30,8 @@ import static org.lflang.util.StringUtil.addDoubleQuotes;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -144,6 +146,10 @@ public class CExtension implements FedTargetExtension {
 
         generateDockerFile(federate, fileConfig, federationRTIProperties);
 
+        // Include the fed setup file for this federate in the target property
+        String relPath = "include" + File.separator + "_" + federate.name + "_preamble.c";
+        federate.targetConfig.fedSetupPreamble = relPath;
+        federate.targetConfig.setByUser.add(TargetProperty.FED_SETUP);
     }
 
     /**
@@ -549,8 +555,8 @@ public class CExtension implements FedTargetExtension {
     }
 
     /**
-     * Add necessary preamble to the source to set up federated execution.
-     * @return
+     * Add preamble to a separate file `include/_federateName_preamble.c` to set up federated execution.
+     * Return an empty string since no code generated needs to go in the source.
      */
     @Override
     public String generatePreamble(
@@ -559,22 +565,22 @@ public class CExtension implements FedTargetExtension {
         LinkedHashMap<String, Object> federationRTIProperties,
         ErrorReporter errorReporter
     ) throws IOException {
-        return
-        """
-        preamble {=
-        %s
-        =}
-        """.formatted(makePreamble(federate, fileConfig, federationRTIProperties, errorReporter).indent(4).stripTrailing());
+        // Put the C preamble in a `include/_federate.name + _preamble.c` file
+        String cPreamble = makePreamble(federate, federationRTIProperties, errorReporter);
+        String relPath = "include" + File.separator + "_" + federate.name + "_preamble.c";
+        Path fedPreamblePath = fileConfig.getFedSrcPath().resolve(relPath);
+        try (var writer = Files.newBufferedWriter(fedPreamblePath)) {
+            writer.write(cPreamble);
+        }
+
+        return "";
     }
 
     /**
-     * Generates the preamble to setup federated execution in C.
-     * This is a separate method since the Python target needs this without the
-     * preamble block.
+     * Generate the preamble to setup federated execution in C.
      */
     protected String makePreamble(
         FederateInstance federate,
-        FedFileConfig fileConfig,
         LinkedHashMap<String, Object> federationRTIProperties,
         ErrorReporter errorReporter) {
         //        if (!IterableExtensions.isNullOrEmpty(targetConfig.protoFiles)) {
