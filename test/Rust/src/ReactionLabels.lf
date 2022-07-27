@@ -1,10 +1,9 @@
-// There was a bug whereby reaction labels mess up generated code.
-// Labels are used as debug info by the runtime.
-target Rust;
+// There was a bug whereby reaction labels mess up generated code. Labels are
+// used as debug info by the runtime.
+target Rust
+
 main reactor {
-    timer t(0);
-    // @label foo
-    reaction(t) {=
-        println!("success");
-    =}
+    timer t(0)
+
+    reaction(t) {= println!("success"); =}  // @label foo
 }

@@ -1,11 +1,12 @@
-target Python {files: include/hello.py};
+target Python {
+    files: include/hello.py
+}
 
-preamble {=
-import hello
-=}
+preamble {= import hello =}
 
 reactor Source {
-    output out;
+    output out
+
     reaction(startup) -> out {=
         out_value = out.value
         out_value = hello.hello()
@@ -14,9 +15,10 @@ reactor Source {
         out.set(out_value)
     =}
 }
-// expected parameter is for testing.
-reactor Print(expected(42)) {
-    input _in;
+
+reactor Print(expected(42)) {  # expected parameter is for testing.
+    input _in
+
     reaction(_in) {=
         print("Received: name = {:s}, value = {:d}".format(_in.value.name, _in.value.value))
         if _in.value.value != self.expected:
@@ -24,8 +26,9 @@ reactor Print(expected(42)) {
             exit(1)
     =}
 }
+
 main reactor {
-    s = new Source();
-    p = new Print();
-    s.out -> p._in;
+    s = new Source()
+    p = new Print()
+    s.out -> p._in
 }

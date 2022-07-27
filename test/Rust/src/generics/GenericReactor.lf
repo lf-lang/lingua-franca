@@ -1,23 +1,26 @@
 // Tests a port connection between (input of self -> input of child)
-target Rust;
+target Rust
 
 reactor Box<{= T: Sync =}> {
-    input inp: T;
-    output out: T;
+    input inp: T
+    output out: T
 
-    inp -> out;
+    inp -> out
 }
 
 main reactor {
-    state done: bool(false);
+    state done: bool(false)
 
-    box0 = new Box<u32>();
-    box1 = new Box<u32>();
+    box0 = new Box<u32>()
+    box1 = new Box<u32>()
 
-    box0.out -> box1.inp;
+    box0.out -> box1.inp
 
     reaction(startup) -> box0.inp {= ctx.set(box0__inp, 444); =}
-    reaction(box1.out) {= assert!(ctx.get_elapsed_logical_time().is_zero()); self.done = true; =}
+
+    reaction(box1.out) {=
+        assert!(ctx.get_elapsed_logical_time().is_zero()); self.done = true;
+    =}
 
     reaction(shutdown) {=
         assert!(self.done, "reaction was not executed");

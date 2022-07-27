@@ -79,70 +79,62 @@ public final class StringUtil {
         }
         return str;
     }
-    
+
     /**
      * Intelligently trim the white space in a code block.
-	 * 
+	 *
 	 * The leading whitespaces of the first non-empty
 	 * code line is considered as a common prefix across all code lines. If the
 	 * remaining code lines indeed start with this prefix, it removes the prefix
 	 * from the code line.
-	 * 
+	 *
      * For examples, this code
-     * <pre>{@code 
+     * <pre>{@code
      *        int test = 4;
      *        if (test == 42) {
      *            printf("Hello\n");
      *        }
      * }</pre>
      * will be trimmed to this:
-     * <pre>{@code 
+     * <pre>{@code
      * int test = 4;
      * if (test == 42) {
      *     printf("Hello\n");
      * }
      * }</pre>
-     * 
-     * In addition, if the very first line has whitespace only, then
-     * that line is removed. This just means that the {= delimiter
-     * is followed by a newline.
-     * 
+     *
      * @param code the code block to be trimmed
-     * @return trimmed code block 
+     * @param firstLineToConsider The first line to take into consideration when
+     * determining the whitespace prefix.
+     * @return trimmed code block
      */
-    public static String trimCodeBlock(String code) {
-        String[] codeLines = code.split("\n");
-        String prefix = null;
+    public static String trimCodeBlock(String code, int firstLineToConsider) {
+        String[] codeLines = code.split("(\r\n?)|\n");
+        int prefix = getWhitespacePrefix(code, firstLineToConsider);
         StringBuilder buffer = new StringBuilder();
+        boolean stillProcessingLeadingBlankLines = true;
         for (String line : codeLines) {
-            if (prefix == null && line.trim().length() > 0) {
-                // this is the first code line
-                // find the index of the first code line
-                int firstCharacter = 0;
-                for (var i = 0; i < line.length(); i++) {
-                    if (!Character.isWhitespace(line.charAt(i))) {
-                        firstCharacter = i;
-                        break;
-                    }
-                }
-                // extract the whitespace prefix
-                prefix = line.substring(0, firstCharacter);
-            }
+            if (!line.isBlank()) stillProcessingLeadingBlankLines = false;
+            if (stillProcessingLeadingBlankLines) continue;
+            if (!line.isBlank()) buffer.append(line.substring(prefix));
+            buffer.append("\n");
+        }
+        return buffer.toString().stripTrailing();
+    }
 
-            // try to remove the prefix from all subsequent lines
-            if (prefix != null) {
-                if (line.startsWith(prefix)) {
-                    buffer.append(line.substring(prefix.length()));
-                } else {
-                    buffer.append(line);
+    private static int getWhitespacePrefix(String code, int firstLineToConsider) {
+        String[] codeLines = code.split("(\r\n?)|\n");
+        int minLength = Integer.MAX_VALUE;
+        for (int j = firstLineToConsider; j < codeLines.length; j++) {
+            String line = codeLines[j];
+            for (var i = 0; i < line.length(); i++) {
+                if (!Character.isWhitespace(line.charAt(i))) {
+                    minLength = Math.min(minLength, i);
+                    break;
                 }
-                buffer.append("\n");
             }
         }
-        if (buffer.length() > 1) {
-            buffer.deleteCharAt(buffer.length() - 1); // remove the last newline
-        } 
-        return buffer.toString();
+        return minLength == Integer.MAX_VALUE ? 0 : minLength;
     }
 
     public static String addDoubleQuotes(String str) {

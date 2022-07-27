@@ -1,16 +1,20 @@
-// Source produces a dynamically allocated object, which it passes
-// to Print. Reference counting ensures that the struct is freed.
-target TypeScript;
-reactor SendsPointer  {
-    output out:{= {value: number} =};
+// Source produces a dynamically allocated object, which it passes to Print.
+// Reference counting ensures that the struct is freed.
+target TypeScript
+
+reactor SendsPointer {
+    output out: {= {value: number} =}
+
     reaction(startup) -> out {=
         let my_object = { value: 42 };
         out = my_object;
     =}
 }
+
 // expected parameter is for testing.
-reactor Print(expected:{= {value: number} =}({={ value: 42 }=})) {
-    input x:{= {value: number} =};
+reactor Print(expected: {= {value: number} =}({= { value: 42 } =})) {
+    input x: {= {value: number} =}
+
     reaction(x) {=
         x = x as {value: number};
         console.log("Received: " + JSON.stringify(x));
@@ -19,8 +23,9 @@ reactor Print(expected:{= {value: number} =}({={ value: 42 }=})) {
         }
     =}
 }
+
 main reactor SendsPointerTest {
-    s = new SendsPointer();
-    p = new Print();
-    s.out -> p.x;
+    s = new SendsPointer()
+    p = new Print()
+    s.out -> p.x
 }

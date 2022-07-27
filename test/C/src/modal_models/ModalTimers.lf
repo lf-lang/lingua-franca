@@ -1,24 +1,22 @@
-/*
- * Modal Reactor Test.
- * Tests timers, their deactivation and reset in modes.
+/**
+ * Modal Reactor Test. Tests timers, their deactivation and reset in modes.
  */
 target C {
     fast: false,
     timeout: 4 sec
-};
+}
 
 import TraceTesting from "util/TraceTesting.lf"
 
 reactor Modal {
-    input next:bool
+    input next: bool
 
-    output mode_switch:int
-    output timer1:int
-    output timer2:int
+    output mode_switch: int
+    output timer1: int
+    output timer2: int
 
     initial mode One {
-        timer T1(0, 750msec)
-
+        timer T1(0, 750 msec)
         reaction(T1) -> timer1 {=
             printf("T1\n");
             lf_set(timer1, 1);
@@ -30,15 +28,15 @@ reactor Modal {
             lf_set_mode(Two);
         =}
     }
-    mode Two {
-        timer T2(0, 750msec)
 
+    mode Two {
+        timer T2(0, 750 msec)
         reaction(T2) -> timer2 {=
             printf("T2\n");
             lf_set(timer2, 1);
         =}
 
-        reaction(next) -> continue(One), mode_switch {=
+        reaction(next) -> history(One), mode_switch {=
             printf("Transitioning to mode One (continue)\n");
             lf_set(mode_switch, 1);
             lf_set_mode(One);
@@ -47,13 +45,13 @@ reactor Modal {
 }
 
 main reactor {
-    timer stepper(1sec, 1sec)
+    timer stepper(1 sec, 1 sec)
 
     modal = new Modal()
     test = new TraceTesting(
         events_size = 3,
         trace_size = 77,
-        trace = (
+        trace = (  // keep-format
             0,0,0,1,1,0,0,
             750000000,0,0,1,1,0,0,
             250000000,1,1,0,1,0,0,
@@ -65,15 +63,12 @@ main reactor {
             0,0,1,0,1,1,1,
             750000000,0,1,0,1,1,1,
             250000000,1,1,0,1,0,1
-        ), training = false)
+        ),
+        training = false
+    )
+
+    modal.mode_switch, modal.timer1, modal.timer2 -> test.events
 
     // Trigger mode change
-    reaction(stepper) -> modal.next {=
-        lf_set(modal.next, true);
-    =}
-
-    modal.mode_switch,
-    modal.timer1,
-    modal.timer2
-    -> test.events
+    reaction(stepper) -> modal.next {= lf_set(modal.next, true); =}
 }

@@ -1,13 +1,15 @@
-// This tests transport of dynamically allocated arrays over
-// connections with 'after'.
+// This tests transport of dynamically allocated arrays over connections with
+// 'after'.
 target C {
     timeout: 5 sec,
     fast: true
-};
+}
+
 reactor Source {
-    output out:int[];
-    state iteration:int(1);
-    timer t(0, 1 sec);
+    output out: int[]
+    state iteration: int(1)
+    timer t(0, 1 sec)
+
     reaction(t) -> out {=
         // Dynamically allocate an output array of length 3.
         SET_NEW_ARRAY(out, 3);
@@ -21,11 +23,11 @@ reactor Source {
     =}
 }
 
-// The scale parameter is just for testing.
-reactor Print(scale:int(1)) {
-    input in:int[];
-    state iteration:int(1);
-    state inputs_received:int(0);
+reactor Print(scale: int(1)) {  // The scale parameter is just for testing.
+    input in: int[]
+    state iteration: int(1)
+    state inputs_received: int(0)
+
     reaction(in) {=
         self->inputs_received++;
         int count = 1;       // For testing.
@@ -52,6 +54,7 @@ reactor Print(scale:int(1)) {
         }
         self->iteration++;
     =}
+
     reaction(shutdown) {=
         if (self->inputs_received == 0) {
             printf("ERROR: Print reactor received no inputs.\n");
@@ -59,8 +62,9 @@ reactor Print(scale:int(1)) {
         }
     =}
 }
+
 main reactor DelayArrayWithAfter {
-    s = new Source();
-    p = new Print();
-    s.out -> p.in after 1500 msec;
+    s = new Source()
+    p = new Print()
+    s.out -> p.in after 1500 msec
 }

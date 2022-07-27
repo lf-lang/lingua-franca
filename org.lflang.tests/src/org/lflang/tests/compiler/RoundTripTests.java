@@ -1,10 +1,12 @@
 package org.lflang.tests.compiler;
 
 import java.io.File;
-import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.io.PrintWriter;
+import java.nio.file.CopyOption;
+import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Locale;
+import java.nio.file.StandardCopyOption;
 
 import org.eclipse.emf.common.util.URI;
 import org.eclipse.emf.ecore.resource.Resource;
@@ -12,34 +14,25 @@ import org.eclipse.xtext.resource.XtextResource;
 import org.eclipse.xtext.resource.XtextResourceSet;
 import org.eclipse.xtext.testing.InjectWith;
 import org.eclipse.xtext.testing.extensions.InjectionExtension;
-import org.eclipse.xtext.testing.util.ParseHelper;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
 import org.lflang.LFStandaloneSetup;
 import org.lflang.Target;
+import org.lflang.ast.FormattingUtils;
 import org.lflang.ast.IsEqual;
-import org.lflang.ast.ToLf;
 import org.lflang.lf.Model;
 import org.lflang.tests.LFInjectorProvider;
 import org.lflang.tests.LFTest;
 import org.lflang.tests.TestRegistry;
 import org.lflang.tests.TestRegistry.TestCategory;
 
-import com.google.inject.Inject;
 import com.google.inject.Injector;
 
 @ExtendWith(InjectionExtension.class)
 @InjectWith(LFInjectorProvider.class)
 public class RoundTripTests {
-    @Inject
-    XtextResourceSet resourceSet;
-
-    @Inject
-    ParseHelper<Model> parser;
-
-    private static final String REFORMATTED_FILE_PREFIX = "reformatted_";
 
     @Test
     public void roundTripTest() throws Exception {
@@ -58,8 +51,7 @@ public class RoundTripTests {
         Model originalModel = parse(file);
         System.out.printf("Running formatter on %s%n", file);
         Assertions.assertTrue(originalModel.eResource().getErrors().isEmpty());
-        ToLf.instance.setLineWrap(30);
-        String reformattedTestCase = ToLf.instance.doSwitch(originalModel);
+        String reformattedTestCase = FormattingUtils.render(originalModel);
         System.out.printf("Reformatted test case:%n%s%n%n", reformattedTestCase);
         Model resultingModel = getResultingModel(file, reformattedTestCase);
         Assertions.assertNotNull(resultingModel);
@@ -70,14 +62,17 @@ public class RoundTripTests {
         Assertions.assertTrue(new IsEqual(originalModel).doSwitch(resultingModel));
     }
 
-    private Model getResultingModel(Path file, String reformattedTestCase) throws FileNotFoundException {
-        File swap = file.getParent().resolve(file.getFileName().toString() + ".swp").toFile();
-        file.toFile().renameTo(swap); // FIXME: renameTo may fail.
+    private Model getResultingModel(
+        Path file,
+        String reformattedTestCase
+    ) throws IOException {
+        final Path swap = file.getParent().resolve(file.getFileName().toString() + ".swp");
+        Files.move(file, swap, StandardCopyOption.REPLACE_EXISTING);
         try (PrintWriter out = new PrintWriter(file.toFile())) {
             out.println(reformattedTestCase);
         }
         Model resultingModel = parse(file);
-        swap.renameTo(file.toFile());
+        Files.move(swap, file, StandardCopyOption.REPLACE_EXISTING);
         return resultingModel;
     }
 
@@ -86,7 +81,10 @@ public class RoundTripTests {
         Injector injector = new LFStandaloneSetup().createInjectorAndDoEMFRegistration();
         XtextResourceSet resourceSet = injector.getInstance(XtextResourceSet.class);
         resourceSet.addLoadOption(XtextResource.OPTION_RESOLVE_ALL, Boolean.TRUE);
-        Resource resource = resourceSet.getResource(URI.createFileURI(file.toFile().getAbsolutePath()), true);
+        Resource resource = resourceSet.getResource(
+            URI.createFileURI(file.toFile().getAbsolutePath()),
+            true
+        );
         return (Model) resource.getContents().get(0);
     }
 }

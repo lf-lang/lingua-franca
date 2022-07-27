@@ -1,11 +1,13 @@
 // Check reaction to multiport output of a contained reactor.
 target TypeScript {
     timeout: 2 sec
-};
-reactor Source(width:number(1)) {
-    timer t(0, 200 msec);
-    state s:number(0);
-    output[width] out:number;
+}
+
+reactor Source(width: number(1)) {
+    timer t(0, 200 msec)
+    state s: number(0)
+    output[width] out: number
+
     reaction(t) -> out {=
         console.log("Sending.");
         for (let i = 0; i < out.length; i++) {
@@ -13,8 +15,11 @@ reactor Source(width:number(1)) {
         }
     =}
 }
+
 main reactor MultiportToReaction {
-    state s:number(6);
+    state s: number(6)
+    b = new Source(width = 4)
+
     reaction(b.out) {=
         let sum = 0;
         for (let i = 0; i < b.out.length; i++) {
@@ -27,11 +32,11 @@ main reactor MultiportToReaction {
         }
         s += 16;
     =}
+
     reaction(shutdown) {=
         if (s <= 6) {
             util.reportError("ERROR: Destination received no input!");
         }
         console.log("Success.");
     =}
-    b = new Source(width = 4);
 }

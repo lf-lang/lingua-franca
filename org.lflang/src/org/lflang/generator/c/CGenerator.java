@@ -63,6 +63,7 @@ import org.lflang.TargetConfig;
 import org.lflang.TargetProperty;
 import org.lflang.TargetProperty.ClockSyncMode;
 import org.lflang.TargetProperty.CoordinationType;
+import org.lflang.TargetProperty.Platform;
 import org.lflang.TimeValue;
 import org.lflang.federated.FedFileConfig;
 import org.lflang.federated.FederateInstance;
@@ -731,6 +732,8 @@ public class CGenerator extends GeneratorBase {
                 "int _lf_timer_triggers_count = 0;",
                 "int _lf_tokens_with_ref_count_count = 0;"
             ));
+            // Add counters for modal initialization
+            initializeTriggerObjects.pr(CModesGenerator.generateModalInitalizationCounters(hasModalReactors));
 
             // Create an array of arrays to store all self structs.
             // This is needed because connections cannot be established until
@@ -808,7 +811,6 @@ public class CGenerator extends GeneratorBase {
                 federationRTIProperties,
                 startTimeStepTokens,
                 startTimeStepIsPresentCount,
-                startupReactionCount,
                 isFederated,
                 isFederatedAndDecentralized(),
                 clockSyncIsOn()
@@ -1080,7 +1082,10 @@ public class CGenerator extends GeneratorBase {
      */
     private void pickCompilePlatform() {
         var osName = System.getProperty("os.name").toLowerCase();
-        // FIXME: allow for cross-compiling
+        // if platform target was set, use given platform instead
+        if (targetConfig.platform != Platform.AUTO) {
+            osName = targetConfig.platform.toString();
+        }
         if (osName.contains("mac") || osName.contains("darwin")) {
             if (mainDef != null && !targetConfig.useCmake) {
                 targetConfig.compileAdditionalSources.add(
@@ -1205,7 +1210,7 @@ public class CGenerator extends GeneratorBase {
         var constructorCode = new CodeBuilder();
         generateAuxiliaryStructs(reactor);
         generateSelfStruct(reactor, constructorCode);
-        CMethodGenerator.generateMethods(reactor, code, types);
+        generateMethods(reactor);
         generateReactions(reactor, currentFederate);
         generateConstructor(reactor, currentFederate, constructorCode);
 
@@ -1214,10 +1219,17 @@ public class CGenerator extends GeneratorBase {
     }
 
     /**
+     * Generate methods for {@code reactor}.
+     */
+    protected void generateMethods(ReactorDecl reactor) {
+        CMethodGenerator.generateMethods(reactor, code, types);
+    }
+
+    /**
      * Generates preambles defined by user for a given reactor
      * @param reactor The given reactor
      */
-    public void generateUserPreamblesForReactor(Reactor reactor) {
+    protected void generateUserPreamblesForReactor(Reactor reactor) {
         for (Preamble p : convertToEmptyListIfNull(reactor.getPreambles())) {
             code.pr("// *********** From the preamble, verbatim:");
             code.prSourceLineNumber(p.getCode());
@@ -1506,7 +1518,7 @@ public class CGenerator extends GeneratorBase {
      * @param decl The reactor declaration for the self struct
      * @param constructorCode Code that is executed when the reactor is instantiated
      */
-    public void generateSelfStructExtension(
+    protected void generateSelfStructExtension(
         CodeBuilder body,
         ReactorDecl decl,
         CodeBuilder constructorCode
@@ -1544,7 +1556,7 @@ public class CGenerator extends GeneratorBase {
      *  @param decl The reactor.
      *  @param reactionIndex The position of the reaction within the reactor.
      */
-    public void generateReaction(Reaction reaction, ReactorDecl decl, int reactionIndex) {
+    protected void generateReaction(Reaction reaction, ReactorDecl decl, int reactionIndex) {
         code.pr(CReactionGenerator.generateReaction(
             reaction,
             decl,
@@ -2031,7 +2043,7 @@ public class CGenerator extends GeneratorBase {
      * is relevant to the federate.
      * @param instance The reactor instance.
      */
-    public void generateReactorInstanceExtension(ReactorInstance instance) {
+    protected void generateReactorInstanceExtension(ReactorInstance instance) {
         // Do nothing
     }
 
@@ -2041,7 +2053,7 @@ public class CGenerator extends GeneratorBase {
      * of the same reactor.
      * @param instance The reactor class instance
      */
-    public void generateStateVariableInitializations(ReactorInstance instance) {
+    protected void generateStateVariableInitializations(ReactorInstance instance) {
         var reactorClass = instance.getDefinition().getReactorClass();
         var selfRef = CUtil.reactorRef(instance);
         for (StateVar stateVar : allStateVars(toDefinition(reactorClass))) {
@@ -2049,21 +2061,15 @@ public class CGenerator extends GeneratorBase {
                 var mode = stateVar.eContainer() instanceof Mode ?
                     instance.lookupModeInstance((Mode) stateVar.eContainer()) :
                     instance.getMode(false);
-                // In the current concept state variables are not automatically reset.
-                // Instead, they need to be manually reset using a reset triggered reaction or marked as reset.
-                if (!stateVar.isReset()) {
-                    mode = null; // Treat as if outside of mode
-                }
                 initializeTriggerObjects.pr(CStateGenerator.generateInitializer(
                     instance,
                     selfRef,
                     stateVar,
                     mode,
-                    types,
-                    modalStateResetCount
+                    types
                 ));
-                if (mode != null) {
-                    modalStateResetCount++;
+                if (mode != null && stateVar.isReset()) {
+                    modalStateResetCount += currentFederate.numRuntimeInstances(instance);
                 }
             }
         }
@@ -2093,32 +2099,9 @@ public class CGenerator extends GeneratorBase {
      * @param instance The reactor instance.
      */
     private void generateModeStructure(ReactorInstance instance) {
-        var parentMode = instance.getMode(false);
-        var nameOfSelfStruct = CUtil.reactorRef(instance);
-        // If this instance is enclosed in another mode
-        if (parentMode != null) {
-            var parentModeRef = "&"+CUtil.reactorRef(parentMode.getParent())+"->_lf__modes["+parentMode.getParent().modes.indexOf(parentMode)+"]";
-            initializeTriggerObjects.pr("// Setup relation to enclosing mode");
-
-            // If this reactor does not have its own modes, all reactions must be linked to enclosing mode
-            if (instance.modes.isEmpty()) {
-                int i = 0;
-                for (ReactionInstance reaction : instance.reactions) {
-                    initializeTriggerObjects.pr(CUtil.reactorRef(reaction.getParent())+"->_lf__reaction_"+i+".mode = "+parentModeRef+";");
-                    i++;
-                }
-            } else { // Otherwise, only reactions outside modes must be linked and the mode state itself gets a parent relation
-                initializeTriggerObjects.pr("((self_base_t*)"+nameOfSelfStruct+")->_lf__mode_state.parent_mode = "+parentModeRef+";");
-                Iterable<ReactionInstance> reactionsOutsideModes = IterableExtensions.filter(instance.reactions, it -> it.getMode(true) == null);
-                for (ReactionInstance reaction : reactionsOutsideModes) {
-                    initializeTriggerObjects.pr(CUtil.reactorRef(reaction.getParent())+"->_lf__reaction_"+instance.reactions.indexOf(reaction)+".mode = "+parentModeRef+";");
-                }
-            }
-        }
-        // If this reactor has modes, register for mode change handling
+        CModesGenerator.generateModeStructure(instance, initializeTriggerObjects);
         if (!instance.modes.isEmpty()) {
-            initializeTriggerObjects.pr("// Register for transition handling");
-            initializeTriggerObjects.pr("_lf_modal_reactor_states["+modalReactorCount+++"] = &((self_base_t*)"+nameOfSelfStruct+")->_lf__mode_state;");
+            modalReactorCount += currentFederate.numRuntimeInstances(instance);
         }
     }
 
@@ -2126,7 +2109,7 @@ public class CGenerator extends GeneratorBase {
      * Generate runtime initialization code for parameters of a given reactor instance
      * @param instance The reactor instance.
      */
-    public void generateParameterInitialization(ReactorInstance instance) {
+    protected void generateParameterInitialization(ReactorInstance instance) {
         var selfRef = CUtil.reactorRef(instance);
         // Declare a local bank_index variable so that initializers can use it.
         initializeTriggerObjects.pr("int bank_index = "+CUtil.bankIndex(instance)+";");
@@ -2443,7 +2426,7 @@ public class CGenerator extends GeneratorBase {
      * input port "port" or has it in its sources. If there are only connections to contained
      * reactors, in the top-level reactor.
      *
-     * @param receivingPortID The port to generate the control reaction for
+     * @param receivingPortID The ID of the port to generate the control reaction for
      * @param maxSTP The maximum value of STP is assigned to reactions (if any)
      *  that have port as their trigger or source
      */
@@ -2632,7 +2615,7 @@ public class CGenerator extends GeneratorBase {
     //// Private methods
 
     /**
-     * If a main or federted reactor has been declared, create a ReactorInstance
+     * If a main or federated reactor has been declared, create a ReactorInstance
      * for this top level. This will also assign levels to reactions, then,
      * if the program is federated, perform an AST transformation to disconnect
      * connections between federates.

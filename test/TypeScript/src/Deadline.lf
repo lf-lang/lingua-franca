@@ -1,16 +1,15 @@
-// This example illustrates local deadline handling.
-// Even numbers are sent by the Source immediately, whereas odd numbers
-// are sent after a big enough delay to violate the deadline.
-target TypeScript{
-    timeout : 4 sec
-};
+// This example illustrates local deadline handling. Even numbers are sent by
+// the Source immediately, whereas odd numbers are sent after a big enough delay
+// to violate the deadline.
+target TypeScript {
+    timeout: 4 sec
+}
 
-//run = "bin/Deadline -timeout 4 sec"
+reactor Source(period: time(2 sec)) {  // run = "bin/Deadline -timeout 4 sec"
+    output y: number
+    timer t(0, period)
+    state count: number(0)
 
-reactor Source(period:time(2 sec)) {
-    output y:number;
-    timer t(0, period);
-    state count:number(0);
     reaction(t) -> y {=
         if (2 * Math.floor(count / 2) != count){
             // The count variable is odd.
@@ -26,9 +25,10 @@ reactor Source(period:time(2 sec)) {
     =}
 }
 
-reactor Destination(timeout:time(1 sec)) {
-    input x:number;
-    state count:number(0);
+reactor Destination(timeout: time(1 sec)) {
+    input x: number
+    state count: number(0)
+
     reaction(x) {=
         console.log("Destination receives: " + x);
         if (2 * Math.floor(count / 2) != count) {
@@ -45,8 +45,9 @@ reactor Destination(timeout:time(1 sec)) {
         count++;
     =}
 }
+
 main reactor Deadline {
-    s = new Source();
-    d = new Destination(timeout = 200 msec);
-    s.y -> d.x;
+    s = new Source()
+    d = new Destination(timeout = 200 msec)
+    s.y -> d.x
 }

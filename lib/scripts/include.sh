@@ -53,16 +53,16 @@ function get_src_dir() {
 # If it exists, return a path to the Lingua Franca jar.
 function get_jar_path() {
     if [ "$(get_src_dir)" ]; then
-        jar_path_pattern="${base}/${lfc_jar_build_path_pattern}"
+        jar_path_pattern="${lfc_jar_build_path_pattern}"
     else
-        jar_path_pattern="${base}/${lfc_jar_release_path_pattern}"
+        jar_path_pattern="${lfc_jar_release_path_pattern}"
     fi
-    #echo Jar path pattern: "${jar_path_pattern}"
+    # echo Jar path pattern: "${base}"/${jar_path_pattern}
     # Is there a file that matches our pattern? If so, return it.
-    if ls ${jar_path_pattern} 1> /dev/null 2>&1; then
-        # Yes. Determine the precise path of the jar. 
+    if ls "${base}"/${jar_path_pattern} 1> /dev/null 2>&1; then
+        # Yes. Determine the precise path of the jar.
         # Take the newest version if there are multiple jars.
-        echo "$(ls ${jar_path_pattern} | sort -V | tail -n1)"
+        echo "$(ls "${base}"/${jar_path_pattern} | sort -V | tail -n1)"
     fi
 }
 
@@ -95,7 +95,7 @@ function lookup_jre() {
         done
         echo "java"  # This will result in failure
     elif [[ -n "$JAVA_HOME" ]] && [[ -x "$JAVA_HOME/bin/java" ]]; then
-        #echo Found java executable in JAVA_HOME     
+        #echo Found java executable in JAVA_HOME
         echo "$JAVA_HOME/bin/java"
     else
         fatal_error "JRE not found."

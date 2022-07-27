@@ -1,15 +1,16 @@
-// This checks that action can be created even if there is no reaction.
-// This test passes merely by compiling and executing without a segfault.
-// Its other functionality is tested by other tests.
+// This checks that action can be created even if there is no reaction. This
+// test passes merely by compiling and executing without a segfault. Its other
+// functionality is tested by other tests.
 target Cpp {
     fast: true,
     timeout: 3 sec
-};
+}
 
 reactor foo {
-    input x:int;
-    output y:int;
-    logical action a;
+    input x: int
+    output y: int
+    logical action a
+
     reaction(x) -> y, a {=
         y.set(2*(*x.get()));
         a.schedule(500ms);
@@ -17,7 +18,8 @@ reactor foo {
 }
 
 reactor print {
-    input x:int;
+    input x: int
+
     reaction(x) {=
         std::cout << "Result is " << *x.get() << '\n';
         std::cout << "Current logical time is: " << get_elapsed_logical_time() << '\n';
@@ -26,11 +28,10 @@ reactor print {
 }
 
 main reactor {
-    f = new foo();
-    p = new print();
-    timer t(0, 1 sec);
-    reaction(t) -> f.x {=
-        f.x.set(42);
-    =}
-    f.y -> p.x;
+    f = new foo()
+    p = new print()
+    timer t(0, 1 sec)
+    f.y -> p.x
+
+    reaction(t) -> f.x {= f.x.set(42); =}
 }

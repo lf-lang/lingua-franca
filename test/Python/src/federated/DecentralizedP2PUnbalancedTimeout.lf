@@ -1,7 +1,8 @@
 /**
- * Test a source-destination scenario where the source falls behind real-time, and reaches the
- * timeout much later than the destination. In this test, the destination closes the connection
- * early, causing the transmission to fail.  Warnings will be printed about lost messages.
+ * Test a source-destination scenario where the source falls behind real-time,
+ * and reaches the timeout much later than the destination. In this test, the
+ * destination closes the connection early, causing the transmission to fail.
+ * Warnings will be printed about lost messages.
  *
  * The test fails if the federation does not exit.
  */
@@ -10,32 +11,28 @@ target Python {
     coordination: decentralized
 }
 
-// reason for failing: get_current_tag() not supported by the python target
-
+# reason for failing: get_current_tag() not supported by the python target
 reactor Clock(offset(0), period(1 sec)) {
-    output y;
-    timer t(offset, period);
-    state count(0);
+    output y
+    timer t(offset, period)
+    state count(0)
+
     reaction(t) -> y {=
         self.count += 1
         print("Sending {}.".format(self.count))
         y.set(self.count)
     =}
-    reaction(shutdown) {=
-        print("SUCCESS: the source exited successfully.")
-    =}
-}
-reactor Destination {
-    preamble {=
-        import sys
-    =}
-    input x;
-    state s(1);
-    state startup_logical_time;
 
-    reaction(startup) {=
-        self.startup_logical_time = lf.time.logical()
-    =}
+    reaction(shutdown) {= print("SUCCESS: the source exited successfully.") =}
+}
+
+reactor Destination {
+    preamble {= import sys =}
+    input x
+    state s(1)
+    state startup_logical_time
+
+    reaction(startup) {= self.startup_logical_time = lf.time.logical() =}
 
     reaction(x) {=
         print("Received {}".format(x.value))
@@ -52,8 +49,9 @@ reactor Destination {
         print("Approx. time per reaction: {}ns".format(lf.time.physical_elapsed()//(self.s+1)))
     =}
 }
-federated reactor (period(10 usec)) {
-    c = new Clock(period = period);
-    d = new Destination();
-    c.y -> d.x;
+
+federated reactor(period(10 usec)) {
+    c = new Clock(period = period)
+    d = new Destination()
+    c.y -> d.x
 }

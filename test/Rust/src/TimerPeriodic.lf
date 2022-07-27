@@ -1,10 +1,10 @@
 target Rust {
-    timeout: 15 msec,
-    // fast: true
-};
+    timeout: 15 msec  // fast: true
+}
+
 main reactor TimerPeriodic {
-    state i: i32(0);
-    timer t2(0, 3 msec);
+    state i: i32(0)
+    timer t2(0, 3 msec)
 
     reaction(t2) {=
         println!("Tick {} at {}", self.i, ctx.get_tag());
