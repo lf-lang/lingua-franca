@@ -825,10 +825,10 @@ public class CGenerator extends GeneratorBase {
     }
 
     /**
-     * Copy all files or directories listed in the target property `files` and `cmake-include`
-     * into the src-gen folder of the main .lf file
+     * Copy all files or directories listed in the target property `files`, `cmake-include`,
+     * and `_fed_setup` into the src-gen folder of the main .lf file
      *
-     * @param targetConfig The targetConfig to read the `files` and `cmake-include` from.
+     * @param targetConfig The targetConfig to read the target properties from.
      * @param fileConfig The fileConfig used to make the copy and resolve paths.
      */
     @Override
@@ -874,6 +874,15 @@ public class CGenerator extends GeneratorBase {
                 this.targetConfig.cmakeIncludesWithoutPath.add(
                     relativeCMakeIncludeFileName
                 );
+            }
+        }
+
+        if (!StringExtensions.isNullOrEmpty(targetConfig.fedSetupPreamble)) {
+            try {
+                FileUtil.copyFile(fileConfig.srcFile.getParent().resolve(targetConfig.fedSetupPreamble),
+                                  targetDir.resolve(targetConfig.fedSetupPreamble));
+            } catch (IOException e) {
+                errorReporter.reportError("Failed to find _fed_setup file " + targetConfig.fedSetupPreamble);
             }
         }
     }
