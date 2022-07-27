@@ -1,17 +1,14 @@
-# Source produces a dynamically allocated class object, which it passes to
-# Print. Reference counting ensures that the struct is freed.
-target Python {
-    files: ["../include/hello.py"],
-    timeout: 2 sec
-}
-
+// Source produces a dynamically allocated class object, which it passes
+// to Print. Reference counting ensures that the struct is freed.
+target Python {files: ["../include/hello.py"], timeout: 2 sec};
 import Print, Check from "../StructPrint.lf"
 
-preamble {= import hello =}
+preamble {=
+import hello
+=}
 
 federated reactor {
-    s = new Print()
-    p = new Check()
-
-    s.out -> p._in
+    s = new Print();
+    p = new Check();
+    s.out -> p._in;
 }

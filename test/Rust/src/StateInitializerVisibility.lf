@@ -1,10 +1,10 @@
-// Tests that state vars are accessible within initializers of other state vars
-// declared further down.
-target Rust
+// Tests that state vars are accessible within initializers
+// of other state vars declared further down.
 
+target Rust;
 main reactor {
-    state foo: u32(123)
-    state x: u32({= *&foo =})
+    state foo: u32(123);
+    state x: u32({= *&foo =});
 
     reaction(startup) {=
         assert_eq!(self.x, self.foo);

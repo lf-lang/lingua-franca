@@ -1,11 +1,9 @@
 // Check multiport output to bank of recipients within a hierarchy.
 target Rust {
-    timeout: 2 sec
-}
-
+    timeout: 2 sec,
+};
 reactor Source {
-    output[3] out: usize
-
+    output[3] out: usize;
     reaction(startup) -> out {=
         for (i, out) in out.into_iter().enumerate() {
             ctx.set(out, i)
@@ -14,16 +12,15 @@ reactor Source {
 }
 
 reactor Destination(bank_index: usize(0)) {
-    input in: usize
+    input in: usize;
 
-    state bank_index(bank_index)
-    state asserts_done: u32(0)
+    state bank_index(bank_index);
+    state asserts_done: u32(0);
 
     reaction(in) {=
         assert_eq!(ctx.get(r#in), Some(self.bank_index));
         self.asserts_done += 1;
     =}
-
     reaction(shutdown) {=
         assert_eq!(self.asserts_done, 1, "should have been triggered once (per instance)");
         println!("success {}/3", self.bank_index)
@@ -31,16 +28,13 @@ reactor Destination(bank_index: usize(0)) {
 }
 
 reactor Container {
-    input[3] in: usize
-
-    c = new[3] Destination()
-
-    in -> c.in
+    input[3] in: usize;
+    c = new[3] Destination();
+    in -> c.in;
 }
 
 main reactor MultiportToBankHierarchy {
-    a = new Source()
-    b = new Container()
-
-    a.out -> b.in
+    a = new Source();
+    b = new Container();
+    a.out -> b.in;
 }

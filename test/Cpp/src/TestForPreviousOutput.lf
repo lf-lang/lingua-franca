@@ -1,10 +1,8 @@
-// This tests the mechanism for testing whether a previous reaction has produced
-// a given output. The output should always be 42.
-target Cpp
-
+// This tests the mechanism for testing whether a previous reaction has
+// produced a given output. The output should always be 42.
+target Cpp;
 reactor Source {
-    output out: int
-
+    output out:int;
     reaction(startup) -> out {=
         // Set a seed for random number generation based on the current time.
         std::srand(std::time(nullptr));
@@ -13,7 +11,6 @@ reactor Source {
             out.set(21);
         }
     =}
-
     reaction(startup) -> out {=
         if (out.is_present()) {
             int previous_output = *out.get();
@@ -23,10 +20,8 @@ reactor Source {
         }
     =}
 }
-
 reactor Sink {
-    input in: int
-
+    input in:int;
     reaction(in) {=
         std::cout << "Received: " << *in.get() << '\n';
         if (*in.get() != 42) {
@@ -35,10 +30,8 @@ reactor Sink {
         }
     =}
 }
-
 main reactor TestForPreviousOutput {
-    s = new Source()
-    d = new Sink()
-
-    s.out -> d.in
+    s = new Source();
+    d = new Sink();
+    s.out -> d.in;
 }

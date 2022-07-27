@@ -1,21 +1,17 @@
-// This test checks that logical time is incremented an appropriate amount as a
-// result of an invocation of the schedule() function at runtime. It also
-// performs various smoke tests of timing aligned reactions. The first instance
-// has a period of 4 seconds, the second of 2 seconds, and the third (composite)
-// or 1 second.
+// This test checks that logical time is incremented an appropriate
+// amount as a result of an invocation of the schedule() function at
+// runtime. It also performs various smoke tests of timing aligned
+// reactions. The first instance has a period of 4 seconds, the second
+// of 2 seconds, and the third (composite) or 1 second.
 target TypeScript {
     timeout: 10 sec,
     fast: true
-}
-
-reactor Reschedule(period: time(2 sec), message: string("Hello TypeScript")) {
-    timer t(1 sec, period)
-
-    logical action a
-
-    state count: number(0)
-    state previous_time: time(0)
-
+};
+reactor Reschedule(period:time(2 secs), message:string("Hello TypeScript")) {
+    state count:number(0);
+    state previous_time:time(0);
+    timer t(1 secs, period);
+    logical action a;
     reaction(t) -> a {=
         console.log(message);
         actions.a.schedule(TimeValue.msec(200), null);
@@ -23,7 +19,6 @@ reactor Reschedule(period: time(2 sec), message: string("Hello TypeScript")) {
         previous_time = util.getCurrentLogicalTime();
         console.log("Current time is " + previous_time);
     =}
-
     reaction(a) {=
         count++;
         console.log("***** action " + count + " at time " + util.getCurrentLogicalTime());
@@ -38,19 +33,11 @@ reactor Reschedule(period: time(2 sec), message: string("Hello TypeScript")) {
         }
     =}
 }
-
-reactor Inside(
-    period: time(1 sec),
-    message: string("Composite default message.")
-) {
-    third_instance = new Reschedule(period = period, message = message)
+reactor Inside(period:time(1 sec), message:string("Composite default message.")) {
+    third_instance = new Reschedule(period = period, message = message);
 }
-
 main reactor Hello {
-    first_instance = new Reschedule(
-        period = 4 sec,
-        message = "Hello from first_instance."
-    )
-    second_instance = new Reschedule(message = "Hello from second_instance.")
-    composite_instance = new Inside(message = "Hello from composite_instance.")
+    first_instance = new Reschedule(period = 4 sec, message = "Hello from first_instance.");
+    second_instance = new Reschedule(message = "Hello from second_instance.");
+    composite_instance = new Inside(message = "Hello from composite_instance.");
 }

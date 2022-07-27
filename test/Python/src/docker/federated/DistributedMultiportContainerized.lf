@@ -1,15 +1,14 @@
-# Check multiport connections between federates.
+// Check multiport connections between federates.
 target Python {
     timeout: 1 sec,
     coordination: centralized,
     docker: true
-}
+};
 
-import Source, Destination from "../../federated/DistributedMultiport.lf"
+import Source, Destination from "../../federated/DistributedMultiport.lf";
 
 federated reactor DistributedMultiportContainerized at rti {
-    s = new Source()
-    d = new Destination()
-
-    s.out -> d.in_
+    s = new Source();
+    d = new Destination();
+    s.out -> d.in_;
 }

@@ -1,13 +1,11 @@
-target Python
+target Python;
 
 reactor Super {
-    state count(0)
-
-    reaction(startup) {=
+    state count(0);
+    reaction (startup) {=
         print("{:s}(Super) started".format(self.name))
         self.count += 1
     =}
-
     reaction(shutdown) {=
         if self.count == 0:
             sys.stderr.write("No startup reaction was invoked!\n")
@@ -16,7 +14,7 @@ reactor Super {
 }
 
 reactor SubA(name("SubA")) extends Super {
-    reaction(startup) {=
+    reaction (startup) {=
         print("{:s} started".format(self.name))
         if self.count == 0:
             sys.stderr.write("Base class startup reaction was not invoked!\n")
@@ -25,7 +23,7 @@ reactor SubA(name("SubA")) extends Super {
 }
 
 reactor SubB(name("SubB")) extends Super {
-    reaction(startup) {=
+    reaction (startup) {=
         print("{:s} started".format(self.name))
         if self.count == 0:
             sys.stderr.write("Base class startup reaction was not invoked!\n")
@@ -34,6 +32,6 @@ reactor SubB(name("SubB")) extends Super {
 }
 
 main reactor SubclassesAndStartup {
-    a = new SubA()
-    b = new SubB()
+    a = new SubA();
+    b = new SubB();
 }

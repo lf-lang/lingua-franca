@@ -1,19 +1,15 @@
-/** Example in the Wiki. */
-target C
-
-reactor Scale(scale: int(2)) {
-    input x: int
-
-    output y: int
-
-    reaction(x) -> y {= lf_set(y, x->value * self->scale); =}
+// Example in the Wiki.
+target C;
+reactor Scale(scale:int(2)) {
+    input x:int;
+    output y:int;
+    reaction(x) -> y {=
+        lf_set(y, x->value * self->scale);
+    =}
 }
-
 reactor Test {
-    input x: int
-
-    state received_value: bool(false)
-
+    input x:int;
+    state received_value:bool(false);
     reaction(x) {=
         printf("Received %d.\n", x->value);
         self->received_value = true;
@@ -22,7 +18,6 @@ reactor Test {
             exit(1);
         }
     =}
-
     reaction(shutdown) {=
         if (!self->received_value) {
             printf("ERROR: No value received by Test reactor!\n");
@@ -31,12 +26,11 @@ reactor Test {
         }
     =}
 }
-
 main reactor {
-    g = new Scale()
-    d = new Test()
-
-    g.y -> d.x
-
-    reaction(startup) -> g.x {= lf_set(g.x, 1); =}
+    g = new Scale();
+    d = new Test();
+    g.y -> d.x;
+    reaction(startup) -> g.x {=
+        lf_set(g.x, 1);
+    =}
 }

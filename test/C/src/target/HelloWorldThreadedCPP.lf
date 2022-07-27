@@ -1,14 +1,13 @@
 /**
- * A variant of HelloWorld.lf that tests the threaded CCpp target. This test
- * should not pass if it does not compile.
+ * A variant of HelloWorld.lf that tests
+ * the threaded CCpp target. This test should not pass
+ * if it does not compile.
  */
 target CCpp {
     tracing: true,
     logging: DEBUG
-}
-
-import HelloWorld from "HelloWorldCCPP.lf"
-
+};
+import HelloWorld from "HelloWorldCCPP.lf";
 main reactor {
-    a = new HelloWorld()
+    a = new HelloWorld();
 }

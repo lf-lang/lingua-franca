@@ -1,9 +1,11 @@
 // tests that a request_stop called during startup is acted upon.
+
 target Rust {
-    timeout: 30 msec
-}
+    timeout: 30 msec,
+};
 
 main reactor {
+
     reaction(startup) {=
         ctx.request_stop(Asap); // requested for (T0, 1)
         assert_tag_is!(ctx, T0);

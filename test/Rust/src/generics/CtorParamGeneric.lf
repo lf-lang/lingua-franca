@@ -1,12 +1,10 @@
 // tests that ctor parameters may refer to type parameters.
-target Rust
 
-reactor Generic<{= T: Default + Eq + Sync + std::fmt::Debug =}>(
-    value: T({= Default::default() =})
-) {
-    input in: T
+target Rust;
 
-    state v: T(value)
+reactor Generic<{= T: Default + Eq + Sync + std::fmt::Debug =}>(value: T({= Default::default() =})) {
+    input in: T;
+    state v: T(value);
 
     reaction(in) {=
         ctx.use_ref_opt(r#in, |i| {
@@ -15,9 +13,10 @@ reactor Generic<{= T: Default + Eq + Sync + std::fmt::Debug =}>(
         });
     =}
 }
-
 main reactor {
-    p = new Generic<u32>(value = 23)
+    p = new Generic<u32>(value=23);
 
-    reaction(startup) -> p.in {= ctx.set(p__in, 23); =}
+    reaction(startup) -> p.in {=
+        ctx.set(p__in, 23);
+    =}
 }

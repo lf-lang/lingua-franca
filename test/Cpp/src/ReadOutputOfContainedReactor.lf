@@ -1,18 +1,15 @@
-// Test reacting to and reading outputs from a contained reactor in various
-// permutations.
-target Cpp
-
+// Test reacting to and reading outputs from a contained
+// reactor in various permutations.
+target Cpp;
 reactor Contained {
-    output out: int
-
-    reaction(startup) -> out {= out.set(42); =}
+    output out:int;
+    reaction(startup) -> out {=
+        out.set(42);
+    =}
 }
-
 main reactor ReadOutputOfContainedReactor {
-    c = new Contained()
-
-    state count: int(0)
-
+    c = new Contained();
+    state count:int(0);
     reaction(startup) c.out {=
         std::cout << "Startup reaction reading output of contained "
                   << "reactor: " << *c.out.get() << std::endl;
@@ -22,7 +19,6 @@ main reactor ReadOutputOfContainedReactor {
         }
         count++;
     =}
-
     reaction(c.out) {=
         std::cout << "Reading output of contained reactor: " << *c.out.get()
                   << std::endl;
@@ -32,7 +28,6 @@ main reactor ReadOutputOfContainedReactor {
         }
         count++;
     =}
-
     reaction(startup, c.out) {=
         std::cout << "Alternate triggering reading output of contained "
                   << "reactor: " << *c.out.get() << std::endl;
@@ -42,7 +37,6 @@ main reactor ReadOutputOfContainedReactor {
         }
         count++;
     =}
-
     reaction(shutdown) {=
         if (count != 3) {
             std::cerr << "ERROR: One of the reactions failed to trigger."

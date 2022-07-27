@@ -1,18 +1,15 @@
 /**
- * This tests a feedback loop with physical actions and centralized
- * coordination.
+ * This tests a feedback loop with physical actions and
+ * centralized coordination.
  *
  * @author Edward A. Lee
  */
 target C {
     flags: "-Wall",
     coordination: centralized,
-    coordination-options: {
-        advance-message-interval: 100 msec
-    },
+    coordination-options: {advance-message-interval: 100 msec},
     timeout: 5 sec
 }
-
 preamble {=
     #include <unistd.h> // Defines sleep()
     bool stop = false;
@@ -27,26 +24,20 @@ preamble {=
     }
 =}
 
-reactor Looper(incr: int(1), delay: time(0 msec)) {
-    input in: int
-    input in2: int
-
-    output out: int
-    output out2: int
-
-    timer t(0, 1 sec)
-
-    physical action a(delay)
-
-    state count: int(0)
-
+reactor Looper(incr:int(1), delay:time(0 msec)) {
+    input in:int;
+    input in2:int;
+    output out:int;
+    output out2:int;
+    physical action a(delay);
+    state count:int(0);
+    timer t(0, 1 sec);
     reaction(startup) -> a {=
         // Start the thread that listens for Enter or Return.
         lf_thread_t thread_id;
         lf_print("Starting thread.");
         lf_thread_create(&thread_id, &ping, a);
     =}
-
     reaction(a) -> out, out2 {=
         if (self->count%2 == 0) {
             lf_set(out, self->count);
@@ -55,27 +46,23 @@ reactor Looper(incr: int(1), delay: time(0 msec)) {
         }
         self->count += self->incr;
     =}
-
     reaction(in) {=
         lf_print("Received %d at logical time (%lld, %d).",
             in->value,
             current_tag.time - start_time, current_tag.microstep
         );
     =}
-
     reaction(in2) {=
         lf_print("Received %d on in2 at logical time (%lld, %d).",
             in2->value,
             current_tag.time - start_time, current_tag.microstep
         );
     =}
-
     reaction(t) {=
         lf_print("Timer triggered at logical time (%lld, %d).",
             current_tag.time - start_time, current_tag.microstep
         );
     =}
-
     reaction(shutdown) {=
         lf_print("******* Shutdown invoked.");
         // Stop the thread that is scheduling actions.
@@ -85,13 +72,11 @@ reactor Looper(incr: int(1), delay: time(0 msec)) {
         }
     =}
 }
-
-federated reactor(delay: time(0)) {
-    left = new Looper()
-    right = new Looper(incr = -1)
-
-    left.out -> right.in
-    right.out -> left.in
-    right.out2 -> left.in2
-    left.out2 -> right.in2
+federated reactor (delay:time(0)) {
+    left = new Looper();
+    right = new Looper(incr = -1);
+    left.out -> right.in;
+    right.out -> left.in;
+    right.out2 -> left.in2;
+    left.out2 -> right.in2;
 }

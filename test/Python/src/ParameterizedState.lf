@@ -1,11 +1,12 @@
-target Python
+target Python;
 
 reactor Foo(bar(42)) {
-    state baz(bar)
+    state baz(bar);
 
-    reaction(startup) {= print("Baz: ", self.baz) =}
+    reaction (startup) {=
+        print("Baz: ", self.baz)
+    =}
 }
-
 main reactor {
-    a = new Foo()
+    a = new Foo();
 }

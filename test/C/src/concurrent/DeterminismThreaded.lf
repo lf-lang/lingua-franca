@@ -1,17 +1,15 @@
-target C
-
+target C {
+};
 reactor Source {
-    output y: int
-
-    timer t
-
-    reaction(t) -> y {= lf_set(y, 1); =}
+    output y:int;
+    timer t;
+    reaction(t) -> y {=
+        lf_set(y, 1);
+    =}
 }
-
 reactor Destination {
-    input x: int
-    input y: int
-
+    input x:int;
+    input y:int;
     reaction(x, y) {=
         int sum = 0;
         if (x->is_present) {
@@ -27,23 +25,21 @@ reactor Destination {
         }
     =}
 }
-
 reactor Pass {
-    input x: int
-
-    output y: int
-
-    reaction(x) -> y {= lf_set(y, x->value); =}
+    input x:int;
+    output y:int;
+    reaction(x) -> y {=
+        lf_set(y, x->value);
+    =}
 }
 
 main reactor {
-    s = new Source()
-    d = new Destination()
-    p1 = new Pass()
-    p2 = new Pass()
-
-    s.y -> d.y
-    s.y -> p1.x
-    p1.y -> p2.x
-    p2.y -> d.x
+    s = new Source();
+    d = new Destination();
+    p1 = new Pass();
+    p2 = new Pass();
+    s.y -> d.y;
+    s.y -> p1.x;
+    p1.y -> p2.x;
+    p2.y -> d.x;
 }

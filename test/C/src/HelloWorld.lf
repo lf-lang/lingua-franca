@@ -1,19 +1,14 @@
 target C {
-    tracing: {  // To test generating a custom trace file name.
-        trace-file-name: "HelloWorldTrace"
-    },
+    tracing: {trace-file-name: "HelloWorldTrace"}, // To test generating a custom trace file name.
     logging: error,
     build-type: Debug
-}
-
+};
 reactor HelloWorld2 {
-    state success: bool(false)
-
+    state success:bool(false);
     reaction(startup) {=
         printf("Hello World.\n");
         self->success = true;
     =}
-
     reaction(shutdown) {=
         printf("Shutdown invoked.\n");
         if (!self->success) {
@@ -24,5 +19,5 @@ reactor HelloWorld2 {
 }
 
 main reactor HelloWorld {
-    a = new HelloWorld2()
+    a = new HelloWorld2();
 }

@@ -1,19 +1,16 @@
-# Source produces a dynamically allocated array, which it passes to Print.
-# Reference counting ensures that the array is freed.
-target Python
-
+// Source produces a dynamically allocated array, which it passes
+// to Print. Reference counting ensures that the array is freed.
+target Python;
 reactor Source {
-    output out
-
+    output out;
     reaction(startup) -> out {=
         # Dynamically allocate an output array of length 3 and populate it.
         out.set([0,1,2])
     =}
 }
-
-reactor Print(scale(1)) {  # The scale parameter is just for testing.
-    input _in
-
+// The scale parameter is just for testing.
+reactor Print(scale(1)) {
+    input _in;
     reaction(_in) {=
         print("Received: [%s]" % ", ".join(map(str, _in.value)))
         if _in.value != [x * self.scale for x in [0, 1, 2]]:
@@ -21,10 +18,8 @@ reactor Print(scale(1)) {  # The scale parameter is just for testing.
             exit(1)
     =}
 }
-
 main reactor ArrayPrint {
-    s = new Source()
-    p = new Print()
-
-    s.out -> p._in
+    s = new Source();
+    p = new Print();
+    s.out -> p._in;
 }

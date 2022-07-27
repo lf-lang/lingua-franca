@@ -1,22 +1,16 @@
 target Python {
     timeout: 1 sec,
     fast: true
-}
-
+};
 reactor Self {
-    input x
-
-    output y
-
-    logical action a
-
-    state expected(43)
-
+    input x;
+    output y;
+    logical action a;
+    state expected(43);
     reaction(a) -> y {=
         print("a = ", a.value)
         y.set(a.value + 1)
     =}
-
     reaction(x) -> a {=
         print("x = ", x.value)
         if x.value != self.expected:
@@ -25,18 +19,16 @@ reactor Self {
         self.expected += 1
         a.schedule(MSEC(100), x.value)
     =}
-
-    reaction(startup) -> a {= a.schedule(0, 42) =}
-
+    reaction(startup) -> a {=
+        a.schedule(0, 42)
+    =}
     reaction(shutdown) {=
         if self.expected <= 43:
             sys.stderr.write("Received no data.\n")
             exit(2)
     =}
 }
-
 main reactor SelfLoop {
-    u = new Self()
-
-    u.y -> u.x
+    u = new Self();
+    u.y -> u.x;
 }

@@ -1,19 +1,17 @@
-/**
+/*
  * A test for the lf_request_stop() functionality in Lingua Franca.
  *
  * @author Soroush Bateni
  */
-target C {
+ target C {
     timeout: 11 msec
-}
+};
 
 import Sender from "lib/LoopedActionSender.lf"
 
 reactor Consumer {
-    input in: int
-
-    state reaction_invoked_correctly: bool(false)
-
+    input in:int;
+    state reaction_invoked_correctly:bool(false);
     reaction(in) {=
         tag_t current_tag = lf_tag();
         if (lf_tag_compare(current_tag,
@@ -56,8 +54,8 @@ reactor Consumer {
 }
 
 main reactor {
-    consumer = new Consumer()
-    producer = new Sender(break_interval = 1 msec)
+   consumer = new Consumer();
+   producer = new Sender(break_interval = 1 msec);
 
-    producer.out -> consumer.in
+   producer.out -> consumer.in;
 }

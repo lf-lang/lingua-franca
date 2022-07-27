@@ -1,23 +1,18 @@
 /**
- * This test checks that a downstream reaction is triggered only if its trigger
- * is present.
- *
- * @author Maiko Brants TU Dresden
- *
- * Modeled after the C version of this test.
- */
+* This test checks that a downstream reaction is triggered only if its trigger is present.
+*
+* @author Maiko Brants TU Dresden
+*
+* Modeled after the C version of this test.
+**/
 target Cpp {
     timeout: 1 sec,
     fast: true
-}
-
+};
 reactor Source {
-    output[2] out: int
-
-    timer t(0, 200 msec)
-
-    state count: int(0)
-
+    output[2] out:int;
+    state count:int(0);
+    timer t(0, 200 msec);
     reaction(t) -> out {=
         if(count++ % 2 == 0) {
             out[0].set(count);
@@ -26,10 +21,8 @@ reactor Source {
         }
     =}
 }
-
 reactor Destination {
-    input in: int
-
+    input in:int;
     reaction(in) {=
         if(!in.is_present()){
             reactor::log::Error() << "Reaction to input of triggered even though all inputs are absent!";
@@ -39,8 +32,7 @@ reactor Destination {
 }
 
 main reactor TriggerDownstreamOnlyIfPresent2 {
-    s = new Source()
-    d = new[2] Destination()
-
-    s.out -> d.in
+    s = new Source();
+    d = new[2] Destination();
+    s.out -> d.in;
 }

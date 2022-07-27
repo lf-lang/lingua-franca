@@ -1,27 +1,21 @@
-// This tests actions with immutable payloads that are neither malloc'd nor
-// freed.
-target C
+// This tests actions with immutable payloads that are neither malloc'd nor freed.
+target C;
 
-reactor DelayString2(delay: time(100 msec)) {
-    input in: string
-
-    output out: string
-
-    logical action a: string
-
-    reaction(a) -> out {= lf_set(out, a->value); =}
-
+reactor DelayString2(delay:time(100 msec)) {
+    input in:string;
+    output out:string;
+    logical action a:string;
+    reaction(a) -> out {=
+        lf_set(out, a->value);
+    =}
     reaction(in) -> a {=
         // The following copies the char*, not the string.
         lf_schedule_copy(a, self->delay, &(in->value), 1);
     =}
 }
-
 reactor Test {
-    input in: string
-
-    state start_time: time(0)
-
+    input in:string;
+    state start_time:time(0);
     reaction(in) {=
         printf("Received: %s.\n", in->value);
         // Check the time of the input.
@@ -39,10 +33,10 @@ reactor Test {
 }
 
 main reactor {
-    d = new DelayString2()
-    t = new Test()
-
-    d.out -> t.in
-
-    reaction(startup) -> d.in {= lf_set(d.in, "Hello"); =}
+    d = new DelayString2();
+    t = new Test();
+    d.out -> t.in;
+    reaction(startup) -> d.in {=
+        lf_set(d.in, "Hello");
+    =}
 }

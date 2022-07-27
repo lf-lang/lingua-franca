@@ -1,9 +1,9 @@
-// Source produces a statically allocated array, which it passes to Print. The
-// destination references the array directly.
-target Cpp
+// Source produces a statically allocated array, which it passes
+// to Print. The destination references the array directly.
+target Cpp;
 
 reactor Source {
-    output out: int[3]
+    output out:int[3];
 
     reaction(startup) -> out {=
         // create a statically allocated array
@@ -14,7 +14,7 @@ reactor Source {
 }
 
 reactor Print {
-    input in: int[3]
+    input in:int[3];
 
     reaction(in) {=
         int expected = 3;
@@ -45,8 +45,7 @@ reactor Print {
 }
 
 main reactor {
-    s = new Source()
-    p = new Print()
-
-    s.out -> p.in
+    s = new Source();
+    p = new Print();
+    s.out -> p.in;
 }

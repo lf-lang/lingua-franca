@@ -1,19 +1,20 @@
 // Tests that a port value is cleaned up after a tag
-target Rust
+target Rust;
 
 reactor Source {
-    output out: u32
+    output out: u32;
 
-    reaction(startup) -> out {= ctx.set(out, 150); =}
+    reaction(startup) -> out {=
+        ctx.set(out, 150);
+    =}
 }
 
 reactor Sink {
-    input in: u32
+    timer t2(15 msec);
 
-    timer t2(15 msec)
-
-    state reaction_num: u32(0)
-    state done: bool(false)
+    input in: u32;
+    state reaction_num: u32(0);
+    state done: bool(false);
 
     reaction(in, t2) {=
         if self.reaction_num == 0 {
@@ -33,8 +34,8 @@ reactor Sink {
 }
 
 main reactor {
-    source = new Source()
-    sink = new Sink()
+    source = new Source();
+    sink = new Sink();
 
-    source.out -> sink.in
+    source.out -> sink.in;
 }

@@ -1,14 +1,15 @@
-// Source produces a dynamically allocated array, which it passes to Scale.
-// Scale requests a writable copy. It modifies it and passes it to Print. It
-// gets freed after Print is done with it.
-target Cpp
+// Source produces a dynamically allocated array, which it passes
+// to Scale. Scale requests a writable copy.
+// It modifies it and passes it to Print. It gets freed after
+// Print is done with it.
+target Cpp;
 
-import Source, Print from "ArrayPrint.lf"
+import Source, Print from "ArrayPrint.lf";
 
-reactor Scale(scale: int(2)) {
-    input in: int[3]
+reactor Scale(scale:int(2)) {
+    input in:int[3];
 
-    output out: int[3]
+    output out:int[3];
 
     reaction(in) -> out {=
         // create a mutable copy of the received input
@@ -23,10 +24,9 @@ reactor Scale(scale: int(2)) {
 }
 
 main reactor ArrayScale {
-    s = new Source()
-    c = new Scale(scale(2))
-    p = new Print(scale(2))
-
-    s.out -> c.in
-    c.out -> p.in
+    s = new Source();
+    c = new Scale(scale(2));
+    p = new Print(scale(2));
+    s.out -> c.in;
+    c.out -> p.in;
 }

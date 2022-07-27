@@ -1,13 +1,11 @@
-// This tests the ability to import a reactor definition that itself imports a
-// reactor definition.
-target Rust
-
-import SomethingWithAPreamble from "lib/SomethingWithAPreamble.lf"
+// This tests the ability to import a reactor definition
+// that itself imports a reactor definition.
+target Rust;
+import SomethingWithAPreamble from "lib/SomethingWithAPreamble.lf";
 
 main reactor {
-    r = new SomethingWithAPreamble()
-
-    reaction(startup) -> r.a {=
-        ctx.set(r__a, super::something_with_a_preamble::some_fun());
-    =}
+     r = new SomethingWithAPreamble();
+     reaction(startup) -> r.a {=
+         ctx.set(r__a, super::something_with_a_preamble::some_fun());
+     =}
 }

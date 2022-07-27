@@ -1,22 +1,18 @@
-// Source produces a ints on a multiport, which it passes to Scale. Scale
-// requests a writable copy. It modifies it and passes it to Print. It gets
-// freed after Print is done with it.
-target C
-
+// Source produces a ints on a multiport, which it passes
+// to Scale. Scale requests a writable copy.
+// It modifies it and passes it to Print. It gets freed after
+// Print is done with it.
+target C;
 reactor Source {
-    output[2] out: int
-
+    output[2] out:int;
     reaction(startup) -> out {=
         lf_set(out[0], 21);
         lf_set(out[1], 42);
     =}
 }
-
-reactor Print(
-    scale: int(1)  // The scale parameter is just for testing.
-) {
-    input[2] in: int
-
+// The scale parameter is just for testing.
+reactor Print(scale:int(1)) {
+    input[2] in:int;
     reaction(in) {=
         int expected = 42;
         for(int j = 0; j < 2; j++) {
@@ -30,11 +26,9 @@ reactor Print(
     =}
 }
 
-reactor Scale(scale: int(2)) {
-    mutable input[2] in: int
-
-    output[2] out: int
-
+reactor Scale(scale:int(2)) {
+    mutable input[2] in:int;
+    output[2] out:int;
     reaction(in) -> out {=
         for(int j = 0; j < 2; j++) {
             // Modify the input, allowed because mutable.
@@ -43,12 +37,10 @@ reactor Scale(scale: int(2)) {
         }
     =}
 }
-
 main reactor {
-    s = new Source()
-    c = new Scale()
-    p = new Print(scale = 2)
-
-    s.out -> c.in
-    c.out -> p.in
+    s = new Source();
+    c = new Scale();
+    p = new Print(scale=2);
+    s.out -> c.in;
+    c.out -> p.in;
 }

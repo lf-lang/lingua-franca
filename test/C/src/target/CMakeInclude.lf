@@ -1,6 +1,6 @@
 /**
- * Test that cmake-include is working correctly. The failure for this test is
- * failure to compile.
+ * Test that cmake-include is working correctly.
+ * The failure for this test is failure to compile.
  */
 target C {
     cmake-include: [
@@ -8,14 +8,13 @@ target C {
         "../include/foo-cmake-compile-definition.txt"
     ],
     timeout: 0 sec
-}
+};
 
 reactor Foo {
     preamble {=
         #include <math.h>
     =}
-
-    reaction(startup) {=
+    reaction (startup) {=
         lf_print("Maximum of 4.20 and %.2f is %.2f", FOO, fmax(4.20, FOO));
 
         // Check if BAR is defined, which is an error condition (@see federated/DistributedCMakeIncludeSeparateCompile.lf).
@@ -26,5 +25,5 @@ reactor Foo {
 }
 
 main reactor {
-    f = new Foo()
+    f = new Foo();
 }

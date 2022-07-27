@@ -1,22 +1,16 @@
 target C {
     timeout: 1 sec,
     fast: true
-}
-
+};
 reactor Self {
-    input x: int
-
-    output y: int
-
-    logical action a: int
-
-    state expected: int(43)
-
+    input x:int;
+    output y:int;
+    logical action a:int;
+    state expected:int(43);
     reaction(a) -> y {=
         printf("a = %d\n", a->value);
         lf_set(y, a->value + 1);
     =}
-
     reaction(x) -> a {=
         printf("x = %d\n", x->value);
         if (x->value != self->expected) {
@@ -26,9 +20,9 @@ reactor Self {
         self->expected++;
         lf_schedule_int(a, MSEC(100), x->value);
     =}
-
-    reaction(startup) -> a {= lf_schedule_int(a, 0, 42); =}
-
+    reaction(startup) -> a {=
+        lf_schedule_int(a, 0, 42);
+    =}
     reaction(shutdown) {=
         if (self->expected <= 43) {
             fprintf(stderr, "Received no data.\n");
@@ -36,9 +30,7 @@ reactor Self {
         }
     =}
 }
-
 main reactor SelfLoop {
-    u = new Self()
-
-    u.y -> u.x
+    u = new Self();
+    u.y -> u.x;
 }

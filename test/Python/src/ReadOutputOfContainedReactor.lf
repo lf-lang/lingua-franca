@@ -1,18 +1,16 @@
-# Test reacting to and reading outputs from a contained reactor in various
-# permutations.
-target Python
+// Test reacting to and reading outputs from a contained
+// reactor in various permutations.
 
+target Python;
 reactor Contained {
-    output out
-
-    reaction(startup) -> out {= out.set(42) =}
+    output out;
+    reaction(startup) -> out {=
+        out.set(42)
+    =}
 }
-
 main reactor ReadOutputOfContainedReactor {
-    c = new Contained()
-
-    state count(0)
-
+    c = new Contained();
+    state count(0);
     reaction(startup) c.out {=
         print("Startup reaction reading output of contained reactor: ", c.out.value)
         if c.out.value != 42:
@@ -20,7 +18,6 @@ main reactor ReadOutputOfContainedReactor {
             exit(2)
         self.count += 1
     =}
-
     reaction(c.out) {=
         print("Reading output of contained reactor:", c.out.value)
         if c.out.value != 42:
@@ -28,7 +25,6 @@ main reactor ReadOutputOfContainedReactor {
             exit(3)
         self.count += 1
     =}
-
     reaction(startup, c.out) {=
         print("Alternate triggering reading output of contained reactor: ", c.out.value)
         if c.out.value != 42:
@@ -36,7 +32,6 @@ main reactor ReadOutputOfContainedReactor {
             exit(4)
         self.count += 1
     =}
-
     reaction(shutdown) {=
         if self.count != 3:
             print("FAILURE: One of the reactions failed to trigger.\n")

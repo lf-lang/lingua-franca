@@ -1,58 +1,54 @@
 /**
- * Basic benchmark from the Savina benchmark suite that is intended to measure
- * message-passing overhead. This is based on
- * https://www.scala-lang.org/old/node/54 See
- * https://shamsimam.github.io/papers/2014-agere-savina.pdf.
+ * Basic benchmark from the Savina benchmark suite that is
+ * intended to measure message-passing overhead.
+ * This is based on https://www.scala-lang.org/old/node/54
+ * See https://shamsimam.github.io/papers/2014-agere-savina.pdf.
  *
- * This is a distributed version, where Ping and Pong run in separate programs
- * and can be run on different machines.
+ * This is a distributed version, where Ping and Pong run in
+ * separate programs and can be run on different machines.
  *
- * To get a sense, some (informal) results for 1,000,000 ping-pongs on my Mac:
+ * To get a sense, some (informal) results for 1,000,000 ping-pongs
+ * on my Mac:
  *
- * Unthreaded: 97 msec Threaded: 265 msec Distributed: 53 seconds
+ * Unthreaded: 97 msec
+ * Threaded: 265 msec
+ * Distributed: 53 seconds
  *
- * There is no parallelism in this application, so it does not benefit from
- * being being distributed.
+ * There is no parallelism in this application, so it does not benefit from being
+ * being distributed.
  *
- * These measurements are total execution time, including startup and shutdown,
- * of all three programs.
+ * These measurements are total execution time, including startup and shutdown, of
+ * all three programs.
  *
  * @author Edward A. Lee
  */
-target Python
+target Python;
 
 reactor Ping(count(10)) {
-    input receive
-
-    output send
-
-    logical action serve
-
-    state pingsLeft(count)
-
-    reaction(startup, serve) -> send {=
+    input receive;
+    output send;
+    state pingsLeft(count);
+    logical action serve;
+    reaction (startup, serve) -> send {=
         print("At logical time {}, Ping sending {}.\n".format(lf.time.logical_elapsed(), self.pingsLeft))
         send.set(self.pingsLeft)
         self.pingsLeft -= 1
     =}
-
-    reaction(receive) -> serve {=
+    reaction (receive) -> serve {=
         if self.pingsLeft > 0:
             serve.schedule(0)
         else:
             request_stop()
     =}
 }
-
 reactor Pong(expected(10)) {
-    preamble {= import sys =}
+    preamble {=
+        import sys
+    =}
 
-    input receive
-
-    output send
-
-    state count(0)
-
+    input receive;
+    output send;
+    state count(0);
     reaction(receive) -> send {=
         self.count += 1
         print("At logical time {}, Pong received {}.\n".format(lf.time.logical_elapsed(), receive.value))
@@ -60,7 +56,6 @@ reactor Pong(expected(10)) {
         if self.count == self.expected:
             request_stop()
     =}
-
     reaction(shutdown) {=
         if self.count != self.expected:
             print("Pong expected to receive {} inputs, but it received {}.\n".format(self.expected, self.count), file=self.sys.stderr)
@@ -68,11 +63,9 @@ reactor Pong(expected(10)) {
         print("Pong received {} pings.\n".format(self.count))
     =}
 }
-
-federated reactor(count(10)) {
-    ping = new Ping(count = count)
-    pong = new Pong(expected = count)
-
-    ping.send ~> pong.receive
-    pong.send ~> ping.receive
+federated reactor (count(10)) {
+    ping = new Ping(count = count);
+    pong = new Pong(expected = count);
+    ping.send ~> pong.receive;
+    pong.send ~> ping.receive;
 }

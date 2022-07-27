@@ -1,11 +1,10 @@
 // Test logical action with delay.
-target Cpp
+target Cpp;
 
 main reactor ActionValues {
-    logical action act(100 msec): int
-
-    state r1done: bool(false)
-    state r2done: bool(false)
+    state r1done: bool(false);
+    state r2done: bool(false);
+    logical action act(100 msec): int;
 
     reaction(startup) -> act {=
         act.schedule(100);        // scheduled in 100 ms
@@ -39,7 +38,7 @@ main reactor ActionValues {
         }
     =}
 
-    reaction(shutdown) {=
+    reaction (shutdown) {=
         if (!r1done || !r2done) {
             std::cerr << "ERROR: Expected 2 reaction invocations\n";
             exit(1);

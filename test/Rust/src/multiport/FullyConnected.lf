@@ -1,20 +1,20 @@
 // test iterated connection on the left
-target Rust
+target Rust;
 
 reactor Left(bank_index: usize(0)) {
     output out: usize
+    state bank_index(bank_index);
 
-    state bank_index(bank_index)
-
-    reaction(startup) -> out {= ctx.set(out, self.bank_index); =}
+    reaction (startup) -> out {=
+        ctx.set(out, self.bank_index);
+    =}
 }
 
 reactor Right(bank_index: usize(0), num_nodes: usize(4)) {
     input[num_nodes] in: usize
+    state num_nodes(num_nodes);
 
-    state num_nodes(num_nodes)
-
-    reaction(in) {=
+    reaction (in) {=
         let count = r#in.into_iter().filter(|p| ctx.is_present(p)).count();
         assert_eq!(count, self.num_nodes);
         println!("success")
@@ -22,8 +22,7 @@ reactor Right(bank_index: usize(0), num_nodes: usize(4)) {
 }
 
 main reactor(num_nodes: usize(4)) {
-    left = new[num_nodes] Left()
-    right = new[num_nodes] Right(num_nodes = num_nodes)
-
-    (left.out)+ -> right.in
+    left = new[num_nodes] Left();
+    right = new[num_nodes] Right(num_nodes=num_nodes);
+    (left.out)+ -> right.in;
 }

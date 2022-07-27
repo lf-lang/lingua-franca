@@ -1,9 +1,7 @@
-target Cpp
-
+target Cpp;
 reactor Destination {
-    input x: int
-    input y: int
-
+    input x:int;
+    input y:int;
     reaction(x, y) {=
         auto elapsed = get_elapsed_logical_time();
         std::cout << "Time since start: " << elapsed << std::endl;
@@ -28,18 +26,15 @@ reactor Destination {
         }
     =}
 }
-
 main reactor Microsteps {
-    timer start
-
-    logical action repeat: void
-
-    d = new Destination()
-
+    timer start;
+    logical action repeat:void;
+    d = new Destination();
     reaction(start) -> d.x, repeat {=
         d.x.set(1);
         repeat.schedule();
     =}
-
-    reaction(repeat) -> d.y {= d.y.set(1); =}
+    reaction(repeat) -> d.y {=
+        d.y.set(1);
+    =}
 }

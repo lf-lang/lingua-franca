@@ -1,22 +1,20 @@
-/** This checks communication between federates */
-target TypeScript
+/**
+*  This checks communication between federates
+*/
 
-reactor Ping(count: number(10)) {
-    input receive: number
+target TypeScript;
 
-    output send: number
-
-    logical action serve
-
-    state pingsLeft: number(count)
-
-    reaction(startup, serve) -> send {=
+reactor Ping(count:number(10)) {
+    input receive:number;
+    output send:number;
+    state pingsLeft:number(count);
+    logical action serve;
+    reaction (startup, serve) -> send {=
         console.log(`At lo${util.getElapsedLogicalTime()}, Ping sending ${pingsLeft}`);
         send = pingsLeft;
         pingsLeft = pingsLeft - 1;
     =}
-
-    reaction(receive) -> serve {=
+    reaction (receive) -> serve {=
         if(pingsLeft > 0){
             actions.serve.schedule(0, null);
         }
@@ -26,13 +24,10 @@ reactor Ping(count: number(10)) {
     =}
 }
 
-reactor Pong(expected: number(10)) {
-    input receive: number
-
-    output send: number
-
-    state count: number(0)
-
+reactor Pong(expected:number(10)) {
+    input receive:number;
+    output send:number;
+    state count:number(0);
     reaction(receive) -> send {=
         count += 1;
         console.log(`At logical time ${util.getElapsedLogicalTime()}, Pong received ${receive}`)
@@ -41,7 +36,6 @@ reactor Pong(expected: number(10)) {
             util.requestStop();
         }
     =}
-
     reaction(shutdown) {=
         if (count != expected){
             util.requestErrorStop(`Pong expected to receive ${expected} inputs, but it received ${count}`);
@@ -50,10 +44,9 @@ reactor Pong(expected: number(10)) {
     =}
 }
 
-federated reactor PingPongDistributed(count: number(10)) {
-    ping = new Ping(count = count)
-    pong = new Pong(expected = count)
-
-    ping.send -> pong.receive
-    pong.send -> ping.receive
+federated reactor PingPongDistributed(count: number(10)){
+    ping = new Ping(count=count);
+    pong = new Pong(expected=count);
+    ping.send -> pong.receive;
+    pong.send -> ping.receive;
 }

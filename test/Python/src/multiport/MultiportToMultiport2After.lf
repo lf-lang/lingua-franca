@@ -1,12 +1,11 @@
-# Test multiport to multiport connections. See also MultiportToMultiport.
-target Python
+// Test multiport to multiport connections.
+// See also MultiportToMultiport.
+target Python;
 
 import Source from "MultiportToMultiport2.lf"
-
 reactor Destination(width(2)) {
-    input[width] _in
-
-    reaction(_in) {=
+    input[width] _in;
+    reaction (_in) {=
         for (idx, port) in enumerate(_in):
             if port.is_present:
                 print("Received on channel {:d}: ".format(idx), port.value)
@@ -22,9 +21,8 @@ reactor Destination(width(2)) {
 }
 
 main reactor MultiportToMultiport2After {
-    a1 = new Source(width = 3)
-    a2 = new Source(width = 2)
-    b = new Destination(width = 5)
-
-    a1.out, a2.out -> b._in after 1 sec
+    a1 = new Source(width = 3);
+    a2 = new Source(width = 2);
+    b = new Destination(width = 5);
+    a1.out, a2.out -> b._in after 1 sec;
 }

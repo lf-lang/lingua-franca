@@ -1,13 +1,11 @@
 // Example from Schedule section of the C++ Reactor Target wiki page.
-target Cpp
-
+target Cpp;
 reactor ScheduleTest {
-    input x: int
-
-    logical action a: void
-
-    reaction(x) -> a {= a.schedule(200ms); =}
-
+    input x:int;
+    logical action a:void;
+    reaction(x) -> a {=
+        a.schedule(200ms);
+    =}
     reaction(a) {=
         auto elapsed_time = get_elapsed_logical_time();
         std::cout << "Action triggered at logical time " << elapsed_time.count()
@@ -19,11 +17,10 @@ reactor ScheduleTest {
         }
     =}
 }
-
 main reactor Schedule {
-    timer t
-
-    a = new ScheduleTest()
-
-    reaction(t) -> a.x {= a.x.set(1); =}
+    a = new ScheduleTest();
+    timer t;
+    reaction(t) -> a.x {=
+        a.x.set(1);
+    =}
 }

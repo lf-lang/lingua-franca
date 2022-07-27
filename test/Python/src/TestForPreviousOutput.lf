@@ -1,11 +1,11 @@
-# This tests the mechanism for testing whether a previous reaction has produced
-# a given output. The output should always be 42.
-target Python
-
+// This tests the mechanism for testing whether a previous reaction has
+// produced a given output. The output should always be 42.
+target Python;
 reactor Source {
-    preamble {= import random =}
-
-    output out
+    output out;
+    preamble {=
+        import random
+    =}
 
     reaction(startup) -> out {=
         # Set a seed for random number generation based on the current time.
@@ -14,7 +14,6 @@ reactor Source {
         if self.random.choice([0,1]) == 1:
             out.set(21)
     =}
-
     reaction(startup) -> out {=
         if out.is_present:
             out.set(2 * out.value)
@@ -22,10 +21,8 @@ reactor Source {
             out.set(42)
     =}
 }
-
 reactor Sink {
-    input _in
-
+    input _in;
     reaction(_in) {=
         print("Received ", _in.value)
         if _in.value != 42:
@@ -33,10 +30,8 @@ reactor Sink {
             exit(1)
     =}
 }
-
 main reactor TestForPreviousOutput {
-    s = new Source()
-    d = new Sink()
-
-    s.out -> d._in
+    s = new Source();
+    d = new Sink();
+    s.out -> d._in;
 }

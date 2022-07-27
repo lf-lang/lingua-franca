@@ -1,15 +1,12 @@
 // This tests delaying a struct using after.
-target C {
-    files: include/hello.h
-}
+target C {files: include/hello.h};
 
 preamble {=
     #include "hello.h"
 =}
 
 reactor Source {
-    output out: hello_t*
-
+    output out:hello_t*;
     reaction(startup) -> out {=
         // Dynamically allocate an output struct.
         SET_NEW(out);
@@ -19,10 +16,9 @@ reactor Source {
         out->value->value = 42;
     =}
 }
-
-reactor Print(expected: int(42)) {  // expected parameter is for testing.
-    input in: hello_t*
-
+// expected parameter is for testing.
+reactor Print(expected:int(42)) {
+    input in:hello_t*;
     reaction(in) {=
         printf("Received: name = %s, value = %d\n", in->value->name, in->value->value);
         if (in->value->value != self->expected) {
@@ -31,10 +27,8 @@ reactor Print(expected: int(42)) {  // expected parameter is for testing.
         }
     =}
 }
-
 main reactor DelayStructWithAfter {
-    s = new Source()
-    p = new Print()
-
-    s.out -> p.in after 100 msec
+    s = new Source();
+    p = new Print();
+    s.out -> p.in after 100 msec;
 }

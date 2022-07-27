@@ -1,23 +1,26 @@
-target Cpp
+target Cpp;
 
 reactor Source {
-    output out: unsigned
+    output out:unsigned;
 
-    reaction(startup) -> out {= out.set(40); =}
+    reaction (startup) -> out {=
+        out.set(40);
+    =}
 }
 
 reactor Compute {
-    input in: unsigned
+    input in:unsigned;
+    output out:unsigned;
 
-    output out: unsigned
-
-    reaction(in) -> out {= out.set(*in.get() + 2); =}
+    reaction (in) -> out {=
+        out.set(*in.get() + 2);
+    =}
 }
 
 reactor Sink {
-    input in: unsigned
+    input in:unsigned;
 
-    reaction(in) {=
+    reaction (in) {=
         std::cout << "Received " << *in.get() << '\n';
         if (*in.get() != 42) {
             std::cerr << "Error: expected 42!\n";
@@ -28,12 +31,13 @@ reactor Sink {
             exit(2);
         }
     =}
+
 }
 
 main reactor {
-    source = new Source()
-    compute = new Compute()
-    sink = new Sink()
+    source = new Source();
+    compute = new Compute();
+    sink = new Sink();
 
-    source.out, compute.out -> compute.in, sink.in after 500 msec
+    source.out, compute.out -> compute.in, sink.in after 500 msec;
 }

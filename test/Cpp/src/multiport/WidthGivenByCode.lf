@@ -1,11 +1,10 @@
 target Cpp
 
 reactor Foo(a: size_t{8}, b: size_t{2}) {
-    input[{= a*b =}] in: size_t
+    input[{=a*b=}] in: size_t;
+    output[{=a/b=}] out: size_t;
 
-    output[{= a/b =}] out: size_t
-
-    reaction(startup) in -> out {=
+    reaction (startup) in -> out {=
         if (in.size() != a*b) {
             std::cerr << "ERROR: expected in to have a width of " << a*b << '\n';
             exit(1);
@@ -18,12 +17,12 @@ reactor Foo(a: size_t{8}, b: size_t{2}) {
 }
 
 main reactor {
-    foo1 = new Foo()
-    foo2 = new Foo(a = 10, b = 3)
-    foo3 = new Foo(a = 9, b = 9)
-    foo_bank = new[{= 42 =}] Foo()
+    foo1 = new Foo();
+    foo2 = new Foo(a=10, b=3);
+    foo3 = new Foo(a=9, b=9);
+    foo_bank = new[{=42=}] Foo();
 
-    reaction(startup) foo_bank.out {=
+    reaction (startup) foo_bank.out {=
         if (foo_bank.size() != 42) {
             std::cerr << "ERROR: expected foo_bank to have a width of " << 42 << '\n';
             exit(3);

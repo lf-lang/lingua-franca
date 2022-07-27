@@ -1,41 +1,30 @@
 // Test local deadline, where a deadline is associated with a reaction
-// definition. This test triggers a reaction exactly once with a deadline
-// violation.
-target TypeScript
-
-reactor Deadline(threshold: time(100 msec)) {
-    input x: number
-
-    output deadlineViolation: boolean
-
+// definition. This test triggers a reaction exactly once with a
+// deadline violation.
+target TypeScript;
+reactor Deadline(threshold:time(100 msec)) {
+    input x:number;
+    output deadlineViolation:boolean;
     reaction(x) -> deadlineViolation {=
         util.requestErrorStop("ERROR: Deadline violation was not detected!")
-    =} deadline(
-        threshold
-    ) {=
+    =} deadline(threshold) {=
         console.log("Deadline violation detected.");
         deadlineViolation = true;
     =}
 }
-
 reactor Print {
-    input x: boolean
-
+    input x:boolean;
     reaction(x) {=
         if (x) {
             console.log("Output successfully produced by deadline handler.");
         }
     =}
 }
-
 main reactor SimpleDeadline {
-    timer start
-
-    d = new Deadline(threshold = 10 msec)
-    p = new Print()
-
-    d.deadlineViolation -> p.x
-
+    timer start;
+    d = new Deadline(threshold = 10 msec);
+    p = new Print();
+    d.deadlineViolation -> p.x;
     reaction(start) -> d.x {=
         let sleep_time = TimeValue.msec(20);
         let startTime = util.getCurrentPhysicalTime();

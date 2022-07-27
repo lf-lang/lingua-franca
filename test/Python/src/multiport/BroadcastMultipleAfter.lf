@@ -1,15 +1,13 @@
 target Python {
     timeout: 2 sec,
     fast: true
-}
+};
 
 import Source from "Broadcast.lf"
 
 reactor Destination(bank_index(0), delay(0)) {
     input _in
-
     state received(false)
-
     reaction(_in) {=
         print(f"Destination {self.bank_index} received {_in.value}.")
         expected = (self.bank_index % 3) + 1
@@ -22,7 +20,6 @@ reactor Destination(bank_index(0), delay(0)) {
             exit(2)
         self.received = True
     =}
-
     reaction(shutdown) {=
         if self.received is not True:
             sys.stderr.write(f"ERROR: Destination {self.bank_index} received no input!\n")
@@ -32,10 +29,9 @@ reactor Destination(bank_index(0), delay(0)) {
 }
 
 main reactor {
-    a1 = new Source(value = 1)
-    a2 = new Source(value = 2)
-    a3 = new Source(value = 3)
-    b = new[9] Destination(delay = 1 sec)
-
-    (a1.out, a2.out, a3.out)+ -> b._in after 1 sec
+    a1 = new Source(value=1);
+    a2 = new Source(value=2);
+    a3 = new Source(value=3);
+    b = new[9] Destination(delay = 1 sec);
+    (a1.out, a2.out, a3.out)+ -> b._in after 1 sec;
 }

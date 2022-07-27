@@ -1,12 +1,8 @@
-target Python
-
+target Python;
 reactor Count(offset(0), period(1 sec)) {
-    output out
-
-    timer t(offset, period)
-
-    state count(1)
-
+    state count(1);
+    output out;
+    timer t(offset, period);
     reaction(t) -> out {=
         out.set(self.count)
         self.count += 1

@@ -1,15 +1,12 @@
-// This tests a reactor that contains another reactor and also has its own
-// reaction that routes inputs to the contained reactor.
+// This tests a reactor that contains another reactor and also
+// has its own reaction that routes inputs to the contained reactor.
 target C {
     timeout: 10 sec,
     fast: true
-}
-
+};
 reactor Printer {
-    input x: int
-
-    state count: int(1)
-
+    input x:int;
+    state count:int(1);
     reaction(x) {=
         printf("Inside reactor received: %d\n", x->value);
         if (x->value != self->count) {
@@ -19,14 +16,10 @@ reactor Printer {
         self->count++;
     =}
 }
-
 main reactor SendingInsideThreaded {
-    timer t(0, 1 sec)
-
-    p = new Printer()
-
-    state count: int(0)
-
+    state count:int(0);
+    timer t(0, 1 sec);
+    p = new Printer();
     reaction(t) -> p.x {=
         (self->count)++;
         lf_set(p.x, self->count);

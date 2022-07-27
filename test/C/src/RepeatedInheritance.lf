@@ -1,6 +1,6 @@
 /**
- * This tests for the situation where a reactor extends two other reactors that
- * each extend a common reactor.
+ * This tests for the situation where a reactor extends two other reactors
+ * that each extend a common reactor.
  * @author{Edward A. Lee}
  */
 target C {
@@ -8,36 +8,30 @@ target C {
     fast: true
 }
 
-import Count from "lib/Count.lf"
-import TestCount from "lib/TestCount.lf"
+import Count from "lib/Count.lf";
+import TestCount from "lib/TestCount.lf";
 
 reactor D {
-    input d: int
+    input d:int;
 }
-
 reactor C extends D {
-    input c: int
+    input c:int;
 }
-
 reactor B extends D {
-    input b: int
+    input b:int;
 }
-
 reactor A extends B, C {
-    input a: int
-
-    output out: int
-
+    input a:int;
+    output out:int;
     reaction(a, b, c, d) -> out {=
         lf_set(out, a->value + b->value + c->value + d->value);
     =}
 }
 
 main reactor {
-    c = new Count()
-    a = new A()
-    t = new TestCount(start = 4, stride = 4, num_inputs = 6)
-
-    (c.out)+ -> a.a, a.b, a.c, a.d
-    a.out -> t.in
+    c = new Count();
+    a = new A();
+    t = new TestCount(start = 4, stride = 4, num_inputs = 6);
+    (c.out)+ -> a.a, a.b, a.c, a.d;
+    a.out -> t.in;
 }

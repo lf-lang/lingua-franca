@@ -1,8 +1,6 @@
-target TypeScript
-
+target TypeScript;
 reactor Printer {
-    input x: number
-
+    input x:number;
     reaction(x) {=
         console.log("Inside reactor received:" + x );
         if (x != 1) {
@@ -10,11 +8,10 @@ reactor Printer {
         }
     =}
 }
-
 main reactor SendingInside2 {
-    timer t
-
-    p = new Printer()
-
-    reaction(t) -> p.x {= p.x = 1; =}
+    timer t;
+    p = new Printer();
+    reaction(t) -> p.x {=
+        p.x = 1;
+    =}
 }

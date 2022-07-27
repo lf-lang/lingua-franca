@@ -1,28 +1,22 @@
-// This test connects a simple counting source to tester that checks against its
-// own count.
+// This test connects a simple counting source to tester
+// that checks against its own count.
 target C {
     fast: true,
     timeout: 10 sec
-}
+};
 
-reactor Source(period: time(2 sec)) {
-    output y: int
-
-    timer t(1 sec, period)
-
-    state count: int(0)
-
+reactor Source(period:time(2 sec)) {
+    output y:int;
+    timer t(1 sec, period);
+    state count:int(0);
     reaction(t) -> y {=
         (self->count)++;
         lf_set(y, self->count);
     =}
 }
-
 reactor Test {
-    input x: int
-
-    state count: int(0)
-
+    input x:int;
+    state count:int(0);
     reaction(x) {=
         (self->count)++;
         printf("Received %d\n", x->value);
@@ -34,8 +28,7 @@ reactor Test {
 }
 
 main reactor CompositionThreaded {
-    s = new Source()
-    d = new Test()
-
-    s.y -> d.x
+    s = new Source();
+    d = new Test();
+    s.y -> d.x;
 }

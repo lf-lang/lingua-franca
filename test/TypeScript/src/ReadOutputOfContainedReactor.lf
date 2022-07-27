@@ -1,18 +1,15 @@
-// Test reacting to and reading outputs from a contained reactor in various
-// permutations.
-target TypeScript
-
+// Test reacting to and reading outputs from a contained
+// reactor in various permutations.
+target TypeScript;
 reactor Contained {
-    output out: number
-
-    reaction(startup) -> out {= out = 42; =}
+    output out:number;
+    reaction(startup) -> out {=
+        out = 42;
+    =}
 }
-
 main reactor ReadOutputOfContainedReactor {
-    c = new Contained()
-
-    state count: number(0)
-
+    c = new Contained();
+    state count:number(0);
     reaction(startup) c.out {=
         console.log("Startup reaction reading output of contained reactor: " + c.out);
         if (c.out != 42) {
@@ -20,7 +17,6 @@ main reactor ReadOutputOfContainedReactor {
         }
         count++;
     =}
-
     reaction(c.out) {=
         console.log("Reading output of contained reactor: " + c.out);
         if (c.out != 42) {
@@ -28,7 +24,6 @@ main reactor ReadOutputOfContainedReactor {
         }
         count++;
     =}
-
     reaction(startup, c.out) {=
         console.log("Alternate triggering reading output of contained reactor: " + c.out);
         if (c.out != 42) {
@@ -36,7 +31,6 @@ main reactor ReadOutputOfContainedReactor {
         }
         count++;
     =}
-
     reaction(shutdown) {=
         if (count != 3) {
             console.log("Count is: " + count)

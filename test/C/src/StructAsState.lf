@@ -1,7 +1,5 @@
-// Check that a state variable can have a statically initialized struct as a
-// value.
-target C
-
+// Check that a state variable can have a statically initialized struct as a value.
+target C;
 main reactor StructAsState {
     preamble {=
         typedef struct hello_t {
@@ -9,10 +7,7 @@ main reactor StructAsState {
             int value;
         } hello_t;
     =}
-
-    // Notice that target code delimiters are no longer necessary.
-    state s: hello_t("Earth", 42)
-
+    state s:hello_t("Earth", 42); // Notice that target code delimiters are no longer necessary.
     reaction(startup) {=
         printf("State s.name=\"%s\", value=%d.\n", self->s.name, self->s.value);
         if (self->s.value != 42) {

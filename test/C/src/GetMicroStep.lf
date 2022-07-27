@@ -1,12 +1,12 @@
 // Tests the lf_tag().microstep function in the C target.
-target C
-
+target C;
 main reactor GetMicroStep {
-    logical action l
+    state s:int(1);
 
-    state s: int(1)
-
-    reaction(startup) -> l {= lf_schedule(l, 0); =}
+    logical action l;
+    reaction(startup) -> l {=
+        lf_schedule(l, 0);
+    =}
 
     reaction(l) -> l {=
         microstep_t microstep = lf_tag().microstep;

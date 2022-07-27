@@ -1,15 +1,13 @@
-// This tests a reactor that contains another reactor and also has its own
-// reaction that routes inputs to the contained reactor.
-target TypeScript {
-    timeout: 10 sec,
+// This tests a reactor that contains another reactor and also
+// has its own reaction that routes inputs to the contained reactor.
+
+target TypeScript{
+    timeout : 10 sec,
     fast: true
-}
-
+};
 reactor Printer {
-    input x: number
-
-    state count: number(1)
-
+    input x:number;
+    state count:number(1);
     reaction(x) {=
         console.log("Inside reactor received: " + x);
         if ((x as number) != count) {
@@ -18,14 +16,10 @@ reactor Printer {
         count++;
     =}
 }
-
 main reactor SendingInside {
-    timer t(0, 1 sec)
-
-    p = new Printer()
-
-    state count: number(0)
-
+    state count:number(0);
+    timer t(0, 1 sec);
+    p = new Printer();
     reaction(t) -> p.x {=
         count++;
         p.x = count;

@@ -1,17 +1,15 @@
 // Example in the Wiki.
-target Cpp
-
-reactor Scale(scale: int(2)) {
-    input x: int
-
-    output y: int
-
-    reaction(x) -> y {= y.set(*x.get() * scale); =}
+target Cpp{
+};
+reactor Scale(scale:int(2)) {
+    input x:int;
+    output y:int;
+    reaction(x) -> y {=
+        y.set(*x.get() * scale);
+    =}
 }
-
 reactor Test {
-    input x: int
-
+    input x:int;
     reaction(x) {=
         auto value = *x.get();
         std::cout << "Received " << value << std::endl;
@@ -21,14 +19,12 @@ reactor Test {
         }
     =}
 }
-
 main reactor Gain {
-    timer tim
-
-    g = new Scale()
-    t = new Test()
-
-    g.y -> t.x
-
-    reaction(tim) -> g.x {= g.x.set(1); =}
+    g = new Scale();
+    t = new Test();
+    g.y -> t.x;
+    timer tim;
+    reaction(tim) -> g.x {=
+        g.x.set(1);
+    =}
 }

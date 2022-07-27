@@ -1,14 +1,13 @@
 target C {
     timeout: 5 sec,
     fast: true
-}
-
-import Count from "../lib/Count.lf"
+};
+import Count from "../lib/Count.lf";
 
 main reactor {
-    s = new[2] Count()
+    state count:int(1);
 
-    state count: int(1)
+    s = new[2] Count();
 
     reaction(s.out) {=
         for (int i = 0; i < s_width; i++) {

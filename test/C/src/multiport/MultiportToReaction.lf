@@ -2,15 +2,11 @@
 target C {
     timeout: 2 sec,
     fast: true
-}
-
-reactor Source(width: int(1)) {
-    output[width] out: int
-
-    timer t(0, 200 msec)
-
-    state s: int(0)
-
+};
+reactor Source(width:int(1)) {
+    timer t(0, 200 msec);
+    state s:int(0);
+    output[width] out:int;
     reaction(t) -> out {=
         printf("Sending.\n");
         for(int i = 0; i < out_width; i++) {
@@ -18,12 +14,8 @@ reactor Source(width: int(1)) {
         }
     =}
 }
-
 main reactor MultiportToReaction {
-    b = new Source(width = 4)
-
-    state s: int(6)
-
+    state s:int(6);
     reaction(b.out) {=
         int sum = 0;
         for (int i = 0; i < b.out_width; i++) {
@@ -36,7 +28,6 @@ main reactor MultiportToReaction {
         }
         self->s += 16;
     =}
-
     reaction(shutdown) {=
         if (self->s <= 6) {
             fprintf(stderr, "ERROR: Destination received no input!\n");
@@ -44,4 +35,5 @@ main reactor MultiportToReaction {
         }
         printf("Success.\n");
     =}
+    b = new Source(width = 4);
 }

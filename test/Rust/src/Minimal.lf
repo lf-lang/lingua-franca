@@ -1,6 +1,7 @@
 // This is a smoke test of a minimal reactor.
-target Rust
-
+target Rust;
 main reactor Minimal {
-    reaction(startup) {= println!("Hello World."); =}
+    reaction(startup) {=
+        println!("Hello World.");
+    =}
 }

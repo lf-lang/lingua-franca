@@ -1,26 +1,22 @@
-// Source produces a dynamically allocated struct, which it passes to Print.
-// Reference counting ensures that the struct is freed.
-target TypeScript
-
+// Source produces a dynamically allocated struct, which it passes
+// to Print. Reference counting ensures that the struct is freed.
+target TypeScript;
 reactor Source {
     preamble {=
         type hello_t =  {
             name: string ;
             value: number;
-        };
+        }
     =}
-
-    output out: hello_t
-
+    output out:hello_t;
     reaction(startup) -> out {=
         let temp: hello_t = {name: "Earth", value: 42}
         out = temp;
     =}
 }
-
-reactor Print(expected: number(42)) {  // expected parameter is for testing.
-    input x: hello_t
-
+// expected parameter is for testing.
+reactor Print(expected:number(42)) {
+    input x:hello_t;
     reaction(x) {=
         x = x as hello_t;
         console.log("Received: name = " + x.name + ", value = " + x.value);
@@ -29,10 +25,8 @@ reactor Print(expected: number(42)) {  // expected parameter is for testing.
         }
     =}
 }
-
 main reactor StructPrint {
-    s = new Source()
-    p = new Print()
-
-    s.out -> p.x
+    s = new Source();
+    p = new Print();
+    s.out -> p.x;
 }

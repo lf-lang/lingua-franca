@@ -1,16 +1,11 @@
-// Check multiport output to multiport input, where the former is a hierarchical
-// reactor.
+// Check multiport output to multiport input, where the former is a hierarchical reactor.
 target Rust {
-    timeout: 2 sec
-}
-
+    timeout: 2 sec,
+};
 reactor Source {
-    output[4] out: u32
-
-    timer t(0, 200 msec)
-
-    state s: u32(0)
-
+    timer t(0, 200 msec);
+    output[4] out: u32;
+    state s: u32(0);
     reaction(t) -> out {=
         for mut chan in out {
             ctx.set(&mut chan, self.s);
@@ -18,44 +13,34 @@ reactor Source {
         }
     =}
 }
-
 reactor Destination {
-    input[4] in: u32
-
-    state s: u32(6)
-
+    state s: u32(6);
+    input[4] in: u32;
     reaction(in) {=
         let sum: u32 = r#in.into_iter().map(|p| ctx.get(&p).unwrap()).sum();
         println!("Sum of received: {}", sum);
         assert_eq!(sum, self.s);
         self.s += 16;
     =}
-
     reaction(shutdown) {=
         assert!(self.s > 6, "Destination received no input!");
         println!("Success");
     =}
 }
-
 reactor Container {
-    output[4] out: u32
-
-    src = new InsideContainer()
-
-    src.out -> out
+    output[4] out: u32;
+    src = new InsideContainer();
+    src.out -> out;
 }
 
 reactor InsideContainer {
-    output[4] out: u32
-
-    src = new Source()
-
-    src.out -> out
+    output[4] out: u32;
+    src = new Source();
+    src.out -> out;
 }
 
-main reactor MultiportFromHierarchy {
-    a = new Container()
-    b = new Destination()
-
-    a.out -> b.in
+main reactor MultiportFromHierarchy  {
+    a = new Container();
+    b = new Destination();
+    a.out -> b.in;
 }

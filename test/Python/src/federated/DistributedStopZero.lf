@@ -4,22 +4,24 @@
  *
  * @author Soroush Bateni
  */
-# reason for failing: get_microstep() and lf.tag_compare() are not not supported
-# in python target
-target Python
 
-preamble {= import sys =}
+// reason for failing: get_microstep() and lf.tag_compare() are not not supported in python target
+
+target Python;
+
+preamble {=
+    import sys
+=}
 
 reactor Sender {
-    output out
+    output out;
+    timer t(0, 1 usec);
+    state startup_logical_time;
 
-    timer t(0, 1 usec)
-
-    state startup_logical_time
-
-    reaction(startup) {= self.startup_logical_time = lf.time.logical() =}
-
-    reaction(t) -> out {=
+    reaction(startup) {=
+        self.startup_logical_time = lf.time.logical()
+    =}
+    reaction(t) -> out{=
         print("Sending 42 at ({}, {}).".format(
                      lf.time.logical_elapsed(),
                      get_microstep()))
@@ -46,12 +48,12 @@ reactor Sender {
 }
 
 reactor Receiver {
-    input in_
+    input in_;
+    state startup_logical_time;
 
-    state startup_logical_time
-
-    reaction(startup) {= self.startup_logical_time = lf.time.logical() =}
-
+    reaction(startup) {=
+        self.startup_logical_time = lf.time.logical()
+    =}
     reaction(in_) {=
         print("Received {} at ({}, {}).\n".format(
                      in_.value,
@@ -82,8 +84,8 @@ reactor Receiver {
 }
 
 federated reactor {
-    sender = new Sender()
-    receiver = new Receiver()
+    sender = new Sender();
+    receiver = new Receiver();
 
-    sender.out -> receiver.in_
+    sender.out -> receiver.in_;
 }

@@ -1,15 +1,15 @@
 // Test delay made on a connection.
-target Cpp
+target Cpp;
 
 reactor Source {
-    output out: void
-
-    reaction(startup) -> out {= out.set(); =}
+    output out:void;
+    reaction(startup) -> out {=
+        out.set();
+    =}
 }
 
 reactor Sink {
-    input in: void
-
+    input in:void;
     reaction(in) {=
         auto elapsed = get_elapsed_logical_time();
         std::cout << "Nanoseconds since start: " << elapsed << '\n';
@@ -21,8 +21,7 @@ reactor Sink {
 }
 
 main reactor DelayedReaction {
-    source = new Source()
-    sink = new Sink()
-
-    source.out -> sink.in after 100 msec
+    source = new Source();
+    sink = new Sink();
+    source.out -> sink.in after 100 msec;
 }

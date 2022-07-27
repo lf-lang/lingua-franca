@@ -1,25 +1,22 @@
-// Check multiport output to bank of recipients. Here, the bank is smaller than
-// the width of the sending port.
+// Check multiport output to bank of recipients.
+// Here, the bank is smaller than the width of the sending port.
 target C {
     timeout: 2 sec,
     fast: true
-}
-
-reactor Source(width: int(2)) {
-    output[width] out: int
-
+};
+reactor Source(width:int(2)) {
+    output[width] out:int;
     reaction(startup) -> out {=
         for(int i = 0; i < out_width; i++) {
             lf_set(out[i], i);
         }
     =}
 }
-
-reactor Destination(bank_index: int(0)) {
-    input in: int
-
-    state received: bool(false)
-
+reactor Destination(
+    bank_index:int(0)
+) {
+    input in:int;
+    state received:bool(false);
     reaction(in) {=
         printf("Destination %d received %d.\n", self->bank_index, in->value);
         if (self->bank_index != in->value) {
@@ -28,7 +25,6 @@ reactor Destination(bank_index: int(0)) {
         }
         self->received = true;
     =}
-
     reaction(shutdown) {=
         if (!self->received) {
             fprintf(stderr, "ERROR: Destination %d received no input!\n", self->bank_index);
@@ -37,18 +33,14 @@ reactor Destination(bank_index: int(0)) {
         printf("Success.\n");
     =}
 }
-
-reactor Container(width: int(2)) {
-    input[width] in: int
-
-    c = new[width] Destination()
-
-    in -> c.in
+reactor Container(width:int(2)) {
+    input[width] in:int;
+    c = new[width] Destination();
+    in -> c.in;
 }
 
-main reactor MultiportToBankHierarchy(width: int(3)) {
-    a = new Source(width = width)
-    b = new Container(width = width)
-
-    a.out -> b.in
+main reactor MultiportToBankHierarchy(width:int(3)) {
+    a = new Source(width = width);
+    b = new Container(width = width);
+    a.out -> b.in;
 }

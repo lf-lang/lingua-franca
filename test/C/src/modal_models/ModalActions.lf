@@ -1,33 +1,32 @@
-/**
- * Modal Reactor Test. Tests actions, their suspension during mode inactivity
- * and continuation of delays with history transitions.
+/*
+ * Modal Reactor Test.
+ * Tests actions, their suspension during mode inactivity and continuation of delays with history transitions.
  */
 target C {
     fast: false,
     timeout: 4 sec
-}
+};
 
 import TraceTesting from "util/TraceTesting.lf"
 
 reactor Modal {
-    input next: bool
+    input next:bool
 
-    output mode_switch: int
-    output action1_sched: int
-    output action1_exec: int
-    output action2_sched: int
-    output action2_exec: int
+    output mode_switch:int
+    output action1_sched:int
+    output action1_exec:int
+    output action2_sched:int
+    output action2_exec:int
 
     initial mode One {
-        timer T1(0, 750 msec)
+        timer T1(0, 750msec)
+        logical action delay1(500msec)
 
-        logical action delay1(500 msec)
         reaction(T1) -> delay1, action1_sched {=
             printf("Scheduled Action\n");
             lf_schedule(delay1, 0);
             lf_set(action1_sched, 1);
         =}
-
         reaction(delay1) -> action1_exec {=
             printf("Executed Action\n");
             lf_set(action1_exec, 1);
@@ -39,23 +38,21 @@ reactor Modal {
             lf_set_mode(Two);
         =}
     }
-
     mode Two {
-        timer T2(0, 750 msec)
+        timer T2(0, 750msec)
+        logical action delay2(500msec)
 
-        logical action delay2(500 msec)
         reaction(T2) -> delay2, action2_sched {=
             printf("Scheduled Action2\n");
             lf_schedule(delay2, 0);
             lf_set(action2_sched, 1);
         =}
-
         reaction(delay2) -> action2_exec {=
             printf("Executed Action2\n");
             lf_set(action2_exec, 1);
         =}
 
-        reaction(next) -> continue(One), mode_switch {=
+        reaction(next) -> history(One), mode_switch {=
             printf("Transitioning to mode One (continue)\n");
             lf_set(mode_switch, 1);
             lf_set_mode(One);
@@ -64,13 +61,13 @@ reactor Modal {
 }
 
 main reactor {
-    timer stepper(1 sec, 1 sec)
+    timer stepper(1sec, 1sec)
 
     modal = new Modal()
     test = new TraceTesting(
         events_size = 5,
         trace_size = 165,
-        trace = (  // keep-format
+        trace = (
             0,0,0,1,1,0,0,0,0,0,0,
             500000000,0,0,0,1,1,1,0,0,0,0,
             250000000,0,0,1,1,0,1,0,0,0,0,
@@ -86,17 +83,17 @@ main reactor {
             500000000,0,1,0,1,0,1,0,1,1,1,
             250000000,0,1,0,1,0,1,1,1,0,1,
             250000000,1,1,0,1,0,1,0,1,0,1
-        ),
-        training = false
-    )
+        ), training = false)
+
+    // Trigger mode change
+    reaction(stepper) -> modal.next {=
+        lf_set(modal.next, true);
+    =}
 
     modal.mode_switch,
     modal.action1_sched,
     modal.action1_exec,
     modal.action2_sched,
-    modal.action2_exec ->
-        test.events
-
-    // Trigger mode change
-    reaction(stepper) -> modal.next {= lf_set(modal.next, true); =}
+    modal.action2_exec
+    -> test.events
 }

@@ -1,11 +1,11 @@
-target TypeScript
+target TypeScript;
 
-reactor Foo(bar: number(42)) {
-    state baz(bar)
-
-    reaction(startup) {= console.log("Baz: " + baz); =}
+reactor Foo(bar:number(42)) {
+    state baz(bar);
+    reaction (startup) {=
+        console.log("Baz: " + baz);
+    =}
 }
-
 main reactor {
-    a = new Foo()
+    a = new Foo();
 }

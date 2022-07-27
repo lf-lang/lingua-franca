@@ -1,11 +1,12 @@
-target C
+target C;
 
-reactor Foo(bar: int(42)) {
-    state baz(bar)
+reactor Foo(bar:int(42)) {
+    state baz(bar);
 
-    reaction(startup) {= printf("Baz: %d\n", self->baz); =}
+    reaction (startup) {=
+        printf("Baz: %d\n", self->baz);
+    =}
 }
-
 main reactor {
-    a = new Foo()
+    a = new Foo();
 }

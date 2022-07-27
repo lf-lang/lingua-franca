@@ -2,14 +2,13 @@
 target Cpp {
     fast: true,
     timeout: 5 sec
-}
+};
 
-import Count from "lib/Count.lf"
+import Count from "lib/Count.lf";
 
 reactor Test {
-    input c: int
-
-    state i: int(0)
+    input c:int;
+    state i:int(0);
 
     reaction(c) {=
         std::cout << "Received " << *c.get() << '\n';
@@ -28,7 +27,6 @@ reactor Test {
             exit(1);
         }
     =}
-
     reaction(shutdown) {=
         if (i == 0) {
             std::cerr << "ERROR: Final reactor received no data.\n";
@@ -36,10 +34,8 @@ reactor Test {
         }
     =}
 }
-
 main reactor {
-    count = new Count()
-    test = new Test()
-
-    count.c -> test.c after 2 sec
+    count = new Count();
+    test = new Test();
+    count.c -> test.c after 2 sec;
 }

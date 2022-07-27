@@ -1,22 +1,21 @@
 // Tests that a port value is cleaned up after a tag
-target Rust
+target Rust;
 
 reactor Box {
-    input inp: u32
+    input inp: u32;
+    output out: u32;
 
-    output out: u32
-
-    inp -> out
+    inp -> out;
 }
 
 main reactor {
-    timer t1(0)
-    timer t2(15 msec)
+    boxr = new Box();
 
-    boxr = new Box()
+    timer t1(0);
+    timer t2(15msec);
 
-    state reaction_num: u32(0)
-    state done: bool(false)
+    state reaction_num: u32(0);
+    state done: bool(false);
 
     reaction(t1) -> boxr.inp {=
         ctx.set(boxr__inp, 150);

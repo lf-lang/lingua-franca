@@ -1,7 +1,4 @@
-target C {
-    workers: 16
-}
-
+target C { workers: 16 };
 main reactor {
     reaction(startup) {=
         if (NUMBER_OF_WORKERS != 16) {

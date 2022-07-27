@@ -1,16 +1,14 @@
-target Cpp
+target Cpp;
 
-reactor Foo(bar: int(4)) {
-    state baz(bar)
-
-    reaction(startup) {=
+reactor Foo(bar:int(4)) {
+    state baz(bar);
+    reaction (startup) {=
         std::cout << "Baz: " << baz << std::endl;
         if (baz != 42) {
             exit(1);
         }
     =}
 }
-
 main reactor ParameterizedState {
-    a = new Foo(bar = 42)
+    a = new Foo(bar = 42);
 }

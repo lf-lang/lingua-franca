@@ -1,10 +1,7 @@
-target Rust
-
+target Rust;
 main reactor TimerDefaults {
-    timer t
-
-    state i: i32(0)
-
+    state i: i32(0);
+    timer t;
     reaction(t) {=
         assert_tag_is!(ctx, T0);
         println!("Tick {} after {} ms", self.i, ctx.get_elapsed_physical_time().as_millis());

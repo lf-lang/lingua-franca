@@ -1,19 +1,18 @@
 // Illustration of lf_set_token() in the wiki.
-target C
-
+target C;
 reactor Source {
-    output out: int*
-
-    logical action a: int
-
-    reaction(startup) -> a {= lf_schedule_int(a, MSEC(200), 42); =}
-
-    reaction(a) -> out {= lf_set_token(out, a->token); =}
+    output out:int*;
+    logical action a:int;
+    reaction(startup) -> a {=
+        lf_schedule_int(a, MSEC(200), 42);
+    =}
+    reaction(a) -> out {=
+        lf_set_token(out, a->token);
+    =}
 }
-
-reactor Print(expected: int(42)) {  // expected parameter is for testing.
-    input in: int*
-
+// expected parameter is for testing.
+reactor Print(expected:int(42)) {
+    input in:int*;
     reaction(in) {=
         printf("Received %d\n", *(in->value));
         if (*(in->value) != 42) {
@@ -22,10 +21,8 @@ reactor Print(expected: int(42)) {  // expected parameter is for testing.
         }
     =}
 }
-
 main reactor SetToken {
-    s = new Source()
-    p = new Print()
-
-    s.out -> p.in
+    s = new Source();
+    p = new Print();
+    s.out -> p.in;
 }

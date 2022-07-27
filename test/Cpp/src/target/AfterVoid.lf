@@ -2,22 +2,20 @@
 target Cpp {
     fast: false,
     timeout: 3 sec
-}
+};
 
 reactor foo {
-    output y: void
-
-    timer t(0, 1 sec)
-
-    reaction(t) -> y {= y.set(); =}
+    timer t(0, 1 sec);
+    output y:void;
+    reaction(t) -> y {=
+        y.set();
+    =}
 }
 
 reactor print {
-    input x: void
-
-    state expected_time: time(10 msec)
-    state i: int(0)
-
+    state expected_time:time(10 msec);
+    state i:int(0);
+    input x:void;
     reaction(x) {=
         i++;
         auto elapsed_time = get_elapsed_logical_time();
@@ -29,7 +27,6 @@ reactor print {
         }
         expected_time += 1s;
     =}
-
     reaction(shutdown) {=
         if (i == 0) {
             std::cerr << "ERROR: Final reactor received no data.\n";
@@ -37,10 +34,9 @@ reactor print {
         }
     =}
 }
-
 main reactor {
-    f = new foo()
-    p = new print()
+    f = new foo();
+    p = new print();
 
-    f.y -> p.x after 10 msec
+    f.y -> p.x after 10 msec;
 }

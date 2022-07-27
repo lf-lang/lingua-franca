@@ -3,6 +3,7 @@ package org.lflang.ast;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
@@ -1022,22 +1023,23 @@ public class ToLf extends LfSwitch<MalleableString> {
         List<EList<? extends EObject>> statementListList,
         int extraSeparation
     ) {
-        return statementListList.stream()
-            .filter(list -> !list.isEmpty())
-            .map(statementList -> list(
-                "\n".repeat(1 + extraSeparation),
-                "",
-                "\n",
-                true,
-                true,
-                statementList
-            )
-        ).collect(
-            new Joiner(
-                "\n".repeat(1 + extraSeparation),
-                "",
-                ""
-            )
-        ).indent();
+        var sorted = statementListList.stream()
+            .flatMap(List::stream)
+            .sorted(Comparator.comparing(object -> NodeModelUtils.getNode(object).getStartLine()))
+            .toList();
+        if (sorted.isEmpty()) return MalleableString.anyOf("");
+        var ret = new Builder();
+        var first = true;
+        for (var object : sorted) {
+            if (!first) {
+                ret.append("\n".repeat(
+                    extraSeparation + NodeModelUtils.getNode(object).getText().lines()
+                       .takeWhile(String::isBlank).limit(2).count() > 1 ? 2 : 1
+                ));
+            }
+            ret.append(doSwitch(object));
+            first = false;
+        }
+        return ret.append("\n").get().indent();
     }
 }

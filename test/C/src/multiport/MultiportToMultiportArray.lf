@@ -1,17 +1,13 @@
-// Check multiport output to multiport input. Destination port is wider than
-// sending port.
+// Check multiport output to multiport input.
+// Destination port is wider than sending port.
 target C {
     timeout: 2 sec,
     fast: true
-}
-
+};
 reactor Source {
-    output[2] out: int[]
-
-    timer t(0, 200 msec)
-
-    state s: int(0)
-
+    timer t(0, 200 msec);
+    output[2] out:int[];
+    state s:int(0);
     reaction(t) -> out {=
         for(int i = 0; i < 2; i++) {
             // Dynamically allocate an output array of length 3.
@@ -26,10 +22,8 @@ reactor Source {
 }
 
 reactor Destination {
-    input[2] in: int[]
-
-    state s: int(15)
-
+    state s:int(15);
+    input[2] in:int[];
     reaction(in) {=
         int sum = 0;
         for (int i = 0; i < in_width; i++) {
@@ -46,7 +40,6 @@ reactor Destination {
         }
         self->s += 36;
     =}
-
     reaction(shutdown) {=
         if (self->s <= 15) {
             fprintf(stderr, "ERROR: Destination received no input!\n");
@@ -57,8 +50,7 @@ reactor Destination {
 }
 
 main reactor MultiportToMultiportArray {
-    a = new Source()
-    b = new Destination()
-
-    a.out -> b.in
+    a = new Source();
+    b = new Destination();
+    a.out -> b.in;
 }

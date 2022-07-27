@@ -1,10 +1,8 @@
-// This is used by the test for the ability to import a reactor definition that
-// itself imports a reactor definition.
-target Cpp
-
+// This is used by the test for the ability to import a reactor definition
+// that itself imports a reactor definition.
+target Cpp;
 reactor ImportedAgain {
-    input x: int
-
+    input x:int;
     reaction(x) {=
         auto value = *x.get();
         if (value != 42) {

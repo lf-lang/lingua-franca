@@ -1,14 +1,10 @@
-// Source has an variable sized list as a parameter, the elements of which it
-// passes to Print.
-target Cpp
+// Source has an variable sized list as a parameter, the elements of which it passes to Print.
+target Cpp;
 
-reactor Source(sequence: int[]{0, 1, 2}) {
-    output out: size_t
-
-    logical action next: void
-
-    state count: size_t{0}
-
+reactor Source(sequence:int[]{0, 1, 2}) {
+    output out: size_t;
+    state count: size_t{0};
+    logical action next:void;
     reaction(startup, next) -> out, next {=
         out.set(sequence[count]);
         count++;
@@ -19,10 +15,8 @@ reactor Source(sequence: int[]{0, 1, 2}) {
 }
 
 reactor Print {
-    input in: size_t
-
-    state count: size_t{1}
-
+    input in: size_t;
+    state count: size_t{1};
     reaction(in) {=
         std::cout << "Received: " << *in.get() << '\n';
         if (*in.get() != count) {
@@ -31,7 +25,6 @@ reactor Print {
         }
         count++;
     =}
-
     reaction(shutdown) {=
         if (count == 1) {
             std::cerr << "ERROR: Final reactor received no data.\n";
@@ -39,10 +32,8 @@ reactor Print {
         }
     =}
 }
-
 main reactor ArrayAsParameter {
-    s = new Source(sequence{1, 2, 3, 4})
-    p = new Print()
-
-    s.out -> p.in
+    s = new Source(sequence{1, 2, 3, 4});
+    p = new Print();
+    s.out -> p.in;
 }

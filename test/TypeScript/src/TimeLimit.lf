@@ -1,30 +1,25 @@
-// Test that the stop function can be used to internally impose a a time limit.
+// Test that the stop function can be used to internally impose a
+// a time limit.
 // This is also used to test performance (number of reactions per second).
-// Correct output for this 1, 2, 3, 4. Failure for this test is failing to halt
-// or getting the wrong data.
+// Correct output for this 1, 2, 3, 4.
+// Failure for this test is failing to halt or getting the wrong data.
+
 target TypeScript {
     fast: true,
     logging: INFO
-}
-
-reactor Clock(offset: time(0), period: time(1 sec)) {
-    output y: number
-
-    timer t(offset, period)
-
-    state count: number(0)
-
+};
+reactor Clock(offset:time(0), period:time(1 sec)) {
+    output y:number;
+    timer t(offset, period);
+    state count:number(0);
     reaction(t) -> y {=
         count++;
         y = count;
     =}
 }
-
 reactor Destination {
-    input x: number
-
-    state s: number(1)
-
+    input x:number;
+    state s:number(1);
     reaction(x) {=
         if (x != s) {
             util.requestErrorStop("Error: Expected " + s + " and got " + x + ".")
@@ -33,13 +28,13 @@ reactor Destination {
     =}
 }
 
-main reactor TimeLimit(period: time(1 msec)) {  // usecs take a little too long
-    timer stop(10 sec)
+main reactor TimeLimit(period:time(1 msec)) { // usecs take a little too long
+    timer stop(10 secs);
+    reaction(stop) {=
+        util.requestStop()
+    =}
 
-    c = new Clock(period = period)
-    d = new Destination()
-
-    c.y -> d.x
-
-    reaction(stop) {= util.requestStop() =}
+    c = new Clock(period = period);
+    d = new Destination();
+    c.y -> d.x;
 }

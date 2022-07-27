@@ -1,60 +1,62 @@
 /**
- * Modal Reactor Test. Checks disabling of reactions indirectly nested in an
- * inactive mode
+ * Modal Reactor Test.
+ * Checks disabling of reactions indirectly nested in an inactive mode
  */
 target C {
     fast: false,
     timeout: 2 sec
-}
+};
 
 reactor CounterCycle {
-    input next: bool
+    input next:bool;
 
-    output count: int
-    output only_in_two: bool
-    output never: int
+    output count:int;
+    output only_in_two:bool;
+    output never:int;
 
     initial mode One {
-        reaction(next) -> count, reset(Two) {=
+        reaction(next) -> count, Two {=
             lf_set(count, 1);
             lf_set_mode(Two);
         =}
     }
-
     mode Two {
         fwd = new Forward()
-
         next -> fwd.in
         fwd.out -> only_in_two
-        reaction(next) -> count, reset(One) {=
+
+        reaction(next) -> count, One {=
             lf_set(count, 2);
             lf_set_mode(One);
         =}
     }
-
     mode Three {
-        reaction(next) -> never {= lf_set(never, true); =}
+        reaction(next) -> never {=
+            lf_set(never, true);
+        =}
     }
 }
 
 reactor Forward {
-    input in: bool
+    input in:bool;
+    output out:bool;
 
-    output out: bool
-
-    reaction(in) -> out {= lf_set(out, in->value); =}
+    reaction(in) -> out {=
+        lf_set(out, in->value);
+    =}
 }
 
 main reactor {
-    timer stepper(0, 250 msec)
-
+    timer stepper(0, 250msec)
     counter = new CounterCycle()
 
-    reaction(stepper) -> counter.next {=  // Trigger
+    // Trigger
+    reaction(stepper) -> counter.next {=
         lf_set(counter.next, true);
     =}
 
-    reaction(stepper) counter.count, counter.only_in_two {=  // Check
+    // Check
+    reaction(stepper) counter.count, counter.only_in_two {=
         printf("%d\n", counter.count->value);
 
         if (!counter.count->is_present) {

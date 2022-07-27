@@ -1,17 +1,16 @@
-# This tests the ability to import a reactor definition that itself imports a
-# reactor definition.
-target Python
-
+// This tests the ability to import a reactor definition
+// that itself imports a reactor definition.
+target Python;
 import Imported as X from "lib/Imported.lf"
 import Imported as Y from "lib/Imported.lf"
 import ImportedAgain as Z from "lib/ImportedAgain.lf"
-
 main reactor {
-    timer t
+    timer t;
+    a = new X();
+    b = new Y();
+    c = new Z();
 
-    a = new X()
-    b = new Y()
-    c = new Z()
-
-    reaction(t) -> a.x {= a.x.set(42) =}
+    reaction(t) -> a.x {=
+        a.x.set(42)
+    =}
 }

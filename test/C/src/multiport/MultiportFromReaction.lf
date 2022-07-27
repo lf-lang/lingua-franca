@@ -2,13 +2,10 @@
 target C {
     timeout: 2 sec,
     fast: true
-}
-
-reactor Destination(width: int(1)) {
-    input[width] in: int
-
-    state s: int(6)
-
+};
+reactor Destination(width:int(1)) {
+    state s:int(6);
+    input[width] in:int;
     reaction(in) {=
         int sum = 0;
         for (int i = 0; i < in_width; i++) {
@@ -21,7 +18,6 @@ reactor Destination(width: int(1)) {
         }
         self->s += 16;
     =}
-
     reaction(shutdown) {=
         if (self->s <= 6) {
             fprintf(stderr, "ERROR: Destination received no input!\n");
@@ -30,14 +26,9 @@ reactor Destination(width: int(1)) {
         printf("Success.\n");
     =}
 }
-
-main reactor MultiportFromReaction(width: int(4)) {
-    timer t(0, 200 msec)
-
-    b = new Destination(width = width)
-
-    state s: int(0)
-
+main reactor MultiportFromReaction(width:int(4)) {
+    timer t(0, 200 msec);
+    state s:int(0);
     reaction(t) -> b.in {=
         for(int i = 0; i < b.in_width; i++) {
             printf("Before lf_set, b.in[%d]->is_present has value %d\n", i, b.in[i]->is_present);
@@ -46,4 +37,5 @@ main reactor MultiportFromReaction(width: int(4)) {
             printf("AFTER set, b.in[%d]->value has value %d\n", i, b.in[i]->value);
         }
     =}
+    b = new Destination(width = width);
 }

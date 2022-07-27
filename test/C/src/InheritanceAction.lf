@@ -1,26 +1,25 @@
-// This test connects a simple counting source to tester that checks against its
-// own count.
+// This test connects a simple counting source to tester
+// that checks against its own count.
 target C {
     fast: true
-}
-
+};
 reactor Source {
-    output y: int
-
-    logical action foo: int
-
-    reaction(foo) -> y {= lf_set(y, foo->value); =}
+    logical action foo:int;
+    output y:int;
+    reaction(foo) -> y {=
+        lf_set(y, foo->value);
+    =}
 }
 
 reactor SourceExtended extends Source {
-    reaction(startup) -> foo {= lf_schedule_int(foo, 0, 42); =}
+    reaction(startup) -> foo {=
+        lf_schedule_int(foo, 0, 42);
+    =}
 }
 
 reactor Test {
-    input x: int
-
-    state count: int(0)
-
+    input x:int;
+    state count:int(0);
     reaction(x) {=
         (self->count)++;
         printf("Received %d\n", x->value);
@@ -29,17 +28,14 @@ reactor Test {
             exit(1);
         }
     =}
-
     reaction(shutdown) {=
         if (self->count == 0) {
             fprintf(stderr, "FAILURE: No data received.\n");
         }
     =}
 }
-
 main reactor {
-    s = new SourceExtended()
-    d = new Test()
-
-    s.y -> d.x
+    s = new SourceExtended();
+    d = new Test();
+    s.y -> d.x;
 }

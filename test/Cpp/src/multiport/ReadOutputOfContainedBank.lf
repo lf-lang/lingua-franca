@@ -1,18 +1,16 @@
-// Test reacting to and reading outputs from a contained reactor bank in various
-// permutations.
-target Cpp
-
-reactor Contained(bank_index: size_t(0)) {
-    output out: unsigned
-
-    reaction(startup) -> out {= out.set(42 * bank_index); =}
+// Test reacting to and reading outputs from a contained
+// reactor bank in various permutations.
+target Cpp;
+reactor Contained(bank_index:size_t(0)) {
+    output out:unsigned;
+    reaction(startup) -> out {=
+        out.set(42 * bank_index);
+    =}
 }
 
 main reactor {
-    c = new[4] Contained()
-
-    state count: int(0)
-
+    c = new[4] Contained();
+    state count:int(0);
     reaction(startup) c.out {=
         for (size_t i = 0; i < c.size(); i++) {
             unsigned result = *c[i].out.get();
@@ -25,7 +23,6 @@ main reactor {
         }
         count++;
     =}
-
     reaction(c.out) {=
         for (size_t i = 0; i < c.size(); i++) {
             unsigned result = *c[i].out.get();
@@ -38,7 +35,6 @@ main reactor {
         }
         count++;
     =}
-
     reaction(startup, c.out) {=
         for (size_t i = 0; i < c.size(); i++) {
             unsigned result = *c[i].out.get();
@@ -51,7 +47,6 @@ main reactor {
         }
         count++;
     =}
-
     reaction(shutdown) {=
         if (count != 3) {
             std::cerr << "ERROR: One of the reactions failed to trigger."

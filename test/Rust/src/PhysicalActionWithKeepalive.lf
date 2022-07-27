@@ -1,9 +1,11 @@
 target Rust {
+
     keepalive: true
-}
+};
 
 main reactor {
-    physical action act: u32
+
+    physical action act: u32;
 
     reaction(startup) -> act {=
         let act = act.clone();

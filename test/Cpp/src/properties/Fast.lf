@@ -1,13 +1,15 @@
 target Cpp {
     fast: true
-}
+};
 
 main reactor {
-    logical action a
+    logical action a;
 
-    state triggered: bool{false}
+    state triggered: bool{false};
 
-    reaction(startup) -> a {= a.schedule(2s); =}
+    reaction(startup) -> a {=
+        a.schedule(2s);
+    =}
 
     reaction(a) {=
         triggered = true;

@@ -1,28 +1,28 @@
 /**
- * Test a sender-receiver network system that relies on microsteps being taken
- * into account.
+ * Test a sender-receiver network system that
+ * relies on microsteps being taken into account.
  *
  * @author Soroush Bateni
  */
+
 target Python {
     timeout: 1 sec
-}
+};
 
 import Sender from "../lib/LoopedActionSender.lf"
 
 reactor Receiver(take_a_break_after(10), break_interval(400 msec)) {
-    preamble {= import sys =}
-
-    input in_
-
-    # This will impact the performance but forces the logical time to advance
-    # Comment this line for a more sensible log output.
-    timer t(0, 1 msec)
-
-    state received_messages(0)
-    state total_received_messages(0)
-    state breaks(0)
-
+    preamble {=
+        import sys
+    =}
+    input in_;
+    state received_messages(0);
+    state total_received_messages(0);
+    state breaks(0);
+    timer t(0, 1 msec); // This will impact the performance
+                        // but forces the logical time to advance
+                        // Comment this line for a more sensible
+                        // log output.
     reaction(in_) {=
         print("At tag ({}, {}) received value {}.".format(
             lf.time.logical_elapsed(),
@@ -58,9 +58,10 @@ reactor Receiver(take_a_break_after(10), break_interval(400 msec)) {
     =}
 }
 
-federated reactor DistributedLoopedAction {
-    sender = new Sender()
-    receiver = new Receiver()
 
-    sender.out -> receiver.in_
+federated reactor DistributedLoopedAction {
+    sender = new Sender();
+    receiver = new Receiver();
+
+    sender.out -> receiver.in_;
 }

@@ -1,20 +1,19 @@
-/**
- * Tests that, given a logical event scheduled far away in the future (which
- * puts the scheduler to sleep), and a physical action being triggered
- * asynchronously during that sleep time, the scheduler wakes up and processes
- * the physical action before the logical action.
- *
- * This test is unfortunately not very reliable, as the sleeping thread may wake
- * up very late depending on the platform and the weather. The test has already
- * failed in CI on macos, because the action was triggered at (T0+135ms), that
- * is, 115ms later than the expected wake up time (T0+20ms).
- */
-target Rust
+// Tests that, given a logical event scheduled far away in
+// the future (which puts the scheduler to sleep), and a
+// physical action being triggered asynchronously during
+// that sleep time, the scheduler wakes up and processes the
+// physical action before the logical action.
+
+// This test is unfortunately not very reliable, as the sleeping
+// thread may wake up very late depending on the platform and the weather.
+// The test has already failed in CI on macos, because the
+// action was triggered at (T0+135ms), that is, 115ms later
+// than the expected wake up time (T0+20ms).
+target Rust;
 
 main reactor {
-    timer t(250 msec)  // this is unused but important
-
-    physical action act: u32
+    timer t(250 msec); // this is unused but important
+    physical action act: u32;
 
     reaction(startup) -> act {=
         let act = act.clone();

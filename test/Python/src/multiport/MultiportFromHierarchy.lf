@@ -1,29 +1,21 @@
-# Check multiport output to multiport input, where the former is a hierarchical
-# reactor.
+// Check multiport output to multiport input, where the former is a hierarchical reactor.
 target Python {
     timeout: 2 sec,
     fast: true
-}
-
+};
 reactor Source {
-    output[4] out
-
-    timer t(0, 200 msec)
-
-    state s(0)
-
+    timer t(0, 200 msec);
+    output[4] out;
+    state s(0);
     reaction(t) -> out {=
         for port in out:
             port.set(self.s)
             self.s = self.s + 1
     =}
 }
-
 reactor Destination {
-    input[4] _in
-
-    state s(6)
-
+    state s(6);
+    input[4] _in;
     reaction(_in) {=
         sm = 0
         for port in _in:
@@ -35,7 +27,6 @@ reactor Destination {
             exit(1)
         self.s += 16
     =}
-
     reaction(shutdown) {=
         if self.s <= 6:
             sys.stderr.write("ERROR: Destination received no input!\n")
@@ -43,26 +34,20 @@ reactor Destination {
         print("Success.")
     =}
 }
-
 reactor Container {
-    output[4] out
-
-    src = new InsideContainer()
-
-    src.out -> out
+    output[4] out;
+    src = new InsideContainer();
+    src.out -> out;
 }
 
 reactor InsideContainer {
-    output[4] out
-
-    src = new Source()
-
-    src.out -> out
+    output[4] out;
+    src = new Source();
+    src.out -> out;
 }
 
-main reactor MultiportFromHierarchy {
-    a = new Container()
-    b = new Destination()
-
-    a.out -> b._in
+main reactor MultiportFromHierarchy  {
+    a = new Container();
+    b = new Destination();
+    a.out -> b._in;
 }

@@ -1,17 +1,15 @@
-// test a cycled connection which has ports of the same reactor on the LHS and
-// RHS. (multiport)+ -> multiport
+// test a cycled connection which has ports of the same reactor on the LHS and rhs
+// (multiport)+ -> multiport
+
 target Rust {
-    timeout: 16 usec
-}
+    timeout: 16 usec,
+};
 
 reactor Test {
-    input[4] in: u32
-
-    output[2] out: u32
-
-    logical action act: {= (u32, u32) =}
-
-    state last: u32(1)
+    output[2] out: u32;
+    input[4] in: u32;
+    logical action act: {= (u32, u32) =};
+    state last: u32(1);
 
     reaction(startup) -> act {=
         ctx.schedule_with_v(act, Some((0, 1)), after!(1 us));
@@ -43,26 +41,28 @@ reactor Test {
     =}
 }
 
-// Fibonacci numbers:
-// * 0 + 1 = 1
-// * 1 + 1 = 2
-// * 1 + 2 = 3
-// * 2 + 3 = 5
-// * 3 + 5 = 8
-// * 5 + 8 = 13
-// * 8 + 13 = 21
-// * 13 + 21 = 34
-// * 21 + 34 = 55
-// * 34 + 55 = 89
-// * 55 + 89 = 144
-// * 89 + 144 = 233
-// * 144 + 233 = 377
-// * 233 + 377 = 610
-// * 377 + 610 = 987
-// * 610 + 987 = 1597
-// * 987 + 1597 = 2584
 main reactor {
-    t = new Test()
-
-    (t.out)+ -> t.in
+    t = new Test();
+    (t.out)+ -> t.in;
 }
+
+/*
+0 + 1 = 1
+1 + 1 = 2
+1 + 2 = 3
+2 + 3 = 5
+3 + 5 = 8
+5 + 8 = 13
+8 + 13 = 21
+13 + 21 = 34
+21 + 34 = 55
+34 + 55 = 89
+55 + 89 = 144
+89 + 144 = 233
+144 + 233 = 377
+233 + 377 = 610
+377 + 610 = 987
+610 + 987 = 1597
+987 + 1597 = 2584
+
+ */

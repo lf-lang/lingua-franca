@@ -1,9 +1,9 @@
-target Cpp
+target Cpp;
 
 reactor Source {
-    output[4] out: unsigned
+    output[4] out:unsigned;
 
-    reaction(startup) -> out {=
+    reaction (startup) -> out {=
         for (unsigned i = 0; i < out.size(); i++) {
             out[i].set(i);
         }
@@ -11,11 +11,10 @@ reactor Source {
 }
 
 reactor Sink {
-    input[4] in: unsigned
+    input[4] in:unsigned;
+    state received:bool(false);
 
-    state received: bool(false)
-
-    reaction(in) {=
+    reaction (in) {=
         for (unsigned i = 0; i < in.size(); i++) {
             std::cout << "Received " << *in[i].get() << '\n';
             received = true;
@@ -25,8 +24,7 @@ reactor Sink {
             }
         }
     =}
-
-    reaction(shutdown) {=
+    reaction (shutdown) {=
         if (!received) {
             std::cerr << "Error: No data received!\n";
             exit(2);
@@ -35,8 +33,7 @@ reactor Sink {
 }
 
 main reactor MultiportToMultiport {
-    source = new Source()
-    sink = new Sink()
-
-    source.out -> sink.in
+    source = new Source();
+    sink = new Sink();
+    source.out -> sink.in;
 }

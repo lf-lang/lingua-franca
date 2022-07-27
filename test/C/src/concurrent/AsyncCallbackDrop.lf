@@ -1,12 +1,13 @@
-// Test asynchronous callbacks that trigger a physical action with a DROP
-// policy. This test case assumes that the target is multithreaded. This test
-// will not work with the unthreaded C target because that target does not
-// implement any mutex protecting the event queue.
+// Test asynchronous callbacks that trigger a physical action with a DROP policy.
+// This test case assumes that the target is multithreaded.
+// This test will not work with the unthreaded C target because that target
+// does not implement any mutex protecting the event queue.
 target C {
     timeout: 2 sec
-}
+};
 
 main reactor {
+
     preamble {=
         void callback(void* a) {
             // Schedule twice in rapid succession.
@@ -26,15 +27,13 @@ main reactor {
         }
         lf_thread_t threadId;
     =}
+    timer t(0, 200 msec);
+    state thread_id:lf_thread_t(0);
+    state expected_time:time(100 msec);
+    state toggle:bool(false);
 
-    timer t(0, 200 msec)
-
-    physical action a(100 msec, 100 msec, "drop"): int
-
-    state thread_id: lf_thread_t(0)
-    state expected_time: time(100 msec)
-    state toggle: bool(false)
-    state i: int(0)
+    physical action a(100 msec, 100 msec, "drop"):int;
+    state i:int(0);
 
     reaction(t) -> a {=
         // start new thread, provide callback

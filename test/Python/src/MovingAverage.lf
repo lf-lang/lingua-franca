@@ -1,33 +1,27 @@
-# Demonstration of a state variable that is a list. The MovingAverage reactor
-# computes the moving average of the last four inputs and produces that as
-# output. The source is a counting sequence.
+// Demonstration of a state variable that is a list.
+// The MovingAverage reactor computes the moving average of the last
+// four inputs and produces that as output.  The source is a counting
+// sequence.
 target Python {
     timeout: 1 sec,
     fast: true
-}
-
+};
 import TestDouble from "lib/Test.lf"
 
 reactor MASource {
-    output out
-
-    timer clock(0, 200 msec)
-
-    state count(0)
-
+    output out;
+    state count(0);
+    timer clock(0, 200 msec);
     reaction(clock) -> out {=
         out.set(self.count)
         self.count +=1
     =}
 }
-
 reactor MovingAverageImpl {
-    input m_in
-
-    output out
-
-    state delay_line(0.0, 0.0, 0.0)
-    state index(0)
+    state delay_line(0.0, 0.0, 0.0);
+    state index(0);
+    input m_in;
+    output out;
 
     reaction(m_in) -> out {=
         # Calculate the output.
@@ -47,10 +41,9 @@ reactor MovingAverageImpl {
 }
 
 main reactor MovingAverage {
-    s = new MASource()
-    m = new MovingAverageImpl()
-    p = new TestDouble(expected = (0.0, 0.25, 0.75, 1.5, 2.5, 3.5))
-
-    s.out -> m.m_in
-    m.out -> p.t_in
+    s = new MASource();
+    m = new MovingAverageImpl();
+    p = new TestDouble(expected=(0.0, 0.25, 0.75, 1.5, 2.5, 3.5));
+    s.out -> m.m_in;
+    m.out -> p.t_in;
 }

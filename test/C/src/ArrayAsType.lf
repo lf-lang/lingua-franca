@@ -1,10 +1,8 @@
-// Source produces a statically allocated array, which it passes to Print. The
-// destination references the array directly.
-target C
-
+// Source produces a statically allocated array, which it passes
+// to Print. The destination references the array directly.
+target C;
 reactor Source {
-    output out: int[3]
-
+    output out:int[3];
     reaction(startup) -> out {=
         out->value[0] = 0;
         out->value[1] = 1;
@@ -12,10 +10,9 @@ reactor Source {
         SET_PRESENT(out);
     =}
 }
-
-reactor Print(scale: int(1)) {  // The scale parameter is just for testing.
-    input in: int[3]
-
+// The scale parameter is just for testing.
+reactor Print(scale:int(1)) {
+    input in:int[3];
     reaction(in) {=
         int count = 0;       // For testing.
         bool failed = false; // For testing.
@@ -36,10 +33,8 @@ reactor Print(scale: int(1)) {  // The scale parameter is just for testing.
         }
     =}
 }
-
 main reactor ArrayAsType {
-    s = new Source()
-    p = new Print()
-
-    s.out -> p.in
+    s = new Source();
+    p = new Print();
+    s.out -> p.in;
 }

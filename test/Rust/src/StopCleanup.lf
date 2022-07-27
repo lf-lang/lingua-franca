@@ -1,9 +1,10 @@
-/** Tests that ports are cleaned up before the shutdown wave executes. */
-target Rust
+/* Tests that ports are cleaned up before the shutdown wave executes. */
+
+target Rust {
+};
 
 reactor Sender {
-    output out: u32
-
+    output out: u32;
     reaction(startup) -> out {=
         assert_tag_is!(ctx, (T0, 0));
         ctx.set(out, 43);
@@ -12,7 +13,7 @@ reactor Sender {
 }
 
 reactor Consumer {
-    input in_: u32
+    input in_: u32;
 
     reaction(shutdown) in_ {=
         assert!(ctx.get(in_).is_none(), "Port should have been cleaned up before shutdown");
@@ -22,8 +23,8 @@ reactor Consumer {
 }
 
 main reactor StopCleanup {
-    consumer = new Consumer()
-    producer = new Sender()
+    consumer = new Consumer();
+    producer = new Sender();
 
-    producer.out -> consumer.in_
+    producer.out -> consumer.in_;
 }

@@ -2,34 +2,28 @@
 target C {
     timeout: 2 sec,
     fast: true
-}
-
-reactor Source(width: int(2)) {
-    input dummy: int  // Not connected to anything
-
-    output[width] out: int  // Connected to a bank of Destination reactors
-
+};
+reactor Source(width:int(2)) {
+    output[width] out:int;  // Connected to a bank of Destination reactors
+    input dummy:int; // Not connected to anything
     reaction(startup) -> out {=
         for(int i = 0; i < out_width; i++) {
             lf_set(out[i], i);
         }
     =}
-
-    // Test also that multiple appearances of the same effect port do not result
-    // in multiple allocations of memory for the port.
-    reaction(dummy) -> out {=
-        // Contents of the reactions does not matter (either could be empty)
-             for(int i = 0; i < out_width; i++) {
-                 lf_set(out[i], i);
-             }
+    // Test also that multiple appearances of the same effect port
+    // do not result in multiple allocations of memory for the port.
+    reaction(dummy) -> out {=   // Contents of the reactions does not matter (either could be empty)
+        for(int i = 0; i < out_width; i++) {
+            lf_set(out[i], i);
+        }
     =}
 }
-
-reactor Destination(bank_index: int(0)) {
-    input in: int
-
-    state received: bool(false)
-
+reactor Destination(
+    bank_index:int(0)
+) {
+    input in:int;
+    state received:bool(false);
     reaction(in) {=
         printf("Destination %d received %d.\n", self->bank_index, in->value);
         if (self->bank_index != in->value) {
@@ -38,7 +32,6 @@ reactor Destination(bank_index: int(0)) {
         }
         self->received = true;
     =}
-
     reaction(shutdown) {=
         if (!self->received) {
             fprintf(stderr, "ERROR: Destination %d received no input!\n", self->bank_index);
@@ -48,9 +41,8 @@ reactor Destination(bank_index: int(0)) {
     =}
 }
 
-main reactor MultiportToBank(width: int(3)) {
-    a = new Source(width = width)
-    b = new[width] Destination()
-
-    a.out -> b.in
+main reactor MultiportToBank(width:int(3)) {
+    a = new Source(width = width);
+    b = new[width] Destination();
+    a.out -> b.in;
 }

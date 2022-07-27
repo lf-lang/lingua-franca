@@ -1,32 +1,33 @@
-target Cpp
+target Cpp;
 
 // That's the stuff that shall be generated for the after
 reactor GeneratedDelay {
-    input y_in: int
+    input y_in:int;
+    output y_out:int;
+    state y_state:int(0);
 
-    output y_out: int
+    logical action act(100 msec):int;
 
-    logical action act(100 msec): int
+    reaction(y_in) -> act {=
+        act.schedule(y_in.get());
+    =}
 
-    state y_state: int(0)
-
-    reaction(y_in) -> act {= act.schedule(y_in.get()); =}
-
-    reaction(act) -> y_out {= y_out.set(act.get()); =}
+    reaction(act) -> y_out {=
+        y_out.set(act.get());
+    =}
 }
 
 reactor Source {
-    output out: int
-
-    timer t
-
+    output out:int;
+    timer t;
     // reaction(t) -> out after 100 msec {=
-    reaction(t) -> out {= out.set(1); =}
+    reaction(t) -> out {=
+        out.set(1);
+    =}
 }
 
 reactor Sink {
-    input in: int
-
+    input in:int;
     reaction(in) {=
         auto elapsed_logical = get_elapsed_logical_time();
         std::cout << "Elapsed logical time: " << elapsed_logical << '\n';
@@ -38,10 +39,13 @@ reactor Sink {
 }
 
 main reactor ManualDelayedReaction {
-    source = new Source()
-    sink = new Sink()
-    g = new GeneratedDelay()
+    source = new Source();
+    sink = new Sink();
+    g = new GeneratedDelay();
 
-    source.out -> g.y_in  // source.out -> sink.in; rewritten above
-    g.y_out -> sink.in
+    // source.out -> sink.in;
+    // rewritten above
+    source.out -> g.y_in;
+    g.y_out -> sink.in;
+
 }
