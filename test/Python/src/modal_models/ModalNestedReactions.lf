@@ -49,7 +49,7 @@ main reactor {
 
     reaction(stepper) -> counter.next {= counter.next.set(True) =}  # Trigger
 
-    reaction(stepper) counter.count, counter.only_in_two {=         # Check
+    reaction(stepper) counter.count, counter.only_in_two {=  # Check
         print(counter.count.value)
 
         if counter.count.is_present is not True:

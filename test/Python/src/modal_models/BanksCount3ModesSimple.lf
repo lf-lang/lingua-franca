@@ -1,6 +1,4 @@
-/**
- * Modal Reactor Test. Tests cycling through modes with banks of reactors.
- */
+/** Modal Reactor Test. Tests cycling through modes with banks of reactors. */
 target Python {
     fast: false,
     timeout: 2 sec
