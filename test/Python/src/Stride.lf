@@ -6,11 +6,9 @@ target Python {
 }
 
 reactor Count(stride(1)) {
-    output y
-
-    timer t(0, 100 msec)
-
     state count(1)
+    output y
+    timer t(0, 100 msec)
 
     reaction(t) -> y {=
         y.set(self.count)
@@ -20,7 +18,6 @@ reactor Count(stride(1)) {
 
 reactor Display {
     input x
-
     state expected(1)  # for testing.
 
     reaction(x) {=
@@ -34,6 +31,5 @@ reactor Display {
 main reactor Stride {
     c = new Count(stride = 2)
     d = new Display()
-
     c.y -> d.x
 }

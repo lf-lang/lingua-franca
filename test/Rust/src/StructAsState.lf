@@ -9,14 +9,11 @@ main reactor StructAsState {
             value: i32,
         }
     =}
-
     /**
-     * notice this uses parentheses
-     *
-     * todo
-     * * state s: Hello(name= "Earth".into(), value= 42);
-     * * state s: Hello(name: "Earth".into(), value: 42);
-     * * state s: Hello { name: "Earth".into(), value: 42 };
+     * notice this uses parentheses todo
+     * - state s: Hello(name= "Earth".into(), value= 42);
+     * - state s: Hello(name: "Earth".into(), value: 42);
+     * - state s: Hello { name: "Earth".into(), value: 42 };
      */
     state s: Hello({= Hello { name: "Earth".into(), value: 42 } =})
 

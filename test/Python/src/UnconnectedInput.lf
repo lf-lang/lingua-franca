@@ -6,9 +6,7 @@ target Python {
 
 reactor Source {
     output out
-
     timer t(0, 1 sec)
-
     state s(1)
 
     reaction(t) -> out {=
@@ -20,7 +18,6 @@ reactor Source {
 reactor Add {
     input in1
     input in2
-
     output out
 
     reaction(in1, in2) -> out {=
@@ -35,7 +32,6 @@ reactor Add {
 
 reactor Print {
     input _in
-
     state expected(1)
 
     reaction(_in) {=
@@ -52,7 +48,6 @@ main reactor UnconnectedInput {
     source = new Source()
     add = new Add()
     print = new Print()
-
     source.out -> add.in2
     add.out -> print._in
 }

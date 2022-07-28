@@ -13,10 +13,8 @@ target Cpp {
 
 reactor Source {
     output[2] out: int
-
-    timer t(0, 200 msec)
-
     state count: int(0)
+    timer t(0, 200 msec)
 
     reaction(t) -> out {=
         if(count++ % 2 == 0) {
@@ -41,6 +39,5 @@ reactor Destination {
 main reactor TriggerDownstreamOnlyIfPresent2 {
     s = new Source()
     d = new[2] Destination()
-
     s.out -> d.in
 }

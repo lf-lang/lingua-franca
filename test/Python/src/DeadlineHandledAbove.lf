@@ -4,7 +4,6 @@ target Python
 
 reactor Deadline(threshold(100 msec)) {
     input x
-
     output deadline_violation
 
     reaction(x) -> deadline_violation {=
@@ -17,9 +16,8 @@ reactor Deadline(threshold(100 msec)) {
 }
 
 main reactor DeadlineHandledAbove {
-    d = new Deadline(threshold = 10 msec)
-
     state violation_detected(false)
+    d = new Deadline(threshold = 10 msec)
 
     reaction(startup) -> d.x {=
         sleep_time = MSEC(200)

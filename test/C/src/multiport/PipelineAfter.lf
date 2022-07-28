@@ -8,7 +8,6 @@ reactor Source {
 
 reactor Compute {
     input in: unsigned
-
     output out: unsigned
 
     reaction(in) -> out {= lf_set(out, in->value + 2); =}

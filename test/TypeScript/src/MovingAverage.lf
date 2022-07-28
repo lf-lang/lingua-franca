@@ -8,10 +8,8 @@ target TypeScript {
 
 reactor Source {
     output out: number
-
-    timer clock(0, 200 msec)
-
     state count: number(0)
+    timer clock(0, 200 msec)
 
     reaction(clock) -> out {=
         out = count;
@@ -20,12 +18,10 @@ reactor Source {
 }
 
 reactor MovingAverageImpl {
-    input x: number
-
-    output out: number
-
     state delay_line: {= Array<number> =}({= [0.0, 0.0, 0.0] =})
     state index: number(0)
+    input x: number
+    output out: number
 
     reaction(x) -> out {=
         x = x as number;
@@ -49,7 +45,6 @@ reactor MovingAverageImpl {
 
 reactor Print {
     input x: number
-
     state count: number(0)
 
     reaction(x) {=
@@ -67,7 +62,6 @@ main reactor MovingAverage {
     s = new Source()
     m = new MovingAverageImpl()
     p = new Print()
-
     s.out -> m.x
     m.out -> p.x
 }

@@ -2,7 +2,6 @@ target TypeScript
 
 reactor Source {
     output y: number
-
     timer t
 
     reaction(t) -> y {= y = 1; =}
@@ -29,7 +28,6 @@ reactor Destination {
 
 reactor Pass {
     input x: number
-
     output y: number
 
     reaction(x) -> y {= y = x as number; =}
@@ -40,7 +38,6 @@ main reactor Determinism {
     d = new Destination()
     p1 = new Pass()
     p2 = new Pass()
-
     s.y -> d.y
     s.y -> p1.x
     p1.y -> p2.x

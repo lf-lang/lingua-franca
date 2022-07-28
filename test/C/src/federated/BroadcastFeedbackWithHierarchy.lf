@@ -6,22 +6,18 @@ target C {
 }
 
 reactor SenderAndReceiver {
-    input[2] in: int
-
     output out: int
+    input[2] in: int
+    state received: bool(false)
 
     r = new Receiver()
-
     in -> r.in
-
-    state received: bool(false)
 
     reaction(startup) -> out {= lf_set(out, 42); =}
 }
 
 reactor Receiver {
     input[2] in: int
-
     state received: bool(false)
 
     reaction(in) {=
@@ -40,6 +36,5 @@ reactor Receiver {
 
 federated reactor {
     s = new[2] SenderAndReceiver()
-
     (s.out)+ -> s.in
 }

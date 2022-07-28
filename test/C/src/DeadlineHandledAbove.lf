@@ -4,7 +4,6 @@ target C
 
 reactor Deadline(threshold: time(100 msec)) {
     input x: int
-
     output deadline_violation: bool
 
     reaction(x) -> deadline_violation {=
@@ -17,9 +16,8 @@ reactor Deadline(threshold: time(100 msec)) {
 }
 
 main reactor DeadlineHandledAbove {
-    d = new Deadline(threshold = 10 msec)
-
     state violation_detected: bool(false)
+    d = new Deadline(threshold = 10 msec)
 
     reaction(startup) -> d.x {=
         // Do not use nanosleep() here because if this is threaded,

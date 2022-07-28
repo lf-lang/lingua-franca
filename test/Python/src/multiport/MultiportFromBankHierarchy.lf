@@ -15,15 +15,12 @@ reactor Source(bank_index(0)) {
 
 reactor Container {
     output[3] out
-
     s = new[3] Source()
-
     s.out -> out
 }
 
 main reactor MultiportFromBankHierarchy {
     a = new Container()
     b = new Destination()
-
     a.out -> b._in
 }

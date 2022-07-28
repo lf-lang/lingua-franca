@@ -4,10 +4,8 @@ target Cpp
 
 reactor Source(sequence: int[]{0, 1, 2}) {
     output out: size_t
-
-    logical action next: void
-
     state count: size_t{0}
+    logical action next: void
 
     reaction(startup, next) -> out, next {=
         out.set(sequence[count]);
@@ -20,7 +18,6 @@ reactor Source(sequence: int[]{0, 1, 2}) {
 
 reactor Print {
     input in: size_t
-
     state count: size_t{1}
 
     reaction(in) {=
@@ -43,6 +40,5 @@ reactor Print {
 main reactor ArrayAsParameter {
     s = new Source(sequence{1, 2, 3, 4})
     p = new Print()
-
     s.out -> p.in
 }

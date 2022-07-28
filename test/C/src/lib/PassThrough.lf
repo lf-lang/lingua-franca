@@ -3,7 +3,6 @@ target C
 
 reactor PassThrough {
     input in: int
-
     output out: int
 
     reaction(in) -> out {= SET(out, in->value); =}

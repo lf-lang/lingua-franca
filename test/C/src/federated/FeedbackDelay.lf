@@ -5,11 +5,8 @@ target C {
 
 reactor PhysicalPlant {
     input control: double
-
     output sensor: double
-
     timer t(0, 33 msec)
-
     state last_sensor_time: time(0)
     state previous_sensor_time: time(0)
 
@@ -28,13 +25,13 @@ reactor PhysicalPlant {
 
 reactor Controller {
     input sensor: double
-    input planning: double
-
     output control: double
-    output request_for_planning: double
 
     state latest_control: double(0.0)
     state first: bool(true)
+
+    output request_for_planning: double
+    input planning: double
 
     reaction(planning) {= self->latest_control = planning->value; =}
 
@@ -49,7 +46,6 @@ reactor Controller {
 
 reactor Planner {
     input request: double
-
     output response: double
 
     reaction(request) -> response {=

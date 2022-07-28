@@ -3,7 +3,6 @@ target TypeScript
 
 reactor Source {
     output out: number
-
     timer t
 
     reaction(t) -> out {= out = 1; =}
@@ -24,6 +23,5 @@ reactor Sink {
 main reactor DelayedReaction {
     source = new Source()
     sink = new Sink()
-
     source.out -> sink.x after 100 msec
 }

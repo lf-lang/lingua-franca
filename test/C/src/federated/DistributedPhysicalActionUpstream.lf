@@ -30,10 +30,8 @@ preamble {=
 
 reactor WithPhysicalAction {
     output out: int
-
-    physical action act(0): int
-
     state thread_id: lf_thread_t(0)
+    physical action act(0): int
 
     reaction(startup) -> act {=
         // start new thread, provide callback
@@ -48,7 +46,6 @@ federated reactor {
     m1 = new PassThrough()
     m2 = new PassThrough()
     test = new TestCount(num_inputs = 14)
-
     a.out -> m1.in
     m1.out -> m2.in
     m2.out -> test.in

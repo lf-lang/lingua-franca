@@ -3,10 +3,8 @@ target TypeScript
 
 reactor Source(sequence: {= Array<number> =}({= [0, 1, 2] =})) {
     output out: number
-
-    logical action next
-
     state count: number(0)
+    logical action next
 
     reaction(startup, next) -> out, next {=
         out = sequence[count];
@@ -19,7 +17,6 @@ reactor Source(sequence: {= Array<number> =}({= [0, 1, 2] =})) {
 
 reactor Print {
     input x: number
-
     state count: number(1)
 
     reaction(x) {=
@@ -34,6 +31,5 @@ reactor Print {
 main reactor ArrayAsParameter {
     s = new Source(sequence = {= [1, 2, 3, 4] =})
     p = new Print()
-
     s.out -> p.x
 }

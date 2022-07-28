@@ -9,9 +9,7 @@ target C {
 
 reactor Clock(offset: time(0), period: time(1 sec)) {
     output y: int
-
     timer t(offset, period)
-
     state count: int(0)
 
     reaction(t) -> y {=
@@ -23,7 +21,6 @@ reactor Clock(offset: time(0), period: time(1 sec)) {
 
 reactor Destination {
     input x: int
-
     state s: int(1)
 
     reaction(x) {=
@@ -47,10 +44,8 @@ reactor Destination {
 
 main reactor(period: time(1 usec)) {
     timer stop(10 sec)
-
     c = new Clock(period = period)
     d = new Destination()
-
     c.y -> d.x
 
     reaction(stop) {= lf_request_stop(); =}

@@ -1,6 +1,6 @@
 /**
  * Test the case for when two upstream federates send messages to a downstream
- * federte on two different ports. One message should carry a microstep delay
+ * federate on two different ports. One message should carry a microstep delay
  * relative to the other message.
  *
  * @author Soroush Bateni
@@ -14,13 +14,10 @@ target C {
 import Count from "../lib/Count.lf"
 
 reactor CountMicrostep {
-    output out: int
-
-    timer t(0, 1 sec)
-
-    logical action act: int
-
     state count: int(1)
+    output out: int
+    logical action act: int
+    timer t(0, 1 sec)
 
     reaction(t) -> act {= lf_schedule_int(act, 0, self->count++); =}
 
@@ -48,7 +45,6 @@ federated reactor DistributedDoublePort {
     c = new Count()
     cm = new CountMicrostep()
     p = new Print()
-
     c.out -> p.in  // Indicating a 'logical' connection.
     cm.out -> p.in2
 }

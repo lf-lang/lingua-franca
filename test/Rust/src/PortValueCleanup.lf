@@ -8,10 +8,9 @@ reactor Source {
 }
 
 reactor Sink {
-    input in: u32
-
     timer t2(15 msec)
 
+    input in: u32
     state reaction_num: u32(0)
     state done: bool(false)
 

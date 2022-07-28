@@ -7,9 +7,7 @@ preamble {= import hello =}
 
 reactor DelayPointer(delay(100 msec)) {
     input _in
-
     output out
-
     logical action a
 
     reaction(a) -> out {= out.set(a.value); =}
@@ -42,7 +40,6 @@ main reactor DelayStruct {
     s = new Source()
     d = new DelayPointer()
     p = new Print()
-
     s.out -> d._in
     d.out -> p._in
 }

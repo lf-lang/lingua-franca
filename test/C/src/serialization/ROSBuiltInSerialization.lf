@@ -31,10 +31,10 @@ preamble {=
 reactor Sender {
     output out: std_msgs::msg::Int32
 
-    timer t(0, 1 sec)
-
-    /** state serialized_msg_pcl:rclcpp::SerializedMessage({=0u=}); */
+    // state serialized_msg_pcl:rclcpp::SerializedMessage({=0u=});
     state count: int(0)
+
+    timer t(0, 1 sec)
 
     reaction(t) -> out {=
         std_msgs::msg::Int32 ros_message;
@@ -45,7 +45,6 @@ reactor Sender {
 
 reactor Receiver {
     input in: std_msgs::msg::Int32
-
     state count: int(0)
 
     reaction(in) {=

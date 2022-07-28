@@ -7,16 +7,14 @@ target TypeScript {
 
 reactor Foo {
     input x: number
-
     output y: number
 
     reaction(x) -> y {= y = 2 * (x as number); =}
 }
 
 reactor Print {
-    input x: number
-
     state expected_time: time(10 msec)
+    input x: number
 
     reaction(x) {=
         let elapsed_time = util.getElapsedLogicalTime();
@@ -31,11 +29,9 @@ reactor Print {
 }
 
 main reactor {
-    timer t(0, 1 sec)
-
     f = new Foo()
     p = new Print()
-
+    timer t(0, 1 sec)
     f.y -> p.x after 10 msec
 
     reaction(t) -> f.x {= f.x = 42; =}

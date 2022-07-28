@@ -2,7 +2,6 @@ target C
 
 main reactor {
     logical action a: int
-
     state rc_count: int(0)
 
     reaction(startup) -> a {=

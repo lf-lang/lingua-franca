@@ -7,10 +7,8 @@ target C {
 }
 
 reactor Source(width: int(2)) {
-    output[width] out: int
-
     timer t(0, 200 msec)
-
+    output[width] out: int
     state s: int(0)
 
     reaction(t) -> out {=
@@ -21,9 +19,8 @@ reactor Source(width: int(2)) {
 }
 
 reactor Destination(width: int(4)) {
-    input[width] in: int
-
     state s: int(6)
+    input[width] in: int
 
     reaction(in) {=
         int sum = 0;
@@ -49,15 +46,12 @@ reactor Destination(width: int(4)) {
 
 reactor Container(width: int(4)) {
     input[width] in: int
-
     dst = new Destination()
-
     in -> dst.in
 }
 
 main reactor MultiportToHierarchy(width: int(4)) {
     a = new Source(width = width)
     b = new Container(width = width)
-
     a.out -> b.in
 }

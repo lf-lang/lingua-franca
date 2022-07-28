@@ -12,9 +12,7 @@ preamble {= import sys =}
 
 reactor Sender {
     output out
-
     timer t(0, 1 usec)
-
     state startup_logical_time
 
     reaction(startup) {= self.startup_logical_time = lf.time.logical() =}
@@ -47,7 +45,6 @@ reactor Sender {
 
 reactor Receiver {
     input in_
-
     state startup_logical_time
 
     reaction(startup) {= self.startup_logical_time = lf.time.logical() =}

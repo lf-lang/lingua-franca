@@ -5,10 +5,8 @@ target C {
 }
 
 reactor Source(width: int(1)) {
-    output[width] out: int
-
     timer t(0, 200 msec)
-
+    output[width] out: int
     state s: int(0)
 
     reaction(t) -> out {=
@@ -22,9 +20,8 @@ reactor Source(width: int(1)) {
 }
 
 reactor Destination(width: int(1)) {
-    input[width] in: int  // Width is one larger than that of the source.
-
     state s: int(6)
+    input[width] in: int  // Width is one larger than that of the source.
 
     reaction(in) {=
         int sum = 0;
@@ -51,6 +48,5 @@ reactor Destination(width: int(1)) {
 main reactor(width: int(4)) {
     a = new Source(width = width)
     b = new Destination(width = width)
-
     a.out -> b.in
 }

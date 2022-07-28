@@ -5,15 +5,16 @@
  * This version is distributed, communicating using physical connections over
  * sockets.
  *
- * This is based on https://www.scala-lang.org/old/node/54. See
+ * This is based on https://www.scala-lang.org/old/node/54 See
  * https://shamsimam.github.io/papers/2014-agere-savina.pdf.
  *
  * This is a distributed version, where Ping and Pong run in separate programs
  * and can be run on different machines.
  *
  * To get a sense, some (informal) results for 1,000,000 ping-pongs on my Mac:
- *
- * Unthreaded: 97 msec Threaded: 265 msec Distributed: 53 seconds
+ * - Unthreaded: 97 msec
+ * - Threaded: 265 msec
+ * - Distributed: 53 seconds
  *
  * There is no parallelism in this application, so it does not benefit from
  * being being distributed.
@@ -27,12 +28,9 @@ target C
 
 reactor Ping(count: int(10)) {
     input receive: int
-
     output send: int
-
-    logical action serve
-
     state pingsLeft: int(count)
+    logical action serve
 
     reaction(startup, serve) -> send {=
         printf("At logical time %lld, Ping sending %d.\n", lf_time_logical_elapsed(), self->pingsLeft);
@@ -50,9 +48,7 @@ reactor Ping(count: int(10)) {
 
 reactor Pong(expected: int(10)) {
     input receive: int
-
     output send: int
-
     state count: int(0)
 
     reaction(receive) -> send {=
@@ -78,7 +74,6 @@ reactor Pong(expected: int(10)) {
 federated reactor(count: int(10)) {
     ping = new Ping(count = count)
     pong = new Pong(expected = count)
-
     ping.send ~> pong.receive
     pong.send ~> ping.receive
 }

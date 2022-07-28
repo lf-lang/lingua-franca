@@ -144,7 +144,11 @@ public class FormattingUtils {
         return ret.toString();
     }
     /** Wrap lines. Do not merge lines that start with weird characters. */
-    private static String lineWrapComment(String comment, int width, String singleLineCommentPrefix) {
+    private static String lineWrapComment(
+        String comment,
+        int width,
+        String singleLineCommentPrefix
+    ) {
         width = Math.max(width, MINIMUM_COMMENT_WIDTH_IN_COLUMNS);
         List<List<String>> paragraphs = Arrays.stream(
             comment.strip()
@@ -157,10 +161,11 @@ public class FormattingUtils {
             .map(Stream::toList)
             .toList();
         if (MULTILINE_COMMENT.matcher(comment).matches()) {
-            if (
-                comment.length() < width && paragraphs.size() == 1 && paragraphs.get(0).size() == 1
-            ) {
-                return String.format("/** %s */", paragraphs.get(0).get(0));
+            if (paragraphs.size() == 1 && paragraphs.get(0).size() == 1) {
+                String singleLineRepresentation = String.format(
+                    "/** %s */", paragraphs.get(0).get(0)
+                );
+                if (singleLineRepresentation.length() <= width) return singleLineRepresentation;
             }
             return String.format("/**\n%s\n */", lineWrapComment(paragraphs, width, " * "));
         }
@@ -240,8 +245,9 @@ public class FormattingUtils {
         String wrapped = FormattingUtils.lineWrapComments(comment, width, singleLineCommentPrefix);
         if (keepCommentsOnSameLine && wrapped.lines().count() == 1 && !wrapped.startsWith("/**")) {
             int cumsum = 0;
-            for (int j = i; j < components.size(); j++) {
-                if (components.get(j).contains("\n")) {
+            for (int j = 0; j < components.size(); j++) {
+                String current = components.get(j);
+                if (j >= i && current.contains("\n")) {
                     components.set(j, components.get(j).replaceFirst(
                         "\n",
                         " ".repeat(Math.max(
@@ -250,9 +256,11 @@ public class FormattingUtils {
                         )) + wrapped + "\n"
                     ));
                     return true;
+                } else if (current.contains("\n")) {
+                    cumsum = current.length() - current.lastIndexOf("\n") - 1;
+                } else {
+                    cumsum += current.length();
                 }
-                cumsum += components.get(j).length()
-                    - Math.max(0, components.get(j).lastIndexOf("\n"));
             }
         }
         for (int j = i - 1; j >= 0; j--) {

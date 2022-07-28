@@ -38,6 +38,5 @@ reactor Print(
 main reactor {
     s = new Source()
     p = new Print()
-
     s.out -> p.in
 }

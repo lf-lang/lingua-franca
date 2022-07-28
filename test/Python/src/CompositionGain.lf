@@ -3,7 +3,6 @@ target Python
 
 reactor Gain {
     input gainin
-
     output y
 
     reaction(gainin) -> y {=
@@ -14,11 +13,8 @@ reactor Gain {
 
 reactor Wrapper {
     input x
-
     output y
-
     gain = new Gain()
-
     x -> gain.gainin
     gain.y -> y
 }

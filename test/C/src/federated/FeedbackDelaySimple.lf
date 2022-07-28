@@ -4,11 +4,8 @@ target C {
 
 reactor Loop {
     input in: int
-
     output out: int
-
     timer t(0, 100 msec)
-
     state count: int(1)
 
     reaction(in) {=

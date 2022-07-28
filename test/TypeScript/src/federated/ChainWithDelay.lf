@@ -16,7 +16,6 @@ federated reactor {
     c = new Count(period = 1 msec)
     i = new InternalDelay(delay = 500 usec)
     t = new TestCount(numInputs = 3)
-
     c.out -> i.inp
     i.out -> t.inp
 }

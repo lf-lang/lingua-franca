@@ -8,10 +8,8 @@ target Cpp {
 
 reactor Source {
     output out: double
-
-    timer clock(0, 200 msec)
-
     state count: int{0}
+    timer clock(0, 200 msec)
 
     reaction(clock) -> out {=
         out.set(count);
@@ -20,12 +18,10 @@ reactor Source {
 }
 
 reactor MovingAverageImpl {
-    input in: double
-
-    output out: double
-
     state delay_line: double[3]{0.0, 0.0, 0.0}
     state index: int{0}
+    input in: double
+    output out: double
 
     reaction(in) -> out {=
         // Calculate the output.
@@ -48,7 +44,6 @@ reactor MovingAverageImpl {
 
 reactor Print {
     input in: double
-
     state count: int{0}
 
     reaction(in) {=
@@ -73,7 +68,6 @@ main reactor MovingAverage {
     s = new Source()
     m = new MovingAverageImpl()
     p = new Print()
-
     s.out -> m.in
     m.out -> p.in
 }

@@ -7,11 +7,8 @@ target C {
 
 reactor Source(period: time(2 sec)) {
     input foo: int
-
     output y: int
-
     timer t(1 sec, period)
-
     state count: int(0)
 
     reaction(t) -> y {=
@@ -22,7 +19,6 @@ reactor Source(period: time(2 sec)) {
 
 reactor SourceExtended extends Source {
     output y2: int
-
     timer t2(1 sec, 3 sec)
 
     reaction(t2) -> y2 {=
@@ -34,7 +30,6 @@ reactor SourceExtended extends Source {
 
 reactor Test {
     input x: int
-
     state count: int(0)
 
     reaction(x) {=
@@ -55,7 +50,7 @@ reactor Test {
 
 main reactor CompositionInheritance {
     s = new SourceExtended(period = 2 sec)
-    d = new Test()
 
+    d = new Test()
     s.y2 -> d.x
 }

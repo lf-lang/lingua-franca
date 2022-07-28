@@ -15,7 +15,6 @@ reactor Source {
 
 reactor Destination(bank_index(0)) {
     input _in
-
     state received(0)
 
     reaction(_in) {=
@@ -37,6 +36,5 @@ reactor Destination(bank_index(0)) {
 main reactor MultiportToBank {
     a = new Source()
     b = new[3] Destination()
-
     a.out -> b._in
 }

@@ -6,7 +6,6 @@ import Count from "lib/Count.lf"
 
 reactor Test {
     input c: number
-
     state i: number(0)
 
     reaction(c) {=
@@ -21,6 +20,5 @@ reactor Test {
 main reactor CountTest {
     count = new Count()
     test = new Test()
-
     count.out -> test.c
 }

@@ -10,21 +10,19 @@ reactor Source {
 
 reactor Work {
     input in: unsigned
-
     output out: unsigned
 
     reaction(in) -> out {= lf_set(out, in->value); =}
 }
 
 main reactor AfterCycles {
+    state count: int(0)
     s = new Source()
     w0 = new Work()
     w1 = new Work()
 
     s.out -> w0.in after 10 msec
     s.out -> w1.in after 20 msec
-
-    state count: int(0)
 
     reaction(w0.out) {=
         self->count++;

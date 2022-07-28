@@ -9,7 +9,6 @@ import Source from "MultiportToBank.lf"
 
 reactor Destination(bank_index(0)) {
     input _in
-
     state received(false)
 
     reaction(_in) {=
@@ -30,15 +29,12 @@ reactor Destination(bank_index(0)) {
 
 reactor Container {
     input[3] _in
-
     c = new[3] Destination()
-
     _in -> c._in
 }
 
 main reactor MultiportToBankHierarchy {
     a = new Source()
     b = new Container()
-
     a.out -> b._in
 }

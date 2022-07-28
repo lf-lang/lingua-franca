@@ -14,7 +14,6 @@ reactor Printer {
 
 main reactor SendingInside2 {
     timer t
-
     p = new Printer()
 
     reaction(t) -> p.x {= lf_set(p.x, 1); =}

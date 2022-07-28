@@ -11,6 +11,5 @@ import Destination from "MultiportFromBank.lf"
 main reactor MultiportFromBankHierarchyAfter {
     a = new Container()
     b = new Destination()
-
     a.out -> b._in after 1 sec
 }

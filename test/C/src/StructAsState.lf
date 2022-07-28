@@ -9,7 +9,6 @@ main reactor StructAsState {
             int value;
         } hello_t;
     =}
-
     // Notice that target code delimiters are no longer necessary.
     state s: hello_t("Earth", 42)
 

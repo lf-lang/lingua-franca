@@ -14,13 +14,11 @@ reactor Parent {
     output out: i32
 
     child = new Child()
-
     child.out -> out
 }
 
 reactor Sink {
     input inp: i32
-
     state done: bool(false)
 
     reaction(inp) {=

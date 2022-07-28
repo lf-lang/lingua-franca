@@ -7,19 +7,15 @@ target C {
 
 reactor Source {
     output out: int
-
-    timer t(0, 100 msec)
-
     state count: int(1)
+    timer t(0, 100 msec)
 
     reaction(t) -> out {= lf_set(out, self->count++); =}
 }
 
 reactor Sieve {
     input in: int
-
     output out: bool
-
     state primes: int*({= NULL =})
     state last_prime: int(0)
 
@@ -78,7 +74,6 @@ reactor Sieve {
 reactor Destination {
     input ok: bool
     input in: int
-
     state last_invoked: tag_t({= NEVER_TAG_INITIALIZER =})
 
     reaction(ok, in) {=
@@ -103,7 +98,6 @@ main reactor {
     source = new Source()
     sieve = new Sieve()
     destination = new Destination()
-
     source.out -> sieve.in
     sieve.out -> destination.ok
     source.out -> destination.in

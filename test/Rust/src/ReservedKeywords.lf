@@ -4,7 +4,6 @@ target Rust
 
 reactor box {
     input in: u32
-
     output struct: u32
 
     in -> struct
@@ -17,10 +16,10 @@ reactor box {
 }
 
 main reactor ReservedKeywords(struct: u32(0)) {
+    box = new box()
+
     timer t1(0)
     timer t2(15 msec)
-
-    box = new box()
 
     // not in types, this wouldn't be useful. state reaction_num: struct(0);
     reaction(box.struct, t2) {=  =}

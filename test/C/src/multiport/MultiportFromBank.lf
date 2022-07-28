@@ -15,7 +15,6 @@ reactor Source(check_override: int(0), bank_index: int(0)) {
 
 reactor Destination(port_width: int(3)) {
     input[port_width] in: int
-
     state received: bool(false)
 
     reaction(in) {=
@@ -41,6 +40,5 @@ reactor Destination(port_width: int(3)) {
 main reactor MultiportFromBank(width: int(4)) {
     a = new[width] Source(check_override = 1)
     b = new Destination(port_width = width)
-
     a.out -> b.in
 }

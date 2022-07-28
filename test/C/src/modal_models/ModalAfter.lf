@@ -21,7 +21,6 @@ reactor Modal {
     initial mode One {
         producer1 = new Producer(mode_id = 1)
         consumer1 = new Consumer(mode_id = 1)
-
         producer1.product -> produced1
         producer1.product -> consumer1.product after 500 msec
         consumer1.report -> consumed1
@@ -35,11 +34,10 @@ reactor Modal {
     mode Two {
         producer2 = new Producer(mode_id = 2)
         consumer2 = new Consumer(mode_id = 2)
-
         producer2.product -> produced2
         producer2.product -> consumer2.product after 500 msec
         consumer2.report -> consumed2
-        reaction(next) -> continue(One), mode_switch {=
+        reaction(next) -> history(One), mode_switch {=
             printf("Transitioning to mode One (continue)\n");
             lf_set(mode_switch, 1);
             lf_set_mode(One);
@@ -60,7 +58,6 @@ reactor Producer(mode_id: int(0)) {
 
 reactor Consumer(mode_id: int(0)) {
     input product: int
-
     output report: int
 
     reaction(product) -> report {=

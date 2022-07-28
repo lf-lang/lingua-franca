@@ -27,6 +27,5 @@ reactor Print(expected: {= {value: number} =}({= { value: 42 } =})) {
 main reactor SendsPointerTest {
     s = new SendsPointer()
     p = new Print()
-
     s.out -> p.x
 }

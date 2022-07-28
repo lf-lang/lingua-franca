@@ -2,9 +2,8 @@
 target C
 
 reactor A {
-    logical action a
-
     state i: int
+    logical action a
 
     reaction(startup) -> a {=
         self->i = 0;

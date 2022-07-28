@@ -11,9 +11,7 @@ target Python {
 
 reactor Clock(offset(0), period(1 sec)) {
     output y
-
     timer t(offset, period)
-
     state count(0)
 
     reaction(t) -> y {=
@@ -25,7 +23,6 @@ reactor Clock(offset(0), period(1 sec)) {
 
 reactor Destination {
     input x
-
     state s(1)
 
     reaction(x) {=
@@ -47,10 +44,8 @@ reactor Destination {
 
 main reactor TimeLimit(period(1 usec)) {
     timer stop(10 sec)
-
     c = new Clock(period = period)
     d = new Destination()
-
     c.y -> d.x
 
     reaction(stop) {= request_stop() =}

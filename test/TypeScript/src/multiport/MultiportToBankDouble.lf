@@ -16,10 +16,7 @@ reactor Source {
     // Test also that multiple appearances of the same effect port do not result
     // in multiple allocations of memory for the port.
     reaction(startup) ->
-    // Contents of the reactions does not matter (either could be empty)
-    out {=
-        // Contents of the reactions does not matter (either could be empty)
-        // Contents of the reactions does not matter (either could be empty)
+    out {=  // Contents of the reactions does not matter (either could be empty)
         for (let i = 0; i < out.length; i++) {
             out[i] = i * 2;
         }
@@ -28,7 +25,6 @@ reactor Source {
 
 reactor Destination {
     input inp: number
-
     state received: boolean(false)
 
     reaction(inp) {=
@@ -50,6 +46,5 @@ reactor Destination {
 main reactor {
     a = new Source()
     b = new[3] Destination()
-
     a.out -> b.inp
 }

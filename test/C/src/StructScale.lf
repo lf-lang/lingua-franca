@@ -13,9 +13,7 @@ preamble {=
 reactor Source {
     output out: hello_t*
 
-    reaction(startup) ->
-    out {=      // Dynamically allocate an output struct.
-        // Dynamically allocate an output struct.
+    reaction(startup) -> out {=
         // Dynamically allocate an output struct.
         SET_NEW(out);
         // Above allocates a struct, which then must be populated.
@@ -26,7 +24,6 @@ reactor Source {
 
 reactor TestInput(expected: int(42)) {  // expected parameter is for testing.
     input in: hello_t*
-
     state invoked: bool(false)
 
     reaction(in) {=
@@ -63,7 +60,6 @@ main reactor StructScale {
     s = new Source()
     c = new Print()
     p = new TestInput(expected = 84)
-
     s.out -> c.in
     c.out -> p.in
 }

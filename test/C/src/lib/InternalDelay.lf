@@ -2,9 +2,7 @@ target C
 
 reactor InternalDelay(delay: int(10 msec)) {
     input in: int
-
     output out: int
-
     logical action d: int
 
     reaction(in) -> d {= lf_schedule_int(d, self->delay, in->value); =}

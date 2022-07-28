@@ -1,4 +1,4 @@
-/** Version of ThreadedThreaded used to test tracing functions. */
+// Version of ThreadedThreaded used to test tracing functions.
 target C {
     timeout: 2 sec,
     tracing: true,
@@ -8,10 +8,8 @@ target C {
 }
 
 reactor Source {
-    output out: int
-
     timer t(0, 200 msec)
-
+    output out: int
     state s: int(0)
 
     reaction(t) -> out {=
@@ -22,9 +20,7 @@ reactor Source {
 
 reactor TakeTime(bank_index: int(0)) {
     input in: int
-
     output out: int
-
     state event: string("No ID")
 
     reaction(startup) {=
@@ -62,10 +58,9 @@ reactor TakeTime(bank_index: int(0)) {
 }
 
 reactor Destination(width: int(4)) {
-    input[width] in: int
-
     state s: int(400000000)
     state count: int(0)
+    input[width] in: int
 
     reaction(startup) {=
         // Register the user value event.
@@ -94,8 +89,7 @@ reactor Destination(width: int(4)) {
 main reactor(width: int(4)) {
     a = new Source()
     t = new[width] TakeTime()
-    b = new Destination(width = width)
-
     (a.out)+ -> t.in
+    b = new Destination(width = width)
     t.out -> b.in
 }

@@ -4,7 +4,6 @@ target TypeScript
 
 reactor ScheduleLogicalAction {
     input x: number
-
     logical action a
 
     reaction(x) -> a {= actions.a.schedule(TimeValue.msec(200), null) =}
@@ -21,9 +20,8 @@ reactor ScheduleLogicalAction {
 }
 
 main reactor {
-    timer t
-
     a = new ScheduleLogicalAction()
+    timer t
 
     reaction(t) -> a.x {= a.x = 1; =}
 }

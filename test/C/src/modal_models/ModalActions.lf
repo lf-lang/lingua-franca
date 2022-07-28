@@ -20,7 +20,6 @@ reactor Modal {
 
     initial mode One {
         timer T1(0, 750 msec)
-
         logical action delay1(500 msec)
         reaction(T1) -> delay1, action1_sched {=
             printf("Scheduled Action\n");
@@ -42,7 +41,6 @@ reactor Modal {
 
     mode Two {
         timer T2(0, 750 msec)
-
         logical action delay2(500 msec)
         reaction(T2) -> delay2, action2_sched {=
             printf("Scheduled Action2\n");
@@ -55,7 +53,7 @@ reactor Modal {
             lf_set(action2_exec, 1);
         =}
 
-        reaction(next) -> continue(One), mode_switch {=
+        reaction(next) -> history(One), mode_switch {=
             printf("Transitioning to mode One (continue)\n");
             lf_set(mode_switch, 1);
             lf_set_mode(One);

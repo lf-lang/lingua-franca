@@ -20,7 +20,6 @@ main reactor ActionValuesCleanup {
     =}
 
     logical action act: FooDrop
-
     state count: u32(0)
 
     reaction(startup) -> act {=

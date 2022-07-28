@@ -3,7 +3,6 @@ target C
 
 reactor Source {
     output out: int
-
     timer t
 
     reaction(t) -> out {= lf_set(out, 1); =}
@@ -25,6 +24,5 @@ reactor Sink {
 main reactor DelayedReaction {
     source = new Source()
     sink = new Sink()
-
     source.out -> sink.in after 100 msec
 }

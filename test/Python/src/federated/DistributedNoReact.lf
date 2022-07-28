@@ -21,6 +21,5 @@ reactor B {
 federated reactor {
     a = new A()
     b = new B()
-
     b.o -> a.o
 }

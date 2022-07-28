@@ -11,7 +11,6 @@ reactor HelloWorld {
     preamble {=
         #include <iostream>
     =}
-
     state success: bool(false)
 
     reaction(startup) {=

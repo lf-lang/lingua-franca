@@ -8,6 +8,5 @@ import A, B from "../../federated/DistributedSendClass.lf"
 federated reactor at rti {
     a = new A()
     b = new B()
-
     b.o -> a.o
 }

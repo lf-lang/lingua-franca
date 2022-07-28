@@ -6,14 +6,13 @@
  */
 target C {
     timeout: 11 msec,
-    build-type: RelWithDebInfo
+    build-type: RelWithDebInfo  // logging: DEBUG
 }
 
 import Sender from "../lib/LoopedActionSender.lf"
 
 reactor Consumer {
     input in: int
-
     state reaction_invoked_correctly: bool(false)
 
     reaction(in) {=

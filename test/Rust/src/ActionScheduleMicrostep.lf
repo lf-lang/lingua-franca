@@ -3,7 +3,6 @@ target Rust
 
 main reactor ActionScheduleMicrostep {
     logical action act
-
     state count: u32(1)
 
     reaction(startup) -> act {=

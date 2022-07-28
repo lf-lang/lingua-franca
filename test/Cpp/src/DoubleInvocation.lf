@@ -14,10 +14,8 @@ target Cpp {
 reactor Ball {
     output position: int
     output velocity: int
-
-    timer trigger(0, 1 sec)
-
     state p: int(200)
+    timer trigger(0, 1 sec)
 
     reaction(trigger) -> position, velocity {=
         position.set(p);
@@ -29,7 +27,6 @@ reactor Ball {
 reactor Print {
     input velocity: int
     input position: int
-
     state previous: int(-1)
 
     reaction(startup) {=
@@ -51,7 +48,6 @@ main reactor DoubleInvocation {
     b1 = new Ball()
     p = new Print()
     plot = new Print()
-
     b1.position -> p.position
     b1.velocity -> p.velocity
     b1.position -> plot.position

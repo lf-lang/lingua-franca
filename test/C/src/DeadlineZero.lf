@@ -5,7 +5,6 @@ target C {
 
 reactor Detector {
     input trigger: int
-
     state cnt: int(0)
 
     reaction(trigger) {=
@@ -16,7 +15,6 @@ reactor Detector {
 
 reactor Generator {
     output pulse: int
-
     timer t(0, 100 msec)
 
     reaction(t) -> pulse {= lf_set(pulse, 0); =}
@@ -25,6 +23,5 @@ reactor Generator {
 main reactor {
     g = new Generator()
     d = new Detector()
-
     g.pulse -> d.trigger
 }

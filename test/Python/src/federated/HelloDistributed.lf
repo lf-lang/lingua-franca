@@ -19,7 +19,6 @@ reactor Source {
 
 reactor Destination {
     input _in
-
     state received(false)
 
     reaction(startup) {= print("Destination started.") =}
@@ -46,6 +45,5 @@ federated reactor HelloDistributed at localhost {
     # =} Reactor s is in federate Source
     s = new Source()
     d = new Destination()  # Reactor d is in federate Destination
-
     s.out -> d._in  # This version preserves the timestamp.
 }

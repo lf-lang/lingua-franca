@@ -8,10 +8,8 @@ target Cpp {
 
 reactor Source {
     output out: int
-
-    timer t(0, 100 msec)
-
     state count: int(1)
+    timer t(0, 100 msec)
 
     reaction(t) -> out {=
         count++;
@@ -23,11 +21,8 @@ reactor Sieve {
     private preamble {=
         #include "reactor-cpp/logging.hh"
     =}
-
     input in: int
-
     output out: bool
-
     state primes: std::vector<int>
 
     reaction(startup) {=
@@ -84,7 +79,6 @@ reactor Sieve {
 reactor Destination {
     input ok: bool
     input in: int
-
     state last_invoked: {= reactor::TimePoint =}
 
     reaction(ok, in) {=
@@ -105,7 +99,6 @@ main reactor {
     source = new Source()
     sieve = new Sieve()
     destination = new Destination()
-
     source.out -> sieve.in
     sieve.out -> destination.ok
     source.out -> destination.in

@@ -15,7 +15,6 @@ target C {
 
 reactor Sender {
     output out: int
-
     timer t(0, 1 msec)
 
     reaction(t) -> out {=
@@ -33,7 +32,6 @@ reactor Sender {
 
 reactor Receiver {
     input in: int
-
     state success: int(0)
 
     reaction(in) {=

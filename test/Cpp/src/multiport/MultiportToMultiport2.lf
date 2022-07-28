@@ -34,6 +34,5 @@ main reactor MultiportToMultiport2 {
     a1 = new Source(width = 3)
     a2 = new Source(width = 2)
     b = new Destination(width = 5)
-
     a1.out, a2.out -> b.in
 }

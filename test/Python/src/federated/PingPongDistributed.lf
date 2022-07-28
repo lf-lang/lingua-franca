@@ -23,12 +23,9 @@ target Python
 
 reactor Ping(count(10)) {
     input receive
-
     output send
-
-    logical action serve
-
     state pingsLeft(count)
+    logical action serve
 
     reaction(startup, serve) -> send {=
         print("At logical time {}, Ping sending {}.\n".format(lf.time.logical_elapsed(), self.pingsLeft))
@@ -48,9 +45,7 @@ reactor Pong(expected(10)) {
     preamble {= import sys =}
 
     input receive
-
     output send
-
     state count(0)
 
     reaction(receive) -> send {=
@@ -72,7 +67,6 @@ reactor Pong(expected(10)) {
 federated reactor(count(10)) {
     ping = new Ping(count = count)
     pong = new Pong(expected = count)
-
     ping.send ~> pong.receive
     pong.send ~> ping.receive
 }

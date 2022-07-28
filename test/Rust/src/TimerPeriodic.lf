@@ -3,9 +3,8 @@ target Rust {
 }
 
 main reactor TimerPeriodic {
-    timer t2(0, 3 msec)
-
     state i: i32(0)
+    timer t2(0, 3 msec)
 
     reaction(t2) {=
         println!("Tick {} at {}", self.i, ctx.get_tag());

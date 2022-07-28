@@ -10,7 +10,6 @@ main reactor Preamble {
             return i + 42;
         }
     =}
-
     timer t
 
     reaction(t) {=

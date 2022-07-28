@@ -10,10 +10,8 @@ import TestDouble from "lib/Test.lf"
 
 reactor MASource {
     output out
-
-    timer clock(0, 200 msec)
-
     state count(0)
+    timer clock(0, 200 msec)
 
     reaction(clock) -> out {=
         out.set(self.count)
@@ -22,12 +20,10 @@ reactor MASource {
 }
 
 reactor MovingAverageImpl {
-    input m_in
-
-    output out
-
     state delay_line(0.0, 0.0, 0.0)
     state index(0)
+    input m_in
+    output out
 
     reaction(m_in) -> out {=
         # Calculate the output.
@@ -50,7 +46,6 @@ main reactor MovingAverage {
     s = new MASource()
     m = new MovingAverageImpl()
     p = new TestDouble(expected = (0.0, 0.25, 0.75, 1.5, 2.5, 3.5))
-
     s.out -> m.m_in
     m.out -> p.t_in
 }

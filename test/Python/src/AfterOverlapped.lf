@@ -8,7 +8,6 @@ import Count from "lib/Count.lf"
 
 reactor Test {
     input c
-
     state i(0)
     state received(0)
 
@@ -38,6 +37,5 @@ reactor Test {
 main reactor AfterOverlapped {
     count = new Count()
     test = new Test()
-
     count.out -> test.c after 2 sec
 }

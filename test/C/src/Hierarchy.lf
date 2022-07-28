@@ -3,7 +3,6 @@ target C
 
 reactor Source {
     output out: int
-
     timer t
 
     reaction(t) -> out {= lf_set(out, 1); =}
@@ -11,7 +10,6 @@ reactor Source {
 
 reactor Gain {
     input in: int
-
     output out: int
 
     reaction(in) -> out {=
@@ -34,12 +32,9 @@ reactor Print {
 
 reactor GainContainer {
     input in: int
-
     output out: int
     output out2: int
-
     gain = new Gain()
-
     in -> gain.in
     gain.out -> out
     gain.out -> out2
@@ -50,8 +45,7 @@ main reactor Hierarchy {
     container = new GainContainer()
     print = new Print()
     print2 = new Print()
-
     source.out -> container.in
     container.out -> print.in
-    container.out -> print2.in
+    container.out2 -> print2.in
 }

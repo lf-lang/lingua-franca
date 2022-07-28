@@ -4,7 +4,6 @@ target Rust
 main reactor ActionDelay {
     logical action act0
     logical action act1(100 msec)
-
     state count: u32(0)
 
     reaction(startup) -> act0, act1 {=

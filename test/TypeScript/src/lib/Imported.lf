@@ -8,7 +8,6 @@ import ImportedAgain from "ImportedAgain.lf"
 
 reactor Imported {
     input x: number
-
     a = new ImportedAgain()
 
     reaction(x) -> a.x {= a.x = (x as number); =}

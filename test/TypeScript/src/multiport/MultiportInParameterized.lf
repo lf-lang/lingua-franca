@@ -5,10 +5,8 @@ target TypeScript {
 }
 
 reactor Source {
-    output out: number
-
     timer t(0, 200 msec)
-
+    output out: number
     state s: number(0)
 
     reaction(t) -> out {=
@@ -19,16 +17,14 @@ reactor Source {
 
 reactor Computation {
     input inp: number
-
     output out: number
 
     reaction(inp) -> out {= out = inp; =}
 }
 
 reactor Destination(width: number(1)) {
-    input[width] inp: number
-
     state s: number(0)
+    input[width] inp: number
 
     reaction(inp) {=
         let sum = 0;
@@ -60,7 +56,6 @@ main reactor {
     t3 = new Computation()
     t4 = new Computation()
     b = new Destination(width = 4)
-
     a.out -> t1.inp
     a.out -> t2.inp
     a.out -> t3.inp

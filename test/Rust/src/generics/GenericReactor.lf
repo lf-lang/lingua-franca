@@ -3,19 +3,18 @@ target Rust
 
 reactor Box<{= T: Sync =}> {
     input inp: T
-
     output out: T
 
     inp -> out
 }
 
 main reactor {
+    state done: bool(false)
+
     box0 = new Box<u32>()
     box1 = new Box<u32>()
 
     box0.out -> box1.inp
-
-    state done: bool(false)
 
     reaction(startup) -> box0.inp {= ctx.set(box0__inp, 444); =}
 

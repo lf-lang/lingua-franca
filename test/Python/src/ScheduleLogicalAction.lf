@@ -7,9 +7,7 @@ target Python {
 
 reactor foo {
     input x
-
     output y
-
     logical action a
 
     reaction(x) -> y, a {=
@@ -22,9 +20,8 @@ reactor foo {
 }
 
 reactor print {
-    input x
-
     state expected_time(0)
+    input x
 
     reaction(x) {=
         elapsed_time = lf.time.logical_elapsed()
@@ -39,11 +36,9 @@ reactor print {
 }
 
 main reactor {
-    timer t(0, 1 sec)
-
     f = new foo()
     p = new print()
-
+    timer t(0, 1 sec)
     f.y -> p.x
 
     reaction(t) -> f.x {= f.x.set(42) =}

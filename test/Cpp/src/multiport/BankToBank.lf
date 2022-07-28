@@ -5,10 +5,8 @@ target Cpp {
 }
 
 reactor Source(bank_index: size_t(0)) {
-    output out: int
-
     timer t(0, 200 msec)
-
+    output out: int
     state s: int(0)
 
     reaction(t) -> out {=
@@ -18,9 +16,8 @@ reactor Source(bank_index: size_t(0)) {
 }
 
 reactor Destination(bank_index: size_t(0)) {
-    input in: int
-
     state s: int(0)
+    input in: int
 
     reaction(in) {=
         std::cout << "Destination " << bank_index << " received: " << *in.get() << "\n";
@@ -44,6 +41,5 @@ main reactor BankToBank(width: int(4)) {
     // FIXME: Should set the width to "width" rather than "4".
     a = new[4] Source()
     b = new[4] Destination()
-
     a.out -> b.in
 }

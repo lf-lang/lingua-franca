@@ -2,10 +2,9 @@
 target Rust
 
 main reactor ActionValues {
-    logical action act(100 msec): i32
-
     state r1done: bool(false)
     state r2done: bool(false)
+    logical action act(100 msec): i32
 
     reaction(startup) -> act {=
         ctx.schedule_with_v(act, Some(100), Asap); // scheduled in 100 ms

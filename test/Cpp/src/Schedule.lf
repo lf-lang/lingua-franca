@@ -3,7 +3,6 @@ target Cpp
 
 reactor ScheduleTest {
     input x: int
-
     logical action a: void
 
     reaction(x) -> a {= a.schedule(200ms); =}
@@ -21,9 +20,8 @@ reactor ScheduleTest {
 }
 
 main reactor Schedule {
-    timer t
-
     a = new ScheduleTest()
+    timer t
 
     reaction(t) -> a.x {= a.x.set(1); =}
 }

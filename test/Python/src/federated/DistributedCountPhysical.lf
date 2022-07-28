@@ -12,11 +12,9 @@ target Python {
 }
 
 reactor Count {
-    output out
-
     timer t(200 msec, 1 sec)
-
     state s(0)
+    output out
 
     reaction(t) -> out {=
         out.set(self.s)
@@ -26,9 +24,7 @@ reactor Count {
 
 reactor Print {
     preamble {= import sys =}
-
     input in_
-
     state c(0)
 
     reaction(in_) {=
@@ -54,6 +50,5 @@ reactor Print {
 federated reactor at localhost {
     c = new Count()
     p = new Print()
-
     c.out ~> p.in_  # Indicating a 'physical' connection.
 }

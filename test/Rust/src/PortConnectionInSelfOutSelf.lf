@@ -12,15 +12,12 @@ reactor Source {
 
 reactor TestCase {
     input inp: i32
-
     output out: i32
-
     inp -> out
 }
 
 reactor Sink {
     input inp: i32
-
     state done: bool(false)
 
     reaction(inp) {=

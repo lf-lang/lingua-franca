@@ -3,9 +3,7 @@ target C
 
 reactor Delay(delay: time(100 msec)) {
     input in: int
-
     output out: int
-
     logical action a: int
 
     reaction(a) -> out {=
@@ -20,7 +18,6 @@ reactor Delay(delay: time(100 msec)) {
 
 reactor Test {
     input in: int
-
     state start_time: time(0)
     state received_value: bool(false)
 
@@ -58,7 +55,6 @@ reactor Test {
 main reactor DelayInt {
     d = new Delay()
     t = new Test()
-
     d.out -> t.in
 
     reaction(startup) -> d.in {= lf_set(d.in, 42); =}

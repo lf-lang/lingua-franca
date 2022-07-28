@@ -6,7 +6,6 @@ target C {
 
 reactor CounterCycle {
     input next: bool
-
     output count: int
 
     initial mode One {
@@ -33,18 +32,15 @@ reactor CounterCycle {
 
 main reactor {
     timer stepper(0, 250 msec)
-
     counter = new CounterCycle()
 
     state expected_value: int(1)
 
-    reaction(stepper) -> counter.next {=  // Trigger
-        // Trigger
-        lf_set(counter.next, true);
-    =}
+    // Trigger
+    reaction(stepper) -> counter.next {= lf_set(counter.next, true); =}
 
-    reaction(stepper) counter.count {=  // Check
-        // Check
+    // Check
+    reaction(stepper) counter.count {=
         printf("%d\n", counter.count->value);
 
         if (!counter.count->is_present) {

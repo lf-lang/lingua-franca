@@ -10,9 +10,7 @@ preamble {=
 reactor Source {
     output out: hello_t
 
-    reaction(startup) ->
-    // Create the struct on the stack and then copy it to the output as follows:
-    out {=
+    reaction(startup) -> out {=
         // Create the struct on the stack and then copy
         // it to the output as follows:
         struct hello_t temp = {"Earth", 42};
@@ -40,6 +38,5 @@ reactor Print(expected: int(42)) {  // expected parameter is for testing.
 main reactor StructAsType {
     s = new Source()
     p = new Print()
-
     s.out -> p.in
 }

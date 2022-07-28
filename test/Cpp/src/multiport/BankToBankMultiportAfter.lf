@@ -5,10 +5,8 @@ target Cpp {
 }
 
 reactor Source(width: size_t(1)) {
-    output[width] out: int
-
     timer t(0, 200 msec)
-
+    output[width] out: int
     state s: int(0)
 
     reaction(t) -> out {=
@@ -19,10 +17,9 @@ reactor Source(width: size_t(1)) {
 }
 
 reactor Destination(width: size_t(1)) {
-    input[width] in: int
-
     state s: int(6)
     state iterations: unsigned(0)
+    input[width] in: int
 
     reaction(in) {=
         iterations++;
@@ -57,6 +54,5 @@ reactor Destination(width: size_t(1)) {
 main reactor(bank_width: size_t(4)) {
     a = new[bank_width] Source(width = 4)
     b = new[bank_width] Destination(width = 4)
-
     a.out -> b.in after 200 msec
 }

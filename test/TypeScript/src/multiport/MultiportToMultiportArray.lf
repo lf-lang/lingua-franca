@@ -5,10 +5,8 @@ target TypeScript {
 }
 
 reactor Source {
-    output[2] out: {= Array<number> =}
-
     timer t(0, 200 msec)
-
+    output[2] out: {= Array<number> =}
     state s: number(0)
 
     reaction(t) -> out {=
@@ -26,9 +24,8 @@ reactor Source {
 }
 
 reactor Destination {
-    input[2] inp: {= Array<number> =}
-
     state s: number(15)
+    input[2] inp: {= Array<number> =}
 
     reaction(inp) {=
         let sum = 0;
@@ -58,6 +55,5 @@ reactor Destination {
 main reactor MultiportToMultiportArray {
     a = new Source()
     b = new Destination()
-
     a.out -> b.inp
 }

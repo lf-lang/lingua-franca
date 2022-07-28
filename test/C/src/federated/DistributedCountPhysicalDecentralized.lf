@@ -13,11 +13,9 @@ target C {
 }
 
 reactor Count {
-    output out: int
-
     timer t(200 msec, 1 sec)
-
     state s: int(0)
+    output out: int
 
     reaction(t) -> out {=
         lf_set(out, self->s);
@@ -27,7 +25,6 @@ reactor Count {
 
 reactor Print {
     input in: int
-
     state c: int(0)
 
     reaction(in) {=
@@ -56,6 +53,5 @@ reactor Print {
 federated reactor at localhost {
     c = new Count()
     p = new Print()
-
     c.out ~> p.in  // Indicating a 'physical' connection.
 }

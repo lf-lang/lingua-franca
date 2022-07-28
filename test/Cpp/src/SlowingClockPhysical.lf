@@ -15,7 +15,6 @@ target Cpp {
 
 main reactor SlowingClockPhysical {
     physical action a
-
     state interval: time(100 msec)
     state expected_time: time(100 msec)
 

@@ -6,10 +6,8 @@ target Python {
 }
 
 reactor Source {
-    output out
-
     timer t(0, 200 msec)
-
+    output out
     state s(0)
 
     reaction(t) -> out {=
@@ -20,16 +18,14 @@ reactor Source {
 
 reactor Computation {
     input _in
-
     output out
 
     reaction(_in) -> out {= out.set(_in.value) =}
 }
 
 reactor Destination(width(1)) {
-    input[width] _in
-
     state s(0)
+    input[width] _in
 
     reaction(_in) {=
         sm = 0
@@ -57,7 +53,6 @@ main reactor MultiportInParameterized {
     t3 = new Computation()
     t4 = new Computation()
     b = new Destination(width = 4)
-
     a.out -> t1._in
     a.out -> t2._in
     a.out -> t3._in

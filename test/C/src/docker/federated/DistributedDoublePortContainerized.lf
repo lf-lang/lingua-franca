@@ -1,6 +1,6 @@
 /**
  * Test the case for when two upstream federates send messages to a downstream
- * federate on two different ports. One message should carry a microstep delay
+ * federte on two different ports. One message should carry a microstep delay
  * relative to the other message.
  *
  * @author Soroush Bateni
@@ -20,7 +20,6 @@ federated reactor DistributedDoublePortContainerized at rti {
     c = new Count()
     cm = new CountMicrostep()
     p = new Print()
-
     c.out -> p.in  // Indicating a 'logical' connection.
     cm.out -> p.in2
 }

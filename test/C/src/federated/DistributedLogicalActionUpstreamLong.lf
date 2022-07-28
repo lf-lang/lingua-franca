@@ -11,11 +11,9 @@ import TestCount from "../lib/TestCount.lf"
 
 reactor WithLogicalAction {
     output out: int
-
-    logical action act(0): int
-
     state thread_id: lf_thread_t(0)
     state counter: int(1)
+    logical action act(0): int
 
     reaction(startup, act) -> act, out {=
         SET(out, self->counter);
@@ -26,6 +24,7 @@ reactor WithLogicalAction {
 federated reactor {
     a = new WithLogicalAction()
     test = new TestCount(num_inputs = 21)
+
     passThroughs1 = new PassThrough()
     passThroughs2 = new PassThrough()
     passThroughs3 = new PassThrough()

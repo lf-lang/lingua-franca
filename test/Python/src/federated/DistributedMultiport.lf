@@ -6,9 +6,7 @@ target Python {
 
 reactor Source {
     output[4] out
-
     timer t(0, 100 msec)
-
     state count(0)
 
     reaction(t) -> out {=
@@ -20,9 +18,7 @@ reactor Source {
 
 reactor Destination {
     preamble {= import sys =}
-
     input[4] in_
-
     state count(0)
 
     reaction(in_) {=
@@ -45,6 +41,5 @@ reactor Destination {
 federated reactor DistributedMultiport {
     s = new Source()
     d = new Destination()
-
     s.out -> d.in_
 }

@@ -26,12 +26,9 @@ target Python {
 
 reactor Ping(count(10)) {
     input receive
-
     output send
-
-    logical action serve
-
     state pingsLeft(count)
+    logical action serve
 
     reaction(startup, serve) -> send {=
         send.set(self.pingsLeft)
@@ -48,9 +45,7 @@ reactor Ping(count(10)) {
 
 reactor Pong(expected(10)) {
     input receive
-
     output send
-
     state count(0)
 
     reaction(receive) -> send {=
@@ -74,7 +69,6 @@ reactor Pong(expected(10)) {
 main reactor PingPong {
     ping = new Ping()
     pong = new Pong()
-
     ping.send -> pong.receive
     pong.send -> ping.receive
 }

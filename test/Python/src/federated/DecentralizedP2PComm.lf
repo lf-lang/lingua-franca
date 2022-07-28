@@ -7,13 +7,9 @@ target Python {
 
 reactor Platform(start(0), expected_start(0), stp_offset_param(0)) {
     preamble {= import sys =}
-
     input in_
-
     output out
-
     timer t(0, 100 msec)
-
     state count(start)
     state expected(expected_start)
 
@@ -46,7 +42,6 @@ reactor Platform(start(0), expected_start(0), stp_offset_param(0)) {
 federated reactor DecentralizedP2PComm {
     a = new Platform(expected_start = 100, stp_offset_param = 10 msec)
     b = new Platform(start = 100, stp_offset_param = 10 msec)
-
     a.out -> b.in_
     b.out -> a.in_
 }

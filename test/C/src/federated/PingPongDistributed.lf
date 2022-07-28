@@ -26,7 +26,6 @@ import Ping, Pong from "PingPongDistributedPhysical.lf"
 federated reactor(count: int(10)) {
     ping = new Ping(count = count)
     pong = new Pong(expected = count)
-
     ping.send -> pong.receive
     pong.send -> ping.receive
 }

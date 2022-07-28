@@ -8,7 +8,6 @@ reactor Source {
 
 reactor Compute {
     input inp: number
-
     output out: number
 
     reaction(inp) -> out {= out = (inp as number) + 2; =}

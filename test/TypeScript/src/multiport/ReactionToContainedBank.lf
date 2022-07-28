@@ -7,10 +7,9 @@ import TestCount from "../lib/TestCount.lf"
 
 main reactor ReactionToContainedBank(width: number(2)) {
     timer t(0, 100 msec)
+    state count: number(1)
 
     test = new[width] TestCount(numInputs = 11)
-
-    state count: number(1)
 
     reaction(t) -> test.inp {=
         for (let i = 0; i < width; i++) {

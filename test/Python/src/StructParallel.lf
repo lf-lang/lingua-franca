@@ -39,7 +39,6 @@ main reactor StructParallel {
     c2 = new Print(scale = 3)
     p1 = new Check(expected = 84)
     p2 = new Check(expected = 126)
-
     s.out -> c1._in
     s.out -> c2._in
     c1.out -> p1._in

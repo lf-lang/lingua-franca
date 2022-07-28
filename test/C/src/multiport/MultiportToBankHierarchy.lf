@@ -17,7 +17,6 @@ reactor Source(width: int(2)) {
 
 reactor Destination(bank_index: int(0)) {
     input in: int
-
     state received: bool(false)
 
     reaction(in) {=
@@ -40,15 +39,12 @@ reactor Destination(bank_index: int(0)) {
 
 reactor Container(width: int(2)) {
     input[width] in: int
-
     c = new[width] Destination()
-
     in -> c.in
 }
 
 main reactor MultiportToBankHierarchy(width: int(3)) {
     a = new Source(width = width)
     b = new Container(width = width)
-
     a.out -> b.in
 }

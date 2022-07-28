@@ -110,6 +110,17 @@ class TSConstructorGenerator (
         return connectionInstantiations.joinToString("\n")
     }
 
+    // Generate code for setting target configurations.
+    private fun generateTargetConfigurations(): String {
+        val targetConfigurations = LinkedList<String>()
+        if ((reactor.isMain || reactor.isFederated) &&
+            targetConfig.coordinationOptions.advance_message_interval != null) {
+            targetConfigurations.add(
+                "this.setAdvanceMessageInterval(${timeInTargetLanguage(targetConfig.coordinationOptions.advance_message_interval)})")
+        }
+        return targetConfigurations.joinToString("\n")
+    }
+
     // Generate code for registering Fed IDs that are connected to
     // this federate via ports in the TypeScript's FederatedApp.
     // These Fed IDs are used to let the RTI know about the connections
@@ -143,8 +154,14 @@ class TSConstructorGenerator (
                 |constructor (
             ${" |    "..generateConstructorArguments(reactor)}
                 |) {
+<<<<<<< HEAD
             ${" |    "..generateSuperConstructorCall(reactor, federateConfig)}
             ${" |    "..if (reactor.isMain && federateConfig != null) generateFederateConfigurations(federateConfig) else ""}
+=======
+            ${" |    "..generateSuperConstructorCall(reactor, federate)}
+            ${" |    "..generateTargetConfigurations()}
+            ${" |    "..generateFederateConfigurations()}
+>>>>>>> origin/pretty-printer
             ${" |    "..instances.generateInstantiations()}
             ${" |    "..timers.generateInstantiations()}
             ${" |    "..parameters.generateInstantiations()}

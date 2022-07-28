@@ -15,16 +15,13 @@ import Count from "../lib/Count.lf"
 import TestCount from "../lib/TestCount.lf"
 
 federated reactor {
+    state successes: int(0)
     timer t(0, 1 sec)
-
     logical action act(0)
 
     c = new Count()
     tc = new TestCount()
-
     c.out -> tc.in
-
-    state successes: int(0)
 
     reaction(startup) {= self->successes++; =}
 

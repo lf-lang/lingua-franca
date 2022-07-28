@@ -81,7 +81,6 @@ public class PythonReactionGenerator {
      * @param reactorDeclName The name of the reactor for debugging purposes
      * @param pythonFunctionName The name of the function in the .py file.
      * @param cpythonFunctionName The name of the function in self struct of the .c file.
-     * @param pyObjectDescriptor CPython related descriptors for each object in "pyObjects".
      * @param pyObjects CPython related objects
      */
     private static String generateCPythonFunctionCaller(String reactorDeclName,

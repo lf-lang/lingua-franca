@@ -5,11 +5,9 @@ target C {
 }
 
 reactor Source(width: int(1)) {
-    output[width] out: int
-
     timer t(0, 200 msec)
-
     state s: int(0)
+    output[width] out: int
 
     reaction(t) -> out {=
         printf("Sending.\n");
@@ -20,9 +18,8 @@ reactor Source(width: int(1)) {
 }
 
 main reactor MultiportToReaction {
-    b = new Source(width = 4)
-
     state s: int(6)
+    b = new Source(width = 4)
 
     reaction(b.out) {=
         int sum = 0;

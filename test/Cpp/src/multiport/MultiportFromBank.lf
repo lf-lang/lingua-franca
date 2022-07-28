@@ -13,7 +13,6 @@ reactor Source(bank_index: size_t(0)) {
 
 reactor Destination(port_width: size_t(2)) {
     input[port_width] in: unsigned
-
     state received: bool(false)
 
     reaction(in) {=
@@ -39,6 +38,5 @@ reactor Destination(port_width: size_t(2)) {
 main reactor(width: size_t(4)) {
     a = new[width] Source()
     b = new Destination(port_width = width)
-
     a.out -> b.in
 }

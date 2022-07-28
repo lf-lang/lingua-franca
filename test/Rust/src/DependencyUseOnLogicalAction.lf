@@ -1,15 +1,14 @@
-/**
- * Test that use-dependencies may be declared on logical actions and timers.
- */
+/** Test that use-dependencies may be declared on logical actions and timers. */
 target Rust {
     timeout: 10 msec
 }
 
 main reactor {
-    timer t(0, 2 msec)
-
     logical action clock: u32
+
     logical action a
+
+    timer t(0, 2 msec)
 
     state tick: u32(0)
 

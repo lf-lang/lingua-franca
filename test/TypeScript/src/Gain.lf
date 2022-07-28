@@ -3,7 +3,6 @@ target TypeScript
 
 reactor Scale(scale: number(2)) {
     input x: number
-
     output y: number
 
     reaction(x) -> y {= y = (x as number) * scale; =}
@@ -11,7 +10,6 @@ reactor Scale(scale: number(2)) {
 
 reactor Test {
     input x: number
-
     state received_value: boolean(false)
 
     reaction(x) {=
@@ -34,7 +32,6 @@ reactor Test {
 main reactor Gain {
     g = new Scale()
     d = new Test()
-
     g.y -> d.x
 
     reaction(startup) -> g.x {= g.x = 1; =}

@@ -7,9 +7,7 @@ target TypeScript {
 
 reactor Source(period: time(2 sec)) {  // run = "bin/Deadline -timeout 4 sec"
     output y: number
-
     timer t(0, period)
-
     state count: number(0)
 
     reaction(t) -> y {=
@@ -29,7 +27,6 @@ reactor Source(period: time(2 sec)) {  // run = "bin/Deadline -timeout 4 sec"
 
 reactor Destination(timeout: time(1 sec)) {
     input x: number
-
     state count: number(0)
 
     reaction(x) {=
@@ -52,6 +49,5 @@ reactor Destination(timeout: time(1 sec)) {
 main reactor Deadline {
     s = new Source()
     d = new Destination(timeout = 200 msec)
-
     s.y -> d.x
 }

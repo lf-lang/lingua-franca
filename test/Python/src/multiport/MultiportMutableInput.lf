@@ -28,7 +28,6 @@ reactor Print(scale(1)) {  # The scale parameter is just for testing.
 
 reactor Scale(scale(2)) {
     mutable input[2] _in
-
     output[2] out
 
     reaction(_in) -> out {=
@@ -43,7 +42,6 @@ main reactor MultiportMutableInput {
     s = new Source()
     c = new Scale()
     p = new Print(scale = 2)
-
     s.out -> c._in
     c.out -> p._in
 }

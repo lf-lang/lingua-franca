@@ -6,18 +6,16 @@ import Count from "../lib/Count.lf"
 
 reactor DoubleCount {
     output[2] out: number
-
     c1 = new Count()
     c2 = new Count()
-
     c1.out, c2.out -> out
 }
 
 main reactor {
-    s = new[2] DoubleCount()
-
     state count: number(1)
     state received: boolean(false)
+
+    s = new[2] DoubleCount()
 
     reaction(s.out) {=
         for (let i = 0; i < s.length; i++) {

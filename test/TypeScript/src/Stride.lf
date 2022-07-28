@@ -6,11 +6,9 @@ target TypeScript {
 }
 
 reactor Count(stride: number(1)) {
-    output y: number
-
-    timer t(0, 100 msec)
-
     state count: number(0)
+    output y: number
+    timer t(0, 100 msec)
 
     reaction(t) -> y {=
         y = count;
@@ -27,6 +25,5 @@ reactor Display {
 main reactor Stride {
     c = new Count(stride = 2)
     d = new Display()
-
     c.y -> d.x
 }

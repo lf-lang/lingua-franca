@@ -8,7 +8,6 @@ import Count from "lib/Count.lf"
 
 reactor Test {
     input c: int
-
     state i: int(0)
 
     reaction(c) {=
@@ -40,6 +39,5 @@ reactor Test {
 main reactor {
     count = new Count()
     test = new Test()
-
     count.c -> test.c after 2 sec
 }

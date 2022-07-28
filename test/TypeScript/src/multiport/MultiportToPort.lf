@@ -17,7 +17,6 @@ reactor Source {
 
 reactor Destination(expected: number(0)) {
     input inp: number
-
     state received: boolean(false)
 
     reaction(inp) {=
@@ -40,6 +39,5 @@ main reactor MultiportToPort {
     a = new Source()
     b1 = new Destination()
     b2 = new Destination(expected = 1)
-
     a.out -> b1.inp, b2.inp
 }

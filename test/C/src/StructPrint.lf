@@ -11,9 +11,7 @@ preamble {=
 reactor Print {
     output out: hello_t*
 
-    reaction(startup) ->
-    out {=      // Dynamically allocate an output struct.
-        // Dynamically allocate an output struct.
+    reaction(startup) -> out {=
         // Dynamically allocate an output struct.
         SET_NEW(out);
         // Above allocates a struct, which then must be populated.
@@ -37,6 +35,5 @@ reactor Check(expected: int(42)) {  // expected parameter is for testing.
 main reactor {
     s = new Print()
     p = new Check()
-
     s.out -> p.in
 }

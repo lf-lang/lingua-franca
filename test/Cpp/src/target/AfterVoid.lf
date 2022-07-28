@@ -5,18 +5,16 @@ target Cpp {
 }
 
 reactor foo {
-    output y: void
-
     timer t(0, 1 sec)
+    output y: void
 
     reaction(t) -> y {= y.set(); =}
 }
 
 reactor print {
-    input x: void
-
     state expected_time: time(10 msec)
     state i: int(0)
+    input x: void
 
     reaction(x) {=
         i++;

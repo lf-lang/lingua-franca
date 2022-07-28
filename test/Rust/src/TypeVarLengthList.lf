@@ -2,13 +2,14 @@ target Rust
 
 // this thing must compile needs to be modified when
 // https://github.com/lf-lang/lingua-franca/discussions/492 is implemented
-/**
- * The following state declarations should be supported:
- * * state l2: i32[](1); // generates l2: 1 // doesn't compile...
- * * state l3: i32[](); // doesn't parse...
- * * state l1: Vec<i32>(1, 2); // does not compile...
- */
 main reactor TypeVarLengthList {
     state l0: i32[]({= Vec::new() =})  // generates l0: Vec::new()
-    state l1: i32[](1, 2)              // generates l1: vec![1, 2]
+    // generates l1: vec![1, 2]
+    /**
+     * - state l2: i32[](1); // generates l2: 1 // doesn't compile...
+     * - state l3: i32[](); // doesn't parse...
+     *
+     * - state l1: Vec<i32>(1, 2); // does not compile...
+     */
+    state l1: i32[](1, 2)
 }

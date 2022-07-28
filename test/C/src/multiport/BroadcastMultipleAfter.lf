@@ -11,7 +11,6 @@ reactor Source(value: int(42)) {
 
 reactor Destination(bank_index: int(0)) {
     input in: int
-
     state received: bool(false)
 
     reaction(in) {=
@@ -42,6 +41,5 @@ main reactor {
     a2 = new Source(value = 2)
     a3 = new Source(value = 3)
     b = new[9] Destination()
-
     (a1.out, a2.out, a3.out)+ -> b.in after 1 sec
 }

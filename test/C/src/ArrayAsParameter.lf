@@ -5,10 +5,8 @@ target C
 
 reactor Source(sequence: int[](0, 1, 2), n_sequence: int(3)) {
     output out: int
-
-    logical action next
-
     state count: int(0)
+    logical action next
 
     reaction(startup, next) -> out, next {=
         lf_set(out, self->sequence[self->count]);
@@ -21,7 +19,6 @@ reactor Source(sequence: int[](0, 1, 2), n_sequence: int(3)) {
 
 reactor Print {
     input in: int
-
     state count: int(1)
     state received: int(0)
 
@@ -46,6 +43,5 @@ reactor Print {
 main reactor ArrayAsParameter {
     s = new Source(sequence = (1, 2, 3, 4), n_sequence = 4)
     p = new Print()
-
     s.out -> p.in
 }

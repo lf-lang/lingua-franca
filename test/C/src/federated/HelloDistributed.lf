@@ -19,7 +19,6 @@ reactor Source {
 
 reactor Destination {
     input in: string
-
     state received: bool(false)
 
     reaction(startup) {= lf_print("Destination started."); =}
@@ -42,10 +41,9 @@ reactor Destination {
 }
 
 federated reactor HelloDistributed at localhost {
-    s = new Source()  // Reactor s is in federate Source
+    s = new Source()       // Reactor s is in federate Source
     d = new Destination()  // Reactor d is in federate Destination
-
-    s.out -> d.in  // This version preserves the timestamp.
+    s.out -> d.in          // This version preserves the timestamp.
 
     reaction(startup) {=
         lf_print("Printing something in top-level federated reactor.");

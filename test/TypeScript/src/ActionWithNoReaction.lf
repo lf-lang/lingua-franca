@@ -8,9 +8,7 @@ target TypeScript {
 
 reactor foo {
     input x: number
-
     output y: number
-
     logical action a
 
     reaction(x) -> y, a {=
@@ -30,11 +28,9 @@ reactor print {
 }
 
 main reactor {
-    timer t(0, 1 sec)
-
     f = new foo()
     p = new print()
-
+    timer t(0, 1 sec)
     f.y -> p.x after 10 msec
 
     reaction(t) -> f.x {= f.x = 42; =}

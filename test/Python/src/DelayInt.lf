@@ -3,9 +3,7 @@ target Python
 
 reactor Delay(delay(100 msec)) {
     input _in
-
     output out
-
     logical action a
 
     reaction(a) -> out {=
@@ -18,7 +16,6 @@ reactor Delay(delay(100 msec)) {
 
 reactor Test {
     input _in
-
     state start_time(0)
     state received_value(false)
 
@@ -53,7 +50,6 @@ reactor Test {
 main reactor DelayInt {
     d = new Delay()
     t = new Test()
-
     d.out -> t._in
 
     reaction(startup) -> d._in {= d._in.set(42) =}

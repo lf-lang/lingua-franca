@@ -7,7 +7,6 @@ import Source from "Broadcast.lf"
 
 reactor Destination(bank_index(0), delay(0)) {
     input _in
-
     state received(false)
 
     reaction(_in) {=
@@ -36,6 +35,5 @@ main reactor {
     a2 = new Source(value = 2)
     a3 = new Source(value = 3)
     b = new[9] Destination(delay = 1 sec)
-
     (a1.out, a2.out, a3.out)+ -> b._in after 1 sec
 }

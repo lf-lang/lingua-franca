@@ -4,9 +4,7 @@ target TypeScript
 
 reactor Delay(delay: time(100 msec)) {
     input x: number
-
     output out: number
-
     logical action a: number
 
     reaction(x) -> a {= actions.a.schedule( delay, x as number); =}
@@ -20,7 +18,6 @@ reactor Delay(delay: time(100 msec)) {
 
 reactor Test {
     input x: number
-
     state start_time: time(0)
     state received_value: boolean(false)
 
@@ -55,7 +52,6 @@ reactor Test {
 main reactor DelayInt {
     d = new Delay()
     t = new Test()
-
     d.out -> t.x
 
     reaction(startup) -> d.x {= d.x = 42; =}

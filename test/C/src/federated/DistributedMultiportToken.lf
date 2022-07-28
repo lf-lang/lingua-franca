@@ -7,9 +7,7 @@ target C {
 
 reactor Source {
     output[4] out: char*
-
     timer t(0, 200 msec)
-
     state count: int(0)
 
     reaction(t) -> out {=
@@ -44,6 +42,5 @@ reactor Destination {
 federated reactor DistributedMultiportToken {
     s = new Source()
     d = new Destination()
-
     s.out -> d.in
 }

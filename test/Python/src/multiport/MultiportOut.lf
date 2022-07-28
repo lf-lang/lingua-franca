@@ -5,10 +5,8 @@ target Python {
 }
 
 reactor Source {
-    output[4] out
-
     timer t(0, 200 msec)
-
+    output[4] out
     state s(0)
 
     reaction(t) -> out {=
@@ -21,16 +19,14 @@ reactor Source {
 
 reactor Computation {
     input _in
-
     output out
 
     reaction(_in) -> out {= out.set(_in.value) =}
 }
 
 reactor Destination {
-    input[4] _in
-
     state s(0)
+    input[4] _in
 
     reaction(_in) {=
         sum = 0
@@ -62,7 +58,6 @@ main reactor MultiportOut {
     t3 = new Computation()
     t4 = new Computation()
     b = new Destination()
-
     a.out -> t1._in, t2._in, t3._in, t4._in
     t1.out, t2.out, t3.out, t4.out -> b._in
 }

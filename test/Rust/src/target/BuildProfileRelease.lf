@@ -1,5 +1,5 @@
-// Tests that the we can enable the release profile. A proxy for checking this
-// is to check that debug assertions are disabled.
+// Tests that the we can enable the release profile A proxy for checking this is
+// to check that debug assertions are disabled.
 target Rust {
     build-type: "Release"
 }

@@ -1,10 +1,6 @@
-/**
- * Source allocates an array dynamically and then sends it to two reactors, each
- * of which want to modify it.
- *
- * NOTE: Ideally, only one copy would be made, but this requires modifying the
- * precedence graph between reactions.
- */
+// Source allocates an array dynamically and then sends it to two reactors, each
+// of which want to modify it. NOTE: Ideally, only one copy would be made, but
+// this requires modifying the precedence graph between reactions.
 target C {
     files: ["include/hello.h"]
 }
@@ -17,7 +13,6 @@ preamble {=
 
 reactor Check(expected: int(42)) {
     input in: hello_t*
-
     state invoked: bool(false)
 
     reaction(in) {=
@@ -57,7 +52,6 @@ main reactor StructParallel {
     c2 = new Print(scale = 3)
     p1 = new Check(expected = 84)
     p2 = new Check(expected = 126)
-
     s.out -> c1.in
     s.out -> c2.in
     c1.out -> p1.in

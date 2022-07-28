@@ -3,17 +3,16 @@ target Rust
 
 reactor Box {
     input inp: u32
-
     output out: u32
 
     inp -> out
 }
 
 main reactor {
+    boxr = new Box()
+
     timer t1(0)
     timer t2(15 msec)
-
-    boxr = new Box()
 
     state reaction_num: u32(0)
     state done: bool(false)

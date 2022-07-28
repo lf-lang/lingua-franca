@@ -9,7 +9,6 @@ import Source from "MultiportToBank.lf"
 
 reactor Destination(bank_index(0)) {
     input _in
-
     state received(false)
 
     reaction(_in) {=
@@ -34,6 +33,5 @@ reactor Destination(bank_index(0)) {
 main reactor MultiportToBankAfter {
     a = new Source()
     b = new[3] Destination()
-
     a.out -> b._in after 1 sec  # Width of the bank of delays will be inferred.
 }

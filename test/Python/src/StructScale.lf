@@ -40,7 +40,6 @@ main reactor StructScale {
     s = new Source()
     c = new Print()
     p = new TestInput(expected = 84)
-
     s.out -> c._in
     c.out -> p._in
 }

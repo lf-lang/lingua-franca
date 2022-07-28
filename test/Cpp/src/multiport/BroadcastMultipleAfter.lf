@@ -10,7 +10,6 @@ reactor Source(value: unsigned(42)) {
 
 reactor Sink(bank_index: size_t(0)) {
     input in: unsigned
-
     state received: bool{false}
 
     reaction(in) {=
@@ -41,6 +40,5 @@ main reactor {
     source2 = new Source(value = 2)
     source3 = new Source(value = 3)
     sink = new[9] Sink()
-
     (source1.out, source2.out, source3.out)+ -> sink.in after 1 sec
 }

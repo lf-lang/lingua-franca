@@ -32,6 +32,5 @@ reactor Print(expected: int(42)) {  // expected parameter is for testing.
 main reactor {
     s = new Source()
     p = new Print()
-
     s.out -> p.in
 }

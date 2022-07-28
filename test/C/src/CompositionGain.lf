@@ -3,7 +3,6 @@ target C
 
 reactor Gain {
     input gainin: int
-
     output y: int
 
     reaction(gainin) -> y {=
@@ -14,11 +13,8 @@ reactor Gain {
 
 reactor Wrapper {
     input x: int
-
     output y: int
-
     gain = new Gain()
-
     x -> gain.gainin
     gain.y -> y
 }

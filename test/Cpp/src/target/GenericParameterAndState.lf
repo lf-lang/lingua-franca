@@ -5,12 +5,12 @@ reactor Foo<T>(bar: T(0)) {
 
     reaction(startup) {=
         if (bar != 42) {
-            std::cerr << "ERROR: Expected baz=42 but got baz=" << bar << '\n';
-            exit(1);
+          std::cerr << "ERROR: Expected baz=42 but got baz=" << bar << '\n';
+          exit(1);
         }
         if (baz != 42) {
-            std::cerr << "ERROR: Expected baz=42 but got baz=" << baz << '\n';
-            exit(1);
+          std::cerr << "ERROR: Expected baz=42 but got baz=" << baz << '\n';
+          exit(1);
         }
     =}
 }

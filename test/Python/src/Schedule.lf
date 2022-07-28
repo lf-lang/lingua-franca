@@ -3,7 +3,6 @@ target Python
 
 reactor Schedule2 {
     input x
-
     logical action a
 
     reaction(x) -> a {= a.schedule(MSEC(200)) =}
@@ -18,9 +17,8 @@ reactor Schedule2 {
 }
 
 main reactor {
-    timer t
-
     a = new Schedule2()
+    timer t
 
     reaction(t) -> a.x {= a.x.set(1) =}
 }

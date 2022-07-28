@@ -6,7 +6,6 @@ target Python {
 
 reactor CounterCycle {
     input next
-
     output count
 
     initial mode One {
@@ -33,15 +32,13 @@ reactor CounterCycle {
 
 main reactor {
     timer stepper(0, 250 msec)
-
     counter = new CounterCycle()
 
     state expected_value(1)
 
     reaction(stepper) -> counter.next {= counter.next.set(True) =}  # Trigger
 
-    reaction(stepper) counter.count {=                                  # Check
-        # Check
+    reaction(stepper) counter.count {=  # Check
         print(f"{counter.count.value}")
 
         if counter.count.is_present is not True:

@@ -5,11 +5,8 @@ target Python {
 
 reactor Self {
     input x
-
     output y
-
     logical action a
-
     state expected(43)
 
     reaction(a) -> y {=
@@ -37,6 +34,5 @@ reactor Self {
 
 main reactor SelfLoop {
     u = new Self()
-
     u.y -> u.x
 }

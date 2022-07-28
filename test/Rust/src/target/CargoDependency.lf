@@ -1,8 +1,5 @@
-/**
- * This tests the ability to depend on crates with carg
- *
- * if this compiles it's fine
- */
+// This tests the ability to depend on crates with carg if this compiles it's
+// fine
 target Rust {
     cargo-dependencies: {
         rand: "0.8",

@@ -1,9 +1,8 @@
-/** Example in the Wiki. */
+// Example in the Wiki.
 target C
 
 reactor Scale(scale: int(2)) {
     input x: int
-
     output y: int
 
     reaction(x) -> y {= lf_set(y, x->value * self->scale); =}
@@ -11,7 +10,6 @@ reactor Scale(scale: int(2)) {
 
 reactor Test {
     input x: int
-
     state received_value: bool(false)
 
     reaction(x) {=
@@ -35,7 +33,6 @@ reactor Test {
 main reactor {
     g = new Scale()
     d = new Test()
-
     g.y -> d.x
 
     reaction(startup) -> g.x {= lf_set(g.x, 1); =}

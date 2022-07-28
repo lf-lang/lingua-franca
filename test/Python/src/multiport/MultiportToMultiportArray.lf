@@ -6,10 +6,8 @@ target Python {
 }
 
 reactor Source {
-    output[2] out
-
     timer t(0, 200 msec)
-
+    output[2] out
     state s(0)
 
     reaction(t) -> out {=
@@ -20,9 +18,8 @@ reactor Source {
 }
 
 reactor Destination {
-    input[2] _in
-
     state s(15)
+    input[2] _in
 
     reaction(_in) {=
         sm = 0
@@ -49,6 +46,5 @@ reactor Destination {
 main reactor MultiportToMultiportArray {
     a = new Source()
     b = new Destination()
-
     a.out -> b._in
 }

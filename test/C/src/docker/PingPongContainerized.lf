@@ -8,8 +8,8 @@
  * causality loop.
  *
  * To get a sense, some (informal) results for 1,000,000 ping-pongs on my Mac:
- *
- * Unthreaded: 97 msec Threaded: 265 msec
+ * - Unthreaded: 97 msec
+ * - Threaded: 265 msec
  *
  * There is no parallelism in this application, so it does not benefit from
  * being being threaded, just some additional overhead.
@@ -31,7 +31,6 @@ import Pong from "../PingPong.lf"
 main reactor PingPongContainerized {
     ping = new Ping()
     pong = new Pong()
-
     ping.send -> pong.receive
     pong.send -> ping.receive
 }

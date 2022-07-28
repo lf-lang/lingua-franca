@@ -5,7 +5,6 @@ target Rust {
 
 main reactor StopTopology {
     timer end(30 msec)  // collides with timeout
-
     state count: u32
 
     reaction(end) {=

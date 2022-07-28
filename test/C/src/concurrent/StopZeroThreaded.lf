@@ -8,12 +8,9 @@ target C
 
 reactor Sender {
     output out: int
-
-    timer t(0, 1 usec)
-
-    logical action act
-
     state reaction_invoked_correctly: bool(false)
+    timer t(0, 1 usec)
+    logical action act
 
     reaction(t) -> out, act {=
         printf("Sending 42 at (%lld, %u).\n",

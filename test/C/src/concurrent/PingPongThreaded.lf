@@ -1,7 +1,7 @@
 /**
  * Basic benchmark from the Savina benchmark suite that is intended to measure
  * message-passing overhead. This is based on
- * https://www.scala-lang.org/old/node/54. See
+ * https://www.scala-lang.org/old/node/54 See
  * https://shamsimam.github.io/papers/2014-agere-savina.pdf.
  *
  * Ping introduces a microstep delay using a logical action to break the
@@ -27,12 +27,9 @@ target C {
 
 reactor Ping(count: int(10)) {
     input receive: int
-
     output send: int
-
-    logical action serve
-
     state pingsLeft: int(count)
+    logical action serve
 
     reaction(startup, serve) -> send {= lf_set(send, self->pingsLeft--); =}
 
@@ -47,9 +44,7 @@ reactor Ping(count: int(10)) {
 
 reactor Pong(expected: int(10)) {
     input receive: int
-
     output send: int
-
     state count: int(0)
 
     reaction(receive) -> send {=
@@ -71,7 +66,6 @@ reactor Pong(expected: int(10)) {
 main reactor PingPongThreaded {
     ping = new Ping()
     pong = new Pong()
-
     ping.send -> pong.receive
     pong.send -> ping.receive
 }

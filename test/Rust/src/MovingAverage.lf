@@ -7,10 +7,8 @@ target Rust {
 
 reactor Source {
     output out: f64
-
-    timer clock(0, 10 msec)
-
     state count: u32(0)
+    timer clock(0, 10 msec)
 
     reaction(clock) -> out {=
         ctx.set(out, self.count.into());
@@ -19,13 +17,11 @@ reactor Source {
 }
 
 reactor MovingAverageImpl {
-    input in_: f64
-
-    output out: f64
-
     // fixme inaccessible ({=[0.0 ; 4]=});
     state delay_line: f64[4](0.0, 0.0, 0.0, 0.0)
     state index: usize(0)
+    input in_: f64
+    output out: f64
 
     reaction(in_) -> out {=
         let in_ = ctx.get(in_).unwrap();
@@ -42,13 +38,12 @@ reactor MovingAverageImpl {
 }
 
 reactor Print {
+    input in_: f64
+    state count: usize(0)
+
     preamble {=
         const EXPECTED: [ f64 ; 6 ] = [0.0, 0.25, 0.75, 1.5, 2.5, 3.5];
     =}
-
-    input in_: f64
-
-    state count: usize(0)
 
     reaction(in_) {=
         let in_ = ctx.get(in_).unwrap();
@@ -67,7 +62,6 @@ main reactor MovingAverage {
     s = new Source()
     m = new MovingAverageImpl()
     p = new Print()
-
     s.out -> m.in_
     m.out -> p.in_
 }

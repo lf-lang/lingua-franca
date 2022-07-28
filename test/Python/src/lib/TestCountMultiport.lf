@@ -13,11 +13,9 @@ target Python
 
 reactor TestCountMultiport(start(1), stride(1), num_inputs(1), width(2)) {
     preamble {= import sys =}
-
-    input[width] inp
-
     state count(start)
     state inputs_received(0)
+    input[width] inp
 
     reaction(inp) {=
         for i in range(in_width):

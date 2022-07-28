@@ -10,6 +10,5 @@ import Container from "MultiportFromBankHierarchy.lf"
 main reactor MultiportFromBankHierarchyAfter {
     a = new Container(portWidth = 4)
     b = new Destination(portWidth = 4)
-
     a.out -> b.inp after 1 sec
 }

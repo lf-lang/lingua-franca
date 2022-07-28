@@ -7,9 +7,7 @@ target C {
 
 reactor Source(period: time(3 sec)) {
     output y: int
-
     timer t(0, period)
-
     state count: int(0)
 
     reaction(t) -> y {=
@@ -30,7 +28,6 @@ reactor Source(period: time(3 sec)) {
 
 reactor Destination(timeout: time(1 sec)) {
     input x: int
-
     state count: int(0)
 
     reaction(x) {=
@@ -55,6 +52,5 @@ reactor Destination(timeout: time(1 sec)) {
 main reactor Deadline {
     s = new Source()
     d = new Destination(timeout = 1 sec)
-
     s.y -> d.x
 }

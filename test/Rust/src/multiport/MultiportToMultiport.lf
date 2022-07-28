@@ -25,6 +25,5 @@ reactor Sink {
 main reactor MultiportToMultiport {
     source = new Source()
     sink = new Sink()
-
     source.out -> sink.in
 }

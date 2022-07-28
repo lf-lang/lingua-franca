@@ -9,7 +9,6 @@ reactor Source {
 
 reactor Sink {
     input[4] inp: number
-
     state received: boolean(false)
 
     reaction(inp) {=
@@ -32,6 +31,5 @@ reactor Sink {
 main reactor BankToMultiport {
     source = new[4] Source()
     sink = new Sink()
-
     source.out -> sink.inp
 }

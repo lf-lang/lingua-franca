@@ -3,12 +3,10 @@ target Cpp
 // That's the stuff that shall be generated for the after
 reactor GeneratedDelay {
     input y_in: int
-
     output y_out: int
+    state y_state: int(0)
 
     logical action act(100 msec): int
-
-    state y_state: int(0)
 
     reaction(y_in) -> act {= act.schedule(y_in.get()); =}
 
@@ -17,7 +15,6 @@ reactor GeneratedDelay {
 
 reactor Source {
     output out: int
-
     timer t
 
     // reaction(t) -> out after 100 msec {=

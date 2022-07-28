@@ -18,18 +18,14 @@ import ImportantActuator, Print from "DistributedCountDecentralizedLateDownstrea
 
 reactor Receiver {
     input inp
-
-    # Force a timer to be invoked periodically to ensure logical time will
-    # advance in the absence of incoming messages.
+    # Force a timer to be invoke periodically
     timer t(0, 10 msec)
-
+    # to ensure logical time will advance in the absence of incoming messages.
+    state c(0)
     p = new Print()
     a = new ImportantActuator()
-
     inp -> p.inp
     inp -> a.inp
-
-    state c(0)
 
     reaction(t) {=
         # Do nothing.
@@ -39,6 +35,5 @@ reactor Receiver {
 federated reactor {
     c = new Count()
     r = new Receiver()
-
     c.out -> r.inp  # Indicating a 'logical' connection.
 }

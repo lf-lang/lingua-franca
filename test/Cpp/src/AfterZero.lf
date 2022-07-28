@@ -7,17 +7,15 @@ target Cpp {
 
 reactor foo {
     input x: int
-
     output y: int
 
     reaction(x) -> y {= y.set(2*(*x.get())); =}
 }
 
 reactor print {
-    input x: int
-
     state expected_time: time(0)
     state i: int(0)
+    input x: int
 
     reaction(x) {=
         i++;
@@ -50,11 +48,9 @@ reactor print {
 }
 
 main reactor {
-    timer t(0, 1 sec)
-
     f = new foo()
     p = new print()
-
+    timer t(0, 1 sec)
     f.y -> p.x after 0
 
     reaction(t) -> f.x {=

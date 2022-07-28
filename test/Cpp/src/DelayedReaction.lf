@@ -23,6 +23,5 @@ reactor Sink {
 main reactor DelayedReaction {
     source = new Source()
     sink = new Sink()
-
     source.out -> sink.in after 100 msec
 }

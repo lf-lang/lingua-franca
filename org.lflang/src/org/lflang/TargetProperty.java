@@ -50,6 +50,8 @@ import org.lflang.util.FileUtil;
 import org.lflang.util.StringUtil;
 import org.lflang.validation.LFValidator;
 
+import com.google.common.collect.ImmutableList;
+
 /**
  * A target properties along with a type and a list of supporting targets
  * that supports it, as well as a function for configuration updates.
@@ -265,7 +267,7 @@ public enum TargetProperty {
      * compiled binary.
      */
     EXTERNAL_RUNTIME_PATH("external-runtime-path", PrimitiveType.STRING,
-            Arrays.asList(Target.CPP),
+            List.of(Target.CPP),
             (config) -> ASTUtils.toElement(config.externalRuntimePath),
             (config, value, err) -> {
                 config.externalRuntimePath = ASTUtils.elementToSingleString(value);
@@ -323,6 +325,7 @@ public enum TargetProperty {
      * Key-value pairs giving options for clock synchronization.
      */
     COORDINATION_OPTIONS("coordination-options",
+<<<<<<< HEAD
             DictionaryType.COORDINATION_OPTION_DICT, Arrays.asList(Target.C, Target.CCPP, Target.Python),
             (config) -> {
                 Element e = LfFactory.eINSTANCE.createElement();
@@ -341,6 +344,9 @@ public enum TargetProperty {
                 e.setKeyvalue(kvp);
                 return e;
             },
+=======
+            DictionaryType.COORDINATION_OPTION_DICT, Arrays.asList(Target.C, Target.CCPP, Target.Python, Target.TS),
+>>>>>>> origin/pretty-printer
             (config, value, err) -> {
                 for (KeyValuePair entry : value.getKeyvalue().getPairs()) {
                     CoordinationOption option = (CoordinationOption) DictionaryType.COORDINATION_OPTION_DICT
@@ -399,7 +405,16 @@ public enum TargetProperty {
             (config, value, err) -> {
                 config.noRuntimeValidation = ASTUtils.toBoolean(value);
             }),
-    
+
+    /**
+     * Directive to specify the platform for cross code generation.
+     */
+    PLATFORM("platform", UnionType.PLATFORM_UNION, Target.ALL,
+             (config, value, err) -> {
+                 config.platform = (Platform) UnionType.PLATFORM_UNION
+                     .forName(ASTUtils.elementToSingleString(value));
+             }),
+
     /**
      * Directive for specifying .proto files that need to be compiled and their
      * code included in the sources.
@@ -1033,6 +1048,7 @@ public enum TargetProperty {
                 CoordinationType.CENTRALIZED),
         SCHEDULER_UNION(Arrays.asList(SchedulerOption.values()), SchedulerOption.getDefault()),
         LOGGING_UNION(Arrays.asList(LogLevel.values()), LogLevel.INFO),
+        PLATFORM_UNION(Arrays.asList(Platform.values()), Platform.AUTO),
         CLOCK_SYNC_UNION(Arrays.asList(ClockSyncMode.values()),
                 ClockSyncMode.INIT),
         DOCKER_UNION(Arrays.asList(PrimitiveType.BOOLEAN, DictionaryType.DOCKER_DICT),
@@ -1391,7 +1407,11 @@ public enum TargetProperty {
          * 
          * @param e      The element to type check.
          * @param name   The name of the target property.
+<<<<<<< HEAD
          * @param v      The LFValidator to append errors to.
+=======
+         * @param v      The validator to which any errors should be reported.
+>>>>>>> origin/pretty-printer
          */
         public void check(Element e, String name, LFValidator v) {
             if (!this.validate(e)) {
@@ -1547,13 +1567,52 @@ public enum TargetProperty {
             return this.name().toLowerCase();
         }
     }
-    
+
+    /**
+     * Enumeration of supported platforms
+     */
+    public enum Platform {
+        AUTO,
+        LINUX("Linux"),
+        MAC("Darwin"),
+        WINDOWS("Windows");
+
+        String cMakeName;
+        Platform() {
+            this.cMakeName = this.toString();
+        }
+        Platform(String cMakeName) {
+            this.cMakeName = cMakeName;
+        }
+
+        /**
+         * Return the name in lower case.
+         */
+        @Override
+        public String toString() {
+            return this.name().toLowerCase();
+        }
+
+        /**
+         * Get the CMake name for the platform.
+         */
+        public String getcMakeName() {
+            return this.cMakeName;
+        }
+    }
+
     /**
      * Supported schedulers.
      * @author{Soroush Bateni <soroush@utdallas.edu>}
      */
     public enum SchedulerOption {
         NP(false),         // Non-preemptive
+        adaptive(false, List.of(
+            Path.of("scheduler_adaptive.c"),
+            Path.of("worker_assignments.h"),
+            Path.of("worker_states.h"),
+            Path.of("data_collection.h")
+        )),
         GEDF_NP(true),    // Global EDF non-preemptive
         GEDF_NP_CI(true); // Global EDF non-preemptive with chain ID
         // PEDF_NP(true);    // Partitioned EDF non-preemptive (FIXME: To be re-added in a future PR)
@@ -1561,17 +1620,30 @@ public enum TargetProperty {
         /**
          * Indicate whether or not the scheduler prioritizes reactions by deadline.
          */
-        private final Boolean prioritizesDeadline;
-        
+        private final boolean prioritizesDeadline;
+
+        /** Relative paths to files required by this scheduler. */
+        private final List<Path> relativePaths;
+
+        SchedulerOption(boolean prioritizesDeadline) {
+            this(prioritizesDeadline, null);
+        }
+
+        SchedulerOption(boolean prioritizesDeadline, List<Path> relativePaths) {
+            this.prioritizesDeadline = prioritizesDeadline;
+            this.relativePaths = relativePaths;
+        }
+
         /**
          * Return true if the scheduler prioritizes reactions by deadline.
          */
-        public Boolean prioritizesDeadline() {
+        public boolean prioritizesDeadline() {
             return this.prioritizesDeadline;
         }
-        
-        private SchedulerOption(Boolean prioritizesDeadline) {
-            this.prioritizesDeadline = prioritizesDeadline;
+
+        public List<Path> getRelativePaths() {
+            return relativePaths != null ? ImmutableList.copyOf(relativePaths) :
+                   List.of(Path.of("scheduler_" + this + ".c"));
         }
         
         public static SchedulerOption getDefault() {

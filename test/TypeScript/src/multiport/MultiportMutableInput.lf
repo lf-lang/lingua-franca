@@ -29,7 +29,6 @@ reactor Print(scale: number(1)) {  // The scale parameter is just for testing.
 
 reactor Scale(scale: number(2)) {
     mutable input[2] inp: number
-
     output[2] out: number
 
     reaction(inp) -> out {=
@@ -45,7 +44,6 @@ main reactor {
     s = new Source()
     c = new Scale()
     p = new Print(scale = 2)
-
     s.out -> c.inp
     c.out -> p.inp
 }

@@ -5,10 +5,8 @@ target TypeScript {
 }
 
 reactor Source {
-    output out: number
-
     timer t(0, 200 msec)
-
+    output out: number
     state s: number(0)
 
     reaction(t) -> out {= out = s++; =}
@@ -16,16 +14,14 @@ reactor Source {
 
 reactor Computation {
     input inp: number
-
     output out: number
 
     reaction(inp) -> out {= out = inp; =}
 }
 
 reactor Destination {
-    input[4] inp: number
-
     state s: number(0)
+    input[4] inp: number
 
     reaction(inp) {=
         let sum = 0;
@@ -59,7 +55,6 @@ main reactor MultiportIn {
     t3 = new Computation()
     t4 = new Computation()
     b = new Destination()
-
     a.out -> t1.inp
     a.out -> t2.inp
     a.out -> t3.inp

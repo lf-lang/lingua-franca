@@ -1,4 +1,4 @@
-// This tests SET_ARRAY(). This tests the use of the "polymorphic" delay reactor
+// This tests SET_ARRAY() This tests the use of the "polymorphic" delay reactor
 // on a struct. It delays by a logical time any pointer datatype.
 target C
 
@@ -44,6 +44,5 @@ reactor Print(scale: int(1)) {  // The scale parameter is just for testing.
 main reactor {
     s = new Source()
     p = new Print()
-
     s.out -> p.in
 }

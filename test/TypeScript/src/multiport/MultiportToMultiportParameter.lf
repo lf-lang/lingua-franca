@@ -4,10 +4,8 @@ target TypeScript {
 }
 
 reactor Source(width: number(1)) {
-    output[width] out: number
-
     timer t(0, 200 msec)
-
+    output[width] out: number
     state s: number(0)
 
     reaction(t) -> out {=
@@ -18,9 +16,8 @@ reactor Source(width: number(1)) {
 }
 
 reactor Destination(width: number(1)) {
-    input[width] inp: number  // Width is one larger than that of the source.
-
     state s: number(6)
+    input[width] inp: number  // Width is one larger than that of the source.
 
     reaction(inp) {=
         let sum = 0;
@@ -45,6 +42,5 @@ reactor Destination(width: number(1)) {
 main reactor(width: number(4)) {
     a = new Source(width = width)
     b = new Destination(width = width)
-
     a.out -> b.inp
 }

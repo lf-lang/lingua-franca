@@ -6,7 +6,6 @@ target Python {
 
 reactor CountSelf2(delay(100 msec)) {
     output out
-
     logical action a
 
     reaction(startup) -> a, out {=
@@ -22,7 +21,6 @@ reactor CountSelf2(delay(100 msec)) {
 
 reactor Test {
     input _in
-
     state count(0)
 
     reaction(_in) {=
@@ -38,6 +36,5 @@ reactor Test {
 main reactor {
     d = new CountSelf2()
     t = new Test()
-
     d.out -> t._in
 }

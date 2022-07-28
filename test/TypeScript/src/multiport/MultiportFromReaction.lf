@@ -4,9 +4,8 @@ target TypeScript {
 }
 
 reactor Destination(width: number(1)) {
-    input[width] inp: number
-
     state s: number(6)
+    input[width] inp: number
 
     reaction(inp) {=
         let sum = 0;
@@ -31,10 +30,8 @@ reactor Destination(width: number(1)) {
 
 main reactor MultiportFromReaction(width: number(4)) {
     timer t(0, 200 msec)
-
-    b = new Destination(width = width)
-
     state s: number(0)
+    b = new Destination(width = width)
 
     reaction(t) -> b.inp {=
         for (let i = 0; i < b.inp.length; i++) {

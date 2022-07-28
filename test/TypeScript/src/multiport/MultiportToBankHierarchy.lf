@@ -16,7 +16,6 @@ reactor Source {
 
 reactor Destination {
     input inp: number
-
     state received: boolean(false)
 
     reaction(inp) {=
@@ -37,15 +36,12 @@ reactor Destination {
 
 reactor Container {
     input[3] inp: number
-
     c = new[3] Destination()
-
     inp -> c.inp
 }
 
 main reactor MultiportToBankHierarchy {
     a = new Source()
     b = new Container()
-
     a.out -> b.inp
 }

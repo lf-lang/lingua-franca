@@ -3,7 +3,6 @@ target Rust
 
 main reactor ActionIsPresent {
     logical action a
-
     state success: bool(false)
     state tried: bool(false)
 

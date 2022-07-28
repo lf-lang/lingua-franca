@@ -16,13 +16,11 @@ main reactor AsyncCallback {
             a.schedule(0, null);
         }
     =}
-
     timer t(0, 200 msec)
-
-    physical action a(100 msec): number
-
     state expected_time: time(100 msec)
     state toggle: boolean(false)
+
+    physical action a(100 msec): number
     state i: number(0)
 
     reaction(t) -> a {=

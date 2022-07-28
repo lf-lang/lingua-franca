@@ -9,9 +9,7 @@ preamble {=
 
 reactor DelayPointer(delay: time(100 msec)) {
     input in: hello_t*
-
     output out: hello_t*
-
     logical action a: hello_t*
 
     reaction(a) -> out {=
@@ -56,7 +54,6 @@ main reactor DelayStruct {
     s = new Source()
     d = new DelayPointer()
     p = new Print()
-
     s.out -> d.in
     d.out -> p.in
 }

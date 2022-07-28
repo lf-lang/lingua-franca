@@ -4,7 +4,6 @@ target TypeScript
 reactor Source {
     output out1: number
     output out2: number
-
     timer t
 
     reaction(t) -> out1, out2 {=
@@ -16,7 +15,6 @@ reactor Source {
 reactor Work {
     input in1: number
     input in2: number
-
     output out: number
 
     reaction(in1, in2) -> out {=

@@ -7,9 +7,7 @@ target Python {
 
 reactor Source(period(3 sec)) {
     output y
-
     timer t(0, period)
-
     state count(0)
 
     reaction(t) -> y {=
@@ -29,7 +27,6 @@ reactor Source(period(3 sec)) {
 
 reactor Destination(timeout(1 sec)) {
     input x
-
     state count(0)
 
     reaction(x) {=
@@ -53,6 +50,5 @@ reactor Destination(timeout(1 sec)) {
 main reactor Deadline {
     s = new Source()
     d = new Destination(timeout = 1 sec)
-
     s.y -> d.x
 }

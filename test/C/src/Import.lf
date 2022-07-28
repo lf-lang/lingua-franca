@@ -6,7 +6,6 @@ import Imported from "lib/Imported.lf"
 
 main reactor Import {
     timer t
-
     a = new Imported()
 
     reaction(t) -> a.x {= lf_set(a.x, 42); =}

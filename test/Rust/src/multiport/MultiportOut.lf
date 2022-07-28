@@ -4,10 +4,8 @@ target Rust {
 }
 
 reactor Source {
-    output[4] out: u32
-
     timer t(0, 200 msec)
-
+    output[4] out: u32
     state s: u32(0)
 
     reaction(t) -> out {=
@@ -20,7 +18,6 @@ reactor Source {
 
 reactor Computation {
     input in: u32
-
     output out: u32
 
     reaction(in) -> out {=
@@ -33,9 +30,8 @@ reactor Computation {
 }
 
 reactor Destination {
-    input[4] in: u32
-
     state s: u32(0)
+    input[4] in: u32
 
     reaction(in) {=
         let mut sum = 0;
@@ -62,7 +58,6 @@ main reactor {
     t3 = new Computation()
     t4 = new Computation()
     b = new Destination()
-
     a.out -> t1.in, t2.in, t3.in, t4.in
     t1.out, t2.out, t3.out, t4.out -> b.in
 }

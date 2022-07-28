@@ -44,6 +44,5 @@ reactor Print(scale: number(1)) {  // The scale parameter is just for testing.
 main reactor ArrayAsType {
     s = new Source()
     p = new Print()
-
     s.out -> p.x
 }

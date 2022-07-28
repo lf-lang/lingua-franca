@@ -11,11 +11,8 @@ reactor Platform(
     stp_offset_param: time(0)
 ) {
     input in: int
-
     output out: int
-
     timer t(0, 100 msec)
-
     state count: int(start)
     state expected: int(expected_start)
 
@@ -50,7 +47,6 @@ reactor Platform(
 federated reactor DecentralizedP2PComm {
     a = new Platform(expected_start = 100, stp_offset_param = 10 msec)
     b = new Platform(start = 100, stp_offset_param = 10 msec)
-
     a.out -> b.in
     b.out -> a.in
 }

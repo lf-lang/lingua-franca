@@ -9,9 +9,7 @@ reactor A_Really_Long_Name_For_A_Source_But_Not_Quite_255_Characters_Which_Is_Th
     period(2 sec)
 ) {
     output y
-
     timer t(1 sec, period)
-
     state count(0)
 
     reaction(t) -> y {=
@@ -22,7 +20,6 @@ reactor A_Really_Long_Name_For_A_Source_But_Not_Quite_255_Characters_Which_Is_Th
 
 reactor Another_Really_Long_Name_For_A_Test_Class {
     input x
-
     state count(0)
 
     reaction(x) {=
@@ -41,7 +38,6 @@ main reactor IdentifierLength {
     another_really_long_name_for_a_test_instance = new Another_Really_Long_Name_For_A_Test_Class(
 
     )
-
     a_really_long_name_for_a_source_instance.y ->
         another_really_long_name_for_a_test_instance.x
 }

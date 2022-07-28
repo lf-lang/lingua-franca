@@ -6,7 +6,6 @@ import Computation from "concurrent/Threaded.lf"
 
 reactor Print {
     input in: int
-
     state count: int(0)
 
     reaction(in) {=
@@ -28,6 +27,7 @@ reactor Print {
 
 main reactor Pipeline {
     timer t(0, 200 msec)
+    state count: int(0)
 
     c1 = new Computation()
     c2 = new Computation()
@@ -39,8 +39,6 @@ main reactor Pipeline {
     c2.out -> c3.in after 200 msec
     c3.out -> c4.in after 200 msec
     c4.out -> p.in
-
-    state count: int(0)
 
     reaction(t) -> c1.in {= c1.in.set(count++); =}
 }

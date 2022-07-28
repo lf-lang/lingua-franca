@@ -8,7 +8,6 @@ import TestCount from "../lib/TestCount.lf"
 
 reactor Source {
     output[2] out
-
     c1 = new Count()
     c2 = new Count()
 

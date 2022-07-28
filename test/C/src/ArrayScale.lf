@@ -8,7 +8,6 @@ import Print, Source from "ArrayPrint.lf"
 
 reactor Scale(scale: int(2)) {
     mutable input in: int[]
-
     output out: int[]
 
     reaction(in) -> out {=
@@ -23,7 +22,6 @@ main reactor ArrayScale {
     s = new Source()
     c = new Scale()
     p = new Print(scale = 2)
-
     s.out -> c.in
     c.out -> p.in
 }

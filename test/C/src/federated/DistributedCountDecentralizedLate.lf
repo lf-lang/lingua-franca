@@ -14,14 +14,12 @@ target C {
 import Count from "../lib/Count.lf"
 
 reactor Print {
-    input in: int  // STP () STP ()
-
+    input in: int  // STP ()
+    state success: int(0)  // STP(in, 30 msec);
+    state success_stp_violation: int(0)
     // Force a timer to be invoke periodically to ensure logical time will
     // advance in the absence of incoming messages.
     timer t(0, 10 usec)
-
-    state success: int(0)  // STP(in, 30 msec);
-    state success_stp_violation: int(0)
     state c: int(0)
 
     reaction(in) {=
@@ -64,6 +62,5 @@ reactor Print {
 federated reactor {
     c = new Count()
     p = new Print()
-
     c.out -> p.in  // Indicating a 'logical' connection.
 }

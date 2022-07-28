@@ -2,9 +2,9 @@
 target C
 
 main reactor GetMicroStep {
-    logical action l
-
     state s: int(1)
+
+    logical action l
 
     reaction(startup) -> l {= lf_schedule(l, 0); =}
 

@@ -4,6 +4,8 @@ target C
 reactor Foo {
     state foo: int(2)
 
+    method add(x: int) {= self->foo += x; =}
+
     reaction(startup) {=
         add(40);
         lf_print("Foo: 2 + 40 = %d", self->foo);
@@ -11,15 +13,14 @@ reactor Foo {
             lf_print_error_and_exit("Expected 42!");
         }
     =}
-
-
-    method add(x: int) {= self->foo += x; =}
 }
 
 main reactor {
+    state foo: int(2)
+
     a = new Foo()
 
-    state foo: int(2)
+    method add(x: int) {= self->foo += x; =}
 
     reaction(startup) {=
         add(40);
@@ -28,7 +29,4 @@ main reactor {
             lf_print_error_and_exit("Expected 42!");
         }
     =}
-
-
-    method add(x: int) {= self->foo += x; =}
 }

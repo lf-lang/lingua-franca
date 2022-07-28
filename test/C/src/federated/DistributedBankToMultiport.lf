@@ -7,7 +7,6 @@ import Count from "../lib/Count.lf"
 
 reactor Destination {
     input[2] in: int
-
     state count: int(1)
 
     reaction(in) {=
@@ -30,6 +29,5 @@ reactor Destination {
 federated reactor {
     s = new[2] Count()
     d = new Destination()
-
     s.out -> d.in
 }

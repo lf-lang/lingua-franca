@@ -5,7 +5,6 @@ target TypeScript
 
 reactor Deadline(threshold: time(100 msec)) {
     input x: number
-
     output deadlineViolation: boolean
 
     reaction(x) -> deadlineViolation {=
@@ -30,10 +29,8 @@ reactor Print {
 
 main reactor SimpleDeadline {
     timer start
-
     d = new Deadline(threshold = 10 msec)
     p = new Print()
-
     d.deadlineViolation -> p.x
 
     reaction(start) -> d.x {=

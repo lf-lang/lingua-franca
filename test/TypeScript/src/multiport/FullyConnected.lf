@@ -2,7 +2,6 @@ target TypeScript
 
 reactor Node(numNodes: number(4)) {
     input[numNodes] inp: number
-
     output out: number
 
     state received: boolean(false)
@@ -39,6 +38,5 @@ reactor Node(numNodes: number(4)) {
 
 main reactor(numNodes: number(4)) {
     nodes = new[numNodes] Node(numNodes = numNodes)
-
     (nodes.out)+ -> nodes.inp
 }

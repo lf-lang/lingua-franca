@@ -5,10 +5,8 @@ target Python {
 }
 
 reactor Source(bank_index(0)) {
-    output out
-
     timer t(0, 200 msec)
-
+    output out
     state s(0)
 
     reaction(t) -> out {=
@@ -18,9 +16,8 @@ reactor Source(bank_index(0)) {
 }
 
 reactor Destination(bank_index(0)) {
-    input _in
-
     state s(0)
+    input _in
 
     reaction(_in) {=
         print("Destination " + str(self.bank_index) + " received: " + str(_in.value))
@@ -41,6 +38,5 @@ reactor Destination(bank_index(0)) {
 main reactor BankToBank(width(4)) {
     a = new[width] Source()
     b = new[width] Destination()
-
     a.out -> b._in
 }

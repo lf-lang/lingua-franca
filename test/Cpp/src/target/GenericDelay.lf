@@ -3,10 +3,8 @@ target Cpp
 import Test from "../DelayInt.lf"
 
 reactor Delay<T>(delay: time(0)) {
-    input in: T
-
     output out: T
-
+    input in: T
     logical action a(delay): T
 
     reaction(a) -> out {= out.set(a.get()); =}
@@ -17,7 +15,6 @@ reactor Delay<T>(delay: time(0)) {
 main reactor {
     d = new Delay<int>(delay = 100 msec)
     test = new Test()
-
     d.out -> test.in
 
     reaction(startup) -> d.in {= d.in.set(42); =}

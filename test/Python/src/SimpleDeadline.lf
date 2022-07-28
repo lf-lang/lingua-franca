@@ -5,7 +5,6 @@ target Python
 
 reactor Deadline(threshold(100 msec)) {
     input x
-
     output deadlineViolation
 
     reaction(x) -> deadlineViolation {=
@@ -27,14 +26,11 @@ reactor Print {
 }
 
 main reactor SimpleDeadline {
-    preamble {= import time =}
-
     timer start
-
     d = new Deadline(threshold = 10 msec)
     p = new Print()
-
     d.deadlineViolation -> p._in
+    preamble {= import time =}
 
     reaction(start) -> d.x {=
         self.time.sleep(0.02)

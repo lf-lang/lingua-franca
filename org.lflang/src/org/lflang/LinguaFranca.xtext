@@ -74,7 +74,7 @@ ImportedReactor: reactorClass=[Reactor] ('as' name=ID)?;
  * Declaration of a reactor class.
  */
 Reactor:
-    {Reactor} ((federated?='federated' | main?='main')? & realtime?='realtime'?) 'reactor' (name=ID)? 
+    {Reactor} (attributes+=Attribute)* ((federated?='federated' | main?='main')? & realtime?='realtime'?) 'reactor' (name=ID)?
     ('<' typeParms+=TypeParm (',' typeParms+=TypeParm)* '>')?
     ('(' parameters+=Parameter (',' parameters+=Parameter)* ')')?
     ('at' host=Host)?
@@ -129,6 +129,7 @@ TargetDecl:
  *  must be given, or a literal or code that denotes zero.
  */
  StateVar:
+    (attributes+=Attribute)*
     (reset?='reset')? 'state' name=ID (
         (':' (type=Type))? 
         ((parens+='(' (init+=Expression (','  init+=Expression)*)? parens+=')')
@@ -150,24 +151,24 @@ MethodArgument:
 ;
 
 Input:
-    mutable?='mutable'? 'input' (widthSpec=WidthSpec)? name=ID (':' type=Type)? ';'?;
+    (attributes+=Attribute)* mutable?='mutable'? 'input' (widthSpec=WidthSpec)? name=ID (':' type=Type)? ';'?;
 
 Output:
-    'output' (widthSpec=WidthSpec)? name=ID (':' type=Type)? ';'?;
+    (attributes+=Attribute)* 'output' (widthSpec=WidthSpec)? name=ID (':' type=Type)? ';'?;
 
 // Timing specification for a timer: (offset, period)
 // Can be empty, which means (0,0) = (NOW, ONCE).
 // E.g. (0) or (NOW) or (NOW, ONCE) or (100, 1000)
 // The latter means fire with period 1000, offset 100.
 Timer:
-    'timer' name=ID ('(' offset=Expression (',' period=Expression)? ')')? ';'?;
+   (attributes+=Attribute)* 'timer' name=ID ('(' offset=Expression (',' period=Expression)? ')')? ';'?;
 
 Boolean:
     TRUE | FALSE
 ;
 
 Mode:
-    {Mode} (initial?='initial')? 'mode' (name=ID)? 
+    {Mode} (initial?='initial')? 'mode' (name=ID)?
     '{' (
         (stateVars+=StateVar) |
         (timers+=Timer) |
@@ -188,11 +189,13 @@ Mode:
 // For all actions, minSpacing is the minimum difference between
 // the tags of two subsequently scheduled events.
 Action:
-    (origin=ActionOrigin)? 'action' name=ID 
+    (attributes+=Attribute)*
+    (origin=ActionOrigin)? 'action' name=ID
     ('(' minDelay=Expression (',' minSpacing=Expression (',' policy=STRING)? )? ')')?
     (':' type=Type)? ';'?;
 
 Reaction:
+    (attributes+=Attribute)*
     ('reaction')
     ('(' (triggers+=TriggerRef (',' triggers+=TriggerRef)*)? ')')?
     (sources+=VarRef (',' sources+=VarRef)*)?
@@ -227,7 +230,7 @@ Instantiation:
     name=ID '=' 'new' (widthSpec=WidthSpec)?
     reactorClass=[ReactorDecl] ('<' typeParms+=TypeParm (',' typeParms+=TypeParm)* '>')? '(' 
     (parameters+=Assignment (',' parameters+=Assignment)*)? 
-    ')' ('at' host=Host)? ';'?;
+    ')' (('at' host=Host ';') | ';'?);
 
 Connection:
     ((leftPorts += VarRef (',' leftPorts += VarRef)*)
@@ -242,6 +245,21 @@ Connection:
 // Chooses the serializer to use for the connection
 Serializer:
     'serializer' type=STRING
+;
+
+/////////// Attributes
+Attribute:
+    '@' attrName=ID ('(' (attrParms+=AttrParm (',' attrParms+=AttrParm)* ','?)? ')')?
+;
+
+AttrParm:
+    (name=ID '=')? value=AttrParmValue;
+
+AttrParmValue:
+    str=STRING
+    | int=SignedInt
+    | bool=Boolean
+    | float=SignedFloat
 ;
 
 /////////// For target parameters
@@ -289,6 +307,7 @@ Assignment:
  * Parameter declaration with optional type and mandatory initialization.
  */
 Parameter:
+    (attributes+=Attribute)*
     name=ID (':' (type=Type))?
     ((parens+='(' (init+=Expression (','  init+=Expression)*)? parens+=')')
         | (braces+='{' (init+=Expression (','  init+=Expression)*)? braces+='}')
@@ -457,7 +476,7 @@ enum BuiltinTrigger:
     STARTUP='startup' | SHUTDOWN='shutdown' | RESET='reset';
 
 enum ModeTransition:
-    RESET='reset' | HISTORY='continue';
+    RESET='reset' | HISTORY='history';
 
 // Note: time units are not keywords, otherwise it would reserve
 // a lot of useful identifiers (like 's' or 'd').
@@ -481,7 +500,7 @@ Token:
     'mutable' | 'input' | 'output' | 'timer' | 'action' | 'reaction' | 
     'startup' | 'shutdown' | 'after' | 'deadline' | 'mutation' | 'preamble' |
     'new' | 'federated' | 'at' | 'as' | 'from' | 'widthof' | 'const' | 'method' |
-    'interleaved' | 'mode' | 'initial' | 'reset' | 'continue' |
+    'interleaved' | 'mode' | 'initial' | 'reset' | 'history' |
     // Other terminals
     NEGINT | TRUE | FALSE |
     // Action origins

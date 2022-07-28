@@ -10,7 +10,6 @@ reactor Scale(scale: number(2)) {
     // Mutable keyword indicates that this reactor wants a writable copy of the
     // input.
     mutable input x: hello_t
-
     output out: hello_t
 
     reaction(x) -> out {=
@@ -24,7 +23,6 @@ main reactor StructScale {
     s = new Source()
     c = new Scale()
     p = new Print(expected = 84)
-
     s.out -> c.x
     c.out -> p.x
 }

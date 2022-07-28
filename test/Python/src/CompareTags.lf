@@ -6,9 +6,7 @@ target Python {
 
 main reactor CompareTags {
     preamble {= import sys =}
-
     timer t(0, 1 msec)
-
     logical action l
 
     reaction(t) -> l {=

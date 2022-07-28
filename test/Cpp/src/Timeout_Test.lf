@@ -13,7 +13,6 @@ import Sender from "lib/LoopedActionSender.lf"
 
 reactor Consumer {
     input in: int
-
     state success: bool(false)
 
     reaction(in) {=

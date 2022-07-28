@@ -6,7 +6,6 @@ target Python {
 
 reactor T(expected(0)) {
     input z
-
     state received(false)
 
     reaction(z) {=
@@ -26,10 +25,8 @@ reactor T(expected(0)) {
 
 reactor D {
     input[2] y
-
     t1 = new T(expected = 42)
     t2 = new T(expected = 43)
-
     y -> t1.z, t2.z
 }
 

@@ -6,24 +6,19 @@ target Python {
 }
 
 reactor SenderAndReceiver {
-    input[2] in_
-
     output out
+    input[2] in_
+    state received(False)
 
     r = new Receiver()
-
     in_ -> r.in_
-
-    state received(False)
 
     reaction(startup) -> out {= out.set(42) =}
 }
 
 reactor Receiver {
     preamble {= import sys =}
-
     input[2] in_
-
     state received(False)
 
     reaction(in_) {=
@@ -41,6 +36,5 @@ reactor Receiver {
 
 federated reactor {
     s = new[2] SenderAndReceiver()
-
     (s.out)+ -> s.in_
 }

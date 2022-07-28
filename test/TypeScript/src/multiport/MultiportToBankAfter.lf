@@ -16,7 +16,6 @@ reactor Source(width: number(2)) {
 
 reactor Destination {
     input inp: number
-
     state received: boolean(false)
 
     reaction(inp) {=
@@ -43,6 +42,5 @@ reactor Destination {
 main reactor(width: number(3)) {
     a = new Source(width = width)
     b = new[width] Destination()
-
     a.out -> b.inp after 1 sec  // Width of the bank of delays will be inferred.
 }

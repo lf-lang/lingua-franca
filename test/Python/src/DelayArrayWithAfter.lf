@@ -7,10 +7,8 @@ target Python {
 
 reactor Source {
     output out
-
-    timer t(0, 1 sec)
-
     state iteration(1)
+    timer t(0, 1 sec)
 
     reaction(t) -> out {=
         out.set([(x * self.iteration) for x in [1,2,3]])
@@ -22,7 +20,6 @@ reactor Source {
 
 reactor Print(scale(1)) {  # The scale parameter is just for testing.
     input _in
-
     state iteration(1)
     state inputs_received(0)
 
@@ -51,6 +48,5 @@ reactor Print(scale(1)) {  # The scale parameter is just for testing.
 main reactor DelayArrayWithAfter {
     s = new Source()
     p = new Print()
-
     s.out -> p._in after 1500 msec
 }

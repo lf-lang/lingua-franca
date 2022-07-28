@@ -8,10 +8,8 @@
 target C
 
 reactor SuperDenseSender(number_of_iterations: int(10)) {
-    output out: int
-
     logical action loop
-
+    output out: int
     state iterator: int(0)
 
     reaction(startup, loop) -> out {=

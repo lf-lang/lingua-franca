@@ -3,7 +3,6 @@ target Cpp
 
 reactor Source {
     output out: int
-
     timer t
 
     reaction(t) -> out {= out.set(1); =}
@@ -11,7 +10,6 @@ reactor Source {
 
 reactor Gain {
     input in: int
-
     output out: int
 
     reaction(in) -> out {= out.set((*in.get()) * 2); =}
@@ -32,12 +30,9 @@ reactor Print {
 
 reactor GainContainer {
     input in: int
-
     output out: int
     output out2: int
-
     gain = new Gain()
-
     in -> gain.in
     gain.out -> out
     gain.out -> out2
@@ -48,7 +43,6 @@ main reactor Hierarchy {
     container = new GainContainer()
     print = new Print()
     print2 = new Print()
-
     source.out -> container.in
     container.out -> print.in
     container.out -> print2.in

@@ -14,7 +14,6 @@ import ImportedAgain as Z from "lib/ImportedAgain.lf"
 
 main reactor {
     timer t
-
     a = new X()
     b = new Y()
     c = new Z()

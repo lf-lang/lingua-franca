@@ -6,10 +6,8 @@ target TypeScript {
 }
 
 reactor Source(width: number(4)) {
-    output[width] out: number
-
     timer t(0, 200 msec)
-
+    output[width] out: number
     state s: number(0)
 
     reaction(t) -> out {=
@@ -20,9 +18,8 @@ reactor Source(width: number(4)) {
 }
 
 reactor Destination(width: number(4)) {
-    input[width] inp: number
-
     state s: number(6)
+    input[width] inp: number
 
     reaction(inp) {=
         let sum = 0;
@@ -47,15 +44,12 @@ reactor Destination(width: number(4)) {
 
 reactor Container(width: number(4)) {
     input[width] inp: number
-
     dst = new Destination()
-
     inp -> dst.inp
 }
 
 main reactor MultiportToHierarchy(width: number(4)) {
     a = new Source(width = width)
     b = new Container(width = width)
-
     a.out -> b.inp
 }

@@ -49,11 +49,11 @@ task jarLfc(type: ShadowJar) {
     archiveClassifier.set('lfc')
     exclude 'test/*'
     exclude 'META-INF/*.RSA', 'META-INF/*.SF', 'META-INF/*.DSA'
-    minimize() {
-        exclude(dependency('log4j:log4j:.*'))
-        exclude(dependency('com.google.inject:guice:.*'))
-        exclude(dependency('org.lflang:org.lflang:.*'))
-    }
+    // We should use minimize() here to reduce the size of the JAR, but it causes problems
+    // with regard to our Kotlin classes. Since we don't use imports to load them but load
+    // the classes manually, minimize does not see the dependency. While we can add an exclude
+    // rule, this does not seem to work very well and causes problems when compiling for a
+    // second time. Also see https://github.com/lf-lang/lingua-franca/pull/1285
     transform(com.github.jengelman.gradle.plugins.shadow.transformers.AppendingTransformer){
         resource = 'plugin.properties'
     }
@@ -89,11 +89,11 @@ task jarLff(type: ShadowJar) {
     archiveClassifier.set('lff')
     exclude 'test/*'
     exclude 'META-INF/*.RSA', 'META-INF/*.SF', 'META-INF/*.DSA'
-    minimize() {
-        exclude(dependency('log4j:log4j:.*'))
-        exclude(dependency('com.google.inject:guice:.*'))
-        exclude(dependency('org.lflang:org.lflang:.*'))
-    }
+    // We should use minimize() here to reduce the size of the JAR, but it causes problems
+    // with regard to our Kotlin classes. Since we don't use imports to load them but load
+    // the classes manually, minimize does not see the dependency. While we can add an exclude
+    // rule, this does not seem to work very well and causes problems when compiling for a
+    // second time. Also see https://github.com/lf-lang/lingua-franca/pull/1285
     transform(com.github.jengelman.gradle.plugins.shadow.transformers.AppendingTransformer){
         resource = 'plugin.properties'
     }

@@ -3,7 +3,6 @@ target C
 
 reactor Source {
     output out: int*
-
     logical action a: int
 
     reaction(startup) -> a {= lf_schedule_int(a, MSEC(200), 42); =}
@@ -26,6 +25,5 @@ reactor Print(expected: int(42)) {  // expected parameter is for testing.
 main reactor SetToken {
     s = new Source()
     p = new Print()
-
     s.out -> p.in
 }

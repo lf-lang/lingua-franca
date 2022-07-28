@@ -32,15 +32,12 @@ reactor Destination(bank_index: usize(0)) {
 
 reactor Container {
     input[3] in: usize
-
     c = new[3] Destination()
-
     in -> c.in
 }
 
 main reactor MultiportToBankHierarchy {
     a = new Source()
     b = new Container()
-
     a.out -> b.in
 }

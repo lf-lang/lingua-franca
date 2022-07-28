@@ -52,6 +52,5 @@ reactor Print(scale: int(1)) {
 main reactor {
     s = new Source()
     p = new Print()
-
     s.out -> p.in
 }

@@ -15,7 +15,6 @@ target Python {
 main reactor SlowingClockPhysical {
     # first offset and minimum interarrival time.
     physical action a(100 msec, 100 msec)
-
     state interval(100 msec)
     state expected_time(100 msec)
 

@@ -38,6 +38,5 @@ reactor Sink {
 main reactor TestForPreviousOutput {
     s = new Source()
     d = new Sink()
-
     s.out -> d.in
 }

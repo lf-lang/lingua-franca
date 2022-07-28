@@ -7,17 +7,15 @@ import Count from "lib/Count.lf"
 
 reactor CountContainer {
     output out: int
-
     c1 = new Count()
-
     c1.c -> out
 }
 
 main reactor {
-    s = new CountContainer()
-
     state count: int(1)
     state received: bool(false)
+
+    s = new CountContainer()
 
     reaction(s.out) {=
         if (s.out.is_present()){

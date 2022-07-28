@@ -10,6 +10,5 @@ preamble {= import hello =}
 federated reactor {
     s = new Source()
     p = new Print()
-
     s.out -> p._in
 }

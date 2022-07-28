@@ -8,9 +8,7 @@ target Cpp {
 
 reactor foo {
     input x: int
-
     output y: int
-
     logical action a
 
     reaction(x) -> y, a {=
@@ -30,11 +28,9 @@ reactor print {
 }
 
 main reactor {
-    timer t(0, 1 sec)
-
     f = new foo()
     p = new print()
-
+    timer t(0, 1 sec)
     f.y -> p.x
 
     reaction(t) -> f.x {= f.x.set(42); =}

@@ -23,7 +23,6 @@ reactor CounterCycle {
 
     mode Two {
         fwd = new Forward()
-
         next -> fwd.in
         fwd.out -> only_in_two
         reaction(next) -> count, reset(One) {=
@@ -39,7 +38,6 @@ reactor CounterCycle {
 
 reactor Forward {
     input in: bool
-
     output out: bool
 
     reaction(in) -> out {= lf_set(out, in->value); =}
@@ -47,14 +45,13 @@ reactor Forward {
 
 main reactor {
     timer stepper(0, 250 msec)
-
     counter = new CounterCycle()
 
-    reaction(stepper) -> counter.next {=  // Trigger
-        lf_set(counter.next, true);
-    =}
+    // Trigger
+    reaction(stepper) -> counter.next {= lf_set(counter.next, true); =}
 
-    reaction(stepper) counter.count, counter.only_in_two {=  // Check
+    // Check
+    reaction(stepper) counter.count, counter.only_in_two {=
         printf("%d\n", counter.count->value);
 
         if (!counter.count->is_present) {

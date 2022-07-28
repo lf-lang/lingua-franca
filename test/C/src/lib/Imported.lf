@@ -6,7 +6,6 @@ import ImportedAgain from "./ImportedAgain.lf"
 
 reactor Imported {
     input x: int
-
     a = new ImportedAgain()
 
     reaction(x) -> a.x {= lf_set(a.x, x->value); =}

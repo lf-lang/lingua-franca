@@ -3,7 +3,6 @@ target Cpp
 
 reactor Scale(scale: int(2)) {
     input x: int
-
     output y: int
 
     reaction(x) -> y {= y.set(*x.get() * scale); =}
@@ -23,12 +22,10 @@ reactor Test {
 }
 
 main reactor {
-    timer tim
-
     g = new Scale()
     t = new Test()
-
     g.y -> t.x
+    timer tim
 
     reaction(tim) -> g.x {= g.x.set(1); =}
 }

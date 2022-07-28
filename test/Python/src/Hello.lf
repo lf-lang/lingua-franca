@@ -9,12 +9,10 @@ target Python {
 }
 
 reactor Reschedule(period(2 sec), message("Hello Python")) {
-    timer t(1 sec, period)
-
-    logical action a
-
     state count(0)
     state previous_time(0)
+    timer t(1 sec, period)
+    logical action a
 
     reaction(t) -> a {=
         print(self.message)

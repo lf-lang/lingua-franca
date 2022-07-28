@@ -11,9 +11,7 @@ preamble {=
 
 reactor Source {
     output out: hello_t*
-
     timer t(0, 1 sec)
-
     state s: int(0)
 
     reaction(t) -> out {=
@@ -27,9 +25,8 @@ reactor Source {
     =}
 }
 
-reactor Print {       // expected parameter is for testing.
+reactor Print {  // expected parameter is for testing.
     input in: hello_t*
-
     state s: int(0)
 
     reaction(in) {=
@@ -52,6 +49,5 @@ reactor Print {       // expected parameter is for testing.
 main reactor {
     s = new Source()
     p = new Print()
-
     s.out -> p.in after 1500 msec
 }

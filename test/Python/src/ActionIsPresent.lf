@@ -3,7 +3,6 @@ target Python
 
 main reactor ActionIsPresent(offset(1 nsec), period(500 msec)) {
     logical action a
-
     state first_time(True)
     state success(False)
 

@@ -7,7 +7,6 @@ import TestCount from "../lib/TestCount.lf"
 
 reactor Through {
     input in: int
-
     output out: int
 
     reaction(in) -> out {= lf_set(out, in->value); =}
@@ -15,11 +14,8 @@ reactor Through {
 
 reactor Bank {
     input in: int
-
     output out: int
-
     t = new Through()
-
     in, t.out -> t.in, out
 }
 
@@ -27,6 +23,5 @@ main reactor {
     b = new[2] Bank()
     s = new Count()
     t = new TestCount()
-
     s.out, b.out -> b.in, t.in
 }

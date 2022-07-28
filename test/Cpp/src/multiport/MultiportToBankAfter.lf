@@ -29,6 +29,5 @@ reactor Sink(bank_index: size_t(0)) {
 main reactor MultiportToBankAfter {
     source = new Source()
     sink = new[4] Sink()
-
     source.out -> sink.in after 1 sec
 }

@@ -7,9 +7,7 @@ target TypeScript {
 
 reactor Source(period: time(2 sec)) {
     output y: number
-
     timer t(1 sec, period)
-
     state count: number(0)
 
     reaction(t) -> y {=
@@ -20,7 +18,6 @@ reactor Source(period: time(2 sec)) {
 
 reactor Test {
     input x: number
-
     state count: number(0)
 
     reaction(x) {=
@@ -35,6 +32,5 @@ reactor Test {
 main reactor(delay: time(5 sec)) {
     s = new Source()
     d = new Test()
-
     s.y -> d.x after delay
 }

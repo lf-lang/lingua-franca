@@ -7,10 +7,8 @@ target Python {
 import Destination from "MultiportToHierarchy.lf"
 
 reactor Source(width(1)) {
-    output[width] out
-
     timer t(0, 200 msec)
-
+    output[width] out
     state s(0)
 
     reaction(t) -> out {=
@@ -26,6 +24,5 @@ reactor Source(width(1)) {
 main reactor MultiportToMultiport {
     a = new Source(width = 4)
     b = new Destination(width = 4)
-
     a.out -> b._in
 }

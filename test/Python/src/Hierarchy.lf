@@ -3,7 +3,6 @@ target Python
 
 reactor Source {
     output out
-
     timer t
 
     reaction(t) -> out {= out.set(1) =}
@@ -11,7 +10,6 @@ reactor Source {
 
 reactor Gain {
     input _in
-
     output out
 
     reaction(_in) -> out {=
@@ -33,12 +31,9 @@ reactor Print {
 
 reactor GainContainer {
     input _in
-
     output out
     output out2
-
     gain = new Gain()
-
     _in -> gain._in
     gain.out -> out
     gain.out -> out2
@@ -49,7 +44,6 @@ main reactor Hierarchy {
     container = new GainContainer()
     print = new Print()
     print2 = new Print()
-
     source.out -> container._in
     container.out -> print._in
     container.out -> print2._in

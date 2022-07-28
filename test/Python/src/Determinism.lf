@@ -2,7 +2,6 @@ target Python
 
 reactor Source {
     output y
-
     timer t
 
     reaction(t) -> y {= y.set(1) =}
@@ -27,7 +26,6 @@ reactor Destination {
 
 reactor Pass {
     input x
-
     output y
 
     reaction(x) -> y {= y.set(x.value) =}
@@ -38,7 +36,6 @@ main reactor Determinism {
     d = new Destination()
     p1 = new Pass()
     p2 = new Pass()
-
     s.y -> d.y
     s.y -> p1.x
     p1.y -> p2.x

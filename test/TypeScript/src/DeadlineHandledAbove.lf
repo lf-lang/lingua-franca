@@ -6,7 +6,6 @@ target TypeScript {
 
 reactor Deadline(threshold: time(100 msec)) {
     input x: number
-
     output deadline_violation: boolean
 
     reaction(x) -> deadline_violation {=
@@ -20,9 +19,8 @@ reactor Deadline(threshold: time(100 msec)) {
 }
 
 main reactor DeadlineHandledAbove {
-    d = new Deadline(threshold = 10 msec)
-
     state violation_detected: boolean(false)
+    d = new Deadline(threshold = 10 msec)
 
     reaction(startup) -> d.x {=
         // Busy wait 20 msec to cause a deadline violation.

@@ -10,10 +10,8 @@ target Python {
 reactor Source {
     output a
     output b
-
-    timer t(0, 200 msec)
-
     state count(0)
+    timer t(0, 200 msec)
 
     reaction(t) -> a, b {=
         if (self.count % 2) == 0:
@@ -43,7 +41,6 @@ reactor Destination {
 main reactor TriggerDownstreamOnlyIfPresent {
     s = new[2] Source()
     d = new[2] Destination()
-
     s.a -> d.a
     s.b -> d.b
 }

@@ -12,7 +12,6 @@ import Count from "../lib/Count.lf"
 
 reactor Print {
     input in: int
-
     state c: int(1)
 
     reaction(in) {=
@@ -45,7 +44,6 @@ reactor Print {
 federated reactor at localhost {
     c = new Count(offset = 200 msec, period = 0)
     p = new Print()
-
     // Indicating a 'physical' connection with a 400 msec after delay.
     c.out ~> p.in after 400 msec
 }

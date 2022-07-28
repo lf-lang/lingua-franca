@@ -11,7 +11,6 @@ import Count from "../lib/Count.lf"
 
 reactor Print(STP_offset_param: time(0)) {
     input in: int
-
     state c: int(1)
 
     reaction(in) {=

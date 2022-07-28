@@ -13,9 +13,7 @@ target Python
  */
 reactor Sender(take_a_break_after(10), break_interval(400 msec)) {
     output out
-
     logical action act
-
     state sent_messages(0)
 
     reaction(startup, act) -> act, out {=

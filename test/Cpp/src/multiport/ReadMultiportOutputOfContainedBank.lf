@@ -14,7 +14,6 @@ reactor Contained(bank_index: size_t(0)) {
 
 main reactor {
     c = new[3] Contained()
-
     state count: int(0)
 
     reaction(startup) c.out {=

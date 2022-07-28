@@ -49,9 +49,13 @@ public class PythonReactorGenerator {
             // Handle runtime initializations
             pythonClasses.pr(generatePythonConstructor(decl, types));
             pythonClasses.pr(PythonParameterGenerator.generatePythonGetters(decl));
+            // Generate methods
+            pythonClasses.pr(PythonMethodGenerator.generateMethods(reactor));
+            // Generate reactions
             List<Reaction> reactionToGenerate = ASTUtils.allReactions(reactor);
             pythonClasses.pr(PythonReactionGenerator.generatePythonReactions(reactor, reactionToGenerate));
             pythonClasses.unindent();
+            pythonClasses.pr("\n");
             instantiatedClasses.add(className);
         }
 

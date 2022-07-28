@@ -17,9 +17,7 @@ reactor A(bank_index: int(0), outer_bank_index: int(0)) {
 
 reactor B(bank_index: int(0)) {
     output[4] q: int
-
     a = new[2] A(outer_bank_index = bank_index)
-
     interleaved (a.p) -> q
 }
 
@@ -40,6 +38,5 @@ reactor C {
 main reactor {
     b = new[2] B()
     c = new C()
-
     b.q -> c.i
 }

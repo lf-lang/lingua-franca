@@ -15,6 +15,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 import org.lflang.ASTUtils;
+import org.lflang.AttributeUtils;
 import org.lflang.TargetConfig;
 import org.lflang.TargetProperty.CoordinationType;
 import org.lflang.TargetProperty.LogLevel;
@@ -331,7 +332,7 @@ public class CTriggerObjectsGenerator {
                 // really necessary.
                 var mod = (dst.isMultiport() || (src.isInput() && src.isMultiport()))? "" : "&";
                 code.pr("// Connect "+srcRange+" to port "+dstRange);
-                code.startScopedRangeBlock(srcRange, dstRange);
+                code.startScopedRangeBlock(currentFederate, srcRange, dstRange);
                 if (src.isInput()) {
                     // Source port is written to by reaction in port's parent's parent
                     // and ultimate destination is further downstream.
@@ -340,9 +341,14 @@ public class CTriggerObjectsGenerator {
                     // An output port of a contained reactor is triggering a reaction.
                     code.pr(CUtil.portRefNested(dst, dr, db, dc)+" = ("+destStructType+"*)&"+CUtil.portRef(src, sr, sb, sc)+";");
                 } else {
-                    // An output port is triggering
+                    // An output port is triggering an input port.
                     code.pr(CUtil.portRef(dst, dr, db, dc)+" = ("+destStructType+"*)&"+CUtil.portRef(src, sr, sb, sc)+";");
+                    if (AttributeUtils.isSparse(dst.getDefinition())) {
+                        code.pr(CUtil.portRef(dst, dr, db, dc)+"->sparse_record = "+CUtil.portRefName(dst, dr, db, dc)+"__sparse;");
+                        code.pr(CUtil.portRef(dst, dr, db, dc)+"->destination_channel = "+dc+";");
+                    }
                 }
+                code.endScopedRangeBlock(srcRange, dstRange);
                 code.endScopedRangeBlock(srcRange, dstRange);
             }
         }
@@ -570,7 +576,13 @@ public class CTriggerObjectsGenerator {
                         multicastCount++;
                     }
                 }
-                cumulativePortWidth += port.getWidth();
+                // If the port is an input of a contained reactor, then we have to take
+                // into account the bank width of the contained reactor.
+                if (port.getParent() != reaction.getParent()) {
+                    cumulativePortWidth += port.getWidth() * port.getParent().getWidth();
+                } else {
+                    cumulativePortWidth += port.getWidth();
+                }
             }
             if (foundPort) code.endScopedBlock();
         }

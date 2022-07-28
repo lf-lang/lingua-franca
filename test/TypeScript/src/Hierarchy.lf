@@ -3,7 +3,6 @@ target TypeScript
 
 reactor Source {
     output out: number
-
     timer t
 
     reaction(t) -> out {=
@@ -14,7 +13,6 @@ reactor Source {
 
 reactor Gain {
     input x: number
-
     output out: number
 
     reaction(x) -> out {=
@@ -37,12 +35,9 @@ reactor Print {
 
 reactor GainContainer {
     input x: number
-
     output out: number
     output out2: number
-
     gain = new Gain()
-
     x -> gain.x
     gain.out -> out
     gain.out -> out2
@@ -53,7 +48,6 @@ main reactor Hierarchy {
     container = new GainContainer()
     print = new Print()
     print2 = new Print()
-
     source.out -> container.x
     container.out -> print.x
     container.out -> print2.x

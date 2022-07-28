@@ -5,11 +5,9 @@ target Python {
 }
 
 reactor Source(width(1)) {
-    output[width] out
-
     timer t(0, 200 msec)
-
     state s(0)
+    output[width] out
 
     reaction(t) -> out {=
         for port in out:
@@ -19,9 +17,8 @@ reactor Source(width(1)) {
 }
 
 main reactor {
-    b = new Source(width = 4)
-
     state s(6)
+    b = new Source(width = 4)
 
     reaction(b.out) {=
         sm = 0

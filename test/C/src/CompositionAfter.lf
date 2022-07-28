@@ -7,9 +7,7 @@ target C {
 
 reactor Source(period: time(2 sec)) {
     output y: int
-
     timer t(1 sec, period)
-
     state count: int(0)
 
     reaction(t) -> y {=
@@ -20,7 +18,6 @@ reactor Source(period: time(2 sec)) {
 
 reactor Test {
     input x: int
-
     state count: int(0)
 
     reaction(x) {=
@@ -36,6 +33,5 @@ reactor Test {
 main reactor CompositionAfter(delay: time(5 sec)) {
     s = new Source()
     d = new Test()
-
     s.y -> d.x after delay
 }

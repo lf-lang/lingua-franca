@@ -20,6 +20,5 @@ reactor StaticSource {
 main reactor StructAsType {
     s = new StaticSource()
     p = new Print()
-
     s.out -> p.in
 }

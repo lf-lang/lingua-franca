@@ -15,10 +15,8 @@ target Python {
 }
 
 reactor Contained(incr(1)) {
-    input inp
-
     timer t(0, 1 sec)
-
+    input inp
     state count(0)
     state received_count(0)
 
@@ -35,16 +33,12 @@ reactor Contained(incr(1)) {
 
 reactor Looper(incr(1), delay(0 msec)) {
     input inp
-
     output out
-
+    state count(0)
     timer t(0, 1 sec)
 
     c = new Contained(incr = incr)
-
     inp -> c.inp
-
-    state count(0)
 
     reaction(t) -> out {=
         print(f"Sending network output {self.count}")
@@ -68,7 +62,6 @@ reactor Looper(incr(1), delay(0 msec)) {
 federated reactor(delay(0)) {
     left = new Looper()
     right = new Looper(incr = -1)
-
     left.out -> right.inp
     right.out -> left.inp
 }

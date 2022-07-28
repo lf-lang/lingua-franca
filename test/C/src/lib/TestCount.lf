@@ -10,10 +10,9 @@
 target C
 
 reactor TestCount(start: int(1), stride: int(1), num_inputs: int(1)) {
-    input in: int
-
     state count: int(start)
     state inputs_received: int(0)
+    input in: int
 
     reaction(in) {=
         lf_print("Received %d.", in->value);

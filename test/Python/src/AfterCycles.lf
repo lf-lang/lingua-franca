@@ -10,21 +10,19 @@ reactor Source {
 
 reactor Work {
     input _in
-
     output out
 
     reaction(_in) -> out {= out.set(_in.value) =}
 }
 
 main reactor AfterCycles {
+    state count(0)
     s = new Source()
     w0 = new Work()
     w1 = new Work()
 
     s.out -> w0._in after 10 msec
     s.out -> w1._in after 20 msec
-
-    state count(0)
 
     reaction(w0.out) {=
         self.count+=1

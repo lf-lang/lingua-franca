@@ -20,7 +20,6 @@ reactor Modal {
 
     initial mode One {
         timer T1(0, 750 msec)
-
         logical action delay1(500 msec)
         reaction(T1) -> delay1, action1_sched {=
             print("Scheduled Action")
@@ -42,7 +41,6 @@ reactor Modal {
 
     mode Two {
         timer T2(0, 750 msec)
-
         logical action delay2(500 msec)
         reaction(T2) -> delay2, action2_sched {=
             print("Scheduled Action2")
@@ -55,7 +53,7 @@ reactor Modal {
             action2_exec.set(1)
         =}
 
-        reaction(next) -> continue(One), mode_switch {=
+        reaction(next) -> history(One), mode_switch {=
             print("Transitioning to mode One (continue)")
             mode_switch.set(1)
             One.set()

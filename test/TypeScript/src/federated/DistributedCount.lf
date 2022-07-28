@@ -14,7 +14,6 @@ import Count from "../lib/Count.lf"
 
 reactor Print {
     input inp: number
-
     state c: number(1)
 
     reaction(inp) {=
@@ -39,6 +38,5 @@ reactor Print {
 federated reactor DistributedCount(offset: time(200 msec)) {
     c = new Count()
     p = new Print()
-
     c.out -> p.inp after offset
 }

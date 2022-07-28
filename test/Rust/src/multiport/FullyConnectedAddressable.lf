@@ -2,12 +2,12 @@
 target Rust
 
 reactor Node(bank_index: usize(0), num_nodes: usize(4)) {
-    input[num_nodes] inpt: usize
-
-    output[num_nodes] out: usize
-
     state bank_index(bank_index)
     state num_nodes(num_nodes)
+
+    input[num_nodes] inpt: usize
+    output[num_nodes] out: usize
+
     state received: bool(false)
 
     reaction(startup) -> out {=
@@ -45,8 +45,8 @@ reactor Node(bank_index: usize(0), num_nodes: usize(4)) {
 
 main reactor(num_nodes: usize(4)) {
     nodes1 = new[num_nodes] Node(num_nodes = num_nodes)
-    nodes2 = new[num_nodes] Node(num_nodes = num_nodes)
-
     nodes1.out -> interleaved (nodes1.inpt)
+
+    nodes2 = new[num_nodes] Node(num_nodes = num_nodes)
     interleaved (nodes2.out) -> nodes2.inpt
 }

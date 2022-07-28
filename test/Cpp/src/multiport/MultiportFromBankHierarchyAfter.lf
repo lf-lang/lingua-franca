@@ -13,15 +13,12 @@ reactor Source(bank_index: int(0)) {
 
 reactor Container {
     output[3] out: int
-
     s = new[3] Source()
-
     s.out -> out
 }
 
 reactor Destination {
     input[3] in: int
-
     state received: bool(false)
 
     reaction(in) {=
@@ -52,6 +49,5 @@ reactor Destination {
 main reactor MultiportFromBankHierarchyAfter {
     a = new Container()
     b = new Destination()
-
     a.out -> b.in after 1 sec
 }

@@ -13,15 +13,12 @@ reactor Source(bank_index: size_t(0)) {
 
 reactor Container {
     output[3] out: unsigned
-
     s = new[3] Source()
-
     s.out -> out
 }
 
 reactor Destination {
     input[3] in: unsigned
-
     state received: bool(false)
 
     reaction(in) {=
@@ -47,6 +44,5 @@ reactor Destination {
 main reactor {
     a = new Container()
     b = new Destination()
-
     a.out -> b.in
 }

@@ -17,13 +17,11 @@ import Count from "../lib/Count.lf"
 
 reactor ImportantActuator {
     input in: int
-
-    // Force a timer to be invoke periodically to ensure logical time will
-    // advance in the absence of incoming messages.
-    timer t(0, 10 usec)
-
     state success: int(0)
     state success_stp_violation: int(0)
+    // Force a timer to be invoke periodically
+    timer t(0, 10 usec)
+    // to ensure logical time will advance in the absence of incoming messages.
     state c: int(0)
 
     reaction(in) {=
@@ -78,17 +76,14 @@ reactor Print {
 
 reactor Receiver {
     input in: int
-
-    timer t(0, 10 msec)  // Force a timer to be invoke periodically
-
-    p = new Print()
-    a = new ImportantActuator()
-
-    in -> p.in
-    in -> a.in
-
+    // Force a timer to be invoke periodically
+    timer t(0, 10 msec)
     // to ensure logical time will advance in the absence of incoming messages.
     state c: int(0)
+    p = new Print()
+    a = new ImportantActuator()
+    in -> p.in
+    in -> a.in
 
     reaction(t) {=
         // Do nothing.
@@ -98,6 +93,5 @@ reactor Receiver {
 federated reactor {
     c = new Count()
     r = new Receiver()
-
     c.out -> r.in  // Indicating a 'logical' connection.
 }

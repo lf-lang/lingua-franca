@@ -8,7 +8,6 @@ target C
 
 reactor Sender {
     output out: int
-
     timer t(0, 1 usec)
 
     reaction(t) -> out {=

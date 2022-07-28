@@ -7,9 +7,7 @@ reactor Deadline(threshold: time(100 msec)) {
     private preamble {=
         #include <thread>
     =}
-
     input x: int
-
     output deadlineViolation: bool
 
     reaction(x) -> deadlineViolation {=
@@ -35,7 +33,6 @@ reactor Print {
 main reactor SimpleDeadline {
     d = new Deadline(threshold = 10 msec)
     p = new Print()
-
     d.deadlineViolation -> p.in
 
     reaction(startup) -> d.x {=

@@ -1,4 +1,4 @@
-// This tests lf_set_copy_constructor(). This tests the use of the "polymorphic"
+// This tests lf_set_copy_constructor() This tests the use of the "polymorphic"
 // delay reactor on a struct. It delays by a logical time any pointer datatype.
 target C {
     files: ["include/array.h"]
@@ -39,7 +39,6 @@ main reactor {
     s = new Source()
     d1 = new Destination()
     d2 = new Destination()
-
     s.out -> d1.in
     s.out -> d2.in
 }

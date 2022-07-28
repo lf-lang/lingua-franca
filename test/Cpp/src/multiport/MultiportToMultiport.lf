@@ -12,7 +12,6 @@ reactor Source {
 
 reactor Sink {
     input[4] in: unsigned
-
     state received: bool(false)
 
     reaction(in) {=
@@ -37,6 +36,5 @@ reactor Sink {
 main reactor MultiportToMultiport {
     source = new Source()
     sink = new Sink()
-
     source.out -> sink.in
 }

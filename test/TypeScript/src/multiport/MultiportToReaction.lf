@@ -4,11 +4,9 @@ target TypeScript {
 }
 
 reactor Source(width: number(1)) {
-    output[width] out: number
-
     timer t(0, 200 msec)
-
     state s: number(0)
+    output[width] out: number
 
     reaction(t) -> out {=
         console.log("Sending.");
@@ -19,9 +17,8 @@ reactor Source(width: number(1)) {
 }
 
 main reactor MultiportToReaction {
-    b = new Source(width = 4)
-
     state s: number(6)
+    b = new Source(width = 4)
 
     reaction(b.out) {=
         let sum = 0;

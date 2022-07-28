@@ -7,9 +7,7 @@ target C {
 
 reactor A_Really_Long_Name_For_A_Source(period: time(2 sec)) {
     output y: int
-
     timer t(1 sec, period)
-
     state count: int(0)
 
     reaction(t) -> y {=
@@ -20,7 +18,6 @@ reactor A_Really_Long_Name_For_A_Source(period: time(2 sec)) {
 
 reactor Another_Really_Long_Name_For_A_Test_Class {
     input x: int
-
     state count: int(0)
 
     reaction(x) {=
@@ -40,7 +37,6 @@ main reactor IdentifierLength {
     another_really_long_name_for_a_test_instance = new Another_Really_Long_Name_For_A_Test_Class(
 
     )
-
     a_really_long_name_for_a_source_instance.y ->
         another_really_long_name_for_a_test_instance.x
 }

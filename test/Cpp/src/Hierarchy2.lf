@@ -6,7 +6,6 @@ target Cpp {
 
 reactor Source {
     output out: int
-
     timer t(0, 1 sec)
 
     reaction(t) -> out {= out.set(1); =}
@@ -14,9 +13,7 @@ reactor Source {
 
 reactor Count {
     output out: int
-
     timer t(0, 1 sec)
-
     state i: int(0)
 
     reaction(t) -> out {=
@@ -28,7 +25,6 @@ reactor Count {
 reactor Add {
     input in1: int
     input in2: int
-
     output out: int
 
     reaction(in1, in2) -> out {=
@@ -41,7 +37,6 @@ reactor Add {
 
 reactor Print {
     input in: int
-
     state expected: int(2)
 
     reaction(in) {=
@@ -57,12 +52,9 @@ reactor Print {
 
 reactor AddCount {
     input in: int
-
     output out: int
-
     count = new Count()
     add = new Add()
-
     in -> add.in1
     count.out -> add.in2
     add.out -> out
@@ -72,7 +64,6 @@ main reactor Hierarchy2 {
     source = new Source()
     addCount = new AddCount()
     print = new Print()
-
     source.out -> addCount.in
     addCount.out -> print.in
 }

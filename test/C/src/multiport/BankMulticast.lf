@@ -12,13 +12,12 @@ import TestCount from "../lib/TestCount.lf"
 
 reactor Foo {
     input in: int
-
     output out: int
 
     c = new Count()
-    d = new TestCount(num_inputs = 4)
-
     c.out -> out
+
+    d = new TestCount(num_inputs = 4)
     in -> d.in
 }
 
@@ -33,7 +32,7 @@ reactor Bar {
 
 main reactor {
     bar = new Bar()
-    d = new[4] TestCount(num_inputs = 4)
 
+    d = new[4] TestCount(num_inputs = 4)
     bar.out -> d.in
 }

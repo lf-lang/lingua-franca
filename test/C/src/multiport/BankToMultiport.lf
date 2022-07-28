@@ -9,7 +9,6 @@ reactor Source(bank_index: int(0)) {
 
 reactor Sink(width: int(4)) {
     input[width] in: int
-
     state received: bool(false)
 
     reaction(in) {=
@@ -36,6 +35,5 @@ reactor Sink(width: int(4)) {
 main reactor BankToMultiport(width: int(5)) {
     source = new[width] Source()
     sink = new Sink(width = width)
-
     source.out -> sink.in
 }

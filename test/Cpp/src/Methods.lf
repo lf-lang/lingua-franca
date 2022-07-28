@@ -3,6 +3,10 @@ target Cpp
 main reactor {
     state foo: int(2)
 
+    const method getFoo(): int {= return foo; =}
+
+    method add(x: int) {= foo += x; =}
+
     reaction(startup) {=
         std::cout << "Foo is initialized to " << getFoo() << '\n';
         if (getFoo() != 2) {
@@ -17,9 +21,4 @@ main reactor {
             exit(2);
         }
     =}
-
-
-    const method getFoo(): int {= return foo; =}
-
-    method add(x: int) {= foo += x; =}
 }

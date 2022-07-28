@@ -21,7 +21,6 @@ reactor A {
 
 reactor B {
     output out
-
     timer t(1 sec)
 
     reaction(t) -> out {= out.set(1) =}
@@ -32,6 +31,5 @@ reactor B {
 federated reactor {
     a = new A()
     b = new B()
-
     b.out -> a.in_
 }

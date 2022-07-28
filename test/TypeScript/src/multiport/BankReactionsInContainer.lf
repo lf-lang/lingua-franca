@@ -6,10 +6,8 @@ target TypeScript {
 }
 
 reactor R {
-    input[2] inp: number
-
     output[2] out: number
-
+    input[2] inp: number
     state received: boolean(false)
 
     reaction(startup) -> out {=
@@ -43,7 +41,6 @@ reactor R {
 
 main reactor {
     s = new[2] R()
-
     state received: boolean(false)
 
     reaction(startup) -> s.inp {=

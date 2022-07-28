@@ -7,17 +7,15 @@ target Python {
 
 reactor Foo {
     input x
-
     output y
 
     reaction(x) -> y {= y.set(2*x.value); =}
 }
 
 reactor Print {
-    input x
-
     state expected_time(10 msec)
     state received(0)
+    input x
 
     reaction(x) {=
         self.received+=1
@@ -43,11 +41,9 @@ reactor Print {
 }
 
 main reactor {
-    timer t(0, 1 sec)
-
     f = new Foo()
     p = new Print()
-
+    timer t(0, 1 sec)
     f.y -> p.x after 10 msec
 
     reaction(t) -> f.x {= f.x.set(42) =}

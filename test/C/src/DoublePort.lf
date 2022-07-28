@@ -13,13 +13,10 @@ target C {
 import Count from "lib/Count.lf"
 
 reactor CountMicrostep {
-    output out: int
-
-    timer t(0, 1 sec)
-
-    logical action act: int
-
     state count: int(1)
+    output out: int
+    logical action act: int
+    timer t(0, 1 sec)
 
     reaction(t) -> act {= lf_schedule_int(act, 0, self->count++); =}
 
@@ -48,7 +45,6 @@ main reactor DoublePort {
     c = new Count()
     cm = new CountMicrostep()
     p = new Print()
-
     c.out -> p.in
     cm.out -> p.in2
 }

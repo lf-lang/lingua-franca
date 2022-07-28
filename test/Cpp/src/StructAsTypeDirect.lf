@@ -19,6 +19,5 @@ reactor DirectSource {
 main reactor {
     s = new DirectSource()
     p = new Print()
-
     s.out -> p.in
 }

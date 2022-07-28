@@ -3,10 +3,9 @@
 target Cpp
 
 reactor Contained {
+    output trigger: int
     input in1: int
     input in2: int
-
-    output trigger: int
 
     reaction(startup) -> trigger {= trigger.set(42); =}
 

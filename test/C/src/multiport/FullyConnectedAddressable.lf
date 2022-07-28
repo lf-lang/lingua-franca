@@ -3,7 +3,6 @@ target C
 
 reactor Node(num_nodes: size_t(4), bank_index: int(0)) {
     input[num_nodes] in: int
-
     output[num_nodes] out: int
 
     state received: int(0)
@@ -48,8 +47,8 @@ reactor Node(num_nodes: size_t(4), bank_index: int(0)) {
 
 main reactor(num_nodes: size_t(4)) {
     nodes1 = new[num_nodes] Node(num_nodes = num_nodes)
-    nodes2 = new[num_nodes] Node(num_nodes = num_nodes)
-
     nodes1.out -> interleaved (nodes1.in)
+
+    nodes2 = new[num_nodes] Node(num_nodes = num_nodes)
     interleaved (nodes2.out) -> nodes2.in
 }

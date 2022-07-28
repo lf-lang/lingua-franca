@@ -8,7 +8,6 @@ reactor Source {
 
 reactor Compute {
     input in: unsigned
-
     output out: unsigned
 
     reaction(in) -> out {= out.set(*in.get() + 2); =}

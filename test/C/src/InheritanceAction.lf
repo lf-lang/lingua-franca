@@ -5,9 +5,8 @@ target C {
 }
 
 reactor Source {
-    output y: int
-
     logical action foo: int
+    output y: int
 
     reaction(foo) -> y {= lf_set(y, foo->value); =}
 }
@@ -18,7 +17,6 @@ reactor SourceExtended extends Source {
 
 reactor Test {
     input x: int
-
     state count: int(0)
 
     reaction(x) {=
@@ -40,6 +38,5 @@ reactor Test {
 main reactor {
     s = new SourceExtended()
     d = new Test()
-
     s.y -> d.x
 }

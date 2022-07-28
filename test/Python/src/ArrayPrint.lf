@@ -25,6 +25,5 @@ reactor Print(scale(1)) {  # The scale parameter is just for testing.
 main reactor ArrayPrint {
     s = new Source()
     p = new Print()
-
     s.out -> p._in
 }

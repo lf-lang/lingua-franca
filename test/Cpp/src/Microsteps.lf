@@ -31,9 +31,7 @@ reactor Destination {
 
 main reactor Microsteps {
     timer start
-
     logical action repeat: void
-
     d = new Destination()
 
     reaction(start) -> d.x, repeat {=

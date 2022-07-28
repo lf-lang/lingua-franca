@@ -3,10 +3,9 @@
 target TypeScript
 
 reactor Contained {
+    output trigger: number
     input in1: number
     input in2: number
-
-    output trigger: number
 
     reaction(startup) -> trigger {= trigger = 42; =}
 

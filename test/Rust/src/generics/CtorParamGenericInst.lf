@@ -8,7 +8,6 @@ reactor Generic2<
     value: T({= Default::default() =})
 ) {
     input in: T
-
     state v: T(value)
 
     reaction(in) {=

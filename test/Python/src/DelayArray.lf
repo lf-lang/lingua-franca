@@ -5,9 +5,7 @@ reactor DelayPointer(delay(100 msec)) {
     # The Python target does not require explicit type allocation for types
     # other than time
     mutable input _in
-
     output out
-
     logical action a
 
     reaction(_in) -> a {=
@@ -42,7 +40,6 @@ main reactor DelayArray {
     s = new Source()
     d = new DelayPointer()
     p = new Print()
-
     s.out -> d._in
     d.out -> p._in
 }

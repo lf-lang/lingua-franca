@@ -4,7 +4,6 @@ target Python {
 
 reactor TakeTime {
     input _in
-
     output out
 
     reaction(_in) -> out {=
@@ -18,7 +17,6 @@ reactor TakeTime {
 
 reactor Print {
     input _in
-
     state count(0)
     state received(0)
 
@@ -40,6 +38,7 @@ reactor Print {
 
 main reactor Pipeline {
     timer t(0, 200 msec)
+    state count(0)
 
     c1 = new TakeTime()
     c2 = new TakeTime()
@@ -51,8 +50,6 @@ main reactor Pipeline {
     c2.out -> c3._in after 200 msec
     c3.out -> c4._in after 200 msec
     c4.out -> p._in
-
-    state count(0)
 
     reaction(t) -> c1._in {=
         c1._in.set(self.count)

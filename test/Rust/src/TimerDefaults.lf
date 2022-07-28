@@ -1,9 +1,8 @@
 target Rust
 
 main reactor TimerDefaults {
-    timer t
-
     state i: i32(0)
+    timer t
 
     reaction(t) {=
         assert_tag_is!(ctx, T0);

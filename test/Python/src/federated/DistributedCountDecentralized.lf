@@ -15,9 +15,7 @@ import Count from "../lib/Count.lf"
 
 reactor Print {
     preamble {= import sys =}
-
     input in_
-
     state c(1)
 
     reaction(in_) {=
@@ -43,7 +41,6 @@ reactor Print {
 federated reactor DistributedCountDecentralized {
     c = new Count()
     p = new Print()
-
     # Indicating a 'logical' connection with a large enough delay.
     c.out -> p.in_ after 200 msec
 }

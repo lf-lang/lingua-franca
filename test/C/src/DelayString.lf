@@ -4,9 +4,7 @@ target C
 
 reactor DelayString2(delay: time(100 msec)) {
     input in: string
-
     output out: string
-
     logical action a: string
 
     reaction(a) -> out {= lf_set(out, a->value); =}
@@ -19,7 +17,6 @@ reactor DelayString2(delay: time(100 msec)) {
 
 reactor Test {
     input in: string
-
     state start_time: time(0)
 
     reaction(in) {=
@@ -41,7 +38,6 @@ reactor Test {
 main reactor {
     d = new DelayString2()
     t = new Test()
-
     d.out -> t.in
 
     reaction(startup) -> d.in {= lf_set(d.in, "Hello"); =}

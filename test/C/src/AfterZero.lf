@@ -7,17 +7,15 @@ target C {
 
 reactor foo {
     input x: int
-
     output y: int
 
     reaction(x) -> y {= SET(y, 2*x->value); =}
 }
 
 reactor print {
-    input x: int
-
     state expected_time: time(0)
     state received: int(0)
+    input x: int
 
     reaction(x) {=
         self->received++;
@@ -50,11 +48,9 @@ reactor print {
 }
 
 main reactor {
-    timer t(0, 1 sec)
-
     f = new foo()
     p = new print()
-
+    timer t(0, 1 sec)
     f.y -> p.x after 0
 
     reaction(t) -> f.x {= SET(f.x, 42); =}

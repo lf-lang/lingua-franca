@@ -27,13 +27,12 @@ import Count from "../lib/Count.lf"
 
 reactor ImportantActuator {
     input inp
-
-    # Force a timer to be invoke periodically to ensure logical time will
-    # advance in the absence of incoming messages.
-    timer t(0, 10 usec)
-
-    state success(0)  # Count messages that arrive without STP violation.
+    # Count messages that arrive without STP violation.
+    state success(0)
     state success_stp_violation(0)
+    # Force a timer to be invoked periodically
+    timer t(0, 10 usec)
+    # to ensure logical time will advance in the absence of incoming messages.
     state c(0)
 
     reaction(inp) {=
@@ -79,14 +78,12 @@ reactor Print {
 
 reactor Receiver {
     input inp
-
-    timer t(0, 10 msec)  # Force a timer to be invoke periodically
-
-    p = new Print()
-    a = new ImportantActuator()
-
+    # Force a timer to be invoke periodically
+    timer t(0, 10 msec)
     # to ensure logical time will advance in the absence of incoming messages.
     state c(0)
+    p = new Print()
+    a = new ImportantActuator()
 
     reaction(inp) -> p.inp, a.inp {=
         p.inp.set(inp.value + 1)
@@ -101,6 +98,5 @@ reactor Receiver {
 federated reactor {
     c = new Count(period = 1 sec)
     r = new Receiver()
-
     c.out -> r.inp  # Indicating a 'logical' connection.
 }

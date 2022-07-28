@@ -6,10 +6,8 @@ target Python {
 }
 
 reactor Source {
-    output[4] out
-
     timer t(0, 200 msec)
-
+    output[4] out
     state s(0)
 
     reaction(t) -> out {=
@@ -20,9 +18,8 @@ reactor Source {
 }
 
 reactor Destination {
-    input[4] _in
-
     state s(6)
+    input[4] _in
 
     reaction(_in) {=
         sm = 0
@@ -46,23 +43,18 @@ reactor Destination {
 
 reactor Container {
     output[4] out
-
     src = new InsideContainer()
-
     src.out -> out
 }
 
 reactor InsideContainer {
     output[4] out
-
     src = new Source()
-
     src.out -> out
 }
 
 main reactor MultiportFromHierarchy {
     a = new Container()
     b = new Destination()
-
     a.out -> b._in
 }

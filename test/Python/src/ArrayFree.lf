@@ -21,7 +21,6 @@ main reactor ArrayFree {
     c = new Free()
     c2 = new Scale()
     p = new Print(scale = 2)
-
     s.out -> c._in
     s.out -> c2._in
     c2.out -> p._in

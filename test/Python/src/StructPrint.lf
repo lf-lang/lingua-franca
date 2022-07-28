@@ -26,6 +26,5 @@ reactor Check(expected(42)) {  # expected parameter is for testing.
 main reactor {
     s = new Print()
     p = new Check()
-
     s.out -> p._in
 }

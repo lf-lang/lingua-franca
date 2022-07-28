@@ -14,6 +14,5 @@ import Sender, Receiver from "../../federated/DistributedStop.lf"
 federated reactor DistributedStopDecentralizedContainerized at rti {
     sender = new Sender()
     receiver = new Receiver()
-
     sender.out -> receiver.in
 }

@@ -8,12 +8,10 @@ target C {
 // That's the stuff that shall be generated for the after
 reactor GeneratedDelay {
     input y_in: int
-
     output y_out: int
+    state y_state: int(0)
 
     physical action act(0 msec)  // TODO: delay in act or the schedule call?
-
-    state y_state: int(0)
 
     reaction(y_in) -> act {=
         self->y_state = y_in->value;
@@ -25,7 +23,6 @@ reactor GeneratedDelay {
 
 reactor Source {
     output out: int
-
     timer t
 
     // reaction(t) -> out after 100 msec {=
@@ -52,6 +49,6 @@ main reactor ManualDelayedReaction {
     sink = new Sink()
     g = new GeneratedDelay()
 
-    source.out -> g.y_in  // source.out -> sink.in
+    source.out -> g.y_in  // source.out -> sink.in; rewritten above
     g.y_out -> sink.in
 }

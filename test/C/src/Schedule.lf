@@ -3,7 +3,6 @@ target C
 
 reactor Schedule2 {
     input x: int
-
     logical action a
 
     reaction(x) -> a {= lf_schedule(a, MSEC(200)); =}
@@ -19,9 +18,8 @@ reactor Schedule2 {
 }
 
 main reactor {
-    timer t
-
     a = new Schedule2()
+    timer t
 
     reaction(t) -> a.x {= lf_set(a.x, 1); =}
 }

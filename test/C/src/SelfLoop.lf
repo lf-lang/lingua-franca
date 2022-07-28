@@ -5,11 +5,8 @@ target C {
 
 reactor Self {
     input x: int
-
     output y: int
-
     logical action a: int
-
     state expected: int(43)
 
     reaction(a) -> y {=
@@ -39,6 +36,5 @@ reactor Self {
 
 main reactor SelfLoop {
     u = new Self()
-
     u.y -> u.x
 }

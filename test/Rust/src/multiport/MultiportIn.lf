@@ -6,10 +6,8 @@ target Rust {
 }
 
 reactor Source {
-    output out: u32
-
     timer t(0, 200 msec)
-
+    output out: u32
     state s: u32(0)
 
     reaction(t) -> out {=
@@ -20,7 +18,6 @@ reactor Source {
 
 reactor Computation {
     input in: u32
-
     output out: u32
 
     reaction(in) -> out {=
@@ -29,9 +26,8 @@ reactor Computation {
 }
 
 reactor Destination {
-    input[4] in: u32
-
     state s: u32(0)
+    input[4] in: u32
 
     reaction(in) {=
         let sum: u32 = r#in.into_iter().map(|p| ctx.get(&p).unwrap()).sum();
@@ -53,7 +49,6 @@ main reactor MultiportIn {
     t3 = new Computation()
     t4 = new Computation()
     b = new Destination()
-
     a.out -> t1.in
     a.out -> t2.in
     a.out -> t3.in

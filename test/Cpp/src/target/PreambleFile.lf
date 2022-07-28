@@ -1,7 +1,7 @@
 target Cpp
 
 // These declarations are used by multiple reactors within this file and should
-// be placed in a header. This goes to PreambleFile/preamble.hh.
+// be placed in a header. This goes to PreampleFile/preamble.hh.
 public preamble {=
     struct MyStruct {
         int foo;
@@ -13,7 +13,7 @@ public preamble {=
 
 // This definition is used by multiple reactors within this file. Since the same
 // function can only be defined once, this needs to go to a source file. This
-// goes to PreambleFile/preamble.cc.
+// goes to PreampleFile/preamble.cc.
 private preamble {=
     int add_42(int i) {
         return i + 42;
@@ -38,7 +38,6 @@ reactor Print {
             std::cout << "Received " << x.foo << " and '" << x.bar << "'\n";
         }
     =}
-
     input x: MyStruct
 
     reaction(x) {=
@@ -51,6 +50,5 @@ reactor Print {
 main reactor PreambleFile {
     s = new Source()
     p = new Print()
-
     s.x -> p.x
 }

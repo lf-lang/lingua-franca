@@ -7,7 +7,6 @@ target Cpp {
 
 reactor Printer {
     input x: int
-
     state count: int(1)
 
     reaction(x) {=
@@ -21,14 +20,12 @@ reactor Printer {
 }
 
 main reactor SendingInside {
-    timer t(0, 1 sec)
-
-    p = new Printer()
-
     state count: int(0)
+    timer t(0, 1 sec)
+    p = new Printer()
 
     reaction(t) -> p.x {=
         count++;
-        p.x.set(count);
+            p.x.set(count);
     =}
 }

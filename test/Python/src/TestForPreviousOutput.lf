@@ -3,9 +3,8 @@
 target Python
 
 reactor Source {
-    preamble {= import random =}
-
     output out
+    preamble {= import random =}
 
     reaction(startup) -> out {=
         # Set a seed for random number generation based on the current time.
@@ -37,6 +36,5 @@ reactor Sink {
 main reactor TestForPreviousOutput {
     s = new Source()
     d = new Sink()
-
     s.out -> d._in
 }

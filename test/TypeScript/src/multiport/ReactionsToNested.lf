@@ -6,7 +6,6 @@ target TypeScript {
 
 reactor T(expected: number(0)) {
     input z: number
-
     state received: boolean(false)
 
     reaction(z) {=
@@ -26,10 +25,8 @@ reactor T(expected: number(0)) {
 
 reactor D {
     input[2] y: number
-
     t1 = new T(expected = 42)
     t2 = new T(expected = 43)
-
     y -> t1.z, t2.z
 }
 

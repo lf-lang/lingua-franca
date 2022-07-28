@@ -6,10 +6,8 @@ target C {
 }
 
 reactor Source {
-    output[2] out: int[]
-
     timer t(0, 200 msec)
-
+    output[2] out: int[]
     state s: int(0)
 
     reaction(t) -> out {=
@@ -26,9 +24,8 @@ reactor Source {
 }
 
 reactor Destination {
-    input[2] in: int[]
-
     state s: int(15)
+    input[2] in: int[]
 
     reaction(in) {=
         int sum = 0;
@@ -59,6 +56,5 @@ reactor Destination {
 main reactor MultiportToMultiportArray {
     a = new Source()
     b = new Destination()
-
     a.out -> b.in
 }

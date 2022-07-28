@@ -16,17 +16,16 @@ reactor Source {
 
     // Test also that multiple appearances of the same effect port do not result
     // in multiple allocations of memory for the port.
-    reaction(startup) -> out {=
-        // Contents of the reactions does not matter (either could be empty)
-             for(int i = 0; i < out_width; i++) {
-                 lf_set(out[i], i * 2);
-             }
+    reaction(startup) ->
+    out {=  // Contents of the reactions does not matter (either could be empty)
+        for(int i = 0; i < out_width; i++) {
+            lf_set(out[i], i * 2);
+        }
     =}
 }
 
 reactor Destination(bank_index: int(0)) {
     input in: int
-
     state received: bool(false)
 
     reaction(in) {=
@@ -50,6 +49,5 @@ reactor Destination(bank_index: int(0)) {
 main reactor {
     a = new Source()
     b = new[3] Destination()
-
     a.out -> b.in
 }

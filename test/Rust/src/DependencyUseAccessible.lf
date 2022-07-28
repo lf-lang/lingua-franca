@@ -5,7 +5,6 @@ reactor Source {
     output clock: u32
     output o1: u32
     output o2: u32
-
     timer t1(35 msec)
     timer t2(70 msec)
 
@@ -42,6 +41,7 @@ main reactor {
     sink = new Sink()
 
     source.clock -> sink.clock
+
     source.o1 -> sink.in1
     source.o2 -> sink.in2
 }

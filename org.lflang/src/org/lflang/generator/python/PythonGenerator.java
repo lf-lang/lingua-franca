@@ -40,6 +40,7 @@ import java.util.stream.Collectors;
 import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.xtext.util.CancelIndicator;
 import org.eclipse.xtext.xbase.lib.Exceptions;
+import org.eclipse.xtext.xbase.lib.IterableExtensions;
 
 import org.lflang.ASTUtils;
 import org.lflang.ErrorReporter;
@@ -72,10 +73,9 @@ import org.lflang.lf.ReactorDecl;
 import org.lflang.lf.VarRef;
 import org.lflang.util.FileUtil;
 import org.lflang.util.LFCommand;
+import org.lflang.util.StringUtil;
 
 import com.google.common.base.Objects;
-
-import org.lflang.util.StringUtil;
 
 
 /**
@@ -121,12 +121,18 @@ public class PythonGenerator extends CGenerator {
      * Generic struct for ports with primitive types and
      * statically allocated arrays in Lingua Franca.
      * This template is defined as
-     * typedef struct {
-     * PyObject* value;
-     * bool is_present;
-     * int num_destinations;
-     * FEDERATED_CAPSULE_EXTENSION
-     * } generic_port_instance_struct;
+     *   typedef struct {
+     *       bool is_present;
+     *       lf_sparse_io_record_t* sparse_record; // NULL if there is no sparse record.
+     *       int destination_channel;              // -1 if there is no destination.
+     *       PyObject* value;
+     *       int num_destinations;
+     *       lf_token_t* token;
+     *       int length;
+     *       void (*destructor) (void* value);
+     *       void* (*copy_constructor) (void* value);
+     *       FEDERATED_GENERIC_EXTENSION
+     *   } generic_port_instance_struct;
      *
      * @see `reactor-c-py/lib/pythontarget.h`
      */
@@ -199,38 +205,38 @@ public class PythonGenerator extends CGenerator {
      */
     public String generatePythonCode(String pyModuleName) {
         return String.join("\n",
-                           "import os",
-                           "import sys",
-                           "sys.path.append(os.path.dirname(__file__))",
-                           "# List imported names, but do not use pylint's --extension-pkg-allow-list option",
-                           "# so that these names will be assumed present without having to compile and install.",
-                           "from " + pyModuleName
-                               + " import (  # pylint: disable=no-name-in-module, import-error",
-                           "    Tag, action_capsule_t, compare_tags, get_current_tag, get_elapsed_logical_time,",
-                           "    get_elapsed_physical_time, get_logical_time, get_microstep, get_physical_time,",
-                           "    get_start_time, port_capsule, request_stop, schedule_copy,",
-                           "    start",
-                           ")",
-                           "# pylint: disable=c-extension-no-member",
-                           "import " + pyModuleName + " as lf",
-                           "try:",
-                           "    from LinguaFrancaBase.constants import BILLION, FOREVER, NEVER, instant_t, interval_t",
-                           "    from LinguaFrancaBase.functions import (",
-                           "        DAY, DAYS, HOUR, HOURS, MINUTE, MINUTES, MSEC, MSECS, NSEC, NSECS, SEC, SECS, USEC,",
-                           "        USECS, WEEK, WEEKS",
-                           "    )",
-                           "    from LinguaFrancaBase.classes import Make",
-                           "except ModuleNotFoundError:",
-                           "    print(\"No module named \'LinguaFrancaBase\'. \"",
-                           "          \"Install using \\\"pip3 install LinguaFrancaBase\\\".\")",
-                           "    sys.exit(1)",
-                           "import copy",
-                           "",
-                           pythonPreamble.toString(),
-                           "",
-                           generatePythonReactorClasses(),
-                           "",
-                           PythonMainGenerator.generateCode()
+            "import os",
+            "import sys",
+            "sys.path.append(os.path.dirname(__file__))",
+            "# List imported names, but do not use pylint's --extension-pkg-allow-list option",
+            "# so that these names will be assumed present without having to compile and install.",
+            "# pylint: disable=no-name-in-module, import-error",
+            "from "+pyModuleName+" import (",
+            "    Tag, action_capsule_t, compare_tags, get_current_tag, get_elapsed_logical_time,",
+            "    get_elapsed_physical_time, get_logical_time, get_microstep, get_physical_time,",
+            "    get_start_time, port_capsule, request_stop, schedule_copy,",
+            "    start",
+            ")",
+            "# pylint: disable=c-extension-no-member",
+            "import "+pyModuleName+" as lf",
+            "try:",
+            "    from LinguaFrancaBase.constants import BILLION, FOREVER, NEVER, instant_t, interval_t",
+            "    from LinguaFrancaBase.functions import (",
+            "        DAY, DAYS, HOUR, HOURS, MINUTE, MINUTES, MSEC, MSECS, NSEC, NSECS, SEC, SECS, USEC,",
+            "        USECS, WEEK, WEEKS",
+            "    )",
+            "    from LinguaFrancaBase.classes import Make",
+            "except ModuleNotFoundError:",
+            "    print(\"No module named \'LinguaFrancaBase\'. \"",
+            "          \"Install using \\\"pip3 install LinguaFrancaBase\\\".\")",
+            "    sys.exit(1)",
+            "import copy",
+            "",
+            pythonPreamble.toString(),
+            "",
+            generatePythonReactorClasses(federate),
+            "",
+            PythonMainGenerator.generateCode()
         );
     }
 
@@ -608,7 +614,7 @@ public class PythonGenerator extends CGenerator {
      * @param reactionIndex The position of the reaction within the reactor.
      */
     @Override
-    public void generateReaction(Reaction reaction, ReactorDecl decl, int reactionIndex) {
+    protected void generateReaction(Reaction reaction, ReactorDecl decl, int reactionIndex) {
         Reactor reactor = ASTUtils.toDefinition(decl);
 
         // Delay reactors and top-level reactions used in the top-level reactor(s) in federated execution are generated in C
@@ -633,7 +639,7 @@ public class PythonGenerator extends CGenerator {
      * @return Initialization code fore state variables of instance
      */
     @Override
-    public void generateStateVariableInitializations(ReactorInstance instance) {
+    protected void generateStateVariableInitializations(ReactorInstance instance) {
         // Do nothing
     }
 
@@ -644,10 +650,18 @@ public class PythonGenerator extends CGenerator {
      * @param instance The reactor instance.
      */
     @Override
-    public void generateParameterInitialization(ReactorInstance instance) {
+    protected void generateParameterInitialization(ReactorInstance instance) {
         // Do nothing
         // Parameters are initialized in Python
     }
+
+    /**
+     * Do nothing.
+     * Methods are generated in Python not C.
+     * @see PythonMethodGenerator
+     */
+    @Override
+    protected void generateMethods(ReactorDecl reactor) {    }
 
     /**
      * Generate C preambles defined by user for a given reactor
@@ -657,7 +671,7 @@ public class PythonGenerator extends CGenerator {
      * @param reactor The given reactor
      */
     @Override
-    public void generateUserPreamblesForReactor(Reactor reactor) {
+    protected void generateUserPreamblesForReactor(Reactor reactor) {
         // Do nothing
     }
 
@@ -669,7 +683,7 @@ public class PythonGenerator extends CGenerator {
      * @param instance  The reactor instance.
      */
     @Override
-    public void generateReactorInstanceExtension(
+    protected void generateReactorInstanceExtension(
         ReactorInstance instance
     ) {
         initializeTriggerObjects.pr(PythonReactionGenerator.generateCPythonReactionLinkers(instance, mainDef));
@@ -685,7 +699,7 @@ public class PythonGenerator extends CGenerator {
      *                        instantiated
      */
     @Override
-    public void generateSelfStructExtension(
+    protected void generateSelfStructExtension(
         CodeBuilder selfStructBody,
         ReactorDecl decl,
         CodeBuilder constructorCode

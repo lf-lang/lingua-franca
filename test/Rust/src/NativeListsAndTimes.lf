@@ -12,14 +12,13 @@ reactor Foo(
     q: Vec<Duration>(1 msec, 2 msec, 3 msec),
     g: time[](1 msec, 2 msec)  // List of time values
 ) {
-    timer tick(0)      // Units missing but not required
-    timer tock(1 sec)  // Implicit type time
-    timer toe(z)       // Implicit type time
-
     state s: time(y)  // Reference to explicitly typed time parameter
     state t: time(z)  // Reference to implicitly typed time parameter
     state v: bool  // Uninitialized boolean state variable
     state w: time  // Uninitialized time state variable
+    timer tick(0)  // Units missing but not required
+    timer tock(1 sec)  // Implicit type time
+    timer toe(z)  // Implicit type time
     /**
      * fixme following should be equivalent:
      * - state baz(p);

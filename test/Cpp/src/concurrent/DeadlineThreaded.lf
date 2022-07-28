@@ -9,11 +9,8 @@ reactor Source(period: time(2 sec)) {
     private preamble {=
         #include <thread>
     =}
-
     output y: int
-
     timer t(0, period)
-
     state count: int(0)
 
     reaction(t) -> y {=
@@ -30,7 +27,6 @@ reactor Source(period: time(2 sec)) {
 
 reactor Destination(timeout: time(1 sec)) {
     input x: int
-
     state count: int(0)
 
     reaction(x) {=
@@ -59,6 +55,5 @@ reactor Destination(timeout: time(1 sec)) {
 main reactor {
     s = new Source()
     d = new Destination(timeout = 200 msec)
-
     s.y -> d.x
 }

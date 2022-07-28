@@ -7,7 +7,6 @@ target TypeScript {
 
 reactor Foo {
     input x
-
     output y
 
     reaction(x) -> y {=
@@ -16,9 +15,8 @@ reactor Foo {
 }
 
 reactor Print {
-    input x
-
     state expected_time: time(10 msec)
+    input x
 
     reaction(x) {=
         // Do something
@@ -26,11 +24,9 @@ reactor Print {
 }
 
 main reactor {
-    timer t(0, 1 sec)
-
     f = new Foo()
     p = new Print()
-
+    timer t(0, 1 sec)
     f.y -> p.x after 10 msec
 
     reaction(t) -> f.x {=

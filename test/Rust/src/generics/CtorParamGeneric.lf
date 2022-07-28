@@ -5,7 +5,6 @@ reactor Generic<{= T: Default + Eq + Sync + std::fmt::Debug =}>(
     value: T({= Default::default() =})
 ) {
     input in: T
-
     state v: T(value)
 
     reaction(in) {=

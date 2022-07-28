@@ -2,7 +2,6 @@ target Cpp
 
 reactor Source {
     output y: int
-
     timer t
 
     reaction(t) -> y {= y.set(1); =}
@@ -30,7 +29,6 @@ reactor Destination {
 
 reactor Pass {
     input x: int
-
     output y: int
 
     reaction(x) -> y {= y.set(x.get()); =}
@@ -41,7 +39,6 @@ main reactor {
     d = new Destination()
     p1 = new Pass()
     p2 = new Pass()
-
     s.y -> d.y
     s.y -> p1.x
     p1.y -> p2.x

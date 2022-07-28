@@ -6,9 +6,7 @@ target C {
 
 reactor Source {
     output out: int
-
     timer t(0, 1 sec)
-
     state s: int(1)
 
     reaction(t) -> out {= lf_set(out, self->s++); =}
@@ -17,7 +15,6 @@ reactor Source {
 reactor Add {
     input in1: int
     input in2: int
-
     output out: int
 
     reaction(in1, in2) -> out {=
@@ -30,7 +27,6 @@ reactor Add {
 
 reactor Print {
     input in: int
-
     state expected: int(1)
 
     reaction(in) {=
@@ -47,7 +43,6 @@ main reactor UnconnectedInput {
     source = new Source()
     add = new Add()
     print = new Print()
-
     source.out -> add.in2
     add.out -> print.in
 }

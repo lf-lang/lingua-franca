@@ -9,9 +9,7 @@ preamble {= import hello =}
 
 reactor Source {
     output out
-
     timer t(0, 1 sec)
-
     state s(0)
 
     reaction(t) -> out {=
@@ -22,7 +20,6 @@ reactor Source {
 
 reactor Print {  # expected parameter is for testing.
     input _in
-
     state s(0)
 
     reaction(_in) {=
@@ -43,6 +40,5 @@ reactor Print {  # expected parameter is for testing.
 main reactor {
     s = new Source()
     p = new Print()
-
     s.out -> p._in after 1500 msec
 }

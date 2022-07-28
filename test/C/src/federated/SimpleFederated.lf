@@ -5,7 +5,6 @@ target C {
 
 reactor Fed {
     input in: int
-
     output out: int
 }
 

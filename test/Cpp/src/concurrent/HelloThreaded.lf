@@ -9,12 +9,10 @@ target Cpp {
 }
 
 reactor HelloCpp(period: time(2 sec), message: {= std::string =}("Hello C++")) {
-    timer t(1 sec, period)
-
-    logical action a: void
-
     state count: int(0)
     state previous_time: {= reactor::TimePoint =}
+    timer t(1 sec, period)
+    logical action a: void
 
     reaction(t) -> a {=
         std::cout << message << std::endl;

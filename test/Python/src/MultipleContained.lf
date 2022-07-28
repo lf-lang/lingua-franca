@@ -3,12 +3,10 @@
 target Python
 
 reactor Contained {
+    output trigger
+    state count(0)
     input in1
     input in2
-
-    output trigger
-
-    state count(0)
 
     reaction(startup) -> trigger {= trigger.set(42) =}
 

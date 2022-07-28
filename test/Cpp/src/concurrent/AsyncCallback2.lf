@@ -11,10 +11,9 @@ main reactor AsyncCallback2 {
     =}
 
     timer t(0, 200 msec)
+    state expected_time: time(0)
 
     logical action a: int
-
-    state expected_time: time(0)
     state i: int(0)
 
     reaction(t) -> a {=

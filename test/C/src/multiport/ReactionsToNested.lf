@@ -6,7 +6,6 @@ target C {
 
 reactor T(expected: int(0)) {
     input z: int
-
     state received: bool(false)
 
     reaction(z) {=
@@ -26,10 +25,8 @@ reactor T(expected: int(0)) {
 
 reactor D {
     input[2] y: int
-
     t1 = new T(expected = 42)
     t2 = new T(expected = 43)
-
     y -> t1.z, t2.z
 }
 

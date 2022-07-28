@@ -2222,6 +2222,40 @@ public class LinguaFrancaValidationTest {
             "Unrecognized target: Pjthon");
     }
 
+
+    @Test
+    public void testWrongStructureForLabelAttribute() throws Exception {
+        String testCase = """
+                target C;
+                @label(name="something")
+                main reactor { }
+            """;
+        validator.assertError(parseWithoutError(testCase), LfPackage.eINSTANCE.getAttribute(), null,
+            "Unknown attribute parameter.");
+    }
+
+    @Test
+    public void testMissingName() throws Exception {
+        String testCase = """
+                target C;
+                @label("something", "else")
+                main reactor { }
+            """;
+        validator.assertError(parseWithoutError(testCase), LfPackage.eINSTANCE.getAttribute(), null,
+            "Missing name for attribute parameter.");
+    }
+
+    @Test
+    public void testWrongParamType() throws Exception {
+        String testCase = """
+                target C;
+                @label(value=1)
+                main reactor { }
+            """;
+        validator.assertError(parseWithoutError(testCase), LfPackage.eINSTANCE.getAttribute(), null,
+            "Incorrect type: \"value\" should have type String.");
+    }
+
     @Test
     public void testInitialMode() throws Exception {
         String testCase = """
@@ -2367,6 +2401,25 @@ public class LinguaFrancaValidationTest {
         """;
         validator.assertError(parseWithoutError(testCase), LfPackage.eINSTANCE.getStateVar(), null,
             "The state variable can not be automatically reset without an initial value.");
+    }
+
+    @Test
+    public void testUnspecifiedTransitionType() throws Exception {
+        String testCase = """
+            target C;
+            main reactor {
+                initial mode IM {
+                    reaction(startup) -> M {==}
+                }
+                mode M {
+                    reset state s:int(0);
+                }
+            }
+        """;
+        validator.assertWarning(parseWithoutError(testCase), LfPackage.eINSTANCE.getReaction(), null,
+                "You should specifiy a transition type! "
+                + "Reset and history transitions have different effects on this target mode. "
+                + "Currently, a reset type is implicitly assumed.");
     }
 
 }

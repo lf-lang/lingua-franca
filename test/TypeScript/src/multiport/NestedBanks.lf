@@ -16,9 +16,7 @@ main reactor {
 
 reactor A {
     output[4] x: number
-
     b = new[2] B(aBankIndex = {= this.getBankIndex() =})
-
     b.y -> x
 }
 
@@ -34,10 +32,8 @@ reactor B(aBankIndex: number(0)) {
 
 reactor C {
     input[2] z: number
-
     f = new F(cBankIndex = {= this.getBankIndex() =})
     g = new G(cBankIndex = {= this.getBankIndex() =})
-
     z -> f.w, g.s
 }
 

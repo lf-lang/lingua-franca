@@ -10,6 +10,5 @@ import TestCount from "lib/TestCount.lf"
 main reactor CountTest {
     count = new Count()
     test = new TestCount(num_inputs = 4)
-
     count.out -> test.in
 }

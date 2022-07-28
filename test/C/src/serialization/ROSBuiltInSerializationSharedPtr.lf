@@ -31,9 +31,9 @@ preamble {=
 reactor Sender {
     output out: std::shared_ptr<std_msgs::msg::Int32>
 
-    timer t(0, 1 sec)
-
     state count: int(0)
+
+    timer t(0, 1 sec)
 
     reaction(t) -> out {=
         auto ros_message = std::make_shared<std_msgs::msg::Int32>();
@@ -44,7 +44,6 @@ reactor Sender {
 
 reactor Receiver {
     input in: std::shared_ptr<std_msgs::msg::Int32>
-
     state count: int(0)
 
     reaction(in) {=

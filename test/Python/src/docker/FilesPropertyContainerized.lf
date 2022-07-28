@@ -17,10 +17,8 @@ main reactor {
         except:
             request_stop()
     =}
-
-    timer t(1 msec)
-
     state passed(false)
+    timer t(1 msec)
 
     reaction(t) {= self.passed = True =}
 

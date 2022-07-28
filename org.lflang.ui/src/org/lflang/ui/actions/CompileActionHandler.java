@@ -134,15 +134,19 @@ class CompileActionHandler extends AbstractHandler {
             var xtextEditor = EditorUtils.getActiveXtextEditor(event);
             if (xtextEditor != null) {
                 var xtextDocument = xtextEditor.getDocument();
+                var resource = xtextEditor.getResource();
                 if (xtextDocument != null) {
                     // Save editor
                     if (xtextEditor.isDirty()) {
                         xtextEditor.doSave(new NullProgressMonitor());
                     }
-                    // Load the resource of this editor based on its associated file (collect).
-                    // This does not retrieve the model resource from the editor directly but creates a new one. 
-                    // => workaround for issue #746.
-                    lfFiles.addAll(collect((IFile) xtextEditor.getResource()));
+                    if (resource != null) {
+                        // Load the resource of this editor based on its associated file (collect).
+                        // This does not retrieve the model resource from the editor directly but creates a new one. 
+                        // => workaround for issue #746.
+                        lfFiles.addAll(collect((IFile) resource));
+                    }
+                    
                 }
             }
         } else if (selection instanceof IStructuredSelection) { // Invoked from context menu in project explorer

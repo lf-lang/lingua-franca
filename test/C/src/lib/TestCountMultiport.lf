@@ -17,10 +17,9 @@ reactor TestCountMultiport(
     num_inputs: int(1),
     width: int(2)
 ) {
-    input[width] in: int
-
     state count: int(start)
     state inputs_received: int(0)
+    input[width] in: int
 
     reaction(in) {=
         for (int i = 0; i < in_width; i++) {

@@ -10,7 +10,6 @@ reactor Source {
 
 reactor Destination {
     input inp: number
-
     state received: boolean(false)
 
     reaction(inp) {=
@@ -36,6 +35,5 @@ reactor Destination {
 main reactor {
     a = new Source()
     b = new[4] Destination()
-
     (a.out)+ -> b.inp after 1 sec
 }

@@ -3,7 +3,6 @@ target Python
 
 reactor Scale(scale(2)) {
     input x
-
     output y
 
     reaction(x) -> y {= y.set(x.value * self.scale) =}
@@ -11,7 +10,6 @@ reactor Scale(scale(2)) {
 
 reactor Test {
     input x
-
     state received_value(0)
 
     reaction(x) {=
@@ -33,7 +31,6 @@ reactor Test {
 main reactor Gain {
     g = new Scale()
     d = new Test()
-
     g.y -> d.x
 
     reaction(startup) -> g.x {= g.x.set(1) =}

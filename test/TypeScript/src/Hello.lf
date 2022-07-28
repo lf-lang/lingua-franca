@@ -9,12 +9,10 @@ target TypeScript {
 }
 
 reactor Reschedule(period: time(2 sec), message: string("Hello TypeScript")) {
-    timer t(1 sec, period)
-
-    logical action a
-
     state count: number(0)
     state previous_time: time(0)
+    timer t(1 sec, period)
+    logical action a
 
     reaction(t) -> a {=
         console.log(message);

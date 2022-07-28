@@ -14,7 +14,6 @@ import TraceTesting from "util/TraceTesting.lf"
 reactor Modal {
     input in1: int
     input in2: int
-
     output out: int
 
     // Defining reaction to in2 before in1 would cause cycle if no mode were
@@ -47,7 +46,6 @@ reactor Counter(period: time(1 sec)) {
     output value: int
 
     timer t(0, period)
-
     state curval: int(0)
 
     reaction(t) -> value {= lf_set(value, self->curval++); =}
@@ -75,6 +73,7 @@ main reactor {
 
     counter.value -> modal.in1
     modal.out -> modal.in2
+
     modal.out -> test.events
 
     reaction(modal.out) {= printf("%d\n", modal.out->value); =}  // Print

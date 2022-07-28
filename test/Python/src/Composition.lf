@@ -7,9 +7,7 @@ target Python {
 
 reactor Source(period(2 sec)) {
     output y
-
     timer t(1 sec, period)
-
     state count(0)
 
     reaction(t) -> y {=
@@ -22,7 +20,6 @@ reactor Source(period(2 sec)) {
 
 reactor Test {
     input x
-
     state count(0)
 
     reaction(x) {=
@@ -41,7 +38,7 @@ reactor Test {
 
 main reactor Composition {
     s = new Source()
-    d = new Test()
 
+    d = new Test()
     s.y -> d.x
 }
