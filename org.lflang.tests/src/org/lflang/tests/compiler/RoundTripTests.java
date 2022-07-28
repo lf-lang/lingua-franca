@@ -63,7 +63,10 @@ public class RoundTripTests {
         Assertions.assertTrue(new IsEqual(originalModel).doSwitch(resultingModel));
         String normalTestCase = FormattingUtils.render(originalModel);
         System.out.printf("Normal reformatted test case:%n%s%n%n", normalTestCase);
-        Assertions.assertEquals(Files.readString(file), normalTestCase);
+        Assertions.assertEquals(
+            Files.readString(file).replaceAll("\\r\\n?", "\n"),
+            normalTestCase
+        );
     }
 
     private Model getResultingModel(
