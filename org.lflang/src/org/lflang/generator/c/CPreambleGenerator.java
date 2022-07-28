@@ -42,7 +42,6 @@ public class CPreambleGenerator {
         code.pr("#include \"core/reactor.h\"");
         code.pr("#include \"core/reactor_common.h\"");
         if (targetConfig.threading) {
-            code.pr("#include \"core/threaded/reactor_threaded.c\"");
             code.pr("#include \"core/threaded/scheduler.h\"");
         } else {
             code.pr("#include \"core/reactor.c\"");
@@ -55,6 +54,7 @@ public class CPreambleGenerator {
         }
         code.pr("#include \"core/mixed_radix.h\"");
         code.pr("#include \"core/port.h\"");
+        code.pr("int lf_reactor_c_main(int argc, char* argv[]);");
         return code.toString();
     }
 

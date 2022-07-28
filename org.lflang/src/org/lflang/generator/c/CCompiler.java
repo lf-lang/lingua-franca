@@ -31,6 +31,8 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
@@ -187,22 +189,26 @@ public class CCompiler {
         // Set the build directory to be "build"
         Path buildPath = fileConfig.getSrcGenPath().resolve("build");
 
-        List<String> arguments = new ArrayList<>(List.of(
-            "-DCMAKE_INSTALL_PREFIX=" + FileUtil.toUnixString(fileConfig.getOutPath()),
-            "-DCMAKE_INSTALL_BINDIR=" + FileUtil.toUnixString(
-                fileConfig.getOutPath().relativize(
-                    fileConfig.binPath
+        Stream<String> arguments = Stream.concat(
+            targetConfig.compileDefinitions.entrySet().stream()
+                .map(entry -> "-D" + entry.getKey() + "=" + entry.getValue()),
+                Stream.of(
+                    "-DCMAKE_INSTALL_PREFIX=" + FileUtil.toUnixString(fileConfig.getOutPath()),
+                    "-DCMAKE_INSTALL_BINDIR=" + FileUtil.toUnixString(
+                        fileConfig.getOutPath().relativize(
+                            fileConfig.binPath
+                        )
+                    ),
+                    FileUtil.toUnixString(fileConfig.getSrcGenPath())
                 )
-            ),
-            FileUtil.toUnixString(fileConfig.getSrcGenPath())
-        ));
+        );
 
         if (GeneratorUtils.isHostWindows()) {
-            arguments.add("-DCMAKE_SYSTEM_VERSION=\"10.0\"");
+            arguments = Stream.concat(arguments, Stream.of("-DCMAKE_SYSTEM_VERSION=\"10.0\""));
         }
 
         LFCommand command = commandFactory.createCommand(
-                "cmake", arguments,
+                "cmake", arguments.toList(),
                 buildPath);
         if (command == null) {
             errorReporter.reportError(
@@ -314,14 +320,6 @@ public class CCompiler {
 
         // Add compile definitions
         targetConfig.compileDefinitions.forEach((key,value) -> compileArgs.add("-D"+key+"="+value));
-
-        // If threaded computation is requested, add a -pthread option.
-        if (targetConfig.threading || targetConfig.tracing != null) {
-            compileArgs.add("-pthread");
-            // If the LF program itself is threaded or if tracing is enabled, we need to define
-            // NUMBER_OF_WORKERS so that platform-specific C files will contain the appropriate functions
-            compileArgs.add("-DNUMBER_OF_WORKERS="+targetConfig.workers);
-        }
 
         // Finally, add the compiler flags in target parameters (if any)
         compileArgs.addAll(targetConfig.compilerFlags);

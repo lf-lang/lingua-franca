@@ -862,10 +862,7 @@ public class CGenerator extends GeneratorBase {
         );
     }
 
-    /**
-     * Add files needed for the proper function of the runtime scheduler to
-     * {@code coreFiles} and {@link TargetConfig#compileAdditionalSources}.
-     */
+    /** Set the scheduler type in the target config as needed. */
     private void pickScheduler() {
         // Don't use a scheduler that does not prioritize reactions based on deadlines
         // if the program contains a deadline (handler). Use the GEDF_NP scheduler instead.
@@ -877,14 +874,6 @@ public class CGenerator extends GeneratorBase {
                 }
             }
         }
-        targetConfig.compileAdditionalSources.add(
-             "core" + File.separator + "threaded" + File.separator +
-             "scheduler_" + targetConfig.schedulerType.toString() + ".c"
-        );
-        System.out.println("******** Using the "+targetConfig.schedulerType.toString()+" runtime scheduler.");
-        targetConfig.compileAdditionalSources.add(
-            "core" + File.separator + "utils" + File.separator + "semaphore.c"
-        );
     }
 
     private boolean hasDeadlines(List<Reactor> reactors) {
@@ -1326,7 +1315,7 @@ public class CGenerator extends GeneratorBase {
 
         // Next, generate fields for modes
         CModesGenerator.generateDeclarations(reactor, body, constructorCode);
-        
+
         // The first field has to always be a pointer to the list of
         // of allocated memory that must be freed when the reactor is freed.
         // This means that the struct can be safely cast to self_base_t.
@@ -2118,11 +2107,6 @@ public class CGenerator extends GeneratorBase {
         accommodatePhysicalActionsIfPresent();
         targetConfig.compileDefinitions.put("LOG_LEVEL", targetConfig.logLevel.ordinal() + "");
         targetConfig.compileAdditionalSources.addAll(CCoreFilesUtils.getCTargetSrc());
-        targetConfig.compileAdditionalSources.add("include/core/mixed_radix.c");
-        targetConfig.compileAdditionalSources.add("include/core/threaded/scheduler.h");
-        targetConfig.compileAdditionalSources.add("include/core/threaded/scheduler_instance.h");
-        targetConfig.compileAdditionalSources.add("include/core/threaded/scheduler_sync_tag_advance.h");
-        targetConfig.compileAdditionalSources.add("include/core/tag.h");
         setCSpecificDefaults();
         // Create the main reactor instance if there is a main reactor.
         createMainReactorInstance();
@@ -2145,6 +2129,15 @@ public class CGenerator extends GeneratorBase {
         }
         if (targetConfig.threading) {
             pickScheduler();
+            // FIXME: this and pickScheduler should be combined.
+            targetConfig.compileDefinitions.put(
+                "SCHEDULER",
+                targetConfig.schedulerType.name().toUpperCase()
+            );
+            targetConfig.compileDefinitions.put(
+                "NUMBER_OF_WORKERS",
+                String.valueOf(targetConfig.workers)
+            );
         }
         pickCompilePlatform();
     }
