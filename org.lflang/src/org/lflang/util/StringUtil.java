@@ -104,8 +104,7 @@ public final class StringUtil {
      * }</pre>
      *
      * @param code the code block to be trimmed
-     * @param firstLineToConsider The first line to take into consideration when
-     * determining the whitespace prefix.
+     * @param firstLineToConsider The first line not to ignore.
      * @return trimmed code block
      */
     public static String trimCodeBlock(String code, int firstLineToConsider) {
@@ -113,7 +112,8 @@ public final class StringUtil {
         int prefix = getWhitespacePrefix(code, firstLineToConsider);
         StringBuilder buffer = new StringBuilder();
         boolean stillProcessingLeadingBlankLines = true;
-        for (String line : codeLines) {
+        for (int i = firstLineToConsider; i < codeLines.length; i++) {
+            final String line = codeLines[i];
             if (!line.isBlank()) stillProcessingLeadingBlankLines = false;
             if (stillProcessingLeadingBlankLines) continue;
             if (!line.isBlank()) buffer.append(line.substring(prefix));

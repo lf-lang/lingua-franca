@@ -51,15 +51,19 @@ public class RoundTripTests {
         Model originalModel = parse(file);
         System.out.printf("Running formatter on %s%n", file);
         Assertions.assertTrue(originalModel.eResource().getErrors().isEmpty());
-        String reformattedTestCase = FormattingUtils.render(originalModel);
-        System.out.printf("Reformatted test case:%n%s%n%n", reformattedTestCase);
-        Model resultingModel = getResultingModel(file, reformattedTestCase);
+        // TODO: Check that the output is a fixed point
+        String squishedTestCase = FormattingUtils.render(originalModel, 20);
+        System.out.printf("Squished test case:%n%s%n%n", squishedTestCase);
+        Model resultingModel = getResultingModel(file, squishedTestCase);
         Assertions.assertNotNull(resultingModel);
         if (!resultingModel.eResource().getErrors().isEmpty()) {
             resultingModel.eResource().getErrors().forEach(System.err::println);
             Assertions.assertTrue(resultingModel.eResource().getErrors().isEmpty());
         }
         Assertions.assertTrue(new IsEqual(originalModel).doSwitch(resultingModel));
+        String normalTestCase = FormattingUtils.render(originalModel);
+        System.out.printf("Normal reformatted test case:%n%s%n%n", normalTestCase);
+        Assertions.assertEquals(Files.readString(file), normalTestCase);
     }
 
     private Model getResultingModel(

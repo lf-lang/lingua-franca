@@ -405,7 +405,7 @@ public class ToLf extends LfSwitch<MalleableString> {
                 object.getConnections(),
                 object.getStateVars()
             ),
-            0
+            false
         );
         MalleableString bigFeatures = indentedStatements(
             List.of(
@@ -414,7 +414,7 @@ public class ToLf extends LfSwitch<MalleableString> {
                 object.getMutations(),
                 object.getModes()
             ),
-            1
+            true
         );
         msb.append(smallFeatures);
         if (!smallFeatures.isEmpty() && !bigFeatures.isEmpty()) {
@@ -565,11 +565,11 @@ public class ToLf extends LfSwitch<MalleableString> {
                 object.getInstantiations(),
                 object.getConnections()
             ),
-            0
+            false
         ));
         msb.append(indentedStatements(
             List.of(object.getReactions()),
-            1
+            true
         ));
         msb.append("}");
         return msb.get();
@@ -1015,13 +1015,13 @@ public class ToLf extends LfSwitch<MalleableString> {
     /**
      * Represent a list of groups of statements.
      * @param statementListList A list of groups of statements.
-     * @param extraSeparation Additional vertical separation beyond the bare
-     * minimum, to be inserted between everything.
+     * @param forceWhitespace Whether to force a line of vertical whitespace
+     * regardless of textual input
      * @return A string representation of {@code statementListList}.
      */
     private MalleableString indentedStatements(
         List<EList<? extends EObject>> statementListList,
-        int extraSeparation
+        boolean forceWhitespace
     ) {
         var sorted = statementListList.stream()
             .flatMap(List::stream)
@@ -1032,9 +1032,20 @@ public class ToLf extends LfSwitch<MalleableString> {
         var first = true;
         for (var object : sorted) {
             if (!first) {
+                INode node = NodeModelUtils.getNode(object);
+                StringBuilder leadingText = new StringBuilder();
+                if (!forceWhitespace) {
+                    for (INode n : node.getAsTreeIterable()) {
+                        if (n instanceof ICompositeNode) continue;
+                        if (!ASTUtils.isComment(n) && !n.getText().isBlank()) break;
+                        leadingText.append(n.getText());
+                    }
+                }
+                boolean hasLeadingBlankLines = leadingText.toString().lines()
+                    .skip(1)
+                    .filter(String::isBlank).count() > 1;
                 ret.append("\n".repeat(
-                    extraSeparation + NodeModelUtils.getNode(object).getText().lines()
-                       .takeWhile(String::isBlank).limit(2).count() > 1 ? 2 : 1
+                    forceWhitespace || hasLeadingBlankLines ? 2 : 1
                 ));
             }
             ret.append(doSwitch(object));
