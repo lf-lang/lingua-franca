@@ -23,7 +23,7 @@ class TSFederateConfig (
         fun createFederateConfig(preambles: EList<Preamble>): TSFederateConfig? {
             var federateConfigMap = HashMap<String, String>()
             for (preamble in preambles) {
-                preamble.code.body.split(",").forEach {
+                preamble.code.body.split(",").filter { it.isNotEmpty() }.forEach {
                     val keyValue = it.split(":").map { it.trim() }
                     if (keyValue.size != 2) {
                         throw GenerationException("TS Preamble is out of format: $it")
