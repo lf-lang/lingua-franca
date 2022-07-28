@@ -325,7 +325,7 @@ public enum TargetProperty {
      * Key-value pairs giving options for clock synchronization.
      */
     COORDINATION_OPTIONS("coordination-options",
-            DictionaryType.COORDINATION_OPTION_DICT, Arrays.asList(Target.C, Target.CCPP, Target.Python),
+            DictionaryType.COORDINATION_OPTION_DICT, Arrays.asList(Target.C, Target.CCPP, Target.Python, Target.TS),
             (config) -> {
                 Element e = LfFactory.eINSTANCE.createElement();
                 KeyValuePairs kvp = LfFactory.eINSTANCE.createKeyValuePairs();

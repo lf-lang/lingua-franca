@@ -1,21 +1,16 @@
 package org.lflang.federated.extensions;
 
 import java.io.IOException;
-import java.nio.file.Files;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.stream.Collectors;
 
 import org.lflang.ErrorReporter;
-import org.lflang.FileConfig;
 import org.lflang.InferredType;
-import org.lflang.TargetConfig;
 import org.lflang.TargetProperty.CoordinationType;
 import org.lflang.TimeValue;
 import org.lflang.federated.generator.FedConnectionInstance;
 import org.lflang.federated.generator.FedFileConfig;
 import org.lflang.federated.generator.FederateInstance;
-import org.lflang.federated.launcher.FedTSLauncher;
 import org.lflang.generator.LFGeneratorContext;
 import org.lflang.lf.Action;
 import org.lflang.lf.VarRef;

@@ -174,7 +174,7 @@ class TSReactorGenerator(
             ${" |    "..stateGenerator.generateClassProperties()}
             ${" |    "..actionGenerator.generateClassProperties()}
             ${" |    "..portGenerator.generateClassProperties()}
-            ${" |    "..constructorGenerator.generateConstructor(instanceGenerator, timerGenerator, parameterGenerator,
+            ${" |    "..constructorGenerator.generateConstructor(targetConfig, instanceGenerator, timerGenerator, parameterGenerator,
                 stateGenerator, actionGenerator, portGenerator, federateConfig)}
                 |}
                 |// =============== END reactor class ${reactor.name}

@@ -1,6 +1,7 @@
 package org.lflang.generator.ts
 
 import org.lflang.ErrorReporter
+import org.lflang.TargetConfig
 import org.lflang.generator.PrependOperator
 import org.lflang.lf.Parameter
 import org.lflang.lf.Reactor
@@ -77,19 +78,6 @@ class TSConstructorGenerator (
                 return "super(timeout, keepAlive, fast, success, fail);"
             }
         }
-        // FIXME: Move this to FedGenerator
-//        else if (reactor.isFederated) {
-//            var port = federationRTIProperties()["port"]
-//            // Default of 0 is an indicator to use the default port, 15045.
-//            if (port == 0) {
-//                port = 15045
-//            }
-//            return """
-//            super(federationID, ${federate.id}, ${port},
-//                "${federationRTIProperties()["host"]}",
-//                timeout, keepAlive, fast, success, fail);
-//            """
-//        }
         else {
             return "super(parent);"
         }
@@ -112,16 +100,15 @@ class TSConstructorGenerator (
 
     /**
      * Generate code for setting target configurations.
-     * FIXME: Move this to TSExtension
      */
-    private fun generateTargetConfigurations(): String {
-//        val targetConfigurations = LinkedList<String>()
-//        if ((reactor.isMain || reactor.isFederated) &&
-//            targetConfig.coordinationOptions.advance_message_interval != null) {
-//            targetConfigurations.add(
-//                "this.setAdvanceMessageInterval(${timeInTargetLanguage(targetConfig.coordinationOptions.advance_message_interval)})")
-//        }
-//        return targetConfigurations.joinToString("\n")
+    private fun generateTargetConfigurations(targetConfig: TargetConfig): String {
+        val targetConfigurations = LinkedList<String>()
+        if ((reactor.isMain) &&
+            targetConfig.coordinationOptions.advance_message_interval != null) {
+            targetConfigurations.add(
+                "this.setAdvanceMessageInterval(${timeInTargetLanguage(targetConfig.coordinationOptions.advance_message_interval)})")
+        }
+        return targetConfigurations.joinToString("\n")
         return "";
     }
 
@@ -142,6 +129,7 @@ class TSConstructorGenerator (
     }
 
     fun generateConstructor(
+        targetConfig: TargetConfig,
         instances: TSInstanceGenerator,
         timers: TSTimerGenerator,
         parameters: TSParameterGenerator,
@@ -159,7 +147,7 @@ class TSConstructorGenerator (
             ${" |    "..generateConstructorArguments(reactor)}
                 |) {
             ${" |    "..generateSuperConstructorCall(reactor, federateConfig)}
-            ${" |    "..generateTargetConfigurations()}
+            ${" |    "..generateTargetConfigurations(targetConfig)}
             ${" |    "..generateFederateConfigurations(federateConfig)}
             ${" |    "..instances.generateInstantiations()}
             ${" |    "..timers.generateInstantiations()}
