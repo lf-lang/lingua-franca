@@ -642,7 +642,7 @@ public class CExtension implements FedTargetExtension {
         code.pr("""
         trigger_t* _lf_action_table[%1$s];
         trigger_t* _lf_action_for_port(int port_id) {
-            if (port_id < %1$s) return _lf_action_table[port_id];
+            if ((port_id < %1$s) && (port_id >= 0)) return _lf_action_table[port_id];
             else return NULL;
         }
         """.formatted(numOfNetworkActions));
