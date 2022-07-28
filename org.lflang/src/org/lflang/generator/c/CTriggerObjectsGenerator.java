@@ -332,7 +332,7 @@ public class CTriggerObjectsGenerator {
                 // really necessary.
                 var mod = (dst.isMultiport() || (src.isInput() && src.isMultiport()))? "" : "&";
                 code.pr("// Connect "+srcRange+" to port "+dstRange);
-                code.startScopedRangeBlock(currentFederate, srcRange, dstRange);
+                code.startScopedRangeBlock(srcRange, dstRange);
                 if (src.isInput()) {
                     // Source port is written to by reaction in port's parent's parent
                     // and ultimate destination is further downstream.
@@ -348,7 +348,6 @@ public class CTriggerObjectsGenerator {
                         code.pr(CUtil.portRef(dst, dr, db, dc)+"->destination_channel = "+dc+";");
                     }
                 }
-                code.endScopedRangeBlock(srcRange, dstRange);
                 code.endScopedRangeBlock(srcRange, dstRange);
             }
         }

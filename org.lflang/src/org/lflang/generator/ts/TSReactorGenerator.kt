@@ -75,23 +75,23 @@ class TSReactorGenerator(
      *  instance to start the runtime
      *  @param instance A reactor instance.
      */
-    private fun generateRuntimeStart(federate: FederateInstance,
+    private fun generateRuntimeStart(federateConfig: TSFederateConfig?,
                                      main: ReactorInstance?,
                                      defn: Instantiation): String {
         var minOutputDelay = TimeValue.MAX_VALUE;
-        if (tsGenerator.isFederatedAndCentralized && main != null) {
-            // Check for outputs that depend on physical actions.
-            for (reactorInstance in main.children) {
-                if (federate.contains(reactorInstance)) {
-                    val outputDelayMap = federate.findOutputsConnectedToPhysicalActions(reactorInstance)
-                    for (outputDelay in outputDelayMap.values) {
-                        if (outputDelay.isEarlierThan(minOutputDelay)) {
-                            minOutputDelay = outputDelay
-                        }
-                    }
-                }
-            }
-        }
+//        if (tsGenerator.isFederatedAndCentralized && main != null) {
+//            // Check for outputs that depend on physical actions.
+//            for (reactorInstance in main.children) {
+//                if (federate.contains(reactorInstance)) {
+//                    val outputDelayMap = federate.findOutputsConnectedToPhysicalActions(reactorInstance)
+//                    for (outputDelay in outputDelayMap.values) {
+//                        if (outputDelay.isEarlierThan(minOutputDelay)) {
+//                            minOutputDelay = outputDelay
+//                        }
+//                    }
+//                }
+//            }
+//        } FIXME: Move to TSExtension
 
         if (minOutputDelay != TimeValue.MAX_VALUE && targetConfig.coordinationOptions.advance_message_interval == null) {
             // There is a path from a physical action to output for reactor but advance message interval is not set.
@@ -184,7 +184,7 @@ class TSReactorGenerator(
     }
 
     fun generateReactorInstanceAndStart(
-        federate: FederateInstance,
+        federateConfig: TSFederateConfig?,
         main: ReactorInstance?,
         mainDef: Instantiation,
         mainParameters: Set<Parameter>
@@ -192,7 +192,7 @@ class TSReactorGenerator(
         return with(PrependOperator) {
             """
             |${generateReactorInstance(mainDef, mainParameters)}
-            |${generateRuntimeStart(federate, main, mainDef)}
+            |${generateRuntimeStart(federateConfig, main, mainDef)}
             |
             """
         }.trimMargin()

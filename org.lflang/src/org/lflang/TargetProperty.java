@@ -325,7 +325,6 @@ public enum TargetProperty {
      * Key-value pairs giving options for clock synchronization.
      */
     COORDINATION_OPTIONS("coordination-options",
-<<<<<<< HEAD
             DictionaryType.COORDINATION_OPTION_DICT, Arrays.asList(Target.C, Target.CCPP, Target.Python),
             (config) -> {
                 Element e = LfFactory.eINSTANCE.createElement();
@@ -344,9 +343,6 @@ public enum TargetProperty {
                 e.setKeyvalue(kvp);
                 return e;
             },
-=======
-            DictionaryType.COORDINATION_OPTION_DICT, Arrays.asList(Target.C, Target.CCPP, Target.Python, Target.TS),
->>>>>>> origin/pretty-printer
             (config, value, err) -> {
                 for (KeyValuePair entry : value.getKeyvalue().getPairs()) {
                     CoordinationOption option = (CoordinationOption) DictionaryType.COORDINATION_OPTION_DICT
@@ -410,6 +406,7 @@ public enum TargetProperty {
      * Directive to specify the platform for cross code generation.
      */
     PLATFORM("platform", UnionType.PLATFORM_UNION, Target.ALL,
+             (config) -> ASTUtils.toElement(config.platform.toString()),
              (config, value, err) -> {
                  config.platform = (Platform) UnionType.PLATFORM_UNION
                      .forName(ASTUtils.elementToSingleString(value));

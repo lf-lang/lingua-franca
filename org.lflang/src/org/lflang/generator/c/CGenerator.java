@@ -57,19 +57,9 @@ import org.lflang.FileConfig;
 import org.lflang.Target;
 import org.lflang.TargetConfig;
 import org.lflang.TargetProperty;
-<<<<<<< HEAD
 import org.lflang.federated.extensions.CExtensionUtils;
-=======
-import org.lflang.TargetProperty.ClockSyncMode;
-import org.lflang.TargetProperty.CoordinationType;
 import org.lflang.TargetProperty.Platform;
 import org.lflang.TimeValue;
-import org.lflang.federated.FedFileConfig;
-import org.lflang.federated.FederateInstance;
-import org.lflang.federated.launcher.FedCLauncher;
-import org.lflang.federated.serialization.FedROS2CPPSerialization;
-import org.lflang.federated.serialization.SupportedSerializers;
->>>>>>> origin/pretty-printer
 import org.lflang.generator.ActionInstance;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.generator.GeneratorBase;
@@ -1890,7 +1880,7 @@ public class CGenerator extends GeneratorBase {
                     types
                 ));
                 if (mode != null && stateVar.isReset()) {
-                    modalStateResetCount += currentFederate.numRuntimeInstances(instance);
+                    modalStateResetCount += instance.getTotalWidth();
                 }
             }
         }
@@ -1920,7 +1910,7 @@ public class CGenerator extends GeneratorBase {
     private void generateModeStructure(ReactorInstance instance) {
         CModesGenerator.generateModeStructure(instance, initializeTriggerObjects);
         if (!instance.modes.isEmpty()) {
-            modalReactorCount += currentFederate.numRuntimeInstances(instance);
+            modalReactorCount += instance.getTotalWidth();
         }
     }
 
@@ -2092,208 +2082,6 @@ public class CGenerator extends GeneratorBase {
     }
 
     /**
-<<<<<<< HEAD
-=======
-     * Generate code for the body of a reaction that handles the
-     * action that is triggered by receiving a message from a remote
-     * federate.
-     * @param action The action.
-     * @param sendingPort The output port providing the data to send.
-     * @param receivingPort The ID of the destination port.
-     * @param receivingPortID The ID of the destination port.
-     * @param sendingFed The sending federate.
-     * @param receivingFed The destination federate.
-     * @param receivingBankIndex The receiving federate's bank index, if it is in a bank.
-     * @param receivingChannelIndex The receiving federate's channel index, if it is a multiport.
-     * @param type The type.
-     * @param isPhysical Indicates whether or not the connection is physical
-     * @param serializer The serializer used on the connection.
-     */
-    @Override
-    public String generateNetworkReceiverBody(
-        Action action,
-        VarRef sendingPort,
-        VarRef receivingPort,
-        int receivingPortID,
-        FederateInstance sendingFed,
-        FederateInstance receivingFed,
-        int receivingBankIndex,
-        int receivingChannelIndex,
-        InferredType type,
-        boolean isPhysical,
-        SupportedSerializers serializer
-    ) {
-        return CNetworkGenerator.generateNetworkReceiverBody(
-            action,
-            sendingPort,
-            receivingPort,
-            receivingPortID,
-            sendingFed,
-            receivingFed,
-            receivingBankIndex,
-            receivingChannelIndex,
-            type,
-            isPhysical,
-            serializer,
-            types,
-            targetConfig.coordination
-        );
-    }
-
-    /**
-     * Generate code for the body of a reaction that handles an output
-     * that is to be sent over the network.
-     * @param sendingPort The output port providing the data to send.
-     * @param receivingPort The variable reference to the destination port.
-     * @param receivingPortID The ID of the destination port.
-     * @param sendingFed The sending federate.
-     * @param sendingBankIndex The bank index of the sending federate, if it is a bank.
-     * @param sendingChannelIndex The channel index of the sending port, if it is a multiport.
-     * @param receivingFed The destination federate.
-     * @param type The type.
-     * @param isPhysical Indicates whether the connection is physical or not
-     * @param delay The delay value imposed on the connection using after
-     * @param serializer The serializer used on the connection.
-     */
-    @Override
-    public String generateNetworkSenderBody(
-        VarRef sendingPort,
-        VarRef receivingPort,
-        int receivingPortID,
-        FederateInstance sendingFed,
-        int sendingBankIndex,
-        int sendingChannelIndex,
-        FederateInstance receivingFed,
-        InferredType type,
-        boolean isPhysical,
-        Expression delay,
-        SupportedSerializers serializer
-    ) {
-        return CNetworkGenerator.generateNetworkSenderBody(
-            sendingPort,
-            receivingPort,
-            receivingPortID,
-            sendingFed,
-            sendingBankIndex,
-            sendingChannelIndex,
-            receivingFed,
-            type,
-            isPhysical,
-            delay,
-            serializer,
-            types,
-            targetConfig.coordination
-        );
-    }
-
-    /**
-     * Generate code for the body of a reaction that decides whether the trigger for the given
-     * port is going to be present or absent for the current logical time.
-     * This reaction is put just before the first reaction that is triggered by the network
-     * input port "port" or has it in its sources. If there are only connections to contained
-     * reactors, in the top-level reactor.
-     *
-     * @param receivingPortID The ID of the port to generate the control reaction for
-     * @param maxSTP The maximum value of STP is assigned to reactions (if any)
-     *  that have port as their trigger or source
-     */
-    @Override
-    public String generateNetworkInputControlReactionBody(
-        int receivingPortID,
-        TimeValue maxSTP
-    ) {
-        return CNetworkGenerator.generateNetworkInputControlReactionBody(
-            receivingPortID,
-            maxSTP,
-            isFederatedAndDecentralized()
-        );
-    }
-
-    /**
-     * Generate code for the body of a reaction that sends a port status message for the given
-     * port if it is absent.
-     *
-     * @param port The port to generate the control reaction for
-     * @param portID The ID assigned to the port in the AST transformation
-     * @param receivingFederateID The ID of the receiving federate
-     * @param sendingBankIndex The bank index of the sending federate, if it is in a bank.
-     * @param sendingChannelIndex The channel if a multiport
-     * @param delay The delay value imposed on the connection using after
-     */
-    @Override
-    public String generateNetworkOutputControlReactionBody(
-        VarRef port,
-        int portID,
-        int receivingFederateID,
-        int sendingBankIndex,
-        int sendingChannelIndex,
-        Expression delay
-    ) {
-        return CNetworkGenerator.generateNetworkOutputControlReactionBody(
-            port,
-            portID,
-            receivingFederateID,
-            sendingBankIndex,
-            sendingChannelIndex,
-            delay
-        );
-    }
-
-    /**
-     * Add necessary code to the source and necessary build supports to
-     * enable the requested serializer in 'enabledSerializers'
-     */
-    @Override
-    public void enableSupportForSerializationIfApplicable(CancelIndicator cancelIndicator) {
-        if (!IterableExtensions.isNullOrEmpty(targetConfig.protoFiles)) {
-            // Enable support for proto serialization
-            enabledSerializers.add(SupportedSerializers.PROTO);
-        }
-        for (SupportedSerializers serializer : enabledSerializers) {
-            switch (serializer) {
-                case NATIVE: {
-                    // No need to do anything at this point.
-                    break;
-                }
-                case PROTO: {
-                    // Handle .proto files.
-                    for (String file : targetConfig.protoFiles) {
-                        this.processProtoFile(file, cancelIndicator);
-                        var dotIndex = file.lastIndexOf(".");
-                        var rootFilename = file;
-                        if (dotIndex > 0) {
-                            rootFilename = file.substring(0, dotIndex);
-                        }
-                        code.pr("#include " + addDoubleQuotes(rootFilename + ".pb-c.h"));
-                    }
-                    break;
-                }
-                case ROS2: {
-                    if(!CCppMode) {
-                        throw new UnsupportedOperationException(
-                            "To use the ROS 2 serializer, please use the CCpp target."
-                            );
-                    }
-                    if (!targetConfig.useCmake) {
-                        throw new UnsupportedOperationException(
-                            "Invalid target property \"cmake: false\"" +
-                            "To use the ROS 2 serializer, please use the CMake build system (default)"
-                            );
-                    }
-                    var ROSSerializer = new FedROS2CPPSerialization();
-                    code.pr(ROSSerializer.generatePreambleForSupport().toString());
-                    cMakeExtras = String.join("\n",
-                        cMakeExtras,
-                        ROSSerializer.generateCompilerExtensionForSupport()
-                    );
-                    break;
-                }
-            }
-        }
-    }
-
-    /**
->>>>>>> origin/pretty-printer
      * Generate code that needs to appear at the top of the generated
      * C file, such as #define and #include statements.
      */

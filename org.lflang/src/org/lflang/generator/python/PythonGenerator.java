@@ -234,7 +234,7 @@ public class PythonGenerator extends CGenerator {
             "",
             pythonPreamble.toString(),
             "",
-            generatePythonReactorClasses(federate),
+            generatePythonReactorClasses(),
             "",
             PythonMainGenerator.generateCode()
         );

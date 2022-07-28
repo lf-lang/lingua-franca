@@ -29,8 +29,6 @@ import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.util.CancelIndicator
 import org.lflang.ASTUtils
 import org.lflang.ErrorReporter
-import org.lflang.ASTUtils
-import org.lflang.InferredType
 import org.lflang.Target
 import org.lflang.TimeValue
 import org.lflang.generator.CodeMap
@@ -150,11 +148,8 @@ class TSGenerator(
         if (!canGenerate(errorsOccurred(), mainDef, errorReporter, context)) return
         if (!isOsCompatible()) return
 
-<<<<<<< HEAD
-=======
-        createMainReactorInstance()
+        // createMainReactorInstance()
 
->>>>>>> origin/pretty-printer
         clean(context)
         copyRuntime()
         copyConfigFiles()
@@ -273,17 +268,17 @@ class TSGenerator(
             }
 
             // Force reconstruction of dependence information.
-            if (isFederated) {
-                // FIXME: The following operation must be done after levels are assigned.
-                //  Removing these ports before that will cause incorrect levels to be assigned.
-                //  See https://github.com/lf-lang/lingua-franca/discussions/608
-                //  For now, avoid compile errors by removing disconnected network ports before
-                //  assigning levels.
-                removeRemoteFederateConnectionPorts(main)
-                // There will be AST transformations that invalidate some info
-                // cached in ReactorInstance.
-                main.clearCaches(false)
-            }
+//            if (isFederated) {
+//                // FIXME: The following operation must be done after levels are assigned.
+//                //  Removing these ports before that will cause incorrect levels to be assigned.
+//                //  See https://github.com/lf-lang/lingua-franca/discussions/608
+//                //  For now, avoid compile errors by removing disconnected network ports before
+//                //  assigning levels.
+//                removeRemoteFederateConnectionPorts(main)
+//                // There will be AST transformations that invalidate some info
+//                // cached in ReactorInstance.
+//                main.clearCaches(false)
+//            } FIXME: @hokeun
         }
     }
 
@@ -314,7 +309,7 @@ class TSGenerator(
             tsCode.append(reactorGenerator.generateReactor(reactor, federateConfig))
         }
 
-        tsCode.append(reactorGenerator.generateReactorInstanceAndStart(federate, this.main, this.mainDef, mainParameters))
+        tsCode.append(reactorGenerator.generateReactorInstanceAndStart(federateConfig, this.main, this.mainDef, mainParameters))
 
         val codeMap = CodeMap.fromGeneratedCode(tsCode.toString())
         codeMaps[tsFilePath] = codeMap
