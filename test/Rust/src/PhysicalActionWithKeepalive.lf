@@ -15,7 +15,7 @@ main reactor {
 
     reaction(act) {=
         let value = ctx.get(act).unwrap();
-        println!("---- Vu {} à {}", value, ctx.get_tag());
+        println!("---- saw {} at {}", value, ctx.get_tag());
 
         let elapsed_time = ctx.get_elapsed_logical_time();
         assert!(elapsed_time >= delay!(20 ms));
