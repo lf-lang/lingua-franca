@@ -152,29 +152,4 @@ public class PythonExtension extends CExtension {
     protected DockerGeneratorBase newDockerGeneratorInstance(FederateInstance federate) {
         return new PythonDockerGenerator(true, federate.targetConfig);
     }
-
-    @Override
-    public void createLauncher(
-        List<FederateInstance> federates,
-        FileConfig fileConfig,
-        TargetConfig targetConfig,
-        ErrorReporter errorReporter,
-        LinkedHashMap<String, Object> federationRTIProperties
-    ) {
-        FedPyLauncher launcher = new FedPyLauncher(
-            targetConfig,
-            fileConfig,
-            errorReporter
-        );
-        try {
-            launcher.createLauncher(
-                federates,
-                federationRTIProperties
-            );
-        } catch (IOException e) {
-            // ignore
-        }
-
-        System.out.println(PythonInfoGenerator.generateFedRunInfo(fileConfig));
-    }
 }

@@ -29,8 +29,8 @@ import java.io.File;
 import java.io.IOException;
 
 import org.lflang.ErrorReporter;
-import org.lflang.FileConfig;
 import org.lflang.TargetConfig;
+import org.lflang.federated.generator.FedFileConfig;
 import org.lflang.federated.generator.FederateInstance;
 import org.lflang.federated.OldFedFileConfig;
 import org.lflang.generator.c.CCompiler;
@@ -51,9 +51,9 @@ public class FedCLauncher extends FedLauncher {
      * @param errorReporter A error reporter for reporting any errors or warnings during the code generation
      */
     public FedCLauncher(
-            TargetConfig targetConfig, 
-            FileConfig fileConfig,
-            ErrorReporter errorReporter
+        TargetConfig targetConfig,
+        FedFileConfig fileConfig,
+        ErrorReporter errorReporter
     ) {
         super(targetConfig, fileConfig, errorReporter);
     }
@@ -106,15 +106,14 @@ public class FedCLauncher extends FedLauncher {
     }
 
     /**
-     * Return the command that will execute a local federate, assuming that the current
-     * directory is the top-level project folder. This is used to create a launcher script
-     * for federates.
+     * Return the command that will execute a local federate.
+     * This is used to create a launcher script for federates.
      *
      * @param federate The federate to execute.
      */
     @Override
     protected
-    String executeCommandForLocalFederate(FileConfig fileConfig, FederateInstance federate) {
-        return fileConfig.binPath.resolve(fileConfig.name)+"_"+federate.name+" -i $FEDERATION_ID";
+    String executeCommandForLocalFederate(FedFileConfig fileConfig, FederateInstance federate) {
+        return fileConfig.getFedGenPath().resolve("bin/"+federate.name)+" -i $FEDERATION_ID";
     }
 }

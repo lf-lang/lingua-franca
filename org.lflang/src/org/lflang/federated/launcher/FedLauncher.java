@@ -28,15 +28,16 @@ package org.lflang.federated.launcher;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 
 import org.lflang.ErrorReporter;
-import org.lflang.FileConfig;
 import org.lflang.TargetConfig;
 import org.lflang.TargetProperty.ClockSyncMode;
+import org.lflang.federated.generator.FedFileConfig;
 import org.lflang.federated.generator.FederateInstance;
 import org.lflang.federated.OldFedFileConfig;
 
@@ -46,10 +47,10 @@ import org.lflang.federated.OldFedFileConfig;
  * @author Edward A. Lee <eal@berkeley.edu>
  * @author Soroush Bateni <soroush@utdallas.edu>
  */
-class FedLauncher {
+public class FedLauncher {
 
     protected TargetConfig targetConfig;
-    protected FileConfig fileConfig;
+    protected FedFileConfig fileConfig;
     protected ErrorReporter errorReporter;
 
     /**
@@ -57,7 +58,7 @@ class FedLauncher {
      * @param fileConfig The current file configuration.
      * @param errorReporter A error reporter for reporting any errors or warnings during the code generation
      */
-    public FedLauncher(TargetConfig targetConfig, FileConfig fileConfig, ErrorReporter errorReporter) {
+    public FedLauncher(TargetConfig targetConfig, FedFileConfig fileConfig, ErrorReporter errorReporter) {
         this.targetConfig = targetConfig;
         this.fileConfig = fileConfig;
         this.errorReporter = errorReporter;
@@ -90,8 +91,8 @@ class FedLauncher {
      * 
      * @param federate The federate to execute.
      */
-    protected String executeCommandForLocalFederate(FileConfig fileConfig,
-        FederateInstance federate) {
+    protected String executeCommandForLocalFederate(FedFileConfig fileConfig,
+                                                    FederateInstance federate) {
         throw new UnsupportedOperationException("Don't know how to execute the federates.");
     }
 
@@ -234,6 +235,15 @@ class FedLauncher {
             "done",
             "echo \"All done.\""
         ) + "\n");
+
+        // Create bin directory for the script.
+        if (!Files.exists(fileConfig.binPath)) {
+            Files.createDirectories(fileConfig.binPath);
+        }
+
+        System.out.println("##### Generating launcher for federation "
+                               + " in directory "
+                               + fileConfig.binPath);
 
         // Write the launcher file.
         // Delete file previously produced, if any.

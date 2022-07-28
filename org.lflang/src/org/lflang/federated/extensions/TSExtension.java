@@ -28,29 +28,6 @@ public class TSExtension implements FedTargetExtension {
     }
 
     @Override
-    public void createLauncher(List<FederateInstance> federates, FileConfig fileConfig, TargetConfig targetConfig, ErrorReporter errorReporter, LinkedHashMap<String, Object> federationRTIProperties) throws IOException {
-        // Create bin directory for the script.
-        if (!Files.exists(fileConfig.binPath)) {
-            Files.createDirectories(fileConfig.binPath);
-        }
-        // Generate script for launching federation
-        var launcher = new FedTSLauncher(targetConfig, fileConfig, errorReporter);
-        launcher.createLauncher(federates, federationRTIProperties);
-        // TODO(hokeun): Modify this to make this work with standalone RTI.
-        // If this is a federated execution, generate C code for the RTI.
-//            // Copy the required library files into the target file system.
-//            // This will overwrite previous versions.
-//            var files = ArrayList("rti.c", "rti.h", "federate.c", "reactor_threaded.c", "reactor.c", "reactor_common.c", "reactor.h", "pqueue.c", "pqueue.h", "util.h", "util.c")
-//
-//            for (file : files) {
-//                copyFileFromClassPath(
-//                    File.separator + "lib" + File.separator + "core" + File.separator + file,
-//                    fileConfig.getSrcGenPath.toString + File.separator + file
-//                )
-//            }
-    }
-
-    @Override
     public String generateNetworkReceiverBody(Action action, VarRef sendingPort, VarRef receivingPort, FedConnectionInstance connection, InferredType type, CoordinationType coordinationType, ErrorReporter errorReporter) {
         return """
         // generateNetworkReceiverBody

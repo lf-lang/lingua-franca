@@ -6,7 +6,6 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -17,13 +16,13 @@ import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.xtext.xbase.lib.CollectionLiterals;
 import org.eclipse.xtext.xbase.lib.Exceptions;
 import org.eclipse.xtext.xbase.lib.Pair;
+
 import org.lflang.ASTUtils;
 import org.lflang.ErrorReporter;
 import org.lflang.TargetConfig;
-import org.lflang.TargetProperty;
 import org.lflang.TargetProperty.CoordinationType;
-import org.lflang.federated.extensions.FedTargetExtensionFactory;
-import org.lflang.federated.launcher.FedCLauncher;
+import org.lflang.federated.launcher.FedLauncher;
+import org.lflang.federated.launcher.FedLauncherFactory;
 import org.lflang.generator.GeneratorUtils;
 import org.lflang.generator.LFGeneratorContext;
 import org.lflang.generator.MixedRadixInt;
@@ -33,10 +32,8 @@ import org.lflang.generator.RuntimeRange;
 import org.lflang.generator.SendRange;
 import org.lflang.lf.Expression;
 import org.lflang.lf.Instantiation;
-import org.lflang.lf.KeyValuePair;
 import org.lflang.lf.LfFactory;
 import org.lflang.lf.Reactor;
-import org.lflang.lf.TargetDecl;
 
 public class FedGenerator {
 
@@ -106,6 +103,8 @@ public class FedGenerator {
         // for logical connections.
         replaceFederateConnectionsWithProxies(fedReactor);
 
+        createLauncher(federates, fileConfig, errorReporter, federationRTIProperties);
+
         FedEmitter fedEmitter = new FedEmitter(
             fileConfig,
             ASTUtils.toDefinition(mainDef.getReactorClass()),
@@ -122,6 +121,36 @@ public class FedGenerator {
         compileFederates();
 
         return false;
+    }
+
+    /**
+     * Create a launcher for the federation.
+     * @param federates
+     * @param fileConfig
+     * @param errorReporter
+     * @param federationRTIProperties
+     */
+    public void createLauncher(
+        List<FederateInstance> federates,
+        FedFileConfig fileConfig,
+        ErrorReporter errorReporter,
+        LinkedHashMap<String, Object> federationRTIProperties
+    ) {
+        FedLauncher launcher = FedLauncherFactory.getLauncher(
+            federates.get(0), // FIXME: This architecture only works for one target.
+            fileConfig,
+            errorReporter
+        );
+        try {
+            launcher.createLauncher(
+                federates,
+                federationRTIProperties
+            );
+        } catch (IOException e) {
+            errorReporter.reportError(e.getMessage());
+        }
+
+        // System.out.println(PythonInfoGenerator.generateFedRunInfo(fileConfig));
     }
 
     private void compileFederates() {

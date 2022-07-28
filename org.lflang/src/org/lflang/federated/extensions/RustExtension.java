@@ -25,11 +25,6 @@ public class RustExtension implements FedTargetExtension {
     }
 
     @Override
-    public void createLauncher(List<FederateInstance> federates, FileConfig fileConfig, TargetConfig targetConfig, ErrorReporter errorReporter, LinkedHashMap<String, Object> federationRTIProperties) throws IOException {
-
-    }
-
-    @Override
     public String generateNetworkReceiverBody(Action action, VarRef sendingPort, VarRef receivingPort, FedConnectionInstance connection, InferredType type, CoordinationType coordinationType, ErrorReporter errorReporter) {
         return null;
     }

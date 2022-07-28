@@ -187,30 +187,6 @@ public class CExtension implements FedTargetExtension {
         return new CDockerGenerator(true, false, federate.targetConfig);
     }
 
-    @Override
-    public void createLauncher(
-        List<FederateInstance> federates,
-        FileConfig fileConfig,
-        TargetConfig targetConfig,
-        ErrorReporter errorReporter,
-        LinkedHashMap<String, Object> federationRTIProperties
-    ) {
-        var launcher = new FedCLauncher(
-            targetConfig,
-            fileConfig,
-            errorReporter
-        );
-
-        try {
-            launcher.createLauncher(
-                federates,
-                federationRTIProperties
-            );
-        } catch (IOException e) {
-            Exceptions.sneakyThrow(e);
-        }
-    }
-
     /**
      * Generate code for the body of a reaction that handles the
      * action that is triggered by receiving a message from a remote

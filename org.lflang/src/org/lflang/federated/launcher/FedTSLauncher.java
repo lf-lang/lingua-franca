@@ -26,8 +26,8 @@
 package org.lflang.federated.launcher;
 
 import org.lflang.ErrorReporter;
-import org.lflang.FileConfig;
 import org.lflang.TargetConfig;
+import org.lflang.federated.generator.FedFileConfig;
 import org.lflang.federated.generator.FederateInstance;
 
 /**
@@ -47,9 +47,9 @@ public class FedTSLauncher extends FedLauncher {
      * @param errorReporter A error reporter for reporting any errors or warnings during the code generation
      */
     public FedTSLauncher(
-            TargetConfig targetConfig, 
-            FileConfig fileConfig,
-            ErrorReporter errorReporter
+        TargetConfig targetConfig,
+        FedFileConfig fileConfig,
+        ErrorReporter errorReporter
     ) {
         super(targetConfig, fileConfig, errorReporter);
     }
@@ -63,7 +63,7 @@ public class FedTSLauncher extends FedLauncher {
      */
     @Override
     protected
-    String executeCommandForLocalFederate(FileConfig fileConfig, FederateInstance federate) {
+    String executeCommandForLocalFederate(FedFileConfig fileConfig, FederateInstance federate) {
         String jsFilename = fileConfig.name + "_" + federate.name + ".js";
         return "node "+fileConfig.getSrcGenPath().resolve("dist").resolve(jsFilename)+" -i $FEDERATION_ID";
         //return fileConfig.binPath.resolve(fileConfig.name)+"_"+federate.name+" -i $FEDERATION_ID";
