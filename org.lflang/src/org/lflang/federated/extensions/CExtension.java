@@ -136,6 +136,9 @@ public class CExtension implements FedTargetExtension {
             true
         );
 
+        federate.targetConfig.keepalive = true;
+        federate.targetConfig.setByUser.add(TargetProperty.KEEPALIVE);
+
         // If there are federates, copy the required files for that.
         // Also, create the RTI C file and the launcher script.
         // Handle target parameters.
