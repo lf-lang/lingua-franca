@@ -133,16 +133,20 @@ public class FederateInstance {
      * The host, if specified using the 'at' keyword.
      */
     public String host = "localhost";
-    
+
+
     /**
      * The instantiation of the top-level reactor, or null if there is no federation.
      */
     public Instantiation instantiation;
+    public Instantiation getInstantiation() {
+        return instantiation;
+    }
     
     /**
      * Map from the federates that this federate receives messages from
      * to the delays on connections from that federate. The delay set
-     * may may include null, meaning that there is a connection
+     * may include null, meaning that there is a connection
      * from the federate instance that has no delay.
      */
     public Map<FederateInstance, Set<Expression>> dependsOn = new LinkedHashMap<>();
@@ -174,7 +178,8 @@ public class FederateInstance {
      * The integer ID of this federate.
      */
     public int id = 0;
-    
+
+
     /**
      * The name of this federate instance. This will be the instantiation
      * name, poassibly appended with "__n", where n is the bank position of

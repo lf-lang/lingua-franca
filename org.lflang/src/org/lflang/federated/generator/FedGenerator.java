@@ -114,6 +114,9 @@ public class FedGenerator {
 
         createLauncher(federates, fileConfig, errorReporter, federationRTIProperties);
 
+
+        (new FedInterfaceEmitter()).generateInterfacesForFederates(federates, fileConfig);
+
         FedEmitter fedEmitter = new FedEmitter(
             fileConfig,
             ASTUtils.toDefinition(mainDef.getReactorClass()),

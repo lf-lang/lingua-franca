@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.LinkedHashMap;
+import java.util.List;
 
 import org.lflang.ErrorReporter;
 import org.lflang.generator.LFGeneratorContext;
