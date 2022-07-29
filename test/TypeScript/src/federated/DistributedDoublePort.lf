@@ -1,0 +1,56 @@
+/**
+ * Test the case for when two upstream federates
+ * send messages to a downstream federte on two
+ * different ports. One message should carry a
+ * microstep delay relative to the other
+ * message.
+ *
+ * @author Soroush Bateni
+ * @author Hokeun Kim
+ */
+target TypeScript {
+    timeout: 900 msec,
+    coordination-options: {advance-message-interval: 100 msec},
+    logging: DEBUG
+};
+
+import Count from "../lib/Count.lf";
+
+reactor CountMicrostep {
+    state count:number(1);
+    output out:number;
+    logical action act:number;
+    timer t(0, 1 sec);
+    reaction(t) -> act {=
+        actions.act.schedule(0, count++);
+    =}
+
+    reaction(act) -> out {=
+        out = act;
+    =}
+}
+
+reactor Print {
+    input inp:number;
+    input inp2:number;
+    reaction(inp, inp2) {=
+        const elapsedTime = util.getElapsedLogicalTime();
+        console.log("At tag " + elapsedTime + ", microstep:" + util.getCurrentTag().microstep +
+            ", received inp = " + inp + " and inp2 = " + inp2 + ".");
+        if (inp !== undefined && inp2 !== undefined) {
+            util.requestErrorStop("ERROR: invalid logical simultaneity.");
+        }
+    =}
+
+    reaction(shutdown) {=
+        console.log("SUCCESS: messages were at least one microstep apart.");
+    =}
+}
+
+federated reactor DistributedDoublePort {
+    c = new Count();
+    cm = new CountMicrostep();
+    p = new Print();
+    c.out -> p.inp;    // Indicating a 'logical' connection.
+    cm.out -> p.inp2;
+}

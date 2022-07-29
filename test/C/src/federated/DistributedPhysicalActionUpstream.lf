@@ -2,7 +2,7 @@
  * Test that a rapidly produced physical action in an upstream federate can be
  * properly handled in federated execution.
  */
-target C { 
+target C {
     timeout: 10 secs,
     coordination-options: {advance-message-interval: 30 msec}
 };
@@ -13,7 +13,7 @@ import TestCount from "../lib/TestCount.lf"
 preamble {=
     int _counter = 1;
     void callback(void *a) {
-        schedule_int(a, 0, _counter++);
+        lf_schedule_int(a, 0, _counter++);
     }
     // Simulate time passing before a callback occurs.
     void* take_time(void* a) {

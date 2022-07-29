@@ -2,7 +2,7 @@
  * Test that a rapidly produced logical action in an upstream federate can be
  * properly handled in a long chain of federates.
  */
-target C { 
+target C {
     timeout: 1 msec
 };
 
@@ -17,7 +17,7 @@ reactor WithLogicalAction {
 
     reaction(startup, act) -> act, out {=
         SET(out, self->counter);
-        schedule_int(act, USEC(50), self->counter++);
+        lf_schedule_int(act, USEC(50), self->counter++);
     =}
 }
 
@@ -41,7 +41,7 @@ federated reactor {
     passThroughs4.out, passThroughs5.out,
     passThroughs6.out, passThroughs7.out,
     passThroughs8.out, passThroughs9.out,
-    passThroughs10.out -> passThroughs1.in, 
+    passThroughs10.out -> passThroughs1.in,
     passThroughs2.in, passThroughs3.in,
     passThroughs4.in, passThroughs5.in,
     passThroughs6.in, passThroughs7.in,

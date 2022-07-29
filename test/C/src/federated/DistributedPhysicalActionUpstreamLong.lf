@@ -2,7 +2,7 @@
  * Test that a rapidly produced physical action in an upstream federate can be
  * properly handled in a long chain of federates.
  */
-target C { 
+target C {
     timeout: 1 sec,
     coordination-options: {advance-message-interval: 50 usec}
 };
@@ -13,7 +13,7 @@ import TestCount from "../lib/TestCount.lf"
 preamble {=
     int _counter = 1;
     void callback(void *a) {
-        schedule_int(a, 0, _counter++);
+        lf_schedule_int(a, 0, _counter++);
     }
     // Simulate time passing before a callback occurs.
     void* take_time(void* a) {
@@ -60,7 +60,7 @@ federated reactor {
     passThroughs4.out, passThroughs5.out,
     passThroughs6.out, passThroughs7.out,
     passThroughs8.out, passThroughs9.out,
-    passThroughs10.out -> passThroughs1.in, 
+    passThroughs10.out -> passThroughs1.in,
     passThroughs2.in, passThroughs3.in,
     passThroughs4.in, passThroughs5.in,
     passThroughs6.in, passThroughs7.in,
