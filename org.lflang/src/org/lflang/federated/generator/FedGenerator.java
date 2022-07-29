@@ -14,7 +14,6 @@ import java.util.regex.Pattern;
 
 import org.eclipse.emf.common.util.URI;
 import org.eclipse.emf.ecore.resource.Resource;
-import org.eclipse.emf.ecore.resource.ResourceSet;
 import org.eclipse.xtext.generator.JavaIoFileSystemAccess;
 import org.eclipse.xtext.resource.XtextResource;
 import org.eclipse.xtext.resource.XtextResourceSet;
@@ -24,7 +23,6 @@ import org.eclipse.xtext.xbase.lib.Pair;
 
 import org.lflang.ASTUtils;
 import org.lflang.ErrorReporter;
-import org.lflang.LFResourceProvider;
 import org.lflang.LFStandaloneSetup;
 import org.lflang.TargetConfig;
 import org.lflang.TargetProperty.CoordinationType;
@@ -170,6 +168,7 @@ public class FedGenerator {
             .createInjectorAndDoEMFRegistration();
         XtextResourceSet rs = inj.getInstance(XtextResourceSet.class);
         rs.addLoadOption(XtextResource.OPTION_RESOLVE_ALL, Boolean.TRUE);
+        LFGenerator gen = inj.getInstance(LFGenerator.class);
         // define output path here
         JavaIoFileSystemAccess fsa = inj.getInstance(JavaIoFileSystemAccess.class);
         fsa.setOutputPath("DEFAULT_OUTPUT", fileConfig.getSrcGenPath().toString());
@@ -191,7 +190,7 @@ public class FedGenerator {
                     Resource res = rs.getResource(URI.createFileURI(
                         fileConfig.getFedSrcPath().resolve(fed.name + ".lf").toAbsolutePath().toString()
                     ), true);
-                    new LFGenerator().doGenerate(res, fsa, cont);
+                    gen.doGenerate(res, fsa, cont);
                 }
             });
         }
