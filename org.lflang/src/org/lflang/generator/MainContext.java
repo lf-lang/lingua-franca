@@ -32,7 +32,7 @@ public class MainContext implements LFGeneratorContext {
     private final Properties args;
     private final boolean hierarchicalBin;  // FIXME: The interface would be simpler if this were part of {@code args}, and in addition, a potentially useful feature would be exposed to the user.
     private final Function<FileConfig, ErrorReporter> constructErrorReporter;
-    private boolean hasConstructedErrorReporter;
+    private ErrorReporter errorReporter;
 
     /**
      * Initialize the context of a build process whose cancellation is
@@ -77,7 +77,7 @@ public class MainContext implements LFGeneratorContext {
         this.args = args;
         this.hierarchicalBin = hierarchicalBin;
         this.constructErrorReporter = constructErrorReporter;
-        this.hasConstructedErrorReporter = false;
+        this.errorReporter = null;
     }
 
     @Override
@@ -102,11 +102,16 @@ public class MainContext implements LFGeneratorContext {
 
     @Override
     public ErrorReporter constructErrorReporter(FileConfig fileConfig) {
-        if (hasConstructedErrorReporter) {
+        if (errorReporter != null) {
             throw new IllegalStateException("Only one error reporter should be constructed for a given context.");
         }
-        hasConstructedErrorReporter = true;
-        return constructErrorReporter.apply(fileConfig);
+        errorReporter = constructErrorReporter.apply(fileConfig);
+        return errorReporter;
+    }
+
+    @Override
+    public ErrorReporter getErrorReporter() {
+        return errorReporter;
     }
 
     @Override

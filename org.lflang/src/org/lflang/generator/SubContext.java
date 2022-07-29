@@ -57,9 +57,13 @@ public class SubContext implements LFGeneratorContext {
 
     @Override
     public ErrorReporter constructErrorReporter(FileConfig fileConfig) {
-        throw new UnsupportedOperationException(
-            "Nested contexts should use the error reporters constructed by their containing contexts."
-        );
+        // Always use the error reporter of the parent context.
+        return getErrorReporter();
+    }
+
+    @Override
+    public ErrorReporter getErrorReporter() {
+        return containingContext.getErrorReporter();
     }
 
     @Override

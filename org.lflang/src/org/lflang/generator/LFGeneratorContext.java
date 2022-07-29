@@ -55,6 +55,11 @@ public interface LFGeneratorContext extends IGeneratorContext {
     ErrorReporter constructErrorReporter(FileConfig fileConfig);
 
     /**
+     * Get the error reporter for this context.
+     */
+    ErrorReporter getErrorReporter();
+
+    /**
      * Mark the code generation process performed in this
      * context as finished with the result {@code result}.
      * @param result The result of the code generation
