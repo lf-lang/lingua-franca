@@ -134,12 +134,20 @@ class RustGenerator(
 
         if (cargoReturnCode == 0) {
             // We still have to copy the compiled binary to the destination folder.
+            val isWindows = System.getProperty("os.name").lowercase().contains("win")
+            val localizedExecName = if (isWindows) {
+                "$executableName.exe"
+            } else {
+                executableName
+            }
+
             val buildType = targetConfig.rust.buildType
             var binaryPath = fileConfig.srcGenPath
                 .resolve("target")
                 .resolve(buildType.cargoProfileName)
-                .resolve(executableName)
-            val destPath = fileConfig.binPath.resolve(executableName)
+                .resolve(localizedExecName)
+            val destPath = fileConfig.binPath.resolve(localizedExecName)
+
             FileUtil.copyFile(binaryPath, destPath)
             // Files do not retain permissions when copied.
             destPath.toFile().setExecutable(true)
