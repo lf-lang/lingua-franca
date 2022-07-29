@@ -130,7 +130,8 @@ class RustGenerator(
         ) ?: return
         cargoCommand.setQuiet()
 
-        val cargoReturnCode = RustValidator(fileConfig, errorReporter, codeMaps).run(cargoCommand, context.cancelIndicator)
+        val validator = RustValidator(fileConfig, errorReporter, codeMaps)
+        val cargoReturnCode = validator.run(cargoCommand, context.cancelIndicator)
 
         if (cargoReturnCode == 0) {
             // We still have to copy the compiled binary to the destination folder.
@@ -142,8 +143,7 @@ class RustGenerator(
             }
 
             val buildType = targetConfig.rust.buildType
-            var binaryPath = fileConfig.srcGenPath
-                .resolve("target")
+            var binaryPath = validator.getMetadata()?.targetDirectory!!
                 .resolve(buildType.cargoProfileName)
                 .resolve(localizedExecName)
             val destPath = fileConfig.binPath.resolve(localizedExecName)
