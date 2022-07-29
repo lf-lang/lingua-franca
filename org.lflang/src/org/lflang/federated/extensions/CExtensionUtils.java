@@ -252,17 +252,6 @@ public class CExtensionUtils {
         var advanceMessageInterval = federate.targetConfig.coordinationOptions.advance_message_interval;
 
         try (var srcWriter = Files.newBufferedWriter(cmakeIncludePath)) {
-            // FIXME: translate compileDefinitions to the cmake-include string
-            //// Add compile definitions for federated execution
-            //targetConfig.compileDefinitions.put("FEDERATED", "");
-            //if (targetConfig.coordination == CoordinationType.CENTRALIZED) {
-            //    // The coordination is centralized.
-            //    targetConfig.compileDefinitions.put("FEDERATED_CENTRALIZED", "");
-            //} else if (targetConfig.coordination == CoordinationType.DECENTRALIZED) {
-            //    // The coordination is decentralized
-            //    targetConfig.compileDefinitions.put("FEDERATED_DECENTRALIZED", "");
-            //}
-
             srcWriter.write("""
                 target_compile_definitions(${LF_MAIN_TARGET} PUBLIC FEDERATED)
                 target_compile_definitions(${LF_MAIN_TARGET} PUBLIC FEDERATED_%s)
