@@ -12,28 +12,39 @@ import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.eclipse.emf.common.util.URI;
 import org.eclipse.emf.ecore.resource.Resource;
+import org.eclipse.emf.ecore.resource.ResourceSet;
+import org.eclipse.xtext.generator.JavaIoFileSystemAccess;
+import org.eclipse.xtext.resource.XtextResource;
+import org.eclipse.xtext.resource.XtextResourceSet;
 import org.eclipse.xtext.xbase.lib.CollectionLiterals;
 import org.eclipse.xtext.xbase.lib.Exceptions;
 import org.eclipse.xtext.xbase.lib.Pair;
 
 import org.lflang.ASTUtils;
 import org.lflang.ErrorReporter;
+import org.lflang.LFResourceProvider;
+import org.lflang.LFStandaloneSetup;
 import org.lflang.TargetConfig;
 import org.lflang.TargetProperty.CoordinationType;
 import org.lflang.federated.launcher.FedLauncher;
 import org.lflang.federated.launcher.FedLauncherFactory;
 import org.lflang.generator.GeneratorUtils;
+import org.lflang.generator.LFGenerator;
 import org.lflang.generator.LFGeneratorContext;
 import org.lflang.generator.MixedRadixInt;
 import org.lflang.generator.PortInstance;
 import org.lflang.generator.ReactorInstance;
 import org.lflang.generator.RuntimeRange;
 import org.lflang.generator.SendRange;
+import org.lflang.generator.SubContext;
 import org.lflang.lf.Expression;
 import org.lflang.lf.Instantiation;
 import org.lflang.lf.LfFactory;
 import org.lflang.lf.Reactor;
+
+import com.google.inject.Injector;
 
 public class FedGenerator {
 
@@ -118,7 +129,7 @@ public class FedGenerator {
             );
         }
 
-        compileFederates();
+        compileFederates(context);
 
         return false;
     }
@@ -153,7 +164,16 @@ public class FedGenerator {
         // System.out.println(PythonInfoGenerator.generateFedRunInfo(fileConfig));
     }
 
-    private void compileFederates() {
+    private void compileFederates(LFGeneratorContext context) {
+        // FIXME: Use the appropriate resource set instead of always using standalone
+        Injector inj = new LFStandaloneSetup()
+            .createInjectorAndDoEMFRegistration();
+        XtextResourceSet rs = inj.getInstance(XtextResourceSet.class);
+        rs.addLoadOption(XtextResource.OPTION_RESOLVE_ALL, Boolean.TRUE);
+        // define output path here
+        JavaIoFileSystemAccess fsa = inj.getInstance(JavaIoFileSystemAccess.class);
+        fsa.setOutputPath("DEFAULT_OUTPUT", fileConfig.getSrcGenPath().toString());
+
         var numOfCompileThreads = Math.min(6,
                                            Math.min(
                                                Math.max(federates.size(), 1),
@@ -163,9 +183,18 @@ public class FedGenerator {
         var compileThreadPool = Executors.newFixedThreadPool(numOfCompileThreads);
         System.out.println("******** Using "+numOfCompileThreads+" threads to compile the program.");
 
-        compileThreadPool.execute(new Runnable() {
-            @Override
-            public void run() {}});
+        for(FederateInstance fed : federates) {
+            compileThreadPool.execute(new Runnable() {
+                @Override
+                public void run() {
+                    SubContext cont = new SubContext(context, 0, 0); // Is there a way to quantify progress when compilation is in parallel?
+                    Resource res = rs.getResource(URI.createFileURI(
+                        fileConfig.getFedSrcPath().resolve(fed.name + ".lf").toAbsolutePath().toString()
+                    ), true);
+                    new LFGenerator().doGenerate(res, fsa, cont);
+                }
+            });
+        }
 
         // Initiate an orderly shutdown in which previously submitted tasks are
         // executed, but no new tasks will be accepted.
