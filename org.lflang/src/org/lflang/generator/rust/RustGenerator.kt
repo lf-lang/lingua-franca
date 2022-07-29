@@ -104,13 +104,7 @@ class RustGenerator(
     private fun invokeRustCompiler(context: LFGeneratorContext, executableName: String, codeMaps: Map<Path, CodeMap>) {
 
         val args = mutableListOf<String>().apply {
-            this += listOf(
-                "+nightly",
-                "build",
-                // note that this option is unstable for now and requires rust nightly ...
-                "--out-dir", fileConfig.binPath.toAbsolutePath().toString(),
-                "-Z", "unstable-options", // ... and that feature flag
-            )
+            this += "build"
 
             val buildType = targetConfig.rust.buildType
             if (buildType == BuildType.RELEASE) {
@@ -119,7 +113,6 @@ class RustGenerator(
                 this += "--profile"
                 this += buildType.cargoProfileName
             }
-
 
             if (targetConfig.rust.cargoFeatures.isNotEmpty()) {
                 this += "--features"
@@ -137,9 +130,28 @@ class RustGenerator(
         ) ?: return
         cargoCommand.setQuiet()
 
-        val cargoReturnCode = RustValidator(fileConfig, errorReporter, codeMaps).run(cargoCommand, context.cancelIndicator)
+        val validator = RustValidator(fileConfig, errorReporter, codeMaps)
+        val cargoReturnCode = validator.run(cargoCommand, context.cancelIndicator)
 
         if (cargoReturnCode == 0) {
+            // We still have to copy the compiled binary to the destination folder.
+            val isWindows = System.getProperty("os.name").lowercase().contains("win")
+            val localizedExecName = if (isWindows) {
+                "$executableName.exe"
+            } else {
+                executableName
+            }
+
+            val buildType = targetConfig.rust.buildType
+            var binaryPath = validator.getMetadata()?.targetDirectory!!
+                .resolve(buildType.cargoProfileName)
+                .resolve(localizedExecName)
+            val destPath = fileConfig.binPath.resolve(localizedExecName)
+
+            FileUtil.copyFile(binaryPath, destPath)
+            // Files do not retain permissions when copied.
+            destPath.toFile().setExecutable(true)
+
             println("SUCCESS (compiling generated Rust code)")
             println("Generated source code is in ${fileConfig.srcGenPath}")
             println("Compiled binary is in ${fileConfig.binPath}")
@@ -153,7 +165,6 @@ class RustGenerator(
             context.finish(GeneratorResult.FAILED)
         }
     }
-
 
     override fun getTarget(): Target = Target.Rust
 
