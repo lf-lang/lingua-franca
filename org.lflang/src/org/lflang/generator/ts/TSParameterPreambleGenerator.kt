@@ -126,7 +126,7 @@ class TSParameterPreambleGenerator(
             var customArgType: String? = null
             var customTypeLabel: String? = null
 
-            val paramType = getTargetType(parameter)
+            val paramType = parameter.type.id
             if (paramType == "string") {
                 mainParameters.add(parameter)
                 customArgType = "String";
