@@ -113,7 +113,14 @@ public final class StringUtil {
         StringBuilder buffer = new StringBuilder();
         boolean stillProcessingLeadingBlankLines = true;
         for (int i = 0; i < firstLineToConsider; i++) {
-            buffer.append(codeLines[i].strip());
+            var endIndex = codeLines[i].contains("//") ?
+                codeLines[i].indexOf("//") : codeLines[i].length();
+            // The following is a hack to avoid clashing with Rust attributes. It is highly
+            // questionable and should become obsolete if we rework our parser.
+            endIndex = codeLines[i].contains("#") && !codeLines[i].contains("#[") ?
+                Math.min(endIndex, codeLines[i].indexOf("#")) : endIndex;
+            String toAppend = codeLines[i].substring(0, endIndex).strip();
+            if (!toAppend.isBlank()) buffer.append(toAppend).append("\n");
         }
         for (int i = firstLineToConsider; i < codeLines.length; i++) {
             final String line = codeLines[i];
