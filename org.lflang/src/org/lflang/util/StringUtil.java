@@ -112,6 +112,9 @@ public final class StringUtil {
         int prefix = getWhitespacePrefix(code, firstLineToConsider);
         StringBuilder buffer = new StringBuilder();
         boolean stillProcessingLeadingBlankLines = true;
+        for (int i = 0; i < firstLineToConsider; i++) {
+            buffer.append(codeLines[i].strip());
+        }
         for (int i = firstLineToConsider; i < codeLines.length; i++) {
             final String line = codeLines[i];
             if (!line.isBlank()) stillProcessingLeadingBlankLines = false;
