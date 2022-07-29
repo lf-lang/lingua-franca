@@ -141,7 +141,6 @@ public class CCmakeGenerator {
         cMakeCode.indent();
         cMakeCode.pr("${LF_MAIN_TARGET}");
         sources.forEach(cMakeCode::pr);
-        cMakeCode.pr("${CoreLib}/platform/${LF_PLATFORM_FILE}");
         additionalSources.forEach(cMakeCode::pr);
         cMakeCode.unindent();
         cMakeCode.pr(")");
@@ -167,27 +166,12 @@ public class CCmakeGenerator {
         }
 
         cMakeCode.pr("# Target definitions\n");
-        targetConfig.compileDefinitions.forEach( (key, value) -> {
-            cMakeCode.pr("target_compile_definitions( ${LF_MAIN_TARGET} PUBLIC "+key+"="+value+")\n");
-        });
+        targetConfig.compileDefinitions.forEach((key, value) -> cMakeCode.pr(
+            "target_compile_definitions( ${LF_MAIN_TARGET} PUBLIC "+key+"="+value+")\n"
+        ));
         cMakeCode.newLine();
 
-        // Check if CppMode is enabled
-        if (CppMode) {
-            // First enable the CXX language
-            cMakeCode.pr("enable_language(CXX)");
-            // FIXME: Instead of mixing a C compiler and a C++ compiler, we use a
-            // CMake flag to set the language of all .c files to C++.
-            // Also convert any additional sources. This is a deprecated functionality
-            // in clang, but intermingling C compiled code and C++ compiled code seems
-            // to require a substantial overhaul of the C target code structure. Instead,
-            // we force the usage of a C++ compiler on everything for now.
-            for (String source: additionalSources) {
-                cMakeCode.pr("set_source_files_properties( "+source+" PROPERTIES LANGUAGE CXX)");
-            }
-            cMakeCode.pr("set_source_files_properties(${CoreLib}/platform/${LF_PLATFORM_FILE} PROPERTIES LANGUAGE CXX)");
-            cMakeCode.newLine();
-        }
+        if (CppMode) cMakeCode.pr("enable_language(CXX)");
 
         if (targetConfig.compiler != null && !targetConfig.compiler.isBlank()) {
             if (CppMode) {

@@ -804,6 +804,7 @@ public class CGenerator extends GeneratorBase {
             // is set to decentralized) or, if there are
             // downstream federates, will notify the RTI
             // that the specified logical time is complete.
+            if (CCppMode) code.pr("extern \"C\"");
             code.pr(String.join("\n",
                 "void logical_tag_complete(tag_t tag_to_send) {",
                 isFederatedAndCentralized() ?
@@ -2125,7 +2126,7 @@ public class CGenerator extends GeneratorBase {
         }
         if (hasModalReactors) {
             // So that each separate compile knows about modal reactors, do this:
-            targetConfig.compileDefinitions.put("MODAL_REACTORS", "");
+            targetConfig.compileDefinitions.put("MODAL_REACTORS", "TRUE");
         }
         if (targetConfig.threading) {
             pickScheduler();
@@ -2426,6 +2427,7 @@ public class CGenerator extends GeneratorBase {
         ));
         code.pr(CPreambleGenerator.generateIncludeStatements(
             targetConfig,
+            CCppMode,
             isFederated
         ));
         return code.toString();
@@ -2443,6 +2445,10 @@ public class CGenerator extends GeneratorBase {
             }
         }
         return code.toString();
+    }
+
+    protected boolean targetLanguageIsCpp() {
+        return CCppMode;
     }
 
     /** Given a line of text from the output of a compiler, return

@@ -356,7 +356,7 @@ public class PythonGenerator extends CGenerator {
             targetConfig, federates.size(), isFederated,
             fileConfig.getSrcGenPath(), clockSyncIsOn(), hasModalReactors));
         code.pr(PythonPreambleGenerator.generateCIncludeStatements(
-            targetConfig, isFederated, hasModalReactors));
+            targetConfig, targetLanguageIsCpp(), isFederated, hasModalReactors));
         return code.toString();
     }
 

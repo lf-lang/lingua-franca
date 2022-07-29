@@ -32,10 +32,14 @@ public class CPreambleGenerator {
     /** Add necessary source files specific to the target language.  */
     public static String generateIncludeStatements(
         TargetConfig targetConfig,
+        boolean cppMode,
         boolean isFederated
     ) {
         var tracing = targetConfig.tracing;
         CodeBuilder code = new CodeBuilder();
+        if (cppMode) {
+            code.pr("extern \"C\" {");
+        }
         CCoreFilesUtils.getCTargetHeader().forEach(
             it -> code.pr("#include " + StringUtil.addDoubleQuotes(it))
         );
@@ -55,6 +59,9 @@ public class CPreambleGenerator {
         code.pr("#include \"core/mixed_radix.h\"");
         code.pr("#include \"core/port.h\"");
         code.pr("int lf_reactor_c_main(int argc, char* argv[]);");
+        if (cppMode) {
+            code.pr("}");
+        }
         return code.toString();
     }
 
@@ -83,9 +90,6 @@ public class CPreambleGenerator {
         }
         if (tracing != null) {
             code.pr(generateTracingDefineDirective(targetConfig, tracing.traceFileName));
-        }
-        if (hasModalReactors) {
-            code.pr("#define MODAL_REACTORS");
         }
         if (clockSyncIsOn) {
             code.pr(generateClockSyncDefineDirective(
