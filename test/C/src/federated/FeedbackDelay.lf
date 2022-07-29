@@ -15,22 +15,22 @@ reactor PhysicalPlant {
     =}
     reaction(control) {=
         instant_t control_time = get_physical_time();
-        info_print("Latency %lld.", control_time - self->previous_sensor_time);
-        info_print("Logical time: %lld.", get_elapsed_logical_time());
+        lf_print("Latency %lld.", control_time - self->previous_sensor_time);
+        lf_print("Logical time: %lld.", get_elapsed_logical_time());
     =} STP(33 msec) {=
-        warning_print("STP violation.");
+        lf_print_warning("STP violation.");
     =}
 }
 reactor Controller {
     input sensor:double;
     output control:double;
-    
+
     state latest_control:double(0.0);
     state first:bool(true);
-    
+
     output request_for_planning:double;
     input planning:double;
-    
+
     reaction(planning) {=
         self->latest_control = planning->value;
     =}
@@ -54,7 +54,7 @@ federated reactor {
     p = new PhysicalPlant();
     c = new Controller();
     pl = new Planner();
-    
+
     p.sensor -> c.sensor;
     c.request_for_planning -> pl.request;
     pl.response -> c.planning after 0;
