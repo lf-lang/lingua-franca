@@ -39,7 +39,6 @@ import org.lflang.generator.GeneratorUtils
 import org.lflang.generator.GeneratorUtils.canGenerate
 import org.lflang.generator.IntegratedBuilder
 import org.lflang.generator.LFGeneratorContext
-import org.lflang.generator.PrependOperator
 import org.lflang.generator.ReactorInstance
 import org.lflang.generator.SubContext
 import org.lflang.generator.TargetTypes
@@ -309,7 +308,7 @@ class TSGenerator(
             tsCode.append(reactorGenerator.generateReactor(reactor, federateConfig))
         }
 
-        tsCode.append(reactorGenerator.generateReactorInstanceAndStart(federateConfig, this.main, this.mainDef, mainParameters))
+        tsCode.append(reactorGenerator.generateMainReactorInstanceAndStart(federateConfig, this.mainDef, mainParameters))
 
         val codeMap = CodeMap.fromGeneratedCode(tsCode.toString())
         codeMaps[tsFilePath] = codeMap
