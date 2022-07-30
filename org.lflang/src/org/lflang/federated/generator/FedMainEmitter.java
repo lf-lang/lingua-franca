@@ -3,6 +3,7 @@ package org.lflang.federated.generator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -45,17 +46,81 @@ public class FedMainEmitter {
                 generateMainSignature(federate, originalMainReactor, renderer),
                String.join(
                    "\n",
-                   ASTUtils.allInstantiations(originalMainReactor).stream().map(renderer).collect(Collectors.joining("\n")),
+                   renderer.apply(federate.instantiation),
+                   generateInstantiationsForUpstreamFederates(federate, renderer),
                    ASTUtils.allActions(originalMainReactor).stream().filter(federate::contains).map(renderer).collect(Collectors.joining("\n")),
                    ASTUtils.allTimers(originalMainReactor).stream().filter(federate::contains).map(renderer).collect(Collectors.joining("\n")),
                    ASTUtils.allMethods(originalMainReactor).stream().filter(federate::contains).map(renderer).collect(Collectors.joining("\n")),
-                   ASTUtils.allReactions(originalMainReactor).stream().filter(federate::contains).map(renderer).collect(Collectors.joining("\n"))
+                   ASTUtils.allReactions(originalMainReactor).stream().filter(federate::contains).map(renderer).collect(Collectors.joining("\n")),
+                   generateConnections(federate, originalMainReactor, renderer)
                ).indent(4).stripTrailing(),
                "}"
             );
     }
 
+    /**
+     * Generate instantiations for upstream federates of {@code federate}.
+     * @param federate
+     * @param renderer Used to generate a String representation for an instantiation.
+     * @return
+     */
+    private CharSequence generateInstantiationsForUpstreamFederates(FederateInstance federate, Function<EObject, String> renderer) {
+        CodeBuilder instantiations = new CodeBuilder();
+        // First handle immediate upstream federates with 0 delays
+        var zeroDelayImmediateUpstreamFederates =
+            federate.dependsOn.entrySet()
+                              .stream()
+                              .filter(e -> e.getValue().contains(null))
+                              .map(Map.Entry::getKey).toList();
+        instantiations.pr(zeroDelayImmediateUpstreamFederates
+                              .stream()
+                              .map(FederateInstance::getInstantiation)
+                              .map(renderer)
+                              .collect(Collectors.joining("\n")));
 
+        // Then recursively go upstream
+        zeroDelayImmediateUpstreamFederates.forEach(federateInstance -> {
+            instantiations.pr(generateInstantiationsForUpstreamFederates(federateInstance, renderer));
+        });
+
+        return instantiations.getCode();
+    }
+
+    /**
+     * Generate connections.
+     * @param federate
+     * @param originalMainReactor
+     * @param renderer
+     * @return
+     */
+    private CharSequence generateConnections(FederateInstance federate, Reactor originalMainReactor, Function<EObject, String> renderer) {
+        return ASTUtils.allConnections(originalMainReactor).stream().map(
+                    connection -> {
+                        connection.getLeftPorts().removeIf(
+                          varRef -> varRef.getContainer()
+                                          .equals(federate.instantiation)
+                        );
+                        connection.getRightPorts().removeIf(
+                            varRef -> varRef.getContainer()
+                                            .equals(federate.instantiation)
+
+                        );
+                        if (connection.getLeftPorts().isEmpty() || connection.getRightPorts().isEmpty()) {
+                            return null;
+                        } else {
+                            return connection;
+                        }
+                    }
+                ).filter(Objects::nonNull).map(renderer).collect(Collectors.joining("\n"));
+    }
+
+    /**
+     * Generate the signature of the main reactor.
+     * @param federate
+     * @param originalMainReactor
+     * @param renderer
+     * @return
+     */
     private CharSequence generateMainSignature(FederateInstance federate, Reactor originalMainReactor, Function<EObject, String> renderer) {
         var paramList = ASTUtils.allParameters(originalMainReactor)
                                 .stream()

@@ -1,6 +1,7 @@
 package org.lflang.federated.generator;
 
 import java.nio.file.Path;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 import org.lflang.ast.FormattingUtils;
@@ -38,15 +39,18 @@ public class FedImportEmitter {
                                    .map(FormattingUtils.renderer(federate.target))
                                    .collect(Collectors.joining("\n")));
 
-        // Add import statements for causality interfaces
-        var otherInstantiations =
-            ((Reactor)federate.instantiation.eContainer())
-                .getInstantiations()
-                .stream()
-                .filter(i -> !i.equals(federate.instantiation))
-                .collect(Collectors.toList());
+        // Add import statements for causality interfaces of upstream federates.
+        var zeroDelayImmediateUpstreamFederates =
+            federate.dependsOn.entrySet()
+                              .stream()
+                              .filter(e -> e.getValue().contains(null))
+                              .map(Map.Entry::getKey).toList();
+        var upstreamInstantiations =
+            zeroDelayImmediateUpstreamFederates
+            .stream()
+            .map(FederateInstance::getInstantiation).toList();
 
-        otherInstantiations.forEach(instantiation -> {
+        upstreamInstantiations.forEach(instantiation -> {
             importStatements.pr(
             """
             import %s from "include/interfaces/%s_interface.lf"

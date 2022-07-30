@@ -364,10 +364,6 @@ public class FedGenerator {
             }
         }
 
-        // Remove the connections at the top level
-        fedReactor.getConnections().clear();
-
-
         // There will be AST transformations that invalidate some info
         // cached in ReactorInstance. FIXME: most likely not needed anymore
         mainInstance.clearCaches(false);
