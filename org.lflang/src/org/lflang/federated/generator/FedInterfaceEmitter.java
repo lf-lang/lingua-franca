@@ -14,6 +14,7 @@ import org.lflang.lf.Action;
 import org.lflang.lf.BuiltinTrigger;
 import org.lflang.lf.BuiltinTriggerRef;
 import org.lflang.lf.Reactor;
+import org.lflang.lf.TargetDecl;
 import org.lflang.lf.Timer;
 import org.lflang.lf.VarRef;
 import org.lflang.lf.Variable;
@@ -55,7 +56,9 @@ public class FedInterfaceEmitter {
 
         CodeBuilder code = new CodeBuilder();
         Reactor reactor = ASTUtils.toDefinition(federate.instantiation.getReactorClass());
-        code.pr(renderer.apply(federate.target));
+        TargetDecl interfaceTarget = ASTUtils.factory.createTargetDecl();
+        interfaceTarget.setName(federate.target.getName()); // FIXME: This will interfere with mixed-target federations
+        code.pr(renderer.apply(interfaceTarget));
         code.pr(renderer.apply(stripReactorForZeroDelayInterface(reactor)));
 
         // Write the federate's interface to file
