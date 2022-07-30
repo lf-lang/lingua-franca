@@ -598,6 +598,17 @@ public class FederateInstance {
         }
         return physicalActionToOutputMinDelay;
     }
+
+    /**
+     * Return a list of federates that are upstream of this federate and have a
+     * zero-delay (direct) connection to this federate.
+     */
+    public List<FederateInstance> getZeroDelayImmediateUpstreamFederates() {
+        return this.dependsOn.entrySet()
+                                 .stream()
+                                 .filter(e -> e.getValue().contains(null))
+                                 .map(Map.Entry::getKey).toList();
+    }
     
     @Override
     public String toString() {

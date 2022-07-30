@@ -68,10 +68,7 @@ public class FedMainEmitter {
         CodeBuilder instantiations = new CodeBuilder();
         // First handle immediate upstream federates with 0 delays
         var zeroDelayImmediateUpstreamFederates =
-            federate.dependsOn.entrySet()
-                              .stream()
-                              .filter(e -> e.getValue().contains(null))
-                              .map(Map.Entry::getKey).toList();
+            federate.getZeroDelayImmediateUpstreamFederates();
         instantiations.pr(zeroDelayImmediateUpstreamFederates
                               .stream()
                               .map(FederateInstance::getInstantiation)
@@ -87,22 +84,33 @@ public class FedMainEmitter {
     }
 
     /**
-     * Generate connections.
-     * @param federate
-     * @param originalMainReactor
-     * @param renderer
-     * @return
+     * Generate connection statements that should remain in the main reactor for {@code federate}.
+     * These would be connections to immediate zero-delay upstream federates of {@code federate}.
      */
-    private CharSequence generateConnections(FederateInstance federate, Reactor originalMainReactor, Function<EObject, String> renderer) {
+    private CharSequence generateConnections(
+        FederateInstance federate,
+        Reactor originalMainReactor,
+        Function<EObject, String> renderer
+    ) {
+        var upstreamInstantiations =
+            federate.getZeroDelayImmediateUpstreamFederates()
+                    .stream()
+                    .map(FederateInstance::getInstantiation).toList();
+
+
         return ASTUtils.allConnections(originalMainReactor).stream().map(
                     connection -> {
                         connection.getLeftPorts().removeIf(
-                          varRef -> varRef.getContainer()
-                                          .equals(federate.instantiation)
+                          varRef ->
+                              varRef.getContainer()
+                                    .equals(federate.instantiation) ||
+                              upstreamInstantiations.contains(varRef.getContainer())
                         );
                         connection.getRightPorts().removeIf(
-                            varRef -> varRef.getContainer()
-                                            .equals(federate.instantiation)
+                            varRef ->
+                                varRef.getContainer()
+                                      .equals(federate.instantiation) ||
+                                upstreamInstantiations.contains(varRef.getContainer())
 
                         );
                         if (connection.getLeftPorts().isEmpty() || connection.getRightPorts().isEmpty()) {

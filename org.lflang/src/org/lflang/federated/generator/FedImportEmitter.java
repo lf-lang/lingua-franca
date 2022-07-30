@@ -40,15 +40,10 @@ public class FedImportEmitter {
                                    .collect(Collectors.joining("\n")));
 
         // Add import statements for causality interfaces of upstream federates.
-        var zeroDelayImmediateUpstreamFederates =
-            federate.dependsOn.entrySet()
-                              .stream()
-                              .filter(e -> e.getValue().contains(null))
-                              .map(Map.Entry::getKey).toList();
         var upstreamInstantiations =
-            zeroDelayImmediateUpstreamFederates
-            .stream()
-            .map(FederateInstance::getInstantiation).toList();
+            federate.getZeroDelayImmediateUpstreamFederates()
+                    .stream()
+                    .map(FederateInstance::getInstantiation).toList();
 
         upstreamInstantiations.forEach(instantiation -> {
             importStatements.pr(

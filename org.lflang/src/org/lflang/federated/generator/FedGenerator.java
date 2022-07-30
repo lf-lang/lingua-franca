@@ -2,6 +2,7 @@ package org.lflang.federated.generator;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -56,6 +57,10 @@ public class FedGenerator {
      * A list of federate instances.
      */
     private final List<FederateInstance> federates = new ArrayList<>();
+    /**
+     * A list of individual connections between federates
+     */
+    private final Set<FedConnectionInstance> connections = new HashSet<>();
     /**
      * A map from federate IDs to federate instances.
      */
@@ -436,6 +441,7 @@ public class FedGenerator {
                 dstFederate,
                 FedUtils.getSerializer(srcRange.connection, srcFederate, dstFederate)
             );
+            connections.add(fedConnection);
 
             replaceFedConnection(fedConnection);
 
