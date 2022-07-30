@@ -32,7 +32,7 @@ public class FedInterfaceEmitter {
      * for that federate. These will be put in the {@code FedFileConfig#getFedSrcPath()}/include
      * folder.
      *
-     * @param federates The federate.
+     * @param federates A list of federates.
      * @param fileConfig Used to create a file for each interface.
      * @throws IOException
      */
