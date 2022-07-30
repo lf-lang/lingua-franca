@@ -10,6 +10,7 @@ import org.lflang.FileConfig;
 import org.lflang.TargetConfig;
 import org.lflang.generator.c.CCompiler;
 import org.lflang.util.FileUtil;
+import org.lflang.util.LFCommand;
 import org.lflang.util.StringUtil;
 
 class PythonSetupFileGenerator {
@@ -53,32 +54,32 @@ class PythonSetupFileGenerator {
         installRequires.add("LinguaFrancaBase");
         installRequires.replaceAll(StringUtil::addDoubleQuotes);
 
-        String cmakeArgs = new CCompiler(targetConfig, fileConfig, errorReporter, false)
-            .buildCmakeCommand().command().stream()
-            .map(StringUtil::addDoubleQuotes)
-            .skip(1)
-            .collect(Collectors.joining(", "));
+        var compilerRunner = new CCompiler(targetConfig, fileConfig, errorReporter, false);
+        String cmakeArgs = argListOfCommand(compilerRunner.compileCmakeCommand());
+        String cmakeBuildArgs = argListOfCommand(compilerRunner.buildCmakeCommand());
 
         return String.join("\n",
             """
             import sys
             import os
+            import shutil
             import pathlib
             assert (sys.version_info.major >= 3 and sys.version_info.minor >= 6), \
                 "The Python target requires Python version >= 3.6."
 
             from setuptools import setup, Extension
             from setuptools.command.build_ext import build_ext as original_build_ext
-            
+            from setuptools.command.install_lib import install_lib
             
             """,
             "CMAKE_ARGS = [" + cmakeArgs + "]",
+            "CMAKE_BUILD_ARGS = [" + cmakeBuildArgs + "]",
             """
             class CMakeExtension(Extension):
                 def __init__(self, name):
                     super().__init__(name, sources=[])
 
-            class build_ext(original_build_ext):
+            class BuildExt(original_build_ext):
 
                 def run(self):
                     for ext in self.extensions:
@@ -93,6 +94,45 @@ class PythonSetupFileGenerator {
                     extension_dir.mkdir(parents=True, exist_ok=True)
                     os.chdir(str(build_temp))
                     self.spawn(['cmake', str(cwd)] + CMAKE_ARGS)
+                    self.spawn(['cmake'] + CMAKE_BUILD_ARGS)
+
+            class InstallCMakeLibs(install_lib):
+                ""\"
+                Get the libraries from the parent distribution, use those as the outfiles
+                        
+                Skip building anything; everything is already built, forward libraries to
+                the installation step
+                ""\"
+
+                def run(self):
+                    ""\"
+                    Copy libraries from the bin directory and place them as appropriate
+                    ""\"
+                    self.announce("Moving library files", level=3)
+                    self.skip_build = True
+                    bin_dir = \"""" + fileConfig.getSrcGenPath().resolve("build") + "\""
+            + """
+                    # Depending on the files that are generated from your cmake
+                    # build chain, you may need to change the below code, such that
+                    # your files are moved to the appropriate location when the installation
+                    # is run
+                    libs = [
+                        os.path.join(dir, file)
+                        for dir, subdirs, files in os.walk(bin_dir)
+                        for file in files
+                        if os.path.isfile(os.path.join(bin_dir, file))
+                        and os.path.splitext(_lib)[1] in [".dll", ".so"]
+                        and not (_lib.startswith("python") or _lib.startswith(PACKAGE_NAME))
+                    ]
+                        
+                    for lib in libs:
+                        shutil.move(lib, os.path.join(self.build_dir, os.path.basename(lib)))
+                    self.distribution.data_files = [
+                        os.path.join(self.install_dir, os.path.basename(lib))
+                        for lib in libs
+                    ]
+                    self.distribution.run_command("install_data")
+                    super().run()
             """,
 //            "linguafranca"+lfModuleName+"module = Extension("+StringUtil.addDoubleQuotes(pyModuleName)+",",
 //            "                                            sources = ["+String.join(", ", sources)+"],",
@@ -100,8 +140,19 @@ class PythonSetupFileGenerator {
             "",
             "setup(name="+StringUtil.addDoubleQuotes(pyModuleName)+", version=\"1.0\",",
             "        ext_modules = [CMakeExtension(\"linguafranca"+lfModuleName+"module\")],",
-            "        install_requires=["+String.join(", ", installRequires)+"])"
+            "        cmdclass={",
+            "            \"build_ext\": BuildExt,",
+            "            \"install_lib\": InstallCMakeLibs",
+            "        }",
+            ")"
         );
+    }
+
+    private static String argListOfCommand(LFCommand command) {
+        return command.command().stream()
+            .map(StringUtil::addDoubleQuotes)
+            .skip(1)
+            .collect(Collectors.joining(", "));
     }
 
     /**

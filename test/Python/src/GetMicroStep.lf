@@ -1,4 +1,4 @@
-// Tests the get_microstep() function in the python target.
+// Tests the lf_tag().microstep function in the python target.
 target Python {
     fast: false
 };
@@ -15,7 +15,7 @@ main reactor GetMicroStep {
     =}
 
     reaction(l) -> l {=
-        microstep = get_microstep()
+        microstep = lf_tag().microstep
         if microstep != self.s:
             self.sys.stderr.write(f"expected microstep {self.s}, got {microstep} instead\n")
             self.sys.exit(1)

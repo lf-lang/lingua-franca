@@ -12,9 +12,7 @@ public class CCoreFilesUtils {
 
     public static List<String> getCTargetSrc() {
         return List.of(
-            "lib/schedule.c",
-            "lib/tag.c",
-            "lib/time.c"
+            "lib/schedule.c"
         );
     }
 

@@ -10,7 +10,7 @@ target Python {
     coordination: decentralized
 }
 
-// reason for failing: get_current_tag() not supported by the python target
+// reason for failing: lf_tag() not supported by the python target
 
 reactor Clock(offset(0), period(1 sec)) {
     output y;
@@ -39,7 +39,7 @@ reactor Destination {
 
     reaction(x) {=
         print("Received {}".format(x.value))
-        current_tag = get_current_tag()
+        current_tag = lf_tag()
         if x.value != self.s:
             error_msg = "At tag ({}, {}) expected {} and got {}.".format(current_tag.time - self.startup_logical_time, current_tag.microstep, self.s, x.value)
             self.sys.stderr.write(error_msg)

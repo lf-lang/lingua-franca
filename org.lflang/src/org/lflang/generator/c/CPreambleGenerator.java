@@ -47,8 +47,6 @@ public class CPreambleGenerator {
         code.pr("#include \"core/reactor_common.h\"");
         if (targetConfig.threading) {
             code.pr("#include \"core/threaded/scheduler.h\"");
-        } else {
-            code.pr("#include \"core/reactor.c\"");
         }
         if (isFederated) {
             code.pr("#include \"core/federated/federate.c\"");

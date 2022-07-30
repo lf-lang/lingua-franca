@@ -110,13 +110,13 @@ public class PythonGenerator extends CGenerator {
             new PythonTypes(errorReporter),
             new CCmakeGenerator(
                 fileConfig,
-                List.of("python_action.c",
-                    "python_port.c",
-                    "python_tag.c",
-                    "python_time.c",
-                    "pythontarget.c"
+                List.of("lib/python_action.c",
+                    "lib/python_port.c",
+                    "lib/python_tag.c",
+                    "lib/python_time.c",
+                    "lib/pythontarget.c"
                 ),
-            """
+                """
                 find_package(PythonLibs REQUIRED)
                 include_directories(${PYTHON_INCLUDE_DIRS})
                 target_link_libraries(${LF_MAIN_TARGET} ${PYTHON_LIBRARIES})
@@ -340,6 +340,18 @@ public class PythonGenerator extends CGenerator {
         } else {
             errorReporter.reportError("Failed to build Python extension due to the following error(s):\n" +
                 buildCmd.getErrors());
+        }
+
+        LFCommand installCmd = commandFactory.createCommand(
+            pythonCommand, List.of("setup.py", "install_lib"), fileConfig.getSrcGenPath()
+        );
+        if (installCmd.run(context.getCancelIndicator()) == 0) {
+            System.out.println("Successfully installed Python extension.");
+        } else {
+            errorReporter.reportError(
+                "Failed to install Python extension due to the following error(s):\n"
+                + installCmd.getErrors()
+            );
         }
     }
 
@@ -896,13 +908,13 @@ public class PythonGenerator extends CGenerator {
         // This will also overwrite previous versions.
         FileUtil.copyDirectoryFromClassPath(
             "/lib/py/reactor-c-py/include",
-            fileConfig.getSrcGenPath(),
-            false
+            fileConfig.getSrcGenPath().resolve("include"),
+            true
         );
         FileUtil.copyDirectoryFromClassPath(
             "/lib/py/reactor-c-py/lib",
-            fileConfig.getSrcGenPath(),
-            false
+            fileConfig.getSrcGenPath().resolve("lib"),
+            true
         );
     }
 }

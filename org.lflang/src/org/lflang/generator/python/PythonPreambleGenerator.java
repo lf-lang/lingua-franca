@@ -59,7 +59,7 @@ public class PythonPreambleGenerator {
     ) {
         CodeBuilder code = new CodeBuilder();
         code.pr(CPreambleGenerator.generateIncludeStatements(targetConfig, CCppMode, isFederated));
-        code.pr("#include \"pythontarget.c\"");
+        code.pr("#include \"pythontarget.h\"");
         if (hasModalReactors) {
             code.pr("#include \"modal_models/definitions.h\"");
         }
