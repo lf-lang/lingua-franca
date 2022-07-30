@@ -1,6 +1,5 @@
-/** Instance of a federate specification. */
-
-/*************
+/** Instance of a federate specification.
+ *
 Copyright (c) 2020, The University of California at Berkeley.
 
 Redistribution and use in source and binary forms, with or without modification,
@@ -38,10 +37,12 @@ import java.util.stream.Stream;
 
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.xtext.xbase.lib.IterableExtensions;
+
 import org.lflang.ASTUtils;
 import org.lflang.ErrorReporter;
 import org.lflang.TargetConfig;
 import org.lflang.TimeValue;
+import org.lflang.ast.ToLf;
 import org.lflang.federated.serialization.SupportedSerializers;
 import org.lflang.generator.ActionInstance;
 import org.lflang.generator.GeneratorUtils;
@@ -51,7 +52,6 @@ import org.lflang.generator.ReactorInstance;
 import org.lflang.generator.TriggerInstance;
 import org.lflang.lf.Action;
 import org.lflang.lf.ActionOrigin;
-import org.lflang.lf.Array;
 import org.lflang.lf.Expression;
 import org.lflang.lf.Import;
 import org.lflang.lf.ImportedReactor;
@@ -78,7 +78,8 @@ import com.google.common.base.Objects;
  * directly by the main reactor) is a federate, so there will be one
  * instance of this class for each top-level reactor.
  * 
- * @author{Edward A. Lee <eal@berkeley.edu>}
+ * @author Edward A. Lee <eal@berkeley.edu>
+ * @author Soroush Bateni <soroush@berkeley.edu>
  */
 public class FederateInstance {
 
@@ -104,7 +105,7 @@ public class FederateInstance {
         this.target =  GeneratorUtils.findTarget(
             ASTUtils.toDefinition(instantiation.getReactorClass()).eResource()
         );
-                
+
         if (instantiation != null) {
             this.name = instantiation.getName();
             // If the instantiation is in a bank, then we have to append
@@ -142,6 +143,11 @@ public class FederateInstance {
     public Instantiation getInstantiation() {
         return instantiation;
     }
+
+    /**
+     * A list of individual connections between federates
+     */
+    public Set<FedConnectionInstance> connections = new HashSet<>();
     
     /**
      * Map from the federates that this federate receives messages from
@@ -304,8 +310,7 @@ public class FederateInstance {
 
         boolean instantiationsCheck = false;
         // For a federate, we don't need to look inside imported reactors.
-        if (instantiation.getReactorClass() instanceof Reactor) {
-            Reactor reactorDef = (Reactor) instantiation.getReactorClass();
+        if (instantiation.getReactorClass() instanceof Reactor reactorDef) {
             for (Instantiation child : reactorDef.getInstantiations()) {
                 instantiationsCheck |= contains(child.getReactorClass());
             }
@@ -335,24 +340,22 @@ public class FederateInstance {
     private boolean contains(Parameter param) {
         boolean returnValue = false;
         // Check if param is referenced in this federate's instantiation
-        returnValue |= instantiation.getParameters().stream().anyMatch(
+        returnValue = instantiation.getParameters().stream().anyMatch(
             assignment -> assignment.getRhs()
                                     .stream()
                                     .filter(
-                                         it -> it instanceof ParameterReference
-                                     )
+                                        it -> it instanceof ParameterReference
+                                    )
                                     .map(it -> ((ParameterReference) it).getParameter())
                                     .toList()
                                     .contains(param)
         );
         // If there are any user-defined top-level reactions, they could access
         // the parameters, so we need to include the parameter.
-        var topLevelUserDefinedReactions = new ArrayList<>(
-            ((Reactor)instantiation.eContainer())
-                .getReactions().stream().filter(
-                    r -> !networkReactions.contains(r) && contains(r)
-                ).collect(Collectors.toList())
-        );
+        var topLevelUserDefinedReactions = ((Reactor) instantiation.eContainer())
+            .getReactions().stream().filter(
+                r -> !networkReactions.contains(r) && contains(r)
+            ).collect(Collectors.toCollection(ArrayList::new));
         returnValue |= !topLevelUserDefinedReactions.isEmpty();
         return returnValue;
     }
@@ -375,22 +378,21 @@ public class FederateInstance {
             if (contains(react)) {
                 // Look in triggers
                 for (TriggerRef trigger : convertToEmptyListIfNull(react.getTriggers())) {
-                    if (trigger instanceof VarRef) {
-                        VarRef triggerAsVarRef = (VarRef) trigger;
-                        if (Objects.equal(triggerAsVarRef.getVariable(), (Variable) action)) {
+                    if (trigger instanceof VarRef triggerAsVarRef) {
+                        if (Objects.equal(triggerAsVarRef.getVariable(), action)) {
                             return true;
                         }
                     }
                 }
                 // Look in sources
                 for (VarRef source : convertToEmptyListIfNull(react.getSources())) {
-                    if (Objects.equal(source.getVariable(), (Variable) action)) {
+                    if (Objects.equal(source.getVariable(), action)) {
                         return true;
                     }
                 }
                 // Look in effects
                 for (VarRef effect : convertToEmptyListIfNull(react.getEffects())) {
-                    if (Objects.equal(effect.getVariable(), (Variable) action)) {
+                    if (Objects.equal(effect.getVariable(), action)) {
                         return true;
                     }
                 }
@@ -415,7 +417,8 @@ public class FederateInstance {
      */
     private boolean contains(Reaction reaction) {
         Reactor reactor  = ASTUtils.getEnclosingReactor(reaction);
-        
+
+        assert reactor != null;
         if (!reactor.getReactions().contains(reaction)) return false;
         
         if (networkReactions.contains(reaction)) {
@@ -451,9 +454,8 @@ public class FederateInstance {
             if (contains(r)) {
                 // Look in triggers
                 for (TriggerRef trigger : convertToEmptyListIfNull(r.getTriggers())) {
-                    if (trigger instanceof VarRef) {
-                        VarRef triggerAsVarRef = (VarRef) trigger;
-                        if (Objects.equal(triggerAsVarRef.getVariable(), (Variable) timer)) {
+                    if (trigger instanceof VarRef triggerAsVarRef) {
+                        if (Objects.equal(triggerAsVarRef.getVariable(), timer)) {
                             return true;
                         }
                     }
@@ -494,19 +496,6 @@ public class FederateInstance {
     }
 
     /**
-     * Return the total number of runtime instances of the specified reactor
-     * instance in this federate. This is zero if the reactor is not in the
-     * federate at all, and otherwise is the product of the bank widths of
-     * all the parent containers of the instance, except that if the depth
-     * one parent is bank, its width is ignored (only one bank member can be
-     * in any federate).
-     */
-    public int numRuntimeInstances(ReactorInstance reactor) {
-        if (!contains(reactor)) return 0;
-        return reactor.getTotalWidth(1);
-    }
-
-    /**
      * Build an index of reactions at the top-level (in the
      * federatedReactor) that don't belong to this federate
      * instance. This index is put in the excludeReactions
@@ -520,31 +509,32 @@ public class FederateInstance {
             throw new IllegalStateException("The index for excluded reactions at the top level is already built.");
         }
 
-        excludeReactions = new LinkedHashSet<Reaction>();
+        excludeReactions = new LinkedHashSet<>();
 
         // Construct the set of excluded reactions for this federate.
         // If a reaction is a network reaction that belongs to this federate, we
         // don't need to perform this analysis.
-        Iterable<Reaction> reactions = IterableExtensions.filter(ASTUtils.allReactions(federatedReactor), it -> { return !networkReactions.contains(it); });
+        Iterable<Reaction> reactions = IterableExtensions.filter(ASTUtils.allReactions(federatedReactor), it -> !networkReactions.contains(it));
         for (Reaction react : reactions) {
-            // Create a collection of all the VarRefs (i.e., triggers, sources, and effects) in the react 
+            // Create a collection of all the VarRefs (i.e., triggers, sources, and effects) in the react
             // signature that are ports that reference federates.
             // We then later check that all these VarRefs reference this federate. If not, we will add this
             // react to the list of reactions that have to be excluded (note that mixing VarRefs from
             // different federates is not allowed).
-            List<VarRef> allVarRefsReferencingFederates = new ArrayList<VarRef>();
+            List<VarRef> allVarRefsReferencingFederates = new ArrayList<>();
             // Add all the triggers that are outputs
             Stream<VarRef> triggersAsVarRef = react.getTriggers().stream().filter(it -> it instanceof VarRef).map(it -> (VarRef) it);
             allVarRefsReferencingFederates.addAll(
-                triggersAsVarRef.filter(it -> it.getVariable() instanceof Output).collect(Collectors.toList())
+                triggersAsVarRef.filter(it -> it.getVariable() instanceof Output)
+                                .filter(it -> !remoteNetworkReactionTriggers.contains(it)).toList()
             );
             // Add all the sources that are outputs
             allVarRefsReferencingFederates.addAll(
-                react.getSources().stream().filter(it -> it.getVariable() instanceof Output).collect(Collectors.toList())
+                react.getSources().stream().filter(it -> it.getVariable() instanceof Output).toList()
             );
             // Add all the effects that are inputs
             allVarRefsReferencingFederates.addAll(
-                react.getEffects().stream().filter(it -> it.getVariable() instanceof Input).collect(Collectors.toList())
+                react.getEffects().stream().filter(it -> it.getVariable() instanceof Input).toList()
             );
             inFederate = containsAllVarRefs(allVarRefsReferencingFederates);
             if (!inFederate) {
@@ -639,8 +629,7 @@ public class FederateInstance {
     public TimeValue findNearestPhysicalActionTrigger(ReactionInstance reaction) {
         TimeValue minDelay = TimeValue.MAX_VALUE;
         for (TriggerInstance<? extends Variable> trigger : reaction.triggers) {
-            if (trigger.getDefinition() instanceof Action) {
-                Action action = (Action) trigger.getDefinition();
+            if (trigger.getDefinition() instanceof Action action) {
                 ActionInstance actionInstance = (ActionInstance) trigger;
                 if (action.getOrigin() == ActionOrigin.PHYSICAL) {
                     if (actionInstance.getMinDelay().isEarlierThan(minDelay)) {
@@ -684,7 +673,7 @@ public class FederateInstance {
     }
     
     // TODO: Put this function into a utils file instead
-    private <T extends Object> List<T> convertToEmptyListIfNull(List<T> list) {
+    private <T> List<T> convertToEmptyListIfNull(List<T> list) {
         return list == null ? new ArrayList<>() : list;
     }
 }

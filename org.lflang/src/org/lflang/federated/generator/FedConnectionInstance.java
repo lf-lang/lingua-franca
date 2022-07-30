@@ -68,6 +68,9 @@ public class FedConnectionInstance {
         this.dstFederate = dstFederate;
         this.dstRange = dstRange;
         this.serializer = serializer;
+
+        this.srcFederate.connections.add(this);
+        this.dstFederate.connections.add(this);
     }
 
     public SendRange getSrcRange() {

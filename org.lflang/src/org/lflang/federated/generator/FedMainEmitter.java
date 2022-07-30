@@ -52,7 +52,7 @@ public class FedMainEmitter {
                    ASTUtils.allTimers(originalMainReactor).stream().filter(federate::contains).map(renderer).collect(Collectors.joining("\n")),
                    ASTUtils.allMethods(originalMainReactor).stream().filter(federate::contains).map(renderer).collect(Collectors.joining("\n")),
                    ASTUtils.allReactions(originalMainReactor).stream().filter(federate::contains).map(renderer).collect(Collectors.joining("\n")),
-                   generateConnections(federate, originalMainReactor, renderer)
+                   generateConnections(federate)
                ).indent(4).stripTrailing(),
                "}"
             );
@@ -72,6 +72,7 @@ public class FedMainEmitter {
         instantiations.pr(zeroDelayImmediateUpstreamFederates
                               .stream()
                               .map(FederateInstance::getInstantiation)
+                              .map(inst -> {inst.getParameters().clear(); return inst;})
                               .map(renderer)
                               .collect(Collectors.joining("\n")));
 
@@ -84,42 +85,45 @@ public class FedMainEmitter {
     }
 
     /**
-     * Generate connection statements that should remain in the main reactor for {@code federate}.
-     * These would be connections to immediate zero-delay upstream federates of {@code federate}.
+     * Generate connection statements that should be in the main reactor for {@code federate}.
+     * These connections will help encode the relevant structure of the federation
+     * in this federate.
      */
     private CharSequence generateConnections(
-        FederateInstance federate,
-        Reactor originalMainReactor,
-        Function<EObject, String> renderer
+        FederateInstance federate
     ) {
-        var upstreamInstantiations =
-            federate.getZeroDelayImmediateUpstreamFederates()
-                    .stream()
-                    .map(FederateInstance::getInstantiation).toList();
+        CodeBuilder code = new CodeBuilder();
+        var upstreamZeroDelayFederates =
+            federate.getZeroDelayImmediateUpstreamFederates();
 
+        for (FederateInstance federateInstance:upstreamZeroDelayFederates) {
+            code.pr(generateConnectionsUpstream(federateInstance));
+        }
+        return code.getCode();
+    }
 
-        return ASTUtils.allConnections(originalMainReactor).stream().map(
-                    connection -> {
-                        connection.getLeftPorts().removeIf(
-                          varRef ->
-                              varRef.getContainer()
-                                    .equals(federate.instantiation) ||
-                              upstreamInstantiations.contains(varRef.getContainer())
-                        );
-                        connection.getRightPorts().removeIf(
-                            varRef ->
-                                varRef.getContainer()
-                                      .equals(federate.instantiation) ||
-                                upstreamInstantiations.contains(varRef.getContainer())
+    private CharSequence generateConnectionsUpstream(
+        FederateInstance federate
+    ) {
+        CodeBuilder code = new CodeBuilder();
+        var upstreamZeroDelayFederates =
+            federate.getZeroDelayImmediateUpstreamFederates();
 
-                        );
-                        if (connection.getLeftPorts().isEmpty() || connection.getRightPorts().isEmpty()) {
-                            return null;
-                        } else {
-                            return connection;
-                        }
-                    }
-                ).filter(Objects::nonNull).map(renderer).collect(Collectors.joining("\n"));
+        for (FederateInstance federateInstance:upstreamZeroDelayFederates) {
+            for (FedConnectionInstance connection : federateInstance.connections) {
+                code.pr("""
+                %s.%s -> %s.%s;
+                """.formatted(
+                    connection.srcFederate.getInstantiation().getName(),
+                    connection.srcRange.instance.getName(),
+                    connection.dstFederate.getInstantiation().getName(),
+                    connection.dstRange.instance.getName()
+                ));
+            }
+            code.pr(generateConnectionsUpstream(federateInstance));
+        }
+        return code.getCode();
+
     }
 
     /**

@@ -39,21 +39,26 @@ public class FedImportEmitter {
                                    .map(FormattingUtils.renderer(federate.target))
                                    .collect(Collectors.joining("\n")));
 
-        // Add import statements for causality interfaces of upstream federates.
-        var upstreamInstantiations =
-            federate.getZeroDelayImmediateUpstreamFederates()
-                    .stream()
-                    .map(FederateInstance::getInstantiation).toList();
+        importStatements.pr(generateImportsForUpstreamInterfaces(federate));
 
-        upstreamInstantiations.forEach(instantiation -> {
+        return importStatements.getCode();
+    }
+
+    private String generateImportsForUpstreamInterfaces(FederateInstance federate) {
+        CodeBuilder importStatements = new CodeBuilder();
+        // Add import statements for causality interfaces of upstream federates.
+        var upstreamFederates =
+            federate.getZeroDelayImmediateUpstreamFederates();
+
+        upstreamFederates.forEach(federateInstance -> {
             importStatements.pr(
             """
             import %s from "include/interfaces/%s_interface.lf"
             """.formatted(
-                instantiation.getReactorClass().getName(),
-                instantiation.getName()));
+                federateInstance.instantiation.getReactorClass().getName(),
+                federateInstance.instantiation.getName()));
+            importStatements.pr(generateImportsForUpstreamInterfaces(federateInstance));
         });
-
         return importStatements.getCode();
     }
 }

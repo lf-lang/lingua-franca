@@ -58,10 +58,6 @@ public class FedGenerator {
      */
     private final List<FederateInstance> federates = new ArrayList<>();
     /**
-     * A list of individual connections between federates
-     */
-    private final Set<FedConnectionInstance> connections = new HashSet<>();
-    /**
      * A map from federate IDs to federate instances.
      */
     private final Map<Integer, FederateInstance> federateByID = new LinkedHashMap<>();
@@ -369,6 +365,9 @@ public class FedGenerator {
             }
         }
 
+        // Remove the connections at the top level
+        fedReactor.getConnections().clear();
+
         // There will be AST transformations that invalidate some info
         // cached in ReactorInstance. FIXME: most likely not needed anymore
         mainInstance.clearCaches(false);
@@ -441,7 +440,6 @@ public class FedGenerator {
                 dstFederate,
                 FedUtils.getSerializer(srcRange.connection, srcFederate, dstFederate)
             );
-            connections.add(fedConnection);
 
             replaceFedConnection(fedConnection);
 
