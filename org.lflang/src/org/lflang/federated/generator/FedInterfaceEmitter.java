@@ -114,6 +114,30 @@ public class FedInterfaceEmitter {
         reactorToReturn.getParameters().clear();
         reactorToReturn.getStateVars().clear();
 
+
+        reactorToReturn.getInputs().forEach(input -> {
+            // Remove all multiports and replace them with ordinary ports since we only
+            // need high-level dependency information.
+            input.setWidthSpec(null);
+            // Convert port types to time so that they become target-independent
+            if (input.getType() != null) {
+                var type = ASTUtils.factory.createType();
+                type.setTime(true);
+                input.setType(type);
+            }
+        });
+        reactorToReturn.getOutputs().forEach(output -> {
+            // Remove all multiports and replace them with ordinary ports since we only
+            // need high-level dependency information.
+            output.setWidthSpec(null);
+            // Convert port types to time so that they become target-independent
+            if (output.getType() != null) {
+                var type = ASTUtils.factory.createType();
+                type.setTime(true);
+                output.setType(type);
+            }
+        });
+
         // Replace reactor classes of instantiations with their stripped-down versions.
         reactorToReturn.getInstantiations().forEach(instantiation -> {
             instantiation.setReactorClass(

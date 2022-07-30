@@ -175,7 +175,7 @@ public class FedGenerator {
         LFGenerator gen = inj.getInstance(LFGenerator.class);
         // define output path here
         JavaIoFileSystemAccess fsa = inj.getInstance(JavaIoFileSystemAccess.class);
-        fsa.setOutputPath("DEFAULT_OUTPUT", fileConfig.getSrcGenPath().toString());
+        fsa.setOutputPath("DEFAULT_OUTPUT", fileConfig.getFedSrcGenPath().toString());
 
         var numOfCompileThreads = Math.min(6,
                                            Math.min(

@@ -66,4 +66,15 @@ public class FedFileConfig extends FileConfig {
     public Path getFedSrcPath() {
         return getFedGenPath().resolve("src");
     }
+
+    /**
+     * The directory in which to put the generated sources.
+     * This takes into account the location of the source file relative to the
+     * package root. Specifically, if the source file is x/y/Z.lf relative
+     * to the package root, then the generated sources will be put in x/y/Z
+     * relative to srcGenBasePath.
+     */
+    public Path getFedSrcGenPath() {
+        return getFedGenPath().resolve("src-gen");
+    }
 }

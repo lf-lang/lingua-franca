@@ -57,20 +57,19 @@ public class CExtensionUtils {
         FederateInstance federate
     ) {
 
-        StringBuilder builder = new StringBuilder();
+        CodeBuilder builder = new CodeBuilder();
         if (federate.networkInputControlReactionsTriggers.size() > 0) {
             // Proliferate the network input control reaction trigger array
-            builder.append(
-                "// Initialize the array of pointers to network input port triggers\n"
-                    + "_fed.triggers_for_network_input_control_reactions_size = "
-                    + federate.networkInputControlReactionsTriggers.size()
-                    + ";\n"
-                    + "_fed.triggers_for_network_input_control_reactions = (trigger_t**)malloc("
-                    + "_fed.triggers_for_network_input_control_reactions_size * sizeof(trigger_t*)"
-                    + ");\n");
+            builder.pr(
+                """
+                // Initialize the array of pointers to network input port triggers
+                _fed.triggers_for_network_input_control_reactions_size = %s;
+                _fed.triggers_for_network_input_control_reactions = (trigger_t**)malloc(
+                    _fed.triggers_for_network_input_control_reactions_size * sizeof(trigger_t*));
+                """.formatted(federate.networkInputControlReactionsTriggers.size()));
 
         }
-        return builder.toString();
+        return builder.getCode();
     }
 
     /**
@@ -99,7 +98,7 @@ public class CExtensionUtils {
             var actionTableCount = 0;
             for (String trigger : triggers) {
                 code.pr("_lf_action_table[" + (actionTableCount++) + "] = &"
-                            + trigger + ";");
+                            + trigger + "; \\");
             }
         }
         return code.getCode();
@@ -127,7 +126,7 @@ public class CExtensionUtils {
             ReactorInstance main,
             FederateInstance federate
     ) {
-        StringBuilder builder = new StringBuilder();
+        CodeBuilder builder = new CodeBuilder();
         // The network control reactions are always in the main federated
         // reactor
         if (instance != main) {
@@ -151,13 +150,13 @@ public class CExtensionUtils {
                 });
             })) {
                 // Initialize the triggers_for_network_input_control_reactions for the input
-                builder.append("// Add trigger " + nameOfSelfStruct + "->_lf__"
-                        + trigger.getName()
-                        + " to the global list of network input ports.\n"
-                        + "_fed.triggers_for_network_input_control_reactions["
-                        + federate.networkInputControlReactionsTriggers.indexOf(trigger)
-                        + "]= &" + nameOfSelfStruct + "" + "->_lf__"
-                        + trigger.getName() + ";\n");
+                builder.pr(
+                    String.join("\n",
+                        "/* Add trigger " + nameOfSelfStruct + "->_lf__"+trigger.getName()+" to the global list of network input ports. */ \\",
+                        "_fed.triggers_for_network_input_control_reactions["+federate.networkInputControlReactionsTriggers.indexOf(trigger)+"]= \\",
+                        "    &"+nameOfSelfStruct+"->_lf__"+trigger.getName()+"; \\"
+                    )
+                );
             }
         }
 
@@ -165,12 +164,12 @@ public class CExtensionUtils {
 
         // Initialize the trigger for network output control reactions if it doesn't exist.
         if (federate.networkOutputControlReactionsTrigger != null) {
-            builder.append("_fed.trigger_for_network_output_control_reactions=&"
+            builder.pr("_fed.trigger_for_network_output_control_reactions=&"
                     + nameOfSelfStruct
-                    + "->_lf__outputControlReactionTrigger;\n");
+                    + "->_lf__outputControlReactionTrigger; \\");
         }
 
-        return builder.toString();
+        return builder.getCode();
     }
 
     /**

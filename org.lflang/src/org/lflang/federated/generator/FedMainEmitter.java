@@ -72,7 +72,13 @@ public class FedMainEmitter {
         instantiations.pr(zeroDelayImmediateUpstreamFederates
                               .stream()
                               .map(FederateInstance::getInstantiation)
-                              .map(inst -> {inst.getParameters().clear(); return inst;})
+                              .map(inst -> {
+                                  inst.getParameters().clear();
+                                  // Remove banks, if any, since we only need high-level
+                                  // dependency information.
+                                  inst.setWidthSpec(null);
+                                  return inst;
+                              })
                               .map(renderer)
                               .collect(Collectors.joining("\n")));
 

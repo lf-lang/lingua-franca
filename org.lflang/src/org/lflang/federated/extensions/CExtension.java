@@ -655,68 +655,42 @@ public class CExtension implements FedTargetExtension {
         code.pr(CExtensionUtils.initializeTriggersForNetworkActions(federate, main));
         code.pr(CExtensionUtils.initializeTriggerForControlReactions(main, main, federate));
         federatedReactor.setName(oldFederatedReactorName);
-        var codeStringForMacro = code.getCode()
-                             .lines()
-                             .map(line -> (line + " \\"))
-                             .collect(Collectors.joining());
         return """
         #define initialize_triggers_for_federate() \\
         do { \\
         %s
         } \\
         while (0)
-        """.formatted((codeStringForMacro.isBlank() ? "\\" : codeStringForMacro).indent(4).stripTrailing());
+        """.formatted((code.getCode().isBlank() ? "\\" : code.getCode()).indent(4).stripTrailing());
     }
 
     /**
      * Generate code for an executed preamble.
      *
-     * FIXME: Break into smaller methods. For now, we just moved things here.
      */
     private String generateExecutablePreamble(FederateInstance federate, LinkedHashMap<String, Object> federationRTIProperties, ErrorReporter errorReporter) {
         CodeBuilder code = new CodeBuilder();
 
-        if (federate.targetConfig.coordination.equals(CoordinationType.CENTRALIZED)) {
-            // If this program uses centralized coordination then check
-            // for outputs that depend on physical actions so that null messages can be
-            // sent to the RTI.
-            var federateClass = ASTUtils.toDefinition(federate.instantiation.getReactorClass());
-            var main = new ReactorInstance(FedASTUtils.findFederatedReactor(federate.instantiation.eResource()), errorReporter, 1);
-            var instance = new ReactorInstance(federateClass, main, errorReporter);
-            var outputDelayMap = federate
-                .findOutputsConnectedToPhysicalActions(instance);
-            var minDelay = TimeValue.MAX_VALUE;
-            Output outputFound = null;
-            for (Output output : outputDelayMap.keySet()) {
-                var outputDelay = outputDelayMap.get(output);
-                if (outputDelay.isEarlierThan(minDelay)) {
-                    minDelay = outputDelay;
-                    outputFound = output;
-                }
-            }
-            if (minDelay != TimeValue.MAX_VALUE) {
-                // Unless silenced, issue a warning.
-                if (federate.targetConfig.coordinationOptions.advance_message_interval
-                    == null) {
-                    errorReporter.reportWarning(outputFound, String.join("\n",
-                                                                         "Found a path from a physical action to output for reactor "
-                                                                             + addDoubleQuotes(instance.getName())
-                                                                             + ". ",
-                                                                         "The amount of delay is "
-                                                                             + minDelay
-                                                                             + ".",
-                                                                         "With centralized coordination, this can result in a large number of messages to the RTI.",
-                                                                         "Consider refactoring the code so that the output does not depend on the physical action,",
-                                                                         "or consider using decentralized coordination. To silence this warning, set the target",
-                                                                         "parameter coordination-options with a value like {advance-message-interval: 10 msec}"
-                    ));
-                }
-                code.pr(
-                    "_fed.min_delay_from_physical_action_to_federate_output = "
-                        + GeneratorBase.timeInTargetLanguage(minDelay) + ";");
-            }
-        }
+        code.pr(generateCodeForPhysicalActions(federate, errorReporter));
 
+        code.pr(generateCodeToInitializeFederate(federate, federationRTIProperties));
+
+        code.pr(CExtensionUtils.allocateTriggersForFederate(federate));
+
+        return """
+            void _lf_executable_preamble() {
+            %s
+            }
+            """.formatted(code.toString().indent(4).stripTrailing());
+    }
+
+    /**
+     * Generate code to initialize the {@code federate}.
+     * @param federationRTIProperties Properties related to the RTI.
+     * @return The generated code
+     */
+    private String generateCodeToInitializeFederate(FederateInstance federate, LinkedHashMap<String, Object> federationRTIProperties) {
+        CodeBuilder code = new CodeBuilder();
         code.pr("// ***** Start initializing the federated execution. */");
         code.pr(String.join("\n",
                             "// Initialize the socket mutex",
@@ -729,8 +703,8 @@ public class CExtension implements FedTargetExtension {
             var reactor = ASTUtils.toDefinition(federate.instantiation.getReactorClass());
             var stpParam = reactor.getParameters().stream().filter(
                     param ->
-                        (param.getName().equalsIgnoreCase("STP_offset")
-                            && param.getType().isTime())
+                        param.getName().equalsIgnoreCase("STP_offset")
+                            && param.getType().isTime()
             ).findFirst();
 
             if (stpParam.isPresent()) {
@@ -814,14 +788,57 @@ public class CExtension implements FedTargetExtension {
         for (FederateInstance remoteFederate : federate.outboundP2PConnections) {
             code.pr("connect_to_federate("+remoteFederate.id+");");
         }
+        return code.getCode();
+    }
 
-        code.pr(CExtensionUtils.allocateTriggersForFederate(federate));
-
-        return """
-            void _lf_executable_preamble() {
-            %s
+    /**
+     * Generate code to handle physical actions in the {@code federate}.
+     * @param errorReporter Used to report errors.
+     * @return Generated code.
+     */
+    private String generateCodeForPhysicalActions(FederateInstance federate, ErrorReporter errorReporter) {
+        CodeBuilder code = new CodeBuilder();
+        if (federate.targetConfig.coordination.equals(CoordinationType.CENTRALIZED)) {
+            // If this program uses centralized coordination then check
+            // for outputs that depend on physical actions so that null messages can be
+            // sent to the RTI.
+            var federateClass = ASTUtils.toDefinition(federate.instantiation.getReactorClass());
+            var main = new ReactorInstance(FedASTUtils.findFederatedReactor(federate.instantiation.eResource()), errorReporter, 1);
+            var instance = new ReactorInstance(federateClass, main, errorReporter);
+            var outputDelayMap = federate
+                .findOutputsConnectedToPhysicalActions(instance);
+            var minDelay = TimeValue.MAX_VALUE;
+            Output outputFound = null;
+            for (Output output : outputDelayMap.keySet()) {
+                var outputDelay = outputDelayMap.get(output);
+                if (outputDelay.isEarlierThan(minDelay)) {
+                    minDelay = outputDelay;
+                    outputFound = output;
+                }
             }
-            """.formatted(code.toString().indent(4).stripTrailing());
+            if (minDelay != TimeValue.MAX_VALUE) {
+                // Unless silenced, issue a warning.
+                if (federate.targetConfig.coordinationOptions.advance_message_interval
+                    == null) {
+                    errorReporter.reportWarning(outputFound, String.join("\n",
+                                                                         "Found a path from a physical action to output for reactor "
+                                                                             + addDoubleQuotes(instance.getName())
+                                                                             + ". ",
+                                                                         "The amount of delay is "
+                                                                             + minDelay
+                                                                             + ".",
+                                                                         "With centralized coordination, this can result in a large number of messages to the RTI.",
+                                                                         "Consider refactoring the code so that the output does not depend on the physical action,",
+                                                                         "or consider using decentralized coordination. To silence this warning, set the target",
+                                                                         "parameter coordination-options with a value like {advance-message-interval: 10 msec}"
+                    ));
+                }
+                code.pr(
+                    "_fed.min_delay_from_physical_action_to_federate_output = "
+                        + GeneratorBase.timeInTargetLanguage(minDelay) + ";");
+            }
+        }
+        return code.getCode();
     }
 
 }
