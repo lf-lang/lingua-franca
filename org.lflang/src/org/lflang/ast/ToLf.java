@@ -1026,32 +1026,41 @@ public class ToLf extends LfSwitch<MalleableString> {
     ) {
         var sorted = statementListList.stream()
             .flatMap(List::stream)
-            .sorted(Comparator.comparing(object -> NodeModelUtils.getNode(object).getStartLine()))
+            .sequential()
+            .sorted(Comparator.comparing(object -> {
+                INode node = NodeModelUtils.getNode(object);
+                return node == null ? 0 : node.getStartLine();
+            }))
             .toList();
         if (sorted.isEmpty()) return MalleableString.anyOf("");
         var ret = new Builder();
         var first = true;
         for (var object : sorted) {
             if (!first) {
-                INode node = NodeModelUtils.getNode(object);
-                StringBuilder leadingText = new StringBuilder();
-                if (!forceWhitespace) {
-                    for (INode n : node.getAsTreeIterable()) {
-                        if (n instanceof ICompositeNode) continue;
-                        if (!ASTUtils.isComment(n) && !n.getText().isBlank()) break;
-                        leadingText.append(n.getText());
-                    }
-                }
-                boolean hasLeadingBlankLines = leadingText.toString().lines()
-                    .skip(1)
-                    .filter(String::isBlank).count() > 1;
                 ret.append("\n".repeat(
-                    forceWhitespace || hasLeadingBlankLines ? 2 : 1
+                    shouldAddWhitespaceBefore(object, forceWhitespace) ? 2 : 1
                 ));
             }
             ret.append(doSwitch(object));
             first = false;
         }
         return ret.append("\n").get().indent();
+    }
+
+    private static boolean shouldAddWhitespaceBefore(EObject object, boolean forceWhitespace) {
+        INode node = NodeModelUtils.getNode(object);
+        if (node == null) return true;
+        StringBuilder leadingText = new StringBuilder();
+        if (!forceWhitespace) {
+            for (INode n : node.getAsTreeIterable()) {
+                if (n instanceof ICompositeNode) continue;
+                if (!ASTUtils.isComment(n) && !n.getText().isBlank()) break;
+                leadingText.append(n.getText());
+            }
+        }
+        boolean hasLeadingBlankLines = leadingText.toString().lines()
+            .skip(1)
+            .filter(String::isBlank).count() > 1;
+        return forceWhitespace || hasLeadingBlankLines;
     }
 }
