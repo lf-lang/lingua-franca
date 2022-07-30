@@ -45,7 +45,7 @@ public class FedMainEmitter {
                 generateMainSignature(federate, originalMainReactor, renderer),
                String.join(
                    "\n",
-                   renderer.apply(federate.instantiation),
+                   ASTUtils.allInstantiations(originalMainReactor).stream().map(renderer).collect(Collectors.joining("\n")),
                    ASTUtils.allActions(originalMainReactor).stream().filter(federate::contains).map(renderer).collect(Collectors.joining("\n")),
                    ASTUtils.allTimers(originalMainReactor).stream().filter(federate::contains).map(renderer).collect(Collectors.joining("\n")),
                    ASTUtils.allMethods(originalMainReactor).stream().filter(federate::contains).map(renderer).collect(Collectors.joining("\n")),

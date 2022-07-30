@@ -4,7 +4,9 @@ import java.nio.file.Path;
 import java.util.stream.Collectors;
 
 import org.lflang.ast.FormattingUtils;
+import org.lflang.generator.CodeBuilder;
 import org.lflang.lf.Model;
+import org.lflang.lf.Reactor;
 
 public class FedImportEmitter {
     /**
@@ -29,8 +31,30 @@ public class FedImportEmitter {
             );
         });
 
-        return imports.stream()
-                      .map(FormattingUtils.renderer(federate.target))
-                      .collect(Collectors.joining("\n"));
+        var importStatements = new CodeBuilder();
+
+        // Add import statements needed for the ordinary functionality of the federate
+        importStatements.pr(imports.stream()
+                                   .map(FormattingUtils.renderer(federate.target))
+                                   .collect(Collectors.joining("\n")));
+
+        // Add import statements for causality interfaces
+        var otherInstantiations =
+            ((Reactor)federate.instantiation.eContainer())
+                .getInstantiations()
+                .stream()
+                .filter(i -> !i.equals(federate.instantiation))
+                .collect(Collectors.toList());
+
+        otherInstantiations.forEach(instantiation -> {
+            importStatements.pr(
+            """
+            import %s from "include/interfaces/%s_interface.lf"
+            """.formatted(
+                instantiation.getReactorClass().getName(),
+                instantiation.getName()));
+        });
+
+        return importStatements.getCode();
     }
 }

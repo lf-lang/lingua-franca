@@ -47,7 +47,8 @@ public class FedInterfaceEmitter {
     }
 
     /**
-     * Generate a causality interface for {@code federate}.
+     * Generate a causality interface for {@code federate} and put it in
+     * `include/$federate.name$_interface.lf` in the fed-gen directory.
      */
     private void generateCausalityInterfaces(FederateInstance federate, Path interfacesFolderPath) {
         var renderer = FormattingUtils.renderer(federate.target);
