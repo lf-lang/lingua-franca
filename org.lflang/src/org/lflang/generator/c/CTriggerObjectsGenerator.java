@@ -148,6 +148,12 @@ public class CTriggerObjectsGenerator {
             targetConfig
         ));
 
+        code.pr("""
+        #ifdef EXECUTABLE_PREAMBLE
+        _lf_executable_preamble();
+        #endif
+        """);
+
         // Initialize triggers for federated execution.
         code.pr(CExtensionUtils.surroundWithIfFederated("initialize_triggers_for_federate();"));
 

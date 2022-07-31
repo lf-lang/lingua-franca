@@ -242,7 +242,12 @@ public class CExtensionUtils {
      * @param fileConfig
      * @param federate
      */
-    public static void generateCMakeInclude(int numOfFederates, FedFileConfig fileConfig, FederateInstance federate) throws IOException {
+    public static void generateCMakeInclude(
+        int numOfFederates,
+        FedFileConfig fileConfig,
+        FederateInstance federate,
+        LinkedHashMap<String, Object> federationRTIProperties
+    ) throws IOException {
         Files.createDirectories(fileConfig.getFedSrcPath().resolve("include"));
 
         Path cmakeIncludePath = fileConfig.getFedSrcPath()
@@ -250,21 +255,27 @@ public class CExtensionUtils {
 
         var advanceMessageInterval = federate.targetConfig.coordinationOptions.advance_message_interval;
 
+        CodeBuilder cmakeIncludeCode = new CodeBuilder();
+
+        cmakeIncludeCode.pr("""
+        target_compile_definitions(${LF_MAIN_TARGET} PUBLIC FEDERATED)
+        target_compile_definitions(${LF_MAIN_TARGET} PUBLIC FEDERATED_%s)
+        target_compile_definitions(${LF_MAIN_TARGET} PUBLIC NUMBER_OF_FEDERATES=%s)
+        target_compile_definitions(${LF_MAIN_TARGET} PUBLIC EXECUTABLE_PREAMBLE)
+                    
+        # Convey to the C runtime the required number of worker threads to
+        # handle network input control reactions.
+        target_compile_definitions(${LF_MAIN_TARGET} PUBLIC WORKERS_NEEDED_FOR_FEDERATE=%s)
+        """.formatted(
+            federate.targetConfig.coordination.toString().toUpperCase(),
+            numOfFederates,
+            Integer.toString(federate.networkMessageActions.size()))
+        );
+
+        initializeClockSynchronization(federate, federationRTIProperties, cmakeIncludeCode);
+
         try (var srcWriter = Files.newBufferedWriter(cmakeIncludePath)) {
-            srcWriter.write("""
-                target_compile_definitions(${LF_MAIN_TARGET} PUBLIC FEDERATED)
-                target_compile_definitions(${LF_MAIN_TARGET} PUBLIC FEDERATED_%s)
-                target_compile_definitions(${LF_MAIN_TARGET} PUBLIC NUMBER_OF_FEDERATES=%s)
-                target_compile_definitions(${LF_MAIN_TARGET} PUBLIC EXECUTABLE_PREAMBLE)
-                            
-                # Convey to the C runtime the required number of worker threads to
-                # handle network input control reactions.
-                target_compile_definitions(${LF_MAIN_TARGET} PUBLIC WORKERS_NEEDED_FOR_FEDERATE=%s)
-                """.formatted(
-                federate.targetConfig.coordination.toString().toUpperCase(),
-                numOfFederates,
-                Integer.toString(federate.networkMessageActions.size()))
-            );
+            srcWriter.write(cmakeIncludeCode.getCode());
         }
 
         federate.targetConfig.cmakeIncludes.add("\""+fileConfig.getFedSrcPath().relativize(cmakeIncludePath)+"\"");
@@ -283,7 +294,11 @@ public class CExtensionUtils {
      * Clock synchronization can be enabled using the clock-sync target property.
      * @see <a href="https://github.com/icyphy/lingua-franca/wiki/Distributed-Execution#clock-synchronization">Documentation</a>
      */
-    public static void initializeClockSynchronization(FederateInstance federate, LinkedHashMap<String, Object> federationRTIProperties) {
+    public static void initializeClockSynchronization(
+        FederateInstance federate,
+        LinkedHashMap<String, Object> federationRTIProperties,
+        CodeBuilder cmakeIncludeCode
+    ) {
         // Check if clock synchronization should be enabled for this federate in the first place
         if (clockSyncIsOn(federate, federationRTIProperties)) {
             System.out.println("Initial clock synchronization is enabled for federate "
@@ -303,8 +318,49 @@ public class CExtensionUtils {
                                        + federate.id
                 );
             }
+
+            cmakeIncludeCode.pr(
+                CExtensionUtils.generateClockSyncCmakeDirectives(
+                    federate.targetConfig.clockSync,
+                    federate.targetConfig.clockSyncOptions
+                )
+            );
         }
     }
+
+
+    /**
+     * Initialize clock synchronization (if enabled) and its related options for a given federate.
+     *
+     * Clock synchronization can be enabled using the clock-sync target property.
+     * @see <a href="https://github.com/icyphy/lingua-franca/wiki/Distributed-Execution#clock-synchronization">Documentation</a>
+     */
+    public static String generateClockSyncCmakeDirectives(
+        ClockSyncMode mode,
+        ClockSyncOptions options
+    ) {
+        CodeBuilder code = new CodeBuilder();
+
+        String definition = "target_compile_definitions(${LF_MAIN_TARGET} PUBLIC %s)";
+
+        code.pr(
+            String.join(
+                "\n",
+                definition.formatted("_LF_CLOCK_SYNC_INITIAL"),
+                definition.formatted("_LF_CLOCK_SYNC_PERIOD_NS "+GeneratorBase.timeInTargetLanguage(options.period)),
+                definition.formatted("_LF_CLOCK_SYNC_EXCHANGES_PER_INTERVAL "+options.trials),
+                definition.formatted("_LF_CLOCK_SYNC_ATTENUATION "+options.attenuation)
+            )
+        );
+        if (mode == ClockSyncMode.ON) {
+            code.pr(definition.formatted("_LF_CLOCK_SYNC_ON"));
+            if (options.collectStats) {
+                code.pr(definition.formatted("_LF_CLOCK_SYNC_COLLECT_STATS"));
+            }
+        }
+        return code.getCode();
+    }
+
 
     /**
      * Generate code that sends the neighbor structure message to the RTI.
@@ -467,30 +523,5 @@ public class CExtensionUtils {
             %s
             #endif // FEDERATED_DECENTRALIZED
             """.formatted(code);
-    }
-
-    /**
-     * Initialize clock synchronization (if enabled) and its related options for a given federate.
-     *
-     * Clock synchronization can be enabled using the clock-sync target property.
-     * @see <a href="https://github.com/icyphy/lingua-franca/wiki/Distributed-Execution#clock-synchronization">Documentation</a>
-     */
-    public static String generateClockSyncDefineDirective(
-        ClockSyncMode mode,
-        ClockSyncOptions options
-    ) {
-        List<String> code = new ArrayList<>(List.of(
-            "#define _LF_CLOCK_SYNC_INITIAL",
-            "#define _LF_CLOCK_SYNC_PERIOD_NS " + GeneratorBase.timeInTargetLanguage(options.period),
-            "#define _LF_CLOCK_SYNC_EXCHANGES_PER_INTERVAL " + options.trials,
-            "#define _LF_CLOCK_SYNC_ATTENUATION " + options.attenuation
-        ));
-        if (mode == ClockSyncMode.ON) {
-            code.add("#define _LF_CLOCK_SYNC_ON");
-            if (options.collectStats) {
-                code.add("#define _LF_CLOCK_SYNC_COLLECT_STATS");
-            }
-        }
-        return String.join("\n", code);
     }
 }

@@ -34,24 +34,17 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.stream.Collectors;
-
-import org.eclipse.xtext.xbase.lib.Exceptions;
 
 import org.lflang.ASTUtils;
 import org.lflang.ErrorReporter;
-import org.lflang.FileConfig;
 import org.lflang.InferredType;
-import org.lflang.TargetConfig;
 import org.lflang.TargetProperty;
-import org.lflang.TargetProperty.ClockSyncMode;
 import org.lflang.TargetProperty.CoordinationType;
 import org.lflang.TimeValue;
 import org.lflang.federated.generator.FedASTUtils;
 import org.lflang.federated.generator.FedConnectionInstance;
 import org.lflang.federated.generator.FedFileConfig;
 import org.lflang.federated.generator.FederateInstance;
-import org.lflang.federated.launcher.FedCLauncher;
 import org.lflang.federated.serialization.FedROS2CPPSerialization;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.generator.DockerGeneratorBase;
@@ -122,11 +115,7 @@ public class CExtension implements FedTargetExtension {
             );
             return;
         }
-        CExtensionUtils.generateCMakeInclude(numOfFederates, fileConfig, federate);
-
-        // Enable clock synchronization if the federate
-        // is not local and clock-sync is enabled
-        CExtensionUtils.initializeClockSynchronization(federate, federationRTIProperties);
+        CExtensionUtils.generateCMakeInclude(numOfFederates, fileConfig, federate, federationRTIProperties);
 
         federate.targetConfig.fileNames.add("\"include/federated\"");
         federate.targetConfig.setByUser.add(TargetProperty.FILES);
@@ -598,13 +587,6 @@ public class CExtension implements FedTargetExtension {
 //        }
 
         var code = new CodeBuilder();
-
-        if (federate.targetConfig.clockSync.ordinal() >= ClockSyncMode.INIT.ordinal()) {
-            code.pr(CExtensionUtils.generateClockSyncDefineDirective(
-                federate.targetConfig.clockSync,
-                federate.targetConfig.clockSyncOptions
-            ));
-        }
 
         var advanceMessageInterval = federate.targetConfig.coordinationOptions.advance_message_interval;
         if (advanceMessageInterval != null) {
