@@ -1,0 +1,35 @@
+// Tests the get_microstep() function in the python target.
+target Python {
+    fast: false
+};
+main reactor TagString {
+    preamble {=
+        import sys
+    =}
+    state s(1);
+
+    // timer t(0, 1 msec);
+    logical action l;
+    reaction(startup) -> l {=
+        l.schedule(0);
+    =}
+
+    reaction(l) -> l {=
+        tag_str = str(lf.tag())
+ 
+        if "Tag" in tag_str and \
+                "time=" in tag_str and \
+                "microstep=" in tag_str:
+            print("Successful tag string representation:", tag_str)
+        else:
+            self.sys.stderr.write(
+                f"expected tag string representation: " \
+                "Tag(time=$time, microstep=$microstep), instead got: {tag_str}\n")
+            self.sys.exit(1)
+
+        self.s += 1
+        if self.s < 10:
+            l.schedule(0)
+    =}
+}
+
