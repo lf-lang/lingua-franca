@@ -588,12 +588,6 @@ public class CExtension implements FedTargetExtension {
 
         var code = new CodeBuilder();
 
-        var advanceMessageInterval = federate.targetConfig.coordinationOptions.advance_message_interval;
-        if (advanceMessageInterval != null) {
-            code.pr("#define ADVANCE_MESSAGE_INTERVAL " +
-                        GeneratorBase.timeInTargetLanguage(advanceMessageInterval));
-        }
-
         code.pr("#include \"../federated/federate.c\"");
 
         // Generate function to return a pointer to the action trigger_t

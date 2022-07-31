@@ -4,7 +4,6 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -253,8 +252,6 @@ public class CExtensionUtils {
         Path cmakeIncludePath = fileConfig.getFedSrcPath()
                                           .resolve("include" + File.separator + federate.name + "_extension.cmake");
 
-        var advanceMessageInterval = federate.targetConfig.coordinationOptions.advance_message_interval;
-
         CodeBuilder cmakeIncludeCode = new CodeBuilder();
 
         cmakeIncludeCode.pr("""
@@ -272,6 +269,8 @@ public class CExtensionUtils {
             Integer.toString(federate.networkMessageActions.size()))
         );
 
+        handleAdvanceMessageInterval(federate, cmakeIncludeCode);
+
         initializeClockSynchronization(federate, federationRTIProperties, cmakeIncludeCode);
 
         try (var srcWriter = Files.newBufferedWriter(cmakeIncludePath)) {
@@ -280,6 +279,19 @@ public class CExtensionUtils {
 
         federate.targetConfig.cmakeIncludes.add("\""+fileConfig.getFedSrcPath().relativize(cmakeIncludePath)+"\"");
         federate.targetConfig.setByUser.add(TargetProperty.CMAKE_INCLUDE);
+    }
+
+    private static void handleAdvanceMessageInterval(FederateInstance federate, CodeBuilder cmakeIncludeCode) {
+        var advanceMessageInterval = federate.targetConfig.coordinationOptions.advance_message_interval;
+        federate.targetConfig.setByUser.remove(TargetProperty.COORDINATION_OPTIONS);
+        if (advanceMessageInterval != null) {
+            cmakeIncludeCode.pr(
+                "target_compile_definitions(${LF_MAIN_TARGET} PUBLIC ADVANCE_MESSAGE_INTERVAL=%s)"
+                    .formatted(
+                        advanceMessageInterval.toNanoSeconds()
+                    )
+            );
+        }
     }
 
     static boolean clockSyncIsOn(FederateInstance federate, LinkedHashMap<String, Object> federationRTIProperties) {
@@ -347,7 +359,7 @@ public class CExtensionUtils {
             String.join(
                 "\n",
                 definition.formatted("_LF_CLOCK_SYNC_INITIAL"),
-                definition.formatted("_LF_CLOCK_SYNC_PERIOD_NS "+GeneratorBase.timeInTargetLanguage(options.period)),
+                definition.formatted("_LF_CLOCK_SYNC_PERIOD_NS "+ options.period.toNanoSeconds()),
                 definition.formatted("_LF_CLOCK_SYNC_EXCHANGES_PER_INTERVAL "+options.trials),
                 definition.formatted("_LF_CLOCK_SYNC_ATTENUATION "+options.attenuation)
             )
