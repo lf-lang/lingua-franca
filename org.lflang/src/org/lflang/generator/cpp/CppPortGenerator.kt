@@ -66,7 +66,7 @@ class CppPortGenerator(private val reactor: Reactor) {
             ${name}.reserve($width);
             for (size_t __lf_idx = 0; __lf_idx < $width; __lf_idx++) {
               std::string __lf_port_name = "${name}_" + std::to_string(__lf_idx);
-              ${name}.emplace_back(__lf_port_name, this);
+              ${name}.emplace_back(__lf_port_name, this, ${name}.get_active_ports(), __lf_idx);
             }
         """.trimIndent()
     }
