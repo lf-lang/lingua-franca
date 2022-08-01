@@ -74,7 +74,7 @@ public class FedMainEmitter {
                               .map(FederateInstance::getInstantiation)
                               .map(inst ->
                                   """
-                                  %s = new %s_interface();
+                                  %s = new _lf_%s_interface();
                                   """.formatted(
                                       inst.getName(),
                                       ASTUtils.toDefinition(inst.getReactorClass()).getName()

@@ -65,11 +65,11 @@ public class FedImportEmitter {
                 alreadyImported.add(reactorClass);
                 importStatements.pr(
                 """
-                import %1$s as %2$s from "include/interfaces/%1$s_interface.lf"
+                import %1$s as _lf_%2$s_interface from "include/interfaces/%1$s_interface.lf"
                 """.formatted(
                     federateInstance.instantiation.getReactorClass().getName(),
                     // Handle renamed reactors
-                    reactorClass.getName()+"_interface"
+                    reactorClass.getName()
                 )
                 );
             }
