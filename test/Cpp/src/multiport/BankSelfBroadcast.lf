@@ -16,10 +16,14 @@ reactor A(bank_index:size_t(0)) {
         out.set(bank_index);
     =}
     reaction(in) {=
+        auto activated_ports = in.active_ports_indices();
+
+        auto contained = [&](std::size_t value) {
+            return std::find(std::begin(activated_ports), std::end(activated_ports), value) != std::end(activated_ports);
+        };
+
         for (size_t i = 0; i < in.size(); i++) {
-            if (in[i].is_present()) {
-                std::cout << "Reactor " << bank_index << " received "
-                          << *in[i].get() << " on channel " << i << '\n';
+            if (in[i].is_present() && contained(i)) {
                 if (*in[i].get() != i) {
                     std::cerr << "ERROR: Expected " << i << '\n';
                     exit(1);

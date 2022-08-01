@@ -14,16 +14,14 @@ reactor Source(width:size_t(2)) {
 reactor Destination(width:size_t(2)) {
     input[width] in:size_t;
     reaction (in) {=
-        for (size_t i = 0; i < in.size(); i++) {
-            if (in[i].is_present()) {
-                size_t value = *in[i].get();
-                std::cout << "Received on channel " << i << ": " << value << '\n';
-                // NOTE: For testing purposes, this assumes the specific
-                // widths instantiated below.
-                if (value != i % 3) {
-                    std::cerr << "ERROR: expected " << i % 3 << '\n';
-                    exit(1);
-                }
+        for (auto i: in.active_ports_indices()) {
+            size_t value = *in[i].get();
+            std::cout << "Received on channel " << i << ": " << value << '\n';
+            // NOTE: For testing purposes, this assumes the specific
+            // widths instantiated below.
+            if (value != i % 3) {
+                std::cerr << "ERROR: expected " << i % 3 << '\n';
+                exit(1);
             }
         }
     =}

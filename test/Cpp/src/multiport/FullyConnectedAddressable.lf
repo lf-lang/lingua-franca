@@ -20,13 +20,12 @@ reactor Node(bank_index: size_t(0), num_nodes: size_t(4)) {
         received = true;
         size_t count{0};
         size_t result{0};
-        for (auto& port : in) {
-            if (port.is_present()) {
-                count++;
-                result = *port.get();
-                std::cout << result << ", ";
-            }
+        for (auto i : in.active_ports_indices()) {
+            count++;
+            result = *in[i].get();
+            std::cout << result << ", ";
         }
+
         std::cout << '\n';
 
         size_t expected = bank_index == 0 ? num_nodes - 1 : bank_index - 1;
