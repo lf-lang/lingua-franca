@@ -163,7 +163,7 @@ public class FedInterfaceEmitter {
 
         reactorToReturn.getInputs().forEach(input -> {
             // Remove all multiports and replace them with ordinary ports since we only
-            // need high-level dependency information.
+            // need high-level dependency information. FIXME: This is most likely incorrect
             input.setWidthSpec(null);
             // Convert port types to time so that they become target-independent
             if (input.getType() != null) {
@@ -174,7 +174,7 @@ public class FedInterfaceEmitter {
         });
         reactorToReturn.getOutputs().forEach(output -> {
             // Remove all multiports and replace them with ordinary ports since we only
-            // need high-level dependency information.
+            // need high-level dependency information. FIXME: This is most likely incorrect
             output.setWidthSpec(null);
             // Convert port types to time so that they become target-independent
             if (output.getType() != null) {

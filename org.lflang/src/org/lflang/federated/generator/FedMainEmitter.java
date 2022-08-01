@@ -73,6 +73,15 @@ public class FedMainEmitter {
                               .stream()
                               .map(FederateInstance::getInstantiation)
                               .map(inst ->
+                                  // FIXME: This is most likely incorrect because
+                                  //  bank width and parameters for multiport
+                                  //  widths will be lost. However, presence of
+                                  //  banks and multiports complicate things
+                                  //  tremendously when it comes to connection
+                                  //  generation because LF syntax allows for
+                                  //  all kinds of intricate connection statements
+                                  //  like '(foo.out, bar.out, baz.out)+ -> foo.in'
+                                  //  which looks to be quite difficult to untangle.
                                   """
                                   %s = new _lf_%s_interface();
                                   """.formatted(
@@ -107,6 +116,13 @@ public class FedMainEmitter {
         return code.getCode();
     }
 
+    /**
+     * FIXME: For now, use FedConnectionInstances that represent individual connections
+     *  between federates to generate connection statements in the main reactor of
+     *  {@code federate}. However, since multiport and bank information is lost,
+     *  it is not possible to connect two upstream output ports to one downstream
+     *  input port.
+     */
     private CharSequence generateConnectionsUpstream(
         FederateInstance federate,
         Set<FedConnectionInstance> visited
