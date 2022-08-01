@@ -86,7 +86,20 @@ public class AttributeUtils {
                     .map(it -> it.getAttrParms().get(0).getValue().getStr())
                     .findFirst()
                     .orElse(null);
-
+    }
+    
+    /**
+     * Return true if the specified node is an Input and has an {@code @sparse}
+     * attribute.
+     * @param node An AST node.
+     */
+    public static boolean isSparse(EObject node) {
+        if (node instanceof Input) {
+            for (var attribute : getAttributes(node)) {
+                if (attribute.getAttrName().equalsIgnoreCase("sparse")) return true;
+            }
+        }
+        return false;
     }
 
     /**
