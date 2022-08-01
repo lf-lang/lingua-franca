@@ -1,4 +1,4 @@
-#!/nix/store/pmbgaqnvs9qlg7bp0knar9nmh5mcqivx-bash-interactive-5.1-p16/bin/bash
+#!/bin/bash
 
 #============================================================================
 # Description: 	Build the Lingua Franca compiler.
