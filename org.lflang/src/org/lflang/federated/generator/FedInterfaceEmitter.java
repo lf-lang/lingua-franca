@@ -96,9 +96,8 @@ public class FedInterfaceEmitter {
 
         reactor.getInstantiations().forEach(instantiation -> {
             var containedReactor = ASTUtils.toDefinition(instantiation.getReactorClass());
-            Path containedReactorInterfacePath = interfacesFolderPath.resolve(containedReactor.getName() + "_interface.lf");
             // Import the interface for the contained reactor class
-            code.pr("import "+containedReactor.getName()+" from \""+containedReactorInterfacePath+"\"");
+            code.pr("import "+containedReactor.getName()+" from \""+containedReactor.getName()+"_interface.lf\"");
             // Generate interfaces for reactor classes of contained reactors
             generateZeroDelayCausalityInterfaceForReactor(
                 containedReactor,
