@@ -1125,7 +1125,7 @@ public class CReactionGenerator {
      * @param reactionIndex The number assigned to this reaction deadline
      */
     public static String generateDeadlineFunctionName(ReactorDecl decl, int reactionIndex) {
-        return decl.getName().toLowerCase() + "_deadline_function" + reactionIndex;
+        return CUtil.getName(decl).toLowerCase() + "_deadline_function" + reactionIndex;
     }
 
     /**
@@ -1136,7 +1136,7 @@ public class CReactionGenerator {
      * @return The function name for the reaction.
      */
     public static String generateReactionFunctionName(ReactorDecl reactor, int reactionIndex) {
-        return reactor.getName().toLowerCase() + "reaction_function_" + reactionIndex;
+        return CUtil.getName(reactor).toLowerCase() + "reaction_function_" + reactionIndex;
     }
 
     /**
@@ -1145,7 +1145,7 @@ public class CReactionGenerator {
      * @param reactionIndex The number assigned to this reaction deadline
      */
     public static String generateStpFunctionName(ReactorDecl decl, int reactionIndex) {
-        return decl.getName().toLowerCase() + "_STP_function" + reactionIndex;
+        return CUtil.getName(decl).toLowerCase() + "_STP_function" + reactionIndex;
     }
 
     /** Return the top level C function header for the deadline function numbered "reactionIndex" in "decl"

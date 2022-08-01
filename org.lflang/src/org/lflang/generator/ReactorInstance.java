@@ -302,6 +302,20 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
     }
 
     /**
+     * @see NamedInstance#uniqueID()
+     *
+     * Append `_main` to the name of the main reactor to allow instantiations
+     * within that reactor to have the same name.
+     */
+    @Override
+    public String uniqueID() {
+       if (this.isMainOrFederated()) {
+          return super.uniqueID() + "_main";
+       }
+       return super.uniqueID();
+    }
+
+    /**
      * Return the specified output by name or null if there is no such output.
      * @param name The output name.
      */

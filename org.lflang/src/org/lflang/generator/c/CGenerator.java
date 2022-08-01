@@ -2205,12 +2205,6 @@ public class CGenerator extends GeneratorBase {
      * @param r The reactor instance.
      */
     private void generateSelfStructs(ReactorInstance r) {
-        // FIXME: For federated execution, if the reactor is a bank, then
-        // it may be that only one of the bank members is in the federate,
-        // but this creates an array big enough to hold all bank members.
-        // Fixing this will require making the functions in CUtil that
-        // create references to the runtime instances aware of this exception.
-        // For now, we just create a larger array than needed.
         initializeTriggerObjects.pr(CUtil.selfType(r)+"* "+CUtil.reactorRefName(r)+"["+r.getTotalWidth()+"];");
         for (ReactorInstance child : r.children) {
             generateSelfStructs(child);

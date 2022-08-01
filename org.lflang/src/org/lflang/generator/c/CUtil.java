@@ -129,6 +129,18 @@ public class CUtil {
     }
 
     /**
+     * Return the name of the reactor. A '_main` is appended to the name if the
+     * reactor is main (to allow for instantiations that have the same name as
+     * the main reactor or the .lf file).
+     */
+    public static String getName(ReactorDecl reactor) {
+        if (reactor instanceof Reactor r && r.isMain()) {
+            return reactor.getName() + "_main";
+        }
+        return reactor.getName();
+    }
+
+    /**
      * Return a reference to the specified port.
      *
      * The returned string will have one of the following forms:
@@ -490,6 +502,9 @@ public class CUtil {
      * @return The type of a self struct for the specified reactor class.
      */
     public static String selfType(ReactorDecl reactor) {
+        if (reactor instanceof Reactor r && r.isMain()) {
+            return reactor.getName().toLowerCase() + "_main_self_t";
+        }
         return reactor.getName().toLowerCase() + "_self_t";
     }
 
