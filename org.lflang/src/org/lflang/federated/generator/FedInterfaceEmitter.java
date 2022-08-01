@@ -3,13 +3,17 @@ package org.lflang.federated.generator;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Function;
 
+import org.eclipse.emf.ecore.EObject;
 import org.eclipse.emf.ecore.util.EcoreUtil;
 
 import org.lflang.ASTUtils;
 import org.lflang.ast.FormattingUtils;
 import org.lflang.generator.CodeBuilder;
+import org.lflang.generator.GeneratorUtils;
 import org.lflang.lf.Action;
 import org.lflang.lf.BuiltinTrigger;
 import org.lflang.lf.BuiltinTriggerRef;
@@ -43,24 +47,66 @@ public class FedInterfaceEmitter {
         );
         Files.createDirectories(interfacesFolderPath);
 
-        federates.forEach(federate -> generateCausalityInterfaces(federate, interfacesFolderPath));
+        List<Reactor> visitedReactorClasses = new ArrayList<>();
+
+        federates.forEach(federate -> generateCausalityInterfaces(federate, interfacesFolderPath, visitedReactorClasses));
     }
 
     /**
-     * Generate a causality interface for {@code federate} and put it in
-     * `include/$federate.name$_interface.lf` in the fed-gen directory.
+     * Generate a causality interface for {@code federate} and all its contained reactors.
      */
-    private void generateCausalityInterfaces(FederateInstance federate, Path interfacesFolderPath) {
+    private void generateCausalityInterfaces
+    (FederateInstance federate,
+     Path interfacesFolderPath,
+     List<Reactor> visitedReactorClasses
+    ) {
         var renderer = FormattingUtils.renderer(federate.target);
 
-        Path interfaceFilePath = interfacesFolderPath.resolve(federate.name + "_interface.lf");
+        generateZeroDelayCausalityInterfaceForReactor(
+            ASTUtils.toDefinition(federate.instantiation.getReactorClass()),
+            interfacesFolderPath,
+            visitedReactorClasses,
+            renderer
+        );
+    }
 
+    /**
+     * Generate a causality interface for {@code reactor} that preserves zero-delay
+     * connections from input ports to output ports within that reactor.
+     *
+     * Will recursively generate causality interfaces for any contained reactors.
+     * @param renderer Used to render each reactor
+     */
+    private void generateZeroDelayCausalityInterfaceForReactor(
+        Reactor reactor,
+        Path interfacesFolderPath,
+        List<Reactor> visitedReactorClasses,
+        Function<EObject,
+            String> renderer
+    ) {
+        if(visitedReactorClasses.contains(reactor)) return;
+        visitedReactorClasses.add(reactor);
         CodeBuilder code = new CodeBuilder();
-        Reactor reactor = ASTUtils.toDefinition(federate.instantiation.getReactorClass());
+        Path interfaceFilePath = interfacesFolderPath.resolve(reactor.getName() + "_interface.lf");
         TargetDecl interfaceTarget = ASTUtils.factory.createTargetDecl();
-        interfaceTarget.setName(federate.target.getName()); // FIXME: This will interfere with mixed-target federations
+        interfaceTarget.setName(GeneratorUtils.findTarget(reactor.eResource()).getName()); // FIXME: This will interfere with mixed-target federations
         code.pr(renderer.apply(interfaceTarget));
         code.pr(renderer.apply(stripReactorForZeroDelayInterface(reactor)));
+
+
+        reactor.getInstantiations().forEach(instantiation -> {
+            var containedReactor = ASTUtils.toDefinition(instantiation.getReactorClass());
+            Path containedReactorInterfacePath = interfacesFolderPath.resolve(containedReactor.getName() + "_interface.lf");
+            // Import the interface for the contained reactor class
+            code.pr("import "+containedReactor.getName()+" from \""+containedReactorInterfacePath+"\"");
+            // Generate interfaces for reactor classes of contained reactors
+            generateZeroDelayCausalityInterfaceForReactor(
+                containedReactor,
+                interfacesFolderPath,
+                visitedReactorClasses,
+                renderer
+            );
+        });
 
         // Write the federate's interface to file
         try (var interfaceWriter = Files.newBufferedWriter(interfaceFilePath)) {
@@ -138,12 +184,6 @@ public class FedInterfaceEmitter {
             }
         });
 
-        // Replace reactor classes of instantiations with their stripped-down versions.
-        reactorToReturn.getInstantiations().forEach(instantiation -> {
-            instantiation.setReactorClass(
-                stripReactorForZeroDelayInterface(ASTUtils.toDefinition(instantiation.getReactorClass()))
-            );
-        });
         return reactorToReturn;
     }
 }

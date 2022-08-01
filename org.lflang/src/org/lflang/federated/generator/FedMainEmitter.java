@@ -72,14 +72,13 @@ public class FedMainEmitter {
         instantiations.pr(zeroDelayImmediateUpstreamFederates
                               .stream()
                               .map(FederateInstance::getInstantiation)
-                              .map(inst -> {
-                                  inst.getParameters().clear();
-                                  // Remove banks, if any, since we only need high-level
-                                  // dependency information.
-                                  inst.setWidthSpec(null);
-                                  return inst;
-                              })
-                              .map(renderer)
+                              .map(inst ->
+                                  """
+                                  %s = new %s_interface();
+                                  """.formatted(
+                                      inst.getName(),
+                                      ASTUtils.toDefinition(inst.getReactorClass()).getName()
+                                  ))
                               .collect(Collectors.joining("\n")));
 
         // Then recursively go upstream
@@ -103,13 +102,14 @@ public class FedMainEmitter {
             federate.getZeroDelayImmediateUpstreamFederates();
 
         for (FederateInstance federateInstance:upstreamZeroDelayFederates) {
-            code.pr(generateConnectionsUpstream(federateInstance));
+            code.pr(generateConnectionsUpstream(federateInstance, new HashSet<>()));
         }
         return code.getCode();
     }
 
     private CharSequence generateConnectionsUpstream(
-        FederateInstance federate
+        FederateInstance federate,
+        Set<FedConnectionInstance> visited
     ) {
         CodeBuilder code = new CodeBuilder();
         var upstreamZeroDelayFederates =
@@ -117,6 +117,8 @@ public class FedMainEmitter {
 
         for (FederateInstance federateInstance:upstreamZeroDelayFederates) {
             for (FedConnectionInstance connection : federateInstance.connections) {
+                if (visited.contains(connection)) continue;
+                visited.add(connection);
                 code.pr("""
                 %s.%s -> %s.%s;
                 """.formatted(
@@ -126,7 +128,7 @@ public class FedMainEmitter {
                     connection.dstRange.instance.getName()
                 ));
             }
-            code.pr(generateConnectionsUpstream(federateInstance));
+            code.pr(generateConnectionsUpstream(federateInstance, visited));
         }
         return code.getCode();
 
