@@ -102,8 +102,25 @@ class TSReactorGenerator(
         return preambleCodes.joinToString("\n")
     }
 
-    fun generateReactor(reactor: Reactor, federateConfig: TSFederateConfig?): String {
-        var reactorName = reactor.name
+    fun generateReactorClasses(reactor: Reactor, federateConfig: TSFederateConfig?): String {
+        val reactorClasses = LinkedList<String>()
+        // To support `import as` syntax (for importing reactors) in .lf programs.
+        val declarations = tsGenerator.getInstantiationGraph()?.getDeclarations(reactor)
+
+        if (declarations == null || declarations.isEmpty()) {
+            return generateReactorClass(reactor.name, reactor, federateConfig)
+        }
+
+        for (declaration in declarations) {
+            reactorClasses.add(generateReactorClass(declaration.name, reactor, federateConfig))
+        }
+
+        return reactorClasses.joinToString("\n")
+    }
+
+    fun generateReactorClass(name: String, reactor: Reactor, federateConfig: TSFederateConfig?): String {
+        val declarations = tsGenerator.getInstantiationGraph()?.getDeclarations(reactor)
+        var reactorName = name
         if (!reactor.typeParms.isEmpty()) {
             reactorName +=
                 reactor.typeParms.joinToString(", ", "<", ">") { it.toText() }

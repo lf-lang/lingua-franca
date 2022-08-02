@@ -42,6 +42,7 @@ import org.lflang.generator.LFGeneratorContext
 import org.lflang.generator.ReactorInstance
 import org.lflang.generator.SubContext
 import org.lflang.generator.TargetTypes
+import org.lflang.graph.InstantiationGraph
 import org.lflang.inferredType
 import org.lflang.lf.Action
 import org.lflang.lf.Expression
@@ -135,6 +136,10 @@ class TSGenerator(
     fun getInitializerListW(param: Parameter, i: Instantiation): List<String> =
         VG.getInitializerList(param, i)
 
+    fun getInstantiationGraph(): InstantiationGraph? {
+        return this.instantiationGraph;
+    }
+
     /** Generate TypeScript code from the Lingua Franca model contained by the
      *  specified resource. This is the main entry point for code
      *  generation.
@@ -143,6 +148,8 @@ class TSGenerator(
      */
     override fun doGenerate(resource: Resource, context: LFGeneratorContext) {
         super.doGenerate(resource, context)
+
+        instantiationGraph
 
         if (!canGenerate(errorsOccurred(), mainDef, errorReporter, context)) return
         if (!isOsCompatible()) return
@@ -305,7 +312,7 @@ class TSGenerator(
 
         val reactorGenerator = TSReactorGenerator(this, errorReporter, targetConfig)
         for (reactor in reactors) {
-            tsCode.append(reactorGenerator.generateReactor(reactor, federateConfig))
+            tsCode.append(reactorGenerator.generateReactorClasses(reactor, federateConfig))
         }
 
         tsCode.append(reactorGenerator.generateMainReactorInstanceAndStart(federateConfig, this.mainDef, mainParameters))
