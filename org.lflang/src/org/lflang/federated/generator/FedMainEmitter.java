@@ -1,5 +1,6 @@
 package org.lflang.federated.generator;
 
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -15,6 +16,7 @@ import org.lflang.ErrorReporter;
 import org.lflang.ast.FormattingUtils;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.generator.ReactorInstance;
+import org.lflang.lf.Instantiation;
 import org.lflang.lf.Reactor;
 
 /**
@@ -46,8 +48,8 @@ public class FedMainEmitter {
                 generateMainSignature(federate, originalMainReactor, renderer),
                String.join(
                    "\n",
-                   renderer.apply(federate.instantiation),
-                   generateInstantiationsForUpstreamFederates(federate, renderer),
+                   generateInstantiation(federate, renderer),
+                   generateInstantiationsForUpstreamFederates(federate, new ArrayList<>(List.of(federate.instantiation)), new ArrayList<>()),
                    ASTUtils.allActions(originalMainReactor).stream().filter(federate::contains).map(renderer).collect(Collectors.joining("\n")),
                    ASTUtils.allTimers(originalMainReactor).stream().filter(federate::contains).map(renderer).collect(Collectors.joining("\n")),
                    ASTUtils.allMethods(originalMainReactor).stream().filter(federate::contains).map(renderer).collect(Collectors.joining("\n")),
@@ -59,12 +61,20 @@ public class FedMainEmitter {
     }
 
     /**
-     * Generate instantiations for upstream federates of {@code federate}.
-     * @param federate
-     * @param renderer Used to generate a String representation for an instantiation.
-     * @return
+     * Generate the instantiation for {@code federate}.
+     * @param renderer Used to render EObjects (in String representation).
      */
-    private CharSequence generateInstantiationsForUpstreamFederates(FederateInstance federate, Function<EObject, String> renderer) {
+    private String generateInstantiation(FederateInstance federate, Function<EObject, String> renderer) {
+        return renderer.apply(federate.instantiation);
+    }
+
+    /**
+     * Generate instantiations for upstream federates of {@code federate}.
+     */
+    private CharSequence generateInstantiationsForUpstreamFederates(FederateInstance federate, List<Instantiation> instantiated,  List<FederateInstance> visited) {
+        if (visited.contains(federate)) return "";
+        visited.add(federate);
+
         CodeBuilder instantiations = new CodeBuilder();
         // First handle immediate upstream federates with 0 delays
         var zeroDelayImmediateUpstreamFederates =
@@ -72,7 +82,9 @@ public class FedMainEmitter {
         instantiations.pr(zeroDelayImmediateUpstreamFederates
                               .stream()
                               .map(FederateInstance::getInstantiation)
-                              .map(inst ->
+                              .filter(inst -> !instantiated.contains(inst))
+                              .map(inst -> {
+                                  instantiated.add(inst);
                                   // FIXME: This is most likely incorrect because
                                   //  bank width and parameters for multiport
                                   //  widths will be lost. However, presence of
@@ -82,17 +94,18 @@ public class FedMainEmitter {
                                   //  all kinds of intricate connection statements
                                   //  like '(foo.out, bar.out, baz.out)+ -> foo.in'
                                   //  which looks to be quite difficult to untangle.
-                                  """
+                                  return """
                                   %s = new _lf_%s_interface();
                                   """.formatted(
                                       inst.getName(),
                                       ASTUtils.toDefinition(inst.getReactorClass()).getName()
-                                  ))
+                                  );
+                              })
                               .collect(Collectors.joining("\n")));
 
         // Then recursively go upstream
         zeroDelayImmediateUpstreamFederates.forEach(federateInstance -> {
-            instantiations.pr(generateInstantiationsForUpstreamFederates(federateInstance, renderer));
+            instantiations.pr(generateInstantiationsForUpstreamFederates(federateInstance, instantiated, visited));
         });
 
         return instantiations.getCode();
@@ -111,7 +124,7 @@ public class FedMainEmitter {
             federate.getZeroDelayImmediateUpstreamFederates();
 
         for (FederateInstance federateInstance:upstreamZeroDelayFederates) {
-            code.pr(generateConnectionsUpstream(federateInstance, new HashSet<>()));
+            code.pr(generateConnectionsUpstream(federateInstance, new ArrayList<>(), new ArrayList<>(List.of(federate))));
         }
         return code.getCode();
     }
@@ -125,16 +138,20 @@ public class FedMainEmitter {
      */
     private CharSequence generateConnectionsUpstream(
         FederateInstance federate,
-        Set<FedConnectionInstance> visited
+        List<FedConnectionInstance> visitedConnections,
+        List<FederateInstance> visitedFederates
     ) {
+        if (visitedFederates.contains(federate)) return "";
+        visitedFederates.add(federate);
+
         CodeBuilder code = new CodeBuilder();
         var upstreamZeroDelayFederates =
             federate.getZeroDelayImmediateUpstreamFederates();
 
         for (FederateInstance federateInstance:upstreamZeroDelayFederates) {
             for (FedConnectionInstance connection : federateInstance.connections) {
-                if (visited.contains(connection)) continue;
-                visited.add(connection);
+                if (visitedConnections.contains(connection)) continue;
+                visitedConnections.add(connection);
                 code.pr("""
                 %s.%s -> %s.%s;
                 """.formatted(
@@ -144,7 +161,7 @@ public class FedMainEmitter {
                     connection.dstRange.instance.getName()
                 ));
             }
-            code.pr(generateConnectionsUpstream(federateInstance, visited));
+            code.pr(generateConnectionsUpstream(federateInstance, visitedConnections, visitedFederates));
         }
         return code.getCode();
 
@@ -152,10 +169,9 @@ public class FedMainEmitter {
 
     /**
      * Generate the signature of the main reactor.
-     * @param federate
-     * @param originalMainReactor
-     * @param renderer
-     * @return
+     * @param federate The federate.
+     * @param originalMainReactor The original main reactor of the original .lf file.
+     * @param renderer Used to render EObjects (in String representation).
      */
     private CharSequence generateMainSignature(FederateInstance federate, Reactor originalMainReactor, Function<EObject, String> renderer) {
         var paramList = ASTUtils.allParameters(originalMainReactor)

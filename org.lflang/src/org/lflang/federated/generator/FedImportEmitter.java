@@ -44,7 +44,7 @@ public class FedImportEmitter {
                                    .map(FormattingUtils.renderer(federate.target))
                                    .collect(Collectors.joining("\n")));
 
-        importStatements.pr(generateImportsForUpstreamInterfaces(federate, new ArrayList<>()));
+        importStatements.pr(generateImportsForUpstreamInterfaces(federate, new ArrayList<>(), new ArrayList<>()));
 
         return importStatements.getCode();
     }
@@ -52,7 +52,10 @@ public class FedImportEmitter {
     /**
      * Generate import statements for all upstream federates' interfaces.
      */
-    private String generateImportsForUpstreamInterfaces(FederateInstance federate, List<Reactor> alreadyImported) {
+    private String generateImportsForUpstreamInterfaces(FederateInstance federate, List<Reactor> alreadyImported, List<FederateInstance> visited) {
+        if (visited.contains(federate)) return "";
+        visited.add(federate);
+
         CodeBuilder importStatements = new CodeBuilder();
         // Add import statements for causality interfaces of upstream federates.
         var upstreamFederates =
@@ -65,16 +68,14 @@ public class FedImportEmitter {
                 alreadyImported.add(reactorClass);
                 importStatements.pr(
                 """
-                import %1$s as _lf_%2$s_interface from "include/interfaces/%1$s_interface.lf"
+                import %1$s as _lf_%1$s_interface from "include/interfaces/%1$s_interface.lf"
                 """.formatted(
-                    federateInstance.instantiation.getReactorClass().getName(),
-                    // Handle renamed reactors
                     reactorClass.getName()
                 )
                 );
             }
             // Keep going upstream
-            importStatements.pr(generateImportsForUpstreamInterfaces(federateInstance, alreadyImported));
+            importStatements.pr(generateImportsForUpstreamInterfaces(federateInstance, alreadyImported, visited));
         });
         return importStatements.getCode();
     }

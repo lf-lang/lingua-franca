@@ -429,6 +429,10 @@ public class FedGenerator {
                 dstRange.instance.getParent().getDefinition()
             ).get(dstBank);
 
+            // Clear banks
+            srcFederate.instantiation.setWidthSpec(null);
+            dstFederate.instantiation.setWidthSpec(null);
+
             FedConnectionInstance fedConnection = new FedConnectionInstance(
                 srcRange,
                 dstRange,

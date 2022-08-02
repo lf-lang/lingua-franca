@@ -42,7 +42,7 @@ public class FedEmitter {
         FederateInstance federate,
         int numOfFederates
     ) throws IOException {
-        String fedName = federate.instantiation.getName();
+        String fedName = federate.name;
         Files.createDirectories(fileConfig.getFedSrcPath());
         System.out.println("##### Generating code for federate " + fedName
                                + " in directory "
