@@ -730,7 +730,8 @@ public class CGenerator extends GeneratorBase {
                 "int _lf_shutdown_reactions_count = 0;",
                 "int _lf_reset_reactions_count = 0;",
                 "int _lf_timer_triggers_count = 0;",
-                "int _lf_tokens_with_ref_count_count = 0;"
+                "int _lf_tokens_with_ref_count_count = 0;",
+                "int bank_index;"
             ));
             // Add counters for modal initialization
             initializeTriggerObjects.pr(CModesGenerator.generateModalInitalizationCounters(hasModalReactors));
@@ -2111,8 +2112,9 @@ public class CGenerator extends GeneratorBase {
      */
     protected void generateParameterInitialization(ReactorInstance instance) {
         var selfRef = CUtil.reactorRef(instance);
-        // Declare a local bank_index variable so that initializers can use it.
-        initializeTriggerObjects.pr("int bank_index = "+CUtil.bankIndex(instance)+";");
+        // Set the local bank_index variable so that initializers can use it.
+        initializeTriggerObjects.pr("bank_index = "+CUtil.bankIndex(instance)+";"
+                + " SUPPRESS_UNUSED_WARNING(bank_index);");
         for (ParameterInstance parameter : instance.parameters) {
             // NOTE: we now use the resolved literal value. For better efficiency, we could
             // store constants in a global array and refer to its elements to avoid duplicate

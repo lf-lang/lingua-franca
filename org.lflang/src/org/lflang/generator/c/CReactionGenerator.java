@@ -69,16 +69,13 @@ public class CReactionGenerator {
         // or anything else. No need to declare it.
         if (structType != null) {
              code.pr(String.join("\n",
-                 "#pragma GCC diagnostic push",
-                 "#pragma GCC diagnostic ignored \"-Wunused-variable\"",
-                 structType+"* self = ("+structType+"*)instance_args;"
+                 structType+"* self = ("+structType+"*)instance_args; SUPPRESS_UNUSED_WARNING(self);"
              ));
         }
 
         // Do not generate the initialization code if the body is marked
         // to not generate it.
         if (body.startsWith(DISABLE_REACTION_INITIALIZATION_MARKER)) {
-             code.pr("#pragma GCC diagnostic pop");
             return code.toString();
         }
 
@@ -226,7 +223,6 @@ public class CReactionGenerator {
         }
         // Next generate all the collected setup code.
         code.pr(reactionInitialization.toString());
-        code.pr("#pragma GCC diagnostic pop");
         
         return code.toString();
     }
