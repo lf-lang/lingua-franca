@@ -398,7 +398,13 @@ public class CGenerator extends GeneratorBase {
     }
 
     public CGenerator(FileConfig fileConfig, ErrorReporter errorReporter, boolean CCppMode) {
-        this(fileConfig, errorReporter, CCppMode, new CTypes(errorReporter), new CCmakeGenerator(fileConfig, List.of(), ""));
+        this(
+            fileConfig,
+            errorReporter,
+            CCppMode,
+            new CTypes(errorReporter),
+            new CCmakeGenerator(fileConfig, List.of(), CCmakeGenerator::setUpMainTarget)
+        );
     }
 
     public CGenerator(FileConfig fileConfig, ErrorReporter errorReporter) {

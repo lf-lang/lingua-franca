@@ -35,6 +35,8 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.xtext.util.CancelIndicator;
@@ -116,14 +118,7 @@ public class PythonGenerator extends CGenerator {
                     "lib/python_time.c",
                     "lib/pythontarget.c"
                 ),
-                """
-                find_package(PythonLibs REQUIRED)
-                include_directories(${PYTHON_INCLUDE_DIRS})
-                target_link_libraries(${LF_MAIN_TARGET} ${PYTHON_LIBRARIES})
-
-                target_compile_definitions(${LF_MAIN_TARGET} PUBLIC MODULE_NAME=<pyModuleName>)
-                """.replace("<pyModuleName>", generatePythonModuleName(fileConfig.name))
-                // The use of fileConfig.name will break federated execution, but that's fine
+                setUpMainTargetOf(fileConfig)
             )
         );
     }
@@ -326,9 +321,8 @@ public class PythonGenerator extends CGenerator {
 
         // if we found the compile command, we will also find the install command
         LFCommand buildCmd = commandFactory.createCommand(
-            pythonCommand, List.of("setup.py", "--quiet", "build_ext", "--inplace"), fileConfig.getSrcGenPath()
+            pythonCommand, List.of("-m", "pip", "install", "."), fileConfig.getSrcGenPath()
         );
-        buildCmd.setQuiet();
 
         // Set compile time environment variables
         buildCmd.setEnvironmentVariable("CC", targetConfig.compiler); // Use gcc as the compiler
@@ -340,18 +334,6 @@ public class PythonGenerator extends CGenerator {
         } else {
             errorReporter.reportError("Failed to build Python extension due to the following error(s):\n" +
                 buildCmd.getErrors());
-        }
-
-        LFCommand installCmd = commandFactory.createCommand(
-            pythonCommand, List.of("setup.py", "install_lib"), fileConfig.getSrcGenPath()
-        );
-        if (installCmd.run(context.getCancelIndicator()) == 0) {
-            System.out.println("Successfully installed Python extension.");
-        } else {
-            errorReporter.reportError(
-                "Failed to install Python extension due to the following error(s):\n"
-                + installCmd.getErrors()
-            );
         }
     }
 
@@ -874,6 +856,30 @@ public class PythonGenerator extends CGenerator {
         PythonModeGenerator.generateResetReactionsIfNeeded(reactors);
     }
 
+    private static CCmakeGenerator.SetUpMainTarget setUpMainTargetOf(FileConfig fileConfig) {
+        return (boolean hasMain, String executableName, Stream<String> cSources) -> (
+            """
+            set(LF_MAIN_TARGET <pyModuleName>)
+            add_library(
+                ${LF_MAIN_TARGET}
+                MODULE
+            """
+            + cSources.collect(Collectors.joining("\n    ", "    ", "\n"))
+            + """
+                <fileConfig.name>.c
+            )
+            find_package(PythonLibs REQUIRED)
+            find_package(PythonExtensions REQUIRED)
+            include_directories(${PYTHON_INCLUDE_DIRS})
+            python_extension_module(_LinguaFranca<fileConfig.name>)
+            target_compile_definitions(${LF_MAIN_TARGET} PUBLIC MODULE_NAME=<pyModuleName>)
+            install(TARGETS ${LF_MAIN_TARGET} LIBRARY DESTINATION <pyModuleName>)
+            """
+            ).replace("<pyModuleName>", generatePythonModuleName(fileConfig.name))
+            .replace("<fileConfig.name>", fileConfig.name);
+        // The use of fileConfig.name will break federated execution, but that's fine
+    }
+
     /**
      * Generate the name of the python module.
      *
@@ -914,6 +920,11 @@ public class PythonGenerator extends CGenerator {
         FileUtil.copyDirectoryFromClassPath(
             "/lib/py/reactor-c-py/lib",
             fileConfig.getSrcGenPath().resolve("lib"),
+            true
+        );
+        FileUtil.copyFileFromClassPath(
+            "/lib/py/reactor-c-py/pyproject.toml",
+            fileConfig.getSrcGenPath().resolve("pyproject.toml"),
             true
         );
     }

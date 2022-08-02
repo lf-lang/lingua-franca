@@ -28,6 +28,8 @@ package org.lflang.generator.c;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
+import java.util.stream.Stream;
 
 import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
@@ -48,17 +50,21 @@ public class CCmakeGenerator {
 
     private final FileConfig fileConfig;
     private final List<String> additionalSources;
-    private final String include;
+    private final SetUpMainTarget setUpMainTarget;
 
     /**
      * Create an instance of CCmakeGenerator.
      *
      * @param fileConfig The FileConfig instance to use.
      */
-    public CCmakeGenerator(FileConfig fileConfig, List<String> additionalSources, String include) {
+    public CCmakeGenerator(
+        FileConfig fileConfig,
+        List<String> additionalSources,
+        SetUpMainTarget setUpMainTarget
+    ) {
         this.fileConfig = fileConfig;
         this.additionalSources = additionalSources;
-        this.include = include;
+        this.setUpMainTarget = setUpMainTarget;
     }
 
     /**
@@ -128,28 +134,15 @@ public class CCmakeGenerator {
         cMakeCode.pr("add_subdirectory(core)");
         cMakeCode.newLine();
 
-        cMakeCode.pr("set(LF_MAIN_TARGET "+executableName+")");
-        cMakeCode.newLine();
-
-        if (hasMain) {
-            cMakeCode.pr("# Declare a new executable target and list all its sources");
-            cMakeCode.pr("add_executable(");
-        } else {
-            cMakeCode.pr("# Declare a new library target and list all its sources");
-            cMakeCode.pr("add_library(");
-        }
-        cMakeCode.indent();
-        cMakeCode.pr("${LF_MAIN_TARGET}");
-        sources.forEach(cMakeCode::pr);
-        additionalSources.forEach(cMakeCode::pr);
-        cMakeCode.unindent();
-        cMakeCode.pr(")");
-        cMakeCode.newLine();
+        cMakeCode.pr(setUpMainTarget.getCmakeCode(
+            hasMain,
+            executableName,
+            Stream.concat(sources.stream(), additionalSources.stream())
+        ));
 
         cMakeCode.pr("target_link_libraries(${LF_MAIN_TARGET} core)");
 
         cMakeCode.pr("target_include_directories(${LF_MAIN_TARGET} PUBLIC include)");
-        cMakeCode.pr(this.include);
 
         if (targetConfig.threading || targetConfig.tracing != null) {
             // If threaded computation is requested, add the threads option.
@@ -202,7 +195,7 @@ public class CCmakeGenerator {
                     cMakeCode.pr("target_link_libraries( ${LF_MAIN_TARGET} ${PROTOBUF_LIBRARY})");
                     break;
                 case "-O2":
-                    if (targetConfig.compiler.equals("gcc") || CppMode) {
+                    if (Objects.equals(targetConfig.compiler, "gcc") || CppMode) {
                         // Workaround for the pre-added -O2 option in the CGenerator.
                         // This flag is specific to gcc/g++ and the clang compiler
                         cMakeCode.pr("add_compile_options( -O2 )");
@@ -237,5 +230,34 @@ public class CCmakeGenerator {
         cMakeCode.newLine();
 
         return cMakeCode;
+    }
+
+    public interface SetUpMainTarget {
+        String getCmakeCode(boolean hasMain, String executableName, Stream<String> cSources);
+    }
+
+    static String setUpMainTarget(
+        boolean hasMain,
+        String executableName,
+        Stream<String> cSources
+    ) {
+        var code = new CodeBuilder();
+        code.pr("set(LF_MAIN_TARGET "+executableName+")");
+        code.newLine();
+
+        if (hasMain) {
+            code.pr("# Declare a new executable target and list all its sources");
+            code.pr("add_executable(");
+        } else {
+            code.pr("# Declare a new library target and list all its sources");
+            code.pr("add_library(");
+        }
+        code.indent();
+        code.pr("${LF_MAIN_TARGET}");
+        cSources.forEach(code::pr);
+        code.unindent();
+        code.pr(")");
+        code.newLine();
+        return code.toString();
     }
 }
