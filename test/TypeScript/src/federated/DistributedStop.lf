@@ -88,7 +88,7 @@ reactor Receiver (
             + `Stopping at (${util.getElapsedLogicalTime()}, ${util.getCurrentTag().microstep}).`);
         } else if (reaction_invoked_correctly === false) {
             util.requestErrorStop("Receiver reaction(in) was not invoked the correct number of times. "
-            + `Stoping at (${util.getElapsedLogicalTime()}, ${util.getCurrentTag().microstep})`);
+            + `Stopping at (${util.getElapsedLogicalTime()}, ${util.getCurrentTag().microstep})`);
         }
         console.log(`SUCCESS: Successfully stopped the federation at `
             + `(${util.getElapsedLogicalTime()}, ${util.getCurrentTag().microstep}).`);
