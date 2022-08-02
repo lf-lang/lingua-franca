@@ -430,7 +430,7 @@ public class PythonGenerator extends CGenerator {
      * @param filename Name of the file to process.
      */
     @Override
-    public void processProtoFile(String filename, CancelIndicator cancelIndicator) {
+    public void processProtoFile(String filename) {
         LFCommand protoc = commandFactory.createCommand(
             "protoc", List.of("--python_out="
                                   + fileConfig.getSrcGenPath(), filename), fileConfig.srcPath);
@@ -439,7 +439,7 @@ public class PythonGenerator extends CGenerator {
             errorReporter.reportError("Processing .proto files requires libprotoc >= 3.6.1");
             return;
         }
-        int returnCode = protoc.run(cancelIndicator);
+        int returnCode = protoc.run();
         if (returnCode == 0) {
             pythonRequiredModules.add("google-api-python-client");
         } else {

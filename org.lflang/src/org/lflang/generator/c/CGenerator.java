@@ -631,7 +631,7 @@ public class CGenerator extends GeneratorBase {
     private void handleProtoFiles() {
         // Handle .proto files.
         for (String file : targetConfig.protoFiles) {
-            this.processProtoFile(file, getCancelIndicator());
+            this.processProtoFile(file);
             var dotIndex = file.lastIndexOf(".");
             var rootFilename = file;
             if (dotIndex > 0) {
@@ -1684,7 +1684,7 @@ public class CGenerator extends GeneratorBase {
      * the required .h and .c files.
      * @param filename Name of the file to process.
      */
-     public void processProtoFile(String filename, CancelIndicator cancelIndicator) {
+     public void processProtoFile(String filename) {
         var protoc = commandFactory.createCommand(
             "protoc-c",
             List.of("--c_out="+this.fileConfig.getSrcGenPath(), filename),
@@ -1693,7 +1693,7 @@ public class CGenerator extends GeneratorBase {
             errorReporter.reportError("Processing .proto files requires proto-c >= 1.3.3.");
             return;
         }
-        var returnCode = protoc.run(cancelIndicator);
+        var returnCode = protoc.run();
         if (returnCode == 0) {
             var nameSansProto = filename.substring(0, filename.length() - 6);
             targetConfig.compileAdditionalSources.add(
