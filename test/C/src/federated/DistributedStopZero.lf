@@ -59,7 +59,7 @@ reactor Receiver {
 
     reaction(shutdown) {=
         // Sender should have requested stop earlier than the receiver.
-        // Therefore, the shutdown events must occur at (1000, 0) on the
+        // Therefore, the shutdown events must occur at (0, 0) on the
         // receiver.
         if (lf_time_logical_elapsed() != USEC(0) ||
             lf_tag().microstep != 1) {
