@@ -690,7 +690,7 @@ public enum TargetProperty {
      * setting up federated execution before processing the first tag.
      */
     FED_SETUP("_fed_setup", FILES.type,
-              Arrays.asList(Target.C, Target.Python),
+              Arrays.asList(Target.C, Target.CCPP, Target.Python),
               (config) -> ASTUtils.toElement("\"" + config.fedSetupPreamble + "\""),
               (config, value, err) ->
                   config.fedSetupPreamble = StringUtil.removeQuotes(ASTUtils.elementToSingleString(value))

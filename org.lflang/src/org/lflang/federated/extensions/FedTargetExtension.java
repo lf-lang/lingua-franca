@@ -1,6 +1,7 @@
 package org.lflang.federated.extensions;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 
@@ -13,6 +14,7 @@ import org.lflang.TimeValue;
 import org.lflang.federated.generator.FedConnectionInstance;
 import org.lflang.federated.generator.FedFileConfig;
 import org.lflang.federated.generator.FederateInstance;
+import org.lflang.federated.serialization.SupportedSerializers;
 import org.lflang.generator.LFGeneratorContext;
 import org.lflang.lf.Action;
 import org.lflang.lf.VarRef;

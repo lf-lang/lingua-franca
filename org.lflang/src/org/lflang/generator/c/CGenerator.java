@@ -480,6 +480,9 @@ public class CGenerator extends GeneratorBase {
         dir = fileConfig.binPath.toFile();
         if (!dir.exists()) dir.mkdirs();
 
+        // Handle proto files
+        handleProtoFiles();
+
         // Docker related paths
         CDockerGenerator dockerGenerator = getDockerGenerator();
 
@@ -623,6 +626,19 @@ public class CGenerator extends GeneratorBase {
 
         // In case we are in Eclipse, make sure the generated code is visible.
         GeneratorUtils.refreshProject(resource, context.getMode());
+    }
+
+    private void handleProtoFiles() {
+        // Handle .proto files.
+        for (String file : targetConfig.protoFiles) {
+            this.processProtoFile(file, getCancelIndicator());
+            var dotIndex = file.lastIndexOf(".");
+            var rootFilename = file;
+            if (dotIndex > 0) {
+                rootFilename = file.substring(0, dotIndex);
+            }
+            code.pr("#include " + addDoubleQuotes(rootFilename + ".pb-c.h"));
+        }
     }
 
     private void generateCodeFor(

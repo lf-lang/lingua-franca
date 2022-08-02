@@ -95,17 +95,6 @@ public class CExtension implements FedTargetExtension {
             // Return to avoid compiler errors
             return;
         }
-        // Reset the cmake-includes and files, to be repopulated for each federate individually.
-        // This is done to enable support for separately
-        // adding cmake-includes/files for different federates to prevent linking and mixing
-        // all federates' supporting libraries/files together. FIXME: most likely not needed
-//        targetConfig.cmakeIncludes.clear();
-//        targetConfig.cmakeIncludesWithoutPath.clear();
-//        targetConfig.fileNames.clear();
-//        targetConfig.filesNamesWithoutPath.clear();
-
-        // System.out.println("##### Federate target is " + federate.target.getName());
-        // System.out.println("##### Federate target config is " + federate.target.getConfig());
 
 
         if (!federate.targetConfig.useCmake) {
@@ -115,6 +104,7 @@ public class CExtension implements FedTargetExtension {
             );
             return;
         }
+
         CExtensionUtils.generateCMakeInclude(numOfFederates, fileConfig, federate, federationRTIProperties);
 
         federate.targetConfig.fileNames.add("\"include/federated\"");
@@ -534,7 +524,7 @@ public class CExtension implements FedTargetExtension {
         ErrorReporter errorReporter
     ) throws IOException {
         // Put the C preamble in a `include/_federate.name + _preamble.c` file
-        String cPreamble = makePreamble(federate, federationRTIProperties, errorReporter);
+        String cPreamble = makePreamble(federate, fileConfig, federationRTIProperties, errorReporter);
         String relPath = "include" + File.separator + "_" + federate.name + "_preamble.c";
         Path fedPreamblePath = fileConfig.getFedSrcPath().resolve(relPath);
         try (var writer = Files.newBufferedWriter(fedPreamblePath)) {
@@ -549,42 +539,9 @@ public class CExtension implements FedTargetExtension {
      */
     protected String makePreamble(
         FederateInstance federate,
+        FedFileConfig fileConfig,
         LinkedHashMap<String, Object> federationRTIProperties,
         ErrorReporter errorReporter) {
-        //        if (!IterableExtensions.isNullOrEmpty(targetConfig.protoFiles)) {
-//            // Enable support for proto serialization
-//            enabledSerializers.add(SupportedSerializers.PROTO);
-//        }
-//        for (SupportedSerializers serializer : enabledSerializers) {
-//            switch (serializer) {
-//            case NATIVE: {
-//                // No need to do anything at this point.
-//                break;
-//            }
-//            case PROTO: {
-//                // Handle .proto files.
-//                for (String file : targetConfig.protoFiles) {
-//                    this.processProtoFile(file, cancelIndicator);
-//                    var dotIndex = file.lastIndexOf(".");
-//                    var rootFilename = file;
-//                    if (dotIndex > 0) {
-//                        rootFilename = file.substring(0, dotIndex);
-//                    }
-//                    code.pr("#include " + addDoubleQuotes(rootFilename + ".pb-c.h"));
-//                }
-//                break;
-//            }
-//            case ROS2: {
-//                var ROSSerializer = new FedROS2CPPSerialization();
-//                code.pr(ROSSerializer.generatePreambleForSupport().toString());
-//                cMakeExtras = String.join("\n",
-//                                          cMakeExtras,
-//                                          ROSSerializer.generateCompilerExtensionForSupport()
-//                );
-//                break;
-//            }
-//            }
-//        }
 
         var code = new CodeBuilder();
 
@@ -601,6 +558,8 @@ public class CExtension implements FedTargetExtension {
             else return NULL;
         }
         """.formatted(numOfNetworkActions));
+
+        code.pr(CExtensionUtils.generateSerializationPreamble(federate, fileConfig));
 
         code.pr(generateExecutablePreamble(federate, federationRTIProperties, errorReporter));
 

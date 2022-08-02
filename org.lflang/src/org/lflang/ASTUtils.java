@@ -963,7 +963,7 @@ public class ASTUtils {
         } else {
             var arr = LfFactory.eINSTANCE.createArray();
             for (String s : list) {
-                arr.getElements().add(ASTUtils.toElement(s));
+                arr.getElements().add(ASTUtils.toElement("\""+s+"\""));
             }
             e.setArray(arr);
         }

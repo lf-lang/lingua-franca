@@ -1,15 +1,22 @@
 package org.lflang.federated.extensions;
 
+import static org.lflang.util.StringUtil.addDoubleQuotes;
+
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.regex.Pattern;
 
+import org.eclipse.xtext.util.CancelIndicator;
+import org.eclipse.xtext.xbase.lib.IterableExtensions;
+
 import org.lflang.ASTUtils;
+import org.lflang.ErrorReporter;
 import org.lflang.InferredType;
 import org.lflang.TargetConfig.ClockSyncOptions;
 import org.lflang.TargetProperty;
@@ -17,8 +24,11 @@ import org.lflang.TargetProperty.ClockSyncMode;
 import org.lflang.TimeValue;
 import org.lflang.federated.generator.FedFileConfig;
 import org.lflang.federated.generator.FederateInstance;
+import org.lflang.federated.serialization.FedROS2CPPSerialization;
+import org.lflang.federated.serialization.SupportedSerializers;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.generator.GeneratorBase;
+import org.lflang.generator.GeneratorCommandFactory;
 import org.lflang.generator.ReactorInstance;
 import org.lflang.generator.c.CTypes;
 import org.lflang.generator.c.CUtil;
@@ -263,10 +273,14 @@ public class CExtensionUtils {
         # Convey to the C runtime the required number of worker threads to
         # handle network input control reactions.
         target_compile_definitions(${LF_MAIN_TARGET} PUBLIC WORKERS_NEEDED_FOR_FEDERATE=%s)
+        
+        # Enable support for serializers, if needed
+        %s
         """.formatted(
             federate.targetConfig.coordination.toString().toUpperCase(),
             numOfFederates,
-            Integer.toString(federate.networkMessageActions.size()))
+            Integer.toString(federate.networkMessageActions.size()),
+            generateSerializationCMakeExtension(federate))
         );
 
         handleAdvanceMessageInterval(federate, cmakeIncludeCode);
@@ -277,7 +291,7 @@ public class CExtensionUtils {
             srcWriter.write(cmakeIncludeCode.getCode());
         }
 
-        federate.targetConfig.cmakeIncludes.add("\""+fileConfig.getFedSrcPath().relativize(cmakeIncludePath)+"\"");
+        federate.targetConfig.cmakeIncludes.add(fileConfig.getFedSrcPath().relativize(cmakeIncludePath).toString());
         federate.targetConfig.setByUser.add(TargetProperty.CMAKE_INCLUDE);
     }
 
@@ -535,5 +549,54 @@ public class CExtensionUtils {
             %s
             #endif // FEDERATED_DECENTRALIZED
             """.formatted(code);
+    }
+
+    /**
+     * Generate preamble code needed for enabled serializers of the federate.
+     */
+    public static String generateSerializationPreamble(
+        FederateInstance federate,
+        FedFileConfig fileConfig
+    ) {
+        CodeBuilder code = new CodeBuilder();
+        for (SupportedSerializers serializer : federate.enabledSerializers) {
+            switch (serializer) {
+            case NATIVE:
+            case PROTO: {
+                // No need to do anything at this point.
+                break;
+            }
+            case ROS2: {
+                var ROSSerializer = new FedROS2CPPSerialization();
+                code.pr(ROSSerializer.generatePreambleForSupport().toString());
+                break;
+            }
+            }
+        }
+        return code.getCode();
+    }
+
+    /**
+     * Generate cmake-include code needed for enabled serializers of the federate.
+     */
+    public static String generateSerializationCMakeExtension(
+        FederateInstance federate
+    ) {
+        CodeBuilder code = new CodeBuilder();
+        for (SupportedSerializers serializer : federate.enabledSerializers) {
+            switch (serializer) {
+            case NATIVE:
+            case PROTO: {
+                // No CMake code is needed for now
+                break;
+            }
+            case ROS2: {
+                var ROSSerializer = new FedROS2CPPSerialization();
+                code.pr(ROSSerializer.generateCompilerExtensionForSupport());
+                break;
+            }
+            }
+        }
+        return code.getCode();
     }
 }

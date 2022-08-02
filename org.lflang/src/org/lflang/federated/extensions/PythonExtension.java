@@ -60,17 +60,8 @@ import org.lflang.lf.VarRef;
  */
 public class PythonExtension extends CExtension {
 
-    /**
-     * FIXME
-     *
-     * @param action
-     * @param receivingPort
-     * @param connection
-     * @param type
-     * @param receiveRef
-     * @param result
-     * @param errorReporter
-     */
+
+
     @Override
     protected void deserialize(
         Action action,
@@ -101,17 +92,6 @@ public class PythonExtension extends CExtension {
         }
     }
 
-    /**
-     * FIXME
-     *
-     * @param connection
-     * @param type
-     * @param sendRef
-     * @param result
-     * @param sendingFunction
-     * @param commonArgs
-     * @param errorReporter
-     */
     @Override
     protected void serializeAndSend(
         FedConnectionInstance connection,
