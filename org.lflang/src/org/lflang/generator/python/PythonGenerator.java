@@ -40,7 +40,6 @@ import java.util.stream.Stream;
 
 import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.xtext.util.CancelIndicator;
-import org.eclipse.xtext.util.RuntimeIOException;
 import org.eclipse.xtext.xbase.lib.Exceptions;
 import org.eclipse.xtext.xbase.lib.IterableExtensions;
 
@@ -119,7 +118,7 @@ public class PythonGenerator extends CGenerator {
                     "lib/python_time.c",
                     "lib/pythontarget.c"
                 ),
-                setUpMainTargetOf(fileConfig),
+                PythonGenerator::setUpMainTarget,
                 "install(TARGETS)" // No-op
             )
         );
@@ -637,7 +636,7 @@ public class PythonGenerator extends CGenerator {
 
     @Override
     protected Docker getDockerGenerator() {
-        return new PythonDockerGenerator(isFederated, targetConfig);
+        return new org.lflang.generator.c.Docker(isFederated, false, targetConfig);
     }
 
     /**
@@ -781,7 +780,7 @@ public class PythonGenerator extends CGenerator {
     protected void setUpGeneralParameters() {
         super.setUpGeneralParameters();
         if (hasModalReactors) {
-            targetConfig.compileAdditionalSources.add("modal_models/impl.c");
+            targetConfig.compileAdditionalSources.add("lib/modal_models/impl.c");
         }
     }
 
@@ -793,8 +792,8 @@ public class PythonGenerator extends CGenerator {
         Modes.generateResetReactionsIfNeeded(reactors);
     }
 
-    private static CmakeGenerator.SetUpMainTarget setUpMainTargetOf(FileConfig fileConfig) {
-        return (boolean hasMain, String executableName, Stream<String> cSources) -> (
+    private static String setUpMainTarget(boolean hasMain, String executableName, Stream<String> cSources) {
+        return (
             """
             set(CMAKE_POSITION_INDEPENDENT_CODE ON)
             add_compile_definitions(_LF_GARBAGE_COLLECTED)

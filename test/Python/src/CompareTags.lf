@@ -10,8 +10,8 @@ main reactor CompareTags {
     timer t(0, 1 msec);
     logical action l;
     reaction(t) -> l {=
-        tag1 = lf_tag()
-        tag2 = lf_tag()
+        tag1 = lf.tag()
+        tag2 = lf.tag()
         if (lf.tag_compare(tag1, tag2) != 0 or not tag1 == tag2 or tag1 != tag2):
             self.sys.stderr.write("Tags should be equal\n")
             self.sys.exit(1)
@@ -19,7 +19,7 @@ main reactor CompareTags {
     =}
 
     reaction(l) {=
-        tag3 = lf_tag()
+        tag3 = lf.tag()
         tag1 = l.value
         if (lf.tag_compare(tag1, tag3) != -1 or not tag1 < tag3 or tag1 >= tag3):
             self.sys.stderr.write("tag1 should be lesser than tag3\n")
