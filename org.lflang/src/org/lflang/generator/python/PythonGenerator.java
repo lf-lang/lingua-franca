@@ -286,7 +286,8 @@ public class PythonGenerator extends CGenerator {
                            "                                            sources = ["
                                + String.join(", ", sources) + "],",
                            "                                            define_macros=["
-                               + String.join(", ", macros) + "])",
+                               + String.join(", ", macros) + "],",
+                           "include_dirs=[\"core\", \"core/threaded\"])",
                            "",
                            "setup(name="
                                + StringUtil.addDoubleQuotes(pyModuleName)

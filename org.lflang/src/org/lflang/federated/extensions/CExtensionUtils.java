@@ -1,22 +1,15 @@
 package org.lflang.federated.extensions;
 
-import static org.lflang.util.StringUtil.addDoubleQuotes;
-
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.regex.Pattern;
 
-import org.eclipse.xtext.util.CancelIndicator;
-import org.eclipse.xtext.xbase.lib.IterableExtensions;
-
 import org.lflang.ASTUtils;
-import org.lflang.ErrorReporter;
 import org.lflang.InferredType;
 import org.lflang.TargetConfig.ClockSyncOptions;
 import org.lflang.TargetProperty;
@@ -28,7 +21,6 @@ import org.lflang.federated.serialization.FedROS2CPPSerialization;
 import org.lflang.federated.serialization.SupportedSerializers;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.generator.GeneratorBase;
-import org.lflang.generator.GeneratorCommandFactory;
 import org.lflang.generator.ReactorInstance;
 import org.lflang.generator.c.CTypes;
 import org.lflang.generator.c.CUtil;
@@ -244,66 +236,30 @@ public class CExtensionUtils {
         return !type.isUndefined() && sharedPointerVariable.matcher(types.getTargetType(type)).find();
     }
 
-    /**
-     * Generate a file to be included by CMake
-     *
-     * @param numOfFederates
-     * @param fileConfig
-     * @param federate
-     */
-    public static void generateCMakeInclude(
-        int numOfFederates,
-        FedFileConfig fileConfig,
+    public static void handleCompileDefinitions(
         FederateInstance federate,
+        int numOfFederates,
         LinkedHashMap<String, Object> federationRTIProperties
-    ) throws IOException {
-        Files.createDirectories(fileConfig.getFedSrcPath().resolve("include"));
+    ) {
+        federate.targetConfig.setByUser.add(TargetProperty.COMPILE_DEFINITIONS);
+        federate.targetConfig.compileDefinitions.put("FEDERATED", "");
+        federate.targetConfig.compileDefinitions.put("FEDERATED_"+federate.targetConfig.coordination.toString().toUpperCase(), "");
+        federate.targetConfig.compileDefinitions.put("NUMBER_OF_FEDERATES", String.valueOf(numOfFederates));
+        federate.targetConfig.compileDefinitions.put("EXECUTABLE_PREAMBLE", "");
+        federate.targetConfig.compileDefinitions.put("WORKERS_NEEDED_FOR_FEDERATE", String.valueOf(federate.networkMessageActions.size()));
 
-        Path cmakeIncludePath = fileConfig.getFedSrcPath()
-                                          .resolve("include" + File.separator + federate.name + "_extension.cmake");
+        handleAdvanceMessageInterval(federate);
 
-        CodeBuilder cmakeIncludeCode = new CodeBuilder();
-
-        cmakeIncludeCode.pr("""
-        target_compile_definitions(${LF_MAIN_TARGET} PUBLIC FEDERATED)
-        target_compile_definitions(${LF_MAIN_TARGET} PUBLIC FEDERATED_%s)
-        target_compile_definitions(${LF_MAIN_TARGET} PUBLIC NUMBER_OF_FEDERATES=%s)
-        target_compile_definitions(${LF_MAIN_TARGET} PUBLIC EXECUTABLE_PREAMBLE)
-                    
-        # Convey to the C runtime the required number of worker threads to
-        # handle network input control reactions.
-        target_compile_definitions(${LF_MAIN_TARGET} PUBLIC WORKERS_NEEDED_FOR_FEDERATE=%s)
-        
-        # Enable support for serializers, if needed
-        %s
-        """.formatted(
-            federate.targetConfig.coordination.toString().toUpperCase(),
-            numOfFederates,
-            Integer.toString(federate.networkMessageActions.size()),
-            generateSerializationCMakeExtension(federate))
-        );
-
-        handleAdvanceMessageInterval(federate, cmakeIncludeCode);
-
-        initializeClockSynchronization(federate, federationRTIProperties, cmakeIncludeCode);
-
-        try (var srcWriter = Files.newBufferedWriter(cmakeIncludePath)) {
-            srcWriter.write(cmakeIncludeCode.getCode());
-        }
-
-        federate.targetConfig.cmakeIncludes.add(fileConfig.getFedSrcPath().relativize(cmakeIncludePath).toString());
-        federate.targetConfig.setByUser.add(TargetProperty.CMAKE_INCLUDE);
+        initializeClockSynchronization(federate, federationRTIProperties);
     }
 
-    private static void handleAdvanceMessageInterval(FederateInstance federate, CodeBuilder cmakeIncludeCode) {
+    private static void handleAdvanceMessageInterval(FederateInstance federate) {
         var advanceMessageInterval = federate.targetConfig.coordinationOptions.advance_message_interval;
         federate.targetConfig.setByUser.remove(TargetProperty.COORDINATION_OPTIONS);
         if (advanceMessageInterval != null) {
-            cmakeIncludeCode.pr(
-                "target_compile_definitions(${LF_MAIN_TARGET} PUBLIC ADVANCE_MESSAGE_INTERVAL=%s)"
-                    .formatted(
-                        advanceMessageInterval.toNanoSeconds()
-                    )
+            federate.targetConfig.compileDefinitions.put(
+                "ADVANCE_MESSAGE_INTERVAL",
+                String.valueOf(advanceMessageInterval.toNanoSeconds())
             );
         }
     }
@@ -322,8 +278,7 @@ public class CExtensionUtils {
      */
     public static void initializeClockSynchronization(
         FederateInstance federate,
-        LinkedHashMap<String, Object> federationRTIProperties,
-        CodeBuilder cmakeIncludeCode
+        LinkedHashMap<String, Object> federationRTIProperties
     ) {
         // Check if clock synchronization should be enabled for this federate in the first place
         if (clockSyncIsOn(federate, federationRTIProperties)) {
@@ -345,12 +300,7 @@ public class CExtensionUtils {
                 );
             }
 
-            cmakeIncludeCode.pr(
-                CExtensionUtils.generateClockSyncCmakeDirectives(
-                    federate.targetConfig.clockSync,
-                    federate.targetConfig.clockSyncOptions
-                )
-            );
+            addClockSyncCompileDefinitions(federate);
         }
     }
 
@@ -361,30 +311,52 @@ public class CExtensionUtils {
      * Clock synchronization can be enabled using the clock-sync target property.
      * @see <a href="https://github.com/icyphy/lingua-franca/wiki/Distributed-Execution#clock-synchronization">Documentation</a>
      */
-    public static String generateClockSyncCmakeDirectives(
-        ClockSyncMode mode,
-        ClockSyncOptions options
-    ) {
-        CodeBuilder code = new CodeBuilder();
+    public static void addClockSyncCompileDefinitions(FederateInstance federate) {
 
-        String definition = "target_compile_definitions(${LF_MAIN_TARGET} PUBLIC %s)";
+        ClockSyncMode mode = federate.targetConfig.clockSync;
+        ClockSyncOptions options = federate.targetConfig.clockSyncOptions;
 
-        code.pr(
-            String.join(
-                "\n",
-                definition.formatted("_LF_CLOCK_SYNC_INITIAL"),
-                definition.formatted("_LF_CLOCK_SYNC_PERIOD_NS "+ options.period.toNanoSeconds()),
-                definition.formatted("_LF_CLOCK_SYNC_EXCHANGES_PER_INTERVAL "+options.trials),
-                definition.formatted("_LF_CLOCK_SYNC_ATTENUATION "+options.attenuation)
-            )
-        );
+
+        federate.targetConfig.compileDefinitions.put("_LF_CLOCK_SYNC_INITIAL", "");
+        federate.targetConfig.compileDefinitions.put("_LF_CLOCK_SYNC_PERIOD_NS", String.valueOf(options.period.toNanoSeconds()));
+        federate.targetConfig.compileDefinitions.put("_LF_CLOCK_SYNC_EXCHANGES_PER_INTERVAL", String.valueOf(options.trials));
+        federate.targetConfig.compileDefinitions.put("_LF_CLOCK_SYNC_ATTENUATION", String.valueOf(options.attenuation));
+
         if (mode == ClockSyncMode.ON) {
-            code.pr(definition.formatted("_LF_CLOCK_SYNC_ON"));
+            federate.targetConfig.compileDefinitions.put("_LF_CLOCK_SYNC_ON", "");
             if (options.collectStats) {
-                code.pr(definition.formatted("_LF_CLOCK_SYNC_COLLECT_STATS"));
+                federate.targetConfig.compileDefinitions.put("_LF_CLOCK_SYNC_COLLECT_STATS", "");
             }
         }
-        return code.getCode();
+    }
+
+
+    /**
+     * Generate a file to be included by CMake
+     *
+     * @param numOfFederates
+     * @param fileConfig
+     * @param federate
+     */
+    public static void generateCMakeInclude(
+        FederateInstance federate,
+        FedFileConfig fileConfig
+    ) throws IOException {
+        Files.createDirectories(fileConfig.getFedSrcPath().resolve("include"));
+
+        Path cmakeIncludePath = fileConfig.getFedSrcPath()
+                                          .resolve("include" + File.separator + federate.name + "_extension.cmake");
+
+        CodeBuilder cmakeIncludeCode = new CodeBuilder();
+
+        cmakeIncludeCode.pr(generateSerializationCMakeExtension(federate));
+
+        try (var srcWriter = Files.newBufferedWriter(cmakeIncludePath)) {
+            srcWriter.write(cmakeIncludeCode.getCode());
+        }
+
+        federate.targetConfig.cmakeIncludes.add(fileConfig.getFedSrcPath().relativize(cmakeIncludePath).toString());
+        federate.targetConfig.setByUser.add(TargetProperty.CMAKE_INCLUDE);
     }
 
 

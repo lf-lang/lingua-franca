@@ -209,7 +209,17 @@ public enum TargetProperty {
             (config, value, err) -> {
                 config.compiler = ASTUtils.elementToSingleString(value);
             }),
-    
+
+    /**
+     * Directive to specify compile-time definitions.
+     */
+    COMPILE_DEFINITIONS("compile-definitions", StringDictionaryType.COMPILE_DEFINITION,
+            Arrays.asList(Target.C, Target.CCPP, Target.Python),
+            (config) -> ASTUtils.toElement(config.compileDefinitions),
+            (config, value, err) -> {
+                config.compileDefinitions = ASTUtils.elementToStringMaps(value);
+            }),
+
     /**
      * Directive to generate a Dockerfile. This is either a boolean,
      * true or false, or a dictionary of options.
@@ -929,7 +939,37 @@ public enum TargetProperty {
 
     // Inner classes for the various supported types.
 
+    /**
+     * Dictionary type that allows for keys that will be interpreted as strings
+     * and string values.
+     */
+    public enum StringDictionaryType implements TargetPropertyType {
+        COMPILE_DEFINITION();
+        @Override
+        public boolean validate(Element e) {
+            if (e.getKeyvalue() != null) {
+                return true;
+            }
+            return false;
+        }
 
+        @Override
+        public void check(Element e, String name, LFValidator v) {
+            KeyValuePairs kv = e.getKeyvalue();
+            if (kv == null) {
+                TargetPropertyType.produceError(name, this.toString(), v);
+            } else {
+                for (KeyValuePair pair : kv.getPairs()) {
+                    String key = pair.getName();
+                    Element val = pair.getValue();
+
+                    // Make sure the type is string
+                    PrimitiveType.STRING.check(val, name + "." + key, v);
+                }
+            }
+
+        }
+    }
 
     /**
      * Interface for dictionary elements. It associates an entry with a type.
@@ -1404,11 +1444,7 @@ public enum TargetProperty {
          * 
          * @param e      The element to type check.
          * @param name   The name of the target property.
-<<<<<<< HEAD
          * @param v      The LFValidator to append errors to.
-=======
-         * @param v      The validator to which any errors should be reported.
->>>>>>> origin/pretty-printer
          */
         public void check(Element e, String name, LFValidator v) {
             if (!this.validate(e)) {

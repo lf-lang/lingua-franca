@@ -105,7 +105,9 @@ public class CExtension implements FedTargetExtension {
             return;
         }
 
-        CExtensionUtils.generateCMakeInclude(numOfFederates, fileConfig, federate, federationRTIProperties);
+        CExtensionUtils.handleCompileDefinitions(federate, numOfFederates, federationRTIProperties);
+
+        generateCMakeInclude(federate, fileConfig);
 
         federate.targetConfig.fileNames.add("\"include/federated\"");
         federate.targetConfig.setByUser.add(TargetProperty.FILES);
@@ -132,6 +134,13 @@ public class CExtension implements FedTargetExtension {
         String relPath = "include" + File.separator + "_" + federate.name + "_preamble.c";
         federate.targetConfig.fedSetupPreamble = relPath;
         federate.targetConfig.setByUser.add(TargetProperty.FED_SETUP);
+    }
+
+    /**
+     * Generate a cmake-include file for {@code federate} if needed.
+     */
+    protected void generateCMakeInclude(FederateInstance federate, FedFileConfig fileConfig) throws IOException {
+        CExtensionUtils.generateCMakeInclude(federate, fileConfig);
     }
 
     /**

@@ -60,7 +60,8 @@ import org.lflang.lf.VarRef;
  */
 public class PythonExtension extends CExtension {
 
-
+    @Override
+    protected void generateCMakeInclude(FederateInstance federate, FedFileConfig fileConfig) throws IOException {}
 
     @Override
     protected void deserialize(

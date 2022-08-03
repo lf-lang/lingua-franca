@@ -27,6 +27,7 @@ package org.lflang;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -938,7 +939,44 @@ public class ASTUtils {
         return elements;
     }
 
+    /**
+     * Convert key-value pairs in an Element to a map, assuming that both the key
+     * and the value are strings.
+     */
+    public static Map<String, String> elementToStringMaps(Element value) {
+        Map<String, String> elements = new HashMap<>();
+        for (var element: value.getKeyvalue().getPairs()) {
+            elements.put(
+                element.getName().trim(),
+                StringUtil.removeQuotes(elementToSingleString(element.getValue()))
+            );
+        }
+        return elements;
+    }
+
     // Various utility methods to convert various data types to Elements
+
+    /**
+     * Convert a <String, String> map to key-value pairs in an Element.
+     */
+    public static Element toElement(Map<String, String> map) {
+        Element e = LfFactory.eINSTANCE.createElement();
+        if (map.size() == 0) return null;
+        else {
+            var kv = LfFactory.eINSTANCE.createKeyValuePairs();
+            for (var entry : map.entrySet()) {
+                var pair = LfFactory.eINSTANCE.createKeyValuePair();
+                pair.setName(entry.getKey());
+                var element = LfFactory.eINSTANCE.createElement();
+                element.setLiteral(StringUtil.addDoubleQuotes(entry.getValue()));
+                pair.setValue(element);
+                kv.getPairs().add(pair);
+            }
+            e.setKeyvalue(kv);
+        }
+
+        return e;
+    }
 
     /**
      * Given a single string, convert it into its AST representation.
@@ -963,7 +1001,7 @@ public class ASTUtils {
         } else {
             var arr = LfFactory.eINSTANCE.createArray();
             for (String s : list) {
-                arr.getElements().add(ASTUtils.toElement("\""+s+"\""));
+                arr.getElements().add(ASTUtils.toElement(StringUtil.addDoubleQuotes(s)));
             }
             e.setArray(arr);
         }
