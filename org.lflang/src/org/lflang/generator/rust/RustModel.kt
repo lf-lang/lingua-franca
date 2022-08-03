@@ -409,14 +409,10 @@ private val BLOCK_R = Regex("\\{(.*)}", RegexOption.DOT_MATCHES_ALL)
  */
 object RustModelBuilder {
 
-    private val runtimeGitRevision =
-        javaClass.getResourceAsStream("rust-runtime-version.txt")!!
-            .bufferedReader().readLine().trim()
-
     /**
      * Given the input to the generator, produce the model classes.
      */
-    fun makeGenerationInfo(targetConfig: TargetConfig, reactors: List<Reactor>, errorReporter: ErrorReporter): GenerationInfo {
+    fun makeGenerationInfo(targetConfig: TargetConfig, fileConfig: RustFileConfig, reactors: List<Reactor>, errorReporter: ErrorReporter): GenerationInfo {
         val reactorsInfos = makeReactorInfos(reactors)
         // todo how do we pick the main reactor? it seems like super.doGenerate sets that field...
         val mainReactor = reactorsInfos.lastOrNull { it.isMain } ?: reactorsInfos.last()
@@ -424,7 +420,7 @@ object RustModelBuilder {
 
         val dependencies = targetConfig.rust.cargoDependencies.toMutableMap()
         dependencies.compute(RustEmitterBase.runtimeCrateFullName) { _, spec ->
-            computeDefaultRuntimeConfiguration(spec, targetConfig, errorReporter)
+            computeDefaultRuntimeConfiguration(spec, targetConfig, fileConfig, errorReporter)
         }
 
         return GenerationInfo(
@@ -452,8 +448,10 @@ object RustModelBuilder {
     private fun computeDefaultRuntimeConfiguration(
         userSpec: CargoDependencySpec?,
         targetConfig: TargetConfig,
+        fileConfig: RustFileConfig,
         errorReporter: ErrorReporter
     ): CargoDependencySpec {
+        val defaultRuntimePath = fileConfig.srcGenBasePath.resolve(RustGenerator.runtimeName).toString()
         if (userSpec == null) {
             // default configuration for the runtime crate
 
@@ -462,26 +460,23 @@ object RustModelBuilder {
             val parallelFeature = listOf(PARALLEL_RT_FEATURE).takeIf { targetConfig.threading }
 
             val spec = newCargoSpec(
-                gitTag = userRtVersion?.let { "v$it" },
                 features = parallelFeature,
             )
 
             if (targetConfig.externalRuntimePath != null) {
                 spec.localPath = targetConfig.externalRuntimePath
-            } else {
+            } else if (userRtVersion != null){
                 spec.gitRepo = RustEmitterBase.runtimeGitUrl
-                spec.rev = runtimeGitRevision.takeIf { userRtVersion == null }
+                spec.rev = userRtVersion
+            } else {
+                spec.localPath = defaultRuntimePath
             }
 
             return spec
         } else {
             if (userSpec.localPath == null && userSpec.gitRepo == null) {
                 // default the location
-                userSpec.gitRepo = RustEmitterBase.runtimeGitUrl
-            }
-            if (userSpec.version == null && userSpec.tag == null && userSpec.rev == null) {
-                // default the version
-                userSpec.rev = runtimeGitRevision
+                userSpec.localPath = defaultRuntimePath
             }
 
             // override location
@@ -698,7 +693,7 @@ private val TypeParm.identifier: String
  */
 val BuildType.cargoProfileName: String
     get() = when (this) {
-        BuildType.DEBUG             -> "dev"
+        BuildType.DEBUG             -> "debug"
         BuildType.RELEASE           -> "release"
         BuildType.REL_WITH_DEB_INFO -> "release-with-debug-info"
         BuildType.MIN_SIZE_REL      -> "release-with-min-size"

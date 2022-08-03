@@ -15,7 +15,7 @@ jobs:
     strategy:
       matrix:
         platform: [ubuntu-latest, macos-latest, windows-latest]
-        rust: [nightly]
+        rust: [stable]
     runs-on: ${{ matrix.platform }}
     steps:
       - name: Check out lingua-franca repository
