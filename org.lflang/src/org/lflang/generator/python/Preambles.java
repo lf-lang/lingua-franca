@@ -40,12 +40,12 @@ public class Preambles {
         boolean clockSyncIsOn,
         boolean hasModalReactors
     ) {
+        // TODO: Delete all of this. It is not used.
         CodeBuilder code = new CodeBuilder();
         code.pr(org.lflang.generator.c.Preambles.generateDefineDirectives(
             targetConfig, numFederates, isFederated,
             srcGenPath, clockSyncIsOn, hasModalReactors)
         );
-        code.pr("#define _LF_GARBAGE_COLLECTED");
         return code.toString();
     }
 

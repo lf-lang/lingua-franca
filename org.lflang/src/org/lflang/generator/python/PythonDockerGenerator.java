@@ -27,11 +27,11 @@ public class PythonDockerGenerator extends Docker {
         return String.join("\n",
             "# For instructions, see: https://github.com/icyphy/lingua-franca/wiki/Containerized-Execution",
             "FROM "+baseImage,
-            "WORKDIR /lingua-franca/"+generatorData.getLfModuleName(),
+            "WORKDIR /lingua-franca/"+generatorData.lfModuleName(),
             "RUN set -ex && apt-get update && apt-get install -y python3-pip",
             "COPY . src-gen",
             "RUN cd src-gen && python3 setup.py install && cd ..",
-            "ENTRYPOINT [\"python3\", \"src-gen/"+generatorData.getLfModuleName()+".py\"]"
+            "ENTRYPOINT [\"python3\", \"src-gen/"+generatorData.lfModuleName()+".py\"]"
         );
     }
 }

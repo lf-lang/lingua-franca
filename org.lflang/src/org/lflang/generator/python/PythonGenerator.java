@@ -556,11 +556,6 @@ public class PythonGenerator extends CGenerator {
             targetConfig.threading = false;
         }
         int cGeneratedPercentProgress = (IntegratedBuilder.VALIDATED_PERCENT_PROGRESS + 100) / 2;
-        try {
-            copyTargetFiles();
-        } catch (IOException e) {
-            throw new RuntimeIOException(e);
-        }
         super.doGenerate(resource, new SubContext(
             context,
             IntegratedBuilder.VALIDATED_PERCENT_PROGRESS,
@@ -812,15 +807,15 @@ public class PythonGenerator extends CGenerator {
             """
             + cSources.collect(Collectors.joining("\n    ", "    ", "\n"))
             + """
-                <fileConfig.name>.c
+                executableName.c
             )
             set_target_properties(${LF_MAIN_TARGET} PROPERTIES PREFIX "")
             find_package(PythonLibs REQUIRED)
             include_directories(${PYTHON_INCLUDE_DIRS})
             target_compile_definitions(${LF_MAIN_TARGET} PUBLIC MODULE_NAME=<pyModuleName>)
             """
-            ).replace("<pyModuleName>", generatePythonModuleName(fileConfig.name))
-            .replace("<fileConfig.name>", fileConfig.name);
+            ).replace("<pyModuleName>", generatePythonModuleName(executableName))
+            .replace("executableName", executableName);
         // The use of fileConfig.name will break federated execution, but that's fine
     }
 
@@ -853,9 +848,9 @@ public class PythonGenerator extends CGenerator {
     /**
      * Copy Python specific target code to the src-gen directory
      */
-    private void copyTargetFiles() throws IOException {
-        // Copy the required target language files into the target file system.
-        // This will also overwrite previous versions.
+    @Override
+    protected void copyTargetFiles() throws IOException {
+        super.copyTargetFiles();
         FileUtil.copyDirectoryFromClassPath(
             "/lib/py/reactor-c-py/include",
             fileConfig.getSrcGenPath().resolve("include"),

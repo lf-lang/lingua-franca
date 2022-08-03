@@ -35,6 +35,7 @@ import java.util.stream.Stream;
 
 import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
+import org.lflang.Target;
 import org.lflang.TargetConfig;
 import org.lflang.generator.GeneratorBase;
 import org.lflang.generator.GeneratorCommandFactory;
@@ -188,26 +189,8 @@ public class CCompiler {
         // Set the build directory to be "build"
         Path buildPath = fileConfig.getSrcGenPath().resolve("build");
 
-        Stream<String> arguments = Stream.concat(
-            targetConfig.compileDefinitions.entrySet().stream()
-                .map(entry -> "-D" + entry.getKey() + "=" + entry.getValue()),
-                Stream.of(
-                    "-DCMAKE_INSTALL_PREFIX=" + FileUtil.toUnixString(fileConfig.getOutPath()),
-                    "-DCMAKE_INSTALL_BINDIR=" + FileUtil.toUnixString(
-                        fileConfig.getOutPath().relativize(
-                            fileConfig.binPath
-                        )
-                    ),
-                    FileUtil.toUnixString(fileConfig.getSrcGenPath())
-                )
-        );
-
-        if (GeneratorUtils.isHostWindows()) {
-            arguments = Stream.concat(arguments, Stream.of("-DCMAKE_SYSTEM_VERSION=\"10.0\""));
-        }
-
         LFCommand command = commandFactory.createCommand(
-                "cmake", arguments.toList(),
+                "cmake", cmakeOptions(targetConfig, fileConfig),
                 buildPath);
         if (command == null) {
             errorReporter.reportError(
@@ -215,6 +198,27 @@ public class CCompiler {
                             "Auto-compiling can be disabled using the \"no-compile: true\" target property.");
         }
         return command;
+    }
+
+    static List<String> cmakeOptions(TargetConfig targetConfig, FileConfig fileConfig) {
+        Stream<String> arguments = Stream.concat(
+            targetConfig.compileDefinitions.entrySet().stream()
+                .map(entry -> "-D" + entry.getKey() + "=" + entry.getValue()),
+            Stream.of(
+                "-DCMAKE_INSTALL_PREFIX=" + FileUtil.toUnixString(fileConfig.getOutPath()),
+                "-DCMAKE_INSTALL_BINDIR=" + FileUtil.toUnixString(
+                    fileConfig.getOutPath().relativize(
+                        fileConfig.binPath
+                    )
+                ),
+                FileUtil.toUnixString(fileConfig.getSrcGenPath())
+            )
+        );
+
+        if (GeneratorUtils.isHostWindows()) {
+            arguments = Stream.concat(arguments, Stream.of("-DCMAKE_SYSTEM_VERSION=\"10.0\""));
+        }
+        return arguments.toList();
     }
 
 
