@@ -11,12 +11,12 @@ reactor PhysicalPlant {
     reaction(t) -> sensor {=
         SET(sensor, 42);
         self->previous_sensor_time = self->last_sensor_time;
-        self->last_sensor_time = get_physical_time();
+        self->last_sensor_time = lf_time_physical();
     =}
     reaction(control) {=
-        instant_t control_time = get_physical_time();
+        instant_t control_time = lf_time_physical();
         lf_print("Latency %lld.", control_time - self->previous_sensor_time);
-        lf_print("Logical time: %lld.", get_elapsed_logical_time());
+        lf_print("Logical time: %lld.", lf_time_logical_elapsed());
     =} STP(33 msec) {=
         lf_print_warning("STP violation.");
     =}
