@@ -21,7 +21,7 @@ import static org.lflang.generator.c.CGenerator.variableStructType;
  * @author {Soroush Bateni <soroush@utdallas.edu>}
  * @author {Hou Seng Wong <housengw@berkeley.edu>}
  */
-public class CPortGenerator {
+public class Ports {
     /**
      * Generate fields in the self struct for input and output ports
      *

@@ -10,7 +10,7 @@ import org.lflang.generator.TimerInstance;
  * @author {Edward A. Lee <eal@berkeley.edu>}
  * @author {Soroush Bateni <soroush@utdallas.edu>
  */
-public class CTimerGenerator {
+public class Timers {
     /**
      * Generate code to initialize the given timer.
      *

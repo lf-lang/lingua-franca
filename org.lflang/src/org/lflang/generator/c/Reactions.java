@@ -35,7 +35,7 @@ import org.lflang.lf.VarRef;
 import org.lflang.lf.Variable;
 import org.lflang.util.StringUtil;
 
-public class CReactionGenerator {
+public class Reactions {
     protected static String DISABLE_REACTION_INITIALIZATION_MARKER
         = "// **** Do not include initialization code in this reaction.";
 
@@ -227,7 +227,7 @@ public class CReactionGenerator {
         // Next generate all the collected setup code.
         code.pr(reactionInitialization.toString());
         code.pr("#pragma GCC diagnostic pop");
-        
+
         return code.toString();
     }
 
@@ -782,7 +782,7 @@ public class CReactionGenerator {
                 // self->_lf__reaction_"+reactionCount+".is_STP_violated = false;
                 constructorCode.pr(reaction, String.join("\n",
                     "self->_lf__reaction_"+reactionCount+".number = "+reactionCount+";",
-                    "self->_lf__reaction_"+reactionCount+".function = "+CReactionGenerator.generateReactionFunctionName(decl, reactionCount)+";",
+                    "self->_lf__reaction_"+reactionCount+".function = "+ Reactions.generateReactionFunctionName(decl, reactionCount)+";",
                     "self->_lf__reaction_"+reactionCount+".self = self;",
                     "self->_lf__reaction_"+reactionCount+".deadline_violation_handler = "+deadlineFunctionPointer+";",
                     "self->_lf__reaction_"+reactionCount+".STP_handler = "+STPFunctionPointer+";",
@@ -811,7 +811,7 @@ public class CReactionGenerator {
                 constructorCode.pr("self->_lf__"+timer.getName()+".intended_tag = (tag_t) { .time = NEVER, .microstep = 0u};");
             }
         }
-        
+
         // Handle builtin triggers.
         if (startupReactions.size() > 0) {
             generateBuiltinTriggerdReactionsArray(startupReactions, "startup", body, constructorCode, isFederatedAndDecentralized);
@@ -929,11 +929,11 @@ public class CReactionGenerator {
     public static void generateBuiltinTriggerdReactionsArray(
             Set<Integer> reactions,
             String name,
-            CodeBuilder body, 
+            CodeBuilder body,
             CodeBuilder constructorCode,
             boolean isFederatedAndDecentralized
     ) {
-        body.pr(String.join("\n", 
+        body.pr(String.join("\n",
             "trigger_t _lf__"+name+";",
             "reaction_t* _lf__"+name+"_reactions["+reactions.size()+"];"
         ));
@@ -944,14 +944,14 @@ public class CReactionGenerator {
         for (Integer reactionIndex : reactions) {
             constructorCode.pr("self->_lf__"+name+"_reactions["+i+++"] = &self->_lf__reaction_"+reactionIndex+";");
         }
-        constructorCode.pr(String.join("\n", 
+        constructorCode.pr(String.join("\n",
             "self->_lf__"+name+".last = NULL;",
             "self->_lf__"+name+".reactions = &self->_lf__"+name+"_reactions[0];",
             "self->_lf__"+name+".number_of_reactions = "+reactions.size()+";",
             "self->_lf__"+name+".is_timer = false;"
         ));
     }
-    
+
     public static String generateBuiltinTriggersTable(int reactionCount, String name) {
         return String.join("\n", List.of(
             "// Array of pointers to "+name+" triggers.",
@@ -1039,7 +1039,7 @@ public class CReactionGenerator {
         s.append("}\n");
         return s.toString();
     }
-    
+
     /**
      * Generate the _lf_handle_mode_triggered_reactions function.
      */
@@ -1097,7 +1097,7 @@ public class CReactionGenerator {
         code.pr(
             "#include " + StringUtil.addDoubleQuotes(
                 CCoreFilesUtils.getCTargetSetHeader()));
-        CMethodGenerator.generateMacrosForMethods(ASTUtils.toDefinition(decl), code);
+        Methods.generateMacrosForMethods(ASTUtils.toDefinition(decl), code);
         code.pr(generateFunction(
             generateReactionFunctionHeader(decl, reactionIndex),
             init, reaction.getCode()
@@ -1118,7 +1118,7 @@ public class CReactionGenerator {
                 generateDeadlineFunctionHeader(decl, reactionIndex),
                 init, reaction.getDeadline().getCode()));
         }
-        CMethodGenerator.generateMacroUndefsForMethods(ASTUtils.toDefinition(decl), code);
+        Methods.generateMacroUndefsForMethods(ASTUtils.toDefinition(decl), code);
         code.pr(
             "#include " + StringUtil.addDoubleQuotes(
                 CCoreFilesUtils.getCTargetSetUndefHeader()));

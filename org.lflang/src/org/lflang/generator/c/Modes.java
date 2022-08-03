@@ -16,7 +16,7 @@ import org.lflang.lf.Reactor;
  * @author {Alexander Schulz-Rosengarten <als@informatik.uni-kiel.de>}
  * @author {Hou Seng Wong <housengw@berkeley.edu>}
  */
-public class CModesGenerator {
+public class Modes {
     /**
      * Generate fields in the self struct for mode instances
      *
@@ -95,10 +95,10 @@ public class CModesGenerator {
         }
         return "";
     }
-    
+
     /**
      * Generate counter variable declarations used for registering modal reactors.
-     * 
+     *
      * @param hasModalReactors True if there is modal model reactors, false otherwise
      */
     public static String generateModalInitalizationCounters(boolean hasModalReactors) {
@@ -110,10 +110,10 @@ public class CModesGenerator {
         }
         return "";
     }
-    
+
     /**
      * Generate code for modal reactor registration and hierarchy.
-     * 
+     *
      * @param instance The reactor instance.
      * @param code The code builder.
      */
@@ -124,7 +124,7 @@ public class CModesGenerator {
         if (parentMode != null) {
             var parentModeRef = "&"+CUtil.reactorRef(parentMode.getParent())+"->_lf__modes["+parentMode.getParent().modes.indexOf(parentMode)+"]";
             code.pr("// Setup relation to enclosing mode");
-    
+
             // If this reactor does not have its own modes, all reactions must be linked to enclosing mode
             if (instance.modes.isEmpty()) {
                 int i = 0;
@@ -145,10 +145,10 @@ public class CModesGenerator {
             code.pr("_lf_modal_reactor_states[_lf_modal_reactor_states_count++] = &((self_base_t*)"+nameOfSelfStruct+")->_lf__mode_state;");
         }
     }
-    
+
     /**
      * Generate code registering a state variable for automatic reset.
-     * 
+     *
      * @param modeRef The code to refer to the mode
      * @param selfRef The code to refer to the self struct
      * @param varName The variable name in the self struct
@@ -198,17 +198,17 @@ public class CModesGenerator {
             "}"
         );
     }
-    
+
     /**
      * Generate code to call `_lf_initialize_modes`.
-     * 
+     *
      * @param hasModalReactors True if there is modal model reactors, false otherwise
      */
     public static String generateLfInitializeModes(boolean hasModalReactors) {
         if (!hasModalReactors) {
             return "";
         }
-        return String.join("\n", 
+        return String.join("\n",
             "void _lf_initialize_modes() {",
             "    _lf_initialize_mode_states(",
             "        _lf_modal_reactor_states, ",

@@ -6,12 +6,12 @@ import org.lflang.TargetConfig;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.util.StringUtil;
 
-public class CMainGenerator {
+public class MainFunction {
     private TargetConfig targetConfig;
     /** The command to run the generated code if specified in the target directive. */
     private List<String> runCommand;
 
-    public CMainGenerator(TargetConfig targetConfig) {
+    public MainFunction(TargetConfig targetConfig) {
         this.targetConfig = targetConfig;
         runCommand = new ArrayList<>();
         parseTargetParameters();

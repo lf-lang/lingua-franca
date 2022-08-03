@@ -28,7 +28,7 @@ import static org.lflang.util.StringUtil.addDoubleQuotes;
  * @author Alexander Schulz-Rosengarten <als@informatik.uni-kiel.de>
  * @author Hou Seng Wong <housengw@berkeley.edu>
  */
-public class CPreambleGenerator {
+public class Preambles {
     /** Add necessary source files specific to the target language.  */
     public static String generateIncludeStatements(
         TargetConfig targetConfig,

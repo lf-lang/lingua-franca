@@ -6,7 +6,6 @@ import java.util.List;
 import org.lflang.ASTUtils;
 import org.lflang.TargetConfig;
 import org.lflang.generator.CodeBuilder;
-import org.lflang.generator.c.CPreambleGenerator;
 import org.lflang.lf.Preamble;
 
 
@@ -18,8 +17,7 @@ import org.lflang.lf.Preamble;
  * @author {Soroush Bateni <soroush@utdallas.edu>}
  * @author {Hou Seng Wong <housengw@berkeley.edu>}
  */
-
-public class PythonPreambleGenerator {
+public class Preambles {
     /**
      * Generates preambles defined by user for a given reactor.
      * The preamble code is put inside the reactor class.
@@ -43,7 +41,7 @@ public class PythonPreambleGenerator {
         boolean hasModalReactors
     ) {
         CodeBuilder code = new CodeBuilder();
-        code.pr(CPreambleGenerator.generateDefineDirectives(
+        code.pr(org.lflang.generator.c.Preambles.generateDefineDirectives(
             targetConfig, numFederates, isFederated,
             srcGenPath, clockSyncIsOn, hasModalReactors)
         );
@@ -58,7 +56,7 @@ public class PythonPreambleGenerator {
         boolean hasModalReactors
     ) {
         CodeBuilder code = new CodeBuilder();
-        code.pr(CPreambleGenerator.generateIncludeStatements(targetConfig, CCppMode, isFederated));
+        code.pr(org.lflang.generator.c.Preambles.generateIncludeStatements(targetConfig, CCppMode, isFederated));
         code.pr("#include \"pythontarget.h\"");
         if (hasModalReactors) {
             code.pr("#include \"modal_models/definitions.h\"");

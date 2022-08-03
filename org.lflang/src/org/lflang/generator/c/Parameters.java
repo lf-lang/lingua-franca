@@ -8,8 +8,8 @@ import org.lflang.generator.CodeBuilder;
 import org.lflang.generator.GeneratorBase;
 import org.lflang.lf.Assignment;
 import org.lflang.lf.Expression;
-import org.lflang.lf.ParameterReference;
 import org.lflang.lf.Parameter;
+import org.lflang.lf.ParameterReference;
 import org.lflang.lf.Reactor;
 
 /**
@@ -19,7 +19,7 @@ import org.lflang.lf.Reactor;
  * @author {Soroush Bateni <soroush@utdallas.edu>}
  * @author {Hou Seng Wong <housengw@berkeley.edu>}
  */
-public class CParameterGenerator {
+public class Parameters {
     /**
      * Return a C expression that can be used to initialize the specified
      * parameter instance. If the parameter initializer refers to other

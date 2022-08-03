@@ -4,7 +4,7 @@ import org.lflang.lf.Action;
 import org.lflang.lf.ReactorDecl;
 import org.lflang.generator.c.CGenerator;
 
-public class PythonActionGenerator {
+public class Actions {
     public static String generateAliasTypeDef(ReactorDecl decl, Action action,
                                               String genericActionType) {
 

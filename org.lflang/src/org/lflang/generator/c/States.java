@@ -12,7 +12,7 @@ import org.lflang.lf.ParameterReference;
 import org.lflang.lf.Reactor;
 import org.lflang.lf.StateVar;
 
-public class CStateGenerator {
+public class States {
     /**
      * Generate code for state variables of a reactor in the form "stateVar.type stateVar.name;"
      * @param reactor The reactor
@@ -96,7 +96,7 @@ public class CStateGenerator {
         if (ASTUtils.isOfTimeType(stateVar) ||
             ASTUtils.isParameterized(stateVar) &&
             stateVar.getInit().size() > 0) {
-            return CModesGenerator.generateStateResetStructure(
+            return Modes.generateStateResetStructure(
                 modeRef, selfRef,
                 stateVar.getName(),
                 initExpr, type);
@@ -109,7 +109,7 @@ public class CStateGenerator {
             code.pr("{ // For scoping");
             code.indent();
             code.pr("static "+declaration+" = "+initExpr+";");
-            code.pr(CModesGenerator.generateStateResetStructure(
+            code.pr(Modes.generateStateResetStructure(
                 modeRef, selfRef,
                 stateVar.getName(),
                 source, type));

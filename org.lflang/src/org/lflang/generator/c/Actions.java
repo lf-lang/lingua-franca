@@ -25,7 +25,7 @@ import static org.lflang.generator.c.CGenerator.variableStructType;
  * @author{Alexander Schulz-Rosengarten <als@informatik.uni-kiel.de>}
  * @author{Hou Seng Wong <housengw@berkeley.edu>}
  */
-public class CActionGenerator {
+public class Actions {
     /**
      * For each action of the specified reactor instance, generate initialization code
      * for the offset and period fields.
@@ -96,7 +96,7 @@ public class CActionGenerator {
     /**
      * Generate the declarations of actions in the self struct
      *
-     * @param reactor The reactor to generatet declarations for
+     * @param reactor The reactor to generate declarations for
      * @param decl The reactor's declaration
      * @param currentFederate The federate that is being generated
      * @param body The content of the self struct

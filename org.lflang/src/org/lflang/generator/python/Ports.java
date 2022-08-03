@@ -13,7 +13,7 @@ import org.lflang.generator.CodeBuilder;
 import org.lflang.generator.c.CGenerator;
 import static org.lflang.generator.c.CUtil.generateWidthVariable;
 
-public class PythonPortGenerator {
+public class Ports {
     public static final String NONMULTIPORT_WIDTHSPEC = "-2";
 
     /**

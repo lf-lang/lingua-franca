@@ -46,25 +46,39 @@ import org.lflang.util.FileUtil;
  * @author Soroush Bateni <soroush@utdallas.edu>
  *
  */
-public class CCmakeGenerator {
+public class CmakeGenerator {
+    private static final String DEFAULT_INSTALL_CODE = """
+        install(
+            TARGETS ${LF_MAIN_TARGET}
+            RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+        )
+    """;
 
     private final FileConfig fileConfig;
     private final List<String> additionalSources;
     private final SetUpMainTarget setUpMainTarget;
+    private final String installCode;
 
-    /**
-     * Create an instance of CCmakeGenerator.
-     *
-     * @param fileConfig The FileConfig instance to use.
-     */
-    public CCmakeGenerator(
+    public CmakeGenerator(
+        FileConfig fileConfig,
+        List<String> additionalSources
+    ) {
+        this.fileConfig = fileConfig;
+        this.additionalSources = additionalSources;
+        this.setUpMainTarget = CmakeGenerator::setUpMainTarget;
+        this.installCode = DEFAULT_INSTALL_CODE;
+    }
+
+    public CmakeGenerator(
         FileConfig fileConfig,
         List<String> additionalSources,
-        SetUpMainTarget setUpMainTarget
+        SetUpMainTarget setUpMainTarget,
+        String installCode
     ) {
         this.fileConfig = fileConfig;
         this.additionalSources = additionalSources;
         this.setUpMainTarget = setUpMainTarget;
+        this.installCode = installCode;
     }
 
     /**
@@ -131,8 +145,6 @@ public class CCmakeGenerator {
         if (targetConfig.platform != Platform.AUTO) {
             cMakeCode.pr("set(CMAKE_SYSTEM_NAME "+targetConfig.platform.getcMakeName()+")");
         }
-        cMakeCode.pr("add_subdirectory(core)");
-        cMakeCode.newLine();
 
         cMakeCode.pr(setUpMainTarget.getCmakeCode(
             hasMain,
@@ -212,12 +224,7 @@ public class CCmakeGenerator {
         cMakeCode.newLine();
 
         // Add the install option
-        cMakeCode.pr("install(");
-        cMakeCode.indent();
-        cMakeCode.pr("TARGETS ${LF_MAIN_TARGET}");
-        cMakeCode.pr("RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}");
-        cMakeCode.unindent();
-        cMakeCode.pr(")");
+        cMakeCode.pr(installCode);
         cMakeCode.newLine();
 
         // Add the include file
@@ -236,12 +243,14 @@ public class CCmakeGenerator {
         String getCmakeCode(boolean hasMain, String executableName, Stream<String> cSources);
     }
 
-    static String setUpMainTarget(
+    private static String setUpMainTarget(
         boolean hasMain,
         String executableName,
         Stream<String> cSources
     ) {
         var code = new CodeBuilder();
+        code.pr("add_subdirectory(core)");
+        code.newLine();
         code.pr("set(LF_MAIN_TARGET "+executableName+")");
         code.newLine();
 

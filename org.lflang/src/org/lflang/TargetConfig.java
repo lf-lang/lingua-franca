@@ -39,10 +39,10 @@ import org.lflang.TargetProperty.Platform;
 import org.lflang.TargetProperty.SchedulerOption;
 import org.lflang.generator.rust.RustTargetConfig;
 
-/** 
+/**
  * A class for keeping the current target configuration.
- * 
- * Class members of type String are initialized as empty strings, 
+ *
+ * Class members of type String are initialized as empty strings,
  * unless otherwise stated.
  * @author Marten Lohstroh <marten@berkeley.edu>
  */
@@ -80,7 +80,7 @@ public class TargetConfig {
      * Optional additional extensions to include in the generated CMakeLists.txt.
      */
     public List<String> cmakeIncludes = new ArrayList<>();
-    
+
     /**
      * List of cmake-includes from the cmake-include target property with no path info.
      * Useful for copying them to remote machines. This is needed because
@@ -97,10 +97,10 @@ public class TargetConfig {
      * Additional sources to add to the compile command if appropriate.
      */
     public List<String> compileAdditionalSources = new ArrayList<>();
-    
+
     /**
      * Additional (preprocessor) definitions to add to the compile command if appropriate.
-     * 
+     *
      * The first string is the definition itself, and the second string is the value to attribute to that definition, if any.
      * The second value could be left empty.
      */
@@ -126,14 +126,14 @@ public class TargetConfig {
      * Docker options.
      */
     public DockerOptions dockerOptions = null;
-    
+
     /**
      * Coordination options.
      */
     public CoordinationOptions coordinationOptions = new CoordinationOptions();
 
     /**
-     * Link to an external runtime library instead of the default one. 
+     * Link to an external runtime library instead of the default one.
      */
     public String externalRuntimePath = null;
 
@@ -202,13 +202,13 @@ public class TargetConfig {
     public boolean ros2 = false;
 
     /**
-     * The version of the runtime library to be used in the generated target. 
+     * The version of the runtime library to be used in the generated target.
      */
     public String runtimeVersion = null;
 
     /** Whether all reactors are to be generated into a single target language file. */
     public boolean singleFileProject = false;
-    
+
     /** What runtime scheduler to use. */
     public SchedulerOption schedulerType = SchedulerOption.getDefault();
 
@@ -340,5 +340,4 @@ public class TargetConfig {
          */
         public String traceFileName = null;
     }
-
 }

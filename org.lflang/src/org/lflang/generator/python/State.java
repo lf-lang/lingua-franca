@@ -8,7 +8,7 @@ import org.lflang.ASTUtils;
 import org.lflang.lf.ReactorDecl;
 import org.lflang.lf.StateVar;
 
-public class PythonStateGenerator {
+public class State {
     /**
      * Generate state variable instantiations for reactor "decl"
      * @param decl The reactor declaration to generate state variables.

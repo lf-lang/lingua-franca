@@ -20,7 +20,6 @@ import org.lflang.lf.Port;
 import org.lflang.lf.Input;
 import org.lflang.lf.Output;
 import org.lflang.generator.c.CCoreFilesUtils;
-import org.lflang.generator.c.CReactionGenerator;
 import org.lflang.generator.c.CTypes;
 import org.lflang.generator.c.CUtil;
 import org.lflang.generator.CodeBuilder;
@@ -29,7 +28,7 @@ import org.lflang.generator.ReactionInstance;
 import org.lflang.generator.ReactorInstance;
 import org.lflang.lf.Mode;
 
-public class PythonReactionGenerator {
+public class Reactions {
     /**
      * Generate code to call reaction numbered "reactionIndex" in reactor "decl".
      * @param decl The reactor containing the reaction
@@ -140,7 +139,7 @@ public class PythonReactionGenerator {
         List<String> pyObjects = new ArrayList<>();
         CodeBuilder code = new CodeBuilder();
         String cPyInit = generateCPythonInitializers(reaction, decl, pyObjects, errorReporter);
-        String cInit = CReactionGenerator.generateInitializationForReaction(
+        String cInit = org.lflang.generator.c.Reactions.generateInitializationForReaction(
                                                 "", reaction, decl, reactionIndex,
                                                 types, errorReporter, mainDef,
                                                 isFederatedAndDecentralized,
@@ -149,7 +148,7 @@ public class PythonReactionGenerator {
             "#include " + StringUtil.addDoubleQuotes(
                 CCoreFilesUtils.getCTargetSetHeader()));
         code.pr(generateFunction(
-                    CReactionGenerator.generateReactionFunctionHeader(decl, reactionIndex),
+                    org.lflang.generator.c.Reactions.generateReactionFunctionHeader(decl, reactionIndex),
                     cInit, reaction.getCode(),
                     generateCPythonReactionCaller(decl, reactionIndex, pyObjects, cPyInit)
         ));
@@ -157,7 +156,7 @@ public class PythonReactionGenerator {
         // Generate code for the STP violation handler, if there is one.
         if (reaction.getStp() != null) {
             code.pr(generateFunction(
-                    CReactionGenerator.generateStpFunctionHeader(decl, reactionIndex),
+                    org.lflang.generator.c.Reactions.generateStpFunctionHeader(decl, reactionIndex),
                     cInit, reaction.getStp().getCode(),
                     generateCPythonSTPCaller(decl, reactionIndex, pyObjects)
                 ));
@@ -165,11 +164,11 @@ public class PythonReactionGenerator {
         // Generate code for the deadline violation function, if there is one.
         if (reaction.getDeadline() != null) {
             code.pr(generateFunction(
-                CReactionGenerator.generateDeadlineFunctionHeader(decl, reactionIndex),
+                org.lflang.generator.c.Reactions.generateDeadlineFunctionHeader(decl, reactionIndex),
                 cInit, reaction.getDeadline().getCode(),
                 generateCPythonDeadlineCaller(decl, reactionIndex, pyObjects)
             ));
-        }        
+        }
         code.pr(
             "#include " + StringUtil.addDoubleQuotes(
                 CCoreFilesUtils.getCTargetSetUndefHeader()));
@@ -220,7 +219,7 @@ public class PythonReactionGenerator {
             // Declare an argument for every input.
             // NOTE: this does not include contained outputs.
             for (Input input : reactor.getInputs()) {
-                PythonPortGenerator.generateInputVariablesToSendToPythonReaction(pyObjects, input, decl);
+                Ports.generateInputVariablesToSendToPythonReaction(pyObjects, input, decl);
             }
         }
 
@@ -236,7 +235,7 @@ public class PythonReactionGenerator {
                     // It is an action, not an output.
                     // If it has already appeared as trigger, do not redefine it.
                     if (!actionsAsTriggers.contains(effect.getVariable())) {
-                        PythonPortGenerator.generateActionVariableToSendToPythonReaction(pyObjects,
+                        Ports.generateActionVariableToSendToPythonReaction(pyObjects,
                             (Action) effect.getVariable(), decl);
                     }
                 } else if (effect.getVariable() instanceof Mode) {
@@ -244,10 +243,10 @@ public class PythonReactionGenerator {
                     pyObjects.add("convert_C_mode_to_py("+name+",(self_base_t*)self, _lf_"+name+"_change_type)");
                 } else {
                     if (effect.getVariable() instanceof Output) {
-                        PythonPortGenerator.generateOutputVariablesToSendToPythonReaction(pyObjects, (Output) effect.getVariable());
+                        Ports.generateOutputVariablesToSendToPythonReaction(pyObjects, (Output) effect.getVariable());
                     } else if (effect.getVariable() instanceof Input) {
                         // It is the input of a contained reactor.
-                        code.pr(PythonPortGenerator.generateVariablesForSendingToContainedReactors(pyObjects, effect.getContainer(), (Input) effect.getVariable()));
+                        code.pr(Ports.generateVariablesForSendingToContainedReactors(pyObjects, effect.getContainer(), (Input) effect.getVariable()));
                     } else {
                         errorReporter.reportError(
                             reaction,
@@ -301,7 +300,7 @@ public class PythonReactionGenerator {
                 } else {
                     // Handle contained reactors' ports
                     generatedParams.add(triggerAsVarRef.getContainer().getName()+"_"+triggerAsVarRef.getVariable().getName());
-                    inits.pr(PythonPortGenerator.generatePythonPortVariableInReaction(triggerAsVarRef));
+                    inits.pr(Ports.generatePythonPortVariableInReaction(triggerAsVarRef));
                 }
             } else if (triggerAsVarRef.getVariable() instanceof Action) {
                 generatedParams.add(triggerAsVarRef.getVariable().getName());
@@ -322,7 +321,7 @@ public class PythonReactionGenerator {
             if (src.getVariable() instanceof Output) {
                 // Output of a contained reactor
                 generatedParams.add(src.getContainer().getName()+"_"+src.getVariable().getName());
-                inits.pr(PythonPortGenerator.generatePythonPortVariableInReaction(src));
+                inits.pr(Ports.generatePythonPortVariableInReaction(src));
             } else {
                 generatedParams.add(src.getVariable().getName());
                 if (src.getVariable() instanceof Input) {
@@ -338,7 +337,7 @@ public class PythonReactionGenerator {
         for (VarRef effect : ASTUtils.convertToEmptyListIfNull(reaction.getEffects())) {
             if (effect.getVariable() instanceof Input) {
                 generatedParams.add(effect.getContainer().getName()+"_"+effect.getVariable().getName());
-                inits.pr(PythonPortGenerator.generatePythonPortVariableInReaction(effect));
+                inits.pr(Ports.generatePythonPortVariableInReaction(effect));
             } else {
                 generatedParams.add(effect.getVariable().getName());
                 if (effect.getVariable() instanceof Port) {
@@ -359,10 +358,10 @@ public class PythonReactionGenerator {
                                                              ReactorDecl decl,
                                                              List<String> pyObjects) {
         if (varRef.getVariable() instanceof Port) {
-            return PythonPortGenerator.generatePortVariablesToSendToPythonReaction(pyObjects, varRef, decl);
+            return Ports.generatePortVariablesToSendToPythonReaction(pyObjects, varRef, decl);
         } else if (varRef.getVariable() instanceof Action) {
             actionsAsTriggers.add((Action) varRef.getVariable());
-            PythonPortGenerator.generateActionVariableToSendToPythonReaction(pyObjects, (Action) varRef.getVariable(), decl);
+            Ports.generateActionVariableToSendToPythonReaction(pyObjects, (Action) varRef.getVariable(), decl);
         }
         return "";
     }
@@ -530,7 +529,7 @@ public class PythonReactionGenerator {
         CodeBuilder code = new CodeBuilder();
         List<String> reactionParameters = new ArrayList<>(); // Will contain parameters for the function (e.g., Foo(x,y,z,...)
         CodeBuilder inits = new CodeBuilder(); // Will contain initialization code for some parameters
-        PythonReactionGenerator.generatePythonReactionParametersAndInitializations(reactionParameters, inits, reactor, reaction);
+        Reactions.generatePythonReactionParametersAndInitializations(reactionParameters, inits, reactor, reaction);
         code.pr(generatePythonFunction(
             generatePythonReactionFunctionName(reactionIndex),
             inits.toString(),
@@ -573,7 +572,7 @@ public class PythonReactionGenerator {
     public static String generateCPythonDeadlineFunctionName(int reactionIndex) {
         return "_lf_py_deadline_function_"+reactionIndex;
     }
-    
+
     /** Return the function name of the STP violation handler function inside the self struct in the .c file.
      *  @param reactionIndex The reaction index.
      *  @return The function name for the reaction.

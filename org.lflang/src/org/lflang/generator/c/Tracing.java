@@ -16,7 +16,7 @@ import static org.lflang.util.StringUtil.addDoubleQuotes;
  * @author {Soroush Bateni <soroush@utdallas.edu>}
  * @author {Hou Seng Wong <housengw@berkeley.edu>}
  */
-public class CTracingGenerator {
+public class Tracing {
     /**
      * If tracing is turned on, then generate code that records
      * the full name of the specified reactor instance in the

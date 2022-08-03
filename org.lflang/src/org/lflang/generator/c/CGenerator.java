@@ -92,7 +92,6 @@ import org.lflang.lf.Instantiation;
 import org.lflang.lf.Mode;
 import org.lflang.lf.Model;
 import org.lflang.lf.Output;
-import org.lflang.lf.Port;
 import org.lflang.lf.Preamble;
 import org.lflang.lf.Reaction;
 import org.lflang.lf.Reactor;
@@ -382,14 +381,14 @@ public class CGenerator extends GeneratorBase {
 
     private final CTypes types;
 
-    private final CCmakeGenerator cmakeGenerator;
+    private final CmakeGenerator cmakeGenerator;
 
     protected CGenerator(
         FileConfig fileConfig,
         ErrorReporter errorReporter,
         boolean CCppMode,
         CTypes types,
-        CCmakeGenerator cmakeGenerator
+        CmakeGenerator cmakeGenerator
     ) {
         super(fileConfig, errorReporter);
         this.CCppMode = CCppMode;
@@ -403,7 +402,7 @@ public class CGenerator extends GeneratorBase {
             errorReporter,
             CCppMode,
             new CTypes(errorReporter),
-            new CCmakeGenerator(fileConfig, List.of(), CCmakeGenerator::setUpMainTarget)
+            new CmakeGenerator(fileConfig, List.of())
         );
     }
 
@@ -507,7 +506,7 @@ public class CGenerator extends GeneratorBase {
         FileUtil.createDirectoryIfDoesNotExist(fileConfig.binPath.toFile());
 
         // Docker related paths
-        CDockerGenerator dockerGenerator = getDockerGenerator();
+        Docker dockerGenerator = getDockerGenerator();
 
         // Keep a separate file config for each federate
         var oldFileConfig = fileConfig;
@@ -700,7 +699,7 @@ public class CGenerator extends GeneratorBase {
         startTimeStepTokens = 0;
         code.pr(generateDirectives());
         code.pr(generateTopLevelPreambles());
-        code.pr(new CMainGenerator(targetConfig).generateCode());
+        code.pr(new MainFunction(targetConfig).generateCode());
         // Generate code for each reactor.
         generateReactorDefinitions();
 
@@ -716,7 +715,7 @@ public class CGenerator extends GeneratorBase {
                 "int _lf_tokens_with_ref_count_count = 0;"
             ));
             // Add counters for modal initialization
-            initializeTriggerObjects.pr(CModesGenerator.generateModalInitalizationCounters(hasModalReactors));
+            initializeTriggerObjects.pr(Modes.generateModalInitalizationCounters(hasModalReactors));
 
             // Create an array of arrays to store all self structs.
             // This is needed because connections cannot be established until
@@ -727,19 +726,19 @@ public class CGenerator extends GeneratorBase {
             generateReactorInstance(main);
 
             // If there are timers, create a table of timers to be initialized.
-            code.pr(CTimerGenerator.generateDeclarations(timerCount));
+            code.pr(Timers.generateDeclarations(timerCount));
 
             // If there are startup reactions, create a table of triggers.
-            code.pr(CReactionGenerator.generateBuiltinTriggersTable(startupReactionCount, "startup"));
+            code.pr(Reactions.generateBuiltinTriggersTable(startupReactionCount, "startup"));
 
             // If there are shutdown reactions, create a table of triggers.
-            code.pr(CReactionGenerator.generateBuiltinTriggersTable(shutdownReactionCount, "shutdown"));
+            code.pr(Reactions.generateBuiltinTriggersTable(shutdownReactionCount, "shutdown"));
 
             // If there are reset reactions, create a table of triggers.
-            code.pr(CReactionGenerator.generateBuiltinTriggersTable(resetReactionCount, "reset"));
+            code.pr(Reactions.generateBuiltinTriggersTable(resetReactionCount, "reset"));
 
             // If there are modes, create a table of mode state to be checked for transitions.
-            code.pr(CModesGenerator.generateModeStatesTable(
+            code.pr(Modes.generateModeStatesTable(
                 hasModalReactors,
                 modalReactorCount,
                 modalStateResetCount
@@ -783,7 +782,7 @@ public class CGenerator extends GeneratorBase {
             }
 
             // Generate function to initialize the trigger objects for all reactors.
-            code.pr(CTriggerObjectsGenerator.generateInitializeTriggerObjects(
+            code.pr(TriggerObjects.generateInitializeTriggerObjects(
                 currentFederate,
                 main,
                 targetConfig,
@@ -800,10 +799,10 @@ public class CGenerator extends GeneratorBase {
             ));
 
             // Generate function to trigger startup reactions for all reactors.
-            code.pr(CReactionGenerator.generateLfTriggerStartupReactions(startupReactionCount, hasModalReactors));
+            code.pr(Reactions.generateLfTriggerStartupReactions(startupReactionCount, hasModalReactors));
 
             // Generate function to schedule timers for all reactors.
-            code.pr(CTimerGenerator.generateLfInitializeTimer(timerCount));
+            code.pr(Timers.generateLfInitializeTimer(timerCount));
 
             // Generate a function that will either do nothing
             // (if there is only one federate or the coordination
@@ -824,7 +823,7 @@ public class CGenerator extends GeneratorBase {
 
             // Generate function to schedule shutdown reactions if any
             // reactors have reactions to shutdown.
-            code.pr(CReactionGenerator.generateLfTriggerShutdownReactions(shutdownReactionCount, hasModalReactors));
+            code.pr(Reactions.generateLfTriggerShutdownReactions(shutdownReactionCount, hasModalReactors));
 
             // Generate an empty termination function for non-federated
             // execution. For federated execution, an implementation is
@@ -835,14 +834,14 @@ public class CGenerator extends GeneratorBase {
             }
 
             // Generate functions for modes
-            code.pr(CModesGenerator.generateLfInitializeModes(
+            code.pr(Modes.generateLfInitializeModes(
                 hasModalReactors
             ));
-            code.pr(CModesGenerator.generateLfHandleModeChanges(
+            code.pr(Modes.generateLfHandleModeChanges(
                 hasModalReactors,
                 modalStateResetCount
             ));
-            code.pr(CReactionGenerator.generateLfModeTriggeredReactions(
+            code.pr(Reactions.generateLfModeTriggeredReactions(
                 startupReactionCount,
                 resetReactionCount,
                 hasModalReactors
@@ -850,8 +849,8 @@ public class CGenerator extends GeneratorBase {
         }
     }
 
-    protected CDockerGenerator getDockerGenerator() {
-        return new CDockerGenerator(isFederated, CCppMode, targetConfig);
+    protected Docker getDockerGenerator() {
+        return new Docker(isFederated, CCppMode, targetConfig);
     }
 
     @Override
@@ -1177,7 +1176,7 @@ public class CGenerator extends GeneratorBase {
      * Generate methods for {@code reactor}.
      */
     protected void generateMethods(ReactorDecl reactor) {
-        CMethodGenerator.generateMethods(reactor, code, types);
+        Methods.generateMethods(reactor, code, types);
     }
 
     /**
@@ -1203,7 +1202,7 @@ public class CGenerator extends GeneratorBase {
     protected void generateConstructor(
         ReactorDecl reactor, FederateInstance federate, CodeBuilder constructorCode
     ) {
-        code.pr(CConstructorGenerator.generateConstructor(
+        code.pr(Constructors.generateConstructor(
             reactor,
             federate,
             constructorCode.toString()
@@ -1233,7 +1232,7 @@ public class CGenerator extends GeneratorBase {
         }
         // First, handle inputs.
         for (Input input : allInputs(reactor)) {
-            code.pr(CPortGenerator.generateAuxiliaryStruct(
+            code.pr(Ports.generateAuxiliaryStruct(
                 decl,
                 input,
                 getTarget(),
@@ -1244,7 +1243,7 @@ public class CGenerator extends GeneratorBase {
         }
         // Next, handle outputs.
         for (Output output : allOutputs(reactor)) {
-            code.pr(CPortGenerator.generateAuxiliaryStruct(
+            code.pr(Ports.generateAuxiliaryStruct(
                 decl,
                 output,
                 getTarget(),
@@ -1259,7 +1258,7 @@ public class CGenerator extends GeneratorBase {
         // by the lf_schedule() functions to get to the trigger.
         for (Action action : allActions(reactor)) {
             if (currentFederate.contains(action)) {
-                code.pr(CActionGenerator.generateAuxiliaryStruct(
+                code.pr(Actions.generateAuxiliaryStruct(
                     decl,
                     action,
                     getTarget(),
@@ -1289,16 +1288,16 @@ public class CGenerator extends GeneratorBase {
         generateSelfStructExtension(body, decl, constructorCode);
 
         // Next handle parameters.
-        body.pr(CParameterGenerator.generateDeclarations(reactor, types));
+        body.pr(Parameters.generateDeclarations(reactor, types));
 
         // Next handle states.
-        body.pr(CStateGenerator.generateDeclarations(reactor, types));
+        body.pr(States.generateDeclarations(reactor, types));
 
         // Next handle actions.
-        CActionGenerator.generateDeclarations(reactor, decl, currentFederate, body, constructorCode);
+        Actions.generateDeclarations(reactor, decl, currentFederate, body, constructorCode);
 
         // Next handle inputs and outputs.
-        CPortGenerator.generateDeclarations(reactor, decl, body, constructorCode);
+        Ports.generateDeclarations(reactor, decl, body, constructorCode);
 
         // If there are contained reactors that either receive inputs
         // from reactions of this reactor or produce outputs that trigger
@@ -1310,7 +1309,7 @@ public class CGenerator extends GeneratorBase {
         generateInteractingContainedReactors(reactor, body, constructorCode);
 
         // Next, generate the fields needed for each reaction.
-        CReactionGenerator.generateReactionAndTriggerStructs(
+        Reactions.generateReactionAndTriggerStructs(
             currentFederate,
             body,
             decl,
@@ -1321,7 +1320,7 @@ public class CGenerator extends GeneratorBase {
         );
 
         // Next, generate fields for modes
-        CModesGenerator.generateDeclarations(reactor, body, constructorCode);
+        Modes.generateDeclarations(reactor, body, constructorCode);
 
         // The first field has to always be a pointer to the list of
         // of allocated memory that must be freed when the reactor is freed.
@@ -1366,7 +1365,7 @@ public class CGenerator extends GeneratorBase {
             // If the instantiation is a bank, find the maximum bank width
             // to define an array.
             if (containedReactor.getWidthSpec() != null) {
-                width = CReactionGenerator.maxContainedReactorBankWidth(containedReactor, null, 0, mainDef);
+                width = Reactions.maxContainedReactorBankWidth(containedReactor, null, 0, mainDef);
                 array = "[" + width + "]";
             }
             // NOTE: The following needs to be done for each instance
@@ -1381,7 +1380,7 @@ public class CGenerator extends GeneratorBase {
             // Generate one struct for each contained reactor that interacts.
             body.pr("struct {");
             body.indent();
-            for (Port port : contained.portsOfInstance(containedReactor)) {
+            for (org.lflang.lf.Port port : contained.portsOfInstance(containedReactor)) {
                 if (port instanceof Input) {
                     // If the variable is a multiport, then the place to store the data has
                     // to be malloc'd at initialization.
@@ -1513,7 +1512,7 @@ public class CGenerator extends GeneratorBase {
      *  @param reactionIndex The position of the reaction within the reactor.
      */
     protected void generateReaction(Reaction reaction, ReactorDecl decl, int reactionIndex) {
-        code.pr(CReactionGenerator.generateReaction(
+        code.pr(Reactions.generateReaction(
             reaction,
             decl,
             reactionIndex,
@@ -1593,7 +1592,7 @@ public class CGenerator extends GeneratorBase {
                 for (PortInstance input : child.inputs) {
                     if (CUtil.isTokenType(getInferredType(input.getDefinition()), types)) {
                         foundOne = true;
-                        temp.pr(CPortGenerator.initializeStartTimeStepTableForInput(input));
+                        temp.pr(Ports.initializeStartTimeStepTableForInput(input));
                         startTimeStepTokens += currentFederate.numRuntimeInstances(input.getParent()) * input.getWidth();
                     }
                 }
@@ -1676,7 +1675,7 @@ public class CGenerator extends GeneratorBase {
                             temp.startScopedBlock(instance, currentFederate, isFederated, true);
                             temp.startScopedBankChannelIteration(port, currentFederate, "count", isFederated);
                             var portRef = CUtil.portRef(port, true, true, null, null, null);
-                            temp.pr(CPortGenerator.initializeStartTimeStepTableForPort(portRef));
+                            temp.pr(Ports.initializeStartTimeStepTableForPort(portRef));
                             startTimeStepTokens += port.getWidth() * currentFederate.numRuntimeInstances(port.getParent());
                             temp.endScopedBankChannelIteration(port, "count");
                             temp.endScopedBlock();
@@ -1765,7 +1764,7 @@ public class CGenerator extends GeneratorBase {
         for (TimerInstance timer : instance.timers) {
             if (currentFederate.contains(timer.getDefinition())) {
                 if (!timer.isStartup()) {
-                    initializeTriggerObjects.pr(CTimerGenerator.generateInitializer(timer));
+                    initializeTriggerObjects.pr(Timers.generateInitializer(timer));
                     timerCount += currentFederate.numRuntimeInstances(timer.getParent());
                 }
             }
@@ -1837,7 +1836,7 @@ public class CGenerator extends GeneratorBase {
     private void generateTraceTableEntries(ReactorInstance instance) {
         if (targetConfig.tracing != null) {
             initializeTriggerObjects.pr(
-                CTracingGenerator.generateTraceTableEntries(instance, currentFederate)
+                Tracing.generateTraceTableEntries(instance, currentFederate)
             );
         }
     }
@@ -1935,7 +1934,7 @@ public class CGenerator extends GeneratorBase {
      * @param instance The reactor.
      */
     private void generateActionInitializations(ReactorInstance instance) {
-        initializeTriggerObjects.pr(CActionGenerator.generateInitializers(instance, currentFederate));
+        initializeTriggerObjects.pr(Actions.generateInitializers(instance, currentFederate));
     }
 
     /**
@@ -1964,7 +1963,7 @@ public class CGenerator extends GeneratorBase {
 
                 var selfStruct = CUtil.reactorRef(action.getParent());
                 initializeTriggerObjects.pr(
-                    CActionGenerator.generateTokenInitializer(
+                    Actions.generateTokenInitializer(
                         selfStruct, action.getName(), payloadSize
                     )
                 );
@@ -1999,7 +1998,7 @@ public class CGenerator extends GeneratorBase {
                 var mode = stateVar.eContainer() instanceof Mode ?
                     instance.lookupModeInstance((Mode) stateVar.eContainer()) :
                     instance.getMode(false);
-                initializeTriggerObjects.pr(CStateGenerator.generateInitializer(
+                initializeTriggerObjects.pr(States.generateInitializer(
                     instance,
                     selfRef,
                     stateVar,
@@ -2037,7 +2036,7 @@ public class CGenerator extends GeneratorBase {
      * @param instance The reactor instance.
      */
     private void generateModeStructure(ReactorInstance instance) {
-        CModesGenerator.generateModeStructure(instance, initializeTriggerObjects);
+        Modes.generateModeStructure(instance, initializeTriggerObjects);
         if (!instance.modes.isEmpty()) {
             modalReactorCount += currentFederate.numRuntimeInstances(instance);
         }
@@ -2060,7 +2059,7 @@ public class CGenerator extends GeneratorBase {
             // have to declare a static variable to ensure that the memory is put in data space
             // and not on the stack.
             // FIXME: Is there a better way to determine this than the string comparison?
-            var initializer = CParameterGenerator.getInitializer(parameter);
+            var initializer = Parameters.getInitializer(parameter);
             if (initializer.startsWith("{")) {
                 var temporaryVariableName = parameter.uniqueID();
                 initializeTriggerObjects.pr(String.join("\n",
@@ -2080,7 +2079,7 @@ public class CGenerator extends GeneratorBase {
     private void initializeOutputMultiports(ReactorInstance reactor) {
         var reactorSelfStruct = CUtil.reactorRef(reactor);
         for (PortInstance output : reactor.outputs) {
-            initializeTriggerObjects.pr(CPortGenerator.initializeOutputMultiport(
+            initializeTriggerObjects.pr(Ports.initializeOutputMultiport(
                 output,
                 reactorSelfStruct
             ));
@@ -2094,7 +2093,7 @@ public class CGenerator extends GeneratorBase {
     private void initializeInputMultiports(ReactorInstance reactor) {
         var reactorSelfStruct = CUtil.reactorRef(reactor);
         for (PortInstance input : reactor.inputs) {
-            initializeTriggerObjects.pr(CPortGenerator.initializeInputMultiport(
+            initializeTriggerObjects.pr(Ports.initializeInputMultiport(
                 input,
                 reactorSelfStruct
             ));
@@ -2199,7 +2198,7 @@ public class CGenerator extends GeneratorBase {
     @Override
     public String generateDelayBody(Action action, VarRef port) {
         var ref = ASTUtils.generateVarRef(port);
-        return CReactionGenerator.generateDelayBody(
+        return Reactions.generateDelayBody(
             ref,
             action.getName(),
             CUtil.isTokenType(getInferredType(action), types)
@@ -2217,7 +2216,7 @@ public class CGenerator extends GeneratorBase {
     @Override
     public String generateForwardBody(Action action, VarRef port) {
         var outputName = ASTUtils.generateVarRef(port);
-        return CReactionGenerator.generateForwardBody(
+        return Reactions.generateForwardBody(
             outputName,
             types.getTargetType(action),
             action.getName(),
@@ -2423,7 +2422,7 @@ public class CGenerator extends GeneratorBase {
         CodeBuilder code = new CodeBuilder();
         code.prComment("Code generated by the Lingua Franca compiler from:");
         code.prComment("file:/" + FileUtil.toUnixString(fileConfig.srcFile));
-        code.pr(CPreambleGenerator.generateDefineDirectives(
+        code.pr(Preambles.generateDefineDirectives(
             targetConfig,
             federates.size(),
             isFederated,
@@ -2431,7 +2430,7 @@ public class CGenerator extends GeneratorBase {
             clockSyncIsOn(),
             hasModalReactors
         ));
-        code.pr(CPreambleGenerator.generateIncludeStatements(
+        code.pr(Preambles.generateIncludeStatements(
             targetConfig,
             CCppMode,
             isFederated

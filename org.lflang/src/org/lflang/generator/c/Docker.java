@@ -11,7 +11,7 @@ import org.lflang.util.StringUtil;
  *
  * @author{Hou Seng Wong <housengw@berkeley.edu>}
  */
-public class CDockerGenerator extends DockerGeneratorBase {
+public class Docker extends DockerGeneratorBase {
     private boolean CCppMode;
     private TargetConfig targetConfig;
     private final String defaultBaseImage = "alpine:latest";
@@ -50,7 +50,7 @@ public class CDockerGenerator extends DockerGeneratorBase {
         public FileConfig getFileConfig() { return fileConfig; }
     }
 
-    public CDockerGenerator(boolean isFederated, boolean CCppMode, TargetConfig targetConfig) {
+    public Docker(boolean isFederated, boolean CCppMode, TargetConfig targetConfig) {
         super(isFederated);
         this.CCppMode = CCppMode;
         this.targetConfig = targetConfig;

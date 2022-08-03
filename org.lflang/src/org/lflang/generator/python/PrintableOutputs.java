@@ -3,7 +3,7 @@ package org.lflang.generator.python;
 import java.io.File;
 import org.lflang.FileConfig;
 
-public class PythonInfoGenerator {
+public class PrintableOutputs {
     /**
      * Print information about necessary steps to install the supporting
      * Python C extension for the generated program.

@@ -1,14 +1,14 @@
 package org.lflang.generator.python;
 
 import org.lflang.TargetConfig;
-import org.lflang.generator.c.CDockerGenerator;
+import org.lflang.generator.c.Docker;
 
 /**
  * Generates the docker file related code for the Python target.
  *
  * @author{Hou Seng Wong <housengw@berkeley.edu>}
  */
-public class PythonDockerGenerator extends CDockerGenerator {
+public class PythonDockerGenerator extends Docker {
     TargetConfig targetConfig;
     final String defaultBaseImage = "python:slim";
 

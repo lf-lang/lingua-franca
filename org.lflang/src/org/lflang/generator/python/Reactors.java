@@ -12,7 +12,7 @@ import org.lflang.lf.Reaction;
 import org.lflang.lf.Reactor;
 import org.lflang.lf.ReactorDecl;
 
-public class PythonReactorGenerator {
+public class Reactors {
     /**
      * Wrapper function for the more elaborate generatePythonReactorClass that keeps track
      * of visited reactors to avoid duplicate generation
@@ -51,19 +51,19 @@ public class PythonReactorGenerator {
             pythonClasses.pr(generatePythonClassHeader(className));
             // Generate preamble code
             pythonClasses.indent();
-            pythonClasses.pr(PythonPreambleGenerator.generatePythonPreambles(reactor.getPreambles()));
+            pythonClasses.pr(Preambles.generatePythonPreambles(reactor.getPreambles()));
             // Handle runtime initializations
             pythonClasses.pr(generatePythonConstructor(decl, types));
-            pythonClasses.pr(PythonParameterGenerator.generatePythonGetters(decl));
+            pythonClasses.pr(Parameters.generatePythonGetters(decl));
             // Generate methods
-            pythonClasses.pr(PythonMethodGenerator.generateMethods(reactor));
+            pythonClasses.pr(Methods.generateMethods(reactor));
             // Generate reactions
             List<Reaction> reactionToGenerate = ASTUtils.allReactions(reactor);
             if (reactor.isFederated()) {
                 // Filter out reactions that are automatically generated in C in the top level federated reactor
                 reactionToGenerate.removeIf(it -> !federate.contains(it) || federate.networkReactions.contains(it));
             }
-            pythonClasses.pr(PythonReactionGenerator.generatePythonReactions(reactor, reactionToGenerate));
+            pythonClasses.pr(Reactions.generatePythonReactions(reactor, reactionToGenerate));
             pythonClasses.unindent();
             pythonClasses.pr("\n");
             instantiatedClasses.add(className);
@@ -93,8 +93,8 @@ public class PythonReactorGenerator {
         code.pr("# Constructor");
         code.pr("def __init__(self, **kwargs):");
         code.indent();
-        code.pr(PythonParameterGenerator.generatePythonInstantiations(decl, types));
-        code.pr(PythonStateGenerator.generatePythonInstantiations(decl));
+        code.pr(Parameters.generatePythonInstantiations(decl, types));
+        code.pr(State.generatePythonInstantiations(decl));
         return code.toString();
     }
 
@@ -178,7 +178,7 @@ public class PythonReactorGenerator {
         code.pr("_bank_index = "+PyUtil.bankIndex(instance)+",");
         for (ParameterInstance param : instance.parameters) {
             if (!param.getName().equals("bank_index")) {
-                code.pr("_"+param.getName()+"="+PythonParameterGenerator.generatePythonInitializer(param)+",");
+                code.pr("_"+param.getName()+"="+ Parameters.generatePythonInitializer(param)+",");
             }
         }
         code.unindent();
