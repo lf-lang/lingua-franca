@@ -448,6 +448,11 @@ public class ReactionInstance extends NamedInstance<Reaction> {
         return getName() + " of " + parent.getFullName();
     }
 
+    /**
+     * Determine logical execution time for each reaction during compile
+     * time based on immediate downstream logical delays (after delays and actions)
+     * and label each reaction with the minimum of all such delays.
+     */
     public TimeValue getLogicalExecutionTime() {
         if (this.let != null) {
             return this.let;
