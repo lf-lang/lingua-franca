@@ -112,4 +112,8 @@ public enum TimeUnit {
         return Arrays.stream(values()).flatMap(it -> it.allNames.stream()).collect(Collectors.toList());
     }
 
+    @Override
+    public String toString() {
+        return this.canonicalName;
+    }
 }
