@@ -5,6 +5,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import org.lflang.ASTUtils;
+import org.lflang.AttributeUtils;
 import org.lflang.ErrorReporter;
 import org.lflang.Target;
 import org.lflang.lf.ReactorDecl;
@@ -444,6 +445,10 @@ public class PythonReactionGenerator {
             ReactionInstance reaction,
             String nameOfSelfStruct
     ) {
+        // Reactions marked with a `@language(C)` attribute are generated in C
+        var reactionLanguageAttr = AttributeUtils.findReactionLanguageAttribute(reaction.getDefinition());
+        if (reactionLanguageAttr != null && reactionLanguageAttr.equals(Target.C))  return "";
+
         CodeBuilder code = new CodeBuilder();
         code.pr(generateCPythonFunctionLinker(
             nameOfSelfStruct, generateCPythonReactionFunctionName(reaction.index),
@@ -524,6 +529,10 @@ public class PythonReactionGenerator {
      * @param reaction The reaction of reactor
      */
     public static String generatePythonReaction(Reactor reactor, Reaction reaction, int reactionIndex) {
+        // Reactions marked with a `@language(C)` attribute are generated in C
+        var reactionLanguageAttr = AttributeUtils.findReactionLanguageAttribute(reaction);
+        if (reactionLanguageAttr != null && reactionLanguageAttr.equals(Target.C))  return "";
+
         CodeBuilder code = new CodeBuilder();
         List<String> reactionParameters = new ArrayList<>(); // Will contain parameters for the function (e.g., Foo(x,y,z,...)
         CodeBuilder inits = new CodeBuilder(); // Will contain initialization code for some parameters

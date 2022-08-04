@@ -78,6 +78,31 @@ class LinguaFrancaParsingTest {
     }
 
     @Test
+    public void testLanguageAttribute() throws Exception {
+        String testCase = """
+                target Python;
+                main reactor {
+                    @language(value = "C")
+                    reaction(startup) {= =}
+                }
+            """;
+        parseWithoutError(testCase);
+
+        testCase = """
+                target Python;
+                main reactor {
+                    @language(value = "Foo")
+                    reaction(startup) {= =}
+                }
+            """;
+        Model model = parser.parse(testCase);
+        Assertions.assertNotNull(model);
+        Assertions.assertFalse(model.eResource().getErrors().isEmpty(),
+                               "Failed to detect invalid language attribute.");
+
+    }
+
+    @Test
     public void testAttributeContexts() throws Exception {
         String testCase = """
                 target C;

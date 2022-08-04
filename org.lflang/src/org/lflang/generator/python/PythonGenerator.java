@@ -43,6 +43,7 @@ import org.eclipse.xtext.xbase.lib.Exceptions;
 import org.eclipse.xtext.xbase.lib.IterableExtensions;
 
 import org.lflang.ASTUtils;
+import org.lflang.AttributeUtils;
 import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
 import org.lflang.Target;
@@ -287,7 +288,8 @@ public class PythonGenerator extends CGenerator {
                                + String.join(", ", sources) + "],",
                            "                                            define_macros=["
                                + String.join(", ", macros) + "],",
-                           "include_dirs=[\"core\", \"core/threaded\"])",
+                           "                                            include_dirs=["
+                               + "\"core\", \"core/threaded\"])",
                            "",
                            "setup(name="
                                + StringUtil.addDoubleQuotes(pyModuleName)
@@ -316,7 +318,7 @@ public class PythonGenerator extends CGenerator {
         }
         Map<Path, CodeMap> codeMaps = new HashMap<>();
         codeMaps.put(filePath, CodeMap.fromGeneratedCode(
-            generatePythonCode(pyModuleName).toString()));
+            generatePythonCode(pyModuleName)));
         FileUtil.writeToFile(codeMaps.get(filePath).getGeneratedCode(), filePath);
 
         Path setupPath = fileConfig.getSrcGenPath().resolve("setup.py");
@@ -524,7 +526,6 @@ public class PythonGenerator extends CGenerator {
             IntegratedBuilder.VALIDATED_PERCENT_PROGRESS,
             cGeneratedPercentProgress
         ));
-        SubContext compilingFederatesContext = new SubContext(context, cGeneratedPercentProgress, 100);
         targetConfig.noCompile = compileStatus;
 
         if (errorsOccurred()) {
@@ -618,10 +619,9 @@ public class PythonGenerator extends CGenerator {
     protected void generateReaction(Reaction reaction, ReactorDecl decl, int reactionIndex) {
         Reactor reactor = ASTUtils.toDefinition(decl);
 
-        // Delay reactors and top-level reactions used in the top-level reactor(s) in federated execution are generated in C
-        if (reactor.getName().contains(GEN_DELAY_CLASS_NAME) ||
-            ((mainDef != null && decl == mainDef.getReactorClass()
-                || mainDef == decl) && reactor.isFederated())) {
+        // Reactions marked with a `@language(C)` attribute are generated in C
+        var reactionLanguageAttr = AttributeUtils.findReactionLanguageAttribute(reaction);
+        if (reactionLanguageAttr != null && reactionLanguageAttr.equals(Target.C)) {
             super.generateReaction(reaction, decl, reactionIndex);
             return;
         }

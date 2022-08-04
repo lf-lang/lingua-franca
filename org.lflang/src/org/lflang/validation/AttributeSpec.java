@@ -25,6 +25,7 @@
 
 package org.lflang.validation;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -32,6 +33,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.lflang.Target;
 import org.lflang.lf.AttrParm;
 import org.lflang.lf.Attribute;
 import org.lflang.lf.LfPackage.Literals;
@@ -152,7 +154,7 @@ class AttributeSpec {
         }
 
         // Check if a parameter has the right type.
-        // Currently only String, Int, Boolean, and Float are supported.
+        // Currently, only String, Int, Boolean, Float, and target language are supported.
         public void check(LFValidator validator, AttrParm parm) {
             switch(type) {
                 case STRING:
@@ -179,6 +181,28 @@ class AttributeSpec {
                                         Literals.ATTRIBUTE__ATTR_NAME);
                     }
                     break;
+            case LANGUAGE:
+                if (parm.getValue().getStr() == null) {
+                    validator.error("Incorrect type: \"" + parm.getName() + "\"" + " should have a value.",
+                                    Literals.ATTRIBUTE__ATTR_NAME);
+                } else if (
+                    !Arrays.stream(Target.values())
+                           .map(Target::getDisplayName)
+                           .toList()
+                           .contains(parm.getValue().getStr())
+                ) {
+                    validator.error(
+                        """
+                        Incorrect language: value should be a supported language (%s).
+                        """.formatted(
+                            Arrays.stream(Target.values())
+                                  .map(Target::getDisplayName)
+                                  .collect(Collectors.joining(", "))
+                        ),
+                        Literals.ATTRIBUTE__ATTR_PARMS
+                    );
+                }
+                break;
             }
         }
     }
@@ -190,7 +214,8 @@ class AttributeSpec {
         STRING,
         INT,
         BOOLEAN,
-        FLOAT
+        FLOAT,
+        LANGUAGE // FIXME: It would be nice to define supported targets here
     }
 
     /**
@@ -204,5 +229,9 @@ class AttributeSpec {
         ));
         // @sparse
         ATTRIBUTE_SPECS_BY_NAME.put("sparse", new AttributeSpec(null));
+        // @language(lang)
+        ATTRIBUTE_SPECS_BY_NAME.put("language", new AttributeSpec(
+            List.of(new AttrParamSpec(AttributeSpec.VALUE_ATTR, AttrParamType.LANGUAGE, null))
+        ));
     }
 }

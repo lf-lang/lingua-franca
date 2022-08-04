@@ -42,12 +42,16 @@ import org.eclipse.xtext.xbase.lib.IteratorExtensions;
 import org.lflang.ASTUtils;
 import org.lflang.ErrorReporter;
 import org.lflang.InferredType;
+import org.lflang.Target;
 import org.lflang.TargetProperty.CoordinationType;
 import org.lflang.TimeValue;
 import org.lflang.federated.extensions.FedTargetExtensionFactory;
 import org.lflang.federated.serialization.SupportedSerializers;
 import org.lflang.lf.Action;
 import org.lflang.lf.ActionOrigin;
+import org.lflang.lf.AttrParm;
+import org.lflang.lf.AttrParmValue;
+import org.lflang.lf.Attribute;
 import org.lflang.lf.Connection;
 import org.lflang.lf.Expression;
 import org.lflang.lf.Instantiation;
@@ -219,6 +223,8 @@ public class FedASTUtils {
         Reactor parent = (Reactor) connection.getDefinition().eContainer();
         Reaction networkReceiverReaction = factory.createReaction();
 
+        ASTUtils.setReactionLanguageAttribute(networkReceiverReaction, Target.C);
+
         // The connection is 'physical' if it uses the ~> notation.
         if (connection.getDefinition().isPhysical()) {
             connection.dstFederate.inboundP2PConnections.add(connection.srcFederate);
@@ -306,6 +312,8 @@ public class FedASTUtils {
         Reaction reaction = factory.createReaction();
         VarRef destRef = factory.createVarRef();
         int receivingPortID = connection.dstFederate.networkMessageActions.size();
+
+        ASTUtils.setReactionLanguageAttribute(reaction, Target.C);
 
         // Create a new action that will be used to trigger the
         // input control reactions.
@@ -530,6 +538,7 @@ public class FedASTUtils {
         VarRef destRef = factory.createVarRef();
         Reactor parent = (Reactor) connection.getDefinition().eContainer();
         Reaction networkSenderReaction = factory.createReaction();
+        ASTUtils.setReactionLanguageAttribute(networkSenderReaction, Target.C);
 
         // These reactions do not require any dependency relationship
         // to other reactions in the container.
@@ -602,6 +611,8 @@ public class FedASTUtils {
         newPortRef.setContainer(connection.getSourcePortInstance().getParent().getDefinition());
         newPortRef.setVariable(connection.getSourcePortInstance().getDefinition());
         reaction.getSources().add(newPortRef);
+
+        ASTUtils.setReactionLanguageAttribute(reaction, Target.C);
 
         // We use an action at the top-level to manually
         // trigger output control reactions. That action is created once

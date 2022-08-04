@@ -64,6 +64,9 @@ import org.lflang.generator.InvalidSourceException;
 import org.lflang.lf.Action;
 import org.lflang.lf.ActionOrigin;
 import org.lflang.lf.Assignment;
+import org.lflang.lf.AttrParm;
+import org.lflang.lf.AttrParmValue;
+import org.lflang.lf.Attribute;
 import org.lflang.lf.Code;
 import org.lflang.lf.Connection;
 import org.lflang.lf.Element;
@@ -451,6 +454,25 @@ public class ASTUtils {
         delayInstance.setName("delay");  // This has to be overridden.
         return delayInstance;
     }
+
+    /**
+     * Set the reaction's @language attribute to Target.
+     */
+    public static void setReactionLanguageAttribute(Reaction reaction, Target target) {
+        // Set the reaction language
+        AttrParmValue value = ASTUtils.factory.createAttrParmValue();
+        value.setStr(target.getDisplayName());
+
+        AttrParm attrParam = ASTUtils.factory.createAttrParm();
+        attrParam.setName("value");
+        attrParam.setValue(value);
+
+        Attribute attr = ASTUtils.factory.createAttribute();
+        attr.setAttrName("language");
+        attr.getAttrParms().add(attrParam);
+
+        reaction.getAttributes().add(attr);
+    }
     
     /**
      * Return a synthesized AST node that represents the definition of a delay
@@ -488,7 +510,10 @@ public class ASTUtils {
 
         Reaction r1 = factory.createReaction();
         Reaction r2 = factory.createReaction();
-        
+
+        setReactionLanguageAttribute(r1, generator.getTarget());
+        setReactionLanguageAttribute(r2, generator.getTarget());
+
         delayParameter.setName("delay");
         delayParameter.setType(factory.createType());
         delayParameter.getType().setId("time");
