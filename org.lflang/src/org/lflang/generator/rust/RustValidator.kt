@@ -32,12 +32,15 @@ class RustValidator(
         private const val COMPILER_MESSAGE_REASON = "compiler-message"
     }
     // See the following reference for details on cargo metadata: https://doc.rust-lang.org/cargo/commands/cargo-metadata.html
-    private data class RustMetadata(
+    public data class RustMetadata(
         // Other fields exist, but we don't need them. The mapper is configured not to fail on unknown properties.
-        @JsonProperty("workspace_root") private val _workspaceRoot: String
+        @JsonProperty("workspace_root") private val _workspaceRoot: String,
+        @JsonProperty("target_directory") private val _targetDirectory: String
     ) {
         val workspaceRoot: Path
             get() = Paths.get(_workspaceRoot)
+        val targetDirectory: Path
+            get() = Paths.get(_targetDirectory)
     }
     // See the following references for details on these data classes:
     //  * https://doc.rust-lang.org/cargo/reference/external-tools.html#json-messages
@@ -117,7 +120,7 @@ class RustValidator(
 
     private var _metadata: RustMetadata? = null
 
-    private fun getMetadata(): RustMetadata? {
+    public fun getMetadata(): RustMetadata? {
         val nullableCommand = LFCommand.get("cargo", listOf("metadata", "--format-version", "1"), true, fileConfig.srcGenPkgPath)
         _metadata = _metadata ?: nullableCommand?.let { command ->
             command.run { false }
