@@ -1038,7 +1038,9 @@ public class ASTUtils {
     public static Element toElement(TimeValue tv) {
         Element e = LfFactory.eINSTANCE.createElement();
         e.setTime((int)tv.time);
-        e.setUnit(tv.unit.toString());
+        if (tv.unit != null) {
+            e.setUnit(tv.unit.getCanonicalName());
+        }
         return e;
     }
 
