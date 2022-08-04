@@ -1039,7 +1039,7 @@ public class ASTUtils {
         Element e = LfFactory.eINSTANCE.createElement();
         e.setTime((int)tv.time);
         if (tv.unit != null) {
-            e.setUnit(tv.unit.getCanonicalName());
+            e.setUnit(tv.unit.toString());
         }
         return e;
     }
