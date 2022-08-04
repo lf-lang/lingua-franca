@@ -154,7 +154,12 @@ public class CmakeGenerator {
 
         cMakeCode.pr("target_link_libraries(${LF_MAIN_TARGET} core)");
 
+        cMakeCode.pr("target_include_directories(${LF_MAIN_TARGET} PUBLIC include/)");
         cMakeCode.pr("target_include_directories(${LF_MAIN_TARGET} PUBLIC include/api)");
+        cMakeCode.pr("target_include_directories(${LF_MAIN_TARGET} PUBLIC include/core)");
+        cMakeCode.pr("target_include_directories(${LF_MAIN_TARGET} PUBLIC include/core/platform)");
+        cMakeCode.pr("target_include_directories(${LF_MAIN_TARGET} PUBLIC include/core/modal_models)");
+        cMakeCode.pr("target_include_directories(${LF_MAIN_TARGET} PUBLIC include/core/utils)");
 
         if (targetConfig.threading || targetConfig.tracing != null) {
             // If threaded computation is requested, add the threads option.
