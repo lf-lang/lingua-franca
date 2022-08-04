@@ -35,9 +35,7 @@ public class PythonReactorGenerator {
         ReactorDecl decl = instance.getDefinition().getReactorClass();
         Reactor reactor = ASTUtils.toDefinition(decl);
         String className = PyUtil.getName(decl);
-        if (instantiatedClasses == null ||
-                // Do not generate code for delay reactors in Python
-                className.contains(GeneratorBase.GEN_DELAY_CLASS_NAME)) {
+        if (instantiatedClasses == null) {
             return "";
         }
 
@@ -116,10 +114,6 @@ public class PythonReactorGenerator {
         CodeBuilder code = new CodeBuilder();
 
         String className = PyUtil.getName(instance.reactorDeclaration);
-        // Do not instantiate delay reactors in Python
-        if (className.contains(GeneratorBase.GEN_DELAY_CLASS_NAME)) {
-            return "";
-        }
 
         if (instance.getWidth() > 0) {
             // For each reactor instance, create a list regardless of whether it is a bank or not.

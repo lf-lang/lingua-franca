@@ -85,6 +85,12 @@ public abstract class GeneratorBase extends AbstractLFValidator {
     public static String GEN_DELAY_CLASS_NAME = "_lf_GenDelay";
 
     /**
+     * Return the Target language in which delay reactors are implemented in.
+     * @return
+     */
+    public Target getDelayTarget() { return getTarget(); }
+
+    /**
      * The main (top-level) reactor instance.
      */
     public ReactorInstance main;

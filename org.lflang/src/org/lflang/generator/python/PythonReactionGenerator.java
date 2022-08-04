@@ -4,10 +4,15 @@ import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
+
 import org.lflang.ASTUtils;
 import org.lflang.AttributeUtils;
 import org.lflang.ErrorReporter;
 import org.lflang.Target;
+import org.lflang.ast.FormattingUtils;
+import org.lflang.ast.MalleableString;
+import org.lflang.ast.ToLf;
 import org.lflang.lf.ReactorDecl;
 import org.lflang.lf.Reaction;
 import org.lflang.lf.Reactor;
@@ -417,17 +422,13 @@ public class PythonReactionGenerator {
         Reactor reactor = ASTUtils.toDefinition(instance.getDefinition().getReactorClass());
         CodeBuilder code = new CodeBuilder();
 
-        // Delay reactors and top-level reactions used in the top-level reactor(s) in federated execution are generated in C
-        if (reactor.getName().contains(GeneratorBase.GEN_DELAY_CLASS_NAME) ||
-                instance.getDefinition().getReactorClass() == (mainDef != null ? mainDef.getReactorClass() : null) &&
-                reactor.isFederated()) {
-            return "";
-        }
-
         // Initialize the name field to the unique name of the instance
         code.pr(nameOfSelfStruct+"->_lf_name = \""+instance.uniqueID()+"_lf\";");
 
         for (ReactionInstance reaction : instance.reactions) {
+            // Reactions marked with a `@language(C)` attribute are generated in C
+            var reactionLanguageAttr = AttributeUtils.findReactionLanguageAttribute(reaction.getDefinition());
+            if (reactionLanguageAttr != null && reactionLanguageAttr.equals(Target.C))  continue;
             // Create a PyObject for each reaction
             code.pr(generateCPythonReactionLinker(instance, reaction, nameOfSelfStruct));
         }
@@ -445,10 +446,6 @@ public class PythonReactionGenerator {
             ReactionInstance reaction,
             String nameOfSelfStruct
     ) {
-        // Reactions marked with a `@language(C)` attribute are generated in C
-        var reactionLanguageAttr = AttributeUtils.findReactionLanguageAttribute(reaction.getDefinition());
-        if (reactionLanguageAttr != null && reactionLanguageAttr.equals(Target.C))  return "";
-
         CodeBuilder code = new CodeBuilder();
         code.pr(generateCPythonFunctionLinker(
             nameOfSelfStruct, generateCPythonReactionFunctionName(reaction.index),

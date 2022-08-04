@@ -57,6 +57,7 @@ import org.lflang.generator.GeneratorResult;
 import org.lflang.generator.GeneratorUtils;
 import org.lflang.generator.IntegratedBuilder;
 import org.lflang.generator.LFGeneratorContext;
+import org.lflang.generator.LFResource;
 import org.lflang.generator.ReactorInstance;
 import org.lflang.generator.SubContext;
 import org.lflang.generator.TargetTypes;
@@ -160,6 +161,9 @@ public class PythonGenerator extends CGenerator {
     public Target getTarget() {
         return Target.Python;
     }
+
+    @Override
+    public Target getDelayTarget() { return Target.C; }
 
     private Set<String> protoNames = new HashSet<>();
 
@@ -811,4 +815,5 @@ public class PythonGenerator extends CGenerator {
             false
         );
     }
+
 }

@@ -511,8 +511,8 @@ public class ASTUtils {
         Reaction r1 = factory.createReaction();
         Reaction r2 = factory.createReaction();
 
-        setReactionLanguageAttribute(r1, generator.getTarget());
-        setReactionLanguageAttribute(r2, generator.getTarget());
+        setReactionLanguageAttribute(r1, generator.getDelayTarget());
+        setReactionLanguageAttribute(r2, generator.getDelayTarget());
 
         delayParameter.setName("delay");
         delayParameter.setType(factory.createType());
