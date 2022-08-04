@@ -38,15 +38,19 @@ import org.lflang.FileConfig;
 import org.lflang.InferredType;
 import org.lflang.TargetConfig;
 import org.lflang.TargetProperty;
+import org.lflang.TargetProperty.CoordinationType;
 import org.lflang.federated.generator.FedConnectionInstance;
 import org.lflang.federated.generator.FedFileConfig;
 import org.lflang.federated.generator.FederateInstance;
 import org.lflang.federated.launcher.FedPyLauncher;
 import org.lflang.federated.serialization.FedNativePythonSerialization;
 import org.lflang.federated.serialization.FedSerialization;
+import org.lflang.federated.serialization.SupportedSerializers;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.generator.DockerGeneratorBase;
 import org.lflang.generator.LFGeneratorContext;
+import org.lflang.generator.ReactionInstance;
+import org.lflang.generator.python.PyUtil;
 import org.lflang.generator.python.PythonDockerGenerator;
 import org.lflang.generator.python.PythonInfoGenerator;
 import org.lflang.lf.Action;
@@ -62,6 +66,87 @@ public class PythonExtension extends CExtension {
 
     @Override
     protected void generateCMakeInclude(FederateInstance federate, FedFileConfig fileConfig) throws IOException {}
+
+    @Override
+    protected String generateSerializationPreamble(FederateInstance federate, FedFileConfig fileConfig) {
+        CodeBuilder code = new CodeBuilder();
+        for (SupportedSerializers serialization : federate.enabledSerializers) {
+            switch (serialization) {
+            case NATIVE: {
+                FedNativePythonSerialization pickler = new FedNativePythonSerialization();
+                code.pr(pickler.generatePreambleForSupport().toString());
+            }
+            case PROTO: {
+                // Nothing needs to be done
+            }
+            case ROS2: {
+                // FIXME: Not supported yet
+            }
+            }
+        }
+        return code.getCode();
+    }
+
+    @Override
+    public String generateNetworkSenderBody(
+        VarRef sendingPort,
+        VarRef receivingPort,
+        FedConnectionInstance connection,
+        InferredType type,
+        CoordinationType coordinationType,
+        ErrorReporter errorReporter
+    ) {
+        var result = new CodeBuilder();
+
+        // We currently have no way to mark a reaction "unordered"
+        // in the AST, so we use a magic string at the start of the body.
+        result.pr("// " + ReactionInstance.UNORDERED_REACTION_MARKER + "\n");
+        result.pr(PyUtil.generateGILAcquireCode() + "\n");
+        result.pr(
+            super.generateNetworkSenderBody(
+                sendingPort,
+                receivingPort,
+                connection,
+                type,
+                coordinationType,
+                errorReporter
+            )
+        );
+        result.pr(PyUtil.generateGILReleaseCode() + "\n");
+        return result.getCode();
+    }
+
+    @Override
+    public String generateNetworkReceiverBody(
+        Action action,
+        VarRef sendingPort,
+        VarRef receivingPort,
+        FedConnectionInstance connection,
+        InferredType type,
+        CoordinationType coordinationType,
+        ErrorReporter errorReporter
+    ) {
+        var result = new CodeBuilder();
+
+        // We currently have no way to mark a reaction "unordered"
+        // in the AST, so we use a magic string at the start of the body.
+        result.pr("// " + ReactionInstance.UNORDERED_REACTION_MARKER + "\n");
+        result.pr(PyUtil.generateGILAcquireCode() + "\n");
+        result.pr(
+            super.generateNetworkReceiverBody(
+                action,
+                sendingPort,
+                receivingPort,
+                connection,
+                type,
+                coordinationType,
+                errorReporter
+            )
+        );
+        result.pr(PyUtil.generateGILReleaseCode() + "\n");
+        return result.getCode();
+
+    }
 
     @Override
     protected void deserialize(

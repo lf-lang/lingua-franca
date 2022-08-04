@@ -453,6 +453,17 @@ public class PythonGenerator extends CGenerator {
             errorReporter.reportError(
                 "protoc returns error code " + returnCode);
         }
+
+        // Handle .proto files.
+        for (String name : targetConfig.protoFiles) {
+            this.processProtoFile(name);
+            int dotIndex = name.lastIndexOf(".");
+            String rootFilename = dotIndex > 0
+                                  ? name.substring(0, dotIndex) : name;
+            pythonPreamble.pr(
+                "import " + rootFilename + "_pb2 as " + rootFilename);
+            protoNames.add(rootFilename);
+        }
     }
 
     /**

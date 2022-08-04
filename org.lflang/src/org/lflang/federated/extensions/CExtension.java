@@ -568,7 +568,7 @@ public class CExtension implements FedTargetExtension {
         }
         """.formatted(numOfNetworkActions));
 
-        code.pr(CExtensionUtils.generateSerializationPreamble(federate, fileConfig));
+        code.pr(generateSerializationPreamble(federate, fileConfig));
 
         code.pr(generateExecutablePreamble(federate, federationRTIProperties, errorReporter));
 
@@ -577,6 +577,13 @@ public class CExtension implements FedTargetExtension {
         code.pr(CExtensionUtils.generateFederateNeighborStructure(federate));
 
         return code.getCode();
+    }
+
+    /**
+     * Generate preamble code needed for enabled serializers of the federate.
+     */
+    protected String generateSerializationPreamble(FederateInstance federate, FedFileConfig fileConfig) {
+        return CExtensionUtils.generateSerializationPreamble(federate, fileConfig);
     }
 
     /**
