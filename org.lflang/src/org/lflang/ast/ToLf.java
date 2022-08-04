@@ -10,6 +10,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Predicate;
+import java.util.function.Supplier;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -28,6 +29,9 @@ import org.lflang.lf.Action;
 import org.lflang.lf.Array;
 import org.lflang.lf.ArraySpec;
 import org.lflang.lf.Assignment;
+import org.lflang.lf.AttrParm;
+import org.lflang.lf.AttrParmValue;
+import org.lflang.lf.Attribute;
 import org.lflang.lf.BuiltinTriggerRef;
 import org.lflang.lf.Code;
 import org.lflang.lf.Connection;
@@ -270,6 +274,43 @@ public class ToLf extends LfSwitch<MalleableString> {
     }
 
     @Override
+    public MalleableString caseAttribute(Attribute object) {
+        // '@' attrName=ID ('(' (attrParms+=AttrParm (',' attrParms+=AttrParm)* ','?)? ')')?
+        var builder = new Builder()
+            .append("@")
+            .append(object.getAttrName());
+        if (object.getAttrParms() != null) {
+            builder.append(list(true, object.getAttrParms()));
+        }
+        return builder.get();
+    }
+
+    @Override
+    public MalleableString caseAttrParm(AttrParm object) {
+        // (name=ID '=')? value=AttrParmValue;
+        var builder = new Builder();
+        if (object.getName() != null) builder.append(object.getName()).append(" = ");
+        return builder.append(doSwitch(object.getValue())).get();
+    }
+
+    @Override
+    public MalleableString caseAttrParmValue(AttrParmValue object) {
+        // str=STRING
+        //  | int=SignedInt
+        //  | bool=Boolean
+        //  | float=SignedFloat
+        if (object.getStr() != null) {
+            return MalleableString.anyOf(StringUtil.addDoubleQuotes(object.getStr()));
+        }
+        if (object.getInt() != null) return MalleableString.anyOf(object.getInt());
+        if (object.getBool() != null) return MalleableString.anyOf(object.getBool());
+        if (object.getFloat() != null) return MalleableString.anyOf(object.getFloat());
+        throw new IllegalArgumentException(
+            "The attributes of an AttrParmValue should not all be null."
+        );
+    }
+
+    @Override
     public MalleableString caseTime(Time t) {
         // (interval=INT unit=TimeUnit)
         return MalleableString.anyOf(ASTUtils.toTimeValue(t).toString());
@@ -394,6 +435,7 @@ public class ToLf extends LfSwitch<MalleableString> {
         //     | (mutations+=Mutation)
         // )* '}'
         Builder msb = new Builder();
+        addAttributes(msb, object::getAttributes);
         msb.append(reactorHeader(object));
         MalleableString smallFeatures = indentedStatements(
             List.of(
@@ -477,6 +519,7 @@ public class ToLf extends LfSwitch<MalleableString> {
         //     )?
         // ) ';'?
         Builder msb = new Builder();
+        addAttributes(msb, object::getAttributes);
         if (object.isReset()) msb.append("reset ");
         msb.append("state ").append(object.getName());
         msb.append(typeAnnotationFor(object.getType()));
@@ -514,6 +557,7 @@ public class ToLf extends LfSwitch<MalleableString> {
     public MalleableString caseInput(Input object) {
         // mutable?='mutable'? 'input' (widthSpec=WidthSpec)? name=ID (':' type=Type)? ';'?
         Builder msb = new Builder();
+        addAttributes(msb, object::getAttributes);
         if (object.isMutable()) msb.append("mutable ");
         msb.append("input");
         if (object.getWidthSpec() != null) msb.append(doSwitch(object.getWidthSpec()));
@@ -525,6 +569,7 @@ public class ToLf extends LfSwitch<MalleableString> {
     public MalleableString caseOutput(Output object) {
         // 'output' (widthSpec=WidthSpec)? name=ID (':' type=Type)? ';'?
         Builder msb = new Builder();
+        addAttributes(msb, object::getAttributes);
         msb.append("output");
         if (object.getWidthSpec() != null) msb.append(doSwitch(object.getWidthSpec()));
         msb.append(" ").append(object.getName());
@@ -535,7 +580,9 @@ public class ToLf extends LfSwitch<MalleableString> {
     @Override
     public MalleableString caseTimer(Timer object) {
         // 'timer' name=ID ('(' offset=Expression (',' period=Expression)? ')')? ';'?
-        return new Builder()
+        var builder = new Builder();
+        addAttributes(builder, object::getAttributes);
+        return builder
             .append("timer ")
             .append(object.getName())
             .append(list(true, object.getOffset(), object.getPeriod()))
@@ -582,6 +629,7 @@ public class ToLf extends LfSwitch<MalleableString> {
         // ('(' minDelay=Expression (',' minSpacing=Expression (',' policy=STRING)? )? ')')?
         // (':' type=Type)? ';'?
         Builder msb = new Builder();
+        addAttributes(msb, object::getAttributes);
         if (object.getOrigin() != null) msb.append(object.getOrigin().getLiteral()).append(" ");
         return msb.append("action ")
             .append(object.getName())
@@ -605,6 +653,7 @@ public class ToLf extends LfSwitch<MalleableString> {
         // (stp=STP)?
         // (deadline=Deadline)?
         Builder msb = new Builder();
+        addAttributes(msb, object::getAttributes);
         msb.append("reaction");
         msb.append(list(true, object.getTriggers()));
         msb.append(list(", ", " ", "", true, false, object.getSources()));
@@ -853,7 +902,9 @@ public class ToLf extends LfSwitch<MalleableString> {
         // ((parens+='(' (init+=Expression (','  init+=Expression)*)? parens+=')')
         // | (braces+='{' (init+=Expression (','  init+=Expression)*)? braces+='}')
         // )?
-        return new Builder()
+        var builder = new Builder();
+        addAttributes(builder, object::getAttributes);
+        return builder
             .append(object.getName())
             .append(typeAnnotationFor(object.getType()))
             .append(list(
@@ -1011,6 +1062,13 @@ public class ToLf extends LfSwitch<MalleableString> {
     private MalleableString typeAnnotationFor(Type type) {
         if (type == null) return MalleableString.anyOf("");
         return new Builder().append(": ").append(doSwitch(type)).get();
+    }
+
+    private void addAttributes(Builder builder, Supplier<EList<? extends EObject>> getAttributes) {
+        if (getAttributes.get() == null) return;
+        for (var attribute : getAttributes.get()) {
+            builder.append(doSwitch(attribute)).append("\n");
+        }
     }
 
     /**

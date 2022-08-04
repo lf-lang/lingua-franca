@@ -15,6 +15,9 @@ import org.lflang.lf.Action;
 import org.lflang.lf.Array;
 import org.lflang.lf.ArraySpec;
 import org.lflang.lf.Assignment;
+import org.lflang.lf.AttrParm;
+import org.lflang.lf.AttrParmValue;
+import org.lflang.lf.Attribute;
 import org.lflang.lf.BuiltinTriggerRef;
 import org.lflang.lf.Code;
 import org.lflang.lf.Connection;
@@ -116,6 +119,7 @@ public class IsEqual extends LfSwitch<Boolean> {
     @Override
     public Boolean caseReactor(Reactor object) {
         return new ComparisonMachine<>(object, Reactor.class)
+            .listsEquivalent(Reactor::getAttributes)
             .equalAsObjects(Reactor::isFederated)
             .equalAsObjects(Reactor::isRealtime)
             .equalAsObjects(Reactor::isMain)
@@ -161,6 +165,7 @@ public class IsEqual extends LfSwitch<Boolean> {
     @Override
     public Boolean caseStateVar(StateVar object) {
         return new ComparisonMachine<>(object, StateVar.class)
+            .listsEquivalent(StateVar::getAttributes)
             .equalAsObjects(StateVar::getName)
             .equivalent(StateVar::getType)
             .listsEquivalent(StateVar::getInit)
@@ -192,6 +197,7 @@ public class IsEqual extends LfSwitch<Boolean> {
     @Override
     public Boolean caseInput(Input object) {
         return new ComparisonMachine<>(object, Input.class)
+            .listsEquivalent(Input::getAttributes)
             .equalAsObjects(Input::isMutable)
             .equivalent(Input::getWidthSpec)
             .equivalent(Input::getType)
@@ -201,6 +207,7 @@ public class IsEqual extends LfSwitch<Boolean> {
     @Override
     public Boolean caseOutput(Output object) {
         return new ComparisonMachine<>(object, Output.class)
+            .listsEquivalent(Output::getAttributes)
             .equivalent(Output::getWidthSpec)
             .equalAsObjects(Output::getName)
             .equivalent(Output::getType)
@@ -210,6 +217,7 @@ public class IsEqual extends LfSwitch<Boolean> {
     @Override
     public Boolean caseTimer(Timer object) {
         return new ComparisonMachine<>(object, Timer.class)
+            .listsEquivalent(Timer::getAttributes)
             .equalAsObjects(Timer::getName)
             .equivalent(Timer::getOffset)
             .equivalent(Timer::getPeriod)
@@ -233,6 +241,7 @@ public class IsEqual extends LfSwitch<Boolean> {
     @Override
     public Boolean caseAction(Action object) {
         return new ComparisonMachine<>(object, Action.class)
+            .listsEquivalent(Action::getAttributes)
             .equalAsObjects(Action::getOrigin) // This is an enum
             .equalAsObjects(Action::getName)
             .equivalent(Action::getMinDelay)
@@ -243,8 +252,35 @@ public class IsEqual extends LfSwitch<Boolean> {
     }
 
     @Override
+    public Boolean caseAttribute(Attribute object) {
+        return new ComparisonMachine<>(object, Attribute.class)
+            .equalAsObjects(Attribute::getAttrName)
+            .listsEquivalent(Attribute::getAttrParms)
+            .conclusion;
+    }
+
+    @Override
+    public Boolean caseAttrParm(AttrParm object) {
+        return new ComparisonMachine<>(object, AttrParm.class)
+            .equalAsObjects(AttrParm::getName)
+            .equivalent(AttrParm::getValue)
+            .conclusion;
+    }
+
+    @Override
+    public Boolean caseAttrParmValue(AttrParmValue object) {
+        return new ComparisonMachine<>(object, AttrParmValue.class)
+            .equalAsObjects(AttrParmValue::getBool)
+            .equalAsObjects(AttrParmValue::getFloat)
+            .equalAsObjects(AttrParmValue::getInt)
+            .equalAsObjects(AttrParmValue::getStr)
+            .conclusion;
+    }
+
+    @Override
     public Boolean caseReaction(Reaction object) {
         return new ComparisonMachine<>(object, Reaction.class)
+            .listsEquivalent(Reaction::getAttributes)
             .listsEquivalent(Reaction::getTriggers)
             .listsEquivalent(Reaction::getSources)
             .listsEquivalent(Reaction::getEffects)
@@ -399,6 +435,7 @@ public class IsEqual extends LfSwitch<Boolean> {
     @Override
     public Boolean caseParameter(Parameter object) {
         return new ComparisonMachine<>(object, Parameter.class)
+            .listsEquivalent(Parameter::getAttributes)
             .equalAsObjects(Parameter::getName)
             .equivalent(Parameter::getType)
             .listsEqualAsObjects(Parameter::getParens)
@@ -556,13 +593,19 @@ public class IsEqual extends LfSwitch<Boolean> {
             this.other = conclusion ? clz.cast(otherObject) : null;
         }
 
-        /** Conclude false if the two given ELists are different. Order matters. */
-        <T extends EObject> ComparisonMachine<E> listsEquivalent(Function<E, EList<T>> listGetter) {
+        /**
+         * Conclude false if the two given Lists are different as EObject
+         * sequences. Order matters.
+         */
+        <T extends EObject> ComparisonMachine<E> listsEquivalent(Function<E, List<T>> listGetter) {
             if (conclusion) conclusion = listsEqualish(listGetter, (T a, T b) -> new IsEqual(a).doSwitch(b));
             return this;
         }
 
-        /** Conclude false if the two given Lists are different. Order matters. */
+        /**
+         * Conclude false if the two given Lists are different as object
+         * sequences. Order matters.
+         */
         <T> ComparisonMachine<E> listsEqualAsObjects(Function<E, List<T>> listGetter) {
             if (conclusion) conclusion = listsEqualish(listGetter, Objects::equals);
             return this;
