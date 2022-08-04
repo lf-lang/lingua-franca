@@ -464,7 +464,6 @@ public class ASTUtils {
         value.setStr(target.getDisplayName());
 
         AttrParm attrParam = ASTUtils.factory.createAttrParm();
-        attrParam.setName("value");
         attrParam.setValue(value);
 
         Attribute attr = ASTUtils.factory.createAttribute();
