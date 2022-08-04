@@ -154,7 +154,7 @@ public class CmakeGenerator {
 
         cMakeCode.pr("target_link_libraries(${LF_MAIN_TARGET} core)");
 
-        cMakeCode.pr("target_include_directories(${LF_MAIN_TARGET} PUBLIC include)");
+        cMakeCode.pr("target_include_directories(${LF_MAIN_TARGET} PUBLIC include/api)");
 
         if (targetConfig.threading || targetConfig.tracing != null) {
             // If threaded computation is requested, add the threads option.

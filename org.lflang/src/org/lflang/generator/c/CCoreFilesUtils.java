@@ -18,15 +18,15 @@ public class CCoreFilesUtils {
 
     public static List<String> getCTargetHeader() {
         return List.of(
-            "include/ctarget/ctarget.h"
+            "include/api/api.h"
         );
     }
 
     public static String getCTargetSetHeader() {
-        return "include/ctarget/set.h";
+        return "include/api/set.h";
     }
 
     public static String getCTargetSetUndefHeader() {
-        return "include/ctarget/set_undef.h";
+        return "include/api/set_undef.h";
     }
 }
