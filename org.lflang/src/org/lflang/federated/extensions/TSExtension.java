@@ -9,6 +9,7 @@ import java.util.stream.Collectors;
 import org.lflang.ASTUtils;
 import org.lflang.ErrorReporter;
 import org.lflang.InferredType;
+import org.lflang.Target;
 import org.lflang.TargetProperty.CoordinationType;
 import org.lflang.TimeValue;
 import org.lflang.federated.generator.FedASTUtils;
@@ -65,6 +66,11 @@ public class TSExtension implements FedTargetExtension {
     @Override
     public String generateNetworkOutputControlReactionBody(VarRef srcOutputPort, FedConnectionInstance connection) {
         return "// TODO(hokeun): Figure out what to do for generateNetworkOutputControlReactionBody";
+    }
+
+    @Override
+    public Target getNetworkReactionTarget() {
+        return Target.TS;
     }
 
     @Override

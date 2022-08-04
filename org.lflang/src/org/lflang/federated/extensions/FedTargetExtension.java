@@ -8,6 +8,7 @@ import java.util.List;
 import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
 import org.lflang.InferredType;
+import org.lflang.Target;
 import org.lflang.TargetConfig;
 import org.lflang.TargetProperty.CoordinationType;
 import org.lflang.TimeValue;
@@ -103,6 +104,11 @@ public interface FedTargetExtension {
         VarRef srcOutputPort,
         FedConnectionInstance connection
     );
+
+    /**
+     * Return the target language used in the body of network reactions.
+     */
+    Target getNetworkReactionTarget();
 
     /**
      * Return the type for the raw network buffer in the target language (e.g., `uint_8` in C). This would be the type of the 

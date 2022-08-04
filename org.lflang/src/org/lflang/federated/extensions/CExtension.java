@@ -38,6 +38,7 @@ import java.util.List;
 import org.lflang.ASTUtils;
 import org.lflang.ErrorReporter;
 import org.lflang.InferredType;
+import org.lflang.Target;
 import org.lflang.TargetProperty;
 import org.lflang.TargetProperty.CoordinationType;
 import org.lflang.TimeValue;
@@ -514,6 +515,11 @@ public class CExtension implements FedTargetExtension {
                               "}"
         ));
         return result.toString();
+    }
+
+    @Override
+    public Target getNetworkReactionTarget() {
+        return Target.C;
     }
 
 

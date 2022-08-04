@@ -223,7 +223,11 @@ public class FedASTUtils {
         Reactor parent = (Reactor) connection.getDefinition().eContainer();
         Reaction networkReceiverReaction = factory.createReaction();
 
-        ASTUtils.setReactionLanguageAttribute(networkReceiverReaction, Target.C);
+        ASTUtils.setReactionLanguageAttribute(
+            networkReceiverReaction,
+            FedTargetExtensionFactory.getExtension(connection.dstFederate.target)
+                                     .getNetworkReactionTarget()
+        );
 
         // The connection is 'physical' if it uses the ~> notation.
         if (connection.getDefinition().isPhysical()) {
@@ -313,7 +317,11 @@ public class FedASTUtils {
         VarRef destRef = factory.createVarRef();
         int receivingPortID = connection.dstFederate.networkMessageActions.size();
 
-        ASTUtils.setReactionLanguageAttribute(reaction, Target.C);
+        ASTUtils.setReactionLanguageAttribute(
+            reaction,
+            FedTargetExtensionFactory.getExtension(connection.dstFederate.target)
+                                     .getNetworkReactionTarget()
+        );
 
         // Create a new action that will be used to trigger the
         // input control reactions.
@@ -538,7 +546,11 @@ public class FedASTUtils {
         VarRef destRef = factory.createVarRef();
         Reactor parent = (Reactor) connection.getDefinition().eContainer();
         Reaction networkSenderReaction = factory.createReaction();
-        ASTUtils.setReactionLanguageAttribute(networkSenderReaction, Target.C);
+        ASTUtils.setReactionLanguageAttribute(
+            networkSenderReaction,
+            FedTargetExtensionFactory.getExtension(connection.srcFederate.target)
+                                     .getNetworkReactionTarget()
+        );
 
         // These reactions do not require any dependency relationship
         // to other reactions in the container.
@@ -612,7 +624,11 @@ public class FedASTUtils {
         newPortRef.setVariable(connection.getSourcePortInstance().getDefinition());
         reaction.getSources().add(newPortRef);
 
-        ASTUtils.setReactionLanguageAttribute(reaction, Target.C);
+        ASTUtils.setReactionLanguageAttribute(
+            reaction,
+            FedTargetExtensionFactory.getExtension(connection.srcFederate.target)
+                                     .getNetworkReactionTarget()
+        );
 
         // We use an action at the top-level to manually
         // trigger output control reactions. That action is created once

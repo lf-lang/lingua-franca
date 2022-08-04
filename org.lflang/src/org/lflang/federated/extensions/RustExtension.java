@@ -7,6 +7,7 @@ import java.util.List;
 import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
 import org.lflang.InferredType;
+import org.lflang.Target;
 import org.lflang.TargetConfig;
 import org.lflang.TargetProperty.CoordinationType;
 import org.lflang.TimeValue;
@@ -42,6 +43,11 @@ public class RustExtension implements FedTargetExtension {
     @Override
     public String generateNetworkOutputControlReactionBody(VarRef srcOutputPort, FedConnectionInstance connection) {
         return null;
+    }
+
+    @Override
+    public Target getNetworkReactionTarget() {
+        return Target.Rust;
     }
 
     @Override
