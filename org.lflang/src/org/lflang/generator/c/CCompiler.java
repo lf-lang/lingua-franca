@@ -200,10 +200,14 @@ public class CCompiler {
         return command;
     }
 
-    static List<String> cmakeOptions(TargetConfig targetConfig, FileConfig fileConfig) {
+    static Stream<String> cmakeCompileDefinitions(TargetConfig targetConfig) {
+        return targetConfig.compileDefinitions.entrySet().stream()
+            .map(entry -> "-D" + entry.getKey() + "=" + entry.getValue());
+    }
+
+    private static List<String> cmakeOptions(TargetConfig targetConfig, FileConfig fileConfig) {
         Stream<String> arguments = Stream.concat(
-            targetConfig.compileDefinitions.entrySet().stream()
-                .map(entry -> "-D" + entry.getKey() + "=" + entry.getValue()),
+            cmakeCompileDefinitions(targetConfig),
             Stream.of(
                 "-DCMAKE_INSTALL_PREFIX=" + FileUtil.toUnixString(fileConfig.getOutPath()),
                 "-DCMAKE_INSTALL_BINDIR=" + FileUtil.toUnixString(

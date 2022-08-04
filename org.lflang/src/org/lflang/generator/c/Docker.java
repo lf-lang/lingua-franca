@@ -1,5 +1,7 @@
 package org.lflang.generator.c;
 
+import java.util.stream.Collectors;
+
 import org.eclipse.xtext.xbase.lib.IterableExtensions;
 import org.lflang.FileConfig;
 import org.lflang.TargetConfig;
@@ -76,7 +78,7 @@ public class Docker extends DockerGeneratorBase {
     protected String generateDockerFileContent(CGeneratorData generatorData) {
         var lfModuleName = generatorData.lfModuleName();
         var compileCommand = IterableExtensions.isNullOrEmpty(targetConfig.buildCommands) ?
-                                 generateDefaultCompileCommand(generatorData.fileConfig) :
+                                 generateDefaultCompileCommand() :
                                  StringUtil.joinObjects(targetConfig.buildCommands, " ");
         var compiler = CCppMode ? "g++" : "gcc";
         var baseImage = targetConfig.dockerOptions.from == null ? DEFAULT_BASE_IMAGE : targetConfig.dockerOptions.from;
@@ -99,14 +101,13 @@ public class Docker extends DockerGeneratorBase {
         );
     }
 
-    /**
-     * Return the default compile command for the C docker container.
-     */
-    private String generateDefaultCompileCommand(FileConfig fileConfig) {
+    /** Return the default compile command for the C docker container. */
+    protected String generateDefaultCompileCommand() {
         return String.join("\n",
             "RUN set -ex && \\",
             "mkdir bin && \\",
-            "cmake " + String.join(" ", CCompiler.cmakeOptions(targetConfig, fileConfig))
+            "cmake " + CCompiler.cmakeCompileDefinitions(targetConfig)
+                .collect(Collectors.joining(" "))
                 + " -S src-gen -B bin && \\",
             "cd bin && \\",
             "make all"
