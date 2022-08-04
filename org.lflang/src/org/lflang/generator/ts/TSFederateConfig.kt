@@ -45,6 +45,8 @@ class TSFederateConfig (
                     if (federateConfigMap.contains("min_output_delay")) {
                         val minOutputDelayLiteral = federateConfigMap.getValue("min_output_delay").trim().split(" ")
                         if (minOutputDelayLiteral.size != 2) {
+                            // TODO(hokeun): 0 doesn't need time unit so this check is incorrect.
+                            // TODO(hokeun): Make the error message better to describe what information is missing.
                             throw GenerationException("TS Preamble is out of format: ${federateConfigMap.getValue("min_output_delay")}")
                         }
                         minOutputDelay = TimeValue(minOutputDelayLiteral[0].toLong(), TimeUnit.fromName(minOutputDelayLiteral[1]))
