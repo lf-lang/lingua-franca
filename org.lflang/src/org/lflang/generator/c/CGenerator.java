@@ -727,11 +727,17 @@ public class CGenerator extends GeneratorBase {
         if (main != null) {
             initializeTriggerObjects.pr(String.join("\n",
                 "int _lf_startup_reactions_count = 0;",
+                "SUPPRESS_UNUSED_WARNING(_lf_startup_reactions_count);",
                 "int _lf_shutdown_reactions_count = 0;",
+                "SUPPRESS_UNUSED_WARNING(_lf_shutdown_reactions_count);",
                 "int _lf_reset_reactions_count = 0;",
+                "SUPPRESS_UNUSED_WARNING(_lf_reset_reactions_count);",
                 "int _lf_timer_triggers_count = 0;",
+                "SUPPRESS_UNUSED_WARNING(_lf_timer_triggers_count);",
                 "int _lf_tokens_with_ref_count_count = 0;",
-                "int bank_index;"
+                "SUPPRESS_UNUSED_WARNING(_lf_tokens_with_ref_count_count);",
+                "int bank_index;",
+                "SUPPRESS_UNUSED_WARNING(bank_index);"
             ));
             // Add counters for modal initialization
             initializeTriggerObjects.pr(CModesGenerator.generateModalInitalizationCounters(hasModalReactors));
@@ -1678,7 +1684,7 @@ public class CGenerator extends GeneratorBase {
                                 // The port belongs to contained reactor, so we also have
                                 // iterate over the instance bank members.
                                 temp.startScopedBlock();
-                                temp.pr("int count = 0;");
+                                temp.pr("int count = 0; SUPPRESS_UNUSED_WARNING(count);");
                                 temp.startScopedBlock(instance, currentFederate, isFederated, true);
                                 temp.startScopedBankChannelIteration(port, currentFederate, null, isFederated);
                             } else {
@@ -1765,7 +1771,7 @@ public class CGenerator extends GeneratorBase {
             if (currentFederate.contains(child) && child.outputs.size() > 0) {
 
                 temp.startScopedBlock();
-                temp.pr("int count = 0;");
+                temp.pr("int count = 0; SUPPRESS_UNUSED_WARNING(count);");
                 temp.startScopedBlock(child, currentFederate, isFederated, true);
 
                 var channelCount = 0;
