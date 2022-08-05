@@ -1,6 +1,7 @@
 package org.lflang.generator.ts
 
 import org.eclipse.emf.common.util.EList
+import org.lflang.ASTUtils
 import org.lflang.TimeUnit
 import org.lflang.TimeValue
 import org.lflang.generator.GenerationException
@@ -43,13 +44,7 @@ class TSFederateConfig (
                     var minOutputDelay: TimeValue? = null
 
                     if (federateConfigMap.contains("min_output_delay")) {
-                        val minOutputDelayLiteral = federateConfigMap.getValue("min_output_delay").trim().split(" ")
-                        if (minOutputDelayLiteral.size != 2) {
-                            // TODO(hokeun): 0 doesn't need time unit so this check is incorrect.
-                            // TODO(hokeun): Make the error message better to describe what information is missing.
-                            throw GenerationException("TS Preamble is out of format: ${federateConfigMap.getValue("min_output_delay")}")
-                        }
-                        minOutputDelay = TimeValue(minOutputDelayLiteral[0].toLong(), TimeUnit.fromName(minOutputDelayLiteral[1]))
+                        minOutputDelay = ASTUtils.toTimeValue(ASTUtils.toElement(federateConfigMap.getValue("min_output_delay").trim()))
                     }
 
                     return TSFederateConfig(
