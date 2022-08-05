@@ -366,6 +366,20 @@ public enum TargetProperty {
                             break;
                     }
                 }
+            },
+            (config, value, err) -> {
+             for (KeyValuePair entry : value.getKeyvalue().getPairs()) {
+                 CoordinationOption option = (CoordinationOption) DictionaryType.COORDINATION_OPTION_DICT
+                     .forName(entry.getName());
+                 switch (option) {
+                 case ADVANCE_MESSAGE_INTERVAL:
+                     config.coordinationOptions.advance_message_interval = ASTUtils
+                         .toTimeValue(entry.getValue());
+                     break;
+                 default:
+                     break;
+                 }
+             }
             }),
     
     /**
