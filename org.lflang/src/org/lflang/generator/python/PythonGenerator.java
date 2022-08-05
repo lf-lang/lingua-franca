@@ -810,6 +810,7 @@ public class PythonGenerator extends CGenerator {
             set_target_properties(${LF_MAIN_TARGET} PROPERTIES PREFIX "")
             find_package(PythonLibs REQUIRED)
             include_directories(${PYTHON_INCLUDE_DIRS})
+            target_link_libraries(${LF_MAIN_TARGET} ${PYTHON_LIBRARIES})
             target_compile_definitions(${LF_MAIN_TARGET} PUBLIC MODULE_NAME=<pyModuleName>)
             """
             ).replace("<pyModuleName>", generatePythonModuleName(executableName))
