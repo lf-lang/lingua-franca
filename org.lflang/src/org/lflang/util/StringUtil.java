@@ -115,9 +115,9 @@ public final class StringUtil {
         for (int i = 0; i < firstLineToConsider; i++) {
             var endIndex = codeLines[i].contains("//") ?
                 codeLines[i].indexOf("//") : codeLines[i].length();
-            // The following is a hack to avoid clashing with Rust attributes. It is highly
-            // questionable and should become obsolete if we rework our parser.
-            endIndex = codeLines[i].contains("#") && !codeLines[i].contains("#[") ?
+            // The following will break Rust attributes in multiline code blocks
+            // where they appear next to the opening {= brace.
+            endIndex = codeLines[i].contains("#") ?
                 Math.min(endIndex, codeLines[i].indexOf("#")) : endIndex;
             String toAppend = codeLines[i].substring(0, endIndex).strip();
             if (!toAppend.isBlank()) buffer.append(toAppend).append("\n");
