@@ -2133,12 +2133,12 @@ public class CGenerator extends GeneratorBase {
             // So that each separate compile knows about modal reactors, do this:
             targetConfig.compileDefinitions.put("MODAL_REACTORS", "TRUE");
         }
-        if (targetConfig.threading) {
+        if (targetConfig.threading || targetConfig.tracing != null) {  // FIXME: This logic is duplicated in CMake
             pickScheduler();
             // FIXME: this and pickScheduler should be combined.
             targetConfig.compileDefinitions.put(
                 "SCHEDULER",
-                targetConfig.schedulerType.name().toUpperCase()
+                targetConfig.schedulerType.name()
             );
             targetConfig.compileDefinitions.put(
                 "NUMBER_OF_WORKERS",
