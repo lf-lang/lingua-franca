@@ -131,6 +131,7 @@ public enum TargetProperty {
                     kvp.getPairs().add(pair);
                 }
                 e.setKeyvalue(kvp);
+                // kvp will never be empty
                 return e;
             },
             (config, value, err) -> {
@@ -240,12 +241,14 @@ public enum TargetProperty {
                         pair.setName(opt.toString());
                         switch (opt) {
                             case FROM:
+                                if (config.dockerOptions.from == null) continue;
                                 pair.setValue(ASTUtils.toElement(config.dockerOptions.from));
                                 break;
                         }
                         kvp.getPairs().add(pair);
                     }
                     e.setKeyvalue(kvp);
+                    if (kvp.getPairs().isEmpty()) return null;
                     return e;
                 }
             },
@@ -351,6 +354,7 @@ public enum TargetProperty {
                     kvp.getPairs().add(pair);
                 }
                 e.setKeyvalue(kvp);
+                if (kvp.getPairs().isEmpty()) return null;
                 return e;
             },
             (config, value, err) -> {
@@ -548,6 +552,7 @@ public enum TargetProperty {
                         kvp.getPairs().add(pair);
                     }
                     e.setKeyvalue(kvp);
+                    if (kvp.getPairs().isEmpty()) return null;
                     return e;
                 }
             },
