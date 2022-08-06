@@ -48,123 +48,14 @@ public class FedMainEmitter {
                 generateMainSignature(federate, originalMainReactor, renderer),
                String.join(
                    "\n",
-                   generateInstantiation(federate, renderer),
-                   generateInstantiationsForUpstreamFederates(federate, new ArrayList<>(List.of(federate.instantiation)), new ArrayList<>()),
+                   renderer.apply(federate.instantiation),
                    ASTUtils.allActions(originalMainReactor).stream().filter(federate::contains).map(renderer).collect(Collectors.joining("\n")),
                    ASTUtils.allTimers(originalMainReactor).stream().filter(federate::contains).map(renderer).collect(Collectors.joining("\n")),
                    ASTUtils.allMethods(originalMainReactor).stream().filter(federate::contains).map(renderer).collect(Collectors.joining("\n")),
-                   ASTUtils.allReactions(originalMainReactor).stream().filter(federate::contains).map(renderer).collect(Collectors.joining("\n")),
-                   generateConnections(federate)
+                   ASTUtils.allReactions(originalMainReactor).stream().filter(federate::contains).map(renderer).collect(Collectors.joining("\n"))
                ).indent(4).stripTrailing(),
                "}"
             );
-    }
-
-    /**
-     * Generate the instantiation for {@code federate}.
-     * @param renderer Used to render EObjects (in String representation).
-     */
-    private String generateInstantiation(FederateInstance federate, Function<EObject, String> renderer) {
-        return renderer.apply(federate.instantiation);
-    }
-
-    /**
-     * Generate instantiations for upstream federates of {@code federate}.
-     */
-    private CharSequence generateInstantiationsForUpstreamFederates(FederateInstance federate, List<Instantiation> instantiated,  List<FederateInstance> visited) {
-        if (visited.contains(federate)) return "";
-        visited.add(federate);
-
-        CodeBuilder instantiations = new CodeBuilder();
-        // First handle immediate upstream federates with 0 delays
-        var zeroDelayImmediateUpstreamFederates =
-            federate.getZeroDelayImmediateUpstreamFederates();
-        instantiations.pr(zeroDelayImmediateUpstreamFederates
-                              .stream()
-                              .map(FederateInstance::getInstantiation)
-                              .filter(inst -> !instantiated.contains(inst))
-                              .map(inst -> {
-                                  instantiated.add(inst);
-                                  // FIXME: This is most likely incorrect because
-                                  //  bank width and parameters for multiport
-                                  //  widths will be lost. However, presence of
-                                  //  banks and multiports complicate things
-                                  //  tremendously when it comes to connection
-                                  //  generation because LF syntax allows for
-                                  //  all kinds of intricate connection statements
-                                  //  like '(foo.out, bar.out, baz.out)+ -> foo.in'
-                                  //  which looks to be quite difficult to untangle.
-                                  return """
-                                  %s = new _lf_%s_interface();
-                                  """.formatted(
-                                      inst.getName(),
-                                      ASTUtils.toDefinition(inst.getReactorClass()).getName()
-                                  );
-                              })
-                              .collect(Collectors.joining("\n")));
-
-        // Then recursively go upstream
-        zeroDelayImmediateUpstreamFederates.forEach(federateInstance -> {
-            instantiations.pr(generateInstantiationsForUpstreamFederates(federateInstance, instantiated, visited));
-        });
-
-        return instantiations.getCode();
-    }
-
-    /**
-     * Generate connection statements that should be in the main reactor for {@code federate}.
-     * These connections will help encode the relevant structure of the federation
-     * in this federate.
-     */
-    private CharSequence generateConnections(
-        FederateInstance federate
-    ) {
-        CodeBuilder code = new CodeBuilder();
-        var upstreamZeroDelayFederates =
-            federate.getZeroDelayImmediateUpstreamFederates();
-
-        for (FederateInstance federateInstance:upstreamZeroDelayFederates) {
-            code.pr(generateConnectionsUpstream(federateInstance, new ArrayList<>(), new ArrayList<>(List.of(federate))));
-        }
-        return code.getCode();
-    }
-
-    /**
-     * FIXME: For now, use FedConnectionInstances that represent individual connections
-     *  between federates to generate connection statements in the main reactor of
-     *  {@code federate}. However, since multiport and bank information is lost,
-     *  it is not possible to connect two upstream output ports to one downstream
-     *  input port.
-     */
-    private CharSequence generateConnectionsUpstream(
-        FederateInstance federate,
-        List<FedConnectionInstance> visitedConnections,
-        List<FederateInstance> visitedFederates
-    ) {
-        if (visitedFederates.contains(federate)) return "";
-        visitedFederates.add(federate);
-
-        CodeBuilder code = new CodeBuilder();
-        var upstreamZeroDelayFederates =
-            federate.getZeroDelayImmediateUpstreamFederates();
-
-        for (FederateInstance federateInstance:upstreamZeroDelayFederates) {
-            for (FedConnectionInstance connection : federateInstance.connections) {
-                if (visitedConnections.contains(connection)) continue;
-                visitedConnections.add(connection);
-                code.pr("""
-                %s.%s -> %s.%s;
-                """.formatted(
-                    connection.srcFederate.getInstantiation().getName(),
-                    connection.srcRange.instance.getName(),
-                    connection.dstFederate.getInstantiation().getName(),
-                    connection.dstRange.instance.getName()
-                ));
-            }
-            code.pr(generateConnectionsUpstream(federateInstance, visitedConnections, visitedFederates));
-        }
-        return code.getCode();
-
     }
 
     /**
