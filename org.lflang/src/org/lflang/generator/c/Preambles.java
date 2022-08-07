@@ -76,6 +76,7 @@ public class Preambles {
         var advanceMessageInterval = targetConfig.coordinationOptions.advance_message_interval;
         var tracing = targetConfig.tracing;
         CodeBuilder code = new CodeBuilder();
+        // TODO: Get rid of all of these
         code.pr("#define LOG_LEVEL " + logLevel);
         code.pr("#define TARGET_FILES_DIRECTORY " + addDoubleQuotes(srcGenPath.toString()));
         if (isFederated) {
@@ -87,7 +88,7 @@ public class Preambles {
             }
         }
         if (tracing != null) {
-            code.pr(generateTracingDefineDirective(targetConfig, tracing.traceFileName));
+            targetConfig.compileDefinitions.put("LINGUA_FRANCA_TRACE", tracing.traceFileName);
         }
         if (clockSyncIsOn) {
             code.pr(generateClockSyncDefineDirective(
@@ -114,18 +115,6 @@ public class Preambles {
             directives.add("#define FEDERATED_DECENTRALIZED");
         }
         return String.join("\n", directives);
-    }
-
-    private static String generateTracingDefineDirective(
-        TargetConfig targetConfig,
-        String traceFileName
-    ) {
-        if (traceFileName == null) {
-            targetConfig.compileDefinitions.put("LINGUA_FRANCA_TRACE", "");
-            return "#define LINGUA_FRANCA_TRACE";
-        }
-        targetConfig.compileDefinitions.put("LINGUA_FRANCA_TRACE", traceFileName);
-        return "#define LINGUA_FRANCA_TRACE " + traceFileName;
     }
 
     /**
