@@ -69,16 +69,13 @@ public class CReactionGenerator {
         // or anything else. No need to declare it.
         if (structType != null) {
              code.pr(String.join("\n",
-                 "#pragma GCC diagnostic push",
-                 "#pragma GCC diagnostic ignored \"-Wunused-variable\"",
-                 structType+"* self = ("+structType+"*)instance_args;"
+                 structType+"* self = ("+structType+"*)instance_args; SUPPRESS_UNUSED_WARNING(self);"
              ));
         }
 
         // Do not generate the initialization code if the body is marked
         // to not generate it.
         if (body.startsWith(DISABLE_REACTION_INITIALIZATION_MARKER)) {
-             code.pr("#pragma GCC diagnostic pop");
             return code.toString();
         }
 
@@ -226,7 +223,6 @@ public class CReactionGenerator {
         }
         // Next generate all the collected setup code.
         code.pr(reactionInitialization.toString());
-        code.pr("#pragma GCC diagnostic pop");
         
         return code.toString();
     }
@@ -639,7 +635,7 @@ public class CReactionGenerator {
         // Set the _width variable for all cases. This will be -1
         // for a variable-width multiport, which is not currently supported.
         // It will be -2 if it is not multiport.
-        builder.pr("int "+inputWidth+" = self->_lf_"+inputWidth+";");
+        builder.pr("int "+inputWidth+" = self->_lf_"+inputWidth+"; SUPPRESS_UNUSED_WARNING("+inputWidth+");");
         return builder.toString();
     }
 
@@ -676,7 +672,7 @@ public class CReactionGenerator {
                 // Output port is a multiport.
                 // Set the _width variable.
                 return String.join("\n",
-                    "int "+outputWidth+" = self->_lf_"+outputWidth+";",
+                    "int "+outputWidth+" = self->_lf_"+outputWidth+"; SUPPRESS_UNUSED_WARNING("+outputWidth+");",
                     outputStructType+"** "+outputName+" = self->_lf_"+outputName+"_pointers;"
                 );
 
