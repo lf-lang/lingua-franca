@@ -52,7 +52,7 @@ public class Preambles {
             code.pr("#include \"core/federated/federate.c\"");
         }
         if (tracing != null) {
-            code.pr("#include \"core/trace.c\"");
+            code.pr("#include \"core/trace.h\"");
         }
         code.pr("#include \"core/mixed_radix.h\"");
         code.pr("#include \"core/port.h\"");
