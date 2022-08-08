@@ -282,6 +282,17 @@ public class FedASTUtils {
             }
         }
 
+        if (
+            !connection.getDefinition().isPhysical() &&
+                // Connections that are physical don't need control reactions
+                connection.getDefinition().getDelay()
+                    == null // Connections that have delays don't need control reactions
+        ) {
+            // Add necessary dependencies to reaction to ensure that it executes correctly
+            // relative to other network input control reactions in the federate.
+            addRelativeDependency(connection, networkReceiverReaction);
+        }
+
         // Record this action in the right federate.
         // The ID of the receiving port (rightPort) is the position
         // of the action in this list.
@@ -414,17 +425,17 @@ public class FedASTUtils {
     }
 
     /**
-     * Add necessary dependency information to the signature of {@code networkInputControlReaction} so that
-     * it can execute in the correct order relative to other network input control reactions in the federate.
+     * Add necessary dependency information to the signature of {@code networkInputReaction} so that
+     * it can execute in the correct order relative to other network reactions in the federate.
      *
      * In particular, we want to avoid a deadlock if multiple network input control reactions in federate
      * are in a zero-delay cycle through other federates in the federation. To avoid the deadlock, we encode the
      * zero-delay cycle inside the federate by adding an artificial dependency from the output port of this federate
-     * that is involved in the cycle to the signature of {@code networkInputControlReaction} as a source.
+     * that is involved in the cycle to the signature of {@code networkInputReaction} as a source.
      */
     private static void addRelativeDependency(
         FedConnectionInstance connection,
-        Reaction networkInputControlReaction
+        Reaction networkInputReaction
     ) {
         var upstreamOutputPortsInFederate =
             findUpstreamOutputPortsInFederate(
@@ -439,7 +450,7 @@ public class FedASTUtils {
 
             sourceRef.setContainer(port.getParent().getDefinition());
             sourceRef.setVariable(port.getDefinition());
-            networkInputControlReaction.getSources().add(sourceRef);
+            networkInputReaction.getSources().add(sourceRef);
         }
 
     }
