@@ -42,7 +42,6 @@ import org.lflang.ASTUtils;
 import org.lflang.ErrorReporter;
 import org.lflang.TargetConfig;
 import org.lflang.TimeValue;
-import org.lflang.ast.ToLf;
 import org.lflang.federated.serialization.SupportedSerializers;
 import org.lflang.generator.ActionInstance;
 import org.lflang.generator.GeneratorUtils;
@@ -247,18 +246,6 @@ public class FederateInstance {
      * reactions) that belong to this federate instance.
      */
     public List<Reaction> networkReactions = new ArrayList<>();
-    
-    /**
-     * List of triggers of network reactions that belong to remote federates.
-     * These might need to be removed before code generation to avoid unnecessary compile
-     * errors, since they might reference structures that are not present in
-     * the current federate. Even though it is impossible for a trigger that is on a remote
-     * federate to trigger a reaction on this federate, these triggers need to be here
-     * to ensure that dependency analysis between reactions is done correctly.
-     * Without these triggers, the reaction precedence graph is broken and
-     * dependencies not properly represented.
-     */
-    public List<VarRef> remoteNetworkReactionTriggers = new ArrayList<>();
 
     /**
      * Target of the federate.
@@ -425,6 +412,11 @@ public class FederateInstance {
             // Reaction is a network reaction that belongs to this federate
             return true;
         }
+
+        int reactionBankIndex = FedASTUtils.getReactionBankIndex(reaction);
+        if (reactionBankIndex >= 0 && this.bankIndex >= 0 && reactionBankIndex != this.bankIndex) {
+            return false;
+        }
         
         // If this has been called before, then the result of the
         // following check is cached.
@@ -525,8 +517,7 @@ public class FederateInstance {
             // Add all the triggers that are outputs
             Stream<VarRef> triggersAsVarRef = react.getTriggers().stream().filter(it -> it instanceof VarRef).map(it -> (VarRef) it);
             allVarRefsReferencingFederates.addAll(
-                triggersAsVarRef.filter(it -> it.getVariable() instanceof Output)
-                                .filter(it -> !remoteNetworkReactionTriggers.contains(it)).toList()
+                triggersAsVarRef.filter(it -> it.getVariable() instanceof Output).toList()
             );
             // Add all the sources that are outputs
             allVarRefsReferencingFederates.addAll(
@@ -651,15 +642,6 @@ public class FederateInstance {
             }
         }
         return minDelay;
-    }
-    
-    /**
-     * Remove triggers in this federate's network reactions that are defined in remote federates.
-     */
-    public void removeRemoteFederateConnectionPorts() {
-        for (Reaction reaction : this.networkReactions) {
-          reaction.getTriggers().removeAll(this.remoteNetworkReactionTriggers);
-        }
     }
     
     // TODO: Put this function into a utils file instead

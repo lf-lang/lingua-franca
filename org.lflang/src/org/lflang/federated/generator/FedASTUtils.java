@@ -29,10 +29,14 @@ package org.lflang.federated.generator;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.eclipse.emf.ecore.resource.Resource;
@@ -42,16 +46,13 @@ import org.eclipse.xtext.xbase.lib.IteratorExtensions;
 import org.lflang.ASTUtils;
 import org.lflang.ErrorReporter;
 import org.lflang.InferredType;
-import org.lflang.Target;
 import org.lflang.TargetProperty.CoordinationType;
 import org.lflang.TimeValue;
 import org.lflang.federated.extensions.FedTargetExtensionFactory;
 import org.lflang.federated.serialization.SupportedSerializers;
+import org.lflang.generator.PortInstance;
 import org.lflang.lf.Action;
 import org.lflang.lf.ActionOrigin;
-import org.lflang.lf.AttrParm;
-import org.lflang.lf.AttrParmValue;
-import org.lflang.lf.Attribute;
 import org.lflang.lf.Connection;
 import org.lflang.lf.Expression;
 import org.lflang.lf.Instantiation;
@@ -73,6 +74,42 @@ import com.google.common.collect.Iterators;
  * @author Edward A. Lee {eal@berkeley.edu}
  */
 public class FedASTUtils {
+
+    /**
+     * Map from reactions to bank indices
+     */
+    private static Map<Reaction,Integer> reactionBankIndices = null;
+
+    /**
+     * Mark the specified reaction to belong to only the specified
+     * bank index. This is needed because reactions cannot declare
+     * a specific bank index as an effect or trigger. Reactions that
+     * send messages between federates, including absent messages,
+     * need to be specific to a bank member.
+     * @param reaction The reaction.
+     * @param bankIndex The bank index, or -1 if there is no bank.
+     */
+    public static void setReactionBankIndex(Reaction reaction, int bankIndex) {
+        if (bankIndex < 0) {
+            return;
+        }
+        if (reactionBankIndices == null) {
+            reactionBankIndices = new LinkedHashMap<>();
+        }
+        reactionBankIndices.put(reaction, bankIndex);
+    }
+
+    /**
+     * Return the reaction bank index.
+     * @see #setReactionBankIndex(Reaction reaction, int bankIndex)
+     * @param reaction The reaction.
+     * @return The reaction bank index, if one has been set, and -1 otherwise.
+     */
+    public static int getReactionBankIndex(Reaction reaction) {
+        if (reactionBankIndices == null) return -1;
+        if (reactionBankIndices.get(reaction) == null) return -1;
+        return reactionBankIndices.get(reaction);
+    }
 
     /**
      * Find the federated reactor in a .lf file.
@@ -223,6 +260,10 @@ public class FedASTUtils {
         Reactor parent = (Reactor) connection.getDefinition().eContainer();
         Reaction networkReceiverReaction = factory.createReaction();
 
+        // If the sender or receiver is in a bank of reactors, then we want
+        // these reactions to appear only in the federate whose bank ID matches.
+        setReactionBankIndex(networkReceiverReaction, connection.getDstBank());
+
         ASTUtils.setReactionLanguageAttribute(
             networkReceiverReaction,
             FedTargetExtensionFactory.getExtension(connection.dstFederate.target)
@@ -251,20 +292,6 @@ public class FedASTUtils {
         sourceRef.setVariable(connection.getSourcePortInstance().getDefinition());
         destRef.setContainer(connection.getDestinationPortInstance().getParent().getDefinition());
         destRef.setVariable(connection.getDestinationPortInstance().getDefinition());
-
-        if (!connection.getDefinition().isPhysical() && connection.getDefinition().getDelay() == null) {
-            // If the connection is not physical and there is no delay,
-            // add the original output port of the source federate
-            // as a trigger to keep the overall dependency structure. 
-            // This is useful when assigning levels.
-            VarRef senderOutputPort = factory.createVarRef();
-            senderOutputPort.setContainer(connection.getSourcePortInstance().getParent().getDefinition());
-            senderOutputPort.setVariable(connection.getSourcePortInstance().getDefinition());
-            networkReceiverReaction.getTriggers().add(senderOutputPort);
-
-            // Add this trigger to the list of disconnected network reaction triggers
-            connection.dstFederate.remoteNetworkReactionTriggers.add(senderOutputPort);
-        }
 
         // Add the input port at the receiver federate reactor as an effect
         networkReceiverReaction.getEffects().add(destRef);
@@ -317,6 +344,10 @@ public class FedASTUtils {
         VarRef destRef = factory.createVarRef();
         int receivingPortID = connection.dstFederate.networkMessageActions.size();
 
+        // If the sender or receiver is in a bank of reactors, then we want
+        // these reactions to appear only in the federate whose bank ID matches.
+        setReactionBankIndex(reaction, connection.getDstBank());
+
         ASTUtils.setReactionLanguageAttribute(
             reaction,
             FedTargetExtensionFactory.getExtension(connection.dstFederate.target)
@@ -347,17 +378,9 @@ public class FedASTUtils {
         // Add the appropriate triggers to the list of triggers of the reaction
         reaction.getTriggers().add(newTriggerForControlReaction);
 
-
-        // Add the original output port of the source federate
-        // as a trigger to keep the overall dependency structure. 
-        // This is useful when assigning levels.    
-        VarRef sourceRef = factory.createVarRef();
-
-        sourceRef.setContainer(connection.getSourcePortInstance().getParent().getDefinition());
-        sourceRef.setVariable(connection.getSourcePortInstance().getDefinition());
-        reaction.getTriggers().add(sourceRef);
-        // Add this trigger to the list of disconnected network reaction triggers
-        connection.dstFederate.remoteNetworkReactionTriggers.add(sourceRef);
+        // Add necessary dependencies to reaction to ensure that it executes correctly
+        // relative to other network input control reactions in the federate.
+        addRelativeDependency(connection, reaction);
 
         // Add the destination port as an effect of the reaction
         reaction.getEffects().add(destRef);
@@ -391,13 +414,68 @@ public class FedASTUtils {
     }
 
     /**
+     * Add necessary dependency information to the signature of {@code networkInputControlReaction} so that
+     * it can execute in the correct order relative to other network input control reactions in the federate.
+     *
+     * In particular, we want to avoid a deadlock if multiple network input control reactions in federate
+     * are in a zero-delay cycle through other federates in the federation. To avoid the deadlock, we encode the
+     * zero-delay cycle inside the federate by adding an artificial dependency from the output port of this federate
+     * that is involved in the cycle to the signature of {@code networkInputControlReaction} as a source.
+     */
+    private static void addRelativeDependency(
+        FedConnectionInstance connection,
+        Reaction networkInputControlReaction
+    ) {
+        var upstreamOutputPortsInFederate =
+            findUpstreamOutputPortsInFederate(
+                connection.dstFederate,
+                connection.getDestinationPortInstance()
+            );
+
+        System.out.println("Found these ports as dependencies: " + upstreamOutputPortsInFederate);
+
+        for (var port: upstreamOutputPortsInFederate) {
+            VarRef sourceRef = ASTUtils.factory.createVarRef();
+
+            sourceRef.setContainer(port.getParent().getDefinition());
+            sourceRef.setVariable(port.getDefinition());
+            networkInputControlReaction.getSources().add(sourceRef);
+        }
+
+    }
+
+    /**
+     * Go upstream from input port {@code port} until we reach one or more output
+     * ports that belong to the same federate.
+     *
+     * @return A set of {@link PortInstance}. If no port exist that match the
+     * criteria, return an empty set.
+     */
+    private static Set<PortInstance> findUpstreamOutputPortsInFederate(
+        FederateInstance federate,
+        PortInstance port
+    ) {
+        Set<PortInstance> toReturn = new HashSet<>();
+        if (port.isOutput() && federate.contains(port.getParent())) {
+            toReturn.add(port);
+        } else {
+            port.getDependsOnPorts().forEach(
+                it -> toReturn.addAll(
+                    findUpstreamOutputPortsInFederate(federate, it.instance)
+                )
+            );
+        }
+        return toReturn;
+    }
+
+    /**
      * Find the maximum STP offset for the given 'port'.
      *
      * An STP offset predicate can be nested in contained reactors in
      * the federate.
      *
-     * @param connection FIXME
-     * @param coordination FIXME
+     * @param connection The connection to find the max STP offset for.
+     * @param coordination The coordination scheme.
      * @return The maximum STP as a TimeValue
      */
     private static TimeValue findMaxSTP(FedConnectionInstance connection,
@@ -552,6 +630,10 @@ public class FedASTUtils {
                                      .getNetworkReactionTarget()
         );
 
+        // If the sender or receiver is in a bank of reactors, then we want
+        // these reactions to appear only in the federate whose bank ID matches.
+        setReactionBankIndex(networkSenderReaction, connection.getSrcBank());
+
         // These reactions do not require any dependency relationship
         // to other reactions in the container.
         // generator.makeUnordered(networkSenderReaction); FIXME
@@ -623,6 +705,10 @@ public class FedASTUtils {
         newPortRef.setContainer(connection.getSourcePortInstance().getParent().getDefinition());
         newPortRef.setVariable(connection.getSourcePortInstance().getDefinition());
         reaction.getSources().add(newPortRef);
+
+        // If the sender or receiver is in a bank of reactors, then we want
+        // these reactions to appear only in the federate whose bank ID matches.
+        setReactionBankIndex(reaction, connection.getSrcBank());
 
         ASTUtils.setReactionLanguageAttribute(
             reaction,
