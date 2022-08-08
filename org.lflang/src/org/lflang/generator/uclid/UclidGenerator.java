@@ -163,7 +163,6 @@ public class UclidGenerator extends GeneratorBase {
         // Create the src-gen directory
         setUpDirectories();
 
-        // FIXME: Identify properties in the attributes.
         // FIXME: Calculate the completeness threshold for each property.
         // Generate a Uclid model for each property.
         for (Attribute prop : this.properties) {
@@ -282,7 +281,7 @@ public class UclidGenerator extends GeneratorBase {
     }
 
     /**
-     * FIXME
+     * Macros for timing semantics
      */
     protected void generateTimingSemantics() {
         code.pr(String.join("\n", 
@@ -350,7 +349,7 @@ public class UclidGenerator extends GeneratorBase {
     }
 
     /**
-     * FIXME
+     * Macros, type definitions, and variable declarations for trace (path)
      */
     protected void generateTraceDefinition(int CT) {
         // Define various constants.
@@ -460,7 +459,7 @@ public class UclidGenerator extends GeneratorBase {
     }
 
     /**
-     * FIXME
+     * Type definitions for runtime reaction Ids and state variables
      */
     protected void generateReactionIdsAndStateVars() {
         // Encode the components and the logical delays
@@ -563,7 +562,7 @@ public class UclidGenerator extends GeneratorBase {
     }
 
     /**
-     * FIXME
+     * Axioms for reactor semantics
      */
     protected void generateReactorSemantics() {
         code.pr(String.join("\n", 
@@ -628,9 +627,8 @@ public class UclidGenerator extends GeneratorBase {
     }
 
     /**
-     * FIXME
+     * Axioms for the trigger mechanism
      */
-    // Previously called pr_connections_and_actions()
     protected void generateTriggersAndReactions() {
         code.pr(String.join("\n", 
             "/***************",
@@ -741,7 +739,6 @@ public class UclidGenerator extends GeneratorBase {
                 ));
 
                 // If the action is not present, then its value resets to 0.
-                // FIXME: Check if this works in practice.
                 code.pr(String.join("\n", 
                     "// If " + action.getFullNameWithJoiner("_") + "  is not present, then its value resets to 0.",
                     "axiom(finite_forall (i : integer) in indices :: (i > START && i <= END && rxn(i) != NULL) ==> (",
@@ -831,7 +828,7 @@ public class UclidGenerator extends GeneratorBase {
     }
 
     /**
-     * FIXME
+     * Macros for initial conditions
      */
     protected void generateInitialConditions() {
         code.pr(String.join("\n", 
@@ -1080,7 +1077,7 @@ public class UclidGenerator extends GeneratorBase {
     }
 
     /**
-     * FIXME
+     * Uclid5 control block
      */
     protected void generateControlBlock() {
         code.pr(String.join("\n", 
