@@ -57,6 +57,7 @@ import org.lflang.lf.Type
 import org.lflang.lf.VarRef
 import org.lflang.scoping.LFGlobalScopeProvider
 import org.lflang.util.FileUtil
+import java.nio.file.FileSystems
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.StandardCopyOption
@@ -90,6 +91,8 @@ class TSGenerator(
          * source package root if they cannot be found in the source directory.
          */
         val CONFIG_FILES = arrayOf("package.json", "tsconfig.json", "babel.config.js", ".eslintrc.json")
+
+        val RT_CONFIG_FILES = arrayOf("package.json", "package-lock.json", "tsconfig.json", ".babelrc")
 
         /**
          * Files to be copied from the reactor-ts submodule into the generated
@@ -155,6 +158,7 @@ class TSGenerator(
 
         clean(context)
         copyRuntime()
+        buildRuntime()
         copyConfigFiles()
 
         val codeMaps = HashMap<Path, CodeMap>()
@@ -216,9 +220,31 @@ class TSGenerator(
         for (runtimeFile in RUNTIME_FILES) {
             FileUtil.copyFileFromClassPath(
                 "$LIB_PATH/reactor-ts/src/core/$runtimeFile",
-                tsFileConfig.tsCoreGenPath().resolve(runtimeFile)
+                tsFileConfig.tsRuntimeSrcCorePath().resolve(runtimeFile)
             )
         }
+        for (configFile in RT_CONFIG_FILES) {
+            FileUtil.copyFileFromClassPath(
+                "$LIB_PATH/reactor-ts/$configFile",
+                tsFileConfig.tsRuntimePath().resolve(configFile)
+            )
+        }
+    }
+
+    private fun buildRuntime() {
+        (commandFactory.createCommand(
+            "npm",
+            listOf("install"),
+            tsFileConfig.tsRuntimePath(),
+            false // only produce a warning if command is not found
+        )).run()
+
+        (commandFactory.createCommand(
+            "npm",
+            listOf("link"),
+            tsFileConfig.tsRuntimePath(),
+            false // only produce a warning if command is not found
+        )).run()
     }
 
     /**
@@ -237,7 +263,7 @@ class TSGenerator(
                     "No '" + configFile + "' exists in " + fileConfig.srcPath +
                             ". Using default configuration."
                 )
-                FileUtil.copyFileFromClassPath("$LIB_PATH/$configFile", configFileDest)
+                FileUtil.copyFileFromClassPath("$LIB_PATH/$configFile", configFileDest) // FIXME: use resolve
             }
         }
     }

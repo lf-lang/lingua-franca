@@ -59,6 +59,21 @@ class TSFileConfig(
     fun tsSrcGenPath(): Path = srcGenPath.resolve("src")
 
     /**
+     *
+     */
+    fun tsRuntimePath(): Path = outPath.resolve("lib").resolve("reactor-ts")
+
+    /**
+     *
+     */
+    fun tsRuntimeSrcPath(): Path = tsRuntimePath().resolve("src")
+
+    /**
+     *
+     */
+    fun tsRuntimeSrcCorePath(): Path = tsRuntimeSrcPath().resolve("core")
+
+    /**
      * Path to TypeScript core source code.
      */
     fun tsCoreGenPath(): Path = tsSrcGenPath().resolve("core")
