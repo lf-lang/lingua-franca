@@ -805,7 +805,6 @@ public class PythonGenerator extends CGenerator {
             """
             + cSources.collect(Collectors.joining("\n    ", "    ", "\n"))
             + """
-                executableName.c
             )
             set_target_properties(${LF_MAIN_TARGET} PROPERTIES PREFIX "")
             find_package(PythonLibs REQUIRED)

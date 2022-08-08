@@ -149,7 +149,7 @@ public class CmakeGenerator {
         cMakeCode.pr(setUpMainTarget.getCmakeCode(
             hasMain,
             executableName,
-            Stream.concat(sources.stream(), additionalSources.stream())
+            Stream.concat(additionalSources.stream(), sources.stream())
         ));
 
         cMakeCode.pr("target_link_libraries(${LF_MAIN_TARGET} core)");
