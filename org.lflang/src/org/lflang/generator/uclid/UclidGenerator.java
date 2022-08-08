@@ -1064,13 +1064,6 @@ public class UclidGenerator extends GeneratorBase {
         code.pr(transpiled + ";");
         code.unindent();
 
-        // FIXME: No need for this since we are doing 1-induction.
-        // code.pr(String.join("\n", 
-        //     "// Helper macro for temporal induction",
-        //     "define Globally_p(start, end : step_t) : boolean =",
-        //     "    (finite_forall (i : integer) in indices :: (i >= start && i <= end) ==> p(i));"
-        // ));
-
         if (tactic.equals("bmc")) {
             code.pr(String.join("\n", 
                 "// BMC",
