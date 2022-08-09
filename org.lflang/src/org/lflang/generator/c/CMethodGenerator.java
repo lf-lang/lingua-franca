@@ -72,9 +72,8 @@ public class CMethodGenerator {
         // or anything else. No need to declare it.
         if (structType != null) {
              code.pr(String.join("\n",
-                 "#pragma GCC diagnostic push",
-                 "#pragma GCC diagnostic ignored \"-Wunused-variable\"",
                  structType+"* self = ("+structType+"*)instance_args;"
+                         + " SUPPRESS_UNUSED_WARNING(self);"
              ));
         }
         
