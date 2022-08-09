@@ -256,8 +256,7 @@ class TSGenerator(
                 // Recursively build instances. This is done once because
                 // it is the same for all federates.
                 main = ReactorInstance(
-                    ASTUtils.toDefinition(mainDef.reactorClass), errorReporter,
-                    unorderedReactions
+                    ASTUtils.toDefinition(mainDef.reactorClass), errorReporter
                 )
                 val reactionInstanceGraph = main.assignLevels()
                 if (reactionInstanceGraph.nodeCount() > 0) {
