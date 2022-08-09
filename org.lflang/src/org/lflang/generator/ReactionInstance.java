@@ -469,7 +469,7 @@ public class ReactionInstance extends NamedInstance<Reaction> {
             if (effect instanceof PortInstance) {
                 var afters = this.parent.getParent().children.stream().filter(c -> {
                     if (c.isGeneratedDelay()) {
-                        return c.inputs.get(0).getDependsOnPorts().iterator().next().instance
+                        return c.inputs.get(0).getDependsOnPorts().get(0).instance
                                        .equals((PortInstance) effect);
                     }
                     return false;
