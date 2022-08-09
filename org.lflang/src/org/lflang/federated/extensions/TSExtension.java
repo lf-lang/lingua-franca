@@ -65,7 +65,17 @@ public class TSExtension implements FedTargetExtension {
 
     @Override
     public String generateNetworkOutputControlReactionBody(VarRef srcOutputPort, FedConnectionInstance connection) {
-        return "// TODO(hokeun): Figure out what to do for generateNetworkOutputControlReactionBody";
+        return"""
+        // TODO(hokeun): Figure out what to do for generateNetworkOutputControlReactionBody
+        if (%1$s.%2$s === undefined) {
+            this.util.sendRTIPortAbsent(0, %3$s, %4$s);
+        }
+        """.formatted(
+            srcOutputPort.getContainer().getName(),
+            srcOutputPort.getVariable().getName(),
+            connection.getDstFederate().id,
+            connection.getDstFederate().networkMessageActions.size()
+        );
     }
 
     @Override
