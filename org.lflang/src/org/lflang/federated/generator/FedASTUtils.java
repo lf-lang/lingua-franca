@@ -481,7 +481,6 @@ public class FedASTUtils {
         if (port.isOutput() && federate.contains(port.getParent())) {
             toReturn.add(port);
         } else {
-            System.out.println("Depends on ports for " + port + " are: " + port.getDependsOnPorts());
             port.getDependsOnPorts().forEach(
                 it -> toReturn.addAll(
                     findUpstreamOutputPortsInFederate(federate, it.instance)

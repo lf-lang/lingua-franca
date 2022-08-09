@@ -459,6 +459,7 @@ public class ASTUtils {
      * Set the reaction's @language attribute to Target.
      */
     public static void setReactionLanguageAttribute(Reaction reaction, Target target) {
+        if (target == null) return;
         // Set the reaction language
         AttrParmValue value = ASTUtils.factory.createAttrParmValue();
         value.setStr(target.getDisplayName());

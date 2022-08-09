@@ -519,7 +519,7 @@ public class CExtension implements FedTargetExtension {
 
     @Override
     public Target getNetworkReactionTarget() {
-        return Target.C;
+        return null;
     }
 
 

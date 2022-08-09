@@ -3,7 +3,9 @@
  * introduce a cycle or not. The failure for this test is not being compiled.
  * @author Edward A. Lee
  */
-target C
+target C {
+    logging: DEBUG
+}
 
 reactor CAReplica {
     input local_update: int

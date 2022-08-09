@@ -47,7 +47,7 @@ public class RustExtension implements FedTargetExtension {
 
     @Override
     public Target getNetworkReactionTarget() {
-        return Target.Rust;
+        return null;
     }
 
     @Override
