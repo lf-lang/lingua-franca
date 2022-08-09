@@ -149,7 +149,7 @@ class TSReactionGenerator(
         return with(PrependOperator) {
             """
             |
-            |this.add${if (reaction.isMutation()) "mutation" else "reaction"}(
+            |this.add${if (reaction.isMutation()) "Mutation" else "Reaction"}(
             |    new __Triggers($reactionTriggers),
             |    new __Args($reactFuncArgs),
             |    function ($reactSignature) {
