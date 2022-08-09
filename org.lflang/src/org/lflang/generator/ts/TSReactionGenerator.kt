@@ -207,6 +207,10 @@ class TSReactionGenerator(
         }
     }
 
+    /**
+     * Generate the mutation's effect type as "WritablePort,"
+     * which differs from the reaction's effect type.
+     */
     private fun generateMutationSignatureElementForPortEffect(effect: VarRef): String {
         val outputPort = effect.variable as Port
         val portClassType = if (outputPort.isMultiport) {
