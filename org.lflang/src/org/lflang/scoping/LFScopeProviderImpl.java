@@ -52,8 +52,6 @@ import org.lflang.lf.ReactorDecl;
 import org.lflang.lf.VarRef;
 import org.lflang.lf.LfPackage;
 import org.lflang.lf.Mode;
-import org.lflang.lf.impl.ConnectionImpl;
-import org.lflang.lf.impl.ReactionImpl;
 
 /**
  * This class enforces custom rules. In particular, it resolves references to
