@@ -8,7 +8,7 @@
     },
     "license": "BSD-2-Clause",
     "dependencies": {
-        "reactor-ts": "^0.1.0",
+        "reactor-ts": "file:../../lib/reactor-ts",
         "command-line-usage": "^6.1.0"
     },
     "devDependencies": {

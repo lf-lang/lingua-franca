@@ -238,13 +238,6 @@ class TSGenerator(
             tsFileConfig.tsRuntimePath(),
             false // only produce a warning if command is not found
         )).run()
-
-        (commandFactory.createCommand(
-            "npm",
-            listOf("link"),
-            tsFileConfig.tsRuntimePath(),
-            false // only produce a warning if command is not found
-        )).run()
     }
 
     /**
