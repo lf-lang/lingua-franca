@@ -268,7 +268,7 @@ public class LFScopeProviderImpl extends AbstractLFScopeProvider {
             } else if (reaction.getEffects().contains(variable)) {
                 return RefType.EFFECT;
             }
-        } else if (variable.eContainer().getClass() == ConnectionImpl.class) {
+        } else if (variable.eContainer() instanceof Connection) {
             var conn = (Connection) variable.eContainer();
             if (conn.getLeftPorts().contains(variable)) {
                 return RefType.CLEFT;
