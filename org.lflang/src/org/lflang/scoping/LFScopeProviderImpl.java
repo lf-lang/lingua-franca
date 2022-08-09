@@ -46,7 +46,6 @@ import org.lflang.lf.Import;
 import org.lflang.lf.ImportedReactor;
 import org.lflang.lf.Instantiation;
 import org.lflang.lf.Model;
-import org.lflang.lf.Mutation;
 import org.lflang.lf.Reaction;
 import org.lflang.lf.Reactor;
 import org.lflang.lf.ReactorDecl;
@@ -54,7 +53,6 @@ import org.lflang.lf.VarRef;
 import org.lflang.lf.LfPackage;
 import org.lflang.lf.Mode;
 import org.lflang.lf.impl.ConnectionImpl;
-import org.lflang.lf.impl.MutationImpl;
 import org.lflang.lf.impl.ReactionImpl;
 
 /**
@@ -268,15 +266,6 @@ public class LFScopeProviderImpl extends AbstractLFScopeProvider {
             } else if (reaction.getSources().contains(variable)) {
                 return RefType.SOURCE;
             } else if (reaction.getEffects().contains(variable)) {
-                return RefType.EFFECT;
-            }
-        } else if (variable.eContainer().getClass() == MutationImpl.class) {
-            var mutation = (Mutation) variable.eContainer();
-            if (mutation.getTriggers().contains(variable)) {
-                return RefType.TRIGGER;
-            } else if (mutation.getSources().contains(variable)) {
-                return RefType.SOURCE;
-            } else if (mutation.getEffects().contains(variable)) {
                 return RefType.EFFECT;
             }
         } else if (variable.eContainer().getClass() == ConnectionImpl.class) {

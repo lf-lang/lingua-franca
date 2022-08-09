@@ -10,8 +10,11 @@ import org.lflang.isMultiport
 import org.lflang.lf.*
 import org.lflang.lf.Timer
 import org.lflang.toText
-import java.util.*
+import java.util.stream.Collectors
 import kotlin.collections.HashSet
+import java.util.StringJoiner 
+import java.util.LinkedList
+
 
 /**
  * Reaction generator for TypeScript target.
@@ -101,7 +104,7 @@ class TSReactionGenerator(
     }
 
     private fun generateReactionString(
-        reaction: EObject,
+        reaction: Reaction,
         reactPrologue: String,
         reactEpilogue: String,
         reactFuncArgs: StringJoiner,
@@ -110,12 +113,10 @@ class TSReactionGenerator(
         // Assemble reaction triggers
         var reactCode = ""
         var reactDeadline = "}"
-        val className = reaction.eClass().name
         val reactionTriggers = StringJoiner(",\n")
 
-        if (className.equals("Mutation")) {
-            val castedReaction = reaction as Mutation
-            for (trigger in castedReaction.triggers) {
+        if (reaction.isMutation()) {
+            for (trigger in reaction.triggers) {
                 if (trigger is VarRef) {
                     reactionTriggers.add(trigger.generateVarRef())
                 } else if (trigger is BuiltinTriggerRef) {
@@ -126,10 +127,9 @@ class TSReactionGenerator(
                     }
                 }
             }
-            reactCode = castedReaction.code.toText()
-        } else if (className.equals("Reaction")){
-            val castedReaction = reaction as Reaction
-            for (trigger in castedReaction.triggers) {
+            reactCode = reaction.code.toText()
+        } else {
+            for (trigger in reaction.triggers) {
                 if (trigger is VarRef) {
                     reactionTriggers.add(trigger.generateVarRef())
                 } else if (trigger is BuiltinTriggerRef) {
@@ -140,16 +140,16 @@ class TSReactionGenerator(
                     }
                 }
             }
-            reactCode = castedReaction.code.toText()
-            if (castedReaction.deadline != null) {
-                reactDeadline = generateDeadlineHandler(castedReaction, reactPrologue, reactEpilogue, reactSignature)
+            reactCode = reaction.code.toText()
+            if (reaction.deadline != null) {
+                reactDeadline = generateDeadlineHandler(reaction, reactPrologue, reactEpilogue, reactSignature)
             }
         }
 
         return with(PrependOperator) {
             """
             |
-            |this.add$className(
+            |this.add${if (reaction.isMutation()) "mutation" else "reaction"}(
             |    new __Triggers($reactionTriggers),
             |    new __Args($reactFuncArgs),
             |    function ($reactSignature) {
@@ -485,7 +485,7 @@ class TSReactionGenerator(
         )
     }
 
-    private fun generateSingleMutation(reactor : Reactor, mutation: Mutation): String {
+    private fun generateSingleMutation(reactor : Reactor, mutation: Reaction): String {
         // Determine signature of the react function
         val mutationSignature = StringJoiner(", ")
         mutationSignature.add("this")
@@ -700,7 +700,7 @@ class TSReactionGenerator(
         // If the app is federated, only generate
         // reactions that are contained by that federate
         val generatedReactions: List<Reaction>
-        val generatedMutations: List<Mutation>
+        val generatedMutations: List<Reaction>
         if (reactor.isFederated) {
             generatedReactions = LinkedList<Reaction>()
             for (reaction in reactor.reactions) {
@@ -720,7 +720,7 @@ class TSReactionGenerator(
             generatedReactions = reactor.reactions
         }
         // get mutations
-        generatedMutations = reactor.mutations
+        generatedMutations = reactor.reactions.stream().filter{it -> it.isMutation()}.collect(Collectors.toList())
 
         ///////////////////// Reaction generation begins /////////////////////
         // TODO(hokeun): Consider separating this out as a new class.
