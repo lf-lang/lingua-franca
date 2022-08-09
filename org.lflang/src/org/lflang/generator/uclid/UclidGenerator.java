@@ -130,6 +130,11 @@ public class UclidGenerator extends GeneratorBase {
     /** The main place to put generated code. */
     protected CodeBuilder code  = new CodeBuilder();
 
+    /** Strings from the property attribute */
+    protected String name;
+    protected String tactic;
+    protected String spec;
+
     // Constructor
     public UclidGenerator(FileConfig fileConfig, ErrorReporter errorReporter, List<Attribute> properties) {
         super(fileConfig, errorReporter);
@@ -147,6 +152,8 @@ public class UclidGenerator extends GeneratorBase {
         super.cleanIfNeeded(context);
         super.printInfo(context.getMode());
         ASTUtils.setMainName(fileConfig.resource, fileConfig.name);
+        // FIXME: Perform an analysis on the property and remove unrelevant components.
+        // FIXME: Support multiple properties here too. We might need to have a UclidGenerator for each attribute.
         super.createMainInstantiation();
         ////////////////////////////////////////
         
@@ -166,8 +173,26 @@ public class UclidGenerator extends GeneratorBase {
         // FIXME: Calculate the completeness threshold for each property.
         // Generate a Uclid model for each property.
         for (Attribute prop : this.properties) {
-            int CT = computeCT(prop);
-            generateUclidFile(prop, CT);
+            this.name = prop.getAttrParms().stream()
+                        .filter(attr -> attr.getName().equals("name"))
+                        .findFirst()
+                        .get()
+                        .getValue()
+                        .getStr();
+            this.tactic = prop.getAttrParms().stream()
+                        .filter(attr -> attr.getName().equals("tactic"))
+                        .findFirst()
+                        .get()
+                        .getValue()
+                        .getStr();
+            this.spec = prop.getAttrParms().stream()
+                        .filter(attr -> attr.getName().equals("spec"))
+                        .findFirst()
+                        .get()
+                        .getValue()
+                        .getStr();
+            int CT = computeCT();
+            generateUclidFile(CT);
         }
 
         // Generate runner script
@@ -180,25 +205,13 @@ public class UclidGenerator extends GeneratorBase {
     /**
      * Generate the Uclid model.
      */
-    protected void generateUclidFile(Attribute property, int CT) {
-        String name = property.getAttrParms().stream()
-                        .filter(attr -> attr.getName().equals("name"))
-                        .findFirst()
-                        .get()
-                        .getValue()
-                        .getStr();
-        String tactic = property.getAttrParms().stream()
-                        .filter(attr -> attr.getName().equals("tactic"))
-                        .findFirst()
-                        .get()
-                        .getValue()
-                        .getStr();
+    protected void generateUclidFile(int CT) {
         try {  
             // Generate main.ucl and print to file
             code = new CodeBuilder();
             String filename = this.outputDir
-                            .resolve(tactic + "_" + name + ".ucl").toString();
-            generateUclidCode(property, CT);
+                            .resolve(this.tactic + "_" + this.name + ".ucl").toString();
+            generateUclidCode(CT);
             code.writeToFile(filename);
         } catch (IOException e) {
             Exceptions.sneakyThrow(e);
@@ -239,7 +252,7 @@ public class UclidGenerator extends GeneratorBase {
     /**
      * The main function that generates Uclid code.
      */
-    protected void generateUclidCode(Attribute property, int CT) {
+    protected void generateUclidCode(int CT) {
         code.pr(String.join("\n", 
             "/*******************************",
             " * Auto-generated UCLID5 model *",
@@ -271,7 +284,7 @@ public class UclidGenerator extends GeneratorBase {
         generateReactionAxioms();
 
         // Properties
-        generateProperty(property, CT);
+        generateProperty(CT);
 
         // Control block
         generateControlBlock();
@@ -1020,58 +1033,40 @@ public class UclidGenerator extends GeneratorBase {
         }
     }
 
-    protected void generateProperty(Attribute property, int CT) {
+    protected void generateProperty(int CT) {
         code.pr(String.join("\n", 
             "/************",
             " * Property *",
             " ************/"
         ));
 
-        String name = property.getAttrParms().stream()
-                        .filter(attr -> attr.getName().equals("name"))
-                        .findFirst()
-                        .get()
-                        .getValue()
-                        .getStr();
-        String tactic = property.getAttrParms().stream()
-                        .filter(attr -> attr.getName().equals("tactic"))
-                        .findFirst()
-                        .get()
-                        .getValue()
-                        .getStr();
-        String spec = property.getAttrParms().stream()
-                        .filter(attr -> attr.getName().equals("spec"))
-                        .findFirst()
-                        .get()
-                        .getValue()
-                        .getStr();
-        MTLLexer lexer = new MTLLexer(CharStreams.fromString(spec));
+        MTLLexer lexer = new MTLLexer(CharStreams.fromString(this.spec));
         CommonTokenStream tokens = new CommonTokenStream(lexer);
         MTLParser parser = new MTLParser(tokens);
         MtlContext mtlCtx = parser.mtl();
-        MTLVisitor visitor = new MTLVisitor(tactic);
+        MTLVisitor visitor = new MTLVisitor(this.tactic);
 
         // The visitor transpiles the MTL into a Uclid axiom.
         String transpiled = visitor.visitMtl(mtlCtx, "i", 0, "0", 0);
         
         code.pr("// The FOL property translated from user-defined MTL property:");
-        code.pr("// " + spec);
+        code.pr("// " + this.spec);
         code.pr("define p(i : step_t) : boolean =");
         code.indent();
         code.pr(transpiled + ";");
         code.unindent();
 
-        if (tactic.equals("bmc")) {
+        if (this.tactic.equals("bmc")) {
             code.pr(String.join("\n", 
                 "// BMC",
-                "property " + "bmc_" + name + " : " + "initial_condition() ==> p(0);"
+                "property " + "bmc_" + this.name + " : " + "initial_condition() ==> p(0);"
             ));
         } else {
             code.pr(String.join("\n", 
                 "// Induction: initiation step",
-                "property " + "initiation_" + name + " : " + "initial_condition() ==> p(0);",
+                "property " + "initiation_" + this.name + " : " + "initial_condition() ==> p(0);",
                 "// Induction: consecution step",
-                "property " + "consecution_" + name + " : " + "p(0) ==> p(1);"
+                "property " + "consecution_" + this.name + " : " + "p(0) ==> p(1);"
             ));
         }
     }
@@ -1190,7 +1185,9 @@ public class UclidGenerator extends GeneratorBase {
     /**
      * Compute a completeness threadhold for each property.
      */
-    private int computeCT(Attribute property) {
+    private int computeCT() {
+        // if (this.spec.equals("bmc")) {
+        // }
         return 10; // FIXME
     }
 
