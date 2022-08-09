@@ -259,7 +259,7 @@ public class LFScopeProviderImpl extends AbstractLFScopeProvider {
     private RefType getRefType(VarRef variable) {
         if (variable.eContainer() instanceof Deadline) {
             return RefType.DEADLINE;
-        } else if (variable.eContainer().getClass() == ReactionImpl.class) {
+        } else if (variable.eContainer() instanceof Reaction) {
             var reaction = (Reaction) variable.eContainer();
             if (reaction.getTriggers().contains(variable)) {
                 return RefType.TRIGGER;
