@@ -46,20 +46,19 @@ import java.util.List;
 import java.util.regex.Pattern;
 
 import org.eclipse.emf.ecore.resource.Resource;
-import org.eclipse.xtext.util.CancelIndicator;
 import org.eclipse.xtext.xbase.lib.Exceptions;
 import org.eclipse.xtext.xbase.lib.IterableExtensions;
 import org.eclipse.xtext.xbase.lib.IteratorExtensions;
 import org.eclipse.xtext.xbase.lib.StringExtensions;
+
 import org.lflang.ASTUtils;
 import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
 import org.lflang.Target;
 import org.lflang.TargetConfig;
 import org.lflang.TargetProperty;
-import org.lflang.federated.extensions.CExtensionUtils;
 import org.lflang.TargetProperty.Platform;
-import org.lflang.TimeValue;
+import org.lflang.federated.extensions.CExtensionUtils;
 import org.lflang.generator.ActionInstance;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.generator.GeneratorBase;
@@ -71,7 +70,6 @@ import org.lflang.generator.LFResource;
 import org.lflang.generator.ParameterInstance;
 import org.lflang.generator.PortInstance;
 import org.lflang.generator.ReactionInstance;
-import org.lflang.generator.ReactionInstanceGraph;
 import org.lflang.generator.ReactorInstance;
 import org.lflang.generator.SubContext;
 import org.lflang.generator.TargetTypes;
@@ -1524,40 +1522,40 @@ public class CGenerator extends GeneratorBase {
                     // the input of a contained reactor in the federate.
                     // NOTE: If instance == main and the federate is within a bank,
                     // this assumes that the reaction writes only to the bank member in the federate.
-                    if (currentFederate.contains(port.getParent())) {
-                        foundOne = true;
+                    foundOne = true;
 
-                        temp.pr("// Add port "+port.getFullName()+" to array of is_present fields.");
+                    temp.pr("// Add port "+port.getFullName()+" to array of is_present fields.");
 
-                        if (!Objects.equal(port.getParent(), instance)) {
-                            // The port belongs to contained reactor, so we also have
-                            // iterate over the instance bank members.
-                            temp.startScopedBlock();
-                            temp.pr("int count = 0; SUPPRESS_UNUSED_WARNING(count);");
-                            temp.startScopedBlock(instance, currentFederate, isFederated, true);
-                            temp.startScopedBankChannelIteration(port, currentFederate, null, isFederated);
-                        } else {
-                            temp.startScopedBankChannelIteration(port, currentFederate, "count", isFederated);
-                        }
-                        var portRef = CUtil.portRefNested(port);
-                        var con = (port.isMultiport()) ? "->" : ".";
+                    if (!Objects.equal(port.getParent(), instance)) {
+                        // The port belongs to contained reactor, so we also have
+                        // iterate over the instance bank members.
+                        temp.startScopedBlock();
+                        temp.pr("int count = 0; SUPPRESS_UNUSED_WARNING(count);");
+                        temp.startScopedBlock(instance);
+                        temp.startScopedBankChannelIteration(port, null);
+                    } else {
+                        temp.startScopedBankChannelIteration(port, "count");
+                    }
+                    var portRef = CUtil.portRefNested(port);
+                    var con = (port.isMultiport()) ? "->" : ".";
 
-                        temp.pr("_lf_is_present_fields["+startTimeStepIsPresentCount+" + count] = &"+portRef+con+"is_present;");
-                        if (isFederatedAndDecentralized()) {
-                            // Intended_tag is only applicable to ports in federated execution.
-                            temp.pr("_lf_intended_tag_fields["+startTimeStepIsPresentCount+" + count] = &"+portRef+con+"intended_tag;");
-                        }
+                    temp.pr("_lf_is_present_fields["+startTimeStepIsPresentCount+" + count] = &"+portRef+con+"is_present;");
+                    // Intended_tag is only applicable to ports in federated execution.
+                    temp.pr(
+                        CExtensionUtils.surroundWithIfFederatedDecentralized(
+                        "_lf_intended_tag_fields["+startTimeStepIsPresentCount+" + count] = &"+portRef+con+"intended_tag;"
+                        )
+                    );
 
-                        startTimeStepIsPresentCount += port.getWidth() * currentFederate.numRuntimeInstances(port.getParent());
+                    startTimeStepIsPresentCount += port.getWidth() * port.getParent().getTotalWidth();
 
-                        if (!Objects.equal(port.getParent(), instance)) {
-                            temp.pr("count++;");
-                            temp.endScopedBlock();
-                            temp.endScopedBlock();
-                            temp.endScopedBankChannelIteration(port, null);
-                        } else {
-                            temp.endScopedBankChannelIteration(port, "count");
-                        }
+                    if (!Objects.equal(port.getParent(), instance)) {
+                        temp.pr("count++;");
+                        temp.endScopedBlock();
+                        temp.endScopedBlock();
+                        temp.endScopedBankChannelIteration(port, null);
+                    } else {
+                        temp.endScopedBankChannelIteration(port, "count");
                     }
                 }
             }
