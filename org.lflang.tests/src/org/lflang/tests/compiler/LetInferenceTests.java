@@ -1,7 +1,7 @@
 package org.lflang.tests.compiler;/* Parsing unit tests. */
 
 /*************
- Copyright (c) 2019, The University of California at Berkeley.
+ Copyright (c) 2022, The University of California at Berkeley.
 
  Redistribution and use in source and binary forms, with or without modification,
  are permitted provided that the following conditions are met:
@@ -58,6 +58,10 @@ import static org.lflang.ASTUtils.*;
 /**
  * Test for getting minimum delay in reactions.
  * Checking the actions and port's delay,then get the minimum reaction delay.
+ * @author{Wonseo Choi <wonsuh1202@hanyang.ac.kr>}
+ * @author{Yunsang Cho <snsc7878@hanyang.ac.kr>}
+ * @author{Marten Lohstroh <marten@berkeley.edu>}
+ * @author{Hokeun Kim <hokeunkim@berkeley.edu>}
  */
 class LetInferenceTest  {
 
