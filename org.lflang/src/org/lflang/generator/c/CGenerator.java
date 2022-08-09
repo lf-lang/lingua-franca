@@ -71,6 +71,7 @@ import org.lflang.generator.LFResource;
 import org.lflang.generator.ParameterInstance;
 import org.lflang.generator.PortInstance;
 import org.lflang.generator.ReactionInstance;
+import org.lflang.generator.ReactionInstanceGraph;
 import org.lflang.generator.ReactorInstance;
 import org.lflang.generator.SubContext;
 import org.lflang.generator.TargetTypes;
@@ -2211,6 +2212,7 @@ public class CGenerator extends GeneratorBase {
                 }
             }
         }
+
     }
 
     /**
