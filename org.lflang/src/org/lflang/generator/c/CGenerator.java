@@ -659,10 +659,17 @@ public class CGenerator extends GeneratorBase {
         if (main != null) {
             initializeTriggerObjects.pr(String.join("\n",
                 "int _lf_startup_reactions_count = 0;",
+                "SUPPRESS_UNUSED_WARNING(_lf_startup_reactions_count);",
                 "int _lf_shutdown_reactions_count = 0;",
+                "SUPPRESS_UNUSED_WARNING(_lf_shutdown_reactions_count);",
                 "int _lf_reset_reactions_count = 0;",
+                "SUPPRESS_UNUSED_WARNING(_lf_reset_reactions_count);",
                 "int _lf_timer_triggers_count = 0;",
-                "int _lf_tokens_with_ref_count_count = 0;"
+                "SUPPRESS_UNUSED_WARNING(_lf_timer_triggers_count);",
+                "int _lf_tokens_with_ref_count_count = 0;",
+                "SUPPRESS_UNUSED_WARNING(_lf_tokens_with_ref_count_count);",
+                "int bank_index;",
+                "SUPPRESS_UNUSED_WARNING(bank_index);"
             ));
             // Add counters for modal initialization
             initializeTriggerObjects.pr(CModesGenerator.generateModalInitalizationCounters(hasModalReactors));
@@ -1511,56 +1518,46 @@ public class CGenerator extends GeneratorBase {
         var portsSeen = new LinkedHashSet<PortInstance>();
         for (ReactionInstance reaction : instance.reactions) {
             for (PortInstance port : Iterables.filter(reaction.effects, PortInstance.class)) {
-                if (port.getDefinition() instanceof Input
-                    && !portsSeen.contains(port)) {
+                if (port.getDefinition() instanceof Input && !portsSeen.contains(port)) {
                     portsSeen.add(port);
                     // This reaction is sending to an input. Must be
                     // the input of a contained reactor in the federate.
                     // NOTE: If instance == main and the federate is within a bank,
                     // this assumes that the reaction writes only to the bank member in the federate.
-                    foundOne = true;
+                    if (currentFederate.contains(port.getParent())) {
+                        foundOne = true;
 
-                    temp.pr("// Add port " + port.getFullName()
-                                + " to array of is_present fields.");
+                        temp.pr("// Add port "+port.getFullName()+" to array of is_present fields.");
 
-                    if (!Objects.equal(port.getParent(), instance)) {
-                        // The port belongs to contained reactor, so we also have
-                        // iterate over the instance bank members.
-                        temp.startScopedBlock();
-                        temp.pr("int count = 0;");
-                        temp.startScopedBlock(instance);
-                        temp.startScopedBankChannelIteration(port, null);
-                    } else {
-                        temp.startScopedBankChannelIteration(port, "count");
-                    }
-                    var portRef = CUtil.portRefNested(port);
-                    var con = (port.isMultiport()) ? "->" : ".";
+                        if (!Objects.equal(port.getParent(), instance)) {
+                            // The port belongs to contained reactor, so we also have
+                            // iterate over the instance bank members.
+                            temp.startScopedBlock();
+                            temp.pr("int count = 0; SUPPRESS_UNUSED_WARNING(count);");
+                            temp.startScopedBlock(instance, currentFederate, isFederated, true);
+                            temp.startScopedBankChannelIteration(port, currentFederate, null, isFederated);
+                        } else {
+                            temp.startScopedBankChannelIteration(port, currentFederate, "count", isFederated);
+                        }
+                        var portRef = CUtil.portRefNested(port);
+                        var con = (port.isMultiport()) ? "->" : ".";
 
-                    temp.pr("_lf_is_present_fields["
-                                + startTimeStepIsPresentCount
-                                + " + count] = &" + portRef + con
-                                + "is_present;");
+                        temp.pr("_lf_is_present_fields["+startTimeStepIsPresentCount+" + count] = &"+portRef+con+"is_present;");
+                        if (isFederatedAndDecentralized()) {
+                            // Intended_tag is only applicable to ports in federated execution.
+                            temp.pr("_lf_intended_tag_fields["+startTimeStepIsPresentCount+" + count] = &"+portRef+con+"intended_tag;");
+                        }
 
-                    // Intended_tag is only applicable to ports in federated execution.
-                    temp.pr(
-                        CExtensionUtils.surroundWithIfFederatedDecentralized(
-                            "_lf_intended_tag_fields["
-                                + startTimeStepIsPresentCount
-                                + " + count] = &" + portRef + con
-                                + "intended_tag;"
-                        )
-                    );
+                        startTimeStepIsPresentCount += port.getWidth() * currentFederate.numRuntimeInstances(port.getParent());
 
-                    startTimeStepIsPresentCount += port.getWidth() *
-                        port.getParent().getTotalWidth();
-
-                    if (!Objects.equal(port.getParent(), instance)) {
-                        temp.pr("count++;");
-                        temp.endScopedBlock();
-                        temp.endScopedBlock();
-                        temp.endScopedBankChannelIteration(port, null);
-                    } else {
-                        temp.endScopedBankChannelIteration(port, "count");
+                        if (!Objects.equal(port.getParent(), instance)) {
+                            temp.pr("count++;");
+                            temp.endScopedBlock();
+                            temp.endScopedBlock();
+                            temp.endScopedBankChannelIteration(port, null);
+                        } else {
+                            temp.endScopedBankChannelIteration(port, "count");
+                        }
                     }
                 }
             }
@@ -1628,7 +1625,7 @@ public class CGenerator extends GeneratorBase {
             if (child.outputs.size() > 0) {
 
                 temp.startScopedBlock();
-                temp.pr("int count = 0;");
+                temp.pr("int count = 0; SUPPRESS_UNUSED_WARNING(count);");
                 temp.startScopedBlock(child);
 
                 var channelCount = 0;
@@ -1937,8 +1934,9 @@ public class CGenerator extends GeneratorBase {
      */
     protected void generateParameterInitialization(ReactorInstance instance) {
         var selfRef = CUtil.reactorRef(instance);
-        // Declare a local bank_index variable so that initializers can use it.
-        initializeTriggerObjects.pr("int bank_index = "+CUtil.bankIndex(instance)+";");
+        // Set the local bank_index variable so that initializers can use it.
+        initializeTriggerObjects.pr("bank_index = "+CUtil.bankIndex(instance)+";"
+                + " SUPPRESS_UNUSED_WARNING(bank_index);");
         for (ParameterInstance parameter : instance.parameters) {
             // NOTE: we now use the resolved literal value. For better efficiency, we could
             // store constants in a global array and refer to its elements to avoid duplicate

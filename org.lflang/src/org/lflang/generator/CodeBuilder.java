@@ -309,8 +309,11 @@ public class CodeBuilder {
             indent();
             pr(String.join("\n", 
                 "int "+ri+" = mixed_radix_parent(&range_mr, "+nestedLevel+"); // Runtime index.",
+                "SUPPRESS_UNUSED_WARNING("+ri+");",
                 "int "+ci+" = range_mr.digits[0]; // Channel index.",
-                "int "+bi+" = "+(sizeMR <= 1 ? "0" : "range_mr.digits[1]")+"; // Bank index."
+                "SUPPRESS_UNUSED_WARNING("+ci+");",
+                "int "+bi+" = "+(sizeMR <= 1 ? "0" : "range_mr.digits[1]")+"; // Bank index.",
+                "SUPPRESS_UNUSED_WARNING("+bi+");"
             ));
 
         } else {
@@ -318,10 +321,10 @@ public class CodeBuilder {
             var riValue = rangeMR.get(nestedLevel);
             var biValue = (sizeMR > 1)? rangeMR.getDigits().get(1) : 0;
             pr(String.join("\n", 
-                "int "+ri+" = "+riValue+"; // Runtime index.",
-                "int "+ci+" = "+ciValue+"; // Channel index.",
-                "int "+bi+" = "+biValue+"; // Bank index.",
-                "int range_count = 0;"
+                "int "+ri+" = "+riValue+"; SUPPRESS_UNUSED_WARNING("+ri+"); // Runtime index.",
+                "int "+ci+" = "+ciValue+"; SUPPRESS_UNUSED_WARNING("+ci+"); // Channel index.",
+                "int "+bi+" = "+biValue+"; SUPPRESS_UNUSED_WARNING("+bi+"); // Bank index.",
+                "int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);"
             ));
         }
     }
@@ -389,8 +392,11 @@ public class CodeBuilder {
             var riValue = srcRangeMR.get(srcNestedLevel);
             pr(String.join("\n", 
                 "int "+sr+" = "+riValue+"; // Runtime index.",
+                "SUPPRESS_UNUSED_WARNING("+sr+");",
                 "int "+sc+" = "+ciValue+"; // Channel index.",
-                "int "+sb+" = "+biValue+"; // Bank index."
+                "SUPPRESS_UNUSED_WARNING("+sc+");",
+                "int "+sb+" = "+biValue+"; // Bank index.",
+                "SUPPRESS_UNUSED_WARNING("+sb+");"
             ));
         }
         
@@ -399,8 +405,11 @@ public class CodeBuilder {
         if (srcRange.width > 1) {
             pr(String.join("\n", 
                 "int "+sr+" = mixed_radix_parent(&src_range_mr, "+srcNestedLevel+"); // Runtime index.",
+                "SUPPRESS_UNUSED_WARNING("+sr+");",
                 "int "+sc+" = src_range_mr.digits[0]; // Channel index.",
-                "int "+sb+" = "+(srcSizeMR <= 1 ? "0" : "src_range_mr.digits[1]")+"; // Bank index."
+                "SUPPRESS_UNUSED_WARNING("+sc+");",
+                "int "+sb+" = "+(srcSizeMR <= 1 ? "0" : "src_range_mr.digits[1]")+"; // Bank index.",
+                "SUPPRESS_UNUSED_WARNING("+sb+");"
             ));
         }
     }
