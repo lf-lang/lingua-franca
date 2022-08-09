@@ -1004,12 +1004,23 @@ public class ASTUtils {
 
     /**
      * Given a single string, convert it into its AST representation.
+     * {@code addQuotes} controls if the generated representation should be
+     * accompanied by double quotes ("") or not.
+     */
+    private static Element toElement(String str, boolean addQuotes) {
+        if (str == null) return null;
+        var strToReturn = addQuotes? StringUtil.addDoubleQuotes(str):str;
+        Element e = LfFactory.eINSTANCE.createElement();
+        e.setLiteral(strToReturn);
+        return e;
+
+    }
+
+    /**
+     * Given a single string, convert it into its AST representation.
      */
     public static Element toElement(String str) {
-        if (str == null) return null;
-        Element e = LfFactory.eINSTANCE.createElement();
-        e.setLiteral(str);
-        return e;
+        return toElement(str, true);
     }
 
     /**
@@ -1021,11 +1032,11 @@ public class ASTUtils {
         Element e = LfFactory.eINSTANCE.createElement();
         if (list.size() == 0) return null;
         else if (list.size() == 1) {
-            e.setLiteral(list.get(0));
+            return toElement(list.get(0));
         } else {
             var arr = LfFactory.eINSTANCE.createArray();
             for (String s : list) {
-                arr.getElements().add(ASTUtils.toElement(StringUtil.addDoubleQuotes(s)));
+                arr.getElements().add(ASTUtils.toElement(s));
             }
             e.setArray(arr);
         }
@@ -1045,11 +1056,11 @@ public class ASTUtils {
     }
 
     public static Element toElement(boolean val) {
-        return toElement(Boolean.toString(val));
+        return toElement(Boolean.toString(val), false);
     }
 
     public static Element toElement(int val) {
-        return toElement(Integer.toString(val));
+        return toElement(Integer.toString(val), false);
     }
     
     /**

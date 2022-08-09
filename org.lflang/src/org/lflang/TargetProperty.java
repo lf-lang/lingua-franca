@@ -620,12 +620,12 @@ public enum TargetProperty {
                     List<Path> paths = config.rust.getRustTopLevelModules();
                     if (paths.isEmpty()) return null;
                     else if (paths.size() == 1) {
-                        return ASTUtils.toElement("\"" + paths.get(0).toString() + "\"");
+                        return ASTUtils.toElement(paths.get(0).toString());
                     } else {
                         Element e = LfFactory.eINSTANCE.createElement();
                         Array arr = LfFactory.eINSTANCE.createArray();
                         for (Path p : paths) {
-                            arr.getElements().add(ASTUtils.toElement("\"" + p.toString() + "\""));
+                            arr.getElements().add(ASTUtils.toElement(p.toString()));
                         }
                         e.setArray(arr);
                         return e;
@@ -720,7 +720,7 @@ public enum TargetProperty {
      */
     FED_SETUP("_fed_setup", FILES.type,
               Arrays.asList(Target.C, Target.CCPP, Target.Python),
-              (config) -> ASTUtils.toElement("\"" + config.fedSetupPreamble + "\""),
+              (config) -> ASTUtils.toElement(config.fedSetupPreamble),
               (config, value, err) ->
                   config.fedSetupPreamble = StringUtil.removeQuotes(ASTUtils.elementToSingleString(value))
     )

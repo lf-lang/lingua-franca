@@ -273,7 +273,7 @@ public class CargoDependencySpec {
                 switch (t) {
                 case VERSION:
                     if (spec.version == null) continue;
-                    pair.setValue(ASTUtils.toElement("\"" + spec.version + "\""));
+                    pair.setValue(ASTUtils.toElement(spec.version));
                     break;
                 case GIT_REPO:
                     if (spec.gitRepo == null) continue;
@@ -289,14 +289,14 @@ public class CargoDependencySpec {
                     break;
                 case LOCAL_PATH:
                     if(spec.localPath == null) continue;
-                    pair.setValue(ASTUtils.toElement("\"" + spec.localPath + "\""));
+                    pair.setValue(ASTUtils.toElement(spec.localPath));
                     break;
                 case FEATURES:
                     if(spec.features == null || spec.features.isEmpty()) continue;
                     Element subE = LfFactory.eINSTANCE.createElement();
                     Array arr = LfFactory.eINSTANCE.createArray();
                     for (String f : spec.features) {
-                        arr.getElements().add(ASTUtils.toElement("\"" + f + "\""));
+                        arr.getElements().add(ASTUtils.toElement(f));
                     }
                     subE.setArray(arr);
                     pair.setValue(subE);
