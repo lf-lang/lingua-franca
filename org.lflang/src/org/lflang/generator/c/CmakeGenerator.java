@@ -165,7 +165,7 @@ public class CmakeGenerator {
             // If threaded computation is requested, add the threads option.
             cMakeCode.pr("# Find threads and link to it");
             cMakeCode.pr("find_package(Threads REQUIRED)");
-            cMakeCode.pr("target_link_libraries(${LF_MAIN_TARGET} Threads::Threads)");
+            cMakeCode.pr("target_link_libraries(${LF_MAIN_TARGET} PRIVATE Threads::Threads)");
             cMakeCode.newLine();
 
             // If the LF program itself is threaded or if tracing is enabled, we need to define
@@ -198,7 +198,7 @@ public class CmakeGenerator {
         for (String compilerFlag : targetConfig.compilerFlags) {
             switch(compilerFlag.trim()) {
                 case "-lm":
-                    cMakeCode.pr("target_link_libraries( ${LF_MAIN_TARGET} m)");
+                    cMakeCode.pr("target_link_libraries(${LF_MAIN_TARGET} PRIVATE m)");
                     break;
                 case "-lprotobuf-c":
                     cMakeCode.pr("include(FindPackageHandleStandardArgs)");
@@ -209,7 +209,7 @@ public class CmakeGenerator {
                                      )""");
                     cMakeCode.pr("find_package_handle_standard_args(libprotobuf-c DEFAULT_MSG PROTOBUF_INCLUDE_DIR PROTOBUF_LIBRARY)");
                     cMakeCode.pr("target_include_directories( ${LF_MAIN_TARGET} PUBLIC ${PROTOBUF_INCLUDE_DIR} )");
-                    cMakeCode.pr("target_link_libraries( ${LF_MAIN_TARGET} ${PROTOBUF_LIBRARY})");
+                    cMakeCode.pr("target_link_libraries(${LF_MAIN_TARGET} PRIVATE ${PROTOBUF_LIBRARY})");
                     break;
                 case "-O2":
                     if (Objects.equals(targetConfig.compiler, "gcc") || CppMode) {
