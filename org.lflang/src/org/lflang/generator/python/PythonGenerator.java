@@ -799,7 +799,8 @@ public class PythonGenerator extends CGenerator {
             add_subdirectory(core)
             set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR})
             set(LF_MAIN_TARGET <pyModuleName>)
-            add_library(
+            find_package (Python COMPONENTS Interpreter Development)
+            Python_add_library(
                 ${LF_MAIN_TARGET}
                 MODULE
             """
@@ -807,9 +808,8 @@ public class PythonGenerator extends CGenerator {
             + """
             )
             set_target_properties(${LF_MAIN_TARGET} PROPERTIES PREFIX "")
-            find_package(PythonLibs REQUIRED)
-            include_directories(${PYTHON_INCLUDE_DIRS})
-            target_link_libraries(${LF_MAIN_TARGET} ${PYTHON_LIBRARIES})
+            include_directories(${Python_INCLUDE_DIRS})
+            target_link_libraries(${LF_MAIN_TARGET} PRIVATE ${Python_LIBRARIES})
             target_compile_definitions(${LF_MAIN_TARGET} PUBLIC MODULE_NAME=<pyModuleName>)
             """
             ).replace("<pyModuleName>", generatePythonModuleName(executableName))
