@@ -13,6 +13,7 @@ class TSFederateConfig (
     private val rtiHost: String,
     private val rtiPort: Int,
     private val networkMessageActions: List<String>,
+    private val networkInputControlReactionsTriggers: List<String>,
     private val dependOnFedIds: List<Int>,
     private val sendsToFedIds: List<Int>,
     private val minOutputDelay: TimeValue?
@@ -21,6 +22,7 @@ class TSFederateConfig (
     fun getRtiHost() = rtiHost
     fun getRtiPort() = rtiPort
     fun getNetworkMessageActions() = networkMessageActions
+    fun getnetworkInputControlReactionsTriggers() = networkInputControlReactionsTriggers
     fun getDependOnFedIds() = dependOnFedIds
     fun getSendsToFedIds() = sendsToFedIds
     fun getMinOutputDelay() = minOutputDelay
@@ -52,6 +54,9 @@ class TSFederateConfig (
                         federateConfigMap.getValue("host"),
                         federateConfigMap.getValue("port").toInt(),
                         federateConfigMap.getValue("network_message_actions")
+                            .removeSurrounding("[", "]")
+                            .split(";").map { it.trim() }.filter { it.isNotEmpty() },
+                        federateConfigMap.getValue("network_input_control_reactions")
                             .removeSurrounding("[", "]")
                             .split(";").map { it.trim() }.filter { it.isNotEmpty() },
                         federateConfigMap.getValue("depends_on")

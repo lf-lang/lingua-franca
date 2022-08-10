@@ -68,7 +68,7 @@ public class TSExtension implements FedTargetExtension {
         return"""
         // TODO(hokeun): Figure out what to do for generateNetworkOutputControlReactionBody
         Log.debug(this, () => `Contemplating whether to send port absent to `
-        + `federate ID: ${%3$s} port ID: ${%4$s}.`);
+        + `federate ID: %3$s port ID: %4$s.`);
         if (%1$s.%2$s === undefined) {
             this.util.sendRTIPortAbsent(0, %3$s, %4$s);
         }
@@ -106,6 +106,7 @@ public class TSExtension implements FedTargetExtension {
             host: %s,
             port: %d,
             network_message_actions: [%s],
+            network_input_control_reactions: [%s],
             depends_on: [%s],
             sends_to: [%s],
             %s
@@ -113,6 +114,10 @@ public class TSExtension implements FedTargetExtension {
                         federationRTIProperties.get("host"),
                         federationRTIProperties.get("port"),
                         federate.networkMessageActions
+                                    .stream()
+                                    .map(Variable::getName)
+                                    .collect(Collectors.joining(";")),
+                        federate.networkInputControlReactionsTriggers
                                     .stream()
                                     .map(Variable::getName)
                                     .collect(Collectors.joining(";")),
