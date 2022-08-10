@@ -63,6 +63,7 @@ import org.lflang.lf.ParameterReference;
 import org.lflang.lf.Reaction;
 import org.lflang.lf.Reactor;
 import org.lflang.lf.ReactorDecl;
+import org.lflang.lf.StateVar;
 import org.lflang.lf.TargetDecl;
 import org.lflang.lf.Timer;
 import org.lflang.lf.TriggerRef;
@@ -283,6 +284,8 @@ public class FederateInstance {
             return contains((Import)object);
         } else if (object instanceof Parameter) {
             return contains((Parameter)object);
+        } else if (object instanceof StateVar) {
+            return true; // FIXME: Should we disallow state vars at the top level?
         }
         throw new UnsupportedOperationException("EObject class "+object.eClass().getName()+" not supported.");
     }
