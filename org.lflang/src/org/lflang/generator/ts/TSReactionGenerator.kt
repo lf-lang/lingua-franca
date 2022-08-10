@@ -111,15 +111,7 @@ class TSReactionGenerator(
         reactSignature: StringJoiner
     ): String {
         // Assemble reaction triggers
-        var reactCode = ""
-        var reactDeadline = "}"
         val reactionTriggers = StringJoiner(",\n")
-
-        if (!reaction.isMutation()) {
-            if (reaction.deadline != null) {
-                reactDeadline = generateDeadlineHandler(reaction, reactPrologue, reactEpilogue, reactSignature)
-            }
-        }
 
         for (trigger in reaction.triggers) {
             if (trigger is VarRef) {
@@ -132,7 +124,6 @@ class TSReactionGenerator(
                 }
             }
         }
-        reactCode = reaction.code.toText()
 
         return with(PrependOperator) {
             """
@@ -145,13 +136,13 @@ class TSReactionGenerator(
             ${" |        "..reactPrologue}
             |        // =============== END react prologue
             |        try {
-            ${" |            "..reactCode}
+            ${" |            "..reaction.code.toText()}
             |        } finally {
             |            // =============== START react epilogue
             ${" |            "..reactEpilogue}
             |            // =============== END react epilogue
             |        }
-            ${" |    "..reactDeadline}
+            ${" |    "..if (reaction.deadline != null) generateDeadlineHandler(reaction, reactPrologue, reactEpilogue, reactSignature) else "}"}
             |);
             |""".trimMargin()
             }
