@@ -11,7 +11,6 @@ target C {
         advance-message-interval: 100 msec
     },
     timeout: 5 sec,
-    logging: DEBUG
 }
 
 preamble {=
