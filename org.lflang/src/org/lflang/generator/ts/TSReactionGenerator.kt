@@ -369,11 +369,10 @@ class TSReactionGenerator(
             } else if (effect.variable is Port){
                 if (reaction.isMutation()) {
                     reactSignatureElement += ": ${generateMutationSignatureElementForPortEffect(effect)}"
-                    reactEpilogue.add(generateReactionEpilogueForPortEffect(effect))
                 } else {
                     reactSignatureElement += ": ${generateReactionSignatureElementForPortEffect(effect)}"
-                    reactEpilogue.add(generateReactionEpilogueForPortEffect(effect))
                 }
+                reactEpilogue.add(generateReactionEpilogueForPortEffect(effect))
             }
 
             reactSignature.add(reactSignatureElement)
