@@ -1,3 +1,4 @@
 find_package(std_msgs REQUIRED)
 
-ament_target_dependencies(${LF_MAIN_TARGET} PUBLIC std_msgs)
+# Tradeoff of not using ament described here: https://docs.ros.org/en/foxy/How-To-Guides/Ament-CMake-Documentation.html?highlight=ament_target_dependencies
+target_link_libraries(${LF_MAIN_TARGET} PUBLIC std_msgs)
