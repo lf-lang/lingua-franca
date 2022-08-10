@@ -500,7 +500,7 @@ class TSReactionGenerator(
         // If the app is federated, only generate
         // reactions that are contained by that federate
         val generatedReactions: List<Reaction>
-        val generatedMutations: List<Reaction>
+        val mutations: List<Reaction>
         if (reactor.isFederated) {
             generatedReactions = LinkedList<Reaction>()
             for (reaction in reactor.reactions) {
@@ -520,13 +520,13 @@ class TSReactionGenerator(
             generatedReactions = reactor.reactions
         }
         // get mutations
-        generatedMutations = reactor.reactions.stream().filter{it -> it.isMutation()}.collect(Collectors.toList())
+        mutations = reactor.reactions.stream().filter{it -> it.isMutation()}.collect(Collectors.toList())
 
         ///////////////////// Reaction generation begins /////////////////////
         // TODO(hokeun): Consider separating this out as a new class.
-        if (generatedMutations.isNotEmpty()) {
+        if (mutations.isNotEmpty()) {
             // Write the mutation itself
-            for (mutation in generatedMutations) {
+            for (mutation in mutations) {
                 reactionCodes.add(generateSingleReaction(reactor, mutation))
             }
         }
