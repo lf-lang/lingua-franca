@@ -541,12 +541,24 @@ public class FederateInstance {
     /**
      * Return true if all members of 'varRefs' belong to this federate.
      *
+     * As a convenience measure, if some members of 'varRefs' are from
+     * different federates, also report an error.
+     *
      * @param varRefs A collection of VarRefs
      */
     private boolean containsAllVarRefs(Iterable<VarRef> varRefs) {
+        var referencesFederate = false;
         var inFederate = true;
         for (VarRef varRef : varRefs) {
-            if (varRef.getContainer() != this.instantiation) {
+            if (varRef.getContainer() == this.instantiation) {
+                referencesFederate = true;
+            } else {
+                if (referencesFederate) {
+                    errorReporter.reportError(varRef,
+                                              "Mixed triggers and effects from"
+                                                  +
+                                                  " different federates. This is not permitted");
+                }
                 inFederate = false;
             }
         }

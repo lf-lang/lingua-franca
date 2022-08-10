@@ -573,9 +573,6 @@ public class FedASTUtils {
         // Find a list of STP offsets (if any exists)
         if (coordination == CoordinationType.DECENTRALIZED) {
             for (Reaction r : safe(reactionsWithPort)) {
-                if (!instance.contains(r)) {
-                    continue;
-                }
                 // If STP offset is determined, add it
                 // If not, assume it is zero
                 if (r.getStp() != null) {
@@ -619,9 +616,6 @@ public class FedASTUtils {
                             ).collect(Collectors.toList());
 
                 for (Reaction r : safe(childReactionsWithPort)) {
-                    if (!instance.contains(r)) {
-                        continue;
-                    }
                     // If STP offset is determined, add it
                     // If not, assume it is zero
                     if (r.getStp() != null) {
