@@ -246,49 +246,6 @@ class TSGenerator(
 
 
     /**
-     * If a main or federated reactor has been declared, create a ReactorInstance of it.
-     * This will assign levels to reactions; then, if the program is federated,
-     * an AST transformation is performed to disconnect connections between federates.
-     */
-    private fun createMainReactorInstance() {
-        if (mainDef != null) {
-            if (main == null) {
-                // Recursively build instances. This is done once because
-                // it is the same for all federates.
-                main = ReactorInstance(
-                    ASTUtils.toDefinition(mainDef.reactorClass), errorReporter,
-                    unorderedReactions
-                )
-                val reactionInstanceGraph = main.assignLevels()
-                if (reactionInstanceGraph.nodeCount() > 0) {
-                    errorReporter.reportError("Main reactor has causality cycles. Skipping code generation.")
-                    return
-                }
-                // Inform the run-time of the breadth/parallelism of the reaction graph
-                val breadth = reactionInstanceGraph.breadth
-                if (breadth == 0) {
-                    errorReporter.reportWarning("The program has no reactions")
-                } else {
-                    targetConfig.compileDefinitions["LF_REACTION_GRAPH_BREADTH"] = reactionInstanceGraph.breadth.toString()
-                }
-            }
-
-            // Force reconstruction of dependence information.
-//            if (isFederated) {
-//                // FIXME: The following operation must be done after levels are assigned.
-//                //  Removing these ports before that will cause incorrect levels to be assigned.
-//                //  See https://github.com/lf-lang/lingua-franca/discussions/608
-//                //  For now, avoid compile errors by removing disconnected network ports before
-//                //  assigning levels.
-//                removeRemoteFederateConnectionPorts(main)
-//                // There will be AST transformations that invalidate some info
-//                // cached in ReactorInstance.
-//                main.clearCaches(false)
-//            } FIXME: @hokeun
-        }
-    }
-
-    /**
      * Generate the code corresponding to [federate], recording any resulting mappings in [codeMaps].
      */
     private fun generateCode(

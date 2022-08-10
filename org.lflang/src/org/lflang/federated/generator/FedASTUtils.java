@@ -327,6 +327,9 @@ public class FedASTUtils {
                     errorReporter
             ));
 
+
+        addFedAttr(networkReceiverReaction, "_fed_recv");
+
         // Add the receiver reaction to the parent
         parent.getReactions().add(networkReceiverReaction);
 
@@ -374,7 +377,9 @@ public class FedASTUtils {
         destRef.setContainer(connection.getDestinationPortInstance().getParent().getDefinition());
         destRef.setVariable(connection.getDestinationPortInstance().getDefinition());
 
-        Reactor top = connection.getDestinationPortInstance().getParent().getParent().reactorDefinition;
+        Reactor top = connection.getDestinationPortInstance()
+                                .getParent()
+                                .getParent().reactorDefinition;
 
         newTriggerForControlReactionInput.setName(
             ASTUtils.getUniqueIdentifier(top, "inputControlReactionTrigger"));
@@ -412,6 +417,8 @@ public class FedASTUtils {
                         )
                 );
 
+        addFedAttr(reaction, "_fed_inp_ctrl");
+
         // Insert the reaction
         top.getReactions().add(reaction);
 
@@ -422,6 +429,12 @@ public class FedASTUtils {
         // Add the network input control reaction to the federate instance's list
         // of network reactions
         connection.dstFederate.networkReactions.add(reaction);
+    }
+
+    private static void addFedAttr(Reaction reaction, String name) {
+        var fedAttr = ASTUtils.factory.createAttribute();
+        fedAttr.setAttrName(name);
+        reaction.getAttributes().add(fedAttr);
     }
 
     /**
@@ -442,8 +455,6 @@ public class FedASTUtils {
                 connection.dstFederate,
                 connection.getDestinationPortInstance()
             );
-
-        System.out.println("Found these ports as dependencies: " + upstreamOutputPortsInFederate);
 
         for (var port: upstreamOutputPortsInFederate) {
             VarRef sourceRef = ASTUtils.factory.createVarRef();
@@ -470,6 +481,7 @@ public class FedASTUtils {
         if (port.isOutput() && federate.contains(port.getParent())) {
             toReturn.add(port);
         } else {
+            System.out.println("Depends on ports for " + port + " are: " + port.getDependsOnPorts());
             port.getDependsOnPorts().forEach(
                 it -> toReturn.addAll(
                     findUpstreamOutputPortsInFederate(federate, it.instance)
@@ -687,6 +699,8 @@ public class FedASTUtils {
                                    errorReporter
                                ));
 
+        addFedAttr(networkSenderReaction, "_fed_send");
+
         // Add the sending reaction to the parent.
         parent.getReactions().add(networkSenderReaction);
 
@@ -775,8 +789,8 @@ public class FedASTUtils {
             FedTargetExtensionFactory.getExtension(connection.srcFederate.target)
                                      .generateNetworkOutputControlReactionBody(newPortRef, connection));
 
-        // Make the reaction unordered w.r.t. other reactions in the top level.
-        // generator.makeUnordered(reaction); FIXME
+        addFedAttr(reaction, "_fed_out_ctrl");
+
 
         // Insert the newly generated reaction after the generated sender and
         // receiver top-level reactions.

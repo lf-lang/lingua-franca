@@ -46,20 +46,19 @@ import java.util.List;
 import java.util.regex.Pattern;
 
 import org.eclipse.emf.ecore.resource.Resource;
-import org.eclipse.xtext.util.CancelIndicator;
 import org.eclipse.xtext.xbase.lib.Exceptions;
 import org.eclipse.xtext.xbase.lib.IterableExtensions;
 import org.eclipse.xtext.xbase.lib.IteratorExtensions;
 import org.eclipse.xtext.xbase.lib.StringExtensions;
+
 import org.lflang.ASTUtils;
 import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
 import org.lflang.Target;
 import org.lflang.TargetConfig;
 import org.lflang.TargetProperty;
-import org.lflang.federated.extensions.CExtensionUtils;
 import org.lflang.TargetProperty.Platform;
-import org.lflang.TimeValue;
+import org.lflang.federated.extensions.CExtensionUtils;
 import org.lflang.generator.ActionInstance;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.generator.GeneratorBase;
@@ -658,10 +657,17 @@ public class CGenerator extends GeneratorBase {
         if (main != null) {
             initializeTriggerObjects.pr(String.join("\n",
                 "int _lf_startup_reactions_count = 0;",
+                "SUPPRESS_UNUSED_WARNING(_lf_startup_reactions_count);",
                 "int _lf_shutdown_reactions_count = 0;",
+                "SUPPRESS_UNUSED_WARNING(_lf_shutdown_reactions_count);",
                 "int _lf_reset_reactions_count = 0;",
+                "SUPPRESS_UNUSED_WARNING(_lf_reset_reactions_count);",
                 "int _lf_timer_triggers_count = 0;",
-                "int _lf_tokens_with_ref_count_count = 0;"
+                "SUPPRESS_UNUSED_WARNING(_lf_timer_triggers_count);",
+                "int _lf_tokens_with_ref_count_count = 0;",
+                "SUPPRESS_UNUSED_WARNING(_lf_tokens_with_ref_count_count);",
+                "int bank_index;",
+                "SUPPRESS_UNUSED_WARNING(bank_index);"
             ));
             // Add counters for modal initialization
             initializeTriggerObjects.pr(CModesGenerator.generateModalInitalizationCounters(hasModalReactors));
@@ -1510,8 +1516,7 @@ public class CGenerator extends GeneratorBase {
         var portsSeen = new LinkedHashSet<PortInstance>();
         for (ReactionInstance reaction : instance.reactions) {
             for (PortInstance port : Iterables.filter(reaction.effects, PortInstance.class)) {
-                if (port.getDefinition() instanceof Input
-                    && !portsSeen.contains(port)) {
+                if (port.getDefinition() instanceof Input && !portsSeen.contains(port)) {
                     portsSeen.add(port);
                     // This reaction is sending to an input. Must be
                     // the input of a contained reactor in the federate.
@@ -1519,14 +1524,13 @@ public class CGenerator extends GeneratorBase {
                     // this assumes that the reaction writes only to the bank member in the federate.
                     foundOne = true;
 
-                    temp.pr("// Add port " + port.getFullName()
-                                + " to array of is_present fields.");
+                    temp.pr("// Add port "+port.getFullName()+" to array of is_present fields.");
 
                     if (!Objects.equal(port.getParent(), instance)) {
                         // The port belongs to contained reactor, so we also have
                         // iterate over the instance bank members.
                         temp.startScopedBlock();
-                        temp.pr("int count = 0;");
+                        temp.pr("int count = 0; SUPPRESS_UNUSED_WARNING(count);");
                         temp.startScopedBlock(instance);
                         temp.startScopedBankChannelIteration(port, null);
                     } else {
@@ -1535,23 +1539,15 @@ public class CGenerator extends GeneratorBase {
                     var portRef = CUtil.portRefNested(port);
                     var con = (port.isMultiport()) ? "->" : ".";
 
-                    temp.pr("_lf_is_present_fields["
-                                + startTimeStepIsPresentCount
-                                + " + count] = &" + portRef + con
-                                + "is_present;");
-
+                    temp.pr("_lf_is_present_fields["+startTimeStepIsPresentCount+" + count] = &"+portRef+con+"is_present;");
                     // Intended_tag is only applicable to ports in federated execution.
                     temp.pr(
                         CExtensionUtils.surroundWithIfFederatedDecentralized(
-                            "_lf_intended_tag_fields["
-                                + startTimeStepIsPresentCount
-                                + " + count] = &" + portRef + con
-                                + "intended_tag;"
+                        "_lf_intended_tag_fields["+startTimeStepIsPresentCount+" + count] = &"+portRef+con+"intended_tag;"
                         )
                     );
 
-                    startTimeStepIsPresentCount += port.getWidth() *
-                        port.getParent().getTotalWidth();
+                    startTimeStepIsPresentCount += port.getWidth() * port.getParent().getTotalWidth();
 
                     if (!Objects.equal(port.getParent(), instance)) {
                         temp.pr("count++;");
@@ -1627,7 +1623,7 @@ public class CGenerator extends GeneratorBase {
             if (child.outputs.size() > 0) {
 
                 temp.startScopedBlock();
-                temp.pr("int count = 0;");
+                temp.pr("int count = 0; SUPPRESS_UNUSED_WARNING(count);");
                 temp.startScopedBlock(child);
 
                 var channelCount = 0;
@@ -1936,8 +1932,9 @@ public class CGenerator extends GeneratorBase {
      */
     protected void generateParameterInitialization(ReactorInstance instance) {
         var selfRef = CUtil.reactorRef(instance);
-        // Declare a local bank_index variable so that initializers can use it.
-        initializeTriggerObjects.pr("int bank_index = "+CUtil.bankIndex(instance)+";");
+        // Set the local bank_index variable so that initializers can use it.
+        initializeTriggerObjects.pr("bank_index = "+CUtil.bankIndex(instance)+";"
+                + " SUPPRESS_UNUSED_WARNING(bank_index);");
         for (ParameterInstance parameter : instance.parameters) {
             // NOTE: we now use the resolved literal value. For better efficiency, we could
             // store constants in a global array and refer to its elements to avoid duplicate
@@ -2192,10 +2189,8 @@ public class CGenerator extends GeneratorBase {
     private void createMainReactorInstance() {
         if (this.mainDef != null) {
             if (this.main == null) {
-                // Recursively build instances. This is done once because
-                // it is the same for all federates.
-                this.main = new ReactorInstance(toDefinition(mainDef.getReactorClass()), errorReporter,
-                    this.unorderedReactions);
+                // Recursively build instances.
+                this.main = new ReactorInstance(toDefinition(mainDef.getReactorClass()), errorReporter);
                 var reactionInstanceGraph = this.main.assignLevels();
                 if (reactionInstanceGraph.nodeCount() > 0) {
                     errorReporter.reportError("Main reactor has causality cycles. Skipping code generation.");
@@ -2213,6 +2208,7 @@ public class CGenerator extends GeneratorBase {
                 }
             }
         }
+
     }
 
     /**

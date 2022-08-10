@@ -115,6 +115,23 @@ public class AttributeUtils {
     }
 
     /**
+     * Return true if the reaction is unordered.
+     */
+    public static boolean isUnordered(Reaction reaction) {
+        for (var attribute : getAttributes(reaction)) {
+            if (
+                attribute.getAttrName().equalsIgnoreCase("_fed_recv") ||
+                attribute.getAttrName().equalsIgnoreCase("_fed_send") ||
+                attribute.getAttrName().equalsIgnoreCase("_fed_inp_ctrl") ||
+                attribute.getAttrName().equalsIgnoreCase("_fed_out_ctrl")
+            ) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
      * Return the declared label of the node, as given by the @label
      * annotation (or an @label comment).
      *

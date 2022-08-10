@@ -58,9 +58,6 @@ public class ToText extends LfSwitch<String> {
                 return str;
             }
             str = str.substring(start + 2, end);
-            for (INode comment : ToLf.getAncestorComments(node)) {
-                str = str.replaceFirst(Pattern.quote(comment.getText().stripTrailing()), "");
-            }
             if (str.split("\n").length > 1) {
                 // multi line code
                 return StringUtil.trimCodeBlock(str, 1);

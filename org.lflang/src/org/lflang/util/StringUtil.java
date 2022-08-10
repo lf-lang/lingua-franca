@@ -112,6 +112,16 @@ public final class StringUtil {
         int prefix = getWhitespacePrefix(code, firstLineToConsider);
         StringBuilder buffer = new StringBuilder();
         boolean stillProcessingLeadingBlankLines = true;
+        for (int i = 0; i < firstLineToConsider; i++) {
+            var endIndex = codeLines[i].contains("//") ?
+                codeLines[i].indexOf("//") : codeLines[i].length();
+            // The following will break Rust attributes in multiline code blocks
+            // where they appear next to the opening {= brace.
+            endIndex = codeLines[i].contains("#") ?
+                Math.min(endIndex, codeLines[i].indexOf("#")) : endIndex;
+            String toAppend = codeLines[i].substring(0, endIndex).strip();
+            if (!toAppend.isBlank()) buffer.append(toAppend).append("\n");
+        }
         for (int i = firstLineToConsider; i < codeLines.length; i++) {
             final String line = codeLines[i];
             if (!line.isBlank()) stillProcessingLeadingBlankLines = false;
