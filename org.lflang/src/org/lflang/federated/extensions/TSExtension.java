@@ -66,9 +66,8 @@ public class TSExtension implements FedTargetExtension {
     @Override
     public String generateNetworkOutputControlReactionBody(VarRef srcOutputPort, FedConnectionInstance connection) {
         return"""
-        // TODO(hokeun): Figure out what to do for generateNetworkOutputControlReactionBody
-        Log.debug(this, () => `Contemplating whether to send port absent to `
-        + `federate ID: %3$s port ID: %4$s.`);
+        Log.debug(this, () => {return `Contemplating whether to send port absent to `
+        + `federate ID: %3$s port ID: %4$s.`});
         if (%1$s.%2$s === undefined) {
             this.util.sendRTIPortAbsent(0, %3$s, %4$s);
         }
