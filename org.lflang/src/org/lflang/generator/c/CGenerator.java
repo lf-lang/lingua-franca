@@ -1622,12 +1622,6 @@ public class CGenerator extends GeneratorBase {
         }
     }
 
-    private void assignLetToReaction(ReactorInstance instance) {
-        for (ReactionInstance reaction : instance.reactions) {
-            reaction.getLogicalExecutionTime();
-        }
-    }
-
 
 
     /**
