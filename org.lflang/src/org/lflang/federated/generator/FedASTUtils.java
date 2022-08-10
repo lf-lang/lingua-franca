@@ -548,6 +548,11 @@ public class FedASTUtils {
         );
 
         reaction.dependentReactions()
+                .stream()
+                .filter(
+                    // Stay within the reactor
+                    it -> it.getParent().equals(reaction.getParent())
+                )
                 .forEach(
                     it -> followReactionUpstream(federate, visitedPorts, toReturn, it)
                 );
