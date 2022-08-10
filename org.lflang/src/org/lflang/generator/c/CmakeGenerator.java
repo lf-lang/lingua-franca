@@ -204,9 +204,9 @@ public class CmakeGenerator {
                     cMakeCode.pr("include(FindPackageHandleStandardArgs)");
                     cMakeCode.pr("FIND_PATH( PROTOBUF_INCLUDE_DIR protobuf-c/protobuf-c.h)");
                     cMakeCode.pr("""
-                                     find_library(PROTOBUF_LIBRARY\s
-                                     NAMES libprotobuf-c.a libprotobuf-c.so libprotobuf-c.dylib protobuf-c.lib protobuf-c.dll
-                                     )""");
+                         find_library(PROTOBUF_LIBRARY\s
+                         NAMES libprotobuf-c.a libprotobuf-c.so libprotobuf-c.dylib protobuf-c.lib protobuf-c.dll
+                         )""");
                     cMakeCode.pr("find_package_handle_standard_args(libprotobuf-c DEFAULT_MSG PROTOBUF_INCLUDE_DIR PROTOBUF_LIBRARY)");
                     cMakeCode.pr("target_include_directories( ${LF_MAIN_TARGET} PUBLIC ${PROTOBUF_INCLUDE_DIR} )");
                     cMakeCode.pr("target_link_libraries(${LF_MAIN_TARGET} PRIVATE ${PROTOBUF_LIBRARY})");
@@ -215,8 +215,8 @@ public class CmakeGenerator {
                     if (Objects.equals(targetConfig.compiler, "gcc") || CppMode) {
                         // Workaround for the pre-added -O2 option in the CGenerator.
                         // This flag is specific to gcc/g++ and the clang compiler
-                        cMakeCode.pr("add_compile_options( -O2 )");
-                        cMakeCode.pr("add_link_options( -O2 )");
+                        cMakeCode.pr("add_compile_options(-O2)");
+                        cMakeCode.pr("add_link_options(-O2)");
                         break;
                     }
                 default:

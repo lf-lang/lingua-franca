@@ -794,19 +794,26 @@ public class PythonGenerator extends CGenerator {
     private static String setUpMainTarget(boolean hasMain, String executableName, Stream<String> cSources) {
         return (
             """
-            set(CMAKE_POSITION_INDEPENDENT_CODE ON)
-            add_compile_definitions(_LF_GARBAGE_COLLECTED)
-            add_subdirectory(core)
-            set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR})
-            set(LF_MAIN_TARGET <pyModuleName>)
-            find_package (Python COMPONENTS Interpreter Development)
-            Python_add_library(
-                ${LF_MAIN_TARGET}
-                MODULE
-            """
+                set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+                add_compile_definitions(_LF_GARBAGE_COLLECTED)
+                add_subdirectory(core)
+                set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR})
+                set(LF_MAIN_TARGET <pyModuleName>)
+                find_package (Python COMPONENTS Interpreter Development)
+                Python_add_library(
+                    ${LF_MAIN_TARGET}
+                    MODULE
+                """
             + cSources.collect(Collectors.joining("\n    ", "    ", "\n"))
             + """
             )
+            if (MSVC)
+                set_target_properties(${LF_MAIN_TARGET} PROPERTIES LIBRARY_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR})
+                set_target_properties(${LF_MAIN_TARGET} PROPERTIES LIBRARY_OUTPUT_DIRECTORY_DEBUG ${CMAKE_SOURCE_DIR})
+                set_target_properties(${LF_MAIN_TARGET} PROPERTIES LIBRARY_OUTPUT_DIRECTORY_RELEASE ${CMAKE_SOURCE_DIR})
+                set_target_properties(${LF_MAIN_TARGET} PROPERTIES LIBRARY_OUTPUT_DIRECTORY_MINSIZEREL ${CMAKE_SOURCE_DIR})
+                set_target_properties(${LF_MAIN_TARGET} PROPERTIES LIBRARY_OUTPUT_DIRECTORY_RELWITHDEBINFO ${CMAKE_SOURCE_DIR})
+            endif (MSVC)
             set_target_properties(${LF_MAIN_TARGET} PROPERTIES PREFIX "")
             include_directories(${Python_INCLUDE_DIRS})
             target_link_libraries(${LF_MAIN_TARGET} PRIVATE ${Python_LIBRARIES})
