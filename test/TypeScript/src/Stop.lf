@@ -1,0 +1,58 @@
+/**
+ * A test for the util.requestStop() functionality in TypeScript target Lingua Franca.
+ *
+ * @author Soroush Bateni
+ * @author Byeong-gil Jun
+ */
+ target TypeScript {
+    timeout: 11 msec
+};
+
+import Sender from "lib/LoopedActionSender.lf"
+
+reactor Consumer {
+    input in1:number;
+    state reactionInvokedCorrectly:boolean(false);
+    reaction(in1) {=
+        const currentTag = util.getCurrentTag();
+        const compareTag = util.getStartTag().getLaterTag(TimeValue.msec(10));
+        if (compareTag.getMicroStepsLater(9).isSmallerThan(currentTag)) {
+            // The reaction should not have been called at tags larger than (10 msec, 9)
+            util.requestErrorStop(`ERROR: Invoked reaction(in) at tag bigger than shutdown.`);
+        } else if (currentTag.isSimultaneousWith(compareTag.getMicroStepsLater(8))) {
+            // Call util.requestStop() at relative tag (10 msec, 8)
+            console.log(`Requesting stop.`);
+            util.requestStop();
+        } else if (currentTag.isSimultaneousWith(compareTag.getMicroStepsLater(9))) {
+            // Check that this reaction is indeed also triggered at (10 msec, 9)
+            reactionInvokedCorrectly = true;
+        }
+    =}
+
+    reaction(shutdown) {=
+        const currentTag = util.getCurrentTag();
+        const compareTag = util.getStartTag().getLaterTag(TimeValue.msec(10));
+        // Check to see if shutdown is called at relative tag (10 msec, 9)
+        if (currentTag.isSimultaneousWith(compareTag.getMicroStepsLater(9)) &&
+            reactionInvokedCorrectly === true) {
+            console.log(`SUCCESS: successfully enforced stop.`);
+        } else if(!currentTag.isSmallerThan(compareTag.getMicroStepsLater(9)) &&
+            !currentTag.isSimultaneousWith(compareTag.getMicroStepsLater(9))) {
+            util.requestErrorStop(`ERROR: Shutdown invoked at tag `
+                + `(${currentTag.time.subtract(util.getStartTime())}, `
+                + `${currentTag.microstep}). Failed to enforce timeout.`);
+        } else if (reactionInvokedCorrectly === false) {
+            // Check to see if reactions were called correctly            
+            util.requestErrorStop(`ERROR: Failed to invoke reaction(in) at tag `
+                + `(${currentTag.time.subtract(util.getStartTime())}, `
+                + `${currentTag.microstep}). Failed to enforce timeout.`);
+        }
+    =}
+}
+
+main reactor {
+   consumer = new Consumer();
+   producer = new Sender(breakInterval = 1 msec);
+
+   producer.out -> consumer.in1;
+}

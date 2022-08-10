@@ -1,0 +1,14 @@
+target TypeScript {
+    timeout: 2 secs
+};
+reactor Fed {
+    input inp:number;
+    output out:number;
+}
+federated reactor {
+    fed1 = new Fed();
+    fed2 = new Fed();
+    
+    fed1.out -> fed2.inp;
+    fed2.out -> fed1.inp;
+}

@@ -61,6 +61,8 @@ public class CCoreFilesUtils {
             "tag.c",
             "trace.h",
             "trace.c",
+            "port.h",
+            "port.c",
             "utils/pqueue.c",
             "utils/pqueue.h",
             "utils/pqueue_support.h",
