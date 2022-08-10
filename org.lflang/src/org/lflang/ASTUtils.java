@@ -725,7 +725,7 @@ public class ASTUtils {
      * @param <T> The type of elements to collect (e.g., Port, Timer, etc.)
      * @return A list of all elements of type T found
      */
-    public static <T> List<T> collectElements(Reactor definition, EStructuralFeature feature) {
+    public static <T extends EObject> List<T> collectElements(Reactor definition, EStructuralFeature feature) {
         return ASTUtils.collectElements(definition, feature, true, true);
     }
     
@@ -740,7 +740,7 @@ public class ASTUtils {
      * @return A list of all elements of type T found
      */
     @SuppressWarnings("unchecked")
-    public static <T> List<T> collectElements(Reactor definition, EStructuralFeature feature, boolean includeSuperClasses, boolean includeModes) {
+    public static <T extends EObject> List<T> collectElements(Reactor definition, EStructuralFeature feature, boolean includeSuperClasses, boolean includeModes) {
         List<T> result = new ArrayList<>();
         
         if (includeSuperClasses) {
@@ -760,11 +760,63 @@ public class ASTUtils {
             var modeFeature = reactorModeFeatureMap.get(feature);
             // Add elements of elements defined in modes.
             for (Mode mode : includeSuperClasses ? allModes(definition) : definition.getModes()) {
-                result.addAll((EList<T>) mode.eGet(modeFeature));
+                insertModeElementsAtTextualPosition(result, (EList<T>) mode.eGet(modeFeature), mode);
             }
         }
         
         return result;
+    }
+    
+    /**
+     * Adds the elements into the given list at a location matching to their textual position.
+     * 
+     * When creating a flat view onto reactor elements including modes, the final list must be ordered according
+     * to the textual positions.
+     * 
+     * Example:
+     * reactor R {
+     *   reaction // -> is R.reactions[0]
+     *   mode M {
+     *      reaction // -> is R.mode[0].reactions[0]
+     *      reaction // -> is R.mode[0].reactions[1]
+     *   }
+     *   reaction // -> is R.reactions[1]
+     * }
+     * In this example, it is important that the reactions in the mode are inserted between the top-level 
+     * reactions to retain the correct global reaction ordering, which will be derived from this flattened view.
+     * 
+     * @param list The list to add the elements into.
+     * @param elements The elements to add.
+     * @param mode The mode containing the elements.
+     * @param <T> The type of elements to add (e.g., Port, Timer, etc.)
+     */
+    private static <T extends EObject> void insertModeElementsAtTextualPosition(List<T> list, List<T> elements, Mode mode) {
+        if (elements.isEmpty()) {
+            return; // Nothing to add
+        }
+        
+        var idx = list.size();
+        if (idx > 0) {
+            // If there are elements in the list, first check if the last element has the same container as the mode.
+            // I.e. we don't want to compare textual positions of different reactors (super classes)
+            if (mode.eContainer() == list.get(list.size() - 1).eContainer()) {
+                var modeAstNode = NodeModelUtils.getNode(mode);
+                if (modeAstNode != null) {
+                    var modePos = modeAstNode.getOffset();
+                    // Now move the insertion index from the last element forward as long as this element has a textual
+                    // position after the mode.
+                    do {
+                        var astNode = NodeModelUtils.getNode(list.get(idx - 1));
+                        if (astNode != null && astNode.getOffset() > modePos) {
+                            idx--;
+                        } else {
+                            break; // Insertion index is ok.
+                        }
+                    } while (idx > 0);
+                }
+            }
+        }
+        list.addAll(idx, elements);
     }
 
     ////////////////////////////////
@@ -1433,44 +1485,7 @@ public class ASTUtils {
             return 1;
         }
         if (spec.isOfVariableLength() && spec.eContainer() instanceof Instantiation) {
-            // We may be able to infer the width by examining the connections of
-            // the enclosing reactor definition. This works, for example, with
-            // delays between multiports or banks of reactors.
-            // Attempt to infer the width.
-            for (Connection c : ((Reactor) spec.eContainer().eContainer()).getConnections()) {
-                int leftWidth = 0;
-                int rightWidth = 0;
-                int leftOrRight = 0;
-                for (VarRef leftPort : c.getLeftPorts()) {
-                    if (leftPort.getContainer() == spec.eContainer()) {
-                        if (leftOrRight != 0) {
-                            throw new InvalidSourceException("Multiple ports with variable width on a connection.");
-                        }
-                        // Indicate that the port is on the left.
-                        leftOrRight = -1;
-                    } else {
-                        leftWidth += inferPortWidth(leftPort, c, instantiations);
-                    }
-                }
-                for (VarRef rightPort : c.getRightPorts()) {
-                    if (rightPort.getContainer() == spec.eContainer()) {
-                        if (leftOrRight != 0) {
-                            throw new InvalidSourceException("Multiple ports with variable width on a connection.");
-                        }
-                        // Indicate that the port is on the right.
-                        leftOrRight = 1;
-                    } else {
-                        rightWidth += inferPortWidth(rightPort, c, instantiations);
-                    }
-                }
-                if (leftOrRight < 0) {
-                    return rightWidth - leftWidth;
-                } else if (leftOrRight > 0) {
-                    return leftWidth - rightWidth;
-                }
-            }
-            // A connection was not found with the instantiation.
-            return -1;
+            return inferWidthFromConnections(spec, instantiations);
         }
         var result = 0;
         for (WidthTerm term: spec.getTerms()) {
@@ -1484,7 +1499,16 @@ public class ASTUtils {
             } else if (term.getWidth() > 0) {
                 result += term.getWidth();
             } else {
-                return -1;
+                // If the width cannot be determined because term's width <= 0, which means the term's width
+                // must be inferred, try to infer the width using connections.
+                if (spec.eContainer() instanceof Instantiation) {
+                    try {
+                        return inferWidthFromConnections(spec, instantiations);
+                    } catch (InvalidSourceException e) {
+                        // If the inference fails, return -1.
+                        return -1;
+                    }
+                }
             }
         }
         return result;
@@ -1748,16 +1772,6 @@ public class ASTUtils {
     }
 
     /**
-     * Search for an `@label` annotation for a given reaction.
-     * 
-     * @param n the reaction for which the label should be searched
-     * @return The annotated string if an `@label` annotation was found. `null` otherwise.
-     */
-    public static String label(Reaction n) {
-        return findAnnotationInComments(n, "@label");
-    }
-    
-    /**
      * Find the main reactor and set its name if none was defined.
      * @param resource The resource to find the main reactor in.
      */
@@ -1848,5 +1862,53 @@ public class ASTUtils {
             result.add(r);
         }
         return result;
+    }
+
+    /**
+     * We may be able to infer the width by examining the connections of
+     * the enclosing reactor definition. This works, for example, with
+     * delays between multiports or banks of reactors.
+     * Attempt to infer the width from connections and return -1 if the width cannot be inferred.
+     *
+     * @param spec The width specification or null (to return 1).
+     * @param instantiations The (optional) list of instantiations.
+     *
+     * @return The width, or -1 if the width could not be inferred from connections.
+     */
+    private static int inferWidthFromConnections(WidthSpec spec, List<Instantiation> instantiations) {
+        for (Connection c : ((Reactor) spec.eContainer().eContainer()).getConnections()) {
+            int leftWidth = 0;
+            int rightWidth = 0;
+            int leftOrRight = 0;
+            for (VarRef leftPort : c.getLeftPorts()) {
+                if (leftPort.getContainer() == spec.eContainer()) {
+                    if (leftOrRight != 0) {
+                        throw new InvalidSourceException("Multiple ports with variable width on a connection.");
+                    }
+                    // Indicate that the port is on the left.
+                    leftOrRight = -1;
+                } else {
+                    leftWidth += inferPortWidth(leftPort, c, instantiations);
+                }
+            }
+            for (VarRef rightPort : c.getRightPorts()) {
+                if (rightPort.getContainer() == spec.eContainer()) {
+                    if (leftOrRight != 0) {
+                        throw new InvalidSourceException("Multiple ports with variable width on a connection.");
+                    }
+                    // Indicate that the port is on the right.
+                    leftOrRight = 1;
+                } else {
+                    rightWidth += inferPortWidth(rightPort, c, instantiations);
+                }
+            }
+            if (leftOrRight < 0) {
+                return rightWidth - leftWidth;
+            } else if (leftOrRight > 0) {
+                return leftWidth - rightWidth;
+            }
+        }
+        // A connection was not found with the instantiation.
+        return -1;
     }
 }

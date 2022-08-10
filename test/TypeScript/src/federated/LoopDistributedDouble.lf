@@ -1,0 +1,72 @@
+/**
+ * This tests a feedback loop with physical actions and
+ * centralized coordination.
+ *
+ * @author Edward A. Lee
+ * @author Hokeun Kim
+ */
+target TypeScript {
+    timeout: 5 sec,
+    coordination-options: {advance-message-interval: 100 msec}
+}
+
+reactor Looper(incr:number(1), delay:time(0 msec)) {
+    input inp:number;
+    input inp2:number;
+    output out:number;
+    output out2:number;
+    physical action a(delay);
+    state count:number(0);
+    timer t(0, 1 sec);
+
+    preamble {=
+        let stop = false;
+        // Function to trigger an action once every second.
+        function ping(act: any) {
+          if (!stop) {
+            console.log("Scheduling action.");
+            act.schedule(0, null);
+            setTimeout(ping, 1000, act);
+          }
+        }
+    =}
+
+    reaction(startup) -> a {=
+        // Start the ping function for triggering an action every second.
+        console.log("Starting ping function.");
+        ping(actions.a);
+    =}
+    reaction(a) -> out, out2 {=
+        if (count % 2 == 0) {
+            out = count;
+        } else {
+            out2 = count;
+        }
+        count += incr;
+    =}
+    reaction(inp) {=
+        console.log("Received " + inp + " on inp at logical time " + util.getElapsedLogicalTime() + ".");
+    =}
+    reaction(inp2) {=
+        console.log("Received " + inp2 + " on inp2 at logical time " + util.getElapsedLogicalTime() + ".");
+    =}
+    reaction(t) {=
+        console.log("Timer triggered at logical time " + util.getElapsedLogicalTime() + ".");
+    =}
+    reaction(shutdown) {=
+        console.log("******* Shutdown invoked.");
+        // Stop the ping function that is scheduling actions.
+        stop = true;
+        if (count != 5 * incr) {
+            util.requestErrorStop("Failed to receive all five expected inputs.");
+        }
+    =}
+}
+federated reactor (delay:time(0)) {
+    left = new Looper();
+    right = new Looper(incr = -1);
+    left.out -> right.inp;
+    right.out -> left.inp;
+    right.out2 -> left.inp2;
+    left.out2 -> right.inp2;
+}

@@ -1,6 +1,7 @@
 package org.lflang.generator.ts
 
 import org.lflang.ErrorReporter
+import org.lflang.TargetConfig
 import org.lflang.federated.FederateInstance
 import org.lflang.generator.PrependOperator
 import org.lflang.lf.Action
@@ -20,7 +21,8 @@ class TSConstructorGenerator (
     private val tsGenerator: TSGenerator,
     private val errorReporter: ErrorReporter,
     private val reactor : Reactor,
-    private val federate: FederateInstance
+    private val federate: FederateInstance,
+    private val targetConfig: TargetConfig
 ) {
     private fun getInitializerList(param: Parameter): List<String> =
         tsGenerator.getInitializerListW(param)
@@ -105,6 +107,17 @@ class TSConstructorGenerator (
         return connectionInstantiations.joinToString("\n")
     }
 
+    // Generate code for setting target configurations.
+    private fun generateTargetConfigurations(): String {
+        val targetConfigurations = LinkedList<String>()
+        if ((reactor.isMain || reactor.isFederated) &&
+            targetConfig.coordinationOptions.advance_message_interval != null) {
+            targetConfigurations.add(
+                "this.setAdvanceMessageInterval(${timeInTargetLanguage(targetConfig.coordinationOptions.advance_message_interval)})")
+        }
+        return targetConfigurations.joinToString("\n")
+    }
+
     // Generate code for registering Fed IDs that are connected to
     // this federate via ports in the TypeScript's FederatedApp.
     // These Fed IDs are used to let the RTI know about the connections
@@ -140,6 +153,7 @@ class TSConstructorGenerator (
             ${" |    "..generateConstructorArguments(reactor)}
                 |) {
             ${" |    "..generateSuperConstructorCall(reactor, federate)}
+            ${" |    "..generateTargetConfigurations()}
             ${" |    "..generateFederateConfigurations()}
             ${" |    "..instances.generateInstantiations()}
             ${" |    "..timers.generateInstantiations()}

@@ -1,6 +1,7 @@
 package org.lflang.generator.c;
 
 import org.lflang.ASTUtils;
+import org.lflang.AttributeUtils;
 import org.lflang.ErrorReporter;
 import org.lflang.Target;
 import org.lflang.generator.CodeBuilder;
@@ -62,9 +63,16 @@ public class CPortGenerator {
         var code = new CodeBuilder();
         code.pr("typedef struct {");
         code.indent();
+        // NOTE: The following fields are required to be the first ones so that
+        // pointer to this struct can be cast to a (lf_port_base_t*) to access
+        // these fields for any port.
+        code.pr(String.join("\n",
+                "bool is_present;",
+                "lf_sparse_io_record_t* sparse_record;",
+                "int destination_channel;"
+        ));
         code.pr(valueDeclaration(port, target, errorReporter, types));
         code.pr(String.join("\n",
-                    "bool is_present;",
                     "int num_destinations;",
                     "lf_token_t* token;",
                     "int length;",
@@ -88,22 +96,39 @@ public class CPortGenerator {
     ) {
         var portRefName = CUtil.portRefName(input);
         // If the port is a multiport, create an array.
-        return input.isMultiport() ?
-                String.join("\n",
-                    portRefName+"_width = "+input.getWidth()+";",
-                    "// Allocate memory for multiport inputs.",
-                    portRefName+" = ("+variableStructType(input)+"**)_lf_allocate(",
-                    "        "+input.getWidth()+", sizeof("+variableStructType(input)+"*),",
-                    "        &"+reactorSelfStruct+"->base.allocations); ",
-                    "// Set inputs by default to an always absent default input.",
-                    "for (int i = 0; i < "+input.getWidth()+"; i++) {",
-                    "    "+portRefName+"[i] = &"+reactorSelfStruct+"->_lf_default__"+input.getName()+";",
+        if (input.isMultiport()) {
+            String result = String.join("\n",
+                portRefName+"_width = "+input.getWidth()+";",
+                "// Allocate memory for multiport inputs.",
+                portRefName+" = ("+variableStructType(input)+"**)_lf_allocate(",
+                "        "+input.getWidth()+", sizeof("+variableStructType(input)+"*),",
+                "        &"+reactorSelfStruct+"->base.allocations); ",
+                "// Set inputs by default to an always absent default input.",
+                "for (int i = 0; i < "+input.getWidth()+"; i++) {",
+                "    "+portRefName+"[i] = &"+reactorSelfStruct+"->_lf_default__"+input.getName()+";",
+                "}"
+            );
+            if (AttributeUtils.isSparse(input.getDefinition())) {
+                return String.join("\n", result,
+                    "if ("+input.getWidth()+" >= LF_SPARSE_WIDTH_THRESHOLD) {",
+                    "    "+portRefName+"__sparse = (lf_sparse_io_record_t*)_lf_allocate(1,",
+                    "            sizeof(lf_sparse_io_record_t) + sizeof(size_t) * "+input.getWidth()+"/LF_SPARSE_CAPACITY_DIVIDER,",
+                    "            &"+reactorSelfStruct+"->base.allocations);",
+                    "    "+portRefName+"__sparse->capacity = "+input.getWidth()+"/LF_SPARSE_CAPACITY_DIVIDER;",
+                    "    if (_lf_sparse_io_record_sizes.start == NULL) {",
+                    "        _lf_sparse_io_record_sizes = vector_new(1);",
+                    "    }",
+                    "    vector_push(&_lf_sparse_io_record_sizes, (void*)&"+portRefName+"__sparse->size);",
                     "}"
-                ) :
-                String.join("\n",
-                    "// width of -2 indicates that it is not a multiport.",
-                    portRefName+"_width = -2;"
                 );
+            }
+            return result;
+        } else {
+            return String.join("\n",
+                "// width of -2 indicates that it is not a multiport.",
+                portRefName+"_width = -2;"
+            );
+        }
     }
 
     /**
@@ -220,7 +245,9 @@ public class CPortGenerator {
                     variableStructType(input, decl)+"** _lf_"+inputName+";",
                     "int _lf_"+inputName+"_width;",
                     "// Default input (in case it does not get connected)",
-                    variableStructType(input, decl)+" _lf_default__"+inputName+";"
+                    variableStructType(input, decl)+" _lf_default__"+inputName+";",
+                    "// Struct to support efficiently reading sparse inputs.",
+                    "lf_sparse_io_record_t* _lf_"+inputName+"__sparse;"
                 ));
             } else {
                 // input is not a multiport.
