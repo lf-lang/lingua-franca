@@ -26,6 +26,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 package org.lflang.federated.generator;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -277,7 +278,7 @@ public class FederateInstance {
         } else if (object instanceof Timer) {
             return contains((Timer)object);
         } else if (object instanceof ReactorDecl) {
-            return contains((ReactorDecl)object);
+            return contains(this.instantiation, (ReactorDecl)object);
         } else if (object instanceof Import) {
             return contains((Import)object);
         } else if (object instanceof Parameter) {
@@ -288,9 +289,13 @@ public class FederateInstance {
 
     /**
      * Return true if the specified reactor belongs to this federate.
-     * @param reactor The imported reactor
+     * @param instantiation The instantiation to look inside
+     * @param reactor The reactor declaration to find
      */
-    private boolean contains(ReactorDecl reactor) {
+    private boolean contains(
+        Instantiation instantiation,
+        ReactorDecl reactor
+    ) {
         if (instantiation.getReactorClass().equals(ASTUtils.toDefinition(reactor))) {
             return true;
         }
@@ -299,10 +304,9 @@ public class FederateInstance {
         // For a federate, we don't need to look inside imported reactors.
         if (instantiation.getReactorClass() instanceof Reactor reactorDef) {
             for (Instantiation child : reactorDef.getInstantiations()) {
-                instantiationsCheck |= contains(child.getReactorClass());
+                instantiationsCheck |= contains(child, reactor);
             }
         }
-
 
         return instantiationsCheck;
     }
