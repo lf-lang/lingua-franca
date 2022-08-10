@@ -115,36 +115,24 @@ class TSReactionGenerator(
         var reactDeadline = "}"
         val reactionTriggers = StringJoiner(",\n")
 
-        if (reaction.isMutation()) {
-            for (trigger in reaction.triggers) {
-                if (trigger is VarRef) {
-                    reactionTriggers.add(trigger.generateVarRef())
-                } else if (trigger is BuiltinTriggerRef) {
-                    when (trigger.type) {
-                        BuiltinTrigger.STARTUP  -> reactionTriggers.add("this.startup")
-                        BuiltinTrigger.SHUTDOWN -> reactionTriggers.add("this.shutdown")
-                        else -> {}
-                    }
-                }
-            }
-            reactCode = reaction.code.toText()
-        } else {
-            for (trigger in reaction.triggers) {
-                if (trigger is VarRef) {
-                    reactionTriggers.add(trigger.generateVarRef())
-                } else if (trigger is BuiltinTriggerRef) {
-                    when (trigger.type) {
-                        BuiltinTrigger.STARTUP  -> reactionTriggers.add("this.startup")
-                        BuiltinTrigger.SHUTDOWN -> reactionTriggers.add("this.shutdown")
-                        else -> {}
-                    }
-                }
-            }
-            reactCode = reaction.code.toText()
+        if (!reaction.isMutation()) {
             if (reaction.deadline != null) {
                 reactDeadline = generateDeadlineHandler(reaction, reactPrologue, reactEpilogue, reactSignature)
             }
         }
+
+        for (trigger in reaction.triggers) {
+            if (trigger is VarRef) {
+                reactionTriggers.add(trigger.generateVarRef())
+            } else if (trigger is BuiltinTriggerRef) {
+                when (trigger.type) {
+                    BuiltinTrigger.STARTUP  -> reactionTriggers.add("this.startup")
+                    BuiltinTrigger.SHUTDOWN -> reactionTriggers.add("this.shutdown")
+                    else -> {}
+                }
+            }
+        }
+        reactCode = reaction.code.toText()
 
         return with(PrependOperator) {
             """
