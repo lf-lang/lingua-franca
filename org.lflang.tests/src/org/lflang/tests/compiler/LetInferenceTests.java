@@ -125,15 +125,15 @@ class LetInferenceTest  {
         for (ReactorInstance reactorInstance : mainInstance.children) {
             if (reactorInstance.isGeneratedDelay()) {
                 for (ReactionInstance reactionInstance : reactorInstance.reactions) {
-                    Assertions.assertEquals(reactionInstance.getLogicalExecutionTime(), TimeValue.ZERO);
+                    Assertions.assertEquals(reactionInstance.assignLogicalExecutionTime(), TimeValue.ZERO);
                 }
             } else if (reactorInstance.getName().contains("ramp")) {
                 for (ReactionInstance reactionInstance : reactorInstance.reactions) {
-                    Assertions.assertEquals(new TimeValue(20L, TimeUnit.MILLI), reactionInstance.getLogicalExecutionTime());
+                    Assertions.assertEquals(new TimeValue(20L, TimeUnit.MILLI), reactionInstance.assignLogicalExecutionTime());
                 }
             } else if (reactorInstance.getName().contains("print")) {
                 for (ReactionInstance reactionInstance : reactorInstance.reactions) {
-                    Assertions.assertEquals(TimeValue.ZERO, reactionInstance.getLogicalExecutionTime());
+                    Assertions.assertEquals(TimeValue.ZERO, reactionInstance.assignLogicalExecutionTime());
                 }
             }
         }

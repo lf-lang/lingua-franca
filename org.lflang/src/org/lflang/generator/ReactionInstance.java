@@ -453,7 +453,7 @@ public class ReactionInstance extends NamedInstance<Reaction> {
      * time based on immediate downstream logical delays (after delays and actions)
      * and label each reaction with the minimum of all such delays.
      */
-    public TimeValue getLogicalExecutionTime() {
+    public TimeValue assignLogicalExecutionTime() {
         if (this.let != null) {
             return this.let;
         }
