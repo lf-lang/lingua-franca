@@ -50,9 +50,11 @@ import org.lflang.TargetProperty.CoordinationType;
 import org.lflang.TimeValue;
 import org.lflang.federated.extensions.FedTargetExtensionFactory;
 import org.lflang.federated.serialization.SupportedSerializers;
+import org.lflang.generator.NamedInstance;
 import org.lflang.generator.PortInstance;
 import org.lflang.lf.Action;
 import org.lflang.lf.ActionOrigin;
+import org.lflang.lf.BuiltinTriggerRef;
 import org.lflang.lf.Connection;
 import org.lflang.lf.Expression;
 import org.lflang.lf.Instantiation;
@@ -478,9 +480,40 @@ public class FedASTUtils {
         PortInstance port
     ) {
         Set<PortInstance> toReturn = new HashSet<>();
-        if (port.isOutput() && federate.contains(port.getParent())) {
+        if (port == null) return toReturn;
+        else if (port.isOutput() && federate.contains(port.getParent())) {
             toReturn.add(port);
         } else {
+            // Follow depends on reactions
+            port.getDependsOnReactions().forEach(
+                it -> {
+                    // Add triggers
+                    Set<VarRef> varRefsToFollow = new HashSet<>();
+                    varRefsToFollow.addAll(
+                        it.getDefinition()
+                          .getTriggers()
+                          .stream()
+                          .filter(
+                              trigger -> !(trigger instanceof BuiltinTriggerRef)
+                          )
+                          .map(VarRef.class::cast).toList());
+                    // Add sources
+                    varRefsToFollow.addAll(it.getDefinition().getSources());
+
+                    // Follow everything upstream
+                    varRefsToFollow.forEach(
+                        varRef ->
+                            toReturn.addAll(
+                                findUpstreamOutputPortsInFederate(
+                                    federate,
+                                    port.getParent()
+                                        .lookupPortInstance(varRef)
+                                )
+                            )
+                    );
+                }
+            );
+            // Follow depends on ports
             port.getDependsOnPorts().forEach(
                 it -> toReturn.addAll(
                     findUpstreamOutputPortsInFederate(federate, it.instance)
