@@ -195,7 +195,7 @@ class TSReactionGenerator(
         val portClassType = if (outputPort.isMultiport) {
             "MultiReadWrite<${getPortType(effect.variable as Port)}>"
         } else {
-            "WritablePort<${getPortType(effect.variable as Port)}>"
+            "__WritablePort<${getPortType(effect.variable as Port)}>"
         }
 
         return if (effect.container != null && effect.container.isBank) {
