@@ -1,6 +1,5 @@
 package org.lflang.generator.ts
 
-import org.eclipse.emf.ecore.EObject
 import org.lflang.ErrorReporter
 import org.lflang.ASTUtils
 import org.lflang.federated.FederateInstance
@@ -10,7 +9,6 @@ import org.lflang.isMultiport
 import org.lflang.lf.*
 import org.lflang.lf.Timer
 import org.lflang.toText
-import java.util.stream.Collectors
 import kotlin.collections.HashSet
 import java.util.StringJoiner 
 import java.util.LinkedList
