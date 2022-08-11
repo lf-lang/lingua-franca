@@ -5,7 +5,12 @@
  * (HLA or Ptides) is needed.
  * @author Edward A. Lee
  */
-target C
+target C {
+    coordination-options: {
+        advance-message-interval: 100 msec
+    },
+    timeout: 500 msec
+}
 
 reactor Source {
     output out: string
@@ -43,7 +48,7 @@ reactor Destination {
 federated reactor HelloDistributed at localhost {
     s = new Source()       // Reactor s is in federate Source
     d = new Destination()  // Reactor d is in federate Destination
-    s.out -> d.in          // This version preserves the timestamp.
+    s.out -> d.in after 1 ms         // This version preserves the timestamp.
 
     reaction(startup) {=
         lf_print("Printing something in top-level federated reactor.");
