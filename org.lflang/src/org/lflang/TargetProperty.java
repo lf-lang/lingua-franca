@@ -332,6 +332,10 @@ public enum TargetProperty {
             (config, value, err) -> {
                 config.coordination = (CoordinationType) UnionType.COORDINATION_UNION
                         .forName(ASTUtils.elementToSingleString(value));
+            },
+            (config, value, err) -> {
+                config.coordination = (CoordinationType) UnionType.COORDINATION_UNION
+                        .forName(ASTUtils.elementToSingleString(value));
             }),
     
     /**
