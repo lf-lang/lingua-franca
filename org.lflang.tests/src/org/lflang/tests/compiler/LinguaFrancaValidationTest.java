@@ -45,6 +45,7 @@ import org.lflang.TargetProperty.ArrayType;
 import org.lflang.TargetProperty.DictionaryElement;
 import org.lflang.TargetProperty.DictionaryType;
 import org.lflang.TargetProperty.PrimitiveType;
+import org.lflang.TargetProperty.StringDictionaryType;
 import org.lflang.TargetProperty.TargetPropertyType;
 import org.lflang.TargetProperty.UnionType;
 import org.lflang.TimeValue;
@@ -1620,6 +1621,25 @@ public class LinguaFrancaValidationTest {
         }
         return examples;
     }
+
+    private List<String> synthesizeExamples(StringDictionaryType type, boolean correct) {
+        List<String> examples = new LinkedList<>();
+        // Produce a set of singleton dictionaries.
+        // If incorrect examples are wanted, use non-strings for values.
+        List<String> goodStrs = synthesizeExamples(PrimitiveType.STRING, true);
+        List<String> badStrs = synthesizeExamples(PrimitiveType.STRING, false);
+        List<String> goodIDs = List.of("foo", "Bar", "__ab0_9fC", "f1o_O2B_a3r");
+        if (correct) {
+            for (String gs : goodStrs) {
+                goodIDs.forEach(it -> examples.add("{" + it + ": " + gs + "}"));
+            }
+        } else {
+            for (String bs : badStrs) {
+                goodIDs.forEach(it -> examples.add("{" + it + ": " + bs + "}"));
+            }
+        }
+        return examples;
+    }
     
     /**
      * Synthesize a list of values that either conform to the given type or
@@ -1647,6 +1667,8 @@ public class LinguaFrancaValidationTest {
                 return synthesizeExamples((ArrayType) type, correct);
             } else if (type instanceof DictionaryType) {
                 return synthesizeExamples((DictionaryType) type, correct);
+            } else if (type instanceof StringDictionaryType) {
+                return synthesizeExamples((StringDictionaryType) type, correct);
             } else {
                 Assertions.fail("Encountered an unknown type: " + type);
             }
@@ -1720,9 +1742,15 @@ public class LinguaFrancaValidationTest {
             List<String> knownIncorrect = synthesizeExamples(prop.type, false);
             if (!(knownIncorrect == null || knownIncorrect.isEmpty())) {
                 for (String it : knownIncorrect) {
-                    validator.assertError(createModel(prop, it), 
-                        LfPackage.eINSTANCE.getKeyValuePair(), null, 
-                        String.format("Target property '%s' is required to be %s.", prop.toString(), prop.type));
+                    if (prop.type instanceof StringDictionaryType) {
+                        validator.assertError(createModel(prop, it),
+                                              LfPackage.eINSTANCE.getKeyValuePair(), null,
+                                              String.format("Target property '%s.", prop), "' is required to be a string.");
+                    } else {
+                        validator.assertError(createModel(prop, it),
+                                              LfPackage.eINSTANCE.getKeyValuePair(), null,
+                                              String.format("Target property '%s' is required to be %s.", prop.toString(), prop.type));
+                    }
                 }
             } else {
                 // No type was synthesized. It must be a composite type.
