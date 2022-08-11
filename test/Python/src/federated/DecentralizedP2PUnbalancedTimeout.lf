@@ -10,7 +10,7 @@ target Python {
     timeout: 1 msec,
     coordination: decentralized
 }
-ß
+
 reactor Clock(offset(0), period(1 sec)) {
     output y
     timer t(offset, period)
