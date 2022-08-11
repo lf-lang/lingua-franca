@@ -135,8 +135,10 @@ class TSConstructorGenerator (
     // between federates during the initialization with the RTI.
     fun generateNetworkControlActionRegistrations(federateConfig: TSFederateConfig): String {
         val connectionInstantiations= LinkedList<String>()
+        var fedPortID = 0;
         for (id in federateConfig.getnetworkInputControlReactionsTriggers()) {
-            connectionInstantiations.add("this.registerInputControlReactionTrigger(this.$id);")
+            connectionInstantiations.add("this.registerInputControlReactionTrigger(${fedPortID}, this.$id);")
+            fedPortID++;
         }
         if (federateConfig.getSendsToFedIds().size != 0) {
             connectionInstantiations.add("this.registerOutputControlReactionTrigger(this.outputControlReactionTrigger);")
