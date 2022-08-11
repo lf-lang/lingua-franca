@@ -233,6 +233,19 @@ public class CExtension implements FedTargetExtension {
         ErrorReporter errorReporter
     ) {
         CTypes types = new CTypes(errorReporter);
+        // Adjust the type of the action and the receivingPort.
+        // If it is "string", then change it to "char*".
+        // This string is dynamically allocated, and type 'string' is to be
+        // used only for statically allocated strings. This would force the
+        // CGenerator to treat the port and action as token types.
+        if (types.getTargetType(action).equals("string")) {
+            action.getType().setCode(null);
+            action.getType().setId("char*");
+        }
+        if (types.getTargetType((Port) receivingPort.getVariable()).equals("string")) {
+            ((Port) receivingPort.getVariable()).getType().setCode(null);
+            ((Port) receivingPort.getVariable()).getType().setId("char*");
+        }
         var value = "";
         switch (connection.getSerializer()) {
         case NATIVE: {
@@ -515,11 +528,6 @@ public class CExtension implements FedTargetExtension {
                               "}"
         ));
         return result.toString();
-    }
-
-    @Override
-    public Target getNetworkReactionTarget() {
-        return null;
     }
 
 
