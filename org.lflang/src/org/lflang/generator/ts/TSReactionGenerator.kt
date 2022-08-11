@@ -133,16 +133,16 @@ class TSReactionGenerator(
             |    new __Args($reactFuncArgs),
             |    function ($reactSignature) {
             |        // =============== START react prologue
-            ${" |        "..reactPrologue}
+        ${" |        "..reactPrologue}
             |        // =============== END react prologue
             |        try {
-            ${" |            "..reaction.code.toText()}
+        ${" |            "..reaction.code.toText()}
             |        } finally {
             |            // =============== START react epilogue
-            ${" |            "..reactEpilogue}
+        ${" |            "..reactEpilogue}
             |            // =============== END react epilogue
             |        }
-            ${" |    "..if (reaction.deadline != null) generateDeadlineHandler(reaction, reactPrologue, reactEpilogue, reactSignature) else "}"}
+        ${" |    "..if (reaction.deadline != null) generateDeadlineHandler(reaction, reactPrologue, reactEpilogue, reactSignature) else "}"}
             |);
             |""".trimMargin()
             }
