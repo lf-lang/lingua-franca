@@ -46,11 +46,11 @@ import org.eclipse.xtext.xbase.lib.IteratorExtensions;
 import org.lflang.ASTUtils;
 import org.lflang.ErrorReporter;
 import org.lflang.InferredType;
+import org.lflang.ModelInfo;
 import org.lflang.TargetProperty.CoordinationType;
 import org.lflang.TimeValue;
 import org.lflang.federated.extensions.FedTargetExtensionFactory;
 import org.lflang.federated.serialization.SupportedSerializers;
-import org.lflang.generator.NamedInstance;
 import org.lflang.generator.PortInstance;
 import org.lflang.generator.ReactionInstance;
 import org.lflang.lf.Action;
@@ -60,6 +60,7 @@ import org.lflang.lf.Connection;
 import org.lflang.lf.Expression;
 import org.lflang.lf.Instantiation;
 import org.lflang.lf.LfFactory;
+import org.lflang.lf.Model;
 import org.lflang.lf.ParameterReference;
 import org.lflang.lf.Reaction;
 import org.lflang.lf.Reactor;
@@ -164,7 +165,7 @@ public class FedASTUtils {
             FedASTUtils.addNetworkOutputControlReaction(connection);
 
             // Add the network input control reaction to the parent
-            FedASTUtils.addNetworkInputControlReaction(connection, coordination);
+            FedASTUtils.addNetworkInputControlReaction(connection, coordination, errorReporter);
         }
 
         // Create the network action (@see createNetworkAction)
@@ -285,17 +286,6 @@ public class FedASTUtils {
             }
         }
 
-        if (
-            !connection.getDefinition().isPhysical() &&
-                // Connections that are physical don't need control reactions
-                connection.getDefinition().getDelay()
-                    == null // Connections that have delays don't need control reactions
-        ) {
-            // Add necessary dependencies to reaction to ensure that it executes correctly
-            // relative to other network input control reactions in the federate.
-            addRelativeDependency(connection, networkReceiverReaction);
-        }
-
         // Record this action in the right federate.
         // The ID of the receiving port (rightPort) is the position
         // of the action in this list.
@@ -339,6 +329,18 @@ public class FedASTUtils {
         // Add the network receiver reaction to the federate instance's list
         // of network reactions
         connection.dstFederate.networkReactions.add(networkReceiverReaction);
+
+
+        if (
+            !connection.getDefinition().isPhysical() &&
+                // Connections that are physical don't need control reactions
+                connection.getDefinition().getDelay()
+                    == null // Connections that have delays don't need control reactions
+        ) {
+            // Add necessary dependencies to reaction to ensure that it executes correctly
+            // relative to other network input control reactions in the federate.
+            addRelativeDependency(connection, networkReceiverReaction, errorReporter);
+        }
     }
 
     /**
@@ -347,14 +349,15 @@ public class FedASTUtils {
      * any valid logical time until it is known whether the trigger for the
      * action corresponding to the given port is present or absent.
      *
-     * @param connection FIXME
-     * @param coordination FIXME
+     * @param connection    FIXME
+     * @param coordination  FIXME
+     * @param errorReporter
      * @note Used in federated execution
      */
     private static void addNetworkInputControlReaction(
         FedConnectionInstance connection,
-        CoordinationType coordination
-    ) {
+        CoordinationType coordination,
+        ErrorReporter errorReporter) {
 
         LfFactory factory = LfFactory.eINSTANCE;
         Reaction reaction = factory.createReaction();
@@ -397,10 +400,6 @@ public class FedASTUtils {
         // Add the appropriate triggers to the list of triggers of the reaction
         reaction.getTriggers().add(newTriggerForControlReaction);
 
-        // Add necessary dependencies to reaction to ensure that it executes correctly
-        // relative to other network input control reactions in the federate.
-        addRelativeDependency(connection, reaction);
-
         // Add the destination port as an effect of the reaction
         reaction.getEffects().add(destRef);
 
@@ -432,6 +431,10 @@ public class FedASTUtils {
         // Add the network input control reaction to the federate instance's list
         // of network reactions
         connection.dstFederate.networkReactions.add(reaction);
+
+        // Add necessary dependencies to reaction to ensure that it executes correctly
+        // relative to other network input control reactions in the federate.
+        addRelativeDependency(connection, reaction, errorReporter);
     }
 
     private static void addFedAttr(Reaction reaction, String name) {
@@ -451,21 +454,32 @@ public class FedASTUtils {
      */
     private static void addRelativeDependency(
         FedConnectionInstance connection,
-        Reaction networkInputReaction
-    ) {
+        Reaction networkInputReaction,
+        ErrorReporter errorReporter) {
         var upstreamOutputPortsInFederate =
-            findUpstreamOutputPortsInFederate(
+            findUpstreamPortsInFederate(
                 connection.dstFederate,
-                connection.getDestinationPortInstance(),
+                connection.getSourcePortInstance(),
                 new HashSet<>()
             );
 
+
+        ModelInfo info = new ModelInfo();
         for (var port: upstreamOutputPortsInFederate) {
             VarRef sourceRef = ASTUtils.factory.createVarRef();
 
             sourceRef.setContainer(port.getParent().getDefinition());
             sourceRef.setVariable(port.getDefinition());
             networkInputReaction.getSources().add(sourceRef);
+
+            // Remove the port if it introduces cycles
+            info.update(
+                (Model)networkInputReaction.eContainer().eContainer(),
+                errorReporter
+            );
+            if (!info.topologyCycles().isEmpty()) {
+                networkInputReaction.getSources().remove(sourceRef);
+            }
         }
 
     }
@@ -481,14 +495,15 @@ public class FedASTUtils {
      * @return A set of {@link PortInstance}. If no port exist that match the
      * criteria, return an empty set.
      */
-    private static Set<PortInstance> findUpstreamOutputPortsInFederate(
+    private static Set<PortInstance> findUpstreamPortsInFederate(
         FederateInstance federate,
         PortInstance port,
         Set<PortInstance> visitedPorts
     ) {
         Set<PortInstance> toReturn = new HashSet<>();
         if (port == null) return toReturn;
-        else if (port.isOutput() && federate.contains(port.getParent())) {
+        else if (federate.contains(port.getParent())) {
+            // Reached the requested federate
             toReturn.add(port);
             visitedPorts.add(port);
         } else if (visitedPorts.contains(port)) {
@@ -504,7 +519,7 @@ public class FedASTUtils {
             // Follow depends on ports
             port.getDependsOnPorts().forEach(
                 it -> toReturn.addAll(
-                    findUpstreamOutputPortsInFederate(federate, it.instance, visitedPorts)
+                    findUpstreamPortsInFederate(federate, it.instance, visitedPorts)
                 )
             );
         }
@@ -513,7 +528,7 @@ public class FedASTUtils {
 
     /**
      * Follow reactions upstream. This is part of the algorithm of
-     * {@link #findUpstreamOutputPortsInFederate(FederateInstance, PortInstance, Set)}.
+     * {@link #findUpstreamPortsInFederate(FederateInstance, PortInstance, Set)}.
      */
     private static void followReactionUpstream(
         FederateInstance federate,
@@ -538,7 +553,7 @@ public class FedASTUtils {
         varRefsToFollow.forEach(
             varRef ->
                 toReturn.addAll(
-                    findUpstreamOutputPortsInFederate(
+                    findUpstreamPortsInFederate(
                         federate,
                         reaction.getParent()
                             .lookupPortInstance(varRef),
