@@ -26,6 +26,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 package org.lflang.federated.generator;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -62,6 +63,7 @@ import org.lflang.lf.ParameterReference;
 import org.lflang.lf.Reaction;
 import org.lflang.lf.Reactor;
 import org.lflang.lf.ReactorDecl;
+import org.lflang.lf.StateVar;
 import org.lflang.lf.TargetDecl;
 import org.lflang.lf.Timer;
 import org.lflang.lf.TriggerRef;
@@ -277,20 +279,26 @@ public class FederateInstance {
         } else if (object instanceof Timer) {
             return contains((Timer)object);
         } else if (object instanceof ReactorDecl) {
-            return contains((ReactorDecl)object);
+            return contains(this.instantiation, (ReactorDecl)object);
         } else if (object instanceof Import) {
             return contains((Import)object);
         } else if (object instanceof Parameter) {
             return contains((Parameter)object);
+        } else if (object instanceof StateVar) {
+            return true; // FIXME: Should we disallow state vars at the top level?
         }
         throw new UnsupportedOperationException("EObject class "+object.eClass().getName()+" not supported.");
     }
 
     /**
      * Return true if the specified reactor belongs to this federate.
-     * @param reactor The imported reactor
+     * @param instantiation The instantiation to look inside
+     * @param reactor The reactor declaration to find
      */
-    private boolean contains(ReactorDecl reactor) {
+    private boolean contains(
+        Instantiation instantiation,
+        ReactorDecl reactor
+    ) {
         if (instantiation.getReactorClass().equals(ASTUtils.toDefinition(reactor))) {
             return true;
         }
@@ -299,10 +307,9 @@ public class FederateInstance {
         // For a federate, we don't need to look inside imported reactors.
         if (instantiation.getReactorClass() instanceof Reactor reactorDef) {
             for (Instantiation child : reactorDef.getInstantiations()) {
-                instantiationsCheck |= contains(child.getReactorClass());
+                instantiationsCheck |= contains(child, reactor);
             }
         }
-
 
         return instantiationsCheck;
     }
@@ -537,12 +544,24 @@ public class FederateInstance {
     /**
      * Return true if all members of 'varRefs' belong to this federate.
      *
+     * As a convenience measure, if some members of 'varRefs' are from
+     * different federates, also report an error.
+     *
      * @param varRefs A collection of VarRefs
      */
     private boolean containsAllVarRefs(Iterable<VarRef> varRefs) {
+        var referencesFederate = false;
         var inFederate = true;
         for (VarRef varRef : varRefs) {
-            if (varRef.getContainer() != this.instantiation) {
+            if (varRef.getContainer() == this.instantiation) {
+                referencesFederate = true;
+            } else {
+                if (referencesFederate) {
+                    errorReporter.reportError(varRef,
+                                              "Mixed triggers and effects from"
+                                                  +
+                                                  " different federates. This is not permitted");
+                }
                 inFederate = false;
             }
         }

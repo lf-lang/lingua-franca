@@ -50,9 +50,12 @@ import org.lflang.TargetProperty.CoordinationType;
 import org.lflang.TimeValue;
 import org.lflang.federated.extensions.FedTargetExtensionFactory;
 import org.lflang.federated.serialization.SupportedSerializers;
+import org.lflang.generator.NamedInstance;
 import org.lflang.generator.PortInstance;
+import org.lflang.generator.ReactionInstance;
 import org.lflang.lf.Action;
 import org.lflang.lf.ActionOrigin;
+import org.lflang.lf.BuiltinTriggerRef;
 import org.lflang.lf.Connection;
 import org.lflang.lf.Expression;
 import org.lflang.lf.Instantiation;
@@ -453,7 +456,8 @@ public class FedASTUtils {
         var upstreamOutputPortsInFederate =
             findUpstreamOutputPortsInFederate(
                 connection.dstFederate,
-                connection.getDestinationPortInstance()
+                connection.getDestinationPortInstance(),
+                new HashSet<>()
             );
 
         for (var port: upstreamOutputPortsInFederate) {
@@ -470,25 +474,88 @@ public class FedASTUtils {
      * Go upstream from input port {@code port} until we reach one or more output
      * ports that belong to the same federate.
      *
+     * Along the path, we follow direct connections, as well as reactions, as long
+     * as there is no logical delay. When following reactions, we also follow
+     * dependant reactions (because we are traversing a potential cycle backwards).
+     *
      * @return A set of {@link PortInstance}. If no port exist that match the
      * criteria, return an empty set.
      */
     private static Set<PortInstance> findUpstreamOutputPortsInFederate(
         FederateInstance federate,
-        PortInstance port
+        PortInstance port,
+        Set<PortInstance> visitedPorts
     ) {
         Set<PortInstance> toReturn = new HashSet<>();
-        if (port.isOutput() && federate.contains(port.getParent())) {
+        if (port == null) return toReturn;
+        else if (port.isOutput() && federate.contains(port.getParent())) {
             toReturn.add(port);
+            visitedPorts.add(port);
+        } else if (visitedPorts.contains(port)) {
+            return toReturn;
         } else {
-            System.out.println("Depends on ports for " + port + " are: " + port.getDependsOnPorts());
+            visitedPorts.add(port);
+            // Follow depends on reactions
+            port.getDependsOnReactions().forEach(
+                reaction -> {
+                    followReactionUpstream(federate, visitedPorts, toReturn, reaction);
+                }
+            );
+            // Follow depends on ports
             port.getDependsOnPorts().forEach(
                 it -> toReturn.addAll(
-                    findUpstreamOutputPortsInFederate(federate, it.instance)
+                    findUpstreamOutputPortsInFederate(federate, it.instance, visitedPorts)
                 )
             );
         }
         return toReturn;
+    }
+
+    /**
+     * Follow reactions upstream. This is part of the algorithm of
+     * {@link #findUpstreamOutputPortsInFederate(FederateInstance, PortInstance, Set)}.
+     */
+    private static void followReactionUpstream(
+        FederateInstance federate,
+        Set<PortInstance> visitedPorts,
+        Set<PortInstance> toReturn,
+        ReactionInstance reaction
+    ) {
+        // Add triggers
+        Set<VarRef> varRefsToFollow = new HashSet<>();
+        varRefsToFollow.addAll(
+            reaction.getDefinition()
+                    .getTriggers()
+                    .stream()
+                    .filter(
+                  trigger -> !(trigger instanceof BuiltinTriggerRef)
+              )
+              .map(VarRef.class::cast).toList());
+        // Add sources
+        varRefsToFollow.addAll(reaction.getDefinition().getSources());
+
+        // Follow everything upstream
+        varRefsToFollow.forEach(
+            varRef ->
+                toReturn.addAll(
+                    findUpstreamOutputPortsInFederate(
+                        federate,
+                        reaction.getParent()
+                            .lookupPortInstance(varRef),
+                        visitedPorts
+                    )
+                )
+        );
+
+        reaction.dependentReactions()
+                .stream()
+                .filter(
+                    // Stay within the reactor
+                    it -> it.getParent().equals(reaction.getParent())
+                )
+                .forEach(
+                    it -> followReactionUpstream(federate, visitedPorts, toReturn, it)
+                );
     }
 
     /**
@@ -541,9 +608,6 @@ public class FedASTUtils {
         // Find a list of STP offsets (if any exists)
         if (coordination == CoordinationType.DECENTRALIZED) {
             for (Reaction r : safe(reactionsWithPort)) {
-                if (!instance.contains(r)) {
-                    continue;
-                }
                 // If STP offset is determined, add it
                 // If not, assume it is zero
                 if (r.getStp() != null) {
@@ -587,9 +651,6 @@ public class FedASTUtils {
                             ).collect(Collectors.toList());
 
                 for (Reaction r : safe(childReactionsWithPort)) {
-                    if (!instance.contains(r)) {
-                        continue;
-                    }
                     // If STP offset is determined, add it
                     // If not, assume it is zero
                     if (r.getStp() != null) {

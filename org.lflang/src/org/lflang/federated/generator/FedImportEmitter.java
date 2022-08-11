@@ -2,15 +2,21 @@ package org.lflang.federated.generator;
 
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
+
+import org.eclipse.emf.ecore.util.EcoreUtil;
 
 import org.lflang.ASTUtils;
 import org.lflang.ast.FormattingUtils;
 import org.lflang.generator.CodeBuilder;
+import org.lflang.lf.Import;
 import org.lflang.lf.Model;
 import org.lflang.lf.Reactor;
+import org.lflang.lf.ReactorDecl;
 
 /**
  * Helper class to generate import statements for a federate.
@@ -18,6 +24,9 @@ import org.lflang.lf.Reactor;
  * @author Soroush Bateni (soroush@berkeley.edu)
  */
 public class FedImportEmitter {
+
+    private static Set<Import> visitedImports = new HashSet<>();
+
     /**
      * Generate import statements for {@code federate}.
      */
@@ -28,19 +37,29 @@ public class FedImportEmitter {
             .filter(federate::contains).toList();
 
         // Transform the URIs
-        imports.forEach(imp -> {
-            Path importPath =
-                fileConfig.srcPath
-                    .resolve(imp.getImportURI()).toAbsolutePath();
-            imp.setImportURI(fileConfig.getFedSrcPath().relativize(importPath)
-                                         .toString()
-            );
-        });
+        imports.stream()
+               .filter(i -> !visitedImports.contains(i))
+               .forEach(i -> {
+                   visitedImports.add(i);
+                   Path importPath =
+                       fileConfig.srcPath
+                           .resolve(i.getImportURI()).toAbsolutePath();
+                   i.setImportURI(fileConfig.getFedSrcPath().relativize(importPath)
+                                            .toString()
+                   );
+               });
 
         var importStatements = new CodeBuilder();
 
         // Add import statements needed for the ordinary functionality of the federate
         importStatements.pr(imports.stream()
+                                   .map(i -> {
+                                       var new_import = EcoreUtil.copy(i);
+                                       new_import.getReactorClasses().removeIf(
+                                           importedReactor -> !federate.contains(importedReactor)
+                                       );
+                                       return new_import;
+                                   })
                                    .map(FormattingUtils.renderer(federate.target))
                                    .collect(Collectors.joining("\n")));
 

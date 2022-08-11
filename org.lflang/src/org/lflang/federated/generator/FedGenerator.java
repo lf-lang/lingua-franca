@@ -1,7 +1,9 @@
 package org.lflang.federated.generator;
 
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -29,6 +31,9 @@ import org.lflang.TargetConfig;
 import org.lflang.TargetProperty.CoordinationType;
 import org.lflang.federated.launcher.FedLauncher;
 import org.lflang.federated.launcher.FedLauncherFactory;
+import org.lflang.generator.CodeMap;
+import org.lflang.generator.GeneratorResult;
+import org.lflang.generator.GeneratorResult.Status;
 import org.lflang.generator.GeneratorUtils;
 import org.lflang.generator.LFGenerator;
 import org.lflang.generator.LFGeneratorContext;
@@ -128,8 +133,8 @@ public class FedGenerator {
             );
         }
 
-        compileFederates(context);
-
+        Map<Path, CodeMap> codeMapMap = compileFederates(context);
+        context.finish(Status.COMPILED, fileConfig.name, fileConfig, codeMapMap);
         return false;
     }
 
@@ -163,7 +168,7 @@ public class FedGenerator {
         // System.out.println(PythonInfoGenerator.generateFedRunInfo(fileConfig));
     }
 
-    private void compileFederates(LFGeneratorContext context) {
+    private Map<Path, CodeMap> compileFederates(LFGeneratorContext context) {
         // FIXME: Use the appropriate resource set instead of always using standalone
         Injector inj = new LFStandaloneSetup()
             .createInjectorAndDoEMFRegistration();
@@ -182,17 +187,16 @@ public class FedGenerator {
         );
         var compileThreadPool = Executors.newFixedThreadPool(numOfCompileThreads);
         System.out.println("******** Using "+numOfCompileThreads+" threads to compile the program.");
+        Map<Path, CodeMap> codeMapMap = new HashMap<>();
 
         for(FederateInstance fed : federates) {
-            compileThreadPool.execute(new Runnable() {
-                @Override
-                public void run() {
-                    SubContext cont = new SubContext(context, 0, 0); // Is there a way to quantify progress when compilation is in parallel?
-                    Resource res = rs.getResource(URI.createFileURI(
-                        fileConfig.getFedSrcPath().resolve(fed.name + ".lf").toAbsolutePath().toString()
-                    ), true);
-                    gen.doGenerate(res, fsa, cont);
-                }
+            compileThreadPool.execute(() -> {
+                SubContext cont = new SubContext(context, 0, 0); // Is there a way to quantify progress when compilation is in parallel?
+                Resource res = rs.getResource(URI.createFileURI(
+                    fileConfig.getFedSrcPath().resolve(fed.name + ".lf").toAbsolutePath().toString()
+                ), true);
+                gen.doGenerate(res, fsa, cont);
+                codeMapMap.putAll(cont.getResult().getCodeMaps());
             });
         }
 
@@ -206,7 +210,7 @@ public class FedGenerator {
         } catch (Exception e) {
             Exceptions.sneakyThrow(e);
         }
-
+        return codeMapMap;
     }
 
     /**
@@ -354,7 +358,7 @@ public class FedGenerator {
         // to duplicate the rather complicated logic in that class. We specify a depth of 1,
         // so it only creates the reactors immediately within the top level, not reactors
         // that those contain.
-        ReactorInstance mainInstance = new ReactorInstance(fedReactor, errorReporter, 1);
+        ReactorInstance mainInstance = new ReactorInstance(fedReactor, errorReporter);
 
         for (ReactorInstance child : mainInstance.children) {
             for (PortInstance output : child.outputs) {

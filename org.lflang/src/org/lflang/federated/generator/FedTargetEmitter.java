@@ -15,6 +15,7 @@ import org.lflang.ast.FormattingUtils;
 import org.lflang.federated.extensions.FedTargetExtensionFactory;
 import org.lflang.generator.GeneratorUtils;
 import org.lflang.generator.LFGeneratorContext;
+import org.lflang.lf.TargetDecl;
 
 public class FedTargetEmitter {
 
@@ -51,6 +52,8 @@ public class FedTargetEmitter {
 
         relativizeTargetPaths(federate, fileConfig);
 
+        clearFederatedTargetPropertiesI(federate);
+
         FedTargetExtensionFactory.getExtension(federate.target)
                                  .initializeTargetConfig(
                                      context,
@@ -68,6 +71,16 @@ public class FedTargetEmitter {
             )
         );
     }
+
+    /**
+     * Clear target properties that should not end up in the generated .lf file
+     * for {@code federate}.
+     */
+    private void clearFederatedTargetPropertiesI(FederateInstance federate) {
+        federate.targetConfig.setByUser.remove(TargetProperty.CLOCK_SYNC);
+        federate.targetConfig.setByUser.remove(TargetProperty.CLOCK_SYNC_OPTIONS);
+    }
+
 
     /**
      * Relativize target properties that involve paths like files and cmake-include to be

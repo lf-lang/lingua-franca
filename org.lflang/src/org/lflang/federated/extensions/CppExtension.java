@@ -47,7 +47,7 @@ public class CppExtension implements FedTargetExtension {
 
     @Override
     public Target getNetworkReactionTarget() {
-        return Target.CPP;
+        return null;
     }
 
     @Override

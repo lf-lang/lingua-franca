@@ -10,7 +10,7 @@ target C {
     coordination-options: {
         advance-message-interval: 100 msec
     },
-    timeout: 5 sec
+    timeout: 5 sec,
 }
 
 preamble {=
