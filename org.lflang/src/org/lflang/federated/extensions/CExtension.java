@@ -214,14 +214,14 @@ public class CExtension implements FedTargetExtension {
     }
 
     /**
-     * FIXME
-     * @param action
-     * @param receivingPort
-     * @param connection
-     * @param type
-     * @param receiveRef
-     * @param result
-     * @param errorReporter
+     * Generate code to deserialize a message received over the network.
+     * @param action The network action that is mapped to the {@code receivingPort}
+     * @param receivingPort The receiving port
+     * @param connection The connection used to receive the message
+     * @param type Type for the port
+     * @param receiveRef A target language reference to the receiving port
+     * @param result Used to put generated code in
+     * @param errorReporter Used to report errors, if any
      */
     protected void deserialize(
         Action action,
@@ -661,7 +661,7 @@ public class CExtension implements FedTargetExtension {
             var stpParam = reactor.getParameters().stream().filter(
                     param ->
                         param.getName().equalsIgnoreCase("STP_offset")
-                            && param.getType().isTime()
+                            && (param.getType() == null || param.getType().isTime())
             ).findFirst();
 
             if (stpParam.isPresent()) {
