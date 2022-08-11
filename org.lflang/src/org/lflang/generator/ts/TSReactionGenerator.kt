@@ -193,7 +193,7 @@ class TSReactionGenerator(
     private fun generateMutationSignatureElementForPortEffect(effect: VarRef): String {
         val outputPort = effect.variable as Port
         val portClassType = if (outputPort.isMultiport) {
-            "MultiReadWrite<${getPortType(effect.variable as Port)}>"
+            "__WritableMultiPort<${getPortType(effect.variable as Port)}>"
         } else {
             "__WritablePort<${getPortType(effect.variable as Port)}>"
         }
@@ -478,7 +478,6 @@ class TSReactionGenerator(
         // If the app is federated, only generate
         // reactions that are contained by that federate
         val generatedReactions: List<Reaction>
-        val mutations: List<Reaction>
         if (reactor.isFederated) {
             generatedReactions = LinkedList<Reaction>()
             for (reaction in reactor.reactions) {
@@ -494,20 +493,11 @@ class TSReactionGenerator(
                 }
             }
         } else {
-            // get reactions
             generatedReactions = reactor.reactions
         }
-        // get mutations
-        mutations = reactor.reactions.stream().filter{it -> it.isMutation()}.collect(Collectors.toList())
 
         ///////////////////// Reaction generation begins /////////////////////
         // TODO(hokeun): Consider separating this out as a new class.
-        if (mutations.isNotEmpty()) {
-            // Write the mutation itself
-            for (mutation in mutations) {
-                reactionCodes.add(generateSingleReaction(reactor, mutation))
-            }
-        }
         for (reaction in generatedReactions) {
             // Write the reaction itself
             reactionCodes.add(generateSingleReaction(reactor, reaction))

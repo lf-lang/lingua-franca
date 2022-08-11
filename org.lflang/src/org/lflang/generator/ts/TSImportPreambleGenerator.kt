@@ -55,7 +55,7 @@ class TSImportPreambleGenerator(
             |import {Action as __Action, Startup as __Startup, FederatePortAction as __FederatePortAction} from './core/action'
             |import {Bank as __Bank} from './core/bank'
             |import {FederatedApp as __FederatedApp} from './core/federation'
-            |import {InPort as __InPort, OutPort as __OutPort, Port as __Port, WritablePort as __WritablePort} from './core/port'
+            |import {InPort as __InPort, OutPort as __OutPort, Port as __Port, WritablePort as __WritablePort, WritableMultiPort as __WritableMultiPort} from './core/port'
             |import {InMultiPort as __InMultiPort, OutMultiPort as __OutMultiPort} from './core/multiport'
             |import {Reaction as __Reaction} from './core/reaction'
             |import {State as __State} from './core/state'
