@@ -1,9 +1,7 @@
 /**
- * Test the case for when two upstream federates
- * send messages to a downstream federte on two
- * different ports. One message should carry a
- * microstep delay relative to the other
- * message.
+ * Test the case for when two upstream federates send messages to a downstream
+ * federte on two different ports. One message should carry a microstep delay
+ * relative to the other message.
  *
  * @author Soroush Bateni
  */
@@ -11,42 +9,39 @@ target C {
     timeout: 5 msec,
     logging: LOG,
     coordination: centralized
-};
+}
 
 reactor Count {
-    state count:int(1);
-    input in:int;
-    output out:int;
-    timer t(0, 1 msec);
+    state count: int(1)
+    input in: int
+    output out: int
+    timer t(0, 1 msec)
+
     reaction(t) -> out {=
         lf_print("Count sends %d.", self->count);
         lf_set(out, self->count++);
     =}
 
-    reaction(in) {=
-        lf_print("Count received %d.", in->value);
-    =}
+    reaction(in) {= lf_print("Count received %d.", in->value); =}
 }
 
 reactor CountMicrostep {
-    state count:int(1);
-    output out:int;
-    logical action act:int;
-    timer t(0, 1 msec);
-    reaction(t) -> act {=
-        lf_schedule_int(act, 0, self->count++);
-    =}
+    state count: int(1)
+    output out: int
+    logical action act: int
+    timer t(0, 1 msec)
 
-    reaction(act) -> out {=
-        lf_set(out, act->value);
-    =}
+    reaction(t) -> act {= lf_schedule_int(act, 0, self->count++); =}
+
+    reaction(act) -> out {= lf_set(out, act->value); =}
 }
 
 reactor Print {
-    input in:int;
-    input in2:int;
-    output out:int;
-    timer t(0,2 msec);
+    input in: int
+    input in2: int
+    output out: int
+    timer t(0, 2 msec)
+
     reaction(in, in2) -> out {=
         interval_t elapsed_time = lf_time_logical_elapsed();
         if (in->is_present) {
@@ -60,19 +55,21 @@ reactor Print {
         }
         lf_set(out, in->value);
     =}
+
     reaction(t) {=
         // Do nothing
     =}
+
     reaction(shutdown) {=
         lf_print("SUCCESS: messages were at least one microstep apart.");
     =}
 }
 
 federated reactor {
-    c = new Count();
-    cm = new CountMicrostep();
-    p = new Print();
-    c.out -> p.in;    // Indicating a 'logical' connection.
-    cm.out -> p.in2;
-    p.out -> c.in;
+    c = new Count()
+    cm = new CountMicrostep()
+    p = new Print()
+    c.out -> p.in  // Indicating a 'logical' connection.
+    cm.out -> p.in2
+    p.out -> c.in
 }
