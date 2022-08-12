@@ -26,6 +26,7 @@ import org.eclipse.xtext.xbase.lib.Pair;
 
 import org.lflang.ASTUtils;
 import org.lflang.ErrorReporter;
+import org.lflang.FileConfig;
 import org.lflang.LFStandaloneSetup;
 import org.lflang.TargetConfig;
 import org.lflang.TargetProperty.CoordinationType;
@@ -127,13 +128,14 @@ public class FedGenerator {
             federationRTIProperties
         );
         // Generate code for each federate
+        Map<Path, CodeMap> lf2lfCodeMapMap = new HashMap<>();
         for (FederateInstance federate : federates) {
-            fedEmitter.generateFederate(
+            lf2lfCodeMapMap.putAll(fedEmitter.generateFederate(
                 context, federate, federates.size()
-            );
+            ));
         }
 
-        Map<Path, CodeMap> codeMapMap = compileFederates(context);
+        Map<Path, CodeMap> codeMapMap = compileFederates(context, lf2lfCodeMapMap);
         context.finish(Status.COMPILED, fileConfig.name, fileConfig, codeMapMap);
         return false;
     }
@@ -168,7 +170,7 @@ public class FedGenerator {
         // System.out.println(PythonInfoGenerator.generateFedRunInfo(fileConfig));
     }
 
-    private Map<Path, CodeMap> compileFederates(LFGeneratorContext context) {
+    private Map<Path, CodeMap> compileFederates(LFGeneratorContext context, Map<Path, CodeMap> lf2lfCodeMapMap) {
         // FIXME: Use the appropriate resource set instead of always using standalone
         Injector inj = new LFStandaloneSetup()
             .createInjectorAndDoEMFRegistration();
@@ -191,7 +193,14 @@ public class FedGenerator {
 
         for(FederateInstance fed : federates) {
             compileThreadPool.execute(() -> {
-                SubContext cont = new SubContext(context, 0, 0); // Is there a way to quantify progress when compilation is in parallel?
+                SubContext cont = new SubContext(context, 0, 0) {
+                    @Override
+                    public ErrorReporter constructErrorReporter(FileConfig fileConfig) {
+                        return new LineAdjustingErrorReporter(errorReporter, lf2lfCodeMapMap);
+                    }
+                }; // Is there a way to quantify progress when compilation is in parallel?
+                // FIXME: With parallel compilation, the reported progresses may not be
+                //  strictly increasing, and we may not have thread safety
                 Resource res = rs.getResource(URI.createFileURI(
                     fileConfig.getFedSrcPath().resolve(fed.name + ".lf").toAbsolutePath().toString()
                 ), true);
