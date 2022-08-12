@@ -108,7 +108,9 @@ public interface FedTargetExtension {
     /**
      * Return the target language used in the body of network reactions.
      */
-    Target getNetworkReactionTarget();
+    default Target getNetworkReactionTarget() {
+        return null;
+    }
 
     /**
      * Return the type for the raw network buffer in the target language (e.g., `uint_8` in C). This would be the type of the 

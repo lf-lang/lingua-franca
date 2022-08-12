@@ -36,7 +36,7 @@ reactor Receiver {
     state success:int(0);
 
     reaction(in) {=
-        tag_t current_tag = get_current_tag();
+        tag_t current_tag = lf.tag();
         if (current_tag.time == (start_time + MSEC(10))) {
             if (current_tag.microstep == 0 && in->value == 1) {
                 self->success++;
@@ -46,8 +46,8 @@ reactor Receiver {
         }
         printf("Received %d at tag (%lld, %u).\n",
                in->value,
-               lf.time.logical_elapsed(),
-               get_microstep());
+               current_tag.time,
+               current_tag.microstep);
     =}
 
     reaction(shutdown) {=

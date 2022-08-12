@@ -46,11 +46,6 @@ public class CppExtension implements FedTargetExtension {
     }
 
     @Override
-    public Target getNetworkReactionTarget() {
-        return null;
-    }
-
-    @Override
     public String getNetworkBufferType() {
         return null;
     }

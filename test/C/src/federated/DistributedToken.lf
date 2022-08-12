@@ -40,9 +40,10 @@ reactor MessageGenerator(root: string("")) {
         // Add one for the null terminator.
         int length = snprintf(NULL, 0, "%s %d", self->root, self->count) + 1;
         // Dynamically allocate memory for the output.
-        SET_NEW_ARRAY(message, length);
+        char* strbuf = calloc(sizeof(char), length);
+        lf.set(message, strbuf);
         // Populate the output string and increment the count.
-        snprintf(message->value, length, "%s %d", self->root, self->count++);
+        snprintf(strbuf, length, "%s %d", self->root, self->count++);
         printf("MessageGenerator: At time %lld, send message: %s\n",
             lf_time_logical_elapsed(),
             message->value
