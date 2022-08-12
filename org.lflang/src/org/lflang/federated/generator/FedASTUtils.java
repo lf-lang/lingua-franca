@@ -460,6 +460,7 @@ public class FedASTUtils {
             findUpstreamPortsInFederate(
                 connection.dstFederate,
                 connection.getSourcePortInstance(),
+                new HashSet<>(),
                 new HashSet<>()
             );
 
@@ -497,7 +498,8 @@ public class FedASTUtils {
     private static Set<PortInstance> findUpstreamPortsInFederate(
         FederateInstance federate,
         PortInstance port,
-        Set<PortInstance> visitedPorts
+        Set<PortInstance> visitedPorts,
+        Set<ReactionInstance>  reactionVisited
     ) {
         Set<PortInstance> toReturn = new HashSet<>();
         if (port == null) return toReturn;
@@ -512,13 +514,13 @@ public class FedASTUtils {
             // Follow depends on reactions
             port.getDependsOnReactions().forEach(
                 reaction -> {
-                    followReactionUpstream(federate, visitedPorts, toReturn, reaction, new HashSet<>());
+                    followReactionUpstream(federate, visitedPorts, toReturn, reaction, reactionVisited);
                 }
             );
             // Follow depends on ports
             port.getDependsOnPorts().forEach(
                 it -> toReturn.addAll(
-                    findUpstreamPortsInFederate(federate, it.instance, visitedPorts)
+                    findUpstreamPortsInFederate(federate, it.instance, visitedPorts, reactionVisited)
                 )
             );
         }
@@ -559,7 +561,8 @@ public class FedASTUtils {
                         federate,
                         reaction.getParent()
                             .lookupPortInstance(varRef),
-                        visitedPorts
+                        visitedPorts,
+                        reactionVisited
                     )
                 )
         );
