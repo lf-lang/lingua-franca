@@ -24,17 +24,17 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ***************/
 package org.lflang.tests.compiler;
 
-import com.google.inject.Inject;
 import org.eclipse.xtext.testing.InjectWith;
 import org.eclipse.xtext.testing.extensions.InjectionExtension;
 import org.eclipse.xtext.testing.util.ParseHelper;
-
-import org.lflang.lf.LfPackage;
-import org.lflang.lf.Model;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+
+import org.lflang.lf.Model;
 import org.lflang.tests.LFInjectorProvider;
+
+import com.google.inject.Inject;
 
 /**
  * Test harness for ensuring that grammar captures
@@ -75,31 +75,6 @@ class LinguaFrancaParsingTest {
                 }
             """;
         parseWithoutError(testCase);
-    }
-
-    @Test
-    public void testLanguageAttribute() throws Exception {
-        String testCase = """
-                target Python;
-                main reactor {
-                    @language(value = "C")
-                    reaction(startup) {= =}
-                }
-            """;
-        parseWithoutError(testCase);
-
-        testCase = """
-                target Python;
-                main reactor {
-                    @language(value = "Foo")
-                    reaction(startup) {= =}
-                }
-            """;
-        Model model = parser.parse(testCase);
-        Assertions.assertNotNull(model);
-        Assertions.assertFalse(model.eResource().getErrors().isEmpty(),
-                               "Failed to detect invalid language attribute.");
-
     }
 
     @Test
