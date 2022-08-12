@@ -17,7 +17,7 @@ reactor Source {
             int length = snprintf(NULL, 0, "Hello %d", self->count) + 1;
             // Dynamically allocate memory for the output.
             char* strbuf = calloc(sizeof(char), length);
-            lf.set(out[i], strbuf);
+            lf_set(out[i], strbuf);
             // Populate the output string and increment the count.
             snprintf(strbuf, length, "Hello %d", self->count++);
             lf_print("MessageGenerator: At time %lld, send message: %s.",
