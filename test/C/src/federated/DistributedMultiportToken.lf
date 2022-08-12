@@ -16,7 +16,7 @@ reactor Source {
             // Add one for the null terminator.
             int length = snprintf(NULL, 0, "Hello %d", self->count) + 1;
             // Dynamically allocate memory for the output.
-	    SET_NEW_ARRAY(out[i], length);
+            SET_NEW_ARRAY(out[i], length);
             // Populate the output string and increment the count.
             snprintf(out[i]->value, length, "Hello %d", self->count++);
             lf_print("MessageGenerator: At time %lld, send message: %s.",
