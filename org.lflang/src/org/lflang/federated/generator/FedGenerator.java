@@ -28,7 +28,9 @@ import org.lflang.ASTUtils;
 import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
 import org.lflang.LFStandaloneSetup;
+import org.lflang.Target;
 import org.lflang.TargetConfig;
+import org.lflang.TargetProperty;
 import org.lflang.TargetProperty.CoordinationType;
 import org.lflang.federated.launcher.FedLauncher;
 import org.lflang.federated.launcher.FedLauncherFactory;
@@ -48,6 +50,7 @@ import org.lflang.lf.Expression;
 import org.lflang.lf.Instantiation;
 import org.lflang.lf.LfFactory;
 import org.lflang.lf.Reactor;
+import org.lflang.lf.TargetDecl;
 
 import com.google.inject.Injector;
 
@@ -119,7 +122,7 @@ public class FedGenerator {
         // for logical connections.
         replaceFederateConnectionsWithProxies(fedReactor);
 
-        createLauncher(federates, fileConfig, errorReporter, federationRTIProperties);
+        createLauncher(fileConfig, errorReporter, federationRTIProperties);
 
         FedEmitter fedEmitter = new FedEmitter(
             fileConfig,
@@ -142,22 +145,30 @@ public class FedGenerator {
 
     /**
      * Create a launcher for the federation.
-     * @param federates
      * @param fileConfig
      * @param errorReporter
      * @param federationRTIProperties
      */
     public void createLauncher(
-        List<FederateInstance> federates,
         FedFileConfig fileConfig,
         ErrorReporter errorReporter,
         LinkedHashMap<String, Object> federationRTIProperties
     ) {
-        FedLauncher launcher = FedLauncherFactory.getLauncher(
-            federates.get(0), // FIXME: This architecture only works for one target.
-            fileConfig,
-            errorReporter
-        );
+        FedLauncher launcher;
+        if (federates.size() == 0) {
+            // no federates, use target properties of main file
+            TargetDecl targetDecl = GeneratorUtils.findTarget(fileConfig.resource);
+            launcher = FedLauncherFactory.getLauncher(Target.fromDecl(targetDecl),
+                                                      targetConfig,
+                                                      fileConfig,
+                                                      errorReporter);
+        } else {
+            launcher = FedLauncherFactory.getLauncher(
+                federates.get(0), // FIXME: This architecture only works for one target.
+                fileConfig,
+                errorReporter
+            );
+        }
         try {
             launcher.createLauncher(
                 federates,
