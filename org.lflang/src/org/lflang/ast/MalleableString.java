@@ -12,14 +12,19 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.function.ToLongFunction;
 import java.util.stream.Collector;
-import java.util.stream.IntStream;
 import java.util.stream.Stream;
+
+import org.eclipse.emf.ecore.EObject;
+
+import org.lflang.generator.CodeMap;
+import org.lflang.lf.Code;
 
 import com.google.common.collect.ImmutableList;
 
 public abstract class MalleableString {
 
     protected List<String> comments = new ArrayList<>();
+    protected EObject sourceEObject = null;
 
     /** Return this, indented by one more level. */
     public MalleableString indent() {
@@ -55,11 +60,22 @@ public abstract class MalleableString {
         return this;
     }
 
+    /** Specify the EObject from which this originated, if applicable. */
+    public MalleableString setSourceEObject(EObject sourceEObject) {
+        this.sourceEObject = sourceEObject;
+        return this;
+    }
+
     /**
      * Render this using {@code indentation} spaces per indentation level and
      * {@code singleLineCommentMarker} to mark the beginnings of single-line comments.
      */
-    public abstract RenderResult render(int indentation, String singleLineCommentMarker);
+    public abstract RenderResult render(
+        int indentation,
+        String singleLineCommentMarker,
+        boolean codeMapTag,
+        EObject enclosingEObject
+    );
 
     /**
      * Return an object that can be represented as any one of the given
@@ -269,10 +285,17 @@ public abstract class MalleableString {
         private int width = 0;
 
         @Override
-        public RenderResult render(int indentation, String singleLineCommentPrefix) {
+        public RenderResult render(int indentation, String singleLineCommentPrefix, boolean codeMapTag, EObject enclosingEObject) {
             List<RenderResult> componentRenderings = components.stream()
                 .map(malleableString ->
-                         malleableString.render(indentation, singleLineCommentPrefix)
+                    // The code map tags *should* not affect the correctness of the formatting since most
+                    // formatting has already happened in findBestRepresentation.
+                    malleableString.render(
+                        indentation,
+                       singleLineCommentPrefix,
+                       codeMapTag,
+                       sourceEObject != null ? sourceEObject : enclosingEObject
+                    )
                 ).toList();
             List<List<String>> commentsFromChildren = componentRenderings.stream()
                 .map(it -> it.unplacedComments).map(Stream::toList).toList();
@@ -373,7 +396,7 @@ public abstract class MalleableString {
             optimizeChildren(providedRender, badness, width, indentation, singleLineCommentPrefix);
             if (
                 components.stream().noneMatch(
-                    it -> it.render(indentation, singleLineCommentPrefix)
+                    it -> it.render(indentation, singleLineCommentPrefix, false, null)
                         .unplacedComments.findAny().isPresent()
                 )
             ) return;
@@ -443,8 +466,13 @@ public abstract class MalleableString {
         }
 
         @Override
-        public RenderResult render(int indentation, String singleLineCommentPrefix) {
-            var result = nested.render(indentation, singleLineCommentPrefix);
+        public RenderResult render(int indentation, String singleLineCommentPrefix, boolean codeMapTag, EObject enclosingEObject) {
+            var result = nested.render(
+                indentation,
+                singleLineCommentPrefix,
+                codeMapTag,
+                sourceEObject != null ? sourceEObject : enclosingEObject
+            );
             String renderedComments = FormattingUtils.lineWrapComments(
                 result.unplacedComments.toList(),
                 width - indentation,
@@ -533,9 +561,13 @@ public abstract class MalleableString {
         }
 
         @Override
-        public RenderResult render(int indentation, String singleLineCommentPrefix) {
-            return getChosenPossibility().render(indentation, singleLineCommentPrefix)
-                .with(comments.stream());
+        public RenderResult render(int indentation, String singleLineCommentPrefix, boolean codeMapTag, EObject enclosingEObject) {
+            return getChosenPossibility().render(
+                indentation,
+                singleLineCommentPrefix,
+                codeMapTag,
+                sourceEObject != null ? sourceEObject : enclosingEObject
+            ).with(comments.stream());
         }
     }
 
@@ -560,8 +592,19 @@ public abstract class MalleableString {
         }
 
         @Override
-        public RenderResult render(int indentation, String singleLineCommentPrefix) {
-            return new RenderResult(comments.stream(), getChosenPossibility(), 0);
+        public RenderResult render(
+            int indentation,
+            String singleLineCommentPrefix,
+            boolean codeMapTag,
+            EObject enclosingEObject
+        ) {
+            return new RenderResult(
+                comments.stream(),
+                enclosingEObject instanceof Code && codeMapTag ?
+                    CodeMap.Correspondence.tag(enclosingEObject, getChosenPossibility(), true)
+                    : getChosenPossibility(),
+                0
+            );
         }
     }
 }
