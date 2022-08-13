@@ -141,8 +141,8 @@ class TSGenerator(
             )
             if (shouldCollectDependencies(context)) collectDependencies(resource, context, tsFileConfig.srcGenPkgPath, false)
             if (errorsOccurred()) {
-                context.unsuccessfulFinish();
-                return;
+                context.unsuccessfulFinish()
+                return
             }
             if (targetConfig.protoFiles.size != 0) {
                 protoc()
