@@ -67,6 +67,7 @@ public class LineAdjustingErrorReporter implements ErrorReporter {
     }
 
     private String report(Path file, Integer line, String message, DiagnosticSeverity severity) {
+        if (line == null) return report(file, severity, message);
         var position = Position.fromOneBased(line, Integer.MAX_VALUE);
         return report(
             file,

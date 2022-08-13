@@ -3,8 +3,8 @@ package org.lflang.federated.generator;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -23,6 +23,7 @@ import org.eclipse.xtext.resource.XtextResourceSet;
 import org.eclipse.xtext.xbase.lib.CollectionLiterals;
 import org.eclipse.xtext.xbase.lib.Exceptions;
 import org.eclipse.xtext.xbase.lib.Pair;
+import org.eclipse.xtext.xbase.lib.Procedures.Procedure1;
 
 import org.lflang.ASTUtils;
 import org.lflang.ErrorReporter;
@@ -35,7 +36,6 @@ import org.lflang.TargetProperty.CoordinationType;
 import org.lflang.federated.launcher.FedLauncher;
 import org.lflang.federated.launcher.FedLauncherFactory;
 import org.lflang.generator.CodeMap;
-import org.lflang.generator.GeneratorResult;
 import org.lflang.generator.GeneratorResult.Status;
 import org.lflang.generator.GeneratorUtils;
 import org.lflang.generator.LFGenerator;
@@ -55,6 +55,28 @@ import org.lflang.lf.TargetDecl;
 import com.google.inject.Injector;
 
 public class FedGenerator {
+
+    /** Average asynchronously reported numbers and do something with them. */
+    private static class Averager {
+        private final int n;
+        private final int[] sum;
+
+        /** Create an averager of reports from {@code n} processes. */
+        public Averager(int n) {
+            this.n = n;
+            sum = new int[n];
+        }
+
+        /**
+         * Receive {@code x} from process {@code id} and invoke {@code callback}
+         * on the mean of the numbers most recently reported by the processes.
+         */
+        public synchronized void report(int id, int x, Procedure1<Integer> callback) {
+            assert 0 < id && id < n;
+            sum[id] = x;
+            callback.apply(Arrays.stream(sum).sum() / n);
+        }
+    }
 
     private final FedFileConfig fileConfig;
     private final ErrorReporter errorReporter;
@@ -202,16 +224,22 @@ public class FedGenerator {
         System.out.println("******** Using "+numOfCompileThreads+" threads to compile the program.");
         Map<Path, CodeMap> codeMapMap = new HashMap<>();
 
-        for(FederateInstance fed : federates) {
+        Averager averager = new Averager(federates.size());
+        for (int i = 0; i < federates.size(); i++) {
+            FederateInstance fed = federates.get(i);
+            final int id = i;
             compileThreadPool.execute(() -> {
                 SubContext cont = new SubContext(context, 0, 0) {
                     @Override
                     public ErrorReporter constructErrorReporter(FileConfig fileConfig) {
                         return new LineAdjustingErrorReporter(errorReporter, lf2lfCodeMapMap);
                     }
-                }; // Is there a way to quantify progress when compilation is in parallel?
-                // FIXME: With parallel compilation, the reported progresses may not be
-                //  strictly increasing, and we may not have thread safety
+
+                    @Override
+                    public void reportProgress(String message, int percentage) {
+                        averager.report(id, percentage, meanPercentage -> super.reportProgress(message, meanPercentage));
+                    }
+                };
                 Resource res = rs.getResource(URI.createFileURI(
                     fileConfig.getFedSrcPath().resolve(fed.name + ".lf").toAbsolutePath().toString()
                 ), true);
