@@ -546,7 +546,7 @@ public class CExtension implements FedTargetExtension {
         String cPreamble = makePreamble(federate, fileConfig, federationRTIProperties, errorReporter);
         String relPath = "include" + File.separator + "_" + federate.name + "_preamble.c";
         Path fedPreamblePath = fileConfig.getFedSrcPath().resolve(relPath);
-        Files.createDirectories(fedPreamblePath);
+        Files.createDirectories(fedPreamblePath.getParent());
         try (var writer = Files.newBufferedWriter(fedPreamblePath)) {
             writer.write(cPreamble);
         }
