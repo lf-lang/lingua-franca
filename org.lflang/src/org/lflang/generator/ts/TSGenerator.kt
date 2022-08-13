@@ -176,8 +176,8 @@ class TSGenerator(
             )
             if (shouldCollectDependencies(context)) collectDependencies(resource, context)
             if (errorsOccurred()) {
-                context.unsuccessfulFinish();
-                return;
+                context.unsuccessfulFinish()
+                return
             }
             if (targetConfig.protoFiles.size != 0) {
                 protoc()
