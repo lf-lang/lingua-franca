@@ -200,6 +200,7 @@ class LspTests {
      */
     private void runTest(Path test) {
         MockReportProgress reportProgress = new MockReportProgress();
+        System.err.println("DEBUG: running builder on " + test + "...");
         builder.run(
             URI.createFileURI(test.toString()),
             false, reportProgress,
