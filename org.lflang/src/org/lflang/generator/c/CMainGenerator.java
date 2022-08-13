@@ -53,7 +53,7 @@ public class CMainGenerator {
         // so start with that.
         return runCommand.size() > 0 ?
             String.join("\n",
-                "char* _lf_default_argv[] = { " +
+                "const char* _lf_default_argv[] = { " +
                         StringUtil.addDoubleQuotes(
                             StringUtil.joinObjects(runCommand,
                                 StringUtil.addDoubleQuotes(", ")))+" };",
