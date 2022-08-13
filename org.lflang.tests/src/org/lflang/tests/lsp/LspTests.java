@@ -205,11 +205,16 @@ class LspTests {
      */
     private void runTest(Path test) {
         MockReportProgress reportProgress = new MockReportProgress();
-        builder.run(
-            URI.createFileURI(test.toString()),
-            false, reportProgress,
-            () -> false
-        );
+        try {
+            builder.run(
+                URI.createFileURI(test.toString()),
+                false, reportProgress,
+                () -> false
+            );
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw e;
+        }
         Assertions.assertFalse(reportProgress.failed());
     }
 }
