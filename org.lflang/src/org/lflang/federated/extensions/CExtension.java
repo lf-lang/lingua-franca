@@ -1,16 +1,16 @@
 /*************
  * Copyright (c) 2021, The University of California at Berkeley.
- * 
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
- * 
+ *
  * 1. Redistributions of source code must retain the above copyright notice,
  * this list of conditions and the following disclaimer.
- * 
+ *
  * 2. Redistributions in binary form must reproduce the above copyright notice,
  * this list of conditions and the following disclaimer in the documentation
  * and/or other materials provided with the distribution.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
  * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -67,12 +67,12 @@ import org.lflang.util.FileUtil;
 /**
  * An extension class to the CGenerator that enables certain federated
  * functionalities. Currently, this class offers the following features:
- * 
+ *
  * - Allocating and initializing C structures for federated communication -
  * Creating status field for network input ports that help the receiver logic in
  * federate.c communicate the status of a network input port with network input
  * control reactions.
- * 
+ *
  * @author {Soroush Bateni <soroush@berkeley.edu>}
  * @author {Hou Seng Wong <housengw@berkeley.edu>}
  * @author {Billy Bao <billybao@berkeley.edu>}
@@ -537,6 +537,7 @@ public class CExtension implements FedTargetExtension {
         String cPreamble = makePreamble(federate, fileConfig, federationRTIProperties, errorReporter);
         String relPath = "include" + File.separator + "_" + federate.name + "_preamble.c";
         Path fedPreamblePath = fileConfig.getFedSrcPath().resolve(relPath);
+        Files.createDirectories(fedPreamblePath.getParent());
         try (var writer = Files.newBufferedWriter(fedPreamblePath)) {
             writer.write(cPreamble);
         }
