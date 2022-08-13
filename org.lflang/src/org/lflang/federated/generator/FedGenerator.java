@@ -31,13 +31,13 @@ import org.lflang.FileConfig;
 import org.lflang.LFStandaloneSetup;
 import org.lflang.Target;
 import org.lflang.TargetConfig;
-import org.lflang.TargetProperty;
 import org.lflang.TargetProperty.CoordinationType;
 import org.lflang.federated.launcher.FedLauncher;
 import org.lflang.federated.launcher.FedLauncherFactory;
 import org.lflang.generator.CodeMap;
 import org.lflang.generator.GeneratorResult.Status;
 import org.lflang.generator.GeneratorUtils;
+import org.lflang.generator.IntegratedBuilder;
 import org.lflang.generator.LFGenerator;
 import org.lflang.generator.LFGeneratorContext;
 import org.lflang.generator.MixedRadixInt;
@@ -59,12 +59,12 @@ public class FedGenerator {
     /** Average asynchronously reported numbers and do something with them. */
     private static class Averager {
         private final int n;
-        private final int[] sum;
+        private final int[] reports;
 
         /** Create an averager of reports from {@code n} processes. */
         public Averager(int n) {
             this.n = n;
-            sum = new int[n];
+            reports = new int[n];
         }
 
         /**
@@ -72,9 +72,9 @@ public class FedGenerator {
          * on the mean of the numbers most recently reported by the processes.
          */
         public synchronized void report(int id, int x, Procedure1<Integer> callback) {
-            assert 0 < id && id < n;
-            sum[id] = x;
-            callback.apply(Arrays.stream(sum).sum() / n);
+            assert 0 <= id && id < n;
+            reports[id] = x;
+            callback.apply(Arrays.stream(reports).sum() / n);
         }
     }
 
@@ -229,7 +229,7 @@ public class FedGenerator {
             FederateInstance fed = federates.get(i);
             final int id = i;
             compileThreadPool.execute(() -> {
-                SubContext cont = new SubContext(context, 0, 0) {
+                SubContext cont = new SubContext(context, IntegratedBuilder.VALIDATED_PERCENT_PROGRESS, 100) {
                     @Override
                     public ErrorReporter constructErrorReporter(FileConfig fileConfig) {
                         return new LineAdjustingErrorReporter(errorReporter, lf2lfCodeMapMap);
