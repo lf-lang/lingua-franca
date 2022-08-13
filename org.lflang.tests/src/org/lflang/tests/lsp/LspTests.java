@@ -12,6 +12,7 @@ import java.util.function.Predicate;
 
 import org.eclipse.lsp4j.Diagnostic;
 import org.eclipse.emf.common.util.URI;
+import org.eclipse.xtext.util.RuntimeIOException;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -201,11 +202,15 @@ class LspTests {
     private void runTest(Path test) {
         MockReportProgress reportProgress = new MockReportProgress();
         System.err.println("DEBUG: running builder on " + test + "...");
-        builder.run(
-            URI.createFileURI(test.toString()),
-            false, reportProgress,
-            () -> false
-        );
+        try {
+            builder.run(
+                URI.createFileURI(test.toString()),
+                false, reportProgress,
+                () -> false
+            );
+        } catch (RuntimeIOException e) {
+            e.printStackTrace();
+        }
         Assertions.assertFalse(reportProgress.failed());
     }
 }
