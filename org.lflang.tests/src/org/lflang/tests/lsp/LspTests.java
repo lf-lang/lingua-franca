@@ -208,8 +208,9 @@ class LspTests {
                 false, reportProgress,
                 () -> false
             );
-        } catch (RuntimeIOException e) {
+        } catch (Exception e) {
             e.printStackTrace();
+            throw e;
         }
         Assertions.assertFalse(reportProgress.failed());
     }
