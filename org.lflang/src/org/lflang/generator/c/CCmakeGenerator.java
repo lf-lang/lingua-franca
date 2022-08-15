@@ -242,7 +242,7 @@ class CCmakeGenerator {
         cMakeCode.pr(")");
         cMakeCode.newLine();
 
-        if(this.targetConfig.platform == Platform.ARDUINO) {
+        if (this.targetConfig.platform == Platform.ARDUINO) {
             cMakeCode.pr("target_link_arduino_libraries ( ${LF_MAIN_TARGET} PRIVATE core)");
             cMakeCode.pr("target_enable_arduino_upload(${LF_MAIN_TARGET})");
         }

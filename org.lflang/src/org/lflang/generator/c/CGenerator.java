@@ -556,7 +556,7 @@ public class CGenerator extends GeneratorBase {
                 }
 
                 // If we are running an Arduino Target, need to copy over the BoardOptions file.
-                if(targetConfig.platform == Platform.ARDUINO) {
+                if (targetConfig.platform == Platform.ARDUINO) {
                     FileUtil.copyFile(FileUtil.globFilesEndsWith(fileConfig.srcPath, "BoardOptions.cmake").get(0), Paths.get(fileConfig.getSrcGenPath().toString(),File.separator, "BoardOptions.cmake"));
                 }
 
@@ -2261,10 +2261,10 @@ public class CGenerator extends GeneratorBase {
             // So that each separate compile knows about modal reactors, do this:
             targetConfig.compileDefinitions.put("MODAL_REACTORS", "");
         }
-        if(targetConfig.threading && targetConfig.platform == Platform.ARDUINO) {
+        if (targetConfig.threading && targetConfig.platform == Platform.ARDUINO) {
 
             //Add error message when user attempts to set threading=true for Arduino
-            if(targetConfig.setByUser.contains(TargetProperty.THREADING)) {
+            if (targetConfig.setByUser.contains(TargetProperty.THREADING)) {
                 errorReporter.reportWarning("Threading is incompatible on Arduino. Setting threading to false.");
             }
             targetConfig.threading = false;
