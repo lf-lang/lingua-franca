@@ -19,12 +19,12 @@ reactor TakeTime(
 ) {
     input in:int;
     output out:int;
-    state event:string("No ID");
+    state event:char*("No ID");
     reaction(startup) {=
         // Construct an id string for a user trace event.
         const char* format = "Count completed by reactor %d.";
         size_t length = strlen(format) + 2;
-        self->event = (string)malloc(sizeof(char) * (length + 1));
+        self->event = (char*)malloc(sizeof(char) * (length + 1));
         snprintf(self->event, length, format, self->bank_index);
 
         // Register the user trace event.

@@ -74,6 +74,24 @@ public final class TimeValue implements Comparable<TimeValue> {
         this.unit = unit;
     }
 
+    @Override
+    public boolean equals(Object t1) {
+        if (t1 instanceof TimeValue) {
+            return this.compareTo((TimeValue) t1) == 0;
+        }
+        return false;
+    }
+    
+    public static int compare(TimeValue t1, TimeValue t2) {
+        if (t1.isEarlierThan(t2)) {
+            return -1;
+        }
+        if (t2.isEarlierThan(t1)) {
+            return 1;
+        }
+        return 0;
+    }
+    
     private static long makeNanosecs(long time, TimeUnit unit) {
         if (unit == null) {
             return time; // == 0, see constructor.
@@ -147,6 +165,11 @@ public final class TimeValue implements Comparable<TimeValue> {
         return t1.isEarlierThan(t2) ? t2 : t1;
     }
 
+    /** Return the earliest of both values. */
+    public static TimeValue min(TimeValue t1, TimeValue t2) {
+        return t1.isEarlierThan(t2) ? t1 : t2;
+    }
+    
     /**
      * Return the sum of this duration and the one represented by b.
      * <p>
