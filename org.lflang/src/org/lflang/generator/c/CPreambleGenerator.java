@@ -79,7 +79,7 @@ public class CPreambleGenerator {
         code.pr("#define TARGET_FILES_DIRECTORY " + addDoubleQuotes(srcGenPath.toString()));
 
         if(targetConfig.platform == Platform.ARDUINO) {
-            code.pr("#define GRAN_MICRO");
+            code.pr("#define MICROSECOND_TIME");
             code.pr("#define BIT_32");
         }
         if (isFederated) {
