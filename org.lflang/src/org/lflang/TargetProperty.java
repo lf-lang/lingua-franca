@@ -252,28 +252,8 @@ public enum TargetProperty {
                     return e;
                 }
             },
-            (config, value, err) -> {
-                if (value.getLiteral() != null) {
-                    if (ASTUtils.toBoolean(value)) {
-                        config.dockerOptions = new DockerOptions();
-                    } else {
-                        config.dockerOptions = null;
-                    }
-                } else {
-                    config.dockerOptions = new DockerOptions();
-                    for (KeyValuePair entry : value.getKeyvalue().getPairs()) {
-                        DockerOption option = (DockerOption) DictionaryType.DOCKER_DICT
-                                .forName(entry.getName());
-                        switch (option) {
-                            case FROM:
-                                config.dockerOptions.from = ASTUtils.elementToSingleString(entry.getValue());
-                                break;
-                            default:
-                                break;
-                        }
-                    }
-                }
-            }),
+            (config, value, err) -> setDockerProperty(config, value),
+            (config, value, err) -> setDockerProperty(config, value)),
     
     /**
      * Directive for specifying a path to an external runtime to be used for the
@@ -729,6 +709,32 @@ public enum TargetProperty {
                   config.fedSetupPreamble = StringUtil.removeQuotes(ASTUtils.elementToSingleString(value))
     )
     ;
+
+    /**
+     * Update {@code config}.dockerOptions based on value.
+     */
+    private static void setDockerProperty(TargetConfig config, Element value) {
+        if (value.getLiteral() != null) {
+            if (ASTUtils.toBoolean(value)) {
+                config.dockerOptions = new DockerOptions();
+            } else {
+                config.dockerOptions = null;
+            }
+        } else {
+            config.dockerOptions = new DockerOptions();
+            for (KeyValuePair entry : value.getKeyvalue().getPairs()) {
+                DockerOption option = (DockerOption) DictionaryType.DOCKER_DICT
+                        .forName(entry.getName());
+                switch (option) {
+                    case FROM:
+                        config.dockerOptions.from = ASTUtils.elementToSingleString(entry.getValue());
+                        break;
+                    default:
+                        break;
+                }
+            }
+        }
+    }
 
     /**
      * String representation of this target property.

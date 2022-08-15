@@ -1,18 +1,18 @@
-target Cpp;
+target Cpp
 
-import Count from "../lib/Count.lf";
+import Count from "../lib/Count.lf"
 
 reactor Print {
-    input in:int;
-    state c:int(1);
-    reaction(in) {=
-    =}
-    reaction(shutdown) {=
-    =}
+    input in: int
+    state c: int(1)
+
+    reaction(in) {=  =}
+
+    reaction(shutdown) {=  =}
 }
 
 federated reactor {
-    c = new Count();
-    p = new Print();
-    c.c -> p.in after 100 msec;
+    c = new Count()
+    p = new Print()
+    c.c -> p.in after 100 msec
 }

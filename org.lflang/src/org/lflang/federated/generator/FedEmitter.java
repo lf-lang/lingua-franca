@@ -3,10 +3,13 @@ package org.lflang.federated.generator;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.lflang.ErrorReporter;
+import org.lflang.generator.CodeMap;
 import org.lflang.generator.LFGeneratorContext;
 import org.lflang.lf.Reactor;
 
@@ -37,7 +40,7 @@ public class FedEmitter {
      *
      * @throws IOException
      */
-    void generateFederate(
+    Map<Path, CodeMap> generateFederate(
         LFGeneratorContext context,
         FederateInstance federate,
         int numOfFederates
@@ -63,10 +66,12 @@ public class FedEmitter {
                 errorReporter
             )
         );
-
+        Map<Path, CodeMap> codeMapMap = new HashMap<>();
         try (var srcWriter = Files.newBufferedWriter(lfFilePath)) {
-            srcWriter.write(federateCode);
+            var codeMap = CodeMap.fromGeneratedCode(federateCode);
+            codeMapMap.put(lfFilePath, codeMap);
+            srcWriter.write(codeMap.getGeneratedCode());
         }
-
+        return codeMapMap;
     }
 }

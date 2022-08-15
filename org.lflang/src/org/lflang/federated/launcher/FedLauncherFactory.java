@@ -2,6 +2,7 @@ package org.lflang.federated.launcher;
 
 import org.lflang.ErrorReporter;
 import org.lflang.Target;
+import org.lflang.TargetConfig;
 import org.lflang.federated.generator.FedFileConfig;
 import org.lflang.federated.generator.FederateInstance;
 
@@ -12,23 +13,33 @@ import org.lflang.federated.generator.FederateInstance;
  */
 public class FedLauncherFactory {
 
-    /**
-     * Return a launcher generator.
-     * @param federate
-     * @param fileConfig
-     * @param errorReporter
-     * @return null if not supported, an instance of {@code #FedLauncher} otherwise.
-     */
-    public static FedLauncher getLauncher(
+    public static FedLauncher getLauncher (
         FederateInstance federate,
         FedFileConfig fileConfig,
         ErrorReporter errorReporter
     ) {
-        switch (Target.fromDecl(federate.target)) {
+        return getLauncher(Target.fromDecl(federate.target), federate.targetConfig, fileConfig, errorReporter);
+    }
+
+    /**
+     * Return a launcher generator.
+     * @param target        The target to generate for.
+     * @param targetConfig  The target config of the federate.
+     * @param fileConfig    The file config for the federate.
+     * @param errorReporter The error reporter to use.
+     * @return null if not supported, an instance of {@code #FedLauncher} otherwise.
+     */
+    public static FedLauncher getLauncher(
+        Target target,
+        TargetConfig targetConfig,
+        FedFileConfig fileConfig,
+        ErrorReporter errorReporter
+    ) {
+        switch (target) {
         case C:
         case CCPP:
             return new FedCLauncher(
-                federate.targetConfig,
+                targetConfig,
                 fileConfig,
                 errorReporter
             );
@@ -37,13 +48,13 @@ public class FedLauncherFactory {
             return null;
         case TS:
             return new FedTSLauncher(
-                federate.targetConfig,
+                targetConfig,
                 fileConfig,
                 errorReporter
             );
         case Python:
             return new FedPyLauncher(
-                federate.targetConfig,
+                targetConfig,
                 fileConfig,
                 errorReporter
             );

@@ -460,9 +460,9 @@ public class FedASTUtils {
             findUpstreamPortsInFederate(
                 connection.dstFederate,
                 connection.getSourcePortInstance(),
+                new HashSet<>(),
                 new HashSet<>()
             );
-
 
         ModelInfo info = new ModelInfo();
         for (var port: upstreamOutputPortsInFederate) {
@@ -474,12 +474,12 @@ public class FedASTUtils {
 
             // Remove the port if it introduces cycles
             info.update(
-                (Model)networkInputReaction.eContainer().eContainer(),
-                errorReporter
-            );
+                   (Model)networkInputReaction.eContainer().eContainer(),
+                    errorReporter
+                    );
             if (!info.topologyCycles().isEmpty()) {
-                networkInputReaction.getSources().remove(sourceRef);
-            }
+                    networkInputReaction.getSources().remove(sourceRef);
+                }
         }
 
     }
@@ -498,7 +498,8 @@ public class FedASTUtils {
     private static Set<PortInstance> findUpstreamPortsInFederate(
         FederateInstance federate,
         PortInstance port,
-        Set<PortInstance> visitedPorts
+        Set<PortInstance> visitedPorts,
+        Set<ReactionInstance>  reactionVisited
     ) {
         Set<PortInstance> toReturn = new HashSet<>();
         if (port == null) return toReturn;
@@ -513,13 +514,13 @@ public class FedASTUtils {
             // Follow depends on reactions
             port.getDependsOnReactions().forEach(
                 reaction -> {
-                    followReactionUpstream(federate, visitedPorts, toReturn, reaction);
+                    followReactionUpstream(federate, visitedPorts, toReturn, reaction, reactionVisited);
                 }
             );
             // Follow depends on ports
             port.getDependsOnPorts().forEach(
                 it -> toReturn.addAll(
-                    findUpstreamPortsInFederate(federate, it.instance, visitedPorts)
+                    findUpstreamPortsInFederate(federate, it.instance, visitedPorts, reactionVisited)
                 )
             );
         }
@@ -534,8 +535,11 @@ public class FedASTUtils {
         FederateInstance federate,
         Set<PortInstance> visitedPorts,
         Set<PortInstance> toReturn,
-        ReactionInstance reaction
+        ReactionInstance reaction,
+        Set<ReactionInstance>  reactionVisited
     ) {
+        if (reactionVisited.contains(reaction)) return;
+        reactionVisited.add(reaction);
         // Add triggers
         Set<VarRef> varRefsToFollow = new HashSet<>();
         varRefsToFollow.addAll(
@@ -557,11 +561,23 @@ public class FedASTUtils {
                         federate,
                         reaction.getParent()
                             .lookupPortInstance(varRef),
-                        visitedPorts
+                        visitedPorts,
+                        reactionVisited
                     )
                 )
         );
 
+        reaction.dependsOnReactions()
+                .stream()
+                .filter(
+                    // Stay within the reactor
+                    it -> it.getParent().equals(reaction.getParent())
+                )
+                .forEach(
+                    it -> followReactionUpstream(federate, visitedPorts, toReturn, it, reactionVisited)
+                );
+
+        // FIXME: This is most certainly wrong. Please fix it.
         reaction.dependentReactions()
                 .stream()
                 .filter(
@@ -569,7 +585,7 @@ public class FedASTUtils {
                     it -> it.getParent().equals(reaction.getParent())
                 )
                 .forEach(
-                    it -> followReactionUpstream(federate, visitedPorts, toReturn, it)
+                    it -> followReactionUpstream(federate, visitedPorts, toReturn, it, reactionVisited)
                 );
     }
 

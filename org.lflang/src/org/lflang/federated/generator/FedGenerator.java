@@ -3,8 +3,8 @@ package org.lflang.federated.generator;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -23,18 +23,21 @@ import org.eclipse.xtext.resource.XtextResourceSet;
 import org.eclipse.xtext.xbase.lib.CollectionLiterals;
 import org.eclipse.xtext.xbase.lib.Exceptions;
 import org.eclipse.xtext.xbase.lib.Pair;
+import org.eclipse.xtext.xbase.lib.Procedures.Procedure1;
 
 import org.lflang.ASTUtils;
 import org.lflang.ErrorReporter;
+import org.lflang.FileConfig;
 import org.lflang.LFStandaloneSetup;
+import org.lflang.Target;
 import org.lflang.TargetConfig;
 import org.lflang.TargetProperty.CoordinationType;
 import org.lflang.federated.launcher.FedLauncher;
 import org.lflang.federated.launcher.FedLauncherFactory;
 import org.lflang.generator.CodeMap;
-import org.lflang.generator.GeneratorResult;
 import org.lflang.generator.GeneratorResult.Status;
 import org.lflang.generator.GeneratorUtils;
+import org.lflang.generator.IntegratedBuilder;
 import org.lflang.generator.LFGenerator;
 import org.lflang.generator.LFGeneratorContext;
 import org.lflang.generator.MixedRadixInt;
@@ -47,10 +50,33 @@ import org.lflang.lf.Expression;
 import org.lflang.lf.Instantiation;
 import org.lflang.lf.LfFactory;
 import org.lflang.lf.Reactor;
+import org.lflang.lf.TargetDecl;
 
 import com.google.inject.Injector;
 
 public class FedGenerator {
+
+    /** Average asynchronously reported numbers and do something with them. */
+    private static class Averager {
+        private final int n;
+        private final int[] reports;
+
+        /** Create an averager of reports from {@code n} processes. */
+        public Averager(int n) {
+            this.n = n;
+            reports = new int[n];
+        }
+
+        /**
+         * Receive {@code x} from process {@code id} and invoke {@code callback}
+         * on the mean of the numbers most recently reported by the processes.
+         */
+        public synchronized void report(int id, int x, Procedure1<Integer> callback) {
+            assert 0 <= id && id < n;
+            reports[id] = x;
+            callback.apply(Arrays.stream(reports).sum() / n);
+        }
+    }
 
     private final FedFileConfig fileConfig;
     private final ErrorReporter errorReporter;
@@ -118,7 +144,7 @@ public class FedGenerator {
         // for logical connections.
         replaceFederateConnectionsWithProxies(fedReactor);
 
-        createLauncher(federates, fileConfig, errorReporter, federationRTIProperties);
+        createLauncher(fileConfig, errorReporter, federationRTIProperties);
 
         FedEmitter fedEmitter = new FedEmitter(
             fileConfig,
@@ -127,35 +153,44 @@ public class FedGenerator {
             federationRTIProperties
         );
         // Generate code for each federate
+        Map<Path, CodeMap> lf2lfCodeMapMap = new HashMap<>();
         for (FederateInstance federate : federates) {
-            fedEmitter.generateFederate(
+            lf2lfCodeMapMap.putAll(fedEmitter.generateFederate(
                 context, federate, federates.size()
-            );
+            ));
         }
 
-        Map<Path, CodeMap> codeMapMap = compileFederates(context);
+        Map<Path, CodeMap> codeMapMap = compileFederates(context, lf2lfCodeMapMap);
         context.finish(Status.COMPILED, fileConfig.name, fileConfig, codeMapMap);
         return false;
     }
 
     /**
      * Create a launcher for the federation.
-     * @param federates
      * @param fileConfig
      * @param errorReporter
      * @param federationRTIProperties
      */
     public void createLauncher(
-        List<FederateInstance> federates,
         FedFileConfig fileConfig,
         ErrorReporter errorReporter,
         LinkedHashMap<String, Object> federationRTIProperties
     ) {
-        FedLauncher launcher = FedLauncherFactory.getLauncher(
-            federates.get(0), // FIXME: This architecture only works for one target.
-            fileConfig,
-            errorReporter
-        );
+        FedLauncher launcher;
+        if (federates.size() == 0) {
+            // no federates, use target properties of main file
+            TargetDecl targetDecl = GeneratorUtils.findTarget(fileConfig.resource);
+            launcher = FedLauncherFactory.getLauncher(Target.fromDecl(targetDecl),
+                                                      targetConfig,
+                                                      fileConfig,
+                                                      errorReporter);
+        } else {
+            launcher = FedLauncherFactory.getLauncher(
+                federates.get(0), // FIXME: This architecture only works for one target.
+                fileConfig,
+                errorReporter
+            );
+        }
         try {
             launcher.createLauncher(
                 federates,
@@ -168,7 +203,7 @@ public class FedGenerator {
         // System.out.println(PythonInfoGenerator.generateFedRunInfo(fileConfig));
     }
 
-    private Map<Path, CodeMap> compileFederates(LFGeneratorContext context) {
+    private Map<Path, CodeMap> compileFederates(LFGeneratorContext context, Map<Path, CodeMap> lf2lfCodeMapMap) {
         // FIXME: Use the appropriate resource set instead of always using standalone
         Injector inj = new LFStandaloneSetup()
             .createInjectorAndDoEMFRegistration();
@@ -189,9 +224,22 @@ public class FedGenerator {
         System.out.println("******** Using "+numOfCompileThreads+" threads to compile the program.");
         Map<Path, CodeMap> codeMapMap = new HashMap<>();
 
-        for(FederateInstance fed : federates) {
+        Averager averager = new Averager(federates.size());
+        for (int i = 0; i < federates.size(); i++) {
+            FederateInstance fed = federates.get(i);
+            final int id = i;
             compileThreadPool.execute(() -> {
-                SubContext cont = new SubContext(context, 0, 0); // Is there a way to quantify progress when compilation is in parallel?
+                SubContext cont = new SubContext(context, IntegratedBuilder.VALIDATED_PERCENT_PROGRESS, 100) {
+                    @Override
+                    public ErrorReporter constructErrorReporter(FileConfig fileConfig) {
+                        return new LineAdjustingErrorReporter(errorReporter, lf2lfCodeMapMap);
+                    }
+
+                    @Override
+                    public void reportProgress(String message, int percentage) {
+                        averager.report(id, percentage, meanPercentage -> super.reportProgress(message, meanPercentage));
+                    }
+                };
                 Resource res = rs.getResource(URI.createFileURI(
                     fileConfig.getFedSrcPath().resolve(fed.name + ".lf").toAbsolutePath().toString()
                 ), true);

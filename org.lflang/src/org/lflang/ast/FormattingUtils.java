@@ -51,12 +51,12 @@ public class FormattingUtils {
      * {@code lineLength}.
      */
     public static String render(EObject object, int lineLength) {
-        return render(object, lineLength, inferTarget(object));
+        return render(object, lineLength, inferTarget(object), false);
     }
 
     /** Return a function that renders AST nodes for the given target. */
     public static Function<EObject, String> renderer(TargetDecl targetDecl) {
-        return object -> render(object, DEFAULT_LINE_LENGTH, Target.fromDecl(targetDecl));
+        return object -> render(object, DEFAULT_LINE_LENGTH, Target.fromDecl(targetDecl), true);
     }
 
     /**
@@ -64,11 +64,11 @@ public class FormattingUtils {
      * {@code lineLength}, with the assumption that the target language is
      * {@code target}.
      */
-    public static String render(EObject object, int lineLength, Target target) {
+    public static String render(EObject object, int lineLength, Target target, boolean codeMapTags) {
         MalleableString ms = ToLf.instance.doSwitch(object);
         String singleLineCommentPrefix = target == Target.Python ? "#" : "//";
         ms.findBestRepresentation(
-            () -> ms.render(INDENTATION, singleLineCommentPrefix),
+            () -> ms.render(INDENTATION, singleLineCommentPrefix, codeMapTags, null),
             r -> r.levelsOfCommentDisplacement() * BADNESS_PER_LEVEL_OF_COMMENT_DISPLACEMENT
                 + countCharactersViolatingLineLength(lineLength).applyAsLong(r.rendering())
                     * BADNESS_PER_CHARACTER_VIOLATING_LINE_LENGTH
@@ -77,7 +77,7 @@ public class FormattingUtils {
             INDENTATION,
             singleLineCommentPrefix
         );
-        var optimizedRendering = ms.render(INDENTATION, singleLineCommentPrefix);
+        var optimizedRendering = ms.render(INDENTATION, singleLineCommentPrefix, codeMapTags, null);
         List<String> comments = optimizedRendering.unplacedComments().toList();
         return comments.stream().allMatch(String::isBlank) ? optimizedRendering.rendering()
             : lineWrapComments(comments, lineLength, singleLineCommentPrefix)

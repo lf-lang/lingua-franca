@@ -146,10 +146,6 @@ public class CExtension implements FedTargetExtension {
 
     /**
      * Generate a docker file.
-     *
-     * @param federate
-     * @param fileConfig
-     * @param federationRTIProperties
      */
     private void generateDockerFile(FederateInstance federate, FedFileConfig fileConfig, LinkedHashMap<String, Object> federationRTIProperties) {
         // Docker related paths
@@ -165,7 +161,7 @@ public class CExtension implements FedTargetExtension {
             dockerGenerator.setHost(federationRTIProperties.get("host"));
             try {
                 dockerGenerator.writeDockerFiles(
-                    fileConfig.getFedGenPath().resolve("docker-compose.yml"));
+                    fileConfig.getFedSrcGenPath().resolve("docker-compose.yml"));
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
