@@ -33,7 +33,7 @@ public class CCppTest extends TestBase {
         runTestsForTargets(Message.DESC_AS_CCPP, CCppTest::isExcludedFromCCpp,
                            it -> ASTUtils.changeTargetName(it.fileConfig.resource,
                                                            Target.CCPP.getDisplayName()),
-                           TestLevel.EXECUTION, true);
+                           true);
     }
 
     /**

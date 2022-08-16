@@ -35,6 +35,7 @@ import org.lflang.Target;
 import org.lflang.lf.Reactor;
 import org.lflang.lf.TargetDecl;
 import org.lflang.tests.LFTest.Result;
+import org.lflang.tests.TestBase.TestLevel;
 
 /**
  * A registry to retrieve tests from, organized by target and category.
@@ -150,7 +151,7 @@ public class TestRegistry {
         DOCKER(true),
         DOCKER_FEDERATED(true, "docker" + File.separator + "federated"),
         SERIALIZATION(false),
-        ARDUINO(false),
+        ARDUINO(false, TestLevel.BUILD),
         TARGET(false);
         
         /**
@@ -158,6 +159,7 @@ public class TestRegistry {
          */
         public final boolean isCommon;
         public final String path;
+        public final TestLevel level ;
         
         /**
          * Create a new test category.
@@ -165,6 +167,16 @@ public class TestRegistry {
         TestCategory(boolean isCommon) {
             this.isCommon = isCommon;
             this.path = this.name().toLowerCase();
+            this.level = TestLevel.EXECUTION;
+        }
+
+        /**
+         * Create a new test category.
+         */
+        TestCategory(boolean isCommon, TestLevel level) {
+            this.isCommon = isCommon;
+            this.path = this.name().toLowerCase();
+            this.level = level;
         }
 
         /**
@@ -173,6 +185,7 @@ public class TestRegistry {
         TestCategory(boolean isCommon, String path) {
             this.isCommon = isCommon;
             this.path = path;
+            this.level = TestLevel.EXECUTION;
         }
 
         public String getPath() {

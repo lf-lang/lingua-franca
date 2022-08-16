@@ -90,7 +90,7 @@ public class CTest extends RuntimeTest {
         Assumptions.assumeFalse(isWindows(), Message.NO_WINDOWS_SUPPORT);
         super.runTestsFor(List.of(Target.C),
                           Message.DESC_ARDUINO,
-                          TestCategory.ARDUINO::equals, Configurators::noChanges, TestLevel.BUILD,
+                          TestCategory.ARDUINO::equals, Configurators::noChanges,
                           false);
     }
 

@@ -103,6 +103,24 @@ public abstract class TestBase {
      *
      */
     public enum TestLevel {VALIDATION, CODE_GEN, BUILD, EXECUTION}
+
+    /**
+     * Static function for converting a path to its associated test level.
+     * @author Anirudh Rengarajan <arengarajan@berkeley.edu>
+     */
+    public static TestLevel pathToLevel(Path path) {
+        while(path.getParent() != null) {
+            String name = path.getFileName().toString();
+            for (var category: TestCategory.values()) {
+                if (category.name().equalsIgnoreCase(name)) {
+                    return category.level;
+                }
+            }
+            path = path.getParent();
+        }
+        return TestLevel.EXECUTION;
+    }
+
     /**
      * A collection messages often used throughout the test package.
      *
@@ -166,7 +184,6 @@ public abstract class TestBase {
     protected final void runTestsAndPrintResults(Target target,
                                                  Predicate<TestCategory> selected,
                                                  Configurator configurator,
-                                                 TestLevel level,
                                                  boolean copy) {
         var categories = Arrays.stream(TestCategory.values()).filter(selected)
                 .collect(Collectors.toList());
@@ -174,7 +191,7 @@ public abstract class TestBase {
             System.out.println(category.getHeader());
             var tests = TestRegistry.getRegisteredTests(target, category, copy);
             try {
-                validateAndRun(tests, configurator, level);
+                validateAndRun(tests, configurator, category.level);
             } catch (IOException e) {
                 throw new RuntimeIOException(e);
             }
@@ -197,11 +214,10 @@ public abstract class TestBase {
     protected void runTestsForTargets(String description,
                                       Predicate<TestCategory> selected,
                                       Configurator configurator,
-                                      TestLevel level,
                                       boolean copy) {
         for (Target target : this.targets) {
             runTestsFor(List.of(target), description, selected,
-                        configurator, level, copy);
+                        configurator, copy);
         }
     }
 
@@ -221,11 +237,10 @@ public abstract class TestBase {
                                String description,
                                Predicate<TestCategory> selected,
                                Configurator configurator,
-                               TestLevel level,
                                boolean copy) {
         for (Target target : subset) {
             printTestHeader(target, description);
-            runTestsAndPrintResults(target, selected, configurator, level, copy);
+            runTestsAndPrintResults(target, selected, configurator, copy);
         }
     }
 
