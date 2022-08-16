@@ -59,7 +59,7 @@ jobs:
   
   # Run the CCpp integration tests.
   ccpp-tests:
-    uses: lf-lang/lingua-franca/.github/workflows/c-tests.yml@master
+    uses: lf-lang/lingua-franca/.github/workflows/c-tests.yml@arduino-support
     with:
       use-cpp: true
     needs: cancel
