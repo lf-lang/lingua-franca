@@ -4,6 +4,7 @@ import org.lflang.ErrorReporter
 import org.lflang.ASTUtils
 import org.lflang.federated.FederateInstance
 import org.lflang.generator.PrependOperator
+import org.lflang.generator.PrependOperator.rangeTo
 import org.lflang.isBank
 import org.lflang.isMultiport
 import org.lflang.lf.*
@@ -169,31 +170,12 @@ class TSReactionGenerator(
         }
     }
 
-    private fun generateReactionSignatureElementForPortEffect(effect: VarRef): String {
+    private fun generateReactionSignatureElementForPortEffect(effect: VarRef, isMutation: Boolean): String {
         val outputPort = effect.variable as Port
         val portClassType = if (outputPort.isMultiport) {
-            "MultiReadWrite<${getPortType(effect.variable as Port)}>"
+            (if (isMutation) "__WritableMultiPort" else "MultiReadWrite") + "<${getPortType(effect.variable as Port)}>"
         } else {
-            "ReadWrite<${getPortType(effect.variable as Port)}>"
-        }
-
-        return if (effect.container != null && effect.container.isBank) {
-            "Array<${portClassType}>"
-        } else {
-            portClassType
-        }
-    }
-
-    /**
-     * Generate the mutation's effect type as "WritablePort,"
-     * which differs from the reaction's effect type.
-     */
-    private fun generateMutationSignatureElementForPortEffect(effect: VarRef): String {
-        val outputPort = effect.variable as Port
-        val portClassType = if (outputPort.isMultiport) {
-            "__WritableMultiPort<${getPortType(effect.variable as Port)}>"
-        } else {
-            "__WritablePort<${getPortType(effect.variable as Port)}>"
+            (if (isMutation) "__WritablePort" else "ReadWrite") + "<${getPortType(effect.variable as Port)}>"
         }
 
         return if (effect.container != null && effect.container.isBank) {
@@ -356,11 +338,7 @@ class TSReactionGenerator(
                 reactSignatureElement += ": Sched<" + getActionType(effect.variable as Action) + ">"
                 schedActionSet.add(effect.variable as Action)
             } else if (effect.variable is Port){
-                if (reaction.isMutation()) {
-                    reactSignatureElement += ": ${generateMutationSignatureElementForPortEffect(effect)}"
-                } else {
-                    reactSignatureElement += ": ${generateReactionSignatureElementForPortEffect(effect)}"
-                }
+                reactSignatureElement += ": ${generateReactionSignatureElementForPortEffect(effect, reaction.isMutation())}"
                 reactEpilogue.add(generateReactionEpilogueForPortEffect(effect))
             }
 
