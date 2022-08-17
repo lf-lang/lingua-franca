@@ -4,7 +4,6 @@ import org.lflang.ErrorReporter
 import org.lflang.ASTUtils
 import org.lflang.federated.FederateInstance
 import org.lflang.generator.PrependOperator
-import org.lflang.generator.PrependOperator.rangeTo
 import org.lflang.isBank
 import org.lflang.isMultiport
 import org.lflang.lf.*
