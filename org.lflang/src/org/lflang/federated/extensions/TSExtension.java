@@ -60,7 +60,13 @@ public class TSExtension implements FedTargetExtension {
 
     @Override
     public String generateNetworkInputControlReactionBody(int receivingPortID, TimeValue maxSTP, CoordinationType coordination) {
-        return "// TODO(hokeun): Figure out what to do for generateNetworkInputControlReactionBody";
+        return """
+        if (this.util.getCurrentPortStatus(%d) === 1) {
+            return true;
+        } else {
+            return false;
+        }
+        """.formatted(receivingPortID);
     }
 
     @Override
