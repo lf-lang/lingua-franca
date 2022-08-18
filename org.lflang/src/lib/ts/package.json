@@ -8,8 +8,9 @@
     },
     "license": "BSD-2-Clause",
     "dependencies": {
-        "reactor-ts": "file:../../lib/reactor-ts",
-        "command-line-usage": "^6.1.0"
+        "@types/reactor-ts": "file:../../lib/reactor-ts",
+        "command-line-usage": "^6.1.0",
+        "command-line-args": "^5.1.1"
     },
     "devDependencies": {
         "@babel/cli": "^7.8.4",
