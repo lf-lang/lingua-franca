@@ -1114,4 +1114,17 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
      * Cached reaction graph containing reactions that form a causality loop.
      */
     private ReactionInstanceGraph cachedReactionLoopGraph = null;
+    
+    /**
+     * Return true if this is a generated delay reactor that originates from
+     * an "after" delay on a connection.
+     * 
+     * @return True if this is a generated delay, false otherwise.
+     */
+    public boolean isGeneratedDelay() {
+        if (this.definition.getReactorClass().getName().contains(GeneratorBase.GEN_DELAY_CLASS_NAME)) {
+            return true;
+        }
+        return false;
+    }
 }
