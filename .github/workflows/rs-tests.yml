@@ -27,6 +27,17 @@ jobs:
       - name: Prepare build environment
         uses: ./.github/actions/prepare-build-env
       - name: Setup Rust
+        id: rustup
+        uses: ATiltedTree/setup-rust@v1
+        with:
+          rust-version: ${{ matrix.rust }}
+          components: clippy
+        continue-on-error: true
+      - name: Delete rustup cache
+        run: rm -rf ~/.rustup
+        if: ${{ steps.rustup.outcome }} != "success"
+      - name: Setup Rust (again)
+        if: ${{ steps.rustup.outcome }} != "success"
         uses: ATiltedTree/setup-rust@v1
         with:
           rust-version: ${{ matrix.rust }}
