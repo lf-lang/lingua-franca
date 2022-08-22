@@ -1,9 +1,16 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE log4j:configuration SYSTEM "log4j.dtd" >
 <log4j:configuration>
-
     <category name="org.eclipse.xtext.linking.impl">
         <priority value="off"/>
     </category>
-
+    <category name="org.eclipse.xtext.validation">
+        <priority value="off"/>
+    </category>
+    <category name="org.eclipse.xtext.parser.antlr">
+        <priority value="off"/>
+    </category>
+    <category name="org.eclipse.xtext.util">
+        <priority value="off"/>
+    </category>
 </log4j:configuration>
