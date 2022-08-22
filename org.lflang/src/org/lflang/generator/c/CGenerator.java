@@ -92,6 +92,7 @@ import org.lflang.lf.Instantiation;
 import org.lflang.lf.Mode;
 import org.lflang.lf.Model;
 import org.lflang.lf.Output;
+import org.lflang.lf.Port;
 import org.lflang.lf.Preamble;
 import org.lflang.lf.Reaction;
 import org.lflang.lf.Reactor;
@@ -1387,7 +1388,7 @@ public class CGenerator extends GeneratorBase {
             // Generate one struct for each contained reactor that interacts.
             body.pr("struct {");
             body.indent();
-            for (org.lflang.lf.Port port : contained.portsOfInstance(containedReactor)) {
+            for (Port port : contained.portsOfInstance(containedReactor)) {
                 if (port instanceof Input) {
                     // If the variable is a multiport, then the place to store the data has
                     // to be malloc'd at initialization.

@@ -134,8 +134,7 @@ public class CodeBuilder {
             // Extract the filename from eResource, an astonishingly difficult thing to do.
             URI resolvedURI = CommonPlugin.resolve(eObject.eResource().getURI());
             // pr(output, "#line " + (node.getStartLine() + offset) + ' "' + FileConfig.toFileURI(fileConfig.srcFile) + '"')
-            // FIXME: Re-enable line directives before merging
-            // pr("#line " + (node.getStartLine() + offset) + " \"" + resolvedURI + "\"");
+            pr("#line " + (node.getStartLine() + offset) + " \"" + resolvedURI + "\"");
         }
     }
 

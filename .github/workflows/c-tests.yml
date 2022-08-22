@@ -21,7 +21,7 @@ jobs:
   run:
     strategy:
       matrix:
-        platform: [windows-latest]
+        platform: [ubuntu-latest, macos-latest, windows-latest]
     runs-on: ${{ matrix.platform }}
     steps:
       - name: Check out lingua-franca repository
