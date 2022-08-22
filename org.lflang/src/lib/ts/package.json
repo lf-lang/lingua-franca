@@ -2,12 +2,14 @@
     "name": "LinguaFrancaDefault",
     "version": "0.0.1",
     "description": "A default Lingua Franca project for the TypeScript target",
+    "type": "commonjs",
     "repository": {
         "type": "git",
         "url": "https://github.com/icyphy/lingua-franca"
     },
     "license": "BSD-2-Clause",
     "dependencies": {
+        "reactor-ts": "file:../../lib/reactor-ts",
         "@types/reactor-ts": "file:../../lib/reactor-ts",
         "command-line-usage": "^6.1.0",
         "command-line-args": "^5.1.1"
