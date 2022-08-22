@@ -41,7 +41,7 @@ jobs:
           components: clippy
         continue-on-error: true
       - name: Delete rustup cache
-        run: rm -rf ~/.rustup
+        run: rm -r ~/.rustup
         if: ${{ steps.rustup.outcome }} != "success"
       - name: Setup Rust (again)
         if: ${{ steps.rustup.outcome }} != "success"
