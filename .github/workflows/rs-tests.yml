@@ -26,6 +26,13 @@ jobs:
           ref: ${{ inputs.compiler-ref }}
       - name: Prepare build environment
         uses: ./.github/actions/prepare-build-env
+      - name: Check out specific ref of reactor-rs
+        uses: actions/checkout@v3
+        with:
+          repository: lf-lang/reactor-rs
+          path: org.lflang/src/lib/rs/reactor-rs
+          ref: ${{ inputs.runtime-ref }}
+        if: ${{ inputs.runtime-ref }}
       - name: Setup Rust
         id: rustup
         uses: ATiltedTree/setup-rust@v1
@@ -42,10 +49,6 @@ jobs:
         with:
           rust-version: ${{ matrix.rust }}
           components: clippy
-      - name: Set rust runtime version
-        run: |
-            echo ${{ inputs.runtime-ref }} > org.lflang/src/org/lflang/generator/rust/rust-runtime-version.txt
-        if: ${{ inputs.runtime-ref }}  
       - name: Run Rust tests
         run: |
           ./gradlew test --tests org.lflang.tests.runtime.RustTest.*
