@@ -36,6 +36,6 @@
     },
     "scripts": {
         "check-types": "tsc",
-        "build": "rimraf dist && babel src --out-dir dist --extensions .ts,.js"
+        "build": "npx rimraf dist && npx babel src --out-dir dist --extensions .ts,.js"
     }
 }
