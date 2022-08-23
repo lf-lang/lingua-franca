@@ -629,7 +629,7 @@ public abstract class TestBase {
 
         for (var test : tests) {
             try {
-                redirectOutputs(test);
+                // redirectOutputs(test);
                 var context = configure(test, configurator, level);
                 validate(test, context);
                 GeneratorResult result = GeneratorResult.NOTHING;
