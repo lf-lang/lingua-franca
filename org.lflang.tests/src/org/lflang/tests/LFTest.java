@@ -15,7 +15,7 @@ import org.lflang.generator.LFGeneratorContext;
 
 /**
  * Information about an indexed Lingua Franca test program.
- * 
+ *
  * @author Marten Lohstroh <marten@berkeley.edu>
  *
  */
@@ -29,7 +29,7 @@ public class LFTest implements Comparable<LFTest> {
 
     /** The result of the test. */
     public Result result = Result.UNKNOWN;
-    
+
     /** The exit code of the test. **/
     public String exitValue = "?";
 
@@ -228,6 +228,7 @@ public class LFTest implements Comparable<LFTest> {
                     int len;
                     char[] buf = new char[1024];
                     while ((len = reader.read(buf)) > 0) {
+                        System.out.print(new String(buf));
                         builder.append(buf, 0, len);
                     }
                 } catch (IOException e) {
