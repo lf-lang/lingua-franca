@@ -1,0 +1,74 @@
+target Python {
+    keepalive: true,
+    threading: true,
+    files: [
+        "../../../src/federated/include/hello.py",
+        "../../../src/include/hello.py",
+        "include/federated"
+    ],
+    compile-definitions: {
+        EXECUTABLE_PREAMBLE: "",
+        WORKERS_NEEDED_FOR_FEDERATE: "0",
+        NUMBER_OF_FEDERATES: "2",
+        FEDERATED: "",
+        FEDERATED_CENTRALIZED: ""
+    },
+    timeout: 2 sec,
+    _fed_setup: "include/_s_preamble.c"
+}
+import Print from "../../../src/StructPrint.lf"
+
+NONE preamble {=
+import hello
+=}
+
+
+main reactor  {
+
+    s = new Print()
+    
+    logical action outputControlReactionTrigger
+    
+    
+    @language("C")
+    @_fed_send
+    reaction(s.out) {=
+        // **** This reaction is unordered.
+        // Acquire the GIL (Global Interpreter Lock) to be able to call Python APIs.
+        PyGILState_STATE gstate;
+        gstate = PyGILState_Ensure();
+        // **** This reaction is unordered.
+        // Sending from s.out in federate s to p._in in federate p
+        if (!s.out->is_present) return;
+        if (global_pickler == NULL) lf_print_error_and_exit("The pickle module is not loaded.");
+        PyObject* serialized_pyobject = PyObject_CallMethod(global_pickler, "dumps", "O", s.out->value);
+        if (serialized_pyobject == NULL) {
+            if (PyErr_Occurred()) PyErr_Print();
+            lf_print_error_and_exit("Could not serialize serialized_pyobject.");
+        }
+        Py_buffer serialized_message;
+        int returnValue = PyBytes_AsStringAndSize(serialized_pyobject, &serialized_message.buf, &serialized_message.len);
+        if (returnValue == -1) {
+            if (PyErr_Occurred()) PyErr_Print();
+            lf_print_error_and_exit("Could not serialize serialized_message.");
+        }
+        size_t message_length = serialized_message.len;
+        send_timed_message(NEVER, MSG_TYPE_TAGGED_MESSAGE, 0, 1, "federate 1 via the RTI", message_length, serialized_message.buf);
+        /* Release the thread. No Python API allowed beyond this point. */
+        PyGILState_Release(gstate);
+    =}
+    @language("C")
+    @_fed_out_ctrl
+    reaction(outputControlReactionTrigger) s.out {=
+        // **** This reaction is unordered.
+        // If the output port has not been lf_set for the current logical time,
+        // send an ABSENT message to the receiving federate
+        LF_PRINT_LOG("Contemplating whether to send port "
+                  "absent for port %d to federate %d.",
+                  0, 1);
+        if (s.out == NULL || !s.out->is_present) {
+            // The output port is NULL or it is not present.
+            send_port_absent_to_federate(NEVER, 0, 1);
+        }
+    =}
+}

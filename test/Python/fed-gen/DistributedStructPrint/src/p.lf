@@ -1,0 +1,63 @@
+target Python {
+    keepalive: true,
+    threading: true,
+    files: [
+        "../../../src/federated/include/hello.py",
+        "../../../src/include/hello.py",
+        "include/federated"
+    ],
+    compile-definitions: {
+        EXECUTABLE_PREAMBLE: "",
+        WORKERS_NEEDED_FOR_FEDERATE: "1",
+        NUMBER_OF_FEDERATES: "2",
+        FEDERATED: "",
+        FEDERATED_CENTRALIZED: ""
+    },
+    timeout: 2 sec,
+    _fed_setup: "include/_p_preamble.c"
+}
+import Check from "../../../src/StructPrint.lf"
+
+NONE preamble {=
+import hello
+=}
+
+
+main reactor  {
+
+    p = new Check()
+    
+    logical action inputControlReactionTrigger
+    logical action networkMessage
+    
+    
+    @language("C")
+    @_fed_inp_ctrl
+    reaction(inputControlReactionTrigger) -> p._in {=
+        // **** This reaction is unordered.
+        interval_t max_STP = 0LL;
+        // Wait until the port status is known
+        wait_until_port_status_known(0, max_STP);
+    =}
+    @language("C")
+    @_fed_recv
+    reaction(networkMessage) -> p._in {=
+        // **** This reaction is unordered.
+        // Acquire the GIL (Global Interpreter Lock) to be able to call Python APIs.
+        PyGILState_STATE gstate;
+        gstate = PyGILState_Ensure();
+        // **** This reaction is unordered.
+        p._in->physical_time_of_arrival = self->_lf__networkMessage.physical_time_of_arrival;
+        PyObject* message_byte_array = PyBytes_FromStringAndSize((char*)networkMessage->token->value, networkMessage->token->length);
+        Py_XINCREF(message_byte_array);
+        PyObject* deserialized_message = PyObject_CallMethod(global_pickler, "loads", "O", message_byte_array);
+        if (deserialized_message == NULL) {
+            if (PyErr_Occurred()) PyErr_Print();
+            lf_print_error_and_exit("Could not deserialize deserialized_message.");
+        }
+        Py_XDECREF(message_byte_array);
+        lf_set(p._in, deserialized_message);
+        /* Release the thread. No Python API allowed beyond this point. */
+        PyGILState_Release(gstate);
+    =}
+}
