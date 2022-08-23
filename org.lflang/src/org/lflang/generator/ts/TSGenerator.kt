@@ -57,7 +57,6 @@ import org.lflang.lf.Type
 import org.lflang.lf.VarRef
 import org.lflang.scoping.LFGlobalScopeProvider
 import org.lflang.util.FileUtil
-import java.nio.file.FileSystems
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.StandardCopyOption
@@ -83,7 +82,7 @@ class TSGenerator(
 ) : GeneratorBase(tsFileConfig, errorReporter) {
 
     companion object {
-        /** Path to the Cpp lib directory (relative to class path)  */
+        /** Path to the TS lib directory (relative to class path)  */
         const val LIB_PATH = "/lib/ts"
 
         /**
@@ -93,15 +92,6 @@ class TSGenerator(
         val CONFIG_FILES = arrayOf("package.json", "tsconfig.json", "babel.config.js", ".eslintrc.json")
 
         val RT_CONFIG_FILES = arrayOf("package.json", "package-lock.json", "tsconfig.json", ".babelrc")
-
-        /**
-         * Files to be copied from the reactor-ts submodule into the generated
-         * source directory.
-         */
-        val RUNTIME_FILES = arrayOf("action.ts", "bank.ts", "cli.ts", "command-line-args.d.ts",
-            "command-line-usage.d.ts", "component.ts", "event.ts", "federation.ts", "internal.ts",
-            "reaction.ts", "reactor.ts", "microtime.d.ts", "multiport.ts", "nanotimer.d.ts", "port.ts",
-            "state.ts", "strings.ts", "time.ts", "trigger.ts", "types.ts", "ulog.d.ts", "util.ts", "index.ts")
 
         private val VG =
             ExpressionGenerator(::timeInTargetLanguage) { param -> "this.${param.name}.get()" }
@@ -217,16 +207,15 @@ class TSGenerator(
      * Copy the TypeScript runtime so that it is accessible to the generated code.
      */
     private fun copyRuntime() {
-        for (runtimeFile in RUNTIME_FILES) {
-            FileUtil.copyFileFromClassPath(
-                "$LIB_PATH/reactor-ts/src/core/$runtimeFile",
-                tsFileConfig.tsRuntimeSrcCorePath().resolve(runtimeFile)
-            )
-        }
+        FileUtil.copyDirectoryFromClassPath(
+            "$LIB_PATH/reactor-ts/src/core",
+            tsFileConfig.reactorTsPath().resolve("src").resolve("core"),
+            true
+        )
         for (configFile in RT_CONFIG_FILES) {
             FileUtil.copyFileFromClassPath(
                 "$LIB_PATH/reactor-ts/$configFile",
-                tsFileConfig.tsRuntimePath().resolve(configFile)
+                tsFileConfig.reactorTsPath().resolve(configFile)
             )
         }
     }
@@ -235,7 +224,7 @@ class TSGenerator(
         (commandFactory.createCommand(
             "npm",
             listOf("install"),
-            tsFileConfig.tsRuntimePath(),
+            tsFileConfig.reactorTsPath(),
             false // only produce a warning if command is not found
         )).run()
     }
