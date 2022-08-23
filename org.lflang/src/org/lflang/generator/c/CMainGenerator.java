@@ -37,7 +37,7 @@ public class CMainGenerator {
      */
     private String generateMainFunction() {
         return String.join("\n",
-            "int main(int argc, char* argv[]) {",
+            "int main(int argc, const char* argv[]) {",
             "    return lf_reactor_c_main(argc, argv);",
             "}"
         );
@@ -53,7 +53,7 @@ public class CMainGenerator {
         // so start with that.
         return runCommand.size() > 0 ?
             String.join("\n",
-                "char* _lf_default_argv[] = { " +
+                "const char* _lf_default_argv[] = { " +
                         StringUtil.addDoubleQuotes(
                             StringUtil.joinObjects(runCommand,
                                 StringUtil.addDoubleQuotes(", ")))+" };",
