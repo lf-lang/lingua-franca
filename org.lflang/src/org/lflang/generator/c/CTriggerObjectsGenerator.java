@@ -773,7 +773,7 @@ public class CTriggerObjectsGenerator {
         var init = new CodeBuilder();
 
         init.startScopedBlock();
-        init.pr("int count = 0;");
+        init.pr("int count = 0; SUPPRESS_UNUSED_WARNING(count);");
         for (PortInstance effect : Iterables.filter(reaction.effects, PortInstance.class)) {
             // Create the entry in the output_produced array for this port.
             // If the port is a multiport, then we need to create an entry for each

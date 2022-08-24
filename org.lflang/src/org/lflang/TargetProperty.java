@@ -252,28 +252,8 @@ public enum TargetProperty {
                     return e;
                 }
             },
-            (config, value, err) -> {
-                if (value.getLiteral() != null) {
-                    if (ASTUtils.toBoolean(value)) {
-                        config.dockerOptions = new DockerOptions();
-                    } else {
-                        config.dockerOptions = null;
-                    }
-                } else {
-                    config.dockerOptions = new DockerOptions();
-                    for (KeyValuePair entry : value.getKeyvalue().getPairs()) {
-                        DockerOption option = (DockerOption) DictionaryType.DOCKER_DICT
-                                .forName(entry.getName());
-                        switch (option) {
-                            case FROM:
-                                config.dockerOptions.from = ASTUtils.elementToSingleString(entry.getValue());
-                                break;
-                            default:
-                                break;
-                        }
-                    }
-                }
-            }),
+            (config, value, err) -> setDockerProperty(config, value),
+            (config, value, err) -> setDockerProperty(config, value)),
     
     /**
      * Directive for specifying a path to an external runtime to be used for the
@@ -329,6 +309,10 @@ public enum TargetProperty {
     COORDINATION("coordination", UnionType.COORDINATION_UNION,
             Arrays.asList(Target.C, Target.CCPP, Target.Python),
             (config) -> ASTUtils.toElement(config.coordination.toString()),
+            (config, value, err) -> {
+                config.coordination = (CoordinationType) UnionType.COORDINATION_UNION
+                        .forName(ASTUtils.elementToSingleString(value));
+            },
             (config, value, err) -> {
                 config.coordination = (CoordinationType) UnionType.COORDINATION_UNION
                         .forName(ASTUtils.elementToSingleString(value));
@@ -718,13 +702,39 @@ public enum TargetProperty {
      * Directs the C or Python target to include the associated C file used for
      * setting up federated execution before processing the first tag.
      */
-    FED_SETUP("_fed_setup", FILES.type,
+    FED_SETUP("_fed_setup", PrimitiveType.FILE,
               Arrays.asList(Target.C, Target.CCPP, Target.Python),
               (config) -> ASTUtils.toElement(config.fedSetupPreamble),
               (config, value, err) ->
                   config.fedSetupPreamble = StringUtil.removeQuotes(ASTUtils.elementToSingleString(value))
     )
     ;
+
+    /**
+     * Update {@code config}.dockerOptions based on value.
+     */
+    private static void setDockerProperty(TargetConfig config, Element value) {
+        if (value.getLiteral() != null) {
+            if (ASTUtils.toBoolean(value)) {
+                config.dockerOptions = new DockerOptions();
+            } else {
+                config.dockerOptions = null;
+            }
+        } else {
+            config.dockerOptions = new DockerOptions();
+            for (KeyValuePair entry : value.getKeyvalue().getPairs()) {
+                DockerOption option = (DockerOption) DictionaryType.DOCKER_DICT
+                        .forName(entry.getName());
+                switch (option) {
+                    case FROM:
+                        config.dockerOptions.from = ASTUtils.elementToSingleString(entry.getValue());
+                        break;
+                    default:
+                        break;
+                }
+            }
+        }
+    }
 
     /**
      * String representation of this target property.

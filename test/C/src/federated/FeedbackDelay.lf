@@ -11,15 +11,15 @@ reactor PhysicalPlant {
     state previous_sensor_time: time(0)
 
     reaction(t) -> sensor {=
-        SET(sensor, 42);
+        lf_set(sensor, 42);
         self->previous_sensor_time = self->last_sensor_time;
-        self->last_sensor_time = get_physical_time();
+        self->last_sensor_time = lf_time_physical();
     =}
 
     reaction(control) {=
-        instant_t control_time = get_physical_time();
+        instant_t control_time = lf_time_physical();
         info_print("Latency %lld.", control_time - self->previous_sensor_time);
-        info_print("Logical time: %lld.", get_elapsed_logical_time());
+        info_print("Logical time: %lld.", lf_time_logical_elapsed());
     =} STP(33 msec) {= warning_print("STP violation."); =}
 }
 
@@ -37,10 +37,10 @@ reactor Controller {
 
     reaction(sensor) -> control, request_for_planning {=
         if (!self->first) {
-            SET(control, self->latest_control);
+            lf_set(control, self->latest_control);
         }
         self->first = false;
-        SET(request_for_planning, sensor->value);
+        lf_set(request_for_planning, sensor->value);
     =}
 }
 
@@ -50,7 +50,7 @@ reactor Planner {
 
     reaction(request) -> response {=
         lf_nanosleep(MSEC(10));
-        SET(response, request->value);
+        lf_set(response, request->value);
     =}
 }
 

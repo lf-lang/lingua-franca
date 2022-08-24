@@ -4,8 +4,6 @@
  *
  * @author Soroush Bateni
  */
-# reason for failing: get_microstep() and lf.tag_compare() are not not supported
-# in python target
 target Python {
     coordination: decentralized
 }

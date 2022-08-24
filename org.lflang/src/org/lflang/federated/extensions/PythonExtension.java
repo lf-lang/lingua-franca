@@ -36,6 +36,7 @@ import java.util.List;
 import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
 import org.lflang.InferredType;
+import org.lflang.Target;
 import org.lflang.TargetConfig;
 import org.lflang.TargetProperty;
 import org.lflang.TargetProperty.CoordinationType;
@@ -217,5 +218,10 @@ public class PythonExtension extends CExtension {
     @Override
     protected DockerGeneratorBase newDockerGeneratorInstance(FederateInstance federate) {
         return new PythonDockerGenerator(true, federate.targetConfig);
+    }
+
+    @Override
+    public Target getNetworkReactionTarget() {
+        return Target.C;
     }
 }

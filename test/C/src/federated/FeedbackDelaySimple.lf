@@ -20,7 +20,7 @@ reactor Loop {
         self->count++;
     =}
 
-    reaction(t) -> out {= SET(out, self->count); =}
+    reaction(t) -> out {= lf_set(out, self->count); =}
 
     reaction(shutdown) {=
         if (self->count != 11) {

@@ -15,7 +15,7 @@ import TestCount from "../lib/TestCount.lf"
 preamble {=
     int _counter = 1;
     void callback(void *a) {
-        schedule_int(a, 0, _counter++);
+        lf_schedule_int(a, 0, _counter++);
     }
     // Simulate time passing before a callback occurs.
     void* take_time(void* a) {
@@ -38,7 +38,7 @@ reactor WithPhysicalAction {
         lf_thread_create(&self->thread_id, &take_time, act);
     =}
 
-    reaction(act) -> out {= SET(out, act->value); =}
+    reaction(act) -> out {= lf_set(out, act->value); =}
 }
 
 federated reactor {

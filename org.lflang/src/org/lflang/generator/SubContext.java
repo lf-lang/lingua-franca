@@ -19,6 +19,7 @@ public class SubContext implements LFGeneratorContext {
     private final LFGeneratorContext containingContext;
     private final int startPercentProgress;
     private final int endPercentProgress;
+    private GeneratorResult result = null;
 
     /**
      * Initializes the context within {@code containingContext} of the process that extends from
@@ -68,12 +69,12 @@ public class SubContext implements LFGeneratorContext {
 
     @Override
     public void finish(GeneratorResult result) {
-        // Do nothing. A build process is not finished until the outermost containing context is finished.
+        this.result = result;
     }
 
     @Override
     public GeneratorResult getResult() {
-        throw new UnsupportedOperationException("Only the outermost context can have a final result.");
+        return result;
     }
 
     @Override

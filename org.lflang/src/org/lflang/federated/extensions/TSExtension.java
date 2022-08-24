@@ -80,11 +80,6 @@ public class TSExtension implements FedTargetExtension {
     }
 
     @Override
-    public Target getNetworkReactionTarget() {
-        return Target.TS;
-    }
-
-    @Override
     public String getNetworkBufferType() {
         return "";
     }

@@ -128,9 +128,12 @@ public class ToLf extends LfSwitch<MalleableString> {
         allComments.addAll(followingComments);
         if (allComments.stream().anyMatch(s -> KEEP_FORMAT_COMMENT.matcher(s).matches())) {
             return MalleableString.anyOf(StringUtil.trimCodeBlock(node.getText(), 0))
-                .addComments(followingComments.stream());
+                .addComments(followingComments.stream())
+                .setSourceEObject(eObject);
         }
-        return super.doSwitch(eObject).addComments(allComments.stream());
+        return super.doSwitch(eObject)
+            .addComments(allComments.stream())
+            .setSourceEObject(eObject);
     }
 
     /**
