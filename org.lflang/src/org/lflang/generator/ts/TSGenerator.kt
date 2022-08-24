@@ -162,7 +162,11 @@ class TSGenerator(
 
         val codeMaps = HashMap<Path, CodeMap>()
         val dockerGenerator = TSDockerGenerator(false)
-        generateCode(codeMaps, dockerGenerator, TSFederateConfig.createFederateConfig(resource.model.preambles))
+        val federateConfig = TSFederateConfig.createFederateConfig(resource.model.preambles)
+        if (federateConfig != null) {
+            targetConfig.keepalive = true;
+        }
+        generateCode(codeMaps, dockerGenerator, federateConfig)
         if (targetConfig.dockerOptions != null) {
             dockerGenerator.writeDockerFiles(tsFileConfig.tsDockerComposeFilePath())
         }
