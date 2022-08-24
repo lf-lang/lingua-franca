@@ -12,6 +12,7 @@
         "strictBindCallApply": true,
         "strictNullChecks": true,
         "strictFunctionTypes": true,
+        "typeRoots": ["./node_modules/@types/", "./node_modules/reactor-ts/src/core"]
     },
     "include": [
         "src/**/*"
