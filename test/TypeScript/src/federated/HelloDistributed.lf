@@ -6,9 +6,7 @@
  *  @author Edward A. Lee
  *  @author Hokeun Kim
  */
-target TypeScript {
-    timeout: 2 secs
-};
+target TypeScript;
 
 reactor Source {
     output out:string;
@@ -26,7 +24,7 @@ reactor Destination {
         console.log("Destination started.");
     =}
     reaction(inp) {=
-        console.log(`At logical time ${util.getElapsedLogicalTime()}, destination received: $inp`);
+        console.log(`At logical time ${util.getElapsedLogicalTime()}, destination received: ` + inp);
         if (inp !== "Hello World!") {
             util.requestErrorStop("ERROR: Expected to receive 'Hello World!'");
         }

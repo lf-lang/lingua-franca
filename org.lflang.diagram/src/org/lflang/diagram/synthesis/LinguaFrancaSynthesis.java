@@ -259,6 +259,9 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
     @Override
     public KNode transform(final Model model) {
         KNode rootNode = _kNodeExtensions.createNode();
+        setLayoutOption(rootNode, CoreOptions.ALGORITHM, LayeredOptions.ALGORITHM_ID);
+        setLayoutOption(rootNode, CoreOptions.DIRECTION, Direction.RIGHT);
+        setLayoutOption(rootNode, CoreOptions.PADDING, new ElkPadding(0));
 
         try {
             // Find main
@@ -301,6 +304,7 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
                         }
                         _kRenderingExtensions.addInvisibleContainerRendering(child);
                         setLayoutOption(child, CoreOptions.ALGORITHM, LayeredOptions.ALGORITHM_ID);
+                        setLayoutOption(child, CoreOptions.DIRECTION, Direction.RIGHT);
                         setLayoutOption(child, CoreOptions.PADDING, new ElkPadding(0));
                         // Legacy ordering option.
                         setLayoutOption(child, CoreOptions.PRIORITY, reactorNodes.size() - index); // Order!

@@ -163,7 +163,7 @@ public interface TargetTypes {
         } else if (type.isVariableSizeList) {
             return getTargetVariableSizeListType(type.baseType());
         }
-        return type.toText();
+        return type.toOriginalText();
     }
 
     /**
