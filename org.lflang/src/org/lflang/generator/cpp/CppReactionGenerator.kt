@@ -82,7 +82,7 @@ class CppReactionGenerator(
                 allUncontainedSources.map { "const ${it.cppType}& ${it.name}" } +
                 allUncontainedEffects.map { "${it.cppType}& ${it.name}" } +
                 allReferencedContainers.map {
-                    if (it.isBank) "const multiport::PortBankCallBack<${getViewClassName(it)}>& ${it.name}"
+                    if (it.isBank) "const reactor::Multiport<${getViewClassName(it)}>& ${it.name}"
                     else "${getViewClassName(it)}& ${it.name}"
                 }
 
@@ -176,7 +176,7 @@ class CppReactionGenerator(
         val initializers = variables.map { "${it.variable.name}(reactor->${it.variable.name})" }
 
         val viewDeclaration =
-            if (container.isBank) "multiport::PortBankCallBack<$viewClass> $viewInstance;"
+            if (container.isBank) "reactor::Multiport<$viewClass> $viewInstance;"
             else "$viewClass $viewInstance;"
 
         return with(PrependOperator) {

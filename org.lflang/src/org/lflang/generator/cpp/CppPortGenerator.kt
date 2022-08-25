@@ -53,7 +53,7 @@ class CppPortGenerator(private val reactor: Reactor) {
 
             val dataType = inferredType.cppType
             return if (isMultiport) {
-                "multiport::PortBankCallBack<$portType<$dataType>>"
+                "reactor::Multiport<$portType<$dataType>>"
             } else {
                 "$portType<$dataType>"
             }
