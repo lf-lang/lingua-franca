@@ -78,6 +78,7 @@ public class FedMainEmitter {
         // Empty "()" is currently not allowed by the syntax
         return
         """
+        @federate
         main reactor %s {
         """.formatted(paramList.equals("()") ? "" : paramList);
     }
