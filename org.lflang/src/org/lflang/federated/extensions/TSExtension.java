@@ -83,29 +83,35 @@ public class TSExtension implements FedTargetExtension {
         var minOutputDelay = getMinOutputDelay(federate, fileConfig, errorReporter);
         return
         """
-        preamble {=
-            federated: true,
-            id: %d,
-            host: %s,
-            port: %d,
-            network_message_actions: [%s],
-            depends_on: [%s],
-            sends_to: [%s],
-            %s
-        =}""".formatted(federate.id,
-                        federationRTIProperties.get("host"),
-                        federationRTIProperties.get("port"),
-                        federate.networkMessageActions
-                                    .stream()
-                                    .map(Variable::getName)
-                                    .collect(Collectors.joining(";")),
-                        federate.dependsOn.keySet().stream()
-                                          .map(e->String.valueOf(e.id))
-                                          .collect(Collectors.joining(";")),
-                        federate.sendsTo.keySet().stream()
-                                        .map(e->String.valueOf(e.id))
-                                        .collect(Collectors.joining(";")),
-                        minOutputDelay == null ? "" : "min_output_delay: %s".formatted(minOutputDelay)
+            preamble {=
+                const defaultFederateConfig = {
+                    dependsOn: [%s],
+                    executionTimeout?: TimeValue,
+                    fast: boolean,
+                    federateID: %d,
+                    federationID: "Unidentified Federation",
+                    keepAlive?: boolean,
+                    minOutputDelay: %s,
+                    networkMessageActions: string[%s],
+                    rtiHost: %s,
+                    rtiPort: %d,
+                    sendsTo: [%s]
+                }
+            =}""".formatted(
+            federate.dependsOn.keySet().stream()
+                              .map(e->String.valueOf(e.id))
+                              .collect(Collectors.joining(",")),
+            federate.id,
+            minOutputDelay == null ? "undefined" : "%s".formatted(minOutputDelay),
+            federate.networkMessageActions
+                .stream()
+                .map(Variable::getName)
+                .collect(Collectors.joining(",", "\"", "\"")),
+            federationRTIProperties.get("host"),
+            federationRTIProperties.get("port"),
+            federate.sendsTo.keySet().stream()
+                            .map(e->String.valueOf(e.id))
+                            .collect(Collectors.joining(","))
         );
     }
 
