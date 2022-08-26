@@ -78,7 +78,7 @@ public class CPreambleGenerator {
         code.pr("#define LOG_LEVEL " + logLevel);
         code.pr("#define TARGET_FILES_DIRECTORY " + addDoubleQuotes(srcGenPath.toString()));
 
-        if(targetConfig.platform == Platform.ARDUINO) {
+        if (targetConfig.platform == Platform.ARDUINO) {
             code.pr("#define MICROSECOND_TIME");
             code.pr("#define BIT_32");
         }
