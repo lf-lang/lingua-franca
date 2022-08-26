@@ -74,13 +74,14 @@ class TSReactorGenerator(
      *  instance to start the runtime
      *  @param instance A reactor instance.
      */
-    private fun generateRuntimeStart(federateConfig: TSFederateConfig?,
-                                     defn: Instantiation): String {
+    private fun generateRuntimeStart(defn: Instantiation): String {
         return with(PrependOperator) {
                 """
             |// ************* Starting Runtime for ${defn.name} + of class ${defn.reactorClass.name}.
             |if (!__noStart && __app) {
-            |    ${if (federateConfig?.getMinOutputDelay() != null) "__app.setMinDelayFromPhysicalActionToFederateOutput(${TSGenerator.timeInTargetLanguage(federateConfig.getMinOutputDelay()!!)})" else ""}
+            |    if (defaultFederateConfig.minOutputDelay !== undefined) {
+            |        __app.setMinDelayFromPhysicalActionToFederateOutput(defaultFederateConfig.minOutputDelay!);
+            |    }
             |    __app._start();
             |}
             |
@@ -102,34 +103,46 @@ class TSReactorGenerator(
         return preambleCodes.joinToString("\n")
     }
 
-    fun generateReactorClasses(reactor: Reactor, federateConfig: TSFederateConfig?): String {
+    fun generateReactorClasses(reactor: Reactor): String {
         val reactorClasses = LinkedList<String>()
         // To support `import as` syntax (for importing reactors) in .lf programs.
         val declarations = tsGenerator.getInstantiationGraph()?.getDeclarations(reactor)
 
         if (declarations == null || declarations.isEmpty()) {
-            return generateReactorClass(reactor.name, reactor, federateConfig)
+            return generateReactorClass(reactor.name, reactor)
         }
 
         for (declaration in declarations) {
-            reactorClasses.add(generateReactorClass(declaration.name, reactor, federateConfig))
+            reactorClasses.add(generateReactorClass(declaration.name, reactor))
         }
 
         return reactorClasses.joinToString("\n")
     }
 
-    fun generateReactorClass(name: String, reactor: Reactor, federateConfig: TSFederateConfig?): String {
-        val declarations = tsGenerator.getInstantiationGraph()?.getDeclarations(reactor)
+    fun generateReactorClass(name: String, reactor: Reactor): String {
         var reactorName = name
         if (!reactor.typeParms.isEmpty()) {
             reactorName +=
                 reactor.typeParms.joinToString(", ", "<", ">") { it.toText() }
         }
 
+        var isFederate = false
+        var networkMessageActions = listOf<String>()
+        for (attribute in reactor.attributes) {
+            if (attribute.getAttrName() == "_fed_config") {
+                isFederate = true
+                for (attrParam in attribute.attrParms) {
+                    if (attrParam.name == "network_message_actions") {
+                        networkMessageActions = attrParam.value.str.split(",").filter { it.isNotEmpty() }
+                    }
+                }
+            }
+        }
+
         // NOTE: type parameters that are referenced in ports or actions must extend
         // Present in order for the program to type check.
         val classDefinition: String = if (reactor.isMain) {
-            if (federateConfig != null) {
+            if (isFederate) {
                 "class $reactorName extends __FederatedApp {"
             } else {
                 "class $reactorName extends __App {"
@@ -142,7 +155,7 @@ class TSReactorGenerator(
         val timerGenerator = TSTimerGenerator(tsGenerator, reactor.timers)
         val parameterGenerator = TSParameterGenerator(tsGenerator, reactor.parameters)
         val stateGenerator = TSStateGenerator(tsGenerator, reactor.stateVars)
-        val actionGenerator = TSActionGenerator(tsGenerator, reactor.actions, federateConfig)
+        val actionGenerator = TSActionGenerator(tsGenerator, reactor.actions, networkMessageActions)
         val portGenerator = TSPortGenerator(reactor.inputs, reactor.outputs)
 
         val constructorGenerator = TSConstructorGenerator(tsGenerator, errorReporter, reactor)
@@ -159,7 +172,7 @@ class TSReactorGenerator(
             ${" |    "..actionGenerator.generateClassProperties()}
             ${" |    "..portGenerator.generateClassProperties()}
             ${" |    "..constructorGenerator.generateConstructor(targetConfig, instanceGenerator, timerGenerator, parameterGenerator,
-                stateGenerator, actionGenerator, portGenerator, federateConfig)}
+                stateGenerator, actionGenerator, portGenerator, isFederate, networkMessageActions)}
                 |}
                 |// =============== END reactor class ${reactor.name}
                 |
@@ -168,14 +181,13 @@ class TSReactorGenerator(
     }
 
     fun generateMainReactorInstanceAndStart(
-        federateConfig: TSFederateConfig?,
         mainDef: Instantiation,
         mainParameters: Set<Parameter>
     ): String {
         return with(PrependOperator) {
             """
             |${generateMainReactorInstance(mainDef, mainParameters)}
-            |${generateRuntimeStart(federateConfig, mainDef)}
+            |${generateRuntimeStart(mainDef)}
             |
             """
         }.trimMargin()

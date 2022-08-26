@@ -42,6 +42,7 @@ import org.lflang.scoping.LFGlobalScopeProvider
 import org.lflang.util.FileUtil
 import java.nio.file.Files
 import java.nio.file.Path
+import java.util.*
 
 /**
  * Generator for the Rust target language. The generation is
@@ -135,7 +136,7 @@ class RustGenerator(
 
         if (cargoReturnCode == 0) {
             // We still have to copy the compiled binary to the destination folder.
-            val isWindows = System.getProperty("os.name").toLowerCase().contains("win")
+            val isWindows = System.getProperty("os.name").lowercase(Locale.getDefault()).contains("win")
             val localizedExecName = if (isWindows) {
                 "$executableName.exe"
             } else {

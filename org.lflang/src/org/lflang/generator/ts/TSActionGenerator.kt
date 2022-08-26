@@ -13,7 +13,7 @@ class TSActionGenerator(
     // TODO(hokeun): Remove dependency on TSGenerator.
     private val tsGenerator: TSGenerator,
     private val actions: List<Action>,
-    private val federateConfig: TSFederateConfig?
+    private val networkMessageActions: List<String>
 ) {
     private fun Expression.getTargetValue(): String = tsGenerator.getTargetValueW(this)
     private fun Type.getTargetType(): String = tsGenerator.getTargetTypeW(this)
@@ -50,7 +50,7 @@ class TSActionGenerator(
                         actionArgs+= ", " + action.minDelay.getTargetValue()
                     }
                 }
-                if (federateConfig != null && action.name in federateConfig.getNetworkMessageActions()) {
+                if (action.name in networkMessageActions) {
                     actionInstantiations.add(
                         "this.${action.name} = new __FederatePortAction<${getActionType(action)}>($actionArgs);")
                 } else {

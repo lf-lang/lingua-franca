@@ -86,14 +86,14 @@ public class TSExtension implements FedTargetExtension {
             preamble {=
                 const defaultFederateConfig = {
                     dependsOn: [%s],
-                    executionTimeout?: TimeValue,
-                    fast: boolean,
+                    executionTimeout: undefined,
+                    fast: false,
                     federateID: %d,
                     federationID: "Unidentified Federation",
-                    keepAlive?: boolean,
+                    keepAlive: false,
                     minOutputDelay: %s,
-                    networkMessageActions: string[%s],
-                    rtiHost: %s,
+                    networkMessageActions: [%s],
+                    rtiHost: "%s",
                     rtiPort: %d,
                     sendsTo: [%s]
                 }
