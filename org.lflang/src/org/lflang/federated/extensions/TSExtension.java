@@ -19,6 +19,7 @@ import org.lflang.federated.generator.FederateInstance;
 import org.lflang.generator.GeneratorBase;
 import org.lflang.generator.LFGeneratorContext;
 import org.lflang.generator.ReactorInstance;
+import org.lflang.generator.ts.TSExtensionsKt;
 import org.lflang.lf.Action;
 import org.lflang.lf.Output;
 import org.lflang.lf.VarRef;
@@ -79,12 +80,14 @@ public class TSExtension implements FedTargetExtension {
      * @return
      */
     @Override
-    public String generatePreamble(FederateInstance federate, FedFileConfig fileConfig, LinkedHashMap<String, Object> federationRTIProperties, ErrorReporter errorReporter) {
+    public String generatePreamble(FederateInstance federate, FedFileConfig fileConfig,
+                                   LinkedHashMap<String, Object> federationRTIProperties,
+                                   ErrorReporter errorReporter) {
         var minOutputDelay = getMinOutputDelay(federate, fileConfig, errorReporter);
         return
         """
             preamble {=
-                const defaultFederateConfig = {
+                const defaultFederateConfig: __FederateConfig = {
                     dependsOn: [%s],
                     executionTimeout: undefined,
                     fast: false,
@@ -102,7 +105,8 @@ public class TSExtension implements FedTargetExtension {
                               .map(e->String.valueOf(e.id))
                               .collect(Collectors.joining(",")),
             federate.id,
-            minOutputDelay == null ? "undefined" : "%s".formatted(minOutputDelay),
+            minOutputDelay == null ? "undefined"
+                                   : "%s".formatted(TSExtensionsKt.timeInTargetLanguage(minOutputDelay)),
             federate.networkMessageActions
                 .stream()
                 .map(Variable::getName)

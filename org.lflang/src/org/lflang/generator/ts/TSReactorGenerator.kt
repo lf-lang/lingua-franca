@@ -80,7 +80,7 @@ class TSReactorGenerator(
             |// ************* Starting Runtime for ${defn.name} + of class ${defn.reactorClass.name}.
             |if (!__noStart && __app) {
             |    if (defaultFederateConfig.minOutputDelay !== undefined) {
-            |        __app.setMinDelayFromPhysicalActionToFederateOutput(defaultFederateConfig.minOutputDelay!);
+            |        __app.setMinDelayFromPhysicalActionToFederateOutput(defaultFederateConfig.minOutputDelay);
             |    }
             |    __app._start();
             |}

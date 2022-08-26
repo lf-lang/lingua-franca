@@ -68,10 +68,18 @@ class TSConstructorGenerator (
     private fun generateSuperConstructorCall(reactor: Reactor, isFederate: Boolean): String {
         if (reactor.isMain) {
             if (isFederate) {
-                return """
-                    super(defaultFederateConfig, success, fail);
+                return with(PrependOperator) {
                     """
-
+                    |        var federateConfig = defaultFederateConfig;
+                    |        if (__timeout !== undefined) {
+                    |            federateConfig.executionTimeout = __timeout;
+                    |        }
+                    |        federateConfig.federationID = __federationID;
+                    |        federateConfig.fast = __fast;
+                    |        federateConfig.keepAlive = __keepAlive;
+                    |        super(federateConfig, success, fail);
+                    """.trimMargin()
+                }
             } else {
                 return "super(timeout, keepAlive, fast, success, fail);"
             }

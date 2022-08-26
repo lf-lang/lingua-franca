@@ -64,7 +64,7 @@ class TSImportPreambleGenerator(
             |import {Reaction as __Reaction} from './core/reaction'
             |import {State as __State} from './core/state'
             |import {TimeUnit, TimeValue, Tag as __Tag, Origin as __Origin} from './core/time'
-            |import {Args as __Args, Variable as __Variable, Triggers as __Triggers, Present, Read, Write, ReadWrite, MultiReadWrite, Sched} from './core/types'
+            |import {Args as __Args, Variable as __Variable, Triggers as __Triggers, Present, Read, Write, ReadWrite, MultiReadWrite, Sched, FederateConfig as __FederateConfig} from './core/types'
             |import {Log} from './core/util'
             |import {ProcessedCommandLineArgs as __ProcessedCommandLineArgs, CommandLineOptionDefs as __CommandLineOptionDefs, CommandLineUsageDefs as __CommandLineUsageDefs, CommandLineOptionSpec as __CommandLineOptionSpec, unitBasedTimeValueCLAType as __unitBasedTimeValueCLAType, booleanCLAType as __booleanCLAType} from './core/cli'
             |"""
