@@ -19,6 +19,15 @@ class TSReactorGenerator(
     private val errorReporter: ErrorReporter,
     private val targetConfig: TargetConfig
 ) {
+
+    companion object {
+        const val MIN_OUTPUT_DELAY_STATEMENT = """
+            |    if (defaultFederateConfig.minOutputDelay !== undefined) {
+            |        __app.setMinDelayFromPhysicalActionToFederateOutput(defaultFederateConfig.minOutputDelay);
+            |    }
+            |"""
+    }
+
     // Initializer functions
     fun getTargetInitializerHelper(param: Parameter,
                                    list: List<String>): String {
@@ -75,13 +84,12 @@ class TSReactorGenerator(
      *  @param instance A reactor instance.
      */
     private fun generateRuntimeStart(defn: Instantiation): String {
+        val isFederate = defn.reactor.attributes.stream().anyMatch { it.attrName == "_fed_config" }
         return with(PrependOperator) {
                 """
             |// ************* Starting Runtime for ${defn.name} + of class ${defn.reactorClass.name}.
             |if (!__noStart && __app) {
-            |    if (defaultFederateConfig.minOutputDelay !== undefined) {
-            |        __app.setMinDelayFromPhysicalActionToFederateOutput(defaultFederateConfig.minOutputDelay);
-            |    }
+            ${if (isFederate) MIN_OUTPUT_DELAY_STATEMENT else "|"}
             |    __app._start();
             |}
             |
@@ -129,7 +137,7 @@ class TSReactorGenerator(
         var isFederate = false
         var networkMessageActions = listOf<String>()
         for (attribute in reactor.attributes) {
-            if (attribute.getAttrName() == "_fed_config") {
+            if (attribute.attrName == "_fed_config") {
                 isFederate = true
                 for (attrParam in attribute.attrParms) {
                     if (attrParam.name == "network_message_actions") {
