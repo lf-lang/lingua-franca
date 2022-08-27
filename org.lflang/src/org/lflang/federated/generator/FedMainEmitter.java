@@ -18,6 +18,7 @@ import org.lflang.generator.CodeBuilder;
 import org.lflang.generator.ReactorInstance;
 import org.lflang.lf.Instantiation;
 import org.lflang.lf.Reactor;
+import org.lflang.lf.Variable;
 
 /**
  * Helper class to generate a main reactor
@@ -76,9 +77,17 @@ public class FedMainEmitter {
                                     )
                                 );
         // Empty "()" is currently not allowed by the syntax
+
+        var networkMessageActionsListString = federate.networkMessageActions
+            .stream()
+            .map(Variable::getName)
+            .collect(Collectors.joining(","));
+
         return
         """
+        @_fed_config(network_message_actions="%s")
         main reactor %s {
-        """.formatted(paramList.equals("()") ? "" : paramList);
+        """.formatted(networkMessageActionsListString,
+                      paramList.equals("()") ? "" : paramList);
     }
 }

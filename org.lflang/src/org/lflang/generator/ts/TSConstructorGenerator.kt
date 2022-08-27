@@ -65,15 +65,21 @@ class TSConstructorGenerator (
         return arguments.joinToString(", \n")
     }
 
-    private fun generateSuperConstructorCall(reactor: Reactor, federateConfig: TSFederateConfig?): String {
+    private fun generateSuperConstructorCall(reactor: Reactor, isFederate: Boolean): String {
         if (reactor.isMain) {
-            if (federateConfig != null) {
-                return """
-                    super(federationID, ${federateConfig.getFederateId()}, ${federateConfig.getRtiPort()},
-                        "${federateConfig.getRtiHost()}",
-                        timeout, keepAlive, fast, success, fail);
+            if (isFederate) {
+                return with(PrependOperator) {
                     """
-
+                    |        var federateConfig = defaultFederateConfig;
+                    |        if (__timeout !== undefined) {
+                    |            federateConfig.executionTimeout = __timeout;
+                    |        }
+                    |        federateConfig.federationID = __federationID;
+                    |        federateConfig.fast = __fast;
+                    |        federateConfig.keepAlive = __keepAlive;
+                    |        super(federateConfig, success, fail);
+                    """.trimMargin()
+                }
             } else {
                 return "super(timeout, keepAlive, fast, success, fail);"
             }
@@ -85,15 +91,13 @@ class TSConstructorGenerator (
 
     // If the app is federated, register its
     // networkMessageActions with the RTIClient
-    private fun generateFederatePortActionRegistrations(federateConfig: TSFederateConfig): String {
+    private fun generateFederatePortActionRegistrations(networkMessageActions: List<String>): String {
         val connectionInstantiations = LinkedList<String>()
-        var fedPortID = 0
-        for (actionName in federateConfig.getNetworkMessageActions()) {
+        for ((fedPortID, actionName) in networkMessageActions.withIndex()) {
             val registration = """
                 this.registerFederatePortAction(${fedPortID}, this.${actionName});
                 """
             connectionInstantiations.add(registration)
-            fedPortID++
         }
         return connectionInstantiations.joinToString("\n")
     }
@@ -109,23 +113,6 @@ class TSConstructorGenerator (
                 "this.setAdvanceMessageInterval(${timeInTargetLanguage(targetConfig.coordinationOptions.advance_message_interval)})")
         }
         return targetConfigurations.joinToString("\n")
-        return "";
-    }
-
-    // Generate code for registering Fed IDs that are connected to
-    // this federate via ports in the TypeScript's FederatedApp.
-    // These Fed IDs are used to let the RTI know about the connections
-    // between federates during the initialization with the RTI.
-    fun generateFederateConfigurations(federateConfig: TSFederateConfig): String {
-        val federateConfigurations = LinkedList<String>()
-        for (id in federateConfig.getDependOnFedIds()) {
-            // FIXME: Get delay properly considering the unit instead of hardcoded BigInt(0).
-            federateConfigurations.add("this.addUpstreamFederate($id, BigInt(0));")
-        }
-        for (id in federateConfig.getSendsToFedIds()) {
-            federateConfigurations.add("this.addDownstreamFederate($id);")
-        }
-        return federateConfigurations.joinToString("\n")
     }
 
     fun generateConstructor(
@@ -136,7 +123,8 @@ class TSConstructorGenerator (
         states: TSStateGenerator,
         actions: TSActionGenerator,
         ports: TSPortGenerator,
-        federateConfig: TSFederateConfig?
+        isFederate: Boolean,
+        networkMessageActions: List<String>
     ): String {
         val connections = TSConnectionGenerator(reactor.connections, errorReporter)
         val reactions = TSReactionGenerator(tsGenerator, errorReporter, reactor)
@@ -146,9 +134,8 @@ class TSConstructorGenerator (
                 |constructor (
             ${" |    "..generateConstructorArguments(reactor)}
                 |) {
-            ${" |    "..generateSuperConstructorCall(reactor, federateConfig)}
+            ${" |    "..generateSuperConstructorCall(reactor, isFederate)}
             ${" |    "..generateTargetConfigurations(targetConfig)}
-            ${" |    "..if (reactor.isMain && federateConfig != null) generateFederateConfigurations(federateConfig) else ""}
             ${" |    "..instances.generateInstantiations()}
             ${" |    "..timers.generateInstantiations()}
             ${" |    "..parameters.generateInstantiations()}
@@ -156,7 +143,7 @@ class TSConstructorGenerator (
             ${" |    "..actions.generateInstantiations()}
             ${" |    "..ports.generateInstantiations()}
             ${" |    "..connections.generateInstantiations()}
-            ${" |    "..if (reactor.isMain && federateConfig != null) generateFederatePortActionRegistrations(federateConfig) else ""}
+            ${" |    "..if (reactor.isMain && isFederate) generateFederatePortActionRegistrations(networkMessageActions) else ""}
             ${" |    "..reactions.generateAllReactions()}
                 |}
             """.trimMargin()
