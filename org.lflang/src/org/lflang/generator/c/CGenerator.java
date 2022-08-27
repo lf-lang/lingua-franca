@@ -2678,6 +2678,7 @@ public class CGenerator extends GeneratorBase {
         // create references to the runtime instances aware of this exception.
         // For now, we just create a larger array than needed.
         initializeTriggerObjects.pr(CUtil.selfType(r)+"* "+CUtil.reactorRefName(r)+"["+r.getTotalWidth()+"];");
+        initializeTriggerObjects.pr("SUPPRESS_UNUSED_WARNING("+CUtil.reactorRefName(r)+");");
         for (ReactorInstance child : r.children) {
             generateSelfStructs(child);
         }
