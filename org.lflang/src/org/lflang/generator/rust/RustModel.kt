@@ -142,8 +142,7 @@ class ReactorNames(
      * Name of the "user struct", which contains state
      * variables as fields, and which the user manipulates in reactions.
      */
-    val structName: Ident = lfName.replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() }
-        .escapeRustIdent()
+    val structName: Ident = lfName.capitalize().escapeRustIdent()
 
     // Names of other implementation-detailistic structs.
 
