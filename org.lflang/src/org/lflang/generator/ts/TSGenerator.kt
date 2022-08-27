@@ -360,7 +360,7 @@ class TSGenerator(
 
         Files.createDirectories(fileConfig.srcGenPkgPath) // may throw
 
-        val pnpmInstall = commandFactory.createCommand("pnpm", listOf("install", if (production) "--prod" else ""), path, false)
+        val pnpmInstall = commandFactory.createCommand("pnpm", if (production) listOf("install", "--prod") else listOf("install"), path, false)
 
         // Attempt to use pnpm, but fall back on npm if it is not available.
         if (pnpmInstall != null) {
@@ -375,7 +375,7 @@ class TSGenerator(
             errorReporter.reportWarning(
                 "Falling back on npm. To prevent an accumulation of replicated dependencies, " +
                         "it is highly recommended to install pnpm globally (npm install -g pnpm).")
-            val npmInstall = commandFactory.createCommand("npm", listOf("install", if (production) "--production" else ""), path)
+            val npmInstall = commandFactory.createCommand("npm", if (production) listOf("install", "--production") else listOf("install"), path)
 
             if (npmInstall == null) {
                 errorReporter.reportError(NO_NPM_MESSAGE)
