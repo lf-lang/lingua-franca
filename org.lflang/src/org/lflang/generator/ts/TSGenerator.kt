@@ -148,7 +148,7 @@ class TSGenerator(
 
         clean(context)
         copyRuntime()
-        collectDependencies(resource, context, tsFileConfig.reactorTsPath())
+        collectDependencies(resource, context, tsFileConfig.reactorTsPath(), true)
         copyConfigFiles()
 
         val codeMaps = HashMap<Path, CodeMap>()
@@ -166,7 +166,7 @@ class TSGenerator(
             context.reportProgress(
                 "Code generation complete. Collecting dependencies...", IntegratedBuilder.GENERATED_PERCENT_PROGRESS
             )
-            if (shouldCollectDependencies(context)) collectDependencies(resource, context, tsFileConfig.srcGenPkgPath)
+            if (shouldCollectDependencies(context)) collectDependencies(resource, context, tsFileConfig.srcGenPkgPath, false)
             if (errorsOccurred()) {
                 context.unsuccessfulFinish();
                 return;
@@ -356,11 +356,11 @@ class TSGenerator(
      * which to report any errors
      * @param context The context of this build.
      */
-    private fun collectDependencies(resource: Resource, context: LFGeneratorContext, path: Path) {
+    private fun collectDependencies(resource: Resource, context: LFGeneratorContext, path: Path, production: Boolean) {
 
         Files.createDirectories(fileConfig.srcGenPkgPath) // may throw
 
-        val pnpmInstall = commandFactory.createCommand("pnpm", listOf("install", "--prod"), path, false)
+        val pnpmInstall = commandFactory.createCommand("pnpm", listOf("install", if (production) "--prod" else ""), path, false)
 
         // Attempt to use pnpm, but fall back on npm if it is not available.
         if (pnpmInstall != null) {
@@ -375,7 +375,7 @@ class TSGenerator(
             errorReporter.reportWarning(
                 "Falling back on npm. To prevent an accumulation of replicated dependencies, " +
                         "it is highly recommended to install pnpm globally (npm install -g pnpm).")
-            val npmInstall = commandFactory.createCommand("npm", listOf("install", "--production"), path)
+            val npmInstall = commandFactory.createCommand("npm", listOf("install", if (production) "--production" else ""), path)
 
             if (npmInstall == null) {
                 errorReporter.reportError(NO_NPM_MESSAGE)
