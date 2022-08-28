@@ -236,7 +236,7 @@ class TSGenerator(
                     "No '" + configFile + "' exists in " + fileConfig.srcPath +
                             ". Using default configuration."
                 )
-                FileUtil.copyFileFromClassPath("$LIB_PATH/$configFile", configFileDest) // FIXME: use resolve
+                FileUtil.copyFileFromClassPath("$LIB_PATH/$configFile", configFileDest)
             }
         }
     }
@@ -355,6 +355,8 @@ class TSGenerator(
      * @param resource The Lingua Franca source file at
      * which to report any errors
      * @param context The context of this build.
+     * @param path The directory for which to get dependencies.
+     * @param production Whether to get production dependencies only.
      */
     private fun collectDependencies(resource: Resource, context: LFGeneratorContext, path: Path, production: Boolean) {
 
