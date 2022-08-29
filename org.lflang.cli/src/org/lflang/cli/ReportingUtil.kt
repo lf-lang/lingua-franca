@@ -211,7 +211,7 @@ class ReportingBackend constructor(
         val severity = issue.severity
         val filePath = issue.file?.normalize()
 
-        val header = severity.name.toLowerCase(Locale.ROOT)
+        val header = severity.name.lowercase(Locale.ROOT)
 
         var fullMessage: String = this.header + colors.severityColors(header, severity) + colors.bold(": " + issue.message) + System.lineSeparator()
         val snippet: String? = filePath?.let { formatIssue(issue, filePath) }

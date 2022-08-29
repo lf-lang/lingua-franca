@@ -19,6 +19,7 @@ import org.lflang.federated.generator.FederateInstance;
 import org.lflang.generator.GeneratorBase;
 import org.lflang.generator.LFGeneratorContext;
 import org.lflang.generator.ReactorInstance;
+import org.lflang.generator.ts.TSExtensionsKt;
 import org.lflang.lf.Action;
 import org.lflang.lf.Output;
 import org.lflang.lf.VarRef;
@@ -96,38 +97,47 @@ public class TSExtension implements FedTargetExtension {
      * @return
      */
     @Override
-    public String generatePreamble(FederateInstance federate, FedFileConfig fileConfig, LinkedHashMap<String, Object> federationRTIProperties, ErrorReporter errorReporter) {
+    public String generatePreamble(FederateInstance federate, FedFileConfig fileConfig,
+                                   LinkedHashMap<String, Object> federationRTIProperties,
+                                   ErrorReporter errorReporter) {
         var minOutputDelay = getMinOutputDelay(federate, fileConfig, errorReporter);
         return
         """
-        preamble {=
-            federated: true,
-            id: %d,
-            host: %s,
-            port: %d,
-            network_message_actions: [%s],
-            network_input_control_reactions: [%s],
-            depends_on: [%s],
-            sends_to: [%s],
-            %s
-        =}""".formatted(federate.id,
-                        federationRTIProperties.get("host"),
-                        federationRTIProperties.get("port"),
-                        federate.networkMessageActions
-                                    .stream()
-                                    .map(Variable::getName)
-                                    .collect(Collectors.joining(";")),
-                        federate.networkInputControlReactionsTriggers
-                                    .stream()
-                                    .map(Variable::getName)
-                                    .collect(Collectors.joining(";")),
-                        federate.dependsOn.keySet().stream()
-                                          .map(e->String.valueOf(e.id))
-                                          .collect(Collectors.joining(";")),
-                        federate.sendsTo.keySet().stream()
-                                        .map(e->String.valueOf(e.id))
-                                        .collect(Collectors.joining(";")),
-                        minOutputDelay == null ? "" : "min_output_delay: %s".formatted(minOutputDelay)
+            preamble {=
+                const defaultFederateConfig: __FederateConfig = {
+                    dependsOn: [%s],
+                    executionTimeout: undefined,
+                    fast: false,
+                    federateID: %d,
+                    federationID: "Unidentified Federation",
+                    keepAlive: false,
+                    minOutputDelay: %s,
+                    networkMessageActions: [%s],
+                    networkInputControlReactionsTriggers: [%s],
+                    rtiHost: "%s",
+                    rtiPort: %d,
+                    sendsTo: [%s]
+                }
+            =}""".formatted(
+            federate.dependsOn.keySet().stream()
+                              .map(e->String.valueOf(e.id))
+                              .collect(Collectors.joining(",")),
+            federate.id,
+            minOutputDelay == null ? "undefined"
+                                   : "%s".formatted(TSExtensionsKt.timeInTargetLanguage(minOutputDelay)),
+            federate.networkMessageActions
+                .stream()
+                .map(Variable::getName)
+                .collect(Collectors.joining(",", "\"", "\"")),
+            federate.networkInputControlReactionsTriggers
+                .stream()
+                .map(Variable::getName)
+                .collect(Collectors.joining(",", "\"", "\"")),
+            federationRTIProperties.get("host"),
+            federationRTIProperties.get("port"),
+            federate.sendsTo.keySet().stream()
+                            .map(e->String.valueOf(e.id))
+                            .collect(Collectors.joining(","))
         );
     }
 
