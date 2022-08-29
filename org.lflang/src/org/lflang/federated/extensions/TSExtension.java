@@ -113,7 +113,6 @@ public class TSExtension implements FedTargetExtension {
                     keepAlive: false,
                     minOutputDelay: %s,
                     networkMessageActions: [%s],
-                    networkInputControlReactionsTriggers: [%s],
                     rtiHost: "%s",
                     rtiPort: %d,
                     sendsTo: [%s]
@@ -126,10 +125,6 @@ public class TSExtension implements FedTargetExtension {
             minOutputDelay == null ? "undefined"
                                    : "%s".formatted(TSExtensionsKt.timeInTargetLanguage(minOutputDelay)),
             federate.networkMessageActions
-                .stream()
-                .map(Variable::getName)
-                .collect(Collectors.joining(",", "\"", "\"")),
-            federate.networkInputControlReactionsTriggers
                 .stream()
                 .map(Variable::getName)
                 .collect(Collectors.joining(",", "\"", "\"")),

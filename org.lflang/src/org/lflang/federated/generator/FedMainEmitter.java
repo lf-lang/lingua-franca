@@ -83,17 +83,25 @@ public class FedMainEmitter {
             .map(Variable::getName)
             .collect(Collectors.joining(","));
 
-        var networkInputControlReactionTriggersListString = federate.networkInputControlReactionsTriggers
+        var networkInputControlReactionsTriggers = federate.networkInputControlReactionsTriggers
             .stream()
             .map(Variable::getName)
             .collect(Collectors.joining(","));
+        
+        var networkOutputControlReactionsTrigger = "";
+        if (federate.networkOutputControlReactionsTrigger != null) {
+            networkOutputControlReactionsTrigger = federate.networkOutputControlReactionsTrigger.toString();
+        }
 
         return
         """
-        @_fed_config(network_message_actions="%s", network_input_control_reaction_triggers="%s")
+        @_fed_config(network_message_actions="%s")
+        @_fed_inp_config(network_input_control_reactions_triggers="%s")
+        @_fed_out_config(network_output_control_reaction_trigger="%s")
         main reactor %s {
         """.formatted(networkMessageActionsListString,
-                      networkInputControlReactionTriggersListString,
+                      networkInputControlReactionsTriggers,
+                      networkOutputControlReactionsTrigger,
                       paramList.equals("()") ? "" : paramList);
     }
 }

@@ -94,9 +94,7 @@ class TSConstructorGenerator (
     private fun generateFederatePortActionRegistrations(networkMessageActions: List<String>): String {
         val connectionInstantiations = LinkedList<String>()
         for ((fedPortID, actionName) in networkMessageActions.withIndex()) {
-            val registration = """
-                this.registerFederatePortAction(${fedPortID}, this.${actionName});
-                """
+            val registration = """this.registerFederatePortAction(${fedPortID}, this.${actionName});"""
             connectionInstantiations.add(registration)
         }
         return connectionInstantiations.joinToString("\n")
@@ -120,16 +118,15 @@ class TSConstructorGenerator (
     // this federate via ports in the TypeScript's FederatedApp.
     // These Fed IDs are used to let the RTI know about the connections
     // between federates during the initialization with the RTI.
-    fun generateNetworkControlActionRegistrations(networkInputControlReactionsTriggers: List<String>): String {
+    fun generateNetworkControlActionRegistrations(networkInputControlReactionsTriggers: List<String>, networkOutputControlReactionTrigger: String): String {
         val connectionInstantiations= LinkedList<String>()
         for ((fedPortID, actionName) in networkInputControlReactionsTriggers.withIndex()) {
-            val registration = """
-                this.registerNetworkInputControlReactionsTriggers(${fedPortID}, this.${actionName});
-                """
+            val registration = """this.registerNetworkInputControlReactionsTriggers(${fedPortID}, this.${actionName});"""
             connectionInstantiations.add(registration)
         }
-        if (federateConfig.getSendsToFedIds().size != 0) {
-            connectionInstantiations.add("this.registerNetworkOutputControlReactionTrigger(this.outputControlReactionTrigger);")
+        if (networkOutputControlReactionTrigger !== "") {
+            connectionInstantiations.add(
+                "this.registerNetworkOutputControlReactionTrigger(this.outputControlReactionTrigger);")
         }
         return connectionInstantiations.joinToString("\n")
     }
@@ -144,7 +141,8 @@ class TSConstructorGenerator (
         ports: TSPortGenerator,
         isFederate: Boolean,
         networkMessageActions: List<String>,
-        networkInputControlReactionsTriggers: List<String>
+        networkInputControlReactionsTriggers: List<String>,
+        networkOutputControlReactionTrigger: String
     ): String {
         val connections = TSConnectionGenerator(reactor.connections, errorReporter)
         val reactions = TSReactionGenerator(tsGenerator, errorReporter, reactor)
@@ -164,7 +162,7 @@ class TSConstructorGenerator (
             ${" |    "..ports.generateInstantiations()}
             ${" |    "..connections.generateInstantiations()}
             ${" |    "..if (reactor.isMain && isFederate) generateFederatePortActionRegistrations(networkMessageActions) else ""}
-            ${" |    "..if (reactor.isMain && isFederate) generateNetworkControlActionRegistrations(networkInputControlReactionsTriggers) else ""}
+            ${" |    "..if (reactor.isMain && isFederate) generateNetworkControlActionRegistrations(networkInputControlReactionsTriggers, networkOutputControlReactionTrigger) else ""}
             ${" |    "..reactions.generateAllReactions()}
                 |}
             """.trimMargin()

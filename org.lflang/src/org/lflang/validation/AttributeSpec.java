@@ -50,6 +50,8 @@ class AttributeSpec {
 
     public static final String VALUE_ATTR = "value";
     public static final String NETWORK_MESSAGE_ACTIONS = "network_message_actions";
+    public static final String NETWORK_INPUT_CONTROL_REACTIONS_TRIGGERS = "network_input_control_reactions_triggers";
+    public static final String NETWORK_OUTPUT_CONTROL_REACTION_TRIGGER = "network_output_control_reaction_trigger";
 
 
     /** A map from a string to a supported AttributeSpec */
@@ -246,6 +248,14 @@ class AttributeSpec {
         // @_fed_config
         ATTRIBUTE_SPECS_BY_NAME.put("_fed_config", new AttributeSpec(
             List.of(new AttrParamSpec(AttributeSpec.NETWORK_MESSAGE_ACTIONS, AttrParamType.STRING, null))
+        ));
+        // @_fed_inp_config
+        ATTRIBUTE_SPECS_BY_NAME.put("_fed_inp_config", new AttributeSpec(
+            List.of(new AttrParamSpec(AttributeSpec.NETWORK_INPUT_CONTROL_REACTIONS_TRIGGERS, AttrParamType.STRING, null))
+        ));
+        // @_fed_out_config
+        ATTRIBUTE_SPECS_BY_NAME.put("_fed_out_config", new AttributeSpec(
+            List.of(new AttrParamSpec(AttributeSpec.NETWORK_OUTPUT_CONTROL_REACTION_TRIGGER, AttrParamType.STRING, null))
         ));
     }
 }
