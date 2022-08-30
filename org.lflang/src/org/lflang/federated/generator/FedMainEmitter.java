@@ -90,14 +90,12 @@ public class FedMainEmitter {
         
         var networkOutputControlReactionsTrigger = "";
         if (federate.networkOutputControlReactionsTrigger != null) {
-            networkOutputControlReactionsTrigger = federate.networkOutputControlReactionsTrigger.toString();
+            networkOutputControlReactionsTrigger = federate.networkOutputControlReactionsTrigger.getName();
         }
 
         return
         """
-        @_fed_config(network_message_actions="%s")
-        @_fed_inp_config(network_input_control_reactions_triggers="%s")
-        @_fed_out_config(network_output_control_reaction_trigger="%s")
+        @_fed_config(network_message_actions="%s", network_input_control_reactions_triggers="%s", network_output_control_reaction_trigger="%s")
         main reactor %s {
         """.formatted(networkMessageActionsListString,
                       networkInputControlReactionsTriggers,

@@ -145,17 +145,9 @@ class TSReactorGenerator(
                     if (attrParam.name == "network_message_actions") {
                         networkMessageActions = attrParam.value.str.split(",").filter { it.isNotEmpty() }
                     }
-                }
-            }
-            if (attribute.attrName == "_fed_inp_config") {
-                for (attrParam in attribute.attrParms) {
                     if (attrParam.name == "network_input_control_reactions_triggers") {
                         networkInputControlReactionsTriggers = attrParam.value.str.split(",").filter { it.isNotEmpty() }
                     }
-                }
-            }
-            if (attribute.attrName == "_fed_out_config") {
-                for (attrParam in attribute.attrParms) {
                     if (attrParam.name == "network_output_control_reaction_trigger") {
                         networkOutputControlReactionTrigger = attrParam.value.str
                     }
