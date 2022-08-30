@@ -113,7 +113,6 @@ class TSConstructorGenerator (
         return targetConfigurations.joinToString("\n")
     }
 
-    // FIXME: port-absent
     // Generate code for registering Fed IDs that are connected to
     // this federate via ports in the TypeScript's FederatedApp.
     // These Fed IDs are used to let the RTI know about the connections
