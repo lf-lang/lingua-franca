@@ -9,7 +9,7 @@ The simplest way to run the regression tests is to use a Bash script called `run
 run-lf-tests C
 run-lf-tests Cpp
 run-lf-tests Python
-run-lf-tests TS
+run-lf-tests TypeScript
 ```
 
 You can also selectively run just some of the tests. For example, to run the system tests for an individual target language, do this:
