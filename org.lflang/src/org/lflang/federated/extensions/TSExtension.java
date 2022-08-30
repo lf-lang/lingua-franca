@@ -3,6 +3,8 @@ package org.lflang.federated.extensions;
 import static org.lflang.util.StringUtil.addDoubleQuotes;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.LinkedHashMap;
 import java.util.stream.Collectors;
 
@@ -24,6 +26,7 @@ import org.lflang.lf.Action;
 import org.lflang.lf.Output;
 import org.lflang.lf.VarRef;
 import org.lflang.lf.Variable;
+import org.lflang.lf.Expression;
 
 public class TSExtension implements FedTargetExtension {
     @Override
@@ -84,11 +87,13 @@ public class TSExtension implements FedTargetExtension {
                                    LinkedHashMap<String, Object> federationRTIProperties,
                                    ErrorReporter errorReporter) {
         var minOutputDelay = getMinOutputDelay(federate, fileConfig, errorReporter);
+        List<String> processDelay = getProcessDelay(federate);
         return
         """
             preamble {=
                 const defaultFederateConfig: __FederateConfig = {
                     dependsOn: [%s],
+                    processDelay: [%s],
                     executionTimeout: undefined,
                     fast: false,
                     federateID: %d,
@@ -104,6 +109,7 @@ public class TSExtension implements FedTargetExtension {
             federate.dependsOn.keySet().stream()
                               .map(e->String.valueOf(e.id))
                               .collect(Collectors.joining(",")),
+            processDelay.stream().collect(Collectors.joining(",")),
             federate.id,
             minOutputDelay == null ? "undefined"
                                    : "%s".formatted(TSExtensionsKt.timeInTargetLanguage(minOutputDelay)),
@@ -159,5 +165,27 @@ public class TSExtension implements FedTargetExtension {
             }
         }
         return null;
+    }
+
+    private List<String> getProcessDelay(FederateInstance federate) {
+        List<String> candidates = new ArrayList<>();
+        if (!federate.dependsOn.keySet().isEmpty()) {
+            for (FederateInstance upstreamFederate: federate.dependsOn.keySet()) {
+                var delays = federate.dependsOn.get(upstreamFederate);
+                if (delays != null) {
+                    for (Expression delay : delays) {
+                        if (delay == null) {
+                            candidates.add("TimeValue.NEVER()");
+                        } else {
+                            //FIXME: Figure out how to get TimeValue from the delay and convert it to the string 
+                            candidates.add("TimeValue.zero()");
+                        }
+                    }
+                } else {
+                    candidates.add("TimeValue.NEVER()");
+                }
+            }
+        }
+        return candidates;
     }
 }
