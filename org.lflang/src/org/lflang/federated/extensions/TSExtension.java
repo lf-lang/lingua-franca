@@ -13,6 +13,7 @@ import org.lflang.ErrorReporter;
 import org.lflang.InferredType;
 import org.lflang.Target;
 import org.lflang.TargetProperty.CoordinationType;
+import org.lflang.TimeUnit;
 import org.lflang.TimeValue;
 import org.lflang.federated.generator.FedASTUtils;
 import org.lflang.federated.generator.FedConnectionInstance;
@@ -24,9 +25,11 @@ import org.lflang.generator.ReactorInstance;
 import org.lflang.generator.ts.TSExtensionsKt;
 import org.lflang.lf.Action;
 import org.lflang.lf.Output;
+import org.lflang.lf.ParameterReference;
 import org.lflang.lf.VarRef;
 import org.lflang.lf.Variable;
 import org.lflang.lf.Expression;
+import org.lflang.lf.Time;
 
 public class TSExtension implements FedTargetExtension {
     @Override
@@ -178,7 +181,13 @@ public class TSExtension implements FedTargetExtension {
                             candidates.add("TimeValue.NEVER()");
                         } else {
                             //FIXME: Figure out how to get TimeValue from the delay and convert it to the string 
-                            candidates.add("TimeValue.zero()");
+                            if (delay instanceof Time) {
+                                candidates.add(getTargetTime(((Time) delay)));
+                            } else if (delay instanceof ParameterReference) {
+                                // The delay is given as a parameter reference. Find its value.
+                                final var param = ((ParameterReference)delay).getParameter();
+                                candidates.add(TSExtensionsKt.timeInTargetLanguage(ASTUtils.getDefaultAsTimeValue(param)));
+                            }
                         }
                     }
                 } else {
@@ -187,5 +196,10 @@ public class TSExtension implements FedTargetExtension {
             }
         }
         return candidates;
+    }
+
+    private String getTargetTime(Time t) {
+        TimeValue value = new TimeValue(t.getInterval(), TimeUnit.fromName(t.getUnit()));
+        return TSExtensionsKt.timeInTargetLanguage(value);
     }
 }
