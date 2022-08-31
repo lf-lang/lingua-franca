@@ -65,6 +65,10 @@ public class LayoutPostProcessing extends AbstractSynthesisExtensions {
     /** Reactions and reactors are ordered by their model order if no additional crossing are created. */
     public static final String TIE_BREAKER = "Optimize Crossings";
     /**
+     * As FULL_CONTROL but does one sided greedy switch to eliminate crossings.
+     */
+    public static final String CONTROL = "Control";
+    /**
      * No crossing minimization is done at all. This requires that actions and timers are sorted based on their model
      * order.
      */
@@ -74,7 +78,7 @@ public class LayoutPostProcessing extends AbstractSynthesisExtensions {
     public static final SynthesisOption MODEL_ORDER = 
             SynthesisOption.createChoiceOption(
                     MODEL_ORDER_OPTION,
-                    Arrays.asList(TIE_BREAKER, STRICT_REACTION_ONLY, STRICT, FULL_CONTROL),
+                    Arrays.asList(TIE_BREAKER, STRICT_REACTION_ONLY, STRICT, CONTROL, FULL_CONTROL),
                     STRICT_REACTION_ONLY).setCategory(LinguaFrancaSynthesis.LAYOUT);
 
     /**
@@ -212,6 +216,24 @@ public class LayoutPostProcessing extends AbstractSynthesisExtensions {
                 DiagramSyntheses.setLayoutOption(node, LayeredOptions.THOROUGHNESS, 100);
 
                 break;
+            case CONTROL:
+                // Do strict model order cycle breaking. This may introduce unnecessary backward edges.
+                DiagramSyntheses.setLayoutOption(node, LayeredOptions.CYCLE_BREAKING_STRATEGY, CycleBreakingStrategy.MODEL_ORDER);
+                // Before crossing minimization sort all nodes and edges/ports but also consider the node model order.
+                DiagramSyntheses.setLayoutOption(node, LayeredOptions.CONSIDER_MODEL_ORDER_STRATEGY, OrderingStrategy.NODES_AND_EDGES);
+                // Separate connected components should be drawn separately.
+                DiagramSyntheses.setLayoutOption(node, LayeredOptions.SEPARATE_CONNECTED_COMPONENTS, true);
+                // Component order is enforced by looking at the minimum element with respect to model order of each component.
+                // Remember that the startUp action is always the first node.
+                DiagramSyntheses.setLayoutOption(node, LayeredOptions.CONSIDER_MODEL_ORDER_COMPONENTS, ComponentOrderingStrategy.FORCE_MODEL_ORDER);
+                DiagramSyntheses.setLayoutOption(node, LayeredOptions.COMPACTION_CONNECTED_COMPONENTS, true);
+                // Disable all kinds of crossing minimization entirely. Just take what is in the model and just do it.
+                // This requires that the list of nodes is not ordered by type, e.g. first all reactions, then all reactors, then all actions, ...
+                // but by their model order. In other approaches ordering actions between the reactions has no effect.
+                DiagramSyntheses.setLayoutOption(node, LayeredOptions.CROSSING_MINIMIZATION_STRATEGY, CrossingMinimizationStrategy.NONE);
+                DiagramSyntheses.setLayoutOption(node, LayeredOptions.CROSSING_MINIMIZATION_GREEDY_SWITCH_TYPE, GreedySwitchType.ONE_SIDED);
+                
+                break;
             case FULL_CONTROL:
                 // Do strict model order cycle breaking. This may introduce unnecessary backward edges.
                 DiagramSyntheses.setLayoutOption(node, LayeredOptions.CYCLE_BREAKING_STRATEGY, CycleBreakingStrategy.MODEL_ORDER);
@@ -227,7 +249,7 @@ public class LayoutPostProcessing extends AbstractSynthesisExtensions {
                 // This requires that the list of nodes is not ordered by type, e.g. first all reactions, then all reactors, then all actions, ...
                 // but by their model order. In other approaches ordering actions between the reactions has no effect.
                 DiagramSyntheses.setLayoutOption(node, LayeredOptions.CROSSING_MINIMIZATION_STRATEGY, CrossingMinimizationStrategy.NONE);
-                DiagramSyntheses.setLayoutOption(node, LayeredOptions.CROSSING_MINIMIZATION_GREEDY_SWITCH_TYPE, GreedySwitchType.ONE_SIDED);  
+                DiagramSyntheses.setLayoutOption(node, LayeredOptions.CROSSING_MINIMIZATION_GREEDY_SWITCH_TYPE, GreedySwitchType.OFF);
                 
                 break;
             default:
@@ -251,6 +273,7 @@ public class LayoutPostProcessing extends AbstractSynthesisExtensions {
                 // for example reactions since they are generally defined below in inputs/outputs and above the reactions.
                 DiagramSyntheses.setLayoutOption(node, LayeredOptions.CONSIDER_MODEL_ORDER_NO_MODEL_ORDER, true);
                 break;
+            case CONTROL:
             case FULL_CONTROL:
                 // Give actions a model order since they should be controllable too.
                 DiagramSyntheses.setLayoutOption(node, LayeredOptions.CONSIDER_MODEL_ORDER_NO_MODEL_ORDER, false);
@@ -276,6 +299,7 @@ public class LayoutPostProcessing extends AbstractSynthesisExtensions {
                 // for example reactions since they are generally defined below in inputs/outputs and above the reactions.
                 DiagramSyntheses.setLayoutOption(node, LayeredOptions.CONSIDER_MODEL_ORDER_NO_MODEL_ORDER, true);
                 break;
+            case CONTROL:
             case FULL_CONTROL:
                 // Give timers a model order since they should be controllable too.
                 DiagramSyntheses.setLayoutOption(node, LayeredOptions.CONSIDER_MODEL_ORDER_NO_MODEL_ORDER, false);
@@ -307,6 +331,7 @@ public class LayoutPostProcessing extends AbstractSynthesisExtensions {
             case STRICT_REACTION_ONLY:
             case STRICT:
             case TIE_BREAKER:
+            case CONTROL:
             case FULL_CONTROL:
                 // The shutdown node cannot have a high model order, since this would confuse cycle breaking.
                 // It  also cannot have a low model order.
@@ -342,6 +367,7 @@ public class LayoutPostProcessing extends AbstractSynthesisExtensions {
             case STRICT_REACTION_ONLY:
             case STRICT:
             case TIE_BREAKER:
+            case CONTROL:
             case FULL_CONTROL:
                 // A dummy node has no model order.
                 DiagramSyntheses.setLayoutOption(node, LayeredOptions.CONSIDER_MODEL_ORDER_NO_MODEL_ORDER, true);
@@ -359,7 +385,7 @@ public class LayoutPostProcessing extends AbstractSynthesisExtensions {
      */
     public void orderChildren(List<KNode> nodes) {
         String modelOrderStrategy = (String) getObjectValue(MODEL_ORDER);
-        if (FULL_CONTROL.equals(modelOrderStrategy)) {
+        if (FULL_CONTROL.equals(modelOrderStrategy) || CONTROL.equals(modelOrderStrategy)) {
             nodes.sort(TEXTUAL_ORDER);
         }
     }
