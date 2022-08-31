@@ -89,7 +89,6 @@ public class CliBase {
      * If any errors were collected, print them, then return them.
      * @return A list of collected errors.
      */
-    // visible in tests
     public List<LfIssue> printErrorsIfAny() {
         List<LfIssue> errors = issueCollector.getErrors();
         errors.forEach(reporter::printIssue);
@@ -102,7 +101,6 @@ public class CliBase {
      *
      * @param resource The resource to validate.
      */
-    // visible in tests
     public void validateResource(Resource resource) {
         assert resource != null;
 
@@ -126,7 +124,6 @@ public class CliBase {
      * @param path The path to obtain the resource from.
      * @return The obtained resource. Set to null if path is not an LF file.
      */
-    // visible in tests
     public Resource getResource(Path path) {
         final ResourceSet set = this.resourceSetProvider.get();
         try {

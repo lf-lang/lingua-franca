@@ -17,6 +17,11 @@ import java.util.stream.Stream;
 
 import com.google.common.collect.ImmutableList;
 
+/**
+ * A {@code MalleableString} is an object with multiple valid textual
+ * representations. These textual representations are code that may have
+ * associated comments.
+ */
 public abstract class MalleableString {
 
     protected List<String> comments = new ArrayList<>();
