@@ -227,7 +227,7 @@ public class LayoutPostProcessing extends AbstractSynthesisExtensions {
                 // This requires that the list of nodes is not ordered by type, e.g. first all reactions, then all reactors, then all actions, ...
                 // but by their model order. In other approaches ordering actions between the reactions has no effect.
                 DiagramSyntheses.setLayoutOption(node, LayeredOptions.CROSSING_MINIMIZATION_STRATEGY, CrossingMinimizationStrategy.NONE);
-                DiagramSyntheses.setLayoutOption(node, LayeredOptions.CROSSING_MINIMIZATION_GREEDY_SWITCH_TYPE, GreedySwitchType.OFF);  
+                DiagramSyntheses.setLayoutOption(node, LayeredOptions.CROSSING_MINIMIZATION_GREEDY_SWITCH_TYPE, GreedySwitchType.ONE_SIDED);  
                 
                 break;
             default:
