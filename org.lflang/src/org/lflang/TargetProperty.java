@@ -56,7 +56,16 @@ import com.google.common.collect.ImmutableList;
  * @author{Marten Lohstroh <marten@berkeley.edu>}
  */
 public enum TargetProperty {
-    
+
+    /**
+     * Directive to specify the baud-rate used by the runtime for embedded systems (Arduino).
+     */
+    BAUD_RATE("baud-rate", PrimitiveType.NON_NEGATIVE_INTEGER,
+            List.of(Target.C, Target.CCPP),
+            (config, value, err) -> {
+                config.baudRate = ASTUtils.toInteger(value);
+            }),
+
     /**
      * Directive to let the generator use the custom build command.
      */
@@ -1322,6 +1331,7 @@ public enum TargetProperty {
      */
     public enum Platform {
         AUTO,
+        ARDUINO("Arduino"),
         LINUX("Linux"),
         MAC("Darwin"),
         WINDOWS("Windows");
