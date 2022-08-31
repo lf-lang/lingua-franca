@@ -12,8 +12,9 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.function.ToLongFunction;
 import java.util.stream.Collector;
-import java.util.stream.IntStream;
 import java.util.stream.Stream;
+
+import org.lflang.util.StringUtil;
 
 import com.google.common.collect.ImmutableList;
 
@@ -283,7 +284,7 @@ public abstract class MalleableString {
                 .map(it -> it.unplacedComments).map(Stream::toList).toList();
             List<String> stringComponents =  componentRenderings.stream()
                 .map(it -> it.rendering)
-                .map(FormattingUtils::normalizeEol)
+                .map(StringUtil::normalizeEol)
                 .collect(ArrayList::new, ArrayList::add, ArrayList::addAll);
             List<String> commentsThatCouldNotBeHandledHere = new ArrayList<>();
             int startColumn = inlineCommentStartColumn(stringComponents, commentsFromChildren);
