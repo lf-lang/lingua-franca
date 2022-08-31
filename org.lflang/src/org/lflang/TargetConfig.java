@@ -54,6 +54,11 @@ public class TargetConfig {
     public Set<TargetProperty> setByUser = new HashSet<>();
 
     /**
+     * Specify Baud Rate for Embedded Devices, including Arduino.
+     */
+    public int baudRate = 9600;
+
+    /**
      * A list of custom build commands that replace the default build process of
      * directly invoking a designated compiler. A common usage of this target
      * property is to set the command to build on the basis of a Makefile.
@@ -259,7 +264,6 @@ public class TargetConfig {
      * LF programs and performing external analysis.
      */
     public boolean exportToYaml = false;
-
 
     /** Rust-specific configuration. */
     public final RustTargetConfig rust = new RustTargetConfig();

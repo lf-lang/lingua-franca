@@ -34,6 +34,7 @@ import static org.lflang.ASTUtils.isZero;
 import static org.lflang.ASTUtils.toDefinition;
 import static org.lflang.ASTUtils.toOriginalText;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -57,6 +58,7 @@ import org.eclipse.xtext.validation.Check;
 import org.eclipse.xtext.validation.CheckType;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 import org.lflang.ASTUtils;
+import org.lflang.AttributeUtils;
 import org.lflang.ModelInfo;
 import org.lflang.Target;
 import org.lflang.TargetProperty;
@@ -1250,6 +1252,37 @@ public class LFValidator extends BaseLFValidator {
                 } else if (term.getWidth() < 0) {
                     error("Width must be a positive integer.", Literals.WIDTH_SPEC__TERMS);
                 }
+            }
+        }
+    }
+    
+    @Check(CheckType.FAST)
+    public void checkReactorIconAttribute(Reactor reactor) {
+        var attrs = AttributeUtils.getAttributes(reactor);
+        var iconAttr = attrs.stream()
+                    .filter(it -> it.getAttrName().equalsIgnoreCase("icon"))
+                    .findFirst()
+                    .orElse(null);
+        if (iconAttr != null) {
+            var path = iconAttr.getAttrParms().get(0).getValue().getStr();
+            
+            // Check file extension
+            var validExtensions = Set.of("bmp", "png", "gif", "ico", "jpeg");
+            var extensionStrart = path.lastIndexOf(".");
+            var extension = extensionStrart != -1 ? path.substring(extensionStrart + 1) : "";
+            if (!validExtensions.contains(extension.toLowerCase())) {
+                warning("File extension '" + extension + "' is not supported. Provide any of: " + String.join(", ", validExtensions),
+                        iconAttr.getAttrParms().get(0), Literals.ATTR_PARM__VALUE);
+                return;
+            }
+            
+            // Check file location
+            var iconLocation = FileUtil.locateFile(path, reactor.eResource());
+            if (iconLocation == null) {
+                warning("Cannot locate icon file.", iconAttr.getAttrParms().get(0), Literals.ATTR_PARM__VALUE);
+            }
+            if (("file".equals(iconLocation.getScheme()) || iconLocation.getScheme() == null) && !(new File(iconLocation.getPath()).exists())) {
+                warning("Icon does not exist.", iconAttr.getAttrParms().get(0), Literals.ATTR_PARM__VALUE);
             }
         }
     }
