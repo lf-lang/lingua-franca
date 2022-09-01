@@ -80,17 +80,19 @@ public class TSExtension implements FedTargetExtension {
 
     @Override
     public String generateNetworkOutputControlReactionBody(VarRef srcOutputPort, FedConnectionInstance connection) {
+        String additionalDelayString = getNetworkDelay(connection.getDefinition().getDelay());
         return"""
         Log.debug(this, () => {return `Contemplating whether to send port absent to `
         + `federate ID: %3$s port ID: %4$s.`});
         if (%1$s.%2$s === undefined) {
-            this.util.sendRTIPortAbsent(0, %3$s, %4$s);
+            this.util.sendRTIPortAbsent(%5$s, %3$s, %4$s);
         }
         """.formatted(
             srcOutputPort.getContainer().getName(),
             srcOutputPort.getVariable().getName(),
             connection.getDstFederate().id,
-            connection.getDstFederate().networkMessageActions.size()
+            connection.getDstFederate().networkMessageActions.size(),
+            additionalDelayString
         );
     }
 
