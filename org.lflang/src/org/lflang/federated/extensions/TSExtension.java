@@ -174,25 +174,37 @@ public class TSExtension implements FedTargetExtension {
         List<String> candidates = new ArrayList<>();
         if (!federate.dependsOn.keySet().isEmpty()) {
             for (FederateInstance upstreamFederate: federate.dependsOn.keySet()) {
+                String element = "[";
                 var delays = federate.dependsOn.get(upstreamFederate);
+                int cnt = 0;
                 if (delays != null) {
                     for (Expression delay : delays) {
                         if (delay == null) {
-                            candidates.add("TimeValue.NEVER()");
+                            element += "TimeValue.NEVER()";
+                            //candidates.add("TimeValue.NEVER()");
                         } else {
                             //FIXME: Figure out how to get TimeValue from the delay and convert it to the string 
                             if (delay instanceof Time) {
-                                candidates.add(getTargetTime(((Time) delay)));
+                                element += getTargetTime((Time) delay);
+                                //candidates.add(getTargetTime(((Time) delay)));
                             } else if (delay instanceof ParameterReference) {
                                 // The delay is given as a parameter reference. Find its value.
                                 final var param = ((ParameterReference)delay).getParameter();
-                                candidates.add(TSExtensionsKt.timeInTargetLanguage(ASTUtils.getDefaultAsTimeValue(param)));
+                                //candidates.add(TSExtensionsKt.timeInTargetLanguage(ASTUtils.getDefaultAsTimeValue(param)));
+                                element += TSExtensionsKt.timeInTargetLanguage(ASTUtils.getDefaultAsTimeValue(param));
                             }
+                        }
+                        cnt++;
+                        if (cnt != delays.size()) {
+                            element += ", ";
                         }
                     }
                 } else {
-                    candidates.add("TimeValue.NEVER()");
+                    element += "TimeValue.NEVER()";
+                    //candidates.add("TimeValue.NEVER()");
                 }
+                element += "]";
+                candidates.add(element);
             }
         }
         return candidates;
