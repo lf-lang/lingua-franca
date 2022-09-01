@@ -53,16 +53,18 @@ public class TSExtension implements FedTargetExtension {
 
     @Override
     public String generateNetworkSenderBody(VarRef sendingPort, VarRef receivingPort, FedConnectionInstance connection, InferredType type, CoordinationType coordinationType, ErrorReporter errorReporter) {
+        String additionalDelayString = getNetworkDelay(connection.getDefinition().getDelay());
         return"""
         if (%1$s.%2$s !== undefined) {
-            this.util.sendRTITimedMessage(%1$s.%2$s, %3$s, %4$s);
+            this.util.sendRTITimedMessage(%1$s.%2$s, %3$s, %4$s, %5$s);
         }
         """.formatted(
             sendingPort.getContainer().getName(),
             sendingPort.getVariable().getName(),
             connection.getDstFederate().id,
-            connection.getDstFederate().networkMessageActions.size()
-        );
+            connection.getDstFederate().networkMessageActions.size(),
+            additionalDelayString
+            );
     }
 
     @Override
@@ -179,21 +181,7 @@ public class TSExtension implements FedTargetExtension {
                 int cnt = 0;
                 if (delays != null) {
                     for (Expression delay : delays) {
-                        if (delay == null) {
-                            element += "TimeValue.NEVER()";
-                            //candidates.add("TimeValue.NEVER()");
-                        } else {
-                            //FIXME: Figure out how to get TimeValue from the delay and convert it to the string 
-                            if (delay instanceof Time) {
-                                element += getTargetTime((Time) delay);
-                                //candidates.add(getTargetTime(((Time) delay)));
-                            } else if (delay instanceof ParameterReference) {
-                                // The delay is given as a parameter reference. Find its value.
-                                final var param = ((ParameterReference)delay).getParameter();
-                                //candidates.add(TSExtensionsKt.timeInTargetLanguage(ASTUtils.getDefaultAsTimeValue(param)));
-                                element += TSExtensionsKt.timeInTargetLanguage(ASTUtils.getDefaultAsTimeValue(param));
-                            }
-                        }
+                        element += getNetworkDelay(delay);
                         cnt++;
                         if (cnt != delays.size()) {
                             element += ", ";
@@ -213,5 +201,20 @@ public class TSExtension implements FedTargetExtension {
     private String getTargetTime(Time t) {
         TimeValue value = new TimeValue(t.getInterval(), TimeUnit.fromName(t.getUnit()));
         return TSExtensionsKt.timeInTargetLanguage(value);
+    }
+
+    private String getNetworkDelay(Expression delay) {
+        String additionalDelayString = "TimeValue.NEVER()";
+        if (delay != null) {
+            if (delay instanceof Time) {
+                additionalDelayString = getTargetTime((Time) delay);
+            } else if (delay instanceof ParameterReference) {
+                // The delay is given as a parameter reference. Find its value.
+                final var param = ((ParameterReference)delay).getParameter();
+                //candidates.add(TSExtensionsKt.timeInTargetLanguage(ASTUtils.getDefaultAsTimeValue(param)));
+                additionalDelayString = TSExtensionsKt.timeInTargetLanguage(ASTUtils.getDefaultAsTimeValue(param));
+            }
+        }
+        return additionalDelayString;
     }
 }
