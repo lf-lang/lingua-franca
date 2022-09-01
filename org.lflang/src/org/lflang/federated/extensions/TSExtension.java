@@ -211,7 +211,6 @@ public class TSExtension implements FedTargetExtension {
             } else if (delay instanceof ParameterReference) {
                 // The delay is given as a parameter reference. Find its value.
                 final var param = ((ParameterReference)delay).getParameter();
-                //candidates.add(TSExtensionsKt.timeInTargetLanguage(ASTUtils.getDefaultAsTimeValue(param)));
                 additionalDelayString = TSExtensionsKt.timeInTargetLanguage(ASTUtils.getDefaultAsTimeValue(param));
             }
         }
