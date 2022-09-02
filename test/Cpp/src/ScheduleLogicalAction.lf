@@ -1,33 +1,34 @@
 /**
-*
-* @author Maiko Brants TU Dresden
-*
-* This checks that a logical action is scheduled the specified
-* logical time after the current logical time.
-*
-* Modeled after the C version of this test.
-**/
+ * @author Maiko Brants TU Dresden
+ *
+ * This checks that a logical action is scheduled the specified logical time
+ * after the current logical time.
+ *
+ * Modeled after the C version of this test.
+ */
 target Cpp {
     fast: true,
     timeout: 3 sec
-};
+}
+
 reactor foo {
-    input x:int;
-    output y:int;
-    logical action a:void;
+    input x: int
+    output y: int
+    logical action a: void
+
     reaction(x) -> y, a {=
         y.set( 2*(*x.get()));
         // The following uses physical time, incorrectly.
         a.schedule(500ms);
     =}
-    reaction(a) -> y {=
-        y.set(-42);
-    =}
+
+    reaction(a) -> y {= y.set(-42); =}
 }
 
 reactor print {
-    state expected_time:time(0);
-    input x:int;
+    state expected_time: time(0)
+    input x: int
+
     reaction(x) {=
         auto elapsed_time = get_elapsed_logical_time();
         reactor::log::Info() << "Result is " << *x.get();
@@ -40,12 +41,12 @@ reactor print {
         expected_time += 500ms;
     =}
 }
+
 main reactor {
-    f = new foo();
-    p = new print();
-    timer t(0, 1 sec);
-    reaction(t) -> f.x {=
-        f.x.set(42);
-    =}
-    f.y -> p.x;
+    f = new foo()
+    p = new print()
+    timer t(0, 1 sec)
+    f.y -> p.x
+
+    reaction(t) -> f.x {= f.x.set(42); =}
 }

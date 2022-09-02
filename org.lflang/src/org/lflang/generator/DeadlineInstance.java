@@ -27,10 +27,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 package org.lflang.generator;
 
-import org.lflang.ASTUtils;
 import org.lflang.TimeValue;
 import org.lflang.lf.Deadline;
-import org.lflang.lf.Parameter;
 
 /**
  * Instance of a deadline. Upon creation the actual delay is converted into

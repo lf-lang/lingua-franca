@@ -1,6 +1,8 @@
-target Cpp;
+target Cpp
+
 reactor Printer {
-    input x:int;
+    input x: int
+
     reaction(x) {=
         std::cout << "Inside reactor received: " << *x.get() << std::endl;
         if (*x.get() != 1) {
@@ -9,10 +11,10 @@ reactor Printer {
         }
     =}
 }
+
 main reactor SendingInside2 {
-    timer t;
-    p = new Printer();
-    reaction(t) -> p.x {=
-        p.x.set(1);
-    =}
+    timer t
+    p = new Printer()
+
+    reaction(t) -> p.x {= p.x.set(1); =}
 }

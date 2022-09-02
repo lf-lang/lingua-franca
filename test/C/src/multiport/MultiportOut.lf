@@ -2,11 +2,13 @@
 target C {
     timeout: 2 sec,
     fast: true
-};
+}
+
 reactor Source {
-    timer t(0, 200 msec);
-    output[4] out:int;
-    state s:int(0);
+    timer t(0, 200 msec)
+    output[4] out: int
+    state s: int(0)
+
     reaction(t) -> out {=
         for(int i = 0; i < 4; i++) {
             lf_set(out[i], self->s);
@@ -14,9 +16,11 @@ reactor Source {
         self->s++;
     =}
 }
+
 reactor Computation {
-    input in:int;
-    output out:int;
+    input in: int
+    output out: int
+
     reaction(in) -> out {=
         // No need to sleep for this test.
         // struct timespec sleep_time = {(time_t) 0, (long)200000000};
@@ -25,9 +29,11 @@ reactor Computation {
         lf_set(out, in->value);
     =}
 }
+
 reactor Destination {
-    state s:int(0);
-    input[4] in:int;
+    state s: int(0)
+    input[4] in: int
+
     reaction(in) {=
         int sum = 0;
         for (int i = 0; i < in_width; i++) {
@@ -40,6 +46,7 @@ reactor Destination {
         }
         self->s += 4;
     =}
+
     reaction(shutdown) {=
         if (self->s == 0) {
             fprintf(stderr, "ERROR: Destination received no input!\n");
@@ -50,12 +57,12 @@ reactor Destination {
 }
 
 main reactor {
-    a = new Source();
-    t1 = new Computation();
-    t2 = new Computation();
-    t3 = new Computation();
-    t4 = new Computation();
-    b = new Destination();
-    a.out -> t1.in, t2.in, t3.in, t4.in;
-    t1.out, t2.out, t3.out, t4.out -> b.in;
+    a = new Source()
+    t1 = new Computation()
+    t2 = new Computation()
+    t3 = new Computation()
+    t4 = new Computation()
+    b = new Destination()
+    a.out -> t1.in, t2.in, t3.in, t4.in
+    t1.out, t2.out, t3.out, t4.out -> b.in
 }

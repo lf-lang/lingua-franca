@@ -1,19 +1,20 @@
-// Test multiport to multiport connections.
-// See also MultiportToMultiport.
-target Cpp;
+// Test multiport to multiport connections. See also MultiportToMultiport.
+target Cpp
 
-reactor Source(width:size_t(2)) {
-    output[width] out:size_t;
-    reaction (startup) -> out {=
+reactor Source(width: size_t(2)) {
+    output[width] out: size_t
+
+    reaction(startup) -> out {=
         for (size_t i = 0; i < out.size(); i++) {
             out[i].set(i);
         }
     =}
 }
 
-reactor Destination(width:size_t(2)) {
-    input[width] in:size_t;
-    reaction (in) {=
+reactor Destination(width: size_t(2)) {
+    input[width] in: size_t
+
+    reaction(in) {=
         for (size_t i = 0; i < in.size(); i++) {
             if (in[i].is_present()) {
                 size_t value = *in[i].get();
@@ -34,8 +35,8 @@ reactor Destination(width:size_t(2)) {
 }
 
 main reactor {
-    a1 = new Source(width = 3);
-    a2 = new Source(width = 2);
-    b = new Destination(width = 5);
-    a1.out, a2.out -> b.in after 1 sec;
+    a1 = new Source(width = 3)
+    a2 = new Source(width = 2)
+    b = new Destination(width = 5)
+    a1.out, a2.out -> b.in after 1 sec
 }

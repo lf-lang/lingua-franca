@@ -2,19 +2,21 @@
 target C {
     timeout: 5 sec,
     fast: true
-};
-reactor Source {
-    output out:int;
-    timer t(0, 1 sec);
-    state s:int(1);
-    reaction(t) -> out {=
-        lf_set(out, self->s++);
-    =}
 }
+
+reactor Source {
+    output out: int
+    timer t(0, 1 sec)
+    state s: int(1)
+
+    reaction(t) -> out {= lf_set(out, self->s++); =}
+}
+
 reactor Add {
-    input in1:int;
-    input in2:int;
-    output out:int;
+    input in1: int
+    input in2: int
+    output out: int
+
     reaction(in1, in2) -> out {=
         int result = 0;
         if (in1->is_present) result += in1->value;
@@ -22,9 +24,11 @@ reactor Add {
         lf_set(out, result);
     =}
 }
+
 reactor Print {
-    input in:int;
-    state expected:int(1);
+    input in: int
+    state expected: int(1)
+
     reaction(in) {=
         printf("Received: %d.\n", in->value);
         if (in->value != self->expected) {
@@ -34,10 +38,11 @@ reactor Print {
         self->expected++;
     =}
 }
+
 main reactor UnconnectedInput {
-    source = new Source();
-    add = new Add();
-    print = new Print();
-    source.out -> add.in2;
-    add.out -> print.in;
+    source = new Source()
+    add = new Add()
+    print = new Print()
+    source.out -> add.in2
+    add.out -> print.in
 }

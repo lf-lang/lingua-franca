@@ -1,12 +1,13 @@
-// Check multiport to bank connections between federates.
+# Check multiport to bank connections between federates.
 target Python {
     timeout: 1 sec
-};
+}
 
 reactor Source {
-    output[2] out;
-    timer t(0, 100 msec);
-    state count(0);
+    output[2] out
+    timer t(0, 100 msec)
+    state count(0)
+
     reaction(t) -> out {=
         for i in range(len(out)):
             out[i].set(self.count)
@@ -15,11 +16,10 @@ reactor Source {
 }
 
 reactor Destination {
-    preamble {=
-        import sys
-    =}
-    input in_;
-    state count(0);
+    preamble {= import sys =}
+    input in_
+    state count(0)
+
     reaction(in_) {=
         print("Received {}.".format(in_.value))
         if self.count != in_.value:
@@ -27,6 +27,7 @@ reactor Destination {
             self.sys.exit(1)
         self.count += 1
     =}
+
     reaction(shutdown) {=
         if self.count == 0:
             self.sys.stderr.write("No data received.")
@@ -35,7 +36,7 @@ reactor Destination {
 }
 
 federated reactor DistributedMultiportToBank {
-    s = new Source();
-    d = new[2] Destination();
-    s.out -> d.in_;
+    s = new Source()
+    d = new[2] Destination()
+    s.out -> d.in_
 }

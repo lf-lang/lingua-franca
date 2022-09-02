@@ -1,14 +1,15 @@
-/* Test that use-dependencies do not trigger reactions. */
-target Rust;
+/** Test that use-dependencies do not trigger reactions. */
+target Rust
 
 reactor Source {
-    output clock: u32;
-    reaction(startup) -> clock     {= ctx.set(clock, 0); =}
+    output clock: u32
+
+    reaction(startup) -> clock {= ctx.set(clock, 0); =}
 }
 
 reactor Sink {
-    input clock: u32;
-    input bogus: u32;
+    input clock: u32
+    input bogus: u32
 
     reaction(bogus) clock {= panic!("Should not be executed") =}
 
@@ -16,8 +17,8 @@ reactor Sink {
 }
 
 main reactor {
-    source = new Source();
-    sink = new Sink();
+    source = new Source()
+    sink = new Sink()
 
-    source.clock -> sink.clock;
+    source.clock -> sink.clock
 }
