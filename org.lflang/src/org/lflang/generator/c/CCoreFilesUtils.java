@@ -93,6 +93,7 @@ public class CCoreFilesUtils {
             "platform/lf_POSIX_threads_support.c",
             "platform/lf_C11_threads_support.c",
             "platform/lf_C11_threads_support.h",
+            "platform/lf_os_single_threaded_support.c",
             "platform/lf_POSIX_threads_support.h",
             "platform/lf_POSIX_threads_support.c",
             "platform/lf_unix_clock_support.c",
