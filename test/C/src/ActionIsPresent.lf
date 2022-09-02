@@ -1,8 +1,10 @@
 // Tests the is_present variable for actions.
-target C;
-main reactor ActionIsPresent(offset:time(1 nsec), period:time(500 msec)) {
-    logical action a;
-    state success:bool(false);
+target C
+
+main reactor ActionIsPresent(offset: time(1 nsec), period: time(500 msec)) {
+    logical action a
+    state success: bool(false)
+
     reaction(startup, a) -> a {=
         if (!a->is_present) {
             if (self->offset == 0) {
@@ -16,6 +18,7 @@ main reactor ActionIsPresent(offset:time(1 nsec), period:time(500 msec)) {
             self->success = true;
         }
     =}
+
     reaction(shutdown) {=
         if (!self->success) {
             fprintf(stderr, "Failed to print 'Hello World'\n");

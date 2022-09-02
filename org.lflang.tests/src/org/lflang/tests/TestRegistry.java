@@ -2,8 +2,6 @@ package org.lflang.tests;
 
 import static java.nio.file.FileVisitResult.CONTINUE;
 import static java.nio.file.FileVisitResult.SKIP_SUBTREE;
-import static org.eclipse.xtext.xbase.lib.IteratorExtensions.exists;
-import static org.eclipse.xtext.xbase.lib.IteratorExtensions.filter;
 
 import java.io.File;
 import java.io.IOException;
@@ -17,7 +15,6 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.Stack;
 import java.util.TreeSet;
@@ -33,7 +30,6 @@ import org.lflang.LFResourceProvider;
 import org.lflang.LFStandaloneSetup;
 import org.lflang.Target;
 import org.lflang.lf.Reactor;
-import org.lflang.lf.TargetDecl;
 import org.lflang.tests.LFTest.Result;
 import org.lflang.tests.TestBase.TestLevel;
 
@@ -74,7 +70,6 @@ public class TestRegistry {
         public Set<LFTest> getTests(Target t, TestCategory c) {
             return this.map.get(t).get(c);
         }
-        
     }
     
     /**

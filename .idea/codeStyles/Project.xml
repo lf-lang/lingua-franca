@@ -48,6 +48,7 @@
       </option>
       <option name="ALIGN_MULTILINE_RECORDS" value="false" />
       <option name="ALIGN_TYPES_IN_MULTI_CATCH" value="false" />
+      <option name="JD_ALIGN_PARAM_COMMENTS" value="false" />
       <option name="JD_DO_NOT_WRAP_ONE_LINE_COMMENTS" value="true" />
       <option name="JD_PRESERVE_LINE_FEEDS" value="true" />
     </JavaCodeStyleSettings>

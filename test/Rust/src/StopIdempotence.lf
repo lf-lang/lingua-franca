@@ -1,12 +1,10 @@
-/* Tests that ports are cleaned up before the shutdown wave executes. */
-
- target Rust {
-    timeout: 30 msec,
-
- };
+/** Tests that ports are cleaned up before the shutdown wave executes. */
+target Rust {
+    timeout: 30 msec
+}
 
 main reactor StopIdempotence {
-    state count: u32(0);
+    state count: u32(0)
 
     reaction(startup) {=
         ctx.request_stop(Asap); // requested for (T0, 1)

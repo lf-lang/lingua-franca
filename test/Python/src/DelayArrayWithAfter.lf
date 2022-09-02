@@ -1,13 +1,15 @@
-// This tests transport of dynamically allocated arrays over
-// connections with 'after'.
+# This tests transport of dynamically allocated arrays over connections with
+# 'after'.
 target Python {
     timeout: 5 sec,
     fast: true
-};
+}
+
 reactor Source {
-    output out;
-    state iteration(1);
-    timer t(0, 1 sec);
+    output out
+    state iteration(1)
+    timer t(0, 1 sec)
+
     reaction(t) -> out {=
         out.set([(x * self.iteration) for x in [1,2,3]])
         print("At time {:d}, sending list ".format(lf.time.logical_elapsed()), out.value)
@@ -16,11 +18,11 @@ reactor Source {
     =}
 }
 
-// The scale parameter is just for testing.
-reactor Print(scale(1)) {
-    input _in;
-    state iteration(1);
-    state inputs_received(0);
+reactor Print(scale(1)) {  # The scale parameter is just for testing.
+    input _in
+    state iteration(1)
+    state inputs_received(0)
+
     reaction(_in) {=
         self.inputs_received += 1
 
@@ -42,8 +44,9 @@ reactor Print(scale(1)) {
             exit(3)
     =}
 }
+
 main reactor DelayArrayWithAfter {
-    s = new Source();
-    p = new Print();
-    s.out -> p._in after 1500 msec;
+    s = new Source()
+    p = new Print()
+    s.out -> p._in after 1500 msec
 }

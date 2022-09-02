@@ -4,16 +4,16 @@
  */
 target C {
     timeout: 1 msec
-};
+}
 
 import PassThrough from "../lib/PassThrough.lf"
 import TestCount from "../lib/TestCount.lf"
 
 reactor WithLogicalAction {
-    output out:int;
-	state thread_id:lf_thread_t(0);
-    state counter:int(1);
-    logical action act(0):int;
+    output out: int
+    state thread_id: lf_thread_t(0)
+    state counter: int(1)
+    logical action act(0): int
 
     reaction(startup, act) -> act, out {=
         SET(out, self->counter);
@@ -22,8 +22,8 @@ reactor WithLogicalAction {
 }
 
 federated reactor {
-    a = new WithLogicalAction();
-    test = new TestCount(num_inputs=21);
+    a = new WithLogicalAction()
+    test = new TestCount(num_inputs = 21)
 
     passThroughs1 = new PassThrough()
     passThroughs2 = new PassThrough()
@@ -36,15 +36,26 @@ federated reactor {
     passThroughs9 = new PassThrough()
     passThroughs10 = new PassThrough()
 
-    a.out, passThroughs1.out,
-    passThroughs2.out, passThroughs3.out,
-    passThroughs4.out, passThroughs5.out,
-    passThroughs6.out, passThroughs7.out,
-    passThroughs8.out, passThroughs9.out,
-    passThroughs10.out -> passThroughs1.in,
-    passThroughs2.in, passThroughs3.in,
-    passThroughs4.in, passThroughs5.in,
-    passThroughs6.in, passThroughs7.in,
-    passThroughs8.in, passThroughs9.in,
-    passThroughs10.in, test.in
+    a.out,
+    passThroughs1.out,
+    passThroughs2.out,
+    passThroughs3.out,
+    passThroughs4.out,
+    passThroughs5.out,
+    passThroughs6.out,
+    passThroughs7.out,
+    passThroughs8.out,
+    passThroughs9.out,
+    passThroughs10.out ->
+        passThroughs1.in,
+        passThroughs2.in,
+        passThroughs3.in,
+        passThroughs4.in,
+        passThroughs5.in,
+        passThroughs6.in,
+        passThroughs7.in,
+        passThroughs8.in,
+        passThroughs9.in,
+        passThroughs10.in,
+        test.in
 }

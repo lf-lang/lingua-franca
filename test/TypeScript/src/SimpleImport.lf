@@ -1,7 +1,8 @@
-target TypeScript;
-import HelloWorldInside from "HelloWorld.lf";
+target TypeScript
+
+import HelloWorldInside from "HelloWorld.lf"
 
 main reactor SimpleImport {
-    a = new HelloWorldInside();
-    b = new HelloWorldInside();
+    a = new HelloWorldInside()
+    b = new HelloWorldInside()
 }

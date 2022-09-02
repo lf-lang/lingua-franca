@@ -1,11 +1,13 @@
 target C {
     timeout: 1 sec
 }
+
 reactor Loop {
-    input in:int;
-    output out:int;
-    timer t(0, 100 msec);
-    state count:int(1);
+    input in: int
+    output out: int
+    timer t(0, 100 msec)
+    state count: int(1)
+
     reaction(in) {=
         lf_print("Received %d.", in->value);
         if (in->value != self->count) {
@@ -17,9 +19,9 @@ reactor Loop {
         }
         self->count++;
     =}
-    reaction(t) -> out {=
-        SET(out, self->count);
-    =}
+
+    reaction(t) -> out {= SET(out, self->count); =}
+
     reaction(shutdown) {=
         if (self->count != 11) {
             lf_print_error_and_exit(
@@ -29,8 +31,9 @@ reactor Loop {
         }
     =}
 }
+
 federated reactor {
     l = new Loop()
 
-    l.out -> l.in after 0;
+    l.out -> l.in after 0
 }

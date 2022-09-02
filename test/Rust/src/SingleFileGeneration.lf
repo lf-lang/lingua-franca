@@ -1,16 +1,17 @@
 // The same as CompositionWithPorts.lf, but as a single file project
 target Rust {
     single-file-project: true
-};
+}
 
 reactor Source {
-    output out: i32;
-    reaction(startup) -> out {=
-        ctx.set(out, 76600)
-    =}
+    output out: i32
+
+    reaction(startup) -> out {= ctx.set(out, 76600) =}
 }
+
 reactor Sink {
-    input inport: i32;
+    input inport: i32
+
     reaction(inport) {=
         if let Some(value) = ctx.get(inport) {
             println!("received {}", value);
@@ -20,9 +21,10 @@ reactor Sink {
         }
     =}
 }
-main reactor {
-    source = new Source();
-    sink = new Sink();
 
-    source.out -> sink.inport;
+main reactor {
+    source = new Source()
+    sink = new Sink()
+
+    source.out -> sink.inport
 }
