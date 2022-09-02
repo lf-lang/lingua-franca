@@ -37,6 +37,7 @@ import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
 import org.lflang.Target;
 import org.lflang.TargetConfig;
+import org.lflang.TargetProperty.Platform;
 import org.lflang.generator.GeneratorBase;
 import org.lflang.generator.GeneratorCommandFactory;
 import org.lflang.generator.GeneratorUtils;
@@ -206,23 +207,28 @@ public class CCompiler {
     }
 
     private static List<String> cmakeOptions(TargetConfig targetConfig, FileConfig fileConfig) {
-        Stream<String> arguments = Stream.concat(
-            cmakeCompileDefinitions(targetConfig),
-            Stream.of(
-                "-DCMAKE_INSTALL_PREFIX=" + FileUtil.toUnixString(fileConfig.getOutPath()),
-                "-DCMAKE_INSTALL_BINDIR=" + FileUtil.toUnixString(
-                    fileConfig.getOutPath().relativize(
-                        fileConfig.binPath
-                    )
-                ),
-                FileUtil.toUnixString(fileConfig.getSrcGenPath())
-            )
-        );
+        List<String> arguments = new ArrayList<>();
+        cmakeCompileDefinitions(targetConfig).forEachOrdered(arguments::add);
+        arguments.addAll(List.of(
+            "-DCMAKE_INSTALL_PREFIX=" + FileUtil.toUnixString(fileConfig.getOutPath()),
+            "-DCMAKE_INSTALL_BINDIR=" + FileUtil.toUnixString(
+                fileConfig.getOutPath().relativize(
+                    fileConfig.binPath
+                )
+            ),
+            FileUtil.toUnixString(fileConfig.getSrcGenPath())
+        ));
+        if(targetConfig.platform == Platform.ARDUINO) {
+            arguments.add(0, "-DCMAKE_TOOLCHAIN_FILE="
+                + FileUtil.globFilesEndsWith(fileConfig.srcPkgPath.getParent().getParent(), "Arduino-toolchain.cmake").get(0));
+            arguments.add(0, "-DARDUINO_BOARD_OPTIONS_FILE="
+                + FileUtil.globFilesEndsWith(fileConfig.getSrcGenPath(), "BoardOptions.cmake").get(0));
+        }
 
         if (GeneratorUtils.isHostWindows()) {
-            arguments = Stream.concat(arguments, Stream.of("-DCMAKE_SYSTEM_VERSION=\"10.0\""));
+            arguments.add("-DCMAKE_SYSTEM_VERSION=\"10.0\"");
         }
-        return arguments.toList();
+        return arguments;
     }
 
 

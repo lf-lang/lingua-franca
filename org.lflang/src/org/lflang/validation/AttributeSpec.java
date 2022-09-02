@@ -204,5 +204,9 @@ class AttributeSpec {
         ));
         // @sparse
         ATTRIBUTE_SPECS_BY_NAME.put("sparse", new AttributeSpec(null));
+        // @icon("value")
+        ATTRIBUTE_SPECS_BY_NAME.put("icon", new AttributeSpec(
+            List.of(new AttrParamSpec(AttributeSpec.VALUE_ATTR, AttrParamType.STRING, null))
+        ));
     }
 }

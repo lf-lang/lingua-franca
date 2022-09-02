@@ -33,7 +33,7 @@ public class CCppTest extends TestBase {
         runTestsForTargets(Message.DESC_AS_CCPP, CCppTest::isExcludedFromCCpp,
                            it -> ASTUtils.changeTargetName(it.fileConfig.resource,
                                                            Target.CCPP.getDisplayName()),
-                           TestLevel.EXECUTION, true);
+                           true);
     }
 
     /**
@@ -41,7 +41,7 @@ public class CCppTest extends TestBase {
      */
     private static boolean isExcludedFromCCpp(TestCategory category) {
         boolean excluded = category == TestCategory.SERIALIZATION;
-        excluded |= isWindows() && category == TestCategory.DOCKER_FEDERATED;
+        excluded |= isWindows() && (category == TestCategory.DOCKER_FEDERATED || category == TestCategory.ARDUINO) ;
         excluded |= isMac() && (category == TestCategory.DOCKER_FEDERATED || category == TestCategory.DOCKER);
         return !excluded;
     }
