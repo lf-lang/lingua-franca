@@ -1,0 +1,45 @@
+/** Test a particularly simple form of a distributed deterministic system
+ *  where a federation that receives timestamped messages has only those
+ *  messages as triggers. Therefore, no additional coordination of the
+ *  advancement of time (HLA or Ptides) is needed.
+ *  @author Edward A. Lee
+ */
+target Python;
+
+reactor Source {
+    output out;
+    reaction(startup) -> out {=
+        print("Sending 'Hello World!' message from source federate.");
+        out.set("Hello World!")
+        request_stop()
+    =}
+}
+reactor Destination {
+    input _in;
+    state received(false);
+    reaction(startup) {=
+        print("Destination started.")
+    =}
+    reaction(_in) {=
+        print(f"At logical time {lf.time.logical_elapsed()}, destination received {_in.value}")
+        if _in.value != "Hello World!":
+            sys.stderr.write("ERROR: Expected to receive 'Hello World!'\n");
+            exit(1)
+        self.received = True
+    =}
+    reaction(shutdown) {=
+        print("Shutdown invoked.")
+        if self.received is not True:
+            sys.stderr.write("ERROR: Destination did not receive the message.")
+            exit(1)
+    =}
+}
+
+federated reactor HelloDistributed at localhost {
+//    reaction(startup) {=
+//        print("Printing something in top-level federated reactor.")
+//    =}
+    s = new Source();       // Reactor s is in federate Source
+    d = new Destination();  // Reactor d is in federate Destination
+    s.out -> d._in;         // This version preserves the timestamp.
+}

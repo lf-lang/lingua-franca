@@ -1,0 +1,24 @@
+target Python { timeout: 2 sec };
+
+preamble {=
+    class C:
+        def __init__(self):
+            pass
+=}
+
+reactor A {
+    input o
+}
+
+reactor B {
+    output o
+    reaction(startup) -> o {=
+        o.set(C())
+    =}
+}
+
+federated reactor {
+    a = new A();
+    b = new B();
+    b.o -> a.o;
+}

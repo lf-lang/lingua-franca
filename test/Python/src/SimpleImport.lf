@@ -1,0 +1,7 @@
+target Python;
+import HelloWorld2 from "HelloWorld.lf";
+
+main reactor SimpleImport {
+    a = new HelloWorld2();
+    b = new HelloWorld2();
+}

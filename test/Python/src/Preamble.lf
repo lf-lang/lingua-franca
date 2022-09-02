@@ -1,0 +1,21 @@
+// Preambles are put inside the Python reactor class
+// Therefore, accessing them requires the use of self.
+target Python {
+    timeout: 2 sec,
+    fast: true
+};
+main reactor Preamble {
+    preamble {=
+        import platform
+        def add_42(self, i):
+            return i + 42
+    =}
+    timer t;
+    reaction(t) {=
+        s = "42";
+        i = int(s)
+        print("Converted string {:s} to int {:d}.".format(s, i))
+        print("42 plus 42 is ", self.add_42(42))
+        print("Your platform is ", self.platform.system())
+    =}
+}

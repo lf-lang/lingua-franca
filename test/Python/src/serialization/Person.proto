@@ -1,0 +1,10 @@
+// Simple data type representing an address book entry.
+// Based on an example distributed with Google's protobufs.
+
+syntax = "proto3";
+
+message Person {
+    string name = 1;
+    int32 id = 2;    // Unique ID number for this person.
+    string email = 3;
+}

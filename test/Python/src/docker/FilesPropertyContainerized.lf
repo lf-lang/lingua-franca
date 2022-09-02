@@ -1,0 +1,34 @@
+target Python {
+    files: "../include/hello.py",
+    docker: true
+};
+
+preamble {=
+    try:
+        import hello
+    except:
+        request_stop()
+=}
+
+main reactor {
+    preamble {=
+        try:
+            import hello
+        except:
+            request_stop()
+    =}
+    state passed(false);
+    timer t(1 msec);
+
+    reaction(t) {=
+        self.passed = True
+    =}
+
+    reaction(shutdown) {=
+        if not self.passed:
+            print("Failed to import file listed in files target property")
+            exit(1)
+        else:
+            print("PASSED")
+    =}
+}

@@ -1,0 +1,37 @@
+// Source has an array as a parameter, the elements of which it passes
+// to Print.
+target Python;
+reactor Source(sequence(0, 1, 2)) {
+    output out;
+    state count(0);
+    logical action next;
+    reaction(startup, next) -> out, next {=
+        out.set(self.sequence[self.count])
+        self.count+=1
+        if self.count < len(self.sequence):
+            next.schedule(0)
+    =}
+}
+reactor Print {
+    input _in;
+    state count(1);
+    state received(0);
+    reaction(_in) {=
+        self.received+=1
+        print("Received: {:d}\n".format(_in.value))
+        if _in.value != self.count:
+            sys.stderr.write("ERROR: Expected {:d}.\n".format(self.count))
+            exit(1)
+        self.count+=1
+    =}
+    reaction(shutdown) {=
+        if self.received == 0:
+            sys.stderr.write("ERROR: Final reactor received no data.\n")
+            exit(3)
+    =}
+}
+main reactor ArrayAsParameter {
+    s = new Source(sequence = (1, 2, 3, 4));
+    p = new Print();
+    s.out -> p._in;
+}

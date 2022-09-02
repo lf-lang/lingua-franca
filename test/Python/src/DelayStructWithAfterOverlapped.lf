@@ -1,0 +1,42 @@
+// This tests delaying a struct using after.
+target Python {
+    timeout: 5 sec,
+    fast: true,
+    files: ["include/hello.py"]
+};
+
+preamble {=
+import hello
+=}
+
+reactor Source {
+    output out;
+    timer t(0, 1 sec);
+    state s(0);
+    reaction(t) -> out {=
+        self.s += 1
+        out.set(hello.hello("Earth", 42 * self.s))
+    =}
+}
+// expected parameter is for testing.
+reactor Print {
+    input _in;
+    state s(0);
+    reaction(_in) {=
+        self.s += 1
+        print("Received: name = {:s}, value = {:d}".format(_in.value.name, _in.value.value))
+        if _in.value.value != 42 * self.s:
+            sys.stderr.write("ERROR: Expected value to be {:d}.\n".format(42 * self.s))
+            exit(1)
+    =}
+    reaction(shutdown) {=
+        if self.s == 0:
+            sys.stderr.write("ERROR: Print received no data.\n")
+            exit(2)
+    =}
+}
+main reactor {
+    s = new Source();
+    p = new Print();
+    s.out -> p._in after 1500 msec;
+}
