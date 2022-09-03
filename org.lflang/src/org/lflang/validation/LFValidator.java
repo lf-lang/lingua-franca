@@ -1403,6 +1403,7 @@ public class LFValidator extends BaseLFValidator {
                 // Check state variables in instantiated reactors
                 if (!m.getInstantiations().isEmpty()) {
                     for (var i : m.getInstantiations()) {
+                        var error = new LinkedHashSet<StateVar>();
                         var checked = new HashSet<Reactor>();
                         var toCheck = new LinkedList<Reactor>();
                         toCheck.add((Reactor) i.getReactorClass());
@@ -1414,12 +1415,9 @@ public class LFValidator extends BaseLFValidator {
                                         r -> r.getTriggers().stream().anyMatch(
                                                 t -> (t instanceof BuiltinTriggerRef && 
                                                      ((BuiltinTriggerRef) t).getType() == BuiltinTrigger.RESET)));
-                                if (!hasResetReaction && check.getStateVars().stream().anyMatch(s -> !s.isReset())) {
-                                    error("This reactor contains state variables that are not reset upon mode entry. "
-                                            + "The instatiated reactor (or any inner reactor) neither marks its state variables for automatic reset nor defines a reset reaction. "
-                                            + "It is usafe to instatiate this reactor inside a mode.",
-                                            m, Literals.MODE__INSTANTIATIONS, m.getStateVars().indexOf(i));
-                                    break;
+                                if (!hasResetReaction) {
+                                    // Add state vars that are not self-resetting to the error
+                                    check.getStateVars().stream().filter(s -> !s.isReset()).forEachOrdered(error::add);
                                 }
                             }
                             // continue with inner
@@ -1429,6 +1427,15 @@ public class LFValidator extends BaseLFValidator {
                                     toCheck.push(next);
                                 }
                             }
+                        }
+                        if (!error.isEmpty()) {
+                            error("This reactor contains state variables that are not reset upon mode entry: "
+                                    + error.stream().map(e -> e.getName() + " in " 
+                                            + ASTUtils.getEnclosingReactor(e).getName()).collect(Collectors.joining(", "))
+                                    + ".\nThe state variables are neither marked for automatic reset nor have a dedicated reset reaction. "
+                                    + "It is usafe to instatiate this reactor inside a mode entered with reset.",
+                                    m, Literals.MODE__INSTANTIATIONS,
+                                    m.getInstantiations().indexOf(i));
                         }
                     }
                 }
