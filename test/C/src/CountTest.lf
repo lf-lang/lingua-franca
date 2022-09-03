@@ -2,13 +2,13 @@ target C {
     timeout: 3 sec,
     tracing: true,
     fast: true
-};
+}
 
-import Count from "lib/Count.lf";
-import TestCount from "lib/TestCount.lf";
+import Count from "lib/Count.lf"
+import TestCount from "lib/TestCount.lf"
 
 main reactor CountTest {
-    count = new Count();
-    test = new TestCount(num_inputs = 4);
-    count.out -> test.in;
+    count = new Count()
+    test = new TestCount(num_inputs = 4)
+    count.out -> test.in
 }

@@ -1,22 +1,18 @@
 # Test ability of methods to call each other and (recursively) themselves.
-target Python;
+target Python
 
 main reactor {
-
     state foo(2)
 
-    // Return the n-th Fibonacci number.
-    method fib(n) {=
-        if n <= 1: 
+    method fib(n) {=  # Return the n-th Fibonacci number.
+        if n <= 1:
             return 1
         return self.add(self.fib(n-1), self.fib(n-2))
     =}
 
-    method add(x, y) {=
-        return x + y
-    =}
+    method add(x, y) {= return x + y =}
 
-    reaction(startup){=
+    reaction(startup) {=
         for n in range(1, 10):
             print(f"{n}-th Fibonacci number is {self.fib(n)}")
     =}

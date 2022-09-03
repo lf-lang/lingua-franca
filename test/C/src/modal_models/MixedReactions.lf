@@ -1,43 +1,35 @@
-/*
- * Modal Reactor Test.
- * Tests reactions that are defined between and after modes and should be ordered accordingly.
+/**
+ * Modal Reactor Test. Tests reactions that are defined between and after modes
+ * and should be ordered accordingly.
  */
 target C {
     fast: true,
     timeout: 110 msec
-};
+}
 
 main reactor {
-    state x:int(0);
-    state first:bool(true);
-    
-    timer t(0, 100msec)
-    
-    reaction(t) {=
-        self->x = self->x * 10 + 1;
-    =}
-    
-    reaction(t) {=
-        self->x = self->x * 10 + 2;
-    =}
-    
+    state x: int(0)
+    state first: bool(true)
+
+    timer t(0, 100 msec)
+
+    reaction(t) {= self->x = self->x * 10 + 1; =}
+
+    reaction(t) {= self->x = self->x * 10 + 2; =}
+
     initial mode A {
-      reaction(t) -> B {=
-        self->x = self->x * 10 + 3;
-        lf_set_mode(B);
-      =}
+        reaction(t) -> reset(B) {=
+            self->x = self->x * 10 + 3;
+            lf_set_mode(B);
+        =}
     }
-    
-    reaction(t) {=
-        self->x = self->x * 10 + 4;
-    =}
-    
+
+    reaction(t) {= self->x = self->x * 10 + 4; =}
+
     mode B {
-      reaction(t) {=
-        self->x = self->x * 10 + 5;
-      =}
+        reaction(t) {= self->x = self->x * 10 + 5; =}
     }
-    
+
     reaction(t) {=
         printf("%d\n", self->x);
         if (self->first) {

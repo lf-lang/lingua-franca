@@ -1,46 +1,39 @@
-target C;
+target C
 
- reactor Container {
-     input in: bool;
+reactor Container {
+    input in: bool
 
-     state triggered: bool(false);
+    state triggered: bool(false)
 
-     contained = new Contained();
+    contained = new Contained()
 
-     in -> contained.in;
+    in -> contained.in
 
-     reaction (in) {=
-         self->triggered = true;
-     =}
+    reaction(in) {= self->triggered = true; =}
 
-     reaction (shutdown) {=
-         if (!self->triggered) {
-             lf_print_error_and_exit("The Container reaction was not triggered!");
-         }
-     =}
- }
+    reaction(shutdown) {=
+        if (!self->triggered) {
+            lf_print_error_and_exit("The Container reaction was not triggered!");
+        }
+    =}
+}
 
- reactor Contained {
-     input in: bool;
+reactor Contained {
+    input in: bool
 
-     state triggered: bool(false);
+    state triggered: bool(false)
 
-     reaction (in) {=
-         self->triggered = true;
-     =}
+    reaction(in) {= self->triggered = true; =}
 
-     reaction (shutdown) {=
-         if (!self->triggered) {
-             lf_print_error_and_exit("The Contained reaction was not triggered!");
-         }
-     =}
- }
+    reaction(shutdown) {=
+        if (!self->triggered) {
+            lf_print_error_and_exit("The Contained reaction was not triggered!");
+        }
+    =}
+}
 
- main reactor {
-     container = new Container();
+main reactor {
+    container = new Container()
 
-     reaction(startup) -> container.in {=
-         lf_set(container.in, true);
-     =}
- }
- 
+    reaction(startup) -> container.in {= lf_set(container.in, true); =}
+}

@@ -1,13 +1,11 @@
 target Python {
     fast: true,
     timeout: 1 sec
-};
+}
 
-main reactor(
-        offset(0),
-        period(500 msec)) {
-    logical action init(offset);
-    logical action recur(period);
+main reactor(offset(0), period(500 msec)) {
+    logical action init(offset)
+    logical action recur(period)
 
     reaction(startup) -> init, recur {=
         if self.offset == 0:

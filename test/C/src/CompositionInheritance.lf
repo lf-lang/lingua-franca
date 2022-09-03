@@ -1,14 +1,16 @@
-// This test connects a simple counting source to tester
-// that checks against its own count.
+// This test connects a simple counting source to tester that checks against its
+// own count.
 target C {
     fast: true,
     timeout: 10 sec
-};
-reactor Source(period:time(2 sec)) {
-    input foo:int;
-    output y:int;
-    timer t(1 sec, period);
-    state count:int(0);
+}
+
+reactor Source(period: time(2 sec)) {
+    input foo: int
+    output y: int
+    timer t(1 sec, period)
+    state count: int(0)
+
     reaction(t) -> y {=
         printf("Hello World. At time %lld, my count is: %d.\n", lf_time_logical_elapsed(), self->count);
         lf_set(y, self->count);
@@ -16,8 +18,9 @@ reactor Source(period:time(2 sec)) {
 }
 
 reactor SourceExtended extends Source {
-    output y2: int;
-    timer t2(1 sec, 3 sec);
+    output y2: int
+    timer t2(1 sec, 3 sec)
+
     reaction(t2) -> y2 {=
         (self->count)++;
         printf("At time %lld, source sending %d.\n", lf_time_logical_elapsed(), self->count);
@@ -26,8 +29,9 @@ reactor SourceExtended extends Source {
 }
 
 reactor Test {
-    input x:int;
-    state count:int(0);
+    input x: int
+    state count: int(0)
+
     reaction(x) {=
         (self->count)++;
         printf("Received %d\n", x->value);
@@ -36,15 +40,17 @@ reactor Test {
             exit(1);
         }
     =}
+
     reaction(shutdown) {=
         if (self->count == 0) {
             fprintf(stderr, "FAILURE: No data received.\n");
         }
     =}
 }
-main reactor CompositionInheritance {
-    s = new SourceExtended(period = 2 sec);
 
-    d = new Test();
-    s.y2 -> d.x;
+main reactor CompositionInheritance {
+    s = new SourceExtended(period = 2 sec)
+
+    d = new Test()
+    s.y2 -> d.x
 }

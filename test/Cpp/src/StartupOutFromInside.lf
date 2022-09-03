@@ -1,20 +1,19 @@
 /**
-*
-* @author Maiko Brants TU Dresden
-*
-* Modeled after the C version of this test.
-**/
-target Cpp;
+ * @author Maiko Brants TU Dresden
+ *
+ * Modeled after the C version of this test.
+ */
+target Cpp
 
 reactor Bar {
-    output out:int;
-    reaction(startup) -> out {=
-        out.set(42);
-    =}
+    output out: int
+
+    reaction(startup) -> out {= out.set(42); =}
 }
 
 main reactor StartupOutFromInside {
-    bar = new Bar();
+    bar = new Bar()
+
     reaction(startup) bar.out {=
         reactor::log::Info() << "Output from bar: " << *bar.out.get();
         if(*bar.out.get() != 42) {

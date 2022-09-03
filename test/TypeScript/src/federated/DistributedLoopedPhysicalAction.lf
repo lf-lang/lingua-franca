@@ -1,20 +1,20 @@
 /**
- * Test a sender-receiver network system that
- * is similar to DistributedLoopedAction, but it uses a physical
- * action rather than a logical action.
+ * Test a sender-receiver network system that is similar to
+ * DistributedLoopedAction, but it uses a physical action rather than a logical
+ * action.
  *
  * @author Soroush Bateni
  * @author Hokeun Kim
  */
-
 target TypeScript {
     timeout: 1 sec
-};
+}
 
-reactor Sender(takeBreakAfter:number(10), breakInterval:time(550 msec)) {
-    output out:number;
-    physical action act;
-    state sentMessages:number(0);
+reactor Sender(takeBreakAfter: number(10), breakInterval: time(550 msec)) {
+    output out: number
+    physical action act
+    state sentMessages: number(0)
+
     reaction(startup, act) -> act, out {=
         // Send a message on out
         out = sentMessages;
@@ -29,15 +29,15 @@ reactor Sender(takeBreakAfter:number(10), breakInterval:time(550 msec)) {
     =}
 }
 
-reactor Receiver(takeBreakAfter:number(10), breakInterval:time(550 msec)) {
-    input inp:number;
-    state receivedMessages:number(0);
-    state totalReceivedMessages:number(0);
-    state breaks:number(0);
-    timer t(0, 1 msec); // This will impact the performance
-                        // but forces the logical time to advance
-                        // Comment this line for a more sensible
-                        // log output.
+reactor Receiver(takeBreakAfter: number(10), breakInterval: time(550 msec)) {
+    input inp: number
+    state receivedMessages: number(0)
+    state totalReceivedMessages: number(0)
+    state breaks: number(0)
+    timer t(0, 1 msec)  // This will impact the performance
+
+    // but forces the logical time to advance Comment this line for a more
+    // sensible log output.
     reaction(inp) {=
         console.log("At tag (" + util.getElapsedLogicalTime() + ", " + util.getCurrentTag().microstep + ") received value " + inp);
         totalReceivedMessages++;
@@ -68,8 +68,8 @@ reactor Receiver(takeBreakAfter:number(10), breakInterval:time(550 msec)) {
 }
 
 federated reactor DistributedLoopedPhysicalAction {
-    sender = new Sender();
-    receiver = new Receiver();
+    sender = new Sender()
+    receiver = new Receiver()
 
-    sender.out -> receiver.inp;
+    sender.out -> receiver.inp
 }

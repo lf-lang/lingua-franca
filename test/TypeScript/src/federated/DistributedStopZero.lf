@@ -1,16 +1,17 @@
 /**
- * Test for util.requestStop() in federated execution with centralized coordination
- * at tag ((0 secs, 0 nsecs), 0).
+ * Test for util.requestStop() in federated execution with centralized
+ * coordination at tag ((0 secs, 0 nsecs), 0).
  *
  * @author Soroush Bateni
  * @author Byeong-gil Jun
  */
-target TypeScript;
+target TypeScript
 
 reactor Sender {
-    output out:number;
-    timer t(0, 1 usec);
-    reaction(t) -> out{=
+    output out: number
+    timer t(0, 1 usec)
+
+    reaction(t) -> out {=
         console.log(`Sending 42 at ${util.getElapsedLogicalTime()}, `
             + `${util.getCurrentTag().microstep}).`);
         out = 42;
@@ -36,7 +37,8 @@ reactor Sender {
 }
 
 reactor Receiver {
-    input in1:number;
+    input in1: number
+
     reaction(in1) {=
         console.log(`Received ${in1} at (${util.getElapsedLogicalTime()}, `
             + `${util.getCurrentTag().microstep}).`);
@@ -64,8 +66,8 @@ reactor Receiver {
 }
 
 federated reactor {
-    sender = new Sender();
-    receiver = new Receiver();
+    sender = new Sender()
+    receiver = new Receiver()
 
-    sender.out -> receiver.in1;
+    sender.out -> receiver.in1
 }

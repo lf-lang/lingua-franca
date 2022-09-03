@@ -1,19 +1,21 @@
-// Source produces a dynamically allocated struct, which it passes
-// to Print. Reference counting ensures that the struct is freed.
-target C;
-preamble {=
-    typedef int* int_pointer;
-=}
-reactor SendsPointer  {
-    output out:int_pointer;
+// Source produces a dynamically allocated struct, which it passes to Print.
+// Reference counting ensures that the struct is freed.
+target C
+
+preamble {= typedef int* int_pointer; =}
+
+reactor SendsPointer {
+    output out: int_pointer
+
     reaction(startup) -> out {=
         static int my_constant = 42;
         lf_set(out, &my_constant);
     =}
 }
-// expected parameter is for testing.
-reactor Print(expected:int(42)) {
-    input in:int_pointer;
+
+reactor Print(expected: int(42)) {  // expected parameter is for testing.
+    input in: int_pointer
+
     reaction(in) {=
         printf("Received: %d\n", *in->value);
         if (*in->value != self->expected) {
@@ -22,8 +24,9 @@ reactor Print(expected:int(42)) {
         }
     =}
 }
+
 main reactor SendsPointerTest {
-    s = new SendsPointer();
-    p = new Print();
-    s.out -> p.in;
+    s = new SendsPointer()
+    p = new Print()
+    s.out -> p.in
 }

@@ -1,11 +1,13 @@
-// Source has an array as a parameter, the elements of which it passes
-// to Print. The length of the array has to also be a parameter because
-// C arrays do not encode their own length.
-target C;
-reactor Source(sequence:int[](0, 1, 2), n_sequence:int(3)) {
-    output out:int;
-    state count:int(0);
-    logical action next;
+// Source has an array as a parameter, the elements of which it passes to Print.
+// The length of the array has to also be a parameter because C arrays do not
+// encode their own length.
+target C
+
+reactor Source(sequence: int[](0, 1, 2), n_sequence: int(3)) {
+    output out: int
+    state count: int(0)
+    logical action next
+
     reaction(startup, next) -> out, next {=
         lf_set(out, self->sequence[self->count]);
         self->count++;
@@ -14,10 +16,12 @@ reactor Source(sequence:int[](0, 1, 2), n_sequence:int(3)) {
         }
     =}
 }
+
 reactor Print {
-    input in:int;
-    state count:int(1);
-    state received:int(0);
+    input in: int
+    state count: int(1)
+    state received: int(0)
+
     reaction(in) {=
         self->received++;
         printf("Received: %d\n", in->value);
@@ -27,6 +31,7 @@ reactor Print {
         }
         self->count++;
     =}
+
     reaction(shutdown) {=
         if (self->received == 0) {
             printf("ERROR: Final reactor received no data.\n");
@@ -34,8 +39,9 @@ reactor Print {
         }
     =}
 }
+
 main reactor ArrayAsParameter {
-    s = new Source(sequence = (1, 2, 3, 4), n_sequence=4);
-    p = new Print();
-    s.out -> p.in;
+    s = new Source(sequence = (1, 2, 3, 4), n_sequence = 4)
+    p = new Print()
+    s.out -> p.in
 }

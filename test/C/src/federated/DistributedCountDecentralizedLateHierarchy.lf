@@ -1,9 +1,9 @@
 /**
- * Test a form of a distributed deterministic system
- * where a federate that receives timestamped messages has a timer in addition to the messages
- * as triggers. Therefore, careful coordination of the advancement of time using Ptides is needed.
- * In addition, this test shows that the STP violation of the reaction
- * is passed down the hierarchy until it is handled.
+ * Test a form of a distributed deterministic system where a federate that
+ * receives timestamped messages has a timer in addition to the messages as
+ * triggers. Therefore, careful coordination of the advancement of time using
+ * Ptides is needed. In addition, this test shows that the STP violation of the
+ * reaction is passed down the hierarchy until it is handled.
  *
  * @author Edward A. Lee
  * @author Soroush Bateni
@@ -11,18 +11,19 @@
 target C {
     timeout: 4900 msec,
     coordination: decentralized
-};
+}
 
-import Count from "../lib/Count.lf";
+import Count from "../lib/Count.lf"
 
 reactor ImportantActuator {
-    input in:int;
-    state success:int(0);
-    state success_stp_violation:int(0);
-    timer t(0, 10 usec); // Force a timer to be invoke periodically
-                         // to ensure logical time will advance in the
-                         // absence of incoming messages.
-    state c:int(0);
+    input in: int
+    state success: int(0)
+    state success_stp_violation: int(0)
+    // Force a timer to be invoke periodically
+    timer t(0, 10 usec)
+    // to ensure logical time will advance in the absence of incoming messages.
+    state c: int(0)
+
     reaction(in) {=
         tag_t current_tag = lf_tag();
         printf("At tag (%lld, %u) received %d. Intended tag is (%lld, %u).\n",
@@ -36,7 +37,7 @@ reactor ImportantActuator {
             self->success++; // Message was on-time
         }
         self->c++;
-    =} STP (0) {=
+    =} STP(0) {=
         tag_t current_tag = lf_tag();
         printf("Message violated STP offset by (%lld, %u).\n",
                 current_tag.time - in->intended_tag.time,
@@ -44,6 +45,7 @@ reactor ImportantActuator {
         self->success_stp_violation++;
         self->c++;
     =}
+
     reaction(t) {=
         // Do nothing.
     =}
@@ -59,7 +61,8 @@ reactor ImportantActuator {
 }
 
 reactor Print {
-    input in:int;
+    input in: int
+
     reaction(in) {=
         tag_t current_tag = lf_tag();
         printf("At tag (%lld, %u) received %d. Intended tag is (%lld, %u).\n",
@@ -69,19 +72,18 @@ reactor Print {
                in->intended_tag.time - lf_time_start(),
                in->intended_tag.microstep);
     =}
-
 }
 
 reactor Receiver {
-    input in:int;
-    timer t(0, 10 msec); // Force a timer to be invoke periodically
-                         // to ensure logical time will advance in the
-                         // absence of incoming messages.
-    state c:int(0);
-    p = new Print();
-    a = new ImportantActuator();
-    in -> p.in;
-    in -> a.in;
+    input in: int
+    // Force a timer to be invoke periodically
+    timer t(0, 10 msec)
+    // to ensure logical time will advance in the absence of incoming messages.
+    state c: int(0)
+    p = new Print()
+    a = new ImportantActuator()
+    in -> p.in
+    in -> a.in
 
     reaction(t) {=
         // Do nothing.
@@ -89,7 +91,7 @@ reactor Receiver {
 }
 
 federated reactor {
-    c = new Count();
-    r = new Receiver();
-    c.out -> r.in;    // Indicating a 'logical' connection.
+    c = new Count()
+    r = new Receiver()
+    c.out -> r.in  // Indicating a 'logical' connection.
 }

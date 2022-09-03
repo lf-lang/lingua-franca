@@ -1,13 +1,14 @@
-// Tests that rust keywords may be used as identifiers in LF and are properly escaped by the emitter
-target Rust;
+// Tests that rust keywords may be used as identifiers in LF and are properly
+// escaped by the emitter
+target Rust
 
 reactor box {
-    input in: u32;
-    output struct: u32;
+    input in: u32
+    output struct: u32
 
-    in -> struct;
+    in -> struct
 
-    state foo: bool(true); // not escaped
+    state foo: bool(true)  // not escaped
 
     reaction(in) {=
         ctx.get(r#in);
@@ -15,16 +16,11 @@ reactor box {
 }
 
 main reactor ReservedKeywords(struct: u32(0)) {
-    box = new box();
+    box = new box()
 
-    timer t1(0);
-    timer t2(15msec);
+    timer t1(0)
+    timer t2(15 msec)
 
-    // not in types, this wouldn't be useful.
-    // state reaction_num: struct(0);
-
-    reaction(box.struct, t2) {=
-
-    =}
-
+    // not in types, this wouldn't be useful. state reaction_num: struct(0);
+    reaction(box.struct, t2) {=  =}
 }

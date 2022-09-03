@@ -1,16 +1,17 @@
 /**
- * Test that the starvation functionality in absence of
- * the "keepalive: true" target property indeed works as
- * expected. This version uses the threaded runtime.
+ * Test that the starvation functionality in absence of the "keepalive: true"
+ * target property indeed works as expected. This version uses the threaded
+ * runtime.
  *
  * @author Soroush Bateni
  */
-target C {
-};
-reactor SuperDenseSender(number_of_iterations:int(10)){
-    logical action loop;
-    output out:int;
-    state iterator:int(0);
+target C
+
+reactor SuperDenseSender(number_of_iterations: int(10)) {
+    logical action loop
+    output out: int
+    state iterator: int(0)
+
     reaction(startup, loop) -> out {=
         if (self->iterator < self->number_of_iterations) {
             lf_schedule(loop, 0);
@@ -32,10 +33,11 @@ reactor SuperDenseSender(number_of_iterations:int(10)){
             exit(1);
         }
     =}
- }
+}
 
- reactor SuperDenseReceiver(number_of_iterations:int(10)) {
-    input in:int;
+reactor SuperDenseReceiver(number_of_iterations: int(10)) {
+    input in: int
+
     reaction(in) {=
         tag_t current_tag = lf_tag();
         printf("Received %d at tag (%lld, %u).\n",
@@ -60,8 +62,8 @@ reactor SuperDenseSender(number_of_iterations:int(10)){
 }
 
 main reactor StarvationThreaded {
-    sender = new[8] SuperDenseSender();
-    receiver = new[8] SuperDenseReceiver();
+    sender = new[8] SuperDenseSender()
+    receiver = new[8] SuperDenseReceiver()
 
-    sender.out -> receiver.in;
+    sender.out -> receiver.in
 }
