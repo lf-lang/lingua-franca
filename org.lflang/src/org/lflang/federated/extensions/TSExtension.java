@@ -196,11 +196,6 @@ public class TSExtension implements FedTargetExtension {
         return candidates;
     }
 
-    private static String getTargetTime(Time t) {
-        TimeValue value = new TimeValue(t.getInterval(), TimeUnit.fromName(t.getUnit()));
-        return TSExtensionsKt.timeInTargetLanguage(value);
-    }
-
     /**
      * Given a connection 'delay' predicate, return a string that represents the
      * time value in TypeScript code.
@@ -209,7 +204,7 @@ public class TSExtension implements FedTargetExtension {
         String additionalDelayString = "TimeValue.NEVER()";
         if (delay != null) {
             if (delay instanceof Time) {
-                additionalDelayString = getTargetTime((Time) delay);
+                TSExtensionsKt.timeInTargetLanguage(ASTUtils.toTimeValue((Time) delay));
             } else if (delay instanceof ParameterReference) {
                 // The delay is given as a parameter reference. Find its value.
                 final var param = ((ParameterReference)delay).getParameter();
