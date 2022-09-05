@@ -11,7 +11,6 @@ import java.util.stream.Collectors;
 import org.lflang.ASTUtils;
 import org.lflang.ErrorReporter;
 import org.lflang.InferredType;
-import org.lflang.Target;
 import org.lflang.TargetProperty.CoordinationType;
 import org.lflang.TimeUnit;
 import org.lflang.TimeValue;
@@ -19,7 +18,6 @@ import org.lflang.federated.generator.FedASTUtils;
 import org.lflang.federated.generator.FedConnectionInstance;
 import org.lflang.federated.generator.FedFileConfig;
 import org.lflang.federated.generator.FederateInstance;
-import org.lflang.generator.GeneratorBase;
 import org.lflang.generator.LFGeneratorContext;
 import org.lflang.generator.ReactorInstance;
 import org.lflang.generator.ts.TSExtensionsKt;
@@ -53,7 +51,7 @@ public class TSExtension implements FedTargetExtension {
 
     @Override
     public String generateNetworkSenderBody(VarRef sendingPort, VarRef receivingPort, FedConnectionInstance connection, InferredType type, CoordinationType coordinationType, ErrorReporter errorReporter) {
-        String additionalDelayString = getNetworkDelay(connection.getDefinition().getDelay());
+        String additionalDelayString = getNetworkDelayLiteral(connection.getDefinition().getDelay());
         return"""
         if (%1$s.%2$s !== undefined) {
             this.util.sendRTITimedMessage(%1$s.%2$s, %3$s, %4$s, %5$s);
@@ -181,7 +179,7 @@ public class TSExtension implements FedTargetExtension {
                 int cnt = 0;
                 if (delays != null) {
                     for (Expression delay : delays) {
-                        element += getNetworkDelay(delay);
+                        element += getNetworkDelayLiteral(delay);
                         cnt++;
                         if (cnt != delays.size()) {
                             element += ", ";
@@ -198,12 +196,16 @@ public class TSExtension implements FedTargetExtension {
         return candidates;
     }
 
-    private String getTargetTime(Time t) {
+    private static String getTargetTime(Time t) {
         TimeValue value = new TimeValue(t.getInterval(), TimeUnit.fromName(t.getUnit()));
         return TSExtensionsKt.timeInTargetLanguage(value);
     }
 
-    private String getNetworkDelay(Expression delay) {
+    /**
+     * Given a connection 'delay' predicate, return a string that represents the
+     * time value in TypeScript code.
+     */
+    private static String getNetworkDelayLiteral(Expression delay) {
         String additionalDelayString = "TimeValue.NEVER()";
         if (delay != null) {
             if (delay instanceof Time) {
