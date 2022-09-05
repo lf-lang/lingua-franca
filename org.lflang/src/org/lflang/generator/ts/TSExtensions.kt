@@ -1,10 +1,13 @@
 package org.lflang.generator.ts
 
+import org.lflang.ASTUtils
 import org.lflang.TimeValue
 import org.lflang.isBank
 import org.lflang.isMultiport
 import org.lflang.lf.Action
+import org.lflang.lf.Expression
 import org.lflang.lf.Parameter
+import org.lflang.lf.ParameterReference
 import org.lflang.lf.Port
 import org.lflang.lf.Type
 import org.lflang.lf.WidthSpec
@@ -73,4 +76,23 @@ fun timeInTargetLanguage(value: TimeValue): String {
         // The value must be zero.
         "TimeValue.zero()"
     }
+}
+
+/**
+ * Given a connection 'delay' predicate, return a string that represents the
+ * time value in TypeScript code.
+ */
+fun getNetworkDelayLiteral(delay: Expression?): String {
+    var additionalDelayString = "TimeValue.NEVER()"
+    if (delay != null) {
+        val tv: TimeValue
+        tv = if (delay is ParameterReference) {
+            // The delay is given as a parameter reference. Find its value.
+            ASTUtils.getDefaultAsTimeValue(delay.parameter)
+        } else {
+            ASTUtils.getLiteralTimeValue(delay)
+        }
+        additionalDelayString = timeInTargetLanguage(tv)
+    }
+    return additionalDelayString
 }
