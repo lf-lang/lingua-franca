@@ -16,7 +16,7 @@ reactor A(bank_index:size_t(0)) {
         out.set(bank_index);
     =}
     reaction(in) {=
-        auto activated_ports = in.active_ports_indices();
+        auto activated_ports = in.get_present_port_indices();
 
         auto contained = [&](std::size_t value) {
             return std::find(std::begin(activated_ports), std::end(activated_ports), value) != std::end(activated_ports);

@@ -20,7 +20,7 @@ reactor Node(bank_index: size_t(0), num_nodes: size_t(4)) {
         received = true;
         size_t count{0};
         size_t result{0};
-        for (auto i : in.active_ports_indices()) {
+        for (auto i : in.get_present_port_indices()) {
             count++;
             result = *in[i].get();
             std::cout << result << ", ";

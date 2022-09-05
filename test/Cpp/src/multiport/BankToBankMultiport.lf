@@ -19,7 +19,7 @@ reactor Destination(width:size_t(1)) {
     reaction(in) {=
         int sum = 0;
         
-        for (auto i : in.active_ports_indices()) {
+        for (auto i : in.get_present_port_indices()) {
             sum += *in[i].get();
         }
 

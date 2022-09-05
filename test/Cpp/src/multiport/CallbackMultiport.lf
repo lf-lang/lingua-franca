@@ -7,7 +7,7 @@ reactor Test {
 
 
     reaction (sink) -> source {=
-        for (auto i: sink.active_ports_indices()) {
+        for (auto i: sink.get_present_port_indices()) {
             source[i].set();
         }
     =}
@@ -33,7 +33,7 @@ main reactor CallbackMultiport {
             positions.push_back(semi_random_index);
         }
 
-        auto received_indices = test.source.active_ports_indices();
+        auto received_indices = test.source.get_present_port_indices();
 
         if (positions.size() != received_indices.size()) {
             std::cerr << "positions size:" << positions.size() 

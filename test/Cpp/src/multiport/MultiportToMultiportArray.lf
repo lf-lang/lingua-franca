@@ -27,7 +27,7 @@ reactor Destination {
     input[2] in:int[3];
     reaction(in) {=
         int sum = 0;
-        for (auto i : in.active_ports_indices()) {
+        for (auto i : in.get_present_port_indices()) {
             const auto& a = *in[i].get();
             for (int j = 0; j < a.size(); j++) {
                 sum += a[j];
