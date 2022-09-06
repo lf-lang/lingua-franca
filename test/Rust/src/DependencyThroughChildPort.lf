@@ -1,0 +1,42 @@
+target Rust;
+reactor Destination {
+    input x: u32;
+    input y: u32;
+
+    state exec_count: u32;
+
+    reaction(x, y) {=
+        let tag = ctx.get_tag();
+        println!(
+            "Time since start: {}, microstep: {}",
+            tag.offset_from_t0.as_nanos(),
+            tag.microstep,
+        );
+
+        if tag == tag!(T0) {
+            assert!(ctx.is_present(x));
+            assert_eq!(self.exec_count, 0);
+        } else {
+            assert_tag_is!(ctx, (T0, 1));
+            assert!(ctx.is_present(y));
+            assert_eq!(self.exec_count, 1);
+        }
+        self.exec_count += 1;
+    =}
+
+    reaction(shutdown) {=
+        assert!(self.exec_count == 2, "reaction was not executed twice");
+        println!("success");
+    =}
+}
+main reactor {
+    logical action repeat;
+    d = new Destination();
+    reaction(startup) -> d.x, repeat {=
+        ctx.set(d__x, 1);
+        ctx.schedule(repeat, Asap);
+    =}
+    reaction(repeat) -> d.y {=
+        ctx.set(d__y, 1);
+    =}
+}
