@@ -87,13 +87,12 @@ public class TSExtension implements FedTargetExtension {
                                    LinkedHashMap<String, Object> federationRTIProperties,
                                    ErrorReporter errorReporter) {
         var minOutputDelay = getMinOutputDelay(federate, fileConfig, errorReporter);
-        List<String> processDelay = getProcessDelay(federate);
+        List<String> upstreamConnectionDelays = getUpstreamConnectionDelays(federate);
         return
         """
             preamble {=
                 const defaultFederateConfig: __FederateConfig = {
                     dependsOn: [%s],
-                    processDelay: [%s],
                     executionTimeout: undefined,
                     fast: false,
                     federateID: %d,
@@ -103,13 +102,13 @@ public class TSExtension implements FedTargetExtension {
                     networkMessageActions: [%s],
                     rtiHost: "%s",
                     rtiPort: %d,
-                    sendsTo: [%s]
+                    sendsTo: [%s],
+                    upstreamConnectionDelays: [%s]
                 }
             =}""".formatted(
             federate.dependsOn.keySet().stream()
                               .map(e->String.valueOf(e.id))
                               .collect(Collectors.joining(",")),
-            processDelay.stream().collect(Collectors.joining(",")),
             federate.id,
             minOutputDelay == null ? "undefined"
                                    : "%s".formatted(TSExtensionsKt.timeInTargetLanguage(minOutputDelay)),
@@ -121,7 +120,8 @@ public class TSExtension implements FedTargetExtension {
             federationRTIProperties.get("port"),
             federate.sendsTo.keySet().stream()
                             .map(e->String.valueOf(e.id))
-                            .collect(Collectors.joining(","))
+                            .collect(Collectors.joining(",")),
+            upstreamConnectionDelays.stream().collect(Collectors.joining(","))
         );
     }
 
@@ -168,7 +168,7 @@ public class TSExtension implements FedTargetExtension {
         return null;
     }
 
-    private List<String> getProcessDelay(FederateInstance federate) {
+    private List<String> getUpstreamConnectionDelays(FederateInstance federate) {
         List<String> candidates = new ArrayList<>();
         if (!federate.dependsOn.keySet().isEmpty()) {
             for (FederateInstance upstreamFederate: federate.dependsOn.keySet()) {
@@ -185,7 +185,6 @@ public class TSExtension implements FedTargetExtension {
                     }
                 } else {
                     element += "TimeValue.NEVER()";
-                    //candidates.add("TimeValue.NEVER()");
                 }
                 element += "]";
                 candidates.add(element);
