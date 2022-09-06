@@ -371,7 +371,7 @@ data class PortData(
                 lfName = port.name,
                 isInput = port.isInput,
                 dataType = RustTypes.getTargetType(port.type),
-                widthSpec = port.widthSpec?.toCppCode(),
+                widthSpec = port.widthSpec?.toRustExpr(),
             )
     }
 }
@@ -533,8 +533,8 @@ object RustModelBuilder {
                                 lfName = variable.name,
                                 isInput = variable is Input,
                                 dataType = container.reactor.instantiateType(formalType, it.container.typeParms),
-                                widthSpecMultiport = variable.widthSpec?.toCppCode(),
-                                widthSpecBank = container.widthSpec?.toCppCode(),
+                                widthSpecMultiport = variable.widthSpec?.toRustExpr(),
+                                widthSpecBank = container.widthSpec?.toRustExpr(),
                             )
                         } else {
                             components[variable.name] ?: throw UnsupportedGeneratorFeatureException(
