@@ -49,6 +49,9 @@ class AttributeSpec {
     private final Map<String, AttrParamSpec> paramSpecByName;
 
     public static final String VALUE_ATTR = "value";
+    public static final String NETWORK_MESSAGE_ACTIONS = "network_message_actions";
+    public static final String NETWORK_OUTPUT_CONTROL_REACTION_TRIGGER = "network_output_control_reaction_trigger";
+
 
     /** A map from a string to a supported AttributeSpec */
     public static final Map<String, AttributeSpec> ATTRIBUTE_SPECS_BY_NAME = new HashMap<>();
@@ -241,5 +244,10 @@ class AttributeSpec {
         ATTRIBUTE_SPECS_BY_NAME.put("_fed_inp_ctrl", new AttributeSpec(null));
         // @_fed_out_ctrl
         ATTRIBUTE_SPECS_BY_NAME.put("_fed_out_ctrl", new AttributeSpec(null));
+        // @_fed_config
+        ATTRIBUTE_SPECS_BY_NAME.put("_fed_config", new AttributeSpec(
+            List.of(new AttrParamSpec(AttributeSpec.NETWORK_MESSAGE_ACTIONS, AttrParamType.STRING, null),
+            new AttrParamSpec(AttributeSpec.NETWORK_OUTPUT_CONTROL_REACTION_TRIGGER, AttrParamType.STRING, null))
+        ));
     }
 }

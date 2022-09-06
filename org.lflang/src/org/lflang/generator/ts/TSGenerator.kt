@@ -39,7 +39,6 @@ import org.lflang.generator.GeneratorUtils
 import org.lflang.generator.GeneratorUtils.canGenerate
 import org.lflang.generator.IntegratedBuilder
 import org.lflang.generator.LFGeneratorContext
-import org.lflang.generator.ReactorInstance
 import org.lflang.generator.SubContext
 import org.lflang.generator.TargetTypes
 import org.lflang.graph.InstantiationGraph
@@ -48,6 +47,7 @@ import org.lflang.lf.Action
 import org.lflang.lf.Expression
 import org.lflang.lf.Instantiation
 import org.lflang.lf.Parameter
+import org.lflang.lf.Preamble
 import org.lflang.lf.StateVar
 import org.lflang.lf.Type
 import org.lflang.lf.VarRef
@@ -162,11 +162,7 @@ class TSGenerator(
 
         val codeMaps = HashMap<Path, CodeMap>()
         val dockerGenerator = TSDockerGenerator(false)
-        val federateConfig = TSFederateConfig.createFederateConfig(resource.model.preambles)
-        if (federateConfig != null) {
-            targetConfig.keepalive = true;
-        }
-        generateCode(codeMaps, dockerGenerator, federateConfig)
+        generateCode(codeMaps, dockerGenerator, resource.model.preambles)
         if (targetConfig.dockerOptions != null) {
             dockerGenerator.writeDockerFiles(tsFileConfig.tsDockerComposeFilePath())
         }
@@ -255,7 +251,7 @@ class TSGenerator(
     private fun generateCode(
         codeMaps: MutableMap<Path, CodeMap>,
         dockerGenerator: TSDockerGenerator,
-        federateConfig: TSFederateConfig?
+        preambles: List<Preamble>
     ) {
         var tsFileName = fileConfig.name
 
@@ -264,7 +260,7 @@ class TSGenerator(
         val tsCode = StringBuilder()
 
         val preambleGenerator = TSImportPreambleGenerator(fileConfig.srcFile,
-            targetConfig.protoFiles)
+            targetConfig.protoFiles, preambles)
         tsCode.append(preambleGenerator.generatePreamble())
 
         val parameterGenerator = TSParameterPreambleGenerator(this, fileConfig, targetConfig, reactors)
@@ -273,10 +269,10 @@ class TSGenerator(
 
         val reactorGenerator = TSReactorGenerator(this, errorReporter, targetConfig)
         for (reactor in reactors) {
-            tsCode.append(reactorGenerator.generateReactorClasses(reactor, federateConfig))
+            tsCode.append(reactorGenerator.generateReactorClasses(reactor))
         }
 
-        tsCode.append(reactorGenerator.generateMainReactorInstanceAndStart(federateConfig, this.mainDef, mainParameters))
+        tsCode.append(reactorGenerator.generateMainReactorInstanceAndStart(this.mainDef, mainParameters))
 
         val codeMap = CodeMap.fromGeneratedCode(tsCode.toString())
         codeMaps[tsFilePath] = codeMap
