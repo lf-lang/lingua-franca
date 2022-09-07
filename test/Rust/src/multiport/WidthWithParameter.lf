@@ -2,6 +2,12 @@ target Rust;
 
 reactor Some(value: usize(30)) {
     output[value] finished: unit;
+
+    reaction(startup) -> finished {=
+        for p in finished {
+            ctx.set(p, ());
+        }
+    =}
 }
 
 main reactor {
@@ -9,7 +15,7 @@ main reactor {
     some = new Some(value=20);
 
     reaction (some.finished) {=
-        println!("Works?");
+        println!("success");
     =}
 
 }

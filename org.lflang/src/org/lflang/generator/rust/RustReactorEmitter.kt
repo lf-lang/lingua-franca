@@ -105,7 +105,7 @@ ${"             |    "..otherComponents.joinWithCommasLn { it.toStructField() }}
                 |    fn user_assemble(__assembler: &mut $rsRuntime::assembly::ComponentCreator<Self>,
                 |                     __id: $rsRuntime::ReactorId,
                 |                     __params: $paramStructName$typeArgs,
-                |                     __more_params: $privateParamStruct) -> $rsRuntime::assembly::AssemblyResult<Self> {
+                |                     $privateParamsVarName: $privateParamStruct) -> $rsRuntime::assembly::AssemblyResult<Self> {
                 |        let $ctorParamsDeconstructor = __params;
                 |
                 |        let __impl = {
@@ -181,14 +181,25 @@ ${"             |        "..otherComponents.mapNotNull { it.cleanupAction() }.jo
         }
 
         val portRefs = this.portReferences
+        fun NestedReactorInstance.portWidthDecls(): List<TargetCode> =
+            // if we refer to some port of the child as a bank, we need to surface its width here
+            portRefs.filter { it.childLfName == this.lfName && it.isGeneratedAsMultiport }.map {
+                val portWidthExpr = if (it.isMultiport) "${it.childLfName}.${it.rustFieldOnChildName}.len()"
+                else "1" // that's a single port
+
+                // if we're in a bank, the total length is the sum
+                val sumExpr =
+                    if (it.isContainedInBank) "${it.childLfName}.iter().map(|${it.childLfName}| $portWidthExpr).sum()"
+                    else portWidthExpr
+
+                "let ${it.widthParamName} = $sumExpr;"
+            }
+
 
         return buildString {
             for (inst in nestedInstances) {
                 append(inst.childDeclaration()).append("\n")
-                // if we refer to some port of the child as a bank, we need to surface its width here
-                portRefs.filter { it.childLfName == inst.lfName && it.isGeneratedAsMultiport }.forEach {
-                    append("let ").append(it.widthParamName).append(" = ").append(it.childLfName).append(".").append(it.rustFieldOnChildName).append(".len();\n")
-                }
+                inst.portWidthDecls().joinTo(this, "\n").append("\n")
             }
 
             append(assembleSelf).append("\n")
@@ -212,7 +223,7 @@ ${"             |        "..otherComponents.mapNotNull { it.cleanupAction() }.jo
         val pattern = reactionIds.joinToString(prefix = "[", separator = ", ", postfix = "]")
         val debugLabelArray = debugLabels.joinToString(", ", "[", "]")
 
-        val privateParamsCtor = extraConstructionParams.joinWithCommas(prefix = "$privateParamStruct {", postfix = "}") {
+        val privateParamsCtor = extraConstructionParams.joinWithCommas(prefix = "$privateParamStruct { ", postfix = " }") {
             it.ident.escapeRustIdent()
         }
 
@@ -493,6 +504,12 @@ ${"             |    "..body}
         }
     }
 
+    /**
+     * A list of parameters that are required for construction
+     * but are of internal use to the generator.
+     * The widths of port banks referred to by a reactor are
+     * saved in here, so that we use the actual runtime value.
+     */
     private val ReactorInfo.extraConstructionParams: List<PrivateParamSpec>
         get() {
             val result = mutableListOf<PrivateParamSpec>()
@@ -501,8 +518,7 @@ ${"             |    "..body}
                 if (ref.isGeneratedAsMultiport) {
                     result += PrivateParamSpec(
                         ident = ref.widthParamName,
-                        type = "usize",
-                        initialValue = ref.rustChildName + "." + ref.rustFieldOnChildName + ".len()"
+                        type = "usize"
                     )
                 }
             }
@@ -512,8 +528,7 @@ ${"             |    "..body}
 
     private data class PrivateParamSpec(
         val ident: String,
-        val type: TargetCode,
-        val initialValue: TargetCode
+        val type: TargetCode
     )
 
     private const val privateParamStruct: String = "PrivateParams"
