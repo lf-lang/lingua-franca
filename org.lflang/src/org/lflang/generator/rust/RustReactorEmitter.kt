@@ -46,6 +46,8 @@ object RustReactorEmitter : RustEmitterBase() {
             val typeParams = typeParamList.map { it.targetCode }.angle()
             val typeArgs = typeParamList.map { it.lfName }.angle()
 
+            val privateParams = reactor.extraConstructionParams;
+
             with(reactor.names) {
                 with(PrependOperator) {
                     """
@@ -85,6 +87,10 @@ ${"             |       "..ctorParams.joinWithCommasLn { "${it.lfName.escapeRust
                 |   }
                 |}
                 |
+                |struct $privateParamStruct {
+${"             |       "..privateParams.joinWithCommasLn { "${it.ident.escapeRustIdent()}: ${it.type}" }}
+                |}
+                |
                 |//------------------------//
                 |
                 |
@@ -98,7 +104,8 @@ ${"             |    "..otherComponents.joinWithCommasLn { it.toStructField() }}
                 |    #[inline]
                 |    fn user_assemble(__assembler: &mut $rsRuntime::assembly::ComponentCreator<Self>,
                 |                     __id: $rsRuntime::ReactorId,
-                |                     __params: $paramStructName$typeArgs) -> $rsRuntime::assembly::AssemblyResult<Self> {
+                |                     __params: $paramStructName$typeArgs,
+                |                     __more_params: $privateParamStruct) -> $rsRuntime::assembly::AssemblyResult<Self> {
                 |        let $ctorParamsDeconstructor = __params;
                 |
                 |        let __impl = {
@@ -173,9 +180,15 @@ ${"             |        "..otherComponents.mapNotNull { it.cleanupAction() }.jo
                 "__ctx.with_child::<$type, _>(\"$lfName\", $params, |mut __ctx, $rustLocalName| {"
         }
 
+        val portRefs = this.portReferences
+
         return buildString {
             for (inst in nestedInstances) {
                 append(inst.childDeclaration()).append("\n")
+                // if we refer to some port of the child as a bank, we need to surface its width here
+                portRefs.filter { it.childLfName == inst.lfName && it.isGeneratedAsMultiport }.forEach {
+                    append("let ").append(it.widthParamName).append(" = ").append(it.childLfName).append(".").append(it.rustFieldOnChildName).append(".len();\n")
+                }
             }
 
             append(assembleSelf).append("\n")
@@ -199,9 +212,13 @@ ${"             |        "..otherComponents.mapNotNull { it.cleanupAction() }.jo
         val pattern = reactionIds.joinToString(prefix = "[", separator = ", ", postfix = "]")
         val debugLabelArray = debugLabels.joinToString(", ", "[", "]")
 
+        val privateParamsCtor = extraConstructionParams.joinWithCommas(prefix = "$privateParamStruct {", postfix = "}") {
+            it.ident.escapeRustIdent()
+        }
+
         return """
                 |__ctx.assemble_self(
-                |    |cc, id| Self::user_assemble(cc, id, $ctorParamsDeconstructor),
+                |    |cc, id| Self::user_assemble(cc, id, $ctorParamsDeconstructor, $privateParamsCtor),
                 |    // number of non-synthetic reactions
                 |    ${reactions.size},
                 |    // reaction debug labels
@@ -360,8 +377,7 @@ ${"             |        "..declareChildConnections()}
         }
         is ChildPortReference -> {
             if (isGeneratedAsMultiport) {
-                val width = (widthSpecMultiport ?: "1") + "*" + (widthSpecChild ?: "1")
-                "__assembler.new_port_bank::<$dataType>(\"$childLfName.$lfName\", $portKind, $width)?"
+                "__assembler.new_port_bank::<$dataType>(\"$childLfName.$lfName\", $portKind, $privateParamsVarName.$widthParamName)?"
             } else {
                 "__assembler.new_port::<$dataType>(\"$childLfName.$lfName\", $portKind)"
             }
@@ -477,5 +493,30 @@ ${"             |    "..body}
         }
     }
 
+    private val ReactorInfo.extraConstructionParams: List<PrivateParamSpec>
+        get() {
+            val result = mutableListOf<PrivateParamSpec>()
 
+            for (ref in this.portReferences) {
+                if (ref.isGeneratedAsMultiport) {
+                    result += PrivateParamSpec(
+                        ident = ref.widthParamName,
+                        type = "usize",
+                        initialValue = ref.rustChildName + "." + ref.rustFieldOnChildName + ".len()"
+                    )
+                }
+            }
+
+            return result
+        }
+
+    private data class PrivateParamSpec(
+        val ident: String,
+        val type: TargetCode,
+        val initialValue: TargetCode
+    )
+
+    private const val privateParamStruct: String = "PrivateParams"
+
+    private const val privateParamsVarName = "__more_params"
 }

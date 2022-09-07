@@ -1,0 +1,15 @@
+target Rust;
+
+reactor Some(value: usize(30)) {
+    output[value] finished: unit;
+}
+
+main reactor {
+
+    some = new Some(value=20);
+
+    reaction (some.finished) {=
+        println!("Works?");
+    =}
+
+}

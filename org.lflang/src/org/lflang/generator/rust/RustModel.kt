@@ -191,6 +191,8 @@ data class ChildPortReference(
 
     /** Sync with [NestedReactorInstance.rustLocalName]. */
     val rustChildName: TargetCode = childLfName.escapeRustIdent()
+
+    val widthParamName: TargetCode = (rustFieldName + "__width").escapeRustIdent()
 }
 
 /**
