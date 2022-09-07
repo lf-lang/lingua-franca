@@ -1,9 +1,7 @@
-/**
- * Test the files target property.
- */
+/** Test the files target property. */
 target C {
     files: ["../include", "include/dummy.h"]
-};
+}
 
 preamble {=
     #include "include/hello.h"

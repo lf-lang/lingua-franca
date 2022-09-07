@@ -1,17 +1,15 @@
 // Tests the is_present function for timers.
 target Rust {
-    timeout: 7 msec,
-
-};
+    timeout: 7 msec
+}
 
 main reactor {
+    timer a(0, 5 msec)
+    timer b(1 msec, 5 msec)
+    timer c(1 msec)
 
-    timer a(0, 5 msec);
-    timer b(1 msec, 5 msec);
-    timer c(1 msec);
-
-    state success: bool(false);
-    state tick: u32(0);
+    state success: bool(false)
+    state tick: u32(0)
 
     reaction(startup, a, b, c) {=
         match self.tick {
@@ -46,6 +44,7 @@ main reactor {
         }
         self.tick += 1;
     =}
+
     reaction(shutdown) {=
         assert!(self.success);
         println!("success");

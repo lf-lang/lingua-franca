@@ -1,25 +1,29 @@
-// This tests actions with payloads by delaying an input by a fixed amount.
-target Python;
+# This tests actions with payloads by delaying an input by a fixed amount.
+target Python
+
 reactor Delay(delay(100 msec)) {
-    input _in;
-    output out;
-    logical action a;
+    input _in
+    output out
+    logical action a
+
     reaction(a) -> out {=
         if (a.value is not None) and a.is_present:
             out.set(a.value)
     =}
-    reaction(_in) -> a {=
-        a.schedule(self.delay, _in.value)
-    =}
+
+    reaction(_in) -> a {= a.schedule(self.delay, _in.value) =}
 }
+
 reactor Test {
-    input _in;
-    state start_time(0);
-    state received_value(false);
+    input _in
+    state start_time(0)
+    state received_value(false)
+
     reaction(startup) {=
         # Record the logical time at the start.
         self.start_time = lf.time.logical()
     =}
+
     reaction(_in) {=
         print("Received: ", _in.value)
         self.received_value = True
@@ -34,6 +38,7 @@ reactor Test {
             sys.stderr.write("ERROR: Expected input value to be 42. It was {:d}.\n".format(_in.value))
             exit(2)
     =}
+
     reaction(shutdown) {=
         print("Checking that communication occurred.")
         if self.received_value is not True:
@@ -43,10 +48,9 @@ reactor Test {
 }
 
 main reactor DelayInt {
-    d = new Delay();
-    t = new Test();
-    d.out -> t._in;
-    reaction(startup) -> d._in {=
-        d._in.set(42)
-    =}
+    d = new Delay()
+    t = new Test()
+    d.out -> t._in
+
+    reaction(startup) -> d._in {= d._in.set(42) =}
 }

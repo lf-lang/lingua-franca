@@ -1,22 +1,22 @@
 /**
- * A sender reactor that outputs integers
- * in superdense time.
+ * A sender reactor that outputs integers in superdense time.
  *
  * @author Soroush Bateni
  * @author Hokeun Kim
  */
-target TypeScript;
+target TypeScript
 
 /**
- * @param takeBreakAfter: Indicates how many messages are sent
- *  in consecutive superdense time
- * @param breakInterval: Determines how long the reactor should take
- *  a break after sending takeBreakAfter messages.
+ * @param takeBreakAfter: Indicates how many messages are sent in consecutive
+ * superdense time
+ * @param breakInterval: Determines how long the reactor should take a break
+ * after sending takeBreakAfter messages.
  */
-reactor Sender(takeBreakAfter:number(10), breakInterval:time(400 msec)) {
-    output out:number;
-    logical action act;
-    state sentMessages:number(0);
+reactor Sender(takeBreakAfter: number(10), breakInterval: time(400 msec)) {
+    output out: number
+    logical action act
+    state sentMessages: number(0)
+
     reaction(startup, act) -> act, out {=
         // Send a message on out
         out = sentMessages;

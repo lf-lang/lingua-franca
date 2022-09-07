@@ -21,20 +21,19 @@
  * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package org.lflang.lfc.tests
+package org.lflang.cli.tests
 
 import junit.framework.Assert.assertEquals
 import junit.framework.AssertionFailedError
 import org.junit.Test
 import org.lflang.LFRuntimeModule
 import org.lflang.LFStandaloneSetup
-import org.lflang.lfc.*
+import org.lflang.cli.*
 import java.io.*
 import java.nio.charset.StandardCharsets
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
-import java.util.*
 
 
 class SpyPrintStream {
@@ -45,7 +44,7 @@ class SpyPrintStream {
 }
 
 
-class LfIssueReportingTest {
+class LfcIssueReportingTest {
     /*
         Note: when executing these tests in Intellij, I get the following error:
 
@@ -112,10 +111,10 @@ class LfIssueReportingTest {
 
         val stderr = SpyPrintStream()
 
-        val backend = ReportingBackend(Io(err = stderr.ps), AnsiColors(useColors), 2)
+        val backend = ReportingBackend(Io(err = stderr.ps), AnsiColors(useColors).bold("lfc: "), AnsiColors(useColors), 2)
         val injector = LFStandaloneSetup(LFRuntimeModule(), LFStandaloneModule(backend))
             .createInjectorAndDoEMFRegistration()
-        val main = injector.getInstance(Main::class.java)
+        val main = injector.getInstance(Lfc::class.java)
 
         val packageName = loader.packageName.replace('.', '/')
         // relative to root of gradle project
@@ -125,7 +124,7 @@ class LfIssueReportingTest {
         assert(Files.exists(lfFile)) { "Missing test file $lfFile" }
 
         // this side-effects on the ReportingBackend
-        main.getValidatedResource(lfFile)
+        main.validateResource(main.getResource(lfFile))
         main.printErrorsIfAny()
 
         val actualOutput = stderr.toString().normalize(lfFile)

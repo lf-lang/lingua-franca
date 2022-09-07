@@ -1,14 +1,15 @@
-// This tests the ability to import a reactor definition
-// that itself imports a reactor definition.
-target Python;
-import ImportedComposition from "lib/ImportedComposition.lf";
+# This tests the ability to import a reactor definition that itself imports a
+# reactor definition.
+target Python
+
+import ImportedComposition from "lib/ImportedComposition.lf"
 
 main reactor ImportComposition {
-    a = new ImportedComposition();
-    state received(false);
-    reaction(startup) -> a.x {=
-        a.x.set(42)
-    =}
+    a = new ImportedComposition()
+    state received(false)
+
+    reaction(startup) -> a.x {= a.x.set(42) =}
+
     reaction(a.y) {=
         receive_time = lf.time.logical_elapsed()
         print("Received {:d} at time {:d}".format(a.y.value, receive_time))
@@ -20,6 +21,7 @@ main reactor ImportComposition {
             sys.stderr.write("ERROR: Received value should have been {:d}.\n".format(42 * 2 * 2))
             exit(2)
     =}
+
     reaction(shutdown) {=
         if self.received is not True:
             sys.stderr.write("ERROR: Nothing received.\n");

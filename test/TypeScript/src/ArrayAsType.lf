@@ -1,10 +1,11 @@
-// In TypeScript this test is almost exactly the same as ArrayAsType.
+// In TypeScript this test is almost exactly the same as ArrayAsType. Source
+// produces a statically allocated array, which it passes to Print. The
+// destination references the array directly.
+target TypeScript
 
-// Source produces a statically allocated array, which it passes
-// to Print. The destination references the array directly.
-target TypeScript;
 reactor Source {
-    output out:{=Array<number>=};
+    output out: {= Array<number> =}
+
     reaction(startup) -> out {=
         let toSend = [];
         toSend[0] = 0;
@@ -14,9 +15,9 @@ reactor Source {
     =}
 }
 
-// The scale parameter is just for testing.
-reactor Print(scale:number(1)) {
-    input x:{=Array<number>=};
+reactor Print(scale: number(1)) {  // The scale parameter is just for testing.
+    input x: {= Array<number> =}
+
     reaction(x) {=
         let count = 0;       // For testing.
         let failed = false; // For testing.
@@ -41,7 +42,7 @@ reactor Print(scale:number(1)) {
 }
 
 main reactor ArrayAsType {
-    s = new Source();
-    p = new Print();
-    s.out -> p.x;
+    s = new Source()
+    p = new Print()
+    s.out -> p.x
 }

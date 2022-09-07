@@ -1,4 +1,6 @@
-target Python { timeout: 2 sec };
+target Python {
+    timeout: 2 sec
+}
 
 preamble {=
     class C:
@@ -12,13 +14,12 @@ reactor A {
 
 reactor B {
     output o
-    reaction(startup) -> o {=
-        o.set(C())
-    =}
+
+    reaction(startup) -> o {= o.set(C()) =}
 }
 
 federated reactor {
-    a = new A();
-    b = new B();
-    b.o -> a.o;
+    a = new A()
+    b = new B()
+    b.o -> a.o
 }

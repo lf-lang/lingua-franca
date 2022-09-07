@@ -2,26 +2,27 @@
 // Its purpose is to test multiport inputs.
 target TypeScript {
     timeout: 2 sec
-};
+}
 
 reactor Source {
-    timer t(0, 200 msec);
-    output out:number;
-    state s:number(0);
-    reaction(t) -> out {=
-        out = s++;
-    =}
+    timer t(0, 200 msec)
+    output out: number
+    state s: number(0)
+
+    reaction(t) -> out {= out = s++; =}
 }
+
 reactor Computation {
-    input inp:number;
-    output out:number;
-    reaction(inp) -> out {=
-        out = inp;
-    =}
+    input inp: number
+    output out: number
+
+    reaction(inp) -> out {= out = inp; =}
 }
+
 reactor Destination {
-    state s:number(0);
-    input[4] inp:number;
+    state s: number(0)
+    input[4] inp: number
+
     reaction(inp) {=
         let sum = 0;
         for (let i = 0; i < inp.length; i++) {
@@ -38,6 +39,7 @@ reactor Destination {
         }
         s += 4;
     =}
+
     reaction(shutdown) {=
         if (s == 0) {
             util.requestErrorStop("ERROR: Destination received no input!");
@@ -47,15 +49,15 @@ reactor Destination {
 }
 
 main reactor MultiportIn {
-    a = new Source();
-    t1 = new Computation();
-    t2 = new Computation();
-    t3 = new Computation();
-    t4 = new Computation();
-    b = new Destination();
-    a.out -> t1.inp;
-    a.out -> t2.inp;
-    a.out -> t3.inp;
-    a.out -> t4.inp;
-    t1.out, t2.out, t3.out, t4.out -> b.inp;
+    a = new Source()
+    t1 = new Computation()
+    t2 = new Computation()
+    t3 = new Computation()
+    t4 = new Computation()
+    b = new Destination()
+    a.out -> t1.inp
+    a.out -> t2.inp
+    a.out -> t3.inp
+    a.out -> t4.inp
+    t1.out, t2.out, t3.out, t4.out -> b.inp
 }

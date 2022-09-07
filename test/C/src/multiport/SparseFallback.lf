@@ -1,15 +1,16 @@
 /**
- * Test reading of sparse inputs on a multiport where
- * the density of writes to the multiport is high enough to
- * force the fallback policy to kick in.
+ * Test reading of sparse inputs on a multiport where the density of writes to
+ * the multiport is high enough to force the fallback policy to kick in.
  */
 target C {
-    timeout: 20ms
+    timeout: 20 ms
 }
-reactor SparseSource(width:int(20)) {
-    output[width] out:int;
-    state count:int(0);
-    timer t(0, 1ms);
+
+reactor SparseSource(width: int(20)) {
+    output[width] out: int
+    state count: int(0)
+    timer t(0, 1 msec)
+
     reaction(t) -> out {=
         int next_count = self->count + 1;
         if (next_count >= self->width) {
@@ -20,9 +21,10 @@ reactor SparseSource(width:int(20)) {
         self->count = next_count;
     =}
 }
-reactor SparseSink(width:int(20)) {
-    @sparse
-    input[width] in:int;
+
+reactor SparseSink(width: int(20)) {
+    input[width] in: int
+
     reaction(in) {=
         struct lf_multiport_iterator_t i = lf_multiport_iterator(in);
         lf_print("--------");
@@ -43,8 +45,9 @@ reactor SparseSink(width:int(20)) {
         }
     =}
 }
-main reactor(width:int(10)) {
-    s = new SparseSource(width = width);
-    d = new SparseSink(width = width);
-    s.out -> d.in;
+
+main reactor(width: int(10)) {
+    s = new SparseSource(width = width)
+    d = new SparseSink(width = width)
+    s.out -> d.in
 }
