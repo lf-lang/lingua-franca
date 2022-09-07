@@ -59,6 +59,9 @@ Workflow {
             projectWizard = {
                 generate = false
             }
+            formatter = {
+                generateStub = true
+            }
         }
     }
 }

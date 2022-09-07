@@ -32,6 +32,7 @@ import java.util.List;
 import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
 import org.lflang.TargetConfig;
+import org.lflang.TargetProperty.Platform;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.util.FileUtil;
 
@@ -91,8 +92,8 @@ class CCmakeGenerator {
 
         cMakeCode.pr("cmake_minimum_required(VERSION 3.13)");
         cMakeCode.pr("project("+executableName+" LANGUAGES C)");
-        cMakeCode.newLine();
 
+        cMakeCode.newLine();
         cMakeCode.pr("# Require C11");
         cMakeCode.pr("set(CMAKE_C_STANDARD 11)");
         cMakeCode.pr("set(CMAKE_C_STANDARD_REQUIRED ON)");
@@ -118,6 +119,10 @@ class CCmakeGenerator {
             // Suppress warnings about const char*.
             cMakeCode.pr("set(CMAKE_CXX_FLAGS \"${CMAKE_CXX_FLAGS} -Wno-write-strings\")");
             cMakeCode.newLine();
+        }
+
+        if (targetConfig.platform != Platform.AUTO) {
+            cMakeCode.pr("set(CMAKE_SYSTEM_NAME "+targetConfig.platform.getcMakeName()+")");
         }
         cMakeCode.pr("include(${CoreLib}/platform/Platform.cmake)");
         cMakeCode.newLine();
@@ -236,6 +241,11 @@ class CCmakeGenerator {
         cMakeCode.unindent();
         cMakeCode.pr(")");
         cMakeCode.newLine();
+
+        if (this.targetConfig.platform == Platform.ARDUINO) {
+            cMakeCode.pr("target_link_arduino_libraries ( ${LF_MAIN_TARGET} PRIVATE core)");
+            cMakeCode.pr("target_enable_arduino_upload(${LF_MAIN_TARGET})");
+        }
 
         // Add the include file
         for (String includeFile : targetConfig.cmakeIncludesWithoutPath) {

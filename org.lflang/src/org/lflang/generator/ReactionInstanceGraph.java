@@ -32,7 +32,7 @@ import java.util.List;
 import java.util.Set;
 
 import org.lflang.generator.ReactionInstance.Runtime;
-import org.lflang.graph.DirectedGraph;
+import org.lflang.graph.PrecedenceGraph;
 import org.lflang.lf.Variable;
 
 /**
@@ -54,7 +54,7 @@ import org.lflang.lf.Variable;
  * @author{Marten Lohstroh <marten@berkeley.edu>}
  * @author{Edward A. Lee <eal@berkeley.edu>}
  */
-public class ReactionInstanceGraph extends DirectedGraph<ReactionInstance.Runtime> {
+public class ReactionInstanceGraph extends PrecedenceGraph<ReactionInstance.Runtime> {
     
     /**
      * Create a new graph by traversing the maps in the named instances 

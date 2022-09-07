@@ -15,7 +15,7 @@ jobs:
     strategy:
       matrix:
         platform: [ubuntu-latest, macos-latest, windows-latest]
-        rust: [nightly]
+        rust: [stable]
     runs-on: ${{ matrix.platform }}
     steps:
       - name: Check out lingua-franca repository
@@ -26,15 +26,29 @@ jobs:
           ref: ${{ inputs.compiler-ref }}
       - name: Prepare build environment
         uses: ./.github/actions/prepare-build-env
+      - name: Check out specific ref of reactor-rs
+        uses: actions/checkout@v3
+        with:
+          repository: lf-lang/reactor-rs
+          path: org.lflang/src/lib/rs/reactor-rs
+          ref: ${{ inputs.runtime-ref }}
+        if: ${{ inputs.runtime-ref }}
       - name: Setup Rust
+        id: rustup
         uses: ATiltedTree/setup-rust@v1
         with:
           rust-version: ${{ matrix.rust }}
           components: clippy
-      - name: Set rust runtime version
-        run: |
-            echo ${{ inputs.runtime-ref }} > org.lflang/src/org/lflang/generator/rust/rust-runtime-version.txt
-        if: ${{ inputs.runtime-ref }}  
+        continue-on-error: true
+      - name: Delete rustup cache
+        run: rm -r ~/.rustup
+        if: ${{ steps.rustup.outcome }} != "success"
+      - name: Setup Rust (again)
+        if: ${{ steps.rustup.outcome }} != "success"
+        uses: ATiltedTree/setup-rust@v1
+        with:
+          rust-version: ${{ matrix.rust }}
+          components: clippy
       - name: Run Rust tests
         run: |
           ./gradlew test --tests org.lflang.tests.runtime.RustTest.*

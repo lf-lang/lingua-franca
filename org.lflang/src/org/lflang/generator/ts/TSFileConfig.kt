@@ -61,15 +61,15 @@ class TSFileConfig(
     /**
      * Path to TypeScript core source code.
      */
-    fun tsCoreGenPath(): Path = tsSrcGenPath().resolve("core")
+    fun reactorTsPath(): Path = srcGenPath.resolve("reactor-ts")
 
     /**
      * Path to the generated docker file
      */
     fun tsDockerFilePath(tsFileName: String): Path {
-        return srcGenPath.resolve(tsFileName + ".Dockerfile")
+        return srcGenPath.resolve("$tsFileName.Dockerfile")
     }
-    
+
     /**
      * Path to the generated docker compose file
      */

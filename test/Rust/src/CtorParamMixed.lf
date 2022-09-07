@@ -1,13 +1,13 @@
-target Rust;
+target Rust
 
 reactor Print(
     value: i32(42),
-    name: String({="xxx".into()=}),
+    name: String({= "xxx".into() =}),
     other: bool(false)
 ) {
-    state value(value);
-    state name(name);
-    state other(other);
+    state value(value)
+    state name(name)
+    state other(other)
 
     reaction(startup) {=
         assert_eq!(42, self.value);
@@ -16,6 +16,7 @@ reactor Print(
         println!("success");
     =}
 }
+
 main reactor CtorParamMixed {
-    p = new Print(other=true, name={="x2hr".into()=});
+    p = new Print(other = true, name = {= "x2hr".into() =})
 }

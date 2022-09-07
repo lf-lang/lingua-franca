@@ -1,14 +1,14 @@
 // Test that we can include modules into main
 target Rust {
-    rust-include: "some_module.rs",
-};
+    rust-include: "some_module.rs"
+}
 
 main reactor {
-      timer t(0);
+    timer t(0)
 
-      reaction(t) {=
-          use crate::some_module::*;
-          assert_eq!("hihihi", from_some_module());
-          println!("success");
-      =}
+    reaction(t) {=
+        use crate::some_module::*;
+        assert_eq!("hihihi", from_some_module());
+        println!("success");
+    =}
 }

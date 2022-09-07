@@ -1,15 +1,13 @@
-// This tests the ability to depend on crates with carg
-// if this compiles it's fine
+// This tests the ability to depend on crates with carg if this compiles it's
+// fine
 target Rust {
     cargo-dependencies: {
         reactor_rt: {
             features: ["parallel-runtime"]
-        },
+        }
     }
-};
+}
 
 main reactor {
-     reaction(startup) {=
-        println!("success")
-     =}
+    reaction(startup) {= println!("success") =}
 }

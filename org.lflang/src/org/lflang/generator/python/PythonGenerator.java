@@ -124,10 +124,16 @@ public class PythonGenerator extends CGenerator {
      * statically allocated arrays in Lingua Franca.
      * This template is defined as
      *   typedef struct {
-     *       PyObject* value;
      *       bool is_present;
+     *       lf_sparse_io_record_t* sparse_record; // NULL if there is no sparse record.
+     *       int destination_channel;              // -1 if there is no destination.
+     *       PyObject* value;
      *       int num_destinations;
-     *       FEDERATED_CAPSULE_EXTENSION
+     *       lf_token_t* token;
+     *       int length;
+     *       void (*destructor) (void* value);
+     *       void* (*copy_constructor) (void* value);
+     *       FEDERATED_GENERIC_EXTENSION
      *   } generic_port_instance_struct;
      *
      * @see reactor-c-py/lib/pythontarget.h
@@ -203,7 +209,8 @@ public class PythonGenerator extends CGenerator {
             "sys.path.append(os.path.dirname(__file__))",
             "# List imported names, but do not use pylint's --extension-pkg-allow-list option",
             "# so that these names will be assumed present without having to compile and install.",
-            "from "+pyModuleName+" import (  # pylint: disable=no-name-in-module, import-error",
+            "# pylint: disable=no-name-in-module, import-error",
+            "from "+pyModuleName+" import (",
             "    Tag, action_capsule_t, compare_tags, get_current_tag, get_elapsed_logical_time,",
             "    get_elapsed_physical_time, get_logical_time, get_microstep, get_physical_time,",
             "    get_start_time, port_capsule, request_stop, schedule_copy,",

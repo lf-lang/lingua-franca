@@ -1,5 +1,3 @@
-/* Parsing unit tests. */
-
 /*************
 Copyright (c) 2019, The University of California at Berkeley.
 
@@ -30,39 +28,79 @@ import com.google.inject.Inject;
 import org.eclipse.xtext.testing.InjectWith;
 import org.eclipse.xtext.testing.extensions.InjectionExtension;
 import org.eclipse.xtext.testing.util.ParseHelper;
+
+import org.lflang.lf.LfPackage;
 import org.lflang.lf.Model;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.lflang.tests.LFInjectorProvider;
 
-@ExtendWith(InjectionExtension.class)
-@InjectWith(LFInjectorProvider.class)
-
 /**
  * Test harness for ensuring that grammar captures
  * all corner cases.
  */
+@ExtendWith(InjectionExtension.class)
+@InjectWith(LFInjectorProvider.class)
 class LinguaFrancaParsingTest {
     @Inject
     ParseHelper<Model> parser;
 
     @Test
     public void checkForTarget() throws Exception {
-// Java 17:
-//         String testCase = """
-//             targett C;
-//             reactor Foo {
-//             }
-//         """
-// Java 11:
-        String testCase = String.join(System.getProperty("line.separator"),
-            "targett C;",
-            "reactor Foo {",
-            "}"
-        );
+        String testCase = """
+            targett C;
+            reactor Foo {
+            }
+        """;
         Model result = parser.parse(testCase);
         Assertions.assertNotNull(result);
         Assertions.assertFalse(result.eResource().getErrors().isEmpty(), "Failed to catch misspelled target keyword.");
     }
+
+    @Test
+    public void testAttributes() throws Exception {
+        String testCase = """
+                target C;
+                @label("somethign", "else")
+                @ohio()
+                @a
+                @bdebd(a="b")
+                @bd("abc")
+                @bd("abc",)
+                @a(a="a", b="b")
+                @a(a="a", b="b",)
+                main reactor {
+
+                }
+            """;
+        parseWithoutError(testCase);
+    }
+
+    @Test
+    public void testAttributeContexts() throws Exception {
+        String testCase = """
+                target C;
+                @a
+                main reactor(@b parm: int) {
+                
+                    @ohio reaction() {==}
+                    @ohio logical action f;
+                    @ohio timer t;
+                    @ohio input q: int;
+                    @ohio output q2: int;
+                }
+            """;
+        parseWithoutError(testCase);
+    }
+
+    private Model parseWithoutError(String s) throws Exception {
+        Model model = parser.parse(s);
+        Assertions.assertNotNull(model);
+        Assertions.assertTrue(model.eResource().getErrors().isEmpty(),
+                              "Encountered unexpected error while parsing: " +
+                                  model.eResource().getErrors());
+        return model;
+    }
+
 }

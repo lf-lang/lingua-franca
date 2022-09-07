@@ -5,6 +5,7 @@ import java.util.List;
 import org.lflang.TargetConfig;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.util.StringUtil;
+import org.lflang.TargetProperty.Platform;
 
 public class CMainGenerator {
     private TargetConfig targetConfig;
@@ -36,8 +37,23 @@ public class CMainGenerator {
      * Generate the `main` function.
      */
     private String generateMainFunction() {
+        if (targetConfig.platform == Platform.ARDUINO) {
+            /**
+                By default, we must have a serial begin line prior to calling lf_reactor_c_main due to internal debugging messages requiring a print buffer.
+                For the future, we can check whether internal LF logging is enabled or not before removing this line.
+                - Logging
+            */
+            return String.join("\n",
+            "// Arduino setup() and loop() functions",
+            "void setup() {",
+                "Serial.begin(" + targetConfig.baudRate + ");", 
+                "lf_reactor_c_main(0, NULL);",
+            "}",
+            "void loop() {}"
+            );
+        }
         return String.join("\n",
-            "int main(int argc, char* argv[]) {",
+            "int main(int argc, const char* argv[]) {",
             "    return lf_reactor_c_main(argc, argv);",
             "}"
         );
@@ -53,7 +69,7 @@ public class CMainGenerator {
         // so start with that.
         return runCommand.size() > 0 ?
             String.join("\n",
-                "char* _lf_default_argv[] = { " +
+                "const char* _lf_default_argv[] = { " +
                         StringUtil.addDoubleQuotes(
                             StringUtil.joinObjects(runCommand,
                                 StringUtil.addDoubleQuotes(", ")))+" };",

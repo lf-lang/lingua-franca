@@ -1,7 +1,10 @@
 package org.lflang.generator.c;
-import java.io.File;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
 import org.lflang.TargetProperty.SchedulerOption;
 
 /**
@@ -36,6 +39,12 @@ public class CCoreFilesUtils {
         );
     }
 
+    public static List<String> getArduinoTargetHeaders() {
+        return List.of(
+            "Arduino.h"
+        );
+    }
+
     public static List<String> getCTargetHeader() {
         return List.of(
             "include/ctarget/ctarget.h"
@@ -58,6 +67,8 @@ public class CCoreFilesUtils {
             "tag.c",
             "trace.h",
             "trace.c",
+            "port.h",
+            "port.c",
             "utils/pqueue.c",
             "utils/pqueue.h",
             "utils/pqueue_support.h",
@@ -90,6 +101,8 @@ public class CCoreFilesUtils {
             "platform/lf_macos_support.h",
             "platform/lf_windows_support.c",
             "platform/lf_windows_support.h",
+            "platform/lf_arduino_support.c",
+            "platform/lf_arduino_support.h",
             "platform/lf_linux_support.c",
             "platform/lf_linux_support.h"
         );
@@ -112,13 +125,15 @@ public class CCoreFilesUtils {
         SchedulerOption scheduler
     ) {
         return threading ?
-                List.of(
+            Stream.concat(
+                Stream.of(
                     "threaded/scheduler.h",
                     "threaded/scheduler_instance.h",
                     "threaded/scheduler_sync_tag_advance.c",
-                    "threaded/scheduler_" + scheduler + ".c",
                     "threaded/reactor_threaded.c"
-                ) :
-                List.of("reactor.c");
+                ),
+                scheduler.getRelativePaths().stream().map(path -> "threaded/" + path.toString().replace("\\", "/"))
+            ).collect(Collectors.toList()) :
+            List.of("reactor.c");
     }
 }

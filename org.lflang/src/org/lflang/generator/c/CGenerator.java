@@ -41,6 +41,7 @@ import static org.lflang.util.StringUtil.addDoubleQuotes;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -63,6 +64,7 @@ import org.lflang.TargetConfig;
 import org.lflang.TargetProperty;
 import org.lflang.TargetProperty.ClockSyncMode;
 import org.lflang.TargetProperty.CoordinationType;
+import org.lflang.TargetProperty.Platform;
 import org.lflang.TimeValue;
 import org.lflang.federated.FedFileConfig;
 import org.lflang.federated.FederateInstance;
@@ -552,6 +554,13 @@ public class CGenerator extends GeneratorBase {
                     // for federated programs.
                     copyUserFiles(this.targetConfig, this.fileConfig);
                 }
+
+                // If we are running an Arduino Target, need to copy over the BoardOptions file.
+                if (targetConfig.platform == Platform.ARDUINO) {
+                    FileUtil.copyFile(FileUtil.globFilesEndsWith(fileConfig.srcPath, "BoardOptions.cmake").get(0), 
+                        Paths.get(fileConfig.getSrcGenPath().toString(),File.separator, "BoardOptions.cmake"));
+                }
+
                 // Copy the core lib
                 FileUtil.copyFilesFromClassPath(
                     "/lib/c/reactor-c/core",
@@ -726,11 +735,20 @@ public class CGenerator extends GeneratorBase {
         if (main != null) {
             initializeTriggerObjects.pr(String.join("\n",
                 "int _lf_startup_reactions_count = 0;",
+                "SUPPRESS_UNUSED_WARNING(_lf_startup_reactions_count);",
                 "int _lf_shutdown_reactions_count = 0;",
+                "SUPPRESS_UNUSED_WARNING(_lf_shutdown_reactions_count);",
                 "int _lf_reset_reactions_count = 0;",
+                "SUPPRESS_UNUSED_WARNING(_lf_reset_reactions_count);",
                 "int _lf_timer_triggers_count = 0;",
-                "int _lf_tokens_with_ref_count_count = 0;"
+                "SUPPRESS_UNUSED_WARNING(_lf_timer_triggers_count);",
+                "int _lf_tokens_with_ref_count_count = 0;",
+                "SUPPRESS_UNUSED_WARNING(_lf_tokens_with_ref_count_count);",
+                "int bank_index;",
+                "SUPPRESS_UNUSED_WARNING(bank_index);"
             ));
+            // Add counters for modal initialization
+            initializeTriggerObjects.pr(CModesGenerator.generateModalInitalizationCounters(hasModalReactors));
 
             // Create an array of arrays to store all self structs.
             // This is needed because connections cannot be established until
@@ -808,7 +826,6 @@ public class CGenerator extends GeneratorBase {
                 federationRTIProperties,
                 startTimeStepTokens,
                 startTimeStepIsPresentCount,
-                startupReactionCount,
                 isFederated,
                 isFederatedAndDecentralized(),
                 clockSyncIsOn()
@@ -1080,8 +1097,13 @@ public class CGenerator extends GeneratorBase {
      */
     private void pickCompilePlatform() {
         var osName = System.getProperty("os.name").toLowerCase();
-        // FIXME: allow for cross-compiling
-        if (osName.contains("mac") || osName.contains("darwin")) {
+        // if platform target was set, use given platform instead
+        if (targetConfig.platform != Platform.AUTO) {
+            osName = targetConfig.platform.toString();
+        }
+        if (osName.contains("arduino")) {
+            return;
+        } else if (osName.contains("mac") || osName.contains("darwin")) {
             if (mainDef != null && !targetConfig.useCmake) {
                 targetConfig.compileAdditionalSources.add(
                      "core" + File.separator + "platform" + File.separator + "lf_macos_support.c"
@@ -1672,7 +1694,7 @@ public class CGenerator extends GeneratorBase {
                                 // The port belongs to contained reactor, so we also have
                                 // iterate over the instance bank members.
                                 temp.startScopedBlock();
-                                temp.pr("int count = 0;");
+                                temp.pr("int count = 0; SUPPRESS_UNUSED_WARNING(count);");
                                 temp.startScopedBlock(instance, currentFederate, isFederated, true);
                                 temp.startScopedBankChannelIteration(port, currentFederate, null, isFederated);
                             } else {
@@ -1759,7 +1781,7 @@ public class CGenerator extends GeneratorBase {
             if (currentFederate.contains(child) && child.outputs.size() > 0) {
 
                 temp.startScopedBlock();
-                temp.pr("int count = 0;");
+                temp.pr("int count = 0; SUPPRESS_UNUSED_WARNING(count);");
                 temp.startScopedBlock(child, currentFederate, isFederated, true);
 
                 var channelCount = 0;
@@ -2056,21 +2078,15 @@ public class CGenerator extends GeneratorBase {
                 var mode = stateVar.eContainer() instanceof Mode ?
                     instance.lookupModeInstance((Mode) stateVar.eContainer()) :
                     instance.getMode(false);
-                // In the current concept state variables are not automatically reset.
-                // Instead, they need to be manually reset using a reset triggered reaction or marked as reset.
-                if (!stateVar.isReset()) {
-                    mode = null; // Treat as if outside of mode
-                }
                 initializeTriggerObjects.pr(CStateGenerator.generateInitializer(
                     instance,
                     selfRef,
                     stateVar,
                     mode,
-                    types,
-                    modalStateResetCount
+                    types
                 ));
-                if (mode != null) {
-                    modalStateResetCount++;
+                if (mode != null && stateVar.isReset()) {
+                    modalStateResetCount += currentFederate.numRuntimeInstances(instance);
                 }
             }
         }
@@ -2100,32 +2116,9 @@ public class CGenerator extends GeneratorBase {
      * @param instance The reactor instance.
      */
     private void generateModeStructure(ReactorInstance instance) {
-        var parentMode = instance.getMode(false);
-        var nameOfSelfStruct = CUtil.reactorRef(instance);
-        // If this instance is enclosed in another mode
-        if (parentMode != null) {
-            var parentModeRef = "&"+CUtil.reactorRef(parentMode.getParent())+"->_lf__modes["+parentMode.getParent().modes.indexOf(parentMode)+"]";
-            initializeTriggerObjects.pr("// Setup relation to enclosing mode");
-
-            // If this reactor does not have its own modes, all reactions must be linked to enclosing mode
-            if (instance.modes.isEmpty()) {
-                int i = 0;
-                for (ReactionInstance reaction : instance.reactions) {
-                    initializeTriggerObjects.pr(CUtil.reactorRef(reaction.getParent())+"->_lf__reaction_"+i+".mode = "+parentModeRef+";");
-                    i++;
-                }
-            } else { // Otherwise, only reactions outside modes must be linked and the mode state itself gets a parent relation
-                initializeTriggerObjects.pr("((self_base_t*)"+nameOfSelfStruct+")->_lf__mode_state.parent_mode = "+parentModeRef+";");
-                Iterable<ReactionInstance> reactionsOutsideModes = IterableExtensions.filter(instance.reactions, it -> it.getMode(true) == null);
-                for (ReactionInstance reaction : reactionsOutsideModes) {
-                    initializeTriggerObjects.pr(CUtil.reactorRef(reaction.getParent())+"->_lf__reaction_"+instance.reactions.indexOf(reaction)+".mode = "+parentModeRef+";");
-                }
-            }
-        }
-        // If this reactor has modes, register for mode change handling
+        CModesGenerator.generateModeStructure(instance, initializeTriggerObjects);
         if (!instance.modes.isEmpty()) {
-            initializeTriggerObjects.pr("// Register for transition handling");
-            initializeTriggerObjects.pr("_lf_modal_reactor_states["+modalReactorCount+++"] = &((self_base_t*)"+nameOfSelfStruct+")->_lf__mode_state;");
+            modalReactorCount += currentFederate.numRuntimeInstances(instance);
         }
     }
 
@@ -2135,8 +2128,9 @@ public class CGenerator extends GeneratorBase {
      */
     protected void generateParameterInitialization(ReactorInstance instance) {
         var selfRef = CUtil.reactorRef(instance);
-        // Declare a local bank_index variable so that initializers can use it.
-        initializeTriggerObjects.pr("int bank_index = "+CUtil.bankIndex(instance)+";");
+        // Set the local bank_index variable so that initializers can use it.
+        initializeTriggerObjects.pr("bank_index = "+CUtil.bankIndex(instance)+";"
+                + " SUPPRESS_UNUSED_WARNING(bank_index);");
         for (ParameterInstance parameter : instance.parameters) {
             // NOTE: we now use the resolved literal value. For better efficiency, we could
             // store constants in a global array and refer to its elements to avoid duplicate
@@ -2267,6 +2261,14 @@ public class CGenerator extends GeneratorBase {
         if (hasModalReactors) {
             // So that each separate compile knows about modal reactors, do this:
             targetConfig.compileDefinitions.put("MODAL_REACTORS", "");
+        }
+        if (targetConfig.threading && targetConfig.platform == Platform.ARDUINO) {
+
+            //Add error message when user attempts to set threading=true for Arduino
+            if (targetConfig.setByUser.contains(TargetProperty.THREADING)) {
+                errorReporter.reportWarning("Threading is incompatible on Arduino. Setting threading to false.");
+            }
+            targetConfig.threading = false;
         }
         if (targetConfig.threading) {
             pickScheduler();
@@ -2450,7 +2452,7 @@ public class CGenerator extends GeneratorBase {
      * input port "port" or has it in its sources. If there are only connections to contained
      * reactors, in the top-level reactor.
      *
-     * @param receivingPortID The port to generate the control reaction for
+     * @param receivingPortID The ID of the port to generate the control reaction for
      * @param maxSTP The maximum value of STP is assigned to reactions (if any)
      *  that have port as their trigger or source
      */
@@ -2639,7 +2641,7 @@ public class CGenerator extends GeneratorBase {
     //// Private methods
 
     /**
-     * If a main or federted reactor has been declared, create a ReactorInstance
+     * If a main or federated reactor has been declared, create a ReactorInstance
      * for this top level. This will also assign levels to reactions, then,
      * if the program is federated, perform an AST transformation to disconnect
      * connections between federates.
@@ -2694,6 +2696,7 @@ public class CGenerator extends GeneratorBase {
         // create references to the runtime instances aware of this exception.
         // For now, we just create a larger array than needed.
         initializeTriggerObjects.pr(CUtil.selfType(r)+"* "+CUtil.reactorRefName(r)+"["+r.getTotalWidth()+"];");
+        initializeTriggerObjects.pr("SUPPRESS_UNUSED_WARNING("+CUtil.reactorRefName(r)+");");
         for (ReactorInstance child : r.children) {
             generateSelfStructs(child);
         }
