@@ -10,7 +10,8 @@ class CppRos2PackageGenerator(generator: CppGenerator, private val nodeName: Str
     private val targetConfig = generator.targetConfig
     val reactorCppSuffix = targetConfig.runtimeVersion ?: "default"
     val reactorCppName = "reactor-cpp-$reactorCppSuffix"
-    private val dependencies = listOf("rclcpp", "rclcpp_components", reactorCppName) + targetConfig.ros2Dependencies
+    private val dependencies =
+        listOf("rclcpp", "rclcpp_components", reactorCppName) + (targetConfig.ros2Dependencies ?: listOf<String>())
 
     @Suppress("PrivatePropertyName") // allows us to use capital S as variable name below
     private val S = '$' // a little trick to escape the dollar sign with $S
