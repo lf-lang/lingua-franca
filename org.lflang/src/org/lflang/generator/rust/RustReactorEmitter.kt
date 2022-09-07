@@ -28,7 +28,6 @@ import org.lflang.*
 import org.lflang.generator.PrependOperator
 import org.lflang.generator.PrependOperator.rangeTo
 import org.lflang.generator.TargetCode
-import org.lflang.generator.UnsupportedGeneratorFeatureException
 
 
 /**
@@ -284,7 +283,7 @@ ${"             |        "..declareChildConnections()}
                     this += "__assembler.declare_triggers($rsRuntime::assembly::TriggerId::SHUTDOWN, ${n.invokerId})?;"
                 this += n.uses.map { trigger -> "__assembler.declare_uses(${n.invokerId}, __self.${trigger.rustFieldName}.get_id())?;" }
                 this += n.effects.filterIsInstance<PortLike>().map { port ->
-                    if (port.isMultiport) {
+                    if (port.isGeneratedAsMultiport) {
                         "__assembler.effects_bank(${n.invokerId}, &__self.${port.rustFieldName})?;"
                     } else {
                         "__assembler.effects_port(${n.invokerId}, &__self.${port.rustFieldName})?;"
@@ -337,7 +336,7 @@ ${"             |        "..declareChildConnections()}
             if (isLogical) "$rsRuntime::LogicalAction<${dataType ?: "()"}>"
             else "$rsRuntime::PhysicalActionRef<${dataType ?: "()"}>"
         is PortLike   -> with(this) {
-            if (isBank || isMultiport) "$rsRuntime::PortBank<$dataType>"
+            if (isGeneratedAsMultiport) "$rsRuntime::PortBank<$dataType>"
             else "$rsRuntime::Port<$dataType>"
         }
         is TimerData  -> "$rsRuntime::Timer"
@@ -360,14 +359,8 @@ ${"             |        "..declareChildConnections()}
             }
         }
         is ChildPortReference -> {
-            if (isMultiport || isBank) {
-                val width = if (!isBank && isMultiport) {
-                    widthSpecMultiport
-                } else if (isBank && isMultiport) {
-                    "$widthSpecBank * $widthSpecMultiport"
-                } else {
-                    widthSpecBank
-                }
+            if (isGeneratedAsMultiport) {
+                val width = (widthSpecMultiport ?: "1") + "*" + (widthSpecChild ?: "1")
                 "__assembler.new_port_bank::<$dataType>(\"$childLfName.$lfName\", $portKind, $width)?"
             } else {
                 "__assembler.new_port::<$dataType>(\"$childLfName.$lfName\", $portKind)"
@@ -391,10 +384,10 @@ ${"             |        "..declareChildConnections()}
     private fun ReactorComponent.toBorrowedType(kind: DepKind): TargetCode =
         when (this) {
             is PortLike   -> when {
-                kind == DepKind.Effects && (isBank || isMultiport) -> "$rsRuntime::WritablePortBank<$dataType>" // note: owned
-                kind == DepKind.Effects                            -> "$rsRuntime::WritablePort<$dataType>" // note: owned
-                isBank || isMultiport                              -> "$rsRuntime::ReadablePortBank<$dataType>" // note: owned
-                else                                               -> "&$rsRuntime::ReadablePort<$dataType>" // note: a reference
+                kind == DepKind.Effects && isGeneratedAsMultiport -> "$rsRuntime::WritablePortBank<$dataType>" // note: owned
+                kind == DepKind.Effects                           -> "$rsRuntime::WritablePort<$dataType>" // note: owned
+                isGeneratedAsMultiport                            -> "$rsRuntime::ReadablePortBank<$dataType>" // note: owned
+                else                                              -> "&$rsRuntime::ReadablePort<$dataType>" // note: a reference
             }
             is TimerData  -> "&${toType()}"
             is ActionData -> if (isLogical && kind == DepKind.Effects) "&mut ${toType()}" else "&${toType()}"
@@ -407,10 +400,10 @@ ${"             |        "..declareChildConnections()}
     private fun ReactorComponent.toBorrow(kind: DepKind): TargetCode =
         when (this) {
             is PortLike   -> when {
-                kind == DepKind.Effects && (isBank || isMultiport) -> "$rsRuntime::WritablePortBank::new(&mut self.$rustFieldName)" // note: owned
-                kind == DepKind.Effects                            -> "$rsRuntime::WritablePort::new(&mut self.$rustFieldName)" // note: owned
-                isBank || isMultiport                              -> "$rsRuntime::ReadablePortBank::new(&self.$rustFieldName)" // note: owned
-                else                                               -> "&$rsRuntime::ReadablePort::new(&self.$rustFieldName)" // note: a reference
+                kind == DepKind.Effects && isGeneratedAsMultiport -> "$rsRuntime::WritablePortBank::new(&mut self.$rustFieldName)" // note: owned
+                kind == DepKind.Effects                           -> "$rsRuntime::WritablePort::new(&mut self.$rustFieldName)" // note: owned
+                isGeneratedAsMultiport                            -> "$rsRuntime::ReadablePortBank::new(&self.$rustFieldName)" // note: owned
+                else                                              -> "&$rsRuntime::ReadablePort::new(&self.$rustFieldName)" // note: a reference
             }
             is ActionData -> if (kind == DepKind.Effects) "&mut self.$rustFieldName" else "&self.$rustFieldName"
             is TimerData  -> "&self.$rustFieldName"
@@ -443,7 +436,7 @@ ${"             |        "..declareChildConnections()}
             if (isLogical) "ctx.cleanup_logical_action(&mut self.$rustFieldName);"
             else "ctx.cleanup_physical_action(&mut self.$rustFieldName);"
         is PortLike           ->
-            if (isBank || isMultiport) "ctx.cleanup_multiport(&mut self.$rustFieldName);"
+            if (isGeneratedAsMultiport) "ctx.cleanup_multiport(&mut self.$rustFieldName);"
             else "ctx.cleanup_port(&mut self.$rustFieldName);"
         else                  -> null
     }

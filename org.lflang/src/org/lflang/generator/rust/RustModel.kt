@@ -28,7 +28,6 @@ package org.lflang.generator.rust
 import org.lflang.*
 import org.lflang.TargetProperty.BuildType
 import org.lflang.generator.*
-import org.lflang.generator.cpp.toCppCode
 import org.lflang.lf.*
 import org.lflang.lf.Timer
 import java.nio.file.Path
@@ -183,10 +182,11 @@ data class ChildPortReference(
     override val isInput: Boolean,
     override val dataType: TargetCode,
     val widthSpecMultiport: TargetCode?,
-    val widthSpecBank: TargetCode?,
+    val widthSpecChild: TargetCode?,
 ) : PortLike() {
-    override val isMultiport: Boolean get() = widthSpecMultiport != null
-    override val isBank: Boolean get() = widthSpecBank != null
+    override val isMultiport: Boolean
+        get() = widthSpecMultiport != null
+    override val isContainedInBank: Boolean get() = widthSpecChild != null
     val rustFieldOnChildName: String = lfName.escapeRustIdent()
 
     /** Sync with [NestedReactorInstance.rustLocalName]. */
@@ -347,8 +347,10 @@ sealed class PortLike : ReactorComponent() {
     abstract val isInput: Boolean
 
     abstract val dataType: TargetCode
+    val isGeneratedAsMultiport: Boolean
+        get() = isMultiport || isContainedInBank
     abstract val isMultiport: Boolean
-    abstract val isBank: Boolean
+    abstract val isContainedInBank: Boolean
 }
 
 /**
@@ -363,7 +365,7 @@ data class PortData(
     val widthSpec: TargetCode?,
 ) : PortLike() {
     override val isMultiport: Boolean get() = widthSpec != null
-    override val isBank = false
+    override val isContainedInBank = false
 
     companion object {
         fun from(port: Port) =
@@ -534,7 +536,7 @@ object RustModelBuilder {
                                 isInput = variable is Input,
                                 dataType = container.reactor.instantiateType(formalType, it.container.typeParms),
                                 widthSpecMultiport = variable.widthSpec?.toRustExpr(),
-                                widthSpecBank = container.widthSpec?.toRustExpr(),
+                                widthSpecChild = container.widthSpec?.toRustExpr(),
                             )
                         } else {
                             components[variable.name] ?: throw UnsupportedGeneratorFeatureException(
