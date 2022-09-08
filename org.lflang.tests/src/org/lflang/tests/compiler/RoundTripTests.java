@@ -46,31 +46,30 @@ public class RoundTripTests {
 
     private void run(Path file) throws Exception {
         Model originalModel = parse(file);
-        System.out.printf("Running formatter on %s...%n", file);
         Assertions.assertTrue(originalModel.eResource().getErrors().isEmpty());
         // TODO: Check that the output is a fixed point
         final int smallLineLength = 20;
-        String squishedTestCase = FormattingUtils.render(originalModel, smallLineLength);
-        System.out.printf(
-            "The following is what %s looks like after applying formatting with the preferred line "
-                + "length set to %d columns:%n%s%n%n",
-            file.getFileName(),
-            smallLineLength,
-            squishedTestCase
-        );
-        Model resultingModel = getResultingModel(file, squishedTestCase);
+        final String squishedTestCase = FormattingUtils.render(originalModel, smallLineLength);
+        final Model resultingModel = getResultingModel(file, squishedTestCase);
         Assertions.assertNotNull(resultingModel);
         if (!resultingModel.eResource().getErrors().isEmpty()) {
             resultingModel.eResource().getErrors().forEach(System.err::println);
             Assertions.assertTrue(resultingModel.eResource().getErrors().isEmpty());
         }
-        Assertions.assertTrue(new IsEqual(originalModel).doSwitch(resultingModel));
-        String normalTestCase = FormattingUtils.render(originalModel);
-        System.out.printf(
-            "The following is what %s looks like after applying formatting normally:%n%s%n%n",
-            file.getFileName(),
-            normalTestCase
-        );
+        if (!new IsEqual(originalModel).doSwitch(resultingModel)) {
+            System.out.printf(
+                "The following is what %s looks like after applying formatting with the preferred line "
+                    + "length set to %d columns:%n%s%n%n",
+                file,
+                smallLineLength,
+                squishedTestCase
+            );
+            throw new junit.framework.AssertionFailedError(String.format(
+                "The reformatted version of %s was not equivalent to the original file.",
+                file.getFileName()
+            ));
+        }
+        final String normalTestCase = FormattingUtils.render(originalModel);
         try {
             Assertions.assertEquals(
                 Files.readString(file).replaceAll("\\r\\n?", "\n"),
@@ -81,8 +80,13 @@ public class RoundTripTests {
                 "An assertion failed while checking that the content of %s is the same before and "
                     + "after formatting. Check that %s is formatted according to lff and the "
                     + "formatter provided with the VS Code extension.%n",
-                file.getFileName(),
+                file,
                 file.getFileName()
+            );
+            System.out.printf(
+                "The following is what %s looks like after applying formatting normally:%n%s%n%n",
+                file.getFileName(),
+                normalTestCase
             );
             throw e;
         }
