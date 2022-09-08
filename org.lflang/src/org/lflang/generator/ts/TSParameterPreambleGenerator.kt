@@ -31,6 +31,8 @@ import org.lflang.TimeValue
 import org.lflang.generator.PrependOperator
 import org.lflang.lf.Parameter
 import org.lflang.lf.Reactor
+import org.lflang.lf.Instantiation
+import org.lflang.reactor
 import java.util.StringJoiner
 
 /**
@@ -168,6 +170,10 @@ class TSParameterPreambleGenerator(
 
         val customArgsList = "[\n$customArgs]"
         val clTypeExtensionDef = "{$clTypeExtension}"
+
+        if (tsGenerator.mainDef.reactor.attributes.stream().anyMatch{ it.attrName == "_fed_config" }) {
+            targetConfig.keepalive = true
+        }
 
         val codeText = with(PrependOperator) {"""
             |// ************* App Parameters
