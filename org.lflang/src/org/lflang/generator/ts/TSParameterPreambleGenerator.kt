@@ -66,7 +66,6 @@ class TSParameterPreambleGenerator(
         for (reactor in reactors) {
             if (reactor.isMain || reactor.isFederated) {
                 mainReactor = reactor
-                targetConfig.keepalive = true;
             }
         }
         return mainReactor?.parameters ?: emptyList()
