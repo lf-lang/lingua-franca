@@ -44,7 +44,7 @@ main reactor IndexIntoMultiportOutput {
             reactor::log::Error() << "expeced 1";
             exit(1);
         }
-    =} 
+    =}
 
     reaction(splitter.out2) {=
         received2 = true;

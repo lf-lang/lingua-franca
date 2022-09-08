@@ -38,15 +38,9 @@ main reactor IndexIntoMultiportInput {
 
     splitter.out -> receiver.in
 
-    reaction(startup) -> splitter.in0 {=
-        splitter.in0.set(0);
-    =}
+    reaction(startup) -> splitter.in0 {= splitter.in0.set(0); =}
 
-    reaction(startup) -> splitter.in1 {=
-        splitter.in1.set(1);
-    =}
+    reaction(startup) -> splitter.in1 {= splitter.in1.set(1); =}
 
-    reaction(startup) -> splitter.in2 {=
-        splitter.in2.set(2);
-    =}
+    reaction(startup) -> splitter.in2 {= splitter.in2.set(2); =}
 }
