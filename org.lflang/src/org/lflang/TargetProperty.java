@@ -336,6 +336,14 @@ public enum TargetProperty {
     }),
 
     /**
+     * Directive to specify additional ROS2 packages that this LF program depends on.
+     */
+    ROS2_DEPENDENCIES("ros2-dependencies", ArrayType.STRING_ARRAY,
+        List.of(Target.CPP), (config, value, err) -> {
+            config.ros2Dependencies = ASTUtils.elementToListOfStrings(value);
+    }),
+
+    /**
      * Directive for specifying a specific version of the reactor runtime library.
      */
     RUNTIME_VERSION("runtime-version", PrimitiveType.STRING,
