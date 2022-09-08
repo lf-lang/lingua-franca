@@ -214,6 +214,11 @@ public class TargetConfig {
     public boolean ros2 = false;
 
     /**
+     * Additional ROS2 packages that the LF program depends on.
+     */
+    public List<String> ros2Dependencies = null;
+
+    /**
      * The version of the runtime library to be used in the generated target. 
      */
     public String runtimeVersion = null;

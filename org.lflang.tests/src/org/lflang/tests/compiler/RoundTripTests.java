@@ -60,7 +60,7 @@ public class RoundTripTests {
             System.out.printf(
                 "The following is what %s looks like after applying formatting with the preferred line "
                     + "length set to %d columns:%n%s%n%n",
-                file.getFileName(),
+                file,
                 smallLineLength,
                 squishedTestCase
             );
@@ -80,7 +80,7 @@ public class RoundTripTests {
                 "An assertion failed while checking that the content of %s is the same before and "
                     + "after formatting. Check that %s is formatted according to lff and the "
                     + "formatter provided with the VS Code extension.%n",
-                file.getFileName(),
+                file,
                 file.getFileName()
             );
             System.out.printf(

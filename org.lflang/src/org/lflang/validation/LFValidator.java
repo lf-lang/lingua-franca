@@ -1058,12 +1058,18 @@ public class LFValidator extends BaseLFValidator {
         validateFastTargetProperty(targetProperties);
         validateClockSyncTargetProperties(targetProperties);
         validateSchedulerTargetProperties(targetProperties);
+        validateRos2TargetProperties(targetProperties);
     }
 
+    private KeyValuePair getKeyValuePair(KeyValuePairs targetProperties, TargetProperty property) {
+        List<KeyValuePair> properties = targetProperties.getPairs().stream()
+            .filter(pair -> pair.getName() == property.description)
+            .toList();
+        assert (properties.size() <= 1);
+        return properties.size() > 0 ? properties.get(0) : null;
+    }
     private void validateFastTargetProperty(KeyValuePairs targetProperties) {
-        EList<KeyValuePair> fastTargetProperties = new BasicEList<>(targetProperties.getPairs());
-        fastTargetProperties.removeIf(pair -> TargetProperty.forName(pair.getName()) != TargetProperty.FAST);
-        KeyValuePair fastTargetProperty = fastTargetProperties.size() > 0 ? fastTargetProperties.get(0) : null;
+        KeyValuePair fastTargetProperty = getKeyValuePair(targetProperties, TargetProperty.FAST);
 
         if (fastTargetProperty != null) {
             // Check for federated
@@ -1097,10 +1103,7 @@ public class LFValidator extends BaseLFValidator {
     }
 
     private void validateClockSyncTargetProperties(KeyValuePairs targetProperties) {
-        EList<KeyValuePair> clockSyncTargetProperties = new BasicEList<>(targetProperties.getPairs());
-        // Check to see if clock-sync is defined
-        clockSyncTargetProperties.removeIf(pair -> TargetProperty.forName(pair.getName()) != TargetProperty.CLOCK_SYNC);
-        KeyValuePair clockSyncTargetProperty = clockSyncTargetProperties.size() > 0 ? clockSyncTargetProperties.get(0) : null;
+        KeyValuePair clockSyncTargetProperty = getKeyValuePair(targetProperties, TargetProperty.CLOCK_SYNC);
 
         if (clockSyncTargetProperty != null) {
             boolean federatedExists = false;
@@ -1120,12 +1123,7 @@ public class LFValidator extends BaseLFValidator {
     }
 
     private void validateSchedulerTargetProperties(KeyValuePairs targetProperties) {
-        EList<KeyValuePair> schedulerTargetProperties =
-                new BasicEList<>(targetProperties.getPairs());
-        schedulerTargetProperties.removeIf(pair -> TargetProperty
-                .forName(pair.getName()) != TargetProperty.SCHEDULER);
-        KeyValuePair schedulerTargetProperty = schedulerTargetProperties
-                .size() > 0 ? schedulerTargetProperties.get(0) : null;
+        KeyValuePair schedulerTargetProperty = getKeyValuePair(targetProperties, TargetProperty.SCHEDULER);
         if (schedulerTargetProperty != null) {
             String schedulerName = ASTUtils.elementToSingleString(schedulerTargetProperty.getValue());
             try {
@@ -1153,6 +1151,18 @@ public class LFValidator extends BaseLFValidator {
                 // the given scheduler is invalid, but this is already checked by
                 // checkTargetProperties
             }
+        }
+    }
+
+    private void validateRos2TargetProperties(KeyValuePairs targetProperties) {
+        KeyValuePair ros2 = getKeyValuePair(targetProperties, TargetProperty.ROS2);
+        KeyValuePair ros2Dependencies = getKeyValuePair(targetProperties, TargetProperty.ROS2_DEPENDENCIES);
+        if (!ASTUtils.toBoolean(ros2.getValue()) && ros2Dependencies != null) {
+            warning(
+                "Ignoring ros2-dependencies as ros2 compilation is disabled",
+                ros2Dependencies,
+                Literals.KEY_VALUE_PAIR__NAME
+            );
         }
     }
 
