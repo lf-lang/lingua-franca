@@ -1,0 +1,64 @@
+target Cpp
+
+reactor ReactorWithMultiport(width: size_t(3)) {
+    output[width] out: int
+
+    reaction(startup) -> out {=
+        for (size_t i{0}; i < width; i++) {
+            out[i].set(i);
+        }
+    =}
+}
+
+reactor MultiportSplitter(width: size_t(3)) {
+    input[width] in: int
+
+    output out0: int
+    output out1: int
+    output out2: int
+
+    in -> out0, out1, out2
+}
+
+main reactor IndexIntoMultiportOutput {
+    source = new ReactorWithMultiport()
+    splitter = new MultiportSplitter()
+
+    source.out -> splitter.in
+
+    state received0: bool{false}
+    state received1: bool{false}
+    state received2: bool{false}
+
+    reaction(splitter.out0) {=
+        received0 = true;
+        if (*splitter.out0.get() != 0) {
+            reactor::log::Error() << "expeced 0";
+            exit(1);
+        }
+    =}
+
+    reaction(splitter.out1) {=
+        received1 = true;
+        if (*splitter.out1.get() != 1) {
+            reactor::log::Error() << "expeced 1";
+            exit(1);
+        }
+    =} 
+
+    reaction(splitter.out2) {=
+        received2 = true;
+        if (*splitter.out2.get() != 2) {
+            reactor::log::Error() << "expeced 2";
+            exit(1);
+        }
+    =}
+
+    reaction(shutdown) {=
+        if (!received0 || !received1 || !received2) {
+            reactor::log::Error() << "missed a message";
+        } else {
+            reactor::log::Info() << "success";
+        }
+    =}
+}
