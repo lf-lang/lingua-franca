@@ -34,6 +34,7 @@ import static org.lflang.ASTUtils.isZero;
 import static org.lflang.ASTUtils.toDefinition;
 import static org.lflang.ASTUtils.toOriginalText;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -57,6 +58,7 @@ import org.eclipse.xtext.validation.Check;
 import org.eclipse.xtext.validation.CheckType;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 import org.lflang.ASTUtils;
+import org.lflang.AttributeUtils;
 import org.lflang.ModelInfo;
 import org.lflang.Target;
 import org.lflang.TargetProperty;
@@ -1056,12 +1058,18 @@ public class LFValidator extends BaseLFValidator {
         validateFastTargetProperty(targetProperties);
         validateClockSyncTargetProperties(targetProperties);
         validateSchedulerTargetProperties(targetProperties);
+        validateRos2TargetProperties(targetProperties);
     }
 
+    private KeyValuePair getKeyValuePair(KeyValuePairs targetProperties, TargetProperty property) {
+        List<KeyValuePair> properties = targetProperties.getPairs().stream()
+            .filter(pair -> pair.getName() == property.description)
+            .toList();
+        assert (properties.size() <= 1);
+        return properties.size() > 0 ? properties.get(0) : null;
+    }
     private void validateFastTargetProperty(KeyValuePairs targetProperties) {
-        EList<KeyValuePair> fastTargetProperties = new BasicEList<>(targetProperties.getPairs());
-        fastTargetProperties.removeIf(pair -> TargetProperty.forName(pair.getName()) != TargetProperty.FAST);
-        KeyValuePair fastTargetProperty = fastTargetProperties.size() > 0 ? fastTargetProperties.get(0) : null;
+        KeyValuePair fastTargetProperty = getKeyValuePair(targetProperties, TargetProperty.FAST);
 
         if (fastTargetProperty != null) {
             // Check for federated
@@ -1095,10 +1103,7 @@ public class LFValidator extends BaseLFValidator {
     }
 
     private void validateClockSyncTargetProperties(KeyValuePairs targetProperties) {
-        EList<KeyValuePair> clockSyncTargetProperties = new BasicEList<>(targetProperties.getPairs());
-        // Check to see if clock-sync is defined
-        clockSyncTargetProperties.removeIf(pair -> TargetProperty.forName(pair.getName()) != TargetProperty.CLOCK_SYNC);
-        KeyValuePair clockSyncTargetProperty = clockSyncTargetProperties.size() > 0 ? clockSyncTargetProperties.get(0) : null;
+        KeyValuePair clockSyncTargetProperty = getKeyValuePair(targetProperties, TargetProperty.CLOCK_SYNC);
 
         if (clockSyncTargetProperty != null) {
             boolean federatedExists = false;
@@ -1118,12 +1123,7 @@ public class LFValidator extends BaseLFValidator {
     }
 
     private void validateSchedulerTargetProperties(KeyValuePairs targetProperties) {
-        EList<KeyValuePair> schedulerTargetProperties =
-                new BasicEList<>(targetProperties.getPairs());
-        schedulerTargetProperties.removeIf(pair -> TargetProperty
-                .forName(pair.getName()) != TargetProperty.SCHEDULER);
-        KeyValuePair schedulerTargetProperty = schedulerTargetProperties
-                .size() > 0 ? schedulerTargetProperties.get(0) : null;
+        KeyValuePair schedulerTargetProperty = getKeyValuePair(targetProperties, TargetProperty.SCHEDULER);
         if (schedulerTargetProperty != null) {
             String schedulerName = ASTUtils.elementToSingleString(schedulerTargetProperty.getValue());
             try {
@@ -1151,6 +1151,18 @@ public class LFValidator extends BaseLFValidator {
                 // the given scheduler is invalid, but this is already checked by
                 // checkTargetProperties
             }
+        }
+    }
+
+    private void validateRos2TargetProperties(KeyValuePairs targetProperties) {
+        KeyValuePair ros2 = getKeyValuePair(targetProperties, TargetProperty.ROS2);
+        KeyValuePair ros2Dependencies = getKeyValuePair(targetProperties, TargetProperty.ROS2_DEPENDENCIES);
+        if (!ASTUtils.toBoolean(ros2.getValue()) && ros2Dependencies != null) {
+            warning(
+                "Ignoring ros2-dependencies as ros2 compilation is disabled",
+                ros2Dependencies,
+                Literals.KEY_VALUE_PAIR__NAME
+            );
         }
     }
 
@@ -1250,6 +1262,37 @@ public class LFValidator extends BaseLFValidator {
                 } else if (term.getWidth() < 0) {
                     error("Width must be a positive integer.", Literals.WIDTH_SPEC__TERMS);
                 }
+            }
+        }
+    }
+    
+    @Check(CheckType.FAST)
+    public void checkReactorIconAttribute(Reactor reactor) {
+        var attrs = AttributeUtils.getAttributes(reactor);
+        var iconAttr = attrs.stream()
+                    .filter(it -> it.getAttrName().equalsIgnoreCase("icon"))
+                    .findFirst()
+                    .orElse(null);
+        if (iconAttr != null) {
+            var path = iconAttr.getAttrParms().get(0).getValue().getStr();
+            
+            // Check file extension
+            var validExtensions = Set.of("bmp", "png", "gif", "ico", "jpeg");
+            var extensionStrart = path.lastIndexOf(".");
+            var extension = extensionStrart != -1 ? path.substring(extensionStrart + 1) : "";
+            if (!validExtensions.contains(extension.toLowerCase())) {
+                warning("File extension '" + extension + "' is not supported. Provide any of: " + String.join(", ", validExtensions),
+                        iconAttr.getAttrParms().get(0), Literals.ATTR_PARM__VALUE);
+                return;
+            }
+            
+            // Check file location
+            var iconLocation = FileUtil.locateFile(path, reactor.eResource());
+            if (iconLocation == null) {
+                warning("Cannot locate icon file.", iconAttr.getAttrParms().get(0), Literals.ATTR_PARM__VALUE);
+            }
+            if (("file".equals(iconLocation.getScheme()) || iconLocation.getScheme() == null) && !(new File(iconLocation.getPath()).exists())) {
+                warning("Icon does not exist.", iconAttr.getAttrParms().get(0), Literals.ATTR_PARM__VALUE);
             }
         }
     }
@@ -1370,6 +1413,7 @@ public class LFValidator extends BaseLFValidator {
                 // Check state variables in instantiated reactors
                 if (!m.getInstantiations().isEmpty()) {
                     for (var i : m.getInstantiations()) {
+                        var error = new LinkedHashSet<StateVar>();
                         var checked = new HashSet<Reactor>();
                         var toCheck = new LinkedList<Reactor>();
                         toCheck.add((Reactor) i.getReactorClass());
@@ -1381,12 +1425,9 @@ public class LFValidator extends BaseLFValidator {
                                         r -> r.getTriggers().stream().anyMatch(
                                                 t -> (t instanceof BuiltinTriggerRef && 
                                                      ((BuiltinTriggerRef) t).getType() == BuiltinTrigger.RESET)));
-                                if (!hasResetReaction && check.getStateVars().stream().anyMatch(s -> !s.isReset())) {
-                                    error("This reactor contains state variables that are not reset upon mode entry. "
-                                            + "The instatiated reactor (or any inner reactor) neither marks its state variables for automatic reset nor defines a reset reaction. "
-                                            + "It is usafe to instatiate this reactor inside a mode.",
-                                            m, Literals.MODE__INSTANTIATIONS, m.getStateVars().indexOf(i));
-                                    break;
+                                if (!hasResetReaction) {
+                                    // Add state vars that are not self-resetting to the error
+                                    check.getStateVars().stream().filter(s -> !s.isReset()).forEachOrdered(error::add);
                                 }
                             }
                             // continue with inner
@@ -1396,6 +1437,15 @@ public class LFValidator extends BaseLFValidator {
                                     toCheck.push(next);
                                 }
                             }
+                        }
+                        if (!error.isEmpty()) {
+                            error("This reactor contains state variables that are not reset upon mode entry: "
+                                    + error.stream().map(e -> e.getName() + " in " 
+                                            + ASTUtils.getEnclosingReactor(e).getName()).collect(Collectors.joining(", "))
+                                    + ".\nThe state variables are neither marked for automatic reset nor have a dedicated reset reaction. "
+                                    + "It is usafe to instatiate this reactor inside a mode entered with reset.",
+                                    m, Literals.MODE__INSTANTIATIONS,
+                                    m.getInstantiations().indexOf(i));
                         }
                     }
                 }

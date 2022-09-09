@@ -1,22 +1,25 @@
-// This checks that action can be created even if there is no reaction.
-// This test passes merely by compiling and executing without a segfault.
-// Its other functionality is tested by other tests.
+# This checks that action can be created even if there is no reaction. This test
+# passes merely by compiling and executing without a segfault. Its other
+# functionality is tested by other tests.
 target Python {
     fast: true,
     timeout: 3 sec
-};
+}
+
 reactor foo {
-    input x;
-    output y;
-    logical action a;
-    reaction(x) -> y, a {=
+    input x
+    output y
+    logical action a
+
+    reaction(x) -> y, a {=  # reaction(a) {= =}
         y.set(2*x.value)
         a.schedule(MSEC(500))
     =}
-    // reaction(a) {= =}
 }
+
 reactor print {
-    input x;
+    input x
+
     reaction(x) {=
         print("Result is {:d}\n".format(x.value))
         print("Current logical time is: {:d}\n".format(lf.time.logical_elapsed()))
@@ -25,11 +28,10 @@ reactor print {
 }
 
 main reactor {
-    f = new foo();
-    p = new print();
-    timer t(0, 1 sec);
-    reaction(t) -> f.x {=
-        f.x.set(42)
-    =}
-    f.y -> p.x after 10 msec;
+    f = new foo()
+    p = new print()
+    timer t(0, 1 sec)
+    f.y -> p.x after 10 msec
+
+    reaction(t) -> f.x {= f.x.set(42) =}
 }

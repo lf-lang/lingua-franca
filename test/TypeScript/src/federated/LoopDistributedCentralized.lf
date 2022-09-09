@@ -1,6 +1,6 @@
 /**
- * This tests a feedback loop with physical actions and
- * centralized coordination.
+ * This tests a feedback loop with physical actions and centralized
+ * coordination.
  *
  * @author Edward A. Lee
  * @author Hokeun Kim
@@ -9,11 +9,11 @@ target TypeScript {
     timeout: 5 sec
 }
 
-reactor Looper(incr:number(1), delay:time(0 msec)) {
-    input inp:number;
-    output out:number;
-    physical action a(delay);
-    state count:number(0);
+reactor Looper(incr: number(1), delay: time(0 msec)) {
+    input inp: number
+    output out: number
+    physical action a(delay)
+    state count: number(0)
 
     preamble {=
         let stop = false;
@@ -26,16 +26,18 @@ reactor Looper(incr:number(1), delay:time(0 msec)) {
           }
         }
     =}
-    
+
     reaction(startup) -> a {=
         // Start the ping function for triggering an action every second.
         console.log("Starting ping function.");
         ping(actions.a);
     =}
+
     reaction(a) -> out {=
         out = count;
         count += incr;
     =}
+
     reaction(inp) {=
         let logical = util.getCurrentLogicalTime();
         let physical = util.getCurrentPhysicalTime();
@@ -44,6 +46,7 @@ reactor Looper(incr:number(1), delay:time(0 msec)) {
 
         console.log("Received " + inp + ". Logical time is behind physical time by " + time_lag + ".");
     =}
+
     reaction(shutdown) {=
         console.log("******* Shutdown invoked.");
         // Stop the ping function that is scheduling actions.
@@ -53,9 +56,10 @@ reactor Looper(incr:number(1), delay:time(0 msec)) {
         }
     =}
 }
-federated reactor LoopDistributedCentralized(delay:time(0)) {
-    left = new Looper();
-    right = new Looper(incr = -1);
-    left.out -> right.inp;
-    right.out -> left.inp;
+
+federated reactor LoopDistributedCentralized(delay: time(0)) {
+    left = new Looper()
+    right = new Looper(incr = -1)
+    left.out -> right.inp
+    right.out -> left.inp
 }

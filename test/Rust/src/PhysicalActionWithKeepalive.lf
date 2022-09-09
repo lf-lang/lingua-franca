@@ -1,11 +1,9 @@
 target Rust {
-
     keepalive: true
-};
+}
 
 main reactor {
-
-    physical action act: u32;
+    physical action act: u32
 
     reaction(startup) -> act {=
         let act = act.clone();
@@ -17,7 +15,7 @@ main reactor {
 
     reaction(act) {=
         let value = ctx.get(act).unwrap();
-        println!("---- Vu {} à {}", value, ctx.get_tag());
+        println!("---- saw {} at {}", value, ctx.get_tag());
 
         let elapsed_time = ctx.get_elapsed_logical_time();
         assert!(elapsed_time >= delay!(20 ms));

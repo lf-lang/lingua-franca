@@ -41,8 +41,10 @@ import org.lflang.lf.Timer;
 
 /**
  * A helper class for processing attributes in the AST.
+ * 
  * @author{Shaokai Lin <shaokai@berkeley.edu>}
  * @author{Clément Fournier, TU Dresden, INSA Rennes}
+ * @author{Alexander Schulz-Rosengarten <als@informatik.uni-kiel.de>}
  */
 public class AttributeUtils {
 
@@ -74,20 +76,30 @@ public class AttributeUtils {
     }
 
     /**
+     * Return the value of the attribute with the given name
+     * if present, otherwise return null.
+     *
+     * @throws IllegalArgumentException If the node cannot have attributes
+     */
+    public static String findAttributeByName(EObject node, String name) {
+        List<Attribute> attrs = getAttributes(node);
+        return attrs.stream()
+                    .filter(it -> it.getAttrName().equalsIgnoreCase(name)) // case-insensitive search (more user-friendly)
+                    .map(it -> it.getAttrParms().get(0).getValue().getStr())
+                    .findFirst()
+                    .orElse(null);
+    }
+    
+    /**
      * Return the value of the {@code @label} attribute if
      * present, otherwise return null.
      *
      * @throws IllegalArgumentException If the node cannot have attributes
      */
     public static String findLabelAttribute(EObject node) {
-        List<Attribute> attrs = getAttributes(node);
-        return attrs.stream()
-                    .filter(it -> it.getAttrName().equals("label"))
-                    .map(it -> it.getAttrParms().get(0).getValue().getStr())
-                    .findFirst()
-                    .orElse(null);
+        return findAttributeByName(node, "label");
     }
-    
+
     /**
      * Return true if the specified node is an Input and has an {@code @sparse}
      * attribute.

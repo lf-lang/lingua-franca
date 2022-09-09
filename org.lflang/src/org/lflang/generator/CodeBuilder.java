@@ -97,7 +97,7 @@ public class CodeBuilder {
      */
     public void pr(CharSequence text) {
         for (String line : (Iterable<? extends String>) () -> text.toString().lines().iterator()) {
-            code.append(indentation).append(line).append(System.lineSeparator());
+            code.append(indentation).append(line).append("\n");
         }
     }
 

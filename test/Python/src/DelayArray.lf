@@ -1,27 +1,33 @@
-// This tests delaying an array type.
-target Python;
+# This tests delaying an array type.
+target Python
+
 reactor DelayPointer(delay(100 msec)) {
-    mutable input _in; // The Python target does not require explicit type allocation for types other than time
-    output out;
-    logical action a;
+    # The Python target does not require explicit type allocation for types
+    # other than time
+    mutable input _in
+    output out
+    logical action a
+
     reaction(_in) -> a {=
         # mutable input guarantees in will not be freed.
         a.schedule(self.delay, _in.value);
     =}
-    reaction(a) -> out {=
-        out.set(a.value);
-    =}
+
+    reaction(a) -> out {= out.set(a.value); =}
 }
+
 reactor Source {
-    output out;
+    output out
+
     reaction(startup) -> out {=
         # Send an output list of length 3.
         out.set([0, 1, 2])
     =}
 }
-// The scale parameter is just for testing.
-reactor Print(scale(1)) {
-    input _in;
+
+reactor Print(scale(1)) {  # The scale parameter is just for testing.
+    input _in
+
     reaction(_in) {=
         print("Received: [%s]" % ", ".join(map(str, _in.value)))
         if _in.value != [x * self.scale for x in [0, 1, 2]]:
@@ -29,10 +35,11 @@ reactor Print(scale(1)) {
             exit(1)
     =}
 }
+
 main reactor DelayArray {
-    s = new Source();
-    d = new DelayPointer();
-    p = new Print();
-    s.out -> d._in;
-    d.out -> p._in;
+    s = new Source()
+    d = new DelayPointer()
+    p = new Print()
+    s.out -> d._in
+    d.out -> p._in
 }

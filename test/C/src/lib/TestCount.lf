@@ -7,11 +7,13 @@
  * @param stride The increment for the inputs. Default is 1.
  * @param num_inputs The number of inputs expected. Default is 1.
  */
-target C;
-reactor TestCount(start:int(1), stride:int(1), num_inputs:int(1)) {
-    state count:int(start);
-    state inputs_received:int(0);
-    input in:int;
+target C
+
+reactor TestCount(start: int(1), stride: int(1), num_inputs: int(1)) {
+    state count: int(start)
+    state inputs_received: int(0)
+    input in: int
+
     reaction(in) {=
         lf_print("Received %d.", in->value);
         if (in->value != self->count) {
@@ -20,6 +22,7 @@ reactor TestCount(start:int(1), stride:int(1), num_inputs:int(1)) {
         self->count += self->stride;
         self->inputs_received++;
     =}
+
     reaction(shutdown) {=
         lf_print("Shutdown invoked.");
         if (self->inputs_received != self->num_inputs) {

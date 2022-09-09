@@ -1,16 +1,14 @@
-target Rust;
+target Rust
 
 main reactor {
-
     // missing initializers are taken to mean "initialize to Default::default()"
-    state foo_default: u32;
-    state vec_default: Vec<u32>;
-    state option: Option<Vec<u32>>;
+    state foo_default: u32
+    state vec_default: Vec<u32>
+    state option: Option<Vec<u32>>
 
     reaction(startup) {=
         assert_eq!(self.foo_default, 0);
         assert_eq!(self.vec_default, vec![]);
         assert_eq!(self.option, None);
     =}
-
 }

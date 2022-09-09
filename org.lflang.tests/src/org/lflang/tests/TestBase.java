@@ -15,10 +15,7 @@ import java.io.FileWriter;
 import java.io.BufferedWriter;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.List;
-import java.util.ArrayList;
 import java.util.Objects;
 import java.util.Properties;
 import java.util.Set;
@@ -100,14 +97,30 @@ public abstract class TestBase {
     /** The targets for which to run the tests. */
     private final List<Target> targets;
 
-
-
     /**
      * An enumeration of test levels.
      * @author Marten Lohstroh <marten@berkeley.edu>
      *
      */
     public enum TestLevel {VALIDATION, CODE_GEN, BUILD, EXECUTION}
+
+    /**
+     * Static function for converting a path to its associated test level.
+     * @author Anirudh Rengarajan <arengarajan@berkeley.edu>
+     */
+    public static TestLevel pathToLevel(Path path) {
+        while(path.getParent() != null) {
+            String name = path.getFileName().toString();
+            for (var category: TestCategory.values()) {
+                if (category.name().equalsIgnoreCase(name)) {
+                    return category.level;
+                }
+            }
+            path = path.getParent();
+        }
+        return TestLevel.EXECUTION;
+    }
+
     /**
      * A collection messages often used throughout the test package.
      *
@@ -134,6 +147,7 @@ public abstract class TestBase {
         public static final String DESC_DOCKER_FEDERATED = "Run docker federated tests.";
         public static final String DESC_CONCURRENT = "Run concurrent tests.";
         public static final String DESC_TARGET_SPECIFIC = "Run target-specific tests";
+        public static final String DESC_ARDUINO = "Running Arduino tests.";
         public static final String DESC_AS_CCPP = "Running C tests as CCpp.";
         public static final String DESC_SINGLE_THREADED = "Run non-concurrent and non-federated tests with threading = off.";
         public static final String DESC_SCHED_SWAPPING = "Running with non-default runtime scheduler ";
@@ -170,7 +184,6 @@ public abstract class TestBase {
     protected final void runTestsAndPrintResults(Target target,
                                                  Predicate<TestCategory> selected,
                                                  Configurator configurator,
-                                                 TestLevel level,
                                                  boolean copy) {
         var categories = Arrays.stream(TestCategory.values()).filter(selected)
                 .collect(Collectors.toList());
@@ -178,7 +191,7 @@ public abstract class TestBase {
             System.out.println(category.getHeader());
             var tests = TestRegistry.getRegisteredTests(target, category, copy);
             try {
-                validateAndRun(tests, configurator, level);
+                validateAndRun(tests, configurator, category.level);
             } catch (IOException e) {
                 throw new RuntimeIOException(e);
             }
@@ -201,11 +214,10 @@ public abstract class TestBase {
     protected void runTestsForTargets(String description,
                                       Predicate<TestCategory> selected,
                                       Configurator configurator,
-                                      TestLevel level,
                                       boolean copy) {
         for (Target target : this.targets) {
             runTestsFor(List.of(target), description, selected,
-                        configurator, level, copy);
+                        configurator, copy);
         }
     }
 
@@ -225,11 +237,10 @@ public abstract class TestBase {
                                String description,
                                Predicate<TestCategory> selected,
                                Configurator configurator,
-                               TestLevel level,
                                boolean copy) {
         for (Target target : subset) {
             printTestHeader(target, description);
-            runTestsAndPrintResults(target, selected, configurator, level, copy);
+            runTestsAndPrintResults(target, selected, configurator, copy);
         }
     }
 

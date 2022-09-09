@@ -2,23 +2,27 @@
 target C {
     timeout: 1 sec,
     fast: true
-};
-import TestCount from "lib/TestCount.lf";
+}
 
-reactor CountSelf2(delay:time(100 msec)) {
-    output out:int;
-    logical action a:int;
+import TestCount from "lib/TestCount.lf"
+
+reactor CountSelf2(delay: time(100 msec)) {
+    output out: int
+    logical action a: int
+
     reaction(startup) -> a, out {=
         lf_set(out, 0);
         lf_schedule_int(a, self->delay, 1);
     =}
+
     reaction(a) -> a, out {=
         lf_set(out, a->value);
         lf_schedule_int(a, self->delay, a->value + 1);
     =}
 }
+
 main reactor {
-    d = new CountSelf2();
-    t = new TestCount(num_inputs = 11, start = 0);
-    d.out -> t.in;
+    d = new CountSelf2()
+    t = new TestCount(num_inputs = 11, start = 0)
+    d.out -> t.in
 }

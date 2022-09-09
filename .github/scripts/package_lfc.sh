@@ -6,8 +6,8 @@ set -euo pipefail
 ./gradlew clean buildLfc
 
 # find the version number
-jar_path="org.lflang.lfc/build/libs/org.lflang.lfc-*-all.jar"
-version="$(ls ${jar_path} | xargs -n 1 basename | sed 's/^org.lflang.lfc-\(.*\)-all.jar$/\1/')"
+jar_path="org.lflang.cli/build/libs/org.lflang.cli-*-lfc.jar"
+version="$(ls ${jar_path} | xargs -n 1 basename | sed 's/^org.lflang.cli-\(.*\)-lfc.jar$/\1/')"
 
 # use a different naming convention for nightly build artifacts
 if [[ "$#" > 0 && "$1" = "nightly" ]]; then
@@ -24,7 +24,7 @@ mkdir -p "${outname}/lib/scripts"
 mkdir -p "${outname}/lib/jars"
 
 # move the jar
-mv org.lflang.lfc/build/libs/org.lflang.lfc-*-all.jar "${outname}/lib/jars"
+mv org.lflang.cli/build/libs/org.lflang.cli-*-lfc.jar "${outname}/lib/jars"
 
 # copy the Bash scripts
 cp -a lib/scripts "${outname}/lib/"

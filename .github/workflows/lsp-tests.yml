@@ -34,7 +34,9 @@ jobs:
           del "C:\Program Files\LLVM\bin\clang++.exe"
         if: ${{ runner.os == 'Windows' }}
       - name: Setup Node.js environment
-        uses: actions/setup-node@v2.1.2
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
       - name: Install pnpm
         run: npm i -g pnpm
       - name: Cache .pnpm-store
