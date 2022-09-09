@@ -1,3 +1,11 @@
+/**
+ * This test was first described by Peter Donovan in
+ * https://github.com/lf-lang/lingua-franca/issues/1321
+ *
+ * It simply tests if passthrough connections work as expected in the C++
+ * target. Such a connection directly connects an input to an output of the same
+ * reactor, without any reactions in between.
+ */
 target Cpp
 
 reactor ReactorWithMultiport {
