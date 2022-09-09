@@ -1,7 +1,7 @@
-target Rust;
+target Rust
 
 reactor Some(value: usize(30)) {
-    output[value] finished: unit;
+    output[value] finished: unit
 
     reaction(startup) -> finished {=
         for p in finished {
@@ -11,11 +11,7 @@ reactor Some(value: usize(30)) {
 }
 
 main reactor {
+    some = new Some(value = 20)
 
-    some = new Some(value=20);
-
-    reaction (some.finished) {=
-        println!("success");
-    =}
-
+    reaction(some.finished) {= println!("success"); =}
 }

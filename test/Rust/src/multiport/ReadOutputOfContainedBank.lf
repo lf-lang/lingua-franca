@@ -1,18 +1,19 @@
-// Test reacting to and reading outputs from a contained
-// reactor bank in various permutations.
-target Rust;
-reactor Contained(bank_index:usize(0)) {
-    state bank_index(bank_index);
+// Test reacting to and reading outputs from a contained reactor bank in various
+// permutations.
+target Rust
 
-    output out: usize;
-    reaction(startup) -> out {=
-        ctx.set(out, 42 * self.bank_index);
-    =}
+reactor Contained(bank_index: usize(0)) {
+    state bank_index(bank_index)
+
+    output out: usize
+
+    reaction(startup) -> out {= ctx.set(out, 42 * self.bank_index); =}
 }
 
 main reactor {
-    c = new[4] Contained();
-    state count: usize(0);
+    c = new[4] Contained()
+    state count: usize(0)
+
     reaction(startup) c.out {=
         for i in 0..c__out.len() {
             let result = ctx.get(&c__out.get(i)).unwrap();

@@ -1,5 +1,10 @@
 package org.lflang.tests.compiler;
 
+import static java.util.Collections.emptyList;
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.nio.file.Files;
@@ -46,16 +51,13 @@ public class RoundTripTests {
 
     private void run(Path file) throws Exception {
         Model originalModel = parse(file);
-        Assertions.assertTrue(originalModel.eResource().getErrors().isEmpty());
+        assertThat(originalModel.eResource().getErrors(), equalTo(emptyList()));
         // TODO: Check that the output is a fixed point
         final int smallLineLength = 20;
         final String squishedTestCase = FormattingUtils.render(originalModel, smallLineLength);
         final Model resultingModel = getResultingModel(file, squishedTestCase);
         Assertions.assertNotNull(resultingModel);
-        if (!resultingModel.eResource().getErrors().isEmpty()) {
-            resultingModel.eResource().getErrors().forEach(System.err::println);
-            Assertions.assertTrue(resultingModel.eResource().getErrors().isEmpty());
-        }
+        assertThat(resultingModel.eResource().getErrors(), equalTo(emptyList()));
         if (!new IsEqual(originalModel).doSwitch(resultingModel)) {
             System.out.printf(
                 "The following is what %s looks like after applying formatting with the preferred line "
@@ -71,9 +73,9 @@ public class RoundTripTests {
         }
         final String normalTestCase = FormattingUtils.render(originalModel);
         try {
-            Assertions.assertEquals(
-                Files.readString(file).replaceAll("\\r\\n?", "\n"),
-                normalTestCase
+            assertEquals(
+                normalTestCase,
+                Files.readString(file).replaceAll("\\r\\n?", "\n")
             );
         } catch (AssertionFailedError e) {
             System.err.printf(
