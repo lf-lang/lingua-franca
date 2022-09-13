@@ -623,7 +623,7 @@ public abstract class TestBase {
                 test.issues.append("File: ").append(generatorResult.getExecutable()).append(System.lineSeparator());
             }
             List<String> c = new java.util.ArrayList<>();
-            c.addAll(List.of("gdb", "-ex", "r", "--args")); // "echo", "-e", "\"run\\nbt\"", "|",
+            c.addAll(List.of("lldb", "--")); // "echo", "-e", "\"run\\nbt\"", "|",
             c.addAll(command.command());
             return command == null ? List.of() : List.of(
                 new ProcessBuilder(c).directory(command.directory())
