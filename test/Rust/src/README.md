@@ -21,6 +21,7 @@ This is not exhaustive. Ideally each of those bullet points would have a test ca
     - dependencies can be declared...
       - [x] all test files: on ports of this reactor
       - [x] `DependencyOnChildPort.lf`: on ports of a child reactor
+      - [x] `DependencyThroughChildPort.lf`: on ports of a child, triggers child reactions
       - [x] all test files: on an action
     - [x] trigger dependencies
       - [x] all test files: trigger dependencies trigger reactions
