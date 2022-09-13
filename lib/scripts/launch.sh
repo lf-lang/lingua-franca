@@ -1,4 +1,4 @@
-#!/bin/lfc
+#!/bin/bash
 
 #============================================================================
 # Description:      Run the Lingua Franca compiler.
