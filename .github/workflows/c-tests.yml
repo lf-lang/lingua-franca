@@ -21,7 +21,7 @@ jobs:
   run:
     strategy:
       matrix:
-        platform: [ubuntu-latest, macos-latest, windows-latest]
+        platform: [macos-latest]
     runs-on: ${{ matrix.platform }}
     steps:
       - name: Check out lingua-franca repository
@@ -55,7 +55,7 @@ jobs:
           wget "https://downloads.arduino.cc/arduino-1.8.19-linux32.tar.xz"
           tar -xvf arduino-1.8.19-linux32.tar.xz
           cd arduino-1.8.19/
-          sudo ./install.sh 
+          sudo ./install.sh
         if: ${{ runner.os == 'Linux' }}
       - name: Build RTI docker image
         uses: ./.github/actions/build-rti-docker
@@ -67,7 +67,7 @@ jobs:
       - name: Perform tests for C target with specified scheduler (no LSP tests)
         run: |
           echo "Specified scheduler: ${{ inputs.scheduler }}"
-          ./gradlew test --tests org.lflang.tests.runtime.CSchedulerTest.* -Dscheduler=${{ inputs.scheduler }} 
+          ./gradlew test --tests org.lflang.tests.runtime.CSchedulerTest.* -Dscheduler=${{ inputs.scheduler }}
         if: ${{ !inputs.use-cpp && inputs.scheduler }}
       - name: Perform tests for CCpp target with default scheduler
         run: |
