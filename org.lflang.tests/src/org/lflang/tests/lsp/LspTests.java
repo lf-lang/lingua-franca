@@ -99,7 +99,12 @@ class LspTests {
                         System.out.println(" Success.");
                     } else {
                         System.out.println(" but the expected error could not be found.");
-                        System.out.println("The following test failed:\n" + TestBase.THIN_LINE);
+                        System.out.printf(
+                            "%s failed. Content of altered version of %s:%n%s%n",
+                            alteredTest.getPath().getFileName(),
+                            alteredTest.getPath().getFileName(),
+                            TestBase.THIN_LINE
+                        );
                         System.out.println(alteredTest + "\n" + TestBase.THIN_LINE);
                     }
                     return result;
