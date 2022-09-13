@@ -20,7 +20,7 @@ reactor Test {
     =}
 }
 
-main reactor CallbackMultiport {
+main reactor Multiport {
     test = new Test();
     state received:bool(false);
 
