@@ -20,8 +20,7 @@ Require-Bundle: org.eclipse.xtext,
  org.eclipse.lsp4j;bundle-version="0.14.0",
  com.fasterxml.jackson.core.jackson-core,
  com.fasterxml.jackson.core.jackson-annotations,
- com.fasterxml.jackson.core.jackson-databind,
- org.eclipse.core.runtime;bundle-version="3.25.0"
+ com.fasterxml.jackson.core.jackson-databind
 Bundle-RequiredExecutionEnvironment: JavaSE-17
 Export-Package: org.lflang,
  org.lflang.ast,
