@@ -1,5 +1,5 @@
-// Tests that physical actions can be scheduled like logical actions within
-// the body of reactions.
+// Tests that physical actions can be scheduled like logical actions within the
+// body of reactions.
 target Rust
 
 main reactor {
