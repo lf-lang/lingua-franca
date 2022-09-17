@@ -20,6 +20,16 @@ reactor C {
 
 main reactor {
     c = new C()
+    state triggered: bool(true)
 
-    reaction(c.z) {= lf_print("c.z = %d", c.z->value); =}
+    reaction(c.z) {=
+        lf_print("c.z = %d", c.z->value);
+        self->triggered = true;
+    =}
+
+    reaction(shutdown) {=
+        if (!self->triggered) {
+            lf_print_error_and_exit("Reaction never triggered.\n");
+        }
+    =}
 }
