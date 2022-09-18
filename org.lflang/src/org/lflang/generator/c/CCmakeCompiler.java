@@ -25,9 +25,11 @@
 
 package org.lflang.generator.c;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -39,6 +41,8 @@ import org.lflang.generator.GeneratorUtils;
 import org.lflang.generator.LFGeneratorContext;
 import org.lflang.util.FileUtil;
 import org.lflang.util.LFCommand;
+
+import org.lflang.TargetProperty.Platform;
 
 
 /**
@@ -146,7 +150,6 @@ public class CCmakeCompiler extends CCompiler {
             LFCommand build = buildCmakeCommand(file, noBinary);
 
             makeReturnCode = build.run(context.getCancelIndicator());
-
             if (makeReturnCode != 0 &&
                     context.getMode() == LFGeneratorContext.Mode.STANDALONE &&
                     !outputContainsKnownCMakeErrors(build.getErrors().toString())) {
@@ -161,8 +164,7 @@ public class CCmakeCompiler extends CCompiler {
                 generator.reportCommandErrors(build.getErrors().toString());
             }
 
-
-            if (makeReturnCode == 0 && build.getErrors().toString().length() == 0) {
+            if (makeReturnCode == 0 && (build.getErrors().toString().length() == 0)) {
                 System.out.println("SUCCESS: Compiling generated code for "+ fileConfig.name +" finished with no errors.");
             }
 
@@ -196,6 +198,13 @@ public class CCmakeCompiler extends CCompiler {
             ),
             FileUtil.toUnixString(fileConfig.getSrcGenPath())
         ));
+
+        if(targetConfig.platform == Platform.ARDUINO) {
+            arguments.add(0, "-DCMAKE_TOOLCHAIN_FILE=" 
+                + FileUtil.globFilesEndsWith(fileConfig.srcPkgPath.getParent().getParent(), "Arduino-toolchain.cmake").get(0));
+            arguments.add(0, "-DARDUINO_BOARD_OPTIONS_FILE="
+                + FileUtil.globFilesEndsWith(fileConfig.getSrcGenPath(), "BoardOptions.cmake").get(0));
+        }
 
         if (GeneratorUtils.isHostWindows()) {
             arguments.add("-DCMAKE_SYSTEM_VERSION=\"10.0\"");

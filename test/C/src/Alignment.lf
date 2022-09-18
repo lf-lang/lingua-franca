@@ -1,28 +1,31 @@
-// This test checks that the downstream reaction is not invoked more
-// than once at a logical time.
+// This test checks that the downstream reaction is not invoked more than once
+// at a logical time.
 target C {
     logging: LOG,
     timeout: 1 sec
 }
+
 reactor Source {
-    output out:int;
-    state count:int(1);
-    timer t(0, 100 msec);
-    reaction(t) -> out {=
-        lf_set(out, self->count++);
-    =}
+    output out: int
+    state count: int(1)
+    timer t(0, 100 msec)
+
+    reaction(t) -> out {= lf_set(out, self->count++); =}
 }
+
 reactor Sieve {
-    input in:int;
-    output out:bool;
-    state primes:int*({= NULL =});
-    state last_prime:int(0);
+    input in: int
+    output out: bool
+    state primes: int*({= NULL =})
+    state last_prime: int(0)
+
     reaction(startup) {=
         // There are 1229 primes between 1 and 10,000.
         self->primes = (int*)calloc(1229, sizeof(int));
         // Primes 1 and 2 are not on the list.
         self->primes[0] = 3;
     =}
+
     reaction(in) -> out {=
         // Reject inputs that are out of bounds.
         if (in->value <= 0 || in->value > 10000) {
@@ -69,9 +72,10 @@ reactor Sieve {
 }
 
 reactor Destination {
-    input ok:bool;
-    input in:int;
-    state last_invoked:tag_t({= NEVER_TAG_INITIALIZER =});
+    input ok: bool
+    input in: int
+    state last_invoked: tag_t({= NEVER_TAG_INITIALIZER =})
+
     reaction(ok, in) {=
         if (ok->is_present && in->is_present) {
             lf_print("Destination: Input %d is prime at tag (%lld, %d).",
@@ -89,11 +93,12 @@ reactor Destination {
         self->last_invoked = current_tag;
     =}
 }
+
 main reactor {
-    source = new Source();
-    sieve = new Sieve();
-    destination = new Destination();
-    source.out -> sieve.in;
-    sieve.out -> destination.ok;
-    source.out -> destination.in;
+    source = new Source()
+    sieve = new Sieve()
+    destination = new Destination()
+    source.out -> sieve.in
+    sieve.out -> destination.ok
+    source.out -> destination.in
 }

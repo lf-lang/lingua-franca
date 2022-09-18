@@ -1,30 +1,29 @@
-/*
- * Modal Reactor Test.
- * Tests cycling through modes.
- */
+/** Modal Reactor Test. Tests cycling through modes. */
 target C {
     fast: false,
     timeout: 2 sec
-};
+}
 
 reactor CounterCycle {
-    input next:bool;
-    output count:int;
+    input next: bool
+    output count: int
 
     initial mode One {
-        reaction(next) -> count, Two {=
+        reaction(next) -> count, reset(Two) {=
             lf_set(count, 1);
             lf_set_mode(Two);
         =}
     }
+
     mode Two {
-        reaction(next) -> count, Three {=
+        reaction(next) -> count, reset(Three) {=
             lf_set(count, 2);
             lf_set_mode(Three);
         =}
     }
+
     mode Three {
-        reaction(next) -> count, One {=
+        reaction(next) -> count, reset(One) {=
             lf_set(count, 3);
             lf_set_mode(One);
         =}
@@ -32,15 +31,13 @@ reactor CounterCycle {
 }
 
 main reactor {
-    timer stepper(0, 250msec);
-    counter = new CounterCycle();
+    timer stepper(0, 250 msec)
+    counter = new CounterCycle()
 
-    state expected_value:int(1);
+    state expected_value: int(1)
 
     // Trigger
-    reaction(stepper) -> counter.next {=
-        lf_set(counter.next, true);
-    =}
+    reaction(stepper) -> counter.next {= lf_set(counter.next, true); =}
 
     // Check
     reaction(stepper) counter.count {=

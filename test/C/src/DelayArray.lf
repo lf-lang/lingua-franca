@@ -1,19 +1,22 @@
 // This tests delaying an array type.
-target C;
-reactor DelayPointer(delay:time(100 msec)) {
-    mutable input in:int[];
-    output out:int[];
-    logical action a:int[];
+target C
+
+reactor DelayPointer(delay: time(100 msec)) {
+    mutable input in: int[]
+    output out: int[]
+    logical action a: int[]
+
     reaction(in) -> a {=
         // mutable input guarantees *in will not be freed.
         lf_schedule_token(a, self->delay, in->token);
     =}
-    reaction(a) -> out {=
-        lf_set_token(out, a->token);
-    =}
+
+    reaction(a) -> out {= lf_set_token(out, a->token); =}
 }
+
 reactor Source {
-    output out:int[];
+    output out: int[]
+
     reaction(startup) -> out {=
         // Dynamically allocate an output array of length 3.
         SET_NEW_ARRAY(out, 3);
@@ -24,9 +27,10 @@ reactor Source {
         out->value[2] = 2;
     =}
 }
-// The scale parameter is just for testing.
-reactor Print(scale:int(1)) {
-    input in:int[];
+
+reactor Print(scale: int(1)) {  // The scale parameter is just for testing.
+    input in: int[]
+
     reaction(in) {=
         int count = 0;       // For testing.
         bool failed = false; // For testing.
@@ -47,10 +51,11 @@ reactor Print(scale:int(1)) {
         }
     =}
 }
+
 main reactor DelayArray {
-    s = new Source();
-    d = new DelayPointer();
-    p = new Print();
-    s.out -> d.in;
-    d.out -> p.in;
+    s = new Source()
+    d = new DelayPointer()
+    p = new Print()
+    s.out -> d.in
+    d.out -> p.in
 }

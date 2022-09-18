@@ -1,5 +1,5 @@
 // Test that scheduling actions drops the previous value if any
-target Rust;
+target Rust
 
 main reactor ActionValuesCleanup {
     preamble {=
@@ -19,9 +19,8 @@ main reactor ActionValuesCleanup {
         }
     =}
 
-
-    logical action act: FooDrop;
-    state count: u32(0);
+    logical action act: FooDrop
+    state count: u32(0)
 
     reaction(startup) -> act {=
         ctx.schedule_with_v(act, Some(FooDrop { }), Asap)

@@ -1,7 +1,9 @@
-target C;
+target C
+
 reactor Destination {
-    input x:int;
-    input y:int;
+    input x: int
+    input y: int
+
     reaction(x, y) {=
         interval_t elapsed = lf_time_logical_elapsed();
         printf("Time since start: %lld.\n", elapsed);
@@ -24,15 +26,16 @@ reactor Destination {
         }
     =}
 }
+
 main reactor Microsteps {
-    timer start;
-    logical action repeat;
-    d = new Destination();
+    timer start
+    logical action repeat
+    d = new Destination()
+
     reaction(start) -> d.x, repeat {=
         lf_set(d.x, 1);
         lf_schedule(repeat, 0);
     =}
-    reaction(repeat) -> d.y {=
-        lf_set(d.y, 1);
-    =}
+
+    reaction(repeat) -> d.y {= lf_set(d.y, 1); =}
 }

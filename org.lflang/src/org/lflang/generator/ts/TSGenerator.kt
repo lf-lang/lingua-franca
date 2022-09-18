@@ -82,7 +82,7 @@ class TSGenerator(
 ) : GeneratorBase(tsFileConfig, errorReporter) {
 
     companion object {
-        /** Path to the Cpp lib directory (relative to class path)  */
+        /** Path to the TS lib directory (relative to class path)  */
         const val LIB_PATH = "/lib/ts"
 
         /**
@@ -91,14 +91,7 @@ class TSGenerator(
          */
         val CONFIG_FILES = arrayOf("package.json", "tsconfig.json", "babel.config.js", ".eslintrc.json")
 
-        /**
-         * Files to be copied from the reactor-ts submodule into the generated
-         * source directory.
-         */
-        val RUNTIME_FILES = arrayOf("action.ts", "bank.ts", "cli.ts", "command-line-args.d.ts",
-            "command-line-usage.d.ts", "component.ts", "event.ts", "federation.ts", "internal.ts",
-            "reaction.ts", "reactor.ts", "microtime.d.ts", "multiport.ts", "nanotimer.d.ts", "port.ts",
-            "state.ts", "strings.ts", "time.ts", "trigger.ts", "types.ts", "ulog.d.ts", "util.ts")
+        val RT_CONFIG_FILES = arrayOf("package.json", "package-lock.json", "tsconfig.json", ".babelrc")
 
         private val VG =
             ExpressionGenerator(::timeInTargetLanguage) { param -> "this.${param.name}.get()" }
@@ -155,6 +148,7 @@ class TSGenerator(
 
         clean(context)
         copyRuntime()
+        collectDependencies(resource, context, tsFileConfig.reactorTsPath(), true)
         copyConfigFiles()
 
         val codeMaps = HashMap<Path, CodeMap>()
@@ -172,7 +166,7 @@ class TSGenerator(
             context.reportProgress(
                 "Code generation complete. Collecting dependencies...", IntegratedBuilder.GENERATED_PERCENT_PROGRESS
             )
-            if (shouldCollectDependencies(context)) collectDependencies(resource, context)
+            if (shouldCollectDependencies(context)) collectDependencies(resource, context, tsFileConfig.srcGenPkgPath, false)
             if (errorsOccurred()) {
                 context.unsuccessfulFinish();
                 return;
@@ -213,10 +207,15 @@ class TSGenerator(
      * Copy the TypeScript runtime so that it is accessible to the generated code.
      */
     private fun copyRuntime() {
-        for (runtimeFile in RUNTIME_FILES) {
+        FileUtil.copyDirectoryFromClassPath(
+            "$LIB_PATH/reactor-ts/src/core",
+            tsFileConfig.reactorTsPath().resolve("src").resolve("core"),
+            true
+        )
+        for (configFile in RT_CONFIG_FILES) {
             FileUtil.copyFileFromClassPath(
-                "$LIB_PATH/reactor-ts/src/core/$runtimeFile",
-                tsFileConfig.tsCoreGenPath().resolve(runtimeFile)
+                "$LIB_PATH/reactor-ts/$configFile",
+                tsFileConfig.reactorTsPath().resolve(configFile)
             )
         }
     }
@@ -356,17 +355,14 @@ class TSGenerator(
      * @param resource The Lingua Franca source file at
      * which to report any errors
      * @param context The context of this build.
+     * @param path The directory for which to get dependencies.
+     * @param production Whether to get production dependencies only.
      */
-    private fun collectDependencies(resource: Resource, context: LFGeneratorContext) {
+    private fun collectDependencies(resource: Resource, context: LFGeneratorContext, path: Path, production: Boolean) {
 
         Files.createDirectories(fileConfig.srcGenPkgPath) // may throw
 
-        val pnpmInstall = commandFactory.createCommand(
-            "pnpm",
-            listOf("install"),
-            fileConfig.srcGenPkgPath,
-            false // only produce a warning if command is not found
-        )
+        val pnpmInstall = commandFactory.createCommand("pnpm", if (production) listOf("install", "--prod") else listOf("install"), path, false)
 
         // Attempt to use pnpm, but fall back on npm if it is not available.
         if (pnpmInstall != null) {
@@ -381,7 +377,7 @@ class TSGenerator(
             errorReporter.reportWarning(
                 "Falling back on npm. To prevent an accumulation of replicated dependencies, " +
                         "it is highly recommended to install pnpm globally (npm install -g pnpm).")
-            val npmInstall = commandFactory.createCommand("npm", listOf("install"), fileConfig.srcGenPkgPath)
+            val npmInstall = commandFactory.createCommand("npm", if (production) listOf("install", "--production") else listOf("install"), path)
 
             if (npmInstall == null) {
                 errorReporter.reportError(NO_NPM_MESSAGE)

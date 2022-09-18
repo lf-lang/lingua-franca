@@ -104,6 +104,59 @@ public class FileUtil {
     public static String toUnixString(Path path) {
         return path.toString().replace('\\', '/');
     }
+    
+    /**
+     * Parse the string as file location and return it as URI.
+     * Supports URIs, plain file paths, and paths relative to a model.
+     * 
+     * @param path the file location as string.
+     * @param resource the model resource this file should be resolved relatively. May be null.
+     * @return the (Java) URI or null if no file can be located.
+     */
+    public static java.net.URI locateFile(String path, Resource resource) {
+        // Check if path is URL
+        try {
+            var uri = new java.net.URI(path);
+            if(uri.getScheme() != null) { // check if path was meant to be a URI
+                return uri;
+            }
+        } catch (Exception e) {
+            // nothing
+        }
+        // Check if path exists as it is
+        File file = new File(path);
+        if (file.exists()) {
+            try {
+                return file.toURI();
+            } catch (Exception e) {
+                // nothing
+            }
+        }
+        // Check if path is relative to LF file
+        if (resource != null) {
+            URI eURI = resource.getURI();
+            if (eURI != null) {
+                java.net.URI sourceURI = null;
+                try {
+                    if (eURI.isFile()) {
+                        sourceURI = new java.net.URI(eURI.toString());
+                        sourceURI = new java.net.URI(sourceURI.getScheme(), null,
+                                sourceURI.getPath().substring(0, sourceURI.getPath().lastIndexOf("/")), null);
+                    } else if (eURI.isPlatformResource()) {
+                        IResource iFile = ResourcesPlugin.getWorkspace().getRoot().findMember(eURI.toPlatformString(true));
+                        sourceURI = iFile != null ? iFile.getRawLocation().toFile().getParentFile().toURI() : null; 
+                    }
+                    if (sourceURI != null) {
+                        return sourceURI.resolve(path.toString());
+                    }
+                } catch (Exception e) {
+                    // nothing
+                }
+            }
+        }
+        // fail
+        return null;
+    }
 
     /**
      * Recursively copies the contents of the given 'src'

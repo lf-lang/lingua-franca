@@ -63,6 +63,18 @@ class TSImportPreambleGenerator(
             |import {Args as __Args, Variable as __Variable, Triggers as __Triggers, Present, Read, Write, ReadWrite, MultiReadWrite, Sched} from './core/types'
             |import {Log} from './core/util'
             |import {ProcessedCommandLineArgs as __ProcessedCommandLineArgs, CommandLineOptionDefs as __CommandLineOptionDefs, CommandLineUsageDefs as __CommandLineUsageDefs, CommandLineOptionSpec as __CommandLineOptionSpec, unitBasedTimeValueCLAType as __unitBasedTimeValueCLAType, booleanCLAType as __booleanCLAType} from './core/cli'
+            |import {Parameter as __Parameter, Timer as __Timer, Reactor as __Reactor, App as __App} from 'reactor-ts'
+            |import {Action as __Action, Startup as __Startup, FederatePortAction as __FederatePortAction} from 'reactor-ts'
+            |import {Bank as __Bank} from 'reactor-ts'
+            |import {FederatedApp as __FederatedApp} from 'reactor-ts'
+            |import {InPort as __InPort, OutPort as __OutPort, Port as __Port} from 'reactor-ts'
+            |import {InMultiPort as __InMultiPort, OutMultiPort as __OutMultiPort} from 'reactor-ts'
+            |import {Reaction as __Reaction} from 'reactor-ts'
+            |import {State as __State} from 'reactor-ts'
+            |import {TimeUnit, TimeValue, Tag as __Tag, Origin as __Origin} from 'reactor-ts'
+            |import {Args as __Args, Variable as __Variable, Triggers as __Triggers, Present, Read, Write, ReadWrite, MultiReadWrite, Sched} from 'reactor-ts'
+            |import {Log} from 'reactor-ts'
+            |import {ProcessedCommandLineArgs as __ProcessedCommandLineArgs, CommandLineOptionDefs as __CommandLineOptionDefs, CommandLineUsageDefs as __CommandLineUsageDefs, CommandLineOptionSpec as __CommandLineOptionSpec, unitBasedTimeValueCLAType as __unitBasedTimeValueCLAType, booleanCLAType as __booleanCLAType} from 'reactor-ts'
             |"""
     }
 

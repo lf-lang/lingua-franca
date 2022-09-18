@@ -1,11 +1,12 @@
 // Example from Schedule section of the C Reactor Target wiki page.
-target C;
+target C
+
 reactor Schedule2 {
-    input x:int;
-    logical action a;
-    reaction(x) -> a {=
-        lf_schedule(a, MSEC(200));
-    =}
+    input x: int
+    logical action a
+
+    reaction(x) -> a {= lf_schedule(a, MSEC(200)); =}
+
     reaction(a) {=
         interval_t elapsed_time = lf_time_logical_elapsed();
         printf("Action triggered at logical time %lld nsec after start.\n", elapsed_time);
@@ -15,10 +16,10 @@ reactor Schedule2 {
         }
     =}
 }
+
 main reactor {
-    a = new Schedule2();
-    timer t;
-    reaction(t) -> a.x {=
-        lf_set(a.x, 1);
-    =}
+    a = new Schedule2()
+    timer t
+
+    reaction(t) -> a.x {= lf_set(a.x, 1); =}
 }

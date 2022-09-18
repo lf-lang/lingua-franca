@@ -1,16 +1,16 @@
 // Test delay made on a connection.
-target TypeScript;
+target TypeScript
 
 reactor Source {
-    output out:number;
-    timer t;
-    reaction(t) -> out {=
-        out = 1;
-    =}
+    output out: number
+    timer t
+
+    reaction(t) -> out {= out = 1; =}
 }
 
 reactor Sink {
-    input x:number;
+    input x: number
+
     reaction(x) {=
         let elapsed = util.getElapsedLogicalTime();
         console.log("Nanoseconds since start: " + elapsed);
@@ -19,8 +19,9 @@ reactor Sink {
         }
     =}
 }
+
 main reactor DelayedReaction {
-    source = new Source();
-    sink = new Sink();
-    source.out -> sink.x after 100 msec;
+    source = new Source()
+    sink = new Sink()
+    source.out -> sink.x after 100 msec
 }

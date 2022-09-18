@@ -1,9 +1,7 @@
 /**
- * Test the case for when two upstream federates
- * send messages to a downstream federte on two
- * different ports. One message should carry a
- * microstep delay relative to the other
- * message.
+ * Test the case for when two upstream federates send messages to a downstream
+ * federate on two different ports. One message should carry a microstep delay
+ * relative to the other message.
  *
  * @author Soroush Bateni
  */
@@ -11,27 +9,25 @@ target C {
     timeout: 900 msec,
     logging: DEBUG,
     coordination: centralized
-};
+}
 
-import Count from "../lib/Count.lf";
+import Count from "../lib/Count.lf"
 
 reactor CountMicrostep {
-    state count:int(1);
-    output out:int;
-    logical action act:int;
-    timer t(0, 1 sec);
-    reaction(t) -> act {=
-        lf_schedule_int(act, 0, self->count++);
-    =}
+    state count: int(1)
+    output out: int
+    logical action act: int
+    timer t(0, 1 sec)
 
-    reaction(act) -> out {=
-        lf_set(out, act->value);
-    =}
+    reaction(t) -> act {= lf_schedule_int(act, 0, self->count++); =}
+
+    reaction(act) -> out {= lf_set(out, act->value); =}
 }
 
 reactor Print {
-    input in:int;
-    input in2:int;
+    input in: int
+    input in2: int
+
     reaction(in, in2) {=
         interval_t elapsed_time = lf_time_logical_elapsed();
         lf_print("At tag (%lld, %u), received in = %d and in2 = %d.", elapsed_time, lf_tag().microstep, in->value, in2->value);
@@ -46,9 +42,9 @@ reactor Print {
 }
 
 federated reactor DistributedDoublePort {
-    c = new Count();
-    cm = new CountMicrostep();
-    p = new Print();
-    c.out -> p.in;    // Indicating a 'logical' connection.
-    cm.out -> p.in2;
+    c = new Count()
+    cm = new CountMicrostep()
+    p = new Print()
+    c.out -> p.in  // Indicating a 'logical' connection.
+    cm.out -> p.in2
 }
