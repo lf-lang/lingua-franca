@@ -22,7 +22,7 @@ jobs:
 
   # Run the C integration tests.
   c-tests:
-    uses: lf-lang/lingua-franca/.github/workflows/c-tests.yml@master
+    uses: lf-lang/lingua-franca/.github/workflows/c-tests.yml@c-refactoring2
     needs: cancel
 
   # Run the Python integration tests.
