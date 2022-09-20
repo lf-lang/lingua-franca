@@ -1,0 +1,9 @@
+repositories {
+    mavenCentral()
+    dependencies {
+        // https://mvnrepository.com/artifact/com.diffplug.spotless/spotless-lib
+        implementation group: 'com.diffplug.spotless', name: 'spotless-lib', version: '2.30.0'
+        // https://mvnrepository.com/artifact/com.diffplug.spotless/spotless-lib-extra
+        implementation group: 'com.diffplug.spotless', name: 'spotless-lib-extra', version: '2.30.0'
+    }
+}

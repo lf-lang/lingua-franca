@@ -51,6 +51,13 @@ public class Lff extends CliBase {
      */
     enum CLIOption {
         HELP("h", "help", false, false, "Display this information."),
+        DRY_RUN(
+            "d",
+            "dry-run",
+            false,
+            false,
+            "Send the formatted file contents to stdout without writing to the file system."
+        ),
         LINE_WRAP(
             "w",
             "wrap",
@@ -199,6 +206,8 @@ public class Lff extends CliBase {
             FormattingUtils.DEFAULT_LINE_LENGTH
             : Integer.parseInt(cmd.getOptionValue(CLIOption.LINE_WRAP.option.getOpt()));
 
+        final boolean dryRun = cmd.hasOption(CLIOption.DRY_RUN.option.getOpt());
+
         for (Path path : files) {
             if (cmd.hasOption(CLIOption.VERBOSE.option.getOpt())) {
                 reporter.printInfo("Formatting " + path + ":");
@@ -207,12 +216,17 @@ public class Lff extends CliBase {
             if (
                 Files.isDirectory(path)&& !cmd.hasOption(CLIOption.NO_RECURSE.option.getLongOpt())
             ) {
-                formatRecursive(Paths.get("."), path, outputRoot, lineLength);
+                formatRecursive(Paths.get("."), path, outputRoot, lineLength, dryRun);
             } else {
                 if (outputRoot == null) {
-                    formatSingleFile(path, path, lineLength);
+                    formatSingleFile(path, path, lineLength, dryRun);
                 } else {
-                    formatSingleFile(path, outputRoot.resolve(path.getFileName()), lineLength);
+                    formatSingleFile(
+                        path,
+                        outputRoot.resolve(path.getFileName()),
+                        lineLength,
+                        dryRun
+                    );
                 }
             }
         }
@@ -226,18 +240,24 @@ public class Lff extends CliBase {
      * @param outputRoot Root output directory.
      * @param lineLength The preferred maximum number of columns per line.
      */
-    private void formatRecursive(Path curPath, Path inputRoot, Path outputRoot, int lineLength) {
+    private void formatRecursive(
+        Path curPath,
+        Path inputRoot,
+        Path outputRoot,
+        int lineLength,
+        boolean dryRun
+    ) {
         Path curDir = inputRoot.resolve(curPath);
         try (var dirStream = Files.newDirectoryStream(curDir)) {
             for (Path path : dirStream) {
                 Path newPath = curPath.resolve(path.getFileName());
                 if (Files.isDirectory(path)) {
-                    formatRecursive(newPath, inputRoot, outputRoot, lineLength);
+                    formatRecursive(newPath, inputRoot, outputRoot, lineLength, dryRun);
                 } else {
                     if (outputRoot == null) {
-                        formatSingleFile(path, path, lineLength);
+                        formatSingleFile(path, path, lineLength, dryRun);
                     } else {
-                        formatSingleFile(path, outputRoot.resolve(newPath), lineLength);
+                        formatSingleFile(path, outputRoot.resolve(newPath), lineLength, dryRun);
                     }
                 }
             }
@@ -249,7 +269,7 @@ public class Lff extends CliBase {
     /**
      * Load and validate a single file, then format it and output to the given outputPath.
      */
-    private void formatSingleFile(Path file, Path outputPath, int lineLength) {
+    private void formatSingleFile(Path file, Path outputPath, int lineLength, boolean dryRun) {
         file = file.normalize();
         outputPath = outputPath.normalize();
         final Resource resource = getResource(file);
@@ -262,24 +282,29 @@ public class Lff extends CliBase {
         validateResource(resource);
 
         exitIfCollectedErrors();
+        final String formattedFileContents = FormattingUtils.render(
+            resource.getContents().get(0),
+            lineLength
+        );
 
-        try {
-            FileUtil.writeToFile(
-                FormattingUtils.render(resource.getContents().get(0), lineLength),
-                outputPath,
-                true
-            );
-        } catch (IOException e) {
-            if (e instanceof FileAlreadyExistsException) {
-                // only happens if a subdirectory is named with ".lf" at the end
+        if (dryRun) {
+            System.out.println(formattedFileContents);
+        } else {
+            try {
+                FileUtil.writeToFile(formattedFileContents, outputPath, true);
+            } catch (IOException e) {
+                if (e instanceof FileAlreadyExistsException) {
+                    // only happens if a subdirectory is named with ".lf" at the end
+                    reporter.printFatalErrorAndExit(
+                        "Error writing to " + outputPath
+                            + ": file already exists. Make sure that no "
+                            + "file or directory within provided input paths have the same relative "
+                            + "paths.");
+                }
                 reporter.printFatalErrorAndExit(
-                    "Error writing to " + outputPath + ": file already exists. Make sure that no "
-                        + "file or directory within provided input paths have the same relative "
-                        + "paths.");
+                    "Error writing to " + outputPath + ": " + e.getMessage()
+                );
             }
-            reporter.printFatalErrorAndExit(
-                "Error writing to " + outputPath + ": " + e.getMessage()
-            );
         }
 
         exitIfCollectedErrors();

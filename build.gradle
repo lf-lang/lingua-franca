@@ -1,3 +1,6 @@
+import com.diffplug.gradle.spotless.SpotlessTask
+import lfformat.LfFormatStep
+
 buildscript {
     repositories {
         mavenCentral()
@@ -12,13 +15,14 @@ plugins {
     id "com.github.johnrengelman.shadow" version "${shadowJarVersion}"
     id 'java'
     id 'jacoco'
+    id "com.diffplug.spotless" version "6.11.0"
 }
 
 subprojects {
     repositories {
         mavenCentral()
     }
-    
+
     apply plugin: 'kotlin'
     compileKotlin {
         destinationDir = compileJava.destinationDir
@@ -74,3 +78,38 @@ gradle.projectsEvaluated {
         }
     }
 }
+
+
+spotless {
+    repositories {
+        mavenCentral()
+    }
+    // optional: limit format enforcement to just the files changed by this feature branch
+    ratchetFrom 'origin/master'
+
+    format 'misc', {
+        // define the files to apply `misc` to
+        target '*.gradle', '*.md', '.gitignore'
+
+        // define the steps to apply to those files
+        trimTrailingWhitespace()
+        indentWithSpaces() // or spaces. Takes an integer argument if you don't like 4
+        endWithNewline()
+    }
+
+    format 'linguaFranca', {
+        addStep(LfFormatStep.create())
+        target 'test/*/src/**/*.lf' // you have to set the target manually
+        targetExclude 'test/**/failing/**'
+    }
+
+    java {
+        target 'org.lflang*/src/**/*.java', 'buildSrc/**/*.java'
+        // The following is quoted from https://github.com/google/google-java-format
+        // "Note: There is no configurability as to the formatter's algorithm for formatting.
+        // This is a deliberate design decision to unify our code formatting on a single format."
+        googleJavaFormat('1.15.0').aosp().reflowLongStrings()
+        formatAnnotations()
+    }
+}
+tasks.withType(SpotlessTask) { it.dependsOn(":org.lflang.cli:jarLff") }
