@@ -19,6 +19,7 @@ jobs:
           repository: lf-lang/lingua-franca
           submodules: true
           ref: ${{ inputs.compiler-ref }}
+          fetch-depth: 0
       - name: Prepare build environment
         uses: ./.github/actions/prepare-build-env
       - name: Uninstall packages Ubuntu
