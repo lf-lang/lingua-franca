@@ -417,7 +417,7 @@ ${"             |        "..declareChildConnections()}
                 else                                              -> "&$rsRuntime::ReadablePort<$dataType>" // note: a reference
             }
             is TimerData  -> "&${toType()}"
-            is ActionData -> if (isLogical && kind == DepKind.Effects) "&mut ${toType()}" else "&${toType()}"
+            is ActionData -> if (kind == DepKind.Effects) "&mut ${toType()}" else "&${toType()}"
         }
 
     /**
