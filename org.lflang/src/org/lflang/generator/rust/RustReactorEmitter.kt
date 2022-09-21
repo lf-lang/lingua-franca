@@ -382,15 +382,9 @@ ${"             |        "..declareChildConnections()}
 
     /** The type of the parameter injected into a reaction for the given dependency. */
     private fun ReactorComponent.toBorrowedType(kind: DepKind): TargetCode =
-        when (this) {
-            is PortLike   -> when {
-                kind == DepKind.Effects && isMultiport -> "$rsRuntime::WritablePortBank<$dataType>" // note: owned
-                kind == DepKind.Effects                -> "$rsRuntime::WritablePort<$dataType>" // note: owned
-                isMultiport                            -> "$rsRuntime::ReadablePortBank<$dataType>" // note: owned
-                else                                   -> "&$rsRuntime::ReadablePort<$dataType>" // note: a reference
-            }
-            is TimerData  -> "&${toType()}"
-            is ActionData -> if (kind == DepKind.Effects) "&mut ${toType()}" else "&${toType()}"
+        when (kind) {
+            DepKind.Effects -> "&mut ${toType()}"
+            else            -> "&${toType()}"
         }
 
     /**
@@ -398,15 +392,9 @@ ${"             |        "..declareChildConnections()}
      * into a reaction. This conceptually just borrows the field.
      */
     private fun ReactorComponent.toBorrow(kind: DepKind): TargetCode =
-        when (this) {
-            is PortLike   -> when {
-                kind == DepKind.Effects && isMultiport -> "$rsRuntime::WritablePortBank::new(&mut self.$rustFieldName)" // note: owned
-                kind == DepKind.Effects                -> "$rsRuntime::WritablePort::new(&mut self.$rustFieldName)" // note: owned
-                isMultiport                            -> "$rsRuntime::ReadablePortBank::new(&self.$rustFieldName)" // note: owned
-                else                                   -> "&$rsRuntime::ReadablePort::new(&self.$rustFieldName)" // note: a reference
-            }
-            is ActionData -> if (kind == DepKind.Effects) "&mut self.$rustFieldName" else "&self.$rustFieldName"
-            is TimerData  -> "&self.$rustFieldName"
+        when (kind) {
+            DepKind.Effects -> "&mut self.$rustFieldName"
+            else            -> "&self.$rustFieldName"
         }
 
     private fun ReactorComponent.isNotInjectedInReaction(depKind: DepKind, n: ReactionInfo): Boolean =
@@ -419,11 +407,11 @@ ${"             |        "..declareChildConnections()}
         depKind != DepKind.Effects && this in n.effects
 
     private fun ReactorComponent.isInjectedAsMut(depKind: DepKind): Boolean =
-        depKind == DepKind.Effects && (this is PortData || this is ActionData)
+        depKind == DepKind.Effects && this is ActionData // todo where is this useful? The action already has &mut
 
     /**
      * Whether this component may be unused in a reaction.
-     * Eg. actions on which we have just a trigger dependency
+     * E.g. actions on which we have just a trigger dependency
      * are fine to ignore.
      */
     private fun ReactorComponent.mayBeUnusedInReaction(depKind: DepKind): Boolean =
