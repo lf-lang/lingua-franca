@@ -98,7 +98,7 @@ spotless {
     }
 
     format 'linguaFranca', {
-        addStep(LfFormatStep.create())
+        addStep(LfFormatStep.create(project.projectDir))
         target 'test/*/src/**/*.lf' // you have to set the target manually
         targetExclude 'test/**/failing/**'
     }
