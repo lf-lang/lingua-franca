@@ -21,10 +21,8 @@ set -euo pipefail
 # Paths (relative to ${base}), which is assumed to have been set.
 src_pkg_name="org.lflang"
 src_pkg_path="${base}/${src_pkg_name}"
-lfc_src_pkg_name="${src_pkg_name}.cli"
-lfc_src_pkg_path="${base}/${lfc_src_pkg_name}"
-lfc_jar_build_path_pattern="${lfc_src_pkg_name}/build/libs/${lfc_src_pkg_name}-*-lfc.jar"
-lfc_jar_release_path_pattern="lib/jars/${lfc_src_pkg_name}-*-lfc.jar"
+lfc_jar_build_path_pattern="${src_pkg_name}/build/libs/${src_pkg_name}-*-lfc.jar"
+lfc_jar_release_path_pattern="lib/jars/${src_pkg_name}-*-lfc.jar"
 
 # Enter directory silently (without printing).
 pushd() {
@@ -47,7 +45,7 @@ function is_dir() {
 
 # Check whether the source directory exists, and return it if true.
 function get_src_dir() {
-    echo `is_dir "${base}/${lfc_src_pkg_name}"`
+    echo `is_dir "${base}/${src_pkg_name}"`
 }
 
 # If it exists, return a path to the Lingua Franca jar.
