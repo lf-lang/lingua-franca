@@ -20,6 +20,13 @@ jobs:
   cancel:
     uses: lf-lang/lingua-franca/.github/workflows/cancel.yml@master
 
+  debug-non-reproducible-segfault-in-ci:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Setup upterm session
+        uses: lhotari/action-upterm@v1
+
   # Run the C integration tests.
   c-tests:
     uses: lf-lang/lingua-franca/.github/workflows/c-tests.yml@c-refactoring2
