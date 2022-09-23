@@ -51,6 +51,7 @@ public final class LfFormatStep {
             return output.toString();
         }
 
+        /** Run the formatter on the given file and return the resulting process handle. */
         private Process runFormatter(File file) throws IOException {
             final Path resourcePath =
                     projectRoot.resolve(Path.of("org.lflang", "src", "org", "lflang"));

@@ -283,6 +283,7 @@ public class Lff extends CliBase {
         }
     }
 
+    /** Return whether the "verbose" flag has been set. */
     private boolean verbose() {
         return cmd.hasOption(CLIOption.VERBOSE.option.getOpt());
     }
