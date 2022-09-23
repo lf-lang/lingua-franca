@@ -209,7 +209,7 @@ public class Lff extends CliBase {
         final boolean dryRun = cmd.hasOption(CLIOption.DRY_RUN.option.getOpt());
 
         for (Path path : files) {
-            if (cmd.hasOption(CLIOption.VERBOSE.option.getOpt())) {
+            if (verbose()) {
                 reporter.printInfo("Formatting " + path + ":");
             }
             path = path.toAbsolutePath();
@@ -230,7 +230,7 @@ public class Lff extends CliBase {
                 }
             }
         }
-        reporter.printInfo("Done formatting.");
+        if (!dryRun || verbose()) reporter.printInfo("Done formatting.");
     }
 
     /**
@@ -274,7 +274,7 @@ public class Lff extends CliBase {
         outputPath = outputPath.normalize();
         final Resource resource = getResource(file);
         if (resource == null) {
-            if (cmd.hasOption(CLIOption.VERBOSE.option.getOpt())) {
+            if (verbose()) {
                 reporter.printInfo("Skipped " + file + ": not an LF file");
             }
             return; // not an LF file, nothing to do here
@@ -288,7 +288,7 @@ public class Lff extends CliBase {
         );
 
         if (dryRun) {
-            System.out.println(formattedFileContents);
+            System.out.print(formattedFileContents);
         } else {
             try {
                 FileUtil.writeToFile(formattedFileContents, outputPath, true);
@@ -309,10 +309,14 @@ public class Lff extends CliBase {
 
         exitIfCollectedErrors();
         issueCollector.getAllIssues().forEach(reporter::printIssue);
-        if (cmd.hasOption(CLIOption.VERBOSE.option.getOpt())) {
+        if (verbose()) {
             String msg = "Formatted " + file;
             if (file != outputPath) msg += " -> " + outputPath;
             reporter.printInfo(msg);
         }
+    }
+
+    private boolean verbose() {
+        return cmd.hasOption(CLIOption.VERBOSE.option.getOpt());
     }
 }

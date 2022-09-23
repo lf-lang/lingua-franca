@@ -33,11 +33,25 @@ public final class LfFormatStep {
         private static Path projectRoot;
 
         @Override
-        public String format(@SuppressWarnings("NullableProblems") String rawUnix, File file)
+        public String format(
+                @SuppressWarnings("NullableProblems") String rawUnix,
+                @SuppressWarnings("NullableProblems") File file)
                 throws IOException, InterruptedException {
-            // It looks silly to invoke Java from Java, but it is necessary in
-            // order to break the circularity of needing the program to be built
-            // in order for it to be built.
+            Process p = runFormatter(file);
+            StringBuilder output = new StringBuilder();
+            BufferedReader in = new BufferedReader(new InputStreamReader(p.getInputStream()));
+            String line;
+            while ((line = in.readLine()) != null) {
+                output.append(line).append("\n");
+            }
+            int returnCode = p.waitFor();
+            if (returnCode != 0) {
+                throw new RuntimeException("Failed to reformat file.");
+            }
+            return output.toString();
+        }
+
+        private Process runFormatter(File file) throws IOException {
             final Path resourcePath =
                     projectRoot.resolve(Path.of("org.lflang", "src", "org", "lflang"));
             final ResourceBundle properties =
@@ -52,32 +66,17 @@ public final class LfFormatStep {
                             "libs",
                             String.format(
                                     "org.lflang.cli-%s-lff.jar", properties.getString("VERSION")));
-            Process p =
-                    new ProcessBuilder(
-                                    List.of(
-                                            "java",
-                                            "-jar",
-                                            lffPath.toString(),
-                                            "--dry-run",
-                                            file.getAbsoluteFile().toString()))
-                            .start();
-            StringBuilder output = new StringBuilder();
-            BufferedReader in = new BufferedReader(new InputStreamReader(p.getInputStream()));
-            String line;
-            while ((line = in.readLine()) != null) {
-                if (!output.isEmpty()) {
-                    output.append("\n");
-                }
-                // Filtering by "lff: " is yet another string-processing hack that is not airtight!
-                if (!line.startsWith("lff: ")) {
-                    output.append(line);
-                }
-            }
-            int returnCode = p.waitFor();
-            if (returnCode != 0) {
-                throw new RuntimeException("Failed to reformat file.");
-            }
-            return output.toString().stripTrailing() + "\n"; // Not sure why this is necessary
+            // It looks silly to invoke Java from Java, but it is necessary in
+            // order to break the circularity of needing the program to be built
+            // in order for it to be built.
+            return new ProcessBuilder(
+                            List.of(
+                                    "java",
+                                    "-jar",
+                                    lffPath.toString(),
+                                    "--dry-run",
+                                    file.getAbsoluteFile().toString()))
+                    .start();
         }
 
         @SuppressWarnings("NullableProblems")
