@@ -18,72 +18,70 @@ import java.util.ResourceBundle;
  * formatting LF code.
  */
 public final class LfFormatStep {
-    private LfFormatStep() {}
+  private LfFormatStep() {}
 
-    /** Return a {@code FormatterStep} for LF code. */
-    public static FormatterStep create(File projectRoot) {
-        Step.projectRoot = projectRoot.toPath();
-        return new Step();
+  /** Return a {@code FormatterStep} for LF code. */
+  public static FormatterStep create(File projectRoot) {
+    Step.projectRoot = projectRoot.toPath();
+    return new Step();
+  }
+
+  /** Implement LF-specific formatting functionality. */
+  public static class Step implements FormatterStep, Serializable {
+    // The use of the static keyword here is a workaround for serialization difficulties.
+    /** The path to the lingua-franca repository. */
+    private static Path projectRoot;
+
+    @Override
+    public String format(
+        @SuppressWarnings("NullableProblems") String rawUnix,
+        @SuppressWarnings("NullableProblems") File file)
+        throws IOException, InterruptedException {
+      Process p = runFormatter(file);
+      StringBuilder output = new StringBuilder();
+      BufferedReader in = new BufferedReader(new InputStreamReader(p.getInputStream()));
+      String line;
+      while ((line = in.readLine()) != null) {
+        output.append(line).append("\n");
+      }
+      int returnCode = p.waitFor();
+      if (returnCode != 0) {
+        throw new RuntimeException("Failed to reformat file.");
+      }
+      return output.toString();
     }
 
-    /** Implement LF-specific formatting functionality. */
-    public static class Step implements FormatterStep, Serializable {
-        // The use of the static keyword here is a workaround for serialization difficulties.
-        /** The path to the lingua-franca repository. */
-        private static Path projectRoot;
-
-        @Override
-        public String format(
-                @SuppressWarnings("NullableProblems") String rawUnix,
-                @SuppressWarnings("NullableProblems") File file)
-                throws IOException, InterruptedException {
-            Process p = runFormatter(file);
-            StringBuilder output = new StringBuilder();
-            BufferedReader in = new BufferedReader(new InputStreamReader(p.getInputStream()));
-            String line;
-            while ((line = in.readLine()) != null) {
-                output.append(line).append("\n");
-            }
-            int returnCode = p.waitFor();
-            if (returnCode != 0) {
-                throw new RuntimeException("Failed to reformat file.");
-            }
-            return output.toString();
-        }
-
-        /** Run the formatter on the given file and return the resulting process handle. */
-        private Process runFormatter(File file) throws IOException {
-            final Path resourcePath =
-                    projectRoot.resolve(Path.of("org.lflang", "src", "org", "lflang"));
-            final ResourceBundle properties =
-                    ResourceBundle.getBundle(
-                            "StringsBundle",
-                            Locale.getDefault(),
-                            new URLClassLoader(new URL[] {resourcePath.toUri().toURL()}));
-            final Path lffPath =
-                    Path.of(
-                            "org.lflang.cli",
-                            "build",
-                            "libs",
-                            String.format(
-                                    "org.lflang.cli-%s-lff.jar", properties.getString("VERSION")));
-            // It looks silly to invoke Java from Java, but it is necessary in
-            // order to break the circularity of needing the program to be built
-            // in order for it to be built.
-            return new ProcessBuilder(
-                            List.of(
-                                    "java",
-                                    "-jar",
-                                    lffPath.toString(),
-                                    "--dry-run",
-                                    file.getAbsoluteFile().toString()))
-                    .start();
-        }
-
-        @SuppressWarnings("NullableProblems")
-        @Override
-        public String getName() {
-            return "Lingua Franca formatting step";
-        }
+    /** Run the formatter on the given file and return the resulting process handle. */
+    private Process runFormatter(File file) throws IOException {
+      final Path resourcePath = projectRoot.resolve(Path.of("org.lflang", "src", "org", "lflang"));
+      final ResourceBundle properties =
+          ResourceBundle.getBundle(
+              "StringsBundle",
+              Locale.getDefault(),
+              new URLClassLoader(new URL[] {resourcePath.toUri().toURL()}));
+      final Path lffPath =
+          Path.of(
+              "org.lflang.cli",
+              "build",
+              "libs",
+              String.format("org.lflang.cli-%s-lff.jar", properties.getString("VERSION")));
+      // It looks silly to invoke Java from Java, but it is necessary in
+      // order to break the circularity of needing the program to be built
+      // in order for it to be built.
+      return new ProcessBuilder(
+              List.of(
+                  "java",
+                  "-jar",
+                  lffPath.toString(),
+                  "--dry-run",
+                  file.getAbsoluteFile().toString()))
+          .start();
     }
+
+    @SuppressWarnings("NullableProblems")
+    @Override
+    public String getName() {
+      return "Lingua Franca formatting step";
+    }
+  }
 }
