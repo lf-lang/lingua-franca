@@ -34,7 +34,6 @@ jobs:
       - name: Install dependencies OS X
         run: |
           brew install coreutils
-          brew install gdb
         if: ${{ runner.os == 'macOS' }}
       - name: Install LinguaFrancaBase
         run: pip3 install LinguaFrancaBase

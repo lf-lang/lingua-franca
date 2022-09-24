@@ -479,12 +479,6 @@ public abstract class TestBase {
         try {
             for (ProcessBuilder pb : pbList) {
                 var p = pb.start();
-                java.lang.Thread.sleep(500);
-                java.io.BufferedWriter writer = new java.io.BufferedWriter(new java.io.OutputStreamWriter(p.getOutputStream()));
-                writer.write("run\nbt\n");
-                writer.flush();
-                writer.close();
-                java.lang.Thread.sleep(500);
                 var stdout = test.execLog.recordStdOut(p);
                 var stderr = test.execLog.recordStdErr(p);
                 if (!p.waitFor(MAX_EXECUTION_TIME_SECONDS, TimeUnit.SECONDS)) {
@@ -622,11 +616,8 @@ public abstract class TestBase {
                 test.result = Result.NO_EXEC_FAIL;
                 test.issues.append("File: ").append(generatorResult.getExecutable()).append(System.lineSeparator());
             }
-            List<String> c = new java.util.ArrayList<>();
-            c.addAll(List.of("gdb", "-ex", "r", "--args")); // "echo", "-e", "\"run\\nbt\"", "|",
-            c.addAll(command.command());
             return command == null ? List.of() : List.of(
-                new ProcessBuilder(c).directory(command.directory())
+                new ProcessBuilder(command.command()).directory(command.directory())
             );
         }
     }
