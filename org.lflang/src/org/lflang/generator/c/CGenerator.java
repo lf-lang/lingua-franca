@@ -41,6 +41,7 @@ import static org.lflang.util.StringUtil.addDoubleQuotes;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.regex.Pattern;
@@ -494,11 +495,15 @@ public class CGenerator extends GeneratorBase {
         var lfModuleName = fileConfig.name;
         generateCodeFor(lfModuleName);
 
-        // Derive target filename from the .lf filename.
-        var cFilename = CCompiler.getTargetFileName(lfModuleName, this.CCppMode);
-        var targetFile = fileConfig.getSrcGenPath() + File.separator
-            + cFilename;
         try {
+            // If we are running an Arduino Target, need to copy over the BoardOptions file.
+            // FIXME: copy from classpath instead!
+            // "/lib/platform/arduino"
+            if (targetConfig.platform == Platform.ARDUINO) {
+                FileUtil.copyFile(FileUtil.globFilesEndsWith(fileConfig.srcPath, "BoardOptions.cmake").get(0), 
+                    Paths.get(fileConfig.getSrcGenPath().toString(),File.separator, "BoardOptions.cmake"));
+            }
+
             // Copy the core lib
             FileUtil.copyFilesFromClassPath(
                 "/lib/c/reactor-c/core",
@@ -989,7 +994,9 @@ public class CGenerator extends GeneratorBase {
         if (targetConfig.platform != Platform.AUTO) {
             osName = targetConfig.platform.toString();
         }
-        if (osName.contains("mac") || osName.contains("darwin")) {
+        if (osName.contains("arduino")) {
+            return;
+        } else if (osName.contains("mac") || osName.contains("darwin")) {
             if (mainDef != null && !targetConfig.useCmake) {
                 targetConfig.compileAdditionalSources.add(
                      "core" + File.separator + "platform" + File.separator + "lf_macos_support.c"
@@ -2053,6 +2060,14 @@ public class CGenerator extends GeneratorBase {
             // So that each separate compile knows about modal reactors, do this:
             targetConfig.compileDefinitions.put("MODAL_REACTORS", "");
         }
+        if (targetConfig.threading && targetConfig.platform == Platform.ARDUINO) {
+
+            //Add error message when user attempts to set threading=true for Arduino
+            if (targetConfig.setByUser.contains(TargetProperty.THREADING)) {
+                errorReporter.reportWarning("Threading is incompatible on Arduino. Setting threading to false.");
+            }
+            targetConfig.threading = false;
+        }
         if (targetConfig.threading) {
             pickScheduler();
         }
@@ -2218,6 +2233,7 @@ public class CGenerator extends GeneratorBase {
      */
     private void generateSelfStructs(ReactorInstance r) {
         initializeTriggerObjects.pr(CUtil.selfType(r)+"* "+CUtil.reactorRefName(r)+"["+r.getTotalWidth()+"];");
+        initializeTriggerObjects.pr("SUPPRESS_UNUSED_WARNING("+CUtil.reactorRefName(r)+");");
         for (ReactorInstance child : r.children) {
             generateSelfStructs(child);
         }

@@ -6,6 +6,7 @@ import java.util.List;
 
 import org.lflang.TargetConfig;
 import org.lflang.TargetConfig.ClockSyncOptions;
+import org.lflang.TargetProperty.Platform;
 import org.lflang.TargetProperty.ClockSyncMode;
 import org.lflang.TargetProperty.CoordinationType;
 import org.lflang.generator.CodeBuilder;
@@ -35,6 +36,11 @@ public class CPreambleGenerator {
     ) {
         var tracing = targetConfig.tracing;
         CodeBuilder code = new CodeBuilder();
+        if(targetConfig.platform == Platform.ARDUINO) {
+            CCoreFilesUtils.getArduinoTargetHeaders().forEach(
+                it -> code.pr("#include " + StringUtil.addDoubleQuotes(it))
+            );
+        }
         CCoreFilesUtils.getCTargetHeader().forEach(
             it -> code.pr("#include " + StringUtil.addDoubleQuotes(it))
         );
@@ -63,12 +69,34 @@ public class CPreambleGenerator {
         CodeBuilder code = new CodeBuilder();
         code.pr("#define LOG_LEVEL " + logLevel);
         code.pr("#define TARGET_FILES_DIRECTORY " + addDoubleQuotes(srcGenPath.toString()));
+<<<<<<< HEAD
+=======
+
+        if (targetConfig.platform == Platform.ARDUINO) {
+            code.pr("#define MICROSECOND_TIME");
+            code.pr("#define BIT_32");
+        }
+        if (isFederated) {
+            code.pr("#define NUMBER_OF_FEDERATES " + numFederates);
+            code.pr(generateFederatedDefineDirective(coordinationType));
+            if (advanceMessageInterval != null) {
+                code.pr("#define ADVANCE_MESSAGE_INTERVAL " +
+                    GeneratorBase.timeInTargetLanguage(advanceMessageInterval));
+            }
+        }
         if (tracing != null) {
             code.pr(generateTracingDefineDirective(targetConfig, tracing.traceFileName));
         }
         if (hasModalReactors) {
             code.pr("#define MODAL_REACTORS");
         }
+        if (clockSyncIsOn) {
+            code.pr(generateClockSyncDefineDirective(
+                targetConfig.clockSync,
+                targetConfig.clockSyncOptions
+            ));
+        }
+        code.newLine();
         return code.toString();
     }
 

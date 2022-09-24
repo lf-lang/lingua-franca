@@ -271,9 +271,4 @@ public class FormattingUtils {
         }
         return false;
     }
-
-    /** Normalize end-of-line sequences to the Linux style. */
-    static String normalizeEol(String s) {
-        return s.replaceAll("(\\r\\n?)|\\n", "\n");
-    }
 }

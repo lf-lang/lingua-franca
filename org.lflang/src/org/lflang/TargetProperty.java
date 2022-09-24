@@ -59,7 +59,16 @@ import com.google.common.collect.ImmutableList;
  * @author{Marten Lohstroh <marten@berkeley.edu>}
  */
 public enum TargetProperty {
-    
+
+    /**
+     * Directive to specify the baud-rate used by the runtime for embedded systems (Arduino).
+     */
+    BAUD_RATE("baud-rate", PrimitiveType.NON_NEGATIVE_INTEGER,
+            List.of(Target.C, Target.CCPP),
+            (config, value, err) -> {
+                config.baudRate = ASTUtils.toInteger(value);
+            }),
+
     /**
      * Directive to let the generator use the custom build command.
      */
@@ -444,6 +453,14 @@ public enum TargetProperty {
          (config) -> ASTUtils.toElement(config.ros2),
          (config, value, err) -> {
              config.ros2 = ASTUtils.toBoolean(value);
+    }),
+
+    /**
+     * Directive to specify additional ROS2 packages that this LF program depends on.
+     */
+    ROS2_DEPENDENCIES("ros2-dependencies", ArrayType.STRING_ARRAY,
+        List.of(Target.CPP), (config, value, err) -> {
+            config.ros2Dependencies = ASTUtils.elementToListOfStrings(value);
     }),
 
     /**
@@ -1635,6 +1652,7 @@ public enum TargetProperty {
      */
     public enum Platform {
         AUTO,
+        ARDUINO("Arduino"),
         LINUX("Linux"),
         MAC("Darwin"),
         WINDOWS("Windows");

@@ -1,0 +1,54 @@
+/**
+ * This test was first described by Peter Donovan in
+ * https://github.com/lf-lang/lingua-franca/issues/1321
+ *
+ * It simply tests if passthrough connections work as expected in the C++
+ * target. Such a connection directly connects an input to an output of the same
+ * reactor, without any reactions in between.
+ */
+target Cpp
+
+reactor ReactorWithMultiport {
+    input[3] in: int
+
+    reaction(startup, in) {=
+        bool error{false};
+        for (size_t i{0}; i < in.size(); i++) {
+            if (in[i].is_present()) {
+                if (*in[i].get() != i) {
+                    reactor::log::Error() << "received wrong input on port " << i;
+                }
+            } else {
+                error = true;
+                reactor::log::Error() << "input " << i << " is not present";
+            }
+        }
+        if (error) {
+            exit(1);
+        }
+        reactor::log::Info() << "success";
+    =}
+}
+
+reactor MultiportSplitter {
+    output[3] out: int
+
+    input in0: int
+    input in1: int
+    input in2: int
+
+    in0, in1, in2 -> out
+}
+
+main reactor IndexIntoMultiportInput {
+    splitter = new MultiportSplitter()
+    receiver = new ReactorWithMultiport()
+
+    splitter.out -> receiver.in
+
+    reaction(startup) -> splitter.in0 {= splitter.in0.set(0); =}
+
+    reaction(startup) -> splitter.in1 {= splitter.in1.set(1); =}
+
+    reaction(startup) -> splitter.in2 {= splitter.in2.set(2); =}
+}
