@@ -82,7 +82,7 @@ public class GeneratorUtils {
             targetConfig.noCompile = true;
         }
         if (context.getArgs().containsKey("build-type")) {
-            targetConfig.cmakeBuildType = BuildType.valueOf(context.getArgs().getProperty("build-type"));
+            targetConfig.cmakeBuildType = BuildType.valueOf(context.getArgs().getProperty("build-type").toUpperCase());
         }
         if (context.getArgs().containsKey("workers")) {
             targetConfig.workers = Integer.parseInt(context.getArgs().getProperty("workers"));
