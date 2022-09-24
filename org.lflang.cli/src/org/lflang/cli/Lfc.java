@@ -65,6 +65,7 @@ public class Lfc extends CliBase {
      * @author Marten Lohstroh <marten@berkeley.edu>
      */
     enum CLIOption {
+        BUILD_TYPE(null, "build-type", true, false, "The build type to use", true),
         CLEAN("c", "clean", false, false, "Clean before building.", true),
         COMPILER(null, "target-compiler", true, false, "Target compiler to invoke.", true),
         EXTERNAL_RUNTIME_PATH(null, "external-runtime-path", true, false, "Specify an external runtime library to be used by the compiled binary.", true),
