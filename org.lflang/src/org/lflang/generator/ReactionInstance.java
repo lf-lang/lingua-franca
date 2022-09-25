@@ -449,11 +449,17 @@ public class ReactionInstance extends NamedInstance<Reaction> {
     }
 
     /**
-     * Determine logical execution time for each reaction during compile
-     * time based on immediate downstream logical delays (after delays and actions)
-     * and label each reaction with the minimum of all such delays.
+     * Get the logical execution time of this reaction, which is the minimum
+     * of the logical delays on the effects of this reaction.
+     * Those logical delays are the minimum delay of an action
+     * that is an effect of this reaction.
+     * The LET is zero if there are any effects that are ports
+     * or if there is an effect that is a logical
+     * action with zero minimum delay.
+     * The LET is TimeValue.MAX_VALUE if there are no effects.
+     * This method caches the result so as to not recompute it if called again.
      */
-    public TimeValue assignLogicalExecutionTime() {
+    public TimeValue getLogicalExecutionTime() {
         if (this.let != null) {
             return this.let;
         }
@@ -461,12 +467,31 @@ public class ReactionInstance extends NamedInstance<Reaction> {
         if (this.parent.isGeneratedDelay()) {
             return this.let = TimeValue.ZERO;
         }
+        
+        if (effects.isEmpty()) {
+            return this.let = TimeValue.MAX_VALUE;
+        }
 
         TimeValue let = null;
 
         // Iterate over effect and find minimum delay.
         for (TriggerInstance<? extends Variable> effect : effects) {
             if (effect instanceof PortInstance) {
+                // NOTE: We do not yet support after delays for specifying
+                // logical execution time because the generated delay reactor
+                // has a reaction that will have to be put on the reaction queue
+                // when the LET reaction terminates, and the reaction queue may
+                // have advanced to a future logical time.
+                // Hence, for now, we simply return 0 for the LET if the reaction
+                // has any effect that is a port.  The only way right now to get the
+                // effect of LET is to use a logical action, as shown in
+                // test/C/src/LogicalExecutionTime.lf.
+                // Also, the code below is unncessarily cryptic and complicated.
+                // What it needs to do is use the effect (a PortInstance) to
+                // get each downstream port that is contained by a generated delay,
+                // and then get the amount of delay.
+                return this.let = TimeValue.ZERO;
+                /* Preserving this old code for when we support specifying LET with after delays.
                 var afters = this.parent.getParent().children.stream().filter(c -> {
                     if (c.isGeneratedDelay()) {
                         return c.inputs.get(0).getDependsOnPorts().get(0).instance
@@ -483,6 +508,7 @@ public class ReactionInstance extends NamedInstance<Reaction> {
                         let = TimeValue.min(afters.get(), let);
                     }
                 }
+                */
             } else if (effect instanceof ActionInstance) {
                 var action = ((ActionInstance) effect).getMinDelay();
                 if (let == null) {
