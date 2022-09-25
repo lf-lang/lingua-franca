@@ -29,16 +29,16 @@ jobs:
   unit-tests:
     uses: lf-lang/lingua-franca/.github/workflows/unit-tests.yml@master
     needs: cancel
-  
+
   # Run tests for the standalone compiler.
   # TODO: Change this back to master branch once merged!
   cli-tests:
     uses: lf-lang/lingua-franca/.github/workflows/cli-tests.yml@master
     needs: cancel
 
-  # Run the C benchmark tests. 
+  # Run the C benchmark tests.
   c-benchmark-tests:
-    uses: lf-lang/benchmarks-lingua-franca/.github/workflows/benchmark-tests.yml@main
+    uses: lf-lang/benchmarks-lingua-franca/.github/workflows/benchmark-tests.yml@fetch-depth-0
     with:
       target: 'C'
     needs: cancel
@@ -57,36 +57,36 @@ jobs:
   c-tests:
     uses: lf-lang/lingua-franca/.github/workflows/c-tests.yml@master
     needs: cancel
-  
+
   # Run the CCpp integration tests.
   ccpp-tests:
     uses: lf-lang/lingua-franca/.github/workflows/c-tests.yml@master
     with:
       use-cpp: true
     needs: cancel
-  
+
   # Run the C++ benchmark tests.
   cpp-benchmark-tests:
-    uses: lf-lang/benchmarks-lingua-franca/.github/workflows/benchmark-tests.yml@main
+    uses: lf-lang/benchmarks-lingua-franca/.github/workflows/benchmark-tests.yml@fetch-depth-0
     with:
       target: 'Cpp'
     needs: cancel
-  
+
   # Run the C++ integration tests.
   cpp-tests:
     uses: lf-lang/lingua-franca/.github/workflows/cpp-tests.yml@cpp-code-cov
     needs: cancel
-  
+
   # Run the C++ integration tests on ROS2.
   cpp-ros2-tests:
     uses: lf-lang/lingua-franca/.github/workflows/cpp-ros2-tests.yml@master
     needs: cancel
-  
+
   # Run the Python integration tests.
   py-tests:
     uses: lf-lang/lingua-franca/.github/workflows/py-tests.yml@master
     needs: cancel
-    
+
   # Run the Rust integration tests.
   rs-tests:
     uses: lf-lang/lingua-franca/.github/workflows/rs-tests.yml@master
@@ -94,11 +94,11 @@ jobs:
 
   # Run the Rust benchmark tests.
   rs-benchmark-tests:
-    uses: lf-lang/benchmarks-lingua-franca/.github/workflows/benchmark-tests.yml@main
+    uses: lf-lang/benchmarks-lingua-franca/.github/workflows/benchmark-tests.yml@fetch-depth-0
     with:
       target: 'Rust'
     needs: cancel
-   
+
   # Run the TypeScript integration tests.
   ts-tests:
     uses: lf-lang/lingua-franca/.github/workflows/ts-tests.yml@master
