@@ -444,6 +444,7 @@ public abstract class TestBase {
      * Override to add some LFC arguments to all runs of this test class.
      */
     protected void addExtraLfcArgs(Properties args) {
+        args.setProperty("build-type", "Test");
         // to be overridden
     }
 
