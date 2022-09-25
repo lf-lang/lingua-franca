@@ -46,6 +46,17 @@ class CppStandaloneCmakeGenerator(private val targetConfig: TargetConfig, privat
             |cmake_minimum_required(VERSION 3.5)
             |project($projectName VERSION 0.0.0 LANGUAGES CXX)
             |
+            |# The Test build type is the Debug type plus coverage generation
+            |if(CMAKE_BUILD_TYPE STREQUAL "Test")
+            |  set(CMAKE_BUILD_TYPE "Debug")
+            |
+            |  if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+            |    set(CMAKE_CXX_FLAGS "$S{CMAKE_CXX_FLAGS} --coverage -fprofile-arcs -ftest-coverage")
+            |  else()
+            |    message("Not producing code coverage information since the selected compiler is no gcc")
+            |  endif()
+            |endif()
+            |
             |# require C++ 17
             |set(CMAKE_CXX_STANDARD 17 CACHE STRING "The C++ standard is cached for visibility in external tools." FORCE)
             |set(CMAKE_CXX_STANDARD_REQUIRED ON)
