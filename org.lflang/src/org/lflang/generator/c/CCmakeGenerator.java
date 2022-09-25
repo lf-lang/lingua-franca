@@ -92,8 +92,18 @@ class CCmakeGenerator {
 
         cMakeCode.pr("cmake_minimum_required(VERSION 3.13)");
         cMakeCode.pr("project("+executableName+" LANGUAGES C)");
-
         cMakeCode.newLine();
+
+        // The Test build type is the Debug type plus coverage generation
+        cMakeCode.pr("if(CMAKE_BUILD_TYPE STREQUAL \"Test\")");
+        cMakeCode.pr("  set(CMAKE_BUILD_TYPE \"Debug\")");
+        cMakeCode.pr("  if(CMAKE_C_COMPILER_ID STREQUAL \"GNU\")");
+        cMakeCode.pr("    set(CMAKE_C_FLAGS \"${CMAKE_CXX_FLAGS} --coverage -fprofile-arcs -ftest-coverage\")");
+        cMakeCode.pr("  else()");
+        cMakeCode.pr("   message(\"Not producing code coverage information since the selected compiler is no gcc\")");
+        cMakeCode.pr("  endif()");
+        cMakeCode.pr("endif()");
+
         cMakeCode.pr("# Require C11");
         cMakeCode.pr("set(CMAKE_C_STANDARD 11)");
         cMakeCode.pr("set(CMAKE_C_STANDARD_REQUIRED ON)");

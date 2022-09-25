@@ -190,6 +190,7 @@ public class CCmakeCompiler extends CCompiler {
         Path buildPath = fileConfig.getSrcGenPath().resolve("build");
 
         List<String> arguments = new ArrayList<>(List.of(
+            "-DCMAKE_BUILD_TYPE=" + ((targetConfig.cmakeBuildType!=null) ? targetConfig.cmakeBuildType.toString() : "Release"),
             "-DCMAKE_INSTALL_PREFIX=" + FileUtil.toUnixString(fileConfig.getOutPath()),
             "-DCMAKE_INSTALL_BINDIR=" + FileUtil.toUnixString(
                 fileConfig.getOutPath().relativize(
