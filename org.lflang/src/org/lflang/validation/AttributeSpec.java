@@ -231,7 +231,6 @@ class AttributeSpec {
         ));
         // @sparse
         ATTRIBUTE_SPECS_BY_NAME.put("sparse", new AttributeSpec(null));
-<<<<<<< HEAD
         // @language(lang)
         ATTRIBUTE_SPECS_BY_NAME.put("language", new AttributeSpec(
             List.of(new AttrParamSpec(AttributeSpec.VALUE_ATTR, AttrParamType.LANGUAGE, null))

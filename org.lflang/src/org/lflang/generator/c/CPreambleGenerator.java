@@ -69,8 +69,6 @@ public class CPreambleGenerator {
         CodeBuilder code = new CodeBuilder();
         code.pr("#define LOG_LEVEL " + logLevel);
         code.pr("#define TARGET_FILES_DIRECTORY " + addDoubleQuotes(srcGenPath.toString()));
-<<<<<<< HEAD
-=======
 
         if (targetConfig.platform == Platform.ARDUINO) {
             code.pr("#define MICROSECOND_TIME");
