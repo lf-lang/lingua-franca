@@ -15,7 +15,7 @@ plugins {
     id "com.github.johnrengelman.shadow" version "${shadowJarVersion}"
     id 'java'
     id 'jacoco'
-    id "com.diffplug.spotless" version "6.11.0"
+    id "com.diffplug.spotless" version "${spotlessVersion}"
 }
 
 subprojects {
@@ -108,7 +108,7 @@ spotless {
         // The following is quoted from https://github.com/google/google-java-format
         // "Note: There is no configurability as to the formatter's algorithm for formatting.
         // This is a deliberate design decision to unify our code formatting on a single format."
-        googleJavaFormat('1.15.0').reflowLongStrings()
+        googleJavaFormat(googleJavaFormatVersion).reflowLongStrings()
         formatAnnotations()
     }
 }
