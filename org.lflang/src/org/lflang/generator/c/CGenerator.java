@@ -1952,6 +1952,7 @@ public class CGenerator extends GeneratorBase {
         generateActionInitializations(instance);
         generateInitializeActionToken(instance);
         generateSetDeadline(instance);
+        generateSetLET(instance);
         generateModeStructure(instance);
 
         // Recursively generate code for the children.
@@ -2107,6 +2108,21 @@ public class CGenerator extends GeneratorBase {
                 } else { // No deadline.
                     initializeTriggerObjects.pr(selfRef+".deadline = NEVER;");
                 }
+            }
+        }
+    }
+
+    /**
+     * Generate code to set the LET field of the reactions in the
+     * specified reactor instance.
+     * @param instance The reactor instance.
+     */
+    private void generateSetLET(ReactorInstance instance) {
+        for (ReactionInstance reaction : instance.reactions) {
+            if (currentFederate.contains(reaction.getDefinition())) {
+                var selfRef = CUtil.reactorRef(reaction.getParent())+"->_lf__reaction_"+reaction.index;
+                initializeTriggerObjects.pr(selfRef+".let = "
+                        + GeneratorBase.timeInTargetLanguage(reaction.getLogicalExecutionTime())+";");
             }
         }
     }
