@@ -495,6 +495,10 @@ public class CGenerator extends GeneratorBase {
         var lfModuleName = fileConfig.name;
         generateCodeFor(lfModuleName);
 
+        // Derive target filename from the .lf filename.
+        var cFilename = CCompiler.getTargetFileName(lfModuleName, this.CCppMode);
+        var targetFile = fileConfig.getSrcGenPath() + File.separator;
+
         try {
             // If we are running an Arduino Target, need to copy over the BoardOptions file.
             // FIXME: copy from classpath instead!
