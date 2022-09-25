@@ -245,10 +245,12 @@ class AttributeSpec {
         ATTRIBUTE_SPECS_BY_NAME.put("_fed_out_ctrl", new AttributeSpec(null));
         // @_fed_config
         ATTRIBUTE_SPECS_BY_NAME.put("_fed_config", new AttributeSpec(
-            List.of(new AttrParamSpec(AttributeSpec.NETWORK_MESSAGE_ACTIONS, AttrParamType.STRING, null))
+                List.of(new AttrParamSpec(AttributeSpec.NETWORK_MESSAGE_ACTIONS, 
+                AttrParamType.STRING, null))));
         // @icon("value")
         ATTRIBUTE_SPECS_BY_NAME.put("icon", new AttributeSpec(
-            List.of(new AttrParamSpec(AttributeSpec.VALUE_ATTR, AttrParamType.STRING, null))
+            List.of(new AttrParamSpec(AttributeSpec.VALUE_ATTR, 
+                    AttrParamType.STRING, null))
         ));
     }
 }
