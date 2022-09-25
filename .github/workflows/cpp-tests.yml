@@ -27,10 +27,11 @@ jobs:
       - name: Install Dependencies OS X
         run: brew install coreutils
         if: runner.os == 'macOS'
-      - name: Install clang-tidy on Ubuntu
+      - name: Install clang-tidy and lcov on Ubuntu
         run: |
           sudo apt-get update
           sudo apt-get install -y clang-tidy
+          sudo apt-get install -y lcov
         if: matrix.platform == 'ubuntu-latest'
       - name: Check out specific ref of reactor-cpp
         uses: actions/checkout@v2
@@ -49,3 +50,15 @@ jobs:
           fail_ci_if_error: false
           verbose: true
         if: ${{ !inputs.runtime-ref }}  # i.e., if this is part of the main repo's CI
+      - name: Collect reactor-cpp coverage data
+        run: |
+          lcov --capture --directory test/Cpp/build/reactor-cpp-default --output-file coverage.info
+          lcov --extract coverage.info ${GITHUB_WORKSPACE}/test/Cpp/src-gen/reactor-cpp-default/\* --output-file reactor-cpp.info
+          genhtml reactor-cpp.info --output-directory reactor-cpp.coverage
+        if: matrix.platform == 'ubuntu-latest'
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v3
+        with:
+          name: reactor-cpp.coverage
+          path: reactor-cpp.coverage
+        if: matrix.platform == 'ubuntu-latest'
