@@ -36,6 +36,7 @@ import java.util.List;
 import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
 import org.lflang.TargetConfig;
+import org.lflang.TargetProperty;
 import org.lflang.generator.GeneratorBase;
 import org.lflang.generator.GeneratorUtils;
 import org.lflang.generator.LFGeneratorContext;
@@ -224,6 +225,21 @@ public class CCmakeCompiler extends CCompiler {
 
 
     /**
+     * Return the cmake config name correspnding to a given build type.
+     */
+    private String buildTypeToCmakeConfig(TargetProperty.BuildType type) {
+        if (type == null) {
+            return "Release";
+        }
+        switch (type) {
+        case TEST:
+            return "Debug";
+        default:
+            return type.toString();
+        }
+    }
+
+    /**
      * Return a command to build the specified C file using CMake.
      * This produces a C-specific build command.
      *
@@ -244,7 +260,7 @@ public class CCmakeCompiler extends CCompiler {
         LFCommand command =  commandFactory.createCommand(
                 "cmake", List.of(
                         "--build", ".", "--target", "install", "--parallel", cores, "--config",
-                        ((targetConfig.cmakeBuildType!=null) ? targetConfig.cmakeBuildType.toString() : "Release")
+                        buildTypeToCmakeConfig(targetConfig.cmakeBuildType)
                     ),
                 buildPath);
         if (command == null) {
