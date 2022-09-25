@@ -65,9 +65,10 @@ public enum TargetProperty {
      */
     BAUD_RATE("baud-rate", PrimitiveType.NON_NEGATIVE_INTEGER,
             List.of(Target.C, Target.CCPP),
-            (config, value, err) -> {
+              (config) -> ASTUtils.toElement(config.baudRate),
+              (config, value, err) -> {
                 config.baudRate = ASTUtils.toInteger(value);
-            }),
+              }),
 
     /**
      * Directive to let the generator use the custom build command.
@@ -459,7 +460,9 @@ public enum TargetProperty {
      * Directive to specify additional ROS2 packages that this LF program depends on.
      */
     ROS2_DEPENDENCIES("ros2-dependencies", ArrayType.STRING_ARRAY,
-        List.of(Target.CPP), (config, value, err) -> {
+        List.of(Target.CPP),
+                      (config) -> ASTUtils.toElement(config.ros2Dependencies),
+                      (config, value, err) -> {
             config.ros2Dependencies = ASTUtils.elementToListOfStrings(value);
     }),
 
