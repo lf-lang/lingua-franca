@@ -74,26 +74,26 @@ public class CPreambleGenerator {
             code.pr("#define MICROSECOND_TIME");
             code.pr("#define BIT_32");
         }
-        if (isFederated) {
-            code.pr("#define NUMBER_OF_FEDERATES " + numFederates);
-            code.pr(generateFederatedDefineDirective(coordinationType));
-            if (advanceMessageInterval != null) {
-                code.pr("#define ADVANCE_MESSAGE_INTERVAL " +
-                    GeneratorBase.timeInTargetLanguage(advanceMessageInterval));
-            }
-        }
+//        if (isFederated) {
+//            code.pr("#define NUMBER_OF_FEDERATES " + numFederates);
+//            code.pr(generateFederatedDefineDirective(coordinationType));
+//            if (advanceMessageInterval != null) {
+//                code.pr("#define ADVANCE_MESSAGE_INTERVAL " +
+//                    GeneratorBase.timeInTargetLanguage(advanceMessageInterval));
+//            }
+//        }
         if (tracing != null) {
             code.pr(generateTracingDefineDirective(targetConfig, tracing.traceFileName));
         }
         if (hasModalReactors) {
             code.pr("#define MODAL_REACTORS");
         }
-        if (clockSyncIsOn) {
-            code.pr(generateClockSyncDefineDirective(
-                targetConfig.clockSync,
-                targetConfig.clockSyncOptions
-            ));
-        }
+//        if (clockSyncIsOn) {
+//            code.pr(generateClockSyncDefineDirective(
+//                targetConfig.clockSync,
+//                targetConfig.clockSyncOptions
+//            ));
+//        }
         code.newLine();
         return code.toString();
     }
