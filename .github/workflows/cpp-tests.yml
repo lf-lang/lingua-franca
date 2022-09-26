@@ -53,7 +53,7 @@ jobs:
         if: ${{ !inputs.runtime-ref }}  # i.e., if this is part of the main repo's CI
       - name: Collect reactor-cpp coverage data
         run: |
-          lcov --capture --directory test/Cpp/build/reactor-cpp-default --output-file coverage.info
+          lcov --capture --directory test/Cpp --output-file coverage.info
           lcov --extract coverage.info ${GITHUB_WORKSPACE}/test/Cpp/src-gen/reactor-cpp-default/\* --output-file reactor-cpp.info
           genhtml reactor-cpp.info --output-directory reactor-cpp.coverage
         if: matrix.platform == 'ubuntu-latest'
