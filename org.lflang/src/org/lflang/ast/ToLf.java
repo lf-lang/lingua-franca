@@ -52,7 +52,6 @@ import org.lflang.lf.Method;
 import org.lflang.lf.MethodArgument;
 import org.lflang.lf.Mode;
 import org.lflang.lf.Model;
-import org.lflang.lf.Mutation;
 import org.lflang.lf.NamedHost;
 import org.lflang.lf.Output;
 import org.lflang.lf.Parameter;
@@ -453,7 +452,6 @@ public class ToLf extends LfSwitch<MalleableString> {
             List.of(
                 object.getReactions(),
                 object.getMethods(),
-                object.getMutations(),
                 object.getModes()
             ),
             true
@@ -653,7 +651,11 @@ public class ToLf extends LfSwitch<MalleableString> {
         // (deadline=Deadline)?
         Builder msb = new Builder();
         addAttributes(msb, object::getAttributes);
-        msb.append("reaction");
+        if (object.isMutation()) {
+            msb.append("mutation");
+        } else {
+            msb.append("reaction");
+        }
         msb.append(list(true, object.getTriggers()));
         msb.append(list(", ", " ", "", true, false, object.getSources()));
         if (!object.getEffects().isEmpty()) {
@@ -714,17 +716,6 @@ public class ToLf extends LfSwitch<MalleableString> {
             .get();
     }
 
-    @Override
-    public MalleableString caseMutation(Mutation object) {
-        // ('mutation')
-        // ('(' (triggers+=TriggerRef (',' triggers+=TriggerRef)*)? ')')?
-        // (sources+=VarRef (',' sources+=VarRef)*)?
-        // ('->' effects+=[VarRef] (',' effects+=[VarRef])*)?
-        // code=Code
-        return new Builder()
-            .append("mutation").append(list(true, object.getTriggers()))
-            .get();
-    }
 
     @Override
     public MalleableString casePreamble(Preamble object) {
