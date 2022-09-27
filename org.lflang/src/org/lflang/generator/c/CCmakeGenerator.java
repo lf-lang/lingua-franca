@@ -151,6 +151,14 @@ class CCmakeGenerator {
         cMakeCode.pr(")");
         cMakeCode.newLine();
 
+        if(true) {
+            // OpenSSL
+            cMakeCode.pr("# Find OpenSSL and link to it");
+            cMakeCode.pr("find_package(OpenSSL REQUIRED)");
+            cMakeCode.pr("target_link_libraries( ${LF_MAIN_TARGET} OpenSSL::SSL)");
+            cMakeCode.newLine();
+        }
+
         if (targetConfig.threading || targetConfig.tracing != null) {
             // If threaded computation is requested, add the threads option.
             cMakeCode.pr("# Find threads and link to it");
