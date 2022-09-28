@@ -5,7 +5,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
+import java.io.PrintWriter;
 import java.io.Reader;
+import java.io.StringWriter;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
@@ -121,34 +123,29 @@ public class LFTest implements Comparable<LFTest> {
      * Compile a string that contains all collected errors and return it.
      * @return A string that contains all collected errors.
      */
-    public String reportErrors() {
+    public void reportErrors() {
         if (this.hasFailed()) {
-            StringBuilder sb = new StringBuilder(System.lineSeparator());
-            sb.append("+---------------------------------------------------------------------------+").append(System.lineSeparator());
-            sb.append("Failed: ").append(this.name).append(System.lineSeparator());
-            sb.append("-----------------------------------------------------------------------------").append(System.lineSeparator());
-            sb.append("Reason: ").append(this.result.message).append(" Exit code: ").append(this.exitValue).append(System.lineSeparator());
-            appendIfNotEmpty("Reported issues", this.issues.toString(), sb);
-            appendIfNotEmpty("Compilation output", this.compilationLog.toString(), sb);
-            appendIfNotEmpty("Execution output", this.execLog.toString(), sb);
-            sb.append("+---------------------------------------------------------------------------+\n");
-        return sb.toString();
-        } else {
-            return "";
+            System.out.println("+---------------------------------------------------------------------------+");
+            System.out.println("Failed: ");
+            System.out.println("-----------------------------------------------------------------------------");
+            System.out.println("Reason: " + this.result.message + " Exit code: " + this.exitValue);
+            printIfNotEmpty("Reported issues", this.issues.toString());
+            printIfNotEmpty("Compilation output", this.compilationLog.toString());
+            printIfNotEmpty("Execution output", this.execLog.toString());
+            System.out.println("+---------------------------------------------------------------------------+");
         }
     }
 
     /**
-     * Append the given header and message to the log, but only if the message is not empty.
+     * Print the message to the system output, but only if the message is not empty.
      *
-     * @param header Header for the message to append to the log.
-     * @param message The log message to add.
-     * @param log The log so far.
+     * @param header Header for the message to be printed.
+     * @param message The log message to print.
      */
-    private static void appendIfNotEmpty(String header, String message, StringBuilder log) {
+    private static void printIfNotEmpty(String header, String message) {
         if (!message.isEmpty()) {
-            log.append(header).append(":").append(System.lineSeparator());
-            log.append(message).append(System.lineSeparator());
+            System.out.println(header + ":");
+            System.out.println(message);
         }
     }
 
