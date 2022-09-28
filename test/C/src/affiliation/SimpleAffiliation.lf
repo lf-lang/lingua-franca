@@ -1,0 +1,28 @@
+target C {
+    timeout: 200 ms
+}
+/**
+ * Reactor that has a long-running reaction that is triggered
+ * relatively infrequently.
+ */
+reactor Slow {
+    timer t(0, 100 ms);
+    reaction(t) {=
+        lf_print("Slow reaction starts.");
+        instant_t physical_time = lf_time_physical();
+        while (lf_time_physical() < physical_time + MSEC(50)) {
+            // Do nothing.
+        }
+        lf_print("Slow reaction ends.");
+    =}
+}
+reactor Fast {
+    timer t(1 ms, 10 ms);
+    reaction(t) {=
+        lf_print("Fast reaction executes.");
+    =}
+}
+main reactor {
+    let = new Slow();
+    fast = new Fast();
+}
