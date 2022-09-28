@@ -11,6 +11,8 @@ import java.io.StringWriter;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
+import org.eclipse.xtext.util.RuntimeIOException;
+
 import org.lflang.FileConfig;
 import org.lflang.Target;
 import org.lflang.generator.LFGeneratorContext;
@@ -228,7 +230,7 @@ public class LFTest implements Comparable<LFTest> {
                         builder.append(buf, 0, len);
                     }
                 } catch (IOException e) {
-                    throw new RuntimeException("While reading from a stream, an I/O exception occurred:\n" + e);
+                    throw new RuntimeIOException(e);
                 }
             });
             t.start();
