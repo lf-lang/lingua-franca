@@ -499,11 +499,11 @@ public abstract class TestBase {
                 } else {
                     if (stdoutException.get() != null || stderrException.get() != null) {
                         test.execLog.buffer.setLength(0);
-                        if (stdoutException.get() == null) {
+                        if (stdoutException.get() != null) {
                             test.execLog.buffer.append("Error during stdout handling:\n");
                             appendStackTrace(stdoutException.get(), test.execLog.buffer);
                         }
-                        if (stderrException.get() == null) {
+                        if (stderrException.get() != null) {
                             test.execLog.buffer.append("Error during stderr handling:\n");
                             appendStackTrace(stderrException.get(), test.execLog.buffer);
                         }
