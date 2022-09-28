@@ -30,15 +30,21 @@ reactor Destination {
         }
         s++;
     =}
+
+    reaction(shutdown) {=
+        std::cout << "**** shutdown reaction invoked.\n";
+        if (s != 12) {
+            std::cerr << "ERROR: Expected 12 but got " << s << '\n';
+            exit(1);
+        }
+    =}
 }
 
-main reactor TimeLimit(period: time(100 usec)) {
+main reactor TimeLimit(period: time(1 sec)) {
     timer stop(10 sec)
     c = new Clock(period = period)
     d = new Destination()
     c.y -> d.x
 
     reaction(stop) {= environment()->sync_shutdown(); =}
-
-    reaction(shutdown) {= std::cout << "**** shutdown reaction invoked.\n"; =}
 }
