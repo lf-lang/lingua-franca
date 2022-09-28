@@ -193,7 +193,7 @@ public class LFTest implements Comparable<LFTest> {
          * String buffer used to record the standard output and error
          * streams from the input process.
          */
-        final StringBuffer buffer = new StringBuffer();
+        StringBuffer buffer = new StringBuffer();
 
         /**
          * Return a thread responsible for recording the standard output stream
@@ -238,6 +238,10 @@ public class LFTest implements Comparable<LFTest> {
         @Override
         public String toString() {
             return buffer.toString();
+        }
+
+        public void clear() {
+            buffer = null;
         }
     }
 }

@@ -498,6 +498,7 @@ public abstract class TestBase {
                     return;
                 } else {
                     if (stdoutException.get() != null || stderrException.get() != null) {
+                        test.result = Result.TEST_EXCEPTION;
                         test.execLog.buffer.setLength(0);
                         if (stdoutException.get() != null) {
                             test.execLog.buffer.append("Error during stdout handling:\n");
@@ -507,6 +508,7 @@ public abstract class TestBase {
                             test.execLog.buffer.append("Error during stderr handling:\n");
                             appendStackTrace(stderrException.get(), test.execLog.buffer);
                         }
+                        return;
                     }
                     if (p.exitValue() != 0) {
                         test.result = Result.TEST_FAIL;
@@ -522,6 +524,8 @@ public abstract class TestBase {
             return;
         }
         test.result = Result.TEST_PASS;
+        // clear the log if the test succeeded to free memory
+        test.execLog.clear();
     }
 
     static private void appendStackTrace(Throwable t, StringBuffer buffer) {
