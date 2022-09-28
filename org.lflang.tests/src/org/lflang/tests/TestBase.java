@@ -362,7 +362,7 @@ public abstract class TestBase {
         System.out.print(THIN_LINE);
 
         for (var test : tests) {
-            System.out.print(test.reportErrors());
+            test.reportErrors();
         }
         for (LFTest lfTest : tests) {
             assertSame(Result.TEST_PASS, lfTest.result);
@@ -484,8 +484,8 @@ public abstract class TestBase {
                 var stdout = test.execLog.recordStdOut(p);
                 var stderr = test.execLog.recordStdErr(p);
 
-                AtomicReference<Throwable> stdoutException = null;
-                AtomicReference<Throwable> stderrException = null;
+                var stdoutException = new AtomicReference<Throwable>(null);
+                var stderrException = new AtomicReference<Throwable>(null);
 
                 stdout.setUncaughtExceptionHandler((thread, throwable) -> stdoutException.set(throwable));
                 stderr.setUncaughtExceptionHandler((thread, throwable) -> stderrException.set(throwable));
@@ -528,7 +528,7 @@ public abstract class TestBase {
         StringWriter sw = new StringWriter();
         PrintWriter pw = new PrintWriter(sw);
         t.printStackTrace(pw);
-        buffer.append(pw);
+        buffer.append(sw);
     }
 
     /**
