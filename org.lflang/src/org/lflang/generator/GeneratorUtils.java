@@ -24,6 +24,7 @@ import org.lflang.FileConfig;
 import org.lflang.Target;
 import org.lflang.TargetConfig;
 import org.lflang.TargetProperty.BuildType;
+import org.lflang.TargetProperty.LogLevel;
 import org.lflang.generator.LFGeneratorContext.Mode;
 import org.lflang.TargetProperty;
 import org.lflang.TargetProperty.SchedulerOption;
