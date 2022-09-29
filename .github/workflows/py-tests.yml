@@ -64,7 +64,12 @@ jobs:
           echo "Running Minimal.py"
           export ASAN_OPTIONS=verbosity=1
           export DYLD_INSERT_LIBRARIES=/Library/Developer/CommandLineTools/usr/lib/clang/13.0.0/lib/darwin/libclang_rt.asan_osx_dynamic.dylib
-          python3 /Users/runner/work/lingua-franca/lingua-franca/test/Python/src-gen/Minimal/Minimal.py
+          git clone https://github.com/python/cpython.git
+          cd cpython
+          ./configure --prefix=/Users/runner/work/lingua-franca --without-pymalloc --with-pydebug
+          make
+          sudo make install
+          /Users/runner/work/lingua-franca/bin/python3 /Users/runner/work/lingua-franca/lingua-franca/test/Python/src-gen/Minimal/Minimal.py
       - name: Run Python tests
         run: |
           ./gradlew test --tests org.lflang.tests.runtime.PythonTest.*
