@@ -7,7 +7,8 @@
 target CCpp { 
     platform: {
         name: "Arduino", 
-        baud-rate: 112500
+        baud-rate: 112500,
+        board: "nano"
     }
 }
 main reactor BlinkCustomBaudRate {
