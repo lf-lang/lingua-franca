@@ -57,6 +57,22 @@ jobs:
       - name: Build RTI docker image
         uses: ./.github/actions/build-rti-docker
         if: ${{ runner.os == 'Linux' }}
+      - name: Run a Python test in a weird way to see if anything different happens
+        run: |
+          bin/build-lfc -c
+          bin/lfc test/Python/src/Minimal.lf
+          echo "Running Minimal.py"
+          python3 test/Python/src-gen/Minimal/Minimal.py
+          echo "Running Minimal.py"
+          python3 test/Python/src-gen/Minimal/Minimal.py
+          echo "Running Minimal.py"
+          python3 test/Python/src-gen/Minimal/Minimal.py
+          echo "Running Minimal.py"
+          python3 test/Python/src-gen/Minimal/Minimal.py
+          echo "Running Minimal.py"
+          python3 test/Python/src-gen/Minimal/Minimal.py
+          echo "Running Minimal.py"
+          python3 test/Python/src-gen/Minimal/Minimal.py
       - name: Run Python tests
         run: |
           ./gradlew test --tests org.lflang.tests.runtime.PythonTest.*
