@@ -2,12 +2,11 @@ package org.lflang.tests;
 
 import static java.nio.file.FileVisitResult.CONTINUE;
 import static java.nio.file.FileVisitResult.SKIP_SUBTREE;
-import static org.eclipse.xtext.xbase.lib.IteratorExtensions.exists;
-import static org.eclipse.xtext.xbase.lib.IteratorExtensions.filter;
 
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.FileVisitResult;
+import java.nio.file.FileVisitor;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -17,7 +16,6 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.Stack;
 import java.util.TreeSet;
@@ -33,7 +31,6 @@ import org.lflang.LFResourceProvider;
 import org.lflang.LFStandaloneSetup;
 import org.lflang.Target;
 import org.lflang.lf.Reactor;
-import org.lflang.lf.TargetDecl;
 import org.lflang.tests.LFTest.Result;
 import org.lflang.tests.TestBase.TestLevel;
 
@@ -74,7 +71,6 @@ public class TestRegistry {
         public Set<LFTest> getTests(Target t, TestCategory c) {
             return this.map.get(t).get(c);
         }
-        
     }
     
     /**
@@ -219,9 +215,9 @@ public class TestRegistry {
 
             // Walk the tree.
             try {
-                Path dir = LF_TEST_PATH.resolve(target.toString());
+                Path dir = LF_TEST_PATH.resolve(target.getDirectoryName()).resolve("src");
                 if (Files.exists(dir)) {
-                    Files.walkFileTree(dir, new TestDirVisitor(rs, target));
+                    new TestDirVisitor(rs, target, dir).walk();
                 } else {
                     System.out.println("WARNING: No test directory for target " + target + "\n");
                 }
@@ -335,16 +331,18 @@ public class TestRegistry {
         protected ResourceSet rs;
 
         protected Path srcBasePath;
-        
+
         /**
          * Create a new file visitor based on a given target.
+         *
          * @param target The target that all encountered tests belong to.
+         * @param srcBasePath The test sources directory
          */
-        public TestDirVisitor(ResourceSet rs, Target target) {
+        public TestDirVisitor(ResourceSet rs, Target target, Path srcBasePath) {
             stack.push(TestCategory.GENERIC);
             this.rs = rs;
             this.target = target;
-            this.srcBasePath = LF_TEST_PATH.resolve(target.toString()).resolve("src");
+            this.srcBasePath = srcBasePath;
         }
         
         /**
@@ -417,6 +415,10 @@ public class TestRegistry {
                 registered.getTests(this.target, this.stack.peek()).add(test);
             }
             return CONTINUE;
+        }
+
+        public void walk() throws IOException {
+            Files.walkFileTree(srcBasePath, this);
         }
     }
 }

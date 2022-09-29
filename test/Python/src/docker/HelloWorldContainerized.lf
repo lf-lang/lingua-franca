@@ -1,9 +1,9 @@
 target Python {
     docker: true
-};
+}
 
 import HelloWorld2 from "../HelloWorld.lf"
 
 main reactor {
-    a = new HelloWorld2();
+    a = new HelloWorld2()
 }

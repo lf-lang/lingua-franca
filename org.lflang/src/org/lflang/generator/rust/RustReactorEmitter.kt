@@ -283,7 +283,7 @@ ${"             |        "..declareChildConnections()}
                 if (n.isShutdown)
                     this += "__assembler.declare_triggers($rsRuntime::assembly::TriggerId::SHUTDOWN, ${n.invokerId})?;"
                 this += n.uses.map { trigger -> "__assembler.declare_uses(${n.invokerId}, __self.${trigger.rustFieldName}.get_id())?;" }
-                this += n.effects.filterIsInstance<PortData>().map { port ->
+                this += n.effects.filterIsInstance<PortLike>().map { port ->
                     if (port.isMultiport) {
                         "__assembler.effects_bank(${n.invokerId}, &__self.${port.rustFieldName})?;"
                     } else {
@@ -390,7 +390,7 @@ ${"             |        "..declareChildConnections()}
                 else                                   -> "&$rsRuntime::ReadablePort<$dataType>" // note: a reference
             }
             is TimerData  -> "&${toType()}"
-            is ActionData -> if (isLogical && kind == DepKind.Effects) "&mut ${toType()}" else "&${toType()}"
+            is ActionData -> if (kind == DepKind.Effects) "&mut ${toType()}" else "&${toType()}"
         }
 
     /**

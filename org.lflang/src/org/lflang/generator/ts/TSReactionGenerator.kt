@@ -9,8 +9,10 @@ import org.lflang.isMultiport
 import org.lflang.lf.*
 import org.lflang.lf.Timer
 import org.lflang.toText
-import java.util.*
 import kotlin.collections.HashSet
+import java.util.StringJoiner 
+import java.util.LinkedList
+
 
 /**
  * Reaction generator for TypeScript target.
@@ -103,11 +105,12 @@ class TSReactionGenerator(
         reaction: Reaction,
         reactPrologue: String,
         reactEpilogue: String,
-        reactFunctArgs: StringJoiner,
+        reactFuncArgs: StringJoiner,
         reactSignature: StringJoiner
     ): String {
         // Assemble reaction triggers
         val reactionTriggers = StringJoiner(",\n")
+
         for (trigger in reaction.triggers) {
             if (trigger is VarRef) {
                 reactionTriggers.add(trigger.generateVarRef())
@@ -119,12 +122,13 @@ class TSReactionGenerator(
                 }
             }
         }
+
         return with(PrependOperator) {
             """
             |
-            |this.addReaction(
+            |this.add${if (reaction.isMutation()) "Mutation" else "Reaction"}(
             |    new __Triggers($reactionTriggers),
-            |    new __Args($reactFunctArgs),
+            |    new __Args($reactFuncArgs),
             |    function ($reactSignature) {
             |        // =============== START react prologue
         ${" |        "..reactPrologue}
@@ -133,13 +137,13 @@ class TSReactionGenerator(
         ${" |            "..reaction.code.toText()}
             |        } finally {
             |            // =============== START react epilogue
-        ${" |            "..reactEpilogue}            
+        ${" |            "..reactEpilogue}
             |            // =============== END react epilogue
             |        }
         ${" |    "..if (reaction.deadline != null) generateDeadlineHandler(reaction, reactPrologue, reactEpilogue, reactSignature) else "}"}
             |);
-        """.trimMargin()
-        }
+            |""".trimMargin()
+            }
     }
 
     private fun generateReactionSignatureForTrigger(trigOrSource: VarRef): String {
@@ -165,12 +169,12 @@ class TSReactionGenerator(
         }
     }
 
-    private fun generateReactionSignatureElementForPortEffect(effect: VarRef): String {
+    private fun generateReactionSignatureElementForPortEffect(effect: VarRef, isMutation: Boolean): String {
         val outputPort = effect.variable as Port
         val portClassType = if (outputPort.isMultiport) {
-            "MultiReadWrite<${getPortType(effect.variable as Port)}>"
+            (if (isMutation) "__WritableMultiPort" else "MultiReadWrite") + "<${getPortType(effect.variable as Port)}>"
         } else {
-            "ReadWrite<${getPortType(effect.variable as Port)}>"
+            (if (isMutation) "__WritablePort" else "ReadWrite") + "<${getPortType(effect.variable as Port)}>"
         }
 
         return if (effect.container != null && effect.container.isBank) {
@@ -333,7 +337,7 @@ class TSReactionGenerator(
                 reactSignatureElement += ": Sched<" + getActionType(effect.variable as Action) + ">"
                 schedActionSet.add(effect.variable as Action)
             } else if (effect.variable is Port){
-                reactSignatureElement += ": ${generateReactionSignatureElementForPortEffect(effect)}"
+                reactSignatureElement += ": ${generateReactionSignatureElementForPortEffect(effect, reaction.isMutation())}"
                 reactEpilogue.add(generateReactionEpilogueForPortEffect(effect))
             }
 

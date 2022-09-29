@@ -21,6 +21,7 @@ This is not exhaustive. Ideally each of those bullet points would have a test ca
     - dependencies can be declared...
       - [x] all test files: on ports of this reactor
       - [x] `DependencyOnChildPort.lf`: on ports of a child reactor
+      - [x] `DependencyThroughChildPort.lf`: on ports of a child, triggers child reactions
       - [x] all test files: on an action
     - [x] trigger dependencies
       - [x] all test files: trigger dependencies trigger reactions
@@ -54,6 +55,7 @@ This is not exhaustive. Ideally each of those bullet points would have a test ca
   - [x] `PhysicalActionWithKeepalive.lf`: keepalive option should keep the scheduler alive when there are async threads which can send notifications
   - [x] `PhysicalActionWakesSleepingScheduler.lf`: a physical action triggered during a period of idleness of the scheduler should wake it timely
   - [x] `PhysicalActionKeepaliveIsSmart.lf`: keepalive option doesn't keep the program alive if live threads do not have a reference to the scheduler
+  - [x] `PhysicalActionCanBeScheduledSynchronously.lf`: physical actions do not need to be carried by an asynchronous thread to be scheduled. When they are scheduled within a reaction, they still use physical time and not logical time.
   - [ ] todo does shutdown abort async threads or not?
 - [x] timers
   - [x] `TimerDefaults.lf`: timer with all params defaulted (`timer t;`) is non-periodic and has offset zero

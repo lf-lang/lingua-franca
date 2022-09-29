@@ -1,15 +1,16 @@
-// Test delay made on a connection.
-target Python;
+# Test delay made on a connection.
+target Python
 
 reactor Source {
-    output out;
-    timer t;
-    reaction(t) -> out {=
-        out.set(1)
-    =}
+    output out
+    timer t
+
+    reaction(t) -> out {= out.set(1) =}
 }
+
 reactor Sink {
-    input _in;
+    input _in
+
     reaction(_in) {=
         elapsed = lf.time.logical_elapsed()
         print("Nanoseconds since start: ", elapsed)
@@ -18,9 +19,9 @@ reactor Sink {
             exit(1)
     =}
 }
-main reactor DelayedReaction {
 
-    source = new Source();
-    sink = new Sink();
-    source.out -> sink._in after 100 msec;
+main reactor DelayedReaction {
+    source = new Source()
+    sink = new Sink()
+    source.out -> sink._in after 100 msec
 }

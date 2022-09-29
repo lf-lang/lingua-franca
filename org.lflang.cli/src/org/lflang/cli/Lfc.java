@@ -2,9 +2,8 @@
  * Stand-alone version of the Lingua Franca compiler (lfc).
  */
 
-package org.lflang.lfc;
+package org.lflang.cli;
 
-import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -13,35 +12,28 @@ import java.util.List;
 import java.util.Properties;
 import java.util.stream.Collectors;
 
-import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
-import org.eclipse.emf.common.util.URI;
 import org.eclipse.emf.ecore.resource.Resource;
-import org.eclipse.emf.ecore.resource.ResourceSet;
 import org.eclipse.xtext.generator.GeneratorDelegate;
 import org.eclipse.xtext.generator.JavaIoFileSystemAccess;
 import org.eclipse.xtext.util.CancelIndicator;
-import org.eclipse.xtext.validation.CheckMode;
-import org.eclipse.xtext.validation.IResourceValidator;
-import org.eclipse.xtext.validation.Issue;
 
 import org.lflang.ASTUtils;
 import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
 import org.lflang.LFRuntimeModule;
 import org.lflang.LFStandaloneSetup;
+import org.lflang.LocalStrings;
 import org.lflang.generator.LFGeneratorContext;
 import org.lflang.generator.MainContext;
-import org.lflang.util.FileUtil;
 
 import com.google.inject.Inject;
 import com.google.inject.Injector;
-import com.google.inject.Provider;
 
 /**
  * Standalone version of the Lingua Franca compiler (lfc).
@@ -49,28 +41,7 @@ import com.google.inject.Provider;
  * @author {Marten Lohstroh <marten@berkeley.edu>}
  * @author {Christian Menard <christian.menard@tu-dresden.de>}
  */
-public class Main {
-
-    /// current lfc version as printed by --version
-    private static final String VERSION = "0.3.1-SNAPSHOT";
-
-    /**
-     * Object for interpreting command line arguments.
-     */
-    protected CommandLine cmd;
-
-    /**
-     * Injected resource provider.
-     */
-    @Inject
-    private Provider<ResourceSet> resourceSetProvider;
-
-    /**
-     * Injected resource validator.
-     */
-    @Inject
-    private IResourceValidator validator;
-
+public class Lfc extends CliBase {
     /**
      * Injected code generator.
      */
@@ -82,18 +53,6 @@ public class Main {
      */
     @Inject
     private JavaIoFileSystemAccess fileAccess;
-
-    /**
-     * Used to collect all errors that happen during validation/generation.
-     */
-    @Inject
-    private IssueCollector issueCollector;
-
-    /**
-     * Used to report error messages at the end.
-     */
-    @Inject
-    private ReportingBackend reporter;
 
 
     /**
@@ -183,13 +142,13 @@ public class Main {
      * @param args CLI arguments
      */
     public static void main(final String[] args) {
-        final ReportingBackend reporter = new ReportingBackend(new Io());
+        final ReportingBackend reporter = new ReportingBackend(new Io(), "lfc: ");
 
         // Injector used to obtain Main instance.
         final Injector injector = new LFStandaloneSetup(new LFRuntimeModule(), new LFStandaloneModule(reporter))
             .createInjectorAndDoEMFRegistration();
         // Main instance.
-        final Main main = injector.getInstance(Main.class);
+        final Lfc main = injector.getInstance(Lfc.class);
         // Apache Commons Options object configured to according to available CLI arguments.
         Options options = CLIOption.getOptions();
         // CLI arguments parser.
@@ -208,7 +167,7 @@ public class Main {
 
             // If requested, print version and abort
             if (main.cmd.hasOption(CLIOption.VERSION.option.getLongOpt())) {
-                System.out.println("lfc " + VERSION);
+                System.out.println("lfc " + LocalStrings.VERSION);
                 System.exit(0);
             }
 
@@ -231,28 +190,10 @@ public class Main {
     }
 
     /**
-     * Store arguments as properties, to be passed on to the generator.
-     */
-    protected Properties getProps(CommandLine cmd) {
-        Properties props = new Properties();
-        List<Option> passOn = CLIOption.getPassedOptions();
-        for (Option o : cmd.getOptions()) {
-            if (passOn.contains(o)) {
-                String value = "";
-                if (o.hasArg()) {
-                    value = o.getValue();
-                }
-                props.setProperty(o.getLongOpt(), value);
-            }
-        }
-        return props;
-    }
-
-    /**
      * Load the resource, validate it, and, invoke the code generator.
      */
     private void runGenerator(List<Path> files, Injector injector) {
-        Properties properties = this.getProps(cmd);
+        Properties properties = this.filterProps(CLIOption.getPassedOptions());
         String pathOption = CLIOption.OUTPUT_PATH.option.getOpt();
         Path root = null;
         if (cmd.hasOption(pathOption)) {
@@ -281,7 +222,17 @@ public class Main {
             }
             this.fileAccess.setOutputPath(resolved);
 
-            final Resource resource = getValidatedResource(path);
+            final Resource resource = getResource(path);
+            if (resource == null) {
+                reporter.printFatalErrorAndExit(
+                    path + " is not an LF file. Use the .lf file extension to denote LF files.");
+            }
+            else if (cmd != null && cmd.hasOption(CLIOption.FEDERATED.option.getOpt())) {
+                if (!ASTUtils.makeFederated(resource)) {
+                    reporter.printError("Unable to change main reactor to federated reactor.");
+                }
+            }
+            validateResource(resource);
 
             exitIfCollectedErrors();
 
@@ -301,67 +252,4 @@ public class Main {
     }
 
 
-    /**
-     * If some errors were collected, print them and abort execution. Otherwise return.
-     */
-    private void exitIfCollectedErrors() {
-        if (issueCollector.getErrorsOccurred() ) {
-            // if there are errors, don't print warnings.
-            List<LfIssue> errors = printErrorsIfAny();
-            String cause = errors.size() == 1 ? "previous error"
-                                              : errors.size() + " previous errors";
-            reporter.printFatalErrorAndExit("Aborting due to " + cause);
-        }
-    }
-
-    // visible in tests
-    public List<LfIssue> printErrorsIfAny() {
-        List<LfIssue> errors = issueCollector.getErrors();
-        errors.forEach(reporter::printIssue);
-        return errors;
-    }
-
-    /**
-     * Given a path, obtain a resource and validate it. If issues arise during validation,
-     * these are recorded using the issue collector.
-     *
-     * @param path Path to the resource to validate.
-     * @return A validated resource
-     */
-    // visible in tests
-    public Resource getValidatedResource(Path path) {
-        final Resource resource = getResource(path);
-        assert resource != null;
-
-        if (cmd != null && cmd.hasOption(CLIOption.FEDERATED.option.getOpt())) {
-            if (!ASTUtils.makeFederated(resource)) {
-                reporter.printError("Unable to change main reactor to federated reactor.");
-            }
-        }
-
-        List<Issue> issues = this.validator.validate(resource, CheckMode.ALL, CancelIndicator.NullImpl);
-
-        for (Issue issue : issues) {
-            URI uri = issue.getUriToProblem(); // Issues may also relate to imported resources.
-            try {
-                issueCollector.accept(new LfIssue(issue.getMessage(), issue.getSeverity(),
-                                                  issue.getLineNumber(), issue.getColumn(),
-                                                  issue.getLineNumberEnd(), issue.getColumnEnd(),
-                                                  issue.getLength(), FileUtil.toPath(uri)));
-            } catch (IOException e) {
-                reporter.printError("Unable to convert '" + uri + "' to path." + e);
-            }
-        }
-        return resource;
-    }
-
-    private Resource getResource(Path path) {
-        final ResourceSet set = this.resourceSetProvider.get();
-        try {
-            return set.getResource(URI.createFileURI(path.toString()), true);
-        } catch (RuntimeException e) {
-            reporter.printFatalErrorAndExit(path + " is not an LF file. Use the .lf file extension to denote LF files.");
-            return null;
-        }
-    }
 }

@@ -1,5 +1,3 @@
-/* Parsing unit tests. */
-
 /*************
 Copyright (c) 2019, The University of California at Berkeley.
 
@@ -38,31 +36,23 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.lflang.tests.LFInjectorProvider;
 
-@ExtendWith(InjectionExtension.class)
-@InjectWith(LFInjectorProvider.class)
-
 /**
  * Test harness for ensuring that grammar captures
  * all corner cases.
  */
+@ExtendWith(InjectionExtension.class)
+@InjectWith(LFInjectorProvider.class)
 class LinguaFrancaParsingTest {
     @Inject
     ParseHelper<Model> parser;
 
     @Test
     public void checkForTarget() throws Exception {
-// Java 17:
-//         String testCase = """
-//             targett C;
-//             reactor Foo {
-//             }
-//         """
-// Java 11:
-        String testCase = String.join(System.getProperty("line.separator"),
-            "targett C;",
-            "reactor Foo {",
-            "}"
-        );
+        String testCase = """
+            targett C;
+            reactor Foo {
+            }
+        """;
         Model result = parser.parse(testCase);
         Assertions.assertNotNull(result);
         Assertions.assertFalse(result.eResource().getErrors().isEmpty(), "Failed to catch misspelled target keyword.");

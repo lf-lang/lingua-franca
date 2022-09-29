@@ -1,60 +1,44 @@
-/*
- * Modal Reactor Test.
- * Tests nested reactors with modes.
- */
+/** Modal Reactor Test. Tests nested reactors with modes. */
 target C {
     fast: false,
-    timeout: 4 sec,
-//    logging: debug
+    timeout: 4 sec  // logging: debug
 }
 
 import TraceTesting from "util/TraceTesting.lf"
 
 reactor ResetProcessor {
-    input discard:bool;
-    input character:char;
-    output converted:int;
+    input discard: bool
+    input character: char
+    output converted: int
 
     initial mode Converting {
-        converter = new Converter();
-        character -> converter.raw;
-        converter.converted -> converted;
-
-        reaction(discard) -> reset(Discarding) {=
-            lf_set_mode(Discarding);
-        =}
+        converter = new Converter()
+        character -> converter.raw
+        converter.converted -> converted
+        reaction(discard) -> reset(Discarding) {= lf_set_mode(Discarding); =}
     }
 
     mode Discarding {
-        reaction(character) -> converted {=
-            lf_set(converted, '_');
-        =}
+        reaction(character) -> converted {= lf_set(converted, '_'); =}
 
-        reaction(character) -> reset(Converting) {=
-            lf_set_mode(Converting);
-        =}
+        reaction(character) -> reset(Converting) {= lf_set_mode(Converting); =}
     }
 }
 
 reactor HistoryProcessor {
-    input discard:bool;
-    input character:char;
-    output converted:int;
+    input discard: bool
+    input character: char
+    output converted: int
 
     initial mode Converting {
-        converter = new Converter();
-        character -> converter.raw;
-        converter.converted -> converted;
-
-        reaction(discard) -> reset(Discarding) {=
-            lf_set_mode(Discarding);
-        =}
+        converter = new Converter()
+        character -> converter.raw
+        converter.converted -> converted
+        reaction(discard) -> reset(Discarding) {= lf_set_mode(Discarding); =}
     }
 
     mode Discarding {
-        reaction(character) -> converted {=
-            lf_set(converted, '_');
-        =}
+        reaction(character) -> converted {= lf_set(converted, '_'); =}
 
         reaction(character) -> history(Converting) {=
             lf_set_mode(Converting);
@@ -63,15 +47,15 @@ reactor HistoryProcessor {
 }
 
 reactor Converter {
-    input raw:char;
-    output converted:int;
+    input raw: char
+    output converted: int
 
     preamble {=
         #include <stdio.h>
     =}
 
     initial mode Upper {
-        reaction(raw) -> converted, Lower {=
+        reaction(raw) -> converted, reset(Lower) {=
             char c = raw->value;
             if (c >= 'a' && c <= 'z') {
                 lf_set(converted, c - 32);
@@ -83,8 +67,9 @@ reactor Converter {
             }
         =}
     }
+
     mode Lower {
-        reaction(raw) -> converted, Upper {=
+        reaction(raw) -> converted, reset(Upper) {=
             char c = raw->value;
             if (c >= 'A' && c <= 'Z') {
                 lf_set(converted, c + 32);
@@ -98,11 +83,11 @@ reactor Converter {
     }
 }
 
-reactor InputFeeder(message:string("")) {
-    output character:char;
-    state idx:int(0);
+reactor InputFeeder(message: string("")) {
+    output character: char
+    state idx: int(0)
 
-    timer t(0, 250msec);
+    timer t(0, 250 msec)
 
     preamble {=
         #include <string.h>
@@ -117,9 +102,9 @@ reactor InputFeeder(message:string("")) {
 }
 
 main reactor {
-    timer stepper(500msec, 1sec)
+    timer stepper(500 msec, 1 sec)
 
-    feeder = new InputFeeder(message="Hello World!")
+    feeder = new InputFeeder(message = "Hello World!")
     reset_processor = new ResetProcessor()
     history_processor = new HistoryProcessor()
 
@@ -129,7 +114,7 @@ main reactor {
     test = new TraceTesting(
         events_size = 2,
         trace_size = 60,
-        trace = (
+        trace = (  // keep-format
             0,1,72,1,72,
             250000000,1,69,1,69,
             250000000,1,76,1,76,
@@ -142,7 +127,11 @@ main reactor {
             250000000,1,76,1,108,
             250000000,1,68,1,100,
             250000000,1,95,1,95
-        ), training = false)
+        ),
+        training = false
+    )
+
+    reset_processor.converted, history_processor.converted -> test.events
 
     // Trigger mode change
     reaction(stepper) -> reset_processor.discard, history_processor.discard {=
@@ -157,8 +146,4 @@ main reactor {
     reaction(history_processor.converted) {=
         printf("History: %c\n", history_processor.converted->value);
     =}
-
-    reset_processor.converted,
-    history_processor.converted
-    -> test.events
 }

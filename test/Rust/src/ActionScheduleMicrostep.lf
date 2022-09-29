@@ -1,9 +1,9 @@
 // Test logical action with delay.
-target Rust;
+target Rust
 
 main reactor ActionScheduleMicrostep {
-    logical action act;
-    state count: u32(1);
+    logical action act
+    state count: u32(1)
 
     reaction(startup) -> act {=
         assert_tag_is!(ctx, T0);

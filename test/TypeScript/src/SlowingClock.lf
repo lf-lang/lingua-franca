@@ -1,14 +1,15 @@
 target TypeScript {
     timeout: 5 sec,
     fast: true
-};
+}
+
 main reactor SlowingClock {
-    logical action a(100 msec);
-    state interval:time(100 msec);
-    state expected_time:time(100 msec);
-    reaction(startup) -> a {=
-        actions.a.schedule(0, null);
-    =}
+    logical action a(100 msec)
+    state interval: time(100 msec)
+    state expected_time: time(100 msec)
+
+    reaction(startup) -> a {= actions.a.schedule(0, null); =}
+
     reaction(a) -> a {=
         let elapsed_logical_time : TimeValue = util.getElapsedLogicalTime();
         console.log("Logical time since start: " + elapsed_logical_time);
@@ -20,6 +21,7 @@ main reactor SlowingClock {
         expected_time = expected_time.add(interval);
         interval = interval.add(TimeValue.msec(100));
     =}
+
     reaction(shutdown) {=
         if (!expected_time.isEqualTo(TimeValue.msec(5500))) {
             util.requestErrorStop("ERROR: Expected the next expected time to be: " + TimeValue.msec(5500) + "It was: " + expected_time)

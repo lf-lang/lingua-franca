@@ -2384,9 +2384,10 @@ public class LinguaFrancaValidationTest {
             }
         """;
         validator.assertError(parseWithoutError(testCase), LfPackage.eINSTANCE.getMode(), null,
-                "This reactor contains state variables that are not reset upon mode entry. "
-                + "The instatiated reactor (or any inner reactor) neither marks its state variables for automatic reset nor defines a reset reaction. "
-                + "It is usafe to instatiate this reactor inside a mode.");
+                "This reactor contains state variables that are not reset upon mode entry: "
+                + "s in R"
+                + ".\nThe state variables are neither marked for automatic reset nor have a dedicated reset reaction. "
+                + "It is usafe to instatiate this reactor inside a mode entered with reset.");
     }
 
     @Test
