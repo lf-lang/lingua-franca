@@ -555,12 +555,6 @@ public class CGenerator extends GeneratorBase {
                     copyUserFiles(this.targetConfig, this.fileConfig);
                 }
 
-                // If we are running an Arduino Target, need to copy over the BoardOptions file.
-                if (targetConfig.platform == Platform.ARDUINO) {
-                    FileUtil.copyFile(FileUtil.globFilesEndsWith(fileConfig.srcPath, "BoardOptions.cmake").get(0), 
-                        Paths.get(fileConfig.getSrcGenPath().toString(),File.separator, "BoardOptions.cmake"));
-                }
-
                 // Copy the core lib
                 FileUtil.copyFilesFromClassPath(
                     "/lib/c/reactor-c/core",
@@ -573,6 +567,33 @@ public class CGenerator extends GeneratorBase {
                 );
                 // Copy the C target files
                 copyTargetFiles();
+
+                // If we are running an Arduino Target, need to copy over the Arduino-CMake files.
+                if (targetConfig.platformOptions.platform == Platform.ARDUINO) {
+                    FileUtil.copyDirectoryFromClassPath(
+                        "/lib/platform/arduino/Arduino-CMake-Toolchain/Arduino", 
+                        fileConfig.getSrcGenPath().resolve("toolchain/Arduino"),
+                        false
+                    );
+                    FileUtil.copyDirectoryFromClassPath(
+                        "/lib/platform/arduino/Arduino-CMake-Toolchain/Platform", 
+                        fileConfig.getSrcGenPath().resolve("toolchain/Platform"), 
+                        false
+                    );
+                    FileUtil.copyFileFromClassPath(
+                        "/lib/platform/arduino/Arduino-CMake-Toolchain/Arduino-toolchain.cmake", 
+                        fileConfig.getSrcGenPath().resolve("toolchain/Arduino-toolchain.cmake"),
+                        true
+                    );
+
+                    StringBuilder s = new StringBuilder();
+                    s.append("set(ARDUINO_BOARD \"");
+                    s.append(targetConfig.platformOptions.board.getBoardName());
+                    s.append("\")");
+                    FileUtil.writeToFile(s.toString(), 
+                        fileConfig.getSrcGenPath().resolve("toolchain/BoardOptions.cmake"));
+                }
+                
                 // Write the generated code
                 code.writeToFile(targetFile);
             } catch (IOException e) {
@@ -1098,8 +1119,8 @@ public class CGenerator extends GeneratorBase {
     private void pickCompilePlatform() {
         var osName = System.getProperty("os.name").toLowerCase();
         // if platform target was set, use given platform instead
-        if (targetConfig.platform != Platform.AUTO) {
-            osName = targetConfig.platform.toString();
+        if (targetConfig.platformOptions.platform != Platform.AUTO) {
+            osName = targetConfig.platformOptions.platform.toString();
         }
         if (osName.contains("arduino")) {
             return;
@@ -2262,7 +2283,7 @@ public class CGenerator extends GeneratorBase {
             // So that each separate compile knows about modal reactors, do this:
             targetConfig.compileDefinitions.put("MODAL_REACTORS", "");
         }
-        if (targetConfig.threading && targetConfig.platform == Platform.ARDUINO) {
+        if (targetConfig.threading && targetConfig.platformOptions.platform == Platform.ARDUINO) {
 
             //Add error message when user attempts to set threading=true for Arduino
             if (targetConfig.setByUser.contains(TargetProperty.THREADING)) {

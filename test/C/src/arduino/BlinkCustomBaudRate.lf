@@ -3,7 +3,12 @@
  *  with a 50% duty cycle switching every half-second.
  */
 
- target CCpp { platform: "Arduino", baud-rate: 112500 };
+ target CCpp { 
+    platform: {
+        name: "Arduino", 
+        baud-rate: 112500
+    }
+};
 
  main reactor BlinkCustomBaudRate {
     timer t1(0, 1 sec);

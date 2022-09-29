@@ -34,7 +34,9 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import org.eclipse.xtext.util.RuntimeIOException;
+import org.lflang.TargetConfig.Board;
 import org.lflang.TargetConfig.DockerOptions;
+import org.lflang.TargetConfig.PlatformOptions;
 import org.lflang.TargetConfig.TracingOptions;
 import org.lflang.generator.InvalidLfSourceException;
 import org.lflang.generator.rust.CargoDependencySpec;
@@ -57,14 +59,6 @@ import com.google.common.collect.ImmutableList;
  */
 public enum TargetProperty {
 
-    /**
-     * Directive to specify the baud-rate used by the runtime for embedded systems (Arduino).
-     */
-    BAUD_RATE("baud-rate", PrimitiveType.NON_NEGATIVE_INTEGER,
-            List.of(Target.C, Target.CCPP),
-            (config, value, err) -> {
-                config.baudRate = ASTUtils.toInteger(value);
-            }),
 
     /**
      * Directive to let the generator use the custom build command.
@@ -308,13 +302,38 @@ public enum TargetProperty {
             }),
 
     /**
-     * Directive to specify the platform for cross code generation.
+     * Directive to specify the platform for cross code generation. This is either a string of the platform
+     * or a dictionary of options that includes the string name.
      */
-    PLATFORM("platform", UnionType.PLATFORM_UNION, Target.ALL,
-             (config, value, err) -> {
-                 config.platform = (Platform) UnionType.PLATFORM_UNION
-                     .forName(ASTUtils.elementToSingleString(value));
-             }),
+    PLATFORM("platform", UnionType.PLATFORM_STRING_OR_DICT_ARRAY, Target.ALL, 
+            (config, value, err) -> {
+                if (value.getLiteral() != null) {
+                    config.platformOptions = new PlatformOptions();
+                    config.platformOptions.platform = (Platform) UnionType.PLATFORM_UNION
+                        .forName(ASTUtils.elementToSingleString(value));
+                } else {
+                    config.platformOptions= new PlatformOptions();
+                    for (KeyValuePair entry : value.getKeyvalue().getPairs()) {
+                        PlatformOption option = (PlatformOption) DictionaryType.PLATFORM_DICT
+                                .forName(entry.getName());
+                        switch (option) {
+                            case NAME:
+                                config.platformOptions.platform = (Platform) UnionType.PLATFORM_UNION
+                                    .forName(ASTUtils.elementToSingleString(entry.getValue()));
+                                break;
+                            case BAUDRATE:
+                                config.platformOptions.baudRate = ASTUtils.toInteger(entry.getValue());
+                                break;
+                            case BOARD:
+                                config.platformOptions.board = (Board) UnionType.BOARD_UNION
+                                    .forName(ASTUtils.elementToSingleString(entry.getValue()));
+                                break;
+                            default:
+                                break;
+                        }
+                    }
+                }
+            }),
 
     /**
      * Directive for specifying .proto files that need to be compiled and their
@@ -714,6 +733,7 @@ public enum TargetProperty {
     public enum DictionaryType implements TargetPropertyType {
         CLOCK_SYNC_OPTION_DICT(Arrays.asList(ClockSyncOption.values())),
         DOCKER_DICT(Arrays.asList(DockerOption.values())),
+        PLATFORM_DICT(Arrays.asList(PlatformOption.values())),
         COORDINATION_OPTION_DICT(Arrays.asList(CoordinationOption.values())),
         TRACING_DICT(Arrays.asList(TracingOption.values()));
         
@@ -803,6 +823,9 @@ public enum TargetProperty {
         STRING_OR_STRING_ARRAY(
                 Arrays.asList(PrimitiveType.STRING, ArrayType.STRING_ARRAY),
                 null),
+        PLATFORM_STRING_OR_DICT_ARRAY(
+                Arrays.asList(PrimitiveType.STRING, DictionaryType.PLATFORM_DICT),
+                null),
         FILE_OR_FILE_ARRAY(
                 Arrays.asList(PrimitiveType.FILE, ArrayType.FILE_ARRAY), null),
         BUILD_TYPE_UNION(Arrays.asList(BuildType.values()), null),
@@ -811,6 +834,7 @@ public enum TargetProperty {
         SCHEDULER_UNION(Arrays.asList(SchedulerOption.values()), SchedulerOption.getDefault()),
         LOGGING_UNION(Arrays.asList(LogLevel.values()), LogLevel.INFO),
         PLATFORM_UNION(Arrays.asList(Platform.values()), Platform.AUTO),
+        BOARD_UNION(Arrays.asList(Board.values()), Board.NONE),
         CLOCK_SYNC_UNION(Arrays.asList(ClockSyncMode.values()),
                 ClockSyncMode.INIT),
         DOCKER_UNION(Arrays.asList(PrimitiveType.BOOLEAN, DictionaryType.DOCKER_DICT),
@@ -1260,6 +1284,42 @@ public enum TargetProperty {
             this.description = alias;
             this.type = type;
         }
+        
+        /**
+         * Return the description of this dictionary element.
+         */
+        @Override
+        public String toString() {
+            return this.description;
+        }
+    
+        /**
+         * Return the type associated with this dictionary element.
+         */
+        public TargetPropertyType getType() {
+            return this.type;
+        }
+    }
+
+
+    /**
+     * Clock synchronization options.
+     * @author{Marten Lohstroh <marten@berkeley.edu>}
+     */
+    public enum PlatformOption implements DictionaryElement {
+        NAME("name", PrimitiveType.STRING),
+        BAUDRATE("baud-rate", PrimitiveType.NON_NEGATIVE_INTEGER),
+        BOARD("board", PrimitiveType.STRING);
+        
+        public final PrimitiveType type;
+        
+        private final String description;
+        
+        private PlatformOption(String alias, PrimitiveType type) {
+            this.description = alias;
+            this.type = type;
+        }
+        
         
         /**
          * Return the description of this dictionary element.
