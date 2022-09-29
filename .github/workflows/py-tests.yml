@@ -63,16 +63,9 @@ jobs:
           bin/lfc test/Python/src/Minimal.lf
           echo "Running Minimal.py"
           python3 test/Python/src-gen/Minimal/Minimal.py
-          echo "Running Minimal.py"
-          python3 test/Python/src-gen/Minimal/Minimal.py
-          echo "Running Minimal.py"
-          python3 test/Python/src-gen/Minimal/Minimal.py
-          echo "Running Minimal.py"
-          python3 test/Python/src-gen/Minimal/Minimal.py
-          echo "Running Minimal.py"
-          python3 test/Python/src-gen/Minimal/Minimal.py
-          echo "Running Minimal.py"
-          python3 test/Python/src-gen/Minimal/Minimal.py
+      - name: Debug using LLDB
+        run: |
+          echo -e "run\nrun\nbt\n" | lldb python3 /Users/runner/work/lingua-franca/lingua-franca/test/Python/src-gen/Minimal/Minimal.py
       - name: Run Python tests
         run: |
           ./gradlew test --tests org.lflang.tests.runtime.PythonTest.*
