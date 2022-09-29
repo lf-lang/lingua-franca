@@ -1,6 +1,7 @@
 # This is a smoke test of a minimal reactor.
 target Python {
-    Build-Type: Debug
+    Build-Type: Debug,
+    flags: ["-fsanitize=address"]
 }
 
 main reactor Minimal {
