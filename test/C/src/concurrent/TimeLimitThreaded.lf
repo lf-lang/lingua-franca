@@ -1,9 +1,6 @@
 // Test that the stop function can be used to internally impose a a time limit.
 // Correct output for this 1, 2, 3, 4. Failure for this test is failing to halt.
-// See [Benchmarks wiki
-// page](https://github.com/icyphy/lingua-franca/wiki/Benchmarks).
 target C {
-    flags: "-O2",
     fast: true
 }
 
@@ -38,7 +35,6 @@ reactor Destination {
             fprintf(stderr, "ERROR: Expected 12 but got %d.\n", self->s);
             exit(1);
         }
-        lf_print("Approx. time per reaction: %lldns", lf_time_physical_elapsed()/(self->s+1));
     =}
 }
 

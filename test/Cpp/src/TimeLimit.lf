@@ -1,6 +1,5 @@
 // Test that the stop function can be used to internally to impose a a time
-// limit. This is also used to test performance (number of reactions per
-// second). Correct output for this 1, 2, 3, 4. Failure for this test is failing
+// limit. Correct output for this 1, 2, 3, 4. Failure for this test is failing
 // to halt or getting the wrong data.
 target Cpp {
     fast: true
