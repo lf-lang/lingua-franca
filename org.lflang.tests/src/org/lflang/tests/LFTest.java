@@ -126,9 +126,14 @@ public class LFTest implements Comparable<LFTest> {
     public void reportErrors() {
         if (this.hasFailed()) {
             System.out.println("+---------------------------------------------------------------------------+");
-            System.out.println("Failed: ");
+            System.out.println("Failed: " + this);
             System.out.println("-----------------------------------------------------------------------------");
             System.out.println("Reason: " + this.result.message + " Exit code: " + this.exitValue);
+            if (this.exitValue.equals("139")) {
+                // The java ProcessBuiler and Process interface does not allow us to reliably retrieve stderr and stdout
+                // from a process that segfaults. We can only print a message indicating that the putput is incomplete.
+                System.out.println("This exit code typically indicates a segfault. In this case, the execution output is likely missing or incomplete.");
+            }
             printIfNotEmpty("Reported issues", this.issues.toString());
             printIfNotEmpty("Compilation output", this.compilationLog.toString());
             printIfNotEmpty("Execution output", this.execLog.toString());
