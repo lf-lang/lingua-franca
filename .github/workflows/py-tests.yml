@@ -63,6 +63,7 @@ jobs:
           bin/lfc test/Python/src/Minimal.lf
           echo "Running Minimal.py"
           export ASAN_OPTIONS=verbosity=1
+          export DYLD_INSERT_LIBRARIES=/Library/Developer/CommandLineTools/usr/lib/clang/13.0.0/lib/darwin/libclang_rt.asan_osx_dynamic.dylib
           python3 /Users/runner/work/lingua-franca/lingua-franca/test/Python/src-gen/Minimal/Minimal.py
       - name: Run Python tests
         run: |
