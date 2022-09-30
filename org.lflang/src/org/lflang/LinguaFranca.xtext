@@ -91,7 +91,6 @@ Reactor:
         | (connections+=Connection)
         | (reactions+=Reaction)
         | (modes+=Mode)
-        | (mutations+=Mutation)
     )* '}';
 
 
@@ -196,7 +195,7 @@ Action:
 
 Reaction:
     (attributes+=Attribute)*
-    ('reaction')
+    (('reaction') | mutation ?= 'mutation')
     ('(' (triggers+=TriggerRef (',' triggers+=TriggerRef)*)? ')')?
     (sources+=VarRef (',' sources+=VarRef)*)?
     ('->' effects+=VarRefOrModeTransition (',' effects+=VarRefOrModeTransition)*)?
@@ -215,13 +214,6 @@ Deadline:
     
 STP:
     'STP' '(' value=Expression ')' code=Code;
-
-Mutation:
-    ('mutation')
-    ('(' (triggers+=TriggerRef (',' triggers+=TriggerRef)*)? ')')?
-    (sources+=VarRef (',' sources+=VarRef)*)?
-    ('->' effects+=[VarRef] (',' effects+=[VarRef])*)?
-    code=Code;
 
 Preamble:
     (visibility=Visibility)? 'preamble' code=Code;

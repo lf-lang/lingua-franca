@@ -20,11 +20,7 @@ main reactor {
     d = new Deadline(threshold = 10 msec)
 
     reaction(startup) -> d.x {=
-        // Do not use nanosleep() here because if this is threaded,
-        // it gets awakened right away.
-        interval_t sleep_time = MSEC(200);
-        instant_t start_time = lf_time_physical();
-        while (lf_time_physical() < start_time + sleep_time) {};
+        lf_nanosleep(MSEC(200));
         lf_set(d.x, 42);
     =}
 

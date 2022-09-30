@@ -71,6 +71,7 @@ public class Lfc extends CliBase {
         EXTERNAL_RUNTIME_PATH(null, "external-runtime-path", true, false, "Specify an external runtime library to be used by the compiled binary.", true),
         FEDERATED("f", "federated", false, false, "Treat main reactor as federated.", false),
         HELP("h", "help", false, false, "Display this information.", true),
+        LOGGING(null, "logging", true, false, "The logging level to use by the generated binary", true),
         LINT("l", "lint", false, false, "Enable or disable linting of generated code.", true),
         NO_COMPILE("n", "no-compile", false, false, "Do not invoke target compiler.", true),
         OUTPUT_PATH("o", "output-path", true, false, "Specify the root output directory.", false),

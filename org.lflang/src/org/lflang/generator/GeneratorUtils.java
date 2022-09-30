@@ -24,6 +24,7 @@ import org.lflang.FileConfig;
 import org.lflang.Target;
 import org.lflang.TargetConfig;
 import org.lflang.TargetProperty.BuildType;
+import org.lflang.TargetProperty.LogLevel;
 import org.lflang.generator.LFGeneratorContext.Mode;
 import org.lflang.TargetProperty;
 import org.lflang.TargetProperty.SchedulerOption;
@@ -83,6 +84,8 @@ public class GeneratorUtils {
         }
         if (context.getArgs().containsKey("build-type")) {
             targetConfig.cmakeBuildType = BuildType.valueOf(context.getArgs().getProperty("build-type").toUpperCase());
+        if (context.getArgs().containsKey("logging")) {
+            targetConfig.logLevel = LogLevel.valueOf(context.getArgs().getProperty("logging").toUpperCase());
         }
         if (context.getArgs().containsKey("workers")) {
             targetConfig.workers = Integer.parseInt(context.getArgs().getProperty("workers"));

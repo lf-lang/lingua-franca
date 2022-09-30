@@ -19,7 +19,7 @@ reactor Print {
     state success_stp_violation: int(0)
     // Force a timer to be invoke periodically to ensure logical time will
     // advance in the absence of incoming messages.
-    timer t(0, 10 usec)
+    timer t(0, 10 msec)
     state c: int(0)
 
     reaction(in) {=
