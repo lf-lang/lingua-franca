@@ -45,11 +45,6 @@
                     <cleanupDaemonThreads>false</cleanupDaemonThreads> <!-- see https://bugs.eclipse.org/bugs/show_bug.cgi?id=475098#c3 -->
                 </configuration>
                 <dependencies>
-                    <dependency>
-                        <groupId>org.jetbrains.kotlin</groupId>
-                        <artifactId>kotlin-stdlib</artifactId>
-                        <version>${kotlinVersion}</version>
-                    </dependency>
                     <!-- https://mvnrepository.com/artifact/commons-cli/commons-cli -->
                     <dependency>
                         <groupId>commons-cli</groupId>
