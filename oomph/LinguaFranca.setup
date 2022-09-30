@@ -346,6 +346,8 @@
             name="com.fasterxml.jackson.core.jackson-annotations"/>
         <requirement
             name="com.fasterxml.jackson.core.jackson-databind"/>
+        <requirement
+            name="org.lflang.epoch.external.dependencies"/>
         <repositoryList
             name="DefaultRepositories">
           <repository
@@ -364,6 +366,8 @@
               url="https://download.eclipse.org/wildwebdeveloper/releases/0.13.0/"/>
           <repository
               url="https://rtsys.informatik.uni-kiel.de/~kieler/updatesite/sprotty/0.9.0/"/>
+          <repository
+              url="https://a-sr.github.io/epoch-external-dependencies/"/>
         </repositoryList>
       </targlet>
     </setupTask>

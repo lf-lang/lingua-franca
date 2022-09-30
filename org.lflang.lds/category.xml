@@ -4,5 +4,4 @@
     <bundle id="org.lflang"/>
     <bundle id="org.lflang.ide"/>
     <bundle id="org.lflang.diagram"/>
-    <bundle id="org.jetbrains.kotlin.bundled-compiler"/>
 </site>

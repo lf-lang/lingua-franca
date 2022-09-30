@@ -46,8 +46,8 @@
       <repository location="http://download.eclipse.org/tools/orbit/downloads/drops/R20220531185310/repository/"/>
     </location>
     <location includeAllPlatforms="false" includeConfigurePhase="true" includeMode="planner" includeSource="false" type="InstallableUnit">
-      <unit id="org.jetbrains.kotlin.feature.feature.group" version="0.0.0"/>
-      <repository location="https://download.jetbrains.com/kotlin/eclipse-plugin/last/"/>
+      <unit id="org.lflang.epoch.external.dependencies" version="0.0.0"/>
+      <repository location="https://a-sr.github.io/epoch-external-dependencies/"/>
     </location>
     <location includeAllPlatforms="false" includeConfigurePhase="true" includeMode="planner" includeSource="false" type="InstallableUnit">
       <unit id="org.eclipse.contribution.weaving.feature.group" version="0.0.0"/>
