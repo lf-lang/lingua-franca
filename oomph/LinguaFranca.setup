@@ -367,7 +367,7 @@
           <repository
               url="https://rtsys.informatik.uni-kiel.de/~kieler/updatesite/sprotty/0.9.0/"/>
           <repository
-              url="https://a-sr.github.io/epoch-external-dependencies/"/>
+              url="https://lf-lang.github.io/epoch-external-dependencies/"/>
         </repositoryList>
       </targlet>
     </setupTask>
