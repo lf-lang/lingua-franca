@@ -7,7 +7,6 @@ import java.util.function.BiPredicate;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import org.eclipse.emf.common.util.EList;
 import org.eclipse.emf.ecore.EObject;
 
 import org.lflang.TimeUnit;
@@ -38,7 +37,6 @@ import org.lflang.lf.Method;
 import org.lflang.lf.MethodArgument;
 import org.lflang.lf.Mode;
 import org.lflang.lf.Model;
-import org.lflang.lf.Mutation;
 import org.lflang.lf.NamedHost;
 import org.lflang.lf.Output;
 import org.lflang.lf.Parameter;
@@ -138,7 +136,6 @@ public class IsEqual extends LfSwitch<Boolean> {
             .listsEquivalent(Reactor::getStateVars)
             .listsEquivalent(Reactor::getReactions)
             .listsEquivalent(Reactor::getMethods)
-            .listsEquivalent(Reactor::getMutations)
             .listsEquivalent(Reactor::getModes)
             .conclusion;
     }
@@ -284,6 +281,7 @@ public class IsEqual extends LfSwitch<Boolean> {
             .listsEquivalent(Reaction::getTriggers)
             .listsEquivalent(Reaction::getSources)
             .listsEquivalent(Reaction::getEffects)
+            .equalAsObjects(Reaction::isMutation)
             .equivalent(Reaction::getCode)
             .equivalent(Reaction::getStp)
             .equivalent(Reaction::getDeadline)
@@ -318,15 +316,6 @@ public class IsEqual extends LfSwitch<Boolean> {
             .conclusion;
     }
 
-    @Override
-    public Boolean caseMutation(Mutation object) {
-        return new ComparisonMachine<>(object, Mutation.class)
-            .listsEquivalent(Mutation::getTriggers)
-            .listsEquivalent(Mutation::getSources)
-            .listsEquivalent(Mutation::getEffects)
-            .equivalent(Mutation::getCode)
-            .conclusion;
-    }
 
     @Override
     public Boolean casePreamble(Preamble object) {
