@@ -37,6 +37,15 @@ jobs:
       - name: Build and package epoch
         run: mvn package || mvn -U package
         shell: bash
+      - name: Archive Products
+        uses: actions/upload-artifact@v2
+        with:
+          name: LF Products
+          retention-days: 1
+          path: |
+            org.lflang.rca/target/products/*.tar.gz
+            org.lflang.rca/target/products/*.zip
+            build_upload/*
       - name: Deploy nightly release
         uses: marvinpinto/action-automatic-releases@latest
         with:
