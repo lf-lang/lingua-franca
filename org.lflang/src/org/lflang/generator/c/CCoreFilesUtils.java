@@ -103,6 +103,7 @@ public class CCoreFilesUtils {
             "platform/lf_windows_support.h",
             "platform/lf_arduino_support.c",
             "platform/lf_arduino_support.h",
+            "platform/lf_os_single_threaded_support.c",
             "platform/lf_linux_support.c",
             "platform/lf_linux_support.h"
         );
