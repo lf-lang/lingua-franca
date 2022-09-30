@@ -2,6 +2,8 @@
 # container reacts to that output.
 target Python
 
+preamble {= import time =}
+
 reactor Deadline(threshold(100 msec)) {
     input x
     output deadline_violation
@@ -20,10 +22,7 @@ main reactor DeadlineHandledAbove {
     d = new Deadline(threshold = 10 msec)
 
     reaction(startup) -> d.x {=
-        sleep_time = MSEC(200)
-        start_time = lf.time.physical()
-        while lf.time.physical() < (start_time + sleep_time):
-            pass
+        time.sleep(0.2)
         d.x.set(42)
     =}
 
