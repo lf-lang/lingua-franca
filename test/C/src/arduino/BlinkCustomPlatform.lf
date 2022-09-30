@@ -7,13 +7,13 @@
  */
 target CCpp {
     platform: {
-        name: "Arduino",
+        name: "arduino",
         baud-rate: 9600,
-        board: "nano"
+        board: "mega_2560"
     }
 }
 
-main reactor BlinkCustomBaudRate {
+main reactor BlinkCustomPlatform {
     timer t1(0, 1 sec)
     timer t2(500 msec, 1 sec)
 

@@ -305,7 +305,7 @@ public enum TargetProperty {
      * Directive to specify the platform for cross code generation. This is either a string of the platform
      * or a dictionary of options that includes the string name.
      */
-    PLATFORM("platform", UnionType.PLATFORM_STRING_OR_DICT_ARRAY, Target.ALL, 
+    PLATFORM("platform", UnionType.PLATFORM_STRING_OR_DICTIONARY, Target.ALL, 
             (config, value, err) -> {
                 if (value.getLiteral() != null) {
                     config.platformOptions = new PlatformOptions();
@@ -318,15 +318,28 @@ public enum TargetProperty {
                                 .forName(entry.getName());
                         switch (option) {
                             case NAME:
-                                config.platformOptions.platform = (Platform) UnionType.PLATFORM_UNION
+                                Platform p = (Platform) UnionType.PLATFORM_UNION
                                     .forName(ASTUtils.elementToSingleString(entry.getValue()));
+                                if(p == null){
+                                    String s = "Unidentified Platform Type, LF supports the following platform types: " + Arrays.asList(Platform.values()).toString();
+                                    err.reportError(s);
+                                    throw new AssertionError(s);
+                                }
+                                config.platformOptions.platform = p;
                                 break;
                             case BAUDRATE:
                                 config.platformOptions.baudRate = ASTUtils.toInteger(entry.getValue());
                                 break;
                             case BOARD:
-                                config.platformOptions.board = (Board) UnionType.BOARD_UNION
+                                Board b = (Board) UnionType.BOARD_UNION
                                     .forName(ASTUtils.elementToSingleString(entry.getValue()));
+                                if(b == null){
+                                    String s = "Unidentified Board Type, LF supports the following board types: " + Arrays.asList(Board.values()).toString();
+                                    err.reportError(s);
+                                    throw new AssertionError(s);
+                                }
+
+                                config.platformOptions.board = b;
                                 break;
                             default:
                                 break;
@@ -831,7 +844,7 @@ public enum TargetProperty {
         STRING_OR_STRING_ARRAY(
                 Arrays.asList(PrimitiveType.STRING, ArrayType.STRING_ARRAY),
                 null),
-        PLATFORM_STRING_OR_DICT_ARRAY(
+        PLATFORM_STRING_OR_DICTIONARY(
                 Arrays.asList(PrimitiveType.STRING, DictionaryType.PLATFORM_DICT),
                 null),
         FILE_OR_FILE_ARRAY(

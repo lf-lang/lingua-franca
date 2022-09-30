@@ -381,7 +381,7 @@ public class TargetConfig {
         LININO_ONE("Linino One [avr.one]"),
         UNO_WIFI("Arduino Uno WiFi [avr.unowifi]"),
         SAM_DUE_PROG("Arduino Due (Programming Port) [sam.arduino_due_x_dbg]"),
-        SAM_DUE_NATIVE("Arduino Due (Programming Port) [sam.arduino_due_x_dbg]");
+        SAM_DUE_NATIVE("Arduino Due (Native USB Port) [sam.arduino_due_x]");
 
         String boardName;
         Board() {
