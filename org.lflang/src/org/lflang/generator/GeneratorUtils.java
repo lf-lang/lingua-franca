@@ -84,6 +84,7 @@ public class GeneratorUtils {
         }
         if (context.getArgs().containsKey("build-type")) {
             targetConfig.cmakeBuildType = BuildType.valueOf(context.getArgs().getProperty("build-type").toUpperCase());
+        }
         if (context.getArgs().containsKey("logging")) {
             targetConfig.logLevel = LogLevel.valueOf(context.getArgs().getProperty("logging").toUpperCase());
         }
