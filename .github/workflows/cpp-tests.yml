@@ -44,7 +44,7 @@ jobs:
       - name: Run C++ tests;
         run: |
           ./gradlew test --tests org.lflang.tests.runtime.CppTest.*
-      - name: Report to CodeCov
+      - name: Report Java coverage to CodeCov
         uses: codecov/codecov-action@v2.1.0
         with:
           file: org.lflang.tests/build/reports/xml/jacoco
@@ -62,4 +62,11 @@ jobs:
         with:
           name: reactor-cpp.coverage
           path: reactor-cpp.coverage
+        if: matrix.platform == 'ubuntu-latest'
+      - name: Report C++ coverage to CodeCov
+        uses: codecov/codecov-action@v2.1.0
+        with:
+          file: coverage.info
+          fail_ci_if_error: false
+          verbose: true
         if: matrix.platform == 'ubuntu-latest'
