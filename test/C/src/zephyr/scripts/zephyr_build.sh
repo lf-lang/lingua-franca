@@ -32,7 +32,8 @@ find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE}) \
 # FIXME: We have to hardcode HEAP_MEM_POOL size. Now it is 1024Bytes
 printf '# Auto-generated Config
 CONFIG_PRINTK=y
-CONFIG_HEAP_MEM_POOL_SIZE=1024
+CONFIG_HEAP_MEM_POOL_SIZE=4096
+CONFIG_CBPRINTF_FP_SUPPORT=y
 ' > $LF_SOURCE_GEN_DIRECTORY/prj.conf
 
 # FIXME: This config is not understood. What is Kconfig.zephyr.
