@@ -45,7 +45,7 @@ west build -b $BOARD
 
 # Flash application
 cd build/zephyr
-$LF_SRC_DIRECTORY/../scripts/zephyr_flash_nrf.sh
+$LF_SRC_DIRECTORY/scripts/zephyr_flash_nrf.sh
 
 # Debug application
 # FIXME: Fix the issues here. Why isnt gdb working when invoked from this script?
