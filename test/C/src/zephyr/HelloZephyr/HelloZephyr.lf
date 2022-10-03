@@ -1,0 +1,15 @@
+target C {
+    build: "../scripts/zephyr_build.sh",
+    threading: false,
+    cmake-include: "../scripts/zephyr.cmake"
+}
+
+main reactor {
+    timer t (0, 500 msec)
+    reaction(t) {=
+    instant_t log = lf_time_logical();
+    instant_t phy = lf_time_physical();
+        printk("logical=%lli physical=%lli diff = %lliHello World!\n", log, phy, phy-log);
+    =}
+
+}
