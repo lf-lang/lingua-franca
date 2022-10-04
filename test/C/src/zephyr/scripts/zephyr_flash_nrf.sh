@@ -1,8 +1,9 @@
 # Erase and flash application onto NRF52
-# assumes that we are in build/zephyr directory
+# Takes the path to the build folder as an argument
+BUILD_PATH=$1
 
-NRFJPROG=nrfjprog.exe
+NRFJPROG=nrfjprog
 echo "--- Executing zephyr_flash_nrf.sh"
 eval $NRFJPROG -e
-eval $NRFJPROG --program zephyr.hex --sectorerase --verify
+eval $NRFJPROG --program $BUILD_PATH/zephyr/zephyr.hex --sectorerase --verify
 eval $NRFJPROG --reset
