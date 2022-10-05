@@ -649,6 +649,20 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
     public String toString() {
         return "ReactorInstance " + getFullName();
     }
+
+    /**
+     * Return number of LET reactions inside Reactor
+     */
+    public int getNumberOfLetReactions() {
+        var nLetReactions = 0;
+        for (ReactionInstance reaction : instance.reactions) {            
+                if(reaction.getLogicalExecutionTime() > 0) {
+                    nLetReactions += 1;
+                }
+            }
+        }
+        return nLetReactions;
+    }
     
     /**
      * Assuming that the given expression denotes a valid time, return a time value.
