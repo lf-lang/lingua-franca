@@ -185,7 +185,8 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
     public ReactionInstanceGraph assignLevels() {
         if (depth != 0) return root().assignLevels();
         if (cachedReactionLoopGraph == null) {
-            cachedReactionLoopGraph = new ReactionInstanceGraph(this);
+            // The 2nd param, `true`, enables cycle detection.
+            cachedReactionLoopGraph = new ReactionInstanceGraph(this, true);
         }
         return cachedReactionLoopGraph;
     }

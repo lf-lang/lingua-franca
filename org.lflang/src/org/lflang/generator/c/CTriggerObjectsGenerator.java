@@ -12,6 +12,7 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.List;
 import java.util.stream.Collectors;
 
 import org.lflang.ASTUtils;
@@ -19,6 +20,7 @@ import org.lflang.AttributeUtils;
 import org.lflang.TargetConfig;
 import org.lflang.TargetProperty.CoordinationType;
 import org.lflang.TargetProperty.LogLevel;
+import org.lflang.TargetProperty.SchedulerOption;
 import org.lflang.federated.CGeneratorExtension;
 import org.lflang.federated.FederateInstance;
 import org.lflang.generator.CodeBuilder;
@@ -26,6 +28,7 @@ import org.lflang.generator.GeneratorBase;
 import org.lflang.generator.ParameterInstance;
 import org.lflang.generator.PortInstance;
 import org.lflang.generator.ReactionInstance;
+import org.lflang.generator.ReactionInstance.Runtime;
 import org.lflang.generator.ReactorInstance;
 import org.lflang.generator.RuntimeRange;
 import org.lflang.generator.SendRange;
@@ -43,6 +46,8 @@ public class CTriggerObjectsGenerator {
     /**
      * Generate the _lf_initialize_trigger_objects function for 'federate'.
      */
+    public static int reactionId = 0;
+    public static int reactionNum = 0;
     public static String generateInitializeTriggerObjects(
         FederateInstance federate,
         ReactorInstance main,
@@ -158,6 +163,7 @@ public class CTriggerObjectsGenerator {
             clockSyncIsOn
         ));
         code.pr(generateSchedulerInitializer(
+            federate,
             main,
             targetConfig
         ));
@@ -165,11 +171,11 @@ public class CTriggerObjectsGenerator {
         code.pr("}\n");
         return code.toString();
     }
-
     /**
     * Generate code to initialize the scheduler for the threaded C runtime.
     */
     public static String generateSchedulerInitializer(
+        FederateInstance federate,
         ReactorInstance main,
         TargetConfig targetConfig
     ) {
@@ -181,13 +187,25 @@ public class CTriggerObjectsGenerator {
         var numReactionsPerLevelJoined = Arrays.stream(numReactionsPerLevel)
                 .map(String::valueOf)
                 .collect(Collectors.joining(", "));
+        // Generate a list of reaction runtime instances.
+        // This is currently useful for QS, but could be
+        // utilized by other schedulers in the future.
+        if (targetConfig.schedulerType == SchedulerOption.QS) {
+            code.pr(generateReactionInstanceList( 
+                federate, 
+                main
+            ));
+        }
+        // Print the initializers.
         code.pr(String.join("\n",
             "// Initialize the scheduler",
             "size_t num_reactions_per_level["+numReactionsPerLevel.length+"] = ",
             "    {" + numReactionsPerLevelJoined + "};",
             "sched_params_t sched_params = (sched_params_t) {",
             "                        .num_reactions_per_level = &num_reactions_per_level[0],",
-            "                        .num_reactions_per_level_size = (size_t) "+numReactionsPerLevel.length+"};",
+            "                        .num_reactions_per_level_size = (size_t) "+numReactionsPerLevel.length+",",
+            (targetConfig.schedulerType == SchedulerOption.QS ?
+            "                        .reaction_instances = _lf_reaction_instances};" : "};"),
             "lf_sched_init(",
             "    (size_t)_lf_number_of_workers,",
             "    &sched_params",
@@ -365,7 +383,9 @@ public class CTriggerObjectsGenerator {
         var temp = new CodeBuilder();
         temp.pr("// Set reaction priorities for " + reactor);
         temp.startScopedBlock(reactor, currentFederate, isFederated, true);
+
         for (ReactionInstance r : reactor.reactions) {
+
             if (currentFederate.contains(r.getDefinition())) {
                 foundOne = true;
                 // The most common case is that all runtime instances of the
@@ -377,6 +397,7 @@ public class CTriggerObjectsGenerator {
                     for (Integer l : levels) {
                         level = l;
                     }
+                    temp.pr("//levels.size() == 1");
                     // xtend doesn't support bitwise operators...
                     var indexValue = r.deadline.toNanoSeconds() << 16 | level;
                     var reactionIndex = "0x" + Long.toString(indexValue, 16) + "LL";
@@ -397,6 +418,13 @@ public class CTriggerObjectsGenerator {
                         CUtil.reactionRef(r)+".index = ("+reactionDeadline+" << 16) | "+r.uniqueID()+"_levels["+CUtil.runtimeIndex(r.getParent())+"];"
                     ));
                 }
+                if(reactor.isBank()||(reactor.getParent() != null && reactor.getParent().isBank())){
+                    reactionNum += reactor.getTotalWidth();
+
+                }
+                else{
+                    reactionNum += 1;
+                }
             }
         }
         for (ReactorInstance child : reactor.children) {
@@ -412,6 +440,44 @@ public class CTriggerObjectsGenerator {
             builder.pr(epilog.toString());
         }
         return foundOne;
+    }
+    private static String generateReactionInstanceList(        
+        FederateInstance currentFederate,
+        ReactorInstance reactor) {
+        var code = new CodeBuilder();
+        code.pr( "reaction_t **_lf_reaction_instances = (reaction_t**) calloc("+reactionNum+", sizeof(reaction_t*));");
+        generateReactionInstances(currentFederate, reactor, code);
+        return code.toString();
+    }
+    private static void generateReactionInstances(
+        FederateInstance currentFederate,
+        ReactorInstance reactor,
+        CodeBuilder code
+    ){
+        if (reactor != null && 
+            (reactor.isBank() || (reactor.getParent() != null && reactor.getParent().isBank()))) {
+            for (ReactionInstance r : reactor.reactions) {
+                List<Runtime> runtimes = r.getRuntimeInstances();
+                for (Runtime rt :runtimes) {
+                    code.pr(String.join("", "_lf_reaction_instances["+reactionId+"] = ", "&", CUtil.reactionRef(rt.getReaction(), Integer.toString(rt.id)), ";"));
+                    rt.reactionID = reactionId;
+                    reactionId += 1;
+                }
+            }
+        } else {
+            for (ReactionInstance r : reactor.reactions) {
+                code.pr(String.join("", "_lf_reaction_instances["+reactionId+"] = ", "&", CUtil.reactionRef(r), ";"));
+                for(Runtime rt: r.getRuntimeInstances()){
+                    rt.reactionID = reactionId;
+                    reactionId += 1;
+                }
+            }
+        }
+        for (ReactorInstance child : reactor.children) {
+            if (currentFederate.contains(child)) {
+                 generateReactionInstances(currentFederate, child, code);
+            }
+        }
     }
 
     /**

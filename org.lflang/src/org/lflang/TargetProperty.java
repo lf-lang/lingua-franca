@@ -1371,6 +1371,7 @@ public enum TargetProperty {
     /**
      * Supported schedulers.
      * @author{Soroush Bateni <soroush@utdallas.edu>}
+     * @author{Shaokai Lin <shaokai@berkeley.edu>}
      */
     public enum SchedulerOption {
         NP(false),         // Non-preemptive
@@ -1381,8 +1382,9 @@ public enum TargetProperty {
             Path.of("data_collection.h")
         )),
         GEDF_NP(true),    // Global EDF non-preemptive
-        GEDF_NP_CI(true); // Global EDF non-preemptive with chain ID
+        GEDF_NP_CI(true), // Global EDF non-preemptive with chain ID
         // PEDF_NP(true);    // Partitioned EDF non-preemptive (FIXME: To be re-added in a future PR)
+        QS(false);          // Quasi-static
         
         /**
          * Indicate whether or not the scheduler prioritizes reactions by deadline.
