@@ -236,6 +236,11 @@ public class TargetConfig {
     public int workers = 0;
 
     /**
+     * Indicate whether HMAC authentication is used.
+     */
+    public boolean auth = false;
+
+    /**
      * Indicate whether the runtime should use multithreaded execution.
      */
     public boolean threading = true;

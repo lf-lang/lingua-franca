@@ -58,6 +58,15 @@ import com.google.common.collect.ImmutableList;
 public enum TargetProperty {
 
     /**
+     * Directive to specify the execution timeout.
+     */
+    AUTH("auth", PrimitiveType.BOOLEAN,
+            List.of(Target.C),
+            (config, value, err) -> {
+                config.auth = ASTUtils.toBoolean(value);
+            }),
+
+    /**
      * Directive to specify the baud-rate used by the runtime for embedded systems (Arduino).
      */
     BAUD_RATE("baud-rate", PrimitiveType.NON_NEGATIVE_INTEGER,

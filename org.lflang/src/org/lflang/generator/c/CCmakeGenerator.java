@@ -151,7 +151,7 @@ class CCmakeGenerator {
         cMakeCode.pr(")");
         cMakeCode.newLine();
 
-        if(true) {
+        if(targetConfig.auth) {
             // OpenSSL
             cMakeCode.pr("# Find OpenSSL and link to it");
             cMakeCode.pr("find_package(OpenSSL REQUIRED)");
