@@ -1,0 +1,8 @@
+target C
+
+main reactor {
+  timer t(0, 1 ns);
+  reaction (t) {=
+    printf("This is just to see what happens if we have many very long outputs\n");
+  =}
+}

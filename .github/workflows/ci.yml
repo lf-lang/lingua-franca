@@ -55,7 +55,7 @@ jobs:
 
   # Run the C integration tests.
   c-tests:
-    uses: lf-lang/lingua-franca/.github/workflows/c-tests.yml@master
+    uses: lf-lang/lingua-franca/.github/workflows/c-tests.yml@test-output-overflow
     needs: cancel
 
   # Run the CCpp integration tests.
@@ -74,7 +74,7 @@ jobs:
 
   # Run the C++ integration tests.
   cpp-tests:
-    uses: lf-lang/lingua-franca/.github/workflows/cpp-tests.yml@master
+    uses: lf-lang/lingua-franca/.github/workflows/cpp-tests.yml@test-output-overflow
     needs: cancel
 
   # Run the C++ integration tests on ROS2.
