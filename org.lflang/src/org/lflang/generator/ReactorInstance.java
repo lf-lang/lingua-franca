@@ -916,8 +916,8 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
         for (Connection connection : ASTUtils.allConnections(reactorDefinition)) {
             List<RuntimeRange<PortInstance>> leftPorts = listPortInstances(connection.getLeftPorts(), connection);
             List<RuntimeRange<PortInstance>> rightPorts = listPortInstances(connection.getRightPorts(), connection);
-            Iterator<RuntimeRange<PortInstance>> srcRanges = leftPorts.stream().filter(it -> it.width > 0).iterator();
-            Iterator<RuntimeRange<PortInstance>> dstRanges = rightPorts.stream().filter(it -> it.width > 0).iterator();
+            Iterator<RuntimeRange<PortInstance>> srcRanges = leftPorts.stream().filter(it -> it.width != 0).iterator();
+            Iterator<RuntimeRange<PortInstance>> dstRanges = rightPorts.stream().filter(it -> it.width != 0).iterator();
 
             // Check for empty lists.
             if (!srcRanges.hasNext()) {
@@ -960,7 +960,7 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
                     src = srcRanges.next();
                 } else if (dst.width < src.width) {
                     // Split the left (src) range in two.
-                    if (dst.width > 0) connectPortInstances(src.head(dst.width), dst, connection);
+                    if (dst.width != 0) connectPortInstances(src.head(dst.width), dst, connection);
                     src = src.tail(dst.width);
                     if (!dstRanges.hasNext()) {
                         // Should not happen (checked by the validator).
