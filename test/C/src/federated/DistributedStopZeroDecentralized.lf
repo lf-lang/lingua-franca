@@ -8,8 +8,8 @@ target C
 import Sender, Receiver from "DistributedStopZero.lf"
 
 federated reactor {
-    sender = new Sender()
-    receiver = new Receiver()
+  sender = new Sender()
+  receiver = new Receiver()
 
-    sender.out -> receiver.in
+  sender.out -> receiver.in
 }

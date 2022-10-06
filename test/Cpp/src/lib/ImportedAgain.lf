@@ -3,15 +3,15 @@
 target Cpp
 
 reactor ImportedAgain {
-    input x: int
+  input x: int
 
-    reaction(x) {=
-        auto value = *x.get();
-        if (value != 42) {
-            std::cerr << "ERROR: Expected input to be 42. Got: " << value << std::endl;
-            exit(1);
-        } else {
-            std::cout << "Received " << value << std::endl;
-        }
-    =}
+  reaction(x) {=
+    auto value = *x.get();
+    if (value != 42) {
+        std::cerr << "ERROR: Expected input to be 42. Got: " << value << std::endl;
+        exit(1);
+    } else {
+        std::cout << "Received " << value << std::endl;
+    }
+  =}
 }

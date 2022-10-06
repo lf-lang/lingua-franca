@@ -1,4 +1,6 @@
-/** This tests an output that is broadcast back to a multiport input of a bank. */
+/**
+ * This tests an output that is broadcast back to a multiport input of a bank.
+ */
 target TypeScript {
     timeout: 1 sec
 }

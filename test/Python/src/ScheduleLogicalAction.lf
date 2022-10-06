@@ -1,5 +1,5 @@
-# This checks that a logical action is scheduled the specified logical time after the current
-# logical time.
+# This checks that a logical action is scheduled the specified logical time
+# after the current logical time.
 target Python {
     fast: true,
     timeout: 3 sec

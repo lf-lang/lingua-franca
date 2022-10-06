@@ -1,6 +1,7 @@
-// This test checks for one of the issues arised in the solution of EECS149 Lab Chapter 7. In this
-// case, a reactor has two output ports, the first one of which is dangling. The generated code
-// should not have any segmentation faults.
+// This test checks for one of the issues arised in the solution of EECS149 Lab
+// Chapter 7. In this case, a reactor has two output ports, the first one of
+// which is dangling. The generated code should not have any segmentation
+// faults.
 target C {
     timeout: 1 sec,
     fast: true

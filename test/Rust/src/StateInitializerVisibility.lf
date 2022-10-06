@@ -1,5 +1,5 @@
-// Tests that state vars are accessible within initializers of other state vars declared further
-// down.
+// Tests that state vars are accessible within initializers of other state vars
+// declared further down.
 target Rust
 
 main reactor {

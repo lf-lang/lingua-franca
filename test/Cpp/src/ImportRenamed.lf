@@ -12,10 +12,10 @@ import Imported as Y from "lib/Imported.lf"
 import ImportedAgain as Z from "lib/ImportedAgain.lf"
 
 main reactor {
-    timer t
-    a = new X()
-    b = new Y()
-    c = new Z()
+  timer t
+  a = new X()
+  b = new Y()
+  c = new Z()
 
-    reaction(t) -> a.x {= a.x.set(42); =}
+  reaction(t) -> a.x {= a.x.set(42); =}
 }

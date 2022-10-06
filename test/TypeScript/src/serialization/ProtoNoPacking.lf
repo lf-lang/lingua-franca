@@ -11,36 +11,36 @@
  * Building protobuf from source is slow, so avoid doing that if possible.
  */
 target TypeScript {
-    protobufs: ProtoHelloWorld.proto
+  protobufs: ProtoHelloWorld.proto
 }
 
 reactor SourceProto {
-    output out: ProtoHelloWorld.ProtoHelloWorld
+  output out: ProtoHelloWorld.ProtoHelloWorld
 
-    reaction(startup) -> out {=
-        // The contents of a compiled proto file are imported in
-        // TypeScript as "import * as <.protoFileName>". So the constructor
-        // for class ProtoHelloWorld from the file ProtoHelloWorld.proto is
-        // ProtoHelloWorld.ProtoHelloWorld()
-        let helloObject = new ProtoHelloWorld.ProtoHelloWorld();
-        helloObject.setName("Hello World");
-        helloObject.setNumber(42);
-        out = helloObject;
-    =}
+  reaction(startup) -> out {=
+    // The contents of a compiled proto file are imported in
+    // TypeScript as "import * as <.protoFileName>". So the constructor
+    // for class ProtoHelloWorld from the file ProtoHelloWorld.proto is
+    // ProtoHelloWorld.ProtoHelloWorld()
+    let helloObject = new ProtoHelloWorld.ProtoHelloWorld();
+    helloObject.setName("Hello World");
+    helloObject.setNumber(42);
+    out = helloObject;
+  =}
 }
 
 reactor SinkProto {
-    input x: ProtoHelloWorld.ProtoHelloWorld
+  input x: ProtoHelloWorld.ProtoHelloWorld
 
-    reaction(x) {=
-        if (x !== undefined) {
-            console.log(`Received: name=${x.getName()}, number=${x.getNumber()}.`)
-        }
-    =}
+  reaction(x) {=
+    if (x !== undefined) {
+        console.log(`Received: name=${x.getName()}, number=${x.getNumber()}.`)
+    }
+  =}
 }
 
 main reactor ProtoNoPacking {
-    s = new SourceProto()
-    d = new SinkProto()
-    s.out -> d.x
+  s = new SourceProto()
+  d = new SinkProto()
+  s.out -> d.x
 }

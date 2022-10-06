@@ -5,8 +5,8 @@ target Python
 import ImportedAgain from "./ImportedAgain.lf"
 
 reactor Imported {
-    input x
-    a = new ImportedAgain()
+  input x
+  a = new ImportedAgain()
 
-    reaction(x) -> a.x {= a.x.set(x.value) =}
+  reaction(x) -> a.x {= a.x.set(x.value) =}
 }

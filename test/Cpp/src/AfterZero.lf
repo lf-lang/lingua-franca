@@ -1,4 +1,5 @@
-// This checks that the after keyword adjusts logical time, not using physical time.
+// This checks that the after keyword adjusts logical time, not using physical
+// time.
 target Cpp {
     fast: false,
     timeout: 3 sec

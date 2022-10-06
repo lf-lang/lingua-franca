@@ -4,13 +4,13 @@
  * compile.
  */
 target C {
-    timeout: 0 sec
+  timeout: 0 sec
 }
 
 import Foo from "CMakeInclude.lf"
 import Bar from "DistributedCMakeInclude.lf"
 
 federated reactor {
-    f1 = new Foo()
-    b1 = new Bar()
+  f1 = new Foo()
+  b1 = new Bar()
 }

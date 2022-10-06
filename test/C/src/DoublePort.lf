@@ -1,6 +1,7 @@
 /**
- * Test the case where two upstream reactors pass messages to a downstream reactor on two different
- * ports. One message carries a microstep delay relative to the other.
+ * Test the case where two upstream reactors pass messages to a downstream
+ * reactor on two different ports. One message carries a microstep delay
+ * relative to the other.
  *
  * @author Soroush Bateni
  */
@@ -35,7 +36,9 @@ reactor Print {
         }
     =}
 
-    reaction(shutdown) {= printf("SUCCESS: messages were at least one microstep apart.\n"); =}
+    reaction(shutdown) {=
+        printf("SUCCESS: messages were at least one microstep apart.\n");
+    =}
 }
 
 main reactor DoublePort {

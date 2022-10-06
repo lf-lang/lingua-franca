@@ -1,4 +1,5 @@
-// Test verifying that lf_request_stop() called in a shutdown reaction is ignored.
+// Test verifying that lf_request_stop() called in a shutdown reaction is
+// ignored.
 target C
 
 main reactor {

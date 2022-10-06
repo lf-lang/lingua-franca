@@ -1,6 +1,7 @@
 /**
- * Test that the starvation functionality in absence of the "keepalive: true" target property indeed
- * works as expected. This version uses the threaded runtime.
+ * Test that the starvation functionality in absence of the "keepalive: true"
+ * target property indeed works as expected. This version uses the threaded
+ * runtime.
  *
  * @author Soroush Bateni
  */

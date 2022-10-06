@@ -1,10 +1,11 @@
 /**
- * Test whether top-level reactions, actions, and ports are handled appropriately.
+ * Test whether top-level reactions, actions, and ports are handled
+ * appropriately.
  *
  * Currently, these artifacts are replicated on all federates.
  *
- * @note This just tests for the correctness of the code generation. These top-level artifacts might
- * be disallowed in the future.
+ * @note This just tests for the correctness of the code generation. These
+ * top-level artifacts might be disallowed in the future.
  * @author Youri Su
  */
 target TypeScript {

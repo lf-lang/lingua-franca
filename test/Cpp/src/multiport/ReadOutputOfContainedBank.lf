@@ -1,4 +1,5 @@
-// Test reacting to and reading outputs from a contained reactor bank in various permutations.
+// Test reacting to and reading outputs from a contained reactor bank in various
+// permutations.
 target Cpp
 
 reactor Contained(bank_index: size_t = 0) {

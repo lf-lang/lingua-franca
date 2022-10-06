@@ -1,11 +1,12 @@
 target Python {
-    # Set keepalive to false since this is a test and schedule is called on a physical action from
-    # within a reaction. This is one of the special rare cases where the user might want to manually
-    # override keepalive.
+    # Set keepalive to false since this is a test and schedule is called on a
+    # physical action from within a reaction. This is one of the special rare
+    # cases where the user might want to manually override keepalive.
     keepalive: false
 }
 
-reactor GeneratedDelay {  # That's the stuff that shall be generated for the after
+# That's the stuff that shall be generated for the after
+reactor GeneratedDelay {
     input y_in
     output y_out
     state y_state = 0

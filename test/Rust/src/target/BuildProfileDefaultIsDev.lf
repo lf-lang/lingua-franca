@@ -3,8 +3,8 @@
 target Rust
 
 main reactor {
-    reaction(startup) {=
-        assert!(cfg!(debug_assertions), "debug assertions should be enabled");
-        println!("success");
-    =}
+  reaction(startup) {=
+    assert!(cfg!(debug_assertions), "debug assertions should be enabled");
+    println!("success");
+  =}
 }

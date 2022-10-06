@@ -36,9 +36,11 @@ main reactor {
 
     state expected_value: int = 1
 
-    reaction(stepper) -> counter.next {= lf_set(counter.next, true); =}  // Trigger
+    // Trigger
+    reaction(stepper) -> counter.next {= lf_set(counter.next, true); =}
 
-    reaction(stepper) counter.count {=  // Check
+    // Check
+    reaction(stepper) counter.count {=
         printf("%d\n", counter.count->value);
 
         if (!counter.count->is_present) {

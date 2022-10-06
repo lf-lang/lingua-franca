@@ -3,40 +3,40 @@
 target TypeScript
 
 reactor Source {
-    output out: number
+  output out: number
 
-    reaction(startup) -> out {=
-        // Note: Math.random can't be seeded
-        // Randomly produce an output or not.
-        if (Math.random() > 0.5) {
-            out = 21;
-        }
-    =}
+  reaction(startup) -> out {=
+    // Note: Math.random can't be seeded
+    // Randomly produce an output or not.
+    if (Math.random() > 0.5) {
+        out = 21;
+    }
+  =}
 
-    reaction(startup) -> out {=
-        let previous_output = out;
-        if (previous_output) {
-            out = 2 * previous_output;
-        } else {
-            out = 42;
-        }
-    =}
+  reaction(startup) -> out {=
+    let previous_output = out;
+    if (previous_output) {
+        out = 2 * previous_output;
+    } else {
+        out = 42;
+    }
+  =}
 }
 
 reactor Sink {
-    input x: number
+  input x: number
 
-    reaction(x) {=
-        x = x as number;
-        console.log("Received " + x);
-        if (x != 42) {
-            util.requestErrorStop("FAILED: Expected 42.")
-        }
-    =}
+  reaction(x) {=
+    x = x as number;
+    console.log("Received " + x);
+    if (x != 42) {
+        util.requestErrorStop("FAILED: Expected 42.")
+    }
+  =}
 }
 
 main reactor TestForPreviousOutput {
-    s = new Source()
-    d = new Sink()
-    s.out -> d.x
+  s = new Source()
+  d = new Sink()
+  s.out -> d.x
 }

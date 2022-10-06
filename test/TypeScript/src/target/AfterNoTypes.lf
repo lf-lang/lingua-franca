@@ -1,4 +1,5 @@
-// This test demonstrates that after can be used on connections with ports that have no types.
+// This test demonstrates that after can be used on connections with ports that
+// have no types.
 target TypeScript {
     fast: false,
     timeout: 3 sec

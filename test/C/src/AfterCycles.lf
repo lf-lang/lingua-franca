@@ -1,5 +1,5 @@
-// This tests that "after" does not introduce spurious cycles. Success if running without detected a
-// cycle.
+// This tests that "after" does not introduce spurious cycles. Success if
+// running without detected a cycle.
 target C
 
 reactor Source {

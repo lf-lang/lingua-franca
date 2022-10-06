@@ -1,5 +1,6 @@
-// In TypeScript this test is almost exactly the same as ArrayAsType. Source produces a statically
-// allocated array, which it passes to Print. The destination references the array directly.
+// In TypeScript this test is almost exactly the same as ArrayAsType. Source
+// produces a statically allocated array, which it passes to Print. The
+// destination references the array directly.
 target TypeScript
 
 reactor Source {

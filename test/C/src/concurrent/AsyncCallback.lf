@@ -1,9 +1,11 @@
 /**
- * Test asynchronous callbacks that trigger a physical action. This test case assumes that target is
- * multithreaded. This test will not work with the unthreaded C target because that target does not
- * implement any mutex protecting the event queue.
+ * Test asynchronous callbacks that trigger a physical action. This test case
+ * assumes that target is multithreaded. This test will not work with the
+ * unthreaded C target because that target does not implement any mutex
+ * protecting the event queue.
  *
- * Note: This test uses the LF platform support to enable it to run on multiple platforms.
+ * Note: This test uses the LF platform support to enable it to run on multiple
+ * platforms.
  */
 target C {
     tracing: true,

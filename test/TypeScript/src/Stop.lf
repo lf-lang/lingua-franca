@@ -1,5 +1,6 @@
 /**
- * A test for the util.requestStop() functionality in TypeScript target Lingua Franca.
+ * A test for the util.requestStop() functionality in TypeScript target Lingua
+ * Franca.
  *
  * @author Soroush Bateni
  * @author Byeong-gil Jun

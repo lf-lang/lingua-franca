@@ -18,7 +18,9 @@ main reactor {
 
     reaction(startup) -> box0.inp {= ctx.set(box0__inp, 444); =}
 
-    reaction(box1.out) {= assert!(ctx.get_elapsed_logical_time().is_zero()); self.done = true; =}
+    reaction(box1.out) {=
+        assert!(ctx.get_elapsed_logical_time().is_zero()); self.done = true;
+    =}
 
     reaction(shutdown) {=
         assert!(self.done, "reaction was not executed");

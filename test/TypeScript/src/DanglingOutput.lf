@@ -3,24 +3,24 @@
 target TypeScript
 
 reactor Source {
-    output out: number
-    timer t
+  output out: number
+  timer t
 
-    reaction(t) -> out {= out = 1; =}
+  reaction(t) -> out {= out = 1; =}
 }
 
 reactor Gain {
-    input x: number
-    output out: number
+  input x: number
+  output out: number
 
-    reaction(x) -> out {=
-        console.log("Received " + x);
-        out = (x as number) * 2;
-    =}
+  reaction(x) -> out {=
+    console.log("Received " + x);
+    out = (x as number) * 2;
+  =}
 }
 
 main reactor DanglingOutput {
-    source = new Source()
-    container = new Gain()
-    source.out -> container.x
+  source = new Source()
+  container = new Gain()
+  source.out -> container.x
 }

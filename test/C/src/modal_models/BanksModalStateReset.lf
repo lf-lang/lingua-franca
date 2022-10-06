@@ -1,4 +1,7 @@
-/** Modal Reactor Test. Tests reset of state variables in modes with banks of reactors. */
+/**
+ * Modal Reactor Test. Tests reset of state variables in modes with banks of
+ * reactors.
+ */
 target C {
     fast: false,
     timeout: 4 sec
@@ -45,7 +48,8 @@ main reactor {
     reset2.count2
         -> test.events
 
-    reaction(stepper) -> reset1.next {=  // Trigger mode change (separately because of #1278)
+    // Trigger mode change (separately because of #1278)
+    reaction(stepper) -> reset1.next {=
         for(int i = 0; i < reset1_width; i++) {
             lf_set(reset1[i].next, true);
         }

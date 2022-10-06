@@ -5,8 +5,8 @@ target Rust
 import ImportedAgain from "ImportedAgain.lf"
 
 reactor Imported {
-    input x: u32
-    a = new ImportedAgain()
+  input x: u32
+  a = new ImportedAgain()
 
-    reaction(x) -> a.x {= ctx.set(a__x, ctx.get(x).unwrap()); =}
+  reaction(x) -> a.x {= ctx.set(a__x, ctx.get(x).unwrap()); =}
 }

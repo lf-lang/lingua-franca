@@ -2,5 +2,5 @@
 target Rust
 
 main reactor StopNoEvent {
-    reaction(shutdown) {= println!("success"); =}
+  reaction(shutdown) {= println!("success"); =}
 }

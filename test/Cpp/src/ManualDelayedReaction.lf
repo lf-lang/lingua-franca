@@ -1,6 +1,7 @@
 target Cpp
 
-reactor GeneratedDelay {  // That's the stuff that shall be generated for the after
+// That's the stuff that shall be generated for the after
+reactor GeneratedDelay {
     input y_in: int
     output y_out: int
     state y_state: int = 0
@@ -16,7 +17,8 @@ reactor Source {
     output out: int
     timer t
 
-    reaction(t) -> out {= out.set(1); =}  // reaction(t) -> out after 100 msec {=
+    // reaction(t) -> out after 100 msec {=
+    reaction(t) -> out {= out.set(1); =}
 }
 
 reactor Sink {

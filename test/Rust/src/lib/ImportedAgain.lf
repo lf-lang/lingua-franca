@@ -3,10 +3,10 @@
 target Rust
 
 reactor ImportedAgain {
-    input x: u32
+  input x: u32
 
-    reaction(x) {=
-        assert_eq!(Some(42), ctx.get(x));
-        println!("success");
-    =}
+  reaction(x) {=
+    assert_eq!(Some(42), ctx.get(x));
+    println!("success");
+  =}
 }

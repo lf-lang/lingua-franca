@@ -3,12 +3,12 @@
 target Python
 
 reactor ImportedAgain {  # import Imported from "Imported.lf"
-    input x  # y = new Imported(); // FIXME: Address this bug
+  input x  # y = new Imported(); // FIXME: Address this bug
 
-    reaction(x) {=
-        print("Received: " + str(x.value))
-        if (x.value != 42):
-            print("ERROR: Expected input to be 42. Got: " + x.value)
-            exit(1)
-    =}
+  reaction(x) {=
+    print("Received: " + str(x.value))
+    if (x.value != 42):
+        print("ERROR: Expected input to be 42. Got: " + x.value)
+        exit(1)
+  =}
 }

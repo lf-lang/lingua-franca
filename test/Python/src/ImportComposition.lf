@@ -1,4 +1,5 @@
-# This tests the ability to import a reactor definition that itself imports a reactor definition.
+# This tests the ability to import a reactor definition that itself imports a
+# reactor definition.
 target Python
 
 import ImportedComposition from "lib/ImportedComposition.lf"

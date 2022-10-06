@@ -1,4 +1,5 @@
-// This test connects a simple counting source that checks against its own count.
+// This test connects a simple counting source that checks against its own
+// count.
 target TypeScript {
     fast: true,
     timeout: 10 sec

@@ -1,7 +1,8 @@
 /**
- * This example demonstrates a very simple blink program that will turn on and off an LED on the
- * Arduino Board with a 50% duty cycle switching every half-second. Note: if we try to enable
- * threading, the system will give us a warning and default back to no threading.
+ * This example demonstrates a very simple blink program that will turn on and
+ * off an LED on the Arduino Board with a 50% duty cycle switching every
+ * half-second. Note: if we try to enable threading, the system will give us a
+ * warning and default back to no threading.
  */
 target C {
     platform: {

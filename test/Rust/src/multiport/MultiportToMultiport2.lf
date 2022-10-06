@@ -1,4 +1,5 @@
-// test a sparse connection between multiports (some channels are left disconnected)
+// test a sparse connection between multiports (some channels are left
+// disconnected)
 target Rust
 
 reactor Source(width: usize = 2) {

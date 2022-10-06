@@ -1,4 +1,5 @@
-# Check that a state variable can have a statically initialized struct as a value.
+# Check that a state variable can have a statically initialized struct as a
+# value.
 target Python
 
 main reactor StructAsState {

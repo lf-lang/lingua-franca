@@ -1,5 +1,6 @@
-# This tests passing lists as port values This tests the use of the "polymorphic" delay reactor on a
-# struct. It delays by a logical time any pointer datatype.
+# This tests passing lists as port values This tests the use of the
+# "polymorphic" delay reactor on a struct. It delays by a logical time any
+# pointer datatype.
 target Python
 
 reactor Source {

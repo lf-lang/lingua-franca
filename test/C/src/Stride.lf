@@ -1,5 +1,5 @@
-// This example illustrates state variables and parameters on the wiki. For this test, success is
-// just compiling and running.
+// This example illustrates state variables and parameters on the wiki. For this
+// test, success is just compiling and running.
 target C {
     timeout: 2 sec,
     fast: true

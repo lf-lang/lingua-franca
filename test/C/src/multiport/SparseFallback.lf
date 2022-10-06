@@ -1,6 +1,6 @@
 /**
- * Test reading of sparse inputs on a multiport where the density of writes to the multiport is high
- * enough to force the fallback policy to kick in.
+ * Test reading of sparse inputs on a multiport where the density of writes to
+ * the multiport is high enough to force the fallback policy to kick in.
  */
 target C {
     timeout: 20 ms

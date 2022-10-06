@@ -3,14 +3,14 @@
  * should not pass if it does not compile.
  */
 target CCpp {
-    tracing: true,
-    coordination: centralized,
-    timeout: 1 sec
+  tracing: true,
+  coordination: centralized,
+  timeout: 1 sec
 }
 
 import HelloWorld from "HelloWorldCCPP.lf"
 
 federated reactor {
-    a = new HelloWorld()
-    b = new HelloWorld()  // Create a non-singleton federation
+  a = new HelloWorld()
+  b = new HelloWorld()  // Create a non-singleton federation
 }

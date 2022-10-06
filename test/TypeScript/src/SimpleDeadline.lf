@@ -1,5 +1,6 @@
-// Test local deadline, where a deadline is associated with a reaction definition. This test
-// triggers a reaction exactly once with a deadline violation.
+// Test local deadline, where a deadline is associated with a reaction
+// definition. This test triggers a reaction exactly once with a deadline
+// violation.
 target TypeScript
 
 reactor Deadline(threshold: time = 100 msec) {

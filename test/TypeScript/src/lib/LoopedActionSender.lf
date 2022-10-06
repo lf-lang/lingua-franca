@@ -7,9 +7,10 @@
 target TypeScript
 
 /**
- * @param takeBreakAfter: Indicates how many messages are sent in consecutive superdense time
- * @param breakInterval: Determines how long the reactor should take a break after sending
- * takeBreakAfter messages.
+ * @param takeBreakAfter: Indicates how many messages are sent in consecutive
+ * superdense time
+ * @param breakInterval: Determines how long the reactor should take a break
+ * after sending takeBreakAfter messages.
  */
 reactor Sender(takeBreakAfter: number = 10, breakInterval: time = 400 msec) {
     output out: number

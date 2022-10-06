@@ -4,15 +4,15 @@
  * @author Soroush Bateni
  */
 target C {
-    timeout: 1 sec,
-    coordination: decentralized
+  timeout: 1 sec,
+  coordination: decentralized
 }
 
 import Sender, Receiver from "DistributedLoopedPhysicalAction.lf"
 
 federated reactor {
-    sender = new Sender()
-    receiver = new Receiver()
+  sender = new Sender()
+  receiver = new Receiver()
 
-    sender.out -> receiver.in
+  sender.out -> receiver.in
 }

@@ -1,6 +1,6 @@
 /**
- * A test for the lf_request_stop() functionality in Lingua Franca. This version of the test is
- * threaded.
+ * A test for the lf_request_stop() functionality in Lingua Franca. This version
+ * of the test is threaded.
  *
  * @author Soroush Bateni
  */

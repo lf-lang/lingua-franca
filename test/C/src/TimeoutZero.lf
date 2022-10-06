@@ -1,5 +1,6 @@
 /**
- * A test for the timeout functionality in Lingua Franca. This variant tests timeout at (0,0).
+ * A test for the timeout functionality in Lingua Franca. This variant tests
+ * timeout at (0,0).
  *
  * @author Soroush Bateni
  */

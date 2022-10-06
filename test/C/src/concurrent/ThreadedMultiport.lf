@@ -1,7 +1,8 @@
 // Check multiport capabilities on Outputs.
 target C {
     timeout: 2 sec,
-    flags: ""  // Disable compiler optimization so that TakeTime actually takes time.
+    // Disable compiler optimization so that TakeTime actually takes time.
+    flags: ""
 }
 
 reactor Source(width: int = 4) {

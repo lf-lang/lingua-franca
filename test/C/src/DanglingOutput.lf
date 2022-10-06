@@ -3,24 +3,24 @@
 target C
 
 reactor Source {
-    output out: int
-    timer t
+  output out: int
+  timer t
 
-    reaction(t) -> out {= lf_set(out, 1); =}
+  reaction(t) -> out {= lf_set(out, 1); =}
 }
 
 reactor Gain {
-    input in: int
-    output out: int
+  input in: int
+  output out: int
 
-    reaction(in) -> out {=
-        printf("Received %d.\n", in->value);
-        lf_set(out, in->value * 2);
-    =}
+  reaction(in) -> out {=
+    printf("Received %d.\n", in->value);
+    lf_set(out, in->value * 2);
+  =}
 }
 
 main reactor DanglingOutput {
-    source = new Source()
-    container = new Gain()
-    source.out -> container.in
+  source = new Source()
+  container = new Gain()
+  source.out -> container.in
 }

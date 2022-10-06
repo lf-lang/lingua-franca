@@ -3,12 +3,12 @@
  * does not compile.
  */
 target CCpp {
-    tracing: true,
-    logging: DEBUG
+  tracing: true,
+  logging: DEBUG
 }
 
 import HelloWorld from "HelloWorldCCPP.lf"
 
 main reactor {
-    a = new HelloWorld()
+  a = new HelloWorld()
 }

@@ -1,6 +1,7 @@
 /**
- * This tests that the precedence order of reaction invocation is kept in the hierarchy of reactors
- * when a feedback loop is present in centralized coordination.
+ * This tests that the precedence order of reaction invocation is kept in the
+ * hierarchy of reactors when a feedback loop is present in centralized
+ * coordination.
  *
  * @author Edward A. Lee
  * @author Soroush Bateni
