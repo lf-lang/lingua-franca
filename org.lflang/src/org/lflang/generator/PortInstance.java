@@ -38,19 +38,19 @@ import org.lflang.lf.Port;
 import org.lflang.lf.WidthSpec;
 import org.lflang.lf.WidthTerm;
 
-/** 
+/**
  * Representation of a compile-time instance of a port.
  * Like {@link ReactorInstance}, if one or more parents of this port
  * is a bank of reactors, then there will be more than one runtime instance
  * corresponding to this compile-time instance.
- * 
+ *
  * This may be a single port or a multiport. If it is a multiport, then
  * one instance of this PortInstance class represents all channels.
  * If in addition any parent is a bank, then it represents all channels of all
  * bank members. The {@link #eventualDestinations()} and {@link #eventualSources()}
  * functions report the connectivity of all such channels as lists of
  * {@link SendRange} and {@link RuntimeRange} objects.
- *  
+ *
  * @author Marten Lohstroh
  * @author Edward A. Lee
  */
@@ -75,11 +75,11 @@ public class PortInstance extends TriggerInstance<Port> {
      */
     public PortInstance(Port definition, ReactorInstance parent, ErrorReporter errorReporter) {
         super(definition, parent);
-        
+
         if (parent == null) {
             throw new NullPointerException("Cannot create a PortInstance with no parent.");
         }
-        
+
         setInitialWidth(errorReporter);
     }
 
@@ -125,45 +125,45 @@ public class PortInstance extends TriggerInstance<Port> {
      * not relay ports that the data may go through on the way.
      * Also, if there is an "after" delay anywhere along the path,
      * then the destination is not in the resulting list.
-     * 
+     *
      * If this port itself has dependent reactions,
      * then this port will be included as a destination in all items
      * on the returned list.
-     * 
+     *
      * Each item in the returned list has the following fields:
      * * startRange The starting channel index of this port.
      * * rangeWidth The number of channels sent to the destinations.
      * * destinations A list of port ranges for destination ports, each
      *   of which has the same width as rangeWidth.
-     *   
+     *
      * Each item also has a method, getNumberOfDestinationReactors(),
      * that returns the total number of unique destination reactors for
      * its range. This is not necessarily the same as the number
-     * of ports in its destinations field because some of the ports may 
+     * of ports in its destinations field because some of the ports may
      * share the same container reactor.
      */
     public List<SendRange> eventualDestinations() {
         if (eventualDestinationRanges != null) {
             return eventualDestinationRanges;
         }
-        
+
         // Construct the full range for this port.
         RuntimeRange<PortInstance> range = new RuntimeRange.Port(this);
         eventualDestinationRanges = eventualDestinations(range);
         return eventualDestinationRanges;
     }
-    
+
     /**
      * Return a list of ranges of ports that send data to this port.
      * If this port is directly written to by one more more reactions,
      * then it is its own eventual source and only this port
      * will be represented in the result.
-     * 
+     *
      * If this is not a multiport and is not within a bank, then the list will have
      * only one item and the range will have a total width of one. Otherwise, it will
      * have enough items so that the range widths add up to the width of this
      * multiport multiplied by the total number of instances within containing banks.
-     * 
+     *
      * The ports listed are only ports that are written to by reactions,
      * not relay ports that the data may go through on the way.
      */
@@ -171,7 +171,7 @@ public class PortInstance extends TriggerInstance<Port> {
         return eventualSources(new RuntimeRange.Port(this));
     }
 
-    /** 
+    /**
      * Return the list of ranges of this port together with the
      * downstream ports that are connected to this port.
      * The total with of the ranges in the returned list is a
@@ -181,7 +181,7 @@ public class PortInstance extends TriggerInstance<Port> {
         return dependentPorts;
     }
 
-    /** 
+    /**
      * Return the list of upstream ports that are connected to this port,
      * or an empty set if there are none.
      * For an ordinary port, this list will have length 0 or 1.
@@ -190,14 +190,14 @@ public class PortInstance extends TriggerInstance<Port> {
     public List<RuntimeRange<PortInstance>> getDependsOnPorts() {
         return dependsOnPorts;
     }
-    
-    /** 
+
+    /**
      * Return true if the port is an input.
      */
     public boolean isInput() {
         return (definition instanceof Input);
     }
-    
+
     /**
      * Return true if this is a multiport.
      */
@@ -205,22 +205,22 @@ public class PortInstance extends TriggerInstance<Port> {
         return isMultiport;
     }
 
-    /** 
+    /**
      * Return true if the port is an output.
      */
     public boolean isOutput() {
         return (definition instanceof Output);
     }
-    
+
     @Override
     public String toString() {
         return "PortInstance " + getFullName();
-    }    
+    }
 
     //////////////////////////////////////////////////////
     //// Protected fields.
 
-    /** 
+    /**
      * Ranges of this port together with downstream ports that
      * are connected directly to this port. When there are multiple destinations,
      * the destinations are listed in the order they appear in connections
@@ -233,20 +233,20 @@ public class PortInstance extends TriggerInstance<Port> {
      */
     List<SendRange> dependentPorts = new ArrayList<SendRange>();
 
-    /** 
+    /**
      * Upstream ports that are connected directly to this port, if there are any.
      * For an ordinary port, this set will have size 0 or 1.
      * For a multiport, it can have a larger size.
      * This initially has capacity 1 because that is by far the most common case.
      */
     List<RuntimeRange<PortInstance>> dependsOnPorts = new ArrayList<RuntimeRange<PortInstance>>(1);
-    
+
     /** Indicator of whether this is a multiport. */
     boolean isMultiport = false;
-    
+
     //////////////////////////////////////////////////////
     //// Private methods.
-    
+
     /**
      * Given a RuntimeRange, return a list of SendRange that describes
      * the eventual destinations of the given range.
@@ -272,14 +272,14 @@ public class PortInstance extends TriggerInstance<Port> {
         List<SendRange> result = new ArrayList<SendRange>();
         PriorityQueue<SendRange> queue = new PriorityQueue<SendRange>();
         PortInstance srcPort = srcRange.instance;
-        
-        // Start with, if this port has dependent reactions, then add it to 
+
+        // Start with, if this port has dependent reactions, then add it to
         // every range of the result.
         if (!srcRange.instance.dependentReactions.isEmpty()) {
             // This will be the final result if there are no connections.
             SendRange candidate = new SendRange(
                     srcRange.instance,
-                    srcRange.start, 
+                    srcRange.start,
                     srcRange.width,
                     null, // No interleaving for this range.
                     null  // No connection for this range.
@@ -291,13 +291,13 @@ public class PortInstance extends TriggerInstance<Port> {
         // Need to find send ranges that overlap with this srcRange.
         Iterator<SendRange> sendRanges = srcPort.dependentPorts.iterator();
         while (sendRanges.hasNext()) {
-            
+
             SendRange wSendRange = sendRanges.next();
-            
+
             if (wSendRange.connection != null && wSendRange.connection.getDelay() != null) {
                 continue;
             }
-            
+
             wSendRange = wSendRange.overlap(srcRange);
             if (wSendRange == null) {
                 // This send range does not overlap with the desired range. Try the next one.
@@ -362,7 +362,7 @@ public class PortInstance extends TriggerInstance<Port> {
                 }
             }
         }
-        
+
         return result;
     }
 
@@ -371,12 +371,12 @@ public class PortInstance extends TriggerInstance<Port> {
      * specified range. If this port is directly written to by one more more reactions,
      * then it is its own eventual source and only this port
      * will be represented in the result.
-     * 
+     *
      * If this is not a multiport and is not within a bank, then the list will have
      * only one item and the range will have a total width of one. Otherwise, it will
      * have enough items so that the range widths add up to the width of this
      * multiport multiplied by the total number of instances within containing banks.
-     * 
+     *
      * The ports listed are only ports that are written to by reactions,
      * not relay ports that the data may go through on the way.
      */
@@ -384,7 +384,7 @@ public class PortInstance extends TriggerInstance<Port> {
         if (eventualSourceRanges == null) {
             // Cached result has not been created.
             eventualSourceRanges = new ArrayList<RuntimeRange<PortInstance>>();
-            
+
             if (!dependsOnReactions.isEmpty()) {
                 eventualSourceRanges.add(new RuntimeRange.Port(this));
             } else {
@@ -417,7 +417,7 @@ public class PortInstance extends TriggerInstance<Port> {
                         "Variable-width multiports not supported (yet): " + definition.getName());
             } else {
                 isMultiport = true;
-                
+
                 // Determine the initial width, if possible.
                 // The width may be given by a parameter or even sum of parameters.
                 width = 0;
@@ -432,11 +432,8 @@ public class PortInstance extends TriggerInstance<Port> {
                             width = -1;
                             return;
                         }
-                    } else if (term.getWidth() != 0){
-                        width += term.getWidth();
                     } else {
-                        width = -1;
-                        return;
+                        width += term.getWidth();
                     }
                 }
             }
@@ -445,13 +442,13 @@ public class PortInstance extends TriggerInstance<Port> {
 
     //////////////////////////////////////////////////////
     //// Private fields.
-    
+
     /** Cached list of destination ports with channel ranges. */
     private List<SendRange> eventualDestinationRanges;
 
     /** Cached list of source ports with channel ranges. */
     private List<RuntimeRange<PortInstance>> eventualSourceRanges;
-    
+
     /** Indicator that we are clearing the caches. */
     private boolean clearingCaches = false;
 }

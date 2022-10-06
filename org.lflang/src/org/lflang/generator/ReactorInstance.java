@@ -934,6 +934,7 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
             RuntimeRange<PortInstance> dst = dstRanges.next();
 
             while(true) {
+                System.out.println("DEBUG: dst.width=" + dst.width + ", src.width=" + src.width);
                 if (dst.width == src.width) {
                     connectPortInstances(src, dst, connection);
                     if (!dstRanges.hasNext()) {
@@ -960,7 +961,7 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
                     src = srcRanges.next();
                 } else if (dst.width < src.width) {
                     // Split the left (src) range in two.
-                    connectPortInstances(src.head(dst.width), dst, connection);
+                    if (dst.width > 0) connectPortInstances(src.head(dst.width), dst, connection);
                     src = src.tail(dst.width);
                     if (!dstRanges.hasNext()) {
                         // Should not happen (checked by the validator).
