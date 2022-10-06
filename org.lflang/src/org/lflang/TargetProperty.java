@@ -284,6 +284,9 @@ public enum TargetProperty {
             (config) -> ASTUtils.toElement(config.fastMode),
             (config, value, err) -> {
                 config.fastMode = ASTUtils.toBoolean(value);
+                if (config.isFederated && config.fastMode) {
+                    err.reportError(value, "Federated execution does not support --fast option.");
+                }
             }),
     
     /**

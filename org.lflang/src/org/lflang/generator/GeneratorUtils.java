@@ -66,15 +66,18 @@ public class GeneratorUtils {
      * @param target The target configuration that appears in an LF source file.
      * @param targetConfig The target config to be updated.
      * @param errorReporter The error reporter to which errors should be sent.
+     * @param isFederated Whether the program under compilation is federated
      */
     public static void setTargetConfig(
         LFGeneratorContext context,
         TargetDecl target,
         TargetConfig targetConfig,
-        ErrorReporter errorReporter
+        ErrorReporter errorReporter,
+        boolean isFederated
     ) {
         if (target.getConfig() != null) {
             List<KeyValuePair> pairs = target.getConfig().getPairs();
+            targetConfig.isFederated = isFederated;
             TargetProperty.set(targetConfig, pairs != null ? pairs : List.of(), errorReporter);
         }
         if (context.getArgs().containsKey("no-compile")) {

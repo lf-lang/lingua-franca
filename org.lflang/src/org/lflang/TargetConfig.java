@@ -196,6 +196,11 @@ public class TargetConfig {
     public boolean noRuntimeValidation = false;
 
     /**
+     * If true, the program is federated.
+     */
+    public boolean isFederated = false;
+
+    /**
      * Set the target platform.
      * This tells the build system what platform-specific support
      * files it needs to incorporate at compile time.
