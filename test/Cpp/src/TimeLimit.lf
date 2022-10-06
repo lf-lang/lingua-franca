@@ -1,6 +1,5 @@
 // Test that the stop function can be used to internally to impose a a time
-// limit. This is also used to test performance (number of reactions per
-// second). Correct output for this 1, 2, 3, 4. Failure for this test is failing
+// limit. Correct output for this 1, 2, 3, 4. Failure for this test is failing
 // to halt or getting the wrong data.
 target Cpp {
     fast: true
@@ -30,15 +29,21 @@ reactor Destination {
         }
         s++;
     =}
+
+    reaction(shutdown) {=
+        std::cout << "**** shutdown reaction invoked.\n";
+        if (s != 12) {
+            std::cerr << "ERROR: Expected 12 but got " << s << '\n';
+            exit(1);
+        }
+    =}
 }
 
-main reactor TimeLimit(period: time(100 usec)) {
+main reactor TimeLimit(period: time(1 sec)) {
     timer stop(10 sec)
     c = new Clock(period = period)
     d = new Destination()
     c.y -> d.x
 
     reaction(stop) {= environment()->sync_shutdown(); =}
-
-    reaction(shutdown) {= std::cout << "**** shutdown reaction invoked.\n"; =}
 }
