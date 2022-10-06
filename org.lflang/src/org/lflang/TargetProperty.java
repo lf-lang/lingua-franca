@@ -1324,8 +1324,8 @@ public enum TargetProperty {
 
 
     /**
-     * Clock synchronization options.
-     * @author{Marten Lohstroh <marten@berkeley.edu>}
+     * Platform options.
+     * @author{Anirudh Rengarajan <arengarajan@berkeley.edu>}
      */
     public enum PlatformOption implements DictionaryElement {
         NAME("name", PrimitiveType.STRING),
