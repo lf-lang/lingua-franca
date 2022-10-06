@@ -58,7 +58,7 @@ import com.google.common.collect.ImmutableList;
 public enum TargetProperty {
 
     /**
-     * Directive to specify the execution timeout.
+     * Directive to allow including OpenSSL libraries and process HMAC authentication.
      */
     AUTH("auth", PrimitiveType.BOOLEAN,
             List.of(Target.C),
