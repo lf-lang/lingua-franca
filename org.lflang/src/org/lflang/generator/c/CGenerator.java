@@ -421,6 +421,9 @@ public class CGenerator extends GeneratorBase {
                             "Using the threaded C runtime to allow for asynchronous handling of physical action " +
                             action.getName()
                         );
+                        if (targetConfig.fastMode) {
+                            errorReporter.reportError(action, "When physical action is present --fast is disabled.");
+                        }
                         return;
                     }
                 }
