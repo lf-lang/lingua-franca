@@ -23,6 +23,7 @@ public class CCoreFilesUtils {
         List<String> coreFiles = new ArrayList<>();
         coreFiles.addAll(getBaseCoreFiles());
         coreFiles.addAll(getPlatformFiles());
+        coreFiles.addAll(getSpikeFiles());
         if (isFederated) {
             coreFiles.addAll(getFederatedFiles());
         }
@@ -104,7 +105,19 @@ public class CCoreFilesUtils {
             "platform/lf_arduino_support.c",
             "platform/lf_arduino_support.h",
             "platform/lf_linux_support.c",
-            "platform/lf_linux_support.h"
+            "platform/lf_linux_support.h",
+            "platform/lf_spike_support.c",
+            "platform/lf_spike_support.h"
+        );
+    }
+
+    private static List<String> getSpikeFiles() {
+        return List.of(
+            "spike/common/crt.S",
+            "spike/common/encoding.h",
+            "spike/common/link.ld",
+            "spike/common/syscall.c",
+            "spike/common/util.h"
         );
     }
 

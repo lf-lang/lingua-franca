@@ -1121,6 +1121,12 @@ public class CGenerator extends GeneratorBase {
                     "core" + File.separator + "platform" + File.separator + "lf_linux_support.c"
                 );
             }
+        } else if (osName.indexOf("spike") >= 0) {
+            if (mainDef != null && !targetConfig.useCmake) {
+                targetConfig.compileAdditionalSources.add(
+                    "core" + File.separator + "platform" + File.separator + "lf_spike_support.c"
+                );
+            }
         } else {
             errorReporter.reportError("Platform " + osName + " is not supported");
         }

@@ -1342,6 +1342,7 @@ public enum TargetProperty {
         ARDUINO("Arduino"),
         LINUX("Linux"),
         MAC("Darwin"),
+        SPIKE("Spike"),
         WINDOWS("Windows");
 
         String cMakeName;

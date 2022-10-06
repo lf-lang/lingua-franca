@@ -146,6 +146,7 @@ class CCmakeGenerator {
         cMakeCode.pr("${LF_MAIN_TARGET}");
         sources.forEach(cMakeCode::pr);
         cMakeCode.pr("${CoreLib}/platform/${LF_PLATFORM_FILE}");
+        cMakeCode.pr("${LF_ADDITIONAL_SOURCES}");
         additionalSources.forEach(cMakeCode::pr);
         cMakeCode.unindent();
         cMakeCode.pr(")");
