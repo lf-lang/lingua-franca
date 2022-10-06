@@ -417,6 +417,9 @@ public class CGenerator extends GeneratorBase {
         if (isFederated) {
             // Add compile definitions for federated execution
             targetConfig.compileDefinitions.put("FEDERATED", "");
+            if(targetConfig.auth) {
+                targetConfig.compileDefinitions.put("FEDERATED_AUTH", "");
+            }
             if (targetConfig.coordination == CoordinationType.CENTRALIZED) {
                 // The coordination is centralized.
                 targetConfig.compileDefinitions.put("FEDERATED_CENTRALIZED", "");
