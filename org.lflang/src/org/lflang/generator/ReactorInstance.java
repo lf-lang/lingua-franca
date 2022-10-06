@@ -915,9 +915,9 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
     private void establishPortConnections() {
         for (Connection connection : ASTUtils.allConnections(reactorDefinition)) {
             List<RuntimeRange<PortInstance>> leftPorts = listPortInstances(connection.getLeftPorts(), connection);
-            Iterator<RuntimeRange<PortInstance>> srcRanges = leftPorts.iterator();
             List<RuntimeRange<PortInstance>> rightPorts = listPortInstances(connection.getRightPorts(), connection);
-            Iterator<RuntimeRange<PortInstance>> dstRanges = rightPorts.iterator();
+            Iterator<RuntimeRange<PortInstance>> srcRanges = leftPorts.stream().filter(it -> it.width > 0).iterator();
+            Iterator<RuntimeRange<PortInstance>> dstRanges = rightPorts.stream().filter(it -> it.width > 0).iterator();
 
             // Check for empty lists.
             if (!srcRanges.hasNext()) {
@@ -933,8 +933,7 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
             RuntimeRange<PortInstance> src = srcRanges.next();
             RuntimeRange<PortInstance> dst = dstRanges.next();
 
-            while(true) {
-                System.out.println("DEBUG: dst.width=" + dst.width + ", src.width=" + src.width);
+            while (true) {
                 if (dst.width == src.width) {
                     connectPortInstances(src, dst, connection);
                     if (!dstRanges.hasNext()) {
@@ -970,7 +969,7 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
                         break;
                     }
                     dst = dstRanges.next();
-                } else if (src.width < dst.width) {
+                } else { // src.width < dst.width
                     // Split the right (dst) range in two.
                     connectPortInstances(src, dst.head(src.width), connection);
                     dst = dst.tail(src.width);
