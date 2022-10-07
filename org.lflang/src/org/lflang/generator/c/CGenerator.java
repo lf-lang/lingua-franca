@@ -2586,7 +2586,7 @@ public class CGenerator extends GeneratorBase {
             isFederated,
             fileConfig.getSrcGenPath(),
             clockSyncIsOn(),
-            hasModalReactors,
+            hasModalReactors
         ));
         code.pr(CPreambleGenerator.generateIncludeStatements(
             targetConfig,
@@ -2689,6 +2689,16 @@ public class CGenerator extends GeneratorBase {
                       String.valueOf(reactionInstanceGraph.getBreadth())
                     );
                 }
+                // Set the number of LET reactions
+
+                var nLetReactions = main.getNumberOfLetReactions();
+                if (nLetReactions > 0) {
+                    targetConfig.compileDefinitions.put(
+                      "LF_NUMBER_OF_LET_REACTIONS",
+                      String.valueOf(nLetReactions)
+                    );
+            }
+
             }
 
             // Force reconstruction of dependence information.
