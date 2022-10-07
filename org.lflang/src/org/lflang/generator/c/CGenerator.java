@@ -418,7 +418,8 @@ public class CGenerator extends GeneratorBase {
             // Add compile definitions for federated execution
             targetConfig.compileDefinitions.put("FEDERATED", "");
             if(targetConfig.auth) {
-                targetConfig.compileDefinitions.put("FEDERATED_AUTH", "");
+                // The federates are authenticated before joining federation.
+                targetConfig.compileDefinitions.put("FEDERATED_AUTHENTICATED", "");
             }
             if (targetConfig.coordination == CoordinationType.CENTRALIZED) {
                 // The coordination is centralized.
