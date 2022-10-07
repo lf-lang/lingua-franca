@@ -1,52 +1,73 @@
-# Contributing to LF
+# Contributing to Lingua Franca
 
-### Setup
+This repository hosts the source code for the Lingua Franca compiler, which is written in Java and Kotlin.
+We welcome contributions from the community and provide these guidelines in order to make contributing a smooth, efficient, and fun process.
 
-If you plan to contribute to Lingua Franca, we recommend following the [Developer Eclipse setup with Oomph](https://github.com/lf-lang/lingua-franca/wiki/Developer-Eclipse-Setup-with-Oomph) instructions. Otherwise, you can download a release.
+## Reporting issues
+FIXME
 
-In addition, if you want a Kotlin-friendly developer environment using IntelliJ, you can also follow the [Developer IntelliJ Setup (for Kotlin)](https://github.com/lf-lang/lingua-franca/wiki/Developer-IntelliJ-Setup-%28for-Kotlin%29) instructions to set it up.
+## Contributing code
+You can work on the Lingua Franca code base in your favorite editor and build using Gradle (recommended) or Maven.
+Please refer to our handbook for specific instructions for setting up a development environment in [IntelliJ](https://www.lf-lang.org/docs/handbook/intellij) or [Eclipse](https://www.lf-lang.org/docs/handbook/eclipse-oomph).
 
-You can also build and run the Lingua Franca IDE without the Eclipse setup. To run Lingua Franca IDE (Epoch) with Kotlin-based code generators enabled (which is not possible with the Eclipse setup), please see the instructions in [Running Lingua Franca IDE (Epoch) with Kotlin based Code Generators Enabled (without Eclipse Environment)](https://github.com/lf-lang/lingua-franca/wiki/Running-Lingua-Franca-IDE-%28Epoch%29-with-Kotlin-based-Code-Generators-Enabled-%28without-Eclipse-Environment%29).
+### Workflow
+Every change needs to go through a pull request (PR) and get an approving review before it is merged. Pushing to master is restricted. All code review is conducted using the Github review system on PRs.
+### Feature branches
+Develop new changes in a feature branch or in a fork (if you don't have write permission on the repository). Please use an informative branch name and use kebab case (e.g., `my-new-feature`).
 
-### Github workflow
+### Commit messages
+We currently do not adhere to strict rules regarding commit messages, although that might change.
 
+### Pull requests
+When you file a PR, provide a clear and well-written description of the changes you are proposing. We use PRs to automatically construct our changelog and release notes; the text you write will be featured in them.
 
+#### PR titles
+Please make sure that the title of your PR adheres to the following rules:
+1. Describe a contribution, not the activity of implementing it.
+  - **Bad**: "Improve reporting of file system errors"
+  - **Good**: "Improved reporting of file system errors"
+  - **Bad**: "Fixes #123"
+  - **Good**: "Fix for #123"
+  - **Bad**: "Optimizing algorithm x"
+  - **Good**: "Optimization of algorithm x"
+2. Start with a capital.
+  - **Bad**: "in a hurry"
+  - **Good**: "Hurried new feature"
+3. Do not use title case.
+  - **Bad**: "Amazing Fix of a Terrible Bug"
+  - **Good**: "Amazing fix of a terrible bug"
+4. Do not use a period at the end.
+  - **Bad**: "Titles are not sentences."
+  - **Good**: "Titles are not sentences"
 
-* Develop new changes in a feature branch or in a fork (if you don't have write permission on the repository).
-* Every change needs to go through a PR and get an approving review before it is merged. Pushing to master is restricted.
-* All code review is conducted using the Github review system on PRs.
-#### Branch naming
+#### Labeling PRs
+Labels are used to organize our changelog and release notes. Please label your PR to make it as clear as possible from the labels what this PR is about. If, for whatever reason, your changes should not appear in these digests, you can mark it as such using the `exclude` label.
 
-#### Style for issues
-#### Tagging
+#### Draft PRs
+If a PR is not yet ready for review, mark it as **Draft**. Once it is ready for review, mark it **Ready for Review**.
 
-#### Commit messages
+#### Merging
+Perform merges to bring your feature branch up-to-date with master locally (do not issue a PR). This is very easy to do.
+1. Ensure you are on your feature branch (run `git branch` to find out; `git switch my-feature-branch` to switch to your feature branch).
+2. Make sure you have the latest changes (run `git fetch --all`)
+3. Perform the merge (run `git merge origin/master`, assuming that you want to merge the branch `master` from remote `origin` into `your-feature-branch`).
 
-#### PRs
- - title formatting
- - description
- - templates?
+#### Addressing reviews
+To address feedback from code review, implement changes and push to your feature branch. If you are certain that a reviewer's concern has been addressed by your new changes, hit the `Resolve conversation` button. If you are unsure, ask for follow up in the conversation and let the reviewer determine whether the feedback was addressed accordingly.
 
-#### Code review
+### Code style and formatting
+The Lingua Franca compiler is implemented in Java and Kotlin. The overarching advice is to use each language's most widely used idioms and conventions, which are fortunately very similar. The code base is shipped with a [Spotless](https://github.com/diffplug/spotless) configuration to check and enforce style compliance.
 
+- To check that modified tests are formatted correctly, run:
+```
+./gradlew spotlessCheck
+```
+- To apply the changes recommended by the formatter, run:
+```
+./gradlew spotlessApply
+```
 
+More specific guidelines are described in [code-style.md](code-style.md) (mostly for Java right now). FIXME
 
-### Coding conventions
-
-The Lingua Franca compiler builds on the Xtext framework and is written in Java and partly in Kotlin.
-
-The overarching guideline we follow is to use each language's most widely used idioms and conventions, which are fortunately very similar.
-
-A couple of more specific code hygiene guidelines are described in [code-style.md](code-style.md) (mostly for Java right now).
-
-#### Code formatting
-
-The following code formatters can be imported into Eclipse:
-* [Java](https://github.com/lf-lang/lingua-franca/blob/master/JavaFormatterEclipse.xml)
-
-For Intellij, formatter config files are checked in and don't need to be imported manually. Just make sure to use the project-specific formatter setting.
-
-FIXME: how to configure it? Details.
-We should probably use Spotless.
-
-
+## Reviewing code
+FIXME
