@@ -9,7 +9,8 @@ target C {
 reactor LET {
     output out:int;
     timer t(0, 100 ms);
-    logical action let(100 ms):int;
+    logical action let(50 ms):int;
+    
     reaction(t) -> let {=
         instant_t physical_time = lf_time_physical();
         while (lf_time_physical() < physical_time + MSEC(50)) {
