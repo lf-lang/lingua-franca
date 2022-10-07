@@ -24,17 +24,17 @@ An integral part of contributing code is writing tests.
  Tests in most categories are expected to compile without errors and return exit code `0` when executed. Tests in some categories are not attempted to run and are only expected to compile as they might require the presence of particular hardware or exotic software configurations that are not manageable in GitHub Actions, our current platform for Continuous Integration (CI). Only pushes to [feature branches](#feature-branches) associated with an active [pull request](#pull-requests) trigger CI.
 
 ### Workflow
-Every change needs to go through a pull request (PR), pass all tests run in CI, and get an approving review before it is merged. Pushing to the `master` branch is restricted. All code review is conducted using the Github review system on PRs. Before requesting a code review, ensure that you have:
+All code contributions must go through a pull request (PR), pass all tests run in CI, and get an approving review before it is merged. Pushing to the `master` branch is restricted. All code review is conducted using the Github review system on PRs. Before requesting a code review, ensure that you have:
 - applied the [code formatter](#code-style-and-formatting);
-- documented your code;
+- [documented](#code-style-and-formatting) your code;
 - written [tests](#writing-tests) that cover your code; and
 - accompanied any remaining `TODO`s or `FIXME`s with a link to an active [issue](#reporting-issues).
 
 ### Feature branches
-Develop new changes in a feature branch or in a fork (if you don't have write permission on the repository). Please use an informative branch name and use kebab case (e.g., `my-new-feature`).
+Develop new changes in a feature branch or in a fork (if you have no write permission on the repository). Please use an informative branch name and use kebab case (e.g., `my-new-feature`).
 
 ### Commit messages
-We currently do not adhere to strict rules regarding commit messages, although that might change.
+We currently do not adhere to strict rules regarding commit messages. We only ask that your commit messages are descriptive and informative.
 
 ### Pull requests
 When you file a PR, provide a clear and well-written description of the changes you are proposing. We use PRs to automatically construct our changelog and release notes; the text you write will be featured in them.
@@ -85,7 +85,102 @@ The Lingua Franca compiler is implemented in Java and Kotlin. The overarching ad
 ./gradlew spotlessApply
 ```
 
-More specific guidelines are described in [code-style.md](code-style.md) (mostly for Java right now). FIXME
+#### General guidelines
+- _Do not copy-paste code._ If you want to reuse code, factor it out into a method and call it.
+- _Keep methods concise._ As a rule of thumb, a method should fit on your screen so that it can be read without scrolling. We impose no hard limit on method length, but anything above 40 lines should be considered for breaking up.
+- _Keep classes concise._ Classes should be limited in scope and not become too large. Anything above 1000 lines probably needs refactoring.
+- _Do not leave FIXMEs_. Unaddressed `FIXME`s should not be allowed to pass code review unless they are accompanied with a link to a GitHub issue.
+
+_Comments_
+
+Please adhere to the following principles when writing documentation for your code:
+- Write descriptions in English.
+- Do not use contractions like "aren't" or "isn't".
+- It is OK to use phrases instead of complete sentences, in the interests of brevity. This holds especially in `@param` JavaDoc tag descriptions.
+- Use 3rd person (descriptive) not 2nd person (prescriptive), i.e., write "Compute the shortest path," not "Computes the shortest path."
+
+
+#### Java-specific guidelines
+
+We use the [Google Java style guide](https://google.github.io/styleguide/javaguide.html), which leaves a few things unspecified that we discuss here in a bit more depth.
+
+_Ordering of class contents ([S3.4.2](https://google.github.io/styleguide/javaguide.html#s3.4.2-ordering-class-contents))_
+
+> The order you choose for the members and initializers of your class can have a great effect on learnability. However, there's no single correct recipe for how to do it; different classes may order their contents in different ways.
+
+> What is important is that each class uses some logical order, which its maintainer could explain if asked. For example, new methods are not just habitually added to the end of the class, as that would yield "chronological by date added" ordering, which is not a logical ordering.
+
+When in doubt, the following suggestions might help:
+1. Keep all fields at the very top (and sort them internally by visibility).
+2. After fields, declare constructors.
+3. After constructors, put all methods, in "some logical order".
+4. Put inner classes at the very end.
+
+_Visibility_
+
+Avoid public non-final fields and public collection fields (making them `final` does not make their contents immutable).
+
+_Inheritance_
+
+Design for inheritance or prohibit it. Make new classes final by default, and avoid using protected members. The class should only be unsealed if a use case for inheritance shows up, which is in many cases never. Often, composition can offer a better solution than inheritance (also see a [blog post](https://matthiasnoback.nl/2018/09/final-classes-by-default-why/) on this).
+
+_Collections_
+
+Use interfaces like `List`, `Set`, `Map` to type variables, constructor parameters, and method signatures, not concrete implementations like `LinkedList`, `HashSet`, or `LinkedHashMap`.
+
+_Collection mutability_
+
+In Java, instances of collection classes may be read-only. They will throw an exception when modification is attempted. Read-only views on collections are used to prevent external code from modifying an internal collection by accident, which may break class invariants. Encapsulating modifications to the collection into extra mutator methods is good practice, because it allows maintaining class invariants if the class evolves.
+
+- Assume that any list returned from a method of an object that you do not control is **unmodifiable unless otherwise documented**. That means, make a copy if you need a local modification.
+
+- If you return a collection which is a field of the current object, **make it unmodifiable** (i.e., `return Collections.unmodifiableList(internalList);`). If the API *must* return a modifiable list, then document that it is modifiable. (It's usually better to provide mutator methods to encapsulate the modification to the collection.)
+
+```
+/* Assume the returned list is unmodifiable */
+List<String> contents = container.getListOfContents(); 
+/* You can iterate on the list, get an item, but not set/add/remove. To make local modifications, make a copy:*/
+contents = new ArrayList<>(contents); 
+/* Now the list is modifiable, but changes do not affect the `container` object */
+contents.add("extra");
+
+/* If you need to modify the internal list of the `container`, add a method to the container that encapsulates that logic */
+container.add("extra");
+```
+
+_JavaDoc_
+
+The [Google style guide](https://google.github.io/styleguide/javaguide.html#s7-javadoc) is pretty terse about JavaDoc, in particular about [where JavaDoc is required](https://google.github.io/styleguide/javaguide.html#s7.3-javadoc-where-required). Please refer to the [Oracle JavaDoc style guide](https://www.oracle.com/technical-resources/articles/java/javadoc-tool.html#styleguide) for detailed guidelines.
+
+_Compact JavaDoc_
+
+Omit `@param` and `@return` tags from JavaDoc if the summary line already describes everything there is to know about them.
+For instance, prefer:
+
+```
+/** Return the sum of a and b. */
+public static int getSum(int a, int b) { ... }
+```
+over
+```
+/**
+ * Return the sum of two integers.
+ * @param a an integer
+ * @param b an integer
+ * @return the sum of both parameters
+ */
+public static void printSum(int a, int b) { ... }
+```
+
+Additional information about "compact style" JavaDoc can be found [here](https://www.cs.cornell.edu/courses/JavaAndDS/JavaStyle.html#Comments).
+
+
+#### Kotlin-specific guidelines
+
+Please follow the [Kotlin coding conventions](https://kotlinlang.org/docs/coding-conventions.html).
 
 ## Reviewing code
-FIXME
+
+Code review can be challenging and time consuming, but it is critical for ensuring code quality. This document is meant as a resource for both contributors and reviewers as a reference that codifies in some detail what is expected of contributed code. Reviewers are expected to help contributors conform to the guidelines and help them improve the quality of their contributions. If you are reviewing code, please provide comments that are helpful, constructive, and encouraging.
+
+Sometimes suggestions for improvement can creep beyond the original scope of the fix or feature that a PR means to introduce. In that case, it might be a better option to document suggestions for further improvement in an [issue](#reporting-issues), allowing it to be carried out in a future PR (instead of holding up merging of the current PR).
