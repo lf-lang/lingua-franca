@@ -24,16 +24,20 @@
 ***************/
 package org.lflang.diagram.synthesis.action;
 
+import java.util.WeakHashMap;
+
+import org.lflang.diagram.synthesis.util.InterfaceDependenciesVisualization;
+import org.lflang.diagram.synthesis.util.NamedInstanceUtil;
+import org.lflang.generator.NamedInstance;
+import org.lflang.generator.ReactorInstance;
+
 import com.google.common.base.Preconditions;
+
 import de.cau.cs.kieler.klighd.IAction;
 import de.cau.cs.kieler.klighd.IViewer;
 import de.cau.cs.kieler.klighd.SynthesisOption;
 import de.cau.cs.kieler.klighd.ViewContext;
 import de.cau.cs.kieler.klighd.kgraph.KNode;
-import java.util.WeakHashMap;
-import org.lflang.diagram.synthesis.util.InterfaceDependenciesVisualization;
-import org.lflang.diagram.synthesis.util.NamedInstanceUtil;
-import org.lflang.generator.NamedInstance;
 
 /**
  * Action for toggling collapse/expand state of reactors that memorizes the state and
@@ -108,7 +112,7 @@ public class MemorizingExpandCollapseAction extends AbstractAction {
             linkedInstance = NamedInstanceUtil.getLinkedInstance(node);
         }
         
-        if (node == null) {
+        if (node == null || (linkedInstance instanceof ReactorInstance && ((ReactorInstance) linkedInstance).isMainOrFederated())) {
             return IAction.ActionResult.createResult(false);
         } else {
             setExpansionState(node, linkedInstance, v, !v.isExpanded(node)); // toggle

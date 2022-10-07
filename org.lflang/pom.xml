@@ -7,7 +7,7 @@
         <relativePath>../pom.xml</relativePath>
         <groupId>org.lflang</groupId>
         <artifactId>lf</artifactId>
-        <version>0.1.0-SNAPSHOT</version>
+        <version>0.3.1-SNAPSHOT</version>
     </parent>
 
     <artifactId>org.lflang</artifactId>
@@ -59,11 +59,6 @@
                              and https://mvnrepository.com/artifact/org.eclipse.emf/org.eclipse.emf.mwe2.launch -->
                         <!-- This version MUST match the version xtext uses or the build gets stuck -->
                         <version>${mwe2LaunchVersion}</version>
-                    </dependency>
-                    <dependency>
-                        <groupId>org.eclipse.platform</groupId>
-                        <artifactId>org.eclipse.core.runtime</artifactId>
-                        <version>${runtimeVersion}</version>
                     </dependency>
                     <dependency>
                         <groupId>org.eclipse.xtext</groupId>

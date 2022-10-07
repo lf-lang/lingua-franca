@@ -47,7 +47,7 @@ import org.lflang.generator.ReactorInstance;
 import org.lflang.generator.TriggerInstance;
 import org.lflang.lf.Action;
 import org.lflang.lf.ActionOrigin;
-import org.lflang.lf.Delay;
+import org.lflang.lf.Expression;
 import org.lflang.lf.Input;
 import org.lflang.lf.Instantiation;
 import org.lflang.lf.Output;
@@ -119,7 +119,7 @@ public class FederateInstance {
     /**
      * A list of outputs that can be triggered directly or indirectly by physical actions.
      */
-    public Set<Delay> outputsConnectedToPhysicalActions = new LinkedHashSet<>();
+    public Set<Expression> outputsConnectedToPhysicalActions = new LinkedHashSet<>();
     
     /**
      * The host, if specified using the 'at' keyword.
@@ -137,7 +137,7 @@ public class FederateInstance {
      * may may include null, meaning that there is a connection
      * from the federate instance that has no delay.
      */
-    public Map<FederateInstance, Set<Delay>> dependsOn = new LinkedHashMap<>();
+    public Map<FederateInstance, Set<Expression>> dependsOn = new LinkedHashMap<>();
     
     /**
      * The directory, if specified using the 'at' keyword.
@@ -155,7 +155,7 @@ public class FederateInstance {
      * may may include null, meaning that there is a connection
      * from the federate instance that has no delay.
      */
-    public Map<FederateInstance, Set<Delay>> sendsTo = new LinkedHashMap<>();
+    public Map<FederateInstance, Set<Expression>> sendsTo = new LinkedHashMap<>();
     
     /**
      * The user, if specified using the 'at' keyword.

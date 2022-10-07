@@ -24,11 +24,89 @@
 ***************/
 package org.lflang.diagram.synthesis;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.EnumSet;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+import javax.inject.Inject;
+
+import org.eclipse.elk.alg.layered.options.EdgeStraighteningStrategy;
+import org.eclipse.elk.alg.layered.options.FixedAlignment;
+import org.eclipse.elk.alg.layered.options.GreedySwitchType;
+import org.eclipse.elk.alg.layered.options.LayerConstraint;
+import org.eclipse.elk.alg.layered.options.LayeredOptions;
+import org.eclipse.elk.alg.layered.options.NodePlacementStrategy;
+import org.eclipse.elk.core.math.ElkMargin;
+import org.eclipse.elk.core.math.ElkPadding;
+import org.eclipse.elk.core.math.KVector;
+import org.eclipse.elk.core.options.BoxLayouterOptions;
+import org.eclipse.elk.core.options.ContentAlignment;
+import org.eclipse.elk.core.options.CoreOptions;
+import org.eclipse.elk.core.options.Direction;
+import org.eclipse.elk.core.options.PortConstraints;
+import org.eclipse.elk.core.options.PortLabelPlacement;
+import org.eclipse.elk.core.options.PortSide;
+import org.eclipse.elk.core.options.SizeConstraint;
+import org.eclipse.elk.graph.properties.Property;
+import org.eclipse.emf.ecore.EObject;
+import org.eclipse.emf.ecore.util.EcoreUtil;
+import org.eclipse.xtext.xbase.lib.Conversions;
+import org.eclipse.xtext.xbase.lib.Exceptions;
+import org.eclipse.xtext.xbase.lib.Extension;
+import org.eclipse.xtext.xbase.lib.IterableExtensions;
+import org.eclipse.xtext.xbase.lib.ListExtensions;
+import org.eclipse.xtext.xbase.lib.Pair;
+import org.eclipse.xtext.xbase.lib.StringExtensions;
+import org.lflang.ASTUtils;
+import org.lflang.AttributeUtils;
+import org.lflang.InferredType;
+import org.lflang.diagram.synthesis.action.CollapseAllReactorsAction;
+import org.lflang.diagram.synthesis.action.ExpandAllReactorsAction;
+import org.lflang.diagram.synthesis.action.FilterCycleAction;
+import org.lflang.diagram.synthesis.action.MemorizingExpandCollapseAction;
+import org.lflang.diagram.synthesis.action.ShowCycleAction;
+import org.lflang.diagram.synthesis.postprocessor.ReactionPortAdjustment;
+import org.lflang.diagram.synthesis.styles.LinguaFrancaShapeExtensions;
+import org.lflang.diagram.synthesis.styles.LinguaFrancaStyleExtensions;
+import org.lflang.diagram.synthesis.styles.ReactorFigureComponents;
+import org.lflang.diagram.synthesis.util.CycleVisualization;
+import org.lflang.diagram.synthesis.util.InterfaceDependenciesVisualization;
+import org.lflang.diagram.synthesis.util.LayoutPostProcessing;
+import org.lflang.diagram.synthesis.util.ModeDiagrams;
+import org.lflang.diagram.synthesis.util.NamedInstanceUtil;
+import org.lflang.diagram.synthesis.util.ReactorIcons;
+import org.lflang.diagram.synthesis.util.SynthesisErrorReporter;
+import org.lflang.diagram.synthesis.util.UtilityExtensions;
+import org.lflang.generator.ActionInstance;
+import org.lflang.generator.ParameterInstance;
+import org.lflang.generator.PortInstance;
+import org.lflang.generator.ReactionInstance;
+import org.lflang.generator.ReactorInstance;
+import org.lflang.generator.RuntimeRange;
+import org.lflang.generator.SendRange;
+import org.lflang.generator.TimerInstance;
+import org.lflang.generator.TriggerInstance;
+import org.lflang.lf.Connection;
+import org.lflang.lf.LfPackage;
+import org.lflang.lf.Model;
+import org.lflang.lf.Reactor;
+import org.lflang.lf.StateVar;
+import org.lflang.util.FileUtil;
+
 import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Table;
+
 import de.cau.cs.kieler.klighd.DisplayedActionData;
 import de.cau.cs.kieler.klighd.SynthesisOption;
 import de.cau.cs.kieler.klighd.kgraph.KEdge;
@@ -56,70 +134,6 @@ import de.cau.cs.kieler.klighd.krendering.extensions.KPortExtensions;
 import de.cau.cs.kieler.klighd.krendering.extensions.KRenderingExtensions;
 import de.cau.cs.kieler.klighd.syntheses.AbstractDiagramSynthesis;
 import de.cau.cs.kieler.klighd.util.KlighdProperties;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.EnumSet;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import javax.inject.Inject;
-import org.eclipse.elk.alg.layered.options.EdgeStraighteningStrategy;
-import org.eclipse.elk.alg.layered.options.FixedAlignment;
-import org.eclipse.elk.alg.layered.options.GreedySwitchType;
-import org.eclipse.elk.alg.layered.options.LayerConstraint;
-import org.eclipse.elk.alg.layered.options.LayeredOptions;
-import org.eclipse.elk.alg.layered.options.NodePlacementStrategy;
-import org.eclipse.elk.core.math.ElkMargin;
-import org.eclipse.elk.core.math.ElkPadding;
-import org.eclipse.elk.core.math.KVector;
-import org.eclipse.elk.core.options.BoxLayouterOptions;
-import org.eclipse.elk.core.options.CoreOptions;
-import org.eclipse.elk.core.options.Direction;
-import org.eclipse.elk.core.options.PortConstraints;
-import org.eclipse.elk.core.options.PortSide;
-import org.eclipse.elk.core.options.SizeConstraint;
-import org.eclipse.elk.graph.properties.Property;
-import org.eclipse.emf.ecore.EObject;
-import org.eclipse.emf.ecore.util.EcoreUtil;
-import org.eclipse.xtext.xbase.lib.Conversions;
-import org.eclipse.xtext.xbase.lib.Exceptions;
-import org.eclipse.xtext.xbase.lib.Extension;
-import org.eclipse.xtext.xbase.lib.IterableExtensions;
-import org.eclipse.xtext.xbase.lib.ListExtensions;
-import org.eclipse.xtext.xbase.lib.Pair;
-import org.eclipse.xtext.xbase.lib.StringExtensions;
-import org.lflang.ASTUtils;
-import org.lflang.diagram.synthesis.action.CollapseAllReactorsAction;
-import org.lflang.diagram.synthesis.action.ExpandAllReactorsAction;
-import org.lflang.diagram.synthesis.action.FilterCycleAction;
-import org.lflang.diagram.synthesis.action.MemorizingExpandCollapseAction;
-import org.lflang.diagram.synthesis.action.ShowCycleAction;
-import org.lflang.diagram.synthesis.styles.LinguaFrancaShapeExtensions;
-import org.lflang.diagram.synthesis.styles.LinguaFrancaStyleExtensions;
-import org.lflang.diagram.synthesis.styles.ReactorFigureComponents;
-import org.lflang.diagram.synthesis.util.CycleVisualization;
-import org.lflang.diagram.synthesis.util.InterfaceDependenciesVisualization;
-import org.lflang.diagram.synthesis.util.ModeDiagrams;
-import org.lflang.diagram.synthesis.util.NamedInstanceUtil;
-import org.lflang.diagram.synthesis.util.ReactorIcons;
-import org.lflang.diagram.synthesis.util.SynthesisErrorReporter;
-import org.lflang.diagram.synthesis.util.UtilityExtensions;
-import org.lflang.generator.ActionInstance;
-import org.lflang.generator.ParameterInstance;
-import org.lflang.generator.PortInstance;
-import org.lflang.generator.ReactionInstance;
-import org.lflang.generator.ReactorInstance;
-import org.lflang.generator.RuntimeRange;
-import org.lflang.generator.SendRange;
-import org.lflang.generator.TimerInstance;
-import org.lflang.generator.TriggerInstance;
-import org.lflang.lf.Connection;
-import org.lflang.lf.Model;
-import org.lflang.lf.Reactor;
-import org.lflang.util.FileUtil;
 
 /**
  * Diagram synthesis for Lingua Franca programs.
@@ -143,6 +157,7 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
     @Inject @Extension private FilterCycleAction _filterCycleAction;
     @Inject @Extension private ReactorIcons _reactorIcons;
     @Inject @Extension private ModeDiagrams _modeDiagrams;
+    @Inject @Extension private LayoutPostProcessing _layoutPostProcessing;
     
     // -------------------------------------------------------------------------
     
@@ -153,6 +168,7 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
     public static final Property<Boolean> REACTOR_HAS_BANK_PORT_OFFSET = new Property<>("org.lflang.linguafranca.diagram.synthesis.reactor.bank.offset", false);
     public static final Property<Boolean> REACTOR_INPUT = new Property<>("org.lflang.linguafranca.diagram.synthesis.reactor.input", false);
     public static final Property<Boolean> REACTOR_OUTPUT = new Property<>("org.lflang.linguafranca.diagram.synthesis.reactor.output", false);
+    public static final Property<Boolean> REACTION_SPECIAL_TRIGGER = new Property<>("org.lflang.linguafranca.diagram.synthesis.reaction.special.trigger", false);
     
     // -- STYLE --    
     public static final List<Float> ALTERNATIVE_DASH_PATTERN = List.of(3.0f);
@@ -175,6 +191,7 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
     /** Synthesis category */
     public static final SynthesisOption APPEARANCE = SynthesisOption.createCategory("Appearance", true);
     public static final SynthesisOption EXPERIMENTAL = SynthesisOption.createCategory("Experimental", true);
+    public static final SynthesisOption LAYOUT = SynthesisOption.createCategory("Layout", false).setCategory(LinguaFrancaSynthesis.APPEARANCE);
     
     /** Synthesis options */
     public static final SynthesisOption SHOW_ALL_REACTORS = SynthesisOption.createCheckOption("All Reactors", false);
@@ -192,7 +209,10 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
     public static final SynthesisOption SHOW_REACTOR_HOST = SynthesisOption.createCheckOption("Reactor Host Addresses", true).setCategory(APPEARANCE);
     public static final SynthesisOption SHOW_INSTANCE_NAMES = SynthesisOption.createCheckOption("Reactor Instance Names", false).setCategory(APPEARANCE);
     public static final SynthesisOption REACTOR_PARAMETER_MODE = SynthesisOption.createChoiceOption("Reactor Parameters", ((List<?>)Conversions.doWrapArray(ReactorParameterDisplayModes.values())), ReactorParameterDisplayModes.NONE).setCategory(APPEARANCE);
-    public static final SynthesisOption REACTOR_PARAMETER_TABLE_COLS = SynthesisOption.<Integer>createRangeOption("Reactor Parameter Table Columns", 1, 10, 1).setCategory(APPEARANCE);
+    public static final SynthesisOption SHOW_STATE_VARIABLES = SynthesisOption.createCheckOption("Reactor State Variables", false).setCategory(APPEARANCE);
+    public static final SynthesisOption REACTOR_BODY_TABLE_COLS = SynthesisOption.<Integer>createRangeOption("Reactor Parameter/Variable Columns", 1, 10, 1).setCategory(APPEARANCE);
+    
+    public static final SynthesisOption SPACING = SynthesisOption.<Integer>createRangeOption("Spacing (%)", 0, 150, 5, 75).setCategory(LAYOUT);
     
     /** Synthesis actions */
     public static final DisplayedActionData COLLAPSE_ALL = DisplayedActionData.create(CollapseAllReactorsAction.ID, "Hide all Details");
@@ -204,6 +224,8 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
             SHOW_ALL_REACTORS,
             MemorizingExpandCollapseAction.MEMORIZE_EXPANSION_STATES,
             CYCLE_DETECTION,
+            APPEARANCE,
+            ModeDiagrams.MODES_CATEGORY,
             ModeDiagrams.SHOW_TRANSITION_LABELS,
             ModeDiagrams.INITIALLY_COLLAPSE_MODES,
             SHOW_USER_LABELS,
@@ -219,7 +241,11 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
             SHOW_REACTOR_HOST,
             SHOW_INSTANCE_NAMES,
             REACTOR_PARAMETER_MODE,
-            REACTOR_PARAMETER_TABLE_COLS
+            SHOW_STATE_VARIABLES,
+            REACTOR_BODY_TABLE_COLS,
+            LAYOUT,
+            LayoutPostProcessing.MODEL_ORDER,
+            SPACING
         );
     }
     
@@ -233,6 +259,9 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
     @Override
     public KNode transform(final Model model) {
         KNode rootNode = _kNodeExtensions.createNode();
+        setLayoutOption(rootNode, CoreOptions.ALGORITHM, LayeredOptions.ALGORITHM_ID);
+        setLayoutOption(rootNode, CoreOptions.DIRECTION, Direction.RIGHT);
+        setLayoutOption(rootNode, CoreOptions.PADDING, new ElkPadding(0));
 
         try {
             // Find main
@@ -240,7 +269,7 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
             if (main != null) {
                 ReactorInstance reactorInstance = new ReactorInstance(main, new SynthesisErrorReporter());
                 rootNode.getChildren().addAll(createReactorNode(reactorInstance, true, null, null, new HashMap<>()));
-            } else {
+            } else if (!getBooleanValue(SHOW_ALL_REACTORS)) {
                 KNode messageNode = _kNodeExtensions.createNode();
                 _linguaFrancaShapeExtensions.addErrorMessage(messageNode, TEXT_NO_MAIN_REACTOR, null);
                 rootNode.getChildren().add(messageNode);
@@ -259,11 +288,12 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
                 }
                 if (!reactorNodes.isEmpty()) {
                     // To allow ordering, we need box layout but we also need layered layout for ports thus wrap all node
-                    // TODO use rect packing in the future
                     reactorNodes.add(0, IterableExtensions.head(rootNode.getChildren()));
                     
                     int index = 0;
                     for (KNode node : reactorNodes) {
+                        // Element could be null if there is no main reactor and Show All Reactors is checked.
+                        if (node == null) continue;
                         if (node.getProperty(CoreOptions.COMMENT_BOX)) continue;
                         KNode child = _kNodeExtensions.createNode();
                         child.getChildren().add(node);
@@ -274,7 +304,9 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
                         }
                         _kRenderingExtensions.addInvisibleContainerRendering(child);
                         setLayoutOption(child, CoreOptions.ALGORITHM, LayeredOptions.ALGORITHM_ID);
+                        setLayoutOption(child, CoreOptions.DIRECTION, Direction.RIGHT);
                         setLayoutOption(child, CoreOptions.PADDING, new ElkPadding(0));
+                        // Legacy ordering option.
                         setLayoutOption(child, CoreOptions.PRIORITY, reactorNodes.size() - index); // Order!
                         rootNode.getChildren().add(child);
                         index++;
@@ -335,12 +367,29 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
                 _kRenderingExtensions.to(
                         _kRenderingExtensions.from(
                                 _kRenderingExtensions.setGridPlacementData(rectangle), 
-                                _kRenderingExtensions.LEFT, 8, 0, 
+                                _kRenderingExtensions.LEFT, 6, 0, 
                                 _kRenderingExtensions.TOP, 0, 0), 
-                        _kRenderingExtensions.RIGHT, 8, 0, 
+                        _kRenderingExtensions.RIGHT, 6, 0, 
                         _kRenderingExtensions.BOTTOM, 4, 0);
                 _kRenderingExtensions.setHorizontalAlignment(rectangle, HorizontalAlignment.LEFT);
                 addParameterList(rectangle, reactorInstance.parameters);
+            }
+            
+            if (getBooleanValue(SHOW_STATE_VARIABLES)) {
+                var variables = ASTUtils.<StateVar>collectElements(reactor, LfPackage.eINSTANCE.getReactor_StateVars(), true, false);
+                if (!variables.isEmpty()) {
+                    KRectangle rectangle = _kContainerRenderingExtensions.addRectangle(figure);
+                    _kRenderingExtensions.setInvisible(rectangle, true);
+                    _kRenderingExtensions.to(
+                            _kRenderingExtensions.from(
+                                    _kRenderingExtensions.setGridPlacementData(rectangle), 
+                                    _kRenderingExtensions.LEFT, 6, 0, 
+                                    _kRenderingExtensions.TOP, 0, 0), 
+                            _kRenderingExtensions.RIGHT, 6, 0, 
+                            _kRenderingExtensions.BOTTOM, 4, 0);
+                    _kRenderingExtensions.setHorizontalAlignment(rectangle, HorizontalAlignment.LEFT);
+                    addStateVariableList(rectangle, variables);
+                }
             }
 
             if (reactorInstance.recursive) {
@@ -354,20 +403,8 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
                         allReactorNodes));
             }
             Iterables.addAll(nodes, createUserComments(reactor, node));
-            configureReactorNodeLayout(node);
-            
-            // Additional layout adjustment for main node
-            setLayoutOption(node, CoreOptions.ALGORITHM, LayeredOptions.ALGORITHM_ID);
-            setLayoutOption(node, CoreOptions.DIRECTION, Direction.RIGHT);
-            setLayoutOption(node, CoreOptions.NODE_SIZE_CONSTRAINTS, EnumSet.of(SizeConstraint.MINIMUM_SIZE));
-            setLayoutOption(node, LayeredOptions.NODE_PLACEMENT_BK_FIXED_ALIGNMENT, FixedAlignment.BALANCED);
-            setLayoutOption(node, LayeredOptions.NODE_PLACEMENT_BK_EDGE_STRAIGHTENING, EdgeStraighteningStrategy.IMPROVE_STRAIGHTNESS);
-            setLayoutOption(node, LayeredOptions.SPACING_EDGE_NODE, LayeredOptions.SPACING_EDGE_NODE.getDefault() * 1.1f);
-            setLayoutOption(node, LayeredOptions.SPACING_EDGE_NODE_BETWEEN_LAYERS, LayeredOptions.SPACING_EDGE_NODE_BETWEEN_LAYERS.getDefault() * 1.1f);
-            if (!getBooleanValue(SHOW_HYPERLINKS)) {
-                setLayoutOption(node, CoreOptions.PADDING, new ElkPadding(-1, 6, 6, 6));
-                setLayoutOption(node, LayeredOptions.SPACING_COMPONENT_COMPONENT, LayeredOptions.SPACING_COMPONENT_COMPONENT.getDefault() * 0.5f);
-            }
+            configureReactorNodeLayout(node, true);
+            _layoutPostProcessing.configureMainReactor(node);
         } else {
             ReactorInstance instance = reactorInstance;
             
@@ -402,21 +439,48 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
                     _kRenderingExtensions.to(
                             _kRenderingExtensions.from(
                                     _kRenderingExtensions.setGridPlacementData(rectangle), 
-                                    _kRenderingExtensions.LEFT, 8, 0, 
+                                    _kRenderingExtensions.LEFT, 6, 0, 
                                     _kRenderingExtensions.TOP, 0, 0), 
-                            _kRenderingExtensions.RIGHT, 8, 0, 
+                            _kRenderingExtensions.RIGHT, 6, 0, 
                             _kRenderingExtensions.BOTTOM, 4, 0);
                 } else {
                     _kRenderingExtensions.to(
                             _kRenderingExtensions.from(
                                     _kRenderingExtensions.setGridPlacementData(rectangle), 
-                                    _kRenderingExtensions.LEFT, 8, 0, 
+                                    _kRenderingExtensions.LEFT, 6, 0, 
                                     _kRenderingExtensions.TOP, 4, 0), 
-                            _kRenderingExtensions.RIGHT, 8, 0, 
+                            _kRenderingExtensions.RIGHT, 6, 0, 
                             _kRenderingExtensions.BOTTOM, 0, 0);
                 }
                 _kRenderingExtensions.setHorizontalAlignment(rectangle, HorizontalAlignment.LEFT);
                 addParameterList(rectangle, instance.parameters);
+            }
+            
+            if (getBooleanValue(SHOW_STATE_VARIABLES)) {
+                var variables = ASTUtils.<StateVar>collectElements(reactor, LfPackage.eINSTANCE.getReactor_StateVars(), true, false);
+                if (!variables.isEmpty()) {
+                    KRectangle rectangle = _kContainerRenderingExtensions.addRectangle(comps.getReactor());
+                    _kRenderingExtensions.setInvisible(rectangle, true);
+                    if (!getBooleanValue(SHOW_HYPERLINKS)) {
+                        _kRenderingExtensions.to(
+                                _kRenderingExtensions.from(
+                                        _kRenderingExtensions.setGridPlacementData(rectangle), 
+                                        _kRenderingExtensions.LEFT, 6, 0, 
+                                        _kRenderingExtensions.TOP, 0, 0), 
+                                _kRenderingExtensions.RIGHT, 6, 0, 
+                                _kRenderingExtensions.BOTTOM, 4, 0);
+                    } else {
+                        _kRenderingExtensions.to(
+                                _kRenderingExtensions.from(
+                                        _kRenderingExtensions.setGridPlacementData(rectangle), 
+                                        _kRenderingExtensions.LEFT, 6, 0, 
+                                        _kRenderingExtensions.TOP, 4, 0), 
+                                _kRenderingExtensions.RIGHT, 6, 0, 
+                                _kRenderingExtensions.BOTTOM, 0, 0);
+                    }
+                    _kRenderingExtensions.setHorizontalAlignment(rectangle, HorizontalAlignment.LEFT);
+                    addStateVariableList(rectangle, variables);
+                }
             }
                 
             if (instance.recursive) {
@@ -460,7 +524,11 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
             // Create ports
             Map<PortInstance, KPort> inputPorts = new HashMap<>();
             Map<PortInstance, KPort> outputPorts = new HashMap<>();
-            for (PortInstance input : ListExtensions.reverseView(instance.inputs)) {
+            List<PortInstance> inputs = instance.inputs;
+            if (LayoutPostProcessing.LEGACY.equals((String) getObjectValue(LayoutPostProcessing.MODEL_ORDER))) {
+                inputs = ListExtensions.reverseView(instance.inputs);
+            }
+            for (PortInstance input : inputs) {
                 inputPorts.put(input, addIOPort(node, input, true, input.isMultiport(), reactorInstance.isBank()));
             }
             for (PortInstance output : instance.outputs) {
@@ -509,7 +577,8 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
             } else {
                 Iterables.addAll(nodes, createUserComments(reactor, node));
             }
-            configureReactorNodeLayout(node);
+            configureReactorNodeLayout(node, false);
+            _layoutPostProcessing.configureReactor(node);
         }
 
         // Find and annotate cycles
@@ -524,26 +593,54 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
         return nodes;
     }
     
-    private KNode configureReactorNodeLayout(KNode node) {
-        setLayoutOption(node, CoreOptions.NODE_SIZE_CONSTRAINTS, SizeConstraint.minimumSizeWithPorts());
-        // Allows to freely shuffle ports on each side
-        setLayoutOption(node, CoreOptions.PORT_CONSTRAINTS, PortConstraints.FIXED_SIDE);
+    public KNode configureReactorNodeLayout(KNode node, boolean main) {
+        // Set layered algorithm
+        setLayoutOption(node, CoreOptions.ALGORITHM, LayeredOptions.ALGORITHM_ID);
+        // Left to right layout
+        setLayoutOption(node, CoreOptions.DIRECTION, Direction.RIGHT);
+        // Center free floating children
+        setLayoutOption(node, CoreOptions.CONTENT_ALIGNMENT, ContentAlignment.centerCenter());
+        
         // Balanced placement with straight long edges.
         setLayoutOption(node, LayeredOptions.NODE_PLACEMENT_STRATEGY, NodePlacementStrategy.NETWORK_SIMPLEX);
-        // Otherwise nodes are not sorted if they are not connected
-        setLayoutOption(node, CoreOptions.SEPARATE_CONNECTED_COMPONENTS, false);
-        // Needed to enforce node positions.
-        setLayoutOption(node, LayeredOptions.CROSSING_MINIMIZATION_SEMI_INTERACTIVE, true);
-        // Costs a little more time but layout is quick, therefore, we can do that.
-        setLayoutOption(node, LayeredOptions.THOROUGHNESS, 100);
-        setLayoutOption(node, LayeredOptions.CROSSING_MINIMIZATION_GREEDY_SWITCH_TYPE, GreedySwitchType.TWO_SIDED);
-        if (!getBooleanValue(SHOW_HYPERLINKS)) {
-            setLayoutOption(node, CoreOptions.PADDING, new ElkPadding(2, 6, 6, 6));
-            setLayoutOption(node, LayeredOptions.SPACING_NODE_NODE, LayeredOptions.SPACING_NODE_NODE.getDefault() * 0.75f);
-            setLayoutOption(node, LayeredOptions.SPACING_NODE_NODE_BETWEEN_LAYERS, LayeredOptions.SPACING_NODE_NODE_BETWEEN_LAYERS.getDefault() * 0.75f);
-            setLayoutOption(node, LayeredOptions.SPACING_EDGE_NODE, LayeredOptions.SPACING_EDGE_NODE.getDefault() * 0.75f);
-            setLayoutOption(node, LayeredOptions.SPACING_EDGE_NODE_BETWEEN_LAYERS, LayeredOptions.SPACING_EDGE_NODE_BETWEEN_LAYERS.getDefault() * 0.75f);
+        // Do not shrink nodes below content
+        setLayoutOption(node, CoreOptions.NODE_SIZE_CONSTRAINTS, EnumSet.of(SizeConstraint.MINIMUM_SIZE, SizeConstraint.PORTS));
+        
+        // Allows to freely shuffle ports on each side
+        setLayoutOption(node, CoreOptions.PORT_CONSTRAINTS, PortConstraints.FIXED_SIDE);
+        // Adjust port label spacing to be closer to edge but not overlap with port figure
+        // TODO: Add PortLabelPlacement.NEXT_TO_PORT_IF_POSSIBLE back into the configuration, as soon as ELK provides a fix for LF issue #1273
+        setLayoutOption(node, CoreOptions.PORT_LABELS_PLACEMENT, EnumSet.of(PortLabelPlacement.ALWAYS_OTHER_SAME_SIDE, PortLabelPlacement.OUTSIDE));
+        setLayoutOption(node, CoreOptions.SPACING_LABEL_PORT_HORIZONTAL, 2.0);
+        setLayoutOption(node, CoreOptions.SPACING_LABEL_PORT_VERTICAL, -3.0);
+        
+        // Configure spacing
+        if (!getBooleanValue(SHOW_HYPERLINKS)) { // Hyperlink version is more relaxed in terms of space
+            var factor = (double) getIntValue(SPACING) / 100;
+            
+            setLayoutOption(node, LayeredOptions.SPACING_COMPONENT_COMPONENT, LayeredOptions.SPACING_COMPONENT_COMPONENT.getDefault() * factor);
+            
+            setLayoutOption(node, LayeredOptions.SPACING_NODE_NODE, LayeredOptions.SPACING_NODE_NODE.getDefault() * factor);
+            setLayoutOption(node, LayeredOptions.SPACING_NODE_NODE_BETWEEN_LAYERS, LayeredOptions.SPACING_NODE_NODE_BETWEEN_LAYERS.getDefault() * factor);
+
+            setLayoutOption(node, LayeredOptions.SPACING_PORT_PORT, LayeredOptions.SPACING_PORT_PORT.getDefault() * factor);
+            
+            setLayoutOption(node, LayeredOptions.SPACING_EDGE_NODE, LayeredOptions.SPACING_EDGE_NODE.getDefault() * factor);
+            setLayoutOption(node, LayeredOptions.SPACING_EDGE_NODE_BETWEEN_LAYERS, LayeredOptions.SPACING_EDGE_NODE_BETWEEN_LAYERS.getDefault() * factor);
+            setLayoutOption(node, LayeredOptions.SPACING_EDGE_EDGE, LayeredOptions.SPACING_EDGE_EDGE.getDefault() * factor);
+            setLayoutOption(node, LayeredOptions.SPACING_EDGE_EDGE_BETWEEN_LAYERS, LayeredOptions.SPACING_EDGE_EDGE_BETWEEN_LAYERS.getDefault() * factor);
+            setLayoutOption(node, LayeredOptions.SPACING_EDGE_EDGE, LayeredOptions.SPACING_EDGE_EDGE.getDefault() * factor);
+            setLayoutOption(node, LayeredOptions.SPACING_EDGE_EDGE_BETWEEN_LAYERS, LayeredOptions.SPACING_EDGE_EDGE_BETWEEN_LAYERS.getDefault() * factor);
+            setLayoutOption(node, LayeredOptions.SPACING_EDGE_LABEL, LayeredOptions.SPACING_EDGE_LABEL.getDefault() * factor);
+            
+            // Padding for sub graph
+            if (main) { // Special handing for main reactors
+                setLayoutOption(node, CoreOptions.PADDING, new ElkPadding(-1, 6, 6, 6));
+            } else {
+                setLayoutOption(node, CoreOptions.PADDING, new ElkPadding(2, 6, 6, 6));
+            }
         }
+        
         return node;
     }
     
@@ -673,13 +770,15 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
         Multimap<ActionInstance, KPort> actionSources = HashMultimap.create();
         Map<TimerInstance, KNode> timerNodes = new HashMap<>();
         KNode startupNode = _kNodeExtensions.createNode();
-        boolean startupUsed = false;
+        TriggerInstance<?> startup = null;
         KNode shutdownNode = _kNodeExtensions.createNode();
-        boolean shutdownUsed = false;
+        TriggerInstance<?> shutdown = null;
+        KNode resetNode = _kNodeExtensions.createNode();
+        TriggerInstance<?> reset = null;
 
         // Transform instances
         int index = 0;
-        for (ReactorInstance child : ListExtensions.reverseView(reactorInstance.children)) {
+        for (ReactorInstance child : reactorInstance.children) {
             Boolean expansionState = MemorizingExpandCollapseAction.getExpansionState(child);
             Collection<KNode> rNodes = createReactorNode(
                     child, 
@@ -687,7 +786,6 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
                     inputPorts, 
                     outputPorts, 
                     allReactorNodes);
-            setLayoutOption(IterableExtensions.<KNode>head(rNodes), CoreOptions.PRIORITY, index);
             nodes.addAll(rNodes);
             index++;
         }
@@ -701,10 +799,11 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
             Iterables.addAll(nodes, createUserComments(timer.getDefinition(), node));
             timerNodes.put(timer, node);
             _linguaFrancaShapeExtensions.addTimerFigure(node, timer);
+            _layoutPostProcessing.configureTimer(node);
         }
 
         // Create reactions
-        for (ReactionInstance reaction : ListExtensions.reverseView(reactorInstance.reactions)) {
+        for (ReactionInstance reaction : reactorInstance.reactions) {
             int idx = reactorInstance.reactions.indexOf(reaction);
             KNode node = associateWith(_kNodeExtensions.createNode(), reaction.getDefinition());
             NamedInstanceUtil.linkInstance(node, reaction);
@@ -714,10 +813,18 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
             reactionNodes.put(reaction, node);
             
             setLayoutOption(node, CoreOptions.PORT_CONSTRAINTS, PortConstraints.FIXED_SIDE);
-            setLayoutOption(node, CoreOptions.PRIORITY, (reactorInstance.reactions.size() - idx) * 10 ); // always place with higher priority than reactor nodes
-            setLayoutOption(node, LayeredOptions.POSITION, new KVector(0, idx)); // try order reactions vertically if in one layer
+            _layoutPostProcessing.configureReaction(node);
+            setLayoutOption(node, LayeredOptions.POSITION, new KVector(0, idx + 1)); // try order reactions vertically if in one layer (+1 to account for startup)
             
-            _linguaFrancaShapeExtensions.addReactionFigure(node, reaction);
+            var figure = _linguaFrancaShapeExtensions.addReactionFigure(node, reaction);
+
+            int inputSize = Stream.concat(reaction.triggers.stream(), reaction.sources.stream()).collect(Collectors.toSet()).size();
+            int outputSize = reaction.effects.size();
+            if (!getBooleanValue(REACTIONS_USE_HYPEREDGES) && (inputSize > 1 || outputSize > 1)) {
+                // If this node will have more than one input/output port, the port positions must be adjusted to the
+                // pointy shape. However, this is only possible after the layout.
+                ReactionPortAdjustment.apply(node, figure);
+            }
         
             // connect input
             KPort port = null;
@@ -727,9 +834,7 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
                     port = addInvisiblePort(node);
                     setLayoutOption(port, CoreOptions.PORT_SIDE, PortSide.WEST);
                     
-                    int triggersSize = reaction.triggers != null ? reaction.triggers.size() : 0;
-                    int sourcesSize  = reaction.sources  != null ? reaction.sources.size()  : 0;
-                    if (getBooleanValue(REACTIONS_USE_HYPEREDGES) || triggersSize + sourcesSize == 1) {
+                    if (getBooleanValue(REACTIONS_USE_HYPEREDGES) || inputSize == 1) {
                         // manual adjustment disabling automatic one
                         setLayoutOption(port, CoreOptions.PORT_BORDER_OFFSET,
                                 (double) -LinguaFrancaShapeExtensions.REACTION_POINTINESS);
@@ -740,12 +845,17 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
                     connect(createDependencyEdge(((TriggerInstance.BuiltinTriggerVariable) trigger.getDefinition()).definition), 
                             startupNode, 
                             port);
-                    startupUsed = true;
+                    startup = trigger;
                 } else if (trigger.isShutdown()) {
                     connect(createDelayEdge(((TriggerInstance.BuiltinTriggerVariable) trigger.getDefinition()).definition), 
                             shutdownNode, 
                             port);
-                    shutdownUsed = true;
+                    shutdown = trigger;
+                } else if (trigger.isReset()) {
+                    connect(createDependencyEdge(((TriggerInstance.BuiltinTriggerVariable) trigger.getDefinition()).definition), 
+                            resetNode, 
+                            port);
+                    reset = trigger;
                 } else if (trigger instanceof ActionInstance) {
                     actionDestinations.put(((ActionInstance) trigger), port);
                 } else if (trigger instanceof PortInstance) {
@@ -776,9 +886,7 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
                     port = addInvisiblePort(node);
                     setLayoutOption(port, CoreOptions.PORT_SIDE, PortSide.WEST);
                     
-                    int triggersSize = reaction.triggers != null ? reaction.triggers.size() : 0;
-                    int sourcesSize  = reaction.sources  != null ? reaction.sources.size()  : 0;
-                    if (getBooleanValue(REACTIONS_USE_HYPEREDGES) || triggersSize + sourcesSize == 1) {
+                    if (getBooleanValue(REACTIONS_USE_HYPEREDGES) || inputSize == 1) {
                         // manual adjustment disabling automatic one
                         setLayoutOption(port, CoreOptions.PORT_BORDER_OFFSET, 
                                 (double) -LinguaFrancaShapeExtensions.REACTION_POINTINESS);
@@ -838,6 +946,7 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
             nodes.add(node);
             Iterables.addAll(nodes, createUserComments(action.getDefinition(), node));
             setLayoutOption(node, CoreOptions.PORT_CONSTRAINTS, PortConstraints.FIXED_SIDE);
+            _layoutPostProcessing.configureAction(node);
             Pair<KPort, KPort> ports = _linguaFrancaShapeExtensions.addActionFigureAndPorts(
                     node, 
                     action.isPhysical() ? "P" : "L");
@@ -848,7 +957,7 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
                         String.format("min delay: %s", action.getMinDelay().toString()), 
                         7);
             }
-           // TODO default value?
+            // TODO default value?
             if (action.getDefinition().getMinSpacing() != null) {
                 _kLabelExtensions.addOutsideBottomCenteredNodeLabel(node, 
                         String.format("min spacing: %s", action.getMinSpacing().toString()),
@@ -893,7 +1002,7 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
                     if (connection != null) {
                         KEdge edge = createIODependencyEdge(connection, (leftPort.isMultiport() || rightPort.isMultiport()));
                         if (connection.getDelay() != null) {
-                            KLabel delayLabel = _kLabelExtensions.addCenterEdgeLabel(edge, ASTUtils.toText(connection.getDelay()));
+                            KLabel delayLabel = _kLabelExtensions.addCenterEdgeLabel(edge, ASTUtils.toOriginalText(connection.getDelay()));
                             associateWith(delayLabel, connection.getDelay());
                             if (connection.isPhysical()) {
                                 _linguaFrancaStyleExtensions.applyOnEdgePysicalDelayStyle(delayLabel, 
@@ -935,10 +1044,17 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
         }
 
         // Add startup/shutdown
-        if (startupUsed) {
+        if (startup != null) {
             _linguaFrancaShapeExtensions.addStartupFigure(startupNode);
-            nodes.add(0, startupNode);
+            _utilityExtensions.setID(startupNode, reactorInstance.uniqueID() + "_startup");
+            NamedInstanceUtil.linkInstance(startupNode, startup);
+            startupNode.setProperty(REACTION_SPECIAL_TRIGGER, true);
+            nodes.add(0, startupNode); // add at the start (ordered first)
+            // try to order with reactions vertically if in one layer
+            setLayoutOption(startupNode, LayeredOptions.POSITION, new KVector(0, 0));
             setLayoutOption(startupNode, LayeredOptions.LAYERING_LAYER_CONSTRAINT, LayerConstraint.FIRST);
+            _layoutPostProcessing.configureAction(startupNode);
+            
             if (getBooleanValue(REACTIONS_USE_HYPEREDGES)) {
                 KPort port = addInvisiblePort(startupNode);
                 startupNode.getOutgoingEdges().forEach(it -> {
@@ -946,14 +1062,38 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
                 });
             }
         }
-        if (shutdownUsed) {
+        if (shutdown != null) {
             _linguaFrancaShapeExtensions.addShutdownFigure(shutdownNode);
-          nodes.add(0, shutdownNode);
-          if (getBooleanValue(REACTIONS_USE_HYPEREDGES)) {  // connect all edges to one port
-              KPort port = addInvisiblePort(shutdownNode);
-              shutdownNode.getOutgoingEdges().forEach(it -> {
-                  it.setSourcePort(port);
-              });
+            _utilityExtensions.setID(shutdownNode, reactorInstance.uniqueID() + "_shutdown");
+            NamedInstanceUtil.linkInstance(shutdownNode, shutdown);
+            shutdownNode.setProperty(REACTION_SPECIAL_TRIGGER, true);
+            nodes.add(shutdownNode); // add at the end (ordered last)
+            // try to order with reactions vertically if in one layer
+            _layoutPostProcessing.configureShutDown(shutdownNode);
+            setLayoutOption(shutdownNode, LayeredOptions.POSITION, new KVector(0, reactorInstance.reactions.size() + 1));
+            
+            if (getBooleanValue(REACTIONS_USE_HYPEREDGES)) { // connect all edges to one port
+                KPort port = addInvisiblePort(shutdownNode);
+                shutdownNode.getOutgoingEdges().forEach(it -> {
+                    it.setSourcePort(port);
+                });
+            }
+        }
+        if (reset != null) {
+            _linguaFrancaShapeExtensions.addResetFigure(resetNode);
+            _utilityExtensions.setID(resetNode, reactorInstance.uniqueID() + "_reset");
+            NamedInstanceUtil.linkInstance(resetNode, reset);
+            resetNode.setProperty(REACTION_SPECIAL_TRIGGER, true);
+            nodes.add(startup != null ? 1 : 0, resetNode); // after startup
+            // try to order with reactions vertically if in one layer
+            setLayoutOption(resetNode, LayeredOptions.POSITION, new KVector(0, 0.5));
+            setLayoutOption(resetNode, LayeredOptions.LAYERING_LAYER_CONSTRAINT, LayerConstraint.FIRST);
+            
+            if (getBooleanValue(REACTIONS_USE_HYPEREDGES)) { // connect all edges to one port
+                KPort port = addInvisiblePort(resetNode);
+                resetNode.getOutgoingEdges().forEach(it -> {
+                    it.setSourcePort(port);
+                });
             }
         }
         
@@ -989,7 +1129,8 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
                 prevNode = node;
             }
         }
-        
+
+        _layoutPostProcessing.orderChildren(nodes);
         _modeDiagrams.handleModes(nodes, reactorInstance);
         
         return nodes;
@@ -1020,7 +1161,7 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
             } else {
                 b.append(IterableExtensions.join(reactorInstance.parameters, "(", ", ", ")", 
                         it -> {
-                            return createParameterLabel(it, false);
+                            return createParameterLabel(it);
                         }));
             }
         }
@@ -1030,32 +1171,60 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
     private void addParameterList(KContainerRendering container, List<ParameterInstance> parameters) {
         int cols = 1;
         try {
-            cols = getIntValue(REACTOR_PARAMETER_TABLE_COLS);
+            cols = getIntValue(REACTOR_BODY_TABLE_COLS);
         } catch (Exception e) {} // ignore
         if (cols > parameters.size()) {
             cols = parameters.size();
         }
         _kContainerRenderingExtensions.setGridPlacement(container, cols);
         for (ParameterInstance param : parameters) {
-            KText paramText = _kContainerRenderingExtensions.addText(container, createParameterLabel(param, true));
-            _kRenderingExtensions.setFontSize(paramText, 8);
-            _kRenderingExtensions.setHorizontalAlignment(paramText, HorizontalAlignment.LEFT);
+            var entry = _linguaFrancaShapeExtensions.addParameterEntry(
+                    container, param.getDefinition(), createParameterLabel(param));
+            _kRenderingExtensions.setHorizontalAlignment(entry, HorizontalAlignment.LEFT);
         }
     }
     
-    private String createParameterLabel(ParameterInstance param, boolean bullet) {
+    private String createParameterLabel(ParameterInstance param) {
         StringBuilder b = new StringBuilder();
-        if (bullet) {
-            b.append("\u2022 ");
-        }
         b.append(param.getName());
-        String t = param.type.toText();
+        String t = param.type.toOriginalText();
         if (!StringExtensions.isNullOrEmpty(t)) {
             b.append(":").append(t);
         }
         if (!IterableExtensions.isNullOrEmpty(param.getInitialValue())) {
             b.append("(");
-            b.append(IterableExtensions.join(param.getInitialValue(), ", ", _utilityExtensions::toText));
+            b.append(IterableExtensions.join(param.getInitialValue(), ", ", ASTUtils::toOriginalText));
+            b.append(")");
+        }
+        return b.toString();
+    }
+    
+    public void addStateVariableList(KContainerRendering container, List<StateVar> variables) {
+        int cols = 1;
+        try {
+            cols = getIntValue(REACTOR_BODY_TABLE_COLS);
+        } catch (Exception e) {} // ignore
+        if (cols > variables.size()) {
+            cols = variables.size();
+        }
+        _kContainerRenderingExtensions.setGridPlacement(container, cols);
+        for (var variable : variables) {
+            var entry = _linguaFrancaShapeExtensions.addStateEntry(
+                    container, variable, createStateVariableLabel(variable), variable.isReset());
+            _kRenderingExtensions.setHorizontalAlignment(entry, HorizontalAlignment.LEFT);
+        }
+    }
+    
+    private String createStateVariableLabel(StateVar variable) {
+        StringBuilder b = new StringBuilder();
+        b.append(variable.getName());
+        if (variable.getType() != null) {
+            var t = InferredType.fromAST(variable.getType());
+            b.append(":").append(t.toOriginalText());
+        }
+        if (!IterableExtensions.isNullOrEmpty(variable.getInit())) {
+            b.append("(");
+            b.append(IterableExtensions.join(variable.getInit(), ", ", ASTUtils::toOriginalText));
             b.append(")");
         }
         return b.toString();
@@ -1221,7 +1390,7 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
     
     private Iterable<KNode> createUserComments(EObject element, KNode targetNode) {
         if (getBooleanValue(SHOW_USER_LABELS)) {
-            String commentText = ASTUtils.findAnnotationInComments(element, "@label");
+            String commentText = AttributeUtils.label(element);
             
             if (!StringExtensions.isNullOrEmpty(commentText)) {
                 KNode comment = _kNodeExtensions.createNode();

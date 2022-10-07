@@ -7,6 +7,7 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.lang.Thread.UncaughtExceptionHandler;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.nio.file.Path;
@@ -15,14 +16,12 @@ import java.io.FileWriter;
 import java.io.BufferedWriter;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.List;
-import java.util.ArrayList;
 import java.util.Objects;
 import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
@@ -45,12 +44,14 @@ import org.lflang.LFRuntimeModule;
 import org.lflang.LFStandaloneSetup;
 import org.lflang.Target;
 import org.lflang.generator.GeneratorResult;
+import org.lflang.generator.DockerGeneratorBase;
 import org.lflang.generator.LFGenerator;
 import org.lflang.generator.LFGeneratorContext;
 import org.lflang.generator.MainContext;
 import org.lflang.tests.Configurators.Configurator;
 import org.lflang.tests.LFTest.Result;
 import org.lflang.tests.TestRegistry.TestCategory;
+import org.lflang.util.FileUtil;
 import org.lflang.util.LFCommand;
 
 import com.google.inject.Inject;
@@ -98,14 +99,30 @@ public abstract class TestBase {
     /** The targets for which to run the tests. */
     private final List<Target> targets;
 
-
-
     /**
      * An enumeration of test levels.
      * @author Marten Lohstroh <marten@berkeley.edu>
      *
      */
     public enum TestLevel {VALIDATION, CODE_GEN, BUILD, EXECUTION}
+
+    /**
+     * Static function for converting a path to its associated test level.
+     * @author Anirudh Rengarajan <arengarajan@berkeley.edu>
+     */
+    public static TestLevel pathToLevel(Path path) {
+        while(path.getParent() != null) {
+            String name = path.getFileName().toString();
+            for (var category: TestCategory.values()) {
+                if (category.name().equalsIgnoreCase(name)) {
+                    return category.level;
+                }
+            }
+            path = path.getParent();
+        }
+        return TestLevel.EXECUTION;
+    }
+
     /**
      * A collection messages often used throughout the test package.
      *
@@ -125,8 +142,6 @@ public abstract class TestBase {
         public static final String DESC_SERIALIZATION = "Run serialization tests.";
         public static final String DESC_GENERIC = "Run generic tests.";
         public static final String DESC_TYPE_PARMS = "Run tests for reactors with type parameters.";
-        public static final String DESC_EXAMPLES = "Validate examples.";
-        public static final String DESC_EXAMPLE_TESTS = "Run example tests.";
         public static final String DESC_MULTIPORT = "Run multiport tests.";
         public static final String DESC_AS_FEDERATED = "Run non-federated tests in federated mode.";
         public static final String DESC_FEDERATED = "Run federated tests.";
@@ -134,6 +149,7 @@ public abstract class TestBase {
         public static final String DESC_DOCKER_FEDERATED = "Run docker federated tests.";
         public static final String DESC_CONCURRENT = "Run concurrent tests.";
         public static final String DESC_TARGET_SPECIFIC = "Run target-specific tests";
+        public static final String DESC_ARDUINO = "Running Arduino tests.";
         public static final String DESC_AS_CCPP = "Running C tests as CCpp.";
         public static final String DESC_SINGLE_THREADED = "Run non-concurrent and non-federated tests with threading = off.";
         public static final String DESC_SCHED_SWAPPING = "Running with non-default runtime scheduler ";
@@ -170,7 +186,6 @@ public abstract class TestBase {
     protected final void runTestsAndPrintResults(Target target,
                                                  Predicate<TestCategory> selected,
                                                  Configurator configurator,
-                                                 TestLevel level,
                                                  boolean copy) {
         var categories = Arrays.stream(TestCategory.values()).filter(selected)
                 .collect(Collectors.toList());
@@ -178,7 +193,7 @@ public abstract class TestBase {
             System.out.println(category.getHeader());
             var tests = TestRegistry.getRegisteredTests(target, category, copy);
             try {
-                validateAndRun(tests, configurator, level);
+                validateAndRun(tests, configurator, category.level);
             } catch (IOException e) {
                 throw new RuntimeIOException(e);
             }
@@ -201,11 +216,10 @@ public abstract class TestBase {
     protected void runTestsForTargets(String description,
                                       Predicate<TestCategory> selected,
                                       Configurator configurator,
-                                      TestLevel level,
                                       boolean copy) {
         for (Target target : this.targets) {
             runTestsFor(List.of(target), description, selected,
-                        configurator, level, copy);
+                        configurator, copy);
         }
     }
 
@@ -225,14 +239,13 @@ public abstract class TestBase {
                                String description,
                                Predicate<TestCategory> selected,
                                Configurator configurator,
-                               TestLevel level,
                                boolean copy) {
         for (Target target : subset) {
             printTestHeader(target, description);
-            runTestsAndPrintResults(target, selected, configurator, level, copy);
+            runTestsAndPrintResults(target, selected, configurator, copy);
         }
     }
-    
+
     /**
      * Whether to enable {@link #runWithThreadingOff()}.
      */
@@ -349,7 +362,7 @@ public abstract class TestBase {
         System.out.print(THIN_LINE);
 
         for (var test : tests) {
-            System.out.print(test.reportErrors());
+            test.reportErrors();
         }
         for (LFTest lfTest : tests) {
             assertSame(Result.TEST_PASS, lfTest.result);
@@ -375,7 +388,7 @@ public abstract class TestBase {
             LFGeneratorContext.Mode.STANDALONE, CancelIndicator.NullImpl, (m, p) -> {}, new Properties(), true,
             fileConfig -> new DefaultErrorReporter()
         );
-        
+
         var r = resourceSetProvider.get().getResource(
             URI.createFileURI(test.srcFile.toFile().getAbsolutePath()),
             true);
@@ -433,7 +446,7 @@ public abstract class TestBase {
      * Override to add some LFC arguments to all runs of this test class.
      */
     protected void addExtraLfcArgs(Properties args) {
-        // to be overridden
+        args.setProperty("logging", "Debug");
     }
 
 
@@ -470,6 +483,13 @@ public abstract class TestBase {
                 var p = pb.start();
                 var stdout = test.execLog.recordStdOut(p);
                 var stderr = test.execLog.recordStdErr(p);
+
+                var stdoutException = new AtomicReference<Throwable>(null);
+                var stderrException = new AtomicReference<Throwable>(null);
+
+                stdout.setUncaughtExceptionHandler((thread, throwable) -> stdoutException.set(throwable));
+                stderr.setUncaughtExceptionHandler((thread, throwable) -> stderrException.set(throwable));
+
                 if (!p.waitFor(MAX_EXECUTION_TIME_SECONDS, TimeUnit.SECONDS)) {
                     stdout.interrupt();
                     stderr.interrupt();
@@ -477,6 +497,19 @@ public abstract class TestBase {
                     test.result = Result.TEST_TIMEOUT;
                     return;
                 } else {
+                    if (stdoutException.get() != null || stderrException.get() != null) {
+                        test.result = Result.TEST_EXCEPTION;
+                        test.execLog.buffer.setLength(0);
+                        if (stdoutException.get() != null) {
+                            test.execLog.buffer.append("Error during stdout handling:\n");
+                            appendStackTrace(stdoutException.get(), test.execLog.buffer);
+                        }
+                        if (stderrException.get() != null) {
+                            test.execLog.buffer.append("Error during stderr handling:\n");
+                            appendStackTrace(stderrException.get(), test.execLog.buffer);
+                        }
+                        return;
+                    }
                     if (p.exitValue() != 0) {
                         test.result = Result.TEST_FAIL;
                         test.exitValue = Integer.toString(p.exitValue());
@@ -487,50 +520,40 @@ public abstract class TestBase {
         } catch (Exception e) {
             test.result = Result.TEST_EXCEPTION;
             // Add the stack trace to the test output
-            StringWriter sw = new StringWriter();
-            PrintWriter pw = new PrintWriter(sw);
-            e.printStackTrace(pw);
-            test.execLog.buffer.append(sw);
+            appendStackTrace(e, test.execLog.buffer);
             return;
         }
         test.result = Result.TEST_PASS;
+        // clear the log if the test succeeded to free memory
+        test.execLog.clear();
+    }
+
+    static private void appendStackTrace(Throwable t, StringBuffer buffer) {
+        StringWriter sw = new StringWriter();
+        PrintWriter pw = new PrintWriter(sw);
+        t.printStackTrace(pw);
+        buffer.append(sw);
     }
 
     /**
-     * Return a Mapping of federateName -> absolutePathToDockerFile.
-     * Expects the docker file to be two levels below where the source files are generated (ex. srcGenPath/nameOfFederate/*Dockerfile)
-     * @param test The test to get the execution command for.
+     * Return the content of the bash script used for testing docker option in federated execution.
+     * @param dockerFiles A list of paths to docker files.
+     * @param dockerComposeFilePath The path to the docker compose file.
      */
-    private Map<String, Path> getFederatedDockerFiles(LFTest test) {
-        Map<String, Path> fedNameToDockerFile = new HashMap<>();
-        File[] srcGenFiles = test.fileConfig.getSrcGenPath().toFile().listFiles();
-        if (srcGenFiles != null) {
-            for (File srcGenFile : srcGenFiles) {
-                if (srcGenFile.isDirectory()) {
-                    File[] dockerFile = srcGenFile.listFiles(pathName -> pathName.getName().endsWith("Dockerfile"));
-                    assert (dockerFile != null ? dockerFile.length : 0) == 1;
-                    fedNameToDockerFile.put(srcGenFile.getName(), dockerFile[0].getAbsoluteFile().toPath());
-                }
-            }
-        }
-        return fedNameToDockerFile;
-    }
-
-    /**
-     * Return the content of the bash script used for testing docker option in federated execution. 
-     * @param fedNameToDockerFile A mapping of federateName -> absolutePathToDockerFile
-     * @param testNetworkName The name of the network used for testing the docker option. 
-     *                        See https://github.com/lf-lang/lingua-franca/wiki/Containerized-Execution#federated-execution for more details.
-     */
-    private String getDockerRunScript(Map<String, Path> fedNameToDockerFile, String testNetworkName) {
+    private String getDockerRunScript(List<Path> dockerFiles, Path dockerComposeFilePath) {
+        var dockerComposeCommand = DockerGeneratorBase.getDockerComposeCommand();
         StringBuilder shCode = new StringBuilder();
         shCode.append("#!/bin/bash\n");
-        int n = fedNameToDockerFile.size();
         shCode.append("pids=\"\"\n");
-        shCode.append(String.format("docker run --rm --network=%s --name=rti rti:rti -i 1 -n %d &\n", testNetworkName, n));
+        shCode.append(String.format("%s run -f %s --rm -T rti &\n",
+            dockerComposeCommand, dockerComposeFilePath));
         shCode.append("pids+=\"$!\"\nsleep 3\n");
-        for (String fedName : fedNameToDockerFile.keySet()) {
-            shCode.append(String.format("docker run --rm --network=%s %s:test -i 1 &\n", testNetworkName, fedName));
+        for (Path dockerFile : dockerFiles) {
+            var composeServiceName = dockerFile.getFileName().toString().replace(".Dockerfile", "");
+            shCode.append(String.format("%s run -f %s --rm -T %s &\n",
+                dockerComposeCommand,
+                dockerComposeFilePath,
+                composeServiceName));
             shCode.append("pids+=\" $!\"\n");
         }
         shCode.append("for p in $pids; do\n");
@@ -547,7 +570,7 @@ public abstract class TestBase {
      * Returns true if docker exists, false otherwise.
      */
     private boolean checkDockerExists() {
-        LFCommand checkCommand = LFCommand.get("docker", Arrays.asList("info"));
+        LFCommand checkCommand = LFCommand.get("docker", List.of("info"));
         return checkCommand.run() == 0;
     }
 
@@ -557,18 +580,20 @@ public abstract class TestBase {
      * docker build: https://docs.docker.com/engine/reference/commandline/build/
      * docker run: https://docs.docker.com/engine/reference/run/
      * docker image: https://docs.docker.com/engine/reference/commandline/image/
-     * 
+     *
      * @param test The test to get the execution command for.
      */
     private List<ProcessBuilder> getNonfederatedDockerExecCommand(LFTest test) {
         if (!checkDockerExists()) {
             System.out.println(Message.MISSING_DOCKER);
-            return Arrays.asList(new ProcessBuilder("exit", "1"));
+            return List.of(new ProcessBuilder("exit", "1"));
         }
         var srcGenPath = test.fileConfig.getSrcGenPath();
-        var dockerComposeFile = srcGenPath.resolve("docker-compose.yml");
-        return Arrays.asList(new ProcessBuilder("docker", "compose", "-f", dockerComposeFile.toString(), "up"), 
-                             new ProcessBuilder("docker", "compose", "-f", dockerComposeFile.toString(), "down", "--rmi", "local"));
+        var dockerComposeFile = FileUtil.globFilesEndsWith(srcGenPath, "docker-compose.yml").get(0);
+        var dockerComposeCommand = DockerGeneratorBase.getDockerComposeCommand();
+        return List.of(new ProcessBuilder(dockerComposeCommand, "-f", dockerComposeFile.toString(), "rm", "-f"),
+                       new ProcessBuilder(dockerComposeCommand, "-f", dockerComposeFile.toString(), "up", "--build"),
+                       new ProcessBuilder(dockerComposeCommand, "-f", dockerComposeFile.toString(), "down", "--rmi", "local"));
     }
 
     /**
@@ -578,10 +603,10 @@ public abstract class TestBase {
     private List<ProcessBuilder> getFederatedDockerExecCommand(LFTest test) {
         if (!checkDockerExists()) {
             System.out.println(Message.MISSING_DOCKER);
-            return Arrays.asList(new ProcessBuilder("exit", "1"));
+            return List.of(new ProcessBuilder("exit", "1"));
         }
-        
-        Map<String, Path> fedNameToDockerFile = getFederatedDockerFiles(test);
+        var srcGenPath = test.fileConfig.getSrcGenPath();
+        List<Path> dockerFiles = FileUtil.globFilesEndsWith(srcGenPath, ".Dockerfile");
         try {
             File testScript = File.createTempFile("dockertest", null);
             testScript.deleteOnExit();
@@ -589,24 +614,13 @@ public abstract class TestBase {
                 throw new IOException("Failed to make test script executable");
             }
             FileWriter fileWriter = new FileWriter(testScript.getAbsoluteFile(), true);
-            String testNetworkName = "linguaFrancaTestNetwork";
             BufferedWriter bufferedWriter = new BufferedWriter(fileWriter);
-            bufferedWriter.write(getDockerRunScript(fedNameToDockerFile, testNetworkName));
+            var dockerComposeFile = FileUtil.globFilesEndsWith(srcGenPath, "docker-compose.yml").get(0);
+            bufferedWriter.write(getDockerRunScript(dockerFiles, dockerComposeFile));
             bufferedWriter.close();
-            List<ProcessBuilder> execCommands = new ArrayList<>();
-            execCommands.add(new ProcessBuilder("docker", "network", "create", testNetworkName));
-            for (String fedName : fedNameToDockerFile.keySet()) {
-                Path dockerFile = fedNameToDockerFile.get(fedName);
-                execCommands.add(new ProcessBuilder("docker", "build", "-t", fedName + ":test", "-f", dockerFile.toString(), dockerFile.getParent().toString()));
-            }
-            execCommands.add(new ProcessBuilder(testScript.getAbsolutePath()));
-            for (String fedName : fedNameToDockerFile.keySet()) {
-                execCommands.add(new ProcessBuilder("docker", "image", "rm", fedName + ":test"));
-            }
-            execCommands.add(new ProcessBuilder("docker", "network", "rm", testNetworkName));
-            return execCommands;
+            return List.of(new ProcessBuilder(testScript.getAbsolutePath()));
         } catch (IOException e) {
-            return Arrays.asList(new ProcessBuilder("exit", "1"));
+            return List.of(new ProcessBuilder("exit", "1"));
         }
     }
 
@@ -618,7 +632,7 @@ public abstract class TestBase {
     private List<ProcessBuilder> getExecCommand(LFTest test, GeneratorResult generatorResult) {
         var srcBasePath = test.fileConfig.srcPkgPath.resolve("src");
         var relativePathName = srcBasePath.relativize(test.fileConfig.srcPath).toString();
-        
+
         // special case to test docker file generation
         if (relativePathName.equalsIgnoreCase(TestCategory.DOCKER.getPath())) {
             return getNonfederatedDockerExecCommand(test);

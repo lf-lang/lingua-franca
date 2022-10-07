@@ -1,24 +1,27 @@
-// Check multiport output to bank of recipients where the width of the bank is inferred.
+# Check multiport output to bank of recipients where the width of the bank is
+# inferred.
 target Python {
     timeout: 2 sec,
     fast: true
-}; 
+}
+
 import Source from "MultiportToBank.lf"
-reactor Destination(
-    bank_index(0)
-) {
-    input _in;
-    state received(false);
+
+reactor Destination(bank_index(0)) {
+    input _in
+    state received(false)
+
     reaction(_in) {=
         print("Destination {:d} received {:d}.".format(self.bank_index, _in.value))
         if self.bank_index != _in.value:
             sys.stderr.write("ERROR: Expected {:d}.\n".format(self.bank_index))
             exit(1)
-        if get_elapsed_logical_time() != SEC(1):
+        if lf.time.logical_elapsed() != SEC(1):
             sys.stderr.write("ERROR: Expected to receive input after one second.\n")
             exit(2)
         self.received = True
     =}
+
     reaction(shutdown) {=
         if self.received is not True:
             sys.stderr.write("ERROR: Destination {:d} received no input!\n".format(self.bank_index))
@@ -27,8 +30,8 @@ reactor Destination(
     =}
 }
 
-main reactor MultiportToBankAfter { 
-    a = new Source();
-    b = new[3] Destination();
-    a.out -> b._in after 1 sec; // Width of the bank of delays will be inferred.
+main reactor MultiportToBankAfter {
+    a = new Source()
+    b = new[3] Destination()
+    a.out -> b._in after 1 sec  # Width of the bank of delays will be inferred.
 }

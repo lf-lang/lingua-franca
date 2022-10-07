@@ -1,11 +1,13 @@
-// Check reaction to multiport input of a contained reactor.
+# Check reaction to multiport input of a contained reactor.
 target Python {
     timeout: 2 sec,
     fast: true
-}; 
+}
+
 reactor Destination(width(1)) {
-    state s(6);
-    input[width] _in;
+    state s(6)
+    input[width] _in
+
     reaction(_in) {=
         sm = 0;
         for port in _in:
@@ -18,6 +20,7 @@ reactor Destination(width(1)) {
 
         self.s += 16
     =}
+
     reaction(shutdown) {=
         if self.s <= 6:
             sys.stderr.write("ERROR: Destination received no input!\n")
@@ -25,10 +28,12 @@ reactor Destination(width(1)) {
         print("Success.")
     =}
 }
+
 main reactor MultiportFromReaction {
-    timer t(0, 200 msec);
-    state s(0);
-    b = new Destination(width = 4);
+    timer t(0, 200 msec)
+    state s(0)
+    b = new Destination(width = 4)
+
     reaction(t) -> b._in {=
         for (idx, port) in enumerate(b._in):
             print("Before SET, b.in[{:d}].is_present has value {:d}".format(idx, port.is_present))

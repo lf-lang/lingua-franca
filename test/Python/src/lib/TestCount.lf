@@ -2,19 +2,19 @@
  * Test that a counting sequence of inputs starts with the specified start
  * parameter value, increments by the specified stride, and receives the
  * specified number of inputs.
- * 
+ *
  * @param start The starting value for the expected inputs. Default is 1.
  * @param stride The increment for the inputs. Default is 1.
  * @param num_inputs The number of inputs expected. Default is 1.
  */
-target Python;
+target Python
+
 reactor TestCount(start(1), stride(1), num_inputs(1)) {
-    preamble {=
-        import sys
-    =}
-    state count(start);
-    state inputs_received(0);
-    input in_;
+    preamble {= import sys =}
+    state count(start)
+    state inputs_received(0)
+    input in_
+
     reaction(in_) {=
         print("Received {}.".format(in_.value))
         if in_.value != self.count:
@@ -23,6 +23,7 @@ reactor TestCount(start(1), stride(1), num_inputs(1)) {
         self.count += self.stride;
         self.inputs_received += 1;
     =}
+
     reaction(shutdown) {=
         print("Shutdown invoked.")
         if self.inputs_received != self.num_inputs:

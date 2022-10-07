@@ -31,7 +31,6 @@ import org.lflang.TimeValue
 import org.lflang.generator.PrependOperator
 import org.lflang.lf.Parameter
 import org.lflang.lf.Reactor
-import org.lflang.TimeUnit
 import java.util.StringJoiner
 
 /**
@@ -57,15 +56,6 @@ class TSParameterPreambleGenerator(
             timeInTargetLanguage(targetConfig.timeout)
         } else {
             "undefined"
-        }
-    }
-
-    private fun timeInTargetLanguage(value: TimeValue): String {
-        return if (value.unit != null) {
-            "TimeValue.${value.unit.canonicalName}(${value.time})"
-        } else {
-            // The value must be zero.
-            "TimeValue.zero()"
         }
     }
 

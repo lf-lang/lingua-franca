@@ -1,9 +1,8 @@
 /**
- * Check that request_stop() doesn't cause 
- * any issues at the shutdown tag.
- * 
+ * Check that lf_request_stop() doesn't cause any issues at the shutdown tag.
+ *
  * Original bug discovered by Steven Wong <housengw@berkeley.edu>
- * 
+ *
  * @author Steven Wong <housengw@berkeley.edu>
  */
 target C {
@@ -11,33 +10,26 @@ target C {
 }
 
 reactor A {
-    input in:int;
-    reaction(startup) {=
-        info_print("Hello World!");
-    =}
-     
-    reaction(in) {=
-        info_print("Got it");
-    =}
-    
-    reaction(shutdown) {=
-        request_stop();
-    =}
+    input in: int
+
+    reaction(startup) {= lf_print("Hello World!"); =}
+
+    reaction(in) {= lf_print("Got it"); =}
+
+    reaction(shutdown) {= lf_request_stop(); =}
 }
 
 reactor B {
-    output out:int;
-    timer t(1 sec);
-    reaction(t) -> out {=
-        SET(out, 1);
-    =}
-    reaction(shutdown) {=
-        request_stop();
-    =}
+    output out: int
+    timer t(1 sec)
+
+    reaction(t) -> out {= lf_set(out, 1); =}
+
+    reaction(shutdown) {= lf_request_stop(); =}
 }
 
 federated reactor {
-    a = new A();
-    b = new B();
-    b.out -> a.in;
+    a = new A()
+    b = new B()
+    b.out -> a.in
 }

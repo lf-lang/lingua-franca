@@ -1,9 +1,11 @@
-target Python;
+target Python
+
 reactor Destination {
-    input x;
-    input y;
+    input x
+    input y
+
     reaction(x, y) {=
-        elapsed = get_elapsed_logical_time()
+        elapsed = lf.time.logical_elapsed()
         print("Time since start: ", elapsed)
         if elapsed != 0:
             sys.stderr.write("Expected elapsed time to be 0, but it was {:d}.".format(elapsed))
@@ -20,15 +22,16 @@ reactor Destination {
             exit(1)
     =}
 }
+
 main reactor Microsteps {
-    timer start;
-    logical action repeat;
-    d = new Destination();
+    timer start
+    logical action repeat
+    d = new Destination()
+
     reaction(start) -> d.x, repeat {=
         d.x.set(1)
         repeat.schedule(0)
     =}
-    reaction(repeat) -> d.y {=
-        d.y.set(1)
-    =}
+
+    reaction(repeat) -> d.y {= d.y.set(1) =}
 }

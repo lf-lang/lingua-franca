@@ -33,20 +33,15 @@ public class CCppTest extends TestBase {
         runTestsForTargets(Message.DESC_AS_CCPP, CCppTest::isExcludedFromCCpp,
                            it -> ASTUtils.changeTargetName(it.fileConfig.resource,
                                                            Target.CCPP.getDisplayName()),
-                           TestLevel.EXECUTION, true);
+                           true);
     }
 
     /**
      * Exclusion function for runAsCCpp test
      */
     private static boolean isExcludedFromCCpp(TestCategory category) {
-        // Don't need to test examples.
-        // If any of them uses CCpp, it will
-        // be tested when compileExamples is
-        // run.
-        boolean excluded = category == TestCategory.EXAMPLE;
-        excluded |= category == TestCategory.SERIALIZATION;
-        excluded |= isWindows() && category == TestCategory.DOCKER_FEDERATED;
+        boolean excluded = category == TestCategory.SERIALIZATION;
+        excluded |= isWindows() && (category == TestCategory.DOCKER_FEDERATED || category == TestCategory.ARDUINO) ;
         excluded |= isMac() && (category == TestCategory.DOCKER_FEDERATED || category == TestCategory.DOCKER);
         return !excluded;
     }

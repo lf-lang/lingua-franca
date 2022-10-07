@@ -1,19 +1,20 @@
- // Check multiport output to bank of recipients.
- // Here, the bank is smaller than the width of the sending port.
+// Check multiport output to bank of recipients. Here, the bank is smaller than
+// the width of the sending port.
 target C {
     timeout: 2 sec,
     fast: true
-};
-import Source, Destination from "MultiportFromBank.lf"
-
-reactor Container(port_width:int(3)) {
-    output[port_width] out:int;
-    s = new[port_width] Source(check_override = 1);
-    s.out -> out;
 }
 
-main reactor(width:int(4)) {
-    a = new Container(port_width = width);
-    b = new Destination(port_width = width);
-    a.out -> b.in;
+import Source, Destination from "MultiportFromBank.lf"
+
+reactor Container(port_width: int(3)) {
+    output[port_width] out: int
+    s = new[port_width] Source(check_override = 1)
+    s.out -> out
+}
+
+main reactor(width: int(4)) {
+    a = new Container(port_width = width)
+    b = new Destination(port_width = width)
+    a.out -> b.in
 }

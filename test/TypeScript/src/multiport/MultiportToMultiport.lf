@@ -1,9 +1,9 @@
-target TypeScript;
+target TypeScript
 
 reactor Source {
-    output[4] out:number;
-    
-    reaction (startup) -> out {=
+    output[4] out: number
+
+    reaction(startup) -> out {=
         for (let i = 0; i < out.length; i++) {
             out[i] = i;
         }
@@ -11,10 +11,10 @@ reactor Source {
 }
 
 reactor Sink {
-    input[4] inp:number;
-    state received:boolean(false);
-    
-    reaction (inp) {=
+    input[4] inp: number
+    state received: boolean(false)
+
+    reaction(inp) {=
         for (let i = 0; i < inp.length; i++) {
             console.log("Received " + inp[i]);
             received = true;
@@ -23,7 +23,8 @@ reactor Sink {
             }
         }
     =}
-    reaction (shutdown) {=
+
+    reaction(shutdown) {=
         if (!received) {
             util.requestErrorStop("ERROR: No data received!!");
         }
@@ -32,7 +33,7 @@ reactor Sink {
 }
 
 main reactor MultiportToMultiport {
-    source = new Source();
-    sink = new Sink();
-    source.out -> sink.inp;
+    source = new Source()
+    sink = new Sink()
+    source.out -> sink.inp
 }

@@ -33,9 +33,11 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Predicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
 import org.eclipse.emf.common.util.EList;
@@ -45,9 +47,7 @@ import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.emf.ecore.util.EcoreUtil;
 import org.eclipse.xtext.TerminalRule;
 import org.eclipse.xtext.nodemodel.ICompositeNode;
-import org.eclipse.xtext.nodemodel.ILeafNode;
 import org.eclipse.xtext.nodemodel.INode;
-import org.eclipse.xtext.nodemodel.impl.CompositeNode;
 import org.eclipse.xtext.nodemodel.impl.HiddenLeafNode;
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils;
 import org.eclipse.xtext.resource.XtextResource;
@@ -56,27 +56,29 @@ import org.eclipse.xtext.util.Tuples;
 import org.eclipse.xtext.xbase.lib.IterableExtensions;
 import org.eclipse.xtext.xbase.lib.IteratorExtensions;
 import org.eclipse.xtext.xbase.lib.StringExtensions;
-
+import org.lflang.ast.ToText;
 import org.lflang.generator.CodeMap;
 import org.lflang.generator.GeneratorBase;
 import org.lflang.generator.InvalidSourceException;
 import org.lflang.lf.Action;
 import org.lflang.lf.ActionOrigin;
-import org.lflang.lf.ArraySpec;
 import org.lflang.lf.Assignment;
 import org.lflang.lf.Code;
 import org.lflang.lf.Connection;
-import org.lflang.lf.Delay;
 import org.lflang.lf.Element;
+import org.lflang.lf.Expression;
 import org.lflang.lf.ImportedReactor;
 import org.lflang.lf.Input;
 import org.lflang.lf.Instantiation;
 import org.lflang.lf.LfFactory;
 import org.lflang.lf.LfPackage;
+import org.lflang.lf.Literal;
+import org.lflang.lf.Method;
 import org.lflang.lf.Mode;
 import org.lflang.lf.Model;
 import org.lflang.lf.Output;
 import org.lflang.lf.Parameter;
+import org.lflang.lf.ParameterReference;
 import org.lflang.lf.Port;
 import org.lflang.lf.Reaction;
 import org.lflang.lf.Reactor;
@@ -87,7 +89,6 @@ import org.lflang.lf.Time;
 import org.lflang.lf.Timer;
 import org.lflang.lf.Type;
 import org.lflang.lf.TypeParm;
-import org.lflang.lf.Value;
 import org.lflang.lf.VarRef;
 import org.lflang.lf.Variable;
 import org.lflang.lf.WidthSpec;
@@ -412,7 +413,7 @@ public class ASTUtils {
      */
     private static Instantiation getDelayInstance(Reactor delayClass, 
             Connection connection, String generic, Boolean defineWidthFromConnection) {
-        Delay delay = connection.getDelay();
+        Expression delay = connection.getDelay();
         Instantiation delayInstance = factory.createInstantiation();
         delayInstance.setReactorClass(delayClass);
         if (!StringExtensions.isNullOrEmpty(generic)) {
@@ -439,13 +440,7 @@ public class ASTUtils {
         }
         Assignment assignment = factory.createAssignment();
         assignment.setLhs(delayClass.getParameters().get(0));
-        Value value = factory.createValue();
-        if (delay.getParameter() != null) {
-            value.setParameter(delay.getParameter());
-        } else {
-            value.setTime(delay.getTime());
-        }
-        assignment.getRhs().add(value);
+        assignment.getRhs().add(delay);
         delayInstance.getParameters().add(assignment);
         delayInstance.setName("delay");  // This has to be overridden.
         return delayInstance;
@@ -495,14 +490,13 @@ public class ASTUtils {
         Time defaultTime = factory.createTime();
         defaultTime.setUnit(null);
         defaultTime.setInterval(0);
-        Value defaultValue = factory.createValue();
-        defaultValue.setTime(defaultTime);
-        delayParameter.getInit().add(defaultValue);
+        delayParameter.getInit().add(defaultTime);
 
         // Name the newly created action; set its delay and type.
         action.setName("act");
-        action.setMinDelay(factory.createValue());
-        action.getMinDelay().setParameter(delayParameter);
+        var paramRef = factory.createParameterReference();
+        paramRef.setParameter(delayParameter);
+        action.setMinDelay(paramRef);
         action.setOrigin(ActionOrigin.LOGICAL);
 
         if (generator.getTargetTypes().supportsGenerics()) {
@@ -643,6 +637,15 @@ public class ASTUtils {
     }
     
     /**
+     * Given a reactor class, return a list of all its methods,
+     * which includes methods of base classes that it extends.
+     * @param definition Reactor class definition.
+     */
+    public static List<Method> allMethods(Reactor definition) {
+        return ASTUtils.collectElements(definition, featurePackage.getReactor_Methods());
+    }
+
+    /**
      * Given a reactor class, return a list of all its outputs,
      * which includes outputs of base classes that it extends.
      * @param definition Reactor class definition.
@@ -723,7 +726,7 @@ public class ASTUtils {
      * @param <T> The type of elements to collect (e.g., Port, Timer, etc.)
      * @return A list of all elements of type T found
      */
-    public static <T> List<T> collectElements(Reactor definition, EStructuralFeature feature) {
+    public static <T extends EObject> List<T> collectElements(Reactor definition, EStructuralFeature feature) {
         return ASTUtils.collectElements(definition, feature, true, true);
     }
     
@@ -738,7 +741,7 @@ public class ASTUtils {
      * @return A list of all elements of type T found
      */
     @SuppressWarnings("unchecked")
-    public static <T> List<T> collectElements(Reactor definition, EStructuralFeature feature, boolean includeSuperClasses, boolean includeModes) {
+    public static <T extends EObject> List<T> collectElements(Reactor definition, EStructuralFeature feature, boolean includeSuperClasses, boolean includeModes) {
         List<T> result = new ArrayList<>();
         
         if (includeSuperClasses) {
@@ -758,88 +761,93 @@ public class ASTUtils {
             var modeFeature = reactorModeFeatureMap.get(feature);
             // Add elements of elements defined in modes.
             for (Mode mode : includeSuperClasses ? allModes(definition) : definition.getModes()) {
-                result.addAll((EList<T>) mode.eGet(modeFeature));
+                insertModeElementsAtTextualPosition(result, (EList<T>) mode.eGet(modeFeature), mode);
             }
         }
         
         return result;
+    }
+    
+    /**
+     * Adds the elements into the given list at a location matching to their textual position.
+     * 
+     * When creating a flat view onto reactor elements including modes, the final list must be ordered according
+     * to the textual positions.
+     * 
+     * Example:
+     * reactor R {
+     *   reaction // -> is R.reactions[0]
+     *   mode M {
+     *      reaction // -> is R.mode[0].reactions[0]
+     *      reaction // -> is R.mode[0].reactions[1]
+     *   }
+     *   reaction // -> is R.reactions[1]
+     * }
+     * In this example, it is important that the reactions in the mode are inserted between the top-level 
+     * reactions to retain the correct global reaction ordering, which will be derived from this flattened view.
+     * 
+     * @param list The list to add the elements into.
+     * @param elements The elements to add.
+     * @param mode The mode containing the elements.
+     * @param <T> The type of elements to add (e.g., Port, Timer, etc.)
+     */
+    private static <T extends EObject> void insertModeElementsAtTextualPosition(List<T> list, List<T> elements, Mode mode) {
+        if (elements.isEmpty()) {
+            return; // Nothing to add
+        }
+        
+        var idx = list.size();
+        if (idx > 0) {
+            // If there are elements in the list, first check if the last element has the same container as the mode.
+            // I.e. we don't want to compare textual positions of different reactors (super classes)
+            if (mode.eContainer() == list.get(list.size() - 1).eContainer()) {
+                var modeAstNode = NodeModelUtils.getNode(mode);
+                if (modeAstNode != null) {
+                    var modePos = modeAstNode.getOffset();
+                    // Now move the insertion index from the last element forward as long as this element has a textual
+                    // position after the mode.
+                    do {
+                        var astNode = NodeModelUtils.getNode(list.get(idx - 1));
+                        if (astNode != null && astNode.getOffset() > modePos) {
+                            idx--;
+                        } else {
+                            break; // Insertion index is ok.
+                        }
+                    } while (idx > 0);
+                }
+            }
+        }
+        list.addAll(idx, elements);
     }
 
     ////////////////////////////////
     //// Utility functions for translating AST nodes into text
 
     /**
-     * Translate the given code into its textual representation.
-     * @param code AST node to render as string.
+     * Translate the given code into its textual representation
+     * with {@code CodeMap.Correspondence} tags inserted, or
+     * return the empty string if {@code node} is {@code null}.
+     * This method should be used to generate code.
+     * @param node AST node to render as string.
      * @return Textual representation of the given argument.
      */
-    public static String toText(Code code) {
-        return CodeMap.Correspondence.tag(code, toUntaggedText(code), true);
+    public static String toText(EObject node) {
+        if (node == null) return "";
+        return CodeMap.Correspondence.tag(node, toOriginalText(node), node instanceof Code);
     }
 
     /**
      * Translate the given code into its textual representation
-     * without any {@code CodeMap.Correspondence} tags inserted.
-     * @param code AST node to render as string.
+     * without {@code CodeMap.Correspondence} tags, or return
+     * the empty string if {@code node} is {@code null}.
+     * This method should be used for analyzing AST nodes in
+     * cases where they are easiest to analyze as strings.
+     * @param node AST node to render as string.
      * @return Textual representation of the given argument.
      */
-    private static String toUntaggedText(Code code) {
-        // FIXME: This function should not be necessary, but it is because we currently inspect the
-        //  content of code blocks in the validator and generator (using regexes, etc.). See #810, #657.
-        String text = "";
-        if (code != null) {
-            ICompositeNode node = NodeModelUtils.getNode(code);
-            if (node != null) {
-                StringBuilder builder = new StringBuilder(Math.max(node.getTotalLength(), 1));
-                for (ILeafNode leaf : node.getLeafNodes()) {
-                    builder.append(leaf.getText());
-                }
-                String str = builder.toString().trim();
-                // Remove the code delimiters (and any surrounding comments).
-                // This assumes any comment before {= does not include {=.
-                int start = str.indexOf("{=");
-                int end = str.indexOf("=}", start);
-                if (start == -1 || end == -1) {
-                    // Silent failure is needed here because toText is needed to create the intermediate representation,
-                    // which the validator uses.
-                    return str;
-                }
-                str = str.substring(start + 2, end);
-                if (str.split("\n").length > 1) {
-                    // multi line code
-                    text = StringUtil.trimCodeBlock(str);
-                } else {
-                    // single line code
-                    text = str.trim();
-                }
-            } else if (code.getBody() != null) {
-                // Code must have been added as a simple string.
-                text = code.getBody();
-            }
-        }
-        return text;
-    }
-    
-    public static String toText(TypeParm t) {
-        return !StringExtensions.isNullOrEmpty(t.getLiteral()) ? t.getLiteral() : toText(t.getCode());
-    }
-    
-    /**
-     * Return a textual representation of the given element, 
-     * without quotes if there are any. Leading or trailing 
-     * whitespace is removed.
-     * 
-     * @param e The element to be rendered as a string.
-     */
-    public static String toText(Element e) {
-        String str = "";
-        if (e.getLiteral() != null) {
-            str = withoutQuotes(e.getLiteral()).trim();
-        }
-        if (e.getId() != null) {
-            str = e.getId();
-        }
-        return str;
+    public static String toOriginalText(EObject node) {
+        if (node == null) return "";
+        return ToText.instance.doSwitch(node);
     }
     
     /**
@@ -880,92 +888,27 @@ public class ASTUtils {
      * @param e The element to be rendered as a boolean.
      */
     public static boolean toBoolean(Element e) {
-        return toText(e).equalsIgnoreCase("true");
+        return elementToSingleString(e).equalsIgnoreCase("true");
     }
-    
+
     /**
-     * Convert a time to its textual representation as it would
-     * appear in LF code.
-     * 
-     * @param t The time to be converted
-     * @return A textual representation
+     * Given the right-hand side of a target property, return a string that
+     * represents the given value/
+     *
+     * If the given value is not a literal or and id (but for instance and array or dict),
+     * an empty string is returned. If the element is a string, any quotes are removed.
+     *
+     * @param e The right-hand side of a target property.
      */
-    public static String toText(Time t) {
-        return toTimeValue(t).toString();
-    }
-        
-    /**
-     * Convert a value to its textual representation as it would
-     * appear in LF code.
-     * 
-     * @param v The value to be converted
-     * @return A textual representation
-     */
-    public static String toText(Value v) {
-        if (v.getParameter() != null) {
-            return v.getParameter().getName();
-        }
-        if (v.getTime()!= null) {
-            return toText(v.getTime());
-        }
-        if (v.getLiteral() != null) {
-            return v.getLiteral();
-        }
-        if (v.getCode() != null) {
-            return toText(v.getCode());
+    public static String elementToSingleString(Element e) {
+        if (e.getLiteral() != null) {
+            return StringUtil.removeQuotes(e.getLiteral()).trim();
+        } else if (e.getId() != null) {
+            return e.getId();
         }
         return "";
     }
-    
-    public static String toText(Delay d) {
-        if (d.getParameter() != null) {
-            return d.getParameter().getName();
-        }
-        return toText(d.getTime());
-    }
-    
-    /**
-     * Return a string of the form either "name" or "container.name" depending
-     * on in which form the variable reference was given.
-     * @param v The variable reference.
-     */
-    public static String toText(VarRef v) {
-        if (v.getContainer() != null) {
-            return String.format("%s.%s", v.getClass().getName(), v.getVariable().getName());
-        } else {
-            return v.getVariable().getName();
-        }
-    }
-    
-    /**
-     * Convert an array specification to its textual representation as it would
-     * appear in LF code.
-     * 
-     * @param spec The array spec to be converted
-     * @return A textual representation
-     */
-    public static String toText(ArraySpec spec) {
-        if (spec != null) {
-            return (spec.isOfVariableLength()) ? "[]" : "[" + spec.getLength() + "]";
-        }
-        return "";
-    }
-    
-    /**
-     * Translate the given type into its textual representation, including
-     * any array specifications.
-     * @param type AST node to render as string.
-     * @return Textual representation of the given argument.
-     */
-    public static String toText(Type type) {
-        if (type != null) {
-            String base = baseType(type);
-            String arr = (type.getArraySpec() != null) ? toText(type.getArraySpec()) : "";
-            return base + arr;
-        }
-        return "";
-    }
-    
+
     /**
      * Given the right-hand side of a target property, return a list with all
      * the strings that the property lists.
@@ -974,17 +917,17 @@ public class ASTUtils {
      * are ignored; they are not added to the list.
      * @param value The right-hand side of a target property.
      */
-    public static List<String> toListOfStrings(Element value) {
+    public static List<String> elementToListOfStrings(Element value) {
         List<String> elements = new ArrayList<>();
         if (value.getArray() != null) {
             for (Element element : value.getArray().getElements()) {
-                elements.addAll(toListOfStrings(element));
+                elements.addAll(elementToListOfStrings(element));
             }
             return elements;
         } else {
-            String v = toText(value);
+            String v = elementToSingleString(value);
             if (!v.isEmpty()) {
-                elements.add(toText(value));
+                elements.add(v);
             }
         }
         return elements;
@@ -1041,24 +984,24 @@ public class ASTUtils {
     }
     
     public static boolean isZero(Code code) {
-        return code != null && isZero(toUntaggedText(code));
+        return code != null && isZero(toOriginalText(code));
     }
-    
+
     /**
-     * Report whether the given value is zero or not.
-     * @param value AST node to inspect.
+     * Report whether the given expression is zero or not.
+     *
+     * @param expr AST node to inspect.
      * @return True if the given value denotes the constant `0`, false otherwise.
      */
-    public static boolean isZero(Value value) {
-        if (value.getLiteral() != null) {
-            return isZero(value.getLiteral());
-        } else if (value.getCode() != null) {
-            return isZero(value.getCode());
+    public static boolean isZero(Expression expr) {
+        if (expr instanceof Literal) {
+            return isZero(((Literal) expr).getLiteral());
+        } else if (expr instanceof Code) {
+            return isZero((Code) expr);
         }
         return false;
     }
-    
-    
+
     /**
      * Report whether the given string literal is an integer number or not.
      * @param literal AST node to inspect.
@@ -1080,40 +1023,38 @@ public class ASTUtils {
      * @return True if the given code is an integer, false otherwise.
      */
 	public static boolean isInteger(Code code) {
-        return isInteger(toUntaggedText(code));
+        return isInteger(toText(code));
     }
     
     /**
-     * Report whether the given value is an integer number or not.
-     * @param value AST node to inspect.
+     * Report whether the given expression is an integer number or not.
+     * @param expr AST node to inspect.
      * @return True if the given value is an integer, false otherwise.
      */
-    public static boolean isInteger(Value value) {
-        if (value.getLiteral() != null) {
-            return isInteger(value.getLiteral());
-        } else if (value.getCode() != null) {
-            return isInteger(value.getCode());
+    public static boolean isInteger(Expression expr) {
+        if (expr instanceof Literal) {
+            return isInteger(((Literal) expr).getLiteral());
+        } else if (expr instanceof Code) {
+            return isInteger((Code) expr);
         }
         return false;
     }
     
     /**
-     * Report whether the given value denotes a valid time or not.
-     * @param value AST node to inspect.
+     * Report whether the given expression denotes a valid time or not.
+     * @param expr AST node to inspect.
      * @return True if the argument denotes a valid time, false otherwise.
      */
-    public static boolean isValidTime(Value value) {
-        if (value != null) {
-            if (value.getParameter() != null) {
-                return isOfTimeType(value.getParameter());
-            } else if (value.getTime() != null) {
-                return isValidTime(value.getTime());
-            } else if (value.getLiteral() != null) {
-                return isZero(value.getLiteral());
-            } else if (value.getCode() != null) {
-                return isZero(value.getCode());
+    public static boolean isValidTime(Expression expr) {
+            if (expr instanceof ParameterReference) {
+                return isOfTimeType(((ParameterReference)expr).getParameter());
+            } else if (expr instanceof Time) {
+                return isValidTime((Time) expr);
+            } else if (expr instanceof Literal) {
+                return isZero(((Literal) expr).getLiteral());
+            } else if (expr instanceof Code) {
+                return isZero((Code) expr);
             }
-        }
         return false;
     }
 
@@ -1138,11 +1079,11 @@ public class ASTUtils {
      * "undefined" type if neither can be inferred.
      *
      * @param type     Explicit type declared on the declaration
-     * @param initList A list of values used to initialize a parameter or
+     * @param initList A list of expressions used to initialize a parameter or
      *                 state variable.
      * @return The inferred type, or "undefined" if none could be inferred.
      */
-    public static InferredType getInferredType(Type type, List<Value> initList) {
+    public static InferredType getInferredType(Type type, List<Expression> initList) {
         if (type != null) {
             return InferredType.fromAST(type);
         } else if (initList == null) {
@@ -1152,10 +1093,10 @@ public class ASTUtils {
         if (initList.size() == 1) {
             // If there is a single element in the list, and it is a proper
             // time value with units, we infer the type "time".
-            Value init = initList.get(0);
-            if (init.getParameter() != null) {
-                return getInferredType(init.getParameter());
-            } else if (ASTUtils.isValidTime(init) && !ASTUtils.isZero(init)) {
+            Expression expr = initList.get(0);
+            if (expr instanceof ParameterReference) {
+                return getInferredType(((ParameterReference)expr).getParameter());
+            } else if (ASTUtils.isValidTime(expr) && !ASTUtils.isZero(expr)) {
                 return InferredType.time();
             }
         } else if (initList.size() > 1) {
@@ -1166,11 +1107,11 @@ public class ASTUtils {
             var allValidTime = true;
             var foundNonZero = false;
 
-            for (var init : initList) {
-                if (!ASTUtils.isValidTime(init)) {
+            for (var expr : initList) {
+                if (!ASTUtils.isValidTime(expr)) {
                     allValidTime = false;
                 }
-                if (!ASTUtils.isZero(init)) {
+                if (!ASTUtils.isZero(expr)) {
                     foundNonZero = true;
                 }
             }
@@ -1276,13 +1217,13 @@ public class ASTUtils {
     }
 
     /**
-     * Assuming that the given value denotes a valid time literal,
+     * Assuming that the given expression denotes a valid time literal,
      * return a time value.
      */
-    public static TimeValue getLiteralTimeValue(Value v) {
-        if (v.getTime() != null) {
-            return toTimeValue(v.getTime());
-        } else if (v.getLiteral() != null && v.getLiteral().equals("0")) {
+    public static TimeValue getLiteralTimeValue(Expression expr) {
+        if (expr instanceof Time) {
+            return toTimeValue((Time)expr);
+        } else if (expr instanceof Literal && isZero(((Literal) expr).getLiteral())) {
             return TimeValue.ZERO;
         } else {
             return null;
@@ -1321,13 +1262,9 @@ public class ASTUtils {
         return t.isTime && !t.isList;
     }
 
-    
-
-        
     /**
      * Given a parameter, return its initial value.
-     * The initial value is a list of instances of Value, where each
-     * Value is either an instance of Time, Literal, or Code.
+     * The initial value is a list of instances of Expressions.
      * 
      * If the instantiations argument is null or an empty list, then the
      * value returned is simply the default value given when the parameter
@@ -1398,7 +1335,7 @@ public class ASTUtils {
      *  instantiation of the reactor class that is parameterized by the
      *  respective parameter or if the chain of instantiations is not nested.
      */
-    public static List<Value> initialValue(Parameter parameter, List<Instantiation> instantiations) {
+    public static List<Expression> initialValue(Parameter parameter, List<Instantiation> instantiations) {
         // If instantiations are given, then check to see whether this parameter gets overridden in
         // the first of those instantiations.
         if (instantiations != null && instantiations.size() > 0) {
@@ -1424,9 +1361,9 @@ public class ASTUtils {
             }
             if (lastAssignment != null) {
                 // Right hand side can be a list. Collect the entries.
-                List<Value> result = new ArrayList<>();
-                for (Value value: lastAssignment.getRhs()) {
-                    if (value.getParameter() != null) {
+                List<Expression> result = new ArrayList<>();
+                for (Expression expr: lastAssignment.getRhs()) {
+                    if (expr instanceof ParameterReference) {
                         if (instantiations.size() > 1
                             && instantiation.eContainer() != instantiations.get(1).getReactorClass()
                         ) {
@@ -1437,10 +1374,10 @@ public class ASTUtils {
                                     + "."
                             );
                         }
-                        result.addAll(initialValue(value.getParameter(), 
+                        result.addAll(initialValue(((ParameterReference)expr).getParameter(),
                                 instantiations.subList(1, instantiations.size())));
                     } else {
-                        result.add(value);
+                        result.add(expr);
                     }
                 }
                 return result;
@@ -1492,21 +1429,21 @@ public class ASTUtils {
      * @param parameter The parameter.
      * @param instantiations The (optional) list of instantiations.
      * 
-     * @return The integer value of the parameter, or null if does not have an integer value.
+     * @return The integer value of the parameter, or null if it does not have an integer value.
      *
      * @throws IllegalArgumentException If an instantiation provided is not an
      *  instantiation of the reactor class that is parameterized by the
      *  respective parameter or if the chain of instantiations is not nested.
      */
     public static Integer initialValueInt(Parameter parameter, List<Instantiation> instantiations) {
-        List<Value> values = initialValue(parameter, instantiations);
+        List<Expression> expressions = initialValue(parameter, instantiations);
         int result = 0;
-        for (Value value: values) {
-            if (value.getLiteral() == null) { 
+        for (Expression expr: expressions) {
+            if (!(expr instanceof Literal)) {
                 return null;
             }
             try {
-                result += Integer.decode(value.getLiteral());
+                result += Integer.decode(((Literal) expr).getLiteral());
             } catch (NumberFormatException ex) {
                 return null;
             }
@@ -1546,44 +1483,7 @@ public class ASTUtils {
             return 1;
         }
         if (spec.isOfVariableLength() && spec.eContainer() instanceof Instantiation) {
-            // We may be able to infer the width by examining the connections of
-            // the enclosing reactor definition. This works, for example, with
-            // delays between multiports or banks of reactors.
-            // Attempt to infer the width.
-            for (Connection c : ((Reactor) spec.eContainer().eContainer()).getConnections()) {
-                int leftWidth = 0;
-                int rightWidth = 0;
-                int leftOrRight = 0;
-                for (VarRef leftPort : c.getLeftPorts()) {
-                    if (leftPort.getContainer() == spec.eContainer()) {
-                        if (leftOrRight != 0) {
-                            throw new InvalidSourceException("Multiple ports with variable width on a connection.");
-                        }
-                        // Indicate that the port is on the left.
-                        leftOrRight = -1;
-                    } else {
-                        leftWidth += inferPortWidth(leftPort, c, instantiations);
-                    }
-                }
-                for (VarRef rightPort : c.getRightPorts()) {
-                    if (rightPort.getContainer() == spec.eContainer()) {
-                        if (leftOrRight != 0) {
-                            throw new InvalidSourceException("Multiple ports with variable width on a connection.");
-                        }
-                        // Indicate that the port is on the right.
-                        leftOrRight = 1;
-                    } else {
-                        rightWidth += inferPortWidth(rightPort, c, instantiations);
-                    }
-                }
-                if (leftOrRight < 0) {
-                    return rightWidth - leftWidth;
-                } else if (leftOrRight > 0) {
-                    return leftWidth - rightWidth;
-                }
-            }
-            // A connection was not found with the instantiation.
-            return -1;
+            return inferWidthFromConnections(spec, instantiations);
         }
         var result = 0;
         for (WidthTerm term: spec.getTerms()) {
@@ -1597,7 +1497,16 @@ public class ASTUtils {
             } else if (term.getWidth() > 0) {
                 result += term.getWidth();
             } else {
-                return -1;
+                // If the width cannot be determined because term's width <= 0, which means the term's width
+                // must be inferred, try to infer the width using connections.
+                if (spec.eContainer() instanceof Instantiation) {
+                    try {
+                        return inferWidthFromConnections(spec, instantiations);
+                    } catch (InvalidSourceException e) {
+                        // If the inference fails, return -1.
+                        return -1;
+                    }
+                }
             }
         }
         return result;
@@ -1767,7 +1676,7 @@ public class ASTUtils {
      */
     public static boolean isParameterized(StateVar s) {
         return s.getInit() != null && 
-               IterableExtensions.exists(s.getInit(), it -> it.getParameter() != null);
+               IterableExtensions.exists(s.getInit(), it -> it instanceof ParameterReference);
     }
 
     /**
@@ -1799,11 +1708,66 @@ public class ASTUtils {
         }
         return null;
     }
+
+    /**
+     * Return all single-line or multi-line comments immediately preceding the
+     * given EObject.
+     */
+    public static Stream<String> getPrecedingComments(
+        ICompositeNode compNode,
+        Predicate<INode> filter
+    ) {
+        return getPrecedingCommentNodes(compNode, filter).map(INode::getText);
+    }
+
+    /**
+     * Return all single-line or multi-line comments immediately preceding the
+     * given EObject.
+     */
+    public static Stream<INode> getPrecedingCommentNodes(
+        ICompositeNode compNode,
+        Predicate<INode> filter
+    ) {
+        if (compNode == null) return Stream.of();
+        List<INode> ret = new ArrayList<>();
+        for (INode node : compNode.getAsTreeIterable()) {
+            if (!(node instanceof ICompositeNode)) {
+                if (isComment(node)) {
+                    if (filter.test(node)) ret.add(node);
+                } else if (!node.getText().isBlank()) {
+                    break;
+                }
+            }
+        }
+        return ret.stream();
+    }
+
+    /** Return whether {@code node} is a comment. */
+    public static boolean isComment(INode node) {
+        return node instanceof HiddenLeafNode hlNode
+            && hlNode.getGrammarElement() instanceof TerminalRule tRule
+            && tRule.getName().endsWith("_COMMENT");
+    }
+
+    /**
+     * Return true if the given node starts on the same line as the given other
+     * node.
+     */
+    public static Predicate<INode> sameLine(ICompositeNode compNode) {
+        return other -> {
+            for (INode node : compNode.getAsTreeIterable()) {
+                if (!(node instanceof ICompositeNode) && !node.getText().isBlank() && !isComment(node)) {
+                    return node.getStartLine() == other.getStartLine();
+                }
+            }
+            return false;
+        };
+    }
     
     /**
-     * Retrieve a specific annotation in a JavaDoc style comment associated with the given model element in the AST.
+     * Retrieve a specific annotation in a comment associated with the given model element in the AST.
      * 
-     * This will look for a JavaDoc style comment. If one is found, it searches for the given annotation `key`.
+     * This will look for a comment. If one is found, it searches for the given annotation `key`.
      * and extracts any string that follows the annotation marker.  
      * 
      * @param object the AST model element to search a comment for
@@ -1812,78 +1776,16 @@ public class ASTUtils {
      *     The string immediately following the annotation marker otherwise.
      */
     public static String findAnnotationInComments(EObject object, String key) {
-        if (object.eResource() instanceof XtextResource) {
-            ICompositeNode compNode = NodeModelUtils.findActualNodeFor(object);
-            if (compNode != null) {
-                // Find comment node in AST
-                // For reactions/timers/action/etc., it is usually the lowermost first child node
-                INode node = compNode.getFirstChild();
-                while (node instanceof CompositeNode) {
-                    node = ((CompositeNode) node).getFirstChild();
-                }
-                // For reactors, it seems to be the next sibling of the first child node
-                if (node == null && compNode.getFirstChild() != null) {
-                    node = compNode.getFirstChild().getNextSibling();
-                }
-                while (node instanceof HiddenLeafNode) { // Only comments preceding start of element
-                    HiddenLeafNode hlNode = (HiddenLeafNode) node;
-                    EObject rule = hlNode.getGrammarElement();
-                    if (rule instanceof TerminalRule) {
-                        String line = null;
-                        TerminalRule tRule = (TerminalRule) rule;
-                        if ("SL_COMMENT".equals(tRule.getName())) {
-                            if (hlNode.getText().contains(key)) {
-                                line = hlNode.getText();
-                            }
-                        } else if ("ML_COMMENT".equals(tRule.getName())) {
-                            boolean found = false;
-                            for (String str : hlNode.getText().split("\n")) {
-                                if (!found && str.contains(key)) {
-                                    line = str;
-                                }
-                            }
-                            // This is shorter but causes a warning:
-                            //line = node.text.split("\n").filterNull.findFirst[it.contains(key)]
-                        }
-                        if (line != null) {
-                            var value = line.substring(line.indexOf(key) + key.length()).trim();
-                            if (value.contains("*")) { // in case of single line block comment (e.g. /** @anno 1503 */)
-                                value = value.substring(0, value.indexOf("*")).trim();
-                            }
-                            return value;
-                        }
-                    }
-                    node = node.getNextSibling();
-                }
-            }
-        }
-        return null;
+        if (!(object.eResource() instanceof XtextResource)) return null;
+        ICompositeNode node = NodeModelUtils.findActualNodeFor(object);
+        return getPrecedingComments(node, n -> true).flatMap(String::lines)
+            .filter(line -> line.contains(key))
+            .map(String::trim)
+            .map(it -> it.substring(it.indexOf(key) + key.length()))
+            .map(it -> it.endsWith("*/") ? it.substring(0, it.length() - "*/".length()) : it)
+            .findFirst().orElse(null);
     }
-    
-    /**
-     * Remove quotation marks surrounding the specified string.
-     */
-    public static String withoutQuotes(String s) {
-        String result = s;
-        if (s.startsWith("\"") || s.startsWith("'")) {
-            result = s.substring(1);
-        }
-        if (result.endsWith("\"") || result.endsWith("'")) {
-            result = result.substring(0, result.length() - 1);
-        }
-        return result;
-    }
-    
-    /**
-     * Search for an `@label` annotation for a given reaction.
-     * 
-     * @param n the reaction for which the label should be searched
-     * @return The annotated string if an `@label` annotation was found. `null` otherwise.
-     */
-    public static String label(Reaction n) {
-        return findAnnotationInComments(n, "@label");
-    }
-    
+
     /**
      * Find the main reactor and set its name if none was defined.
      * @param resource The resource to find the main reactor in.
@@ -1942,7 +1844,7 @@ public class ASTUtils {
     //// Private methods
     
     /**
-     * Returns the list if it is not null. Otherwise return an empty list.
+     * Returns the list if it is not null. Otherwise, return an empty list.
      */
     public static <T> List<T> convertToEmptyListIfNull(List<T> list) {
         return list != null ? list : new ArrayList<>();
@@ -1975,5 +1877,53 @@ public class ASTUtils {
             result.add(r);
         }
         return result;
+    }
+
+    /**
+     * We may be able to infer the width by examining the connections of
+     * the enclosing reactor definition. This works, for example, with
+     * delays between multiports or banks of reactors.
+     * Attempt to infer the width from connections and return -1 if the width cannot be inferred.
+     *
+     * @param spec The width specification or null (to return 1).
+     * @param instantiations The (optional) list of instantiations.
+     *
+     * @return The width, or -1 if the width could not be inferred from connections.
+     */
+    private static int inferWidthFromConnections(WidthSpec spec, List<Instantiation> instantiations) {
+        for (Connection c : ((Reactor) spec.eContainer().eContainer()).getConnections()) {
+            int leftWidth = 0;
+            int rightWidth = 0;
+            int leftOrRight = 0;
+            for (VarRef leftPort : c.getLeftPorts()) {
+                if (leftPort.getContainer() == spec.eContainer()) {
+                    if (leftOrRight != 0) {
+                        throw new InvalidSourceException("Multiple ports with variable width on a connection.");
+                    }
+                    // Indicate that the port is on the left.
+                    leftOrRight = -1;
+                } else {
+                    leftWidth += inferPortWidth(leftPort, c, instantiations);
+                }
+            }
+            for (VarRef rightPort : c.getRightPorts()) {
+                if (rightPort.getContainer() == spec.eContainer()) {
+                    if (leftOrRight != 0) {
+                        throw new InvalidSourceException("Multiple ports with variable width on a connection.");
+                    }
+                    // Indicate that the port is on the right.
+                    leftOrRight = 1;
+                } else {
+                    rightWidth += inferPortWidth(rightPort, c, instantiations);
+                }
+            }
+            if (leftOrRight < 0) {
+                return rightWidth - leftWidth;
+            } else if (leftOrRight > 0) {
+                return leftWidth - rightWidth;
+            }
+        }
+        // A connection was not found with the instantiation.
+        return -1;
     }
 }

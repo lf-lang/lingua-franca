@@ -1,26 +1,28 @@
 /**
-*
-* @author Maiko Brants TU Dresden
-*
+ * @author Maiko Brants TU Dresden
+ *
  * Events are scheduled with increasing additional delays of 0, 100, 300, 600
- * msec on a physical action with a minimum delay of 100 msec.  
- * The use of the physical action makes the elapsed time jumps from 0 to 
- * approximately 100 msec, to approximatly 300 msec thereafter, drifting away
- * further with each new event.
-*
-* Modeled after the C version of this test.
-**/
+ * msec on a physical action with a minimum delay of 100 msec. The use of the
+ * physical action makes the elapsed time jumps from 0 to approximately 100
+ * msec, to approximatly 300 msec thereafter, drifting away further with each
+ * new event.
+ *
+ * Modeled after the C version of this test.
+ */
 target Cpp {
     timeout: 1500 msec
-};
+}
+
 main reactor SlowingClockPhysical {
-    physical action a;
-    state interval:time(100 msec);
-    state expected_time:time(100 msec);
+    physical action a
+    state interval: time(100 msec)
+    state expected_time: time(100 msec)
+
     reaction(startup) -> a {=
         expected_time=100ms;
         a.schedule(100ms);
     =}
+
     reaction(a) -> a {=
         auto elapsed_logical_time{get_elapsed_logical_time()};
         reactor::log::Info() << "Logical time since start: " << elapsed_logical_time;
@@ -33,6 +35,7 @@ main reactor SlowingClockPhysical {
         a.schedule(interval);
         reactor::log::Info() <<  "Scheduling next to occur approximately after: " << interval;
     =}
+
     reaction(shutdown) {=
         if(expected_time < 500ms){
             reactor::log::Error() << "Expected the next expected time to be at least: 500000000 nsec.";

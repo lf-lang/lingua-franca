@@ -1,6 +1,7 @@
 package org.lflang.util;
 
 import java.io.BufferedInputStream;
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -12,6 +13,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.Enumeration;
@@ -101,6 +103,59 @@ public class FileUtil {
      */
     public static String toUnixString(Path path) {
         return path.toString().replace('\\', '/');
+    }
+    
+    /**
+     * Parse the string as file location and return it as URI.
+     * Supports URIs, plain file paths, and paths relative to a model.
+     * 
+     * @param path the file location as string.
+     * @param resource the model resource this file should be resolved relatively. May be null.
+     * @return the (Java) URI or null if no file can be located.
+     */
+    public static java.net.URI locateFile(String path, Resource resource) {
+        // Check if path is URL
+        try {
+            var uri = new java.net.URI(path);
+            if(uri.getScheme() != null) { // check if path was meant to be a URI
+                return uri;
+            }
+        } catch (Exception e) {
+            // nothing
+        }
+        // Check if path exists as it is
+        File file = new File(path);
+        if (file.exists()) {
+            try {
+                return file.toURI();
+            } catch (Exception e) {
+                // nothing
+            }
+        }
+        // Check if path is relative to LF file
+        if (resource != null) {
+            URI eURI = resource.getURI();
+            if (eURI != null) {
+                java.net.URI sourceURI = null;
+                try {
+                    if (eURI.isFile()) {
+                        sourceURI = new java.net.URI(eURI.toString());
+                        sourceURI = new java.net.URI(sourceURI.getScheme(), null,
+                                sourceURI.getPath().substring(0, sourceURI.getPath().lastIndexOf("/")), null);
+                    } else if (eURI.isPlatformResource()) {
+                        IResource iFile = ResourcesPlugin.getWorkspace().getRoot().findMember(eURI.toPlatformString(true));
+                        sourceURI = iFile != null ? iFile.getRawLocation().toFile().getParentFile().toURI() : null; 
+                    }
+                    if (sourceURI != null) {
+                        return sourceURI.resolve(path.toString());
+                    }
+                } catch (Exception e) {
+                    // nothing
+                }
+            }
+        }
+        // fail
+        return null;
     }
 
     /**
@@ -436,5 +491,28 @@ public class FileUtil {
      */
     public static void writeToFile(CharSequence text, Path path) throws IOException {
         writeToFile(text.toString(), path, false);
+    }
+
+    /**
+     * Return a list of files ending with "str".
+     *
+     * @param currentDir The current directory.
+     * @param str The pattern to match against.
+     */
+    public static List<Path> globFilesEndsWith(Path currentDir, String str) {
+        List<Path> matches = new ArrayList<>();
+        File[] files = currentDir.toFile().listFiles();
+        if (files != null) {
+            for (File file : files) {
+                if (file.isDirectory()) {
+                    matches.addAll(globFilesEndsWith(file.toPath(), str));
+                } else {
+                    if (file.getName().endsWith(str)) {
+                        matches.add(file.getAbsoluteFile().toPath());
+                    }
+                }
+            }
+        }
+        return matches;
     }
 }

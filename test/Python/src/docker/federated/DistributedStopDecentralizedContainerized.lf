@@ -1,17 +1,18 @@
- /**
- * Test for request_stop() in federated execution with decentralized coordination.
- * 
+/**
+ * Test for request_stop() in federated execution with decentralized
+ * coordination.
+ *
  * @author Soroush Bateni
  */
 target Python {
     coordination: decentralized,
     docker: true
-};
+}
 
 import Sender, Receiver from "../../federated/DistributedStop.lf"
 
 federated reactor DistributedStopDecentralizedContainerized at rti {
-    sender = new Sender();
-    receiver = new Receiver();
-    sender.out -> receiver.in_;
+    sender = new Sender()
+    receiver = new Receiver()
+    sender.out -> receiver.in_
 }

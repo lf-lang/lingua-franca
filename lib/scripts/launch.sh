@@ -29,7 +29,7 @@ find_dir() (
         link=$(readlink "$(basename "$1")")
         ((count++))
     else
-        return      
+        return
     fi
   done
   real_path="$PWD/$(basename "$1")"
@@ -43,11 +43,11 @@ function fatal_error() {
     exit 1
 }
 
-rel_path="/lib/scripts"
+rel_path="lib/scripts"
 abs_path="$(find_dir "$0")"
 
 if [[ "${abs_path}" ]]; then
-    base=`dirname $(dirname ${abs_path})`
+    base="$(dirname "$(dirname "${abs_path}")")"
     source "${base}/${rel_path}/include.sh"
 else
     fatal_error "Unable to determine absolute path to $0."

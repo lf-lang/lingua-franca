@@ -1,34 +1,37 @@
-// This is a version of the Threaded test that uses a multiport input at the destination.
-// Its purpose is to test multiport inputs.
+// This is a version of the Threaded test that uses a multiport input at the
+// destination. Its purpose is to test multiport inputs.
 target C {
     timeout: 2 sec,
     fast: true
-};
+}
 
 reactor Source {
-    timer t(0, 200 msec);
-    output out:int;
-    state s:int(0);
+    timer t(0, 200 msec)
+    output out: int
+    state s: int(0)
+
     reaction(t) -> out {=
-        SET(out, self->s);
+        lf_set(out, self->s);
         self->s++;
     =}
 }
+
 reactor Computation {
-    input in:int;
-    output out:int;
-    reaction(in) -> out {=
-        SET(out, in->value);
-    =}
+    input in: int
+    output out: int
+
+    reaction(in) -> out {= lf_set(out, in->value); =}
 }
-reactor Destination(width:int(1)) {
-    state s:int(0);
-    input[width] in:int;
+
+reactor Destination(width: int(1)) {
+    state s: int(0)
+    input[width] in: int
+
     reaction(in) {=
         int sum = 0;
         for (int i = 0; i < in_width; i++) {
             sum += in[i]->value;
-        } 
+        }
         printf("Sum of received: %d.\n", sum);
         if (sum != self->s) {
             printf("ERROR: Expected %d.\n", self->s);
@@ -36,6 +39,7 @@ reactor Destination(width:int(1)) {
         }
         self->s += 4;
     =}
+
     reaction(shutdown) {=
         if (self->s == 0) {
             fprintf(stderr, "ERROR: Destination received no input!\n");
@@ -46,20 +50,17 @@ reactor Destination(width:int(1)) {
 }
 
 main reactor {
-    a = new Source();
-    t1 = new Computation();
-    t2 = new Computation();
-    t3 = new Computation();
-    t4 = new Computation();
-    b = new Destination(width = 4);
-    a.out -> t1.in;
-    a.out -> t2.in;
-    a.out -> t3.in;
-    a.out -> t4.in;
-    t1.out, t2.out, t3.out, t4.out -> b.in;
-    // I.e.:
-    // t1.out -> b.in[0];
-    // t2.out -> b.in[1];
-    // t3.out -> b.in[2];
-    // dt4.out -> b.in[3];
+    a = new Source()
+    t1 = new Computation()
+    t2 = new Computation()
+    t3 = new Computation()
+    t4 = new Computation()
+    b = new Destination(width = 4)
+    a.out -> t1.in
+    a.out -> t2.in
+    a.out -> t3.in
+    a.out -> t4.in
+    // I.e.: t1.out -> b.in[0]; t2.out -> b.in[1]; t3.out -> b.in[2]; dt4.out ->
+    // b.in[3];
+    t1.out, t2.out, t3.out, t4.out -> b.in
 }

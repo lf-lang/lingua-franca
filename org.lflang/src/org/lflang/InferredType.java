@@ -25,6 +25,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 package org.lflang;
 
+import java.util.function.Function;
+import org.eclipse.emf.ecore.EObject;
+
 import org.lflang.lf.Type;
 
 /**
@@ -95,11 +98,20 @@ public class InferredType {
     }
 
     /**
-     * Convert the inferred type to its textual representation as it would appear in LF code.
+     * Convert the inferred type to its textual representation as it would appear in LF code,
+     * with CodeMap tags inserted.
      */
-    public String toText() {
+    public String toText() { return toTextHelper(ASTUtils::toText); }
+
+    /**
+     * Convert the inferred type to its textual representation as it would appear in LF code,
+     * without CodeMap tags inserted.
+     */
+    public String toOriginalText() { return toTextHelper(ASTUtils::toOriginalText); }
+
+    private String toTextHelper(Function<EObject, String> toText) {
         if (astType != null) {
-            return ASTUtils.toText(astType);
+            return toText.apply(astType);
         } else if (isTime) {
             if (isFixedSizeList) {
                 return "time[" + listSize + "]";

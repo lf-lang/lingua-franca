@@ -1,7 +1,7 @@
 target Python {
     files: "../include/hello.py",
     docker: true
-};
+}
 
 preamble {=
     try:
@@ -17,12 +17,10 @@ main reactor {
         except:
             request_stop()
     =}
-    state passed(false);
-    timer t(1 msec);
-    
-    reaction(t) {=
-        self.passed = True
-    =}
+    state passed(false)
+    timer t(1 msec)
+
+    reaction(t) {= self.passed = True =}
 
     reaction(shutdown) {=
         if not self.passed:

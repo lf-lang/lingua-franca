@@ -1,22 +1,24 @@
-// This file includes code documented on the Wiki.
-// For this test, success is just compiling and running.
+// This file includes code documented on the Wiki. For this test, success is
+// just compiling and running.
 target TypeScript {
+    // FIXME the C version of this test is fast, but in TS it's illegal to
+    // subtract TimeValues and get a negative result fast: true
     timeout: 2 sec
-// FIXME the C version of this test is fast, but in TS it's illegal to subtract TimeValues and get a negative result
-//    fast: true
-};
+}
+
 main reactor GetTime {
-    timer t(0, 1 sec);
+    timer t(0, 1 sec)
+
     reaction(t) {=
         let logical = util.getCurrentLogicalTime();
         console.log("Logical time is " + logical);
 
         let elapsed = util.getElapsedLogicalTime();
         console.log("Elapsed logical time is " + elapsed);
-        
+
         let physical = util.getCurrentPhysicalTime();
         console.log("Physical time is " + physical);
-        
+
         console.log("Time lag is " + physical.subtract(logical));
     =}
 }

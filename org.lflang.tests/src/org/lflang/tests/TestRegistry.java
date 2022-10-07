@@ -2,12 +2,11 @@ package org.lflang.tests;
 
 import static java.nio.file.FileVisitResult.CONTINUE;
 import static java.nio.file.FileVisitResult.SKIP_SUBTREE;
-import static org.eclipse.xtext.xbase.lib.IteratorExtensions.exists;
-import static org.eclipse.xtext.xbase.lib.IteratorExtensions.filter;
 
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.FileVisitResult;
+import java.nio.file.FileVisitor;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -17,7 +16,6 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.Stack;
 import java.util.TreeSet;
@@ -33,8 +31,8 @@ import org.lflang.LFResourceProvider;
 import org.lflang.LFStandaloneSetup;
 import org.lflang.Target;
 import org.lflang.lf.Reactor;
-import org.lflang.lf.TargetDecl;
 import org.lflang.tests.LFTest.Result;
+import org.lflang.tests.TestBase.TestLevel;
 
 /**
  * A registry to retrieve tests from, organized by target and category.
@@ -73,7 +71,6 @@ public class TestRegistry {
         public Set<LFTest> getTests(Target t, TestCategory c) {
             return this.map.get(t).get(c);
         }
-        
     }
     
     /**
@@ -87,12 +84,7 @@ public class TestRegistry {
      * Path to the root of the repository.
      */
     public static final Path LF_REPO_PATH = Paths.get("").toAbsolutePath();
-    
-    /**
-     * Path to the example directory in the repository.
-     */
-    public static final Path LF_EXAMPLE_PATH = LF_REPO_PATH.resolve("example");
-    
+        
     /**
      * Path to the test directory in the repository.
      */
@@ -108,11 +100,6 @@ public class TestRegistry {
      * source files with no main reactor are indexed here.
      */
     protected static final TestMap ignored = new TestMap();
-
-    /**
-     * The set of found examples that that did not compile or specify a target.
-     */
-    protected static final Set<Path> erroneousExamples = new TreeSet<>();
     
     /**
      * A map from each test category to a set of tests that is the union of
@@ -160,15 +147,15 @@ public class TestRegistry {
         DOCKER(true),
         DOCKER_FEDERATED(true, "docker" + File.separator + "federated"),
         SERIALIZATION(false),
-        TARGET(false),
-        EXAMPLE(false),
-        EXAMPLE_TEST(false);
+        ARDUINO(false, TestLevel.BUILD),
+        TARGET(false);
         
         /**
          * Whether or not we should compare coverage against other targets.
          */
         public final boolean isCommon;
         public final String path;
+        public final TestLevel level ;
         
         /**
          * Create a new test category.
@@ -176,6 +163,16 @@ public class TestRegistry {
         TestCategory(boolean isCommon) {
             this.isCommon = isCommon;
             this.path = this.name().toLowerCase();
+            this.level = TestLevel.EXECUTION;
+        }
+
+        /**
+         * Create a new test category.
+         */
+        TestCategory(boolean isCommon, TestLevel level) {
+            this.isCommon = isCommon;
+            this.path = this.name().toLowerCase();
+            this.level = level;
         }
 
         /**
@@ -184,6 +181,7 @@ public class TestRegistry {
         TestCategory(boolean isCommon, String path) {
             this.isCommon = isCommon;
             this.path = path;
+            this.level = TestLevel.EXECUTION;
         }
 
         public String getPath() {
@@ -217,9 +215,9 @@ public class TestRegistry {
 
             // Walk the tree.
             try {
-                Path dir = LF_TEST_PATH.resolve(target.toString());
+                Path dir = LF_TEST_PATH.resolve(target.getDirectoryName()).resolve("src");
                 if (Files.exists(dir)) {
-                    Files.walkFileTree(dir, new TestDirVisitor(rs, target));
+                    new TestDirVisitor(rs, target, dir).walk();
                 } else {
                     System.out.println("WARNING: No test directory for target " + target + "\n");
                 }
@@ -233,21 +231,6 @@ public class TestRegistry {
             Arrays.asList(TestCategory.values()).forEach(
                     c -> allTargets.get(c).addAll(getRegisteredTests(target, c, false)));
         }
-        
-        // Also scan the examples directory.
-        try {
-            Files.walkFileTree(LF_EXAMPLE_PATH, new ExampleDirVisitor(rs));
-        } catch (IOException e) {
-            System.err.println(
-                    "Error while indexing tests from example directory.");
-            e.printStackTrace();
-        }
-        
-        if (erroneousExamples.size() > 0) {
-            System.err.println("The following examples do not compile or specify no target:");
-            erroneousExamples.forEach(System.err::println);
-        }
-        
     }
     
     /**
@@ -316,99 +299,7 @@ public class TestRegistry {
         }
         
         return s.toString();
-    }
-
-    /**
-     * File visitor for indexing examples and example tests.
-     */
-    public static class ExampleDirVisitor extends SimpleFileVisitor<Path> {
-
-        protected ResourceSet rs;
-        
-        boolean inTestDir = false;
-        
-        public ExampleDirVisitor(ResourceSet rs) {
-            this.rs = rs;
-        }
-        
-        /**
-         * Update the state of the visitor to reflect whether it currently 
-         * is in a test directory or not.
-         */
-        @Override
-        public FileVisitResult postVisitDirectory(Path dir, IOException exc) {
-            if (dir.getFileName().toString()
-                    .equalsIgnoreCase("test")) {
-                this.inTestDir = false;
-            }
-            return CONTINUE;
-        }
-        
-        /**
-         * Update the state of the visitor to reflect whether it currently 
-         * is in a test directory or not.
-         */
-        @Override
-        public FileVisitResult preVisitDirectory(Path dir,
-                BasicFileAttributes attrs) {
-            for (String ignored : IGNORED_DIRECTORIES) {
-                if (dir.getFileName().toString().equalsIgnoreCase(ignored)) {
-                    return SKIP_SUBTREE;
-                }
-            }
-            if (dir.getFileName().toString()
-                    .equalsIgnoreCase("test")) {
-                this.inTestDir = true;
-            }
-            return CONTINUE;
-        }
-        
-        /**
-         * Add test files to the registry if they end with ".lf", but only if they have a main reactor.
-         */
-        @Override
-        public FileVisitResult visitFile(Path path, BasicFileAttributes attr) {
-            if (attr.isRegularFile() && path.toString().endsWith(".lf")) {
-                // Parse the file. If this is unsuccessful, add the test and
-                // report that it didn't compile.
-                Resource r = rs.getResource(
-                        URI.createFileURI(path.toFile().getAbsolutePath()),
-                        true);
-
-                EList<Diagnostic> errors = r.getErrors();
-                if (!errors.isEmpty()) {
-                    erroneousExamples.add(path);
-                } else {
-                    // No errors. Find the target.
-                    Iterator<TargetDecl> targetDecls = filter(r.getAllContents(), TargetDecl.class);
-                    Optional<Target> opt;
-                    if (targetDecls.hasNext() && (opt = Target.forName(targetDecls.next().getName())).isPresent() ) {
-                        Target target = opt.get();
-                        Iterator<Reactor> reactors = filter(r.getAllContents(), Reactor.class);
-                        if (exists(reactors, it -> it.isMain() || it.isFederated())) {
-                            LFTest test = new LFTest(target, path);
-                            if (this.inTestDir
-                                || path.getFileName().toString().toLowerCase().contains("test")) {
-                                // File is labeled as test.
-                                registered.getTests(target, TestCategory.EXAMPLE_TEST)
-                                          .add(test);
-                            } else {
-                                // Ordinary example.
-                                registered.getTests(target, TestCategory.EXAMPLE)
-                                          .add(test);
-                            }
-                            return CONTINUE;
-                        }
-                    } else {
-                        // No target, list as failure.
-                        erroneousExamples.add(path);
-                    }
-                }
-            }
-            return CONTINUE;
-        }
-    }
-    
+    }    
     
     /**
      * FileVisitor implementation that maintains a stack to map found tests to
@@ -440,16 +331,18 @@ public class TestRegistry {
         protected ResourceSet rs;
 
         protected Path srcBasePath;
-        
+
         /**
          * Create a new file visitor based on a given target.
+         *
          * @param target The target that all encountered tests belong to.
+         * @param srcBasePath The test sources directory
          */
-        public TestDirVisitor(ResourceSet rs, Target target) {
+        public TestDirVisitor(ResourceSet rs, Target target, Path srcBasePath) {
             stack.push(TestCategory.GENERIC);
             this.rs = rs;
             this.target = target;
-            this.srcBasePath = LF_TEST_PATH.resolve(target.toString()).resolve("src");
+            this.srcBasePath = srcBasePath;
         }
         
         /**
@@ -522,6 +415,10 @@ public class TestRegistry {
                 registered.getTests(this.target, this.stack.peek()).add(test);
             }
             return CONTINUE;
+        }
+
+        public void walk() throws IOException {
+            Files.walkFileTree(srcBasePath, this);
         }
     }
 }

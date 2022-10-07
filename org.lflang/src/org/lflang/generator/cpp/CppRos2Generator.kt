@@ -60,7 +60,7 @@ class CppRos2Generator(generator: CppGenerator) : CppPlatformGenerator(generator
             ),
             fileConfig.outPath
         )
-        val returnCode = colconCommand.run(context.cancelIndicator);
+        val returnCode = colconCommand?.run(context.cancelIndicator);
         if (returnCode != 0 && !errorReporter.errorsOccurred) {
             // If errors occurred but none were reported, then the following message is the best we can do.
             errorReporter.reportError("colcon failed with error code $returnCode")

@@ -1,20 +1,24 @@
- // Check multiport output to bank of recipients.
- // Here, the bank is smaller than the width of the sending port.
+// Check multiport output to bank of recipients. Here, the bank is smaller than
+// the width of the sending port.
 target Cpp {
     timeout: 2 sec,
     fast: true
-}; 
+}
+
 reactor Source {
-    output[3] out:unsigned;
+    output[3] out: unsigned
+
     reaction(startup) -> out {=
         for(size_t i = 0; i < out.size(); i++) {
             out[i].set(i);
         }
     =}
 }
-reactor Destination(bank_index:size_t(0)) {
-    input in:unsigned;
-    state received:bool(false);
+
+reactor Destination(bank_index: size_t(0)) {
+    input in: unsigned
+    state received: bool(false)
+
     reaction(in) {=
         std::cout << "Destination " << bank_index << " received " << *in.get() << ".\n";
         if (bank_index != *in.get()) {
@@ -23,6 +27,7 @@ reactor Destination(bank_index:size_t(0)) {
         }
         received = true;
     =}
+
     reaction(shutdown) {=
         if (!received) {
             std::cerr << "ERROR: Destination " << bank_index << " received no input!\n";
@@ -31,14 +36,15 @@ reactor Destination(bank_index:size_t(0)) {
         std::cout << "Success.\n";
     =}
 }
+
 reactor Container {
-    input[3] in:unsigned;
-    c = new[3] Destination();
-    in -> c.in;
+    input[3] in: unsigned
+    c = new[3] Destination()
+    in -> c.in
 }
 
-main reactor MultiportToBankHierarchy { 
-    a = new Source();
-    b = new Container();
-    a.out -> b.in;
+main reactor MultiportToBankHierarchy {
+    a = new Source()
+    b = new Container()
+    a.out -> b.in
 }

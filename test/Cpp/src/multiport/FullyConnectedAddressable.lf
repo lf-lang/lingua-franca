@@ -1,53 +1,50 @@
 // In this pattern, each node can send direct messages to individual other nodes
-
-target Cpp {
-}
+target Cpp
 
 reactor Node(bank_index: size_t(0), num_nodes: size_t(4)) {
     input[num_nodes] in: size_t
     output[num_nodes] out: size_t
-    
-    state received: bool{false};
-    
-    reaction (startup) -> out{=
-     	std::cout << "Hello from node " << bank_index << "!\n";
-     	// send my ID only to my right neighbour
-     	out[(bank_index + 1) % num_nodes].set(bank_index);    
+
+    state received: bool{false}
+
+    reaction(startup) -> out {=
+        std::cout << "Hello from node " << bank_index << "!\n";
+        // send my ID only to my right neighbour
+        out[(bank_index + 1) % num_nodes].set(bank_index);
     =}
-    
-    reaction (in) {=
+
+    reaction(in) {=
         std::cout << "Node " << bank_index << " received messages from ";
         received = true;
         size_t count{0};
         size_t result{0};
-     	for (auto& port : in) {
-            if (port.is_present()) {
-                count++;
-                result = *port.get();
-                std::cout << result << ", ";
-            }
+        for (auto i : in.get_present_port_indices()) {
+            count++;
+            result = *in[i].get();
+            std::cout << result << ", ";
         }
+
         std::cout << '\n';
 
         size_t expected = bank_index == 0 ? num_nodes - 1 : bank_index - 1;
         if (count != 1 || result != expected) {
-            std::cerr << "ERROR: received an unexpected message!\n"; 
+            std::cerr << "ERROR: received an unexpected message!\n";
             exit(1);
         }
-
     =}
-    reaction (shutdown) {=
+
+    reaction(shutdown) {=
         if (!received) {
             std::cerr << "Error: received no input!\n";
-            exit(2);    
+            exit(2);
         }
     =}
 }
 
 main reactor(num_nodes: size_t(4)) {
-    nodes1 = new[num_nodes] Node(num_nodes=num_nodes);
-    nodes1.out -> interleaved(nodes1.in);
-    
-    nodes2 = new[num_nodes] Node(num_nodes=num_nodes);
-    interleaved(nodes2.out) -> nodes2.in;
+    nodes1 = new[num_nodes] Node(num_nodes = num_nodes)
+    nodes1.out -> interleaved (nodes1.in)
+
+    nodes2 = new[num_nodes] Node(num_nodes = num_nodes)
+    interleaved (nodes2.out) -> nodes2.in
 }

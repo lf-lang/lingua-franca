@@ -9,8 +9,10 @@ import org.lflang.isMultiport
 import org.lflang.lf.*
 import org.lflang.lf.Timer
 import org.lflang.toText
-import java.util.*
 import kotlin.collections.HashSet
+import java.util.StringJoiner 
+import java.util.LinkedList
+
 
 /**
  * Reaction generator for TypeScript target.
@@ -28,7 +30,7 @@ class TSReactionGenerator(
     private val reactor : Reactor,
     private val federate: FederateInstance
 ) {
-    private fun Value.getTargetValue(): String = tsGenerator.getTargetValueW(this)
+    private fun Expression.getTargetExpression(): String = tsGenerator.getTargetValueW(this)
     private fun Parameter.getTargetType(): String = tsGenerator.getTargetTypeW(this)
     private fun StateVar.getTargetType(): String = tsGenerator.getTargetTypeW(this)
     private fun Type.getTargetType(): String = tsGenerator.getTargetTypeW(this)
@@ -71,10 +73,11 @@ class TSReactionGenerator(
         reactSignature: StringJoiner
     ): String {
         var deadlineArgs = ""
-        if (reaction.deadline.delay.parameter != null) {
-            deadlineArgs += "this.${reaction.deadline.delay.parameter.name}.get()";
+        val delay = reaction.deadline.delay
+        if (delay is ParameterReference) {
+            deadlineArgs += "this.${delay.parameter.name}.get()";
         } else {
-            deadlineArgs += reaction.deadline.delay.getTargetValue()
+            deadlineArgs += delay.getTargetExpression()
         }
 
         return with(PrependOperator) {
@@ -102,26 +105,30 @@ class TSReactionGenerator(
         reaction: Reaction,
         reactPrologue: String,
         reactEpilogue: String,
-        reactFunctArgs: StringJoiner,
+        reactFuncArgs: StringJoiner,
         reactSignature: StringJoiner
     ): String {
         // Assemble reaction triggers
         val reactionTriggers = StringJoiner(",\n")
+
         for (trigger in reaction.triggers) {
             if (trigger is VarRef) {
                 reactionTriggers.add(trigger.generateVarRef())
-            } else if (trigger.isStartup) {
-                reactionTriggers.add("this.startup")
-            } else if (trigger.isShutdown) {
-                reactionTriggers.add("this.shutdown")
+            } else if (trigger is BuiltinTriggerRef) {
+                when (trigger.type) {
+                    BuiltinTrigger.STARTUP  -> reactionTriggers.add("this.startup")
+                    BuiltinTrigger.SHUTDOWN -> reactionTriggers.add("this.shutdown")
+                    else -> {}
+                }
             }
         }
+
         return with(PrependOperator) {
             """
             |
-            |this.addReaction(
+            |this.add${if (reaction.isMutation()) "Mutation" else "Reaction"}(
             |    new __Triggers($reactionTriggers),
-            |    new __Args($reactFunctArgs),
+            |    new __Args($reactFuncArgs),
             |    function ($reactSignature) {
             |        // =============== START react prologue
         ${" |        "..reactPrologue}
@@ -130,26 +137,20 @@ class TSReactionGenerator(
         ${" |            "..reaction.code.toText()}
             |        } finally {
             |            // =============== START react epilogue
-        ${" |            "..reactEpilogue}            
+        ${" |            "..reactEpilogue}
             |            // =============== END react epilogue
             |        }
         ${" |    "..if (reaction.deadline != null) generateDeadlineHandler(reaction, reactPrologue, reactEpilogue, reactSignature) else "}"}
             |);
-        """.trimMargin()
-        }
+            |""".trimMargin()
+            }
     }
 
     private fun generateReactionSignatureForTrigger(trigOrSource: VarRef): String {
-        var reactSignatureElementType = if (trigOrSource.variable.name.startsWith("networkMessage")) {
-            // Special handling for the networkMessage action created by
-            // FedASTUtils.makeCommunication(), by assigning TypeScript
-            // Buffer type for the action. Action<Buffer> is used as
-            // FederatePortAction in federation.ts.
-            "Buffer"
-        } else if (trigOrSource.variable is Timer) {
+        var reactSignatureElementType = if (trigOrSource.variable is Timer) {
             "__Tag"
         } else if (trigOrSource.variable is Action) {
-            getActionType(trigOrSource.variable as Action, federate)
+            getActionType(trigOrSource.variable as Action)
         } else if (trigOrSource.variable is Port) {
             getPortType(trigOrSource.variable as Port)
         } else {
@@ -168,12 +169,12 @@ class TSReactionGenerator(
         }
     }
 
-    private fun generateReactionSignatureElementForPortEffect(effect: VarRef): String {
+    private fun generateReactionSignatureElementForPortEffect(effect: VarRef, isMutation: Boolean): String {
         val outputPort = effect.variable as Port
         val portClassType = if (outputPort.isMultiport) {
-            "MultiReadWrite<${getPortType(effect.variable as Port)}>"
+            (if (isMutation) "__WritableMultiPort" else "MultiReadWrite") + "<${getPortType(effect.variable as Port)}>"
         } else {
-            "ReadWrite<${getPortType(effect.variable as Port)}>"
+            (if (isMutation) "__WritablePort" else "ReadWrite") + "<${getPortType(effect.variable as Port)}>"
         }
 
         return if (effect.container != null && effect.container.isBank) {
@@ -255,7 +256,7 @@ class TSReactionGenerator(
         // so we can iterate over their union
         val triggersUnionSources = HashSet<VarRef>()
         for (trigger in reaction.triggers) {
-            if (!(trigger.isStartup || trigger.isShutdown)) {
+            if (!(trigger is BuiltinTriggerRef)) {
                 triggersUnionSources.add(trigger as VarRef)
             }
         }
@@ -333,10 +334,10 @@ class TSReactionGenerator(
             if (effect.variable is Timer) {
                 errorReporter.reportError("A timer cannot be an effect of a reaction")
             } else if (effect.variable is Action){
-                reactSignatureElement += ": Sched<" + getActionType(effect.variable as Action, federate) + ">"
+                reactSignatureElement += ": Sched<" + getActionType(effect.variable as Action) + ">"
                 schedActionSet.add(effect.variable as Action)
             } else if (effect.variable is Port){
-                reactSignatureElement += ": ${generateReactionSignatureElementForPortEffect(effect)}"
+                reactSignatureElement += ": ${generateReactionSignatureElementForPortEffect(effect, reaction.isMutation())}"
                 reactEpilogue.add(generateReactionEpilogueForPortEffect(effect))
             }
 

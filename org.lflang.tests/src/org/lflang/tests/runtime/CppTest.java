@@ -47,11 +47,6 @@ public class CppTest extends RuntimeTest {
         super(Target.CPP);
     }
 
-    @Override
-    public void runExampleTests() {
-        super.runExampleTests();
-    }
-
     @Test
     @Override
     public void runGenericTests() {

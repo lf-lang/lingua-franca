@@ -1,20 +1,21 @@
-// Check multiport connections between federates where the message is
-// carried by a Token (in this case, with an array of char).
+# Check multiport connections between federates where the message is carried by
+# a Token (in this case, with an array of char).
 target Python {
     timeout: 1 sec,
     coordination: centralized
-};
+}
 
 reactor Source {
-    output[4] out;
-    timer t(0, 200 msec);
-    state count(0);
+    output[4] out
+    timer t(0, 200 msec)
+    state count(0)
+
     reaction(t) -> out {=
         for i in range(len(out)):
             self.count += 1
             out[i].set("Hello {}".format(self.count))
             print("MessageGenerator: At time {}, send message: {}.".format(
-                get_elapsed_logical_time(),
+                lf.time.logical_elapsed(),
                 out[i].value
                 )
             )
@@ -22,16 +23,17 @@ reactor Source {
 }
 
 reactor Destination {
-    input[4] in_;
+    input[4] in_
+
     reaction(in_) {=
         for i in range(len(in_)):
             if in_[i].is_present:
-                print("Received {}.".format(in_[i].value))                
+                print("Received {}.".format(in_[i].value))
     =}
 }
 
 federated reactor DistributedMultiportToken {
-    s = new Source();
-    d = new Destination();
-    s.out -> d.in_;
+    s = new Source()
+    d = new Destination()
+    s.out -> d.in_
 }

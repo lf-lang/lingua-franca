@@ -1,13 +1,11 @@
-target Cpp;
+target Cpp
 
-reactor Foo(bar:time(42 msec)) {
-	state baz(bar);
-	
-	reaction (startup) {=
-	    std::cout << "Baz: " << baz << std::endl;
-	=}
+reactor Foo(bar: time(42 msec)) {
+    state baz(bar)
+
+    reaction(startup) {= std::cout << "Baz: " << baz << std::endl; =}
 }
 
 main reactor {
-	a = new Foo();
+    a = new Foo()
 }

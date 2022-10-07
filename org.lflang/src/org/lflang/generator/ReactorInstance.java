@@ -27,10 +27,12 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 package org.lflang.generator;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.lflang.ASTUtils;
@@ -38,20 +40,21 @@ import org.lflang.ErrorReporter;
 import org.lflang.TimeValue;
 import org.lflang.generator.TriggerInstance.BuiltinTriggerVariable;
 import org.lflang.lf.Action;
+import org.lflang.lf.BuiltinTrigger;
+import org.lflang.lf.BuiltinTriggerRef;
 import org.lflang.lf.Connection;
-import org.lflang.lf.Delay;
+import org.lflang.lf.Expression;
 import org.lflang.lf.Input;
 import org.lflang.lf.Instantiation;
 import org.lflang.lf.Mode;
 import org.lflang.lf.Output;
 import org.lflang.lf.Parameter;
+import org.lflang.lf.ParameterReference;
 import org.lflang.lf.Port;
 import org.lflang.lf.Reaction;
 import org.lflang.lf.Reactor;
 import org.lflang.lf.ReactorDecl;
 import org.lflang.lf.Timer;
-import org.lflang.lf.TriggerRef;
-import org.lflang.lf.Value;
 import org.lflang.lf.VarRef;
 import org.lflang.lf.Variable;
 import org.lflang.lf.WidthSpec;
@@ -241,26 +244,34 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
     public Set<NamedInstance<?>> getCycles() {
         if (depth != 0) return root().getCycles();
         if (cachedCycles != null) return cachedCycles;
-        Set<ReactionInstance> reactions = new LinkedHashSet<ReactionInstance>();
+        cachedCycles = new LinkedHashSet<>();
         
         ReactionInstanceGraph reactionRuntimes = assignLevels();
-        for (ReactionInstance.Runtime runtime : reactionRuntimes.nodes()) {
-            reactions.add(runtime.getReaction());
-        }
-        Set<PortInstance> ports = new LinkedHashSet<PortInstance>();
-        // Need to figure out which ports are involved in the cycles.
-        // It may not be all ports that depend on this reaction.
-        for (ReactionInstance r : reactions) {
-            for (TriggerInstance<? extends Variable> p : r.effects) {
-                if (p instanceof PortInstance) {
-                    findPaths((PortInstance)p, reactions, ports);
+        if (reactionRuntimes.nodes().size() > 0) {
+            Set<ReactionInstance> reactions = new LinkedHashSet<>();
+            Set<PortInstance> ports = new LinkedHashSet<>();
+            // There are cycles. But the nodes set includes not
+            // just the cycles, but also nodes that are downstream of the
+            // cycles.  Use Tarjan's algorithm to get just the cycles.
+            var cycleNodes = reactionRuntimes.getCycles();
+            for (var cycle : cycleNodes) {
+                for (ReactionInstance.Runtime runtime : cycle) {
+                    reactions.add(runtime.getReaction());
                 }
             }
+            // Need to figure out which ports are involved in the cycles.
+            // It may not be all ports that depend on this reaction.
+            for (ReactionInstance r : reactions) {
+                for (TriggerInstance<? extends Variable> p : r.effects) {
+                    if (p instanceof PortInstance) {
+                        findPaths((PortInstance)p, reactions, ports);
+                    }
+                }
+            }
+            cachedCycles.addAll(reactions);
+            cachedCycles.addAll(ports);
         }
         
-        cachedCycles = new LinkedHashSet<NamedInstance<?>>();
-        cachedCycles.addAll(reactions);
-        cachedCycles.addAll(ports);
         return cachedCycles;
     }
 
@@ -318,14 +329,14 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
      * Return the startup trigger or null if not used in any reaction.
      */
     public TriggerInstance<BuiltinTriggerVariable> getStartupTrigger() {
-        return startupTrigger;
+        return builtinTriggers.get(BuiltinTrigger.STARTUP);
     }
 
     /**
      * Return the shutdown trigger or null if not used in any reaction.
      */
     public TriggerInstance<BuiltinTriggerVariable> getShutdownTrigger() {
-        return shutdownTrigger;
+        return builtinTriggers.get(BuiltinTrigger.SHUTDOWN);
     }
     
     /**
@@ -395,7 +406,7 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
      * Return true if the top-level parent of this reactor has causality cycles.
      */
     public boolean hasCycles() {
-        return (assignLevels().nodeCount() != 0);
+        return assignLevels().nodeCount() != 0;
     }
     
     /**
@@ -432,7 +443,7 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
      *  a Time if a time value was given, or a Code, if a code value was
      *  given (text in the target language delimited by {= ... =}
      */
-    public List<Value> initialParameterValue(Parameter parameter) {
+    public List<Expression> initialParameterValue(Parameter parameter) {
         return ASTUtils.initialValue(parameter, instantiations());
     }
 
@@ -462,7 +473,7 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
      * @return true if a reactor is a bank, false otherwise
      */
     public boolean isBank() {
-        return (definition.getWidthSpec() != null);
+        return definition.getWidthSpec() != null;
     }
 
     /**
@@ -640,32 +651,19 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
     }
     
     /**
-     * Assuming that the given value denotes a valid time, return a time value.
+     * Assuming that the given expression denotes a valid time, return a time value.
      *
      * If the value is given as a parameter reference, this will look up the
      * precise time value assigned to this reactor instance.
      */
-    public TimeValue getTimeValue(Value v) {
-        Parameter p = v.getParameter();
-        if (p != null) {
-            return ASTUtils.getLiteralTimeValue(lookupParameterInstance(p).getInitialValue().get(0));
+    public TimeValue getTimeValue(Expression expr) {
+        if (expr instanceof ParameterReference) {
+            final var param = ((ParameterReference)expr).getParameter();
+            // Avoid a runtime error in validator for invalid programs.
+            if (lookupParameterInstance(param).getInitialValue().isEmpty()) return null;
+            return ASTUtils.getLiteralTimeValue(lookupParameterInstance(param).getInitialValue().get(0));
         } else {
-            return ASTUtils.getLiteralTimeValue(v);
-        }
-    }
-
-    /**
-     * Assuming that the given delay denotes a valid time, return a time value.
-     *
-     * If the delay is given as a parameter reference, this will look up the
-     * precise time value assigned to this reactor instance.
-     */
-    public TimeValue getTimeValue(Delay d) {
-        Parameter p = d.getParameter();
-        if (p != null) {
-            return ASTUtils.getLiteralTimeValue(lookupParameterInstance(p).getInitialValue().get(0));
-        } else {
-            return ASTUtils.toTimeValue(d.getTime());
+            return ASTUtils.getLiteralTimeValue(expr);
         }
     }
     
@@ -675,11 +673,8 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
     /** The generator that created this reactor instance. */
     protected ErrorReporter reporter; // FIXME: This accumulates a lot of redundant references
 
-    /** The startup trigger. Null if not used in any reaction. */
-    protected TriggerInstance<BuiltinTriggerVariable> startupTrigger = null;
-
-    /** The shutdown trigger. Null if not used in any reaction. */
-    protected TriggerInstance<BuiltinTriggerVariable> shutdownTrigger = null;
+    /** The map of used built-in triggers. */
+    protected Map<BuiltinTrigger, TriggerInstance<BuiltinTriggerVariable>> builtinTriggers = new HashMap<>();
 
     /**
      * The LF syntax does not currently support declaring reactions unordered,
@@ -722,25 +717,14 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
     }
 
     /**
-     * Returns the startup trigger or create a new one if none exists.
+     * Returns the built-in trigger or create a new one if none exists.
      */
-    protected TriggerInstance<? extends Variable> getOrCreateStartup(TriggerRef trigger) {
-        if (startupTrigger == null) {
-            startupTrigger = new TriggerInstance<>(
-                TriggerInstance.BuiltinTrigger.STARTUP, trigger, this);
+    protected TriggerInstance<? extends Variable> getOrCreateBuiltinTrigger(BuiltinTriggerRef trigger) {
+        if (!builtinTriggers.containsKey(trigger.getType())) {
+            builtinTriggers.put(trigger.getType(), 
+                    new TriggerInstance<>(trigger.getType(), trigger, this));
         }
-        return startupTrigger;
-    }
-    
-    /**
-     * Returns the shutdown trigger or create a new one if none exists.
-     */
-    protected TriggerInstance<? extends Variable> getOrCreateShutdown(TriggerRef trigger) {
-        if (shutdownTrigger == null) {
-            shutdownTrigger = new TriggerInstance<>(
-                TriggerInstance.BuiltinTrigger.SHUTDOWN, trigger, this);
-        }
-        return shutdownTrigger;
+        return builtinTriggers.get(trigger.getType());
     }
     
     ////////////////////////////////////////
@@ -1019,8 +1003,8 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
     private List<RuntimeRange<PortInstance>> listPortInstances(
             List<VarRef> references, Connection connection
     ) {
-        List<RuntimeRange<PortInstance>> result = new ArrayList<RuntimeRange<PortInstance>>();
-        List<RuntimeRange<PortInstance>> tails = new LinkedList<RuntimeRange<PortInstance>>();
+        List<RuntimeRange<PortInstance>> result = new ArrayList<>();
+        List<RuntimeRange<PortInstance>> tails = new LinkedList<>();
         int count = 0;
         for (VarRef portRef : references) {
             // Simple error checking first.
@@ -1041,7 +1025,7 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
                 PortInstance portInstance = reactor.lookupPortInstance(
                         (Port) portRef.getVariable());
                 
-                Set<ReactorInstance> interleaved = new LinkedHashSet<ReactorInstance>();
+                Set<ReactorInstance> interleaved = new LinkedHashSet<>();
                 if (portRef.isInterleaved()) {
                     // NOTE: Here, we are assuming that the interleaved()
                     // keyword is only allowed on the multiports contained by
@@ -1083,7 +1067,7 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
         }
         // Iterate over the tails.
         while(tails.size() > 0) {
-            List<RuntimeRange<PortInstance>> moreTails = new LinkedList<RuntimeRange<PortInstance>>();
+            List<RuntimeRange<PortInstance>> moreTails = new LinkedList<>();
             count = 0;
             for (RuntimeRange<PortInstance> tail : tails) {
                 if (count < tails.size() - 1) {
@@ -1132,4 +1116,17 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
      * Cached reaction graph containing reactions that form a causality loop.
      */
     private ReactionInstanceGraph cachedReactionLoopGraph = null;
+    
+    /**
+     * Return true if this is a generated delay reactor that originates from
+     * an "after" delay on a connection.
+     * 
+     * @return True if this is a generated delay, false otherwise.
+     */
+    public boolean isGeneratedDelay() {
+        if (this.definition.getReactorClass().getName().contains(GeneratorBase.GEN_DELAY_CLASS_NAME)) {
+            return true;
+        }
+        return false;
+    }
 }

@@ -1,38 +1,55 @@
-/*
- * KIELER - Kiel Integrated Environment for Layout Eclipse RichClient
- *
- * http://rtsys.informatik.uni-kiel.de/kieler
- * 
- * Copyright 2021 by
- * + Kiel University
- *   + Department of Computer Science
- *     + Real-Time and Embedded Systems Group
- * 
- * This code is provided under the terms of the Eclipse Public License (EPL).
- */
+/*************
+* Copyright (c) 2021, Kiel University.
+*
+* Redistribution and use in source and binary forms, with or without modification,
+* are permitted provided that the following conditions are met:
+*
+* 1. Redistributions of source code must retain the above copyright notice,
+*    this list of conditions and the following disclaimer.
+*
+* 2. Redistributions in binary form must reproduce the above copyright notice,
+*    this list of conditions and the following disclaimer in the documentation
+*    and/or other materials provided with the distribution.
+*
+* THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
+* ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED 
+* WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE 
+* DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR
+* ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES 
+* (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; 
+* LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON 
+* ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT 
+* (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS 
+* SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+***************/
 package org.lflang.diagram.synthesis.util;
 
 
 import java.awt.Color;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import org.eclipse.elk.alg.layered.options.CenterEdgeLabelPlacementStrategy;
+import org.eclipse.elk.alg.layered.options.EdgeStraighteningStrategy;
+import org.eclipse.elk.alg.layered.options.FixedAlignment;
 import org.eclipse.elk.alg.layered.options.LayerConstraint;
 import org.eclipse.elk.alg.layered.options.LayeredOptions;
+import org.eclipse.elk.alg.layered.options.NodePlacementStrategy;
 import org.eclipse.elk.core.math.ElkPadding;
 import org.eclipse.elk.core.options.CoreOptions;
 import org.eclipse.elk.core.options.Direction;
 import org.eclipse.elk.core.options.EdgeRouting;
 import org.eclipse.elk.core.options.PortConstraints;
+import org.eclipse.elk.core.options.PortLabelPlacement;
 import org.eclipse.elk.core.options.PortSide;
-import org.eclipse.elk.core.options.SizeConstraint;
 import org.eclipse.emf.ecore.util.EcoreUtil;
 import org.eclipse.xtext.xbase.lib.Extension;
 import org.eclipse.xtext.xbase.lib.IterableExtensions;
-import org.eclipse.xtext.xbase.lib.ListExtensions;
 import org.eclipse.xtext.xbase.lib.Pair;
 import org.lflang.diagram.synthesis.AbstractSynthesisExtensions;
 import org.lflang.diagram.synthesis.LinguaFrancaSynthesis;
@@ -40,23 +57,26 @@ import org.lflang.diagram.synthesis.action.MemorizingExpandCollapseAction;
 import org.lflang.diagram.synthesis.styles.LinguaFrancaShapeExtensions;
 import org.lflang.diagram.synthesis.styles.LinguaFrancaStyleExtensions;
 import org.lflang.generator.ModeInstance;
-import org.lflang.generator.ModeInstance.ModeTransitionType;
+import org.lflang.generator.NamedInstance;
 import org.lflang.generator.ModeInstance.Transition;
 import org.lflang.generator.ReactorInstance;
 import org.lflang.lf.Action;
 import org.lflang.lf.Mode;
+import org.lflang.lf.ModeTransition;
+import org.lflang.lf.Reactor;
 import org.lflang.lf.Timer;
-import org.lflang.lf.VarRef;
 
-import com.google.common.collect.HashMultimap;
+import com.google.common.collect.LinkedHashMultimap;
 import com.google.inject.Inject;
 
 import de.cau.cs.kieler.klighd.SynthesisOption;
 import de.cau.cs.kieler.klighd.kgraph.KEdge;
+import de.cau.cs.kieler.klighd.kgraph.KIdentifier;
 import de.cau.cs.kieler.klighd.kgraph.KLabel;
 import de.cau.cs.kieler.klighd.kgraph.KNode;
 import de.cau.cs.kieler.klighd.kgraph.KPort;
 import de.cau.cs.kieler.klighd.krendering.Colors;
+import de.cau.cs.kieler.klighd.krendering.HorizontalAlignment;
 import de.cau.cs.kieler.klighd.krendering.KContainerRendering;
 import de.cau.cs.kieler.klighd.krendering.KDecoratorPlacementData;
 import de.cau.cs.kieler.klighd.krendering.KEllipse;
@@ -111,6 +131,7 @@ public class ModeDiagrams extends AbstractSynthesisExtensions {
     @Inject @Extension private LinguaFrancaShapeExtensions _linguaFrancaShapeExtensions;
     @Inject @Extension private LinguaFrancaStyleExtensions _linguaFrancaStyleExtensions;
     @Inject @Extension private UtilityExtensions _utilityExtensions;
+    @Inject @Extension private LayoutPostProcessing _layoutPostProcessing;
         
     @Extension private KRenderingFactory _kRenderingFactory = KRenderingFactory.eINSTANCE;
     
@@ -127,10 +148,15 @@ public class ModeDiagrams extends AbstractSynthesisExtensions {
                 modeNodes.put(mode, node);
                 modeDefinitionMap.put(mode.getDefinition(), mode);
                 
+                // Layout
                 if (mode.isInitial()) {
                     DiagramSyntheses.setLayoutOption(node, LayeredOptions.LAYERING_LAYER_CONSTRAINT, LayerConstraint.FIRST);
                 }
-                DiagramSyntheses.setLayoutOption(node, LayeredOptions.CROSSING_MINIMIZATION_SEMI_INTERACTIVE, true);
+                // Use general layout configuration of reactors
+                this.<LinguaFrancaSynthesis>getRootSynthesis().configureReactorNodeLayout(node, false); 
+                _layoutPostProcessing.configureReactor(node);
+                // Adjust for modes
+                DiagramSyntheses.setLayoutOption(node, CoreOptions.PORT_CONSTRAINTS, PortConstraints.FREE);
                 
                 var expansionState = MemorizingExpandCollapseAction.getExpansionState(mode);
                 DiagramSyntheses.setLayoutOption(node, KlighdProperties.EXPAND, 
@@ -150,6 +176,34 @@ public class ModeDiagrams extends AbstractSynthesisExtensions {
                             _kRenderingExtensions.RIGHT, 8, 0, _kRenderingExtensions.BOTTOM, 0, 0);
                     _kRenderingExtensions.addSingleClickAction(textButton, MemorizingExpandCollapseAction.ID);
                     _kRenderingExtensions.addDoubleClickAction(textButton, MemorizingExpandCollapseAction.ID);
+                }
+                
+                if (getBooleanValue(LinguaFrancaSynthesis.SHOW_STATE_VARIABLES)) {
+                    // Add mode-local state variables
+                    var variables = mode.getDefinition().getStateVars();
+                    if (!variables.isEmpty()) {
+                        KRectangle rectangle = _kContainerRenderingExtensions.addRectangle(expandFigure);
+                        _kRenderingExtensions.setInvisible(rectangle, true);
+                        if (!getBooleanValue(LinguaFrancaSynthesis.SHOW_HYPERLINKS)) {
+                            _kRenderingExtensions.to(
+                                    _kRenderingExtensions.from(
+                                            _kRenderingExtensions.setGridPlacementData(rectangle), 
+                                            _kRenderingExtensions.LEFT, 6, 0, 
+                                            _kRenderingExtensions.TOP, 0, 0), 
+                                    _kRenderingExtensions.RIGHT, 6, 0, 
+                                    _kRenderingExtensions.BOTTOM, 4, 0);
+                        } else {
+                            _kRenderingExtensions.to(
+                                    _kRenderingExtensions.from(
+                                            _kRenderingExtensions.setGridPlacementData(rectangle), 
+                                            _kRenderingExtensions.LEFT, 6, 0, 
+                                            _kRenderingExtensions.TOP, 4, 0), 
+                                    _kRenderingExtensions.RIGHT, 6, 0, 
+                                    _kRenderingExtensions.BOTTOM, 0, 0);
+                        }
+                        _kRenderingExtensions.setHorizontalAlignment(rectangle, HorizontalAlignment.LEFT);
+                        this.<LinguaFrancaSynthesis>getRootSynthesis().addStateVariableList(rectangle, variables);
+                    }
                 }
                 
                 _kContainerRenderingExtensions.addChildArea(expandFigure);
@@ -173,7 +227,7 @@ public class ModeDiagrams extends AbstractSynthesisExtensions {
                 }
             }
             
-            var modeChildren =  HashMultimap.<ModeInstance, KNode>create();
+            var modeChildren =  LinkedHashMultimap.<ModeInstance, KNode>create();
             var nodeModes =  new HashMap<KNode, ModeInstance>();
             for (var node : nodes) {
                 var instance = NamedInstanceUtil.getLinkedInstance(node);
@@ -194,21 +248,38 @@ public class ModeDiagrams extends AbstractSynthesisExtensions {
             
             var modeContainer = _kNodeExtensions.createNode();
             modeContainer.getChildren().addAll(modeNodes.values());
-            var fig = addModeContainerFigure(modeContainer);
-            _kRenderingExtensions.addDoubleClickAction(fig, MemorizingExpandCollapseAction.ID);
-            if (modeChildren.get(null).isEmpty()) {
-                _kRenderingExtensions.setInvisible(fig, true);
-                DiagramSyntheses.setLayoutOption(modeContainer, CoreOptions.PADDING, new ElkPadding());
-            }
-            DiagramSyntheses.setLayoutOption(modeContainer, CoreOptions.NODE_SIZE_CONSTRAINTS, SizeConstraint.minimumSizeWithPorts());
-            DiagramSyntheses.setLayoutOption(modeContainer, CoreOptions.EDGE_ROUTING, EdgeRouting.SPLINES);
+            var modeContainerFigure = addModeContainerFigure(modeContainer);
+            _kRenderingExtensions.addDoubleClickAction(modeContainerFigure, MemorizingExpandCollapseAction.ID);
+            
+            // Use general layout configuration of reactors
+            this.<LinguaFrancaSynthesis>getRootSynthesis().configureReactorNodeLayout(modeContainer, false); 
+            _layoutPostProcessing.configureReactor(modeContainer);
+            // Adjust for state machine style
+            // Create alternating directions to make the model more compact
             DiagramSyntheses.setLayoutOption(modeContainer, CoreOptions.DIRECTION, Direction.DOWN);
-            DiagramSyntheses.setLayoutOption(modeContainer, CoreOptions.PORT_CONSTRAINTS, PortConstraints.FIXED_ORDER);
+            // More state machine like node placement
+            DiagramSyntheses.setLayoutOption(modeContainer, LayeredOptions.NODE_PLACEMENT_STRATEGY, NodePlacementStrategy.BRANDES_KOEPF);
+            DiagramSyntheses.setLayoutOption(modeContainer, LayeredOptions.NODE_PLACEMENT_BK_FIXED_ALIGNMENT, FixedAlignment.BALANCED);
+            DiagramSyntheses.setLayoutOption(modeContainer, LayeredOptions.NODE_PLACEMENT_BK_EDGE_STRAIGHTENING, EdgeStraighteningStrategy.IMPROVE_STRAIGHTNESS);
+            // Splines
+            DiagramSyntheses.setLayoutOption(modeContainer, CoreOptions.EDGE_ROUTING, EdgeRouting.SPLINES);
+            DiagramSyntheses.setLayoutOption(modeContainer, LayeredOptions.EDGE_LABELS_CENTER_LABEL_PLACEMENT_STRATEGY, CenterEdgeLabelPlacementStrategy.TAIL_LAYER);
+            DiagramSyntheses.setLayoutOption(modeContainer, CoreOptions.SPACING_NODE_SELF_LOOP, 18.0);
+            // Unreachable states are unlikely
+            DiagramSyntheses.setLayoutOption(modeContainer, CoreOptions.SEPARATE_CONNECTED_COMPONENTS, false);
+            // Equal padding
+            DiagramSyntheses.setLayoutOption(modeContainer, CoreOptions.PADDING, new ElkPadding(6));
+            if (reactor.modes.stream().anyMatch(m -> m.transitions.stream().anyMatch(t -> t.type == ModeTransition.HISTORY))) {
+                // Make additional space for history indicator
+                DiagramSyntheses.setLayoutOption(modeContainer, LayeredOptions.SPACING_NODE_NODE_BETWEEN_LAYERS, 
+                        modeContainer.getProperty(LayeredOptions.SPACING_NODE_NODE_BETWEEN_LAYERS) 
+                        + (getBooleanValue(SHOW_TRANSITION_LABELS) ? 6.0 : 10.0));
+            }
 
             var modeContainerPorts = new HashMap<KPort, KPort>();
-            for (var mode : ListExtensions.reverseView(reactor.modes)) {
+            for (var mode : reactor.modes) {
                 var modeNode = modeNodes.get(mode);
-                var edges = new HashSet<KEdge>();
+                var edges = new LinkedHashSet<KEdge>();
                 // add children
                 for (var child : modeChildren.get(mode)) {
                     nodes.remove(child);
@@ -219,9 +290,9 @@ public class ModeDiagrams extends AbstractSynthesisExtensions {
                 }
                 
                 // add transitions
-                var representedTargets = new HashSet<Pair<ModeInstance, ModeInstance.ModeTransitionType>>();
-                for (var transition : ListExtensions.reverseView(mode.transitions)) {
-                    if (!representedTargets.contains(new Pair<ModeInstance, ModeInstance.ModeTransitionType>(transition.target, transition.type))) {
+                var representedTargets = new HashSet<Pair<ModeInstance, ModeTransition>>();
+                for (var transition : mode.transitions) {
+                    if (!representedTargets.contains(new Pair<ModeInstance, ModeTransition>(transition.target, transition.type))) {
                         var edge = _kEdgeExtensions.createEdge();
                         edge.setSource(modeNode);
                         edge.setTarget(modeNodes.get(transition.target));
@@ -231,13 +302,14 @@ public class ModeDiagrams extends AbstractSynthesisExtensions {
                             associateWith(edge, transition.getDefinition());
                         } else {
                             // Bundle similar transitions
-                            representedTargets.add(new Pair<ModeInstance, ModeInstance.ModeTransitionType>(transition.target, transition.type));
+                            representedTargets.add(new Pair<ModeInstance, ModeTransition>(transition.target, transition.type));
                         }
                     }
                 }
                 
                 // handle cross hierarchy edges
                 var portCopies = new HashMap<KPort, KPort>();
+                var triggerCopies = new HashMap<KNode, KNode>();
                 for (var edge : edges) {
                     if (!edge.getProperty(CoreOptions.NO_LAYOUT)) {
                         var sourceNodeMode = nodeModes.get(edge.getSource());
@@ -253,79 +325,143 @@ public class ModeDiagrams extends AbstractSynthesisExtensions {
                         
                         if (!sourceIsInMode || !targetIsInMode) {
                             var node = sourceIsInMode ? edge.getTarget() : edge.getSource();
-                            var port = sourceIsInMode ? edge.getTargetPort() : edge.getSourcePort();
-                            var isLocal = modeChildren.get(null).contains(node);
-                            if (isLocal) {
-                                // Add port to mode container
-                                if (modeContainerPorts.containsKey(port)) {
-                                    node = modeContainer;
-                                    port = modeContainerPorts.get(port);
-                                } else {
-                                    var containerPort = _kPortExtensions.createPort();
-                                    modeContainerPorts.put(port, containerPort);
-                                    modeContainer.getPorts().add(containerPort);
-                                    
-                                    _kPortExtensions.setPortSize(containerPort, 8, 4);
-                                    KRectangle rect = _kRenderingExtensions.addRectangle(containerPort);
-                                    _kRenderingExtensions.setBackground(rect, Colors.BLACK);
-                                    
-                                    DiagramSyntheses.setLayoutOption(containerPort, CoreOptions.PORT_BORDER_OFFSET, -4.0);
-                                    DiagramSyntheses.setLayoutOption(containerPort, CoreOptions.PORT_SIDE, sourceIsInMode ? PortSide.EAST : PortSide.WEST);
-                                    
-                                    var source = _utilityExtensions.sourceElement(node);
-                                    var label = "";
-                                    if (source instanceof Action) {
-                                        label = ((Action) source).getName();
-                                    } else if (source instanceof Timer) {
-                                        label = ((Timer) source).getName();
-                                    }
-                                    _kLabelExtensions.addOutsidePortLabel(containerPort, label, 8);
-                                    
-                                    // new connection
-                                    var copy = EcoreUtil.copy(edge);
-                                    if (sourceIsInMode) {
-                                        copy.setSource(modeContainer);
-                                        copy.setSourcePort(containerPort);
-                                        copy.setTarget(edge.getTarget());
-                                    } else {
-                                        copy.setTarget(modeContainer);
-                                        copy.setTargetPort(containerPort);
-                                        copy.setSource(edge.getSource());
-                                    }
-                                    
-                                    node = modeContainer;
-                                    port = containerPort;
-                                }
-                            }
                             
-                            // Duplicate port
-                            if (!portCopies.containsKey(port)) {
-                                var copy = EcoreUtil.copy(port);
-                                portCopies.put(port, copy);
-                                
-                                var dummyNode = _kNodeExtensions.createNode();
-                                var newID = mode.uniqueID() + "_";
-                                if (!port.getLabels().isEmpty()) {
-                                    newID += IterableExtensions.head(port.getLabels()).getText();
+                            if (node.getProperty(LinguaFrancaSynthesis.REACTION_SPECIAL_TRIGGER)) {
+                                // Duplicate trigger node
+                                if (!triggerCopies.containsKey(node)) {
+                                    var copy = EcoreUtil.copy(node);
+                                    modeNode.getChildren().add(modeNode.getChildren().indexOf(edge.getTarget()), copy);
+                                    triggerCopies.put(node, copy);
+                                    
+                                    // Adjust copy
+                                    copy.getOutgoingEdges().forEach(e -> {e.setTarget(null);e.setTargetPort(null);});
+                                    copy.getOutgoingEdges().clear();
+                                    copy.getData().stream().filter(d -> d instanceof KIdentifier).forEach(d -> {
+                                        var kid = (KIdentifier) d;
+                                        kid.setId(kid.getId() + "_" + mode.getName());
+                                    });
                                 }
-                                _utilityExtensions.setID(dummyNode, newID);
-                                _kRenderingExtensions.addInvisibleContainerRendering(dummyNode);
-                                dummyNode.getPorts().add(copy);
-                                DiagramSyntheses.setLayoutOption(dummyNode, LayeredOptions.LAYERING_LAYER_CONSTRAINT,
-                                        port.getProperty(CoreOptions.PORT_SIDE) == PortSide.WEST ? LayerConstraint.FIRST : LayerConstraint.LAST);
                                 
-                                modeNode.getChildren().add(dummyNode);
-                            }
-                            var newPort = portCopies.get(port);
-                            if (sourceIsInMode) {
-                                edge.setTarget(newPort.getNode());
-                                edge.setTargetPort(newPort);
+                                var newNode = triggerCopies.get(node);
+                                edge.setSource(newNode);
+                                
+                                // Remove trigger on top level if only used in modes
+                                if (node.getOutgoingEdges().isEmpty()) {
+                                    nodes.remove(node);
+                                }
                             } else {
-                                edge.setSource(newPort.getNode());
-                                edge.setSourcePort(newPort);
+                                var port = sourceIsInMode ? edge.getTargetPort() : edge.getSourcePort();
+                                var isLocal = modeChildren.get(null).contains(node);
+                                if (isLocal) {
+                                    // Add port to mode container
+                                    if (modeContainerPorts.containsKey(port)) {
+                                        node = modeContainer;
+                                        port = modeContainerPorts.get(port);
+                                    } else {
+                                        var containerPort = _kPortExtensions.createPort();
+                                        modeContainerPorts.put(port, containerPort);
+                                        modeContainer.getPorts().add(containerPort);
+                                        
+                                        _kPortExtensions.setPortSize(containerPort, 8, 8);
+                                        KRectangle rect = _kRenderingExtensions.addRectangle(containerPort);
+                                        _kRenderingExtensions.setPointPlacementData(rect,
+                                                _kRenderingExtensions.LEFT, 0, 0.5f,
+                                                _kRenderingExtensions.BOTTOM, 0, 0.5f,
+                                                _kRenderingExtensions.H_CENTRAL, _kRenderingExtensions.V_CENTRAL,
+                                                0, 0, 8, 4);
+                                        _kRenderingExtensions.setBackground(rect, Colors.BLACK);
+                                        _linguaFrancaStyleExtensions.boldLineSelectionStyle(rect);
+                                        
+                                        DiagramSyntheses.setLayoutOption(containerPort, CoreOptions.PORT_BORDER_OFFSET, -4.0);
+                                        DiagramSyntheses.setLayoutOption(containerPort, CoreOptions.PORT_SIDE, sourceIsInMode ? PortSide.EAST : PortSide.WEST);
+                                        
+                                        var source = _utilityExtensions.sourceElement(node);
+                                        var label = "";
+                                        if (source instanceof Action) {
+                                            label = ((Action) source).getName();
+                                        } else if (source instanceof Timer) {
+                                            label = ((Timer) source).getName();
+                                        } else if (!port.getLabels().isEmpty()) {
+                                            label = port.getLabels().get(0).getText();
+                                            if (source instanceof Reactor && getBooleanValue(LinguaFrancaSynthesis.SHOW_INSTANCE_NAMES)) {
+                                                NamedInstance<?> linkedInstance = NamedInstanceUtil.getLinkedInstance(node);
+                                                if (linkedInstance instanceof ReactorInstance) {
+                                                    label = ((ReactorInstance) linkedInstance).getName() + "." + label;
+                                                }
+                                            }
+                                        }
+                                        var portLabel = _kLabelExtensions.createLabel(containerPort);
+                                        portLabel.setText(label);
+                                        var portLabelKText = _kRenderingFactory.createKText();
+                                        _kRenderingExtensions.setFontSize(portLabelKText, 8);
+                                        portLabel.getData().add(portLabelKText);
+                                        
+                                        // new connection
+                                        var copy = EcoreUtil.copy(edge);
+                                        if (sourceIsInMode) {
+                                            copy.setSource(modeContainer);
+                                            copy.setSourcePort(containerPort);
+                                            copy.setTarget(edge.getTarget());
+                                        } else {
+                                            copy.setTarget(modeContainer);
+                                            copy.setTargetPort(containerPort);
+                                            copy.setSource(edge.getSource());
+                                        }
+                                        
+                                        node = modeContainer;
+                                        port = containerPort;
+                                    }
+                                }
+                                
+                                // Duplicate port
+                                if (!portCopies.containsKey(port)) {
+                                    var copy = EcoreUtil.copy(port);
+                                    portCopies.put(port, copy);
+                                    
+                                    var dummyNode = _kNodeExtensions.createNode();
+                                    var newID = mode.uniqueID() + "_";
+                                    if (!port.getLabels().isEmpty()) {
+                                        newID += IterableExtensions.head(port.getLabels()).getText();
+                                    }
+                                    _utilityExtensions.setID(dummyNode, newID);
+                                    _kRenderingExtensions.addInvisibleContainerRendering(dummyNode);
+                                    dummyNode.getPorts().add(copy);
+                                    // Assign layer
+                                    DiagramSyntheses.setLayoutOption(dummyNode, LayeredOptions.LAYERING_LAYER_CONSTRAINT,
+                                            port.getProperty(CoreOptions.PORT_SIDE) == PortSide.WEST ? LayerConstraint.FIRST : LayerConstraint.LAST);
+                                    // Configure port spacing
+                                    DiagramSyntheses.setLayoutOption(dummyNode, CoreOptions.PORT_LABELS_PLACEMENT, EnumSet.of(PortLabelPlacement.ALWAYS_OTHER_SAME_SIDE, PortLabelPlacement.OUTSIDE));
+                                    // Place freely
+                                    DiagramSyntheses.setLayoutOption(dummyNode, LayeredOptions.CONSIDER_MODEL_ORDER_NO_MODEL_ORDER, true);
+                                    // Switch port side
+                                    DiagramSyntheses.setLayoutOption(copy, CoreOptions.PORT_SIDE, 
+                                            port.getProperty(CoreOptions.PORT_SIDE) == PortSide.WEST ? PortSide.EAST : PortSide.WEST);
+                                    
+                                    modeNode.getChildren().add(dummyNode);
+                                }
+                                var newPort = portCopies.get(port);
+                                if (sourceIsInMode) {
+                                    edge.setTarget(newPort.getNode());
+                                    edge.setTargetPort(newPort);
+                                } else {
+                                    edge.setSource(newPort.getNode());
+                                    edge.setSourcePort(newPort);
+                                }
                             }
                         }
                     }
+                }
+            }
+            
+            // If mode container is unused (no ports for local connections) -> hide it
+            if (modeContainer.getPorts().isEmpty()) {
+                _kRenderingExtensions.setInvisible(modeContainerFigure, true);
+                DiagramSyntheses.setLayoutOption(modeContainer, CoreOptions.PADDING, new ElkPadding(2));
+            } else if (getBooleanValue(LinguaFrancaSynthesis.SHOW_INSTANCE_NAMES)) {
+                // Remove mode container port labels of ports representing internal connections
+                // because their association to reactor instances is unambiguous due to instance names
+                for (var p : modeContainer.getPorts()) {
+                    p.getLabels().removeIf(l -> l.getText().contains("."));
                 }
             }
             
@@ -386,10 +522,9 @@ public class ModeDiagrams extends AbstractSynthesisExtensions {
         var spline = _kEdgeExtensions.addSpline(edge);
         _kRenderingExtensions.setLineWidth(spline, 1.5f);
         _kRenderingExtensions.setForeground(spline, MODE_FG);
-        _kRenderingExtensions.setBackground(spline, MODE_FG);
         _linguaFrancaStyleExtensions.boldLineSelectionStyle(spline);
 
-        if (transition.type == ModeTransitionType.HISTORY) {
+        if (transition.type == ModeTransition.HISTORY) {
             addHistoryDecorator(spline);
         } else {
             KRendering arrowDecorator = _kPolylineExtensions.addHeadArrowDecorator(spline);
@@ -410,16 +545,6 @@ public class ModeDiagrams extends AbstractSynthesisExtensions {
         var text = new StringBuilder();
         
         text.append(transition.reaction.triggers.stream().map(t -> t.getDefinition().getName()).collect(Collectors.joining(", ")));
-        
-        if (!transition.reaction.effects.isEmpty()) {
-            text.append(" / ");
-            for(var eff : transition.reaction.effects) {
-                if (eff.getDefinition() instanceof VarRef && ((VarRef) eff.getDefinition()).getContainer() != null) {
-                    text.append(((VarRef) eff.getDefinition()).getContainer().getName()).append(".");
-                }
-                text.append(eff.getDefinition().getName());
-            }
-        }
         return text.toString();
     }
     

@@ -71,8 +71,8 @@ class CppReactionGenerator(
 
     private val TriggerRef.cppType
         get() = when {
-            this.isStartup  -> "reactor::StartupAction"
-            this.isShutdown -> "reactor::ShutdownAction"
+            this is BuiltinTriggerRef && this.type == BuiltinTrigger.STARTUP  -> "reactor::StartupAction"
+            this is BuiltinTriggerRef && this.type == BuiltinTrigger.SHUTDOWN -> "reactor::ShutdownAction"
             this is VarRef  -> cppType
             else            -> AssertionError("Unexpected trigger type")
         }
@@ -82,7 +82,7 @@ class CppReactionGenerator(
                 allUncontainedSources.map { "const ${it.cppType}& ${it.name}" } +
                 allUncontainedEffects.map { "${it.cppType}& ${it.name}" } +
                 allReferencedContainers.map {
-                    if (it.isBank) "const std::vector<${getViewClassName(it)}>& ${it.name}"
+                    if (it.isBank) "const reactor::Multiport<${getViewClassName(it)}>& ${it.name}"
                     else "${getViewClassName(it)}& ${it.name}"
                 }
 
@@ -176,7 +176,7 @@ class CppReactionGenerator(
         val initializers = variables.map { "${it.variable.name}(reactor->${it.variable.name})" }
 
         val viewDeclaration =
-            if (container.isBank) "std::vector<$viewClass> $viewInstance;"
+            if (container.isBank) "reactor::Multiport<$viewClass> $viewInstance;"
             else "$viewClass $viewInstance;"
 
         return with(PrependOperator) {

@@ -1,25 +1,27 @@
+target Rust
 
-target Rust;
 reactor Source {
-    output out: i32;
-    reaction(startup) -> out {=
-        ctx.set(&mut out, 76600)
+    output out: i32
+
+    reaction(startup) -> out {= ctx.set(&mut out, 76600) =}
+}
+
+reactor Sink {
+    input inport: i32
+
+    reaction(inport) {=
+        if let Some(value) = ctx.get(inport) {
+            println!("received {}", value);
+            assert_eq!(76600, value);
+        } else {
+            unreachable!();
+        }
     =}
 }
-reactor Sink {
-  input inport: i32;
-  reaction(inport) {=
-    if let Some(value) = ctx.get(inport) {
-        println!("received {}", value);
-        assert_eq!(76600, value);
-    } else {
-        unreachable!();
-    }
-  =}
-}
-main reactor CompositionWithPorts {
-      source = new Source();
-      sink = new Sink();
 
-      source.out -> sink.inport;
+main reactor CompositionWithPorts {
+    source = new Source()
+    sink = new Sink()
+
+    source.out -> sink.inport
 }

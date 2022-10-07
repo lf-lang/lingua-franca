@@ -24,12 +24,16 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ***************/
 package org.lflang.tests.runtime;
 
+import java.util.List;
+
 import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import org.lflang.Target;
+import org.lflang.tests.Configurators;
 import org.lflang.tests.RuntimeTest;
+import org.lflang.tests.TestRegistry.TestCategory;
 
 /**
  * Collection of tests for the C target.
@@ -64,18 +68,6 @@ public class CTest extends RuntimeTest {
 
     @Test
     @Override
-    public void runExampleTests() {
-        super.runExampleTests();
-    }
-
-    @Test
-    @Override
-    public void validateExamples() {
-        super.validateExamples();
-    }
-
-    @Test
-    @Override
     public void runGenericTests() {
         super.runGenericTests();
     }
@@ -91,6 +83,15 @@ public class CTest extends RuntimeTest {
     @Override
     public void runMultiportTests() {
         super.runMultiportTests();
+    }
+
+    @Test
+    public void runArduinoTests() {
+        Assumptions.assumeFalse(isWindows(), Message.NO_WINDOWS_SUPPORT);
+        super.runTestsFor(List.of(Target.C),
+                          Message.DESC_ARDUINO,
+                          TestCategory.ARDUINO::equals, Configurators::noChanges,
+                          false);
     }
 
     @Test

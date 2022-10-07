@@ -35,6 +35,7 @@ import org.lflang.TargetProperty.BuildType;
 import org.lflang.TargetProperty.ClockSyncMode;
 import org.lflang.TargetProperty.CoordinationType;
 import org.lflang.TargetProperty.LogLevel;
+import org.lflang.TargetProperty.Platform;
 import org.lflang.TargetProperty.SchedulerOption;
 import org.lflang.generator.rust.RustTargetConfig;
 
@@ -51,6 +52,11 @@ public class TargetConfig {
      * Keep track of every target property that is explicitly set by the user.
      */
     public Set<TargetProperty> setByUser = new HashSet<>();
+
+    /**
+     * Specify Baud Rate for Embedded Devices, including Arduino.
+     */
+    public int baudRate = 9600;
 
     /**
      * A list of custom build commands that replace the default build process of
@@ -189,6 +195,15 @@ public class TargetConfig {
     public boolean noRuntimeValidation = false;
 
     /**
+     * Set the target platform.
+     * This tells the build system what platform-specific support
+     * files it needs to incorporate at compile time.
+     *
+     * @author Samuel Berkun (sberkun@berkeley.edu)
+     */
+    public Platform platform = Platform.AUTO;
+
+    /**
      * List of proto files to be processed by the code generator.
      */
     public List<String> protoFiles = new ArrayList<>();
@@ -197,6 +212,11 @@ public class TargetConfig {
      * If true, generate ROS2 specific code.
      */
     public boolean ros2 = false;
+
+    /**
+     * Additional ROS2 packages that the LF program depends on.
+     */
+    public List<String> ros2Dependencies = null;
 
     /**
      * The version of the runtime library to be used in the generated target. 
@@ -249,7 +269,6 @@ public class TargetConfig {
      * LF programs and performing external analysis.
      */
     public boolean exportToYaml = false;
-
 
     /** Rust-specific configuration. */
     public final RustTargetConfig rust = new RustTargetConfig();

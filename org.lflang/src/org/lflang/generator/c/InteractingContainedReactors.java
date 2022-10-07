@@ -19,7 +19,7 @@ import org.lflang.lf.VarRef;
 
 /**
  * Helper class to handle code generation of contained reactors.
- * 
+ *
  * @author {Edward A. Lee <eal@berkeley.edu>}
  * @author {Soroush Bateni <soroush@utdallas.edu>}
  * @author {Hou Seng Wong <housengw@berkeley.edu>}
@@ -34,9 +34,6 @@ public class InteractingContainedReactors {
      * For each port, this provides a list of reaction indices that
      * are triggered by the port, or an empty list if there are no
      * reactions triggered by the port.
-     * @param reactor The container.
-     * @param federate The federate (used to determine whether a
-     *  reaction belongs to the federate).
      */
     // This horrible data structure is a collection, indexed by instantiation
     // of a contained reactor, of lists, indexed by ports of the contained reactor
@@ -49,7 +46,7 @@ public class InteractingContainedReactors {
             Port, LinkedList<Integer>
         >
     > portsByContainedReactor = new LinkedHashMap<>();
-        
+
     /**
      * Scan the reactions of the specified reactor and record which ports are
      * referenced by reactions and which reactions are triggered by such ports.
@@ -72,10 +69,9 @@ public class InteractingContainedReactors {
                 // Second, handle reactions that are triggered by outputs
                 // of contained reactors.
                 for (TriggerRef trigger : ASTUtils.convertToEmptyListIfNull(reaction.getTriggers())) {
-                    if (trigger instanceof VarRef) {
+                    if (trigger instanceof VarRef triggerAsVarRef) {
                         // If an trigger is an output, then it must be an output
                         // of a contained reactor.
-                        VarRef triggerAsVarRef = (VarRef) trigger;
                         if (triggerAsVarRef.getVariable() instanceof Output) {
                             var list = addPort(triggerAsVarRef.getContainer(), (Output) triggerAsVarRef.getVariable());
                             list.add(reactionCount);
@@ -98,7 +94,7 @@ public class InteractingContainedReactors {
             reactionCount++;
         }
     }
-    
+
     /**
      * Return or create the list to which reactions triggered by the specified port
      * are to be added. This also records that the port is referenced by the
@@ -108,20 +104,14 @@ public class InteractingContainedReactors {
      */
     private List<Integer> addPort(Instantiation containedReactor, Port port) {
         // Get or create the entry for the containedReactor.
-        var containedReactorEntry = portsByContainedReactor.get(containedReactor);
-        if (containedReactorEntry == null) {
-            containedReactorEntry = new LinkedHashMap<>();
-            portsByContainedReactor.put(containedReactor, containedReactorEntry);
-        }
+        var containedReactorEntry = portsByContainedReactor.computeIfAbsent(
+            containedReactor,
+            k -> new LinkedHashMap<>()
+        );
         // Get or create the entry for the port.
-        var portEntry = containedReactorEntry.get(port);
-        if (portEntry == null) {
-            portEntry = new LinkedList<>();
-            containedReactorEntry.put(port, portEntry);
-        }
-        return portEntry;
+        return containedReactorEntry.computeIfAbsent(port, k -> new LinkedList<>());
     }
-    
+
     /**
      * Return the set of contained reactors that have ports that are referenced
      * by reactions of the container reactor.
@@ -129,7 +119,7 @@ public class InteractingContainedReactors {
     public Set<Instantiation> containedReactors() {
         return portsByContainedReactor.keySet();
     }
-    
+
     /**
      * Return the set of ports of the specified contained reactor that are
      * referenced by reactions of the container reactor. Return an empty
@@ -146,7 +136,7 @@ public class InteractingContainedReactors {
         }
         return result;
     }
-    
+
     /**
      * Return the indices of the reactions triggered by the specified port
      * of the specified contained reactor or an empty list if there are none.

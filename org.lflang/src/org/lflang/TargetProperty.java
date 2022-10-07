@@ -44,7 +44,10 @@ import org.lflang.lf.Element;
 import org.lflang.lf.KeyValuePair;
 import org.lflang.lf.KeyValuePairs;
 import org.lflang.util.FileUtil;
+import org.lflang.util.StringUtil;
 import org.lflang.validation.LFValidator;
+
+import com.google.common.collect.ImmutableList;
 
 /**
  * A target properties along with a type and a list of supporting targets
@@ -53,13 +56,22 @@ import org.lflang.validation.LFValidator;
  * @author{Marten Lohstroh <marten@berkeley.edu>}
  */
 public enum TargetProperty {
-    
+
+    /**
+     * Directive to specify the baud-rate used by the runtime for embedded systems (Arduino).
+     */
+    BAUD_RATE("baud-rate", PrimitiveType.NON_NEGATIVE_INTEGER,
+            List.of(Target.C, Target.CCPP),
+            (config, value, err) -> {
+                config.baudRate = ASTUtils.toInteger(value);
+            }),
+
     /**
      * Directive to let the generator use the custom build command.
      */
     BUILD("build", UnionType.STRING_OR_STRING_ARRAY,
             Arrays.asList(Target.C, Target.CCPP), (config, value, err) -> {
-                config.buildCommands = ASTUtils.toListOfStrings(value);
+                config.buildCommands = ASTUtils.elementToListOfStrings(value);
             }),
     
     /**
@@ -69,7 +81,7 @@ public enum TargetProperty {
     BUILD_TYPE("build-type", UnionType.BUILD_TYPE_UNION,
             Arrays.asList(Target.C, Target.CCPP, Target.CPP, Target.Rust), (config, value, err) -> {
                 config.cmakeBuildType = (BuildType) UnionType.BUILD_TYPE_UNION
-                        .forName(ASTUtils.toText(value));
+                        .forName(ASTUtils.elementToSingleString(value));
                 // set it there too, because the default is different.
                 config.rust.setBuildType(config.cmakeBuildType);
             }),
@@ -78,16 +90,16 @@ public enum TargetProperty {
      * Directive to let the federate execution handle clock synchronization in software.
      */
     CLOCK_SYNC("clock-sync", UnionType.CLOCK_SYNC_UNION,
-               Arrays.asList(Target.C, Target.CCPP), (config, value, err) -> {
+               Arrays.asList(Target.C, Target.CCPP, Target.Python), (config, value, err) -> {
         config.clockSync = (ClockSyncMode) UnionType.CLOCK_SYNC_UNION
-            .forName(ASTUtils.toText(value));
+            .forName(ASTUtils.elementToSingleString(value));
     }),
     
     /**
      * Key-value pairs giving options for clock synchronization.
      */
     CLOCK_SYNC_OPTIONS("clock-sync-options",
-            DictionaryType.CLOCK_SYNC_OPTION_DICT, Arrays.asList(Target.C, Target.CCPP),
+            DictionaryType.CLOCK_SYNC_OPTION_DICT, Arrays.asList(Target.C, Target.CCPP, Target.Python),
             (config, value, err) -> {
                 for (KeyValuePair entry : value.getKeyvalue().getPairs()) {
                     ClockSyncOption option = (ClockSyncOption) DictionaryType.CLOCK_SYNC_OPTION_DICT
@@ -132,14 +144,14 @@ public enum TargetProperty {
      */
     CMAKE_INCLUDE("cmake-include", UnionType.FILE_OR_FILE_ARRAY,
             Arrays.asList(Target.CPP, Target.C, Target.CCPP), (config, value, err) -> {
-                config.cmakeIncludes = ASTUtils.toListOfStrings(value);
+                config.cmakeIncludes = ASTUtils.elementToListOfStrings(value);
             },
             // FIXME: This merging of lists is potentially dangerous since
             // the incoming list of cmake-includes can belong to a .lf file that is
             // located in a different location, and keeping just filename
             // strings like this without absolute paths is incorrect.
             (config, value, err) -> {
-                config.cmakeIncludes.addAll(ASTUtils.toListOfStrings(value));
+                config.cmakeIncludes.addAll(ASTUtils.elementToListOfStrings(value));
             }),
     
     /**
@@ -157,7 +169,7 @@ public enum TargetProperty {
      */
     COMPILER("compiler", PrimitiveType.STRING, Target.ALL,
             (config, value, err) -> {
-                config.compiler = ASTUtils.toText(value);
+                config.compiler = ASTUtils.elementToSingleString(value);
             }),
     
     /**
@@ -179,7 +191,7 @@ public enum TargetProperty {
                                 .forName(entry.getName());
                         switch (option) {
                             case FROM:
-                                config.dockerOptions.from = ASTUtils.toText(entry.getValue());
+                                config.dockerOptions.from = ASTUtils.elementToSingleString(entry.getValue());
                                 break;
                             default:
                                 break;
@@ -193,8 +205,8 @@ public enum TargetProperty {
      * compiled binary.
      */
     EXTERNAL_RUNTIME_PATH("external-runtime-path", PrimitiveType.STRING,
-            Arrays.asList(Target.CPP), (config, value, err) -> {
-                config.externalRuntimePath = ASTUtils.toText(value);
+            List.of(Target.CPP), (config, value, err) -> {
+                config.externalRuntimePath = ASTUtils.elementToSingleString(value);
             }),
 
     /**
@@ -212,14 +224,14 @@ public enum TargetProperty {
      */
     FILES("files", UnionType.FILE_OR_FILE_ARRAY, List.of(Target.C, Target.CCPP, Target.Python),
             (config, value, err) -> {
-                config.fileNames = ASTUtils.toListOfStrings(value);
+                config.fileNames = ASTUtils.elementToListOfStrings(value);
             },
             // FIXME: This merging of lists is potentially dangerous since
             // the incoming list of files can belong to a .lf file that is
             // located in a different location, and keeping just filename
             // strings like this without absolute paths is incorrect.
             (config, value, err) -> {
-                config.fileNames.addAll(ASTUtils.toListOfStrings(value));
+                config.fileNames.addAll(ASTUtils.elementToListOfStrings(value));
             }),
     
     /**
@@ -227,7 +239,7 @@ public enum TargetProperty {
      */
     FLAGS("flags", UnionType.STRING_OR_STRING_ARRAY,
             Arrays.asList(Target.C, Target.CCPP), (config, value, err) -> {
-                config.compilerFlags = ASTUtils.toListOfStrings(value);
+                config.compilerFlags = ASTUtils.elementToListOfStrings(value);
             }),
     
     /**
@@ -237,14 +249,14 @@ public enum TargetProperty {
             Arrays.asList(Target.C, Target.CCPP, Target.Python),
             (config, value, err) -> {
                 config.coordination = (CoordinationType) UnionType.COORDINATION_UNION
-                        .forName(ASTUtils.toText(value));
+                        .forName(ASTUtils.elementToSingleString(value));
             }),
     
     /**
      * Key-value pairs giving options for clock synchronization.
      */
     COORDINATION_OPTIONS("coordination-options",
-            DictionaryType.COORDINATION_OPTION_DICT, Arrays.asList(Target.C, Target.CCPP),
+            DictionaryType.COORDINATION_OPTION_DICT, Arrays.asList(Target.C, Target.CCPP, Target.Python, Target.TS),
             (config, value, err) -> {
                 for (KeyValuePair entry : value.getKeyvalue().getPairs()) {
                     CoordinationOption option = (CoordinationOption) DictionaryType.COORDINATION_OPTION_DICT
@@ -275,7 +287,7 @@ public enum TargetProperty {
     LOGGING("logging", UnionType.LOGGING_UNION, Target.ALL,
             (config, value, err) -> {
                 config.logLevel = (LogLevel) UnionType.LOGGING_UNION
-                        .forName(ASTUtils.toText(value));
+                        .forName(ASTUtils.elementToSingleString(value));
             }),
     
     /**
@@ -294,7 +306,16 @@ public enum TargetProperty {
             Arrays.asList(Target.CPP), (config, value, err) -> {
                 config.noRuntimeValidation = ASTUtils.toBoolean(value);
             }),
-    
+
+    /**
+     * Directive to specify the platform for cross code generation.
+     */
+    PLATFORM("platform", UnionType.PLATFORM_UNION, Target.ALL,
+             (config, value, err) -> {
+                 config.platform = (Platform) UnionType.PLATFORM_UNION
+                     .forName(ASTUtils.elementToSingleString(value));
+             }),
+
     /**
      * Directive for specifying .proto files that need to be compiled and their
      * code included in the sources.
@@ -302,7 +323,7 @@ public enum TargetProperty {
     PROTOBUFS("protobufs", UnionType.FILE_OR_FILE_ARRAY,
             Arrays.asList(Target.C, Target.CCPP, Target.TS, Target.Python),
             (config, value, err) -> {
-                config.protoFiles = ASTUtils.toListOfStrings(value);
+                config.protoFiles = ASTUtils.elementToListOfStrings(value);
             }),
 
 
@@ -315,11 +336,19 @@ public enum TargetProperty {
     }),
 
     /**
+     * Directive to specify additional ROS2 packages that this LF program depends on.
+     */
+    ROS2_DEPENDENCIES("ros2-dependencies", ArrayType.STRING_ARRAY,
+        List.of(Target.CPP), (config, value, err) -> {
+            config.ros2Dependencies = ASTUtils.elementToListOfStrings(value);
+    }),
+
+    /**
      * Directive for specifying a specific version of the reactor runtime library.
      */
     RUNTIME_VERSION("runtime-version", PrimitiveType.STRING,
             Arrays.asList(Target.CPP), (config, value, err) -> {
-                config.runtimeVersion = ASTUtils.toText(value);
+                config.runtimeVersion = ASTUtils.elementToSingleString(value);
             }),
     
     
@@ -329,7 +358,7 @@ public enum TargetProperty {
     SCHEDULER("scheduler", UnionType.SCHEDULER_UNION,
             Arrays.asList(Target.C, Target.CCPP, Target.Python), (config, value, err) -> {
                 config.schedulerType = (SchedulerOption) UnionType.SCHEDULER_UNION
-                        .forName(ASTUtils.toText(value));
+                        .forName(ASTUtils.elementToSingleString(value));
             }),
 
     /**
@@ -385,7 +414,7 @@ public enum TargetProperty {
                             .forName(entry.getName());
                         switch (option) {
                         case TRACE_FILE_NAME:
-                            config.tracing.traceFileName = ASTUtils.toText(entry.getValue());
+                            config.tracing.traceFileName = ASTUtils.elementToSingleString(entry.getValue());
                             break;
                         default:
                             break;
@@ -440,12 +469,12 @@ public enum TargetProperty {
         // are as expected.
 
         if (value.getLiteral() != null) {
-            Path resolved = referencePath.resolveSibling(ASTUtils.withoutQuotes(value.getLiteral()));
+            Path resolved = referencePath.resolveSibling(StringUtil.removeQuotes(value.getLiteral()));
 
             config.rust.addAndCheckTopLevelModule(resolved, value, err);
         } else if (value.getArray() != null) {
             for (Element element : value.getArray().getElements()) {
-                String literal = ASTUtils.withoutQuotes(element.getLiteral());
+                String literal = StringUtil.removeQuotes(element.getLiteral());
                 Path resolved = referencePath.resolveSibling(literal);
                 config.rust.addAndCheckTopLevelModule(resolved, element, err);
             }
@@ -458,7 +487,7 @@ public enum TargetProperty {
      */
     CARGO_FEATURES("cargo-features", ArrayType.STRING_ARRAY,
                    List.of(Target.Rust), (config, value, err) -> {
-        config.rust.setCargoFeatures(ASTUtils.toListOfStrings(value));
+        config.rust.setCargoFeatures(ASTUtils.elementToListOfStrings(value));
     }),
 
     /**
@@ -789,6 +818,7 @@ public enum TargetProperty {
                 CoordinationType.CENTRALIZED),
         SCHEDULER_UNION(Arrays.asList(SchedulerOption.values()), SchedulerOption.getDefault()),
         LOGGING_UNION(Arrays.asList(LogLevel.values()), LogLevel.INFO),
+        PLATFORM_UNION(Arrays.asList(Platform.values()), Platform.AUTO),
         CLOCK_SYNC_UNION(Arrays.asList(ClockSyncMode.values()),
                 ClockSyncMode.INIT),
         DOCKER_UNION(Arrays.asList(PrimitiveType.BOOLEAN, DictionaryType.DOCKER_DICT),
@@ -865,7 +895,7 @@ public enum TargetProperty {
                 if (option instanceof TargetPropertyType) {
                     return ((TargetPropertyType) option).validate(e);
                 } else {
-                    return ASTUtils.toText(e)
+                    return ASTUtils.elementToSingleString(e)
                             .equalsIgnoreCase(option.toString());
                 }
             }).findAny();
@@ -1083,11 +1113,11 @@ public enum TargetProperty {
      */
     public enum PrimitiveType implements TargetPropertyType {
         BOOLEAN("'true' or 'false'",
-                v -> ASTUtils.toText(v).equalsIgnoreCase("true")
-                        || ASTUtils.toText(v).equalsIgnoreCase("false")),
+                v -> ASTUtils.elementToSingleString(v).equalsIgnoreCase("true")
+                        || ASTUtils.elementToSingleString(v).equalsIgnoreCase("false")),
         INTEGER("an integer", v -> {
             try {
-                Integer.parseInt(ASTUtils.toText(v));
+                Integer.parseInt(ASTUtils.elementToSingleString(v));
             } catch (NumberFormatException e) {
                 return false;
             }
@@ -1095,7 +1125,7 @@ public enum TargetProperty {
         }),
         NON_NEGATIVE_INTEGER("a non-negative integer", v -> {
             try {
-                int result = Integer.parseInt(ASTUtils.toText(v));
+                int result = Integer.parseInt(ASTUtils.elementToSingleString(v));
                 if (result < 0)
                     return false;
             } catch (NumberFormatException e) {
@@ -1147,7 +1177,7 @@ public enum TargetProperty {
          * 
          * @param e      The element to type check.
          * @param name   The name of the target property.
-         * @param errors A list of errors to append to if problems are found.
+         * @param v      The validator to which any errors should be reported.
          */
         public void check(Element e, String name, LFValidator v) {
             if (!this.validate(e)) {
@@ -1159,7 +1189,7 @@ public enum TargetProperty {
             // Looking in the same directory is too restrictive. Disabling this check for now.
             /*
             if (this == FILE) {
-                String file = ASTUtils.toText(e);
+                String file = ASTUtils.toSingleString(e);
                  
                 if (!FileConfig.fileExists(file, FileConfig.toPath(e.eResource().getURI()).toFile().getParent())) {
                     v.targetPropertyWarnings
@@ -1303,13 +1333,53 @@ public enum TargetProperty {
             return this.name().toLowerCase();
         }
     }
-    
+
+    /**
+     * Enumeration of supported platforms
+     */
+    public enum Platform {
+        AUTO,
+        ARDUINO("Arduino"),
+        LINUX("Linux"),
+        MAC("Darwin"),
+        WINDOWS("Windows");
+
+        String cMakeName;
+        Platform() {
+            this.cMakeName = this.toString();
+        }
+        Platform(String cMakeName) {
+            this.cMakeName = cMakeName;
+        }
+
+        /**
+         * Return the name in lower case.
+         */
+        @Override
+        public String toString() {
+            return this.name().toLowerCase();
+        }
+
+        /**
+         * Get the CMake name for the platform.
+         */
+        public String getcMakeName() {
+            return this.cMakeName;
+        }
+    }
+
     /**
      * Supported schedulers.
      * @author{Soroush Bateni <soroush@utdallas.edu>}
      */
     public enum SchedulerOption {
         NP(false),         // Non-preemptive
+        adaptive(false, List.of(
+            Path.of("scheduler_adaptive.c"),
+            Path.of("worker_assignments.h"),
+            Path.of("worker_states.h"),
+            Path.of("data_collection.h")
+        )),
         GEDF_NP(true),    // Global EDF non-preemptive
         GEDF_NP_CI(true); // Global EDF non-preemptive with chain ID
         // PEDF_NP(true);    // Partitioned EDF non-preemptive (FIXME: To be re-added in a future PR)
@@ -1317,17 +1387,30 @@ public enum TargetProperty {
         /**
          * Indicate whether or not the scheduler prioritizes reactions by deadline.
          */
-        private final Boolean prioritizesDeadline;
-        
+        private final boolean prioritizesDeadline;
+
+        /** Relative paths to files required by this scheduler. */
+        private final List<Path> relativePaths;
+
+        SchedulerOption(boolean prioritizesDeadline) {
+            this(prioritizesDeadline, null);
+        }
+
+        SchedulerOption(boolean prioritizesDeadline, List<Path> relativePaths) {
+            this.prioritizesDeadline = prioritizesDeadline;
+            this.relativePaths = relativePaths;
+        }
+
         /**
          * Return true if the scheduler prioritizes reactions by deadline.
          */
-        public Boolean prioritizesDeadline() {
+        public boolean prioritizesDeadline() {
             return this.prioritizesDeadline;
         }
-        
-        private SchedulerOption(Boolean prioritizesDeadline) {
-            this.prioritizesDeadline = prioritizesDeadline;
+
+        public List<Path> getRelativePaths() {
+            return relativePaths != null ? ImmutableList.copyOf(relativePaths) :
+                   List.of(Path.of("scheduler_" + this + ".c"));
         }
         
         public static SchedulerOption getDefault() {

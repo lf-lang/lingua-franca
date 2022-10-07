@@ -148,7 +148,7 @@ public class Position implements Comparable<Position> {
      * caused by {@code text}
      */
     public Position plus(String text) {
-        text += System.lineSeparator();  // Turn line separators into line terminators.
+        text += "\n";  // Turn line separators into line terminators.
         String[] lines = text.lines().toArray(String[]::new);
         if (lines.length == 0) return this; // OK not to copy because Positions are immutable
         int lastLineLength = lines[lines.length - 1].length();

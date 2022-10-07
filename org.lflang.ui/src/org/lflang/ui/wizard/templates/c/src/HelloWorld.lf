@@ -6,6 +6,6 @@ target C
 main reactor {
     reaction(startup) {=
         // Using a thread-safe print function provided by the runtime.
-        info_print("Hello World!");
+        lf_print("Hello World!");
     =}
 }

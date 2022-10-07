@@ -1,14 +1,14 @@
-target TypeScript{
-    timeout : 5 sec
-};
+target TypeScript {
+    timeout: 5 sec
+}
+
 main reactor DelayedAction {
-    timer t(0, 1 sec);
-    logical action a;
-    state count:number(0);
-    reaction(t) -> a {=
-        actions.a.schedule(TimeValue.msec(100), null);
-    =}
-    
+    timer t(0, 1 sec)
+    logical action a
+    state count: number(0)
+
+    reaction(t) -> a {= actions.a.schedule(TimeValue.msec(100), null); =}
+
     reaction(a) {=
         let elapsedLogical = util.getElapsedLogicalTime();
         let elapsedPhysical = util.getElapsedPhysicalTime();

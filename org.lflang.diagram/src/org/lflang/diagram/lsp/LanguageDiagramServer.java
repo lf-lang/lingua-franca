@@ -63,13 +63,16 @@ public class LanguageDiagramServer extends AbstractLanguageServer {
             rectPack.setClient((KGraphLanguageClient) languageClient);
             LanguageServerErrorReporter.setClient(languageClient);
             lfExtension.setClient(languageClient);
+            // The following is needed because VS Code treats System.err like System.out and System.out like a shout
+            // into the void.
+            System.setOut(System.err);
         }
     }
     
     private static class LFLanguageRegistration implements ILanguageRegistration {
         
         @Override
-        public void bindAndRegisterLanguages() {        
+        public void bindAndRegisterLanguages() {
             LFIdeSetup.doSetup();
         }
     }

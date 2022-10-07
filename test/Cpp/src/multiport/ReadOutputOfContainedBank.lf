@@ -1,52 +1,56 @@
-// Test reacting to and reading outputs from a contained
-// reactor bank in various permutations.
-target Cpp;
-reactor Contained(bank_index:size_t(0)) {
-    output out:unsigned;
-    reaction(startup) -> out {=
-        out.set(42 * bank_index);
-    =}
+// Test reacting to and reading outputs from a contained reactor bank in various
+// permutations.
+target Cpp
+
+reactor Contained(bank_index: size_t(0)) {
+    output out: unsigned
+
+    reaction(startup) -> out {= out.set(42 * bank_index); =}
 }
 
 main reactor {
-    c = new[4] Contained();
-    state count:int(0);
+    c = new[4] Contained()
+    state count: int(0)
+
     reaction(startup) c.out {=
         for (size_t i = 0; i < c.size(); i++) {
             unsigned result = *c[i].out.get();
-        	std::cout << "Startup reaction reading output of contained "
-            	      << "reactor: " << result << std::endl;
-        	if (result != 42 * i) {
-            	std::cout << "FAILURE: expected " << 42 * i << std::endl;
-            	exit(2);
-        	}
+            std::cout << "Startup reaction reading output of contained "
+                      << "reactor: " << result << std::endl;
+            if (result != 42 * i) {
+                std::cout << "FAILURE: expected " << 42 * i << std::endl;
+                exit(2);
+            }
         }
         count++;
     =}
+
     reaction(c.out) {=
         for (size_t i = 0; i < c.size(); i++) {
             unsigned result = *c[i].out.get();
-        	std::cout << "Reading output of contained reactor: " << result
+            std::cout << "Reading output of contained reactor: " << result
                   << std::endl;
-        	if (result != 42 * i) {
-            	std::cout << "FAILURE: expected " << 42 * i << std::endl;
-            	exit(2);
+            if (result != 42 * i) {
+                std::cout << "FAILURE: expected " << 42 * i << std::endl;
+                exit(2);
             }
         }
         count++;
     =}
+
     reaction(startup, c.out) {=
         for (size_t i = 0; i < c.size(); i++) {
             unsigned result = *c[i].out.get();
-        	std::cout << "Alternate triggering reading output of contained "
-            	      << "reactor: " << result << std::endl;
-        	if (result != 42 * i) {
-            	std::cout << "FAILURE: expected " << 42 * i << std::endl;
-            	exit(2);	
+            std::cout << "Alternate triggering reading output of contained "
+                      << "reactor: " << result << std::endl;
+            if (result != 42 * i) {
+                std::cout << "FAILURE: expected " << 42 * i << std::endl;
+                exit(2);
             }
         }
         count++;
     =}
+
     reaction(shutdown) {=
         if (count != 3) {
             std::cerr << "ERROR: One of the reactions failed to trigger."

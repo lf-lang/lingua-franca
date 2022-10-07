@@ -3,7 +3,7 @@
     <page id="root" url="https://welcome.lf-lang.org"/>
     <!-- <page id="root" style="css/style.css" style-id="page">
         <text>Welcome to Epoch IDE!</text>
-        <link label="Wiki" url="https://github.com/icyphy/lingua-franca/wiki" id="orglflangui-introLink" style-id="content-link">
+        <link label="HomePage" url="https://lf-lang.org" id="orglflangui-introLink" style-id="content-link">
         </link>
     </page> -->
 </introContent>

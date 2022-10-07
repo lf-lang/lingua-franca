@@ -6,18 +6,20 @@ import java.util.List;
 
 import org.lflang.TargetConfig;
 import org.lflang.TargetConfig.ClockSyncOptions;
+import org.lflang.TargetProperty.Platform;
 import org.lflang.TargetProperty.ClockSyncMode;
 import org.lflang.TargetProperty.CoordinationType;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.generator.GeneratorBase;
+import org.lflang.util.StringUtil;
 
 import static org.lflang.util.StringUtil.addDoubleQuotes;
 
 /**
  * Generates code for preambles for the C and CCpp target.
  * This includes #include and #define directives at the top
- * of each generated ".c" file. 
- * 
+ * of each generated ".c" file.
+ *
  * @author{Edward A. Lee <eal@berkeley.edu>}
  * @author{Marten Lohstroh <marten@berkeley.edu>}
  * @author{Mehrdad Niknami <mniknami@berkeley.edu>}
@@ -30,12 +32,19 @@ import static org.lflang.util.StringUtil.addDoubleQuotes;
 public class CPreambleGenerator {
     /** Add necessary source files specific to the target language.  */
     public static String generateIncludeStatements(
-        TargetConfig targetConfig, 
+        TargetConfig targetConfig,
         boolean isFederated
     ) {
         var tracing = targetConfig.tracing;
         CodeBuilder code = new CodeBuilder();
-        code.pr("#include \"ctarget.h\"");
+        if(targetConfig.platform == Platform.ARDUINO) {
+            CCoreFilesUtils.getArduinoTargetHeaders().forEach(
+                it -> code.pr("#include " + StringUtil.addDoubleQuotes(it))
+            );
+        }
+        CCoreFilesUtils.getCTargetHeader().forEach(
+            it -> code.pr("#include " + StringUtil.addDoubleQuotes(it))
+        );
         if (targetConfig.threading) {
             code.pr("#include \"core/threaded/reactor_threaded.c\"");
             code.pr("#include \"core/threaded/scheduler.h\"");
@@ -49,6 +58,7 @@ public class CPreambleGenerator {
             code.pr("#include \"core/trace.c\"");
         }
         code.pr("#include \"core/mixed_radix.h\"");
+        code.pr("#include \"core/port.h\"");
         return code.toString();
     }
 
@@ -67,16 +77,21 @@ public class CPreambleGenerator {
         CodeBuilder code = new CodeBuilder();
         code.pr("#define LOG_LEVEL " + logLevel);
         code.pr("#define TARGET_FILES_DIRECTORY " + addDoubleQuotes(srcGenPath.toString()));
+
+        if (targetConfig.platform == Platform.ARDUINO) {
+            code.pr("#define MICROSECOND_TIME");
+            code.pr("#define BIT_32");
+        }
         if (isFederated) {
             code.pr("#define NUMBER_OF_FEDERATES " + numFederates);
             code.pr(generateFederatedDefineDirective(coordinationType));
             if (advanceMessageInterval != null) {
-                code.pr("#define ADVANCE_MESSAGE_INTERVAL " + 
+                code.pr("#define ADVANCE_MESSAGE_INTERVAL " +
                     GeneratorBase.timeInTargetLanguage(advanceMessageInterval));
             }
         }
         if (tracing != null) {
-            code.pr(generateTracingDefineDirective(tracing.traceFileName));
+            code.pr(generateTracingDefineDirective(targetConfig, tracing.traceFileName));
         }
         if (hasModalReactors) {
             code.pr("#define MODAL_REACTORS");
@@ -87,17 +102,18 @@ public class CPreambleGenerator {
                 targetConfig.clockSyncOptions
             ));
         }
+        code.newLine();
         return code.toString();
     }
 
     /**
      * Returns the #define directive for the given coordination type.
-     * 
+     *
      * NOTE: Instead of checking #ifdef FEDERATED, we could
      *       use #if (NUMBER_OF_FEDERATES > 1).
      *       To Soroush Bateni, the former is more accurate.
      */
-    private static String generateFederatedDefineDirective(CoordinationType coordinationType) {        
+    private static String generateFederatedDefineDirective(CoordinationType coordinationType) {
         List<String> directives = new ArrayList<>();
         directives.add("#define FEDERATED");
         if (coordinationType == CoordinationType.CENTRALIZED) {
@@ -108,29 +124,33 @@ public class CPreambleGenerator {
         return String.join("\n", directives);
     }
 
-    private static String generateTracingDefineDirective(String traceFileName) {
+    private static String generateTracingDefineDirective(
+        TargetConfig targetConfig,
+        String traceFileName
+    ) {
         if (traceFileName == null) {
+            targetConfig.compileDefinitions.put("LINGUA_FRANCA_TRACE", "");
             return "#define LINGUA_FRANCA_TRACE";
         }
+        targetConfig.compileDefinitions.put("LINGUA_FRANCA_TRACE", traceFileName);
         return "#define LINGUA_FRANCA_TRACE " + traceFileName;
     }
 
     /**
      * Initialize clock synchronization (if enabled) and its related options for a given federate.
-     * 
+     *
      * Clock synchronization can be enabled using the clock-sync target property.
-     * @see https://github.com/icyphy/lingua-franca/wiki/Distributed-Execution#clock-synchronization
+     * @see <a href="https://github.com/icyphy/lingua-franca/wiki/Distributed-Execution#clock-synchronization">Documentation</a>
      */
     private static String generateClockSyncDefineDirective(
-        ClockSyncMode mode, 
+        ClockSyncMode mode,
         ClockSyncOptions options
     ) {
-        List<String> code = new ArrayList<>();
-        code.addAll(List.of(
+        List<String> code = new ArrayList<>(List.of(
             "#define _LF_CLOCK_SYNC_INITIAL",
-            "#define _LF_CLOCK_SYNC_PERIOD_NS "+GeneratorBase.timeInTargetLanguage(options.period),
-            "#define _LF_CLOCK_SYNC_EXCHANGES_PER_INTERVAL "+options.trials,
-            "#define _LF_CLOCK_SYNC_ATTENUATION "+options.attenuation
+            "#define _LF_CLOCK_SYNC_PERIOD_NS " + GeneratorBase.timeInTargetLanguage(options.period),
+            "#define _LF_CLOCK_SYNC_EXCHANGES_PER_INTERVAL " + options.trials,
+            "#define _LF_CLOCK_SYNC_ATTENUATION " + options.attenuation
         ));
         if (mode == ClockSyncMode.ON) {
             code.add("#define _LF_CLOCK_SYNC_ON");

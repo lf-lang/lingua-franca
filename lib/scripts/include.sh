@@ -21,10 +21,10 @@ set -euo pipefail
 # Paths (relative to ${base}), which is assumed to have been set.
 src_pkg_name="org.lflang"
 src_pkg_path="${base}/${src_pkg_name}"
-lfc_src_pkg_name="${src_pkg_name}.lfc"
+lfc_src_pkg_name="${src_pkg_name}.cli"
 lfc_src_pkg_path="${base}/${lfc_src_pkg_name}"
-lfc_jar_build_path_pattern="${lfc_src_pkg_name}/build/libs/${lfc_src_pkg_name}-*-SNAPSHOT-all.jar"
-lfc_jar_release_path_pattern="lib/jars/${lfc_src_pkg_name}-*-SNAPSHOT-all.jar"
+lfc_jar_build_path_pattern="${lfc_src_pkg_name}/build/libs/${lfc_src_pkg_name}-*-lfc.jar"
+lfc_jar_release_path_pattern="lib/jars/${lfc_src_pkg_name}-*-lfc.jar"
 
 # Enter directory silently (without printing).
 pushd() {
@@ -53,26 +53,49 @@ function get_src_dir() {
 # If it exists, return a path to the Lingua Franca jar.
 function get_jar_path() {
     if [ "$(get_src_dir)" ]; then
-        jar_path_pattern="${base}/${lfc_jar_build_path_pattern}"
+        jar_path_pattern="${lfc_jar_build_path_pattern}"
     else
-        jar_path_pattern="${base}/${lfc_jar_release_path_pattern}"
+        jar_path_pattern="${lfc_jar_release_path_pattern}"
     fi
-    #echo Jar path pattern: "${jar_path_pattern}"
+    # echo Jar path pattern: "${base}"/${jar_path_pattern}
     # Is there a file that matches our pattern? If so, return it.
-    if ls ${jar_path_pattern} 1> /dev/null 2>&1; then
-        # Yes. Determine the precise path of the jar. 
+    if ls "${base}"/${jar_path_pattern} 1> /dev/null 2>&1; then
+        # Yes. Determine the precise path of the jar.
         # Take the newest version if there are multiple jars.
-        echo "$(ls ${jar_path_pattern} | sort -V | tail -n1)"
+        echo "$(ls "${base}"/${jar_path_pattern} | sort -V | tail -n1)"
     fi
+}
+
+# Check if the given Java command (argument 1) points to the correct Java version.
+# Throw a fatal error upon failure if argument 2 is nonzero.
+function check_java_cmd {
+    semantic_version=$("$1" -version 2>&1 | awk -F '"' '/version/ {print $2}')
+    java_version=$(echo "$semantic_version" | awk -F. '{printf("%03d%03d",$1,$2);}')
+    # echo "Semantic version: $semantic_version"
+    # echo "Java version: $java_version"
+    if [ $java_version -lt 017000 ]; then
+        if [ $2 -gt 0 ]; then
+            fatal_error "JRE $semantic_version found but 1.17 or greater is required."
+        fi
+        echo "incorrect"
+        return
+    fi
+    echo "correct"
 }
 
 # Lookup the JRE.
 function lookup_jre() {
     if [[ $(type -p java) != "" ]]; then
         #echo Found java executable in PATH
-        echo "java"
-    elif [[ -n "$JAVA_HOME" ]] && [[ -x "$JAVA_HOME/bin/java" ]];  then
-        #echo Found java executable in JAVA_HOME     
+        for JAVA_PATH in $(type -a java); do
+        if [[ $(check_java_cmd "$JAVA_PATH" 0) == "correct" ]]; then
+            echo $JAVA_PATH
+            return
+        fi
+        done
+        echo "java"  # This will result in failure
+    elif [[ -n "$JAVA_HOME" ]] && [[ -x "$JAVA_HOME/bin/java" ]]; then
+        #echo Found java executable in JAVA_HOME
         echo "$JAVA_HOME/bin/java"
     else
         fatal_error "JRE not found."
@@ -82,16 +105,8 @@ function lookup_jre() {
 # Check whether the JRE version is high enough. Exit with an error if it is not.
 function get_java_cmd {
     java_cmd="$(lookup_jre)"
-    if [[ "${java_cmd}" ]]; then
-        semantic_version=$("$java_cmd" -version 2>&1 | awk -F '"' '/version/ {print $2}')
-        java_version=$(echo "$semantic_version" | awk -F. '{printf("%03d%03d",$1,$2);}')
-        #echo Semantic version: "$semantic_version"
-        #echo Java version: "$java_version"
-        if [ $java_version -lt 011000 ]; then
-            fatal_error "JRE $semantic_version found but 1.11 or greater is required."
-        fi
-        echo ${java_cmd}
-    fi
+    check_java_cmd $java_cmd 1 > /dev/null
+    echo ${java_cmd}
 }
 
 # Find the jar and JRE, run the jar with the provided arguments, and exit.
@@ -104,6 +119,7 @@ function run_lfc_with_args {
     fi
 
     # Launch the compiler.
-    "$(get_java_cmd)" -jar "${jar_path}" "$@";
+    java_cmd="$(get_java_cmd)"
+    "${java_cmd}" -jar "${jar_path}" "$@";
     exit $?
 }

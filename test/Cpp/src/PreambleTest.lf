@@ -1,4 +1,4 @@
-target Cpp;
+target Cpp
 
 main reactor {
     // This declaration is required on the public reactor interface and
@@ -10,23 +10,22 @@ main reactor {
             std::string bar;
         };
     =}
-    // this is only used inside reactions and therefore goes to the generated source file
-    // This function is only used inside a reaction and therefore is part of the private 
-    // interface. Moreover, we need to make sure that the function is only defined once
-    // within a source file. This goes to Preamble/Preamble.cc
+    // this is only used inside reactions and therefore goes to the generated
+    // source file This function is only used inside a reaction and therefore is
+    // part of the private interface. Moreover, we need to make sure that the
+    // function is only defined once within a source file. This goes to
+    // Preamble/Preamble.cc
     private preamble {=
         int add_42(int i) {
             return i + 42;
         }
     =}
-    logical action a:MyStruct;
-    
-    reaction(startup) -> a {=
-        a.schedule({add_42(42), "baz"});
-    =}
+    logical action a: MyStruct
+
+    reaction(startup) -> a {= a.schedule({add_42(42), "baz"}); =}
 
     reaction(a) {=
         auto& value = *a.get();
-        std::cout << "Received " << value.foo << " and '" << value.bar << "'\n"; 
+        std::cout << "Received " << value.foo << " and '" << value.bar << "'\n";
     =}
 }

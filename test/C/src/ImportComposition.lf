@@ -1,16 +1,17 @@
-// This tests the ability to import a reactor definition
-// that itself imports a reactor definition.
-target C;
-import ImportedComposition from "lib/ImportedComposition.lf";
+// This tests the ability to import a reactor definition that itself imports a
+// reactor definition.
+target C
+
+import ImportedComposition from "lib/ImportedComposition.lf"
 
 main reactor ImportComposition {
-    a = new ImportedComposition();
-    state received:bool(false);
-    reaction(startup) -> a.x {=
-        SET(a.x, 42); 
-    =}
+    a = new ImportedComposition()
+    state received: bool(false)
+
+    reaction(startup) -> a.x {= lf_set(a.x, 42); =}
+
     reaction(a.y) {=
-        interval_t receive_time = get_elapsed_logical_time();
+        interval_t receive_time = lf_time_logical_elapsed();
         printf("Received %d at time %lld\n", a.y->value, receive_time);
         self->received = true;
         if (receive_time != 55000000LL) {
@@ -22,6 +23,7 @@ main reactor ImportComposition {
             exit(2);
         }
     =}
+
     reaction(shutdown) {=
         if (!self->received) {
             fprintf(stderr, "ERROR: Nothing received.\n");

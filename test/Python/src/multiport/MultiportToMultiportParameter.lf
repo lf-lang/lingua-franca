@@ -1,12 +1,14 @@
-// Check multiport output to multiport input.
+# Check multiport output to multiport input.
 target Python {
     timeout: 2 sec,
     fast: true
-}; 
+}
+
 import Source from "MultiportToMultiport.lf"
 import Destination from "MultiportToHierarchy.lf"
-main reactor MultiportToMultiportParameter (width(4)) { 
-    a = new Source(width = width);
-    b = new Destination(width = width);
-    a.out -> b._in;
+
+main reactor MultiportToMultiportParameter(width(4)) {
+    a = new Source(width = width)
+    b = new Destination(width = width)
+    a.out -> b._in
 }

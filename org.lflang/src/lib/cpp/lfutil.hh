@@ -54,10 +54,13 @@ class LFScope {
   LFScope(reactor::Reactor* reactor) : reactor(reactor) {}
 
   reactor::TimePoint get_physical_time() const { return reactor->get_physical_time(); }
+  reactor::Tag get_tag() const { return reactor->get_tag(); }
   reactor::TimePoint get_logical_time() const { return reactor->get_logical_time(); }
+  reactor::mstep_t get_microstep() const { return reactor->get_microstep(); }
   reactor::Duration get_elapsed_logical_time() const { return reactor->get_elapsed_logical_time(); }
   reactor::Duration get_elapsed_physical_time() const { return reactor->get_elapsed_physical_time(); }
   reactor::Environment* environment() const { return reactor->environment(); }
+  void request_stop() const { return environment()->sync_shutdown(); }
 };
 
 template<class T>

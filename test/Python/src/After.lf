@@ -1,47 +1,50 @@
-// This checks that the after keyword adjusts logical time, not
-// using physical time.
+# This checks that the after keyword adjusts logical time, not using physical
+# time.
 target Python {
     fast: false,
     timeout: 3 sec
-};
-reactor foo {
-    input x;
-    output y;
-    reaction(x) -> y {=
-        y.set(2*x.value)
-    =}
 }
+
+reactor foo {
+    input x
+    output y
+
+    reaction(x) -> y {= y.set(2*x.value) =}
+}
+
 reactor print {
-    state expected_time(10 msec);
-    state received(0);
-    input x;
+    state expected_time(10 msec)
+    state received(0)
+    input x
+
     reaction(x) {=
         self.received+=1
-        elapsed_time = get_elapsed_logical_time()
+        elapsed_time = lf.time.logical_elapsed()
         print("Result is " + str(x.value))
         if x.value != 84:
             sys.stderr.write("ERROR: Expected result to be 84.\n")
             exit(1)
 
         print("Current logical time is: " + str(elapsed_time))
-        print("Current physical time is: " + str(get_elapsed_physical_time()))
+        print("Current physical time is: " + str(lf.time.physical_elapsed()))
         if elapsed_time != self.expected_time:
             sys.stderr.write("ERROR: Expected logical time to be " + self.expected_time)
             exit(2)
         self.expected_time += SEC(1)
     =}
+
     reaction(shutdown) {=
         if (self.received == 0):
             sys.stderr.write("ERROR: Final reactor received no data.\n")
             exit(3)
     =}
 }
+
 main reactor {
-    f = new foo();
-    p = new print();
-    timer t(0, 1 sec);
-    reaction(t) -> f.x {=
-        f.x.set(42)
-    =}
-    f.y -> p.x after 10 msec;
+    f = new foo()
+    p = new print()
+    timer t(0, 1 sec)
+    f.y -> p.x after 10 msec
+
+    reaction(t) -> f.x {= f.x.set(42) =}
 }
