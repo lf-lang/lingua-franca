@@ -37,7 +37,7 @@ public class CMainGenerator {
      * Generate the `main` function.
      */
     private String generateMainFunction() {
-        if (targetConfig.platform == Platform.ARDUINO) {
+        if (targetConfig.platformOptions.platform == Platform.ARDUINO) {
             /**
                 By default, we must have a serial begin line prior to calling lf_reactor_c_main due to internal debugging messages requiring a print buffer.
                 For the future, we can check whether internal LF logging is enabled or not before removing this line.
@@ -46,7 +46,7 @@ public class CMainGenerator {
             return String.join("\n",
             "// Arduino setup() and loop() functions",
             "void setup() {",
-                "Serial.begin(" + targetConfig.baudRate + ");", 
+                "Serial.begin(" + targetConfig.platformOptions.baudRate + ");", 
                 "lf_reactor_c_main(0, NULL);",
             "}",
             "void loop() {}"

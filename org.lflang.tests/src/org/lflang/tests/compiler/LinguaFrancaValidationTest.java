@@ -1547,6 +1547,15 @@ public class LinguaFrancaValidationTest {
             List.of("[foo, {bar: baz}]", "[1]", PrimitiveType.STRING),
             List.of("{bar: baz}", "", UnionType.STRING_OR_STRING_ARRAY)
         ),
+        UnionType.PLATFORM_STRING_OR_DICTIONARY, List.of(
+            List.of("[bar, baz]", "", UnionType.PLATFORM_STRING_OR_DICTIONARY),
+            List.of("{name: [1, 2, 3]}", ".name", PrimitiveType.STRING),
+            List.of("{name: {bar: baz}}", ".name", PrimitiveType.STRING),
+            List.of("{board: [1, 2, 3]}", ".board", PrimitiveType.STRING),
+            List.of("{board: {bar: baz}}", ".board", PrimitiveType.STRING),
+            List.of("{baud-rate: [1, 2, 3]}", ".baud-rate", PrimitiveType.NON_NEGATIVE_INTEGER),
+            List.of("{baud-rate: {bar: baz}}", ".baud-rate", PrimitiveType.NON_NEGATIVE_INTEGER)
+        ),
         UnionType.FILE_OR_FILE_ARRAY, List.of(
             List.of("[1 msec]", "[0]", PrimitiveType.FILE),
             List.of("[foo, {bar: baz}]", "[1]", PrimitiveType.FILE),
