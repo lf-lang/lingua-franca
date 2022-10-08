@@ -5,7 +5,7 @@
 
 [![Website](https://img.shields.io/website?down_color=lightgrey&down_message=offline&up_color=blue&up_message=online&url=https%3A%2F%2Fwww.lf-lang.org)](https://www.lf-lang.org)
 [![Zulip](https://img.shields.io/badge/chat-zulip-informational)](lf-lang.zulipchat.com)
-[![Twitter](https://img.shields.io/twitter/follow/thelflang.svg?style=social&logo=twitter)](https://twitter.com/raydistributed)
+[![Twitter](https://img.shields.io/twitter/follow/thelflang.svg?style=social&logo=twitter)](https://twitter.com/thelflang)
 
 
 # The Lingua Franca Coordination Language
