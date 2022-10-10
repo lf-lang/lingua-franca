@@ -96,9 +96,8 @@ _Comments_
 Please adhere to the following principles when writing documentation for your code:
 - Write descriptions in English.
 - Do not use contractions like "aren't" or "isn't".
-- It is OK to use phrases instead of complete sentences, in the interests of brevity. This holds especially in `@param` JavaDoc tag descriptions.
-- Use 3rd person (descriptive) not 2nd person (prescriptive), i.e., write "Compute the shortest path," not "Computes the shortest path."
-
+- Use imperative in the description of a method, i.e., write "Compute the shortest path," not "Computes the shortest path" (the latter is not a complete sentence).
+- In `@param` JavaDoc tag descriptions it is OK to use incomplete sentences in the interest of brevity.
 
 #### Java-specific guidelines
 
