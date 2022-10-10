@@ -580,7 +580,7 @@ public class CTriggerObjectsGenerator {
                         // If the source is nested, need to take into account the parent's bank index
                         // when indexing into the triggers array.
                         var triggerArray = "";
-                        if (srcNested && port.getParent().getWidth() > 1) {
+                        if (srcNested && srcRange.width > 1) {
                             triggerArray = CUtil.reactionRef(reaction, sr)+".triggers[triggers_index["+sr+"] + "+sc+" + src_range_mr.digits[1] * src_range_mr.radixes[0]]";
                         } else {
                             triggerArray = CUtil.reactionRef(reaction, sr)+".triggers[triggers_index["+sr+"] + "+sc+"]";
@@ -685,7 +685,7 @@ public class CTriggerObjectsGenerator {
                             ));
                             code.endChannelIteration(port);
                         }
-                        
+
                         code.endScopedRangeBlock(sendingRange);
                     }
                 }

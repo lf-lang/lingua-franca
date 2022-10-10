@@ -924,10 +924,10 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
                 if (dstRanges.hasNext()) {
                     reporter.reportWarning(connection, "No sources to provide inputs.");
                 }
-                return;
+                continue;
             } else if (!dstRanges.hasNext()) {
                 reporter.reportWarning(connection, "No destination. Outputs will be lost.");
-                return;
+                continue;
             }
 
             RuntimeRange<PortInstance> src = srcRanges.next();
