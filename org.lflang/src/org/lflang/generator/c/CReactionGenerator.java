@@ -876,6 +876,8 @@ public class CReactionGenerator {
         var varName = variable.getName();
         // variable is a port, a timer, or an action.
         body.pr(variable, "trigger_t _lf__"+varName+";");
+        // Add pointer to parent/containing reactor
+        constructorCode.pr(variable, "self->_lf__"+varName+".parent = self;");
         constructorCode.pr(variable, "self->_lf__"+varName+".last = NULL;");
         if (isFederatedAndDecentralized) {
             constructorCode.pr(variable, "self->_lf__"+varName+".intended_tag = (tag_t) { .time = NEVER, .microstep = 0u};");

@@ -2142,13 +2142,25 @@ public class CGenerator extends GeneratorBase {
      * @param instance The reactor instance.
      */
     private void generateSetLET(ReactorInstance instance) {
+        var hasLetReactions = false; 
         for (ReactionInstance reaction : instance.reactions) {
             if (currentFederate.contains(reaction.getDefinition())) {
                 var selfRef = CUtil.reactorRef(reaction.getParent())+"->_lf__reaction_"+reaction.index;
                 var let = reaction.getLogicalExecutionTime();
                 initializeTriggerObjects.pr(selfRef+".let = "
                         + GeneratorBase.timeInTargetLanguage(reaction.getLogicalExecutionTime())+";");
+                
+                if (!let.equals(TimeValue.ZERO)) {
+                    hasLetReactions = true;
+                }
             }
+        }
+        var selfRef = CUtil.reactorRef(instance);
+        if (hasLetReactions) {
+            initializeTriggerObjects.pr("lf_mutex_init(&((self_base_t *)"+selfRef+")->mutex);");
+            initializeTriggerObjects.pr("((self_base_t *) "+selfRef+")->has_mutex = true;");
+        } else {
+            initializeTriggerObjects.pr("((self_base_t *) "+selfRef+")->has_mutex = false;");
         }
     }
 
