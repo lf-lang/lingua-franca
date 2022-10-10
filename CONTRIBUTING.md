@@ -173,7 +173,6 @@ public static void printSum(int a, int b) { ... }
 
 Additional information about "compact style" JavaDoc can be found [here](https://www.cs.cornell.edu/courses/JavaAndDS/JavaStyle.html#Comments).
 
-
 #### Kotlin-specific guidelines
 
 Please follow the [Kotlin coding conventions](https://kotlinlang.org/docs/coding-conventions.html).
