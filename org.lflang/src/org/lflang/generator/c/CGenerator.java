@@ -754,9 +754,6 @@ public class CGenerator extends GeneratorBase {
         // Note that any main reactors in imported files are ignored.
         // Skip generation if there are cycles.
         if (main != null) {
-            var nLetReactions = main.getNumberOfLetReactions();
-            code.pr("#define NUMBER_OF_LET_REACTIONS " + nLetReactions);
-
             initializeTriggerObjects.pr(String.join("\n",
                 "int _lf_startup_reactions_count = 0;",
                 "SUPPRESS_UNUSED_WARNING(_lf_startup_reactions_count);",
