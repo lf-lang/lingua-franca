@@ -37,7 +37,7 @@ public class CPreambleGenerator {
     ) {
         var tracing = targetConfig.tracing;
         CodeBuilder code = new CodeBuilder();
-        if(targetConfig.platform == Platform.ARDUINO) {
+        if (targetConfig.platformOptions.platform == Platform.ARDUINO) {
             CCoreFilesUtils.getArduinoTargetHeaders().forEach(
                 it -> code.pr("#include " + StringUtil.addDoubleQuotes(it))
             );
@@ -77,7 +77,6 @@ public class CPreambleGenerator {
         CodeBuilder code = new CodeBuilder();
         code.pr("#define LOG_LEVEL " + logLevel);
         code.pr("#define TARGET_FILES_DIRECTORY " + addDoubleQuotes(srcGenPath.toString()));
-
         if (isFederated) {
             code.pr("#define NUMBER_OF_FEDERATES " + numFederates);
             code.pr(generateFederatedDefineDirective(coordinationType));
