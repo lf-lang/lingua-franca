@@ -16,12 +16,11 @@ reactor Node(bank_index: size_t(0), num_nodes: size_t(4)) {
         std::cout << "Node " << bank_index << " received messages from ";
         received = true;
         size_t count{0};
-        for (auto& port : in) {
-            if (port.is_present()) {
-                count++;
-                std::cout << *port.get() << ", ";
-            }
+        for (auto i: in.get_present_port_indices()) {
+            count++;
+            std::cout << *in[i].get() << ", ";
         }
+
         std::cout << '\n';
         if (count != num_nodes) {
             std::cerr << "ERROR: received less messages than expected!";

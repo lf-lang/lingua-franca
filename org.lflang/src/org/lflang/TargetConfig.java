@@ -54,11 +54,6 @@ public class TargetConfig {
     public Set<TargetProperty> setByUser = new HashSet<>();
 
     /**
-     * Specify Baud Rate for Embedded Devices, including Arduino.
-     */
-    public int baudRate = 9600;
-
-    /**
      * A list of custom build commands that replace the default build process of
      * directly invoking a designated compiler. A common usage of this target
      * property is to set the command to build on the basis of a Makefile.
@@ -188,13 +183,17 @@ public class TargetConfig {
     public boolean noRuntimeValidation = false;
 
     /**
-     * Set the target platform.
+     * Set the target platform config.
      * This tells the build system what platform-specific support
      * files it needs to incorporate at compile time.
+     * 
+     * This is now a wrapped class to account for overloaded definitions 
+     * of defining platform (either a string or dictionary of values)
      *
      * @author Samuel Berkun (sberkun@berkeley.edu)
+     * @author Anirudh Rengarajan (arengarajan@berkeley.edu)
      */
-    public Platform platform = Platform.AUTO;
+    public PlatformOptions platformOptions = new PlatformOptions();
 
     /**
      * List of proto files to be processed by the code generator.
@@ -338,6 +337,89 @@ public class TargetConfig {
          */
         public String from = "alpine:latest";
     }
+
+    /**
+     * Enum representing the different boards supported by Arduino-CMake and future embedded boards.
+     */
+    public enum Board {
+        NONE(),
+        YN("Arduino Yn [avr.yun]"),
+        UNO("Arduino Uno [avr.uno]"),
+        DUEMILANOVE("Arduino Duemilanove or Diecimila [avr.diecimila]"),
+        DIECIMILA("Arduino Duemilanove or Diecimila [avr.diecimila]"),
+        NANO("Arduino Nano [avr.nano]"),
+        MEGA("Arduino Mega or Mega 2560 [avr.mega]"),
+        MEGA_2560("Arduino Mega or Mega 2560 [avr.mega]"),
+        MEGA_ADK("Arduino Mega ADK [avr.megaADK]"),
+        LEONARDO("Arduino Leonardo [avr.leonardo]"),
+        LEONARDO_ETH("Arduino Leonardo ETH [avr.leonardoeth]"),
+        MICRO("Arduino Micro [avr.micro]"),
+        ESPLORA("Arduino Esplora [avr.esplora]"),
+        MINI("Arduino Mini [avr.mini]"),
+        ETHERNET("Arduino Ethernet [avr.ethernet]"),
+        FIO("Arduino Fio [avr.fio]"),
+        BT("Arduino BT [avr.bt]"),
+        LILYPAD_USB("LilyPad Arduino USB [avr.LilyPadUSB]"),
+        LILYPAD("LilyPad Arduino [avr.lilypad]"),
+        PRO("Arduino Pro or Pro Mini [avr.pro]"),
+        PRO_MINI("Arduino Pro or Pro Mini [avr.pro]"),
+        NG("Arduino NG or older [avr.atmegang]"),
+        OLDER("Arduino NG or older [avr.atmegang]"),
+        ROBOT_CONTROL("Arduino Robot Control [avr.robotControl]"),
+        ROBOT_MOTOR("Arduino Robot Motor [avr.robotMotor]"),
+        GEMMA("Arduino Gemma [avr.gemma]"),
+        CIRCUIT_PLAYGROUND("Adafruit Circuit Playground [avr.circuitplay32u4cat]"),
+        YN_MINI("Arduino Yn Mini [avr.yunmini]"),
+        INDUSTRIAL_101("Arduino Industrial 101 [avr.chiwawa]"),
+        LININO_ONE("Linino One [avr.one]"),
+        UNO_WIFI("Arduino Uno WiFi [avr.unowifi]"),
+        SAM_DUE_PROG("Arduino Due (Programming Port) [sam.arduino_due_x_dbg]"),
+        SAM_DUE_NATIVE("Arduino Due (Native USB Port) [sam.arduino_due_x]");
+
+        String boardName;
+        Board() {
+            this.boardName = this.toString();
+        }
+        Board(String boardName) {
+            this.boardName = boardName;
+        }
+
+        /**
+        * Return the name in lower case.
+        */
+        @Override
+        public String toString() {
+            return this.name().toLowerCase();
+        }
+
+        /**
+        * Get the CMake name for the platform.
+        */
+        public String getBoardName() {
+            return this.boardName;
+        }
+    }
+
+    /**
+     * Settings related to Platform Options.
+     */
+    public static class PlatformOptions {
+        
+        /**
+         * The base platform we build our LF Files on. Should be set to AUTO by default unless developing for specific OS/Embedded Platform
+         */
+        public Platform platform = Platform.AUTO;
+
+        /**
+         * The base board we target when building LF on Arduino/Embedded Boards. For OS development and generic embedded systems, this value is unused.
+         */
+        public Board board = Board.UNO;
+
+        /**
+         * The baud rate used as a parameter to certain embedded platforms. 9600 is a standard rate amongst systems like Arduino, so it's the default value.
+         */
+        public int baudRate = 9600;
+    }   
 
     /**
      * Settings related to tracing options.

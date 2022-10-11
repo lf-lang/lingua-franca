@@ -153,8 +153,8 @@ public class CmakeGenerator {
             cMakeCode.newLine();
         }
 
-        if (targetConfig.platform != Platform.AUTO) {
-            cMakeCode.pr("set(CMAKE_SYSTEM_NAME "+targetConfig.platform.getcMakeName()+")");
+        if (targetConfig.platformOptions.platform != Platform.AUTO) {
+            cMakeCode.pr("set(CMAKE_SYSTEM_NAME "+targetConfig.platformOptions.platform.getcMakeName()+")");
         }
 
         cMakeCode.pr(setUpMainTarget.getCmakeCode(
@@ -243,8 +243,8 @@ public class CmakeGenerator {
         cMakeCode.pr(installCode);
         cMakeCode.newLine();
 
-        if (targetConfig.platform == Platform.ARDUINO) {
-            cMakeCode.pr("target_link_arduino_libraries ( ${LF_MAIN_TARGET} PRIVATE core)");
+        if (this.targetConfig.platformOptions.platform == Platform.ARDUINO) {
+            cMakeCode.pr("target_link_arduino_libraries ( ${LF_MAIN_TARGET} AUTO_PUBLIC)");
             cMakeCode.pr("target_enable_arduino_upload(${LF_MAIN_TARGET})");
         }
 
