@@ -135,7 +135,7 @@ class RustGenerator(
 
         if (cargoReturnCode == 0) {
             // We still have to copy the compiled binary to the destination folder.
-            val isWindows = System.getProperty("os.name").toLowerCase().contains("win")
+            val isWindows = System.getProperty("os.name").lowercase().contains("win")
             val localizedExecName = if (isWindows) {
                 "$executableName.exe"
             } else {
