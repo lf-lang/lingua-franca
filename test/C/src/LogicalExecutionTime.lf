@@ -1,5 +1,6 @@
 target C {
-    timeout: 200 ms
+    timeout: 200 ms,
+    scheduler: LET
 }
 /**
  * Reactor that has a long-running reaction whose effects are
