@@ -87,8 +87,10 @@ class LetInferenceTest  {
             "    input x:int;",
             "    output y:int;",
             "    output z:int;",
-            "    reaction(startup) -> y, z, a, b{=",
-            "    =}",
+            "    reaction(startup) -> a {==}",
+            "    reaction(a) -> b {==}",
+            "    reaction(b) -> {==}",
+            "    reaction(b) -> y,z{==}",
             "}",
             "reactor Print {",
             "    input x:int;",
@@ -128,9 +130,10 @@ class LetInferenceTest  {
                     Assertions.assertEquals(reactionInstance.getLogicalExecutionTime(), TimeValue.ZERO);
                 }
             } else if (reactorInstance.getName().contains("ramp")) {
-                for (ReactionInstance reactionInstance : reactorInstance.reactions) {
-                    Assertions.assertEquals(new TimeValue(20L, TimeUnit.MILLI), reactionInstance.getLogicalExecutionTime());
-                }
+                Assertions.assertEquals(new TimeValue(60L, TimeUnit.MILLI), reactorInstance.reactions.get(0).getLogicalExecutionTime());
+                Assertions.assertEquals(new TimeValue(100L, TimeUnit.MILLI), reactorInstance.reactions.get(1).getLogicalExecutionTime());
+                Assertions.assertEquals(TimeValue.MAX_VALUE, reactorInstance.reactions.get(2).getLogicalExecutionTime());
+                Assertions.assertEquals(TimeValue.ZERO, reactorInstance.reactions.get(3).getLogicalExecutionTime());
             } else if (reactorInstance.getName().contains("print")) {
                 for (ReactionInstance reactionInstance : reactorInstance.reactions) {
                     Assertions.assertEquals(TimeValue.ZERO, reactionInstance.getLogicalExecutionTime());

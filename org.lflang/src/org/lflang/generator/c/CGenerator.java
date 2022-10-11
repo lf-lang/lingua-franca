@@ -2153,8 +2153,9 @@ public class CGenerator extends GeneratorBase {
             }
         }
         var selfRef = CUtil.reactorRef(instance);
+        
+        initializeTriggerObjects.pr("#ifdef NUMBER_OF_WORKERS");
         if (hasLetReactions) {
-            initializeTriggerObjects.pr("#ifdef NUMBER_OF_WORKERS");
             initializeTriggerObjects.pr("lf_mutex_init(&((self_base_t *)"+selfRef+")->mutex);");
             initializeTriggerObjects.pr("((self_base_t *) "+selfRef+")->has_mutex = true;");
         } else {
