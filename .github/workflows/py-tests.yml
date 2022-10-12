@@ -58,7 +58,9 @@ jobs:
         uses: ./.github/actions/build-rti-docker
         if: ${{ runner.os == 'Linux' }}
       - name: Run a Python test in a weird way to see if anything different happens
+        continue-on-error: true
         run: |
+          ulimit -c unlimited
           bin/build-lfc -c
           bin/lfc test/Python/src/Minimal.lf
           export ASAN_OPTIONS=verbosity=1
@@ -70,6 +72,8 @@ jobs:
           sudo make install
           echo "Running Minimal.py"
           /Users/runner/work/lingua-franca/bin/python3 /Users/runner/work/lingua-franca/lingua-franca/test/Python/src-gen/Minimal/Minimal.py
+      - name: Setup upterm session
+        uses: lhotari/action-upterm@v1
       - name: Run Python tests
         run: |
           ./gradlew test --tests org.lflang.tests.runtime.PythonTest.*
