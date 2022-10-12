@@ -61,6 +61,7 @@ jobs:
         continue-on-error: true
         run: |
           ulimit -c unlimited
+          sudo chmod 1777 /cores
           bin/build-lfc -c
           bin/lfc test/Python/src/Minimal.lf
           export ASAN_OPTIONS=verbosity=1
