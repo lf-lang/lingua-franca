@@ -199,13 +199,6 @@ public class CCmakeCompiler extends CCompiler {
             FileUtil.toUnixString(fileConfig.getSrcGenPath())
         ));
 
-        if(targetConfig.platformOptions.platform == Platform.ARDUINO) {
-            arguments.add("-DCMAKE_TOOLCHAIN_FILE=" 
-                + fileConfig.getSrcGenPath().resolve("toolchain/Arduino-toolchain.cmake"));
-            arguments.add("-DARDUINO_BOARD_OPTIONS_FILE="
-                + fileConfig.getSrcGenPath().resolve("toolchain/BoardOptions.cmake"));
-        }
-
         if (GeneratorUtils.isHostWindows()) {
             arguments.add("-DCMAKE_SYSTEM_VERSION=\"10.0\"");
         }

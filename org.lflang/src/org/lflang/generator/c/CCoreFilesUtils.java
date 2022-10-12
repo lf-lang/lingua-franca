@@ -5,6 +5,9 @@ import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import org.lflang.TargetConfig;
+import org.lflang.TargetConfig.PlatformOptions;
+import org.lflang.TargetProperty.Platform;
 import org.lflang.TargetProperty.SchedulerOption;
 
 /**
@@ -17,16 +20,15 @@ import org.lflang.TargetProperty.SchedulerOption;
 public class CCoreFilesUtils {
     public static List<String> getCoreFiles(
         boolean isFederated,
-        boolean threading,
-        SchedulerOption scheduler
+        TargetConfig config
     ) {
         List<String> coreFiles = new ArrayList<>();
         coreFiles.addAll(getBaseCoreFiles());
-        coreFiles.addAll(getPlatformFiles());
+        coreFiles.addAll(getPlatformFiles(config.platformOptions));
         if (isFederated) {
             coreFiles.addAll(getFederatedFiles());
         }
-        coreFiles.addAll(getThreadSupportFiles(threading, scheduler));
+        coreFiles.addAll(getThreadSupportFiles(config.threading, config.schedulerType));
         return coreFiles;
     }
 
@@ -87,25 +89,31 @@ public class CCoreFilesUtils {
         );
     }
 
-    private static List<String> getPlatformFiles() {
-        return List.of(
+    private static List<String> getPlatformFiles(PlatformOptions option) {
+        switch (option.platform) {
+            case ARDUINO:
+                return List.of(
+                "platform/lf_arduino_support.c",
+                "platform/lf_arduino_support.h"
+                );
+            default:
+                return List.of(
             "platform/lf_tag_64_32.h",
-            "platform/lf_POSIX_threads_support.c",
-            "platform/lf_C11_threads_support.c",
-            "platform/lf_C11_threads_support.h",
-            "platform/lf_POSIX_threads_support.h",
-            "platform/lf_POSIX_threads_support.c",
-            "platform/lf_unix_clock_support.c",
-            "platform/lf_unix_syscall_support.c",
-            "platform/lf_macos_support.c",
-            "platform/lf_macos_support.h",
-            "platform/lf_windows_support.c",
-            "platform/lf_windows_support.h",
-            "platform/lf_arduino_support.c",
-            "platform/lf_arduino_support.h",
-            "platform/lf_linux_support.c",
-            "platform/lf_linux_support.h"
-        );
+                    "platform/lf_POSIX_threads_support.c",
+                    "platform/lf_C11_threads_support.c",
+                    "platform/lf_C11_threads_support.h",
+                    "platform/lf_POSIX_threads_support.h",
+                    "platform/lf_POSIX_threads_support.c",
+                    "platform/lf_unix_clock_support.c",
+                    "platform/lf_unix_syscall_support.c",
+                    "platform/lf_macos_support.c",
+                    "platform/lf_macos_support.h",
+                    "platform/lf_windows_support.c",
+                    "platform/lf_windows_support.h",
+                    "platform/lf_linux_support.c",
+                    "platform/lf_linux_support.h"
+                );
+        }
     }
 
     private static List<String> getFederatedFiles() {

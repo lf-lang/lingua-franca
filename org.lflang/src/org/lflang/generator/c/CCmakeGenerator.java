@@ -241,12 +241,7 @@ class CCmakeGenerator {
         cMakeCode.unindent();
         cMakeCode.pr(")");
         cMakeCode.newLine();
-
-        if (this.targetConfig.platformOptions.platform == Platform.ARDUINO) {
-            cMakeCode.pr("target_link_arduino_libraries ( ${LF_MAIN_TARGET} AUTO_PUBLIC)");
-            cMakeCode.pr("target_enable_arduino_upload(${LF_MAIN_TARGET})");
-        }
-
+        
         // Add the include file
         for (String includeFile : targetConfig.cmakeIncludesWithoutPath) {
             cMakeCode.pr("include(\""+includeFile+"\")");

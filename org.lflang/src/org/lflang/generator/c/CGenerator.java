@@ -561,38 +561,11 @@ public class CGenerator extends GeneratorBase {
                     fileConfig.getSrcGenPath().resolve("core"),
                     CCoreFilesUtils.getCoreFiles(
                         isFederated,
-                        targetConfig.threading,
-                        targetConfig.schedulerType
+                        targetConfig
                     )
                 );
                 // Copy the C target files
                 copyTargetFiles();
-
-                // If we are running an Arduino Target, need to copy over the Arduino-CMake files.
-                if (targetConfig.platformOptions.platform == Platform.ARDUINO) {
-                    FileUtil.copyDirectoryFromClassPath(
-                        "/lib/platform/arduino/Arduino-CMake-Toolchain/Arduino", 
-                        fileConfig.getSrcGenPath().resolve("toolchain/Arduino"),
-                        false
-                    );
-                    FileUtil.copyDirectoryFromClassPath(
-                        "/lib/platform/arduino/Arduino-CMake-Toolchain/Platform", 
-                        fileConfig.getSrcGenPath().resolve("toolchain/Platform"), 
-                        false
-                    );
-                    FileUtil.copyFileFromClassPath(
-                        "/lib/platform/arduino/Arduino-CMake-Toolchain/Arduino-toolchain.cmake", 
-                        fileConfig.getSrcGenPath().resolve("toolchain/Arduino-toolchain.cmake"),
-                        true
-                    );
-
-                    StringBuilder s = new StringBuilder();
-                    s.append("set(ARDUINO_BOARD \"");
-                    s.append(targetConfig.platformOptions.board.getBoardName());
-                    s.append("\")");
-                    FileUtil.writeToFile(s.toString(), 
-                        fileConfig.getSrcGenPath().resolve("toolchain/BoardOptions.cmake"));
-                }
                 
                 // Write the generated code
                 code.writeToFile(targetFile);
