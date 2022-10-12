@@ -1,0 +1,42 @@
+/* Verify that interrupt reactions are stalled when LET is executing*/
+target C {
+    scheduler: LET,
+    build: "bash replaceReactorC.sh",
+    workers: 2,
+    timeout: 200 msec
+};
+
+reactor Let {
+    state r1_executing:bool(false)
+    timer t1(0, 100 msec)
+    timer t2(25 msec, 100 msec)
+    logical action let(50 msec): int
+
+    reaction(t1) -> let {=
+        self->r1_executing = true;
+        instant_t physical_time = lf_time_physical();
+        
+        while (lf_time_physical() < physical_time + MSEC(50)) {
+            // Do nothing.
+        }
+
+        lf_schedule_int(let, 0, 42);
+        self->r1_executing = false;
+    =}
+
+    reaction(t2) {=
+        if (self->r1_executing) {
+            lf_print_error_and_exit("Interrupting reaction was not stalled");
+        }
+    =}
+
+    reaction(let) {=
+        if (let->value != 42) {
+            lf_print_error_and_exit("Wrong value received from action");
+        }    
+    =}
+}
+
+main reactor {
+    let = new Let()
+}

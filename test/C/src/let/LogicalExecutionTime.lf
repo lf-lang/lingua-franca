@@ -1,0 +1,49 @@
+target C {
+    timeout: 200 ms,
+    scheduler: LET
+}
+
+/**
+ * Reactor that has a long-running reaction whose effects are only to schedule a
+ * logical action with a minimum delay. This emulates a logical execution time.
+ */
+reactor LET {
+    output out: int
+    timer t(0, 100 msec)
+    logical action let(50 msec): int
+
+    reaction(t) -> let {=
+        instant_t physical_time = lf_time_physical();
+        while (lf_time_physical() < physical_time + MSEC(50)) {
+            // Do nothing.
+        }
+        lf_schedule_int(let, 0, 42);
+    =}
+
+    reaction(let) -> out {= lf_set(out, let->value); =}
+}
+
+reactor Fast {
+    timer t(1 msec, 10 msec)
+
+    reaction(t) {=  =} deadline(10 msec) {=
+        lf_print_error_and_exit("Failed to take into account LET.");
+    =}
+}
+
+reactor Sink {
+    input in: int
+
+    reaction(in) {=
+        if (in->value != 42) {
+            lf_print_error_and_exit("Expected 42. Got %d.", in->value);
+        }
+    =}
+}
+
+main reactor {
+    let = new LET()
+    fast = new Fast()
+    sink = new Sink()
+    let.out -> sink.in
+}

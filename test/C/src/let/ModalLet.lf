@@ -1,0 +1,47 @@
+/* Verify that a mode change does not occure while LET reaction is executing*/ 
+
+target C {
+    scheduler: LET,
+    build: "bash replaceReactorC.sh",
+    workers: 2,
+    timeout: 200 msec
+};
+
+reactor Modal {
+    output out: int
+    timer t(0, 100 msec)
+    logical action let(50 msec): int
+
+    initial mode One {
+        reset state count: int(42);
+
+        reaction(startup) -> Two {=
+            self->count = 0;
+            lf_set_mode(Two);
+        =}
+    }
+
+    mode Two {            
+        reaction(t) -> reset(One) {=
+            lf_set_mode(One);
+        =}
+        
+        reaction(t) -> let {=
+            instant_t physical_time = lf_time_physical();
+            while (lf_time_physical() < physical_time + MSEC(50)) {
+                // Do nothing.
+            }
+            if (self->count == 42) {
+                lf_print_error_and_exit("Mode transition happend while let reaction was executing");
+            }
+
+            lf_schedule_int(let, 0, 42);
+        =}
+
+        reaction(let) -> out {= lf_set(out, let->value); =}
+    }
+}
+
+main reactor {
+    let = new Modal()
+}
