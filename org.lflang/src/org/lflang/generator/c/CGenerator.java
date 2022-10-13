@@ -336,7 +336,7 @@ public class CGenerator extends GeneratorBase {
     // The third match is a character position within the line.
     // The fourth match will be the error message.
     static final Pattern compileErrorPattern = Pattern.compile(
-        "^(file:(?<path>.*)):(?<line>[0-9]+):(?<column>[0-9]+):(?<message>.*)$"
+        "^(?<path>.*):(?<line>[0-9]+):(?<column>[0-9]+):(?<message>.*)$"
     );
 
     public static int UNDEFINED_MIN_SPACING = -1;
@@ -571,17 +571,17 @@ public class CGenerator extends GeneratorBase {
                 // If we are running an Arduino Target, need to copy over the Arduino-CMake files.
                 if (targetConfig.platformOptions.platform == Platform.ARDUINO) {
                     FileUtil.copyDirectoryFromClassPath(
-                        "/lib/platform/arduino/Arduino-CMake-Toolchain/Arduino", 
+                        "/lib/platform/arduino/Arduino-CMake-Toolchain/Arduino",
                         fileConfig.getSrcGenPath().resolve("toolchain/Arduino"),
                         false
                     );
                     FileUtil.copyDirectoryFromClassPath(
-                        "/lib/platform/arduino/Arduino-CMake-Toolchain/Platform", 
-                        fileConfig.getSrcGenPath().resolve("toolchain/Platform"), 
+                        "/lib/platform/arduino/Arduino-CMake-Toolchain/Platform",
+                        fileConfig.getSrcGenPath().resolve("toolchain/Platform"),
                         false
                     );
                     FileUtil.copyFileFromClassPath(
-                        "/lib/platform/arduino/Arduino-CMake-Toolchain/Arduino-toolchain.cmake", 
+                        "/lib/platform/arduino/Arduino-CMake-Toolchain/Arduino-toolchain.cmake",
                         fileConfig.getSrcGenPath().resolve("toolchain/Arduino-toolchain.cmake"),
                         true
                     );
@@ -590,10 +590,10 @@ public class CGenerator extends GeneratorBase {
                     s.append("set(ARDUINO_BOARD \"");
                     s.append(targetConfig.platformOptions.board.getBoardName());
                     s.append("\")");
-                    FileUtil.writeToFile(s.toString(), 
+                    FileUtil.writeToFile(s.toString(),
                         fileConfig.getSrcGenPath().resolve("toolchain/BoardOptions.cmake"));
                 }
-                
+
                 // Write the generated code
                 code.writeToFile(targetFile);
             } catch (IOException e) {
@@ -1405,7 +1405,7 @@ public class CGenerator extends GeneratorBase {
 
         // Next, generate fields for modes
         CModesGenerator.generateDeclarations(reactor, body, constructorCode);
-        
+
         // The first field has to always be a pointer to the list of
         // of allocated memory that must be freed when the reactor is freed.
         // This means that the struct can be safely cast to self_base_t.
