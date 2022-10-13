@@ -284,6 +284,9 @@ public enum TargetProperty {
             (config) -> ASTUtils.toElement(config.fastMode),
             (config, value, err) -> {
                 config.fastMode = ASTUtils.toBoolean(value);
+                if (config.fastMode) {
+                    config.fastModeASTNode = value;
+                }
             }),
     
     /**

@@ -39,6 +39,7 @@ import org.lflang.TargetProperty.LogLevel;
 import org.lflang.TargetProperty.Platform;
 import org.lflang.TargetProperty.SchedulerOption;
 import org.lflang.generator.rust.RustTargetConfig;
+import org.lflang.lf.Element;
 
 /** 
  * A class for keeping the current target configuration.
@@ -155,6 +156,12 @@ public class TargetConfig {
      * wait for physical time to match logical time. The default is false.
      */
     public boolean fastMode = false;
+
+    /**
+     * If fastMode is true, this field records the AST Node that made 
+     * fastMode to be true.
+     */
+    public Element fastModeASTNode = null;
 
     /**
      * List of files to be copied to src-gen.

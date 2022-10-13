@@ -422,7 +422,7 @@ public class CGenerator extends GeneratorBase {
                             action.getName()
                         );
                         if (targetConfig.fastMode) {
-                            errorReporter.reportError(action, "When physical action is present --fast is disabled.");
+                            errorReporter.reportError(targetConfig.fastModeASTNode, "When physical action is present --fast is disabled.");
                         }
                         return;
                     }
