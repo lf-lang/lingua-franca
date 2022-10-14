@@ -62,6 +62,8 @@ jobs:
         run: |
           ulimit -c unlimited
           sudo chmod 1777 /cores
+          python3 -m venv env
+          source env/bin/activate
           bin/build-lfc -c
           bin/lfc test/Python/src/Minimal.lf
           echo "Running Minimal.py"
