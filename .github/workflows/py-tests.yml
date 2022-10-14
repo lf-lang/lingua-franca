@@ -68,7 +68,7 @@ jobs:
           sudo chmod 1777 /cores
           ulimit -c unlimited
           /usr/libexec/PlistBuddy -c "Add :com.apple.security.get-task-allow bool true" tmp.entitlements
-          sudo codesign -s - -f --entitlements tmp.entitlements /Users/runner/work/lingua-franca/bin/python3
+          sudo codesign -s - -f --entitlements tmp.entitlements /usr/local/bin/python3
           python3 /Users/runner/work/lingua-franca/lingua-franca/test/Python/src-gen/Minimal/Minimal.py
       - name: Setup upterm session
         uses: lhotari/action-upterm@v1
