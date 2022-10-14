@@ -57,25 +57,10 @@ jobs:
       - name: Build RTI docker image
         uses: ./.github/actions/build-rti-docker
         if: ${{ runner.os == 'Linux' }}
-      - name: Run a Python test in a weird way to see if anything different happens
-        continue-on-error: true
-        run: |
-          ulimit -c unlimited
-          sudo chmod 1777 /cores
-          python3 -m venv env
-          source env/bin/activate
-          bin/build-lfc -c
-          bin/lfc test/Python/src/Minimal.lf
-          echo "Running Minimal.py"
-          sudo chmod 1777 /cores
-          ulimit -c unlimited
-          /usr/libexec/PlistBuddy -c "Add :com.apple.security.get-task-allow bool true" tmp.entitlements
-          sudo codesign -s - -f --entitlements tmp.entitlements /usr/local/bin/python3
-          python3 /Users/runner/work/lingua-franca/lingua-franca/test/Python/src-gen/Minimal/Minimal.py
-      - name: Setup upterm session
-        uses: lhotari/action-upterm@v1
       - name: Run Python tests
         run: |
+          python3 -m venv env
+          source env/bin/activate
           ./gradlew test --tests org.lflang.tests.runtime.PythonTest.*
       - name: Report to CodeCov
         uses: codecov/codecov-action@v2.1.0
