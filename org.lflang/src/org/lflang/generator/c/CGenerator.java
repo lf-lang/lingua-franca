@@ -1363,7 +1363,7 @@ public class CGenerator extends GeneratorBase {
         );
 
         // Next, generate fields for modes
-        Modes.generateDeclarations(reactor, body, constructorCode);
+        CModesGenerator.generateDeclarations(reactor, body, constructorCode);
 
         // The first field has to always be a pointer to the list of
         // of allocated memory that must be freed when the reactor is freed.
