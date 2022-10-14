@@ -96,7 +96,7 @@ public class States {
         if (ASTUtils.isOfTimeType(stateVar) ||
             ASTUtils.isParameterized(stateVar) &&
             stateVar.getInit().size() > 0) {
-            return Modes.generateStateResetStructure(
+            return CModesGenerator.generateStateResetStructure(
                 modeRef, selfRef,
                 stateVar.getName(),
                 initExpr, type);
@@ -109,7 +109,7 @@ public class States {
             code.pr("{ // For scoping");
             code.indent();
             code.pr("static "+declaration+" = "+initExpr+";");
-            code.pr(Modes.generateStateResetStructure(
+            code.pr(CModesGenerator.generateStateResetStructure(
                 modeRef, selfRef,
                 stateVar.getName(),
                 source, type));

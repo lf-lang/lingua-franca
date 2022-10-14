@@ -16,7 +16,7 @@ import org.lflang.lf.Reactor;
  * @author {Alexander Schulz-Rosengarten <als@informatik.uni-kiel.de>}
  * @author {Hou Seng Wong <housengw@berkeley.edu>}
  */
-public class Modes {
+public class CModesGenerator {
     /**
      * Generate fields in the self struct for mode instances
      *

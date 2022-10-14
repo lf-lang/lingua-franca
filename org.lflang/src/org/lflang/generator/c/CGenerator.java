@@ -758,7 +758,7 @@ public class CGenerator extends GeneratorBase {
                 "SUPPRESS_UNUSED_WARNING(bank_index);"
             ));
             // Add counters for modal initialization
-            initializeTriggerObjects.pr(Modes.generateModalInitalizationCounters(hasModalReactors));
+            initializeTriggerObjects.pr(CModesGenerator.generateModalInitalizationCounters(hasModalReactors));
 
             // Create an array of arrays to store all self structs.
             // This is needed because connections cannot be established until
@@ -781,7 +781,7 @@ public class CGenerator extends GeneratorBase {
             code.pr(Reactions.generateBuiltinTriggersTable(resetReactionCount, "reset"));
 
             // If there are modes, create a table of mode state to be checked for transitions.
-            code.pr(Modes.generateModeStatesTable(
+            code.pr(CModesGenerator.generateModeStatesTable(
                 hasModalReactors,
                 modalReactorCount,
                 modalStateResetCount
@@ -877,10 +877,10 @@ public class CGenerator extends GeneratorBase {
             }
 
             // Generate functions for modes
-            code.pr(Modes.generateLfInitializeModes(
+            code.pr(CModesGenerator.generateLfInitializeModes(
                 hasModalReactors
             ));
-            code.pr(Modes.generateLfHandleModeChanges(
+            code.pr(CModesGenerator.generateLfHandleModeChanges(
                 hasModalReactors,
                 modalStateResetCount
             ));
@@ -2079,7 +2079,7 @@ public class CGenerator extends GeneratorBase {
      * @param instance The reactor instance.
      */
     private void generateModeStructure(ReactorInstance instance) {
-        Modes.generateModeStructure(instance, initializeTriggerObjects);
+        CModesGenerator.generateModeStructure(instance, initializeTriggerObjects);
         if (!instance.modes.isEmpty()) {
             modalReactorCount += currentFederate.numRuntimeInstances(instance);
         }
