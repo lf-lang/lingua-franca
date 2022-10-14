@@ -193,6 +193,8 @@ class ErrorInserter {
                 String current = it.next();
                 String uncommented = current.contains("//") ?
                     current.substring(0, current.indexOf("//")) : current;
+                uncommented = uncommented.contains("#") ?
+                    uncommented.substring(0, uncommented.indexOf("#")) : current;
                 if (uncommented.contains("=}")) inCodeBlock = false;
                 if (inCodeBlock && alterer.apply(it, current)) badLines.add(lineNumber);
                 if (uncommented.contains("{=")) inCodeBlock = true;
