@@ -549,12 +549,6 @@ public class CGenerator extends GeneratorBase {
                     copyUserFiles(this.targetConfig, this.fileConfig);
                 }
 
-                // If we are running an Arduino Target, need to copy over the BoardOptions file.
-                if (targetConfig.platformOptions.platform == Platform.ARDUINO) {
-                    FileUtil.copyFile(FileUtil.globFilesEndsWith(fileConfig.srcPath, "BoardOptions.cmake").get(0),
-                        Paths.get(fileConfig.getSrcGenPath().toString(),File.separator, "BoardOptions.cmake"));
-                }
-
                 // Copy the core lib
                 FileUtil.copyDirectoryFromClassPath(
                     "/lib/c/reactor-c/core",

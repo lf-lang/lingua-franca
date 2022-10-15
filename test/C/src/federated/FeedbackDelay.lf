@@ -24,18 +24,17 @@ reactor PhysicalPlant {
 }
 
 reactor Controller {
-    input sensor:double;
-    output control:double;
+    input sensor: double
+    output control: double
 
-    state latest_control:double(0.0);
-    state first:bool(true);
+    state latest_control: double(0.0)
+    state first: bool(true)
 
-    output request_for_planning:double;
-    input planning:double;
+    output request_for_planning: double
+    input planning: double
 
-    reaction(planning) {=
-        self->latest_control = planning->value;
-    =}
+    reaction(planning) {= self->latest_control = planning->value; =}
+
     reaction(sensor) -> control, request_for_planning {=
         if (!self->first) {
             SET(control, self->latest_control);
@@ -56,12 +55,12 @@ reactor Planner {
 }
 
 federated reactor {
-    p = new PhysicalPlant();
-    c = new Controller();
-    pl = new Planner();
+    p = new PhysicalPlant()
+    c = new Controller()
+    pl = new Planner()
 
-    p.sensor -> c.sensor;
-    c.request_for_planning -> pl.request;
-    pl.response -> c.planning after 0;
-    c.control -> p.control;
+    p.sensor -> c.sensor
+    c.request_for_planning -> pl.request
+    pl.response -> c.planning after 0
+    c.control -> p.control
 }

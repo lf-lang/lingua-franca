@@ -11,8 +11,7 @@ target Python {
     coordination: decentralized
 }
 
-// reason for failing: lf_tag() not supported by the python target
-
+# reason for failing: lf_tag() not supported by the python target
 reactor Clock(offset(0), period(1 sec)) {
     output y
     timer t(offset, period)
