@@ -58,6 +58,8 @@ jobs:
         if: ${{ runner.os == 'Linux' }}
       - name: Run Python tests
         run: |
+          python3 -m venv env
+          source env/bin/activate
           ./gradlew test --tests org.lflang.tests.runtime.PythonTest.*
       - name: Report to CodeCov
         uses: codecov/codecov-action@v2.1.0
