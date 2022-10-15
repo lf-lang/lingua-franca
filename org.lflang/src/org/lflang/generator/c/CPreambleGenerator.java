@@ -62,7 +62,7 @@ public class CPreambleGenerator {
         }
         code.pr("#include \"core/mixed_radix.h\"");
         code.pr("#include \"core/port.h\"");
-        code.pr("int lf_reactor_c_main(int argc, char* argv[]);");
+        code.pr("int lf_reactor_c_main(int argc, const char* argv[]);");
         if (cppMode) {
             code.pr("}");
         }
