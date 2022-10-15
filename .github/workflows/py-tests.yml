@@ -29,8 +29,6 @@ jobs:
           fetch-depth: 0
       - name: Prepare build environment
         uses: ./.github/actions/prepare-build-env
-      - name: Setup Python
-        uses: actions/setup-python@v2
       - name: Install dependencies OS X
         run: |
           brew install coreutils
@@ -59,13 +57,6 @@ jobs:
       - name: Run Python tests
         run: |
           ./gradlew test --tests org.lflang.tests.runtime.PythonTest.*
-        if: ${{ runner.os != 'macOS' }}
-      - name: Run Python tests macOS
-        run: |
-          python3 -m venv env
-          source env/bin/activate
-          ./gradlew test --tests org.lflang.tests.runtime.PythonTest.*
-        if: ${{ runner.os == 'macOS' }}
       - name: Report to CodeCov
         uses: codecov/codecov-action@v2.1.0
         with:
