@@ -10,6 +10,8 @@ class CppRos2PackageGenerator(generator: CppGenerator, private val nodeName: Str
     private val targetConfig = generator.targetConfig
     val reactorCppSuffix = targetConfig.runtimeVersion ?: "default"
     val reactorCppName = "reactor-cpp-$reactorCppSuffix"
+    private val dependencies =
+        listOf("rclcpp", "rclcpp_components", reactorCppName) + (targetConfig.ros2Dependencies ?: listOf<String>())
 
     @Suppress("PrivatePropertyName") // allows us to use capital S as variable name below
     private val S = '$' // a little trick to escape the dollar sign with $S
@@ -28,10 +30,7 @@ class CppRos2PackageGenerator(generator: CppGenerator, private val nodeName: Str
             |  <buildtool_depend>ament_cmake</buildtool_depend>
             |  <buildtool_depend>ament_cmake_auto</buildtool_depend>
             |  
-            |  <depend>rclcpp</depend>
-            |  <depend>rclcpp_components</depend>
-            |  <depend>std_msgs</depend>
-            |  <depend>$reactorCppName</depend>
+        ${" |"..dependencies.joinToString("\n") { "<depend>$it</depend>" } }
             |
             |  <test_depend>ament_lint_auto</test_depend>
             |  <test_depend>ament_lint_common</test_depend>
@@ -74,7 +73,7 @@ class CppRos2PackageGenerator(generator: CppGenerator, private val nodeName: Str
                 |    src/$nodeName.cc
             ${" |    "..sources.joinToString("\n") { "src/$it" }}
                 |)
-                |ament_target_dependencies($S{LF_MAIN_TARGET} rclcpp std_msgs)
+                |ament_target_dependencies($S{LF_MAIN_TARGET} ${dependencies.joinToString(" ")})
                 |target_include_directories($S{LF_MAIN_TARGET} PUBLIC
                 |    "$S{LF_SRC_PKG_PATH}/src"
                 |    "$S{PROJECT_SOURCE_DIR}/src/"

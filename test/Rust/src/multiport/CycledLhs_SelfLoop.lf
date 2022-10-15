@@ -1,23 +1,20 @@
-// test a cycled connection which has ports of the same reactor on the LHS and rhs
-// (single port)+ -> multiport
-
+// test a cycled connection which has ports of the same reactor on the LHS and
+// rhs (single port)+ -> multiport
 target Rust {
-    timeout: 16 usec,
-};
+    timeout: 16 usec
+}
 
 reactor Test {
-    output out: u32;
-    input[2] in: u32;
-    logical action act: u32;
-    state last: u32(1);
+    output out: u32
+    input[2] in: u32
+    logical action act: u32
+    state last: u32(1)
 
     reaction(startup) -> act {=
         ctx.schedule_with_v(act, Some(1), after!(1 us));
     =}
 
-    reaction(act) -> out {=
-        ctx.set_opt(out, ctx.get(act));
-    =}
+    reaction(act) -> out {= ctx.set_opt(out, ctx.get(act)); =}
 
     reaction(in) -> act {=
         let sum: u32 = r#in.into_iter().map(|p| ctx.get(&p).unwrap()).sum();
@@ -34,6 +31,6 @@ reactor Test {
 }
 
 main reactor {
-    t = new Test();
-    (t.out)+ -> t.in;
+    t = new Test()
+    (t.out)+ -> t.in
 }

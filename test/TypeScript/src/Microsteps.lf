@@ -1,7 +1,9 @@
-target TypeScript;
+target TypeScript
+
 reactor Destination {
-    input x:number;
-    input y:number;
+    input x: number
+    input y: number
+
     reaction(x, y) {=
         let elapsed = util.getElapsedLogicalTime();
         console.log("Time since start: " + elapsed);
@@ -22,15 +24,16 @@ reactor Destination {
         }
     =}
 }
+
 main reactor Microsteps {
-    timer start;
-    logical action repeat;
-    d = new Destination();
+    timer start
+    logical action repeat
+    d = new Destination()
+
     reaction(start) -> d.x, repeat {=
         d.x = 1;
         actions.repeat.schedule(0, null);
     =}
-    reaction(repeat) -> d.y {=
-        d.y = 1;
-    =}
+
+    reaction(repeat) -> d.y {= d.y = 1; =}
 }

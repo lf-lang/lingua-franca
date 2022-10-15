@@ -1,20 +1,21 @@
-// This tests actions with immutable payloads that are neither malloc'd nor freed.
-target Python;
+# This tests actions with immutable payloads that are neither malloc'd nor
+# freed.
+target Python
 
 reactor DelayString2(delay(100 msec)) {
-    input _in;
-    output out;
-    logical action a;
-    reaction(a) -> out {=
-        out.set(a.value)
-    =}
-    reaction(_in) -> a {=
-        a.schedule(self.delay, _in.value)
-    =}
+    input _in
+    output out
+    logical action a
+
+    reaction(a) -> out {= out.set(a.value) =}
+
+    reaction(_in) -> a {= a.schedule(self.delay, _in.value) =}
 }
+
 reactor Test {
-    input _in;
-    state start_time(0);
+    input _in
+    state start_time(0)
+
     reaction(_in) {=
         print("Received: ", _in.value)
         # Check the time of the input.
@@ -30,10 +31,9 @@ reactor Test {
 }
 
 main reactor {
-    d = new DelayString2();
-    t = new Test();
-    d.out -> t._in;
-    reaction(startup) -> d._in {=
-        d._in.set("Hello")
-    =}
+    d = new DelayString2()
+    t = new Test()
+    d.out -> t._in
+
+    reaction(startup) -> d._in {= d._in.set("Hello") =}
 }

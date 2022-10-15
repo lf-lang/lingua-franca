@@ -38,7 +38,7 @@ class ErrorInserter {
         .replacer(".get", ".undefined_name15291838")
         .replacer("std::", "undefined_name3286634::");
     public static final Builder PYTHON_SYNTAX_ONLY = new Builder()
-        .insertable("+++++;").insertable("        ..");
+        .insertable("        +++++;").insertable("        ..");
     public static final Builder PYTHON = PYTHON_SYNTAX_ONLY
         .replacer("print(", "undefined_name15291838(");
     public static final Builder RUST = BASE_ERROR_INSERTER
@@ -193,6 +193,8 @@ class ErrorInserter {
                 String current = it.next();
                 String uncommented = current.contains("//") ?
                     current.substring(0, current.indexOf("//")) : current;
+                uncommented = uncommented.contains("#") ?
+                    uncommented.substring(0, uncommented.indexOf("#")) : current;
                 if (uncommented.contains("=}")) inCodeBlock = false;
                 if (inCodeBlock && alterer.apply(it, current)) badLines.add(lineNumber);
                 if (uncommented.contains("{=")) inCodeBlock = true;

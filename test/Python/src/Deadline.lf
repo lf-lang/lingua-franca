@@ -1,21 +1,22 @@
-// This example illustrates local deadline handling.
-// Even numbers are sent by the Source immediately, whereas odd numbers
-// are sent after a big enough delay to violate the deadline.
+# This example illustrates local deadline handling. Even numbers are sent by the
+# Source immediately, whereas odd numbers are sent after a big enough delay to
+# violate the deadline.
 target Python {
     timeout: 6 sec
-};
+}
+
+preamble {= import time =}
+
 reactor Source(period(3 sec)) {
-    output y;
-    timer t(0, period);
-    state count(0);
+    output y
+    timer t(0, period)
+    state count(0)
+
     reaction(t) -> y {=
         if self.count % 2 != 0:
             # The count variable is odd.
             # Take time to cause a deadline violation.
-            sleep_time = MSEC(1500)
-            start_time = lf.time.physical()
-            while (lf.time.physical() < start_time + sleep_time):
-                pass
+            time.sleep(1.5)
 
         print("Source sends: ", self.count)
         y.set(self.count)
@@ -24,8 +25,9 @@ reactor Source(period(3 sec)) {
 }
 
 reactor Destination(timeout(1 sec)) {
-    input x;
-    state count(0);
+    input x
+    state count(0)
+
     reaction(x) {=
         print("Destination receives: ", x.value)
         if self.count % 2 != 0:
@@ -43,8 +45,9 @@ reactor Destination(timeout(1 sec)) {
         self.count += 1
     =}
 }
+
 main reactor Deadline {
-    s = new Source();
-    d = new Destination(timeout = 1 sec);
-    s.y -> d.x;
+    s = new Source()
+    d = new Destination(timeout = 1 sec)
+    s.y -> d.x
 }

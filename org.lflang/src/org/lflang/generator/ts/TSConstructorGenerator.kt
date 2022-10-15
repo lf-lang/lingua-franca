@@ -126,8 +126,8 @@ class TSConstructorGenerator (
         val federateConfigurations = LinkedList<String>()
         if (reactor.isFederated) {
             for ((key, _) in federate.dependsOn) {
-                // FIXME: Get delay properly considering the unit instead of hardcoded BigInt(0).
-                federateConfigurations.add("this.addUpstreamFederate(${key.id}, BigInt(0));")
+                // FIXME: Get delay properly considering the unit instead of hardcoded TimeValue.NEVER().
+                federateConfigurations.add("this.addUpstreamFederate(${key.id}, TimeValue.NEVER());")
             }
             for ((key, _) in federate.sendsTo) {
                 federateConfigurations.add("this.addDownstreamFederate(${key.id});")

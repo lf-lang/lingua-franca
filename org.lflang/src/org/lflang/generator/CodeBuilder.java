@@ -97,7 +97,7 @@ public class CodeBuilder {
      */
     public void pr(CharSequence text) {
         for (String line : (Iterable<? extends String>) () -> text.toString().lines().iterator()) {
-            code.append(indentation).append(line).append(System.lineSeparator());
+            code.append(indentation).append(line).append("\n");
         }
     }
 
@@ -132,9 +132,8 @@ public class CodeBuilder {
                 offset += 1;
             }
             // Extract the filename from eResource, an astonishingly difficult thing to do.
-            URI resolvedURI = CommonPlugin.resolve(eObject.eResource().getURI());
-            // pr(output, "#line " + (node.getStartLine() + offset) + ' "' + FileConfig.toFileURI(fileConfig.srcFile) + '"')
-            pr("#line " + (node.getStartLine() + offset) + " \"" + resolvedURI + "\"");
+            String filePath = CommonPlugin.resolve(eObject.eResource().getURI()).path();
+            pr("#line " + (node.getStartLine() + offset) + " \"" + filePath + "\"");
         }
     }
 

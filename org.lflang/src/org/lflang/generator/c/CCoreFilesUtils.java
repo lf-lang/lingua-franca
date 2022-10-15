@@ -16,6 +16,12 @@ public class CCoreFilesUtils {
         );
     }
 
+    public static List<String> getArduinoTargetHeaders() {
+        return List.of(
+            "Arduino.h"
+        );
+    }
+
     public static List<String> getCTargetHeader() {
         return List.of(
             "include/api/api.h"

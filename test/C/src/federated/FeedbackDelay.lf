@@ -2,25 +2,27 @@ target C {
     timeout: 1 sec,
     logging: DEBUG
 }
+
 reactor PhysicalPlant {
-    input control:double;
-    output sensor:double;
-    timer t(0,  33 msec);
-    state last_sensor_time:time(0);
-    state previous_sensor_time:time(0);
+    input control: double
+    output sensor: double
+    timer t(0, 33 msec)
+    state last_sensor_time: time(0)
+    state previous_sensor_time: time(0)
+
     reaction(t) -> sensor {=
         SET(sensor, 42);
         self->previous_sensor_time = self->last_sensor_time;
         self->last_sensor_time = lf_time_physical();
     =}
+
     reaction(control) {=
         instant_t control_time = lf_time_physical();
         lf_print("Latency %lld.", control_time - self->previous_sensor_time);
         lf_print("Logical time: %lld.", lf_time_logical_elapsed());
-    =} STP(33 msec) {=
-        lf_print_warning("STP violation.");
-    =}
+    =} STP(33 msec) {= lf_print_warning("STP violation."); =}
 }
+
 reactor Controller {
     input sensor:double;
     output control:double;
@@ -42,14 +44,17 @@ reactor Controller {
         SET(request_for_planning, sensor->value);
     =}
 }
+
 reactor Planner {
-    input request:double;
-    output response: double;
+    input request: double
+    output response: double
+
     reaction(request) -> response {=
         lf_nanosleep(MSEC(10));
         SET(response, request->value);
     =}
 }
+
 federated reactor {
     p = new PhysicalPlant();
     c = new Controller();

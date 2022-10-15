@@ -1,14 +1,15 @@
-// Test that a reaction can react to and send two multiple
-// ports of a contained reactor.
-target C;
+// Test that a reaction can react to and send two multiple ports of a contained
+// reactor.
+target C
+
 reactor Contained {
-    output trigger:int;
-    input in1:int;
-    input in2:int;
-    state count:int(0);
-    reaction(startup) -> trigger {=
-        lf_set(trigger, 42);
-    =}
+    output trigger: int
+    input in1: int
+    input in2: int
+    state count: int(0)
+
+    reaction(startup) -> trigger {= lf_set(trigger, 42); =}
+
     reaction(in1) {=
         printf("in1 received %d.\n", in1->value);
         if (in1->value != 42) {
@@ -17,6 +18,7 @@ reactor Contained {
         }
         self->count++;
     =}
+
     reaction(in2) {=
         printf("in2 received %d.\n", in2->value);
         if (in2->value != 42) {
@@ -25,14 +27,17 @@ reactor Contained {
         }
         self->count++;
     =}
+
     reaction(shutdown) {=
         if (self->count != 2) {
             lf_print_error_and_exit("FAILED: Expected two inputs!");
         }
     =}
 }
+
 main reactor MultipleContained {
-    c = new Contained();
+    c = new Contained()
+
     reaction(c.trigger) -> c.in1, c.in2 {=
         lf_set(c.in1, c.trigger->value);
         lf_set(c.in2, c.trigger->value);

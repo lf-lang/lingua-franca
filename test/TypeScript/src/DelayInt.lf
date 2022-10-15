@@ -1,27 +1,31 @@
-// This tests actions with payloads by delaying an input by a fixed amount.
-// This is a start at handling dynamic memory allocation for such actions.
-target TypeScript;
-reactor Delay(delay:time(100 msec)) {
-    input x:number;
-    output out:number;
-    logical action a:number;
-    reaction(x) -> a {=
-        actions.a.schedule( delay, x as number);
-    =}
+// This tests actions with payloads by delaying an input by a fixed amount. This
+// is a start at handling dynamic memory allocation for such actions.
+target TypeScript
+
+reactor Delay(delay: time(100 msec)) {
+    input x: number
+    output out: number
+    logical action a: number
+
+    reaction(x) -> a {= actions.a.schedule( delay, x as number); =}
+
     reaction(a) -> out {=
         if (a !== null){
             out = a as number
         }
     =}
 }
+
 reactor Test {
-    input x:number;
-    state start_time:time(0);
-    state received_value:boolean(false);
+    input x: number
+    state start_time: time(0)
+    state received_value: boolean(false)
+
     reaction(startup) {=
         // Record the logical time at the start.
         start_time = util.getCurrentLogicalTime();
     =}
+
     reaction(x) {=
         console.log("Received: " + x);
         received_value = true;
@@ -36,6 +40,7 @@ reactor Test {
             util.requestErrorStop("ERROR: Expected input value to be 42. It was " + x)
         }
     =}
+
     reaction(shutdown) {=
         console.log("Checking that communication occurred.");
         if (!received_value) {
@@ -45,10 +50,9 @@ reactor Test {
 }
 
 main reactor DelayInt {
-    d = new Delay();
-    t = new Test();
-    d.out -> t.x;
-    reaction(startup) -> d.x {=
-        d.x = 42;
-    =}
+    d = new Delay()
+    t = new Test()
+    d.out -> t.x
+
+    reaction(startup) -> d.x {= d.x = 42; =}
 }

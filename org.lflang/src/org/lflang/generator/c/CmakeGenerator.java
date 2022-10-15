@@ -117,8 +117,8 @@ public class CmakeGenerator {
 
         cMakeCode.pr("cmake_minimum_required(VERSION 3.13)");
         cMakeCode.pr("project("+executableName+" LANGUAGES C)");
-        cMakeCode.newLine();
 
+        cMakeCode.newLine();
         cMakeCode.pr("# Require C11");
         cMakeCode.pr("set(CMAKE_C_STANDARD 11)");
         cMakeCode.pr("set(CMAKE_C_STANDARD_REQUIRED ON)");
@@ -153,8 +153,8 @@ public class CmakeGenerator {
             cMakeCode.newLine();
         }
 
-        if (targetConfig.platform != Platform.AUTO) {
-            cMakeCode.pr("set(CMAKE_SYSTEM_NAME "+targetConfig.platform.getcMakeName()+")");
+        if (targetConfig.platformOptions.platform != Platform.AUTO) {
+            cMakeCode.pr("set(CMAKE_SYSTEM_NAME "+targetConfig.platformOptions.platform.getcMakeName()+")");
         }
 
         cMakeCode.pr(setUpMainTarget.getCmakeCode(
@@ -242,6 +242,11 @@ public class CmakeGenerator {
         // Add the install option
         cMakeCode.pr(installCode);
         cMakeCode.newLine();
+
+        if (targetConfig.platformOptions.platform == Platform.ARDUINO) {
+            cMakeCode.pr("target_link_arduino_libraries ( ${LF_MAIN_TARGET} AUTO_PUBLIC)");
+            cMakeCode.pr("target_enable_arduino_upload(${LF_MAIN_TARGET})");
+        }
 
         // Add the include file
         for (String includeFile : targetConfig.cmakeIncludesWithoutPath) {

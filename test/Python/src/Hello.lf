@@ -1,17 +1,19 @@
-// This test checks that logical time is incremented an appropriate
-// amount as a result of an invocation of the schedule() function at
-// runtime. It also performs various smoke tests of timing aligned
-// reactions. The first instance has a period of 4 seconds, the second
-// of 2 seconds, and the third (composite) or 1 second.
+# This test checks that logical time is incremented an appropriate amount as a
+# result of an invocation of the schedule() function at runtime. It also
+# performs various smoke tests of timing aligned reactions. The first instance
+# has a period of 4 seconds, the second of 2 seconds, and the third (composite)
+# or 1 second.
 target Python {
     timeout: 10 sec,
     fast: true
-};
-reactor Reschedule(period(2 secs), message("Hello Python")) {
-    state count(0);
-    state previous_time(0);
-    timer t(1 secs, period);
-    logical action a;
+}
+
+reactor Reschedule(period(2 sec), message("Hello Python")) {
+    state count(0)
+    state previous_time(0)
+    timer t(1 sec, period)
+    logical action a
+
     reaction(t) -> a {=
         print(self.message)
         a.schedule(MSEC(200))
@@ -21,6 +23,7 @@ reactor Reschedule(period(2 secs), message("Hello Python")) {
         print("Current time is ", self.previous_time)
         print("Which is {:f} Plus {:d} nanoseconds.\n".format(secs, self.previous_time % BILLION))
     =}
+
     reaction(a) {=
         self.count += 1
         print("***** action {:d} at time {:d}\n".format(self.count, lf.time.logical()))
@@ -34,11 +37,16 @@ reactor Reschedule(period(2 secs), message("Hello Python")) {
             exit(1)
     =}
 }
+
 reactor Inside(period(1 sec), message("Composite default message.")) {
-    third_instance = new Reschedule(period = period, message = message);
+    third_instance = new Reschedule(period = period, message = message)
 }
+
 main reactor Hello {
-    first_instance = new Reschedule(period = 4 sec, message = "Hello from first_instance.");
-    second_instance = new Reschedule(message = "Hello from second_instance.");
-    composite_instance = new Inside(message = "Hello from composite_instance.");
+    first_instance = new Reschedule(
+        period = 4 sec,
+        message = "Hello from first_instance."
+    )
+    second_instance = new Reschedule(message = "Hello from second_instance.")
+    composite_instance = new Inside(message = "Hello from composite_instance.")
 }
