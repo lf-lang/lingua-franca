@@ -1,10 +1,10 @@
 package org.lflang.generator.c;
-import static org.lflang.generator.c.MixedRadixNumbers.db;
-import static org.lflang.generator.c.MixedRadixNumbers.dc;
-import static org.lflang.generator.c.MixedRadixNumbers.dr;
-import static org.lflang.generator.c.MixedRadixNumbers.sb;
-import static org.lflang.generator.c.MixedRadixNumbers.sc;
-import static org.lflang.generator.c.MixedRadixNumbers.sr;
+import static org.lflang.generator.c.CMixedRadixGenerator.db;
+import static org.lflang.generator.c.CMixedRadixGenerator.dc;
+import static org.lflang.generator.c.CMixedRadixGenerator.dr;
+import static org.lflang.generator.c.CMixedRadixGenerator.sb;
+import static org.lflang.generator.c.CMixedRadixGenerator.sc;
+import static org.lflang.generator.c.CMixedRadixGenerator.sr;
 import static org.lflang.util.StringUtil.addDoubleQuotes;
 import static org.lflang.util.StringUtil.joinObjects;
 

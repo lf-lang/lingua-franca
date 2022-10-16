@@ -1,6 +1,6 @@
 package org.lflang.generator.c;
 
-public class MixedRadixNumbers {
+public class CMixedRadixGenerator {
     /** Standardized name for channel index variable for a source. */
     public static String sc = "src_channel";
     /** Standardized name for bank index variable for a source. */

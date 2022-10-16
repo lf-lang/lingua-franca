@@ -56,7 +56,7 @@ public class PythonReactorGenerator {
             pythonClasses.pr(generatePythonConstructor(decl, types));
             pythonClasses.pr(PythonParameterGenerator.generatePythonGetters(decl));
             // Generate methods
-            pythonClasses.pr(PythonMethodsGenerator.generateMethods(reactor));
+            pythonClasses.pr(PythonMethodGenerator.generateMethods(reactor));
             // Generate reactions
             List<Reaction> reactionToGenerate = ASTUtils.allReactions(reactor);
             if (reactor.isFederated()) {

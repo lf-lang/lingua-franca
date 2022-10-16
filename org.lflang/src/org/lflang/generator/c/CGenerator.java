@@ -39,7 +39,6 @@ import static org.lflang.util.StringUtil.addDoubleQuotes;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -334,7 +333,7 @@ public class CGenerator extends GeneratorBase {
     // The third match is a character position within the line.
     // The fourth match will be the error message.
     static final Pattern compileErrorPattern = Pattern.compile(
-        "^((?<path>.*)):(?<line>\\d+):(?<column>\\d+):(?<message>.*)$"
+        "^(?<path>.*):(?<line>\\d+):(?<column>\\d+):(?<message>.*)$"
     );
 
     public static int UNDEFINED_MIN_SPACING = -1;
@@ -383,14 +382,14 @@ public class CGenerator extends GeneratorBase {
 
     private final CTypes types;
 
-    private final CmakeGenerator cmakeGenerator;
+    private final CCmakeGenerator cmakeGenerator;
 
     protected CGenerator(
         FileConfig fileConfig,
         ErrorReporter errorReporter,
         boolean CCppMode,
         CTypes types,
-        CmakeGenerator cmakeGenerator
+        CCmakeGenerator cmakeGenerator
     ) {
         super(fileConfig, errorReporter);
         this.CCppMode = CCppMode;
@@ -404,7 +403,7 @@ public class CGenerator extends GeneratorBase {
             errorReporter,
             CCppMode,
             new CTypes(errorReporter),
-            new CmakeGenerator(fileConfig, List.of())
+            new CCmakeGenerator(fileConfig, List.of())
         );
     }
 
@@ -1213,7 +1212,7 @@ public class CGenerator extends GeneratorBase {
      * Generate methods for {@code reactor}.
      */
     protected void generateMethods(ReactorDecl reactor) {
-        CMethodsGenerator.generateMethods(reactor, code, types);
+        CMethodGenerator.generateMethods(reactor, code, types);
     }
 
     /**
@@ -1239,7 +1238,7 @@ public class CGenerator extends GeneratorBase {
     protected void generateConstructor(
         ReactorDecl reactor, FederateInstance federate, CodeBuilder constructorCode
     ) {
-        code.pr(CConstructorsGenerator.generateConstructor(
+        code.pr(CConstructorGenerator.generateConstructor(
             reactor,
             federate,
             constructorCode.toString()
@@ -1295,7 +1294,7 @@ public class CGenerator extends GeneratorBase {
         // by the lf_schedule() functions to get to the trigger.
         for (Action action : allActions(reactor)) {
             if (currentFederate.contains(action)) {
-                code.pr(CActionsGenerator.generateAuxiliaryStruct(
+                code.pr(CActionGenerator.generateAuxiliaryStruct(
                     decl,
                     action,
                     getTarget(),
@@ -1325,13 +1324,13 @@ public class CGenerator extends GeneratorBase {
         generateSelfStructExtension(body, decl, constructorCode);
 
         // Next handle parameters.
-        body.pr(CParametersGenerator.generateDeclarations(reactor, types));
+        body.pr(CParameterGenerator.generateDeclarations(reactor, types));
 
         // Next handle states.
         body.pr(CStateGenerator.generateDeclarations(reactor, types));
 
         // Next handle actions.
-        CActionsGenerator.generateDeclarations(reactor, decl, currentFederate, body, constructorCode);
+        CActionGenerator.generateDeclarations(reactor, decl, currentFederate, body, constructorCode);
 
         // Next handle inputs and outputs.
         CPortGenerator.generateDeclarations(reactor, decl, body, constructorCode);
@@ -1971,7 +1970,7 @@ public class CGenerator extends GeneratorBase {
      * @param instance The reactor.
      */
     private void generateActionInitializations(ReactorInstance instance) {
-        initializeTriggerObjects.pr(CActionsGenerator.generateInitializers(instance, currentFederate));
+        initializeTriggerObjects.pr(CActionGenerator.generateInitializers(instance, currentFederate));
     }
 
     /**
@@ -2000,7 +1999,7 @@ public class CGenerator extends GeneratorBase {
 
                 var selfStruct = CUtil.reactorRef(action.getParent());
                 initializeTriggerObjects.pr(
-                    CActionsGenerator.generateTokenInitializer(
+                    CActionGenerator.generateTokenInitializer(
                         selfStruct, action.getName(), payloadSize
                     )
                 );
@@ -2097,7 +2096,7 @@ public class CGenerator extends GeneratorBase {
             // have to declare a static variable to ensure that the memory is put in data space
             // and not on the stack.
             // FIXME: Is there a better way to determine this than the string comparison?
-            var initializer = CParametersGenerator.getInitializer(parameter);
+            var initializer = CParameterGenerator.getInitializer(parameter);
             if (initializer.startsWith("{")) {
                 var temporaryVariableName = parameter.uniqueID();
                 initializeTriggerObjects.pr(String.join("\n",

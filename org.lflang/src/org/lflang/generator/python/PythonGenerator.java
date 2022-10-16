@@ -63,7 +63,7 @@ import org.lflang.generator.LFGeneratorContext;
 import org.lflang.generator.ReactorInstance;
 import org.lflang.generator.SubContext;
 import org.lflang.generator.TargetTypes;
-import org.lflang.generator.c.CmakeGenerator;
+import org.lflang.generator.c.CCmakeGenerator;
 import org.lflang.generator.c.CGenerator;
 import org.lflang.generator.c.CUtil;
 import org.lflang.lf.Action;
@@ -109,7 +109,7 @@ public class PythonGenerator extends CGenerator {
             fileConfig,
             errorReporter,
             new PythonTypes(errorReporter),
-            new CmakeGenerator(
+            new CCmakeGenerator(
                 fileConfig,
                 List.of("lib/python_action.c",
                     "lib/python_port.c",
@@ -123,7 +123,7 @@ public class PythonGenerator extends CGenerator {
         );
     }
 
-    private PythonGenerator(FileConfig fileConfig, ErrorReporter errorReporter, PythonTypes types, CmakeGenerator cmakeGenerator) {
+    private PythonGenerator(FileConfig fileConfig, ErrorReporter errorReporter, PythonTypes types, CCmakeGenerator cmakeGenerator) {
         super(fileConfig, errorReporter, false, types, cmakeGenerator);
         this.targetConfig.compiler = "gcc";
         this.targetConfig.compilerFlags = new ArrayList<>();
@@ -244,7 +244,7 @@ public class PythonGenerator extends CGenerator {
             "",
             generatePythonReactorClasses(federate),
             "",
-            MainFunction.generateCode()
+            PythonMainFunctionGenerator.generateCode()
         );
     }
 
@@ -521,7 +521,7 @@ public class PythonGenerator extends CGenerator {
         if (federate != null && !federate.contains(action)) {
             return;
         }
-        code.pr(action, PythonActionsGenerator.generateAliasTypeDef(decl, action, genericActionType));
+        code.pr(action, PythonActionGenerator.generateAliasTypeDef(decl, action, genericActionType));
     }
 
     /**
@@ -707,7 +707,7 @@ public class PythonGenerator extends CGenerator {
     /**
      * Do nothing.
      * Methods are generated in Python not C.
-     * @see PythonMethodsGenerator
+     * @see PythonMethodGenerator
      */
     @Override
     protected void generateMethods(ReactorDecl reactor) {    }
@@ -788,7 +788,7 @@ public class PythonGenerator extends CGenerator {
         if (!hasModalReactors) {
             return;
         }
-        PythonModesGenerator.generateResetReactionsIfNeeded(reactors);
+        PythonModeGenerator.generateResetReactionsIfNeeded(reactors);
     }
 
     private static String setUpMainTarget(boolean hasMain, String executableName, Stream<String> cSources) {

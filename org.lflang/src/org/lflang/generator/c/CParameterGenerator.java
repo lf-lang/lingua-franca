@@ -19,7 +19,7 @@ import org.lflang.lf.Reactor;
  * @author {Soroush Bateni <soroush@utdallas.edu>}
  * @author {Hou Seng Wong <housengw@berkeley.edu>}
  */
-public class CParametersGenerator {
+public class CParameterGenerator {
     /**
      * Return a C expression that can be used to initialize the specified
      * parameter instance. If the parameter initializer refers to other

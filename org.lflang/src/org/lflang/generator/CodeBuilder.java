@@ -4,14 +4,13 @@ import java.nio.file.Path;
 import java.io.IOException;
 
 import org.eclipse.emf.common.CommonPlugin;
-import org.eclipse.emf.common.util.URI;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils;
 import org.lflang.federated.FederateInstance;
 import org.lflang.generator.c.CUtil;
 import org.lflang.lf.Code;
 import org.lflang.util.FileUtil;
-import static org.lflang.generator.c.MixedRadixNumbers.*;
+import static org.lflang.generator.c.CMixedRadixGenerator.*;
 import static org.lflang.util.StringUtil.joinObjects;
 
 /**

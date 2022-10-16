@@ -25,7 +25,7 @@ import static org.lflang.generator.c.CGenerator.variableStructType;
  * @author{Alexander Schulz-Rosengarten <als@informatik.uni-kiel.de>}
  * @author{Hou Seng Wong <housengw@berkeley.edu>}
  */
-public class CActionsGenerator {
+public class CActionGenerator {
     /**
      * For each action of the specified reactor instance, generate initialization code
      * for the offset and period fields.

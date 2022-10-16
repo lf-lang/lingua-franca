@@ -12,7 +12,7 @@ import org.lflang.lf.Reactor;
  *
  * @author {Soroush Bateni <soroush@berkeley.edu>}
  */
-public class PythonMethodsGenerator {
+public class PythonMethodGenerator {
 
     /**
      * Generate a Python method definition for {@code method}.

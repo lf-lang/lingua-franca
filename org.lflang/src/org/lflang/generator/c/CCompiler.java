@@ -218,7 +218,7 @@ public class CCompiler {
             ),
             FileUtil.toUnixString(fileConfig.getSrcGenPath())
         ));
-        if(targetConfig.platformOptions.platform == Platform.ARDUINO) {
+        if (targetConfig.platformOptions.platform == Platform.ARDUINO) {
             arguments.add(0, "-DCMAKE_TOOLCHAIN_FILE="
                 + FileUtil.globFilesEndsWith(fileConfig.srcPkgPath.getParent().getParent(), "Arduino-toolchain.cmake").get(0));
             arguments.add(0, "-DARDUINO_BOARD_OPTIONS_FILE="

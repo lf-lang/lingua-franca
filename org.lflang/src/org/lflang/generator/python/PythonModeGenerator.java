@@ -17,7 +17,7 @@ import org.lflang.lf.Reactor;
  * @author{Soroush Bateni <soroush@utdallas.edu>}
  *
  */
-public class PythonModesGenerator {
+public class PythonModeGenerator {
     /**
      * Generate reset reactions in modes to reset state variables.
      *

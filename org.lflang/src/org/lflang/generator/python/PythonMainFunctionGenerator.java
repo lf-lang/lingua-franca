@@ -32,7 +32,7 @@ package org.lflang.generator.python;
  * @author Soroush Bateni <soroush@utdallas.edu>
  *
  */
-public final class MainFunction {
+public final class PythonMainFunctionGenerator {
 
     /*
      * Generate the main function code

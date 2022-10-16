@@ -14,7 +14,7 @@ import org.lflang.lf.ReactorDecl;
  *
  * @author {Edward A. Lee <eal@berkeley.edu>}
  */
-public class CMethodsGenerator {
+public class CMethodGenerator {
 
     /**
      * Generate macro definitions for methods.
@@ -102,7 +102,7 @@ public class CMethodsGenerator {
         signatures(decl, code, types);
         generateMacrosForMethods(reactor, code);
         for (Method method : allMethods(reactor)) {
-            code.pr(CMethodsGenerator.generateMethod(method, decl, types));
+            code.pr(CMethodGenerator.generateMethod(method, decl, types));
         }
         generateMacroUndefsForMethods(reactor, code);
         code.prComment("***** End of method declarations.");

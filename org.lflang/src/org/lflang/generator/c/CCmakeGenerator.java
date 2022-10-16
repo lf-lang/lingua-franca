@@ -46,7 +46,7 @@ import org.lflang.util.FileUtil;
  * @author Soroush Bateni <soroush@utdallas.edu>
  *
  */
-public class CmakeGenerator {
+public class CCmakeGenerator {
     private static final String DEFAULT_INSTALL_CODE = """
         install(
             TARGETS ${LF_MAIN_TARGET}
@@ -59,17 +59,17 @@ public class CmakeGenerator {
     private final SetUpMainTarget setUpMainTarget;
     private final String installCode;
 
-    public CmakeGenerator(
+    public CCmakeGenerator(
         FileConfig fileConfig,
         List<String> additionalSources
     ) {
         this.fileConfig = fileConfig;
         this.additionalSources = additionalSources;
-        this.setUpMainTarget = CmakeGenerator::setUpMainTarget;
+        this.setUpMainTarget = CCmakeGenerator::setUpMainTarget;
         this.installCode = DEFAULT_INSTALL_CODE;
     }
 
-    public CmakeGenerator(
+    public CCmakeGenerator(
         FileConfig fileConfig,
         List<String> additionalSources,
         SetUpMainTarget setUpMainTarget,

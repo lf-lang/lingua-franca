@@ -8,7 +8,7 @@ import org.lflang.lf.ReactorDecl;
  * Generates C constructor code for a reactor.
  *
  */
-public class CConstructorsGenerator {
+public class CConstructorGenerator {
     /**
      * Generate a constructor for the specified reactor in the specified federate.
      * @param reactor The parsed reactor data structure.
