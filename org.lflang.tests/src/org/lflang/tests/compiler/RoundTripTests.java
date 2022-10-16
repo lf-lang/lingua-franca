@@ -15,6 +15,7 @@ import org.eclipse.xtext.testing.extensions.InjectionExtension;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.opentest4j.AssertionFailedError;
 
 import org.lflang.LFStandaloneSetup;
 import org.lflang.Target;
@@ -34,12 +35,10 @@ public class RoundTripTests {
 
     @Test
     public void roundTripTest() throws Exception {
-        int nonFailures = 0;
         for (Target target : Target.values()) {
             for (TestCategory category : TestCategory.values()) {
                 for (LFTest test : TestRegistry.getRegisteredTests(target, category, false)) {
                     run(test.srcFile);
-                    System.out.printf("%s non-failures%n", ++nonFailures);
                 }
             }
         }
@@ -47,24 +46,50 @@ public class RoundTripTests {
 
     private void run(Path file) throws Exception {
         Model originalModel = parse(file);
-        System.out.printf("Running formatter on %s%n", file);
         Assertions.assertTrue(originalModel.eResource().getErrors().isEmpty());
         // TODO: Check that the output is a fixed point
-        String squishedTestCase = FormattingUtils.render(originalModel, 20);
-        System.out.printf("Squished test case:%n%s%n%n", squishedTestCase);
-        Model resultingModel = getResultingModel(file, squishedTestCase);
+        final int smallLineLength = 20;
+        final String squishedTestCase = FormattingUtils.render(originalModel, smallLineLength);
+        final Model resultingModel = getResultingModel(file, squishedTestCase);
         Assertions.assertNotNull(resultingModel);
         if (!resultingModel.eResource().getErrors().isEmpty()) {
             resultingModel.eResource().getErrors().forEach(System.err::println);
             Assertions.assertTrue(resultingModel.eResource().getErrors().isEmpty());
         }
-        Assertions.assertTrue(new IsEqual(originalModel).doSwitch(resultingModel));
-        String normalTestCase = FormattingUtils.render(originalModel);
-        System.out.printf("Normal reformatted test case:%n%s%n%n", normalTestCase);
-        Assertions.assertEquals(
-            Files.readString(file).replaceAll("\\r\\n?", "\n"),
-            normalTestCase
-        );
+        if (!new IsEqual(originalModel).doSwitch(resultingModel)) {
+            System.out.printf(
+                "The following is what %s looks like after applying formatting with the preferred line "
+                    + "length set to %d columns:%n%s%n%n",
+                file,
+                smallLineLength,
+                squishedTestCase
+            );
+            throw new AssertionError(String.format(
+                "The reformatted version of %s was not equivalent to the original file.",
+                file.getFileName()
+            ));
+        }
+        final String normalTestCase = FormattingUtils.render(originalModel);
+        try {
+            Assertions.assertEquals(
+                Files.readString(file).replaceAll("\\r\\n?", "\n"),
+                normalTestCase
+            );
+        } catch (AssertionFailedError e) {
+            System.err.printf(
+                "An assertion failed while checking that the content of %s is the same before and "
+                    + "after formatting. Check that %s is formatted according to lff and the "
+                    + "formatter provided with the VS Code extension.%n",
+                file,
+                file.getFileName()
+            );
+            System.out.printf(
+                "The following is what %s looks like after applying formatting normally:%n%s%n%n",
+                file.getFileName(),
+                normalTestCase
+            );
+            throw e;
+        }
     }
 
     private Model getResultingModel(

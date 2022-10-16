@@ -1,9 +1,6 @@
 // Test that the stop function can be used to internally impose a a time limit.
 // Correct output for this 1, 2, 3, 4. Failure for this test is failing to halt.
-// See [Benchmarks wiki
-// page](https://github.com/icyphy/lingua-franca/wiki/Benchmarks).
 target C {
-    flags: "-O2",
     fast: true
 }
 
@@ -34,15 +31,14 @@ reactor Destination {
 
     reaction(shutdown) {=
         printf("**** shutdown reaction invoked.\n");
-        if (self->s != 10000002) {
-            fprintf(stderr, "ERROR: Expected 10000002 but got %d.\n", self->s);
+        if (self->s != 12) {
+            fprintf(stderr, "ERROR: Expected 12 but got %d.\n", self->s);
             exit(1);
         }
-        lf_print("Approx. time per reaction: %lldns", lf_time_physical_elapsed()/(self->s+1));
     =}
 }
 
-main reactor(period: time(1 usec)) {
+main reactor(period: time(1 sec)) {
     timer stop(10 sec)
     c = new Clock(period = period)
     d = new Destination()

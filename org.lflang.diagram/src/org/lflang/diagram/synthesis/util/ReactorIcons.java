@@ -24,31 +24,27 @@
 ***************/
 package org.lflang.diagram.synthesis.util;
 
+import java.io.InputStream;
+import java.util.HashMap;
+
+import org.eclipse.swt.graphics.ImageData;
+import org.eclipse.swt.graphics.ImageLoader;
+import org.eclipse.xtext.xbase.lib.Extension;
+import org.lflang.ASTUtils;
+import org.lflang.AttributeUtils;
+import org.lflang.diagram.synthesis.AbstractSynthesisExtensions;
+import org.lflang.lf.ReactorDecl;
+import org.lflang.util.FileUtil;
+
 import com.google.inject.Inject;
+
+import de.cau.cs.kieler.klighd.krendering.Colors;
 import de.cau.cs.kieler.klighd.krendering.KContainerRendering;
 import de.cau.cs.kieler.klighd.krendering.KGridPlacementData;
 import de.cau.cs.kieler.klighd.krendering.KRectangle;
 import de.cau.cs.kieler.klighd.krendering.ViewSynthesisShared;
 import de.cau.cs.kieler.klighd.krendering.extensions.KContainerRenderingExtensions;
 import de.cau.cs.kieler.klighd.krendering.extensions.KRenderingExtensions;
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
-import java.lang.ref.SoftReference;
-import java.net.URL;
-import java.util.HashMap;
-import org.eclipse.core.resources.IResource;
-import org.eclipse.core.resources.ResourcesPlugin;
-import org.eclipse.emf.common.util.URI;
-import org.eclipse.emf.ecore.EObject;
-import org.eclipse.swt.graphics.ImageData;
-import org.eclipse.swt.graphics.ImageLoader;
-import org.eclipse.xtext.xbase.lib.Exceptions;
-import org.eclipse.xtext.xbase.lib.Extension;
-import org.eclipse.xtext.xbase.lib.StringExtensions;
-import org.lflang.ASTUtils;
-import org.lflang.diagram.synthesis.AbstractSynthesisExtensions;
-import org.lflang.lf.ReactorDecl;
 
 /**
  * Utility class to handle icons for reactors in Lingua Franca diagrams.
@@ -63,127 +59,91 @@ public class ReactorIcons extends AbstractSynthesisExtensions {
     
     private static final ImageLoader LOADER = new ImageLoader();
     
-    // memory-sensitive cache
-    private static final HashMap<URL, SoftReference<ImageData>> CACHE = new HashMap<>();
+    // Image cache during synthesis
+    private final HashMap<java.net.URI, ImageData> cache = new HashMap<>();
     
+    // Error message
+    private String error = null;
 
     public void handleIcon(KContainerRendering rendering, ReactorDecl reactor, boolean collapsed) {
         if (!collapsed) {
             return;
         }
-        URL iconLocation = locateIcon(reactor);
-        if (iconLocation != null) {
-            ImageData data = loadImage(iconLocation);
-            if (data != null) {
-                KRectangle figure = _kContainerRenderingExtensions.addRectangle(rendering);
-                _kRenderingExtensions.setInvisible(figure, true);
-                KGridPlacementData figurePlacement = _kRenderingExtensions.setGridPlacementData(figure, data.width, data.height);
-                _kRenderingExtensions.to(
-                      _kRenderingExtensions.from(
-                              figurePlacement, 
-                              _kRenderingExtensions.LEFT, 3, 0,
-                              _kRenderingExtensions.TOP, 0, 0), 
-                      _kRenderingExtensions.RIGHT, 3, 0, 
-                      _kRenderingExtensions.BOTTOM, 3, 0);
-                
-                KRectangle icon = _kContainerRenderingExtensions.addRectangle(figure);
-                _kRenderingExtensions.setInvisible(icon, true);
-                _kContainerRenderingExtensions.addImage(icon, data);
-                _kRenderingExtensions.setPointPlacementData(icon, 
-                        _kRenderingExtensions.createKPosition(
-                                _kRenderingExtensions.LEFT, 0, 0.5f, 
-                                _kRenderingExtensions.TOP, 0, 0.5f), 
-                        _kRenderingExtensions.H_CENTRAL, _kRenderingExtensions.V_CENTRAL, 0,
-                        0, data.width, data.height);
-            }
+        
+        // Reset error
+        error = null;
+        
+        // Get annotation
+        String iconPath = AttributeUtils.findAttributeByName(reactor, "icon");
+        if (iconPath == null) { // Fallback to old syntax (in comment)
+            iconPath = ASTUtils.findAnnotationInComments(reactor, "@icon");
         }
-    }
-
-    private URL locateIcon(EObject eobj) {
-        URL location = null;
-        String iconPath = ASTUtils.findAnnotationInComments(eobj, "@icon");
-        if (!StringExtensions.isNullOrEmpty(iconPath)) {
-            // Check if path is URL
-            try {
-                return new URL(iconPath);
-            } catch (Exception e) {
-                // nothing
-            }
-            // Check if path exists as is
-            File path = new File(iconPath);
-            if (path.exists()) {
-                try {
-                    return path.toURI().toURL();
-                } catch (Exception e) {
-                    // nothing
-                }
-            }
-            // Check if path is relative to LF file
-            URI eURI = eobj.eResource() != null ? eobj.eResource().getURI() : null;
-            if (eURI != null) {
-                java.net.URI sourceURI = null;
-                try {
-                    if (eURI.isFile()) {
-                        sourceURI = new java.net.URI(eURI.toString());
-                        sourceURI = new java.net.URI(sourceURI.getScheme(), null,
-                            sourceURI.getPath().substring(0, sourceURI.getPath().lastIndexOf("/")), null);
-                    } else if (eURI.isPlatformResource()) {
-                        IResource iFile = ResourcesPlugin.getWorkspace().getRoot().findMember(eURI.toPlatformString(true));
-                        sourceURI = iFile != null ? iFile.getRawLocation().toFile().getParentFile().toURI() : null; 
-                    } else if (eURI.isPlatformPlugin()) {
-                        // TODO support loading from plugin bundles?
-                    }
-                } catch (Exception e) {
-                    // nothing
-                }
-                if (sourceURI != null) {
-                    try {
-                        location = sourceURI.resolve(path.toString()).toURL();
-                    } catch (Exception e) {
-                        // nothing
-                    }
+        if (iconPath != null && !iconPath.isEmpty()) {
+            var iconLocation = FileUtil.locateFile(iconPath, reactor.eResource());
+            if (iconLocation == null) {
+                error = "Cannot find given icon file.";
+            } else {
+                ImageData data = loadImage(iconLocation);
+                if (data != null) {
+                    KRectangle figure = _kContainerRenderingExtensions.addRectangle(rendering);
+                    _kRenderingExtensions.setInvisible(figure, true);
+                    KGridPlacementData figurePlacement = _kRenderingExtensions.setGridPlacementData(figure, data.width, data.height);
+                    _kRenderingExtensions.to(
+                            _kRenderingExtensions.from(
+                                    figurePlacement, 
+                                    _kRenderingExtensions.LEFT, 3, 0,
+                                    _kRenderingExtensions.TOP, 0, 0), 
+                            _kRenderingExtensions.RIGHT, 3, 0, 
+                            _kRenderingExtensions.BOTTOM, 3, 0);
                     
+                    KRectangle icon = _kContainerRenderingExtensions.addRectangle(figure);
+                    _kRenderingExtensions.setInvisible(icon, true);
+                    _kContainerRenderingExtensions.addImage(icon, data);
+                    _kRenderingExtensions.setPointPlacementData(icon, 
+                            _kRenderingExtensions.createKPosition(
+                                    _kRenderingExtensions.LEFT, 0, 0.5f, 
+                                    _kRenderingExtensions.TOP, 0, 0.5f), 
+                            _kRenderingExtensions.H_CENTRAL, _kRenderingExtensions.V_CENTRAL, 0,
+                            0, data.width, data.height);
+                }
+                if (error != null) {
+                    var errorText = _kContainerRenderingExtensions.addText(rendering, "Icon not found!\n"+error);
+                    _kRenderingExtensions.setForeground(errorText, Colors.RED);
+                    _kRenderingExtensions.setFontBold(errorText, true);
+                    _kRenderingExtensions.setSurroundingSpaceGrid(errorText, 8, 0);
                 }
             }
-            // TODO more variants based on package and library system in LF
         }
-        return location;
     }
 
-    private ImageData loadImage(final URL url) {
+    private ImageData loadImage(final java.net.URI uri) {
         try {
-            synchronized (CACHE) {
-                if (CACHE.containsKey(url)) {
-                    ImageData img = CACHE.get(url).get();
-                    if (img != null) {
-                        return img;
-                    } else {
-                        CACHE.remove(url);
-                    }
-                }
+            if (cache.containsKey(uri)) {
+                return cache.get(uri);
             }
             synchronized (LOADER) {
                 InputStream inStream = null;
                 try {
-                    inStream = url.openStream();
-                    // TODO check for memory leak !!!
+                    inStream = uri.toURL().openStream();
                     ImageData[] data = LOADER.load(inStream);
                     if (data != null && data.length > 0) {
                         ImageData img = data[0];
-                        synchronized (CACHE) {
-                            CACHE.put(url, new SoftReference<ImageData>(img));
-                        }
+                        cache.put(uri, img);
                         return img;
+                    } else {
+                        error = "Could not load icon image.";
+                        return null;
                     }
-                    return null;
                 } finally {
                     if (inStream != null) {
                         inStream.close();
                     }
                 }
             }
-        } catch (IOException ex) {
-            throw Exceptions.sneakyThrow(ex);
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            error = "Could not load icon image.";
+            return null;
         }
     }
     

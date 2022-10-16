@@ -41,6 +41,7 @@ import static org.lflang.util.StringUtil.addDoubleQuotes;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.regex.Pattern;
@@ -323,7 +324,7 @@ public class CGenerator extends GeneratorBase {
     // The third match is a character position within the line.
     // The fourth match will be the error message.
     static final Pattern compileErrorPattern = Pattern.compile(
-        "^(file:(?<path>.*)):(?<line>[0-9]+):(?<column>[0-9]+):(?<message>.*)$"
+        "^(?<path>.*):(?<line>[0-9]+):(?<column>[0-9]+):(?<message>.*)$"
     );
 
     public static int UNDEFINED_MIN_SPACING = -1;
@@ -496,9 +497,10 @@ public class CGenerator extends GeneratorBase {
 
         // Derive target filename from the .lf filename.
         var cFilename = CCompiler.getTargetFileName(lfModuleName, this.CCppMode);
-        var targetFile = fileConfig.getSrcGenPath() + File.separator
-            + cFilename;
+        var targetFile = fileConfig.getSrcGenPath() + File.separator + cFilename;
+
         try {
+
             // Copy the core lib
             FileUtil.copyFilesFromClassPath(
                 "/lib/c/reactor-c/core",
@@ -510,6 +512,33 @@ public class CGenerator extends GeneratorBase {
             );
             // Copy the C target files
             copyTargetFiles();
+
+            // If we are running an Arduino Target, need to copy over the Arduino-CMake files.
+            if (targetConfig.platformOptions.platform == Platform.ARDUINO) {
+                FileUtil.copyDirectoryFromClassPath(
+                    "/lib/platform/arduino/Arduino-CMake-Toolchain/Arduino",
+                    fileConfig.getSrcGenPath().resolve("toolchain/Arduino"),
+                    false
+                );
+                FileUtil.copyDirectoryFromClassPath(
+                    "/lib/platform/arduino/Arduino-CMake-Toolchain/Platform",
+                    fileConfig.getSrcGenPath().resolve("toolchain/Platform"),
+                    false
+                );
+                FileUtil.copyFileFromClassPath(
+                    "/lib/platform/arduino/Arduino-CMake-Toolchain/Arduino-toolchain.cmake",
+                    fileConfig.getSrcGenPath().resolve("toolchain/Arduino-toolchain.cmake"),
+                    true
+                );
+
+                StringBuilder s = new StringBuilder();
+                s.append("set(ARDUINO_BOARD \"");
+                s.append(targetConfig.platformOptions.board.getBoardName());
+                s.append("\")");
+                FileUtil.writeToFile(s.toString(),
+                    fileConfig.getSrcGenPath().resolve("toolchain/BoardOptions.cmake"));
+            }
+
             // Write the generated code
             code.writeToFile(targetFile);
         } catch (IOException e) {
@@ -986,10 +1015,12 @@ public class CGenerator extends GeneratorBase {
     private void pickCompilePlatform() {
         var osName = System.getProperty("os.name").toLowerCase();
         // if platform target was set, use given platform instead
-        if (targetConfig.platform != Platform.AUTO) {
-            osName = targetConfig.platform.toString();
+        if (targetConfig.platformOptions.platform != Platform.AUTO) {
+            osName = targetConfig.platformOptions.platform.toString();
         }
-        if (osName.contains("mac") || osName.contains("darwin")) {
+        if (osName.contains("arduino")) {
+            return;
+        } else if (osName.contains("mac") || osName.contains("darwin")) {
             if (mainDef != null && !targetConfig.useCmake) {
                 targetConfig.compileAdditionalSources.add(
                      "core" + File.separator + "platform" + File.separator + "lf_macos_support.c"
@@ -1221,7 +1252,7 @@ public class CGenerator extends GeneratorBase {
 
         // Next, generate fields for modes
         CModesGenerator.generateDeclarations(reactor, body, constructorCode);
-        
+
         // The first field has to always be a pointer to the list of
         // of allocated memory that must be freed when the reactor is freed.
         // This means that the struct can be safely cast to self_base_t.
@@ -2053,6 +2084,14 @@ public class CGenerator extends GeneratorBase {
             // So that each separate compile knows about modal reactors, do this:
             targetConfig.compileDefinitions.put("MODAL_REACTORS", "");
         }
+        if (targetConfig.threading && targetConfig.platformOptions.platform == Platform.ARDUINO) {
+
+            //Add error message when user attempts to set threading=true for Arduino
+            if (targetConfig.setByUser.contains(TargetProperty.THREADING)) {
+                errorReporter.reportWarning("Threading is incompatible on Arduino. Setting threading to false.");
+            }
+            targetConfig.threading = false;
+        }
         if (targetConfig.threading) {
             pickScheduler();
         }
@@ -2218,6 +2257,7 @@ public class CGenerator extends GeneratorBase {
      */
     private void generateSelfStructs(ReactorInstance r) {
         initializeTriggerObjects.pr(CUtil.selfType(r)+"* "+CUtil.reactorRefName(r)+"["+r.getTotalWidth()+"];");
+        initializeTriggerObjects.pr("SUPPRESS_UNUSED_WARNING("+CUtil.reactorRefName(r)+");");
         for (ReactorInstance child : r.children) {
             generateSelfStructs(child);
         }

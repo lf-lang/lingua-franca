@@ -75,7 +75,7 @@ public class TSExtension implements FedTargetExtension {
 
     @Override
     public String generateNetworkOutputControlReactionBody(VarRef srcOutputPort, FedConnectionInstance connection) {
-        String additionalDelayString = getNetworkDelay(connection.getDefinition().getDelay());
+        String additionalDelayString = TSExtensionsKt.getNetworkDelayLiteral(connection.getDefinition().getDelay());
         return"""
         Log.debug(this, () => {return `Contemplating whether to send port absent to `
         + `federate ID: %3$s port ID: %4$s.`});

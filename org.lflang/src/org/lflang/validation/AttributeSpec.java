@@ -251,5 +251,10 @@ class AttributeSpec {
             new AttrParamSpec(AttributeSpec.NETWORK_INPUT_CONTROL_REACTIONS_TRIGGERS, AttrParamType.STRING, null),
             new AttrParamSpec(AttributeSpec.NETWORK_OUTPUT_CONTROL_REACTION_TRIGGER, AttrParamType.STRING, null))
         ));
+        // @icon("value")
+        ATTRIBUTE_SPECS_BY_NAME.put("icon", new AttributeSpec(
+            List.of(new AttrParamSpec(AttributeSpec.VALUE_ATTR, 
+                    AttrParamType.STRING, null))
+        ));
     }
 }
