@@ -85,8 +85,8 @@ public class Configurators {
             || category == TestCategory.DOCKER_FEDERATED
             || category == TestCategory.DOCKER;
 
-        // SERIALIZATION and TARGET tests are excluded on Windows.
-        excluded |= TestBase.isWindows() && (category == TestCategory.TARGET);
+        // SERIALIZATION, TARGET, and ARDUINO tests are excluded on Windows.
+        excluded |= TestBase.isWindows() && (category == TestCategory.TARGET || category == TestCategory.ARDUINO);
         return !excluded;
     }
 }

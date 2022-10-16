@@ -18,9 +18,15 @@ import org.eclipse.emf.ecore.EObject;
 
 import org.lflang.generator.CodeMap;
 import org.lflang.lf.Code;
+import org.lflang.util.StringUtil;
 
 import com.google.common.collect.ImmutableList;
 
+/**
+ * A {@code MalleableString} is an object with multiple valid textual
+ * representations. These textual representations are code that may have
+ * associated comments.
+ */
 public abstract class MalleableString {
 
     protected List<String> comments = new ArrayList<>();
@@ -301,7 +307,7 @@ public abstract class MalleableString {
                 .map(it -> it.unplacedComments).map(Stream::toList).toList();
             List<String> stringComponents =  componentRenderings.stream()
                 .map(it -> it.rendering)
-                .map(FormattingUtils::normalizeEol)
+                .map(StringUtil::normalizeEol)
                 .collect(ArrayList::new, ArrayList::add, ArrayList::addAll);
             List<String> commentsThatCouldNotBeHandledHere = new ArrayList<>();
             int startColumn = inlineCommentStartColumn(stringComponents, commentsFromChildren);

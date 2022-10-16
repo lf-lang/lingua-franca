@@ -145,7 +145,7 @@ public class CodeMap {
             Position lfStart = Position.fromOneBased(
                 oneBasedLfLineAndColumn.getLine(), oneBasedLfLineAndColumn.getColumn()
             );
-            final Path lfPath = Path.of(bestEffortGetEResource(astNode).getURI().path());
+            final Path lfPath = Path.of(bestEffortGetEResource(astNode).getURI().toFileString());
             if (verbatim) lfStart = lfStart.plus(node.getText().substring(0, indexOf(node.getText(), representation)));
             return new Correspondence(
                 lfPath,
