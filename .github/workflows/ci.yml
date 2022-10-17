@@ -84,7 +84,7 @@ jobs:
 
   # Run the Python integration tests.
   py-tests:
-    uses: lf-lang/lingua-franca/.github/workflows/py-tests.yml@c-refactoring2
+    uses: lf-lang/lingua-franca/.github/workflows/py-tests.yml@c-refactoring2-cmake-verbose
     needs: cancel
 
   # Run the Rust integration tests.
