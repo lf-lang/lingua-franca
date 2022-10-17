@@ -245,7 +245,7 @@ public class CCompiler {
         String cores = String.valueOf(Runtime.getRuntime().availableProcessors());
         LFCommand command =  commandFactory.createCommand(
                 "cmake", List.of(
-                        "--build", ".", "--target", "install", "--parallel", cores, "--config", " -- VERBOSE=1",
+                        "--build", ".", "--target", "install", "--parallel", cores, "--config", "--", "VERBOSE=1",
                         targetConfig.cmakeBuildType != null ?
                             targetConfig.cmakeBuildType.toString() : "Release"
                     ),
