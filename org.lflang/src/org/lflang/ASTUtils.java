@@ -823,10 +823,10 @@ public class ASTUtils {
 
     public static <T extends EObject> Iterable<T> allElementsOfClass(
         Resource resource,
-        Class<T> clazz
+        Class<T> elementClass
     ) {
         //noinspection StaticPseudoFunctionalStyleMethod
-        return Iterables.filter(IteratorExtensions.toIterable(resource.getAllContents()), clazz);
+        return Iterables.filter(IteratorExtensions.toIterable(resource.getAllContents()), elementClass);
     }
 
     ////////////////////////////////
