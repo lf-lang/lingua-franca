@@ -31,7 +31,6 @@ jobs:
     needs: cancel
 
   # Run tests for the standalone compiler.
-  # TODO: Change this back to master branch once merged!
   cli-tests:
     uses: lf-lang/lingua-franca/.github/workflows/cli-tests.yml@master
     needs: cancel
@@ -84,7 +83,7 @@ jobs:
 
   # Run the Python integration tests.
   py-tests:
-    uses: lf-lang/lingua-franca/.github/workflows/py-tests.yml@c-refactoring2
+    uses: lf-lang/lingua-franca/.github/workflows/py-tests.yml@master
     needs: cancel
 
   # Run the Rust integration tests.
