@@ -35,7 +35,6 @@ import java.util.stream.Stream;
 
 import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
-import org.lflang.Target;
 import org.lflang.TargetConfig;
 import org.lflang.TargetProperty.Platform;
 import org.lflang.generator.GeneratorBase;
@@ -54,6 +53,7 @@ import org.lflang.util.LFCommand;
  * @author Marten Lohstroh <marten@berkeley.edu>
  * @author Christian Menard <christian.menard@tu-dresden.de
  * @author Matt Weber <matt.weber@berkeley.edu>
+ * @author Peter Donovan <peterdonovan@berkeley.edu>
  */
 public class CCompiler {
 
@@ -114,7 +114,7 @@ public class CCompiler {
         // FIXME: This is slow and only needed if an error
         //  has previously occurred. Deleting the build directory
         //  if no prior errors have occurred can prolong the compilation
-        //  substantially.
+        //  substantially. See #1416 for discussion.
         FileUtil.deleteDirectory(buildPath);
         // Make sure the build directory exists
         Files.createDirectories(buildPath);

@@ -28,6 +28,7 @@ import static org.lflang.util.StringUtil.addDoubleQuotes;
  * @author Soroush Bateni <soroush@utdallas.edu>
  * @author Alexander Schulz-Rosengarten <als@informatik.uni-kiel.de>
  * @author Hou Seng Wong <housengw@berkeley.edu>
+ * @author Peter Donovan <peterdonovan@berkeley.edu>
  */
 public class CPreambleGenerator {
     /** Add necessary source files specific to the target language.  */

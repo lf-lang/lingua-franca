@@ -794,16 +794,16 @@ public class PythonGenerator extends CGenerator {
     private static String setUpMainTarget(boolean hasMain, String executableName, Stream<String> cSources) {
         return (
             """
-                set(CMAKE_POSITION_INDEPENDENT_CODE ON)
-                add_compile_definitions(_LF_GARBAGE_COLLECTED)
-                add_subdirectory(core)
-                set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR})
-                set(LF_MAIN_TARGET <pyModuleName>)
-                find_package (Python COMPONENTS Interpreter Development)
-                Python_add_library(
-                    ${LF_MAIN_TARGET}
-                    MODULE
-                """
+            set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+            add_compile_definitions(_LF_GARBAGE_COLLECTED)
+            add_subdirectory(core)
+            set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR})
+            set(LF_MAIN_TARGET <pyModuleName>)
+            find_package(Python COMPONENTS Interpreter Development)
+            Python_add_library(
+                ${LF_MAIN_TARGET}
+                MODULE
+            """
             + cSources.collect(Collectors.joining("\n    ", "    ", "\n"))
             + """
             )

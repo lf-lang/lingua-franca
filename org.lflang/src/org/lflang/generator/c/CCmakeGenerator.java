@@ -44,7 +44,7 @@ import org.lflang.util.FileUtil;
  * Adapted from @see org.lflang.generator.CppCmakeGenerator.kt
  *
  * @author Soroush Bateni <soroush@utdallas.edu>
- *
+ * @author Peter Donovan <peterdonovan@berkeley.edu>
  */
 public class CCmakeGenerator {
     private static final String DEFAULT_INSTALL_CODE = """
@@ -260,10 +260,14 @@ public class CCmakeGenerator {
         return cMakeCode;
     }
 
+    /** Provide a strategy for configuring the main target of the CMake build. */
     public interface SetUpMainTarget {
+        // Implementation note: This indirection is necessary because the Python
+        // target produces a shared object file, not an executable.
         String getCmakeCode(boolean hasMain, String executableName, Stream<String> cSources);
     }
 
+    /** Generate the C-target-specific code for configuring the executable produced by the build. */
     private static String setUpMainTarget(
         boolean hasMain,
         String executableName,
