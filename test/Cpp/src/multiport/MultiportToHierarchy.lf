@@ -24,9 +24,10 @@ reactor Destination(width: size_t(4)) {
 
     reaction(in) {=
         int sum = 0;
-        for (size_t i = 0; i < in.size(); i++) {
-            if (in[i].is_present()) sum += *in[i].get();
+        for (auto i : in.get_present_port_indices()) {
+            sum += *in[i].get();
         }
+
         std::cout << "Sum of received: " << sum << ".\n";
         if (sum != s) {
             std::cerr << "ERROR: Expected " << s << ".\n";

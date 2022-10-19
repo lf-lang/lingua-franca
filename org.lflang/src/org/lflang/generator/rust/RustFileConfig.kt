@@ -38,7 +38,7 @@ class RustFileConfig(resource: Resource, srcGenBasePath: Path, useHierarchicalBi
     FileConfig(resource, srcGenBasePath, useHierarchicalBin) {
 
     /**
-     * Clean any artifacts produced by the C++ code generator.
+     * Clean any artifacts produced by the Rust code generator.
      */
     @Throws(IOException::class)
     override fun doClean() {

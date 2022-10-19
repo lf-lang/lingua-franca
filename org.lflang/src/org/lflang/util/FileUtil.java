@@ -340,7 +340,7 @@ public class FileUtil {
     }
 
     /**
-     * Copy a directory from ta jar to a destination path in the filesystem.
+     * Copy a directory from a jar to a destination path in the filesystem.
      *
      * This method should only be used in standalone mode (lfc).
      *
@@ -375,19 +375,6 @@ public class FileUtil {
                     }
                 }
             }
-        }
-    }
-
-    /**
-     * Copy a list of files from a given source directory to a given destination directory.
-     * @param srcDir The directory to copy files from.
-     * @param dstDir The directory to copy files to.
-     * @param files The list of files to copy.
-     * @throws IOException If any of the given files cannot be copied.
-     */
-    public static void copyFilesFromClassPath(String srcDir, Path dstDir, List<String> files) throws IOException {
-        for (String file : files) {
-            copyFileFromClassPath(srcDir + '/' + file, dstDir.resolve(file));
         }
     }
 
@@ -491,6 +478,12 @@ public class FileUtil {
      */
     public static void writeToFile(CharSequence text, Path path) throws IOException {
         writeToFile(text.toString(), path, false);
+    }
+
+    public static void createDirectoryIfDoesNotExist(File dir) {
+        if (dir.exists()) return;
+        if (dir.mkdirs()) return;
+        throw new RuntimeIOException("Failed to create the directory " + dir);
     }
 
     /**
