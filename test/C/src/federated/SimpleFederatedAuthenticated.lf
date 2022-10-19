@@ -1,7 +1,12 @@
+/**
+ * This simple test checks if federate authentication works
+ * by adding `auth` target property.
+ */
 target C {
     timeout: 2 secs,
     build-type: RelWithDebInfo,
-    auth: true
+    auth: true,
+    logging: DEBUG
 }
 
 reactor Fed {
