@@ -1955,6 +1955,15 @@ public class CGenerator extends GeneratorBase {
         }
         if (targetConfig.threading) {  // FIXME: This logic is duplicated in CMake
             pickScheduler();
+            // FIXME: this and pickScheduler should be combined.
+            targetConfig.compileDefinitions.put(
+                "SCHEDULER",
+                targetConfig.schedulerType.name()
+            );
+            targetConfig.compileDefinitions.put(
+                "NUMBER_OF_WORKERS",
+                String.valueOf(targetConfig.workers)
+            );
         }
         pickCompilePlatform();
     }
