@@ -296,6 +296,11 @@ public abstract class GeneratorBase extends AbstractLFValidator {
             targetConfig,
             errorReporter
         );
+
+        // If fastMode is enabled, report error on the AST Node 
+        if (!ASTUtils.allPhysicalActions(this).isEmpty() && targetConfig.fastMode) {
+            errorReporter.reportError(targetConfig.fastModeASTNode, "When physical action is present --fast is disabled.");
+        }
         // FIXME: Should the GeneratorBase pull in `files` from imported
         // resources?
 
