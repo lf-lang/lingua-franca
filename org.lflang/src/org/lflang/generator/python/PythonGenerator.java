@@ -73,6 +73,7 @@ import org.lflang.lf.ReactorDecl;
 import org.lflang.lf.VarRef;
 import org.lflang.util.FileUtil;
 import org.lflang.util.LFCommand;
+import org.lflang.util.StringUtil;
 
 import com.google.common.base.Objects;
 
@@ -330,7 +331,7 @@ public class PythonGenerator extends CGenerator {
     @Override
     protected void handleProtoFiles() {
         for (String name : targetConfig.protoFiles) {
-            this.processProtoFile(name, cancelIndicator);
+            this.processProtoFile(name);
             int dotIndex = name.lastIndexOf(".");
             String rootFilename = dotIndex > 0 ? name.substring(0, dotIndex) : name;
             pythonPreamble.pr("import "+rootFilename+"_pb2 as "+rootFilename);
@@ -451,7 +452,6 @@ public class PythonGenerator extends CGenerator {
                     new PythonValidator(fileConfig, errorReporter, codeMaps, protoNames).doValidate(context);
                     if (!errorsOccurred()
                         && !Objects.equal(context.getMode(), LFGeneratorContext.Mode.LSP_MEDIUM)) {
-                        pythonCompileCode(context); // Why is this invoked here if the current federate is not a parameter?
                     }
                 } else {
                     System.out.println(PythonInfoGenerator.generateSetupInfo(fileConfig));

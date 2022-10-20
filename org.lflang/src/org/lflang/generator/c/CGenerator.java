@@ -530,7 +530,7 @@ public class CGenerator extends GeneratorBase {
             // Create docker file.
             if (targetConfig.dockerOptions != null && mainDef != null) {
                 dockerGenerator.addFile(
-                    dockerGenerator.fromData(lfModuleName, federate.name, fileConfig));
+                    dockerGenerator.fromData(lfModuleName, main.getName(), fileConfig));
             }
             var cmakeFile = fileConfig.getSrcGenPath() + File.separator + "CMakeLists.txt";
             var cmakeCode = cmakeGenerator.generateCMakeCode(
@@ -575,7 +575,7 @@ public class CGenerator extends GeneratorBase {
             // Create the compiler to be used later
             var cCompiler = new CCompiler(targetConfig, threadFileConfig, errorReporter, CppMode);
             try {
-                if (!cCompiler.runCCompiler(execName, main == null, generator, context)) {
+                if (!cCompiler.runCCompiler(generator, context)) {
                     // If compilation failed, remove any bin files that may have been created.
                     CUtil.deleteBinFiles(threadFileConfig);
                     // If finish has already been called, it is illegal and makes no sense. However,
@@ -587,25 +587,6 @@ public class CGenerator extends GeneratorBase {
                     );
                 }
                 cleanCode.writeToFile(targetFile);
-            } catch (IOException e) {
-                Exceptions.sneakyThrow(e);
-            }
-        }
-
-        // Initiate an orderly shutdown in which previously submitted tasks are
-        // executed, but no new tasks will be accepted.
-        compileThreadPool.shutdown();
-
-        // Wait for all compile threads to finish (NOTE: Can block forever)
-        try {
-            compileThreadPool.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
-        } catch (Exception e) {
-            Exceptions.sneakyThrow(e);
-        }
-
-        if (isFederated) {
-            try {
-                createFederatedLauncher();
             } catch (IOException e) {
                 Exceptions.sneakyThrow(e);
             }
@@ -2013,10 +1994,7 @@ public class CGenerator extends GeneratorBase {
         );
     }
 
-
-
-
-    private void handleProtoFiles() {
+    protected void handleProtoFiles() {
         // Handle .proto files.
         for (String file : targetConfig.protoFiles) {
             this.processProtoFile(file);
