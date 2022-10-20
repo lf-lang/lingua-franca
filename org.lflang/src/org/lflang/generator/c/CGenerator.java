@@ -412,6 +412,10 @@ public class CGenerator extends GeneratorBase {
             var actions = Iterables.filter(IteratorExtensions.toIterable(resource.getAllContents()), Action.class);
             for (Action action : actions) {
                 if (Objects.equal(action.getOrigin(), ActionOrigin.PHYSICAL)) {
+                    // If fastMode is enabled, report error on the AST Node 
+                    if (targetConfig.fastMode) {
+                        errorReporter.reportError(targetConfig.fastModeASTNode, "When physical action is present --fast is disabled.");
+                    }
                     // If the unthreaded runtime is not requested by the user, use the threaded runtime instead
                     // because it is the only one currently capable of handling asynchronous events.
                     if (!targetConfig.threading && !targetConfig.setByUser.contains(TargetProperty.THREADING)) {
@@ -421,9 +425,6 @@ public class CGenerator extends GeneratorBase {
                             "Using the threaded C runtime to allow for asynchronous handling of physical action " +
                             action.getName()
                         );
-                        if (targetConfig.fastMode) {
-                            errorReporter.reportError(targetConfig.fastModeASTNode, "When physical action is present --fast is disabled.");
-                        }
                         return;
                     }
                 }
