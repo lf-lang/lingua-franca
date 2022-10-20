@@ -632,6 +632,25 @@ public class ASTUtils {
     public static List<Action> allActions(Reactor definition) {
         return ASTUtils.collectElements(definition, featurePackage.getReactor_Actions());
     }
+
+
+    /**
+     * Given a generator class, return a list of all its physical actions.
+     * @param generator Generator class definition.
+     */
+    public static List<Action> allPhysicalActions(GeneratorBase generator) {
+        // TODO: Merge these into one line of filter
+        ArrayList<Action> physicalActions = new ArrayList<Action>();
+        for (Resource resource : GeneratorUtils.getResources(reactors)) {
+            var actions = Iterables.filter(IteratorExtensions.toIterable(resource.getAllContents()), Action.class);
+            for (Action action : actions) {
+                if (Objects.equal(action.getOrigin(), ActionOrigin.PHYSICAL)) {
+                    physicalActions.add(action);
+                }
+            }
+        }
+        return physicalActions;
+    }
     
     /**
      * Given a reactor class, return a list of all its connections,
