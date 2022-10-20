@@ -23,7 +23,7 @@ reactor Modal {
 
     initial mode One {
         reaction(startup) -> startup1 {=
-            print(f"Startup 1 at ({lf.time.logical_elapsed()}, {get_microstep()}).")
+            print(f"Startup 1 at ({lf.time.logical_elapsed()}, {lf.tag().microstep}).")
             startup1.set(1)
         =}
 
@@ -36,7 +36,7 @@ reactor Modal {
 
     mode Two {
         reaction(startup) -> startup2 {=
-            print(f"Startup 2 at ({lf.time.logical_elapsed()}, {get_microstep()}).")
+            print(f"Startup 2 at ({lf.time.logical_elapsed()}, {lf.tag().microstep}).")
             startup2.set(1)
         =}
 
@@ -47,7 +47,7 @@ reactor Modal {
         =}
 
         reaction(shutdown) -> shutdown2 {=
-            print(f"Shutdown 2 at ({lf.time.logical_elapsed()}, {get_microstep()}).")
+            print(f"Shutdown 2 at ({lf.time.logical_elapsed()}, {lf.tag().microstep}).")
             shutdown2.set(1)
         =}
     }
@@ -60,19 +60,19 @@ reactor Modal {
         =}
 
         reaction(shutdown) -> shutdown3 {=
-            print(f"Shutdown 3 at ({lf.time.logical_elapsed()}, {get_microstep()}).")
+            print(f"Shutdown 3 at ({lf.time.logical_elapsed()}, {lf.tag().microstep}).")
             shutdown3.set(1)
         =}
     }
 
     mode Four {
         reaction(startup) -> startup4 {=
-            print(f"Startup 4 at ({lf.time.logical_elapsed()}, {get_microstep()}).")
+            print(f"Startup 4 at ({lf.time.logical_elapsed()}, {lf.tag().microstep}).")
             startup4.set(1)
         =}
 
         reaction(reset) -> reset4 {=
-            print(f"Reset 4 at ({lf.time.logical_elapsed()}, {get_microstep()}).")
+            print(f"Reset 4 at ({lf.time.logical_elapsed()}, {lf.tag().microstep}).")
             reset4.set(1)
         =}
 
@@ -83,24 +83,24 @@ reactor Modal {
         =}
 
         reaction(shutdown) -> shutdown4 {=
-            print(f"Shutdown 4 at ({lf.time.logical_elapsed()}, {get_microstep()}).")
+            print(f"Shutdown 4 at ({lf.time.logical_elapsed()}, {lf.tag().microstep}).")
             shutdown4.set(1)
         =}
     }
 
     mode Five {  # Unreachable!
         reaction(startup) -> startup5 {=
-            print(f"Startup 5 at ({lf.time.logical_elapsed()}, {get_microstep()}).")
+            print(f"Startup 5 at ({lf.time.logical_elapsed()}, {lf.tag().microstep}).")
             startup5.set(1)
         =}
 
         reaction(reset) -> reset5 {=
-            print(f"Reset 5 at ({lf.time.logical_elapsed()}, {get_microstep()}).")
+            print(f"Reset 5 at ({lf.time.logical_elapsed()}, {lf.tag().microstep}).")
             reset5.set(1)
         =}
 
         reaction(shutdown) -> shutdown5 {=
-            print(f"Shutdown 5 at ({lf.time.logical_elapsed()}, {get_microstep()}).")
+            print(f"Shutdown 5 at ({lf.time.logical_elapsed()}, {lf.tag().microstep}).")
             shutdown5.set(1)
         =}
     }

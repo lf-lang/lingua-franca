@@ -28,6 +28,8 @@ package org.lflang.generator.c;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
+import java.util.stream.Stream;
 
 import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
@@ -42,22 +44,41 @@ import org.lflang.util.FileUtil;
  * Adapted from @see org.lflang.generator.CppCmakeGenerator.kt
  *
  * @author Soroush Bateni <soroush@utdallas.edu>
- *
+ * @author Peter Donovan <peterdonovan@berkeley.edu>
  */
-class CCmakeGenerator {
+public class CCmakeGenerator {
+    private static final String DEFAULT_INSTALL_CODE = """
+        install(
+            TARGETS ${LF_MAIN_TARGET}
+            RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+        )
+    """;
 
-    FileConfig fileConfig;
-    TargetConfig targetConfig;
+    private final FileConfig fileConfig;
+    private final List<String> additionalSources;
+    private final SetUpMainTarget setUpMainTarget;
+    private final String installCode;
 
-    /**
-     * Create an instance of CCmakeGenerator.
-     *
-     * @param targetConfig The TargetConfig instance to use.
-     * @param fileConfig The FileConfig instance to use.
-     */
-    CCmakeGenerator(TargetConfig targetConfig, FileConfig fileConfig) {
+    public CCmakeGenerator(
+        FileConfig fileConfig,
+        List<String> additionalSources
+    ) {
         this.fileConfig = fileConfig;
-        this.targetConfig = targetConfig;
+        this.additionalSources = additionalSources;
+        this.setUpMainTarget = CCmakeGenerator::setUpMainTarget;
+        this.installCode = DEFAULT_INSTALL_CODE;
+    }
+
+    public CCmakeGenerator(
+        FileConfig fileConfig,
+        List<String> additionalSources,
+        SetUpMainTarget setUpMainTarget,
+        String installCode
+    ) {
+        this.fileConfig = fileConfig;
+        this.additionalSources = additionalSources;
+        this.setUpMainTarget = setUpMainTarget;
+        this.installCode = installCode;
     }
 
     /**
@@ -71,15 +92,18 @@ class CCmakeGenerator {
      * @param hasMain Indicate if the .lf file has a main reactor or not. If not,
      *  a library target will be created instead of an executable.
      * @param cMakeExtras CMake-specific code that should be appended to the CMakeLists.txt.
+     * @param targetConfig The TargetConfig instance to use.
      * @return The content of the CMakeLists.txt.
      */
     CodeBuilder generateCMakeCode(
-            List<String> sources,
-            String executableName,
-            ErrorReporter errorReporter,
-            boolean CppMode,
-            boolean hasMain,
-            String cMakeExtras) {
+        List<String> sources,
+        String executableName,
+        ErrorReporter errorReporter,
+        boolean CppMode,
+        boolean hasMain,
+        String cMakeExtras,
+        TargetConfig targetConfig
+    ) {
         CodeBuilder cMakeCode = new CodeBuilder();
 
         List<String> additionalSources = new ArrayList<>();
@@ -88,6 +112,7 @@ class CCmakeGenerator {
                 fileConfig.getSrcGenPath().resolve(Paths.get(file)));
             additionalSources.add(FileUtil.toUnixString(relativePath));
         }
+        additionalSources.addAll(this.additionalSources);
         cMakeCode.newLine();
 
         cMakeCode.pr("cmake_minimum_required(VERSION 3.13)");
@@ -103,16 +128,23 @@ class CCmakeGenerator {
         cMakeCode.pr("set(CMAKE_CXX_STANDARD 17)");
         cMakeCode.pr("set(CMAKE_CXX_STANDARD_REQUIRED ON)");
         cMakeCode.newLine();
+        if (!targetConfig.cmakeIncludes.isEmpty()) {
+            // The user might be using the non-keyword form of
+            // target_link_libraries. Ideally we would detect whether they are
+            // doing that, but it is easier to just always have a deprecation
+            // warning.
+            cMakeCode.pr("""
+                cmake_policy(SET CMP0023 OLD)  # This causes deprecation warnings
+
+                """
+            );
+        }
 
         // Set the build type
         cMakeCode.pr("set(DEFAULT_BUILD_TYPE " + targetConfig.cmakeBuildType + ")\n");
         cMakeCode.pr("if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)\n");
         cMakeCode.pr("    set(CMAKE_BUILD_TYPE ${DEFAULT_BUILD_TYPE} CACHE STRING \"Choose the type of build.\" FORCE)\n");
         cMakeCode.pr("endif()\n");
-        cMakeCode.newLine();
-
-        cMakeCode.pr("set(CoreLib core)");
-        cMakeCode.pr("set(PlatformLib platform)");
         cMakeCode.newLine();
 
         if (CppMode) {
@@ -124,69 +156,43 @@ class CCmakeGenerator {
         if (targetConfig.platformOptions.platform != Platform.AUTO) {
             cMakeCode.pr("set(CMAKE_SYSTEM_NAME "+targetConfig.platformOptions.platform.getcMakeName()+")");
         }
-        cMakeCode.pr("include(${CoreLib}/platform/Platform.cmake)");
-        cMakeCode.newLine();
 
-        cMakeCode.pr("include_directories(${CoreLib})");
-        cMakeCode.pr("include_directories(${CoreLib}/platform)");
-        cMakeCode.pr("include_directories(${CoreLib}/federated)");
-        cMakeCode.newLine();
+        cMakeCode.pr(setUpMainTarget.getCmakeCode(
+            hasMain,
+            executableName,
+            Stream.concat(additionalSources.stream(), sources.stream())
+        ));
 
-        cMakeCode.pr("set(LF_MAIN_TARGET "+executableName+")");
-        cMakeCode.newLine();
+        cMakeCode.pr("target_link_libraries(${LF_MAIN_TARGET} PRIVATE core)");
 
-        if (hasMain) {
-            cMakeCode.pr("# Declare a new executable target and list all its sources");
-            cMakeCode.pr("add_executable(");
-        } else {
-            cMakeCode.pr("# Declare a new library target and list all its sources");
-            cMakeCode.pr("add_library(");
-        }
-        cMakeCode.indent();
-        cMakeCode.pr("${LF_MAIN_TARGET}");
-        sources.forEach(cMakeCode::pr);
-        cMakeCode.pr("${CoreLib}/platform/${LF_PLATFORM_FILE}");
-        additionalSources.forEach(cMakeCode::pr);
-        cMakeCode.unindent();
-        cMakeCode.pr(")");
-        cMakeCode.newLine();
+        cMakeCode.pr("target_include_directories(${LF_MAIN_TARGET} PUBLIC include/)");
+        cMakeCode.pr("target_include_directories(${LF_MAIN_TARGET} PUBLIC include/api)");
+        cMakeCode.pr("target_include_directories(${LF_MAIN_TARGET} PUBLIC include/core)");
+        cMakeCode.pr("target_include_directories(${LF_MAIN_TARGET} PUBLIC include/core/platform)");
+        cMakeCode.pr("target_include_directories(${LF_MAIN_TARGET} PUBLIC include/core/modal_models)");
+        cMakeCode.pr("target_include_directories(${LF_MAIN_TARGET} PUBLIC include/core/utils)");
 
         if (targetConfig.threading || targetConfig.tracing != null) {
             // If threaded computation is requested, add the threads option.
             cMakeCode.pr("# Find threads and link to it");
             cMakeCode.pr("find_package(Threads REQUIRED)");
-            cMakeCode.pr("target_link_libraries( ${LF_MAIN_TARGET} Threads::Threads)");
+            cMakeCode.pr("target_link_libraries(${LF_MAIN_TARGET} PRIVATE Threads::Threads)");
             cMakeCode.newLine();
 
             // If the LF program itself is threaded or if tracing is enabled, we need to define
             // NUMBER_OF_WORKERS so that platform-specific C files will contain the appropriate functions
             cMakeCode.pr("# Set the number of workers to enable threading");
-            cMakeCode.pr("target_compile_definitions( ${LF_MAIN_TARGET} PUBLIC NUMBER_OF_WORKERS="+targetConfig.workers+")");
+            cMakeCode.pr("target_compile_definitions(${LF_MAIN_TARGET} PUBLIC NUMBER_OF_WORKERS="+targetConfig.workers+")");
             cMakeCode.newLine();
         }
 
         cMakeCode.pr("# Target definitions\n");
-        targetConfig.compileDefinitions.forEach( (key, value) -> {
-            cMakeCode.pr("target_compile_definitions( ${LF_MAIN_TARGET} PUBLIC "+key+"="+value+")\n");
-        });
+        targetConfig.compileDefinitions.forEach((key, value) -> cMakeCode.pr(
+            "target_compile_definitions(${LF_MAIN_TARGET} PUBLIC "+key+"="+value+")\n"
+        ));
         cMakeCode.newLine();
 
-        // Check if CppMode is enabled
-        if (CppMode) {
-            // First enable the CXX language
-            cMakeCode.pr("enable_language(CXX)");
-            // FIXME: Instead of mixing a C compiler and a C++ compiler, we use a
-            // CMake flag to set the language of all .c files to C++.
-            // Also convert any additional sources. This is a deprecated functionality
-            // in clang, but intermingling C compiled code and C++ compiled code seems
-            // to require a substantial overhaul of the C target code structure. Instead,
-            // we force the usage of a C++ compiler on everything for now.
-            for (String source: additionalSources) {
-                cMakeCode.pr("set_source_files_properties( "+source+" PROPERTIES LANGUAGE CXX)");
-            }
-            cMakeCode.pr("set_source_files_properties(${CoreLib}/platform/${LF_PLATFORM_FILE} PROPERTIES LANGUAGE CXX)");
-            cMakeCode.newLine();
-        }
+        if (CppMode) cMakeCode.pr("enable_language(CXX)");
 
         if (targetConfig.compiler != null && !targetConfig.compiler.isBlank()) {
             if (CppMode) {
@@ -203,25 +209,25 @@ class CCmakeGenerator {
         for (String compilerFlag : targetConfig.compilerFlags) {
             switch(compilerFlag.trim()) {
                 case "-lm":
-                    cMakeCode.pr("target_link_libraries( ${LF_MAIN_TARGET} m)");
+                    cMakeCode.pr("target_link_libraries(${LF_MAIN_TARGET} PRIVATE m)");
                     break;
                 case "-lprotobuf-c":
                     cMakeCode.pr("include(FindPackageHandleStandardArgs)");
                     cMakeCode.pr("FIND_PATH( PROTOBUF_INCLUDE_DIR protobuf-c/protobuf-c.h)");
                     cMakeCode.pr("""
-                                     find_library(PROTOBUF_LIBRARY\s
-                                     NAMES libprotobuf-c.a libprotobuf-c.so libprotobuf-c.dylib protobuf-c.lib protobuf-c.dll
-                                     )""");
+                         find_library(PROTOBUF_LIBRARY\s
+                         NAMES libprotobuf-c.a libprotobuf-c.so libprotobuf-c.dylib protobuf-c.lib protobuf-c.dll
+                         )""");
                     cMakeCode.pr("find_package_handle_standard_args(libprotobuf-c DEFAULT_MSG PROTOBUF_INCLUDE_DIR PROTOBUF_LIBRARY)");
                     cMakeCode.pr("target_include_directories( ${LF_MAIN_TARGET} PUBLIC ${PROTOBUF_INCLUDE_DIR} )");
-                    cMakeCode.pr("target_link_libraries( ${LF_MAIN_TARGET} ${PROTOBUF_LIBRARY})");
+                    cMakeCode.pr("target_link_libraries(${LF_MAIN_TARGET} PRIVATE ${PROTOBUF_LIBRARY})");
                     break;
                 case "-O2":
-                    if (targetConfig.compiler.equals("gcc") || CppMode) {
+                    if (Objects.equals(targetConfig.compiler, "gcc") || CppMode) {
                         // Workaround for the pre-added -O2 option in the CGenerator.
                         // This flag is specific to gcc/g++ and the clang compiler
-                        cMakeCode.pr("add_compile_options( -O2 )");
-                        cMakeCode.pr("add_link_options( -O2 )");
+                        cMakeCode.pr("add_compile_options(-O2)");
+                        cMakeCode.pr("add_link_options(-O2)");
                         break;
                     }
                 default:
@@ -234,15 +240,10 @@ class CCmakeGenerator {
         cMakeCode.newLine();
 
         // Add the install option
-        cMakeCode.pr("install(");
-        cMakeCode.indent();
-        cMakeCode.pr("TARGETS ${LF_MAIN_TARGET}");
-        cMakeCode.pr("RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}");
-        cMakeCode.unindent();
-        cMakeCode.pr(")");
+        cMakeCode.pr(installCode);
         cMakeCode.newLine();
 
-        if (this.targetConfig.platformOptions.platform == Platform.ARDUINO) {
+        if (targetConfig.platformOptions.platform == Platform.ARDUINO) {
             cMakeCode.pr("target_link_arduino_libraries ( ${LF_MAIN_TARGET} AUTO_PUBLIC)");
             cMakeCode.pr("target_enable_arduino_upload(${LF_MAIN_TARGET})");
         }
@@ -257,5 +258,40 @@ class CCmakeGenerator {
         cMakeCode.newLine();
 
         return cMakeCode;
+    }
+
+    /** Provide a strategy for configuring the main target of the CMake build. */
+    public interface SetUpMainTarget {
+        // Implementation note: This indirection is necessary because the Python
+        // target produces a shared object file, not an executable.
+        String getCmakeCode(boolean hasMain, String executableName, Stream<String> cSources);
+    }
+
+    /** Generate the C-target-specific code for configuring the executable produced by the build. */
+    private static String setUpMainTarget(
+        boolean hasMain,
+        String executableName,
+        Stream<String> cSources
+    ) {
+        var code = new CodeBuilder();
+        code.pr("add_subdirectory(core)");
+        code.newLine();
+        code.pr("set(LF_MAIN_TARGET "+executableName+")");
+        code.newLine();
+
+        if (hasMain) {
+            code.pr("# Declare a new executable target and list all its sources");
+            code.pr("add_executable(");
+        } else {
+            code.pr("# Declare a new library target and list all its sources");
+            code.pr("add_library(");
+        }
+        code.indent();
+        code.pr("${LF_MAIN_TARGET}");
+        cSources.forEach(code::pr);
+        code.unindent();
+        code.pr(")");
+        code.newLine();
+        return code.toString();
     }
 }
