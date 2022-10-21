@@ -19,9 +19,13 @@ jobs:
       - name: Run standalone cli tests
         run: |
           ./gradlew :org.lflang.cli:test --stacktrace
-      - name: Test Bash scripts (Linux or macOS only)
+      - name: Test lfc bash scripts (Linux or macOS only)
         run: |
           .github/scripts/test-lfc.sh
+        if: ${{ runner.os == 'macOS' || runner.os == 'Linux' }}
+      - name: Test lff bash scripts (Linux or macOS only)
+        run: |
+          .github/scripts/test-lff.sh
         if: ${{ runner.os == 'macOS' || runner.os == 'Linux' }}
       - name: Test PowerShell script (Windows only)
         run: |
