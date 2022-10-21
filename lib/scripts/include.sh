@@ -21,7 +21,7 @@ set -euo pipefail
 # Paths (relative to ${base}), which is assumed to have been set.
 src_pkg_name="org.lflang"
 src_pkg_path="${base}/${src_pkg_name}"
-lfc_jar_build_path_pattern="${src_pkg_name}/build/libs/${src_pkg_name}-*-lfc.jar"
+lfc_jar_build_path_pattern="${src_pkg_name}/build/libs/${src_pkg_name}-*.jar"
 lfc_jar_release_path_pattern="lib/jars/${src_pkg_name}-*-lfc.jar"
 
 # Enter directory silently (without printing).
@@ -108,7 +108,7 @@ function get_java_cmd {
 }
 
 # Find the jar and JRE, run the jar with the provided arguments, and exit.
-function run_lfc_with_args {
+function run_cli_tool_with_args {
     # Find the jar; report error if it was not found.
     jar_path="$(get_jar_path)"
 
@@ -118,6 +118,6 @@ function run_lfc_with_args {
 
     # Launch the compiler.
     java_cmd="$(get_java_cmd)"
-    "${java_cmd}" -jar "${jar_path}" "$@";
+    "${java_cmd}" -cp "${jar_path}" "${main_class}" "$@";
     exit $?
 }
