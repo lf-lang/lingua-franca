@@ -112,4 +112,4 @@ spotless {
         formatAnnotations()
     }
 }
-tasks.withType(SpotlessTask) { it.dependsOn(":org.lflang.cli:jarLff") }
+tasks.withType(SpotlessTask) { it.dependsOn(":org.lflang:jarCliTools") }
