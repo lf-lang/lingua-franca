@@ -65,7 +65,7 @@ class CppReactionGenerator(
             when (val variable = this.variable) {
                 is Timer  -> "reactor::Timer"
                 is Action -> with(CppActionGenerator) { variable.cppType }
-                is Port   -> with(portGenerator) { variable.cppType }
+                is Port   -> with(portGenerator) { variable.cppInterfaceType }
                 else      -> AssertionError("Unexpected variable type")
             }
 
@@ -176,7 +176,7 @@ class CppReactionGenerator(
         val initializers = variables.map { "${it.variable.name}(reactor->${it.variable.name})" }
 
         val viewDeclaration =
-            if (container.isBank) "reactor::Multiport<$viewClass> $viewInstance;"
+            if (container.isBank) "reactor::ModifableMultiport<$viewClass> $viewInstance;"
             else "$viewClass $viewInstance;"
 
         return with(PrependOperator) {
