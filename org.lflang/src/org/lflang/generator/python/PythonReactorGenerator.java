@@ -178,7 +178,7 @@ public class PythonReactorGenerator {
         code.pr("_bank_index = "+PyUtil.bankIndex(instance)+",");
         for (ParameterInstance param : instance.parameters) {
             if (!param.getName().equals("bank_index")) {
-                code.pr("_"+param.getName()+"="+PythonParameterGenerator.generatePythonInitializer(param)+",");
+                code.pr("_"+param.getName()+"="+ PythonParameterGenerator.generatePythonInitializer(param)+",");
             }
         }
         code.unindent();
