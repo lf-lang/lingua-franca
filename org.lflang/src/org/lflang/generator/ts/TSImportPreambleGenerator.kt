@@ -64,7 +64,7 @@ class TSImportPreambleGenerator(
             |import {Reaction as __Reaction} from 'reactor-ts'
             |import {State as __State} from 'reactor-ts'
             |import {TimeUnit, TimeValue, Tag as __Tag, Origin as __Origin} from 'reactor-ts'
-            |import {Args as __Args, Variable as __Variable, Triggers as __Triggers, Present, Read, Write, ReadWrite, MultiReadWrite, Sched} from 'reactor-ts'
+            |import {Args as __Args, Variable as __Variable, Triggers as __Triggers, Present, Read, Write, ReadWrite, MultiReadWrite, Sched, FederateConfig as __FederateConfig} from 'reactor-ts'
             |import {Log} from 'reactor-ts'
             |import {ProcessedCommandLineArgs as __ProcessedCommandLineArgs, CommandLineOptionDefs as __CommandLineOptionDefs, CommandLineUsageDefs as __CommandLineUsageDefs, CommandLineOptionSpec as __CommandLineOptionSpec, unitBasedTimeValueCLAType as __unitBasedTimeValueCLAType, booleanCLAType as __booleanCLAType} from 'reactor-ts'
             |"""

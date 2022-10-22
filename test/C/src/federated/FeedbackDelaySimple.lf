@@ -9,9 +9,9 @@ reactor Loop {
     state count: int(1)
 
     reaction(in) {=
-        info_print("Received %d.", in->value);
+        lf_print("Received %d.", in->value);
         if (in->value != self->count) {
-            error_print_and_exit(
+            lf_print_error_and_exit(
                 "Expected %d. Got %d.",
                 self->count,
                 in->value
@@ -24,7 +24,7 @@ reactor Loop {
 
     reaction(shutdown) {=
         if (self->count != 11) {
-            error_print_and_exit(
+            lf_print_error_and_exit(
                 "Expected 11 messages. Got %d.",
                 self->count
             );

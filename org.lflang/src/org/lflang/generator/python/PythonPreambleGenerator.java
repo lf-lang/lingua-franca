@@ -18,7 +18,6 @@ import org.lflang.lf.Preamble;
  * @author {Soroush Bateni <soroush@utdallas.edu>}
  * @author {Hou Seng Wong <housengw@berkeley.edu>}
  */
-
 public class PythonPreambleGenerator {
     /**
      * Generates preambles defined by user for a given reactor.
@@ -39,20 +38,21 @@ public class PythonPreambleGenerator {
         Path srcGenPath,
         boolean hasModalReactors
     ) {
+        // TODO: Delete all of this. It is not used.
         CodeBuilder code = new CodeBuilder();
         code.pr(CPreambleGenerator.generateDefineDirectives(
             targetConfig, srcGenPath, hasModalReactors)
         );
-        code.pr("#define _LF_GARBAGE_COLLECTED");
         return code.toString();
     }
 
     public static String generateCIncludeStatements(
         TargetConfig targetConfig,
+        boolean CCppMode,
         boolean hasModalReactors
     ) {
         CodeBuilder code = new CodeBuilder();
-        code.pr(CPreambleGenerator.generateIncludeStatements(targetConfig));
+        code.pr(CPreambleGenerator.generateIncludeStatements(targetConfig, CCppMode));
         code.pr("#include \"pythontarget.c\"");
         if (hasModalReactors) {
             code.pr("#include \"modal_models/definitions.h\"");
