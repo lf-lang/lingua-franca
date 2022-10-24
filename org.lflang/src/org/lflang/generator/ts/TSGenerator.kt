@@ -147,8 +147,6 @@ class TSGenerator(
         createMainReactorInstance()
 
         clean(context)
-        copyRuntime()
-        collectDependencies(resource, context, tsFileConfig.reactorTsPath(), true)
         copyConfigFiles()
 
         val codeMaps = HashMap<Path, CodeMap>()
@@ -201,23 +199,6 @@ class TSGenerator(
         if (context.mode != LFGeneratorContext.Mode.LSP_MEDIUM) FileUtil.deleteDirectory(
             fileConfig.srcGenPath
         )
-    }
-
-    /**
-     * Copy the TypeScript runtime so that it is accessible to the generated code.
-     */
-    private fun copyRuntime() {
-        FileUtil.copyDirectoryFromClassPath(
-            "$LIB_PATH/reactor-ts/src/core",
-            tsFileConfig.reactorTsPath().resolve("src").resolve("core"),
-            true
-        )
-        for (configFile in RT_CONFIG_FILES) {
-            FileUtil.copyFileFromClassPath(
-                "$LIB_PATH/reactor-ts/$configFile",
-                tsFileConfig.reactorTsPath().resolve(configFile)
-            )
-        }
     }
 
     /**
