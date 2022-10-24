@@ -895,6 +895,9 @@ public class CGenerator extends GeneratorBase {
                 hasModalReactors,
                 modalStateResetCount
             ));
+            code.pr(CModesGenerator.generateLfModeGetReactorModeStates(
+                hasModalReactors
+            ));
             code.pr(CReactionGenerator.generateLfModeTriggeredReactions(
                 startupReactionCount,
                 resetReactionCount,
