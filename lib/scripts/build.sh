@@ -65,7 +65,7 @@ fi
 
 # Print message explaining the CLI args.
 function usage() {
-    echo "Usage: build-lf-cli [options] [[-r | --run] [lfc-args]]"
+    echo "Usage: build-lf-cli [options] [lfc-args]]"
     echo "Options:"
     echo "  -c | --clean          Build entirely from scratch."
     echo "  -h | --help           Display this information."

@@ -18,9 +18,6 @@ function test_with_links() {
 bin/build-lf-cli
 bin/build-lf-cli --help
 bin/build-lf-cli -h
-bin/build-lf-cli --run --help
-bin/build-lf-cli -r --help
-bin/build-lf-cli --run test/C/src/Minimal.lf
 bin/build-lf-cli -c -o -s
 bin/build-lf-cli --clean --offline --stacktrace
 
