@@ -14,19 +14,6 @@ function test_with_links() {
     foo/bar/baz/link-baz --help
 }
 
-# Test the build-lfc executable and its flags.
-bin/build-lfc
-bin/build-lfc --help
-bin/build-lfc -h
-bin/build-lfc --run --help
-bin/build-lfc -r --help
-bin/build-lfc --run test/C/src/Minimal.lf
-bin/build-lfc -c -o -s
-bin/build-lfc --clean --offline --stacktrace
-
-# Ensure that build-lfc is robust to symbolic links.
-test_with_links "build-lfc"
-
 bin/lfc test/C/src/Minimal.lf
 
 # -c,--clean                         Clean before building.
