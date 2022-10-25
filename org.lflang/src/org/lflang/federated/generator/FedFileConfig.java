@@ -31,6 +31,7 @@ import java.nio.file.Path;
 import org.eclipse.emf.ecore.resource.Resource;
 
 import org.lflang.FileConfig;
+import org.lflang.util.FileUtil;
 
 /**
  * A child class of @see FileConfig that extends the base functionality to add support
@@ -76,5 +77,11 @@ public class FedFileConfig extends FileConfig {
      */
     public Path getFedSrcGenPath() {
         return getFedGenPath().resolve("src-gen");
+    }
+
+    @Override
+    public void doClean() throws IOException {
+        super.doClean();
+        FileUtil.deleteDirectory(this.getFedGenPath());
     }
 }
