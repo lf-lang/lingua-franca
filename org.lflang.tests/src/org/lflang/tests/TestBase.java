@@ -384,8 +384,21 @@ public abstract class TestBase {
      * @throws IOException if there is any file access problem
      */
     private LFGeneratorContext configure(LFTest test, Configurator configurator, TestLevel level) throws IOException {
+        var props = new Properties();
+        var sysProps = System.getProperties();
+        // Set the external-runtime-path property if it was specified.
+        if (sysProps.containsKey("runtime")) {
+            var rt = sysProps.get("runtime").toString();
+            if (!rt.isEmpty()) {
+                props.setProperty("external-runtime-path", rt);
+                System.out.println("Using runtime: " + sysProps.get("runtime").toString());
+            }
+        } else {
+            System.out.println("Using default runtime.");
+        }
+
         var context = new MainContext(
-            LFGeneratorContext.Mode.STANDALONE, CancelIndicator.NullImpl, (m, p) -> {}, new Properties(), true,
+            LFGeneratorContext.Mode.STANDALONE, CancelIndicator.NullImpl, (m, p) -> {}, props, true,
             fileConfig -> new DefaultErrorReporter()
         );
 
