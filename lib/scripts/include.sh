@@ -21,8 +21,8 @@ set -euo pipefail
 # Paths (relative to ${base}), which is assumed to have been set.
 src_pkg_name="org.lflang"
 src_pkg_path="${base}/${src_pkg_name}"
-lfc_jar_build_path_pattern="${src_pkg_name}/build/libs/${src_pkg_name}-*.jar"
-lfc_jar_release_path_pattern="lib/jars/${src_pkg_name}-*.jar"
+jar_build_path_pattern="${src_pkg_name}/build/libs/${src_pkg_name}-*.jar"
+jar_release_path_pattern="lib/jars/${src_pkg_name}-*.jar"
 
 # Enter directory silently (without printing).
 pushd() {
@@ -51,9 +51,9 @@ function get_src_dir() {
 # If it exists, return a path to the Lingua Franca jar.
 function get_jar_path() {
     if [ "$(get_src_dir)" ]; then
-        jar_path_pattern="${lfc_jar_build_path_pattern}"
+        jar_path_pattern="${jar_build_path_pattern}"
     else
-        jar_path_pattern="${lfc_jar_release_path_pattern}"
+        jar_path_pattern="${jar_release_path_pattern}"
     fi
     # echo Jar path pattern: "${base}"/${jar_path_pattern}
     # Is there a file that matches our pattern? If so, return it.
