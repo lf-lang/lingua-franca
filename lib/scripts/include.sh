@@ -22,7 +22,7 @@ set -euo pipefail
 src_pkg_name="org.lflang"
 src_pkg_path="${base}/${src_pkg_name}"
 lfc_jar_build_path_pattern="${src_pkg_name}/build/libs/${src_pkg_name}-*.jar"
-lfc_jar_release_path_pattern="lib/jars/${src_pkg_name}-*-lfc.jar"
+lfc_jar_release_path_pattern="lib/jars/${src_pkg_name}-*.jar"
 
 # Enter directory silently (without printing).
 pushd() {
