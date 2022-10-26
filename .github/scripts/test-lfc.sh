@@ -10,8 +10,8 @@ function test_with_links() {
     mkdir -p foo/bar/baz
     ln -s ../bin/${1} foo/link-foo 
     ln -s ../link-foo foo/bar/link-bar
-    ln -s ../link-bar foo/bar/baz/link-baz
-    foo/bar/baz/link-baz --help
+    ln -s ../link-bar foo/bar/baz/link-${1}
+    foo/bar/baz/link-${1} --help
 }
 
 bin/lfc test/C/src/Minimal.lf

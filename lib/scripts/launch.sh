@@ -58,7 +58,12 @@ if [[ "$0" == *lfc ]]; then
 elif [[ "$0" == *lff ]]; then
   main_class="org.lflang.cli.Lff"
 else
-  echo "ERROR: $0 is not a known lf command"
+  known_commands="[lfc, lff]"
+  echo \
+  "ERROR: $0 is not a known lf command! Known commands are ${known_commands}.
+       In case you use a symbolic or hard link to one of the Lingua Franca
+       command line tools, make sure that the link's name ends with one of
+       ${known_commands}."
   exit 2
 fi
 
