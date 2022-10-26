@@ -32,22 +32,15 @@ jobs:
           node-version: 18
       - name: Install pnpm
         run: npm i -g pnpm
-      - name: Cache .pnpm-store
-        uses: actions/cache@v2
-        with:
-          path: ~/.pnpm-store
-          key: ${{ runner.os }}-node${{ matrix.node-version }}-${{ hashFiles('org.lflang/src/lib/ts/package.json') }}
+      # - name: Cache .pnpm-store
+      #   uses: actions/cache@v2
+      #   with:
+      #     path: ~/.pnpm-store
+      #     key: ${{ runner.os }}-node${{ matrix.node-version }}-${{ hashFiles('org.lflang/src/lib/ts/package.json') }}
       - name: Install Dependencies OS X
         run: |
           brew install coreutils
         if: ${{ runner.os == 'macOS' }}
-      - name: Check out specific ref of reactor-ts
-        uses: actions/checkout@v2
-        with:
-          repository: lf-lang/reactor-ts
-          path: org.lflang/src/lib/ts/reactor-ts
-          ref: ${{ inputs.runtime-ref }}
-        if: ${{ inputs.runtime-ref }}
       - name: Perform TypeScript tests with default runtime
         run: |
           ./gradlew test --tests org.lflang.tests.runtime.TypeScriptTest.*
