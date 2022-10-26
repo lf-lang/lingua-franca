@@ -96,7 +96,7 @@ public class Lfc extends CliBase {
         /**
          * Construct a new CLIOption.
          *
-         * @param parameter   teThe build parameter that this CLI parameter corresponds to.
+         * @param parameter   The build parameter that this CLI parameter corresponds to.
          * @param shorthand   The single-character switch to use for this option. E.g.:
          *                    "-c" for "--clean".
          * @param hasArg      Whether this option has an argument. E.g.:
