@@ -91,8 +91,6 @@ class TSGenerator(
          */
         val CONFIG_FILES = arrayOf("package.json", "tsconfig.json", "babel.config.js", ".eslintrc.json")
 
-        val RT_CONFIG_FILES = arrayOf("package.json", "package-lock.json", "tsconfig.json", ".babelrc")
-
         private val VG =
             ExpressionGenerator(::timeInTargetLanguage) { param -> "this.${param.name}.get()" }
 
@@ -148,6 +146,7 @@ class TSGenerator(
 
         clean(context)
         copyConfigFiles()
+        updatePackageConfig(context)
 
         val codeMaps = HashMap<Path, CodeMap>()
         val dockerGenerator = TSDockerGenerator(isFederated)
@@ -189,6 +188,24 @@ class TSGenerator(
                 context.unsuccessfulFinish()
             }
         }
+    }
+
+    /**
+     * Update package.json according to given build parameters.
+     */
+    private fun updatePackageConfig(context: LFGeneratorContext) {
+        val rt = LFGeneratorContext.BuildParm.EXTERNAL_RUNTIME_PATH.getValue(context)
+        val sb = StringBuffer("");
+        val manifest = fileConfig.srcGenPath.resolve("package.json");
+        val rtRegex = Regex("(\"@lf-lang/reactor-ts\")(.+)")
+        manifest.toFile().forEachLine {
+            var line = it.replace("\"LinguaFrancaDefault\"", "\"${fileConfig.name}\"");
+            if (rt != null) {
+                line = line.replace(rtRegex, "$1: \"$rt\",")
+            }
+            sb.appendLine(line)
+        }
+        manifest.toFile().writeText(sb.toString());
     }
 
     /**
