@@ -194,14 +194,20 @@ class TSGenerator(
      * Update package.json according to given build parameters.
      */
     private fun updatePackageConfig(context: LFGeneratorContext) {
-        val rt = LFGeneratorContext.BuildParm.EXTERNAL_RUNTIME_PATH.getValue(context)
+        var rtPath = LFGeneratorContext.BuildParm.EXTERNAL_RUNTIME_PATH.getValue(context)
+        val rtVersion = LFGeneratorContext.BuildParm.RUNTIME_VERSION.getValue(context)
         val sb = StringBuffer("");
         val manifest = fileConfig.srcGenPath.resolve("package.json");
         val rtRegex = Regex("(\"@lf-lang/reactor-ts\")(.+)")
+        if (!rtPath.startsWith("file:")) rtPath = "file:$rtPath"
+        // FIXME: do better CLI arg validation upstream
+        // https://github.com/lf-lang/lingua-franca/issues/1429
         manifest.toFile().forEachLine {
             var line = it.replace("\"LinguaFrancaDefault\"", "\"${fileConfig.name}\"");
-            if (rt != null) {
-                line = line.replace(rtRegex, "$1: \"$rt\",")
+            if (rtPath != null) {
+                line = line.replace(rtRegex, "$1: \"$rtPath\",")
+            } else if (rtVersion != null) {
+                line = line.replace(rtRegex, "$1: \"git://github.com/lf-lang/reactor-ts.git#$rtVersion\",")
             }
             sb.appendLine(line)
         }

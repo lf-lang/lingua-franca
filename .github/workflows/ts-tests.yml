@@ -41,13 +41,20 @@ jobs:
         run: |
           brew install coreutils
         if: ${{ runner.os == 'macOS' }}
+      - name: Check out specific ref of reactor-ts
+        uses: actions/checkout@v3
+        with:
+          repository: lf-lang/reactor-ts
+          path: ./reactor-ts
+          ref: ${{ inputs.runtime-ref }}
+        if: ${{ inputs.runtime-ref }}
       - name: Perform TypeScript tests with default runtime
         run: |
           ./gradlew test --tests org.lflang.tests.runtime.TypeScriptTest.*
         if: ${{ inputs.runtime-ref == ''}}
       - name: Perform TypeScript tests with alternative runtime
         run: |
-          ./gradlew test --tests org.lflang.tests.runtime.TypeScriptTest.* -Druntime="git://github.com/lf-lang/reactor-ts.git#${{ inputs.runtime-ref }}"
+          ./gradlew test --tests org.lflang.tests.runtime.TypeScriptTest.* -Druntime="${ $GITHUB_WORKSPACE }/reactor-ts"
         if: ${{ inputs.runtime-ref }}
       - name: Report to CodeCov
         uses: codecov/codecov-action@v2.1.0
