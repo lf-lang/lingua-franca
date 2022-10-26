@@ -60,7 +60,7 @@ public interface LFGeneratorContext extends IGeneratorContext {
          * @param context The context passed to the code generator.
          */
         public String getValue(LFGeneratorContext context) {
-            return context.getArgs().getProperty(this.longOpt());
+            return context.getArgs().getProperty(this.getKey());
         }
     }
 

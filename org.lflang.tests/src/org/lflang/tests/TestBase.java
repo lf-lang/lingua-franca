@@ -47,6 +47,7 @@ import org.lflang.generator.GeneratorResult;
 import org.lflang.generator.DockerGeneratorBase;
 import org.lflang.generator.LFGenerator;
 import org.lflang.generator.LFGeneratorContext;
+import org.lflang.generator.LFGeneratorContext.BuildParm;
 import org.lflang.generator.MainContext;
 import org.lflang.tests.Configurators.Configurator;
 import org.lflang.tests.LFTest.Result;
@@ -390,7 +391,7 @@ public abstract class TestBase {
         if (sysProps.containsKey("runtime")) {
             var rt = sysProps.get("runtime").toString();
             if (!rt.isEmpty()) {
-                props.setProperty("external-runtime-path", rt);
+                props.setProperty(BuildParm.EXTERNAL_RUNTIME_PATH.getKey(), rt);
                 System.out.println("Using runtime: " + sysProps.get("runtime").toString());
             }
         } else {
