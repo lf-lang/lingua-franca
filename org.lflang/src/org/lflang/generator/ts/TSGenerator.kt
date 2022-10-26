@@ -199,7 +199,7 @@ class TSGenerator(
         val sb = StringBuffer("");
         val manifest = fileConfig.srcGenPath.resolve("package.json");
         val rtRegex = Regex("(\"@lf-lang/reactor-ts\")(.+)")
-        if (!rtPath.startsWith("file:")) rtPath = "file:$rtPath"
+        if (rtPath != null && !rtPath.startsWith("file:")) rtPath = "file:$rtPath"
         // FIXME: do better CLI arg validation upstream
         // https://github.com/lf-lang/lingua-franca/issues/1429
         manifest.toFile().forEachLine {
