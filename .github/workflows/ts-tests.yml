@@ -54,7 +54,7 @@ jobs:
         if: ${{ inputs.runtime-ref == ''}}
       - name: Perform TypeScript tests with alternative runtime
         run: |
-          ./gradlew test --tests org.lflang.tests.runtime.TypeScriptTest.* -Druntime="${ $GITHUB_WORKSPACE }/reactor-ts"
+          ./gradlew test --tests org.lflang.tests.runtime.TypeScriptTest.* -Druntime="${ GITHUB_WORKSPACE }/reactor-ts"
         if: ${{ inputs.runtime-ref }}
       - name: Report to CodeCov
         uses: codecov/codecov-action@v2.1.0
