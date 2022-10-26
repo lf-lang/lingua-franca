@@ -1,3 +1,5 @@
+#!/bin/bash
+
 #============================================================================
 # Description:      Run the Lingua Franca compiler.
 # Authors:          Marten Lohstroh
