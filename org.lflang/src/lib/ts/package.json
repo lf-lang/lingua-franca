@@ -1,6 +1,5 @@
 {
     "name": "LinguaFrancaDefault",
-    "version": "0.0.1",
     "type": "commonjs",
     "dependencies": {
         "@lf-lang/reactor-ts": "^0.1.0",
