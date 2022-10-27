@@ -203,7 +203,7 @@ public class CModesGenerator {
     /**
      * Generate function for getting reactor_mode_state_t array and its length
      *
-     * @param hasModalReactors True if there is modal model reactors, false otherwise
+     * @param hasModalReactors True if there are modal model reactors, false otherwise
      */
     public static String generateLfModeGetTransitioningReactors(
         boolean hasModalReactors
