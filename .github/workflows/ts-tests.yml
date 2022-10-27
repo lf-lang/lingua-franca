@@ -14,7 +14,7 @@ jobs:
   run:
     strategy:
       matrix:
-        platform: [ubuntu-latest, macos-latest]
+        platform: [ubuntu-latest, macos-latest, windows]
     runs-on: ${{ matrix.platform }}
     steps:
       - name: Check out lingua-franca repository
@@ -48,13 +48,19 @@ jobs:
           path: ./reactor-ts
           ref: ${{ inputs.runtime-ref }}
         if: ${{ inputs.runtime-ref }}
+      - name: Construct path to reactor-ts (Linux/macOS)
+        run: echo "reactor-ts-path=${{ github.workspace }}/reactor-ts" >> $GITHUB_ENV
+        if: ${{ inputs.runtime-ref && runner.os != 'Windows' }}
+      - name: Construct path to reactor-ts (Windows)
+        run: echo "reactor-ts-path=${{ github.workspace }}\reactor-ts" >> $GITHUB_ENV
+        if: ${{ inputs.runtime-ref && runner.os == 'Windows' }}
       - name: Perform TypeScript tests with default runtime
         run: |
           ./gradlew test --tests org.lflang.tests.runtime.TypeScriptTest.*
         if: ${{ inputs.runtime-ref == ''}}
       - name: Perform TypeScript tests with alternative runtime
         run: |
-          ./gradlew test --tests org.lflang.tests.runtime.TypeScriptTest.* -Druntime="${{ github.workspace }}/reactor-ts"
+          ./gradlew test --tests org.lflang.tests.runtime.TypeScriptTest.* -Druntime="${{ env.reactor-ts-path }}/reactor-ts"
         if: ${{ inputs.runtime-ref }}
       - name: Report to CodeCov
         uses: codecov/codecov-action@v2.1.0
