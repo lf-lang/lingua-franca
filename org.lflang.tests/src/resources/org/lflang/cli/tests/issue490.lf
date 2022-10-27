@@ -1,9 +1,0 @@
-# https://github.com/lf-lang/lingua-franca/issues/490
-# issue is that one error ends at EOF
-target Python;
-main reactor R(p(3)) {
-  state liss(2, 3);
-  reaction (startup) {
-    print(self.liss)
-}
-}

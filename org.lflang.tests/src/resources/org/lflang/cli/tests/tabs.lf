@@ -1,6 +1,0 @@
-target C;
-
-main reactor {
-	state foo(1);
-	state	bar(1);
-}

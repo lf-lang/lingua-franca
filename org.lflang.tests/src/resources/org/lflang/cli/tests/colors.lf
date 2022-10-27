@@ -1,9 +1,0 @@
-// you can use `less -R filepath.stderr` to see the colored text
-// https://unix.stackexchange.com/questions/262185/display-file-with-ansi-colors
-
-target unknown;
-
-main reactor Foo {
-
-}
-

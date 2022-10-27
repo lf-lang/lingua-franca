@@ -118,8 +118,9 @@ class LfcIssueReportingTest {
 
         val packageName = loader.packageName.replace('.', '/')
         // relative to root of gradle project
-        val lfFile = Paths.get("src/resources/$packageName/$fileBaseName.lf")
-        val expectedPath = Paths.get("src/resources/$packageName/$fileBaseName.stderr")
+        val basePath = "org.lflang.tests/resources/$packageName/"
+        val lfFile = Paths.get("$basePath/$fileBaseName.lf")
+        val expectedPath = Paths.get("$basePath/$fileBaseName.stderr")
 
         assert(Files.exists(lfFile)) { "Missing test file $lfFile" }
 

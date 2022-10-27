@@ -1,5 +1,0 @@
-target unknown;
-
-main reactor Foo {
-
-}
