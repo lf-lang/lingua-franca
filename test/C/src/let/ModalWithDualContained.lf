@@ -6,8 +6,8 @@ target C {
 };
 
 
-reactor LET {
-    timer t(0, 100 msec)
+reactor LET(offset:time(0)) {
+    timer t(offset, 100 msec)
     logical action let(50 msec): int
 
     reaction(t) -> let {=
@@ -26,8 +26,8 @@ reactor Modal {
 
     initial mode One {
         reset state count: int(42);
-        r1 = new LET()
-        r2 = new LET()
+        r1 = new LET(offset=10msec)
+        r2 = new LET(offset=11msec)
     }
 }
 
