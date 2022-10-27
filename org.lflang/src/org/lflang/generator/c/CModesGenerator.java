@@ -205,16 +205,19 @@ public class CModesGenerator {
      *
      * @param hasModalReactors True if there is modal model reactors, false otherwise
      */
-    public static String generateLfModeGetReactorModeStates(
+    public static String generateLfModeGetTransitioningReactors(
         boolean hasModalReactors
     ) {
         if (!hasModalReactors) {
             return "";
         }
         return String.join("\n",
-            "int _lf_mode_get_reactor_mode_states(reactor_mode_state_t ***reactor_mode_state) {",
-            "   (*reactor_mode_state) = &_lf_modal_reactor_states[0];",
-            "   return _lf_modal_reactor_states_size;",
+            "int _lf_mode_get_transitioning_reactors(void *return_vec) {",
+            "   return _lf_mode_collect_transitioning_reactors(",
+            "       &_lf_modal_reactor_states[0],",
+            "       _lf_modal_reactor_states_size,",
+            "       return_vec",
+            "       ); ",
             "}"
         );
     }
