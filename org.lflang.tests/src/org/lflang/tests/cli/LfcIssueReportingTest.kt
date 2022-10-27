@@ -21,7 +21,7 @@
  * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package org.lflang.cli.tests
+package org.lflang.tests.cli
 
 import junit.framework.Assert.assertEquals
 import junit.framework.AssertionFailedError
@@ -118,8 +118,8 @@ class LfcIssueReportingTest {
 
         val packageName = loader.packageName.replace('.', '/')
         // relative to root of gradle project
-        val lfFile = Paths.get("test/resources/$packageName/$fileBaseName.lf")
-        val expectedPath = Paths.get("test/resources/$packageName/$fileBaseName.stderr")
+        val lfFile = Paths.get("src/resources/$packageName/$fileBaseName.lf")
+        val expectedPath = Paths.get("src/resources/$packageName/$fileBaseName.stderr")
 
         assert(Files.exists(lfFile)) { "Missing test file $lfFile" }
 
