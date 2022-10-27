@@ -5,4 +5,5 @@
 #==========================================================
 
 $launchScript="$PSScriptRoot\..\lib\scripts\launch.ps1"
-. $launchScript $args
+# PS requires spattling: https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_Splatting?view=powershell-7.2
+. $launchScript @args
