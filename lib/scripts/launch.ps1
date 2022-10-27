@@ -10,15 +10,29 @@
 $invokerPath = $MyInvocation.PSCommandPath
 $invokerName = [System.IO.Path]::GetFileNameWithoutExtension("$(Split-Path -Path $invokerPath -Leaf -Resolve)")
 
+$mainClassTable = @{"lfc" = "org.lflang.cli.Lfc"; "lff" = "org.lflang.cli.Lff"}
+$mainClassName = $null
+foreach ($k in $mainClassTable.Keys) {
+    if ($invokerName.EndsWith($k)) {
+        $mainClassName = $mainClassTable[$k]
+        break
+    }
+}
+if ($null -eq $mainClassName) {
+    throw ("$invokerName is not a known lf command. Known commands are [$($mainClassTable.Keys)]. " +
+          "In case you use a symbolic or hard link to one of the Lingua Franca " +
+          "command line tools, make sure that the link's name ends with one of [$($mainClassTable.Keys)]")
+}
+
 # This script is in $base\lib\scripts
 $base="$PSScriptRoot\..\..\"
 $java_home = "$Env:JAVA_HOME"
 $java_cmd = "$java_home\bin\java.exe"
-$jarpath_dev="$base\org.lflang.cli\build\libs\org.lflang.cli-*-$invokerName.jar"
-$jarpath_release="$base\lib\jars\org.lflang.cli-*-$invokerName.jar"
+$jarpath_dev="$base\org.lflang\build\libs\org.lflang-*.jar"
+$jarpath_release="$base\lib\jars\org.lflang-*.jar"
 
 function Test-Dev {
-    Test-Path "$base\org.lflang.cli" -PathType container
+    Test-Path "$base\org.lflang" -PathType container
 }
 
 function Get-JarPath {
@@ -54,4 +68,4 @@ if ([version]$java_version -lt [version]"17.0") {
 }
 
 # invoke lff
-& $java_cmd -jar $(Get-JarPath) $args
+& $java_cmd -classpath $(Get-JarPath) $mainClassName $args
