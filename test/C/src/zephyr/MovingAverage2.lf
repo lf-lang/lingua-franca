@@ -4,7 +4,7 @@
 target C {
     timeout: 1 sec,
     fast: true,
-    build: "scripts/zephyr_build.sh qemu_cortex_m3 flash",
+    build: "bash scripts/zephyr_build.sh qemu_cortex_m3 flash",
     threading: false,
     cmake-include: "scripts/zephyr.cmake"
 

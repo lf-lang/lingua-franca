@@ -1,21 +1,30 @@
 target C {
-    build: "scripts/zephyr_build.sh nrf52dk_nrf52832",
+    build: "bash scripts/zephyr_build.sh nrf52dk_nrf52832",
     cmake-include: "scripts/zephyr.cmake",
     workers: 2,
+    //logging: debug
     threading: true
 }
 
 main reactor {
+    preamble {=
+        #include <zephyr/kernel.h>
+    =}
+
     timer t (0, 500 msec)
     reaction(t) {=
-    instant_t log = lf_time_logical();
-    instant_t phy = lf_time_physical();
-        printk("1. logical=%lli physical=%lli diff = %lliHello World!\n", log, phy, phy-log);
+        instant_t log = lf_time_logical_elapsed();
+        instant_t phy = lf_time_physical_elapsed();
+        k_tid_t tid = k_current_get();
+        printk("1. tid=%i logical=%lli physical=%lli diff = %lli Hello World!\n", (int) tid, log, phy, phy-log);
     =}
     reaction(t) {=
-    instant_t log = lf_time_logical();
-    instant_t phy = lf_time_physical();
-        printk("2. logical=%lli physical=%lli diff = %lliHello World!\n", log, phy, phy-log);
+        instant_t log = lf_time_logical_elapsed();
+        instant_t phy = lf_time_physical_elapsed();
+        k_tid_t tid = k_current_get();
+
+        printk("2. tid=%i logical=%lli physical=%lli diff = %lli Hello World!\n", (int) tid, log, phy, phy-log);
     =}
+
 
 }

@@ -1,0 +1,28 @@
+target C {
+    build: "bash scripts/zephyr_build.sh nrf52dk_nrf52832",
+    cmake-include: "scripts/zephyr.cmake",
+    workers: 2,
+    // logging: debug,
+    threading: true
+}
+
+
+reactor Worker(id:int(0)) {
+
+    preamble {=
+        #include <zephyr/kernel.h>
+    =}
+
+    timer t (0, 500 msec)
+    reaction(t) {=
+        instant_t log = lf_time_logical_elapsed();
+        instant_t phy = lf_time_physical_elapsed();
+        k_tid_t tid = k_current_get();
+        printk("%i tid=%i logical=%lli physical=%lli diff = %lli Hello World!\n",self->id, (int) tid, log, phy, phy-log);
+    =}
+}
+
+main reactor {
+    w1 = new Worker(id=1)
+    w2 = new Worker(id=2)
+}

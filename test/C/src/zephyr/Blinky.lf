@@ -1,5 +1,5 @@
 target C {
-    build: "scripts/zephyr_build.sh nrf52dk_nrf52832 flash",
+    build: "bash scripts/zephyr_build.sh nrf52dk_nrf52832 flash",
     threading: false,
     cmake-include: "scripts/zephyr.cmake"
 }
