@@ -23,13 +23,18 @@
  */
 package org.lflang.tests.cli
 
-import junit.framework.Assert.assertEquals
-import junit.framework.AssertionFailedError
-import org.junit.Test
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Test
 import org.lflang.LFRuntimeModule
 import org.lflang.LFStandaloneSetup
-import org.lflang.cli.*
-import java.io.*
+import org.lflang.cli.AnsiColors
+import org.lflang.cli.Io
+import org.lflang.cli.LFStandaloneModule
+import org.lflang.cli.Lfc
+import org.lflang.cli.ReportingBackend
+import org.opentest4j.AssertionFailedError
+import java.io.ByteArrayOutputStream
+import java.io.PrintStream
 import java.nio.charset.StandardCharsets
 import java.nio.file.Files
 import java.nio.file.Path
