@@ -52,6 +52,9 @@ test {
 	useJUnitPlatform()
     finalizedBy jacocoTestReport
     workingDir = ".."
+    filter {
+        setFailOnNoMatchingTests(true)
+    }
 }
 
 test.dependsOn("compileKotlin")
