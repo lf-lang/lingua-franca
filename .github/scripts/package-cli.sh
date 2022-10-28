@@ -12,10 +12,10 @@ version="$(ls ${jar_path} | xargs -n 1 basename | sed 's/^org.lflang-\(.*\).jar$
 # use a different naming convention for nightly build artifacts
 if [[ "$#" > 0 && "$1" = "nightly" ]]; then
   echo "Packaging Lingua Franca Nightly Build"
-  outname="lf-cli_nightly_$(date '+%Y%m%d-%H%M%S')"
+  outname="lf-cli-nightly-$(date '+%Y%m%d-%H%M%S')"
 else
   echo "Packaging Lingua Franca v${version}"
-  outname="lf-cli_${version}"
+  outname="lf-cli-${version}"
 fi
 
 # assemble the files in a separate directory
