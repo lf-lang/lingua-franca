@@ -12,6 +12,8 @@ jobs:
     steps:
       - name: Check out lingua-franca repository
         uses: actions/checkout@v3
+        with:
+          fetch-dept: 0
       - name: Prepare build environment
         uses: ./.github/actions/prepare-build-env
       - name: Setup Node.js environment
@@ -20,7 +22,7 @@ jobs:
           node-version: 18
       - name: Install pnpm
         run: npm i -g pnpm
-      - name: Install Dependencies OS X
+      - name: Install coreutils (macOS)
         run: |
           brew install coreutils
         if: ${{ runner.os == 'macOS' }}
