@@ -2,13 +2,6 @@ name: TypeScript tests
 
 on:
   workflow_call:
-    inputs:
-      compiler-ref:
-        required: false
-        type: string
-      runtime-ref:
-        required: false
-        type: string
 
 jobs:
   run:
@@ -19,11 +12,6 @@ jobs:
     steps:
       - name: Check out lingua-franca repository
         uses: actions/checkout@v3
-        with:
-          repository: lf-lang/lingua-franca
-          submodules: true
-          ref: ${{ inputs.compiler-ref }}
-          fetch-depth: 0
       - name: Prepare build environment
         uses: ./.github/actions/prepare-build-env
       - name: Setup Node.js environment
@@ -32,40 +20,16 @@ jobs:
           node-version: 18
       - name: Install pnpm
         run: npm i -g pnpm
-      - name: Cache .pnpm-store
-        uses: actions/cache@v3
-        with:
-          path: ~/.pnpm-store
-          key: ${{ runner.os }}-node${{ matrix.node-version }}
       - name: Install Dependencies OS X
         run: |
           brew install coreutils
         if: ${{ runner.os == 'macOS' }}
-      - name: Check out specific ref of reactor-ts
-        uses: actions/checkout@v3
-        with:
-          repository: lf-lang/reactor-ts
-          path: ./reactor-ts
-          ref: ${{ inputs.runtime-ref }}
-        if: ${{ inputs.runtime-ref }}
-      - name: Construct path to reactor-ts (Linux/macOS)
-        run: echo "reactor-ts-path=${{ github.workspace }}/reactor-ts" >> $GITHUB_ENV
-        if: ${{ inputs.runtime-ref && runner.os != 'Windows' }}
-      - name: Construct path to reactor-ts (Windows)
-        run: echo "reactor-ts-path=${{ github.workspace }}\reactor-ts" >> $GITHUB_ENV
-        if: ${{ inputs.runtime-ref && runner.os == 'Windows' }}
-      - name: Perform TypeScript tests with default runtime
+      - name: Perform TypeScript tests
         run: |
           ./gradlew test --tests org.lflang.tests.runtime.TypeScriptTest.*
-        if: ${{ inputs.runtime-ref == ''}}
-      - name: Perform TypeScript tests with alternative runtime
-        run: |
-          ./gradlew test --tests org.lflang.tests.runtime.TypeScriptTest.* -Druntime="${{ env.reactor-ts-path }}/reactor-ts"
-        if: ${{ inputs.runtime-ref }}
       - name: Report to CodeCov
         uses: codecov/codecov-action@v2.1.0
         with:
           file: org.lflang.tests/build/reports/xml/jacoco
           fail_ci_if_error: false
           verbose: true
-        if: ${{ !inputs.compiler-ref }}  # i.e., if this is part of the main repo's CI
