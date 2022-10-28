@@ -100,7 +100,7 @@ jobs:
 
   # Run the TypeScript integration tests.
   ts-tests:
-    uses: lf-lang/lingua-franca/.github/workflows/ts-tests.yml@ts-use-published-runtime 
+    uses: lf-lang/lingua-franca/.github/workflows/ts-tests.yml@master
     needs: cancel
 
   # Run the serialization tests
