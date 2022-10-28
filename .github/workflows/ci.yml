@@ -20,9 +20,9 @@ jobs:
   cancel:
     uses: lf-lang/lingua-franca/.github/workflows/cancel.yml@master
 
-  # Test the Maven build.
+  # Test the Gradle and Maven build.
   build:
-    uses: lf-lang/lingua-franca/.github/workflows/build.yml@master
+    uses: lf-lang/lingua-franca/.github/workflows/build.yml@refactor-cli
     needs: cancel
 
   # Run the unit tests.
@@ -32,7 +32,7 @@ jobs:
 
   # Run tests for the standalone compiler.
   cli-tests:
-    uses: lf-lang/lingua-franca/.github/workflows/cli-tests.yml@master
+    uses: lf-lang/lingua-franca/.github/workflows/cli-tests.yml@refactor-cli
     needs: cancel
 
   # Run the C benchmark tests.
