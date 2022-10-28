@@ -32,7 +32,7 @@ ln -s "../lib/scripts/launch.sh" "${outname}/bin/lfc"
 ln -s "../lib/scripts/launch.sh" "${outname}/bin/lff"
 # copy the PowerShell script
 cp bin/lfc.ps1 "${outname}/bin/lfc.ps1"
-# FIXME: Need to copy the lff.ps1 script once it exists
+cp bin/lff.ps1 "${outname}/bin/lff.ps1"
 
 # zip/tar everything - the files will be put into the build_upload directory
 mkdir -p build_upload
