@@ -173,7 +173,7 @@ public class CCmakeGenerator {
         cMakeCode.pr("target_include_directories(${LF_MAIN_TARGET} PUBLIC include/core/utils)");
 
         if(targetConfig.auth) {
-            // OpenSSL
+            // If security is requested, add the auth option.
             cMakeCode.pr("# Find OpenSSL and link to it");
             cMakeCode.pr("find_package(OpenSSL REQUIRED)");
             cMakeCode.pr("target_link_libraries( ${LF_MAIN_TARGET} OpenSSL::SSL)");
