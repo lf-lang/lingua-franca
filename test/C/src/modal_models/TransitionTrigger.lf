@@ -1,0 +1,54 @@
+/**
+ * The modal model fails to transition to mode B.
+ * Uncommenting an irrelevant reaction, however, makes the test pass.
+ */
+
+target C
+
+reactor Source {
+    output x:bool;
+    output y:bool;
+    
+    reaction(startup) -> x, y {=
+        lf_set(y, true);
+    =}
+}
+
+reactor Destination {
+    input x:bool;
+    input y:bool;
+    
+    state reached_b:bool(false);
+    
+    // FIXME: Uncommenting the following causes this test to pass.
+    // reaction(y, x) {= =}
+    // FIXME: Uncommenting the following does NOT cause this test to pass.
+    // reaction(y) {= =}
+    
+    initial mode A {
+        reaction(y) -> B {=
+            if (y->value) {
+                lf_set_mode(B);
+            }
+        =}
+    }
+    mode B {
+        reaction(reset) {=
+            lf_print("*** Reached B.");
+            self->reached_b = true;
+        =}
+    }
+    reaction(shutdown) {=
+        if (!self->reached_b) {
+            lf_print_error_and_exit("Failed to reach mode B!");
+        }
+    =}
+}
+
+main reactor {
+    ui = new Source()
+    dlc = new Destination()
+    
+    ui.x -> dlc.x
+    ui.y -> dlc.y
+}
