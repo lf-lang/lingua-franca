@@ -60,6 +60,7 @@ import com.google.common.collect.ImmutableList;
 public enum TargetProperty {
     /**
      * Directive to allow including OpenSSL libraries and process HMAC authentication.
+     * FIXME: The option will be updated from boolean to string for support of various options.
      */
     AUTH("auth", PrimitiveType.BOOLEAN,
             List.of(Target.C),
