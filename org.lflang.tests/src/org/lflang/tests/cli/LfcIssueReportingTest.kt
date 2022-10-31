@@ -21,15 +21,20 @@
  * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package org.lflang.cli.tests
+package org.lflang.tests.cli
 
-import junit.framework.Assert.assertEquals
-import junit.framework.AssertionFailedError
-import org.junit.Test
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Test
 import org.lflang.LFRuntimeModule
 import org.lflang.LFStandaloneSetup
-import org.lflang.cli.*
-import java.io.*
+import org.lflang.cli.AnsiColors
+import org.lflang.cli.Io
+import org.lflang.cli.LFStandaloneModule
+import org.lflang.cli.Lfc
+import org.lflang.cli.ReportingBackend
+import org.opentest4j.AssertionFailedError
+import java.io.ByteArrayOutputStream
+import java.io.PrintStream
 import java.nio.charset.StandardCharsets
 import java.nio.file.Files
 import java.nio.file.Path
@@ -118,8 +123,9 @@ class LfcIssueReportingTest {
 
         val packageName = loader.packageName.replace('.', '/')
         // relative to root of gradle project
-        val lfFile = Paths.get("test/resources/$packageName/$fileBaseName.lf")
-        val expectedPath = Paths.get("test/resources/$packageName/$fileBaseName.stderr")
+        val basePath = "org.lflang.tests/resources/$packageName/"
+        val lfFile = Paths.get("$basePath/$fileBaseName.lf")
+        val expectedPath = Paths.get("$basePath/$fileBaseName.stderr")
 
         assert(Files.exists(lfFile)) { "Missing test file $lfFile" }
 
