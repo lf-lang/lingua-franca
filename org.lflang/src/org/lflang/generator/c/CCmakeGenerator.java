@@ -100,6 +100,8 @@ class CCmakeGenerator {
         cMakeCode.pr("  if(CMAKE_C_COMPILER_ID STREQUAL \"GNU\")");
         cMakeCode.pr("    find_program(LCOV_BIN lcov)");
         cMakeCode.pr("    if(LCOV_BIN MATCHES \"lcov$\")");
+        cMakeCode.pr("      add_compile_options(-fprofile-arcs -ftest-coverage)");
+        cMakeCode.pr("      target_link_libraries(${LF_MAIN_TARGET} gcov)");
         cMakeCode.pr("      set(CMAKE_C_FLAGS \"${CMAKE_C_FLAGS} --coverage -fprofile-arcs -ftest-coverage\")");
         cMakeCode.pr("    else()");
         cMakeCode.pr("      message(\"Not producing code coverage information since lcov was not found\")");
