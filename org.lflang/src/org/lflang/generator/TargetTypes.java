@@ -134,13 +134,13 @@ public interface TargetTypes {
      * initializer list. If both are absent, then the undefined
      * type is returned.
      */
-    default String getTargetType(Type type, List<Expression> init) {
+    default String getTargetType(Type type, Initializer init) {
         return getTargetType(ASTUtils.getInferredType(type, init));
     }
 
     /**
      * Returns the target type of the type node. This just provides
-     * a default parameter for {@link #getTargetType(Type, List)}.
+     * a default parameter for {@link #getTargetType(Type, Initializer)}.
      * If the parameter is null, then the undefined type is returned.
      */
     default String getTargetType(Type type) {
@@ -207,17 +207,18 @@ public interface TargetTypes {
      * expression in target code. The given type, if non-null,
      * may inform the code generation.
      *
-     * @param init           Initializer list (non-null)
+     * @param init           Initializer node (non-null)
      * @param type           Declared type of the expression (nullable)
      * @param initWithBraces Whether the initializer uses the braced form.
      */
-    default String getTargetInitializer(List<Expression> init, Type type, boolean initWithBraces) {
+    default String getTargetInitializer(Initializer init, Type type, boolean initWithBraces) {
         Objects.requireNonNull(init);
         var inferredType = ASTUtils.getInferredType(type, init);
-        if (init.size() == 1) {
-            return getTargetExpr(init.get(0), inferredType);
+        var single = ASTUtils.asSingleExpr(init);
+        if (single != null) {
+            return getTargetExpr(single, inferredType);
         }
-        var targetValues = init.stream().map(it -> getTargetExpr(it, inferredType)).collect(Collectors.toList());
+        var targetValues = init.getExprs().stream().map(it -> getTargetExpr(it, inferredType)).collect(Collectors.toList());
         if (inferredType.isFixedSizeList) {
             return getFixedSizeListInitExpression(targetValues, inferredType.listSize, initWithBraces);
         } else if (inferredType.isVariableSizeList) {
@@ -225,18 +226,6 @@ public interface TargetTypes {
         } else {
             return getMissingExpr(inferredType);
         }
-    }
-
-   /**
-     * Returns the representation of the given initializer
-     * expression in target code. The given type, if non-null,
-     * may inform the code generation.
-     *
-     * @param init           Initializer node (non-null)
-     * @param type           Declared type of the expression (nullable)
-     */
-    default String getTargetInitializer(Initializer init, Type type) {
-        return getTargetInitializer(init.getExprs(), type, init.isBraces());
     }
 
 

@@ -28,6 +28,7 @@ package org.lflang.generator.cpp
 
 import org.eclipse.emf.ecore.resource.Resource
 import org.lflang.ErrorReporter
+import org.lflang.InferredType
 import org.lflang.Target
 import org.lflang.TimeUnit
 import org.lflang.TimeValue
@@ -41,6 +42,8 @@ import org.lflang.generator.TargetTypes
 import org.lflang.generator.GeneratorUtils.canGenerate
 import org.lflang.isGeneric
 import org.lflang.lf.Action
+import org.lflang.lf.Initializer
+import org.lflang.lf.ParameterReference
 import org.lflang.lf.VarRef
 import org.lflang.scoping.LFGlobalScopeProvider
 import org.lflang.util.FileUtil
@@ -253,3 +256,56 @@ val TimeUnit?.cppUnit
         TimeUnit.WEEK   -> "d*7"
         else            -> ""
     }
+
+
+/**
+ * Returns the initializer list used in direct initialization in ctor definition.
+ */
+fun CppTypes.getCppInitializerList(init: Initializer?, inferredType: InferredType?): String {
+    if (init == null) {
+        return getMissingExpr(inferredType)
+    }
+    val singleExpr = init.exprs.singleOrNull()
+    return buildString {
+        if (init.isBraces.not() && singleExpr != null) {
+            append("(").append(getTargetExpr(singleExpr, inferredType)).append(")")
+        } else {
+            val (prefix, postfix) = if (init.isBraces) Pair("{", "}") else Pair("(", ")")
+            init.exprs.joinTo(this, ", ", prefix, postfix) {
+                getTargetExpr(it, inferredType?.componentType)
+            }
+        }
+    }
+}
+
+fun CppTypes.getCppStandaloneInitializer(init: Initializer?, inferredType: InferredType?): String {
+    if (init == null) {
+        return getMissingExpr(inferredType)
+    }
+
+    return buildString {
+        if (init.exprs.size == 1) { // also the case for = assignment
+            append(getTargetExpr(init.exprs.single(), inferredType))
+        } else {
+            append(getTargetType(inferredType)) // treat as ctor call
+            val (prefix, postfix) = if (init.isBraces) Pair("{", "}") else Pair("(", ")")
+            init.exprs.joinTo(this, ", ", prefix, postfix) {
+                getTargetExpr(it, inferredType?.componentType)
+            }
+        }
+    }
+}
+
+
+/**
+ * This object generates types in the context of the outer class,
+ * where parameter references need special handling.
+ */
+object CppOuterTypes : TargetTypes by CppTypes {
+
+    override fun getTargetParamRef(expr: ParameterReference, type: InferredType?): String {
+        return "__lf_inner.${expr.parameter.name}"
+    }
+
+}
+

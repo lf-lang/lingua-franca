@@ -10,7 +10,6 @@ import org.lflang.isGeneric
 import org.lflang.isMultiport
 import org.lflang.lf.BuiltinTriggerRef
 import org.lflang.lf.Expression
-import org.lflang.lf.LfPackage
 import org.lflang.lf.ParameterReference
 import org.lflang.lf.Port
 import org.lflang.lf.Preamble
@@ -64,20 +63,29 @@ val Reaction.name
 // TODO: Most of the extensions defined here should be moved to companion objects of their
 //  corresponding generator classes. See for instance the CppParameterGenerator
 
+/**
+ * Convert a LF time value to a representation in C++ code.
+ * @param outerContext A flag indicating whether to generate code for the scope of the outer reactor class.
+ *                    This should be set to false if called from code generators for the inner class.
+ * @param inferredType Type that the expr has (or null), may guide code generation if ambiguous
+ */
+fun Expression.toCppCode(outerContext: Boolean = false, inferredType: InferredType? = null): String =
+    if (outerContext)
+        CppOuterTypes.getTargetExpr(this, inferredType)
+    else
+        CppTypes.getTargetExpr(this, inferredType)
 
-/** Convert a LF time value to a representation in C++ code */
-fun TimeValue.toCppCode() = CppTypes.getTargetTimeExpr(this)
 
-/** Convert a value to a time representation in C++ code*
+/**
+ * Convert a value to a time representation in C++ code*
  *
  * If the value evaluates to 0, it is interpreted as a time.
  *
  * @param outerContext A flag indicating whether to generate code for the scope of the outer reactor class.
  *                    This should be set to false if called from code generators for the inner class.
  */
-fun Expression.toTime(outerContext: Boolean = false): String =
-    if (outerContext && this is ParameterReference) "__lf_inner.${this.parameter.name}"
-    else CppTypes.getTargetExpr(this, InferredType.time())
+fun Expression.toCppTime(outerContext: Boolean = false): String =
+    this.toCppCode(outerContext, inferredType = InferredType.time())
 
 /**
  * Get textual representation of a value in C++ code

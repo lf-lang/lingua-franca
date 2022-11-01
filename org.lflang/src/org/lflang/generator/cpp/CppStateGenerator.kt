@@ -26,32 +26,14 @@ package org.lflang.generator.cpp
 
 import org.lflang.inferredType
 import org.lflang.isInitialized
-import org.lflang.isOfTimeType
-import org.lflang.lf.ParameterReference
 import org.lflang.lf.Reactor
 import org.lflang.lf.StateVar
 
 /** A C++ code generator for state variables */
 class CppStateGenerator(private val reactor: Reactor) {
 
-    /**
-     * Create a list of state initializers in target code.
-     *
-     * TODO This is redundant to ExpressionGenerator.getInitializerList
-     */
-    private fun getInitializerList(state: StateVar) = state.init.map {
-        when {
-            it is ParameterReference -> it.parameter.name
-            state.isOfTimeType       -> it.toTime()
-            else                     -> it.toCppCode()
-        }
-    }
-
     private fun generateInitializer(state: StateVar): String =
-        if (state.parens.isNullOrEmpty())
-            "${state.name}{${getInitializerList(state).joinToString(separator = ", ")}}"
-        else
-            "${state.name}(${getInitializerList(state).joinToString(separator = ", ")})"
+        state.name + CppTypes.getCppInitializerList(state.init, state.inferredType)
 
 
     /** Get all state declarations */

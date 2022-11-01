@@ -26,10 +26,10 @@ package org.lflang.generator.cpp
 
 import org.lflang.ErrorReporter
 import org.lflang.generator.PrependOperator
+import org.lflang.generator.orZero
 import org.lflang.inferredType
 import org.lflang.isLogical
 import org.lflang.lf.Action
-import org.lflang.lf.LfPackage
 import org.lflang.lf.Reactor
 import org.lflang.lf.BuiltinTrigger
 
@@ -60,7 +60,7 @@ class CppActionGenerator(private val reactor: Reactor, private val errorReporter
                 "minSpacing and spacing violation policies are not yet supported for logical actions in reactor-ccp!"
             )
         } else {
-            val time = action.minDelay?.toTime() ?: "reactor::Duration::zero()"
+            val time = action.minDelay.orZero().toCppCode()
             """, ${action.name}{"${action.name}", this, $time}"""
         }
     }
