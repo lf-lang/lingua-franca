@@ -16,7 +16,7 @@ reactor Node(bank_index: size_t(0), num_nodes: size_t(4)) {
         std::cout << "Node " << bank_index << " received messages from ";
         received = true;
         size_t count{0};
-        for (auto i: in.get_present_port_indices()) {
+        for (auto i: in.present_indices_unsorted()) {
             count++;
             std::cout << *in[i].get() << ", ";
         }

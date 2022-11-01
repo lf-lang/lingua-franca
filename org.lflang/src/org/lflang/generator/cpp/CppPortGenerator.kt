@@ -53,6 +53,23 @@ class CppPortGenerator(private val reactor: Reactor) {
 
             val dataType = inferredType.cppType
             return if (isMultiport) {
+                "reactor::ModifableMultiport<$portType<$dataType>>"
+            } else {
+                "$portType<$dataType>"
+            }
+        }
+
+    /** Get the C++ interface type for the receiving port. */
+    val Port.cppInterfaceType: String
+        get() {
+            val portType = when (this) {
+                is Input  -> "reactor::Input"
+                is Output -> "reactor::Output"
+                else      -> throw AssertionError()
+            }
+
+            val dataType = inferredType.cppType
+            return if (isMultiport) {
                 "reactor::Multiport<$portType<$dataType>>"
             } else {
                 "$portType<$dataType>"
