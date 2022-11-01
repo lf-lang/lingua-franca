@@ -3,7 +3,7 @@
         "allowJs": true,
         "noEmit": true,
         "target": "esnext",
-        "types": ["node", "reactor-ts", "ulog", "microtime", "command-line-args", "command-line-usage"],
+        "types": ["node", "@lf-lang/reactor-ts", "ulog", "microtime", "command-line-args", "command-line-usage"],
         "esModuleInterop": true,
         "isolatedModules": true,
         "lib": ["esnext", "dom"],
@@ -13,7 +13,7 @@
         "strictBindCallApply": true,
         "strictNullChecks": true,
         "strictFunctionTypes": true,
-        "typeRoots": ["./node_modules/@types/", "./node_modules/reactor-ts/src/core/@types/"]
+        "typeRoots": ["./node_modules/@types/", "./node_modules/@lf-lang/reactor-ts/src/core/@types/"]
     },
     "include": [
         "src/**/*"

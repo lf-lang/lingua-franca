@@ -1,6 +1,3 @@
-[submodule "org.lflang/src/lib/ts/reactor-ts"]
-	path = org.lflang/src/lib/ts/reactor-ts
-	url = https://github.com/lf-lang/reactor-ts.git
 [submodule "org.lflang/src/lib/c/reactor-c"]
 	path = org.lflang/src/lib/c/reactor-c
 	url = https://github.com/lf-lang/reactor-c.git
