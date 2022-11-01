@@ -140,6 +140,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
      * using a command like `foo = new Foo();`
      */
     protected List<Reactor> reactors = new ArrayList<>();
+    public List<Reactor> getReactors() { return this.reactors; }
 
     /**
      * The set of resources referenced reactor classes reside in.

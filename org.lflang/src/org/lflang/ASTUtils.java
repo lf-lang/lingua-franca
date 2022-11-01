@@ -60,6 +60,7 @@ import org.eclipse.xtext.xbase.lib.StringExtensions;
 import org.lflang.ast.ToText;
 import org.lflang.generator.CodeMap;
 import org.lflang.generator.GeneratorBase;
+import org.lflang.generator.GeneratorUtils;
 import org.lflang.generator.InvalidSourceException;
 import org.lflang.lf.Action;
 import org.lflang.lf.ActionOrigin;
@@ -101,6 +102,8 @@ import org.lflang.util.StringUtil;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Iterators;
+import com.google.common.base.Objects;
+import com.google.common.collect.Iterables;
 
 /**
  * A helper class for modifying and analyzing the AST.
@@ -641,7 +644,7 @@ public class ASTUtils {
     public static List<Action> allPhysicalActions(GeneratorBase generator) {
         // TODO: Merge these into one line of filter
         ArrayList<Action> physicalActions = new ArrayList<Action>();
-        for (Resource resource : GeneratorUtils.getResources(reactors)) {
+        for (Resource resource : GeneratorUtils.getResources(generator.getReactors())) {
             var actions = Iterables.filter(IteratorExtensions.toIterable(resource.getAllContents()), Action.class);
             for (Action action : actions) {
                 if (Objects.equal(action.getOrigin(), ActionOrigin.PHYSICAL)) {
