@@ -210,6 +210,7 @@ public class CCompiler {
         List<String> arguments = new ArrayList<>();
         cmakeCompileDefinitions(targetConfig).forEachOrdered(arguments::add);
         arguments.addAll(List.of(
+            "-DCMAKE_BUILD_TYPE=" + ((targetConfig.cmakeBuildType!=null) ? targetConfig.cmakeBuildType.toString() : "Release"),
             "-DCMAKE_INSTALL_PREFIX=" + FileUtil.toUnixString(fileConfig.getOutPath()),
             "-DCMAKE_INSTALL_BINDIR=" + FileUtil.toUnixString(
                 fileConfig.getOutPath().relativize(
