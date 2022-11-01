@@ -3,8 +3,8 @@ package org.lflang.generator
 import org.eclipse.emf.ecore.EObject
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils
 import org.lflang.InferredType
-import org.lflang.isInitWithBraces
 import org.lflang.lf.Expression
+import org.lflang.lf.Initializer
 import org.lflang.lf.Instantiation
 import org.lflang.lf.LfFactory
 import org.lflang.lf.Parameter
@@ -53,13 +53,13 @@ fun EObject.locationInfo(): LocationInfo {
  * Returns the target code for the initial value of [sv].
  */
 fun TargetTypes.getTargetInitializer(sv: StateVar): TargetCode =
-    this.getTargetInitializer(sv.init, sv.type, sv.braces.isNotEmpty())
+    this.getTargetInitializer(sv.init, sv.type)
 
 /**
  * Returns the target code for the default value of the [param].
  */
 fun TargetTypes.getTargetInitializer(param: Parameter): TargetCode =
-    this.getTargetInitializer(param.init, param.type, param.isInitWithBraces)
+    this.getTargetInitializer(param.init, param.type)
 
 /**
  * Returns the target code for the [getActualValue] of the
@@ -67,7 +67,7 @@ fun TargetTypes.getTargetInitializer(param: Parameter): TargetCode =
  */
 fun TargetTypes.getTargetInitializer(param: Parameter, inst: Instantiation): TargetCode {
     val init = inst.getActualValue(param)
-    return getTargetInitializer(init, param.type, param.isInitWithBraces)
+    return getTargetInitializer(init, param.type)
 }
 
 /**
@@ -76,7 +76,7 @@ fun TargetTypes.getTargetInitializer(param: Parameter, inst: Instantiation): Tar
  * there is no explicit assignment. If there is no default value, the
  * source code is invalid (param is required)
  */
-fun Instantiation.getActualValue(param: Parameter): List<Expression> =
+fun Instantiation.getActualValue(param: Parameter): Initializer =
     parameters.firstOrNull { it.lhs == param }?.rhs
         ?: param.init
         ?: throw InvalidLfSourceException(this, "No value for parameter ${param.name}")
@@ -92,3 +92,4 @@ fun TargetTypes.getTargetTimeExpr(v: Expression): TargetCode =
 /** If this is null, return the literal 0. */
 fun Expression?.orZero(): Expression =
     this ?: LfFactory.eINSTANCE.createLiteral().apply { literal = "0" }
+

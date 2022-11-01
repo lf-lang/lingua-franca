@@ -10,6 +10,7 @@ import org.lflang.TimeValue;
 import org.lflang.lf.Action;
 import org.lflang.lf.Code;
 import org.lflang.lf.Expression;
+import org.lflang.lf.Initializer;
 import org.lflang.lf.Literal;
 import org.lflang.lf.Parameter;
 import org.lflang.lf.ParameterReference;
@@ -224,6 +225,18 @@ public interface TargetTypes {
         } else {
             return getMissingExpr(inferredType);
         }
+    }
+
+   /**
+     * Returns the representation of the given initializer
+     * expression in target code. The given type, if non-null,
+     * may inform the code generation.
+     *
+     * @param init           Initializer node (non-null)
+     * @param type           Declared type of the expression (nullable)
+     */
+    default String getTargetInitializer(Initializer init, Type type) {
+        return getTargetInitializer(init.getExprs(), type, init.isBraces());
     }
 
 
