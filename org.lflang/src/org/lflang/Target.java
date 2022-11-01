@@ -350,7 +350,8 @@ public enum Target {
          // are those that are a valid expression. Others may be escaped
          // with the syntax r#keyword.
          Arrays.asList("self", "true", "false")
-    );
+    ),
+    Lean("Lean", true, "lean", "Lean", Arrays.asList());
 
     /**
      * String representation of this target.
