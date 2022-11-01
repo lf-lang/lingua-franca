@@ -23,12 +23,12 @@ jobs:
           fetch-depth: 0
       - name: Prepare build environment
         uses: ./.github/actions/prepare-build-env
-      - name: Build and package lfc (nightly build)
-        run: .github/scripts/package_lfc.sh nightly
+      - name: Build and package lf cli tools (nightly build)
+        run: .github/scripts/package-cli.sh nightly
         shell: bash
         if: ${{ inputs.nightly == true }}
-      - name: Build and package lfc (regular build)
-        run: .github/scripts/package_lfc.sh
+      - name: Build and package lf cli tools (regular build)
+        run: .github/scripts/package-cli.sh
         shell: bash
         if: ${{ inputs.nightly != true }}
       - name: Check Maven/Java configuration

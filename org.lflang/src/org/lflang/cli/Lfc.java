@@ -30,6 +30,7 @@ import org.lflang.LFRuntimeModule;
 import org.lflang.LFStandaloneSetup;
 import org.lflang.LocalStrings;
 import org.lflang.generator.LFGeneratorContext;
+import org.lflang.generator.LFGeneratorContext.BuildParm;
 import org.lflang.generator.MainContext;
 
 import com.google.inject.Inject;
@@ -65,22 +66,22 @@ public class Lfc extends CliBase {
      * @author Marten Lohstroh <marten@berkeley.edu>
      */
     enum CLIOption {
-        CLEAN("c", "clean", false, false, "Clean before building.", true),
-        COMPILER(null, "target-compiler", true, false, "Target compiler to invoke.", true),
-        EXTERNAL_RUNTIME_PATH(null, "external-runtime-path", true, false, "Specify an external runtime library to be used by the compiled binary.", true),
-        FEDERATED("f", "federated", false, false, "Treat main reactor as federated.", false),
-        HELP("h", "help", false, false, "Display this information.", true),
-        LOGGING(null, "logging", true, false, "The logging level to use by the generated binary", true),
-        LINT("l", "lint", false, false, "Enable or disable linting of generated code.", true),
-        NO_COMPILE("n", "no-compile", false, false, "Do not invoke target compiler.", true),
-        OUTPUT_PATH("o", "output-path", true, false, "Specify the root output directory.", false),
-        QUIET("q", "quiet", false, false, "Suppress output of the target compiler and other commands", true),
-        RTI("r", "rti", true, false, "Specify the location of the RTI.", true),
-        RUNTIME_VERSION(null, "runtime-version", true, false, "Specify the version of the runtime library used for compiling LF programs.", true),
-        SCHEDULER("s", "scheduler", true, false, "Specify the runtime scheduler (if supported).", true),
-        THREADING("t", "threading", true, false, "Specify whether the runtime should use multi-threading (true/false).", true),
-        VERSION(null, "version", false, false, "Print version information.", false),
-        WORKERS("w", "workers", true, false, "Specify the default number of worker threads.", true);
+        CLEAN(BuildParm.CLEAN, "c", false, false, true),
+        TARGET_COMPILER(BuildParm.TARGET_COMPILER, null, true, false, true),
+        EXTERNAL_RUNTIME_PATH(BuildParm.EXTERNAL_RUNTIME_PATH, null, true, false, true),
+        FEDERATED(BuildParm.FEDERATED, "f", false, false, false),
+        HELP(BuildParm.HELP, "h", false, false,  true),
+        LOGGING(BuildParm.LOGGING, null, true, false, true),
+        LINT(BuildParm.LINT, "l",false, false,  true),
+        NO_COMPILE(BuildParm.NO_COMPILE, "n", false, false, true),
+        OUTPUT_PATH(BuildParm.OUTPUT_PATH, "o", true, false, false),
+        QUIET(BuildParm.QUIET, "q", false, false,  true),
+        RTI(BuildParm.RTI, "r", true, false, true),
+        RUNTIME_VERSION(BuildParm.RUNTIME_VERSION, null, true, false, true),
+        SCHEDULER(BuildParm.SCHEDULER, "s", true, false, true),
+        THREADING(BuildParm.THREADING, "t", true, false, true),
+        VERSION(BuildParm.VERSION, "version", false, false, false),
+        WORKERS(BuildParm.WORKERS, "w", true, false, true);
 
         /**
          * The corresponding Apache CLI Option object.
@@ -95,20 +96,18 @@ public class Lfc extends CliBase {
         /**
          * Construct a new CLIOption.
          *
-         * @param opt         The short option name. E.g.: "f" denotes a flag
-         *                    "-f".
-         * @param longOpt     The long option name. E.g.: "foo" denotes a flag
-         *                    "--foo".
-         * @param hasArg      Whether or not this option has an argument. E.g.:
+         * @param parameter   The build parameter that this CLI parameter corresponds to.
+         * @param shorthand   The single-character switch to use for this option. E.g.:
+         *                    "-c" for "--clean".
+         * @param hasArg      Whether this option has an argument. E.g.:
          *                    "--foo bar" where "bar" is the argument value.
-         * @param isReq       Whether or not this option is required. If it is
+         * @param isReq       Whether this option is required. If it is
          *                    required but not specified a menu is shown.
-         * @param description The description used in the menu.
-         * @param passOn      Whether or not to pass this option as a property
+         * @param passOn      Whether to pass this option as a property
          *                    to the code generator.
          */
-        CLIOption(String opt, String longOpt, boolean hasArg, boolean isReq, String description, boolean passOn) {
-            this.option = new Option(opt, longOpt, hasArg, description);
+        CLIOption(BuildParm parameter, String shorthand, boolean hasArg, boolean isReq, boolean passOn) {
+            this.option = new Option(shorthand, parameter.getKey(), hasArg, parameter.description);
             option.setRequired(isReq);
             this.passOn = passOn;
         }
