@@ -6,6 +6,7 @@ import java.util.regex.Pattern;
 import org.lflang.ErrorReporter;
 import org.lflang.InferredType;
 import org.lflang.generator.TargetTypes;
+import org.lflang.lf.ParameterReference;
 
 public class CTypes implements TargetTypes {
 

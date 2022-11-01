@@ -46,12 +46,10 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import org.eclipse.emf.common.util.BasicEList;
 import org.eclipse.emf.common.util.EList;
 import org.eclipse.emf.common.util.TreeIterator;
 import org.eclipse.emf.ecore.EAttribute;
 import org.eclipse.emf.ecore.EObject;
-import org.eclipse.emf.ecore.EReference;
 import org.eclipse.emf.ecore.EStructuralFeature;
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils;
 import org.eclipse.xtext.validation.Check;
@@ -59,6 +57,7 @@ import org.eclipse.xtext.validation.CheckType;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 import org.lflang.ASTUtils;
 import org.lflang.AttributeUtils;
+import org.lflang.InferredType;
 import org.lflang.ModelInfo;
 import org.lflang.Target;
 import org.lflang.TargetProperty;
@@ -71,6 +70,7 @@ import org.lflang.lf.Assignment;
 import org.lflang.lf.Attribute;
 import org.lflang.lf.BuiltinTrigger;
 import org.lflang.lf.BuiltinTriggerRef;
+import org.lflang.lf.CodeExpr;
 import org.lflang.lf.Connection;
 import org.lflang.lf.Deadline;
 import org.lflang.lf.Expression;
@@ -79,6 +79,7 @@ import org.lflang.lf.IPV4Host;
 import org.lflang.lf.IPV6Host;
 import org.lflang.lf.Import;
 import org.lflang.lf.ImportedReactor;
+import org.lflang.lf.Initializer;
 import org.lflang.lf.Input;
 import org.lflang.lf.Instantiation;
 import org.lflang.lf.KeyValuePair;
@@ -160,19 +161,28 @@ public class LFValidator extends BaseLFValidator {
                     String.join(", ", SPACING_VIOLATION_POLICIES) + ".",
                 Literals.ACTION__POLICY);
         }
-        checkExpressionAsTime(action.getMinDelay(), Literals.ACTION__MIN_DELAY);
-        checkExpressionAsTime(action.getMinSpacing(), Literals.ACTION__MIN_SPACING);
+        checkExpressionIsTime(action.getMinDelay(), Literals.ACTION__MIN_DELAY);
+        checkExpressionIsTime(action.getMinSpacing(), Literals.ACTION__MIN_SPACING);
+    }
+
+
+    @Check(CheckType.FAST)
+    public void checkInitializer(Initializer init) {
+        if (init.isBraces() && target != Target.CPP) {
+            error("Brace initializers are only supported for the C++ target", Literals.INITIALIZER__BRACES);
+        }
     }
 
     @Check(CheckType.FAST)
     public void checkAssignment(Assignment assignment) {
+
         // If the left-hand side is a time parameter, make sure the assignment has units
         if (isOfTimeType(assignment.getLhs())) {
-            if (assignment.getRhs().size() > 1) {
+            var single = ASTUtils.asSingleExpr(assignment.getRhs());
+            if (single == null) {
                 error("Incompatible type.", Literals.ASSIGNMENT__RHS);
-            } else if (assignment.getRhs().size() > 0) {
-                Expression expr = assignment.getRhs().get(0);
-                checkExpressionAsTime(expr, Literals.ASSIGNMENT__RHS);
+            } else {
+                checkExpressionIsTime(single, Literals.ASSIGNMENT__RHS);
             }
             // If this assignment overrides a parameter that is used in a deadline,
             // report possible overflow.
@@ -183,11 +193,6 @@ public class LFValidator extends BaseLFValidator {
                         TimeValue.MAX_LONG_DEADLINE + " nanoseconds.",
                     Literals.ASSIGNMENT__RHS);
             }
-        }
-
-        EList<String> braces = assignment.getBraces();
-        if(!(braces == null || braces.isEmpty()) && this.target != Target.CPP) {
-            error("Brace initializers are only supported for the C++ target", Literals.ASSIGNMENT__BRACES);
         }
 
         // FIXME: lhs is list => rhs is list
@@ -356,7 +361,7 @@ public class LFValidator extends BaseLFValidator {
         if (connection.getDelay() != null) {
             final var delay = connection.getDelay();
             if (delay instanceof ParameterReference || delay instanceof Time || delay instanceof Literal) {
-                checkExpressionAsTime(delay, Literals.CONNECTION__DELAY);
+                checkExpressionIsTime(delay, Literals.CONNECTION__DELAY);
             } else {
                 error("After delays can only be given by time literals or parameters.",
                       Literals.CONNECTION__DELAY);
@@ -373,7 +378,7 @@ public class LFValidator extends BaseLFValidator {
                     TimeValue.MAX_LONG_DEADLINE + " nanoseconds.",
                 Literals.DEADLINE__DELAY);
         }
-        checkExpressionAsTime(deadline.getDelay(), Literals.DEADLINE__DELAY);
+        checkExpressionIsTime(deadline.getDelay(), Literals.DEADLINE__DELAY);
     }
 
     @Check(CheckType.FAST)
@@ -595,7 +600,7 @@ public class LFValidator extends BaseLFValidator {
     public void checkParameter(Parameter param) {
         checkName(param.getName(), Literals.PARAMETER__NAME);
 
-        for (Expression expr : param.getInit()) {
+        for (Expression expr : param.getInit().getExprs()) {
             if (expr instanceof ParameterReference) {
                 // Initialization using parameters is forbidden.
                 error("Parameter cannot be initialized using parameter.",
@@ -603,37 +608,17 @@ public class LFValidator extends BaseLFValidator {
             }
         }
 
-        if (param.getInit() == null || param.getInit().size() == 0) {
+        if (param.getInit() == null || param.getInit().getExprs().isEmpty()) {
             // All parameters must be initialized.
+            // TODO #623 remove
             error("Uninitialized parameter.", Literals.PARAMETER__INIT);
-        } else if (isOfTimeType(param)) {
-             // We do additional checks on types because we can make stronger
-             // assumptions about them.
-
-             // If the parameter is not a list, cannot be initialized
-             // using a one.
-             if (param.getInit().size() > 1 && param.getType().getArraySpec() == null) {
-                error("Time parameter cannot be initialized using a list.",
-                    Literals.PARAMETER__INIT);
-            } else {
-                // The parameter is a singleton time.
-                Expression expr = param.getInit().get(0);
-                if (!(expr instanceof Time)) {
-                    if (!ASTUtils.isZero(expr)) {
-                        if (ASTUtils.isInteger(expr)) {
-                            error("Missing time unit.", Literals.PARAMETER__INIT);
-                        } else {
-                            error("Invalid time literal.",
-                                Literals.PARAMETER__INIT);
-                        }
-                    }
-                } // If time is not null, we know that a unit is also specified.
-            }
         } else if (this.target.requiresTypes) {
             // Report missing target type. param.inferredType.undefine
-            if ((ASTUtils.getInferredType(param).isUndefined())) {
+            if (ASTUtils.getInferredType(param).isUndefined()) {
                 error("Type declaration missing.", Literals.PARAMETER__TYPE);
             }
+        } else if (param.getType() != null) {
+            typeCheck(param.getInit(), ASTUtils.getInferredType(param), Literals.PARAMETER__INIT);
         }
 
         if(this.target == Target.CPP) {
@@ -657,10 +642,6 @@ public class LFValidator extends BaseLFValidator {
                 Literals.PARAMETER__INIT);
         }
         
-        EList<String> braces = param.getBraces();
-        if(!(braces == null || braces.isEmpty()) && this.target != Target.CPP) {
-            error("Brace initializers are only supported for the C++ target", Literals.PARAMETER__BRACES);
-        }
     }
 
     @Check(CheckType.FAST)
@@ -988,36 +969,23 @@ public class LFValidator extends BaseLFValidator {
     @Check(CheckType.FAST)
     public void checkState(StateVar stateVar) {
         checkName(stateVar.getName(), Literals.STATE_VAR__NAME);
+        if (stateVar.getInit() != null && stateVar.getInit().getExprs().size() != 0) {
+            typeCheck(stateVar.getInit(), ASTUtils.getInferredType(stateVar), Literals.STATE_VAR__INIT);
+        }
 
-        if (isOfTimeType(stateVar)) {
-            // If the state is declared to be a time,
-            // make sure that it is initialized correctly.
-            if (stateVar.getInit() != null) {
-                for (Expression expr : stateVar.getInit()) {
-                    checkExpressionAsTime(expr, Literals.STATE_VAR__INIT);
-                }
-            }
-        } else if (this.target.requiresTypes && ASTUtils.getInferredType(stateVar).isUndefined()) {
+        if (this.target.requiresTypes && ASTUtils.getInferredType(stateVar).isUndefined()) {
             // Report if a type is missing
             error("State must have a type.", Literals.STATE_VAR__TYPE);
         }
 
-        if (isCBasedTarget() && stateVar.getInit().size() > 1) {
+        if (isCBasedTarget()
+            && stateVar.getInit().getExprs().stream().anyMatch(it -> it instanceof ParameterReference)) {
             // In C, if initialization is done with a list, elements cannot
             // refer to parameters.
-            for (Expression expr : stateVar.getInit()) {
-                if (expr instanceof ParameterReference) {
-                    error("List items cannot refer to a parameter.",
-                        Literals.STATE_VAR__INIT);
-                    break;
-                }
-            }
+            error("List items cannot refer to a parameter.",
+                Literals.STATE_VAR__INIT);
         }
-        
-        EList<String> braces = stateVar.getBraces();
-        if(!(braces == null || braces.isEmpty()) && this.target != Target.CPP) {
-            error("Brace initializers are only supported for the C++ target", Literals.STATE_VAR__BRACES);
-        }
+
     }
 
     @Check(CheckType.FAST)
@@ -1169,8 +1137,8 @@ public class LFValidator extends BaseLFValidator {
     @Check(CheckType.FAST)
     public void checkTimer(Timer timer) {
         checkName(timer.getName(), Literals.VARIABLE__NAME);
-        checkExpressionAsTime(timer.getOffset(), Literals.TIMER__OFFSET);
-        checkExpressionAsTime(timer.getPeriod(), Literals.TIMER__PERIOD);
+        checkExpressionIsTime(timer.getOffset(), Literals.TIMER__OFFSET);
+        checkExpressionIsTime(timer.getPeriod(), Literals.TIMER__PERIOD);
     }
 
     @Check(CheckType.FAST)
@@ -1455,7 +1423,7 @@ public class LFValidator extends BaseLFValidator {
 
     @Check(CheckType.FAST)
     public void checkStateResetWithoutInitialValue(StateVar state) {
-        if (state.isReset() && (state.getInit() == null || state.getInit().isEmpty())) {
+        if (state.isReset() && (state.getInit() == null || state.getInit().getExprs().isEmpty())) {
             error("The state variable can not be automatically reset without an initial value.", state, Literals.STATE_VAR__RESET);
         }
     }
@@ -1611,32 +1579,74 @@ public class LFValidator extends BaseLFValidator {
         }
     }
 
+
     /**
-     * Check if an expressions denotes a valid time.
-     * @param expr the expression to check
-     * @param eReference the eReference to report errors on
+     * Check that the initializer is compatible with the type of value.
+     * Note that if the type is inferred it will necessarily be compatible
+     * so this method is not harmful.
      */
-    private void checkExpressionAsTime(Expression expr, EReference eReference) {
-        if (expr == null) {
+    public void typeCheck(Initializer init, InferredType type, EStructuralFeature feature) {
+        if (init == null) {
             return;
         }
-        // If parameter is referenced, check that it is of the correct type.
-        if (expr instanceof ParameterReference) {
-            final var param = ((ParameterReference) expr).getParameter();
-            if (!isOfTimeType(param) && target.requiresTypes) {
-                error("Parameter is not of time type.", eReference);
+
+        if (type.isTime) {
+            if (type.isList) {
+                // list of times
+                var exprs = init.getExprs();
+                for (var component : exprs) {
+                    checkExpressionIsTime(component, feature);
+                }
+            } else {
+                checkExpressionIsTime(init, feature);
             }
-        } else if(expr instanceof Literal && isInteger(expr)) {
-            if (!isZero(expr)) {
-                error("Missing time unit.", eReference);
-            }
-        } else if (!(expr instanceof Time)) {
-            error("Invalid time literal.", eReference);
         }
     }
 
+    public void checkExpressionIsTime(Initializer init, EStructuralFeature feature) {
+        if (init == null) {
+            return;
+        }
+
+        if (init.getExprs().size() != 1) {
+            error("Expected exactly one time value.", feature);
+        } else {
+            checkExpressionIsTime(ASTUtils.asSingleExpr(init), feature);
+        }
+    }
+
+    public void checkExpressionIsTime(Expression value, EStructuralFeature feature) {
+        if (value == null) {
+            return;
+        }
+
+        if (value instanceof ParameterReference) {
+            if (!ASTUtils.isOfTimeType(((ParameterReference) value).getParameter())
+                && target.requiresTypes) {
+                error("Referenced parameter does not have time type.", feature);
+            }
+        } else if (value instanceof Literal) {
+            if (ASTUtils.isZero(((Literal) value).getLiteral())) {
+                return;
+            }
+
+            if (ASTUtils.isInteger(((Literal) value).getLiteral())) {
+                error("Missing time unit.", feature);
+            }
+        } else if (value instanceof CodeExpr) {
+            if (ASTUtils.isZero(((CodeExpr) value).getCode())) {
+                return;
+            }
+            error("Invalid time literal.", feature);
+        } else if (!(value instanceof Time)) {
+            error("Invalid time literal.", feature);
+        }
+    }
+
+
     /**
      * Return the number of main or federated reactors declared.
+     *
      * @param iter An iterator over all objects in the resource.
      */
     private int countMainOrFederated(TreeIterator<EObject> iter) {

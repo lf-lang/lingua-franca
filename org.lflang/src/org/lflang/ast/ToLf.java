@@ -43,6 +43,7 @@ import org.lflang.lf.IPV4Host;
 import org.lflang.lf.IPV6Host;
 import org.lflang.lf.Import;
 import org.lflang.lf.ImportedReactor;
+import org.lflang.lf.Initializer;
 import org.lflang.lf.Input;
 import org.lflang.lf.Instantiation;
 import org.lflang.lf.KeyValuePair;
@@ -517,13 +518,12 @@ public class ToLf extends LfSwitch<MalleableString> {
         // ) ';'?
         Builder msb = new Builder();
         addAttributes(msb, object::getAttributes);
-        if (object.isReset()) msb.append("reset ");
+        if (object.isReset()) {
+            msb.append("reset ");
+        }
         msb.append("state ").append(object.getName());
         msb.append(typeAnnotationFor(object.getType()));
-        if (!object.getParens().isEmpty()) msb.append(list(true, object.getInit()));
-        if (!object.getBraces().isEmpty()) {
-            msb.append(list(", ", "{", "}", true, false, object.getInit()));
-        }
+        msb.append(initializer(object.getInit(), true));
         return msb.get();
     }
 
@@ -872,18 +872,24 @@ public class ToLf extends LfSwitch<MalleableString> {
         // ));
         Builder msb = new Builder();
         msb.append(object.getLhs().getName());
-        if (object.getEquals() != null) msb.append(" = ");
-        String prefix = "";
-        String suffix = "";
-        if (!object.getParens().isEmpty()) {
-            prefix = "(";
-            suffix = ")";
-        } else if (!object.getBraces().isEmpty()) {
+        if (object.getEquals() != null) {
+            msb.append(" = ");
+        }
+        msb.append(initializer(object.getRhs(), false));
+        return msb.get();
+    }
+
+    private MalleableString initializer(Initializer init, boolean nothingIfEmpty) {
+        String prefix;
+        String suffix;
+        if (init.isBraces()) {
             prefix = "{";
             suffix = "}";
+        } else {
+            prefix = "(";
+            suffix = ")";
         }
-        msb.append(list(", ", prefix, suffix, false, prefix.isBlank(), object.getRhs()));
-        return msb.get();
+        return list(", ", prefix, suffix, nothingIfEmpty, false, init.getExprs());
     }
 
     @Override
@@ -897,14 +903,7 @@ public class ToLf extends LfSwitch<MalleableString> {
         return builder
             .append(object.getName())
             .append(typeAnnotationFor(object.getType()))
-            .append(list(
-                ", ",
-                object.getBraces().isEmpty() ? "(" : "{",
-                object.getBraces().isEmpty() ? ")" : "}",
-                true,
-                false,
-                object.getInit()
-            ))
+            .append(initializer(object.getInit(), true))
             .get();
     }
 
