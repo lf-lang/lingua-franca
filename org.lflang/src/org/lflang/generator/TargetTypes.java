@@ -209,9 +209,8 @@ public interface TargetTypes {
      *
      * @param init           Initializer node (non-null)
      * @param type           Declared type of the expression (nullable)
-     * @param initWithBraces Whether the initializer uses the braced form.
      */
-    default String getTargetInitializer(Initializer init, Type type, boolean initWithBraces) {
+    default String getTargetInitializer(Initializer init, Type type) {
         Objects.requireNonNull(init);
         var inferredType = ASTUtils.getInferredType(type, init);
         var single = ASTUtils.asSingleExpr(init);
@@ -220,9 +219,9 @@ public interface TargetTypes {
         }
         var targetValues = init.getExprs().stream().map(it -> getTargetExpr(it, inferredType)).collect(Collectors.toList());
         if (inferredType.isFixedSizeList) {
-            return getFixedSizeListInitExpression(targetValues, inferredType.listSize, initWithBraces);
+            return getFixedSizeListInitExpression(targetValues, inferredType.listSize, init.isBraces());
         } else if (inferredType.isVariableSizeList) {
-            return getVariableSizeListInitExpression(targetValues, initWithBraces);
+            return getVariableSizeListInitExpression(targetValues, init.isBraces());
         } else {
             return getMissingExpr(inferredType);
         }

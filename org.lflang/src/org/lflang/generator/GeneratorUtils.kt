@@ -3,6 +3,7 @@ package org.lflang.generator
 import org.eclipse.emf.ecore.EObject
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils
 import org.lflang.InferredType
+import org.lflang.inferredType
 import org.lflang.lf.Expression
 import org.lflang.lf.Initializer
 import org.lflang.lf.Instantiation

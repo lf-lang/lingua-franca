@@ -2,9 +2,11 @@ package org.lflang.generator.cpp
 
 import org.lflang.TargetConfig
 import org.lflang.generator.PrependOperator
+import org.lflang.generator.orZero
 import org.lflang.inferredType
 import org.lflang.lf.Parameter
 import org.lflang.lf.Reactor
+import org.lflang.toTimeNode
 import org.lflang.toUnixString
 
 /** C++ code generator responsible for generating the main file including the main() function */
@@ -65,7 +67,7 @@ class CppStandaloneMainGenerator(
             |  unsigned workers = ${if (targetConfig.workers != 0) targetConfig.workers else "std::thread::hardware_concurrency()"};
             |  bool fast{${targetConfig.fastMode}};
             |  bool keepalive{${targetConfig.keepalive}};
-            |  reactor::Duration timeout = ${targetConfig.timeout?.toCppCode() ?: "reactor::Duration::zero()"};
+            |  reactor::Duration timeout = ${targetConfig.timeout?.toTimeNode().orZero().toCppCode()};
             |  
             |  // the timeout variable needs to be tested beyond fitting the Duration-type 
             |  options

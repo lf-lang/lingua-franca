@@ -577,7 +577,7 @@ object RustModelBuilder {
                     StateVarInfo(
                         lfName = it.name,
                         type = RustTypes.getTargetType(it.type, it.init),
-                        init = RustTypes.getTargetInitializer(it.init, it.type, it.braces.isNotEmpty())
+                        init = RustTypes.getTargetInitializer(it.init, it.type)
                     )
                 },
                 nestedInstances = reactor.instantiations.map { it.toModel() },
@@ -586,7 +586,7 @@ object RustModelBuilder {
                     CtorParamInfo(
                         lfName = it.name,
                         type = RustTypes.getTargetType(it.type, it.init),
-                        defaultValue = RustTypes.getTargetInitializer(it.init, it.type, it.braces.isNotEmpty()),
+                        defaultValue = RustTypes.getTargetInitializer(it.init, it.type),
                         documentation = null, // todo
                         isTime = it.inferredType.isTime,
                         isList = it.inferredType.isList,
@@ -601,9 +601,9 @@ object RustModelBuilder {
         val byName = parameters.associateBy { it.lhs.name }
         val args = reactor.parameters.associate { ithParam ->
             // use provided argument
-            val value = byName[ithParam.name]?.let { RustTypes.getTargetInitializer(it.rhs, ithParam.type, it.isInitWithBraces) }
+            val value = byName[ithParam.name]?.let { RustTypes.getTargetInitializer(it.rhs, ithParam.type) }
                 ?: if (ithParam.name == "bank_index" && this.isBank) "bank_index" else null // special value
-                ?: ithParam?.let { RustTypes.getTargetInitializer(it.init, it.type, it.isInitWithBraces) }
+                ?: ithParam?.let { RustTypes.getTargetInitializer(it.init, it.type) }
                 ?: throw InvalidLfSourceException(
                     "Cannot find value of parameter ${ithParam.name}",
                     this

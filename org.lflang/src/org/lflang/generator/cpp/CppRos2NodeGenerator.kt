@@ -1,7 +1,12 @@
 package org.lflang.generator.cpp
 
 import org.lflang.TargetConfig
+import org.lflang.TimeValue
+import org.lflang.generator.orZero
+import org.lflang.lf.LfFactory
 import org.lflang.lf.Reactor
+import org.lflang.lf.Time
+import org.lflang.toTimeNode
 import org.lflang.toUnixString
 
 /** A C++ code generator for creating a ROS2 node from a main reactor definition */
@@ -62,7 +67,7 @@ class CppRos2NodeGenerator(
             |  unsigned workers = ${if (targetConfig.workers != 0) targetConfig.workers else "std::thread::hardware_concurrency()"};
             |  bool fast{${targetConfig.fastMode}};
             |  bool keepalive{${targetConfig.keepalive}};
-            |  reactor::Duration lf_timeout{${targetConfig.timeout?.toCppCode() ?: "reactor::Duration::zero()"}};
+            |  reactor::Duration lf_timeout{${targetConfig.timeout?.toTimeNode().orZero().toCppTime()}};
             |
             |  // provide a globally accessible reference to this node
             |  // FIXME: this is pretty hacky...

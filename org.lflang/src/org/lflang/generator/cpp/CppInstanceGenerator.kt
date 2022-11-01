@@ -26,6 +26,7 @@ package org.lflang.generator.cpp
 
 import org.lflang.*
 import org.lflang.generator.cpp.CppParameterGenerator.Companion.targetType
+import org.lflang.generator.getActualValue
 import org.lflang.lf.Instantiation
 import org.lflang.lf.Parameter
 import org.lflang.lf.Reactor
@@ -51,37 +52,15 @@ class CppInstanceGenerator(
             "std::unique_ptr<$cppType> $name;"
     }
 
-    private fun Instantiation.getParameterValue(param: Parameter, isBankInstantiation: Boolean = false): String {
-        val assignment = this.parameters.firstOrNull { it.lhs === param }
-
-        return if (isBankInstantiation && param.name == "bank_index") {
+    private fun Instantiation.getParameterValue(param: Parameter, isBankInstantiation: Boolean = false): String =
+        if (isBankInstantiation && param.name == "bank_index") {
             // If we are in a bank instantiation (instanceId != null), then assign the instanceId
             // to the parameter named "bank_index"
             """__lf_idx"""
-        } else if (assignment == null) {
-            // If no assignment was found, then the parameter is not overwritten and we assign the
-            // default value
-            with(CppParameterGenerator) { param.defaultValue }
         } else {
-            // Otherwise, we use the assigned value.
-            if (assignment.equals == "=") {
-                if (!assignment.braces.isNullOrEmpty()) {
-                    "{${assignment.rhs.joinToString(", ") { it.toCppCode() }}}"
-                } else if (!assignment.parens.isNullOrEmpty()) {
-                    "(${assignment.rhs.joinToString(", ") { it.toCppCode() }})"
-                } else {
-                    assert(assignment.rhs.size == 1)
-                    assignment.rhs[0].toCppCode()
-                }
-            } else {
-                if (!assignment.braces.isNullOrEmpty()) {
-                    "${param.targetType}{${assignment.rhs.joinToString(", ") { it.toCppCode() }}}"
-                } else {
-                    "${param.targetType}(${assignment.rhs.joinToString(", ") { it.toCppCode() }})"
-                }
-            }
+            val value = this.getActualValue(param)
+            CppTypes.getCppStandaloneInitializer(value, param.inferredType)
         }
-    }
 
     private fun generateInitializer(inst: Instantiation): String {
         assert(!inst.isBank)
