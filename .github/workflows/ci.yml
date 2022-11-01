@@ -66,7 +66,7 @@ jobs:
 
   # Run the C++ benchmark tests.
   cpp-benchmark-tests:
-    uses: lf-lang/benchmarks-lingua-franca/.github/workflows/benchmark-tests.yml@protected-multiports
+    uses: lf-lang/benchmarks-lingua-franca/.github/workflows/benchmark-tests.yml@main
     with:
       target: 'Cpp'
     needs: cancel
