@@ -15,7 +15,7 @@ reactor Destination(width: size_t(2)) {
     input[width] in: size_t
 
     reaction(in) {=
-        for (auto i: in.get_present_port_indices()) {
+        for (auto i: in.present_indices_unsorted()) {
             size_t value = *in[i].get();
             std::cout << "Received on channel " << i << ": " << value << '\n';
             // NOTE: For testing purposes, this assumes the specific

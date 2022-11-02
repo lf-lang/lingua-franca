@@ -21,6 +21,51 @@ import org.lflang.util.LFCommand;
  */
 public interface LFGeneratorContext extends IGeneratorContext {
 
+    /**
+     * Enumeration of keys used to parameterize the build process.
+     */
+    public enum BuildParm {
+        BUILD_TYPE("The build type to use"),
+        CLEAN("Clean before building."),
+        EXTERNAL_RUNTIME_PATH("Specify an external runtime library to be used by the compiled binary."),
+        FEDERATED("Treat main reactor as federated."),
+        HELP("Display this information."),
+        LOGGING("The logging level to use by the generated binary"),
+        LINT("Enable or disable linting of generated code."),
+        NO_COMPILE("Do not invoke target compiler."),
+        OUTPUT_PATH("Specify the root output directory."),
+        QUIET("Suppress output of the target compiler and other commands"),
+        RTI("Specify the location of the RTI."),
+        RUNTIME_VERSION("Specify the version of the runtime library used for compiling LF programs."),
+        SCHEDULER("Specify the runtime scheduler (if supported)."),
+        TARGET_COMPILER("Target compiler to invoke."),
+        THREADING("Specify whether the runtime should use multi-threading (true/false)."),
+        VERSION("Print version information."),
+        WORKERS("Specify the default number of worker threads.");
+
+        public final String description;
+
+        BuildParm(String description) {
+            this.description = description;
+        }
+
+        /**
+         * Return the string to use as the key to store a value relating to this parameter.
+         */
+        public String getKey() {
+            return this.name().toLowerCase().replace('_', '-');
+        }
+
+        /**
+         * Return the value corresponding to this parameter or `null` if there is none.
+         * @param context The context passed to the code generator.
+         */
+        public String getValue(LFGeneratorContext context) {
+            return context.getArgs().getProperty(this.getKey());
+        }
+    }
+
+
     enum Mode {
         STANDALONE,
         EPOCH,

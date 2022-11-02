@@ -8,8 +8,8 @@ import org.lflang.generator.CodeBuilder;
 import org.lflang.generator.GeneratorBase;
 import org.lflang.lf.Assignment;
 import org.lflang.lf.Expression;
-import org.lflang.lf.ParameterReference;
 import org.lflang.lf.Parameter;
+import org.lflang.lf.ParameterReference;
 import org.lflang.lf.Reactor;
 
 /**
