@@ -442,7 +442,9 @@ public class ASTUtils {
         }
         Assignment assignment = factory.createAssignment();
         assignment.setLhs(delayClass.getParameters().get(0));
-        assignment.getRhs().getExprs().add(delay);
+        Initializer init = factory.createInitializer();
+        init.getExprs().add(delay);
+        assignment.setRhs(init);
         delayInstance.getParameters().add(assignment);
         delayInstance.setName("delay");  // This has to be overridden.
         return delayInstance;
@@ -492,7 +494,9 @@ public class ASTUtils {
         Time defaultTime = factory.createTime();
         defaultTime.setUnit(null);
         defaultTime.setInterval(0);
-        delayParameter.getInit().getExprs().add(defaultTime);
+        Initializer init = factory.createInitializer();
+        init.getExprs().add(defaultTime);
+        delayParameter.setInit(init);
 
         // Name the newly created action; set its delay and type.
         action.setName("act");
