@@ -19,6 +19,7 @@ import org.lflang.AttributeUtils;
 import org.lflang.TargetConfig;
 import org.lflang.TargetProperty.CoordinationType;
 import org.lflang.TargetProperty.LogLevel;
+import org.lflang.TimeValue;
 import org.lflang.federated.CGeneratorExtension;
 import org.lflang.federated.FederateInstance;
 import org.lflang.generator.CodeBuilder;
@@ -368,6 +369,13 @@ public class CTriggerObjectsGenerator {
         for (ReactionInstance r : reactor.reactions) {
             if (currentFederate.contains(r.getDefinition())) {
                 foundOne = true;
+                // Check if we have downstream reactions with lower deadline which we
+                //  we inherit.
+                var deadline = r.getInheritedDeadline();
+                if (r.deadline.isEarlierThan(deadline)) {
+                    deadline = r.deadline;
+                }
+
                 // The most common case is that all runtime instances of the
                 // reaction have the same level, so deal with that case
                 // specially.
@@ -377,23 +385,24 @@ public class CTriggerObjectsGenerator {
                     for (Integer l : levels) {
                         level = l;
                     }
+
                     // xtend doesn't support bitwise operators...
-                    var indexValue = r.deadline.toNanoSeconds() << 16 | level;
+                    var indexValue = deadline.toNanoSeconds() << 16 | level;
                     var reactionIndex = "0x" + Long.toString(indexValue, 16) + "LL";
 
                     temp.pr(String.join("\n",
                         CUtil.reactionRef(r)+".chain_id = "+r.chainID+";",
                         "// index is the OR of level "+level+" and ",
-                        "// deadline "+r.deadline.toNanoSeconds()+" shifted left 16 bits.",
+                        "// deadline "+deadline.toNanoSeconds()+" shifted left 16 bits.",
                         CUtil.reactionRef(r)+".index = "+reactionIndex+";"
                     ));
                 } else {
-                    var reactionDeadline = "0x" + Long.toString(r.deadline.toNanoSeconds(), 16) + "LL";
+                    var reactionDeadline = "0x" + Long.toString(deadline.toNanoSeconds(), 16) + "LL";
 
                     temp.pr(String.join("\n",
                         CUtil.reactionRef(r)+".chain_id = "+r.chainID+";",
                         "// index is the OR of levels["+CUtil.runtimeIndex(r.getParent())+"] and ",
-                        "// deadline "+r.deadline.toNanoSeconds()+" shifted left 16 bits.",
+                        "// deadline "+ deadline.toNanoSeconds()+" shifted left 16 bits.",
                         CUtil.reactionRef(r)+".index = ("+reactionDeadline+" << 16) | "+r.uniqueID()+"_levels["+CUtil.runtimeIndex(r.getParent())+"];"
                     ));
                 }

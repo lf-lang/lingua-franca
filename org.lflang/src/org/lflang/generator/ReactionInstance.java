@@ -43,6 +43,7 @@ import org.lflang.lf.Timer;
 import org.lflang.lf.TriggerRef;
 import org.lflang.lf.VarRef;
 import org.lflang.lf.Variable;
+import org.lflang.lf.Mode;
 
 /**
  * Representation of a compile-time instance of a reaction.
@@ -177,9 +178,13 @@ public class ReactionInstance extends NamedInstance<Reaction> {
                     (Action)variable);
                 this.effects.add(actionInstance);
                 actionInstance.dependsOnReactions.add(this);
+            } else if (variable instanceof Mode) {
+                var modeInstance = parent.lookupModeInstance(
+                    (Mode)variable);
+                this.modeEffects.add(modeInstance);
             } else {
-                // Effect is either a mode or an unresolved reference.
-                // Do nothing, transitions will be set up by the ModeInstance.
+                // Effect is an unresolved reference.
+                // Do nothing
             }
         }
         // Create a deadline instance if one has been defined.
@@ -210,6 +215,10 @@ public class ReactionInstance extends NamedInstance<Reaction> {
      */
     public Set<TriggerInstance<? extends Variable>> effects = new LinkedHashSet<>();
 
+    /**
+     * The modes that this reaction may trigger transition to
+     */
+    public Set<ModeInstance> modeEffects = new LinkedHashSet<>();
     /**
      * The ports, actions, or timers that this reaction is triggered by or uses.
      */
@@ -450,11 +459,33 @@ public class ReactionInstance extends NamedInstance<Reaction> {
     }
 
     /**
-     * Determine logical execution time for each reaction during compile
-     * time based on immediate downstream logical delays (after delays and actions)
-     * and label each reaction with the minimum of all such delays.
+     * Find the inherited deadline which is the least deadline of all
+     * downstream reactions. This inherited deadline is used to assign
+     * priority to the reaction
      */
-    public TimeValue assignLogicalExecutionTime() {
+    // FIXME: Needs to be recursive to support chains.
+    public TimeValue getInheritedDeadline() {
+        var minDeadline = TimeValue.MAX_VALUE;
+        for (ReactionInstance r : dependentReactions()) {
+            if (r.deadline.isEarlierThan(minDeadline)) {
+                minDeadline = r.deadline;
+            }
+        }
+        return minDeadline;
+    }
+
+    /**
+     * Get the logical execution time of this reaction, which is the minimum
+     * of the logical delays on the effects of this reaction.
+     * Those logical delays are the minimum delay of an action
+     * that is an effect of this reaction.
+     * The LET is zero if there are any effects that are ports
+     * or if there is an effect that is a logical
+     * action with zero minimum delay.
+     * The LET is TimeValue.MAX_VALUE if there are no effects.
+     * This method caches the result so as to not recompute it if called again.
+     */
+    public TimeValue getLogicalExecutionTime() {
         if (this.let != null) {
             return this.let;
         }
@@ -463,11 +494,36 @@ public class ReactionInstance extends NamedInstance<Reaction> {
             return this.let = TimeValue.ZERO;
         }
 
+        // If we have any effects triggering mode transition we have zero LET
+        if (!modeEffects.isEmpty()) {
+            return this.let = TimeValue.ZERO;
+        }
+        
+        // If no mode effects or other effects, we have maximum LET
+        if (effects.isEmpty()) {
+            return this.let = TimeValue.MAX_VALUE;
+        }
+
         TimeValue let = null;
 
         // Iterate over effect and find minimum delay.
         for (TriggerInstance<? extends Variable> effect : effects) {
             if (effect instanceof PortInstance) {
+                // NOTE: We do not yet support after delays for specifying
+                // logical execution time because the generated delay reactor
+                // has a reaction that will have to be put on the reaction queue
+                // when the LET reaction terminates, and the reaction queue may
+                // have advanced to a future logical time.
+                // Hence, for now, we simply return 0 for the LET if the reaction
+                // has any effect that is a port.  The only way right now to get the
+                // effect of LET is to use a logical action, as shown in
+                // test/C/src/LogicalExecutionTime.lf.
+                // Also, the code below is unncessarily cryptic and complicated.
+                // What it needs to do is use the effect (a PortInstance) to
+                // get each downstream port that is contained by a generated delay,
+                // and then get the amount of delay.
+                return this.let = TimeValue.ZERO;
+                /* Preserving this old code for when we support specifying LET with after delays.
                 var afters = this.parent.getParent().children.stream().filter(c -> {
                     if (c.isGeneratedDelay()) {
                         return c.inputs.get(0).getDependsOnPorts().get(0).instance
@@ -484,6 +540,7 @@ public class ReactionInstance extends NamedInstance<Reaction> {
                         let = TimeValue.min(afters.get(), let);
                     }
                 }
+                */
             } else if (effect instanceof ActionInstance) {
                 var action = ((ActionInstance) effect).getMinDelay();
                 if (let == null) {
