@@ -800,7 +800,7 @@ public class PythonGenerator extends CGenerator {
             set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR})
             set(LF_MAIN_TARGET <pyModuleName>)
             if (MSVC)
-                set(Python_FIND_ABI "OFF" "ANY" "ANY")
+                set(Python_FIND_ABI "OFF" "OFF" "OFF")
             endif (MSVC)
             find_package(Python COMPONENTS Interpreter Development)
             Python_add_library(
