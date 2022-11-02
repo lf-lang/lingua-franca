@@ -176,7 +176,10 @@ public class IsEqual extends LfSwitch<Boolean> {
         // Empty braces are not equivalent to no init.
         return new ComparisonMachine<>(object, Initializer.class)
             .equalAsObjects(Initializer::isBraces)
-            .equalAsObjects(Initializer::isParens)
+            // An initializer with no parens is equivalent to one with parens,
+            // if the list has a single element. This is probably going to change
+            // when we introduce equals initializers.
+            // .equalAsObjects(Initializer::isParens)
             .listsEquivalent(Initializer::getExprs)
             .conclusion;
     }
@@ -539,7 +542,7 @@ public class IsEqual extends LfSwitch<Boolean> {
 
     @Override
     public Boolean caseCodeExpr(CodeExpr object) {
-        return caseCode(object.getCode());
+        return new ComparisonMachine<>(object, CodeExpr.class).equivalent(CodeExpr::getCode).conclusion;
     }
 
     @Override

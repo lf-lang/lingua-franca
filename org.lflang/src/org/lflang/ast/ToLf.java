@@ -891,14 +891,20 @@ public class ToLf extends LfSwitch<MalleableString> {
     }
 
     private MalleableString initializer(Initializer init, boolean nothingIfEmpty) {
+        if (init == null) {
+            return MalleableString.anyOf("");
+        }
         String prefix;
         String suffix;
         if (init.isBraces()) {
             prefix = "{";
             suffix = "}";
-        } else {
+        } else if (init.isParens()) {
             prefix = "(";
             suffix = ")";
+        } else {
+            // unparenthesized parameter assignment.
+            prefix = suffix = "";
         }
         return list(", ", prefix, suffix, nothingIfEmpty, false, init.getExprs());
     }
