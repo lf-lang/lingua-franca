@@ -1,6 +1,7 @@
 package org.lflang.generator.ts
 
 import org.lflang.ASTUtils
+import org.lflang.TimeValue
 import org.lflang.generator.TargetTypes
 import org.lflang.lf.StateVar
 
@@ -29,6 +30,15 @@ object TSTypes : TargetTypes {
 
     override fun getTargetUndefinedType(): String {
         return "Present"
+    }
+
+    override fun getTargetTimeExpr(value: TimeValue): String {
+        return if (value.unit != null) {
+            "TimeValue.${value.unit.canonicalName}(${value.time})"
+        } else {
+            // The value must be zero.
+            "TimeValue.zero()"
+        }
     }
 
     override fun getTargetFixedSizeListType(baseType: String, size: Int): String {

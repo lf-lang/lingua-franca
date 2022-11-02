@@ -28,6 +28,7 @@ import org.lflang.generator.PrependOperator
 import org.lflang.isBank
 import org.lflang.isMultiport
 import org.lflang.hasMultipleConnections
+import org.lflang.joinWithLn
 import org.lflang.lf.*
 
 /**
@@ -175,9 +176,9 @@ class CppAssembleMethodGenerator(private val reactor: Reactor) {
             """
                 |// connection $idx
                 |std::vector<$portType> __lf_left_ports_$idx;
-            ${" |"..c.leftPorts.joinToString("\n") { addAllPortsToVector(it, "__lf_left_ports_$idx") }}
+            ${" |"..c.leftPorts.joinWithLn { addAllPortsToVector(it, "__lf_left_ports_$idx") }}
                 |std::vector<$portType> __lf_right_ports_$idx;
-            ${" |"..c.rightPorts.joinToString("\n") { addAllPortsToVector(it, "__lf_right_ports_$idx") }}
+            ${" |"..c.rightPorts.joinWithLn { addAllPortsToVector(it, "__lf_right_ports_$idx") }}
                 |lfutil::bind_multiple_ports(__lf_left_ports_$idx, __lf_right_ports_$idx, ${c.isIterated});
             """.trimMargin()
         }

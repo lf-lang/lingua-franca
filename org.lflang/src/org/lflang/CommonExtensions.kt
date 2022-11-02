@@ -158,6 +158,12 @@ fun <T> Iterable<T>.joinWithCommasLn(
     transform: (T) -> CharSequence = { it.toString() }
 ): String = joinWithCommas(prefix, postfix, skipLines = true, trailing, transform)
 
+fun <T> Iterable<T>.joinWithLn(
+    prefix: CharSequence = "",
+    postfix: CharSequence = "",
+    transform: (T) -> CharSequence
+): String = joinToString(separator = "\n", prefix = prefix, postfix = postfix, transform = transform)
+
 /**
  * Join this list with commas, surrounding it with angled brackets (`<...>`).
  * If this list is empty, returns an empty string.
