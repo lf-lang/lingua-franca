@@ -450,9 +450,31 @@ public class ReactionInstance extends NamedInstance<Reaction> {
     }
 
     /**
-     * Determine logical execution time for each reaction during compile
-     * time based on immediate downstream logical delays (after delays and actions)
-     * and label each reaction with the minimum of all such delays.
+     * Find the inherited deadline which is the least deadline of all
+     * downstream reactions. This inherited deadline is used to assign
+     * priority to the reaction
+     */
+    // FIXME: Needs to be recursive to support chains.
+    public TimeValue getInheritedDeadline() {
+        var minDeadline = TimeValue.MAX_VALUE;
+        for (ReactionInstance r : dependentReactions()) {
+            if (r.deadline.isEarlierThan(minDeadline)) {
+                minDeadline = r.deadline;
+            }
+        }
+        return minDeadline;
+    }
+
+    /**
+     * Get the logical execution time of this reaction, which is the minimum
+     * of the logical delays on the effects of this reaction.
+     * Those logical delays are the minimum delay of an action
+     * that is an effect of this reaction.
+     * The LET is zero if there are any effects that are ports
+     * or if there is an effect that is a logical
+     * action with zero minimum delay.
+     * The LET is TimeValue.MAX_VALUE if there are no effects.
+     * This method caches the result so as to not recompute it if called again.
      */
     public TimeValue assignLogicalExecutionTime() {
         if (this.let != null) {
