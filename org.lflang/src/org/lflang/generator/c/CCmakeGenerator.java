@@ -54,6 +54,8 @@ public class CCmakeGenerator {
         )
     """;
 
+    public static final String CMAKE_MINIMUM_VERSION = "3.16";
+
     private final FileConfig fileConfig;
     private final List<String> additionalSources;
     private final SetUpMainTarget setUpMainTarget;
@@ -115,7 +117,7 @@ public class CCmakeGenerator {
         additionalSources.addAll(this.additionalSources);
         cMakeCode.newLine();
 
-        cMakeCode.pr("cmake_minimum_required(VERSION 3.13)");
+        cMakeCode.pr("cmake_minimum_required(VERSION " + CMAKE_MINIMUM_VERSION);
         cMakeCode.pr("project("+executableName+" LANGUAGES C)");
         cMakeCode.newLine();
 

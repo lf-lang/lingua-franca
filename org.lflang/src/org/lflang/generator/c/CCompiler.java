@@ -196,8 +196,9 @@ public class CCompiler {
                 buildPath);
         if (command == null) {
             errorReporter.reportError(
-                    "The C/CCpp target requires CMAKE >= 3.5 to compile the generated code. " +
-                            "Auto-compiling can be disabled using the \"no-compile: true\" target property.");
+                "The C/CCpp target requires CMAKE >= " + CCmakeGenerator.CMAKE_MINIMUM_VERSION +
+                    " to compile the generated code. " +
+                    "Auto-compiling can be disabled using the \"no-compile: true\" target property.");
         }
         return command;
     }
