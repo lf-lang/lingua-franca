@@ -38,6 +38,7 @@ import org.lflang.tests.runtime.CppTest;
 import org.lflang.tests.runtime.PythonTest;
 import org.lflang.tests.runtime.RustTest;
 import org.lflang.tests.runtime.TypeScriptTest;
+import org.lflang.tests.runtime.LeanTest;
 
 /**
  * Execute a single test case. Use it with the gradle task
@@ -87,6 +88,8 @@ public class RunSingleTestMain {
             return PythonTest.class;
         case Rust:
             return RustTest.class;
+        case Lean:
+            return LeanTest.class;
         default:
             throw new IllegalArgumentException();
         }

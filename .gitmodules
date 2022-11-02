@@ -13,3 +13,6 @@
 [submodule "org.lflang/src/lib/rs/reactor-rs"]
 	path = org.lflang/src/lib/rs/reactor-rs
 	url = https://github.com/lf-lang/reactor-rs
+[submodule "org.lflang/src/lib/lean/reactor-lean"]
+	path = org.lflang/src/lib/lean/reactor-lean
+	url = https://github.com/lf-lang/reactor-lean.git

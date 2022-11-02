@@ -64,6 +64,7 @@ public class LFGenerator extends AbstractGenerator {
         case CPP:
         case Rust:
         case TS:
+        case Lean:
             String className = "org.lflang.generator." + target.packageName + "." + target.classNamePrefix + "FileConfig";
             try {
                 return (FileConfig) Class.forName(className)
@@ -91,6 +92,7 @@ public class LFGenerator extends AbstractGenerator {
         case CPP:
         case TS:
         case Rust:
+        case Lean:
             return createKotlinBaseGenerator(target, fileConfig, errorReporter);
         }
         // If no case matched, then throw a runtime exception.
@@ -139,6 +141,7 @@ public class LFGenerator extends AbstractGenerator {
                     + "Please consider building Epoch using Maven.\n"
                     + "For step-by-step instructions, see: "
                     + "https://github.com/icyphy/lingua-franca/wiki/Running-Lingua-Franca-IDE-%28Epoch%29-with-Kotlin-based-Code-Generators-Enabled-%28without-Eclipse-Environment%29");
+
             return null;
         }
     }
