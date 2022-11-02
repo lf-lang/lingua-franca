@@ -589,36 +589,44 @@ public class LFValidator extends BaseLFValidator {
     public void checkParameter(Parameter param) {
         checkName(param.getName(), Literals.PARAMETER__NAME);
 
-        for (Expression expr : param.getInit().getExprs()) {
-            if (expr instanceof ParameterReference) {
-                // Initialization using parameters is forbidden.
-                error("Parameter cannot be initialized using parameter.",
-                    Literals.PARAMETER__INIT);
-            }
+        if (param.getInit() == null) {
+            // todo make initialization non-mandatory
+            //  https://github.com/lf-lang/lingua-franca/issues/623
+            error("Parameter must have a default value.", Literals.PARAMETER__INIT);
+            return;
         }
 
-        if (param.getInit() == null || param.getInit().getExprs().isEmpty()) {
-            // All parameters must be initialized.
-            // TODO #623 remove
-            error("Uninitialized parameter.", Literals.PARAMETER__INIT);
-        } else if (this.target.requiresTypes) {
+        if (this.target.requiresTypes) {
             // Report missing target type. param.inferredType.undefine
             if (ASTUtils.getInferredType(param).isUndefined()) {
                 error("Type declaration missing.", Literals.PARAMETER__TYPE);
             }
-        } else if (param.getType() != null) {
+        }
+
+        if (param.getType() != null) {
             typeCheck(param.getInit(), ASTUtils.getInferredType(param), Literals.PARAMETER__INIT);
         }
 
-        if(this.target == Target.CPP) {
+        if (param.getInit() != null) {
+            for (Expression expr : param.getInit().getExprs()) {
+                if (expr instanceof ParameterReference) {
+                    // Initialization using parameters is forbidden.
+                    error("Parameter cannot be initialized using parameter.",
+                        Literals.PARAMETER__INIT);
+                }
+            }
+        }
+
+        if (this.target == Target.CPP) {
             EObject container = param.eContainer();
             Reactor reactor = (Reactor) container;
-            if(reactor.isMain()){ 
+            if (reactor.isMain()) {
                 // we need to check for the cli parameters that are always taken
                 List<String> cliParams = List.of("t", "threads", "o", "timeout", "k", "keepalive", "f", "fast", "help");
-                if(cliParams.contains(param.getName())){
-                    error("Parameter '" + param.getName() + "' is already in use as command line argument by Lingua Franca,",
-                          Literals.PARAMETER__NAME);
+                if (cliParams.contains(param.getName())) {
+                    error("Parameter '" + param.getName()
+                            + "' is already in use as command line argument by Lingua Franca,",
+                        Literals.PARAMETER__NAME);
                 }
             }
         }
@@ -1589,6 +1597,10 @@ public class LFValidator extends BaseLFValidator {
             if (type.isList) {
                 // list of times
                 var exprs = init.getExprs();
+                if (exprs.isEmpty()) {
+                    error("Expected exactly one time value.", feature);
+                    return;
+                }
                 for (var component : exprs) {
                     checkExpressionIsTime(component, feature);
                 }
@@ -1611,15 +1623,16 @@ public class LFValidator extends BaseLFValidator {
     }
 
     public void checkExpressionIsTime(Expression value, EStructuralFeature feature) {
-        if (value == null) {
+        if (value == null || value instanceof Time) {
             return;
         }
 
         if (value instanceof ParameterReference) {
             if (!ASTUtils.isOfTimeType(((ParameterReference) value).getParameter())
                 && target.requiresTypes) {
-                error("Referenced parameter does not have time type.", feature);
+                error("Referenced parameter is not of time type.", feature);
             }
+            return;
         } else if (value instanceof Literal) {
             if (ASTUtils.isZero(((Literal) value).getLiteral())) {
                 return;
@@ -1627,17 +1640,19 @@ public class LFValidator extends BaseLFValidator {
 
             if (ASTUtils.isInteger(((Literal) value).getLiteral())) {
                 error("Missing time unit.", feature);
-            }
-        } else if (value instanceof CodeExpr) {
-            if (ASTUtils.isZero(((CodeExpr) value).getCode())) {
                 return;
             }
-            error("Invalid time literal.", feature);
-        } else if (!(value instanceof Time)) {
-            error("Invalid time literal.", feature);
+            // fallthrough
+        } else if (value instanceof CodeExpr) {
+            if (ASTUtils.isZero(((CodeExpr) value).getCode())) {
+                // todo #657 remove, CodeExpr should be assumed to be valid
+                return;
+            }
+            // fallthrough
         }
-    }
 
+        error("Invalid time value.", feature);
+    }
 
     /**
      * Return the number of main or federated reactors declared.

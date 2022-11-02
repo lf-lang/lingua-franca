@@ -308,9 +308,7 @@ AssignmentInitializer returns Initializer:
 Parameter:
     (attributes+=Attribute)*
     name=ID (':' type=Type)?
-    init=Initializer
-    // todo make initialization non-mandatory
-    //  https://github.com/lf-lang/lingua-franca/issues/623
+    init=Initializer?
 ;
 
 Expression:

@@ -965,7 +965,7 @@ public class LinguaFrancaValidationTest {
             "    =}",
             "}");
         validator.assertError(parseWithoutError(testCase), LfPackage.eINSTANCE.getTimer(),
-            null, "Parameter is not of time type.");
+            null, "Referenced parameter is not of time type.");
     }
     
     /**
@@ -993,7 +993,7 @@ public class LinguaFrancaValidationTest {
             "    =}",
             "}");
         validator.assertError(parseWithoutError(testCase), LfPackage.eINSTANCE.getTimer(),
-            null, "Invalid time literal.");
+            null, "Invalid time value.");
     }  
     
 
@@ -1222,7 +1222,7 @@ public class LinguaFrancaValidationTest {
 //             }
 //         """
 // Java 11:
-        String testCase = String.join(System.getProperty("line.separator"),
+        String testCase = String.join(System.lineSeparator(),
             "target C;",
             "reactor Bar(a(0),              // ERROR: type missing",
             "            b:int,             // ERROR: uninitialized",
@@ -1232,33 +1232,33 @@ public class LinguaFrancaValidationTest {
             "            q:time(1 msec, 2 msec),  // ERROR: not a list",
             "            y:int(t)           // ERROR: init using parameter",
             ") {",
-            "    state offset:time(42);     // ERROR: units missing",
+            "    state offset:time(45);     // ERROR: units missing",
             "    state w:time(x);           // ERROR: parameter is not a time",
             "    state foo:time(\"bla\");   // ERROR: assigned value not a time",
             "    timer tick(1);             // ERROR: not a time",
             "}");
         Model model = parseWithoutError(testCase);
 
-        
-		validator.assertError(model, LfPackage.eINSTANCE.getParameter(), null,
+
+        validator.assertError(model, LfPackage.eINSTANCE.getParameter(), null, 22, 4,
             "Type declaration missing.");
-        validator.assertError(model, LfPackage.eINSTANCE.getParameter(), null,
+        validator.assertError(model, LfPackage.eINSTANCE.getParameter(), null, 76, 5,
+            "Parameter must have a default value.");
+        validator.assertError(model, LfPackage.eINSTANCE.getParameter(), null, 137, 4,
             "Missing time unit.");
-        validator.assertError(model, LfPackage.eINSTANCE.getParameter(), null,
-            "Invalid time literal.");
-        validator.assertError(model, LfPackage.eINSTANCE.getParameter(), null,
-            "Time parameter cannot be initialized using a list.");   
-        validator.assertError(model, LfPackage.eINSTANCE.getParameter(), null,
+        validator.assertError(model, LfPackage.eINSTANCE.getParameter(), null, 214, 7,
+            "Invalid time value.");
+        validator.assertError(model, LfPackage.eINSTANCE.getParameter(), null, 265, 16,
+            "Expected exactly one time value.");
+        validator.assertError(model, LfPackage.eINSTANCE.getParameter(), null, 322, 3,
             "Parameter cannot be initialized using parameter.");
-        validator.assertError(model, LfPackage.eINSTANCE.getStateVar(), null,
-                              "Missing time unit.");
-        validator.assertError(model, LfPackage.eINSTANCE.getStateVar(), null,
-            "Parameter is not of time type.");
-        validator.assertError(model, LfPackage.eINSTANCE.getStateVar(), null,
-                              "Invalid time literal.");
-        validator.assertError(model, LfPackage.eINSTANCE.getParameter(), null,
-            "Uninitialized parameter.");
-       	validator.assertError(model, LfPackage.eINSTANCE.getTimer(), null,
+        validator.assertError(model, LfPackage.eINSTANCE.getStateVar(), null, 392, 4,
+            "Missing time unit.");
+        validator.assertError(model, LfPackage.eINSTANCE.getStateVar(), null, 442, 3,
+            "Referenced parameter is not of time type.");
+        validator.assertError(model, LfPackage.eINSTANCE.getStateVar(), null, 509, 7,
+            "Invalid time value.");
+        validator.assertError(model, LfPackage.eINSTANCE.getTimer(), null,
             "Missing time unit.");
     }  
     

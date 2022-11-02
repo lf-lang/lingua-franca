@@ -1136,7 +1136,7 @@ public class ASTUtils {
             // time value with units, we infer the type "time".
             if (single instanceof ParameterReference) {
                 return getInferredType(((ParameterReference) single).getParameter());
-            } else if (ASTUtils.isValidTime(single)) {
+            } else if (single instanceof Time) {
                 return InferredType.time();
             }
         } else if (init.getExprs().size() > 1) {
