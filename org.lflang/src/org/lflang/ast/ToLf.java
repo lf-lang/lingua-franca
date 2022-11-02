@@ -34,6 +34,7 @@ import org.lflang.lf.AttrParmValue;
 import org.lflang.lf.Attribute;
 import org.lflang.lf.BuiltinTriggerRef;
 import org.lflang.lf.Code;
+import org.lflang.lf.CodeExpr;
 import org.lflang.lf.Connection;
 import org.lflang.lf.Deadline;
 import org.lflang.lf.Element;
@@ -224,6 +225,11 @@ public class ToLf extends LfSwitch<MalleableString> {
             }
         }
         return ret;
+    }
+
+    @Override
+    public MalleableString caseCodeExpr(CodeExpr object) {
+        return caseCode(object.getCode());
     }
 
     @Override
@@ -877,6 +883,11 @@ public class ToLf extends LfSwitch<MalleableString> {
         }
         msb.append(initializer(object.getRhs(), false));
         return msb.get();
+    }
+
+    @Override
+    public MalleableString caseInitializer(Initializer object) {
+        return initializer(object, false);
     }
 
     private MalleableString initializer(Initializer init, boolean nothingIfEmpty) {

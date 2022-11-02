@@ -291,9 +291,16 @@ VarRefOrModeTransition returns VarRef:
 
 Assignment:
     lhs=[Parameter]
-    // todo update this grammar when = initializers are a thing.
-    (equals='=')? rhs=Initializer
-    ;
+    (equals='=')? rhs=AssignmentInitializer
+;
+
+// TODO fold that into Initializer when = initializer are introduced
+AssignmentInitializer returns Initializer:
+      exprs+=Expression
+    | parens?='(' (exprs+=Expression (','  exprs+=Expression)* (trailingComma?=',')?)? ')'
+    | braces?='{' (exprs+=Expression (','  exprs+=Expression)* (trailingComma?=',')?)? '}'
+;
+
 
 /**
  * Parameter declaration with optional type and mandatory initialization.

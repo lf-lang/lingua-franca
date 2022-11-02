@@ -1087,8 +1087,24 @@ public class ASTUtils {
      * return it. Otherwise, return null.
      */
     public static Expression asSingleExpr(Initializer init) {
+        if (init == null) {
+            return null;
+        }
         var exprs = init.getExprs();
         return exprs.size() == 1 ? exprs.get(0) : null;
+    }
+
+    public static boolean isSingleExpr(Initializer init) {
+        // todo expand that to = initialization
+        if (init == null) {
+            return false;
+        }
+        var exprs = init.getExprs();
+        return exprs.size() == 1;
+    }
+
+    public static boolean isListInitializer(Initializer init) {
+        return init != null && !isSingleExpr(init);
     }
 
     /**

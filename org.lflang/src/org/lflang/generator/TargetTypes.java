@@ -4,6 +4,8 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
+import org.checkerframework.checker.nullness.qual.NonNull;
+
 import org.lflang.ASTUtils;
 import org.lflang.InferredType;
 import org.lflang.TimeValue;
@@ -208,12 +210,14 @@ public interface TargetTypes {
      * expression in target code. The given type, if non-null,
      * may inform the code generation.
      *
-     * @param init           Initializer node (non-null)
+     * @param init           Initializer node (nullable)
      * @param type           Declared type of the expression (nullable)
      */
-    default String getTargetInitializer(Initializer init, Type type) {
-        Objects.requireNonNull(init);
+    default String getTargetInitializer(@NonNull Initializer init, Type type) {
         var inferredType = ASTUtils.getInferredType(type, init);
+        if (init == null) {
+            return getMissingExpr(inferredType);
+        }
         var single = ASTUtils.asSingleExpr(init);
         if (single != null) {
             return getTargetExpr(single, inferredType);

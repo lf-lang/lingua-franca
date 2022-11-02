@@ -177,28 +177,17 @@ public class LFValidator extends BaseLFValidator {
     public void checkAssignment(Assignment assignment) {
 
         // If the left-hand side is a time parameter, make sure the assignment has units
-        if (isOfTimeType(assignment.getLhs())) {
-            var single = ASTUtils.asSingleExpr(assignment.getRhs());
-            if (single == null) {
-                error("Incompatible type.", Literals.ASSIGNMENT__RHS);
-            } else {
-                checkExpressionIsTime(single, Literals.ASSIGNMENT__RHS);
-            }
-            // If this assignment overrides a parameter that is used in a deadline,
-            // report possible overflow.
-            if (isCBasedTarget() &&
-                this.info.overflowingAssignments.contains(assignment)) {
-                error(
-                    "Time value used to specify a deadline exceeds the maximum of " +
-                        TimeValue.MAX_LONG_DEADLINE + " nanoseconds.",
-                    Literals.ASSIGNMENT__RHS);
-            }
+        typeCheck(assignment.getRhs(), ASTUtils.getInferredType(assignment.getLhs()), Literals.ASSIGNMENT__RHS);
+        // If this assignment overrides a parameter that is used in a deadline,
+        // report possible overflow.
+        if (isCBasedTarget() &&
+            this.info.overflowingAssignments.contains(assignment)) {
+            error(
+                "Time value used to specify a deadline exceeds the maximum of " +
+                    TimeValue.MAX_LONG_DEADLINE + " nanoseconds.",
+                Literals.ASSIGNMENT__RHS);
         }
 
-        // FIXME: lhs is list => rhs is list
-        // lhs is fixed with size n => rhs is fixed with size n
-        // FIXME": similar checks for decl/init
-        // Specifically for C: list can only be literal or time lists
     }
 
     @Check(CheckType.FAST)
@@ -979,6 +968,7 @@ public class LFValidator extends BaseLFValidator {
         }
 
         if (isCBasedTarget()
+            && ASTUtils.isListInitializer(stateVar.getInit())
             && stateVar.getInit().getExprs().stream().anyMatch(it -> it instanceof ParameterReference)) {
             // In C, if initialization is done with a list, elements cannot
             // refer to parameters.
@@ -1581,7 +1571,7 @@ public class LFValidator extends BaseLFValidator {
 
 
     /**
-     * Check that the initializer is compatible with the type of value.
+     * Check that the initializer is compatible with the type.
      * Note that if the type is inferred it will necessarily be compatible
      * so this method is not harmful.
      */
@@ -1589,6 +1579,11 @@ public class LFValidator extends BaseLFValidator {
         if (init == null) {
             return;
         }
+
+        // TODO:
+        //  type is list => init is list
+        //  type is fixed with size n => init is fixed with size n
+        // Specifically for C: list can only be literal or time lists
 
         if (type.isTime) {
             if (type.isList) {

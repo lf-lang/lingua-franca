@@ -19,6 +19,7 @@ import org.lflang.lf.AttrParmValue;
 import org.lflang.lf.Attribute;
 import org.lflang.lf.BuiltinTriggerRef;
 import org.lflang.lf.Code;
+import org.lflang.lf.CodeExpr;
 import org.lflang.lf.Connection;
 import org.lflang.lf.Deadline;
 import org.lflang.lf.Element;
@@ -534,6 +535,11 @@ public class IsEqual extends LfSwitch<Boolean> {
             .equalAsObjects(Host::getAddr)
             .equalAsObjects(Host::getPort)
             .conclusion;
+    }
+
+    @Override
+    public Boolean caseCodeExpr(CodeExpr object) {
+        return caseCode(object.getCode());
     }
 
     @Override
