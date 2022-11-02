@@ -67,7 +67,7 @@ class CppStandaloneMainGenerator(
             |  unsigned workers = ${if (targetConfig.workers != 0) targetConfig.workers else "std::thread::hardware_concurrency()"};
             |  bool fast{${targetConfig.fastMode}};
             |  bool keepalive{${targetConfig.keepalive}};
-            |  reactor::Duration timeout = ${targetConfig.timeout?.toTimeNode().orZero().toCppCode()};
+            |  reactor::Duration timeout = ${targetConfig.timeout?.toTimeNode().orZero().toCppTime()};
             |  
             |  // the timeout variable needs to be tested beyond fitting the Duration-type 
             |  options

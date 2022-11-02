@@ -9,6 +9,7 @@ import org.lflang.InferredType;
 import org.lflang.TimeValue;
 import org.lflang.lf.Action;
 import org.lflang.lf.Code;
+import org.lflang.lf.CodeExpr;
 import org.lflang.lf.Expression;
 import org.lflang.lf.Initializer;
 import org.lflang.lf.Literal;
@@ -241,8 +242,8 @@ public interface TargetTypes {
             return getTargetTimeExpr((Time) expr);
         } else if (expr instanceof Literal) {
             return ASTUtils.addZeroToLeadingDot(((Literal) expr).getLiteral()); // here we don't escape
-        } else if (expr instanceof Code) {
-            return ASTUtils.toText(expr);
+        } else if (expr instanceof CodeExpr) {
+            return ASTUtils.toText(((CodeExpr) expr).getCode());
         } else {
             throw new IllegalStateException("Invalid value " + expr);
         }
