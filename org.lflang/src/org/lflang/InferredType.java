@@ -26,8 +26,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 package org.lflang;
 
 import java.util.function.Function;
+
 import org.eclipse.emf.ecore.EObject;
-import org.jetbrains.annotations.Nullable;
 
 import org.lflang.lf.Type;
 
