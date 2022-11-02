@@ -62,6 +62,8 @@ jobs:
         run: |
           source /opt/ros/*/setup.bash
           ./gradlew test --tests org.lflang.tests.serialization.SerializationTest.*
+      - name: debug-serialization-tests
+        uses: lhotari/action-upterm@v1
       - name: Report to CodeCov
         uses: codecov/codecov-action@v2.1.0
         with:
