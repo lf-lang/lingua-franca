@@ -117,7 +117,7 @@ public class CCmakeGenerator {
         additionalSources.addAll(this.additionalSources);
         cMakeCode.newLine();
 
-        cMakeCode.pr("cmake_minimum_required(VERSION " + CMAKE_MINIMUM_VERSION);
+        cMakeCode.pr("cmake_minimum_required(VERSION " + CMAKE_MINIMUM_VERSION + ")");
         cMakeCode.pr("project("+executableName+" LANGUAGES C)");
         cMakeCode.newLine();
 
