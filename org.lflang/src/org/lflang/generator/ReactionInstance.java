@@ -191,6 +191,7 @@ public class ReactionInstance extends NamedInstance<Reaction> {
         if (this.definition.getDeadline() != null) {
             this.declaredDeadline = new DeadlineInstance(
                 this.definition.getDeadline(), this);
+            this.deadline = this.declaredDeadline.maxDelay;
         }
     }
 
