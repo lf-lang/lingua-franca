@@ -4,30 +4,28 @@ target C {
     threading: false
 }
 
-preamble {=
-    int global_cnt = 0;
-=}
+preamble {= int global_cnt = 0; =}
 
 reactor NoDeadline {
     timer t(0 msec, 100 msec)
-    reaction(t) {=
-        global_cnt++;
-    =}
+
+    reaction(t) {= global_cnt++; =}
 }
 
 reactor WithDeadline {
     timer t(0 msec, 100 msec)
-    reaction(t) {==}
+
+    reaction(t) {=  =}
+
     reaction(t) {=
         if (global_cnt != 0) {
             lf_print_error_and_exit("Deadline reaction was not executed first. cnt=%i", global_cnt);
         }
         global_cnt--;
-    =} deadline (100 msec) {==}
+    =} deadline(100 msec) {=  =}
 }
 
 main reactor {
     a = new NoDeadline()
     b = new WithDeadline()
 }
-
