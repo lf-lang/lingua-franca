@@ -504,16 +504,24 @@ public class ReactionInstance extends NamedInstance<Reaction> {
      * Find the inherited deadline which is the least deadline of all
      * downstream reactions. This inherited deadline is used to assign
      * priority to the reaction
+     *  FIXME: This can be more efficient by actually storing, the inferred deadline
+     *      in each Reaction and reusing it. Instead of "pushing" all the way down
+     *      recursively for each Reaction
      */
-    // FIXME: Needs to be recursive to support chains.
-    public TimeValue getInheritedDeadline() {
-        var minDeadline = TimeValue.MAX_VALUE;
+    public TimeValue getInferredDeadline() {
+        var currDeadline = TimeValue.MAX_VALUE;
+        if (declaredDeadline != null) {
+            currDeadline = declaredDeadline.maxDelay;
+        }
+
         for (ReactionInstance r : dependentReactions()) {
-            if (r.deadline.isEarlierThan(minDeadline)) {
-                minDeadline = r.deadline;
+            var childDeadline = r.getInferredDeadline();
+            if (childDeadline.isEarlierThan(currDeadline)) {
+                currDeadline = childDeadline;
             }
         }
-        return minDeadline;
+
+        return currDeadline;
     }
 
     //////////////////////////////////////////////////////

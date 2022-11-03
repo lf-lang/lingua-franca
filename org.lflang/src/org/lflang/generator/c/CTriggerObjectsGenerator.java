@@ -368,6 +368,9 @@ public class CTriggerObjectsGenerator {
         for (ReactionInstance r : reactor.reactions) {
             if (currentFederate.contains(r.getDefinition())) {
                 foundOne = true;
+                // Update the inferredDeadline of reaction.
+                r.deadline = r.getInferredDeadline();
+
                 // The most common case is that all runtime instances of the
                 // reaction have the same level, so deal with that case
                 // specially.
