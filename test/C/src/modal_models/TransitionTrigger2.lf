@@ -1,0 +1,48 @@
+/**
+ * Destination cannot react to y. Only if x is also a trigger (uncomment
+ * reaction) it will work.
+ */
+target C {
+    logging: debug
+}
+
+reactor Source {
+    output x: bool
+    output y: bool
+
+    reaction(startup) -> x, y {=
+        lf_print("S");
+        lf_set(y, true);
+    =}
+}
+
+reactor Destination {
+    input x: bool
+    input y: bool
+
+    state gotY: bool(false)
+
+    // Uncomment to make example work because the unused x connection will make y work 
+//    reaction(y, x) {=
+//      lf_print("XY");
+//     =}
+
+    reaction(y) {=
+        lf_print("Y");
+        self->gotY = true;
+    =}
+
+    reaction(shutdown) {=
+        if (!self->gotY) {
+            lf_print_error_and_exit("No reaction to Y!");
+        }
+    =}
+}
+
+main reactor {
+    ui = new Source()
+    dlc = new Destination()
+
+    ui.x -> dlc.x
+    ui.y -> dlc.y
+}
