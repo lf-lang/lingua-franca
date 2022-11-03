@@ -382,7 +382,8 @@ public class CTriggerObjectsGenerator {
                     }
                     // xtend doesn't support bitwise operators...
                     var indexValue = r.deadline.toNanoSeconds() << 16 | level;
-                    var reactionIndex = "0x" + Long.toString(indexValue, 16) + "LL";
+                    
+                    var reactionIndex = "0x" + Long.toUnsignedString(indexValue, 16) + "LL";
 
                     temp.pr(String.join("\n",
                         CUtil.reactionRef(r)+".chain_id = "+r.chainID+";",
