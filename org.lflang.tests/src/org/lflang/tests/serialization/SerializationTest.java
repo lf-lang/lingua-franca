@@ -15,10 +15,6 @@ public class SerializationTest extends TestBase {
         super(Target.ALL);        
     }
 
-
-    /**
-     * Override to add some LFC arguments to all runs of this test class.
-     */
     @Override
     protected void addExtraLfcArgs(Properties args) {
         super.addExtraLfcArgs(args);
