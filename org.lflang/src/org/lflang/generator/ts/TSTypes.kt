@@ -3,6 +3,8 @@ package org.lflang.generator.ts
 import org.lflang.ASTUtils
 import org.lflang.TimeValue
 import org.lflang.generator.TargetTypes
+import org.lflang.generator.UnsupportedGeneratorFeatureException
+import org.lflang.joinWithCommas
 import org.lflang.lf.StateVar
 
 object TSTypes : TargetTypes {
@@ -41,11 +43,15 @@ object TSTypes : TargetTypes {
         }
     }
 
-    override fun getTargetFixedSizeListType(baseType: String, size: Int): String {
-        return "Array($size)<$baseType>"
+    override fun getTargetFixedSizeListType(baseType: String?, size: Int): String {
+        throw UnsupportedGeneratorFeatureException("TypeScript does not support fixed-size array types.")
     }
 
     override fun getTargetVariableSizeListType(baseType: String): String {
-        return "Array<$baseType>"
+        return "Array<$baseType>" // same as "$baseType[]"
+    }
+
+    override fun getVariableSizeListInitExpression(contents: MutableList<String>, withBraces: Boolean): String {
+        return contents.joinWithCommas("[", "]")
     }
 }
