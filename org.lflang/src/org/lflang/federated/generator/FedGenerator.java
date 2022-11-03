@@ -122,6 +122,7 @@ public class FedGenerator {
     public boolean doGenerate(Resource resource, LFGeneratorContext context) throws IOException {
         initializeTargetConfig(context);
 
+        this.cleanIfNeeded(context);
 
         // In a federated execution, we need keepalive to be true,
         // otherwise a federate could exit simply because it hasn't received
@@ -163,6 +164,21 @@ public class FedGenerator {
         Map<Path, CodeMap> codeMapMap = compileFederates(context, lf2lfCodeMapMap);
         context.finish(Status.COMPILED, fileConfig.name, fileConfig, codeMapMap);
         return false;
+    }
+
+    /**
+     * Check if a clean was requested from the standalone compiler and perform
+     * the clean step.
+     * @param context
+     */
+    protected void cleanIfNeeded(LFGeneratorContext context) {
+        if (context.getArgs().containsKey("clean")) {
+            try {
+                fileConfig.doClean();
+            } catch (IOException e) {
+                System.err.println("WARNING: IO Error during clean");
+            }
+        }
     }
 
     /**
