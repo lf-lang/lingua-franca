@@ -84,6 +84,7 @@ IGNORED_FILES = [
     'META-INF/p2.inf',
     'META-INF/versions/*/module-info.class',
     'OSGI-INF/l10n/bundle.properties',
+    'OSGI-INF/repositoryManager.xml',
     'docs/*',
     '*readme.txt',
     'plugin.xml',
