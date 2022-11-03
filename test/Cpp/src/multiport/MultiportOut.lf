@@ -36,7 +36,7 @@ reactor Destination {
 
     reaction(in) {=
         int sum = 0;
-        for (auto i : in.get_present_port_indices()) {
+        for (auto i : in.present_indices_unsorted()) {
             sum += *in[i].get();
         }
         std::cout << "Sum of received: " << sum << ".\n";
