@@ -4,31 +4,25 @@ target Rust {
     cargo-features: ["cli"]
 }
 
-main reactor AsyncCallback(a: time(1 ms)) {
+main reactor AsyncCallback(period: time(1 ms)) {
     preamble {=
         use std::thread;
     =}
 
-    timer t(0, a)
-    state threads: Vec<thread::JoinHandle<unit>>
-    state expected_time: time(a)
-    state period: time(a)
+    timer t(0, period)
+    state thread: Option<thread::JoinHandle<unit>>
+    state expected_time: time(period)
+    state period: time(period)
     state toggle: bool(false)
 
     physical action act
     state i: u32(0)
 
     reaction(t) -> act {=
-
-        if self.threads.len() == 16 {
-            let thread = self.threads.pop().unwrap();
-            thread.join().ok();
-        }
-
         let act = act.clone();
         let period = self.period;
         // start new thread
-        self.threads.push(ctx.spawn_physical_thread(move |ctx| {
+        let new_thread = ctx.spawn_physical_thread(move |ctx| {
             // Simulate time passing before a callback occurs
             thread::sleep(period);
             // Schedule twice. If the action is not physical, these should
@@ -37,14 +31,18 @@ main reactor AsyncCallback(a: time(1 ms)) {
             // equal time stamps.
             ctx.schedule_physical(&act, Asap).ok();
             ctx.schedule_physical(&act, Asap).ok();
-        }));
+        });
+
+        if let Some(old_thread) = self.thread.replace(new_thread) {
+            old_thread.join().ok();
+        }
     =}
 
     reaction(act) {=
         let elapsed_time = ctx.get_elapsed_logical_time();
-    //    let i = self.i;
-//        println!("Asynchronous callback {}: Assigned logical time greater than start time by {} ms",
-  //               i, elapsed_time.as_millis());
+        let i = self.i;
+        println!("Asynchronous callback {}: Assigned logical time greater than start time by {} ms",
+                 i, elapsed_time.as_millis());
         assert!(elapsed_time > self.expected_time,"ERROR: Expected logical time to be larger than {} ms", self.expected_time.as_millis());
 
         self.i += 1;
@@ -55,8 +53,9 @@ main reactor AsyncCallback(a: time(1 ms)) {
     =}
 
     reaction(shutdown) {=
-        for thread in self.threads.drain(..) {
+        if let Some(thread) = self.thread.take() {
             thread.join().ok();
         }
+        println!("success");
     =}
 }
