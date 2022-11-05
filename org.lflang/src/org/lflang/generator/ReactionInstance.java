@@ -186,7 +186,6 @@ public class ReactionInstance extends NamedInstance<Reaction> {
         if (this.definition.getDeadline() != null) {
             this.declaredDeadline = new DeadlineInstance(
                 this.definition.getDeadline(), this);
-            this.deadline = this.declaredDeadline.maxDelay;
         }
     }
 
@@ -225,9 +224,9 @@ public class ReactionInstance extends NamedInstance<Reaction> {
     public DeadlineInstance declaredDeadline;
 
     /**
-     * Inferred deadline. Defaults to the maximum long value.
+     * Inferred deadline.
      */
-    public TimeValue deadline = new TimeValue(TimeValue.MAX_LONG_DEADLINE, TimeUnit.NANO);
+    public TimeValue inferredDeadline = null;
 
     /**
      * Sadly, we have no way to mark reaction "unordered" in the AST,
@@ -501,27 +500,30 @@ public class ReactionInstance extends NamedInstance<Reaction> {
     }
 
     /**
-     * Find the inherited deadline which is the least deadline of all
-     * downstream reactions. This inherited deadline is used to assign
-     * priority to the reaction
-     *  FIXME: This can be more efficient by actually storing, the inferred deadline
-     *      in each Reaction and reusing it. Instead of "pushing" all the way down
-     *      recursively for each Reaction
+     * This function sets the inferredDeadline of the reaction.
+     * The inferred deadline is the minimum of the reactions declaredDeadline
+     * and the inferredDeadline of any dependent reaction. This is a recursive definition.
      */
-    public TimeValue getInferredDeadline() {
+    public void setInferredDeadline() {
         var currDeadline = TimeValue.MAX_VALUE;
         if (declaredDeadline != null) {
             currDeadline = declaredDeadline.maxDelay;
         }
 
         for (ReactionInstance r : dependentReactions()) {
-            var childDeadline = r.getInferredDeadline();
-            if (childDeadline.isEarlierThan(currDeadline)) {
-                currDeadline = childDeadline;
+            // In a spiralling bank of reactions, a reaction can depend on itself
+            //  detect and break this cycle.
+            if (r  != this) {
+                if (r.inferredDeadline == null) {
+                    r.setInferredDeadline();
+                }
+            
+                if (r.inferredDeadline.isEarlierThan(currDeadline)) {
+                    currDeadline = r.inferredDeadline;
+                }
             }
         }
-
-        return currDeadline;
+        inferredDeadline = currDeadline;
     }
 
     //////////////////////////////////////////////////////

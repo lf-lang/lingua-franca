@@ -368,8 +368,9 @@ public class CTriggerObjectsGenerator {
         for (ReactionInstance r : reactor.reactions) {
             if (currentFederate.contains(r.getDefinition())) {
                 foundOne = true;
-                // Update the inferredDeadline of reaction.
-                r.deadline = r.getInferredDeadline();
+                
+                // Set the inferredDeadline field in all reactions.                
+                r.setInferredDeadline();
 
                 // The most common case is that all runtime instances of the
                 // reaction have the same level, so deal with that case
@@ -381,23 +382,23 @@ public class CTriggerObjectsGenerator {
                         level = l;
                     }
                     // xtend doesn't support bitwise operators...
-                    var indexValue = r.deadline.toNanoSeconds() << 16 | level;
+                    var indexValue = r.inferredDeadline.toNanoSeconds() << 16 | level;
                     
                     var reactionIndex = "0x" + Long.toUnsignedString(indexValue, 16) + "LL";
 
                     temp.pr(String.join("\n",
                         CUtil.reactionRef(r)+".chain_id = "+r.chainID+";",
                         "// index is the OR of level "+level+" and ",
-                        "// deadline "+r.deadline.toNanoSeconds()+" shifted left 16 bits.",
+                        "// deadline "+r.inferredDeadline.toNanoSeconds()+" shifted left 16 bits.",
                         CUtil.reactionRef(r)+".index = "+reactionIndex+";"
                     ));
                 } else {
-                    var reactionDeadline = "0x" + Long.toString(r.deadline.toNanoSeconds(), 16) + "LL";
+                    var reactionDeadline = "0x" + Long.toString(r.inferredDeadline.toNanoSeconds(), 16) + "LL";
 
                     temp.pr(String.join("\n",
                         CUtil.reactionRef(r)+".chain_id = "+r.chainID+";",
                         "// index is the OR of levels["+CUtil.runtimeIndex(r.getParent())+"] and ",
-                        "// deadline "+r.deadline.toNanoSeconds()+" shifted left 16 bits.",
+                        "// deadline "+r.inferredDeadline.toNanoSeconds()+" shifted left 16 bits.",
                         CUtil.reactionRef(r)+".index = ("+reactionDeadline+" << 16) | "+r.uniqueID()+"_levels["+CUtil.runtimeIndex(r.getParent())+"];"
                     ));
                 }
