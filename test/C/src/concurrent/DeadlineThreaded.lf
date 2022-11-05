@@ -2,10 +2,10 @@
 // the Source immediately, whereas odd numbers are sent after a big enough delay
 // to violate the deadline.
 target C {
-    timeout: 3 sec
+    timeout: 6 sec
 }
 
-reactor Source(period: time(1500 msec)) {
+reactor Source(period: time(3000 msec)) {
     output y: int
     timer t(0, period)
     state count: int(0)
