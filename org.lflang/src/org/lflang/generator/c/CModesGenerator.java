@@ -56,6 +56,11 @@ public class CModesGenerator {
 
             assert initialMode >= 0 : "initial mode must be non-negative!!";
 
+            // Initialize pointer to its containing/parent reactor
+            constructorCode.pr("// Initialize pointer to parent");
+            constructorCode.pr("self->containing_reactor = " + reactor.);
+
+
             // Initialize mode state with initial mode active upon start
             constructorCode.pr(String.join("\n",
                 "// Initialize mode state",
@@ -124,8 +129,9 @@ public class CModesGenerator {
         // If this instance is enclosed in another mode
         if (parentMode != null) {
             var parentModeRef = "&"+CUtil.reactorRef(parentMode.getParent())+"->_lf__modes["+parentMode.getParent().modes.indexOf(parentMode)+"]";
+            code.pr("// Setup pointer to parent/containing reactor");
+            code.pr("((self_base_t*)"+nameOfSelfStruct+")->parent = "+CUtil.reactorRef(instance.parent)+";");
             code.pr("// Setup relation to enclosing mode");
-    
             // If this reactor does not have its own modes, all reactions must be linked to enclosing mode
             if (instance.modes.isEmpty()) {
                 int i = 0;

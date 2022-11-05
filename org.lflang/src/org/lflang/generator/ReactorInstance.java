@@ -165,6 +165,9 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
     /** Indicator that this reactor has itself as a parent, an error condition. */
     public final boolean recursive;
 
+    /** Parent/Containing Reactor **/
+    public final ReactorInstance parent;
+
     //////////////////////////////////////////////////////
     //// Public methods.
     
@@ -767,6 +770,7 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
         this.reporter = reporter;
         this.reactorDeclaration = definition.getReactorClass();
         this.reactorDefinition = ASTUtils.toDefinition(reactorDeclaration);
+        this.parent = parent;
         
         if (unorderedReactions != null) {
             this.unorderedReactions = unorderedReactions;
