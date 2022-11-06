@@ -1,3 +1,4 @@
+
 package org.lflang.generator.python;
 
 import org.lflang.TargetConfig;
@@ -9,7 +10,6 @@ import org.lflang.generator.c.CDockerGenerator;
  * @author{Hou Seng Wong <housengw@berkeley.edu>}
  */
 public class PythonDockerGenerator extends CDockerGenerator {
-    TargetConfig targetConfig;
     final String defaultBaseImage = "python:slim";
 
     public PythonDockerGenerator(boolean isFederated, TargetConfig targetConfig) {
@@ -27,11 +27,11 @@ public class PythonDockerGenerator extends CDockerGenerator {
         return String.join("\n",
             "# For instructions, see: https://github.com/icyphy/lingua-franca/wiki/Containerized-Execution",
             "FROM "+baseImage,
-            "WORKDIR /lingua-franca/"+generatorData.getLfModuleName(),
-            "RUN set -ex && apt-get update && apt-get install -y python3-pip",
+            "WORKDIR /lingua-franca/"+generatorData.lfModuleName(),
+            "RUN set -ex && apt-get update && apt-get install -y python3-pip && pip install cmake",
             "COPY . src-gen",
-            "RUN cd src-gen && python3 setup.py install && cd ..",
-            "ENTRYPOINT [\"python3\", \"src-gen/"+generatorData.getLfModuleName()+".py\"]"
+            super.generateDefaultCompileCommand(),
+            "ENTRYPOINT [\"python3\", \"src-gen/"+generatorData.lfModuleName()+".py\"]"
         );
     }
 }

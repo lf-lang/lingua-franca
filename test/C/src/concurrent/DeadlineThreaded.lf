@@ -14,11 +14,7 @@ reactor Source(period: time(1500 msec)) {
         if (2 * (self->count / 2) != self->count) {
             // The count variable is odd.
             // Take time to cause a deadline violation.
-            // Do not use nanosleep() here because if this is threaded,
-            // it gets awakened right away.
-            interval_t sleep_time = MSEC(400);
-            instant_t start_time = lf_time_physical();
-            while (lf_time_physical() < start_time + sleep_time) {};
+            lf_nanosleep(MSEC(400));
         }
         printf("Source sends: %d.\n", self->count);
         lf_set(y, self->count);

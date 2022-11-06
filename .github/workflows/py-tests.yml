@@ -31,6 +31,7 @@ jobs:
         uses: ./.github/actions/prepare-build-env
       - name: Setup Python
         uses: actions/setup-python@v2
+        if: ${{ runner.os == 'Windows' }}
       - name: Install dependencies OS X
         run: |
           brew install coreutils

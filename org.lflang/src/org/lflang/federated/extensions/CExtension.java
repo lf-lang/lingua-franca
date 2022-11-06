@@ -97,15 +97,6 @@ public class CExtension implements FedTargetExtension {
             return;
         }
 
-
-        if (!federate.targetConfig.useCmake) {
-            errorReporter.reportError(
-                "Only CMake is supported for generating federated programs. " +
-                    "Use `cmake: true` in the target properties. Exiting code generation."
-            );
-            return;
-        }
-
         CExtensionUtils.handleCompileDefinitions(federate, numOfFederates, federationRTIProperties);
 
         generateCMakeInclude(federate, fileConfig);

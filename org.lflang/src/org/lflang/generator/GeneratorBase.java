@@ -238,7 +238,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
      * generation, then a subsequent call to errorsOccurred() will return true.
      * @param resource The resource containing the source code.
      * @param context Context relating to invocation of the code generator.
-     * In stand alone mode, this object is also used to relay CLI arguments.
+     * In standalone mode, this object is also used to relay CLI arguments.
      */
     public void doGenerate(Resource resource, LFGeneratorContext context) {
 
@@ -717,7 +717,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
      * Get textual representation of a value in the target language.
      *
      * If the value evaluates to 0, it is interpreted as a time.
-     * 
+     *
      * @param expr A time AST node
      * @return A time string in the target language
      */

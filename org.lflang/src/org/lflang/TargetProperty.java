@@ -35,7 +35,9 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import org.eclipse.xtext.util.RuntimeIOException;
+import org.lflang.TargetConfig.Board;
 import org.lflang.TargetConfig.DockerOptions;
+import org.lflang.TargetConfig.PlatformOptions;
 import org.lflang.TargetConfig.TracingOptions;
 import org.lflang.generator.InvalidLfSourceException;
 import org.lflang.generator.rust.CargoDependencySpec;
@@ -55,20 +57,10 @@ import com.google.common.collect.ImmutableList;
 /**
  * A target properties along with a type and a list of supporting targets
  * that supports it, as well as a function for configuration updates.
- * 
+ *
  * @author{Marten Lohstroh <marten@berkeley.edu>}
  */
 public enum TargetProperty {
-
-    /**
-     * Directive to specify the baud-rate used by the runtime for embedded systems (Arduino).
-     */
-    BAUD_RATE("baud-rate", PrimitiveType.NON_NEGATIVE_INTEGER,
-            List.of(Target.C, Target.CCPP),
-              (config) -> ASTUtils.toElement(config.baudRate),
-              (config, value, err) -> {
-                config.baudRate = ASTUtils.toInteger(value);
-              }),
 
     /**
      * Directive to let the generator use the custom build command.
@@ -79,7 +71,7 @@ public enum TargetProperty {
             (config, value, err) -> {
                 config.buildCommands = ASTUtils.elementToListOfStrings(value);
             }),
-    
+
     /**
      * Directive to specify the target build type such as 'Release' or 'Debug'.
      * This is also used in the Rust target to select a Cargo profile.
@@ -104,7 +96,6 @@ public enum TargetProperty {
                     config.clockSync = (ClockSyncMode) UnionType.CLOCK_SYNC_UNION
                         .forName(ASTUtils.elementToSingleString(value));
                }),
-    
     /**
      * Key-value pairs giving options for clock synchronization.
      */
@@ -178,7 +169,7 @@ public enum TargetProperty {
                     }
                 }
             }),
-    
+
     /**
      * Directive to specify a cmake to be included by the generated build
      * systems.
@@ -199,19 +190,6 @@ public enum TargetProperty {
             (config, value, err) -> {
                 config.cmakeIncludes.addAll(ASTUtils.elementToListOfStrings(value));
             }),
-    
-    /**
-     * Directive to enable and disable the use of CMake.
-     * 
-     * The default is enabled.
-     */
-    CMAKE("cmake", PrimitiveType.BOOLEAN,
-            Arrays.asList(Target.C, Target.CCPP),
-            (config) -> ASTUtils.toElement(config.useCmake),
-            (config, value, err) -> {
-                config.useCmake = ASTUtils.toBoolean(value);
-            }),
-    
     /**
      * Directive to specify the target compiler.
      */
@@ -264,7 +242,7 @@ public enum TargetProperty {
             },
             (config, value, err) -> setDockerProperty(config, value),
             (config, value, err) -> setDockerProperty(config, value)),
-    
+
     /**
      * Directive for specifying a path to an external runtime to be used for the
      * compiled binary.
@@ -288,7 +266,7 @@ public enum TargetProperty {
                     config.fastModeASTNode = value;
                 }
             }),
-    
+
     /**
      * Directive to stage particular files on the class path to be
      * processed by the code generator.
@@ -305,7 +283,7 @@ public enum TargetProperty {
             (config, value, err) -> {
                 config.fileNames.addAll(ASTUtils.elementToListOfStrings(value));
             }),
-    
+
     /**
      * Flags to be passed on to the target compiler.
      */
@@ -315,7 +293,7 @@ public enum TargetProperty {
             (config, value, err) -> {
                 config.compilerFlags = ASTUtils.elementToListOfStrings(value);
             }),
-    
+
     /**
      * Directive to specify the coordination mode
      */
@@ -330,7 +308,7 @@ public enum TargetProperty {
                 config.coordination = (CoordinationType) UnionType.COORDINATION_UNION
                         .forName(ASTUtils.elementToSingleString(value));
             }),
-    
+
     /**
      * Key-value pairs giving options for clock synchronization.
      */
@@ -382,7 +360,7 @@ public enum TargetProperty {
                  }
              }
             }),
-    
+
     /**
      * Directive to let the execution engine remain active also if there
      * are no more events in the event queue.
@@ -392,7 +370,7 @@ public enum TargetProperty {
             (config, value, err) -> {
                 config.keepalive = ASTUtils.toBoolean(value);
             }),
-    
+
     /**
      * Directive to specify the grain at which to report log messages during execution.
      */
@@ -406,7 +384,7 @@ public enum TargetProperty {
                 config.logLevel = (LogLevel) UnionType.LOGGING_UNION
                     .forName(ASTUtils.elementToSingleString(value));
             }),
-    
+
     /**
      * Directive to not invoke the target compiler.
      */
@@ -416,7 +394,7 @@ public enum TargetProperty {
             (config, value, err) -> {
                 config.noCompile = ASTUtils.toBoolean(value);
             }),
-    
+
     /**
      * Directive to disable validation of reactor rules at runtime.
      */
@@ -428,14 +406,55 @@ public enum TargetProperty {
             }),
 
     /**
-     * Directive to specify the platform for cross code generation.
+     * Directive to specify the platform for cross code generation. This is either a string of the platform
+     * or a dictionary of options that includes the string name.
      */
-    PLATFORM("platform", UnionType.PLATFORM_UNION, Target.ALL,
-             (config) -> ASTUtils.toElement(config.platform.toString()),
-             (config, value, err) -> {
-                 config.platform = (Platform) UnionType.PLATFORM_UNION
-                     .forName(ASTUtils.elementToSingleString(value));
-             }),
+    PLATFORM("platform", UnionType.PLATFORM_STRING_OR_DICTIONARY, Target.ALL,
+            (config) -> {
+                // FIXME: add code to turn platform config into AST node
+                return null;
+            },
+            (config, value, err) -> {
+                if (value.getLiteral() != null) {
+                    config.platformOptions = new PlatformOptions();
+                    config.platformOptions.platform = (Platform) UnionType.PLATFORM_UNION
+                        .forName(ASTUtils.elementToSingleString(value));
+                } else {
+                    config.platformOptions= new PlatformOptions();
+                    for (KeyValuePair entry : value.getKeyvalue().getPairs()) {
+                        PlatformOption option = (PlatformOption) DictionaryType.PLATFORM_DICT
+                                .forName(entry.getName());
+                        switch (option) {
+                            case NAME:
+                                Platform p = (Platform) UnionType.PLATFORM_UNION
+                                    .forName(ASTUtils.elementToSingleString(entry.getValue()));
+                                if(p == null){
+                                    String s = "Unidentified Platform Type, LF supports the following platform types: " + Arrays.asList(Platform.values()).toString();
+                                    err.reportError(s);
+                                    throw new AssertionError(s);
+                                }
+                                config.platformOptions.platform = p;
+                                break;
+                            case BAUDRATE:
+                                config.platformOptions.baudRate = ASTUtils.toInteger(entry.getValue());
+                                break;
+                            case BOARD:
+                                Board b = (Board) UnionType.BOARD_UNION
+                                    .forName(ASTUtils.elementToSingleString(entry.getValue()));
+                                if(b == null){
+                                    String s = "Unidentified Board Type, LF supports the following board types: " + Arrays.asList(Board.values()).toString();
+                                    err.reportError(s);
+                                    throw new AssertionError(s);
+                                }
+
+                                config.platformOptions.board = b;
+                                break;
+                            default:
+                                break;
+                        }
+                    }
+                }
+            }),
 
     /**
      * Directive for specifying .proto files that need to be compiled and their
@@ -478,8 +497,8 @@ public enum TargetProperty {
             (config, value, err) -> {
                 config.runtimeVersion = ASTUtils.elementToSingleString(value);
             }),
-    
-    
+
+
     /**
      * Directive for specifying a specific runtime scheduler, if supported.
      */
@@ -520,7 +539,7 @@ public enum TargetProperty {
             (config, value, err) -> {
                 config.workers = ASTUtils.toInteger(value);
             }),
-    
+
     /**
      * Directive to specify the execution timeout.
      */
@@ -532,7 +551,7 @@ public enum TargetProperty {
             (config, value, err) -> {
                 config.timeout = ASTUtils.toTimeValue(value);
             }),
-    
+
     /**
      * Directive to generate a Dockerfile. This is either a boolean,
      * true or false, or a dictionary of options.
@@ -770,7 +789,7 @@ public enum TargetProperty {
      * validation.
      */
     public final List<Target> supportedBy;
-    
+
     /**
      * The type of values that can be assigned to this property.
      */
@@ -832,11 +851,11 @@ public enum TargetProperty {
         this.setter = setter;
         this.updater = (config, value, err) -> { /* Ignore the update by default */ };
     }
-    
+
     /**
      * Private constructor for target properties. This will take an additional
      * `updater`, which will be used to merge target properties from imported resources.
-     * 
+     *
      * @param description String representation of this property.
      * @param type        The type that values assigned to this property
      *                    should conform to.
@@ -925,7 +944,7 @@ public enum TargetProperty {
 
     /**
      * Update the given configuration using the given target properties.
-     * 
+     *
      * @param config     The configuration object to update.
      * @param properties AST node that holds all the target properties.
      */
@@ -974,13 +993,13 @@ public enum TargetProperty {
 
     /**
      * Return a list with all target properties.
-     * 
+     *
      * @return All existing target properties.
      */
     public static List<TargetProperty> getOptions() {
         return Arrays.asList(TargetProperty.values());
     }
-    
+
     /**
      * Return the description.
      */
@@ -1034,42 +1053,43 @@ public enum TargetProperty {
     /**
      * A dictionary type with a predefined set of possible keys and assignable
      * types.
-     * 
+     *
      * @author {Marten Lohstroh <marten@berkeley.edu>}
      *
      */
     public enum DictionaryType implements TargetPropertyType {
         CLOCK_SYNC_OPTION_DICT(Arrays.asList(ClockSyncOption.values())),
         DOCKER_DICT(Arrays.asList(DockerOption.values())),
+        PLATFORM_DICT(Arrays.asList(PlatformOption.values())),
         COORDINATION_OPTION_DICT(Arrays.asList(CoordinationOption.values())),
         TRACING_DICT(Arrays.asList(TracingOption.values()));
-        
+
         /**
          * The keys and assignable types that are allowed in this dictionary.
          */
         public List<DictionaryElement> options;
-    
+
         /**
          * A dictionary type restricted to sets of predefined keys and types of
          * values.
-         * 
+         *
          * @param options The dictionary elements allowed by this type.
          */
         private DictionaryType(List<DictionaryElement> options) {
             this.options = options;
         }
-        
+
         /**
          * Return the dictionary element of which the key matches the given
          * string.
-         * 
+         *
          * @param name The string to match against.
          * @return The matching dictionary element (or null if there is none).
          */
         public DictionaryElement forName(String name) {
             return Target.match(name, options);
         }
-        
+
         /**
          * Recursively check that the passed in element conforms to the rules of
          * this dictionary.
@@ -1097,7 +1117,7 @@ public enum TargetProperty {
                 }
             }
         }
-        
+
         /**
          * Return true if the given element represents a dictionary, false
          * otherwise.
@@ -1109,7 +1129,7 @@ public enum TargetProperty {
             }
             return false;
         }
-        
+
         /**
          * Return a human-readable description of this type.
          */
@@ -1122,13 +1142,16 @@ public enum TargetProperty {
     }
     /**
      * A type that can assume one of several types.
-     * 
+     *
      * @author{Marten Lohstroh <marten@berkeley.edu>}
      *
      */
     public enum UnionType implements TargetPropertyType {
         STRING_OR_STRING_ARRAY(
                 Arrays.asList(PrimitiveType.STRING, ArrayType.STRING_ARRAY),
+                null),
+        PLATFORM_STRING_OR_DICTIONARY(
+                Arrays.asList(PrimitiveType.STRING, DictionaryType.PLATFORM_DICT),
                 null),
         FILE_OR_FILE_ARRAY(
                 Arrays.asList(PrimitiveType.FILE, ArrayType.FILE_ARRAY), null),
@@ -1138,45 +1161,46 @@ public enum TargetProperty {
         SCHEDULER_UNION(Arrays.asList(SchedulerOption.values()), SchedulerOption.getDefault()),
         LOGGING_UNION(Arrays.asList(LogLevel.values()), LogLevel.INFO),
         PLATFORM_UNION(Arrays.asList(Platform.values()), Platform.AUTO),
+        BOARD_UNION(Arrays.asList(Board.values()), Board.NONE),
         CLOCK_SYNC_UNION(Arrays.asList(ClockSyncMode.values()),
                 ClockSyncMode.INIT),
         DOCKER_UNION(Arrays.asList(PrimitiveType.BOOLEAN, DictionaryType.DOCKER_DICT),
                 null),
         TRACING_UNION(Arrays.asList(PrimitiveType.BOOLEAN, DictionaryType.TRACING_DICT),
                 null);
-    
+
         /**
          * The constituents of this type union.
          */
         public final List<Enum<?>> options;
-        
+
         /**
          * The default type, if there is one.
          */
         private final Enum<?> defaultOption;
-        
+
         /**
          * Private constructor for creating unions types.
-         * 
+         *
          * @param options The types that that are part of the union.
          * @param defaultOption The default type.
          */
         private UnionType(List<Enum<?>> options, Enum<?> defaultOption) {
             this.options = options;
-            this.defaultOption = defaultOption; 
+            this.defaultOption = defaultOption;
         }
-        
+
         /**
          * Return the type among those in this type union that matches the given
          * name.
-         * 
+         *
          * @param name The string to match against.
          * @return The matching dictionary element (or null if there is none).
          */
         public Enum<?> forName(String name) {
             return Target.match(name, options);
         }
-        
+
         /**
          * Recursively check that the passed in element conforms to the rules of
          * this union.
@@ -1201,11 +1225,11 @@ public enum TargetProperty {
                 TargetPropertyType.produceError(name, this.toString(), v);
             }
         }
-    
+
         /**
          * Internal method for matching a given element against the allowable
          * types.
-         * 
+         *
          * @param e AST node that represents the value of a target property.
          * @return The matching type wrapped in an Optional object.
          */
@@ -1219,7 +1243,7 @@ public enum TargetProperty {
                 }
             }).findAny();
         }
-        
+
         /**
          * Return true if this union has an option that matches the given
          * element.
@@ -1232,7 +1256,7 @@ public enum TargetProperty {
             }
             return false;
         }
-        
+
         /**
          * Return a human-readable description of this type. If three is a
          * default option, then indicate it.
@@ -1247,33 +1271,33 @@ public enum TargetProperty {
                 }
             }).collect(Collectors.joining(", "));
         }
-    
+
     }
 
     /**
      * An array type of which the elements confirm to a given type.
-     * 
+     *
      * @author{Marten Lohstroh <marten@berkeley.edu>}
      *
      */
     public enum ArrayType implements TargetPropertyType {
         STRING_ARRAY(PrimitiveType.STRING),
         FILE_ARRAY(PrimitiveType.FILE);
-        
+
         /**
          * Type parameter of this array type.
          */
         public TargetPropertyType type;
-        
+
         /**
          * Private constructor to create a new array type.
-         * 
+         *
          * @param type The type of elements in the array.
          */
         private ArrayType(TargetPropertyType type) {
             this.type = type;
         }
-        
+
         /**
          * Check that the passed in element represents an array and ensure that
          * its elements are all of the correct type.
@@ -1290,7 +1314,7 @@ public enum TargetProperty {
                 }
             }
         }
-        
+
         /**
          * Return true of the given element is an array.
          */
@@ -1301,7 +1325,7 @@ public enum TargetProperty {
             }
             return false;
         }
-        
+
         /**
          * Return a human-readable description of this type.
          */
@@ -1310,31 +1334,31 @@ public enum TargetProperty {
             return "an array of which each element is " + this.type.toString();
         }
     }
-    
+
     /**
      * Enumeration of Cmake build types. These are also mapped
      * to Cargo profiles for the Rust target (see {@link org.lflang.generator.rust.RustTargetConfig})
-     * 
+     *
      * @author Christian Menard {@literal <christian.menard@tu-dresden.de>}
      */
     public enum BuildType {
-        RELEASE("Release"), 
-        DEBUG("Debug"), 
-        REL_WITH_DEB_INFO("RelWithDebInfo"), 
+        RELEASE("Release"),
+        DEBUG("Debug"),
+        REL_WITH_DEB_INFO("RelWithDebInfo"),
         MIN_SIZE_REL("MinSizeRel");
-        
+
         /**
          * Alias used in toString method.
          */
         private final String alias;
-        
+
         /**
          * Private constructor for Cmake build types.
          */
         BuildType(String alias) {
             this.alias = alias;
         }
-        
+
         /**
          * Return the alias.
          */
@@ -1346,12 +1370,12 @@ public enum TargetProperty {
 
     /**
      * Enumeration of coordination types.
-     * 
+     *
      * @author{Marten Lohstroh <marten@berkeley.edu>}
      */
     public enum CoordinationType {
         CENTRALIZED, DECENTRALIZED;
-        
+
         /**
          * Return the name in lower case.
          */
@@ -1360,21 +1384,21 @@ public enum TargetProperty {
             return this.name().toLowerCase();
         }
     }
-    
-    
+
+
     /**
      * Enumeration of clock synchronization modes.
-     * 
+     *
      * - OFF: The clock synchronization is universally off.
      * - STARTUP: Clock synchronization occurs at startup only.
      * - ON: Clock synchronization occurs at startup and at runtime.
-     * 
+     *
      * @author{Edward A. Lee <eal@berkeley.edu>}
      */
     public enum ClockSyncMode {
         OFF, INIT, ON; // TODO Discuss initial in now a mode keyword (same as startup) and cannot be used as target property value, thus changed it to init
         // FIXME I could not test if this change breaks anything
-        
+
         /**
          * Return the name in lower case.
          */
@@ -1386,33 +1410,33 @@ public enum TargetProperty {
 
     /**
      * An interface for types associated with target properties.
-     * 
+     *
      * @author{Marten Lohstroh <marten@berkeley.edu>}
      */
     public interface TargetPropertyType {
-    
+
         /**
          * Return true if the the given Element is a valid instance of this
          * type.
-         * 
+         *
          * @param e The Element to validate.
          * @return True if the element conforms to this type, false otherwise.
          */
         public boolean validate(Element e);
-    
+
         /**
          * Check (recursively) the given Element against its associated type(s)
          * and add found problems to the given list of errors.
-         * 
+         *
          * @param e    The Element to type check.
          * @param name The name of the target property.
          * @param v    A reference to the validator to report errors to.
          */
         public void check(Element e, String name, LFValidator v);
-    
+
         /**
          * Helper function to produce an error during type checking.
-         * 
+         *
          * @param name        The description of the target property.
          * @param description The description of the type.
          * @param v           A reference to the validator to report errors to.
@@ -1427,7 +1451,7 @@ public enum TargetProperty {
     /**
      * Primitive types for target properties, each with a description used in
      * error messages and predicate used for validating values.
-     * 
+     *
      * @author{Marten Lohstroh <marten@berkeley.edu>}
      */
     public enum PrimitiveType implements TargetPropertyType {
@@ -1458,7 +1482,7 @@ public enum TargetProperty {
                 && (v.getTime() == 0 || v.getUnit() != null)),
         STRING("a string", v -> v.getLiteral() != null && !isCharLiteral(v.getLiteral()) || v.getId() != null),
         FILE("a path to a file", STRING.validator);
-    
+
         /**
          * A description of this type, featured in error messages.
          */
@@ -1469,12 +1493,12 @@ public enum TargetProperty {
          * type.
          */
         public final Predicate<Element> validator;
-    
+
         /**
          * Private constructor to create a new primitive type.
-         * @param description A textual description of the type that should 
+         * @param description A textual description of the type that should
          * start with "a/an".
-         * @param validator A predicate that returns true if a given Element 
+         * @param validator A predicate that returns true if a given Element
          * conforms to this type.
          */
         private PrimitiveType(String description,
@@ -1482,18 +1506,18 @@ public enum TargetProperty {
             this.description = description;
             this.validator = validator;
         }
-    
+
         /**
          * Return true if the the given Element is a valid instance of this type.
          */
         public boolean validate(Element e) {
             return this.validator.test(e);
         }
-        
+
         /**
          * Check (recursively) the given Element against its associated type(s)
          * and add found problems to the given list of errors.
-         * 
+         *
          * @param e      The element to type check.
          * @param name   The name of the target property.
          * @param v      The LFValidator to append errors to.
@@ -1509,7 +1533,7 @@ public enum TargetProperty {
             /*
             if (this == FILE) {
                 String file = ASTUtils.toSingleString(e);
-                 
+
                 if (!FileConfig.fileExists(file, FileConfig.toPath(e.eResource().getURI()).toFile().getParent())) {
                     v.targetPropertyWarnings
                             .add("Could not find file: '" + file + "'.");
@@ -1517,7 +1541,7 @@ public enum TargetProperty {
             }
             */
         }
-    
+
         /**
          * Return a textual description of this type.
          */
@@ -1545,17 +1569,17 @@ public enum TargetProperty {
         TEST_OFFSET("test-offset", PrimitiveType.TIME_VALUE),
         TRIALS("trials", PrimitiveType.NON_NEGATIVE_INTEGER),
         COLLECT_STATS("collect-stats", PrimitiveType.BOOLEAN);
-        
+
         public final PrimitiveType type;
-        
+
         private final String description;
-        
+
         private ClockSyncOption(String alias, PrimitiveType type) {
             this.description = alias;
             this.type = type;
         }
-        
-        
+
+
         /**
          * Return the description of this dictionary element.
          */
@@ -1563,7 +1587,7 @@ public enum TargetProperty {
         public String toString() {
             return this.description;
         }
-    
+
         /**
          * Return the type associated with this dictionary element.
          */
@@ -1578,16 +1602,16 @@ public enum TargetProperty {
      */
     public enum DockerOption implements DictionaryElement {
         FROM("FROM", PrimitiveType.STRING);
-        
+
         public final PrimitiveType type;
-        
+
         private final String description;
-        
+
         private DockerOption(String alias, PrimitiveType type) {
             this.description = alias;
             this.type = type;
         }
-        
+
         /**
          * Return the description of this dictionary element.
          */
@@ -1595,7 +1619,43 @@ public enum TargetProperty {
         public String toString() {
             return this.description;
         }
-    
+
+        /**
+         * Return the type associated with this dictionary element.
+         */
+        public TargetPropertyType getType() {
+            return this.type;
+        }
+    }
+
+
+    /**
+     * Platform options.
+     * @author{Anirudh Rengarajan <arengarajan@berkeley.edu>}
+     */
+    public enum PlatformOption implements DictionaryElement {
+        NAME("name", PrimitiveType.STRING),
+        BAUDRATE("baud-rate", PrimitiveType.NON_NEGATIVE_INTEGER),
+        BOARD("board", PrimitiveType.STRING);
+
+        public final PrimitiveType type;
+
+        private final String description;
+
+        private PlatformOption(String alias, PrimitiveType type) {
+            this.description = alias;
+            this.type = type;
+        }
+
+
+        /**
+         * Return the description of this dictionary element.
+         */
+        @Override
+        public String toString() {
+            return this.description;
+        }
+
         /**
          * Return the type associated with this dictionary element.
          */
@@ -1610,17 +1670,17 @@ public enum TargetProperty {
      */
     public enum CoordinationOption implements DictionaryElement {
         ADVANCE_MESSAGE_INTERVAL("advance-message-interval", PrimitiveType.TIME_VALUE);
-        
+
         public final PrimitiveType type;
-        
+
         private final String description;
-        
+
         private CoordinationOption(String alias, PrimitiveType type) {
             this.description = alias;
             this.type = type;
         }
-        
-        
+
+
         /**
          * Return the description of this dictionary element.
          */
@@ -1628,7 +1688,7 @@ public enum TargetProperty {
         public String toString() {
             return this.description;
         }
-    
+
         /**
          * Return the type associated with this dictionary element.
          */
@@ -1643,7 +1703,7 @@ public enum TargetProperty {
      */
     public enum LogLevel {
         ERROR, WARN, INFO, LOG, DEBUG;
-        
+
         /**
          * Return the name in lower case.
          */
@@ -1702,7 +1762,7 @@ public enum TargetProperty {
         GEDF_NP(true),    // Global EDF non-preemptive
         GEDF_NP_CI(true); // Global EDF non-preemptive with chain ID
         // PEDF_NP(true);    // Partitioned EDF non-preemptive (FIXME: To be re-added in a future PR)
-        
+
         /**
          * Indicate whether or not the scheduler prioritizes reactions by deadline.
          */
@@ -1731,7 +1791,7 @@ public enum TargetProperty {
             return relativePaths != null ? ImmutableList.copyOf(relativePaths) :
                    List.of(Path.of("scheduler_" + this + ".c"));
         }
-        
+
         public static SchedulerOption getDefault() {
             return NP;
         }
@@ -1743,16 +1803,16 @@ public enum TargetProperty {
      */
     public enum TracingOption implements DictionaryElement {
         TRACE_FILE_NAME("trace-file-name", PrimitiveType.STRING);
-        
+
         public final PrimitiveType type;
-        
+
         private final String description;
-        
+
         private TracingOption(String alias, PrimitiveType type) {
             this.description = alias;
             this.type = type;
         }
-        
+
         /**
          * Return the description of this dictionary element.
          */
@@ -1760,7 +1820,7 @@ public enum TargetProperty {
         public String toString() {
             return this.description;
         }
-    
+
         /**
          * Return the type associated with this dictionary element.
          */

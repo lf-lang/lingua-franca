@@ -122,28 +122,25 @@ public class FedLauncher {
      * Enable means to always start the service at startup, whereas
      * start means to just start it this once.
      * 
-     * On MacOS, open System Preferences from the Apple menu and 
+     * On macOS, open System Preferences from the Apple menu and
      * click on the "Sharing" preference panel. Select the checkbox
      * next to "Remote Login" to enable it.
      * 
      * In addition, every host must have OpenSSL installed, with at least
      * version 1.1.1a.  You can check the version with
-     * 
+     *
      *     openssl version
-     * 
-     * @param coreFiles The files from the core directory that must be
-     *  copied to the remote machines.
+     *
      * @param federates A list of federate instances in the federation
      * @param federationRTIProperties Contains relevant properties of the RTI.
-     *  Can have values for 'host', 'dir', and 'user' 
-     * 
+     *  Can have values for 'host', 'dir', and 'user'
      */
     public void createLauncher(
         List<FederateInstance> federates,
         LinkedHashMap<String, Object> federationRTIProperties
     ) throws IOException {
         // NOTE: It might be good to use screen when invoking the RTI
-        // or federates remotely so you can detach and the process keeps running.
+        // or federates remotely, so you can detach and the process keeps running.
         // However, I was unable to get it working properly.
         // What this means is that the shell that invokes the launcher
         // needs to remain live for the duration of the federation.

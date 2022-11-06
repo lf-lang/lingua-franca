@@ -101,6 +101,7 @@ import org.lflang.lf.WidthTerm;
 import org.lflang.util.StringUtil;
 
 import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 import com.google.common.base.Objects;
 import com.google.common.collect.Iterables;
@@ -870,6 +871,14 @@ public class ASTUtils {
             }
         }
         list.addAll(idx, elements);
+    }
+
+    public static <T extends EObject> Iterable<T> allElementsOfClass(
+        Resource resource,
+        Class<T> elementClass
+    ) {
+        //noinspection StaticPseudoFunctionalStyleMethod
+        return Iterables.filter(IteratorExtensions.toIterable(resource.getAllContents()), elementClass);
     }
 
     ////////////////////////////////
