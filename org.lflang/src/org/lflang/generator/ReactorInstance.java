@@ -182,6 +182,7 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
      * @return An empty graph if successful and otherwise a graph
      *  with runtime reaction instances that form cycles.
      */
+    // FIXME: Now this function also assigns deadlines to the runtime instances
     public ReactionInstanceGraph assignLevels() {
         if (depth != 0) return root().assignLevels();
         if (cachedReactionLoopGraph == null) {
