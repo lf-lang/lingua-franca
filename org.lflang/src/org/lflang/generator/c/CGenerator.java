@@ -408,22 +408,18 @@ public class CGenerator extends GeneratorBase {
     public void accommodatePhysicalActionsIfPresent() {
         // If there are any physical actions, ensure the threaded engine is used and that
         // keepalive is set to true, unless the user has explicitly set it to false.
-        for (Resource resource : GeneratorUtils.getResources(reactors)) {
-            var actions = Iterables.filter(IteratorExtensions.toIterable(resource.getAllContents()), Action.class);
-            for (Action action : actions) {
-                if (Objects.equal(action.getOrigin(), ActionOrigin.PHYSICAL)) {
-                    // If the unthreaded runtime is not requested by the user, use the threaded runtime instead
-                    // because it is the only one currently capable of handling asynchronous events.
-                    if (!targetConfig.threading && !targetConfig.setByUser.contains(TargetProperty.THREADING)) {
-                        targetConfig.threading = true;
-                        errorReporter.reportWarning(
-                            action,
-                            "Using the threaded C runtime to allow for asynchronous handling of physical action " +
-                            action.getName()
-                        );
-                        return;
-                    }
-                }
+        List<Action> physicalActions = ASTUtils.allPhysicalActions(this.reactors);
+        if (!physicalActions.isEmpty()) {
+            Action action = physicalActions.get(0);
+            // If the unthreaded runtime is not requested by the user, use the threaded runtime instead
+            // because it is the only one currently capable of handling asynchronous events.
+            if (!targetConfig.threading && !targetConfig.setByUser.contains(TargetProperty.THREADING)) {
+                targetConfig.threading = true;
+                errorReporter.reportWarning(
+                    action,
+                    "Using the threaded C runtime to allow for asynchronous handling of physical action " +
+                        action.getName()
+                );
             }
         }
     }

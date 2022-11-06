@@ -140,7 +140,6 @@ public abstract class GeneratorBase extends AbstractLFValidator {
      * using a command like `foo = new Foo();`
      */
     protected List<Reactor> reactors = new ArrayList<>();
-    public List<Reactor> getReactors() { return this.reactors; }
 
     /**
      * The set of resources referenced reactor classes reside in.
@@ -299,8 +298,8 @@ public abstract class GeneratorBase extends AbstractLFValidator {
         );
 
         // If fastMode is enabled, report error on the AST Node 
-        if (!ASTUtils.allPhysicalActions(this).isEmpty() && targetConfig.fastMode) {
-            errorReporter.reportError(targetConfig.fastModeASTNode, "When physical action is present --fast is disabled.");
+        if (!ASTUtils.allPhysicalActions(this.reactors).isEmpty() && targetConfig.fastMode) {
+            errorReporter.reportError(targetConfig.fastModeASTNode, "When physical action is present `fast` must be false.");
         }
         // FIXME: Should the GeneratorBase pull in `files` from imported
         // resources?
