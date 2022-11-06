@@ -92,6 +92,7 @@ public class ReactionInstanceGraph extends PrecedenceGraph<ReactionInstance.Runt
             // Do not throw an exception so that cycle visualization can proceed.
             // throw new InvalidSourceException("Reactions form a cycle!");
         }
+        // FIXME: Is it OK to also assign deadlines here?
         // Also do the traversal in the opposite order to calculate the deadlines
         this.clear();
         addNodesAndEdges(main);
@@ -316,7 +317,6 @@ public class ReactionInstanceGraph extends PrecedenceGraph<ReactionInstance.Runt
         List<ReactionInstance.Runtime> start = new ArrayList<>(leafNodes());
         
         // All leaf nodes have deadline initialized to their declared deadline or MAX_VALUE
-
         while (!start.isEmpty()) {
             Runtime origin = start.remove(0);
             Set<Runtime> toRemove = new LinkedHashSet<>();
@@ -334,7 +334,7 @@ public class ReactionInstanceGraph extends PrecedenceGraph<ReactionInstance.Runt
             }
             // Remove visited edges.
             for (Runtime upstream : toRemove) {
-                removeEdge(upstream, origin);
+                removeEdge(origin, upstream);
                 // If the upstream node has no more outgoing edges,
                 // then move it in the start set.
                 if (getDownstreamAdjacentNodes(upstream).size() == 0) {
@@ -345,7 +345,6 @@ public class ReactionInstanceGraph extends PrecedenceGraph<ReactionInstance.Runt
             // Remove visited origin.
             removeNode(origin);
         }
-
     }
     
     /**
