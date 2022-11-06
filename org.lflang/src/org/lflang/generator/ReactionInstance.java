@@ -224,11 +224,6 @@ public class ReactionInstance extends NamedInstance<Reaction> {
     public DeadlineInstance declaredDeadline;
 
     /**
-     * Inferred deadline.
-     */
-    public TimeValue inferredDeadline = null;
-
-    /**
      * Sadly, we have no way to mark reaction "unordered" in the AST,
      * so instead, we use a magic comment at the start of the reaction body.
      * This is that magic comment.
@@ -499,33 +494,6 @@ public class ReactionInstance extends NamedInstance<Reaction> {
         return this.let = let;
     }
 
-    /**
-     * This function sets the inferredDeadline of the reaction.
-     * The inferred deadline is the minimum of the reactions declaredDeadline
-     * and the inferredDeadline of any dependent reaction. This is a recursive definition.
-     */
-    public void setInferredDeadline() {
-        var currDeadline = TimeValue.MAX_VALUE;
-        if (declaredDeadline != null) {
-            currDeadline = declaredDeadline.maxDelay;
-        }
-
-        for (ReactionInstance r : dependentReactions()) {
-            // In a spiralling bank of reactions, a reaction can depend on itself
-            //  detect and break this cycle.
-            if (r  != this) {
-                if (r.inferredDeadline == null) {
-                    r.setInferredDeadline();
-                }
-            
-                if (r.inferredDeadline.isEarlierThan(currDeadline)) {
-                    currDeadline = r.inferredDeadline;
-                }
-            }
-        }
-        inferredDeadline = currDeadline;
-    }
-
     //////////////////////////////////////////////////////
     //// Private variables.
 
@@ -557,11 +525,11 @@ public class ReactionInstance extends NamedInstance<Reaction> {
 
     /** Inner class representing a runtime instance. */
     public class Runtime {
-        public TimeValue deadline = TimeValue.MAX_VALUE;
-        public Runtime dominating = null;
+        public TimeValue deadline;
+        public Runtime dominating;
         /** ID ranging from 0 to parent.getTotalWidth() - 1. */
-        public int id = 0;
-        public int level = 0;
+        public int id;
+        public int level;
         
         public ReactionInstance getReaction() {
             return ReactionInstance.this;
@@ -577,6 +545,17 @@ public class ReactionInstance extends NamedInstance<Reaction> {
             }
             result += ")";
             return result;
+        }
+
+        public Runtime() {
+            this.dominating = null;
+            this.id = 0;
+            this.level = 0;
+            if (ReactionInstance.this.declaredDeadline != null) {
+                this.deadline = ReactionInstance.this.declaredDeadline.maxDelay;
+            } else {
+                this.deadline = TimeValue.MAX_VALUE;
+            }
         }
     }
 }
