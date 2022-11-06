@@ -357,6 +357,22 @@ public class ReactionInstance extends NamedInstance<Reaction> {
         }
         return result;
     }
+    
+    /**
+     * Return a set of deadlines that runtime instances of this reaction have.
+     * A ReactionInstance may have more than one level if it lies within
+     * a bank and its dependencies on other reactions pass through multiports.
+     */
+    public Set<TimeValue> getInferredDeadlines() {
+        Set<TimeValue> result = new LinkedHashSet<>();
+        // Force calculation of levels if it has not been done.
+        parent.assignLevels();
+        for (Runtime runtime : runtimeInstances) {
+            result.add(runtime.deadline);
+        }
+        return result;
+    }
+        
 
     /**
      * Return a list of levels that runtime instances of this reaction have.
@@ -373,6 +389,23 @@ public class ReactionInstance extends NamedInstance<Reaction> {
         }
         return result;
     }
+    
+    /**
+     * Return a list of levels that runtime instances of this reaction have.
+     * The size of this list is the total number of runtime instances.
+     * A ReactionInstance may have more than one level if it lies within
+     * a bank and its dependencies on other reactions pass through multiports.
+     */
+    public List<TimeValue> getInferredDeadlinesList() {
+        List<TimeValue> result = new LinkedList<>();
+        // Force calculation of levels and deadlines if it has not been done.
+        parent.assignLevels();
+        for (Runtime runtime : runtimeInstances) {
+            result.add(runtime.deadline);
+        }
+        return result;
+    }
+
 
     /**
      * Return the name of this reaction, which is 'reaction_n',
