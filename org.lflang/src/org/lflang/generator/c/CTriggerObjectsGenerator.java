@@ -17,6 +17,7 @@ import java.util.stream.Collectors;
 import org.lflang.ASTUtils;
 import org.lflang.AttributeUtils;
 import org.lflang.TargetConfig;
+import org.lflang.TimeValue;
 import org.lflang.TargetProperty.CoordinationType;
 import org.lflang.TargetProperty.LogLevel;
 import org.lflang.federated.CGeneratorExtension;
@@ -369,8 +370,6 @@ public class CTriggerObjectsGenerator {
             if (currentFederate.contains(r.getDefinition())) {
                 foundOne = true;
                 
-                // Set the inferredDeadline field in all reactions.                
-                r.setInferredDeadline();
 
                 // The most common case is that all runtime instances of the
                 // reaction have the same level, so deal with that case
@@ -381,19 +380,27 @@ public class CTriggerObjectsGenerator {
                     for (Integer l : levels) {
                         level = l;
                     }
+                    var inferredDeadline = r.getRuntimeInstances().get(0).deadline;
+
                     // xtend doesn't support bitwise operators...
-                    var indexValue = r.inferredDeadline.toNanoSeconds() << 16 | level;
+                    var indexValue = inferredDeadline.toNanoSeconds() << 16 | level;
                     
                     var reactionIndex = "0x" + Long.toUnsignedString(indexValue, 16) + "LL";
 
                     temp.pr(String.join("\n",
                         CUtil.reactionRef(r)+".chain_id = "+r.chainID+";",
                         "// index is the OR of level "+level+" and ",
-                        "// deadline "+r.inferredDeadline.toNanoSeconds()+" shifted left 16 bits.",
+                        "// deadline "+ inferredDeadline.toNanoSeconds()+" shifted left 16 bits.",
                         CUtil.reactionRef(r)+".index = "+reactionIndex+";"
                     ));
                 } else {
-                    var reactionDeadline = "0x" + Long.toString(r.inferredDeadline.toNanoSeconds(), 16) + "LL";
+                    // This instance belongs to a bank of Reactors. 
+                    // FIXME: We need a way to get the bank_idx of the reactor containing this reaction
+                    //  AFAICS its the only way to get the right RunTime and thus the right deadline
+                    var bankIdx=1;
+                    var inferredDeadline = r.getRuntimeInstances().get(bankIdx); 
+
+                    var reactionDeadline = "0x" + Long.toString(inferredDeadline.toNanoSeconds(), 16) + "LL";
 
                     temp.pr(String.join("\n",
                         CUtil.reactionRef(r)+".chain_id = "+r.chainID+";",
