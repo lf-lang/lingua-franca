@@ -196,7 +196,7 @@ public class CCompiler {
         if (command == null) {
             errorReporter.reportError(
                 "The C/CCpp target requires CMAKE >= " + CCmakeGenerator.MIN_CMAKE_VERSION
-                    + "3.5 to compile the generated code. " +
+                    + " to compile the generated code. " +
                     "Auto-compiling can be disabled using the \"no-compile: true\" target property.");
         }
         return command;
