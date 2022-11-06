@@ -1977,6 +1977,8 @@ public class CGenerator extends GeneratorBase {
         generateInitializeActionToken(instance);
         generateSetDeadline(instance);
         generateSetLET(instance);
+        generateMutexInit(instance);
+        generateParentPointer(instance);
         generateModeStructure(instance);
 
         // Recursively generate code for the children.
@@ -2142,29 +2144,14 @@ public class CGenerator extends GeneratorBase {
      * @param instance The reactor instance.
      */
     private void generateSetLET(ReactorInstance instance) {
-        var hasLetReactions = false; 
         for (ReactionInstance reaction : instance.reactions) {
             if (currentFederate.contains(reaction.getDefinition())) {
                 var selfRef = CUtil.reactorRef(reaction.getParent())+"->_lf__reaction_"+reaction.index;
                 var let = reaction.getLogicalExecutionTime();
                 initializeTriggerObjects.pr(selfRef+".let = "
                         + GeneratorBase.timeInTargetLanguage(reaction.getLogicalExecutionTime())+";");
-                
-                if (!let.equals(TimeValue.ZERO)) {
-                    hasLetReactions = true;
-                }
             }
         }
-        var selfRef = CUtil.reactorRef(instance);
-        
-        initializeTriggerObjects.pr("#ifdef NUMBER_OF_WORKERS");
-        if (hasLetReactions) {
-            initializeTriggerObjects.pr("lf_mutex_init(&((self_base_t *)"+selfRef+")->mutex);");
-            initializeTriggerObjects.pr("((self_base_t *) "+selfRef+")->has_mutex = true;");
-        } else {
-            initializeTriggerObjects.pr("((self_base_t *) "+selfRef+")->has_mutex = false;");
-        }
-            initializeTriggerObjects.pr("#endif");
     }
 
 
@@ -2643,6 +2630,35 @@ public class CGenerator extends GeneratorBase {
             }
         }
         return code.toString();
+    }
+    protected void generateMutexInit(ReactorInstance instance) {
+        var selfRef = CUtil.reactorRef(instance);
+        initializeTriggerObjects.pr("// Initialize local mutex only if reactor has either: ");
+        initializeTriggerObjects.pr("//     1. LET reactions, and thus needs to be locked ");
+        initializeTriggerObjects.pr("//     2. Modes and has containing LET reactions ");
+        if  (instance.hasLetReactions() || 
+            (!instance.modes.isEmpty() && instance.getNumberOfLetReactions() > 0)
+         ) {
+            initializeTriggerObjects.pr("#ifdef LF_MULTI_THREADED");
+            initializeTriggerObjects.pr("lf_mutex_init(&((self_base_t *)"+selfRef+")->mutex);");
+            initializeTriggerObjects.pr("((self_base_t *) "+selfRef+")->has_mutex = true;");
+            initializeTriggerObjects.pr("#else");
+            initializeTriggerObjects.pr("((self_base_t *) "+selfRef+")->has_mutex = false;");
+            initializeTriggerObjects.pr("#endif");
+        } else {
+            initializeTriggerObjects.pr("((self_base_t *) "+selfRef+")->has_mutex = false;");
+        }
+    }
+    
+    protected void generateParentPointer (ReactorInstance instance) {
+        var selfRef = CUtil.reactorRef(instance);
+        var parentRef = "NULL";
+        var parent = instance.getParent();
+        if (parent != null) {
+            parentRef = CUtil.reactorRef(parent);
+        }
+        initializeTriggerObjects.pr("// Add pointer to parent or NULL if top-level");
+        initializeTriggerObjects.pr("((self_base_t *) "+selfRef+")->parent = (self_base_t *) "+ parentRef +";");
     }
 
     /** Given a line of text from the output of a compiler, return
