@@ -345,20 +345,28 @@ public class CTriggerObjectsGenerator {
         // Force calculation of levels if it has not been done.
         reactor.assignLevels();
 
-        // If any reaction has multiple levels, then we need to create
-        // an array with the levels here, before entering the iteration over banks.
+        // If any reaction has multiple levels, because it is in a bank of reactors
+        // then we need to create an array with the levels and deadlines here
         var prolog = new CodeBuilder();
         var epilog = new CodeBuilder();
         for (ReactionInstance r : reactor.reactions) {
             if (currentFederate.contains(r.getDefinition())) {
-                var levels = r.getLevels();
-                if (levels.size() != 1) {
+                var levelSet = r.getLevels();
+                var deadlineSet = r.getInferredDeadlines();
+
+                if (levelSet.size() != 1 || deadlineSet.size() != 1) {
                     if (prolog.length() == 0) {
                         prolog.startScopedBlock();
                         epilog.endScopedBlock();
                     }
+                    // Get inferredDeadlines and map to string representations
+                    var deadlines = r.getInferredDeadlinesList().stream()
+                        .map(elt -> ("0x" + Long.toString(elt.toNanoSeconds(), 16) + "LL"))
+                        .collect(Collectors.toList());
+
                     // Cannot use the above set of levels because it is a set, not a list.
                     prolog.pr("int "+r.uniqueID()+"_levels[] = { "+joinObjects(r.getLevelsList(), ", ")+" };");
+                    prolog.pr("interval_t "+r.uniqueID()+"_inferred_deadlines[] = { "+joinObjects(deadlines, ", ")+" };");
                 }
             }
         }
@@ -369,18 +377,21 @@ public class CTriggerObjectsGenerator {
         for (ReactionInstance r : reactor.reactions) {
             if (currentFederate.contains(r.getDefinition())) {
                 foundOne = true;
-                
 
                 // The most common case is that all runtime instances of the
-                // reaction have the same level, so deal with that case
-                // specially.
-                var levels = r.getLevels();
-                if (levels.size() == 1) {
+                // reaction have the same level and deadline
+                var levelSet = r.getLevels();
+                var deadlineSet = r.getInferredDeadlines();
+                if (levelSet.size() == 1 && deadlineSet.size() == 1) {
                     var level = -1;
-                    for (Integer l : levels) {
+                    for (Integer l : levelSet) {
                         level = l;
                     }
-                    var inferredDeadline = r.getRuntimeInstances().get(0).deadline;
+
+                    var inferredDeadline = TimeValue.MAX_VALUE;
+                    for (TimeValue t : deadlineSet) {
+                        inferredDeadline = t;
+                    }
 
                     // xtend doesn't support bitwise operators...
                     var indexValue = inferredDeadline.toNanoSeconds() << 16 | level;
@@ -394,19 +405,16 @@ public class CTriggerObjectsGenerator {
                         CUtil.reactionRef(r)+".index = "+reactionIndex+";"
                     ));
                 } else {
-                    // This instance belongs to a bank of Reactors. 
-                    // FIXME: We need a way to get the bank_idx of the reactor containing this reaction
-                    //  AFAICS its the only way to get the right RunTime and thus the right deadline
-                    var bankIdx=1;
-                    var inferredDeadline = r.getRuntimeInstances().get(bankIdx); 
-
-                    var reactionDeadline = "0x" + Long.toString(inferredDeadline.toNanoSeconds(), 16) + "LL";
+                    // The general case where the different reactions in the bank
+                    //  have different level or deadline and thus need its own index
+                    var runtimeIdx =CUtil.runtimeIndex(r.getParent());
 
                     temp.pr(String.join("\n",
                         CUtil.reactionRef(r)+".chain_id = "+r.chainID+";",
-                        "// index is the OR of levels["+CUtil.runtimeIndex(r.getParent())+"] and ",
-                        "// deadline "+r.inferredDeadline.toNanoSeconds()+" shifted left 16 bits.",
-                        CUtil.reactionRef(r)+".index = ("+reactionDeadline+" << 16) | "+r.uniqueID()+"_levels["+CUtil.runtimeIndex(r.getParent())+"];"
+                        "// index is the OR of levels["+runtimeIdx+"] and ",
+                        "// deadlines["+runtimeIdx+"] shifted left 16 bits.",
+                        CUtil.reactionRef(r)+".index = ("+r.uniqueID()+"_inferred_deadlines["+runtimeIdx+"] << 16) | " +
+                            r.uniqueID()+"_levels["+runtimeIdx+"];"
                     ));
                 }
             }
