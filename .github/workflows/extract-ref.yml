@@ -19,7 +19,7 @@ jobs:
       ref: ${{ steps.read.outputs.ref }}
     steps:
       - name: Check out repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       - name: Extract ref from ${{ inputs.file }}
         id: read
-        run: echo "::set-output name=ref::$(head -n 1 ${{ inputs.file }})"
+        run: echo "ref=$(head -n 1 ${{ inputs.file }})" >> $GITHUB_OUTPUT

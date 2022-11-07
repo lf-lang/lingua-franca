@@ -20,7 +20,7 @@ jobs:
   cancel:
     uses: lf-lang/lingua-franca/.github/workflows/cancel.yml@master
 
-  # Test the Maven build.
+  # Test the Gradle and Maven build.
   build:
     uses: lf-lang/lingua-franca/.github/workflows/build.yml@master
     needs: cancel
@@ -37,7 +37,7 @@ jobs:
 
   # Run the C benchmark tests.
   c-benchmark-tests:
-    uses: lf-lang/benchmarks-lingua-franca/.github/workflows/benchmark-tests.yml@fetch-depth-0
+    uses: lf-lang/benchmarks-lingua-franca/.github/workflows/benchmark-tests.yml@main
     with:
       target: 'C'
     needs: cancel
@@ -66,7 +66,7 @@ jobs:
 
   # Run the C++ benchmark tests.
   cpp-benchmark-tests:
-    uses: lf-lang/benchmarks-lingua-franca/.github/workflows/benchmark-tests.yml@fetch-depth-0
+    uses: lf-lang/benchmarks-lingua-franca/.github/workflows/benchmark-tests.yml@main
     with:
       target: 'Cpp'
     needs: cancel
@@ -93,7 +93,7 @@ jobs:
 
   # Run the Rust benchmark tests.
   rs-benchmark-tests:
-    uses: lf-lang/benchmarks-lingua-franca/.github/workflows/benchmark-tests.yml@fetch-depth-0
+    uses: lf-lang/benchmarks-lingua-franca/.github/workflows/benchmark-tests.yml@main
     with:
       target: 'Rust'
     needs: cancel

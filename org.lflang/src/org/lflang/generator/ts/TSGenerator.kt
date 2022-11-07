@@ -89,8 +89,6 @@ class TSGenerator(
          */
         val CONFIG_FILES = arrayOf("package.json", "tsconfig.json", "babel.config.js", ".eslintrc.json")
 
-        val RT_CONFIG_FILES = arrayOf("package.json", "package-lock.json", "tsconfig.json", ".babelrc")
-
         private val VG =
             ExpressionGenerator(::timeInTargetLanguage) { param -> "this.${param.name}.get()" }
 
@@ -150,9 +148,8 @@ class TSGenerator(
         // createMainReactorInstance()
 
         clean(context)
-        copyRuntime()
-        collectDependencies(resource, context, tsFileConfig.reactorTsPath(), true)
         copyConfigFiles()
+        updatePackageConfig(context)
 
         val codeMaps = HashMap<Path, CodeMap>()
         val dockerGenerator = TSDockerGenerator(false)
@@ -196,6 +193,41 @@ class TSGenerator(
     }
 
     /**
+     * Prefix the given path with a scheme if missing.
+     */
+    private fun formatRuntimePath(path: String): String {
+        return if (path.startsWith("file:") || path.startsWith("git:") || path.startsWith("git+")) {
+            path
+        } else {
+            "file:/$path"
+        }
+    }
+
+    /**
+     * Update package.json according to given build parameters.
+     */
+    private fun updatePackageConfig(context: LFGeneratorContext) {
+        var rtPath = LFGeneratorContext.BuildParm.EXTERNAL_RUNTIME_PATH.getValue(context)
+        val rtVersion = LFGeneratorContext.BuildParm.RUNTIME_VERSION.getValue(context)
+        val sb = StringBuffer("");
+        val manifest = fileConfig.srcGenPath.resolve("package.json");
+        val rtRegex = Regex("(\"@lf-lang/reactor-ts\")(.+)")
+        if (rtPath != null) rtPath = formatRuntimePath(rtPath)
+        // FIXME: do better CLI arg validation upstream
+        // https://github.com/lf-lang/lingua-franca/issues/1429
+        manifest.toFile().forEachLine {
+            var line = it.replace("\"LinguaFrancaDefault\"", "\"${fileConfig.name}\"");
+            if (rtPath != null) {
+                line = line.replace(rtRegex, "$1: \"$rtPath\",")
+            } else if (rtVersion != null) {
+                line = line.replace(rtRegex, "$1: \"git://github.com/lf-lang/reactor-ts.git#$rtVersion\",")
+            }
+            sb.appendLine(line)
+        }
+        manifest.toFile().writeText(sb.toString());
+    }
+
+    /**
      * Clean up the src-gen directory as needed to prepare for code generation.
      */
     private fun clean(context: LFGeneratorContext) {
@@ -203,23 +235,6 @@ class TSGenerator(
         if (context.mode != LFGeneratorContext.Mode.LSP_MEDIUM) FileUtil.deleteDirectory(
             fileConfig.srcGenPath
         )
-    }
-
-    /**
-     * Copy the TypeScript runtime so that it is accessible to the generated code.
-     */
-    private fun copyRuntime() {
-        FileUtil.copyDirectoryFromClassPath(
-            "$LIB_PATH/reactor-ts/src/core",
-            tsFileConfig.reactorTsPath().resolve("src").resolve("core"),
-            true
-        )
-        for (configFile in RT_CONFIG_FILES) {
-            FileUtil.copyFileFromClassPath(
-                "$LIB_PATH/reactor-ts/$configFile",
-                tsFileConfig.reactorTsPath().resolve(configFile)
-            )
-        }
     }
 
     /**
