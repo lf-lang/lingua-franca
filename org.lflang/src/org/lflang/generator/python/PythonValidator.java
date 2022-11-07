@@ -240,12 +240,16 @@ public class PythonValidator extends org.lflang.generator.Validator {
         new ValidationStrategy() {
             @Override
             public LFCommand getCommand(Path generatedFile) {
-                return LFCommand.get(
+                LFCommand pylint = LFCommand.get(
                     "pylint",
                     List.of("--output-format=json", generatedFile.getFileName().toString()),
                     true,
                     fileConfig.getSrcGenPath()
                 );
+                if (pylint == null) {
+                    System.err.println("Failed to find PyLint!");
+                }
+                return pylint;
             }
 
             @Override
