@@ -59,6 +59,10 @@ jobs:
           brew install protobuf
           brew install protobuf-c
         if: ${{ runner.os == 'macOS' }}
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
       - name: Run language server Python tests without PyLint
         run: ./gradlew test --tests org.lflang.tests.lsp.LspTests.pythonValidationTestSyntaxOnly
       - name: Report to CodeCov
