@@ -24,7 +24,7 @@ reactor SinkWithDeadline {
         if (global_cnt != 0) {
             lf_print_error_and_exit("Deadline reaction was not executed first. cnt=%i", global_cnt);
         }
-    =} deadline(100 msec) {=  =}
+    =} deadline(100 sec) {=  =}
 }
 
 main reactor {
