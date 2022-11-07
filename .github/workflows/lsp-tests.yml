@@ -70,6 +70,7 @@ jobs:
       - name: Install pylint
         run: python3 -m pip install pylint
       - name: Run language server tests
+        fail_ci_if_error: false
         run: ./gradlew clean test --tests org.lflang.tests.lsp.LspTests.*ValidationTest
       - name: Debug in CI
         uses: lhotari/action-upterm@v1
