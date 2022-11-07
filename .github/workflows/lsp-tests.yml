@@ -71,6 +71,8 @@ jobs:
         run: python3 -m pip install pylint
       - name: Run language server tests
         run: ./gradlew clean test --tests org.lflang.tests.lsp.LspTests.*ValidationTest
+      - name: Debug in CI
+        uses: lhotari/action-upterm@v1
       - name: Report to CodeCov
         uses: codecov/codecov-action@v2.1.0
         with:
