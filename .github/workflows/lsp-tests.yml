@@ -73,6 +73,10 @@ jobs:
           verbose: true
       - name: Install pylint
         run: python3 -m pip install pylint
+        if: ${{ runner.os != 'macOS' }}
+      - name: Install pylint macOS
+        run: brew install pylint
+        if: ${{ runner.os == 'macOS' }}
       - name: Run language server tests
         run: ./gradlew clean test --tests org.lflang.tests.lsp.LspTests.*ValidationTest
       - name: Report to CodeCov
