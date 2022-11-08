@@ -4,10 +4,8 @@ target Rust {
     cargo-features: ["cli"]
 }
 
-main reactor AsyncCallback(period: time(1 ms)) {
-    preamble {=
-        use std::thread;
-    =}
+main reactor AsyncCallback(period: time(1 msec)) {
+    preamble {= use std::thread; =}
 
     timer t(0, period)
     state thread: Option<thread::JoinHandle<unit>>
