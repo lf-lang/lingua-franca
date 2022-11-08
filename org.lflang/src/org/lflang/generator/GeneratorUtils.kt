@@ -71,7 +71,7 @@ fun TargetTypes.getTargetInitializer(param: Parameter, inst: Instantiation): Tar
 }
 
 /**
- * Returns the actual value of a parameter for the given instantiation.
+ * Return the actual value of a parameter for the given instantiation.
  * The value is defaulted to the default value for the parameter if
  * there is no explicit assignment. If there is no default value, the
  * source code is invalid (param is required)
@@ -83,12 +83,12 @@ fun Instantiation.getActualValue(param: Parameter): List<Expression> =
 
 
 /**
- * Returns the target code for the given expression, given
+ * Return the target code for the given expression, given
  * that it's a time expression.
  */
 fun TargetTypes.getTargetTimeExpr(v: Expression): TargetCode =
     this.getTargetExpr(v, InferredType.time())
 
-/** If this is null, returns the literal 0. */
+/** If this is null, return the literal 0. */
 fun Expression?.orZero(): Expression =
     this ?: LfFactory.eINSTANCE.createLiteral().apply { literal = "0" }
