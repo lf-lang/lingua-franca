@@ -1,6 +1,7 @@
 package org.lflang.generator.cpp
 
 import org.lflang.generator.PrependOperator
+import org.lflang.joinWithLn
 import org.lflang.toUnixString
 import java.nio.file.Path
 
@@ -30,7 +31,7 @@ class CppRos2PackageGenerator(generator: CppGenerator, private val nodeName: Str
             |  <buildtool_depend>ament_cmake</buildtool_depend>
             |  <buildtool_depend>ament_cmake_auto</buildtool_depend>
             |  
-        ${" |"..dependencies.joinToString("\n") { "<depend>$it</depend>" } }
+        ${" |"..dependencies.joinWithLn { "<depend>$it</depend>" } }
             |
             |  <test_depend>ament_lint_auto</test_depend>
             |  <test_depend>ament_lint_common</test_depend>
@@ -71,7 +72,7 @@ class CppRos2PackageGenerator(generator: CppGenerator, private val nodeName: Str
                 |
                 |ament_auto_add_library($S{LF_MAIN_TARGET} SHARED
                 |    src/$nodeName.cc
-            ${" |    "..sources.joinToString("\n") { "src/$it" }}
+            ${" |    "..sources.joinWithLn { "src/$it" }}
                 |)
                 |ament_target_dependencies($S{LF_MAIN_TARGET} ${dependencies.joinToString(" ")})
                 |target_include_directories($S{LF_MAIN_TARGET} PUBLIC
@@ -94,7 +95,7 @@ class CppRos2PackageGenerator(generator: CppGenerator, private val nodeName: Str
                 |
                 |ament_auto_package()
                 |
-            ${" |"..(includeFiles?.joinToString("\n") { "include(\"$it\")" } ?: "")}
+            ${" |"..(includeFiles?.joinWithLn { "include(\"$it\")" } ?: "")}
             """.trimMargin()
         }
     }

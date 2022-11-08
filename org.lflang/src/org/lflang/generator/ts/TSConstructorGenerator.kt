@@ -3,6 +3,9 @@ package org.lflang.generator.ts
 import org.lflang.ErrorReporter
 import org.lflang.TargetConfig
 import org.lflang.generator.PrependOperator
+import org.lflang.generator.getTargetInitializer
+import org.lflang.joinWithLn
+import org.lflang.lf.Action
 import org.lflang.lf.Parameter
 import org.lflang.lf.Reactor
 import java.util.*
@@ -20,26 +23,9 @@ class TSConstructorGenerator (
     private val errorReporter: ErrorReporter,
     private val reactor : Reactor
 ) {
-    private fun getInitializerList(param: Parameter): List<String> =
-        tsGenerator.getInitializerListW(param)
 
-    // Initializer functions
-    private fun getTargetInitializerHelper(param: Parameter,
-                                   list: List<String>): String {
-        return if (list.size == 0) {
-            errorReporter.reportError(param, "Parameters must have a default value!")
-        } else if (list.size == 1) {
-            list[0]
-        } else {
-            list.joinToString(", ", "[", "]")
-        }
-    }
-    private fun getTargetInitializer(param: Parameter): String {
-        return getTargetInitializerHelper(param, getInitializerList(param))
-    }
-    private fun initializeParameter(p: Parameter): String {
-        return """${p.name}: ${p.getTargetType()} = ${getTargetInitializer(p)}"""
-    }
+    private fun initializeParameter(p: Parameter): String =
+        "${p.name}: ${TSTypes.getTargetType(p)} = ${TSTypes.getTargetInitializer(p)}"
 
     private fun generateConstructorArguments(reactor: Reactor): String {
         val arguments = LinkedList<String>()
@@ -102,15 +88,12 @@ class TSConstructorGenerator (
         return connectionInstantiations.joinToString("\n")
     }
 
-    /**
-     * Generate code for setting target configurations.
-     */
+    // Generate code for setting target configurations.
     private fun generateTargetConfigurations(targetConfig: TargetConfig): String {
         val targetConfigurations = LinkedList<String>()
         if ((reactor.isMain) &&
             targetConfig.coordinationOptions.advance_message_interval != null) {
-            targetConfigurations.add(
-                "this.setAdvanceMessageInterval(${timeInTargetLanguage(targetConfig.coordinationOptions.advance_message_interval)})")
+            targetConfigurations.add("this.setAdvanceMessageInterval(${targetConfig.coordinationOptions.advance_message_interval.toTsTime()})")
         }
         return targetConfigurations.joinToString("\n")
     }
@@ -127,7 +110,7 @@ class TSConstructorGenerator (
         networkMessageActions: List<String>
     ): String {
         val connections = TSConnectionGenerator(reactor.connections, errorReporter)
-        val reactions = TSReactionGenerator(tsGenerator, errorReporter, reactor)
+        val reactions = TSReactionGenerator(errorReporter, reactor)
 
         return with(PrependOperator) {
             """

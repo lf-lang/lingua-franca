@@ -111,24 +111,8 @@ class TSReactorGenerator(
         return preambleCodes.joinToString("\n")
     }
 
-    fun generateReactorClasses(reactor: Reactor): String {
-        val reactorClasses = LinkedList<String>()
-        // To support `import as` syntax (for importing reactors) in .lf programs.
-        val declarations = tsGenerator.getInstantiationGraph()?.getDeclarations(reactor)
-
-        if (declarations == null || declarations.isEmpty()) {
-            return generateReactorClass(reactor.name, reactor)
-        }
-
-        for (declaration in declarations) {
-            reactorClasses.add(generateReactorClass(declaration.name, reactor))
-        }
-
-        return reactorClasses.joinToString("\n")
-    }
-
-    fun generateReactorClass(name: String, reactor: Reactor): String {
-        var reactorName = name
+    fun generateReactor(reactor: Reactor): String {
+        var reactorName = reactor.name
         if (!reactor.typeParms.isEmpty()) {
             reactorName +=
                 reactor.typeParms.joinToString(", ", "<", ">") { it.toText() }
@@ -159,11 +143,11 @@ class TSReactorGenerator(
             "export class $reactorName extends __Reactor {"
         }
 
-        val instanceGenerator = TSInstanceGenerator(tsGenerator, errorReporter, this, reactor)
-        val timerGenerator = TSTimerGenerator(tsGenerator, reactor.timers)
-        val parameterGenerator = TSParameterGenerator(tsGenerator, reactor.parameters)
-        val stateGenerator = TSStateGenerator(tsGenerator, reactor.stateVars)
-        val actionGenerator = TSActionGenerator(tsGenerator, reactor.actions, networkMessageActions)
+        val instanceGenerator = TSInstanceGenerator(errorReporter, reactor)
+        val timerGenerator = TSTimerGenerator(reactor.timers)
+        val parameterGenerator = TSParameterGenerator(reactor.parameters)
+        val stateGenerator = TSStateGenerator(reactor.stateVars)
+        val actionGenerator = TSActionGenerator(reactor.actions, networkMessageActions)
         val portGenerator = TSPortGenerator(reactor.inputs, reactor.outputs)
 
         val constructorGenerator = TSConstructorGenerator(tsGenerator, errorReporter, reactor)
