@@ -406,7 +406,7 @@ public class CGenerator extends GeneratorBase {
     public void accommodatePhysicalActionsIfPresent() {
         // If there are any physical actions, ensure the threaded engine is used and that
         // keepalive is set to true, unless the user has explicitly set it to false.
-        List<Action> physicalActions = ASTUtils.allPhysicalActions(this.reactors);
+        List<Action> physicalActions = this.getPhysicalActions();
         if (!physicalActions.isEmpty()) {
             Action action = physicalActions.get(0);
             // If the unthreaded runtime is not requested by the user, use the threaded runtime instead

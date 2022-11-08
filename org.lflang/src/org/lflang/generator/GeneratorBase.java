@@ -49,6 +49,7 @@ import org.lflang.TimeUnit;
 import org.lflang.TimeValue;
 import org.lflang.graph.InstantiationGraph;
 import org.lflang.lf.Action;
+import org.lflang.lf.ActionOrigin;
 import org.lflang.lf.Connection;
 import org.lflang.lf.Expression;
 import org.lflang.lf.Instantiation;
@@ -299,7 +300,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
 
         // If fastMode is enabled while physical action is present, report warning on the AST Node
         // and disable fastmode.
-        if (!ASTUtils.allPhysicalActions(this.reactors).isEmpty() && targetConfig.fastMode) {
+        if (this.hasPhysicalAction() && targetConfig.fastMode) {
             errorReporter.reportWarning(targetConfig.fastModeASTNode, "The `fast` target property is incompatible with physical actions. Ignoring `fast`.");
             targetConfig.fastMode = false;
         }
@@ -732,5 +733,28 @@ public abstract class GeneratorBase extends AbstractLFValidator {
             return timeInTargetLanguage(value);
         }
         return ASTUtils.toText(expr);
+    }
+
+    /**
+     * Return a list of all physical actions within this generator.
+     */
+    public List<Action> getPhysicalActions() {
+        ArrayList<Action> physicalActions = new ArrayList<Action>();
+        for (Resource resource : GeneratorUtils.getResources(this.reactors)) {
+            var actions = Iterables.filter(IteratorExtensions.toIterable(resource.getAllContents()), Action.class);
+            for (Action action : actions) {
+                if (Objects.equal(action.getOrigin(), ActionOrigin.PHYSICAL)) {
+                    physicalActions.add(action);
+                }
+            }
+        }
+        return physicalActions;
+    }
+
+    /**
+     * Return if this generator has any physical action.
+     */
+    public boolean hasPhysicalAction() {
+        return Iterables.any(reactors, (r) -> Iterables.any(ASTUtils.allActions(r), action -> action.getOrigin() == ActionOrigin.PHYSICAL));
     }
 }
