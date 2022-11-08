@@ -158,6 +158,10 @@ fun <T> Iterable<T>.joinWithCommasLn(
     transform: (T) -> CharSequence = { it.toString() }
 ): String = joinWithCommas(prefix, postfix, skipLines = true, trailing, transform)
 
+/**
+ * Join the elements of [this] sequence with newlines. The
+ * [prefix] and [postfix] are added even if this iterable is empty.
+ */
 fun <T> Iterable<T>.joinWithLn(
     prefix: CharSequence = "",
     postfix: CharSequence = "",

@@ -49,11 +49,17 @@ fun EObject.locationInfo(): LocationInfo {
 }
 
 
+/**
+ * Returns the target code for the initial value of [sv].
+ */
 fun TargetTypes.getTargetInitializer(sv: StateVar): TargetCode =
     this.getTargetInitializer(sv.init, sv.type, sv.braces.isNotEmpty())
 
-fun TargetTypes.getTargetInitializer(sv: Parameter): TargetCode =
-    this.getTargetInitializer(sv.init, sv.type, sv.isInitWithBraces)
+/**
+ * Returns the target code for the default value of the [param].
+ */
+fun TargetTypes.getTargetInitializer(param: Parameter): TargetCode =
+    this.getTargetInitializer(param.init, param.type, param.isInitWithBraces)
 
 /**
  * Returns the target code for the [getActualValue] of the
@@ -76,6 +82,10 @@ fun Instantiation.getActualValue(param: Parameter): List<Expression> =
         ?: throw InvalidLfSourceException(this, "No value for parameter ${param.name}")
 
 
+/**
+ * Returns the target code for the given expression, given
+ * that it's a time expression.
+ */
 fun TargetTypes.getTargetTimeExpr(v: Expression): TargetCode =
     this.getTargetExpr(v, InferredType.time())
 
