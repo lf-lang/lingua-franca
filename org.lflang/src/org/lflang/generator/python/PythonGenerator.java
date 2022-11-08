@@ -799,7 +799,7 @@ public class PythonGenerator extends CGenerator {
             add_subdirectory(core)
             set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR})
             set(LF_MAIN_TARGET <pyModuleName>)
-            find_package(Python COMPONENTS Interpreter Development)
+            find_package(Python 3.7.0...<3.11.0 COMPONENTS Interpreter Development)
             Python_add_library(
                 ${LF_MAIN_TARGET}
                 MODULE
