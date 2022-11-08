@@ -44,3 +44,9 @@ If a repository has a text file that stores a ref (e.g., a SHA1 hash of a commit
 After workflow execution, the value of the output `ref` will be equal to the first line in the given `file`.
 ## Nightly Build
 See [nightly-build.yml](https://github.com/lf-lang/lingua-franca/blob/master/.github/workflows/nightly-build.yml).
+
+## Debugging tests
+
+To debug test failures that are difficult to reproduce locally, it can be useful
+to add a step such as [this one](https://github.com/marketplace/actions/debugging-with-ssh) to SSH into the GitHub Actions runner. Such a debugging step
+should not be included in the `master` version of the workflow file.
