@@ -56,7 +56,7 @@ class TSImportPreambleGenerator(
             import {Parameter as __Parameter, Timer as __Timer, Reactor as __Reactor, App as __App} from '@lf-lang/reactor-ts'
             import {Action as __Action, Startup as __Startup, FederatePortAction as __FederatePortAction} from '@lf-lang/reactor-ts'
             import {Bank as __Bank} from '@lf-lang/reactor-ts'
-            import {FederatedApp as __FederatedApp} from '@lf-lang/reactor-ts'
+            import {FederatedApp as __FederatedApp, FederateConfig as __FederateConfig} from '@lf-lang/reactor-ts'
             import {InPort as __InPort, OutPort as __OutPort, Port as __Port, WritablePort as __WritablePort, WritableMultiPort as __WritableMultiPort} from '@lf-lang/reactor-ts'
             import {InMultiPort as __InMultiPort, OutMultiPort as __OutMultiPort} from '@lf-lang/reactor-ts'
             import {Reaction as __Reaction} from '@lf-lang/reactor-ts'
