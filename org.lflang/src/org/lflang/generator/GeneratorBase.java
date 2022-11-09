@@ -31,6 +31,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Stream;
 
 import org.eclipse.core.resources.IMarker;
 import org.eclipse.emf.ecore.EObject;
@@ -300,7 +301,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
 
         // If fastMode is enabled while physical action is present, report warning on the AST Node
         // and disable fastmode.
-        if (this.hasPhysicalAction() && targetConfig.fastMode) {
+        if (this.getPhysicalActions().findAny().isPresent() && targetConfig.fastMode) {
             errorReporter.reportWarning(targetConfig.fastModeASTNode, "The `fast` target property is incompatible with physical actions. Ignoring `fast`.");
             targetConfig.fastMode = false;
         }
@@ -738,23 +739,10 @@ public abstract class GeneratorBase extends AbstractLFValidator {
     /**
      * Return a list of all physical actions within this generator.
      */
-    public List<Action> getPhysicalActions() {
-        ArrayList<Action> physicalActions = new ArrayList<Action>();
-        for (Resource resource : GeneratorUtils.getResources(this.reactors)) {
-            var actions = Iterables.filter(IteratorExtensions.toIterable(resource.getAllContents()), Action.class);
-            for (Action action : actions) {
-                if (Objects.equal(action.getOrigin(), ActionOrigin.PHYSICAL)) {
-                    physicalActions.add(action);
-                }
-            }
-        }
-        return physicalActions;
+    public Stream<Action> getPhysicalActions() {
+        return this.reactors.stream()
+            .flatMap(reactor -> ASTUtils.allActions(reactor).stream())
+            .filter(action -> action.getOrigin() == ActionOrigin.PHYSICAL);
     }
 
-    /**
-     * Return if this generator has any physical action.
-     */
-    public boolean hasPhysicalAction() {
-        return Iterables.any(reactors, (r) -> Iterables.any(ASTUtils.allActions(r), action -> action.getOrigin() == ActionOrigin.PHYSICAL));
-    }
 }

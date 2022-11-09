@@ -41,6 +41,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
@@ -406,9 +407,9 @@ public class CGenerator extends GeneratorBase {
     public void accommodatePhysicalActionsIfPresent() {
         // If there are any physical actions, ensure the threaded engine is used and that
         // keepalive is set to true, unless the user has explicitly set it to false.
-        List<Action> physicalActions = this.getPhysicalActions();
-        if (!physicalActions.isEmpty()) {
-            Action action = physicalActions.get(0);
+        Optional<Action> firstPhysicalAction = this.getPhysicalActions().findFirst();
+        if (firstPhysicalAction.isPresent()) {
+            Action action = firstPhysicalAction.get();
             // If the unthreaded runtime is not requested by the user, use the threaded runtime instead
             // because it is the only one currently capable of handling asynchronous events.
             if (!targetConfig.threading && !targetConfig.setByUser.contains(TargetProperty.THREADING)) {
