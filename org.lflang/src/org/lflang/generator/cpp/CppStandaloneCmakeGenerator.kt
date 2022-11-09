@@ -26,6 +26,7 @@ package org.lflang.generator.cpp
 
 import org.lflang.TargetConfig
 import org.lflang.generator.PrependOperator
+import org.lflang.joinWithLn
 import org.lflang.toUnixString
 import java.nio.file.Path
 
@@ -128,7 +129,7 @@ class CppStandaloneCmakeGenerator(private val targetConfig: TargetConfig, privat
                 |set(LF_MAIN_TARGET ${fileConfig.name})
                 |
                 |add_executable($S{LF_MAIN_TARGET}
-            ${" |    "..sources.joinToString("\n") { it.toUnixString() }}
+            ${" |    "..sources.joinWithLn { it.toUnixString() }}
                 |)
                 |target_include_directories($S{LF_MAIN_TARGET} PUBLIC
                 |    "$S{LF_SRC_PKG_PATH}/src"
@@ -156,7 +157,7 @@ class CppStandaloneCmakeGenerator(private val targetConfig: TargetConfig, privat
                 |set(${includesVarName(fileConfig.name)} $S{TARGET_INCLUDE_DIRECTORIES} CACHE STRING "Directories included in the main target." FORCE)
                 |set($compilerIdName $S{CMAKE_CXX_COMPILER_ID} CACHE STRING "The name of the C++ compiler." FORCE)
                 |
-            ${" |"..(includeFiles?.joinToString("\n") { "include(\"$it\")" } ?: "")}
+            ${" |"..(includeFiles?.joinWithLn { "include(\"$it\")" } ?: "")}
             """.trimMargin()
         }
     }
