@@ -74,6 +74,10 @@ subprojects {
         filter {
             setFailOnNoMatchingTests(false)
         }
+        testLogging {
+            // print exception message when a test fails.
+            exceptionFormat "full"
+        }
     }
 }
 
