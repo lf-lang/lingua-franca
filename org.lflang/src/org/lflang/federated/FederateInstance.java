@@ -366,7 +366,7 @@ public class FederateInstance {
      * in a top-level reaction that belongs to this federate.
      * This also returns true if the program is not federated.
      * 
-     * @param action The action
+     * @param timer The timer
      * @return True if this federate contains the action in the specified reactor
      */
     public boolean contains(Timer timer) {
@@ -510,7 +510,8 @@ public class FederateInstance {
     
     @Override
     public String toString() {
-        return "Federate " + id + ": " + instantiation.getName();
+        return "Federate " + id + ": "
+            + ((instantiation != null) ? instantiation.getName() : "no name");
     }
 
     /////////////////////////////////////////////

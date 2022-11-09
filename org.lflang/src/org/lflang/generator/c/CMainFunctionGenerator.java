@@ -7,12 +7,12 @@ import org.lflang.generator.CodeBuilder;
 import org.lflang.util.StringUtil;
 import org.lflang.TargetProperty.Platform;
 
-public class CMainGenerator {
+public class CMainFunctionGenerator {
     private TargetConfig targetConfig;
     /** The command to run the generated code if specified in the target directive. */
     private List<String> runCommand;
 
-    public CMainGenerator(TargetConfig targetConfig) {
+    public CMainFunctionGenerator(TargetConfig targetConfig) {
         this.targetConfig = targetConfig;
         runCommand = new ArrayList<>();
         parseTargetParameters();
@@ -46,7 +46,7 @@ public class CMainGenerator {
             return String.join("\n",
             "// Arduino setup() and loop() functions",
             "void setup() {",
-                "Serial.begin(" + targetConfig.platformOptions.baudRate + ");", 
+                "Serial.begin(" + targetConfig.platformOptions.baudRate + ");",
                 "lf_reactor_c_main(0, NULL);",
             "}",
             "void loop() {}"

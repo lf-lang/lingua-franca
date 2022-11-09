@@ -2,13 +2,6 @@ name: TypeScript tests
 
 on:
   workflow_call:
-    inputs:
-      compiler-ref:
-        required: false
-        type: string
-      runtime-ref:
-        required: false
-        type: string
 
 jobs:
   run:
@@ -20,9 +13,6 @@ jobs:
       - name: Check out lingua-franca repository
         uses: actions/checkout@v3
         with:
-          repository: lf-lang/lingua-franca
-          submodules: true
-          ref: ${{ inputs.compiler-ref }}
           fetch-depth: 0
       - name: Prepare build environment
         uses: ./.github/actions/prepare-build-env
@@ -32,22 +22,10 @@ jobs:
           node-version: 18
       - name: Install pnpm
         run: npm i -g pnpm
-      - name: Cache .pnpm-store
-        uses: actions/cache@v2
-        with:
-          path: ~/.pnpm-store
-          key: ${{ runner.os }}-node${{ matrix.node-version }}-${{ hashFiles('org.lflang/src/lib/ts/package.json') }}
-      - name: Install Dependencies OS X
+      - name: Install coreutils (macOS)
         run: |
           brew install coreutils
         if: ${{ runner.os == 'macOS' }}
-      - name: Check out specific ref of reactor-ts
-        uses: actions/checkout@v2
-        with:
-          repository: lf-lang/reactor-ts
-          path: org.lflang/src/lib/ts/reactor-ts
-          ref: ${{ inputs.runtime-ref }}
-        if: ${{ inputs.runtime-ref }}
       - name: Perform TypeScript tests
         run: |
           ./gradlew test --tests org.lflang.tests.runtime.TypeScriptTest.*
@@ -57,4 +35,3 @@ jobs:
           file: org.lflang.tests/build/reports/xml/jacoco
           fail_ci_if_error: false
           verbose: true
-        if: ${{ !inputs.compiler-ref }}  # i.e., if this is part of the main repo's CI
