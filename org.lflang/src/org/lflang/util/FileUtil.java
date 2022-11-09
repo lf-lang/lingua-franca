@@ -481,9 +481,7 @@ public class FileUtil {
     }
 
     public static void createDirectoryIfDoesNotExist(File dir) {
-        if (dir.exists()) return;
-        if (dir.mkdirs()) return;
-        throw new RuntimeIOException("Failed to create the directory " + dir);
+        if (!dir.exists()) dir.mkdirs();
     }
 
     /**
