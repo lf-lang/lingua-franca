@@ -241,7 +241,7 @@ class TSGenerator(
         dockerGenerator: TSDockerGenerator,
         preambles: List<Preamble>
     ) {
-        var tsFileName = fileConfig.name
+        val tsFileName = fileConfig.name
 
         val tsFilePath = tsFileConfig.tsSrcGenPath().resolve("$tsFileName.ts")
 

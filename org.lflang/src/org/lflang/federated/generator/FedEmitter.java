@@ -56,11 +56,11 @@ public class FedEmitter {
 
         String federateCode = String.join(
             "\n",
-            (new FedTargetEmitter()).generateTarget(context, numOfFederates, federate, fileConfig, errorReporter, federationRTIProperties),
-            (new FedImportEmitter()).generateImports(federate, fileConfig),
-            (new FedPreambleEmitter()).generatePreamble(federate, fileConfig, federationRTIProperties, errorReporter),
-            (new FedReactorEmitter()).generateReactorDefinitions(federate),
-            (new FedMainEmitter()).generateMainReactor(
+            new FedTargetEmitter().generateTarget(context, numOfFederates, federate, fileConfig, errorReporter, federationRTIProperties),
+            new FedImportEmitter().generateImports(federate, fileConfig),
+            new FedPreambleEmitter().generatePreamble(federate, fileConfig, federationRTIProperties, errorReporter),
+            new FedReactorEmitter().generateReactorDefinitions(federate),
+            new FedMainEmitter().generateMainReactor(
                 federate,
                 originalMainReactor,
                 errorReporter

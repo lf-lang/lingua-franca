@@ -21,11 +21,12 @@ class TSReactorGenerator(
 ) {
 
     companion object {
-        const val MIN_OUTPUT_DELAY_STATEMENT = """
-            |    if (defaultFederateConfig.minOutputDelay !== undefined) {
-            |        __app.setMinDelayFromPhysicalActionToFederateOutput(defaultFederateConfig.minOutputDelay);
-            |    }
-            |"""
+        const val MIN_OUTPUT_DELAY_STATEMENT =
+            """
+                if (defaultFederateConfig.minOutputDelay !== undefined) {
+                    __app.setMinDelayFromPhysicalActionToFederateOutput(defaultFederateConfig.minOutputDelay);
+                }
+            """
     }
 
     // Initializer functions
@@ -58,25 +59,18 @@ class TSReactorGenerator(
         // assignment variable ("__CL" + the parameter's name). That variable will
         // be undefined if the command line argument wasn't specified. Otherwise
         // use undefined in the constructor.
-        val mainReactorParams = StringJoiner(", ")
-        for (parameter in defn.reactorClass.toDefinition().parameters) {
-
-            if (mainParameters.contains(parameter)) {
-                mainReactorParams.add("__CL" + parameter.name)
-            } else {
-                mainReactorParams.add("undefined")
-            }
+        val mainReactorParams = defn.reactorClass.toDefinition().parameters.joinWithCommas { p ->
+            if (p in mainParameters) "__CL" + p.name
+            else "undefined"
         }
 
-        return with(PrependOperator) {
-            """
-            |// ************* Instance $fullName of class ${defn.reactorClass.name}
-            |let __app;
-            |if (!__noStart) {
-            |    __app = new $fullName(__timeout, __keepAlive, __fast, __federationID, $mainReactorParams);
-            |}
-            """
-        }.trimMargin()
+        return """
+        |// ************* Instance $fullName of class ${defn.reactorClass.name}
+        |let __app;
+        |if (!__noStart) {
+        |    __app = new $fullName(__timeout, __keepAlive, __fast, __federationID, $mainReactorParams);
+        |}
+        """.trimMargin()
     }
 
     /** Generate code to call the _start function on the main App
@@ -89,27 +83,23 @@ class TSReactorGenerator(
                 """
             |// ************* Starting Runtime for ${defn.name} + of class ${defn.reactorClass.name}.
             |if (!__noStart && __app) {
-            ${if (isFederate) MIN_OUTPUT_DELAY_STATEMENT else "|"}
+${"         |"..MIN_OUTPUT_DELAY_STATEMENT.takeIf { isFederate }.orEmpty()}
             |    __app._start();
             |}
             |
             """
-            }.trimMargin()
+        }.trimMargin()
     }
 
-    private fun generateReactorPreambles(preambles: List<Preamble>): String {
-        val preambleCodes = LinkedList<String>()
-
-        for (preamble in preambles) {
-            preambleCodes.add(with(PrependOperator) {
+    private fun generateReactorPreambles(preambles: List<Preamble>): String =
+        preambles.joinToString("\n") { preamble ->
+            with(PrependOperator) {
                 """
-                |// *********** From the preamble, verbatim:
-                |${preamble.code.toText()}
-                |
-                |// *********** End of preamble."""}.trimMargin())
+            |// *********** From the preamble, verbatim:
+${"             |"..preamble.code.toText()}
+            |// *********** End of preamble."""
+            }.trimMargin()
         }
-        return preambleCodes.joinToString("\n")
-    }
 
     fun generateReactor(reactor: Reactor): String {
         var reactorName = reactor.name
@@ -150,7 +140,7 @@ class TSReactorGenerator(
         val actionGenerator = TSActionGenerator(reactor.actions, networkMessageActions)
         val portGenerator = TSPortGenerator(reactor.inputs, reactor.outputs)
 
-        val constructorGenerator = TSConstructorGenerator(tsGenerator, errorReporter, reactor)
+        val constructorGenerator = TSConstructorGenerator(errorReporter, reactor)
         return with(PrependOperator) {
             """
                 |// =============== START reactor class ${reactor.name}
@@ -178,8 +168,8 @@ class TSReactorGenerator(
     ): String {
         return with(PrependOperator) {
             """
-            |${generateMainReactorInstance(mainDef, mainParameters)}
-            |${generateRuntimeStart(mainDef)}
+${"         |"..generateMainReactorInstance(mainDef, mainParameters)}
+${"         |"..generateRuntimeStart(mainDef)}
             |
             """
         }.trimMargin()
