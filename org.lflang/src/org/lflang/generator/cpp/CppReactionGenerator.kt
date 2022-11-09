@@ -26,6 +26,7 @@ package org.lflang.generator.cpp
 
 import org.lflang.generator.PrependOperator
 import org.lflang.isBank
+import org.lflang.joinWithLn
 import org.lflang.label
 import org.lflang.lf.*
 import org.lflang.priority
@@ -193,15 +194,15 @@ class CppReactionGenerator(
     }
 
     private fun generateViews(r: Reaction) =
-        r.allReferencedContainers.joinToString("\n") { generateViewForContainer(r, it) }
+        r.allReferencedContainers.joinWithLn { generateViewForContainer(r, it) }
 
     private fun generateViewInitializers(r: Reaction) =
         r.allReferencedContainers.filterNot { it.isBank }
-            .joinToString("\n") { ", ${r.getViewInstanceName(it)}(${it.name}.get()) " }
+            .joinWithLn { ", ${r.getViewInstanceName(it)}(${it.name}.get()) " }
 
     private fun generateViewConstructorInitializers(r: Reaction) =
         r.allReferencedContainers.filter { it.isBank }
-            .joinToString("\n") {
+            .joinWithLn {
                 val viewInstance = r.getViewInstanceName(it)
                 """
                     $viewInstance.reserve(${it.name}.size());

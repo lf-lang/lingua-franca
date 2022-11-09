@@ -26,6 +26,7 @@ package org.lflang.generator.cpp
 
 import org.lflang.inferredType
 import org.lflang.isMultiport
+import org.lflang.joinWithLn
 import org.lflang.lf.Input
 import org.lflang.lf.Output
 import org.lflang.lf.Port
@@ -89,8 +90,8 @@ class CppPortGenerator(private val reactor: Reactor) {
     }
 
     fun generateConstructorInitializers() =
-        reactor.inputs.filter { it.isMultiport }.joinToString("\n") { generateConstructorInitializer(it) } +
-                reactor.outputs.filter { it.isMultiport }.joinToString("\n") { generateConstructorInitializer(it) }
+        reactor.inputs.filter { it.isMultiport }.joinWithLn { generateConstructorInitializer(it) } +
+                reactor.outputs.filter { it.isMultiport }.joinWithLn { generateConstructorInitializer(it) }
 
     fun generateDeclarations() =
         reactor.inputs.joinToString("\n", "// input ports\n", postfix = "\n") { generateDeclaration(it) } +
