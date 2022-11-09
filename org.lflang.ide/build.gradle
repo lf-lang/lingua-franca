@@ -1,4 +1,3 @@
-import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
 dependencies {
     implementation project(':org.lflang')
     implementation "org.eclipse.xtext:org.eclipse.xtext.ide:${xtextVersion}"
@@ -6,47 +5,3 @@ dependencies {
 }
     
 apply plugin: 'application'
-apply plugin: 'com.github.johnrengelman.shadow'
-
-task generateLanguageServer {
-	description 'Creates a jar file that implements a language server.'	
-
-	apply plugin: 'java'
-	apply plugin: 'application'
-	apply plugin: 'com.github.johnrengelman.shadow'
-	mainClassName = "org.eclipse.xtext.ide.server.ServerLauncher"
-	
-	shadowJar {
-		classifier = 'ls'
-		minimize() {
-            exclude(dependency('log4j:log4j:.*'))
-            exclude(dependency('org.eclipse.xtext:.*ide:.*'))
-        }
-
-		exclude('META-INF/INDEX.LIST', 'META-INF/*.SF', 'META-INF/*.DSA', 'META-INF/*.RSA', 'schema/*',
-			'.options', '.api_description', '*.profile', '*.html', 'about.*', 'about_files/*', 'ant_tasks/*',
-			'plugin.xml', 'modeling32.png', 'xtext32.png', 'systembundle.properties', 'profile.list')
-
-        transform(com.github.jengelman.gradle.plugins.shadow.transformers.AppendingTransformer){
-            resource = 'plugin.properties'
-        }
-	}
-	
-    compileJava {
-        options.compilerArgs << '-Xlint:unchecked'
-	}
-}
-
-generateLanguageServer.finalizedBy shadowJar
-
-task testJar(type: ShadowJar) {
-    mainClassName = "org.eclipse.xtext.ide.server.ServerLauncher"
-    //minimize() // Minimizing might cause problems because it could delete classes that are not referenced but loaded by name (service loader)
-    from(project.convention.getPlugin(JavaPluginConvention).sourceSets.main.output)
-    configurations = [project.configurations.runtime]
-    exclude('META-INF/INDEX.LIST', 'META-INF/*.SF', 'META-INF/*.DSA', 'META-INF/*.RSA','schema/*',
-        '.options', '.api_description', '*.profile', '*.html', 'about.*', 'about_files/*',
-        'plugin.xml', 'modeling32.png', 'systembundle.properties', 'profile.list')
-    classifier = 'ls'
-    append('plugin.properties')
-}
