@@ -16,8 +16,8 @@ reactor Test {
 
     reaction(act) -> out {=
         let (a, b) = ctx.get(act).unwrap();
-        ctx.set(out[0], a);
-        ctx.set(out[1], b);
+        ctx.set(&mut out[0], a);
+        ctx.set(&mut out[1], b);
     =}
 
     reaction(in) -> act {=
