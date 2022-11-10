@@ -29,6 +29,7 @@ import com.google.inject.Singleton
 import org.eclipse.xtext.diagnostics.Severity
 import java.io.IOException
 import java.io.PrintStream
+import java.lang.Error
 import java.nio.charset.StandardCharsets
 import java.nio.file.Files
 import java.nio.file.Path
@@ -70,8 +71,50 @@ import kotlin.system.exitProcess
 class Io @JvmOverloads constructor(
     val err: PrintStream = System.err,
     val out: PrintStream = System.out,
-    val wd: Path = Paths.get("").toAbsolutePath()
-)
+    val wd: Path = Paths.get("").toAbsolutePath(),
+    /**
+     * A callback to quit the current process. Mapped to [System.exit]
+     * by default.
+     */
+    private val systemExit: (Int) -> Nothing = { exitProcess(it) }
+) {
+
+    /**
+     * Call the callback corresponding to System.exit. This function
+     * never returns.
+     */
+    fun callSystemExit(exitCode: Int): Nothing {
+        systemExit.invoke(exitCode)
+    }
+
+    /**
+     * Execute the [funWithIo] with a new [Io] instance, where
+     * [systemExit] is replaced with a catchable callback. If
+     * the provided [funWithIo] calls [systemExit], the VM will
+     * not exit, instead this method will return normally with
+     * the exit code. If the function exits normally, the exit
+     * code 0 is returned.
+     *
+     * This can be used to mock an environment for tests.
+     */
+    fun fakeSystemExit(funWithIo: (Io) -> Unit): Int {
+        val newIo = Io(this.err, this.out, this.wd, systemExit = { throw ProcessExitError(it) })
+        return try {
+            funWithIo(newIo)
+            0
+        } catch (e: ProcessExitError) {
+            e.exitCode
+        }
+    }
+
+    companion object {
+        /** Use system streams. */
+        @JvmField
+        val SYSTEM = Io()
+
+        private class ProcessExitError(val exitCode: Int) : Error()
+    }
+}
 
 /**
  * Represents an issue at a particular point in the program.
@@ -178,7 +221,7 @@ class ReportingBackend constructor(
     @JvmOverloads
     fun printFatalErrorAndExit(message: String, cause: Throwable? = null): Nothing {
         printFatalError(message, cause)
-        exitProcess(1)
+        io.callSystemExit(1)
     }
 
     /** Print a fatal error message to [Io.err] and exit with code 1. */

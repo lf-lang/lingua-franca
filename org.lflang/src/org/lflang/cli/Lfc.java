@@ -4,6 +4,8 @@
 
 package org.lflang.cli;
 
+import java.io.PrintStream;
+import java.io.PrintWriter;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -132,7 +134,7 @@ public class Lfc extends CliBase {
         public static List<Option> getPassedOptions() {
             return Arrays.stream(CLIOption.values())
                          .filter(opt -> opt.passOn).map(opt -> opt.option)
-                         .collect(Collectors.toList());
+                .collect(Collectors.toList());
         }
     }
 
@@ -142,7 +144,17 @@ public class Lfc extends CliBase {
      * @param args CLI arguments
      */
     public static void main(final String[] args) {
-        final ReportingBackend reporter = new ReportingBackend(new Io(), "lfc: ");
+        main(args, Io.SYSTEM);
+    }
+
+    /**
+     * Main function of the standalone compiler, with a custom IO.
+     *
+     * @param args Command-line arguments.
+     * @param io IO streams.
+     */
+    static void main(final String[] args, Io io) {
+        final ReportingBackend reporter = new ReportingBackend(io, "lfc: ");
 
         // Injector used to obtain Main instance.
         final Injector injector = new LFStandaloneSetup(new LFRuntimeModule(), new LFStandaloneModule(reporter))
@@ -158,34 +170,50 @@ public class Lfc extends CliBase {
 
         try {
             main.cmd = parser.parse(options, args, true);
-
-            // If requested, print help and abort
-            if (main.cmd.hasOption(CLIOption.HELP.option.getOpt())) {
-                formatter.printHelp("lfc", options);
-                System.exit(0);
-            }
-
-            // If requested, print version and abort
-            if (main.cmd.hasOption(CLIOption.VERSION.option.getLongOpt())) {
-                System.out.println("lfc " + LocalStrings.VERSION);
-                System.exit(0);
-            }
-
-            List<String> files = main.cmd.getArgList();
-
-            if (files.size() < 1) {
-                reporter.printFatalErrorAndExit("No input files.");
-            }
-            try {
-                List<Path> paths = files.stream().map(Paths::get).collect(Collectors.toList());
-                main.runGenerator(paths, injector);
-            } catch (RuntimeException e) {
-                reporter.printFatalErrorAndExit("An unexpected error occurred:", e);
-            }
         } catch (ParseException e) {
             reporter.printFatalError("Unable to parse commandline arguments. Reason: " + e.getMessage());
-            formatter.printHelp("lfc", options);
-            System.exit(1);
+            printHelp(options, formatter, io.getErr());
+            io.callSystemExit(1);
+        }
+
+        // If requested, print help and abort
+        if (main.cmd.hasOption(CLIOption.HELP.option.getOpt())) {
+            printHelp(options, formatter, io.getOut());
+            io.callSystemExit(0);
+        }
+
+        // If requested, print version and abort
+        if (main.cmd.hasOption(CLIOption.VERSION.option.getLongOpt())) {
+            System.out.println("lfc " + LocalStrings.VERSION);
+            io.callSystemExit(0);
+        }
+
+        List<String> files = main.cmd.getArgList();
+
+        if (files.size() < 1) {
+            reporter.printFatalErrorAndExit("No input files.");
+        }
+        try {
+            List<Path> paths = files.stream().map(Paths::get).collect(Collectors.toList());
+            main.runGenerator(paths, injector);
+        } catch (RuntimeException e) {
+            reporter.printFatalErrorAndExit("An unexpected error occurred:", e);
+        }
+    }
+
+    // Print help on the correct output stream. Unfortunately the library doesn't have
+    // a more convenient overload.
+    private static void printHelp(Options options, HelpFormatter formatter, PrintStream out) {
+        try (PrintWriter pw = new PrintWriter(out)) {
+            formatter.printHelp(pw,
+                formatter.getWidth(),
+                "lfc",
+                null,
+                options,
+                formatter.getLeftPadding(),
+                formatter.getDescPadding(),
+                null,
+                false);
         }
     }
 
