@@ -15,6 +15,7 @@ import org.eclipse.xtext.validation.CheckMode;
 import org.eclipse.xtext.validation.IResourceValidator;
 import org.eclipse.xtext.validation.Issue;
 
+import org.lflang.ErrorReporter;
 import org.lflang.util.FileUtil;
 
 import com.google.inject.Inject;
@@ -42,6 +43,16 @@ public class CliBase {
      */
     @Inject
     protected ReportingBackend reporter;
+    /**
+     * Used to report error messages at the end.
+     */
+    @Inject
+    protected ErrorReporter errorReporter;
+    /**
+     * IO context of this run.
+     */
+    @Inject
+    protected Io io;
     /**
      * Injected resource provider.
      */

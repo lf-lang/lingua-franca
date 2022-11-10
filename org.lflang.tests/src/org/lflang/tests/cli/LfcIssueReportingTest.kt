@@ -116,8 +116,9 @@ class LfcIssueReportingTest {
 
         val stderr = SpyPrintStream()
 
-        val backend = ReportingBackend(Io(err = stderr.ps), AnsiColors(useColors).bold("lfc: "), AnsiColors(useColors), 2)
-        val injector = LFStandaloneSetup(LFRuntimeModule(), LFStandaloneModule(backend))
+        val io = Io(err = stderr.ps)
+        val backend = ReportingBackend(io, AnsiColors(useColors).bold("lfc: "), AnsiColors(useColors), 2)
+        val injector = LFStandaloneSetup(LFRuntimeModule(), LFStandaloneModule(backend, io))
             .createInjectorAndDoEMFRegistration()
         val main = injector.getInstance(Lfc::class.java)
 

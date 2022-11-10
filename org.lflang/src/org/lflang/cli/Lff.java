@@ -108,11 +108,12 @@ public class Lff extends CliBase {
    * @param args CLI arguments
    */
   public static void main(final String[] args) {
-    final ReportingBackend reporter = new ReportingBackend(new Io(), "lff: ");
+    Io io = Io.SYSTEM;
+    final ReportingBackend reporter = new ReportingBackend(io, "lff: ");
 
     // Injector used to obtain Main instance.
     final Injector injector =
-        new LFStandaloneSetup(new LFRuntimeModule(), new LFStandaloneModule(reporter))
+        new LFStandaloneSetup(new LFRuntimeModule(), new LFStandaloneModule(reporter, io))
             .createInjectorAndDoEMFRegistration();
     // Main instance.
     final Lff main = injector.getInstance(Lff.class);

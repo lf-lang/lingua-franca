@@ -26,7 +26,6 @@ import org.eclipse.xtext.generator.JavaIoFileSystemAccess;
 import org.eclipse.xtext.util.CancelIndicator;
 
 import org.lflang.ASTUtils;
-import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
 import org.lflang.LFRuntimeModule;
 import org.lflang.LFStandaloneSetup;
@@ -56,7 +55,6 @@ public class Lfc extends CliBase {
      */
     @Inject
     private JavaIoFileSystemAccess fileAccess;
-
 
     /**
      * Supported CLI options.
@@ -133,7 +131,7 @@ public class Lfc extends CliBase {
          */
         public static List<Option> getPassedOptions() {
             return Arrays.stream(CLIOption.values())
-                         .filter(opt -> opt.passOn).map(opt -> opt.option)
+                .filter(opt -> opt.passOn).map(opt -> opt.option)
                 .collect(Collectors.toList());
         }
     }
@@ -158,10 +156,23 @@ public class Lfc extends CliBase {
         final ReportingBackend reporter = new ReportingBackend(io, "lfc: ");
 
         // Injector used to obtain Main instance.
-        final Injector injector = new LFStandaloneSetup(new LFRuntimeModule(), new LFStandaloneModule(reporter))
+        final Injector injector = new LFStandaloneSetup(new LFRuntimeModule(), new LFStandaloneModule(reporter, io))
             .createInjectorAndDoEMFRegistration();
         // Main instance.
         final Lfc main = injector.getInstance(Lfc.class);
+        main.runMain(args);
+    }
+
+
+
+    /**
+     * Main function of the tool.
+     *
+     * @param args Command-line arguments.
+     */
+    public void runMain(final String... args) {
+
+        // Main instance.
         // Apache Commons Options object configured to according to available CLI arguments.
         Options options = CLIOption.getOptions();
         // CLI arguments parser.
@@ -170,7 +181,7 @@ public class Lfc extends CliBase {
         HelpFormatter formatter = new HelpFormatter();
 
         try {
-            main.cmd = parser.parse(options, args, false);
+            cmd = parser.parse(options, args, false);
         } catch (ParseException e) {
             reporter.printFatalError(
                 "Unable to parse command-line arguments. Reason: " + e.getMessage() + "\n"
@@ -180,30 +191,31 @@ public class Lfc extends CliBase {
         }
 
         // If requested, print help and abort
-        if (main.cmd.hasOption(CLIOption.HELP.option.getOpt())) {
+        if (cmd.hasOption(CLIOption.HELP.option.getOpt())) {
             printHelp(options, formatter, io.getOut());
             io.callSystemExit(0);
         }
 
         // If requested, print version and abort
-        if (main.cmd.hasOption(CLIOption.VERSION.option.getLongOpt())) {
+        if (cmd.hasOption(CLIOption.VERSION.option.getLongOpt())) {
             io.getOut().println("lfc " + LocalStrings.VERSION);
             io.callSystemExit(0);
         }
 
-        List<String> files = main.cmd.getArgList();
+        List<String> files = cmd.getArgList();
 
         if (files.size() < 1) {
             reporter.printFatalErrorAndExit("No input files.");
         }
         try {
             List<Path> paths = files.stream().map(io.getWd()::resolve).collect(Collectors.toList());
-            main.runGenerator(paths, injector, io);
+            runGenerator(paths);
         } catch (RuntimeException e) {
             reporter.printFatalErrorAndExit("An unexpected error occurred:", e);
         }
         io.callSystemExit(0);
     }
+
 
     // Print help on the correct output stream. Unfortunately the library doesn't have
     // a more convenient overload.
@@ -224,7 +236,7 @@ public class Lfc extends CliBase {
     /**
      * Load the resource, validate it, and, invoke the code generator.
      */
-    private void runGenerator(List<Path> files, Injector injector, Io io) {
+    private void runGenerator(List<Path> files) {
         Properties properties = this.filterProps(CLIOption.getPassedOptions());
         String pathOption = CLIOption.OUTPUT_PATH.option.getOpt();
         Path root = null;
@@ -271,7 +283,7 @@ public class Lfc extends CliBase {
 
             LFGeneratorContext context = new MainContext(
                 LFGeneratorContext.Mode.STANDALONE, CancelIndicator.NullImpl, (m, p) -> {}, properties, false,
-                fileConfig -> injector.getInstance(ErrorReporter.class)
+                fileConfig -> errorReporter
             );
 
             this.generator.generate(resource, this.fileAccess, context);
@@ -280,7 +292,7 @@ public class Lfc extends CliBase {
             // print all other issues (not errors)
             issueCollector.getAllIssues().forEach(reporter::printIssue);
 
-            io.getOut().println("Code generation finished.");
+            this.io.getOut().println("Code generation finished.");
         }
     }
 
