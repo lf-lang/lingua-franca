@@ -36,6 +36,7 @@ import java.nio.file.Path
 import java.nio.file.Paths
 import java.util.*
 import java.util.Collections.nCopies
+import java.util.function.Consumer
 import kotlin.collections.ArrayList
 import kotlin.math.max
 import kotlin.math.min
@@ -97,10 +98,10 @@ class Io @JvmOverloads constructor(
      *
      * This can be used to mock an environment for tests.
      */
-    fun fakeSystemExit(funWithIo: (Io) -> Unit): Int {
+    fun fakeSystemExit(funWithIo: Consumer<Io>): Int {
         val newIo = Io(this.err, this.out, this.wd, systemExit = { throw ProcessExitError(it) })
         return try {
-            funWithIo(newIo)
+            funWithIo.accept(newIo)
             0
         } catch (e: ProcessExitError) {
             e.exitCode

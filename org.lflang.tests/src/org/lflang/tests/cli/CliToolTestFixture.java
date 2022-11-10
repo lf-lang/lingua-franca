@@ -1,0 +1,105 @@
+package org.lflang.tests.cli;
+
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
+import java.io.ByteArrayOutputStream;
+import java.io.PrintStream;
+import java.nio.file.Path;
+
+import org.hamcrest.Matcher;
+
+import org.lflang.cli.Io;
+
+/**
+ * Test utilities for a CLI tool, eg {@link org.lflang.cli.Lfc},
+ * {@link org.lflang.cli.Lff}.
+ *
+ * @author Clément Fournier
+ */
+abstract class CliToolTestFixture {
+
+    /**
+     * Override to call the relevant main.
+     */
+    protected abstract void runCliProgram(Io io, String[] args);
+
+
+    /**
+     * Run the tool with the given arguments, in the system
+     * working directory.
+     *
+     * @param args Arguments
+     * @return The execution result
+     */
+    public ExecutionResult run(String... args) {
+        return run(Io.SYSTEM.getWd(), args);
+    }
+
+    /**
+     * Run the tool with the given arguments, in the given
+     * working directory.
+     *
+     * @param wd working directory
+     * @param args Arguments
+     * @return The execution result
+     */
+    public ExecutionResult run(Path wd, String... args) {
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        ByteArrayOutputStream err = new ByteArrayOutputStream();
+
+        Io testIo = new Io(
+            new PrintStream(err),
+            new PrintStream(out),
+            wd
+        );
+        int exitCode = testIo.fakeSystemExit(io -> runCliProgram(io, args));
+
+        return new ExecutionResult(out, err, exitCode);
+    }
+
+    /**
+     * The result of an execution of a CLI program like LFC.
+     *
+     * @param out Output stream
+     * @param err Error stream
+     * @param exitCode Exit code of the process
+     */
+    record ExecutionResult(
+        ByteArrayOutputStream out,
+        ByteArrayOutputStream err,
+        int exitCode
+    ) {
+
+        public String getOut() {
+            return out.toString();
+        }
+
+        public String getErr() {
+            return err.toString();
+        }
+
+
+        public void checkOk() {
+            assertEquals(0, exitCode);
+        }
+
+        public void checkFailed() {
+            assertEquals(1, exitCode);
+        }
+
+        public void checkNoErrorOutput() {
+            checkStdErr(equalTo(""));
+        }
+
+        public void checkStdOut(Matcher<? super String> matcher) {
+            assertThat(getOut(), matcher);
+        }
+
+        public void checkStdErr(Matcher<? super String> matcher) {
+            assertThat(getErr(), matcher);
+        }
+
+    }
+}

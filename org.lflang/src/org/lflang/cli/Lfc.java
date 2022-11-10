@@ -140,20 +140,21 @@ public class Lfc extends CliBase {
 
     /**
      * Main function of the stand-alone compiler.
+     * Caution: this will invoke System.exit.
      *
      * @param args CLI arguments
      */
     public static void main(final String[] args) {
-        main(args, Io.SYSTEM);
+        main(Io.SYSTEM, args);
     }
 
     /**
      * Main function of the standalone compiler, with a custom IO.
      *
-     * @param args Command-line arguments.
      * @param io IO streams.
+     * @param args Command-line arguments.
      */
-    static void main(final String[] args, Io io) {
+    public static void main(Io io, final String... args) {
         final ReportingBackend reporter = new ReportingBackend(io, "lfc: ");
 
         // Injector used to obtain Main instance.
@@ -169,9 +170,11 @@ public class Lfc extends CliBase {
         HelpFormatter formatter = new HelpFormatter();
 
         try {
-            main.cmd = parser.parse(options, args, true);
+            main.cmd = parser.parse(options, args, false);
         } catch (ParseException e) {
-            reporter.printFatalError("Unable to parse commandline arguments. Reason: " + e.getMessage());
+            reporter.printFatalError(
+                "Unable to parse command-line arguments. Reason: " + e.getMessage() + "\n"
+                    + "The full command-line was: " + Arrays.toString(args));
             printHelp(options, formatter, io.getErr());
             io.callSystemExit(1);
         }
@@ -184,7 +187,7 @@ public class Lfc extends CliBase {
 
         // If requested, print version and abort
         if (main.cmd.hasOption(CLIOption.VERSION.option.getLongOpt())) {
-            System.out.println("lfc " + LocalStrings.VERSION);
+            io.getOut().println("lfc " + LocalStrings.VERSION);
             io.callSystemExit(0);
         }
 
@@ -194,11 +197,12 @@ public class Lfc extends CliBase {
             reporter.printFatalErrorAndExit("No input files.");
         }
         try {
-            List<Path> paths = files.stream().map(Paths::get).collect(Collectors.toList());
-            main.runGenerator(paths, injector);
+            List<Path> paths = files.stream().map(io.getWd()::resolve).collect(Collectors.toList());
+            main.runGenerator(paths, injector, io);
         } catch (RuntimeException e) {
             reporter.printFatalErrorAndExit("An unexpected error occurred:", e);
         }
+        io.callSystemExit(0);
     }
 
     // Print help on the correct output stream. Unfortunately the library doesn't have
@@ -220,7 +224,7 @@ public class Lfc extends CliBase {
     /**
      * Load the resource, validate it, and, invoke the code generator.
      */
-    private void runGenerator(List<Path> files, Injector injector) {
+    private void runGenerator(List<Path> files, Injector injector, Io io) {
         Properties properties = this.filterProps(CLIOption.getPassedOptions());
         String pathOption = CLIOption.OUTPUT_PATH.option.getOpt();
         Path root = null;
@@ -230,7 +234,8 @@ public class Lfc extends CliBase {
                 reporter.printFatalErrorAndExit("Output location '" + root + "' does not exist.");
             }
             if (!Files.isDirectory(root)) {
-                reporter.printFatalErrorAndExit("Output location '" + root + "' is not a directory.");
+                reporter.printFatalErrorAndExit(
+                    "Output location '" + root + "' is not a directory.");
             }
         }
 
@@ -275,7 +280,7 @@ public class Lfc extends CliBase {
             // print all other issues (not errors)
             issueCollector.getAllIssues().forEach(reporter::printIssue);
 
-            System.out.println("Code generation finished.");
+            io.getOut().println("Code generation finished.");
         }
     }
 
