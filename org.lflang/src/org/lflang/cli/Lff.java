@@ -167,7 +167,7 @@ public class Lff extends CliBase {
     boolean verbose = cmd.hasOption(CLIOption.VERBOSE.option.getOpt());
     for (Path path : files) {
       if (verbose) {
-        reporter.printInfo("Formatting " + path + ":");
+        reporter.printInfo("Formatting " + io.getWd().relativize(path) + ":");
       }
       path = toAbsolutePath(path);
       if (!Files.isDirectory(path) || cmd.hasOption(CLIOption.NO_RECURSE.option.getLongOpt())) {
@@ -181,9 +181,6 @@ public class Lff extends CliBase {
         Files.walkFileTree(path, new SimpleFileVisitor<>() {
           @Override
           public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) {
-            if (verbose) {
-              reporter.printInfo("- Formatting " + file);
-            }
             formatSingleFile(file, outputRoot, lineLength, dryRun, verbose);
             return FileVisitResult.CONTINUE;
           }
@@ -239,8 +236,8 @@ public class Lff extends CliBase {
     exitIfCollectedErrors();
     issueCollector.getAllIssues().forEach(reporter::printIssue);
     if (verbose) {
-      String msg = "Formatted " + file;
-      if (file != outputPath) msg += " -> " + outputPath;
+      String msg = "Formatted " + io.getWd().relativize(file);
+      if (file != outputPath) msg += " -> " + io.getWd().relativize(outputPath);
       reporter.printInfo(msg);
     }
   }
