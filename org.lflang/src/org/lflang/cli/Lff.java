@@ -165,28 +165,28 @@ public class Lff extends CliBase {
     final boolean dryRun = cmd.hasOption(CLIOption.DRY_RUN.option.getOpt());
 
     boolean verbose = cmd.hasOption(CLIOption.VERBOSE.option.getOpt());
-    for (Path path : files) {
+    for (Path relPath : files) {
       if (verbose) {
-        reporter.printInfo("Formatting " + io.getWd().relativize(path) + ":");
+        reporter.printInfo("Formatting " + io.getWd().relativize(relPath) + ":");
       }
-      path = toAbsolutePath(path);
-      if (!Files.isDirectory(path) || cmd.hasOption(CLIOption.NO_RECURSE.option.getLongOpt())) {
-        // the output path.
-        formatSingleFile(path, outputRoot, lineLength, dryRun, verbose);
-        continue;
-      }
+      Path path = toAbsolutePath(relPath);
+      if (Files.isDirectory(path) && !cmd.hasOption(CLIOption.NO_RECURSE.option.getLongOpt())) {
+        // this is a directory, walk its contents.
+        try {
+          Files.walkFileTree(path, new SimpleFileVisitor<>() {
+            @Override
+            public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) {
+              formatSingleFile(file, path, outputRoot, lineLength, dryRun, verbose);
+              return FileVisitResult.CONTINUE;
+            }
+          });
+        } catch (IOException e) {
+          reporter.printError("IO error: " + e);
+        }
 
-      // this is a directory, walk its contents.
-      try {
-        Files.walkFileTree(path, new SimpleFileVisitor<>() {
-          @Override
-          public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) {
-            formatSingleFile(file, outputRoot, lineLength, dryRun, verbose);
-            return FileVisitResult.CONTINUE;
-          }
-        });
-      } catch (IOException e) {
-        reporter.printError("IO error: " + e);
+      } else {
+        // Simple file
+        formatSingleFile(path, path.getParent(), outputRoot, lineLength, dryRun, verbose);
       }
     }
 
@@ -197,11 +197,11 @@ public class Lff extends CliBase {
   }
 
   /** Load and validate a single file, then format it and output to the given outputPath. */
-  private void formatSingleFile(Path file, Path outputRoot, int lineLength, boolean dryRun, boolean verbose) {
+  private void formatSingleFile(Path file, Path inputRoot, Path outputRoot, int lineLength, boolean dryRun, boolean verbose) {
     file = file.normalize();
     Path outputPath = outputRoot == null
         ? file // format in place
-        : outputRoot.resolve(io.getWd().relativize(file)).normalize();
+        : outputRoot.resolve(inputRoot.relativize(file)).normalize();
     final Resource resource = getResource(file);
     if (resource == null) {
       if (verbose) {

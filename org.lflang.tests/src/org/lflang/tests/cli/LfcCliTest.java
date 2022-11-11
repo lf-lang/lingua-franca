@@ -26,12 +26,12 @@ package org.lflang.tests.cli;
 
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.lflang.tests.TestUtils.exists;
+import static org.lflang.tests.TestUtils.TempDirBuilder.dirBuilder;
+import static org.lflang.tests.TestUtils.TempDirChecker.dirChecker;
 import static org.lflang.tests.TestUtils.isDirectory;
+import static org.lflang.tests.TestUtils.isRegularFile;
 
 import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 
 import org.junit.jupiter.api.Test;
@@ -86,16 +86,15 @@ public class LfcCliTest {
     // generator?
     @Test
     public void testGenInSrcDir(@TempDir Path tempDir) throws IOException {
-        Files.createDirectories(tempDir.resolve("src"));
-        Path srcFile = tempDir.resolve("src/File.lf");
-        Files.writeString(srcFile, LF_PYTHON_FILE);
+        dirBuilder(tempDir).file("src/File.lf", LF_PYTHON_FILE);
 
         ExecutionResult result = lfcTester.run(tempDir, "src/File.lf");
 
         result.checkOk();
-        assertThat(tempDir.resolve("src-gen"), isDirectory());
-        assertThat(tempDir.resolve("bin"), isDirectory());
-        assertThat(tempDir.resolve("src-gen/File/File.py"), exists());
+        dirChecker(tempDir)
+            .check("src-gen", isDirectory())
+            .check("bin", isDirectory())
+            .check("src-gen/File/File.py", isRegularFile());
     }
 
 
