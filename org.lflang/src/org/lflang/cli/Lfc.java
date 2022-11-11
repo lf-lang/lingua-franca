@@ -60,6 +60,8 @@ public class Lfc extends CliBase {
      * @author Marten Lohstroh <marten@berkeley.edu>
      */
     enum CLIOption {
+
+        BUILD_TYPE(BuildParm.BUILD_TYPE, null, true, false,  true),
         CLEAN(BuildParm.CLEAN, "c", false, false, true),
         TARGET_COMPILER(BuildParm.TARGET_COMPILER, null, true, false, true),
         EXTERNAL_RUNTIME_PATH(BuildParm.EXTERNAL_RUNTIME_PATH, null, true, false, true),
