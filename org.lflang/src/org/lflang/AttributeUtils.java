@@ -79,20 +79,19 @@ public class AttributeUtils {
     }
 
     /**
-     * Return the value of the attribute with the given name
+     * Return the attribute with the given name
      * if present, otherwise return null.
      *
      * @throws IllegalArgumentException If the node cannot have attributes
      */
-    public static String findAttributeByName(EObject node, String name) {
+    public static Attribute findAttributeByName(EObject node, String name) {
         List<Attribute> attrs = getAttributes(node);
         return attrs.stream()
                     .filter(it -> it.getAttrName().equalsIgnoreCase(name)) // case-insensitive search (more user-friendly)
-                    .map(it -> it.getAttrParms().get(0).getValue().getStr())
                     .findFirst()
                     .orElse(null);
     }
-    
+
     /**
      * Return the value of the {@code @label} attribute if
      * present, otherwise return null.
@@ -100,7 +99,11 @@ public class AttributeUtils {
      * @throws IllegalArgumentException If the node cannot have attributes
      */
     public static String findLabelAttribute(EObject node) {
-        return findAttributeByName(node, "label");
+        final var attr = findAttributeByName(node, "label");
+        if (attr != null) {
+            return attr.getAttrParms().get(0).getValue();
+        }
+        return null;
     }
 
     /**
@@ -109,12 +112,7 @@ public class AttributeUtils {
      * @param node An AST node.
      */
     public static boolean isSparse(EObject node) {
-        if (node instanceof Input) {
-            for (var attribute : getAttributes(node)) {
-                if (attribute.getAttrName().equalsIgnoreCase("sparse")) return true;
-            }
-        }
-        return false;
+        return findAttributeByName(node, "sparse") != null;
     }
 
     /**

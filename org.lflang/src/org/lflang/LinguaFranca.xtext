@@ -246,14 +246,7 @@ Attribute:
 ;
 
 AttrParm:
-    (name=ID '=')? value=AttrParmValue;
-
-AttrParmValue:
-    str=STRING
-    | int=SignedInt
-    | bool=Boolean
-    | float=SignedFloat
-;
+    (name=ID '=')? value=Literal;
 
 /////////// For target parameters
 
