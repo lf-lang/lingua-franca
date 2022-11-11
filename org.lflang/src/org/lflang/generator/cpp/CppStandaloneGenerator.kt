@@ -1,5 +1,6 @@
 package org.lflang.generator.cpp
 
+import org.lflang.TargetProperty
 import org.lflang.generator.CodeMap
 import org.lflang.generator.LFGeneratorContext
 import org.lflang.toUnixString
@@ -122,6 +123,12 @@ class CppStandaloneGenerator(generator: CppGenerator) :
         return 0
     }
 
+    private fun buildTypeToCmakeConfig(type: TargetProperty.BuildType?) = when (type) {
+        null                          -> "Release"
+        TargetProperty.BuildType.TEST -> "Debug"
+        else                          -> type.toString()
+    }
+
     private fun createMakeCommand(buildPath: Path, version: String, target: String): LFCommand {
         val makeArgs: List<String>
         if (version.compareVersion("3.12.0") < 0) {
@@ -138,7 +145,7 @@ class CppStandaloneGenerator(generator: CppGenerator) :
                 "--parallel",
                 cores.toString(),
                 "--config",
-                targetConfig.cmakeBuildType?.toString() ?: "Release"
+                buildTypeToCmakeConfig(targetConfig.cmakeBuildType)
             )
         }
 
