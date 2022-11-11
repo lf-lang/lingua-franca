@@ -219,6 +219,7 @@ Preamble:
     (visibility=Visibility)? 'preamble' code=Code;
 
 Instantiation:
+    (attributes+=Attribute)*
     name=ID '=' 'new' (widthSpec=WidthSpec)?
     reactorClass=[ReactorDecl] ('<' typeParms+=TypeParm (',' typeParms+=TypeParm)* '>')? '(' 
     (parameters+=Assignment (',' parameters+=Assignment)*)? 

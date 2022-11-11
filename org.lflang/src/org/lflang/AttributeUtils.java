@@ -32,6 +32,7 @@ import org.eclipse.emf.ecore.EObject;
 import org.lflang.lf.Action;
 import org.lflang.lf.Attribute;
 import org.lflang.lf.Input;
+import org.lflang.lf.Instantiation;
 import org.lflang.lf.Output;
 import org.lflang.lf.Parameter;
 import org.lflang.lf.Reaction;
@@ -71,6 +72,8 @@ public class AttributeUtils {
             return ((Input) node).getAttributes();
         } else if (node instanceof Output) {
             return ((Output) node).getAttributes();
+        } else if (node instanceof Instantiation) {
+            return ((Instantiation) node).getAttributes();
         }
         throw new IllegalArgumentException("Not annotatable: " + node);
     }
