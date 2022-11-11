@@ -3,10 +3,15 @@ package org.lflang.cli;
 
 import java.io.IOException;
 import java.nio.file.FileAlreadyExistsException;
+import java.nio.file.FileVisitResult;
+import java.nio.file.FileVisitor;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.SimpleFileVisitor;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Stream;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
@@ -133,7 +138,7 @@ public class Lff extends CliBase {
   @Override
   protected void runTool(CommandLine cmd, List<Path> files) {
     String pathOption = CLIOption.OUTPUT_PATH.option.getOpt();
-    Path outputRoot = null;
+    final Path outputRoot;
     if (cmd.hasOption(pathOption)) {
       outputRoot = io.getWd().resolve(cmd.getOptionValue(pathOption)).toAbsolutePath().normalize();
       if (!Files.exists(outputRoot)) {
@@ -142,6 +147,8 @@ public class Lff extends CliBase {
       if (!Files.isDirectory(outputRoot)) {
         reporter.printFatalErrorAndExit("Output location '" + outputRoot + "' is not a directory.");
       }
+    } else {
+      outputRoot = null;
     }
 
     for (Path path : files) {
@@ -163,53 +170,41 @@ public class Lff extends CliBase {
         reporter.printInfo("Formatting " + path + ":");
       }
       path = toAbsolutePath(path);
-      if (Files.isDirectory(path) && !cmd.hasOption(CLIOption.NO_RECURSE.option.getLongOpt())) {
-        // todo replace with Files.walk
-        formatRecursive(io.getWd(), path, outputRoot, lineLength, dryRun, verbose);
-      } else {
-        if (outputRoot == null) {
-          formatSingleFile(path, path, lineLength, dryRun, verbose);
-        } else {
-          formatSingleFile(path, outputRoot.resolve(path.getFileName()), lineLength, dryRun, verbose);
-        }
+      if (!Files.isDirectory(path) || cmd.hasOption(CLIOption.NO_RECURSE.option.getLongOpt())) {
+        // the output path.
+        formatSingleFile(path, outputRoot, lineLength, dryRun, verbose);
+        continue;
+      }
+
+      // this is a directory, walk its contents.
+      try {
+        Files.walkFileTree(path, new SimpleFileVisitor<>() {
+          @Override
+          public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) {
+            if (verbose) {
+              reporter.printInfo("- Formatting " + file);
+            }
+            formatSingleFile(file, outputRoot, lineLength, dryRun, verbose);
+            return FileVisitResult.CONTINUE;
+          }
+        });
+      } catch (IOException e) {
+        reporter.printError("IO error: " + e);
       }
     }
-    if (!dryRun || verbose) reporter.printInfo("Done formatting.");
-  }
 
-  /**
-   * Invoke the formatter on all files in a directory recursively.
-   *
-   * @param curPath Current relative path from inputRoot.
-   * @param inputRoot Root directory of input files.
-   * @param outputRoot Root output directory.
-   * @param lineLength The preferred maximum number of columns per line.
-   */
-  private void formatRecursive(
-      Path curPath, Path inputRoot, Path outputRoot, int lineLength, boolean dryRun, boolean verbose) {
-    Path curDir = inputRoot.resolve(curPath);
-    try (var dirStream = Files.newDirectoryStream(curDir)) {
-      for (Path path : dirStream) {
-        Path newPath = curPath.resolve(path.getFileName());
-        if (Files.isDirectory(path)) {
-          formatRecursive(newPath, inputRoot, outputRoot, lineLength, dryRun, verbose);
-        } else {
-          if (outputRoot == null) {
-            formatSingleFile(path, path, lineLength, dryRun, verbose);
-          } else {
-            formatSingleFile(path, outputRoot.resolve(newPath), lineLength, dryRun, verbose);
-          }
-        }
-      }
-    } catch (IOException e) {
-      reporter.printError("Error reading directory " + curDir + ": " + e.getMessage());
+    exitIfCollectedErrors();
+    if (!dryRun || verbose) {
+      reporter.printInfo("Done formatting.");
     }
   }
 
   /** Load and validate a single file, then format it and output to the given outputPath. */
-  private void formatSingleFile(Path file, Path outputPath, int lineLength, boolean dryRun, boolean verbose) {
+  private void formatSingleFile(Path file, Path outputRoot, int lineLength, boolean dryRun, boolean verbose) {
     file = file.normalize();
-    outputPath = outputPath.normalize();
+    Path outputPath = outputRoot == null
+        ? file // format in place
+        : outputRoot.resolve(io.getWd().relativize(file)).normalize();
     final Resource resource = getResource(file);
     if (resource == null) {
       if (verbose) {
@@ -219,12 +214,13 @@ public class Lff extends CliBase {
     }
     validateResource(resource);
 
+    // todo don't abort whole run if one file has errors
     exitIfCollectedErrors();
     final String formattedFileContents =
         FormattingUtils.render(resource.getContents().get(0), lineLength);
 
     if (dryRun) {
-      System.out.print(formattedFileContents);
+      io.getOut().print(formattedFileContents);
     } else {
       try {
         FileUtil.writeToFile(formattedFileContents, outputPath, true);
