@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
+import java.util.function.UnaryOperator;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -17,6 +18,7 @@ import org.lflang.generator.CodeMap;
 import org.lflang.generator.DiagnosticReporting;
 import org.lflang.generator.DiagnosticReporting.Strategy;
 import org.lflang.generator.Position;
+import org.lflang.generator.Range;
 import org.lflang.generator.ValidationStrategy;
 import org.lflang.util.LFCommand;
 
@@ -256,40 +258,48 @@ public class PythonValidator extends org.lflang.generator.Validator {
             @Override
             public Strategy getOutputReportingStrategy() {
                 return (validationOutput, errorReporter, codeMaps) -> {
-                    if (validationOutput.isBlank()) return;
+                    if (validationOutput.isBlank()) {
+                        return;
+                    }
+                    PylintMessage[] pylintMessages;
                     try {
-                        for (PylintMessage message : mapper.readValue(validationOutput, PylintMessage[].class)) {
-                            if (shouldIgnore(message)) continue;
-                            CodeMap map = codeMaps.get(message.getPath(fileConfig.getSrcGenPath()));
-                            if (map != null) {
-                                for (Path lfFile : map.lfSourcePaths()) {
-                                    Function<Position, Position> adjust = p -> map.adjusted(lfFile, p);
-                                    String humanMessage = DiagnosticReporting.messageOf(
-                                        message.message,
-                                        message.getPath(fileConfig.getSrcGenPath()),
-                                        message.getStart()
-                                    );
-                                    Position lfStart = adjust.apply(message.getStart());
-                                    Position lfEnd = adjust.apply(message.getEnd());
-                                    bestEffortReport(
-                                        errorReporter,
-                                        adjust,
-                                        lfStart,
-                                        lfEnd,
-                                        lfFile,
-                                        message.getSeverity(),
-                                        humanMessage
-                                    );
-                                }
-                            }
-                        }
+                        pylintMessages = mapper.readValue(validationOutput, PylintMessage[].class);
                     } catch (JsonProcessingException e) {
                         System.err.printf("Failed to parse \"%s\":%n", validationOutput);
                         e.printStackTrace();
                         errorReporter.reportWarning(
                             "Failed to parse linter output. The Lingua Franca code generator is tested with Pylint "
-                             + "version 2.12.2. Consider updating Pylint if you have an older version."
+                                + "version 2.12.2. Consider updating Pylint if you have an older version."
                         );
+                        return;
+                    }
+                    for (PylintMessage message : pylintMessages) {
+                        if (shouldIgnore(message)) {
+                            continue;
+                        }
+                        CodeMap map = codeMaps.get(message.getPath(fileConfig.getSrcGenPath()));
+                        if (map == null) {
+                            continue;
+                        }
+                        for (Path lfFile : map.lfSourcePaths()) {
+                            UnaryOperator<Position> adjust = p -> map.adjusted(lfFile, p);
+                            String humanMessage = DiagnosticReporting.messageOf(
+                                message.message,
+                                message.getPath(fileConfig.getSrcGenPath()),
+                                message.getStart()
+                            );
+                            Position lfStart = adjust.apply(message.getStart());
+                            Position lfEnd = adjust.apply(message.getEnd());
+                            bestEffortReport(
+                                errorReporter,
+                                adjust,
+                                lfStart,
+                                lfEnd,
+                                lfFile,
+                                message.getSeverity(),
+                                humanMessage
+                            );
+                        }
                     }
                 };
             }
@@ -312,7 +322,7 @@ public class PythonValidator extends org.lflang.generator.Validator {
             /** Make a best-effort attempt to place the diagnostic on the correct line. */
             private void bestEffortReport(
                 ErrorReporter errorReporter,
-                Function<Position, Position> adjust,
+                UnaryOperator<Position> adjust,
                 Position lfStart,
                 Position lfEnd,
                 Path file,
@@ -320,7 +330,7 @@ public class PythonValidator extends org.lflang.generator.Validator {
                 String humanMessage
             ) {
                 if (!lfEnd.equals(Position.ORIGIN) && !lfStart.equals(Position.ORIGIN)) { // Ideal case
-                    errorReporter.report(file, severity, humanMessage, lfStart, lfEnd);
+                    errorReporter.report(file, severity, humanMessage, new Range(lfStart, lfEnd));
                 } else {  // Fallback: Try to report on the correct line, or failing that, just line 1.
                     if (lfStart.equals(Position.ORIGIN)) lfStart = adjust.apply(
                         Position.fromZeroBased(lfStart.getZeroBasedLine(), Integer.MAX_VALUE)

@@ -140,16 +140,16 @@ public class CCompiler {
 
         if (cMakeReturnCode != 0 &&
                 context.getMode() == LFGeneratorContext.Mode.STANDALONE &&
-                !outputContainsKnownCMakeErrors(compile.getErrors().toString())) {
+                !outputContainsKnownCMakeErrors(compile.getErrors())) {
             errorReporter.reportError(targetConfig.compiler + " failed with error code " + cMakeReturnCode);
         }
 
         // For warnings (vs. errors), the return code is 0.
         // But we still want to mark the IDE.
-        if (compile.getErrors().toString().length() > 0 &&
+        if (compile.getErrors().length() > 0 &&
                 context.getMode() != LFGeneratorContext.Mode.STANDALONE &&
-                !outputContainsKnownCMakeErrors(compile.getErrors().toString())) {
-            generator.reportCommandErrors(compile.getErrors().toString());
+                !outputContainsKnownCMakeErrors(compile.getErrors())) {
+            generator.reportCommandErrors(compile.getErrors());
         }
 
         int makeReturnCode = 0;
@@ -161,20 +161,20 @@ public class CCompiler {
 
             if (makeReturnCode != 0 &&
                     context.getMode() == LFGeneratorContext.Mode.STANDALONE &&
-                    !outputContainsKnownCMakeErrors(build.getErrors().toString())) {
+                    !outputContainsKnownCMakeErrors(build.getErrors())) {
                 errorReporter.reportError(targetConfig.compiler + " failed with error code " + makeReturnCode);
             }
 
             // For warnings (vs. errors), the return code is 0.
             // But we still want to mark the IDE.
-            if (build.getErrors().toString().length() > 0 &&
+            if (build.getErrors().length() > 0 &&
                     context.getMode() != LFGeneratorContext.Mode.STANDALONE &&
-                    !outputContainsKnownCMakeErrors(build.getErrors().toString())) {
-                generator.reportCommandErrors(build.getErrors().toString());
+                    !outputContainsKnownCMakeErrors(build.getErrors())) {
+                generator.reportCommandErrors(build.getErrors());
             }
 
 
-            if (makeReturnCode == 0 && build.getErrors().toString().length() == 0) {
+            if (makeReturnCode == 0 && build.getErrors().length() == 0) {
                 errorReporter.reportInfo("SUCCESS: Compiling generated code for " + fileConfig.name + " finished with no errors.");
             }
 

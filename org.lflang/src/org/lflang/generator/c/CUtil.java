@@ -709,8 +709,8 @@ public class CUtil {
             }
             // For warnings (vs. errors), the return code is 0.
             // But we still want to mark the IDE.
-            if (!cmd.getErrors().toString().isEmpty() && mode == LFGeneratorContext.Mode.EPOCH) {
-                reportCommandErrors.report(cmd.getErrors().toString());
+            if (!cmd.getErrors().isEmpty() && mode == LFGeneratorContext.Mode.EPOCH) {
+                reportCommandErrors.report(cmd.getErrors());
                 return; // FIXME: Why do we return here? Even if there are warnings, the build process should proceed.
             }
         }

@@ -83,13 +83,13 @@ public class LFCommand {
     /**
      * Get the output collected during command execution
      */
-    public OutputStream getOutput() { return output; }
+    public String getOutput() { return output.toString(); }
 
 
     /**
      * Get the error output collected during command execution
      */
-    public OutputStream getErrors() { return errors; }
+    public String getErrors() { return errors.toString(); }
 
     /** Get this command's program and arguments. */
     public List<String> command() { return processBuilder.command(); }

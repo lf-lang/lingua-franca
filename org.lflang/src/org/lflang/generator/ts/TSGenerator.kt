@@ -353,7 +353,7 @@ class TSGenerator(
         if (pnpmInstall != null) {
             val ret = pnpmInstall.run(context.cancelIndicator)
             if (ret != 0) {
-                val errors: String = pnpmInstall.errors.toString()
+                val errors: String = pnpmInstall.errors
                 errorReporter.reportError(
                     GeneratorUtils.findTarget(resource),
                     "ERROR: pnpm install command failed" + if (errors.isBlank()) "." else ":\n$errors")
@@ -372,7 +372,7 @@ class TSGenerator(
             if (npmInstall.run(context.cancelIndicator) != 0) {
                 errorReporter.reportError(
                     GeneratorUtils.findTarget(resource),
-                    "ERROR: npm install command failed: " + npmInstall.errors.toString())
+                    "ERROR: npm install command failed: " + npmInstall.errors)
                 errorReporter.reportError(
                     GeneratorUtils.findTarget(resource), "ERROR: npm install command failed." +
                         "\nFor installation instructions, see: https://www.npmjs.com/get-npm")

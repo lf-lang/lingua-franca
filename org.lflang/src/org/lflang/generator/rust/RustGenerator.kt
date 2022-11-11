@@ -143,7 +143,7 @@ class RustGenerator(
             }
 
             val buildType = targetConfig.rust.buildType
-            var binaryPath = validator.getMetadata()?.targetDirectory!!
+            val binaryPath = validator.metadata?.targetDirectory!!
                 .resolve(buildType.cargoProfileName)
                 .resolve(localizedExecName)
             val destPath = fileConfig.binPath.resolve(localizedExecName)

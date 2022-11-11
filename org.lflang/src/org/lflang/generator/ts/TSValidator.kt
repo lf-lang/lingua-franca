@@ -11,6 +11,7 @@ import org.lflang.generator.DiagnosticReporting
 import org.lflang.generator.HumanReadableReportingStrategy
 import org.lflang.generator.LFGeneratorContext
 import org.lflang.generator.Position
+import org.lflang.generator.Range
 import org.lflang.generator.ValidationStrategy
 import org.lflang.generator.Validator
 import org.lflang.util.LFCommand
@@ -82,39 +83,37 @@ class TSValidator(
         )
 
         override fun getPossibleStrategies(): Collection<ValidationStrategy> = listOf(object: ValidationStrategy {
-            override fun getCommand(generatedFile: Path?): LFCommand? {
-                return generatedFile?.let {
-                    LFCommand.get(
-                        "npx",
-                        listOf("eslint", "--format", "json", fileConfig.srcGenPkgPath.relativize(it).toString()),
-                        true,
-                        fileConfig.srcGenPkgPath
-                    )
-                }
-            }
+            override fun getCommand(generatedFile: Path): LFCommand =
+                LFCommand.get(
+                    "npx",
+                    listOf("eslint", "--format", "json", fileConfig.srcGenPkgPath.relativize(generatedFile).toString()),
+                    true,
+                    fileConfig.srcGenPkgPath
+                )
 
             override fun getErrorReportingStrategy() = DiagnosticReporting.Strategy { _, _, _ -> }
 
-            override fun getOutputReportingStrategy() = DiagnosticReporting.Strategy {
-                validationOutput, errorReporter, map -> validationOutput.lines().filter { it.isNotBlank() }.forEach {
-                    line: String -> mapper.readValue(line, Array<ESLintOutput>::class.java).forEach {
-                        output: ESLintOutput -> output.messages.forEach {
-                            message: ESLintMessage ->
-                            val genPath: Path = fileConfig.srcGenPkgPath.resolve(output.filePath)
-                            map[genPath]?.let {
-                                codeMap ->
-                                codeMap.lfSourcePaths().forEach {
-                                    val lfStart = codeMap.adjusted(it, message.start)
-                                    val lfEnd = codeMap.adjusted(it, message.end)
-                                    if (!lfStart.equals(Position.ORIGIN)) {  // Ignore linting errors in non-user-supplied code.
-                                        errorReporter.report(
-                                            it,
-                                            message.severity,
-                                            DiagnosticReporting.messageOf(message.message, genPath, message.start),
+            override fun getOutputReportingStrategy() = DiagnosticReporting.Strategy { validationOutput, errorReporter, map ->
+                for (line in validationOutput.lines().filter { it.isNotBlank() }) {
+                    for (output in mapper.readValue(line, Array<ESLintOutput>::class.java)) {
+                        for (message in output.messages) {
+
+                            val genPath = fileConfig.srcGenPkgPath.resolve(output.filePath)
+                            val codeMap = map[genPath] ?: continue
+
+                            for (path in codeMap.lfSourcePaths()) {
+                                val lfStart = codeMap.adjusted(path, message.start)
+                                val lfEnd = codeMap.adjusted(path, message.end)
+                                if (lfStart != Position.ORIGIN) {  // Ignore linting errors in non-user-supplied code.
+                                    errorReporter.report(
+                                        path,
+                                        message.severity,
+                                        DiagnosticReporting.messageOf(message.message, genPath, message.start),
+                                        Range(
                                             lfStart,
-                                            if (lfEnd > lfStart) lfEnd else lfStart.plus(" "),
+                                            if (lfEnd > lfStart) lfEnd else lfStart + " ",
                                         )
-                                    }
+                                    )
                                 }
                             }
                         }
@@ -133,9 +132,9 @@ class TSValidator(
 
     override fun getPossibleStrategies(): Collection<ValidationStrategy>
         = listOf(object: ValidationStrategy {
-            override fun getCommand(generatedFile: Path?): LFCommand? {  // FIXME: Add "--incremental" argument if we update to TypeScript 4
-                return LFCommand.get("npx", listOf("tsc", "--pretty", "--noEmit"), true, fileConfig.srcGenPkgPath)
-            }
+        override fun getCommand(generatedFile: Path): LFCommand {  // FIXME: Add "--incremental" argument if we update to TypeScript 4
+            return LFCommand.get("npx", listOf("tsc", "--pretty", "--noEmit"), true, fileConfig.srcGenPkgPath)
+        }
 
             override fun getErrorReportingStrategy() = DiagnosticReporting.Strategy { _, _, _ -> }
 

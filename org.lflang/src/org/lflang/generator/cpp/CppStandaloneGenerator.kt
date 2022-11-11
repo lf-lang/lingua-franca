@@ -89,7 +89,7 @@ class CppStandaloneGenerator(generator: CppGenerator) :
         var version: String? = null
         if (cmd != null && cmd.run() == 0) {
             val regex = "\\d+(\\.\\d+)+".toRegex()
-            version = regex.find(cmd.output.toString())?.value
+            version = regex.find(cmd.output)?.value
         }
         if (version == null || version.compareVersion("3.5.0") < 0) {
             errorReporter.reportError(

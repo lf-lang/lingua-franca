@@ -68,8 +68,8 @@ public abstract class Validator {
             }
         ).collect(Collectors.toList());
         for (Future<Pair<ValidationStrategy, LFCommand>> f : getFutures(tasks)) {
-            f.get().first.getErrorReportingStrategy().report(f.get().second.getErrors().toString(), errorReporter, codeMaps);
-            f.get().first.getOutputReportingStrategy().report(f.get().second.getOutput().toString(), errorReporter, codeMaps);
+            f.get().first.getErrorReportingStrategy().report(f.get().second.getErrors(), errorReporter, codeMaps);
+            f.get().first.getOutputReportingStrategy().report(f.get().second.getOutput(), errorReporter, codeMaps);
         }
     }
 
@@ -125,8 +125,8 @@ public abstract class Validator {
      */
     public final int run(LFCommand command, CancelIndicator cancelIndicator) {
         final int returnCode = command.run(cancelIndicator);
-        getBuildReportingStrategies().first.report(command.getErrors().toString(), errorReporter, codeMaps);
-        getBuildReportingStrategies().second.report(command.getOutput().toString(), errorReporter, codeMaps);
+        getBuildReportingStrategies().first.report(command.getErrors(), errorReporter, codeMaps);
+        getBuildReportingStrategies().second.report(command.getOutput(), errorReporter, codeMaps);
         return returnCode;
     }
 
@@ -161,7 +161,7 @@ public abstract class Validator {
      */
     private Pair<ValidationStrategy, LFCommand> getValidationStrategy(Path generatedFile) {
         List<ValidationStrategy> sorted = getPossibleStrategies().stream()
-            .sorted(Comparator.comparingInt(vs -> -vs.getPriority())).collect(Collectors.toList());
+            .sorted(Comparator.comparingInt(vs -> -vs.getPriority())).toList();
         for (ValidationStrategy strategy : sorted) {
             LFCommand validateCommand = strategy.getCommand(generatedFile);
             if (validateCommand != null) {

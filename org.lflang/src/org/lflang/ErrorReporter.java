@@ -6,6 +6,7 @@ import org.eclipse.emf.ecore.EObject;
 import org.eclipse.lsp4j.DiagnosticSeverity;
 
 import org.lflang.generator.Position;
+import org.lflang.generator.Range;
 
 /**
  * Interface for reporting errors.
@@ -161,7 +162,20 @@ public interface ErrorReporter {
      * @return a string that describes the diagnostic
      */
     default String report(Path file, DiagnosticSeverity severity, String message, Position startPos, Position endPos) {
-        return report(file, severity, message, startPos.getOneBasedLine());
+        return report(file, severity, message, new Range(startPos, endPos));
+    }
+
+    /**
+     * Report a message of severity {@code severity} that
+     * pertains to the given range of an LF source file.
+     * @param file The file to which the message pertains, or {@code null} if the file is unknown.
+     * @param severity the severity of the message
+     * @param message the message to send to the IDE
+     * @param range range of code in the file
+     * @return a string that describes the diagnostic
+     */
+    default String report(Path file, DiagnosticSeverity severity, String message, Range range) {
+        return report(file, severity, message, range.getStartInclusive().getOneBasedLine());
     }
 
     /**

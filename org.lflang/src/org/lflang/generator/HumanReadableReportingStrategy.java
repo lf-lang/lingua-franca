@@ -4,12 +4,12 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.eclipse.lsp4j.DiagnosticSeverity;
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure0;
-import org.eclipse.xtext.xbase.lib.Procedures.Procedure2;
 
 import org.lflang.ErrorReporter;
 
@@ -117,7 +117,7 @@ public class HumanReadableReportingStrategy implements DiagnosticReporting.Strat
                 Position lfFilePosition = map.adjusted(srcFile, generatedFilePosition);
                 if (matcher.group("column") != null) {
                     reportAppropriateRange(
-                        (p0, p1) -> errorReporter.report(srcFile, severity, message, p0, p1), lfFilePosition, it
+                        range -> errorReporter.report(srcFile, severity, message, range), lfFilePosition, it
                     );
                 } else {
                     errorReporter.report(srcFile, severity, message, lfFilePosition.getOneBasedLine());
@@ -138,9 +138,9 @@ public class HumanReadableReportingStrategy implements DiagnosticReporting.Strat
      *           following a diagnostic message.
      */
     private void reportAppropriateRange(
-        Procedure2<Position, Position> report, Position lfFilePosition, Iterator<String> it
+        Consumer<Range> report, Position lfFilePosition, Iterator<String> it
     ) {
-        Procedure0 failGracefully = () -> report.apply(lfFilePosition, lfFilePosition.plus(" "));
+        Procedure0 failGracefully = () -> report.accept(new Range(lfFilePosition, lfFilePosition.plus(" ")));
         if (!it.hasNext()) {
             failGracefully.apply();
             return;
@@ -148,13 +148,13 @@ public class HumanReadableReportingStrategy implements DiagnosticReporting.Strat
         String line = it.next();
         Matcher labelMatcher = labelPattern.matcher(line);
         if (labelMatcher.find()) {
-            report.apply(
+            report.accept(new Range(
                 Position.fromZeroBased(
                     lfFilePosition.getZeroBasedLine(),
                     lfFilePosition.getZeroBasedColumn() - labelMatcher.group(1).length()
                 ),
                 lfFilePosition.plus(labelMatcher.group(2))
-            );
+            ));
             return;
         }
         if (diagnosticMessagePattern.matcher(line).find()) {
