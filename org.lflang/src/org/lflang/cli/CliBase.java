@@ -69,7 +69,7 @@ public class CliBase {
      * @param passOptions Which options should be passed to the runtime.
      * @return Provided arguments in cmd as properties, which should be passed to the runtime.
      */
-    protected Properties filterProps(List<Option> passOptions) {
+    protected Properties filterProps(CommandLine cmd, List<Option> passOptions) {
         Properties props = new Properties();
         for (Option o : cmd.getOptions()) {
             if (passOptions.contains(o)) {

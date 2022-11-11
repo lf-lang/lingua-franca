@@ -14,6 +14,7 @@ import java.util.List;
 import java.util.Properties;
 import java.util.stream.Collectors;
 
+import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.HelpFormatter;
@@ -180,6 +181,7 @@ public class Lfc extends CliBase {
         // Helper object for printing "help" menu.
         HelpFormatter formatter = new HelpFormatter();
 
+        CommandLine cmd;
         try {
             cmd = parser.parse(options, args, false);
         } catch (ParseException e) {
@@ -209,7 +211,7 @@ public class Lfc extends CliBase {
         }
         try {
             List<Path> paths = files.stream().map(io.getWd()::resolve).collect(Collectors.toList());
-            runGenerator(paths);
+            runGenerator(cmd, paths);
         } catch (RuntimeException e) {
             reporter.printFatalErrorAndExit("An unexpected error occurred:", e);
         }
@@ -236,8 +238,8 @@ public class Lfc extends CliBase {
     /**
      * Load the resource, validate it, and, invoke the code generator.
      */
-    private void runGenerator(List<Path> files) {
-        Properties properties = this.filterProps(CLIOption.getPassedOptions());
+    private void runGenerator(CommandLine cmd, List<Path> files) {
+        Properties properties = this.filterProps(cmd, CLIOption.getPassedOptions());
         String pathOption = CLIOption.OUTPUT_PATH.option.getOpt();
         Path root = null;
         if (cmd.hasOption(pathOption)) {
@@ -272,7 +274,7 @@ public class Lfc extends CliBase {
                 reporter.printFatalErrorAndExit(
                     path + " is not an LF file. Use the .lf file extension to denote LF files.");
             }
-            else if (cmd != null && cmd.hasOption(CLIOption.FEDERATED.option.getOpt())) {
+            else if (cmd.hasOption(CLIOption.FEDERATED.option.getOpt())) {
                 if (!ASTUtils.makeFederated(resource)) {
                     reporter.printError("Unable to change main reactor to federated reactor.");
                 }
