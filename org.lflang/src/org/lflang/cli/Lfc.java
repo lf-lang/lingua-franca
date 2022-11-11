@@ -18,7 +18,6 @@ import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.xtext.generator.GeneratorDelegate;
 import org.eclipse.xtext.generator.JavaIoFileSystemAccess;
 import org.eclipse.xtext.util.CancelIndicator;
-import org.jetbrains.annotations.NotNull;
 
 import org.lflang.ASTUtils;
 import org.lflang.FileConfig;
@@ -212,7 +211,6 @@ public class Lfc extends CliBase {
         }
     }
 
-    @NotNull
     private Path getActualOutputPath(Path root, Path path) {
         if (root != null) {
             return root.resolve("src-gen");
