@@ -40,14 +40,6 @@ class CppConstructorGenerator(
 ) {
 
     /**
-     * Constructor argument that provides a reference to the next higher level
-     *
-     * For the main reactor, the next higher level is the environment. For all other reactors, it is the containing reactor.
-     */
-    private val environmentOrContainer =
-        if (reactor.isMain) "reactor::Environment* environment" else "reactor::Reactor* container"
-
-    /**
      * Get a list of all parameters as they appear in the argument list of the constructors.
      *
      * @param withDefaults If true, then include default parameter values.
@@ -58,8 +50,9 @@ class CppConstructorGenerator(
         else reactor.parameters.map { "${it.constRefType} ${it.name}" }
     }
 
-    private fun outerSignature(withDefaults: Boolean): String {
+    private fun outerSignature(withDefaults: Boolean, fromEnvironment: Boolean): String {
         val parameterArgs = parameterArguments(withDefaults)
+        val environmentOrContainer = if (fromEnvironment) "reactor::Environment* environment" else "reactor::Reactor* container"
         return if (parameterArgs.isEmpty())
             """${reactor.name}(const std::string& name, $environmentOrContainer)"""
         else with(PrependOperator) {
@@ -88,16 +81,16 @@ class CppConstructorGenerator(
     }
 
     /** Get the constructor declaration of the outer reactor class */
-    fun generateOuterDeclaration() = "${outerSignature(true)};"
+    fun generateOuterDeclaration(fromEnvironment: Boolean) = "${outerSignature(true, fromEnvironment)};"
 
     /** Get the constructor definition of the outer reactor class */
-    fun generateOuterDefinition(): String {
+    fun generateOuterDefinition(fromEnvironment: Boolean): String {
         val innerParameters = listOf("this") + reactor.parameters.map { it.name }
         return with(PrependOperator) {
             """
                 |${reactor.templateLine}
-                |${reactor.templateName}::${outerSignature(false)}
-                |  : reactor::Reactor(name, ${if (reactor.isMain) "environment" else "container"})
+                |${reactor.templateName}::${outerSignature(false, fromEnvironment)}
+                |  : reactor::Reactor(name, ${if (fromEnvironment) "environment" else "container"})
             ${" |  "..instances.generateInitializers()}
             ${" |  "..timers.generateInitializers()}
             ${" |  "..actions.generateInitializers()}

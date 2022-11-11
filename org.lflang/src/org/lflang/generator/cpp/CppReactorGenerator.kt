@@ -108,7 +108,8 @@ class CppReactorGenerator(private val reactor: Reactor, fileConfig: CppFileConfi
             |
             | public:
         ${" |  "..ports.generateDeclarations()}
-        ${" |  "..constructor.generateOuterDeclaration()}
+        ${" |  "..constructor.generateOuterDeclaration(true)}
+        ${" |  "..constructor.generateOuterDeclaration(false)}
             |
             |  void assemble() override;
             |};
@@ -129,7 +130,8 @@ class CppReactorGenerator(private val reactor: Reactor, fileConfig: CppFileConfi
         ${" |  "..privatePreamble()}
             |
             |// outer constructor
-        ${" |"..constructor.generateOuterDefinition()}
+        ${" |"..constructor.generateOuterDefinition(true)}
+        ${" |"..constructor.generateOuterDefinition(false)}
             |
             |// inner constructor
         ${" |"..constructor.generateInnerDefinition()}
