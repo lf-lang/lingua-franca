@@ -73,7 +73,7 @@ jobs:
 
   # Run the C++ integration tests.
   cpp-tests:
-    uses: lf-lang/lingua-franca/.github/workflows/cpp-tests.yml@cpp-code-cov
+    uses: lf-lang/lingua-franca/.github/workflows/cpp-tests.yml@master
     needs: cancel
 
   # Run the C++ integration tests on ROS2.
