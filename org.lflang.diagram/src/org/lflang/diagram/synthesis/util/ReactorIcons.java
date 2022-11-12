@@ -87,6 +87,7 @@ public class ReactorIcons extends AbstractSynthesisExtensions {
                  * This code was disabled because it cannot be compiled for the language server with Gradle.
                  * As soon as the Klighd API is extended to support URI-based images in both Eclipse and VSCode,
                  * this code should be reactivated and adapted.
+                 * See: https://github.com/kieler/KLighD/issues/146
                  */
 //                ImageData data = loadImage(iconLocation);
 //                if (data != null) {
