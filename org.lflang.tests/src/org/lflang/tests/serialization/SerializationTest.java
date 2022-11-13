@@ -1,5 +1,7 @@
 package org.lflang.tests.serialization;
 
+import java.util.Properties;
+
 import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.Test;
 import org.lflang.Target;
@@ -11,6 +13,13 @@ public class SerializationTest extends TestBase {
 
     protected SerializationTest() {
         super(Target.ALL);        
+    }
+
+    @Override
+    protected void addExtraLfcArgs(Properties args) {
+        super.addExtraLfcArgs(args);
+        // Use the Debug build type as coverage generation does not work for the serialization tests
+        args.setProperty("build-type", "Debug");
     }
     
     @Test

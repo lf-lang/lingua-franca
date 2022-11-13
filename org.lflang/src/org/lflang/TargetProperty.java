@@ -1036,6 +1036,7 @@ public enum TargetProperty {
     public enum BuildType {
         RELEASE("Release"),
         DEBUG("Debug"),
+        TEST("Test"),
         REL_WITH_DEB_INFO("RelWithDebInfo"),
         MIN_SIZE_REL("MinSizeRel");
 
