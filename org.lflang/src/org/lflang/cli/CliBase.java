@@ -16,7 +16,6 @@ import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
-import org.checkerframework.checker.nullness.Opt;
 import org.eclipse.emf.common.util.URI;
 import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.emf.ecore.resource.ResourceSet;
@@ -29,7 +28,6 @@ import org.lflang.ErrorReporter;
 import org.lflang.LFRuntimeModule;
 import org.lflang.LFStandaloneSetup;
 import org.lflang.LocalStrings;
-import org.lflang.cli.Lfc.CLIOption;
 import org.lflang.generator.LFGeneratorContext.BuildParm;
 import org.lflang.util.FileUtil;
 
