@@ -24,10 +24,14 @@
 
 package org.lflang.generator.rust;
 
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
+
+import org.eclipse.osgi.internal.permadmin.SecurityTable;
 
 import org.lflang.ASTUtils;
 import org.lflang.TargetProperty;
@@ -51,7 +55,7 @@ public class CargoDependencySpec {
     private String rev;
     private String gitTag;
     private String localPath;
-    private final List<String> features;
+    private final Set<String> features;
 
     CargoDependencySpec(String version,
                         String gitRepo,
@@ -64,7 +68,7 @@ public class CargoDependencySpec {
         this.rev = rev;
         this.gitTag = gitTag;
         this.localPath = StringUtil.removeQuotes(localPath);
-        this.features = features;
+        this.features = new HashSet<>(features);
     }
 
     /** The version. May be null. */
@@ -111,8 +115,8 @@ public class CargoDependencySpec {
         }
     }
 
-    /** Returns the list of features that are enabled on the crate. May be null. */
-    public List<String> getFeatures() {
+    /** Returns the set of features that are enabled on the crate. May be null. */
+    public Set<String> getFeatures() {
         return features;
     }
 
