@@ -30,7 +30,7 @@ reactor Destination {
     input[4] in: u32
 
     reaction(in) {=
-        let sum: u32 = r#in.enumerate_values(ctx).map(|a| a.1).sum();
+        let sum: u32 = r#in.iterate_values().sum();
         println!("Sum of received: {}", sum);
         assert_eq!(sum, self.s);
         self.s += 4;

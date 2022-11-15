@@ -16,7 +16,7 @@ reactor Destination(width: usize(2)) {
     input[width] in: usize
 
     reaction(in) {=
-        for (i, v) in r#in.enumerate_values(ctx) {
+        for (i, v) in r#in.enumerate_values() {
             // NOTE: For testing purposes, this assumes the specific
             // widths instantiated below.
             assert_eq!(v, i % 3, "Failed for input in[{}]", i);
