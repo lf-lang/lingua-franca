@@ -25,12 +25,55 @@
 
 package org.lflang.generator.rust
 
-import org.lflang.*
+import org.lflang.ASTUtils
+import org.lflang.AttributeUtils
+import org.lflang.ErrorReporter
+import org.lflang.IDENT_REGEX
+import org.lflang.InferredType
+import org.lflang.TargetConfig
 import org.lflang.TargetProperty.BuildType
-import org.lflang.generator.*
+import org.lflang.TimeUnit
+import org.lflang.TimeValue
+import org.lflang.allComponents
+import org.lflang.camelToSnakeCase
+import org.lflang.generator.CodeMap
+import org.lflang.generator.InvalidLfSourceException
+import org.lflang.generator.LocationInfo
+import org.lflang.generator.TargetCode
+import org.lflang.generator.UnsupportedGeneratorFeatureException
 import org.lflang.generator.cpp.toCppCode
-import org.lflang.lf.*
+import org.lflang.generator.locationInfo
+import org.lflang.inBlock
+import org.lflang.indexInContainer
+import org.lflang.inferredType
+import org.lflang.isBank
+import org.lflang.isInitWithBraces
+import org.lflang.isInput
+import org.lflang.isLogical
+import org.lflang.isMultiport
+import org.lflang.lf.Action
+import org.lflang.lf.BuiltinTrigger
+import org.lflang.lf.BuiltinTriggerRef
+import org.lflang.lf.Code
+import org.lflang.lf.Connection
+import org.lflang.lf.Expression
+import org.lflang.lf.Input
+import org.lflang.lf.Instantiation
+import org.lflang.lf.Literal
+import org.lflang.lf.ParameterReference
+import org.lflang.lf.Port
+import org.lflang.lf.Reaction
+import org.lflang.lf.Reactor
+import org.lflang.lf.Time
 import org.lflang.lf.Timer
+import org.lflang.lf.TypeParm
+import org.lflang.lf.VarRef
+import org.lflang.lf.Variable
+import org.lflang.lf.WidthSpec
+import org.lflang.reactor
+import org.lflang.toPath
+import org.lflang.toText
+import org.lflang.toTimeValue
 import java.nio.file.Path
 import java.util.*
 
@@ -412,7 +455,7 @@ object RustModelBuilder {
     /**
      * Given the input to the generator, produce the model classes.
      */
-    fun makeGenerationInfo(targetConfig: TargetConfig, fileConfig: RustFileConfig, reactors: List<Reactor>, errorReporter: ErrorReporter): GenerationInfo {
+    fun makeGenerationInfo(targetConfig: TargetConfig, reactors: List<Reactor>, errorReporter: ErrorReporter): GenerationInfo {
         val reactorsInfos = makeReactorInfos(reactors)
         // todo how do we pick the main reactor? it seems like super.doGenerate sets that field...
         val mainReactor = reactorsInfos.lastOrNull { it.isMain } ?: reactorsInfos.last()
@@ -420,7 +463,7 @@ object RustModelBuilder {
 
         val dependencies = targetConfig.rust.cargoDependencies.toMutableMap()
         dependencies.compute(RustEmitterBase.runtimeCrateFullName) { _, spec ->
-            computeDefaultRuntimeConfiguration(spec, targetConfig, fileConfig, errorReporter)
+            computeDefaultRuntimeConfiguration(spec, targetConfig, errorReporter)
         }
 
         return GenerationInfo(
@@ -448,10 +491,19 @@ object RustModelBuilder {
     private fun computeDefaultRuntimeConfiguration(
         userSpec: CargoDependencySpec?,
         targetConfig: TargetConfig,
-        fileConfig: RustFileConfig,
         errorReporter: ErrorReporter
     ): CargoDependencySpec {
-        val defaultRuntimePath = fileConfig.srcGenBasePath.resolve(RustGenerator.runtimeName).toString()
+        fun CargoDependencySpec.useDefaultRuntimePath() {
+             this.localPath = System.getenv("LOCAL_RUST_REACTOR_RT")?.also {
+                // Print info to reduce surprise. If the env var is not set,
+                // the runtime will be fetched from the internet by Cargo. If
+                // the value is incorrect, Cargo will crash.
+                errorReporter.reportInfo("Using the Rust runtime from environment variable LOCAL_RUST_REACTOR_RT=$it")
+            }
+
+            this.rev = TODO("need to fetch rev for submodule")
+        }
+
         if (userSpec == null) {
             // default configuration for the runtime crate
 
@@ -469,14 +521,13 @@ object RustModelBuilder {
                 spec.gitRepo = RustEmitterBase.runtimeGitUrl
                 spec.rev = userRtVersion
             } else {
-                spec.localPath = defaultRuntimePath
+                spec.useDefaultRuntimePath()
             }
 
             return spec
         } else {
             if (userSpec.localPath == null && userSpec.gitRepo == null) {
-                // default the location
-                userSpec.localPath = defaultRuntimePath
+                userSpec.useDefaultRuntimePath()
             }
 
             // override location
