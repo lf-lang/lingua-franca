@@ -6,5 +6,6 @@ if [[ "$OSTYPE" == "darwin"* ]]; then
     cmake -DOPENSSL_ROOT_DIR=/usr/local/opt/openssl -DAUTH=ON ../
 else
     cmake -DAUTH=ON ../
+fi
 make
 sudo make install
