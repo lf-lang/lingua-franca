@@ -43,6 +43,7 @@ jobs:
       - name: Install dependencies OS X
         run: |
           brew install coreutils
+          brew install openssl
         if: ${{ runner.os == 'macOS' }}
       - name: Install RTI
         uses: ./.github/actions/install-rti
