@@ -28,6 +28,9 @@ package org.lflang;
 import java.util.List;
 
 import org.eclipse.emf.ecore.EObject;
+import org.eclipse.xtext.nodemodel.ICompositeNode;
+import org.eclipse.xtext.nodemodel.util.NodeModelUtils;
+import org.eclipse.xtext.resource.XtextResource;
 
 import org.lflang.lf.Action;
 import org.lflang.lf.Attribute;
@@ -93,17 +96,57 @@ public class AttributeUtils {
     }
 
     /**
-     * Return the value of the {@code @label} attribute if
-     * present, otherwise return null.
+     * Return the first argument specified for the attribute.
      *
-     * @throws IllegalArgumentException If the node cannot have attributes
+     * This should be used if the attribute is expected to have a single argument.
+     * If there is no argument, null is returned.
      */
-    public static String findLabelAttribute(EObject node) {
-        final var attr = findAttributeByName(node, "label");
-        if (attr != null) {
-            return attr.getAttrParms().get(0).getValue();
+    public static String getFirstArgumentValue(Attribute attr) {
+        if (attr == null || attr.getAttrParms().isEmpty()) {
+            return null;
         }
-        return null;
+        return attr.getAttrParms().get(0).getValue();
+    }
+
+    /**
+     * Search for an attribute with the given name on the given AST node and return its first
+     * argument as a String.
+     *
+     * This should only be used on attributes that are expected to have a single argument.
+     *
+     * Returns null if the attribute is not found or if it does not have any arguments.
+     */
+    public static String getAttributeValue(EObject node, String attrName) {
+        final var attr = findAttributeByName(node, attrName);
+        String value = getFirstArgumentValue(attr);
+        // Attribute annotations in comments are deprecated, but we still check for then for backwards
+        // compatibility
+        if (value == null) {
+            return findAnnotationInComments(node, "@" + attrName);
+        }
+        return value;
+    }
+
+    /**
+     * Retrieve a specific annotation in a comment associated with the given model element in the AST.
+     *
+     * This will look for a comment. If one is found, it searches for the given annotation `key`.
+     * and extracts any string that follows the annotation marker.
+     *
+     * @param object the AST model element to search a comment for
+     * @param key the specific annotation key to be extracted
+     * @return `null` if no JavaDoc style comment was found or if it does not contain the given key.
+     *     The string immediately following the annotation marker otherwise.
+     */
+    public static String findAnnotationInComments(EObject object, String key) {
+        if (!(object.eResource() instanceof XtextResource)) return null;
+        ICompositeNode node = NodeModelUtils.findActualNodeFor(object);
+        return ASTUtils.getPrecedingComments(node, n -> true).flatMap(String::lines)
+            .filter(line -> line.contains(key))
+            .map(String::trim)
+            .map(it -> it.substring(it.indexOf(key) + key.length()))
+            .map(it -> it.endsWith("*/") ? it.substring(0, it.length() - "*/".length()) : it)
+            .findFirst().orElse(null);
     }
 
     /**
@@ -116,26 +159,17 @@ public class AttributeUtils {
     }
 
     /**
-     * Return the declared label of the node, as given by the @label
-     * annotation (or an @label comment).
-     *
-     * @throws IllegalArgumentException If the node cannot have attributes
+     * Return the declared label of the node, as given by the @label annotation.
      */
-    public static String label(EObject n) {
-        String fromAttr = findLabelAttribute(n);
-        if (fromAttr == null) {
-            return ASTUtils.findAnnotationInComments(n, "@label");
-        }
-        return fromAttr;
+    public static String getLabel(EObject node) {
+        return getAttributeValue(node, "label");
     }
 
     /**
-     * Search for an `@label` annotation for a given reaction.
-     *
-     * @param n the reaction for which the label should be searched
-     * @return The annotated string if an `@label` annotation was found. `null` otherwise.
+     * Return the declared icon of the node, as given by the @icon annotation.
      */
-    public static String label(Reaction n) {
-        return label((EObject) n);
+    public static  String getIconPath(EObject node) {
+        return getAttributeValue(node, "icon");
     }
+
 }
