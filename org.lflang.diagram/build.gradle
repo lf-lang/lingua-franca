@@ -1,0 +1,108 @@
+import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
+
+repositories {
+    mavenCentral()
+    // TODO Remove this in-official maven repository as soon as Klighd is released to maven central in the future.
+    maven {
+        url "https://rtsys.informatik.uni-kiel.de/~kieler/files/repo/"
+    }
+}
+dependencies {
+    implementation project(':org.lflang')
+    implementation project(':org.lflang.ide')
+    implementation "org.eclipse.xtext:org.eclipse.xtext.ide:${xtextVersion}"
+    implementation ("de.cau.cs.kieler.klighd:de.cau.cs.kieler.klighd.lsp:${klighdVersion}") {
+        exclude group: 'org.eclipse.platform', module: 'org.eclipse.swt.*'
+        exclude group: 'org.eclipse.platform', module: 'org.eclipse.swt'
+    }
+    implementation ("de.cau.cs.kieler.klighd:de.cau.cs.kieler.klighd.standalone:${klighdVersion}") {
+        exclude group: 'org.eclipse.platform', module: 'org.eclipse.swt.*'
+        exclude group: 'org.eclipse.platform', module: 'org.eclipse.swt'
+    }
+}
+
+apply plugin: 'application'
+apply plugin: 'com.github.johnrengelman.shadow'
+
+task generateLanguageDiagramServer {
+    description 'Creates a jar that implements a language server with diagram support for LF.'    
+
+    apply plugin: 'java'
+    apply plugin: 'application'
+    apply plugin: 'com.github.johnrengelman.shadow'
+
+    mainClassName = "org.lflang.diagram.lsp.LanguageDiagramServer"
+    
+    compileJava {
+        options.compilerArgs << '-Xlint:unchecked'
+    }
+
+    shadowJar {
+        classifier = 'lds'
+        
+        // Handling of service loader registrations via META-INF/services/*
+        mergeServiceFiles()
+
+        // Merge properties
+        transform(com.github.jengelman.gradle.plugins.shadow.transformers.AppendingTransformer){
+            resource = 'plugin.properties'
+        }
+
+        // Exclude files that are known to be dispensable for a language server
+        exclude(
+            '*._trace',
+            '*.ecore',
+            '*.ecorediag',
+            '*.g',
+            '*.genmodel',
+            '*.html',
+            '*.mwe2',
+            '*.profile',
+            '*.xtext',
+            '*readme.txt',
+            '.api_description',
+            '.options',
+            'about.*',
+            'about_*',
+            'about_files/*',
+            'ant_tasks/*',
+            'cheatsheets/*',
+            'com/*/*.java',
+            'de/*/*.java',
+            'docs/*',
+            'log4j.properties',
+            'META-INF/*.DSA',
+            'META-INF/*.RSA',
+            'META-INF/*.SF',
+            'META-INF/changelog.txt',
+            'META-INF/DEPENDENCIES',
+            'META-INF/eclipse.inf',
+            'META-INF/INDEX.LIST',
+            'META-INF/maven/*',
+            'META-INF/NOTICE',
+            'META-INF/NOTICE.txt',
+            'META-INF/p2.inf',
+            'META-INF/versions/*/module-info.class',
+            'modeling32.png',
+            'module-info.class',
+            'org/*/*.java',
+            'OSGI-INF/l10n/bundle.properties',
+            'plugin.xml',
+            'profile.list',
+            'schema/*',
+            'systembundle.properties',
+            'xtend-gen/*',
+            'xtext32.png',
+        )
+
+        // Minimizing should be enabled with caution because some classes are only
+        // loaded via services (e.g. diagram syntheses and some xtext aspects)
+        // and would be removed when minimized
+        // minimize() {
+        //     exclude(dependency('log4j:log4j:.*'))
+        //     exclude(dependency('org.eclipse.xtext:.*ide:.*'))
+        // }
+    }
+}
+
+generateLanguageDiagramServer.finalizedBy shadowJar
