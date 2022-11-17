@@ -284,7 +284,7 @@ public class FileConfig {
             if (p == null) {
                 printWarning.accept("File '" + input.getFileName() + "' is not located in an 'src' directory.");
                 printWarning.accept("Adopting the current working directory as the package root.");
-                return Paths.get(".").toAbsolutePath(); // todo replace with Io::getWd
+                return Paths.get(".").toAbsolutePath(); // todo #1478 replace with Io::getWd
             }
         } while (!p.toFile().getName().equals("src"));
         return p.getParent();
