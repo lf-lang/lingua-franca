@@ -31,8 +31,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import org.eclipse.osgi.internal.permadmin.SecurityTable;
-
 import org.lflang.ASTUtils;
 import org.lflang.TargetProperty;
 import org.lflang.TargetProperty.TargetPropertyType;
