@@ -31,8 +31,11 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
 import java.nio.file.Path;
+import java.util.concurrent.Callable;
+import java.util.function.Consumer;
 
 import org.hamcrest.Matcher;
+import org.opentest4j.AssertionFailedError;
 
 import org.lflang.cli.Io;
 
@@ -125,5 +128,33 @@ abstract class CliToolTestFixture {
             assertThat(getErr(), matcher);
         }
 
+        /**
+         * Use this method to wrap assertions.
+         */
+        public void verify(ThrowingConsumer<ExecutionResult> actions) {
+            try {
+                actions.accept(this);
+            } catch (Exception | AssertionFailedError e) {
+                System.out.println("TEST FAILED");
+                System.out.println("> Return code: " + exitCode);
+                System.out.println("> Standard output -------------------------");
+                System.err.println(out.toString());
+                System.out.println("> Standard error --------------------------");
+                System.err.println(err.toString());
+                System.out.println("> -----------------------------------------");
+
+                if (e instanceof Exception) {
+                    throw new AssertionFailedError("Expected no exception to be thrown", e);
+                }
+                throw (AssertionFailedError) e;
+            }
+        }
+
+
+        @FunctionalInterface
+        interface ThrowingConsumer<T> {
+
+            void accept(T t) throws Exception;
+        }
     }
 }
