@@ -134,10 +134,10 @@ val VarRef.name: String
 
 /** Get a C++ code representation of the given trigger */
 val TriggerRef.name: String
-    get() = when {
-        this is VarRef             -> this.name
-        this is BuiltinTriggerRef  -> type.literal
-        else                       -> unreachable()
+    get() = when (this) {
+        is VarRef            -> this.name
+        is BuiltinTriggerRef -> type.literal
+        else                 -> unreachable()
     }
 
 /** Return a comment to be inserted at the top of generated files. */
