@@ -2,11 +2,20 @@ package org.lflang.diagram.lsp;
 
 import java.util.List;
 
-import org.eclipse.xtext.ide.server.LanguageServerImpl;
+import org.eclipse.xtext.Constants;
+import org.eclipse.xtext.IGrammarAccess;
 import org.eclipse.xtext.ide.server.ILanguageServerExtension;
+import org.eclipse.xtext.ide.server.LanguageServerImpl;
 import org.eclipse.xtext.service.AbstractGenericModule;
+import org.eclipse.xtext.util.Modules2;
+import org.lflang.generator.LanguageServerErrorReporter;
+import org.lflang.ide.LFIdeSetup;
+
 import com.google.inject.Module;
+import com.google.inject.name.Names;
 import com.google.inject.util.Modules;
+
+import de.cau.cs.kieler.kgraph.text.services.KGraphGrammarAccess;
 import de.cau.cs.kieler.klighd.lsp.KGraphLanguageClient;
 import de.cau.cs.kieler.klighd.lsp.interactive.layered.LayeredInteractiveLanguageServerExtension;
 import de.cau.cs.kieler.klighd.lsp.interactive.rectpacking.RectpackingInteractiveLanguageServerExtension;
@@ -15,9 +24,6 @@ import de.cau.cs.kieler.klighd.lsp.launch.AbstractLsCreator;
 import de.cau.cs.kieler.klighd.lsp.launch.AbstractRegistrationLanguageServerExtension;
 import de.cau.cs.kieler.klighd.lsp.launch.ILanguageRegistration;
 import de.cau.cs.kieler.klighd.lsp.launch.Language;
-
-import org.lflang.ide.LFIdeSetup;
-import org.lflang.generator.LanguageServerErrorReporter;
 
 /**
  * Language server with extended diagram communication.
@@ -30,10 +36,14 @@ public class LanguageDiagramServer extends AbstractLanguageServer {
 
         @Override
         public Module createLSModules(boolean socket) {
-            return Modules.override(super.createLSModules(socket)).with(new AbstractGenericModule() {
+            return Modules2.mixin(Modules.override(super.createLSModules(socket)).with(new AbstractGenericModule() {
                 public Class<? extends LanguageServerImpl> bindLanguageServerImpl() {
                     return LFLanguageServer.class;
                 }
+            }), it -> {
+                // Temporary fix for an issue of Klighd with Xtext 2.28 (https://github.com/kieler/KLighD/issues/144)
+                it.bind(IGrammarAccess.class).to(KGraphGrammarAccess.class);
+                it.bind(String.class).annotatedWith(Names.named(Constants.LANGUAGE_NAME)).toInstance("de.cau.cs.kieler.kgraph.text.KGraph");    
             });
         }
         
