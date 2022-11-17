@@ -406,9 +406,6 @@ ${"             |        "..declareChildConnections()}
         // we skip the Trigger one and generate the Effects one.
         depKind != DepKind.Effects && this in n.effects
 
-    private fun ReactorComponent.isInjectedAsMut(@Suppress("unused") depKind: DepKind): Boolean =
-        false // currently nothing requires a mut modifier
-
     /**
      * Whether this component may be unused in a reaction.
      * E.g. actions on which we have just a trigger dependency
@@ -436,12 +433,7 @@ ${"             |        "..declareChildConnections()}
                 for (comp in comps) {
                     if (comp.isNotInjectedInReaction(kind, this@reactionParams)) continue
 
-                    // we want the user to be able to make
-                    // use of the mut if they want, but they
-                    // don't have to
-                    val mut = if (comp.isInjectedAsMut(kind)) "#[allow(unused_mut)] mut " else ""
-
-                    val param = "$mut${comp.rustRefName}: ${comp.toBorrowedType(kind)}"
+                    val param = "${comp.rustRefName}: ${comp.toBorrowedType(kind)}"
 
                     if (comp.mayBeUnusedInReaction(kind)) {
                         yield("#[allow(unused)] $param")
