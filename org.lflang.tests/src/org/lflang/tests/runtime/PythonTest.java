@@ -24,6 +24,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ***************/
 package org.lflang.tests.runtime;
 
+import java.util.Properties;
+
 import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
@@ -45,6 +47,15 @@ public class PythonTest extends RuntimeTest {
 
     public PythonTest() {
         super(Target.Python);
+    }
+
+    @Override
+    protected void addExtraLfcArgs(Properties args) {
+        super.addExtraLfcArgs(args);
+        if (System.getProperty("os.name").startsWith("Windows")) {
+            // Use the RelWithDebInfo build type on Windows as the Debug/Test build type produces linker Errors in CI
+            args.setProperty("build-type", "RelWithDebInfo");
+        }
     }
 
     @Override
