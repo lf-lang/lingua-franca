@@ -19,6 +19,10 @@ if (name.endsWith(".tests")) {
 			kotlin.srcDirs = ['src', 'src-gen']
 			resources.srcDirs = ['src', 'src-gen']
 			xtendOutputDir = 'xtend-gen'
+			resources {
+				srcDirs = ['src', 'src-gen']
+				exclude 'src/lib/rs' // rust runtime does not need to be packed here.
+			}
 		}
 		test {
 			java.srcDirs = []
