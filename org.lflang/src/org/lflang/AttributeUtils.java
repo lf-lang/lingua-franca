@@ -42,6 +42,7 @@ import org.lflang.lf.Reaction;
 import org.lflang.lf.Reactor;
 import org.lflang.lf.StateVar;
 import org.lflang.lf.Timer;
+import org.lflang.util.StringUtil;
 
 /**
  * A helper class for processing attributes in the AST.
@@ -105,7 +106,7 @@ public class AttributeUtils {
         if (attr == null || attr.getAttrParms().isEmpty()) {
             return null;
         }
-        return attr.getAttrParms().get(0).getValue();
+        return StringUtil.removeQuotes(attr.getAttrParms().get(0).getValue());
     }
 
     /**
