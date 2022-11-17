@@ -1026,6 +1026,30 @@ public class ASTUtils {
         return true;
     }
 
+    /**
+     * Report whether the given string literal is a boolean value or not.
+     * @param literal AST node to inspect.
+     * @return True if the given value is a boolean, false otherwise.
+     */
+    public static boolean isBoolean(String literal) {
+        return literal.equalsIgnoreCase("true") || literal.equalsIgnoreCase("false");
+    }
+
+    /**
+     * Report whether the given string literal is a float value or not.
+     * @param literal AST node to inspect.
+     * @return True if the given value is a float, false otherwise.
+     */
+    public static boolean isFloat(String literal) {
+        try {
+            //noinspection ResultOfMethodCallIgnored
+            Float.parseFloat(literal);
+        } catch (NumberFormatException e) {
+            return false;
+        }
+        return true;
+    }
+
 	/**
      * Report whether the given code is an integer number or not.
      * @param code AST node to inspect.
