@@ -4,7 +4,7 @@ mkdir build
 cd build
 echo "TEST1"
 if [[ "$OSTYPE" == "darwin"* ]]; then
-    cmake -DOPENSSL_ROOT_DIR=/usr/local/opt/openssl -DAUTH=ON ../
+    cmake  -DAUTH=ON ../
     echo "TEST2"
 else
     cmake -DAUTH=ON ../
@@ -12,3 +12,6 @@ else
 fi
 make
 sudo make install
+
+
+# -DOPENSSL_ROOT_DIR=/usr/local/opt/openssl

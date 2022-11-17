@@ -44,6 +44,7 @@ jobs:
         run: |
           brew install coreutils
           brew install openssl
+          brew link openssl --force
         if: ${{ runner.os == 'macOS' }}
       - name: Install RTI
         uses: ./.github/actions/install-rti
