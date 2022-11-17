@@ -518,7 +518,7 @@ public class CGenerator extends GeneratorBase {
                 )
             );
         var compileThreadPool = Executors.newFixedThreadPool(numOfCompileThreads);
-        errorReporter.reportInfo("******** Using "+numOfCompileThreads+" threads to compile the program.");
+        System.out.println("******** Using "+numOfCompileThreads+" threads to compile the program.");
         LFGeneratorContext generatingContext = new SubContext(
             context, IntegratedBuilder.VALIDATED_PERCENT_PROGRESS, IntegratedBuilder.GENERATED_PERCENT_PROGRESS
         );
@@ -712,7 +712,7 @@ public class CGenerator extends GeneratorBase {
                     GeneratorResult.Status.COMPILED, fileConfig.name, fileConfig, null
                 );
             }
-            errorReporter.reportInfo("Compiled binary is in " + fileConfig.binPath);
+            System.out.println("Compiled binary is in " + fileConfig.binPath);
         } else {
             context.finish(GeneratorResult.GENERATED_NO_EXECUTABLE.apply(null));
         }
@@ -1127,19 +1127,19 @@ public class CGenerator extends GeneratorBase {
     protected void initializeClockSynchronization() {
         // Check if clock synchronization should be enabled for this federate in the first place
         if (clockSyncIsOn()) {
-            errorReporter.reportInfo("Initial clock synchronization is enabled for federate "
+            System.out.println("Initial clock synchronization is enabled for federate "
                 + currentFederate.id
             );
             if (targetConfig.clockSync == ClockSyncMode.ON) {
                 if (targetConfig.clockSyncOptions.collectStats) {
-                    errorReporter.reportInfo("Will collect clock sync statistics for federate " + currentFederate.id);
+                    System.out.println("Will collect clock sync statistics for federate " + currentFederate.id);
                     // Add libm to the compiler flags
                     // FIXME: This is a linker flag not compile flag but we don't have a way to add linker flags
                     // FIXME: This is probably going to fail on MacOS (especially using clang)
                     // because libm functions are builtin
                     targetConfig.compilerFlags.add("-lm");
                 }
-                errorReporter.reportInfo("Runtime clock synchronization is enabled for federate "
+                System.out.println("Runtime clock synchronization is enabled for federate "
                     + currentFederate.id
                 );
             }

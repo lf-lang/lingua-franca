@@ -1225,9 +1225,9 @@ public abstract class GeneratorBase extends AbstractLFValidator {
      * what mode the generator is in, and where the generated sources are to be put.
      */
     public void printInfo(LFGeneratorContext.Mode mode) {
-        errorReporter.reportInfo("Generating code for: " + fileConfig.resource.getURI().toString());
-        errorReporter.reportInfo("******** mode: " + mode);
-        errorReporter.reportInfo("******** generated sources: " + fileConfig.getSrcGenPath());
+        System.out.println("Generating code for: " + fileConfig.resource.getURI().toString());
+        System.out.println("******** mode: " + mode);
+        System.out.println("******** generated sources: " + fileConfig.getSrcGenPath());
     }
 
     /**

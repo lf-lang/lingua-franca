@@ -175,7 +175,7 @@ public class CCompiler {
 
 
             if (makeReturnCode == 0 && build.getErrors().toString().length() == 0) {
-                errorReporter.reportInfo("SUCCESS: Compiling generated code for " + fileConfig.name + " finished with no errors.");
+                System.out.println("SUCCESS: Compiling generated code for " + fileConfig.name + " finished with no errors.");
             }
 
         }
