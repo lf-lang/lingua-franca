@@ -406,8 +406,8 @@ ${"             |        "..declareChildConnections()}
         // we skip the Trigger one and generate the Effects one.
         depKind != DepKind.Effects && this in n.effects
 
-    private fun ReactorComponent.isInjectedAsMut(depKind: DepKind): Boolean =
-        depKind == DepKind.Effects && this is ActionData // todo where is this useful? The action already has &mut
+    private fun ReactorComponent.isInjectedAsMut(@Suppress("unused") depKind: DepKind): Boolean =
+        false // currently nothing requires a mut modifier
 
     /**
      * Whether this component may be unused in a reaction.
