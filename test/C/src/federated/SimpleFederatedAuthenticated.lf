@@ -5,7 +5,7 @@
 target C {
     timeout: 2 secs,
     build-type: RelWithDebInfo,
-    auth: true, //FIXME: This will be updated to string such as HMAC.
+    auth: true,  // FIXME: This will be updated to string such as HMAC.
     logging: DEBUG
 }
 
