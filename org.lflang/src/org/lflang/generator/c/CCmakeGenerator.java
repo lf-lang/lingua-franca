@@ -194,6 +194,14 @@ public class CCmakeGenerator {
             cMakeCode.pr("# Find OpenSSL and link to it");
             cMakeCode.pr("find_package(OpenSSL REQUIRED)");
             cMakeCode.pr("target_link_libraries( ${LF_MAIN_TARGET} PRIVATE OpenSSL::SSL)");
+            var osName = System.getProperty("os.name").toLowerCase();
+            // if platform target was set, use given platform instead
+            if (targetConfig.platformOptions.platform != Platform.AUTO) {
+                osName = targetConfig.platformOptions.platform.toString();
+            }
+            if (osName.contains("mac")) {
+                cMakeCode.pr("target_compile_definitions(${LF_MAIN_TARGET} PUBLIC OPENSSL_ROOT_DIR=/usr/local/opt/openssl)");
+            }
             cMakeCode.newLine();
         }
 
