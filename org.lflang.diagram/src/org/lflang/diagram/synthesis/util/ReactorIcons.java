@@ -27,8 +27,8 @@ package org.lflang.diagram.synthesis.util;
 import java.io.InputStream;
 import java.util.HashMap;
 
-import org.eclipse.swt.graphics.ImageData;
-import org.eclipse.swt.graphics.ImageLoader;
+//import org.eclipse.swt.graphics.ImageData;
+//import org.eclipse.swt.graphics.ImageLoader;
 import org.eclipse.xtext.xbase.lib.Extension;
 import org.lflang.ASTUtils;
 import org.lflang.AttributeUtils;
@@ -57,10 +57,10 @@ public class ReactorIcons extends AbstractSynthesisExtensions {
     @Inject @Extension private KRenderingExtensions _kRenderingExtensions;
     @Inject @Extension private KContainerRenderingExtensions _kContainerRenderingExtensions;
     
-    private static final ImageLoader LOADER = new ImageLoader();
+//    private static final ImageLoader LOADER = new ImageLoader();
     
     // Image cache during synthesis
-    private final HashMap<java.net.URI, ImageData> cache = new HashMap<>();
+//    private final HashMap<java.net.URI, ImageData> cache = new HashMap<>();
     
     // Error message
     private String error = null;
@@ -83,68 +83,74 @@ public class ReactorIcons extends AbstractSynthesisExtensions {
             if (iconLocation == null) {
                 error = "Cannot find given icon file.";
             } else {
-                ImageData data = loadImage(iconLocation);
-                if (data != null) {
-                    KRectangle figure = _kContainerRenderingExtensions.addRectangle(rendering);
-                    _kRenderingExtensions.setInvisible(figure, true);
-                    KGridPlacementData figurePlacement = _kRenderingExtensions.setGridPlacementData(figure, data.width, data.height);
-                    _kRenderingExtensions.to(
-                            _kRenderingExtensions.from(
-                                    figurePlacement, 
-                                    _kRenderingExtensions.LEFT, 3, 0,
-                                    _kRenderingExtensions.TOP, 0, 0), 
-                            _kRenderingExtensions.RIGHT, 3, 0, 
-                            _kRenderingExtensions.BOTTOM, 3, 0);
-                    
-                    KRectangle icon = _kContainerRenderingExtensions.addRectangle(figure);
-                    _kRenderingExtensions.setInvisible(icon, true);
-                    _kContainerRenderingExtensions.addImage(icon, data);
-                    _kRenderingExtensions.setPointPlacementData(icon, 
-                            _kRenderingExtensions.createKPosition(
-                                    _kRenderingExtensions.LEFT, 0, 0.5f, 
-                                    _kRenderingExtensions.TOP, 0, 0.5f), 
-                            _kRenderingExtensions.H_CENTRAL, _kRenderingExtensions.V_CENTRAL, 0,
-                            0, data.width, data.height);
-                }
-                if (error != null) {
-                    var errorText = _kContainerRenderingExtensions.addText(rendering, "Icon not found!\n"+error);
-                    _kRenderingExtensions.setForeground(errorText, Colors.RED);
-                    _kRenderingExtensions.setFontBold(errorText, true);
-                    _kRenderingExtensions.setSurroundingSpaceGrid(errorText, 8, 0);
-                }
+                /*
+                 * This code was disabled because it cannot be compiled for the language server with Gradle.
+                 * As soon as the Klighd API is extended to support URI-based images in both Eclipse and VSCode,
+                 * this code should be reactivated and adapted.
+                 * See: https://github.com/kieler/KLighD/issues/146
+                 */
+//                ImageData data = loadImage(iconLocation);
+//                if (data != null) {
+//                    KRectangle figure = _kContainerRenderingExtensions.addRectangle(rendering);
+//                    _kRenderingExtensions.setInvisible(figure, true);
+//                    KGridPlacementData figurePlacement = _kRenderingExtensions.setGridPlacementData(figure, data.width, data.height);
+//                    _kRenderingExtensions.to(
+//                            _kRenderingExtensions.from(
+//                                    figurePlacement, 
+//                                    _kRenderingExtensions.LEFT, 3, 0,
+//                                    _kRenderingExtensions.TOP, 0, 0), 
+//                            _kRenderingExtensions.RIGHT, 3, 0, 
+//                            _kRenderingExtensions.BOTTOM, 3, 0);
+//                    
+//                    KRectangle icon = _kContainerRenderingExtensions.addRectangle(figure);
+//                    _kRenderingExtensions.setInvisible(icon, true);
+//                    _kContainerRenderingExtensions.addImage(icon, data);
+//                    _kRenderingExtensions.setPointPlacementData(icon, 
+//                            _kRenderingExtensions.createKPosition(
+//                                    _kRenderingExtensions.LEFT, 0, 0.5f, 
+//                                    _kRenderingExtensions.TOP, 0, 0.5f), 
+//                            _kRenderingExtensions.H_CENTRAL, _kRenderingExtensions.V_CENTRAL, 0,
+//                            0, data.width, data.height);
+//                }
+//                if (error != null) {
+//                    var errorText = _kContainerRenderingExtensions.addText(rendering, "Icon not found!\n"+error);
+//                    _kRenderingExtensions.setForeground(errorText, Colors.RED);
+//                    _kRenderingExtensions.setFontBold(errorText, true);
+//                    _kRenderingExtensions.setSurroundingSpaceGrid(errorText, 8, 0);
+//                }
             }
         }
     }
 
-    private ImageData loadImage(final java.net.URI uri) {
-        try {
-            if (cache.containsKey(uri)) {
-                return cache.get(uri);
-            }
-            synchronized (LOADER) {
-                InputStream inStream = null;
-                try {
-                    inStream = uri.toURL().openStream();
-                    ImageData[] data = LOADER.load(inStream);
-                    if (data != null && data.length > 0) {
-                        ImageData img = data[0];
-                        cache.put(uri, img);
-                        return img;
-                    } else {
-                        error = "Could not load icon image.";
-                        return null;
-                    }
-                } finally {
-                    if (inStream != null) {
-                        inStream.close();
-                    }
-                }
-            }
-        } catch (Exception ex) {
-            ex.printStackTrace();
-            error = "Could not load icon image.";
-            return null;
-        }
-    }
+//    private ImageData loadImage(final java.net.URI uri) {
+//        try {
+//            if (cache.containsKey(uri)) {
+//                return cache.get(uri);
+//            }
+//            synchronized (LOADER) {
+//                InputStream inStream = null;
+//                try {
+//                    inStream = uri.toURL().openStream();
+//                    ImageData[] data = LOADER.load(inStream);
+//                    if (data != null && data.length > 0) {
+//                        ImageData img = data[0];
+//                        cache.put(uri, img);
+//                        return img;
+//                    } else {
+//                        error = "Could not load icon image.";
+//                        return null;
+//                    }
+//                } finally {
+//                    if (inStream != null) {
+//                        inStream.close();
+//                    }
+//                }
+//            }
+//        } catch (Exception ex) {
+//            ex.printStackTrace();
+//            error = "Could not load icon image.";
+//            return null;
+//        }
+//    }
     
 }
