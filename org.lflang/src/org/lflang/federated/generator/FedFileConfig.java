@@ -82,6 +82,6 @@ public class FedFileConfig extends FileConfig {
     @Override
     public void doClean() throws IOException {
         super.doClean();
-        FileUtil.deleteDirectory(this.getFedSrcGenPath());
+        FileUtil.deleteDirectory(this.getFedGenPath());
     }
 }
