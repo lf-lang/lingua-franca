@@ -49,9 +49,7 @@
 
             <modules>
                 <module>org.lflang</module>
-                <module>org.lflang.ide</module>
                 <module>org.lflang.ui</module>
-                <module>org.lflang.diagram</module>
                 <!-- Tests -->
                 <module>org.lflang.tests</module>
                 <module>org.lflang.ui.tests</module>
