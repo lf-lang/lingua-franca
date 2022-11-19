@@ -7,4 +7,9 @@
 			class = "org.lflang.lf.LfPackage"
 			genModel = "model/generated/LF.genmodel" />
 	</extension>
+    <extension point="de.cau.cs.kieler.klighd.extensions">
+        <startupHook
+            class="org.lflang.diagram.synthesis.SynthesisRegistration">
+        </startupHook>
+    </extension>
 </plugin>

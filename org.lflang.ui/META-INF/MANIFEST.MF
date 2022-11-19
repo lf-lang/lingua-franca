@@ -7,7 +7,6 @@ Bundle-Version: 0.3.1.qualifier
 Bundle-SymbolicName: org.lflang.ui; singleton:=true
 Bundle-ActivationPolicy: lazy
 Require-Bundle: org.lflang,
- org.lflang.ide,
  org.eclipse.xtext.ui,
  org.eclipse.xtext.ui.shared,
  org.eclipse.xtext.ui.codetemplates.ui,
