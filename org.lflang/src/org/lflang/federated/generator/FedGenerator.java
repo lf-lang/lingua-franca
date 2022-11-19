@@ -331,6 +331,13 @@ public class FedGenerator {
         mainDef.setName(fedReactor.getName());
         mainDef.setReactorClass(fedReactor);
 
+        // Make sure that if no federation RTI properties were given in the
+        // cmdline, then those specified in the lf file are not lost
+        if (federationRTIProperties.get("host").equals("localhost") &&
+                    !fedReactor.getHost().getAddr().equals("localhost")) {
+            federationRTIProperties.put("host", fedReactor.getHost().getAddr());
+        }
+
         // Since federates are always within the main (federated) reactor,
         // create a list containing just that one containing instantiation.
         // This will be used to look up parameter values.
