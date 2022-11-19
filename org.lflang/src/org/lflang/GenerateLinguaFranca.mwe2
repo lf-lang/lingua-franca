@@ -4,27 +4,35 @@ import org.eclipse.xtext.xtext.generator.*
 import org.eclipse.xtext.xtext.generator.model.project.*
 
 var rootPath = ".."
+var baseName = "org.lflang"
+var epochBuild = false
 
 Workflow {
-
     component = XtextGenerator {
         configuration = {
             project = StandardProjectConfig {
-                baseName = "org.lflang"
+                baseName = baseName
                 rootPath = rootPath
+                runtime = {
+                    enabled = true
+                    name = baseName // generate into the same project
+                }
+                genericIde = {
+                    enabled = true
+                    name = baseName // generate into the same project
+                }
+                // Tests are generated manually
                 runtimeTest = {
-                    enabled = true
-                }
-                eclipsePlugin = {
-                    enabled = true
-                }
-                eclipsePluginTest = {
-                    enabled = true
-                }
-                web = {
                     enabled = false
                 }
-                createEclipseMetaData = true
+                // Only generate Eclipse infrastructure for the Epoch build (separate repository).
+                createEclipseMetaData = epochBuild
+                eclipsePlugin = {
+                    enabled = epochBuild
+                }
+                eclipsePluginTest = {
+                    enabled = epochBuild
+                }
             }
             code = {
                 encoding = "UTF-8"
@@ -56,11 +64,11 @@ Workflow {
             generator = {
                 generateXtendMain = false
             }
-            projectWizard = {
-                generate = false
-            }
             formatter = {
                 generateStub = true
+            }
+            projectWizard = {
+                generate = false
             }
         }
     }
