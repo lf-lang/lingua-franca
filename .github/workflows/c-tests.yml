@@ -46,6 +46,8 @@ jobs:
           brew install openssl
           brew link openssl --force
           export PATH="/usr/local/opt/openssl/bin:$PATH"
+          export LDFLAGS="-L/usr/local/opt/openssl@3/lib"
+          export CPPFLAGS="-I/usr/local/opt/openssl@3/include"
         if: ${{ runner.os == 'macOS' }}
       - name: Install RTI
         uses: ./.github/actions/install-rti
