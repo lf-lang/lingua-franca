@@ -141,12 +141,6 @@
                             </includes>
                         </fileset>
                         <fileset>
-                            <directory>${basedir}/../org.lflang.ide/src-gen/</directory>
-                            <includes>
-                                <include>**/*</include>
-                            </includes>
-                        </fileset>
-                        <fileset>
                             <directory>${basedir}/../org.lflang.ui/src-gen/</directory>
                             <includes>
                                 <include>**/*</include>

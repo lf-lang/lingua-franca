@@ -16,21 +16,7 @@
          unpack="false"/>
 
    <plugin
-         id="org.lflang.ide"
-         download-size="0"
-         install-size="0"
-         version="0.0.0"
-         unpack="false"/>
-
-   <plugin
          id="org.lflang.ui"
-         download-size="0"
-         install-size="0"
-         version="0.0.0"
-         unpack="false"/>
-
-   <plugin
-         id="org.lflang.diagram"
          download-size="0"
          install-size="0"
          version="0.0.0"
