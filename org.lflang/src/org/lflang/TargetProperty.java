@@ -63,8 +63,7 @@ public enum TargetProperty {
      * FIXME: The option will be updated from boolean to string for support of various options.
      */
     AUTH("auth", PrimitiveType.BOOLEAN,
-            List.of(Target.C),
-            (config, value, err) -> {
+            Arrays.asList(Target.C, Target.CCPP), (config, value, err) -> {
                 config.auth = ASTUtils.toBoolean(value);
             }),
 

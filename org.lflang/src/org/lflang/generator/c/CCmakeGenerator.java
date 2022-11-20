@@ -198,14 +198,20 @@ public class CCmakeGenerator {
             cMakeCode.pr("target_link_libraries( ${LF_MAIN_TARGET} PRIVATE OpenSSL::SSL)");
             cMakeCode.pr("message(\"3333333333333333333333333333333333333333\")");
             var osName = System.getProperty("os.name").toLowerCase();
+            System.out.println(osName);
+            System.out.println("java1111");
             cMakeCode.pr("message(\"4444444444444444444444444444444444444444\")");
             // if platform target was set, use given platform instead
             if (targetConfig.platformOptions.platform != Platform.AUTO) {
                 osName = targetConfig.platformOptions.platform.toString();
+                System.out.println(osName);
+                System.out.println("java2222");
                 cMakeCode.pr("message(\"555555555555555555555555555555555555555\")");
             }
             if (osName.contains("mac")) {
+                System.out.println("java3333");
                 cMakeCode.pr("target_compile_definitions(${LF_MAIN_TARGET} PUBLIC OPENSSL_ROOT_DIR=/usr/local/opt/openssl)");
+                cMakeCode.pr("target_compile_definitions(${LF_MAIN_TARGET} PUBLIC OPENSSL_LIBRARIES=/usr/local/opt/openssl/lib)");
                 cMakeCode.pr("message(\"6666666666666666666666666666666666666666666\")");
             }
             cMakeCode.newLine();
