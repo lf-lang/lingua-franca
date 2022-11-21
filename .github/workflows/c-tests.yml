@@ -22,6 +22,7 @@ jobs:
     strategy:
       matrix:
         platform: [ubuntu-latest, macos-latest, windows-latest]
+        platform: [macos-latest]
     runs-on: ${{ matrix.platform }}
     steps:
       - name: Check out lingua-franca repository
@@ -75,7 +76,7 @@ jobs:
           echo "Specified scheduler: ${{ inputs.scheduler }}"
           ./gradlew test --tests org.lflang.tests.runtime.CSchedulerTest.* -Dscheduler=${{ inputs.scheduler }}
         if: ${{ !inputs.use-cpp && inputs.scheduler }}
-      - name: Perform tests for CCpp target with default scheduler
+      - name: Perform tests for CCpp target with default -scheduler
         run: |
           ./gradlew test --tests org.lflang.tests.runtime.CCppTest.*
         if: ${{ inputs.use-cpp && !inputs.scheduler }}
