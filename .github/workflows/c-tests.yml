@@ -69,7 +69,7 @@ jobs:
         if: ${{ runner.os == 'Linux' }}
       - name: Temporary Test
         run: |
-          ./gradlew runlfc --args test/C/src/federated/SimpleFederatedAuthenticated.lf
+          ./gradlew runlfc -d --args test/C/src/federated/SimpleFederatedAuthenticated.lf
         if: ${{ !inputs.use-cpp && !inputs.scheduler }}
       - name: Perform tests for C target with default scheduler
         run: |
