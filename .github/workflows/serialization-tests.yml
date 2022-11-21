@@ -21,7 +21,7 @@ jobs:
       - name: Prepare build environment
         uses: ./.github/actions/prepare-build-env
       - name: Setup ROS2
-        uses: ros-tooling/setup-ros@0.4
+        uses: ros-tooling/setup-ros@v0.4
         with:
           required-ros-distributions: rolling
       - name: Install Protobuf Ubuntu

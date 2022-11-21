@@ -30,7 +30,7 @@ jobs:
           ref: ${{ inputs.runtime-ref }}
         if: ${{ inputs.runtime-ref }}
       - name: Setup ROS2
-        uses: ros-tooling/setup-ros@0.4
+        uses: ros-tooling/setup-ros@v0.4
         with:
           required-ros-distributions: galactic
       - name: Run C++ tests;
