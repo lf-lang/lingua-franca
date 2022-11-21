@@ -7,6 +7,7 @@ cd build
 # else
 #     cmake -DAUTH=ON ../
 # fi
+echo $OPENSSL_ROOT_DIR
 cmake -DAUTH=ON ../
 make
 sudo make install
