@@ -63,10 +63,6 @@ jobs:
       - name: Build RTI docker image
         uses: ./.github/actions/build-rti-docker
         if: ${{ runner.os == 'Linux' }}
-      - name: Temporary Test
-        run: |
-          ./gradlew runlfc --args test/C/src/federated/SimpleFederatedAuthenticated.lf
-        if: ${{ !inputs.use-cpp && !inputs.scheduler }}
       - name: Perform tests for C target with default scheduler
         run: |
           ./gradlew test --tests org.lflang.tests.runtime.CTest.*
@@ -76,7 +72,7 @@ jobs:
           echo "Specified scheduler: ${{ inputs.scheduler }}"
           ./gradlew test --tests org.lflang.tests.runtime.CSchedulerTest.* -Dscheduler=${{ inputs.scheduler }}
         if: ${{ !inputs.use-cpp && inputs.scheduler }}
-      - name: Perform tests for CCpp target with default -scheduler
+      - name: Perform tests for CCpp target with default scheduler
         run: |
           ./gradlew test --tests org.lflang.tests.runtime.CCppTest.*
         if: ${{ inputs.use-cpp && !inputs.scheduler }}
