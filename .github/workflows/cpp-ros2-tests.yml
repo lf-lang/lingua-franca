@@ -32,7 +32,7 @@ jobs:
       - name: Setup ROS2
         uses: ros-tooling/setup-ros@v0.4
         with:
-          required-ros-distributions: galactic
+          required-ros-distributions: rolling
       - name: Run C++ tests;
         run: |
           source /opt/ros/galactic/setup.bash
