@@ -191,14 +191,14 @@ public class CCmakeGenerator {
 
         if(targetConfig.auth) {
             // If security is requested, add the auth option.
-            var osName = System.getProperty("os.name").toLowerCase();
-            // if platform target was set, use given platform instead
-            if (targetConfig.platformOptions.platform != Platform.AUTO) {
-                osName = targetConfig.platformOptions.platform.toString();
-            }
-            if (osName.contains("mac")) {
-                cMakeCode.pr("set(OPENSSL_ROOT_DIR /usr/local/opt/openssl)");
-            }
+            // var osName = System.getProperty("os.name").toLowerCase();
+            // // if platform target was set, use given platform instead
+            // if (targetConfig.platformOptions.platform != Platform.AUTO) {
+            //     osName = targetConfig.platformOptions.platform.toString();
+            // }
+            // if (osName.contains("mac")) {
+            //     cMakeCode.pr("set(OPENSSL_ROOT_DIR /usr/local/opt/openssl)");
+            // }
             cMakeCode.pr("# Find OpenSSL and link to it");
             cMakeCode.pr("find_package(OpenSSL REQUIRED)");
             cMakeCode.pr("target_link_libraries( ${LF_MAIN_TARGET} PRIVATE OpenSSL::SSL)");

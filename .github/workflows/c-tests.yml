@@ -45,6 +45,7 @@ jobs:
           brew install coreutils
           brew install openssl
           brew link openssl --force
+          export OPENSSL_ROOT_DIR=/usr/local/opt/openssl
         if: ${{ runner.os == 'macOS' }}
       - name: Install RTI
         uses: ./.github/actions/install-rti
