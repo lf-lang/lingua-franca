@@ -334,7 +334,8 @@ public class FedGenerator {
         // Make sure that if no federation RTI properties were given in the
         // cmdline, then those specified in the lf file are not lost
         if (federationRTIProperties.get("host").equals("localhost") &&
-                    !fedReactor.getHost().getAddr().equals("localhost")) {
+            fedReactor.getHost() != null &&
+            !fedReactor.getHost().getAddr().equals("localhost")) {
             federationRTIProperties.put("host", fedReactor.getHost().getAddr());
         }
 
