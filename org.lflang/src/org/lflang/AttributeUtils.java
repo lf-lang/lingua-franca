@@ -173,4 +173,11 @@ public class AttributeUtils {
         return getAttributeValue(node, "icon");
     }
 
+    /**
+     * Return true if the specified instance has an {@code @affiliate} attribute.
+     */
+    public static boolean isAffiliate(Instantiation node) {
+        return findAttributeByName(node, "affiliate") != null;
+    }
+
 }
