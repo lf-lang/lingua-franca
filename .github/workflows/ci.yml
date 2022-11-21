@@ -20,10 +20,10 @@ jobs:
   cancel:
     uses: lf-lang/lingua-franca/.github/workflows/cancel.yml@master
 
-  # Test the Gradle and Maven build.
-  build:
-    uses: lf-lang/lingua-franca/.github/workflows/build.yml@master
-    needs: cancel
+  # # Test the Gradle and Maven build.
+  # build:
+  #   uses: lf-lang/lingua-franca/.github/workflows/build.yml@master
+  #   needs: cancel
 
   # # Run the unit tests.
   # unit-tests:
@@ -58,11 +58,11 @@ jobs:
     needs: cancel
 
   # Run the CCpp integration tests.
-  ccpp-tests:
-    uses: lf-lang/lingua-franca/.github/workflows/c-tests.yml@auth
-    with:
-      use-cpp: true
-    needs: cancel
+  # ccpp-tests:
+  #   uses: lf-lang/lingua-franca/.github/workflows/c-tests.yml@auth
+  #   with:
+  #     use-cpp: true
+  #   needs: cancel
 
   # # Run the C++ benchmark tests.
   # cpp-benchmark-tests:
