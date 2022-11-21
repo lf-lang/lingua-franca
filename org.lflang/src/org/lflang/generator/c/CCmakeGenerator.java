@@ -200,11 +200,8 @@ public class CCmakeGenerator {
                 cMakeCode.pr("set(OPENSSL_ROOT_DIR /usr/local/opt/openssl)");
             }
             cMakeCode.pr("# Find OpenSSL and link to it");
-            cMakeCode.pr("message(\"111111111111111111111111111111111111111111\")");
             cMakeCode.pr("find_package(OpenSSL REQUIRED)");
-            cMakeCode.pr("message(\"2222222222222222222222222222222222222222\")");
             cMakeCode.pr("target_link_libraries( ${LF_MAIN_TARGET} PRIVATE OpenSSL::SSL)");
-            cMakeCode.pr("message(\"3333333333333333333333333333333333333333\")");
             cMakeCode.newLine();
         }
 
