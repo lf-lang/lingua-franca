@@ -9,6 +9,7 @@ cd build
 #     cmake -DAUTH=ON ../
 # fi
 echo AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+export OPENSSL_ROOT_DIR="/usr/local/opt/openssl"
 echo $OPENSSL_ROOT_DIR
 cmake -DAUTH=ON ../
 make
