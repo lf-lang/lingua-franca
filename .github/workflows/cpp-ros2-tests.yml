@@ -35,7 +35,7 @@ jobs:
           required-ros-distributions: rolling
       - name: Run C++ tests;
         run: |
-          source /opt/ros/galactic/setup.bash
+          source /opt/ros/*/setup.bash
           ./gradlew test --tests org.lflang.tests.runtime.CppRos2Test.*
       - name: Report to CodeCov
         uses: codecov/codecov-action@v2.1.0
