@@ -1,16 +1,10 @@
 #!/bin/bash
 cd org.lflang/src/lib/c/reactor-c/core/federated/RTI
 mkdir build
-echo bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
 cd build
-# if [[ "$OSTYPE" == "darwin"* ]]; then
-#     cmake -DOPENSSL_ROOT_DIR=/usr/local/opt/openssl -DAUTH=ON ../
-# else
-#     cmake -DAUTH=ON ../
-# fi
-echo AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
-export OPENSSL_ROOT_DIR="/usr/local/opt/openssl"
-echo $OPENSSL_ROOT_DIR
+if [[ "$OSTYPE" == "darwin"* ]]; then
+    export OPENSSL_ROOT_DIR="/usr/local/opt/openssl"
+fi
 cmake -DAUTH=ON ../
 make
 sudo make install

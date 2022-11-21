@@ -190,15 +190,15 @@ public class CCmakeGenerator {
         cMakeCode.pr("target_include_directories(${LF_MAIN_TARGET} PUBLIC include/core/utils)");
 
         if(targetConfig.auth) {
-            // If security is requested, add the auth option.
-            // var osName = System.getProperty("os.name").toLowerCase();
-            // // if platform target was set, use given platform instead
-            // if (targetConfig.platformOptions.platform != Platform.AUTO) {
-            //     osName = targetConfig.platformOptions.platform.toString();
-            // }
-            // if (osName.contains("mac")) {
-            //     cMakeCode.pr("set(OPENSSL_ROOT_DIR /usr/local/opt/openssl)");
-            // }
+            If security is requested, add the auth option.
+            var osName = System.getProperty("os.name").toLowerCase();
+            // if platform target was set, use given platform instead
+            if (targetConfig.platformOptions.platform != Platform.AUTO) {
+                osName = targetConfig.platformOptions.platform.toString();
+            }
+            if (osName.contains("mac")) {
+                cMakeCode.pr("set(OPENSSL_ROOT_DIR /usr/local/opt/openssl)");
+            }
             cMakeCode.pr("# Find OpenSSL and link to it");
             cMakeCode.pr("find_package(OpenSSL REQUIRED)");
             cMakeCode.pr("target_link_libraries( ${LF_MAIN_TARGET} PRIVATE OpenSSL::SSL)");
