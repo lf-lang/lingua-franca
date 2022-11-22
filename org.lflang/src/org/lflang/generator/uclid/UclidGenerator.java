@@ -236,7 +236,7 @@ public class UclidGenerator extends GeneratorBase {
                 "rm -rf ./smt/ && mkdir -p smt",
                 "",
                 "echo '*** Generating SMT files from UCLID5'",
-                "time uclid --verbosity 3 -g \"smt/output\" $1",
+                "time uclid -g \"smt/output\" $1",
                 "",
                 "echo '*** Append (get-model) to each file'",
                 "ls smt | xargs -I {} bash -c 'echo \"(get-model)\" >> smt/{}'",
@@ -384,9 +384,11 @@ public class UclidGenerator extends GeneratorBase {
         // so that we can use finite quantifiers.
         code.pr("group indices : integer = {");
         code.indent();
+        String indices = "";
         for (int i = 0; i < CT; i++) {
-            code.pr(String.valueOf(i) + (i == CT-1? "" : ","));
+            indices += String.valueOf(i) + (i == CT-1? "" : ", ");
         }
+        code.pr(indices);
         code.unindent();
         code.pr("};\n\n");
 
@@ -398,13 +400,8 @@ public class UclidGenerator extends GeneratorBase {
             "",
             "// Create a bounded trace with length " + String.valueOf(CT)
         ));
-        code.pr("type trace_t = {");
-        code.indent();
-        for (int i = 0; i < CT; i++) {
-            code.pr("event_t" + (i == CT-1? "" : ","));
-        }
-        code.unindent();
-        code.pr("};\n");
+        code.pr("// Potentially unbounded trace, we bound this later.");
+        code.pr("type trace_t  = [integer]event_t;");
 
         // Declare start time and trace.
         code.pr(String.join("\n", 
@@ -450,11 +447,8 @@ public class UclidGenerator extends GeneratorBase {
         }
         code.pr("// Helper macro that returns an element based on index.");
         code.pr("define get(tr : trace_t, i : step_t) : event_t =");
-        for (int i = 0; i < CT; i++) {
-            code.pr("if (i == " + String.valueOf(i) + ") then tr._" + String.valueOf(i+1) + " else (");
-        }
-        code.pr("{ NULL, inf(), { " + initialStates + " }, { " + initialTriggerPresence + " }, {" + initialActionsScheduled + "} }");
-        code.pr(")".repeat(CT) + ";\n");
+        code.pr("if (i >= START || i <= END) then tr[i] else");
+        code.pr("{ NULL, inf(), { " + initialStates + " }, { " + initialTriggerPresence + " }, {" + initialActionsScheduled + "} };");
 
         // Define an event getter from the trace.
         code.pr(String.join("\n", 
@@ -1189,7 +1183,7 @@ public class UclidGenerator extends GeneratorBase {
     private int computeCT() {
         // if (this.spec.equals("bmc")) {
         // }
-        return 10; // FIXME
+        return 30; // FIXME
     }
 
     /////////////////////////////////////////////////
