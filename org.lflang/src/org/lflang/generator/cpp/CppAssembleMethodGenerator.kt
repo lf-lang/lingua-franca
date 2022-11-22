@@ -25,11 +25,17 @@
 package org.lflang.generator.cpp
 
 import org.lflang.generator.PrependOperator
+import org.lflang.hasMultipleConnections
 import org.lflang.isBank
 import org.lflang.isMultiport
-import org.lflang.hasMultipleConnections
 import org.lflang.joinWithLn
-import org.lflang.lf.*
+import org.lflang.lf.Action
+import org.lflang.lf.Connection
+import org.lflang.lf.Port
+import org.lflang.lf.Reaction
+import org.lflang.lf.Reactor
+import org.lflang.lf.TriggerRef
+import org.lflang.lf.VarRef
 
 /**
  * A code generator for the assemble() method of a C++ reactor class

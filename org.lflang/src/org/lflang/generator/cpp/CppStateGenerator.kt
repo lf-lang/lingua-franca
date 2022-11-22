@@ -26,21 +26,22 @@ package org.lflang.generator.cpp
 
 import org.lflang.inferredType
 import org.lflang.isInitialized
+import org.lflang.joinWithLn
 import org.lflang.lf.Reactor
-import org.lflang.lf.StateVar
 
 /** A C++ code generator for state variables */
 class CppStateGenerator(private val reactor: Reactor) {
 
-    private fun generateInitializer(state: StateVar): String =
-        state.name + CppTypes.getCppInitializerList(state.init, state.inferredType)
-
-
     /** Get all state declarations */
     fun generateDeclarations() =
-        reactor.stateVars.joinToString("\n", "// state variable\n", "\n") { "${it.inferredType.cppType} ${it.name};" }
+        reactor.stateVars.joinToString("\n", "// state variable\n", "\n") {
+            "${it.inferredType.cppType} ${it.name};"
+        }
 
-    /** Get all timer initializers */
-    fun generateInitializers(): String = reactor.stateVars.filter { it.isInitialized }
-        .joinToString(separator = "\n", prefix = "// state variables\n") { ", ${generateInitializer(it)}" }
+    /** Get all state initializers */
+    fun generateInitializers(): String =
+        reactor.stateVars.filter { it.isInitialized }
+            .joinWithLn(prefix = "// state variables\n") {
+                ", " + CppTypes.getCppInitializerList(it)
+            }
 }

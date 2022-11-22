@@ -24,12 +24,17 @@
 
 package org.lflang.generator.cpp
 
-import org.lflang.*
-import org.lflang.generator.cpp.CppParameterGenerator.Companion.targetType
 import org.lflang.generator.getActualValue
+import org.lflang.inferredType
+import org.lflang.isBank
+import org.lflang.isGeneric
+import org.lflang.joinWithLn
 import org.lflang.lf.Instantiation
 import org.lflang.lf.Parameter
 import org.lflang.lf.Reactor
+import org.lflang.reactor
+import org.lflang.toText
+import org.lflang.toUnixString
 
 /** A code genarator for reactor instances */
 class CppInstanceGenerator(
@@ -59,6 +64,7 @@ class CppInstanceGenerator(
             """__lf_idx"""
         } else {
             val value = this.getActualValue(param)
+            // todo if the parameter type is a type parameter, then it should be substed with the type arguments...
             CppTypes.getCppStandaloneInitializer(value, param.inferredType)
         }
 

@@ -1,11 +1,8 @@
 package org.lflang.generator.cpp
 
 import org.lflang.TargetConfig
-import org.lflang.TimeValue
 import org.lflang.generator.orZero
-import org.lflang.lf.LfFactory
 import org.lflang.lf.Reactor
-import org.lflang.lf.Time
 import org.lflang.toTimeNode
 import org.lflang.toUnixString
 

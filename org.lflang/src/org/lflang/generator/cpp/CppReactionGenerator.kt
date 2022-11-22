@@ -28,7 +28,16 @@ import org.lflang.generator.PrependOperator
 import org.lflang.isBank
 import org.lflang.joinWithLn
 import org.lflang.label
-import org.lflang.lf.*
+import org.lflang.lf.Action
+import org.lflang.lf.BuiltinTrigger
+import org.lflang.lf.BuiltinTriggerRef
+import org.lflang.lf.Instantiation
+import org.lflang.lf.Port
+import org.lflang.lf.Reaction
+import org.lflang.lf.Reactor
+import org.lflang.lf.Timer
+import org.lflang.lf.TriggerRef
+import org.lflang.lf.VarRef
 import org.lflang.priority
 import org.lflang.toText
 

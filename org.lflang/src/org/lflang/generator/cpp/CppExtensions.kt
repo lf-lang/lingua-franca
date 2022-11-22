@@ -4,14 +4,12 @@ import org.eclipse.emf.ecore.resource.Resource
 import org.lflang.InferredType
 import org.lflang.TargetProperty
 import org.lflang.TimeUnit
-import org.lflang.TimeValue
 import org.lflang.indexInContainer
 import org.lflang.isBank
 import org.lflang.isGeneric
 import org.lflang.isMultiport
 import org.lflang.lf.BuiltinTriggerRef
 import org.lflang.lf.Expression
-import org.lflang.lf.ParameterReference
 import org.lflang.lf.Port
 import org.lflang.lf.Preamble
 import org.lflang.lf.Reaction

@@ -25,7 +25,7 @@
 package org.lflang.generator.cpp
 
 import org.lflang.inferredType
-import org.lflang.isOfTimeType
+import org.lflang.joinWithLn
 import org.lflang.lf.Parameter
 import org.lflang.lf.Reactor
 
@@ -55,7 +55,7 @@ class CppParameterGenerator(private val reactor: Reactor) {
 
     /** Generate all constructor initializers for parameters */
     fun generateInitializers() =
-        reactor.parameters.joinToString("\n", "// parameters\n", "\n") {
+        reactor.parameters.joinWithLn(prefix = "// parameters\n") {
             ", ${it.name}(${it.name})"
         }
 }

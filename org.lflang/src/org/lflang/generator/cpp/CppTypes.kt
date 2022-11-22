@@ -27,8 +27,10 @@ package org.lflang.generator.cpp
 import org.lflang.InferredType
 import org.lflang.TimeValue
 import org.lflang.generator.TargetTypes
+import org.lflang.inferredType
 import org.lflang.lf.Initializer
 import org.lflang.lf.ParameterReference
+import org.lflang.lf.StateVar
 
 object CppTypes : TargetTypes {
 
@@ -51,26 +53,26 @@ object CppTypes : TargetTypes {
 }
 
 /**
- * Returns the initializer list used in direct initialization in ctor definition.
+ * Returns the variable initializer used in ctors. Eg returns `fieldName(1)`.
  */
-fun CppTypes.getCppInitializerList(init: Initializer?, inferredType: InferredType?): String {
-    if (init == null) {
-        return getMissingExpr(inferredType)
-    }
-    val singleExpr = init.exprs.singleOrNull()
+fun CppTypes.getCppInitializerList(state: StateVar): String {
+    val init: Initializer? = state.init
+    val inferredType: InferredType = state.inferredType
     return buildString {
-        if (init.isBraces.not() && singleExpr != null) {
-            append("(").append(getTargetExpr(singleExpr, inferredType)).append(")")
+        append(state.name)
+        if (init == null) {
+            append("/*missing initializer*/")
         } else {
             val (prefix, postfix) = if (init.isBraces) Pair("{", "}") else Pair("(", ")")
             init.exprs.joinTo(this, ", ", prefix, postfix) {
-                getTargetExpr(it, inferredType?.componentType)
+                getTargetExpr(it, inferredType.componentType)
             }
         }
     }
 }
 
-fun CppTypes.getCppStandaloneInitializer(init: Initializer?, inferredType: InferredType?): String {
+/** Returns an initializer in the form `int(2)` or `Class {1,2}`. */
+fun CppTypes.getCppStandaloneInitializer(init: Initializer?, inferredType: InferredType): String {
     if (init == null) {
         return getMissingExpr(inferredType)
     }
@@ -79,7 +81,7 @@ fun CppTypes.getCppStandaloneInitializer(init: Initializer?, inferredType: Infer
         append(getTargetType(inferredType)) // treat as ctor call
         val (prefix, postfix) = if (init.isBraces) Pair("{", "}") else Pair("(", ")")
         init.exprs.joinTo(this, ", ", prefix, postfix) {
-            getTargetExpr(it, inferredType?.componentType)
+            getTargetExpr(it, inferredType.componentType)
         }
     }
 }

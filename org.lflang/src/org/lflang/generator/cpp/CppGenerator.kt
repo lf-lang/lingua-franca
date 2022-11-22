@@ -29,15 +29,14 @@ package org.lflang.generator.cpp
 import org.eclipse.emf.ecore.resource.Resource
 import org.lflang.ErrorReporter
 import org.lflang.Target
-import org.lflang.TimeUnit
 import org.lflang.generator.CodeMap
 import org.lflang.generator.GeneratorBase
 import org.lflang.generator.GeneratorResult
+import org.lflang.generator.GeneratorUtils.canGenerate
 import org.lflang.generator.IntegratedBuilder
 import org.lflang.generator.LFGeneratorContext
 import org.lflang.generator.LFGeneratorContext.Mode
 import org.lflang.generator.TargetTypes
-import org.lflang.generator.GeneratorUtils.canGenerate
 import org.lflang.isGeneric
 import org.lflang.lf.Action
 import org.lflang.lf.VarRef
