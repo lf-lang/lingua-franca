@@ -300,8 +300,6 @@ public abstract class GeneratorBase extends AbstractLFValidator {
             context, GeneratorUtils.findTarget(fileConfig.resource), targetConfig, errorReporter
         );
 
-        cleanIfNeeded(context);
-
         printInfo(context.getMode());
 
         // Clear any IDE markers that may have been created by a previous build.
@@ -374,20 +372,6 @@ public abstract class GeneratorBase extends AbstractLFValidator {
         additionalPostProcessingForModes();
 
         enableSupportForSerializationIfApplicable(context.getCancelIndicator());
-    }
-
-    /**
-     * Check if a clean was requested from the standalone compiler and perform
-     * the clean step.
-     */
-    protected void cleanIfNeeded(LFGeneratorContext context) {
-        if (context.getArgs().containsKey("clean")) {
-            try {
-                fileConfig.doClean();
-            } catch (IOException e) {
-                System.err.println("WARNING: IO Error during clean");
-            }
-        }
     }
 
     /**

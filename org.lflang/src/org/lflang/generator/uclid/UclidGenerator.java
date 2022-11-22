@@ -49,6 +49,19 @@ import org.antlr.v4.runtime.tree.ParseTreeWalker;
 import org.eclipse.emf.common.util.EList;
 import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.xtext.xbase.lib.Exceptions;
+
+import org.lflang.ASTUtils;
+import org.lflang.ErrorReporter;
+import org.lflang.FileConfig;
+import org.lflang.Target;
+import org.lflang.TimeUnit;
+import org.lflang.TimeValue;
+import org.lflang.dsl.CLexer;
+import org.lflang.dsl.CParser;
+import org.lflang.dsl.MTLLexer;
+import org.lflang.dsl.MTLParser;
+import org.lflang.dsl.CParser.BlockItemListContext;
+import org.lflang.dsl.MTLParser.MtlContext;
 import org.lflang.generator.ActionInstance;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.generator.GeneratorBase;
@@ -72,18 +85,6 @@ import org.lflang.generator.uclid.ast.CBaseAstVisitor;
 import org.lflang.generator.uclid.ast.CToUclidVisitor;
 import org.lflang.generator.uclid.ast.IfNormalFormAstVisitor;
 import org.lflang.generator.uclid.ast.VariablePrecedenceVisitor;
-import org.lflang.ASTUtils;
-import org.lflang.ErrorReporter;
-import org.lflang.FileConfig;
-import org.lflang.Target;
-import org.lflang.TimeUnit;
-import org.lflang.TimeValue;
-import org.lflang.dsl.CLexer;
-import org.lflang.dsl.CParser;
-import org.lflang.dsl.MTLLexer;
-import org.lflang.dsl.MTLParser;
-import org.lflang.dsl.CParser.BlockItemListContext;
-import org.lflang.dsl.MTLParser.MtlContext;
 import org.lflang.lf.Action;
 import org.lflang.lf.Attribute;
 import org.lflang.lf.Code;
@@ -92,7 +93,7 @@ import org.lflang.lf.Expression;
 import org.lflang.lf.Reaction;
 import org.lflang.lf.Time;
 import org.lflang.lf.VarRef;
-import org.w3c.dom.Attr;
+import org.lflang.util.StringUtil;
 
 import static org.lflang.ASTUtils.*;
 
@@ -149,7 +150,6 @@ public class UclidGenerator extends GeneratorBase {
         GeneratorUtils.setTargetConfig(
             context, GeneratorUtils.findTarget(fileConfig.resource), targetConfig, errorReporter
         );
-        super.cleanIfNeeded(context);
         super.printInfo(context.getMode());
         ASTUtils.setMainName(fileConfig.resource, fileConfig.name);
         // FIXME: Perform an analysis on the property and remove unrelevant components.
@@ -173,24 +173,25 @@ public class UclidGenerator extends GeneratorBase {
         // FIXME: Calculate the completeness threshold for each property.
         // Generate a Uclid model for each property.
         for (Attribute prop : this.properties) {
-            this.name = prop.getAttrParms().stream()
-                        .filter(attr -> attr.getName().equals("name"))
-                        .findFirst()
-                        .get()
-                        .getValue()
-                        .getStr();
-            this.tactic = prop.getAttrParms().stream()
-                        .filter(attr -> attr.getName().equals("tactic"))
-                        .findFirst()
-                        .get()
-                        .getValue()
-                        .getStr();
-            this.spec = prop.getAttrParms().stream()
-                        .filter(attr -> attr.getName().equals("spec"))
-                        .findFirst()
-                        .get()
-                        .getValue()
-                        .getStr();
+            this.name = StringUtil.removeQuotes(
+                            prop.getAttrParms().stream()
+                            .filter(attr -> attr.getName().equals("name"))
+                            .findFirst()
+                            .get()
+                            .getValue());
+            this.tactic = StringUtil.removeQuotes(
+                            prop.getAttrParms().stream()
+                            .filter(attr -> attr.getName().equals("tactic"))
+                            .findFirst()
+                            .get()
+                            .getValue());
+            this.spec = StringUtil.removeQuotes(
+                            prop.getAttrParms().stream()
+                            .filter(attr -> attr.getName().equals("spec"))
+                            .findFirst()
+                            .get()
+                            .getValue());
+
             int CT = computeCT();
             generateUclidFile(CT);
         }
@@ -1123,8 +1124,8 @@ public class UclidGenerator extends GeneratorBase {
 
     private void setUpDirectories() {
         // Make sure the target directory exists.
-        Path srcgenDir = this.fileConfig.getSrcGenPath();
-        this.outputDir = Paths.get(srcgenDir.toString() + File.separator + "model");
+        Path modelGenDir = this.fileConfig.getModelGenPath();
+        this.outputDir = Paths.get(modelGenDir.toString());
         try {
             Files.createDirectories(outputDir);
         } catch (IOException e) {

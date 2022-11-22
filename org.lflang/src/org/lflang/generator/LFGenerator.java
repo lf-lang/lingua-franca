@@ -167,6 +167,9 @@ public class LFGenerator extends AbstractGenerator {
         final ErrorReporter errorReporter = lfContext.constructErrorReporter(fileConfig);
         final GeneratorBase generator = createGenerator(target, fileConfig, errorReporter);
 
+        // If "-c" or "--clean" is specified, delete any existing generated directories.
+        cleanIfNeeded(lfContext, fileConfig);
+
         // Check if @property is used. If so, include UclidGenerator.
         Reactor main = ASTUtils.getMainReactor(resource);
         List<Attribute> properties = AttributeUtils.getAttributes(main)
@@ -190,5 +193,19 @@ public class LFGenerator extends AbstractGenerator {
     /** Return true if errors occurred in the last call to doGenerate(). */
     public boolean errorsOccurred() {
         return generatorErrorsOccurred;
+    }
+
+    /**
+     * Check if a clean was requested from the standalone compiler and perform
+     * the clean step.
+     */
+    protected void cleanIfNeeded(LFGeneratorContext context, FileConfig fileConfig) {
+        if (context.getArgs().containsKey("clean")) {
+            try {
+                fileConfig.doClean();
+            } catch (IOException e) {
+                System.err.println("WARNING: IO Error during clean");
+            }
+        }
     }
 }
