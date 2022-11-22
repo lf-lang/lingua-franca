@@ -66,7 +66,10 @@ public class CargoDependencySpec {
         this.rev = rev;
         this.gitTag = gitTag;
         this.localPath = StringUtil.removeQuotes(localPath);
-        this.features = new HashSet<>(features);
+        this.features = new HashSet<>();
+        if (features != null) {
+            this.features.addAll(features);
+        }
     }
 
     /** The version. May be null. */
@@ -113,7 +116,7 @@ public class CargoDependencySpec {
         }
     }
 
-    /** Returns the set of features that are enabled on the crate. May be null. */
+    /** Returns the set of features that are enabled on the crate. May not be null. */
     public Set<String> getFeatures() {
         return features;
     }
