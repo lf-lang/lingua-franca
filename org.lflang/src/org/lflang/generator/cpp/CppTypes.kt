@@ -50,6 +50,26 @@ object CppTypes : TargetTypes {
 
 }
 
+/**
+ * Returns the initializer list used in direct initialization in ctor definition.
+ */
+fun CppTypes.getCppInitializerList(init: Initializer?, inferredType: InferredType?): String {
+    if (init == null) {
+        return getMissingExpr(inferredType)
+    }
+    val singleExpr = init.exprs.singleOrNull()
+    return buildString {
+        if (init.isBraces.not() && singleExpr != null) {
+            append("(").append(getTargetExpr(singleExpr, inferredType)).append(")")
+        } else {
+            val (prefix, postfix) = if (init.isBraces) Pair("{", "}") else Pair("(", ")")
+            init.exprs.joinTo(this, ", ", prefix, postfix) {
+                getTargetExpr(it, inferredType?.componentType)
+            }
+        }
+    }
+}
+
 fun CppTypes.getCppStandaloneInitializer(init: Initializer?, inferredType: InferredType?): String {
     if (init == null) {
         return getMissingExpr(inferredType)

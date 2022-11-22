@@ -219,18 +219,3 @@ class CppGenerator(
     override fun getTargetTypes(): TargetTypes = CppTypes
 }
 
-/** Get a C++ representation of a LF unit. */
-val TimeUnit?.cppUnit
-    get() = when (this) {
-        TimeUnit.NANO   -> "ns"
-        TimeUnit.MICRO  -> "us"
-        TimeUnit.MILLI  -> "ms"
-        TimeUnit.SECOND -> "s"
-        TimeUnit.MINUTE -> "min"
-        TimeUnit.HOUR   -> "h"
-        TimeUnit.DAY    -> "d"
-        TimeUnit.WEEK   -> "d*7"
-        else            -> ""
-    }
-
-

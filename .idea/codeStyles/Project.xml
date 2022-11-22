@@ -70,6 +70,7 @@
       <option name="INDENT_FIRST_PARAMETER" value="false" />
       <option name="INDENT_BRACED_FUNCTION_ARGS" value="false" />
       <option name="USE_SCALADOC2_FORMATTING" value="true" />
+      <option name="MULTILINE_STRING_CLOSING_QUOTES_ON_NEW_LINE" value="true" />
     </ScalaCodeStyleSettings>
     <codeStyleSettings language="JAVA">
       <option name="RIGHT_MARGIN" value="100" />
