@@ -108,7 +108,7 @@ class CppInstanceGenerator(
             assert(!isBank)
             return if (!isAffiliate) ", $name(${getUniquePointerInitializer("this")})"
             else """
-                , __lf_env_$name(this->environment())
+                , __lf_env_$name("$name", this->environment())
                 , $name(${getUniquePointerInitializer("&__lf_env_$name")})
             """.trimIndent()
         }
