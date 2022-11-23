@@ -24,13 +24,10 @@
 ***************/
 package org.lflang.diagram.synthesis.util;
 
-import java.io.InputStream;
-import java.util.HashMap;
-
 //import org.eclipse.swt.graphics.ImageData;
 //import org.eclipse.swt.graphics.ImageLoader;
 import org.eclipse.xtext.xbase.lib.Extension;
-import org.lflang.ASTUtils;
+
 import org.lflang.AttributeUtils;
 import org.lflang.diagram.synthesis.AbstractSynthesisExtensions;
 import org.lflang.lf.ReactorDecl;
@@ -38,10 +35,7 @@ import org.lflang.util.FileUtil;
 
 import com.google.inject.Inject;
 
-import de.cau.cs.kieler.klighd.krendering.Colors;
 import de.cau.cs.kieler.klighd.krendering.KContainerRendering;
-import de.cau.cs.kieler.klighd.krendering.KGridPlacementData;
-import de.cau.cs.kieler.klighd.krendering.KRectangle;
 import de.cau.cs.kieler.klighd.krendering.ViewSynthesisShared;
 import de.cau.cs.kieler.klighd.krendering.extensions.KContainerRenderingExtensions;
 import de.cau.cs.kieler.klighd.krendering.extensions.KRenderingExtensions;
@@ -74,10 +68,7 @@ public class ReactorIcons extends AbstractSynthesisExtensions {
         error = null;
         
         // Get annotation
-        String iconPath = AttributeUtils.findAttributeByName(reactor, "icon");
-        if (iconPath == null) { // Fallback to old syntax (in comment)
-            iconPath = ASTUtils.findAnnotationInComments(reactor, "@icon");
-        }
+        var iconPath = AttributeUtils.getIconPath(reactor);
         if (iconPath != null && !iconPath.isEmpty()) {
             var iconLocation = FileUtil.locateFile(iconPath, reactor.eResource());
             if (iconLocation == null) {

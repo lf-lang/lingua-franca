@@ -221,6 +221,7 @@ Preamble:
     (visibility=Visibility)? 'preamble' code=Code;
 
 Instantiation:
+    (attributes+=Attribute)*
     name=ID '=' 'new' (widthSpec=WidthSpec)?
     reactorClass=[ReactorDecl] ('<' typeParms+=TypeParm (',' typeParms+=TypeParm)* '>')? '(' 
     (parameters+=Assignment (',' parameters+=Assignment)*)? 
@@ -247,14 +248,7 @@ Attribute:
 ;
 
 AttrParm:
-    (name=ID '=')? value=AttrParmValue;
-
-AttrParmValue:
-    str=STRING
-    | int=SignedInt
-    | bool=Boolean
-    | float=SignedFloat
-;
+    (name=ID '=')? value=Literal;
 
 /////////// For target parameters
 
