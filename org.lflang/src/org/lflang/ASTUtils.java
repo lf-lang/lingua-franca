@@ -415,7 +415,7 @@ public class ASTUtils {
      */
     private static Instantiation getDelayInstance(Reactor delayClass, 
             Connection connection, String generic, Boolean defineWidthFromConnection) {
-        Expression delay = connection.getDelay();
+        Time delay = toTime(connection.getDelay());
         Instantiation delayInstance = factory.createInstantiation();
         delayInstance.setReactorClass(delayClass);
         if (!StringExtensions.isNullOrEmpty(generic)) {
@@ -434,7 +434,7 @@ public class ASTUtils {
                     WidthTerm term = factory.createWidthTerm();
                     term.setPort(EcoreUtil.copy(port));
                     widthSpec.getTerms().add(term);
-                }   
+                }
             } else {
                 widthSpec.setOfVariableLength(true);
             }
@@ -1017,7 +1017,25 @@ public class ASTUtils {
     }
 
     /**
+     * If the expression is a valid time, then return a {@link Time}
+     * instance equivalent to the expression (possibly the expression
+     * itself). Otherwise return null.
+     */
+    public static Time toTime(Expression expr) {
+        if (expr instanceof Time) {
+            return (Time) expr;
+        } else if (ASTUtils.isZero(expr)) {
+            Time time = LfFactory.eINSTANCE.createTime();
+            time.setInterval(0);
+            time.setUnit("s");
+            return time;
+        }
+        return null;
+    }
+
+    /**
      * Report whether the given string literal is an integer number or not.
+     *
      * @param literal AST node to inspect.
      * @return True if the given value is an integer, false otherwise.
      */

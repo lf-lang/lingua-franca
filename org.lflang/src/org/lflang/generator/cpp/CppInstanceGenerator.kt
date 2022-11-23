@@ -24,8 +24,6 @@
 
 package org.lflang.generator.cpp
 
-import org.lflang.generator.getActualValue
-import org.lflang.inferredType
 import org.lflang.isBank
 import org.lflang.isGeneric
 import org.lflang.joinWithLn
@@ -57,43 +55,33 @@ class CppInstanceGenerator(
             "std::unique_ptr<$cppType> $name;"
     }
 
-    private fun Instantiation.getParameterValue(param: Parameter, isBankInstantiation: Boolean = false): String =
+    private fun Instantiation.getParameterValue(param: Parameter, isBankInstantiation: Boolean = false): String? =
         if (isBankInstantiation && param.name == "bank_index") {
             // If we are in a bank instantiation (instanceId != null), then assign the instanceId
             // to the parameter named "bank_index"
             """__lf_idx"""
         } else {
-            val value = this.getActualValue(param)
-            // todo if the parameter type is a type parameter, then it should be substed with the type arguments...
-            CppTypes.getCppStandaloneInitializer(value, param.inferredType)
+            CppTypes.getCppArgumentForParameter(param, this)
         }
 
     private fun generateInitializer(inst: Instantiation): String {
         assert(!inst.isBank)
-        val parameters = inst.reactor.parameters
-        return if (parameters.isEmpty())
-            """, ${inst.name}(std::make_unique<${inst.cppType}>("${inst.name}", this))"""
-        else {
-            val params = parameters.joinToString(", ") { inst.getParameterValue(it) }
-            """, ${inst.name}(std::make_unique<${inst.cppType}>("${inst.name}", this, $params))"""
-        }
+        val params = inst.reactor.parameters.mapNotNull { inst.getParameterValue(it, isBankInstantiation = false) }
+        val paramsCode = if (params.isEmpty()) "" else params.joinToString(", ", prefix = ", ")
+        return """, ${inst.name}(std::make_unique<${inst.cppType}>("${inst.name}", this$paramsCode))"""
     }
 
     private fun generateConstructorInitializer(inst: Instantiation): String {
         with(inst) {
             assert(isBank)
-            val parameters = inst.reactor.parameters
-            val emplaceLine = if (parameters.isEmpty()) {
-                """${name}.emplace_back(std::make_unique<$cppType>(__lf_inst_name, this));"""
-            } else {
-                val params = parameters.joinToString(", ") { param -> inst.getParameterValue(param, true) }
-                """${name}.emplace_back(std::make_unique<$cppType>(__lf_inst_name, this, $params));"""
-            }
+            val params = inst.reactor.parameters.mapNotNull { inst.getParameterValue(it, isBankInstantiation = true) }
+            val paramsCode = if (params.isEmpty()) "" else params.joinToString(", ", prefix = ", ")
+            val emplaceLine = "$name.emplace_back(std::make_unique<$cppType>(__lf_inst_name, this$paramsCode));"
 
             val width = inst.widthSpec.toCppCode()
             return """
                 // initialize instance $name
-                ${name}.reserve($width);
+                $name.reserve($width);
                 for (size_t __lf_idx = 0; __lf_idx < $width; __lf_idx++) {
                   std::string __lf_inst_name = "${name}_" + std::to_string(__lf_idx);
                   $emplaceLine
