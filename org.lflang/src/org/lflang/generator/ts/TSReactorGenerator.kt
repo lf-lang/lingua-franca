@@ -153,11 +153,11 @@ class TSReactorGenerator(
             "export class $reactorName extends __Reactor {"
         }
 
-        val instanceGenerator = TSInstanceGenerator(tsGenerator, errorReporter, this, reactor, federate)
-        val timerGenerator = TSTimerGenerator(tsGenerator, reactor.timers)
-        val parameterGenerator = TSParameterGenerator(tsGenerator, reactor.parameters)
-        val stateGenerator = TSStateGenerator(tsGenerator, reactor.stateVars)
-        val actionGenerator = TSActionGenerator(tsGenerator, reactor.actions, federate)
+        val instanceGenerator = TSInstanceGenerator(errorReporter, reactor, federate)
+        val timerGenerator = TSTimerGenerator(reactor.timers)
+        val parameterGenerator = TSParameterGenerator(reactor.parameters)
+        val stateGenerator = TSStateGenerator(reactor.stateVars)
+        val actionGenerator = TSActionGenerator(reactor.actions, federate)
         val portGenerator = TSPortGenerator(reactor.inputs, reactor.outputs)
 
         val constructorGenerator = TSConstructorGenerator(tsGenerator, errorReporter, reactor, federate, targetConfig)

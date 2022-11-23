@@ -255,10 +255,10 @@ public class FileConfig {
     private static Path getPkgPath(Resource resource) throws IOException {
         if (resource.getURI().isPlatform()) {
             // We are in the RCA.
-            File srcFile = FileUtil.toPath(resource).toFile();
+            Path srcFile = FileUtil.toPath(resource);
             for (IProject r : ResourcesPlugin.getWorkspace().getRoot().getProjects()) {
                 Path p = Paths.get(r.getLocation().toFile().getAbsolutePath());
-                Path f = Paths.get(srcFile.getAbsolutePath());
+                Path f = srcFile.toAbsolutePath();
                 if (f.startsWith(p)) {
                     return p;
                 }
@@ -284,7 +284,7 @@ public class FileConfig {
             if (p == null) {
                 printWarning.accept("File '" + input.getFileName() + "' is not located in an 'src' directory.");
                 printWarning.accept("Adopting the current working directory as the package root.");
-                return Paths.get(".").toAbsolutePath();
+                return Paths.get(".").toAbsolutePath(); // todo #1478 replace with Io::getWd
             }
         } while (!p.toFile().getName().equals("src"));
         return p.getParent();

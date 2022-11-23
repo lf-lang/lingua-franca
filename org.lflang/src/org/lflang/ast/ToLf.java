@@ -30,7 +30,6 @@ import org.lflang.lf.Array;
 import org.lflang.lf.ArraySpec;
 import org.lflang.lf.Assignment;
 import org.lflang.lf.AttrParm;
-import org.lflang.lf.AttrParmValue;
 import org.lflang.lf.Attribute;
 import org.lflang.lf.BuiltinTriggerRef;
 import org.lflang.lf.Code;
@@ -288,24 +287,7 @@ public class ToLf extends LfSwitch<MalleableString> {
         // (name=ID '=')? value=AttrParmValue;
         var builder = new Builder();
         if (object.getName() != null) builder.append(object.getName()).append(" = ");
-        return builder.append(doSwitch(object.getValue())).get();
-    }
-
-    @Override
-    public MalleableString caseAttrParmValue(AttrParmValue object) {
-        // str=STRING
-        //  | int=SignedInt
-        //  | bool=Boolean
-        //  | float=SignedFloat
-        if (object.getStr() != null) {
-            return MalleableString.anyOf(StringUtil.addDoubleQuotes(object.getStr()));
-        }
-        if (object.getInt() != null) return MalleableString.anyOf(object.getInt());
-        if (object.getBool() != null) return MalleableString.anyOf(object.getBool());
-        if (object.getFloat() != null) return MalleableString.anyOf(object.getFloat());
-        throw new IllegalArgumentException(
-            "The attributes of an AttrParmValue should not all be null."
-        );
+        return builder.append(object.getValue()).get();
     }
 
     @Override
