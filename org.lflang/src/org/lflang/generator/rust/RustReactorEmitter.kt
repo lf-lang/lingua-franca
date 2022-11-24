@@ -285,7 +285,7 @@ ${"             |        "..declareChildConnections()}
                 this += n.uses.map { trigger -> "__assembler.declare_uses(${n.invokerId}, __self.${trigger.rustFieldName}.get_id())?;" }
                 this += n.effects.filterIsInstance<PortLike>().map { port ->
                     if (port.isMultiport) {
-                        "__assembler.effects_bank(${n.invokerId}, &__self.${port.rustFieldName})?;"
+                        "__assembler.effects_multiport(${n.invokerId}, &__self.${port.rustFieldName})?;"
                     } else {
                         "__assembler.effects_port(${n.invokerId}, &__self.${port.rustFieldName})?;"
                     }
@@ -337,7 +337,7 @@ ${"             |        "..declareChildConnections()}
             if (isLogical) "$rsRuntime::LogicalAction<${dataType ?: "()"}>"
             else "$rsRuntime::PhysicalActionRef<${dataType ?: "()"}>"
         is PortLike   -> with(this) {
-            if (isMultiport) "$rsRuntime::PortBank<$dataType>"
+            if (isMultiport) "$rsRuntime::Multiport<$dataType>"
             else "$rsRuntime::Port<$dataType>"
         }
         is TimerData  -> "$rsRuntime::Timer"
@@ -354,7 +354,7 @@ ${"             |        "..declareChildConnections()}
         is TimerData          -> "__assembler.new_timer(\"$lfName\", $offset, $period)"
         is PortData           -> {
             if (widthSpec != null) {
-                "__assembler.new_port_bank::<$dataType>(\"$lfName\", $portKind, $widthSpec)?"
+                "__assembler.new_multiport::<$dataType>(\"$lfName\", $portKind, $widthSpec)?"
             } else {
                 "__assembler.new_port::<$dataType>(\"$lfName\", $portKind)"
             }
