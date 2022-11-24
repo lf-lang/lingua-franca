@@ -51,7 +51,6 @@ class CppInstanceGenerator(
             isBank && !isAffiliate  -> "std::vector<std::unique_ptr<$cppType>> $name;"
             !isBank && isAffiliate  -> """
                 reactor::Environment __lf_env_$name;
-                std::thread __lf_thread_$name;
                 std::unique_ptr<$cppType> $name;
             """.trimIndent()
 
@@ -108,7 +107,7 @@ class CppInstanceGenerator(
             assert(!isBank)
             return if (!isAffiliate) ", $name(${getUniquePointerInitializer("this")})"
             else """
-                , __lf_env_$name("$name", this->environment())
+                , __lf_env_$name(this->fqn() + ".$name", this->environment())
                 , $name(${getUniquePointerInitializer("&__lf_env_$name")})
             """.trimIndent()
         }
