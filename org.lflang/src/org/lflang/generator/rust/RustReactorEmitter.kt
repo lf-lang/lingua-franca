@@ -388,7 +388,7 @@ ${"             |        "..declareChildConnections()}
         }
         is ChildPortReference -> {
             if (isGeneratedAsMultiport) {
-                "__assembler.new_port_bank::<$dataType>(\"$childLfName.$lfName\", $portKind, $privateParamsVarName.$widthParamName)?"
+                "__assembler.new_multiport::<$dataType>(\"$childLfName.$lfName\", $portKind, $privateParamsVarName.$widthParamName)?"
             } else {
                 "__assembler.new_port::<$dataType>(\"$childLfName.$lfName\", $portKind)"
             }

@@ -63,8 +63,8 @@ object PortEmitter : RustEmitterBase() {
         val child = "&mut $rustChildName.$rustFieldOnChildName"
 
         return if (isGeneratedAsMultiport) {
-            var lhsPorts = "$child.into_iter()"
-            var rhsPorts = "$self.into_iter()"
+            var lhsPorts = "$child.iter_mut()"
+            var rhsPorts = "$self.iter_mut()"
 
             if (isContainedInBank && !isMultiport) {
                 lhsPorts = "unsafe_iter_bank!($rustChildName # $rustFieldOnChildName)"
