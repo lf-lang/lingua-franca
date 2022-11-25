@@ -30,12 +30,12 @@ jobs:
           ref: ${{ inputs.runtime-ref }}
         if: ${{ inputs.runtime-ref }}
       - name: Setup ROS2
-        uses: ros-tooling/setup-ros@0.2.2
+        uses: ros-tooling/setup-ros@v0.4
         with:
-          required-ros-distributions: galactic
+          required-ros-distributions: rolling
       - name: Run C++ tests;
         run: |
-          source /opt/ros/galactic/setup.bash
+          source /opt/ros/*/setup.bash
           ./gradlew test --tests org.lflang.tests.runtime.CppRos2Test.*
       - name: Report to CodeCov
         uses: codecov/codecov-action@v2.1.0
