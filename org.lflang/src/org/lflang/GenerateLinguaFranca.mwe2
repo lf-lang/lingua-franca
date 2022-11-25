@@ -5,8 +5,6 @@ import org.eclipse.xtext.xtext.generator.model.project.*
 
 var rootPath = ".."
 var coreProject = "org.lflang"
-var testProject = "org.lflang.tests"
-var epochBuild = false
 
 Workflow {
     component = XtextGenerator {
@@ -24,15 +22,15 @@ Workflow {
                 }
                 runtimeTest = {
                     enabled = true
-                    name = testProject // generate into separate test project
+                    name = "org.lflang.tests" // generate into separate test project
                 }
                 // Only generate Eclipse infrastructure for the Epoch build (separate repository).
-                createEclipseMetaData = epochBuild
+                createEclipseMetaData = false
                 eclipsePlugin = {
-                    enabled = epochBuild
+                    enabled = false
                 }
                 eclipsePluginTest = {
-                    enabled = epochBuild
+                    enabled = false
                 }
             }
             code = {
