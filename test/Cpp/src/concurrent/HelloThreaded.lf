@@ -44,10 +44,10 @@ reactor Inside(
 }
 
 main reactor {
-    first_instance = new HelloCpp(
+    first_instance = new Reschedule(
         period = 4 sec,
-        message = "Hello from first_instance."
+        message = {= std::string("Hello from first_instance.") =}
     )
-    second_instance = new HelloCpp(message = "Hello from second_instance.")
-    composite_instance = new Inside(message = "Hello from composite_instance.")
+    second_instance = new Reschedule(message = {= std::string("Hello from second_instance.") =})
+    composite_instance = new Inside(message = {= std::string("Hello from composite_instance.") =})
 }
