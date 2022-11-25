@@ -733,7 +733,7 @@ public class CTriggerObjectsGenerator {
             for (PortInstance port : Iterables.filter(reaction.effects, PortInstance.class)) {
                 // If this port does not have any destinations, do not generate code for it.
                 if (port.eventualDestinations().isEmpty()) continue;
-                
+
                 code.pr("for (int i = 0; i < "+reaction.getParent().getTotalWidth()+"; i++) triggers_index[i] = "+cumulativePortWidth+";");
                 for (SendRange srcRange : port.eventualDestinations()) {
                     if (currentFederate.contains(port.getParent())) {

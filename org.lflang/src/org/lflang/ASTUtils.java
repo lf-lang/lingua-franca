@@ -50,7 +50,6 @@ import org.eclipse.xtext.nodemodel.ICompositeNode;
 import org.eclipse.xtext.nodemodel.INode;
 import org.eclipse.xtext.nodemodel.impl.HiddenLeafNode;
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils;
-import org.eclipse.xtext.resource.XtextResource;
 import org.eclipse.xtext.util.Pair;
 import org.eclipse.xtext.util.Tuples;
 import org.eclipse.xtext.xbase.lib.IterableExtensions;
@@ -96,6 +95,7 @@ import org.lflang.lf.WidthTerm;
 import org.lflang.util.StringUtil;
 
 import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 
 /**
@@ -820,6 +820,14 @@ public class ASTUtils {
         list.addAll(idx, elements);
     }
 
+    public static <T extends EObject> Iterable<T> allElementsOfClass(
+        Resource resource,
+        Class<T> elementClass
+    ) {
+        //noinspection StaticPseudoFunctionalStyleMethod
+        return Iterables.filter(IteratorExtensions.toIterable(resource.getAllContents()), elementClass);
+    }
+
     ////////////////////////////////
     //// Utility functions for translating AST nodes into text
 
@@ -1011,6 +1019,30 @@ public class ASTUtils {
         try {
             //noinspection ResultOfMethodCallIgnored
             Integer.decode(literal);
+        } catch (NumberFormatException e) {
+            return false;
+        }
+        return true;
+    }
+
+    /**
+     * Report whether the given string literal is a boolean value or not.
+     * @param literal AST node to inspect.
+     * @return True if the given value is a boolean, false otherwise.
+     */
+    public static boolean isBoolean(String literal) {
+        return literal.equalsIgnoreCase("true") || literal.equalsIgnoreCase("false");
+    }
+
+    /**
+     * Report whether the given string literal is a float value or not.
+     * @param literal AST node to inspect.
+     * @return True if the given value is a float, false otherwise.
+     */
+    public static boolean isFloat(String literal) {
+        try {
+            //noinspection ResultOfMethodCallIgnored
+            Float.parseFloat(literal);
         } catch (NumberFormatException e) {
             return false;
         }
@@ -1762,28 +1794,6 @@ public class ASTUtils {
             }
             return false;
         };
-    }
-    
-    /**
-     * Retrieve a specific annotation in a comment associated with the given model element in the AST.
-     * 
-     * This will look for a comment. If one is found, it searches for the given annotation `key`.
-     * and extracts any string that follows the annotation marker.  
-     * 
-     * @param object the AST model element to search a comment for
-     * @param key the specific annotation key to be extracted
-     * @return `null` if no JavaDoc style comment was found or if it does not contain the given key.
-     *     The string immediately following the annotation marker otherwise.
-     */
-    public static String findAnnotationInComments(EObject object, String key) {
-        if (!(object.eResource() instanceof XtextResource)) return null;
-        ICompositeNode node = NodeModelUtils.findActualNodeFor(object);
-        return getPrecedingComments(node, n -> true).flatMap(String::lines)
-            .filter(line -> line.contains(key))
-            .map(String::trim)
-            .map(it -> it.substring(it.indexOf(key) + key.length()))
-            .map(it -> it.endsWith("*/") ? it.substring(0, it.length() - "*/".length()) : it)
-            .findFirst().orElse(null);
     }
 
     /**

@@ -17,11 +17,8 @@ public class PythonPortGenerator {
     public static final String NONMULTIPORT_WIDTHSPEC = "-2";
 
     /**
-     * Generate code to convert C actions to Python action capsules
-     * @see pythontarget.h.
-     * @param pyObjectDescriptor A string representing a list of Python format types (e.g., "O") that
-     *  can be passed to Py_BuildValue. The object type for the converted action will
-     *  be appended to this string (e.g., "OO").
+     * Generate code to convert C actions to Python action capsules. See
+     * pythontarget.h for details.
      * @param pyObjects A string containing a list of comma-separated expressions that will create the
      *  action capsules.
      * @param action The action itself.
@@ -38,10 +35,6 @@ public class PythonPortGenerator {
      * Generate code to convert C ports to Python ports capsules (@see pythontarget.h).
      *
      * The port may be an input of the reactor or an output of a contained reactor.
-     *
-     * @param pyObjectDescriptor A string representing a list of Python format types (e.g., "O") that
-     *  can be passed to Py_BuildValue. The object type for the converted port will
-     *  be appended to this string (e.g., "OO").
      * @param pyObjects A string containing a list of comma-separated expressions that will create the
      *  port capsules.
      * @param port The port itself.
@@ -64,11 +57,7 @@ public class PythonPortGenerator {
     /** Generate into the specified string builder the code to
      *  send local variables for output ports to a Python reaction function
      *  from the "self" struct.
-     *  @param builder The string builder into which to write the code.
-     *  @param structs A map from reactor instantiations to a place to write
-     *   struct fields.
      *  @param output The output port.
-     *  @param decl The reactor declaration.
      */
     public static void generateOutputVariablesToSendToPythonReaction(
         List<String> pyObjects,
@@ -92,11 +81,7 @@ public class PythonPortGenerator {
     /** Generate into the specified string builder the code to
      *  send local variables for input ports to a Python reaction function
      *  from the "self" struct.
-     *  @param builder The string builder into which to write the code.
-     *  @param structs A map from reactor instantiations to a place to write
-     *   struct fields.
      *  @param input The input port.
-     *  @param reactor The reactor.
      */
     public static void generateInputVariablesToSendToPythonReaction(
         List<String> pyObjects,

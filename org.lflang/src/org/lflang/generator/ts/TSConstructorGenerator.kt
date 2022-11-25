@@ -4,6 +4,8 @@ import org.lflang.ErrorReporter
 import org.lflang.TargetConfig
 import org.lflang.federated.FederateInstance
 import org.lflang.generator.PrependOperator
+import org.lflang.generator.getTargetInitializer
+import org.lflang.joinWithLn
 import org.lflang.lf.Action
 import org.lflang.lf.Parameter
 import org.lflang.lf.Reactor
@@ -24,26 +26,9 @@ class TSConstructorGenerator (
     private val federate: FederateInstance,
     private val targetConfig: TargetConfig
 ) {
-    private fun getInitializerList(param: Parameter): List<String> =
-        tsGenerator.getInitializerListW(param)
 
-    // Initializer functions
-    private fun getTargetInitializerHelper(param: Parameter,
-                                   list: List<String>): String {
-        return if (list.size == 0) {
-            errorReporter.reportError(param, "Parameters must have a default value!")
-        } else if (list.size == 1) {
-            list[0]
-        } else {
-            list.joinToString(", ", "[", "]")
-        }
-    }
-    private fun getTargetInitializer(param: Parameter): String {
-        return getTargetInitializerHelper(param, getInitializerList(param))
-    }
-    private fun initializeParameter(p: Parameter): String {
-        return """${p.name}: ${p.getTargetType()} = ${getTargetInitializer(p)}"""
-    }
+    private fun initializeParameter(p: Parameter): String =
+        "${p.name}: ${TSTypes.getTargetType(p)} = ${TSTypes.getTargetInitializer(p)}"
 
     private fun generateConstructorArguments(reactor: Reactor): String {
         val arguments = LinkedList<String>()
@@ -83,7 +68,7 @@ class TSConstructorGenerator (
                 port = 15045
             }
             return """
-            super(federationID, ${federate.id}, ${port},
+            super(federationID, ${federate.id}, $port,
                 "${federationRTIProperties()["host"]}",
                 timeout, keepAlive, fast, success, fail);
             """
@@ -94,29 +79,17 @@ class TSConstructorGenerator (
 
     // If the app is federated, register its
     // networkMessageActions with the RTIClient
-    private fun generateFederatePortActionRegistrations(networkMessageActions: List<Action>): String {
-        var fedPortID = 0;
-        val connectionInstantiations = LinkedList<String>()
-        for (nAction in networkMessageActions) {
-            val registration = """
-                this.registerFederatePortAction(${fedPortID}, this.${nAction.name});
-                """
-            connectionInstantiations.add(registration)
-            fedPortID++
+    private fun generateFederatePortActionRegistrations(networkMessageActions: List<Action>): String =
+        networkMessageActions.withIndex().joinWithLn { (fedPortID, nAction) ->
+            "this.registerFederatePortAction($fedPortID, this.${nAction.name});"
         }
-        return connectionInstantiations.joinToString("\n")
-    }
 
     // Generate code for setting target configurations.
-    private fun generateTargetConfigurations(): String {
-        val targetConfigurations = LinkedList<String>()
-        if ((reactor.isMain || reactor.isFederated) &&
-            targetConfig.coordinationOptions.advance_message_interval != null) {
-            targetConfigurations.add(
-                "this.setAdvanceMessageInterval(${timeInTargetLanguage(targetConfig.coordinationOptions.advance_message_interval)})")
-        }
-        return targetConfigurations.joinToString("\n")
-    }
+    private fun generateTargetConfigurations(): String =
+        if ((reactor.isMain || reactor.isFederated)
+            && targetConfig.coordinationOptions.advance_message_interval != null
+        ) "this.setAdvanceMessageInterval(${targetConfig.coordinationOptions.advance_message_interval.toTsTime()})"
+        else ""
 
     // Generate code for registering Fed IDs that are connected to
     // this federate via ports in the TypeScript's FederatedApp.
@@ -145,7 +118,7 @@ class TSConstructorGenerator (
         ports: TSPortGenerator
     ): String {
         val connections = TSConnectionGenerator(reactor.connections, errorReporter)
-        val reactions = TSReactionGenerator(tsGenerator, errorReporter, reactor, federate)
+        val reactions = TSReactionGenerator(errorReporter, reactor, federate)
 
         return with(PrependOperator) {
             """

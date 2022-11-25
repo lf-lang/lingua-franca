@@ -1274,7 +1274,7 @@ public class LFValidator extends BaseLFValidator {
                     .findFirst()
                     .orElse(null);
         if (iconAttr != null) {
-            var path = iconAttr.getAttrParms().get(0).getValue().getStr();
+            var path = iconAttr.getAttrParms().get(0).getValue();
             
             // Check file extension
             var validExtensions = Set.of("bmp", "png", "gif", "ico", "jpeg");

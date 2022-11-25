@@ -6,7 +6,7 @@ reactor Source(width: usize(2)) {
     output[width] out: usize
 
     reaction(startup) -> out {=
-        for (i, out) in out.into_iter().enumerate() {
+        for (i, out) in out.iter_mut().enumerate() {
             ctx.set(out, i)
         }
     =}
@@ -16,12 +16,10 @@ reactor Destination(width: usize(2)) {
     input[width] in: usize
 
     reaction(in) {=
-        for (i, port) in r#in.into_iter().enumerate() {
-            if let Some(v) = ctx.get(&port) {
-                // NOTE: For testing purposes, this assumes the specific
-                // widths instantiated below.
-                assert_eq!(v, i % 3, "Failed for input in[{}]", i);
-            }
+        for (i, v) in r#in.enumerate_values() {
+            // NOTE: For testing purposes, this assumes the specific
+            // widths instantiated below.
+            assert_eq!(v, i % 3, "Failed for input in[{}]", i);
         }
         println!("Success");
     =}

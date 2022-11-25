@@ -12,7 +12,7 @@ main reactor GetMicroStep {
     reaction(startup) -> l {= l.schedule(0); =}
 
     reaction(l) -> l {=
-        microstep = get_microstep()
+        microstep = lf.tag().microstep
         if microstep != self.s:
             self.sys.stderr.write(f"expected microstep {self.s}, got {microstep} instead\n")
             self.sys.exit(1)
