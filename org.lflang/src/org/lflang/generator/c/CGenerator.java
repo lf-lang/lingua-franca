@@ -1094,7 +1094,7 @@ public class CGenerator extends GeneratorBase {
         if (targetConfig.platformOptions.platform != Platform.AUTO) {
             osName = targetConfig.platformOptions.platform.toString();
         }
-        if (Stream.of("mac", "darwin", "win", "nux", "arduino").noneMatch(osName::contains)) {
+        if (Stream.of("mac", "darwin", "win", "nux", "arduino", "patmos").noneMatch(osName::contains)) {
             errorReporter.reportError("Platform " + osName + " is not supported");
         }
     }

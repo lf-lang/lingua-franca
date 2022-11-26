@@ -1406,7 +1406,8 @@ public enum TargetProperty {
         ARDUINO("Arduino"),
         LINUX("Linux"),
         MAC("Darwin"),
-        WINDOWS("Windows");
+        WINDOWS("Windows"),
+        PATMOS("Patmos");
 
         String cMakeName;
         Platform() {
