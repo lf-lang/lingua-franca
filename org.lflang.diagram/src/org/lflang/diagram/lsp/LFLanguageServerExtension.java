@@ -35,6 +35,8 @@ class LFLanguageServerExtension implements ILanguageServerExtension {
 
     /** The access point for reading documents, communicating with the language client, etc. */
     private LanguageClient client;
+    private static GeneratorResult buildResult = null;
+    private static int buildToken = 0;
 
     @Override
     public void initialize(ILanguageServerAccess access) {
@@ -99,6 +101,14 @@ class LFLanguageServerExtension implements ILanguageServerExtension {
         });
     }
 
+    public static GeneratorResult getGeneratorResult() {
+        return buildResult;
+    }
+
+    public static int getBuildToken() {
+        return buildToken;
+    }
+
     /**
      * Describes a build process that has a progress.
      */
@@ -123,6 +133,11 @@ class LFLanguageServerExtension implements ILanguageServerExtension {
         } finally {
             progress.end(result == null ? "An internal error occurred." : result.getUserMessage());
         }
+        // System.out.println("heheheheheeh");
+        // System.out.println(result.getCodeMaps());
+        
+        buildResult = result;
+        buildToken += 1;
         return result;
     }
 }
