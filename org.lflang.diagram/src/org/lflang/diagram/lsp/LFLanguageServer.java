@@ -20,7 +20,6 @@ import java.nio.charset.StandardCharsets;
 import java.io.OutputStream;
 import java.io.InputStream;
 import com.fasterxml.jackson.databind.ObjectMapper;
-// import com.fasterxml.jackson.databind.JsonFactory;
 import com.fasterxml.jackson.databind.JsonNode;
 import java.util.List;
 import java.util.Collections;
@@ -28,6 +27,10 @@ import org.eclipse.lsp4j.jsonrpc.messages.Either;
 import org.eclipse.lsp4j.MarkedString;
 import java.util.Map;
 import org.lflang.generator.Position;
+import org.lflang.generator.Range;
+import java.util.NavigableMap;
+import java.util.HashMap;
+// import javafx.util.Pair;
 
 
 import org.lflang.generator.GeneratorResult;
@@ -50,31 +53,68 @@ public class LFLanguageServer extends KGraphLanguageServerExtension {
         //  simply because it is easy. This would be done differently were it not for the fact that we plan to rebuild
         //  this infrastructure from scratch anyway.
         try {
-            System.out.println("got hover r");
-            System.out.println(stdin);
-            System.out.println(stdout);
-            System.out.println(reader);
-            System.out.println(writer);
-            System.out.println(errorReader);
-            System.out.println(initialized);
-            System.out.println(pr);
-            Map<Path, CodeMap> result =  LFLanguageServerExtension.getGeneratorResult().getCodeMaps();
             int currentBuildToken = LFLanguageServerExtension.getBuildToken();
+            Map<Path, CodeMap> result =  LFLanguageServerExtension.getGeneratorResult().getCodeMaps();
+            generatedDirectory = LFLanguageServerExtension.getGeneratorResult().getCommand().directory().toString() + "/src-gen";
             if (currentBuildToken != buildToken) {
                 buildToken = currentBuildToken;
                 initialized = false;
+                // getCodeMaps();
+            
             }
-            Path ccPath = Paths.get("/Users/daniil_11/lf-workspace/First/src-gen/HelloWorld/HelloWorld/HelloWorld.cc");
-            CodeMap codeMap = result.get(ccPath);
-            Path lfPath = Paths.get("/Users/daniil_11/lf-workspace/First/src/HelloWorld.lf");
-            Position codePos = findPosition(params.getPosition().getLine(), params.getPosition().getCharacter(), lfPath, codeMap);
-            System.out.println("request line is " + codePos.getOneBasedLine() + " char is " + codePos.getOneBasedColumn());
+            Path lfPath = LFLanguageServerExtension.getBuildPath();
+            System.out.println("lfpath is " + lfPath);
+            Position codePos = findPosition(params.getPosition().getLine(), params.getPosition().getCharacter(), lfPath, result);
+            // Position codePos = findPositionInvertedMap(lfPath);
             return clangdHover(codePos);
             // return super.hover(params, cancelIndicator);
         } catch (IndexOutOfBoundsException e) {
             return IHoverService.EMPTY_HOVER;  // Fail silently
         }
     }
+
+    // void getCodeMaps() {
+    //     Map<Path, CodeMap> codeMaps =  LFLanguageServerExtension.getGeneratorResult().getCodeMaps();
+    //     for (Map.Entry<Path, CodeMap> entry : codeMaps.entrySet()) {
+    //         Path generatedPath = entry.getKey();
+    //         Map<Path, NavigableMap<Range, Range>> map = entry.getValue().getCodeMap();
+    //         // Map<Path, NavigableMap<Range, Range>> constructedPathMap;
+    //         for (Map.Entry<Path, NavigableMap<Range, Range>> pathEntry : map.entrySet()) {
+    //             NavigableMap<Range, Range> pathMap = pathEntry.getValue();
+    //             Path lfPath = pathEntry.getKey();
+    //             // NavigableMap<Range, Range> constructedRangeMap;
+    //             for (Map.Entry<Range, Range> rangeEntry : pathMap.entrySet()) {
+    //                 // constructedRangeMap.put(rangeEntry.getValue(), rangeEntry.getKey());
+    //                 Range generatedRange = rangeEntry.getKey();
+    //                 Range lfRange = rangeEntry.getValue();
+    //                 insertToRangeMap(lfPath, generatedPath, lfRange, generatedRange);
+    //             }
+    //         }             
+    //     }
+    // }
+
+    // void insertToRangeMap(Path lfPath, Path generatedPath, Range lfRange, Range generatedRange) {
+    //     if (codeMapping == null) codeMapping = new HashMap<Path, HashMap<Path, HashMap<Range, Range>>>();
+    //     HashMap<Path, HashMap<Range, Range>> lfMap = codeMapping.get(lfPath);
+    //     if (lfMap == null) {
+    //         lfMap = new HashMap<Path, HashMap<Range, Range>>();
+    //         codeMapping.put(lfPath, lfMap);
+    //     }
+    //     HashMap<Range, Range> pathMap = lfMap.get(generatedPath);
+    //     if (pathMap == null) {
+    //         pathMap = new HashMap<Range, Range>();
+    //         lfMap.put(generatedPath, pathMap);
+    //     }
+    //     pathMap.put(lfRange, generatedRange);
+    //     System.out.println("putting " + lfPath + " " + generatedPath + " " + lfRange + " " + generatedRange);
+    // }
+
+    // void insertToRangeMap(Path lfPath, Path generatedPath, Range lfRange, Range generatedRange) {
+    //     if (codeMapping == null) codeMapping = new HashMap<Pair<Path, Range>, Pair<Path, Range>>();
+    //     codeMapping.put(new Pair(lfPath, lfRange), new Pair(generatedPath, generatedRange));
+    //     System.out.println("putting " + lfPath + " " + generatedPath + " " + lfRange + " " + generatedRange);
+    // }
+
     OutputStream stdin = null;
     static Process pr;
     InputStream stdout = null;
@@ -83,23 +123,35 @@ public class LFLanguageServer extends KGraphLanguageServerExtension {
     BufferedReader errorReader = null;
     boolean initialized = false;
     int buildToken = -1;
+    Path generatedPath;
+    String generatedDirectory;
+    // HashMap<Path, 
+    //     HashMap<Path,
+    //         HashMap<Range, Range>>> codeMapping = null;
+    // HashMap<Pair<Path, Range>, 
+    //     Pair<Path, Range>> codeMapping = null;
 
-    private Position findPosition(int line, int col, Path lfFile, CodeMap codeMap) {
-        for (int brutLine = 1; brutLine <= 500; brutLine++) {
-            for (int brutChar = 1; brutChar <= 100; brutChar++) {
-                Position generatedPos = Position.fromOneBased(brutLine, brutChar);
-                Position p = codeMap.adjusted(lfFile, generatedPos);
-                // System.out.println(brutLine + " line and char " + brutChar + " from generated file maps to " + p.getOneBasedLine() + " and " + p.getOneBasedColumn());
-                if (p.getOneBasedLine() == line && p.getOneBasedColumn() == col) return generatedPos;
+    private Position findPosition(int line, int col, Path lfFile, Map<Path, CodeMap> generatedResult) {
+        for (Path sourcePath : generatedResult.keySet()) {
+            CodeMap codeMap = generatedResult.get(sourcePath); 
+            for (int brutLine = 1; brutLine <= 500; brutLine++) {
+                for (int brutChar = 1; brutChar <= 100; brutChar++) {
+                    Position generatedPos = Position.fromOneBased(brutLine, brutChar);
+                    Position p = codeMap.adjusted(lfFile, generatedPos);
+                    if (p.getOneBasedLine() == line && p.getOneBasedColumn() == col) {
+                        generatedPath = sourcePath;
+                        return generatedPos;
+                    }
+                }
             }
         }
+
         return Position.fromOneBased(1, 1);
     }
 
     private Hover clangdHover(Position params) {
         if (!initialized){
             process_init();
-            // readErrorOutput();
             initialized = true;
             clangd_init();
             readOutput();
@@ -110,119 +162,38 @@ public class LFLanguageServer extends KGraphLanguageServerExtension {
         send_hover_request(params.getOneBasedLine(), params.getOneBasedColumn());
         Hover resultHover = new Hover();
         try {
-        String jsonResponse = readOutput();
-        System.out.println("got response:");
-        System.out.println(jsonResponse);
-        jsonResponse = jsonResponse.substring(jsonResponse.indexOf(System.getProperty("line.separator"))+1);// remove first line since contains the header 
-        jsonResponse = jsonResponse.substring(jsonResponse.indexOf(System.getProperty("line.separator"))+1);
-        System.out.println("truncated is :");
-        System.out.println(jsonResponse);
-        ObjectMapper objectMapper = new ObjectMapper();
-        JsonNode jsonNode = objectMapper.readTree(jsonResponse);
-        System.out.println("whole:");
-        System.out.println(jsonNode);
-        String jsonValue = jsonNode.get("result").get("contents").get("value").textValue();
-        List<Either<String, MarkedString>> content = Collections.singletonList(Either.forLeft(jsonValue));
-        resultHover.setContents(content);
-        int lvalue_c = jsonNode.get("result").get("range").get("start").get("character").intValue();
-        int lvalue_l = jsonNode.get("result").get("range").get("start").get("line").intValue();
-        int rvalue_c = jsonNode.get("result").get("range").get("end").get("character").intValue();
-        int rvalue_l = jsonNode.get("result").get("range").get("end").get("line").intValue();
-        System.out.println("parsed value: ");
-        System.out.println(" " + lvalue_c + " " + lvalue_l + " " + rvalue_c + " " + rvalue_l);
-        return resultHover;
+            String jsonResponse = readOutput();
+            jsonResponse = jsonResponse.substring(jsonResponse.indexOf(System.getProperty("line.separator"))+1);// remove first line since contains the header 
+            jsonResponse = jsonResponse.substring(jsonResponse.indexOf(System.getProperty("line.separator"))+1);
+            ObjectMapper objectMapper = new ObjectMapper();
+            JsonNode jsonNode = objectMapper.readTree(jsonResponse);
+            String jsonValue = jsonNode.get("result").get("contents").get("value").textValue();
+            List<Either<String, MarkedString>> content = Collections.singletonList(Either.forLeft(jsonValue));
+            resultHover.setContents(content);
+            int lvalue_c = jsonNode.get("result").get("range").get("start").get("character").intValue();
+            int lvalue_l = jsonNode.get("result").get("range").get("start").get("line").intValue();
+            int rvalue_c = jsonNode.get("result").get("range").get("end").get("character").intValue();
+            int rvalue_l = jsonNode.get("result").get("range").get("end").get("line").intValue();
+            return resultHover;
         } catch (Exception e) {
             System.out.println("main failed");
         }
         return null;
     }
 
-    //  private String readOutput() {
-    //     System.out.println("reading output");
-    //     try {
-    //     int k = 0;
-    //     char[] buf = new char[5000];
-    //     int i = 0;
-    //         while (k != -1) {
-    //          buf[i++] = (char) reader.read();
-    //          System.out.println("read: " + Character.toString(buf[i--]));
-    //         if (!reader.ready()) break;
-    //     }
-    //     // System.out.println(buf);
-    //     String returnStatus = "";
-    //     // System.out.println("trying to return");
-    //     for (int j= 0; j < i; j++) returnStatus += buf[j];
-    //     System.out.println("read output: ");
-    //     System.out.println(returnStatus);
-    //     return returnStatus;
-    //     } catch (Exception e) {
-    //         System.out.println("failed reading clangd response");
-    //     } 
-    //     return "";
-    // }
-
-    // private String readOutput() {
-    //     String ret = "";
-    //     try {
-    //     String str = null;
-    //     System.out.println("reading output");
-    //     while ((str = reader.readLine()) != null) {
-    //         System.out.println("temp is: " + str);
-    //         ret += str;
-    //         Syste
-    //     }
-    //     } catch (Exception e) {
-    //         System.out.println("failed reading output");
-    //     } 
-    //     System.out.println("read: " + ret);
-    //     return ret;
-    // }
-
     private String readOutput() {
         char[] chars = new char[8192];
-        System.out.println("reading output");
         try {
         for(int len; (len = reader.read(chars)) > 0 && reader.ready();) {
             
         }
-        System.out.println(chars);
         } catch (Exception e) {
             System.out.println("failed reading output");
         }
         return String.valueOf(chars);
     }
 
-    // private String readOutput() {
-    //     System.out.println("reading output");
-    //     byte[] buffer = new byte[64];
-    //     int len;
-    //     String collected = "";
-    //     do {
-    //         try {
-    //             // This depends on in.available() being
-    //             //  greater than zero if data is available
-    //             //  (so that all data is collected)
-    //             //  and upper-bounded by maximum number of
-    //             //  bytes that can be read without blocking.
-    //             //  Only the latter of these two conditions
-    //             //  is guaranteed by the spec.
-    //             System.out.println(stdout.available());
-    //             len = stdout.read(buffer, 0, Math.min(stdout.available(), buffer.length));
-    //             if (len > 0) {
-    //                 String temp = new String(buffer, 0, len, StandardCharsets.UTF_8);
-    //                 collected += temp;
-    //                 System.out.println("temp is " + temp);
-    //             }
-    //         } catch (Exception e) {
-    //             break;
-    //         }
-    //     } while (len > 0); 
-    //     System.out.println("output is " + collected);
-    //     return collected;
-    // }
-
     private void process_init() {
-        System.out.println("initializing process");
         try {
         ProcessBuilder pb = new ProcessBuilder("clangd");
         pr = pb.start();  
@@ -251,12 +222,10 @@ public class LFLanguageServer extends KGraphLanguageServerExtension {
     }
 
     private void send_hover_request(int line, int character) {
-        System.out.println("sending hover request");
         try {
-        String body = "{\"method\": \"textDocument/hover\",\"jsonrpc\": \"2.0\",\"id\": 1,\"params\": {\"textDocument\": {\"uri\": \"file:///Users/daniil_11/lf-workspace/First/src-gen/HelloWorld/HelloWorld/HelloWorld.cc\"} ,\"position\": {\"line\": "+line+",\"character\": "+character+"}}}\r\n";
+        String body = "{\"method\": \"textDocument/hover\",\"jsonrpc\": \"2.0\",\"id\": 1,\"params\": {\"textDocument\": {\"uri\": \"file://" + generatedPath.toString() + "\"} ,\"position\": {\"line\": "+line+",\"character\": "+character+"}}}\r\n";
         String header = "Content-Length: " + body.length() +"\r\n\r\n";
         String cmd = header + body;
-        System.out.println(cmd);
         writer.write(cmd);
         writer.flush();
         } catch (Exception e) {
@@ -266,12 +235,10 @@ public class LFLanguageServer extends KGraphLanguageServerExtension {
     }
 
     private void clangd_init() {
-        System.out.println("initializing clangd");
         try {
-            String body = "{\"jsonrpc\": \"2.0\", \"method\": \"initialize\", \"id\": 1, \"params\": {\"rootUri\": \"file:///Users/daniil_11/lf-workspace/First/src-gen\", \"capabilities\": {\"hover\": {\"dynamicRegistration\": false, \"contentFormat\": []}}}}\r\n";
+            String body = "{\"jsonrpc\": \"2.0\", \"method\": \"initialize\", \"id\": 1, \"params\": {\"rootUri\": \"file://" + generatedDirectory + "\", \"capabilities\": {\"hover\": {\"dynamicRegistration\": false, \"contentFormat\": []}}}}\r\n";
             String header = "Content-Length: " + body.length() +"\r\n\r\n";
             String cmd = header + body;
-            System.out.println(cmd);
             
             writer.write(cmd);
             writer.flush();
@@ -283,17 +250,14 @@ public class LFLanguageServer extends KGraphLanguageServerExtension {
     }
 
     private void did_open_clangd() {
-        System.out.println("sending did open request");
 
          try {
-            String fileContent = Files.readString(Paths.get("/Users/daniil_11/lf-workspace/First/src-gen/HelloWorld/HelloWorld/HelloWorld.cc"), StandardCharsets.UTF_8);
+            String fileContent = Files.readString(generatedPath, StandardCharsets.UTF_8);
             fileContent = fileContent.replaceAll("\"", "\\\\\"");
             fileContent = fileContent.replaceAll("\n", "\\\\n");
-            String body = "{\"method\": \"textDocument/didOpen\", \"jsonrpc\": \"2.0\", \"params\": {\"textDocument\": {\"uri\": \"file:///Users/daniil_11/lf-workspace/First/src-gen/HelloWorld/HelloWorld/HelloWorld.cc\", \"languageId\": \"cpp\", \"version\": 1, \"text\": \""+fileContent+"\"}}}\r\n";
+            String body = "{\"method\": \"textDocument/didOpen\", \"jsonrpc\": \"2.0\", \"params\": {\"textDocument\": {\"uri\": \"file://" + generatedPath + "\", \"languageId\": \"cpp\", \"version\": 1, \"text\": \""+fileContent+"\"}}}\r\n";
             String header = "Content-Length: " + (body.length()) +"\r\n\r\n";
-            String cmd = header + body;
-            System.out.println(cmd);
-           
+            String cmd = header + body;           
             writer.write(cmd);
             writer.flush();
         } catch (Exception e) {

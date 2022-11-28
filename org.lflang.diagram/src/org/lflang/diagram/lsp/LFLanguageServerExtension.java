@@ -1,6 +1,7 @@
 package org.lflang.diagram.lsp;
 
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 import java.util.ArrayList;
@@ -37,6 +38,7 @@ class LFLanguageServerExtension implements ILanguageServerExtension {
     private LanguageClient client;
     private static GeneratorResult buildResult = null;
     private static int buildToken = 0;
+    private static Path buildPath = null;
 
     @Override
     public void initialize(ILanguageServerAccess access) {
@@ -109,6 +111,10 @@ class LFLanguageServerExtension implements ILanguageServerExtension {
         return buildToken;
     }
 
+    public static Path getBuildPath() {
+        return buildPath;
+    }
+
     /**
      * Describes a build process that has a progress.
      */
@@ -138,6 +144,7 @@ class LFLanguageServerExtension implements ILanguageServerExtension {
         
         buildResult = result;
         buildToken += 1;
+        buildPath = Paths.get(uri.substring(5)); // remove "file:"
         return result;
     }
 }
