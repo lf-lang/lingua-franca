@@ -59,21 +59,21 @@ public abstract class RuntimeTest extends TestBase {
     public void runGenericTests() {
         runTestsForTargets(Message.DESC_GENERIC,
                            TestCategory.GENERIC::equals, Configurators::noChanges,
-                           TestLevel.EXECUTION, false);
+                           false);
     }
 
     @Test
     public void runTargetSpecificTests() {
         runTestsForTargets(Message.DESC_TARGET_SPECIFIC,
                            TestCategory.TARGET::equals, Configurators::noChanges,
-                           TestLevel.EXECUTION, false);
+                           false);
     }
 
     @Test
     public void runMultiportTests() {
         runTestsForTargets(Message.DESC_MULTIPORT,
                            TestCategory.MULTIPORT::equals, Configurators::noChanges,
-                           TestLevel.EXECUTION, false);
+                           false);
     }
 
     @Test
@@ -81,7 +81,7 @@ public abstract class RuntimeTest extends TestBase {
         Assumptions.assumeTrue(supportsGenericTypes(), Message.NO_GENERICS_SUPPORT);
         runTestsForTargets(Message.DESC_TYPE_PARMS,
                            TestCategory.GENERICS::equals, Configurators::noChanges,
-                           TestLevel.EXECUTION, false);
+                           false);
     }
 
     @Test
@@ -98,15 +98,13 @@ public abstract class RuntimeTest extends TestBase {
                     Message.DESC_AS_FEDERATED,
                     categories::contains,
                     it -> ASTUtils.makeFederated(it.fileConfig.resource),
-                    TestLevel.EXECUTION,
                     true);
     }
-
 
     @Test
     public void runConcurrentTests() {
         runTestsForTargets(Message.DESC_CONCURRENT,
-                           TestCategory.CONCURRENT::equals, Configurators::noChanges, TestLevel.EXECUTION,
+                           TestCategory.CONCURRENT::equals, Configurators::noChanges,
                            false);
 
     }
@@ -115,7 +113,7 @@ public abstract class RuntimeTest extends TestBase {
     public void runFederatedTests() {
         Assumptions.assumeTrue(supportsFederatedExecution(), Message.NO_FEDERATION_SUPPORT);
         runTestsForTargets(Message.DESC_FEDERATED,
-                           TestCategory.FEDERATED::equals, Configurators::noChanges, TestLevel.EXECUTION,
+                           TestCategory.FEDERATED::equals, Configurators::noChanges,
                            false);
     }
 
@@ -125,7 +123,7 @@ public abstract class RuntimeTest extends TestBase {
     @Test
     public void runModalTests() {
         runTestsForTargets(Message.DESC_MODAL,
-                           TestCategory.MODAL_MODELS::equals, Configurators::noChanges, TestLevel.EXECUTION,
+                           TestCategory.MODAL_MODELS::equals, Configurators::noChanges,
                            false);
     }
 
@@ -138,7 +136,7 @@ public abstract class RuntimeTest extends TestBase {
         Assumptions.assumeTrue(isLinux(), Message.NO_DOCKER_TEST_SUPPORT);
         Assumptions.assumeTrue(supportsDockerOption(), Message.NO_DOCKER_SUPPORT);
         runTestsForTargets(Message.DESC_DOCKER,
-                           TestCategory.DOCKER::equals, Configurators::noChanges, TestLevel.EXECUTION,
+                           TestCategory.DOCKER::equals, Configurators::noChanges,
                            false);
     }
 
@@ -153,10 +151,9 @@ public abstract class RuntimeTest extends TestBase {
         Assumptions.assumeTrue(supportsDockerOption(), Message.NO_DOCKER_SUPPORT);
         Assumptions.assumeTrue(supportsFederatedExecution(), Message.NO_FEDERATION_SUPPORT);
         runTestsForTargets(Message.DESC_DOCKER_FEDERATED,
-                           TestCategory.DOCKER_FEDERATED::equals, Configurators::noChanges, TestLevel.EXECUTION,
+                           TestCategory.DOCKER_FEDERATED::equals, Configurators::noChanges,
                            false);
     }
-
 
     @Test
     public void runWithThreadingOff() {
@@ -165,7 +162,6 @@ public abstract class RuntimeTest extends TestBase {
             Message.DESC_SINGLE_THREADED,
             Configurators::compatibleWithThreadingOff,
             Configurators::disableThreading,
-            TestLevel.EXECUTION,
             true
         );
     }

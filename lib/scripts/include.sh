@@ -21,10 +21,8 @@ set -euo pipefail
 # Paths (relative to ${base}), which is assumed to have been set.
 src_pkg_name="org.lflang"
 src_pkg_path="${base}/${src_pkg_name}"
-lfc_src_pkg_name="${src_pkg_name}.lfc"
-lfc_src_pkg_path="${base}/${lfc_src_pkg_name}"
-lfc_jar_build_path_pattern="${lfc_src_pkg_name}/build/libs/${lfc_src_pkg_name}-*-all.jar"
-lfc_jar_release_path_pattern="lib/jars/${lfc_src_pkg_name}-*-all.jar"
+jar_build_path_pattern="${src_pkg_name}/build/libs/${src_pkg_name}-*.jar"
+jar_release_path_pattern="lib/jars/${src_pkg_name}-*.jar"
 
 # Enter directory silently (without printing).
 pushd() {
@@ -47,22 +45,22 @@ function is_dir() {
 
 # Check whether the source directory exists, and return it if true.
 function get_src_dir() {
-    echo `is_dir "${base}/${lfc_src_pkg_name}"`
+    echo `is_dir "${base}/${src_pkg_name}"`
 }
 
 # If it exists, return a path to the Lingua Franca jar.
 function get_jar_path() {
     if [ "$(get_src_dir)" ]; then
-        jar_path_pattern="${base}/${lfc_jar_build_path_pattern}"
+        jar_path_pattern="${jar_build_path_pattern}"
     else
-        jar_path_pattern="${base}/${lfc_jar_release_path_pattern}"
+        jar_path_pattern="${jar_release_path_pattern}"
     fi
-    #echo Jar path pattern: "${jar_path_pattern}"
+    # echo Jar path pattern: "${base}"/${jar_path_pattern}
     # Is there a file that matches our pattern? If so, return it.
-    if ls ${jar_path_pattern} 1> /dev/null 2>&1; then
-        # Yes. Determine the precise path of the jar. 
+    if ls "${base}"/${jar_path_pattern} 1> /dev/null 2>&1; then
+        # Yes. Determine the precise path of the jar.
         # Take the newest version if there are multiple jars.
-        echo "$(ls ${jar_path_pattern} | sort -V | tail -n1)"
+        echo "$(ls "${base}"/${jar_path_pattern} | sort -V | tail -n1)"
     fi
 }
 
@@ -95,7 +93,7 @@ function lookup_jre() {
         done
         echo "java"  # This will result in failure
     elif [[ -n "$JAVA_HOME" ]] && [[ -x "$JAVA_HOME/bin/java" ]]; then
-        #echo Found java executable in JAVA_HOME     
+        #echo Found java executable in JAVA_HOME
         echo "$JAVA_HOME/bin/java"
     else
         fatal_error "JRE not found."
@@ -110,7 +108,7 @@ function get_java_cmd {
 }
 
 # Find the jar and JRE, run the jar with the provided arguments, and exit.
-function run_lfc_with_args {
+function run_cli_tool_with_args {
     # Find the jar; report error if it was not found.
     jar_path="$(get_jar_path)"
 
@@ -120,6 +118,6 @@ function run_lfc_with_args {
 
     # Launch the compiler.
     java_cmd="$(get_java_cmd)"
-    "${java_cmd}" -jar "${jar_path}" "$@";
+    "${java_cmd}" -cp "${jar_path}" "${main_class}" "$@";
     exit $?
 }

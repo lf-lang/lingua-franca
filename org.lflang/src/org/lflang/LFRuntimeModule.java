@@ -3,11 +3,13 @@
  */
 package org.lflang;
 
+import org.eclipse.xtext.formatting2.IFormatter2;
 import org.eclipse.xtext.parser.antlr.ISyntaxErrorMessageProvider;
 import org.eclipse.xtext.resource.IDefaultResourceDescriptionStrategy;
 import org.eclipse.xtext.scoping.IGlobalScopeProvider;
 import org.eclipse.xtext.validation.INamesAreUniqueValidationHelper;
 
+import org.lflang.formatting2.LFFormatter;
 import org.lflang.scoping.LFGlobalScopeProvider;
 import org.lflang.validation.LFNamesAreUniqueValidationHelper;
 
@@ -17,7 +19,7 @@ import org.lflang.validation.LFNamesAreUniqueValidationHelper;
  * <ul>
  * <li>LfIdeModule overrides this module with additional
  * bindings when running in the IDE.
- * <li>{@link LFStandaloneModule} overrides this module when
+ * <li>{@code org.lflang.lfc.LFStandaloneModule} overrides this module when
  * running LFC standalone.
  * </ul>
  */
@@ -43,9 +45,13 @@ public class LFRuntimeModule extends AbstractLFRuntimeModule {
         return LFSyntaxErrorMessageProvider.class;
     }
 
-    /** The error reporter. {@link LFStandaloneModule} overrides this binding. */
+    /** The error reporter. {@code org.lflang.lfc.LFStandaloneModule} overrides this binding. */
     public Class<? extends ErrorReporter> bindErrorReporter() {
         return DefaultErrorReporter.class;
     }
 
+    @Override
+    public Class<? extends IFormatter2> bindIFormatter2() {
+        return LFFormatter.class;
+    }
 }

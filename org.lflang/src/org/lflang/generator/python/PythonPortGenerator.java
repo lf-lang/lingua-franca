@@ -17,11 +17,8 @@ public class PythonPortGenerator {
     public static final String NONMULTIPORT_WIDTHSPEC = "-2";
 
     /**
-     * Generate code to convert C actions to Python action capsules
-     * @see pythontarget.h.
-     * @param pyObjectDescriptor A string representing a list of Python format types (e.g., "O") that
-     *  can be passed to Py_BuildValue. The object type for the converted action will
-     *  be appended to this string (e.g., "OO").
+     * Generate code to convert C actions to Python action capsules. See
+     * pythontarget.h for details.
      * @param pyObjects A string containing a list of comma-separated expressions that will create the
      *  action capsules.
      * @param action The action itself.
@@ -38,10 +35,6 @@ public class PythonPortGenerator {
      * Generate code to convert C ports to Python ports capsules (@see pythontarget.h).
      *
      * The port may be an input of the reactor or an output of a contained reactor.
-     *
-     * @param pyObjectDescriptor A string representing a list of Python format types (e.g., "O") that
-     *  can be passed to Py_BuildValue. The object type for the converted port will
-     *  be appended to this string (e.g., "OO").
      * @param pyObjects A string containing a list of comma-separated expressions that will create the
      *  port capsules.
      * @param port The port itself.
@@ -64,11 +57,7 @@ public class PythonPortGenerator {
     /** Generate into the specified string builder the code to
      *  send local variables for output ports to a Python reaction function
      *  from the "self" struct.
-     *  @param builder The string builder into which to write the code.
-     *  @param structs A map from reactor instantiations to a place to write
-     *   struct fields.
      *  @param output The output port.
-     *  @param decl The reactor declaration.
      */
     public static void generateOutputVariablesToSendToPythonReaction(
         List<String> pyObjects,
@@ -92,11 +81,7 @@ public class PythonPortGenerator {
     /** Generate into the specified string builder the code to
      *  send local variables for input ports to a Python reaction function
      *  from the "self" struct.
-     *  @param builder The string builder into which to write the code.
-     *  @param structs A map from reactor instantiations to a place to write
-     *   struct fields.
      *  @param input The input port.
-     *  @param reactor The reactor.
      */
     public static void generateInputVariablesToSendToPythonReaction(
         List<String> pyObjects,
@@ -132,9 +117,8 @@ public class PythonPortGenerator {
     /** Generate into the specified string builder the code to
      *  pass local variables for sending data to an input
      *  of a contained reaction (e.g. for a deadline violation).
-     *  @param builder The string builder.
      *  @param definition AST node defining the reactor within which this occurs
-     *  @param input Input of the contained reactor.
+     *  @param port Input of the contained reactor.
      */
     public static String generateVariablesForSendingToContainedReactors(
         List<String> pyObjects,
@@ -195,7 +179,7 @@ public class PythonPortGenerator {
             "for (int i = 0; i < "+generateWidthVariable(reactorName)+"; i++) {",
             "    if (PyList_SetItem("+reactorName+"_py_list,",
             "            i,",
-            "            "+generateConvertCPortToPy("self->_lf_"+reactorName+"[i]."+port.getName(), widthSpec),
+            "            "+generateConvertCPortToPy(reactorName + "[i]." + port.getName(), widthSpec),
             "        ) != 0) {",
             "        lf_print_error(\"Could not add elements to the list for "+reactorName+".\");",
             "        if (PyErr_Occurred()) {",
@@ -228,15 +212,15 @@ public class PythonPortGenerator {
      * initialize local variable for <code>port<code> so that it can be used in the body of
      * the Python reaction.
      * @param port The port to generate code for.
-     * @param inits The generated code will be put in <code>inits<code>.
      */
     public static String generatePythonPortVariableInReaction(VarRef port) {
         String containerName = port.getContainer().getName();
         String variableName = port.getVariable().getName();
+        String tryStatement = "try: "+containerName+"  # pylint: disable=used-before-assignment";
         if (port.getContainer().getWidthSpec() != null) {
             // It's a bank
             return String.join("\n",
-                "try: "+containerName,
+                tryStatement,
                 "except NameError: "+containerName+" = [None] * len("+containerName+"_"+variableName+")",
                 "for i in range(len("+containerName+"_"+variableName+")):",
                 "    if "+containerName+"[i] is None: "+containerName+"[i] = Make()",
@@ -244,7 +228,7 @@ public class PythonPortGenerator {
             );
         } else {
             return String.join("\n",
-                "try: "+containerName,
+                tryStatement,
                 "except NameError: "+containerName+" = Make()",
                 containerName+"."+variableName+" = "+containerName+"_"+variableName
             );

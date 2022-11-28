@@ -17,6 +17,11 @@
 # This solution, adapted from an example written by Geoff Nixon, ia POSIX-
 # compliant and robust to symbolic links. If a chain of more than 1000 links
 # is encountered, we return.
+
+if [[ "$0" == *build-lfc ]]; then
+  echo -e "\033[33mWarning; buid-lfc is deprecated! Please use build-lf-cli instead.\033[0m"
+fi
+
 find_dir() (
   start_dir=$PWD
   cd "$(dirname "$1")"
@@ -60,7 +65,7 @@ fi
 
 # Print message explaining the CLI args.
 function usage() {
-    echo "Usage: build-lfc [options] [[-r | --run] [lfc-args]]"
+    echo "Usage: build-lf-cli [options] [lfc-args]]"
     echo "Options:"
     echo "  -c | --clean          Build entirely from scratch."
     echo "  -h | --help           Display this information."
@@ -87,15 +92,6 @@ while [[ "$#" -gt 0 ]]; do
             usage
             exit 0
         ;;
-        -r | --run ) 
-            run=true
-            shift
-            while [[ "$#" -gt 0 ]]; do
-                args+=("$1")
-                shift
-            done
-            break
-        ;;
         *) 
             usage
             exit 1
@@ -121,22 +117,15 @@ jar_path="$(get_jar_path)"
 
 if [ ! -f "${jar_path}" ] || ! "${find_cmd}" "${base}" \
         -path "${src_pkg_path}" \
-        -path "${lfc_src_pkg_path}" \
         -prune -o \
         -type f \
         -newer "${jar_path}" \
         -exec false {} +; then
 	# Rebuild.
     1>&2 echo "Jar file is missing or out-of-date; starting rebuild..."
-	"${base}/gradlew" ${flags} -p "${base}" buildLfc
+	"${base}/gradlew" ${flags} -p "${base}" buildAll
 	# Update the timestamp in case the jar was not touched by Gradle.
     touch -c -- "${jar_path}"
 else
     echo "Already up-to-date."
-fi
-
-# Run lfc with the provided arguments.
-if [[ "${run}" == "true" ]]; then
-    echo "Running lfc..."
-    run_lfc_with_args "${args[@]}"
 fi

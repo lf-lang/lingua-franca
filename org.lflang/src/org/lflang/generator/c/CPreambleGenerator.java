@@ -6,6 +6,7 @@ import java.util.List;
 
 import org.lflang.TargetConfig;
 import org.lflang.TargetConfig.ClockSyncOptions;
+import org.lflang.TargetProperty.Platform;
 import org.lflang.TargetProperty.ClockSyncMode;
 import org.lflang.TargetProperty.CoordinationType;
 import org.lflang.generator.CodeBuilder;
@@ -19,39 +20,53 @@ import static org.lflang.util.StringUtil.addDoubleQuotes;
  * This includes #include and #define directives at the top
  * of each generated ".c" file.
  *
- * @author{Edward A. Lee <eal@berkeley.edu>}
- * @author{Marten Lohstroh <marten@berkeley.edu>}
- * @author{Mehrdad Niknami <mniknami@berkeley.edu>}
- * @author{Christian Menard <christian.menard@tu-dresden.de>}
- * @author{Matt Weber <matt.weber@berkeley.edu>}
- * @author{Soroush Bateni <soroush@utdallas.edu>
- * @author{Alexander Schulz-Rosengarten <als@informatik.uni-kiel.de>}
- * @author{Hou Seng Wong <housengw@berkeley.edu>}
+ * @author Edward A. Lee <eal@berkeley.edu>
+ * @author Marten Lohstroh <marten@berkeley.edu>
+ * @author Mehrdad Niknami <mniknami@berkeley.edu>
+ * @author Christian Menard <christian.menard@tu-dresden.de>
+ * @author Matt Weber <matt.weber@berkeley.edu>
+ * @author Soroush Bateni <soroush@utdallas.edu>
+ * @author Alexander Schulz-Rosengarten <als@informatik.uni-kiel.de>
+ * @author Hou Seng Wong <housengw@berkeley.edu>
+ * @author Peter Donovan <peterdonovan@berkeley.edu>
  */
 public class CPreambleGenerator {
     /** Add necessary source files specific to the target language.  */
     public static String generateIncludeStatements(
         TargetConfig targetConfig,
+        boolean cppMode,
         boolean isFederated
     ) {
         var tracing = targetConfig.tracing;
         CodeBuilder code = new CodeBuilder();
+        if (cppMode) {
+            code.pr("extern \"C\" {");
+        }
+        if (targetConfig.platformOptions.platform == Platform.ARDUINO) {
+            CCoreFilesUtils.getArduinoTargetHeaders().forEach(
+                it -> code.pr("#include " + StringUtil.addDoubleQuotes(it))
+            );
+        }
         CCoreFilesUtils.getCTargetHeader().forEach(
             it -> code.pr("#include " + StringUtil.addDoubleQuotes(it))
         );
+        code.pr("#include \"core/reactor.h\"");
+        code.pr("#include \"core/reactor_common.h\"");
         if (targetConfig.threading) {
-            code.pr("#include \"core/threaded/reactor_threaded.c\"");
             code.pr("#include \"core/threaded/scheduler.h\"");
-        } else {
-            code.pr("#include \"core/reactor.c\"");
         }
         if (isFederated) {
             code.pr("#include \"core/federated/federate.c\"");
         }
         if (tracing != null) {
-            code.pr("#include \"core/trace.c\"");
+            code.pr("#include \"core/trace.h\"");
         }
         code.pr("#include \"core/mixed_radix.h\"");
+        code.pr("#include \"core/port.h\"");
+        code.pr("int lf_reactor_c_main(int argc, const char* argv[]);");
+        if (cppMode) {
+            code.pr("}");
+        }
         return code.toString();
     }
 
@@ -68,8 +83,14 @@ public class CPreambleGenerator {
         var advanceMessageInterval = targetConfig.coordinationOptions.advance_message_interval;
         var tracing = targetConfig.tracing;
         CodeBuilder code = new CodeBuilder();
+        // TODO: Get rid of all of these
         code.pr("#define LOG_LEVEL " + logLevel);
         code.pr("#define TARGET_FILES_DIRECTORY " + addDoubleQuotes(srcGenPath.toString()));
+
+        if (targetConfig.platformOptions.platform == Platform.ARDUINO) {
+            code.pr("#define MICROSECOND_TIME");
+            code.pr("#define BIT_32");
+        }
         if (isFederated) {
             code.pr("#define NUMBER_OF_FEDERATES " + numFederates);
             code.pr(generateFederatedDefineDirective(coordinationType));
@@ -79,10 +100,7 @@ public class CPreambleGenerator {
             }
         }
         if (tracing != null) {
-            code.pr(generateTracingDefineDirective(targetConfig, tracing.traceFileName));
-        }
-        if (hasModalReactors) {
-            code.pr("#define MODAL_REACTORS");
+            targetConfig.compileDefinitions.put("LINGUA_FRANCA_TRACE", tracing.traceFileName);
         }
         if (clockSyncIsOn) {
             code.pr(generateClockSyncDefineDirective(
@@ -90,6 +108,7 @@ public class CPreambleGenerator {
                 targetConfig.clockSyncOptions
             ));
         }
+        code.newLine();
         return code.toString();
     }
 
@@ -109,18 +128,6 @@ public class CPreambleGenerator {
             directives.add("#define FEDERATED_DECENTRALIZED");
         }
         return String.join("\n", directives);
-    }
-
-    private static String generateTracingDefineDirective(
-        TargetConfig targetConfig,
-        String traceFileName
-    ) {
-        if (traceFileName == null) {
-            targetConfig.compileDefinitions.put("LINGUA_FRANCA_TRACE", "");
-            return "#define LINGUA_FRANCA_TRACE";
-        }
-        targetConfig.compileDefinitions.put("LINGUA_FRANCA_TRACE", traceFileName);
-        return "#define LINGUA_FRANCA_TRACE " + traceFileName;
     }
 
     /**

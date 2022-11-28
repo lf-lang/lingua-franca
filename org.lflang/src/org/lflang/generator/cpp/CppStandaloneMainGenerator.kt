@@ -79,16 +79,21 @@ class CppStandaloneMainGenerator(
             |      
         ${" |"..main.parameters.joinToString("\n\n") { generateParameterParser(it) }}
             |
-            |  auto result = options.parse(argc, argv);
+            |  cxxopts::ParseResult result{};
+            |  bool parse_error{false};
+            |  try {
+            |    result = options.parse(argc, argv);
+            |  } catch (const cxxopts::OptionException& e) {
+            |    reactor::log::Error() << e.what();
+            |    parse_error = true;
+            |  }
             |  
-            |  // if parameter --help was used, print help
-            |  if (result.count("help"))
+            |  // if parameter --help was used or there was a parse error, print help
+            |  if (parse_error || result.count("help"))
             |  {
-            |       std::cout << options.help({""}) << std::endl;
-            |       exit(0);
-            |   }
-            |   
-            |   // validate time parameters (inferredType.isTime) and the timeout parameter via the validate_time_string(val) function
+            |       std::cout << options.help({""});
+            |       return parse_error ? -1 : 0;
+            |  }
             |
             |  reactor::Environment e{workers, keepalive, fast};
             |

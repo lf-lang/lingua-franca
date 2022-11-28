@@ -1,6 +1,3 @@
-[submodule "org.lflang/src/lib/ts/reactor-ts"]
-	path = org.lflang/src/lib/ts/reactor-ts
-	url = https://github.com/lf-lang/reactor-ts.git
 [submodule "org.lflang/src/lib/c/reactor-c"]
 	path = org.lflang/src/lib/c/reactor-c
 	url = https://github.com/lf-lang/reactor-c.git
@@ -10,3 +7,9 @@
 [submodule "org.lflang/src/lib/cpp/reactor-cpp"]
 	path = org.lflang/src/lib/cpp/reactor-cpp
 	url = https://github.com/lf-lang/reactor-cpp
+[submodule "org.lflang/src/lib/platform/arduino/Arduino-CMake-Toolchain"]
+	path = org.lflang/src/lib/platform/arduino/Arduino-CMake-Toolchain
+	url = https://github.com/a9183756-gh/Arduino-CMake-Toolchain.git
+[submodule "org.lflang/src/lib/rs/reactor-rs"]
+	path = org.lflang/src/lib/rs/reactor-rs
+	url = https://github.com/lf-lang/reactor-rs

@@ -1,8 +1,11 @@
 package org.lflang.generator.ts
 
 import org.lflang.ErrorReporter
+import org.lflang.TargetConfig
 import org.lflang.federated.FederateInstance
 import org.lflang.generator.PrependOperator
+import org.lflang.generator.getTargetInitializer
+import org.lflang.joinWithLn
 import org.lflang.lf.Action
 import org.lflang.lf.Parameter
 import org.lflang.lf.Reactor
@@ -20,28 +23,12 @@ class TSConstructorGenerator (
     private val tsGenerator: TSGenerator,
     private val errorReporter: ErrorReporter,
     private val reactor : Reactor,
-    private val federate: FederateInstance
+    private val federate: FederateInstance,
+    private val targetConfig: TargetConfig
 ) {
-    private fun getInitializerList(param: Parameter): List<String> =
-        tsGenerator.getInitializerListW(param)
 
-    // Initializer functions
-    private fun getTargetInitializerHelper(param: Parameter,
-                                   list: List<String>): String {
-        return if (list.size == 0) {
-            errorReporter.reportError(param, "Parameters must have a default value!")
-        } else if (list.size == 1) {
-            list[0]
-        } else {
-            list.joinToString(", ", "[", "]")
-        }
-    }
-    private fun getTargetInitializer(param: Parameter): String {
-        return getTargetInitializerHelper(param, getInitializerList(param))
-    }
-    private fun initializeParameter(p: Parameter): String {
-        return """${p.name}: ${p.getTargetType()} = ${getTargetInitializer(p)}"""
-    }
+    private fun initializeParameter(p: Parameter): String =
+        "${p.name}: ${TSTypes.getTargetType(p)} = ${TSTypes.getTargetInitializer(p)}"
 
     private fun generateConstructorArguments(reactor: Reactor): String {
         val arguments = LinkedList<String>()
@@ -81,7 +68,7 @@ class TSConstructorGenerator (
                 port = 15045
             }
             return """
-            super(federationID, ${federate.id}, ${port},
+            super(federationID, ${federate.id}, $port,
                 "${federationRTIProperties()["host"]}",
                 timeout, keepAlive, fast, success, fail);
             """
@@ -92,18 +79,17 @@ class TSConstructorGenerator (
 
     // If the app is federated, register its
     // networkMessageActions with the RTIClient
-    private fun generateFederatePortActionRegistrations(networkMessageActions: List<Action>): String {
-        var fedPortID = 0;
-        val connectionInstantiations = LinkedList<String>()
-        for (nAction in networkMessageActions) {
-            val registration = """
-                this.registerFederatePortAction(${fedPortID}, this.${nAction.name});
-                """
-            connectionInstantiations.add(registration)
-            fedPortID++
+    private fun generateFederatePortActionRegistrations(networkMessageActions: List<Action>): String =
+        networkMessageActions.withIndex().joinWithLn { (fedPortID, nAction) ->
+            "this.registerFederatePortAction($fedPortID, this.${nAction.name});"
         }
-        return connectionInstantiations.joinToString("\n")
-    }
+
+    // Generate code for setting target configurations.
+    private fun generateTargetConfigurations(): String =
+        if ((reactor.isMain || reactor.isFederated)
+            && targetConfig.coordinationOptions.advance_message_interval != null
+        ) "this.setAdvanceMessageInterval(${targetConfig.coordinationOptions.advance_message_interval.toTsTime()})"
+        else ""
 
     // Generate code for registering Fed IDs that are connected to
     // this federate via ports in the TypeScript's FederatedApp.
@@ -113,8 +99,8 @@ class TSConstructorGenerator (
         val federateConfigurations = LinkedList<String>()
         if (reactor.isFederated) {
             for ((key, _) in federate.dependsOn) {
-                // FIXME: Get delay properly considering the unit instead of hardcoded BigInt(0).
-                federateConfigurations.add("this.addUpstreamFederate(${key.id}, BigInt(0));")
+                // FIXME: Get delay properly considering the unit instead of hardcoded TimeValue.NEVER().
+                federateConfigurations.add("this.addUpstreamFederate(${key.id}, TimeValue.NEVER());")
             }
             for ((key, _) in federate.sendsTo) {
                 federateConfigurations.add("this.addDownstreamFederate(${key.id});")
@@ -132,7 +118,7 @@ class TSConstructorGenerator (
         ports: TSPortGenerator
     ): String {
         val connections = TSConnectionGenerator(reactor.connections, errorReporter)
-        val reactions = TSReactionGenerator(tsGenerator, errorReporter, reactor, federate)
+        val reactions = TSReactionGenerator(errorReporter, reactor, federate)
 
         return with(PrependOperator) {
             """
@@ -140,6 +126,7 @@ class TSConstructorGenerator (
             ${" |    "..generateConstructorArguments(reactor)}
                 |) {
             ${" |    "..generateSuperConstructorCall(reactor, federate)}
+            ${" |    "..generateTargetConfigurations()}
             ${" |    "..generateFederateConfigurations()}
             ${" |    "..instances.generateInstantiations()}
             ${" |    "..timers.generateInstantiations()}

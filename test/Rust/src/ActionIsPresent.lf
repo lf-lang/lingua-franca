@@ -1,10 +1,10 @@
 // Tests the is_present variable for actions.
-target Rust;
+target Rust
 
 main reactor ActionIsPresent {
-    logical action a;
-    state success: bool(false);
-    state tried: bool(false);
+    logical action a
+    state success: bool(false)
+    state tried: bool(false)
 
     reaction(startup, a) -> a {=
         if !ctx.is_present(a) {
@@ -21,6 +21,7 @@ main reactor ActionIsPresent {
             self.success = true;
         }
     =}
+
     reaction(shutdown) {=
         assert!(self.success, "What happened!?");
         println!("success");

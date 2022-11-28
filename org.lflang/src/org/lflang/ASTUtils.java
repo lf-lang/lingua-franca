@@ -33,9 +33,11 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Predicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
 import org.eclipse.emf.common.util.EList;
@@ -46,10 +48,8 @@ import org.eclipse.emf.ecore.util.EcoreUtil;
 import org.eclipse.xtext.TerminalRule;
 import org.eclipse.xtext.nodemodel.ICompositeNode;
 import org.eclipse.xtext.nodemodel.INode;
-import org.eclipse.xtext.nodemodel.impl.CompositeNode;
 import org.eclipse.xtext.nodemodel.impl.HiddenLeafNode;
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils;
-import org.eclipse.xtext.resource.XtextResource;
 import org.eclipse.xtext.util.Pair;
 import org.eclipse.xtext.util.Tuples;
 import org.eclipse.xtext.xbase.lib.IterableExtensions;
@@ -95,6 +95,7 @@ import org.lflang.lf.WidthTerm;
 import org.lflang.util.StringUtil;
 
 import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 
 /**
@@ -725,7 +726,7 @@ public class ASTUtils {
      * @param <T> The type of elements to collect (e.g., Port, Timer, etc.)
      * @return A list of all elements of type T found
      */
-    public static <T> List<T> collectElements(Reactor definition, EStructuralFeature feature) {
+    public static <T extends EObject> List<T> collectElements(Reactor definition, EStructuralFeature feature) {
         return ASTUtils.collectElements(definition, feature, true, true);
     }
     
@@ -740,7 +741,7 @@ public class ASTUtils {
      * @return A list of all elements of type T found
      */
     @SuppressWarnings("unchecked")
-    public static <T> List<T> collectElements(Reactor definition, EStructuralFeature feature, boolean includeSuperClasses, boolean includeModes) {
+    public static <T extends EObject> List<T> collectElements(Reactor definition, EStructuralFeature feature, boolean includeSuperClasses, boolean includeModes) {
         List<T> result = new ArrayList<>();
         
         if (includeSuperClasses) {
@@ -760,11 +761,71 @@ public class ASTUtils {
             var modeFeature = reactorModeFeatureMap.get(feature);
             // Add elements of elements defined in modes.
             for (Mode mode : includeSuperClasses ? allModes(definition) : definition.getModes()) {
-                result.addAll((EList<T>) mode.eGet(modeFeature));
+                insertModeElementsAtTextualPosition(result, (EList<T>) mode.eGet(modeFeature), mode);
             }
         }
         
         return result;
+    }
+    
+    /**
+     * Adds the elements into the given list at a location matching to their textual position.
+     * 
+     * When creating a flat view onto reactor elements including modes, the final list must be ordered according
+     * to the textual positions.
+     * 
+     * Example:
+     * reactor R {
+     *   reaction // -> is R.reactions[0]
+     *   mode M {
+     *      reaction // -> is R.mode[0].reactions[0]
+     *      reaction // -> is R.mode[0].reactions[1]
+     *   }
+     *   reaction // -> is R.reactions[1]
+     * }
+     * In this example, it is important that the reactions in the mode are inserted between the top-level 
+     * reactions to retain the correct global reaction ordering, which will be derived from this flattened view.
+     * 
+     * @param list The list to add the elements into.
+     * @param elements The elements to add.
+     * @param mode The mode containing the elements.
+     * @param <T> The type of elements to add (e.g., Port, Timer, etc.)
+     */
+    private static <T extends EObject> void insertModeElementsAtTextualPosition(List<T> list, List<T> elements, Mode mode) {
+        if (elements.isEmpty()) {
+            return; // Nothing to add
+        }
+        
+        var idx = list.size();
+        if (idx > 0) {
+            // If there are elements in the list, first check if the last element has the same container as the mode.
+            // I.e. we don't want to compare textual positions of different reactors (super classes)
+            if (mode.eContainer() == list.get(list.size() - 1).eContainer()) {
+                var modeAstNode = NodeModelUtils.getNode(mode);
+                if (modeAstNode != null) {
+                    var modePos = modeAstNode.getOffset();
+                    // Now move the insertion index from the last element forward as long as this element has a textual
+                    // position after the mode.
+                    do {
+                        var astNode = NodeModelUtils.getNode(list.get(idx - 1));
+                        if (astNode != null && astNode.getOffset() > modePos) {
+                            idx--;
+                        } else {
+                            break; // Insertion index is ok.
+                        }
+                    } while (idx > 0);
+                }
+            }
+        }
+        list.addAll(idx, elements);
+    }
+
+    public static <T extends EObject> Iterable<T> allElementsOfClass(
+        Resource resource,
+        Class<T> elementClass
+    ) {
+        //noinspection StaticPseudoFunctionalStyleMethod
+        return Iterables.filter(IteratorExtensions.toIterable(resource.getAllContents()), elementClass);
     }
 
     ////////////////////////////////
@@ -958,6 +1019,30 @@ public class ASTUtils {
         try {
             //noinspection ResultOfMethodCallIgnored
             Integer.decode(literal);
+        } catch (NumberFormatException e) {
+            return false;
+        }
+        return true;
+    }
+
+    /**
+     * Report whether the given string literal is a boolean value or not.
+     * @param literal AST node to inspect.
+     * @return True if the given value is a boolean, false otherwise.
+     */
+    public static boolean isBoolean(String literal) {
+        return literal.equalsIgnoreCase("true") || literal.equalsIgnoreCase("false");
+    }
+
+    /**
+     * Report whether the given string literal is a float value or not.
+     * @param literal AST node to inspect.
+     * @return True if the given value is a float, false otherwise.
+     */
+    public static boolean isFloat(String literal) {
+        try {
+            //noinspection ResultOfMethodCallIgnored
+            Float.parseFloat(literal);
         } catch (NumberFormatException e) {
             return false;
         }
@@ -1209,9 +1294,6 @@ public class ASTUtils {
         return t.isTime && !t.isList;
     }
 
-    
-
-        
     /**
      * Given a parameter, return its initial value.
      * The initial value is a list of instances of Expressions.
@@ -1433,44 +1515,7 @@ public class ASTUtils {
             return 1;
         }
         if (spec.isOfVariableLength() && spec.eContainer() instanceof Instantiation) {
-            // We may be able to infer the width by examining the connections of
-            // the enclosing reactor definition. This works, for example, with
-            // delays between multiports or banks of reactors.
-            // Attempt to infer the width.
-            for (Connection c : ((Reactor) spec.eContainer().eContainer()).getConnections()) {
-                int leftWidth = 0;
-                int rightWidth = 0;
-                int leftOrRight = 0;
-                for (VarRef leftPort : c.getLeftPorts()) {
-                    if (leftPort.getContainer() == spec.eContainer()) {
-                        if (leftOrRight != 0) {
-                            throw new InvalidSourceException("Multiple ports with variable width on a connection.");
-                        }
-                        // Indicate that the port is on the left.
-                        leftOrRight = -1;
-                    } else {
-                        leftWidth += inferPortWidth(leftPort, c, instantiations);
-                    }
-                }
-                for (VarRef rightPort : c.getRightPorts()) {
-                    if (rightPort.getContainer() == spec.eContainer()) {
-                        if (leftOrRight != 0) {
-                            throw new InvalidSourceException("Multiple ports with variable width on a connection.");
-                        }
-                        // Indicate that the port is on the right.
-                        leftOrRight = 1;
-                    } else {
-                        rightWidth += inferPortWidth(rightPort, c, instantiations);
-                    }
-                }
-                if (leftOrRight < 0) {
-                    return rightWidth - leftWidth;
-                } else if (leftOrRight > 0) {
-                    return leftWidth - rightWidth;
-                }
-            }
-            // A connection was not found with the instantiation.
-            return -1;
+            return inferWidthFromConnections(spec, instantiations);
         }
         var result = 0;
         for (WidthTerm term: spec.getTerms()) {
@@ -1484,7 +1529,16 @@ public class ASTUtils {
             } else if (term.getWidth() > 0) {
                 result += term.getWidth();
             } else {
-                return -1;
+                // If the width cannot be determined because term's width <= 0, which means the term's width
+                // must be inferred, try to infer the width using connections.
+                if (spec.eContainer() instanceof Instantiation) {
+                    try {
+                        return inferWidthFromConnections(spec, instantiations);
+                    } catch (InvalidSourceException e) {
+                        // If the inference fails, return -1.
+                        return -1;
+                    }
+                }
             }
         }
         return result;
@@ -1686,77 +1740,62 @@ public class ASTUtils {
         }
         return null;
     }
-    
+
     /**
-     * Retrieve a specific annotation in a JavaDoc style comment associated with the given model element in the AST.
-     * 
-     * This will look for a JavaDoc style comment. If one is found, it searches for the given annotation `key`.
-     * and extracts any string that follows the annotation marker.  
-     * 
-     * @param object the AST model element to search a comment for
-     * @param key the specific annotation key to be extracted
-     * @return `null` if no JavaDoc style comment was found or if it does not contain the given key.
-     *     The string immediately following the annotation marker otherwise.
+     * Return all single-line or multi-line comments immediately preceding the
+     * given EObject.
      */
-    public static String findAnnotationInComments(EObject object, String key) {
-        if (object.eResource() instanceof XtextResource) {
-            ICompositeNode compNode = NodeModelUtils.findActualNodeFor(object);
-            if (compNode != null) {
-                // Find comment node in AST
-                // For reactions/timers/action/etc., it is usually the lowermost first child node
-                INode node = compNode.getFirstChild();
-                while (node instanceof CompositeNode) {
-                    node = ((CompositeNode) node).getFirstChild();
-                }
-                // For reactors, it seems to be the next sibling of the first child node
-                if (node == null && compNode.getFirstChild() != null) {
-                    node = compNode.getFirstChild().getNextSibling();
-                }
-                while (node instanceof HiddenLeafNode) { // Only comments preceding start of element
-                    HiddenLeafNode hlNode = (HiddenLeafNode) node;
-                    EObject rule = hlNode.getGrammarElement();
-                    if (rule instanceof TerminalRule) {
-                        String line = null;
-                        TerminalRule tRule = (TerminalRule) rule;
-                        if ("SL_COMMENT".equals(tRule.getName())) {
-                            if (hlNode.getText().contains(key)) {
-                                line = hlNode.getText();
-                            }
-                        } else if ("ML_COMMENT".equals(tRule.getName())) {
-                            boolean found = false;
-                            for (String str : hlNode.getText().split("\n")) {
-                                if (!found && str.contains(key)) {
-                                    line = str;
-                                }
-                            }
-                            // This is shorter but causes a warning:
-                            //line = node.text.split("\n").filterNull.findFirst[it.contains(key)]
-                        }
-                        if (line != null) {
-                            var value = line.substring(line.indexOf(key) + key.length()).trim();
-                            if (value.contains("*")) { // in case of single line block comment (e.g. /** @anno 1503 */)
-                                value = value.substring(0, value.indexOf("*")).trim();
-                            }
-                            return value;
-                        }
-                    }
-                    node = node.getNextSibling();
-                }
-            }
-        }
-        return null;
+    public static Stream<String> getPrecedingComments(
+        ICompositeNode compNode,
+        Predicate<INode> filter
+    ) {
+        return getPrecedingCommentNodes(compNode, filter).map(INode::getText);
     }
 
     /**
-     * Search for an `@label` annotation for a given reaction.
-     * 
-     * @param n the reaction for which the label should be searched
-     * @return The annotated string if an `@label` annotation was found. `null` otherwise.
+     * Return all single-line or multi-line comments immediately preceding the
+     * given EObject.
      */
-    public static String label(Reaction n) {
-        return findAnnotationInComments(n, "@label");
+    public static Stream<INode> getPrecedingCommentNodes(
+        ICompositeNode compNode,
+        Predicate<INode> filter
+    ) {
+        if (compNode == null) return Stream.of();
+        List<INode> ret = new ArrayList<>();
+        for (INode node : compNode.getAsTreeIterable()) {
+            if (!(node instanceof ICompositeNode)) {
+                if (isComment(node)) {
+                    if (filter.test(node)) ret.add(node);
+                } else if (!node.getText().isBlank()) {
+                    break;
+                }
+            }
+        }
+        return ret.stream();
     }
-    
+
+    /** Return whether {@code node} is a comment. */
+    public static boolean isComment(INode node) {
+        return node instanceof HiddenLeafNode hlNode
+            && hlNode.getGrammarElement() instanceof TerminalRule tRule
+            && tRule.getName().endsWith("_COMMENT");
+    }
+
+    /**
+     * Return true if the given node starts on the same line as the given other
+     * node.
+     */
+    public static Predicate<INode> sameLine(ICompositeNode compNode) {
+        return other -> {
+            for (INode node : compNode.getAsTreeIterable()) {
+                if (!(node instanceof ICompositeNode) && !node.getText().isBlank() && !isComment(node)) {
+                    return node.getStartLine() == other.getStartLine();
+                }
+            }
+            return false;
+        };
+    }
+
     /**
      * Find the main reactor and set its name if none was defined.
      * @param resource The resource to find the main reactor in.
@@ -1815,7 +1854,7 @@ public class ASTUtils {
     //// Private methods
     
     /**
-     * Returns the list if it is not null. Otherwise return an empty list.
+     * Returns the list if it is not null. Otherwise, return an empty list.
      */
     public static <T> List<T> convertToEmptyListIfNull(List<T> list) {
         return list != null ? list : new ArrayList<>();
@@ -1848,5 +1887,53 @@ public class ASTUtils {
             result.add(r);
         }
         return result;
+    }
+
+    /**
+     * We may be able to infer the width by examining the connections of
+     * the enclosing reactor definition. This works, for example, with
+     * delays between multiports or banks of reactors.
+     * Attempt to infer the width from connections and return -1 if the width cannot be inferred.
+     *
+     * @param spec The width specification or null (to return 1).
+     * @param instantiations The (optional) list of instantiations.
+     *
+     * @return The width, or -1 if the width could not be inferred from connections.
+     */
+    private static int inferWidthFromConnections(WidthSpec spec, List<Instantiation> instantiations) {
+        for (Connection c : ((Reactor) spec.eContainer().eContainer()).getConnections()) {
+            int leftWidth = 0;
+            int rightWidth = 0;
+            int leftOrRight = 0;
+            for (VarRef leftPort : c.getLeftPorts()) {
+                if (leftPort.getContainer() == spec.eContainer()) {
+                    if (leftOrRight != 0) {
+                        throw new InvalidSourceException("Multiple ports with variable width on a connection.");
+                    }
+                    // Indicate that the port is on the left.
+                    leftOrRight = -1;
+                } else {
+                    leftWidth += inferPortWidth(leftPort, c, instantiations);
+                }
+            }
+            for (VarRef rightPort : c.getRightPorts()) {
+                if (rightPort.getContainer() == spec.eContainer()) {
+                    if (leftOrRight != 0) {
+                        throw new InvalidSourceException("Multiple ports with variable width on a connection.");
+                    }
+                    // Indicate that the port is on the right.
+                    leftOrRight = 1;
+                } else {
+                    rightWidth += inferPortWidth(rightPort, c, instantiations);
+                }
+            }
+            if (leftOrRight < 0) {
+                return rightWidth - leftWidth;
+            } else if (leftOrRight > 0) {
+                return leftWidth - rightWidth;
+            }
+        }
+        // A connection was not found with the instantiation.
+        return -1;
     }
 }

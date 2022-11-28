@@ -1,14 +1,15 @@
-// Check multiport connections between federates where the message is
-// carried by a Token (in this case, with an array of char).
+// Check multiport connections between federates where the message is carried by
+// a Token (in this case, with an array of char).
 target C {
     timeout: 1 sec,
     coordination: centralized
-};
+}
 
 reactor Source {
-    output[4] out:char*;
-    timer t(0, 200 msec);
-    state count:int(0);
+    output[4] out: char*
+    timer t(0, 200 msec)
+    state count: int(0)
+
     reaction(t) -> out {=
         for (int i = 0; i < out_width; i++) {
             // With NULL, 0 arguments, snprintf tells us how many bytes are needed.
@@ -27,7 +28,8 @@ reactor Source {
 }
 
 reactor Destination {
-    input[4] in:char*;
+    input[4] in: char*
+
     reaction(in) {=
         for (int i = 0; i < in_width; i++) {
             if (in[i]->is_present) {
@@ -38,7 +40,7 @@ reactor Destination {
 }
 
 federated reactor DistributedMultiportToken {
-    s = new Source();
-    d = new Destination();
-    s.out -> d.in;
+    s = new Source()
+    d = new Destination()
+    s.out -> d.in
 }

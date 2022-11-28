@@ -5,15 +5,19 @@ target C {
     coordination: decentralized
 }
 
-reactor Platform(start:int(0), expected_start:int(0), stp_offset_param:time(0)) {
-    input in:int;
-    output out:int;
-    timer t(0, 100 msec);
-    state count:int(start);
-    state expected:int(expected_start);
-    reaction(t) -> out {=
-        lf_set(out, self->count++);
-    =}
+reactor Platform(
+    start: int(0),
+    expected_start: int(0),
+    stp_offset_param: time(0)
+) {
+    input in: int
+    output out: int
+    timer t(0, 100 msec)
+    state count: int(start)
+    state expected: int(expected_start)
+
+    reaction(t) -> out {= lf_set(out, self->count++); =}
+
     reaction(in) {=
         lf_print("Received %d.", in->value);
         if (in->value != self->expected_start++) {
@@ -22,7 +26,7 @@ reactor Platform(start:int(0), expected_start:int(0), stp_offset_param:time(0)) 
                 in->value
             );
         }
-    =} STP (stp_offset_param) {=
+    =} STP(stp_offset_param) {=
         lf_print("Received %d late.", in->value);
         tag_t current_tag = lf_tag();
         self->expected_start++;
@@ -31,6 +35,7 @@ reactor Platform(start:int(0), expected_start:int(0), stp_offset_param:time(0)) 
             current_tag.microstep - in->intended_tag.microstep
         );
     =}
+
     reaction(shutdown) {=
         lf_print("Shutdown invoked.");
         if (self->expected == self->expected_start) {
@@ -38,9 +43,10 @@ reactor Platform(start:int(0), expected_start:int(0), stp_offset_param:time(0)) 
         }
     =}
 }
+
 federated reactor DecentralizedP2PComm {
-    a = new Platform(expected_start = 100, stp_offset_param = 10 msec);
-    b = new Platform(start = 100, stp_offset_param = 10 msec);
-    a.out -> b.in;
-    b.out -> a.in;
+    a = new Platform(expected_start = 100, stp_offset_param = 10 msec)
+    b = new Platform(start = 100, stp_offset_param = 10 msec)
+    a.out -> b.in
+    b.out -> a.in
 }

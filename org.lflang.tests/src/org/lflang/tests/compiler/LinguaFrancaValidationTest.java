@@ -1547,6 +1547,15 @@ public class LinguaFrancaValidationTest {
             List.of("[foo, {bar: baz}]", "[1]", PrimitiveType.STRING),
             List.of("{bar: baz}", "", UnionType.STRING_OR_STRING_ARRAY)
         ),
+        UnionType.PLATFORM_STRING_OR_DICTIONARY, List.of(
+            List.of("[bar, baz]", "", UnionType.PLATFORM_STRING_OR_DICTIONARY),
+            List.of("{name: [1, 2, 3]}", ".name", PrimitiveType.STRING),
+            List.of("{name: {bar: baz}}", ".name", PrimitiveType.STRING),
+            List.of("{board: [1, 2, 3]}", ".board", PrimitiveType.STRING),
+            List.of("{board: {bar: baz}}", ".board", PrimitiveType.STRING),
+            List.of("{baud-rate: [1, 2, 3]}", ".baud-rate", PrimitiveType.NON_NEGATIVE_INTEGER),
+            List.of("{baud-rate: {bar: baz}}", ".baud-rate", PrimitiveType.NON_NEGATIVE_INTEGER)
+        ),
         UnionType.FILE_OR_FILE_ARRAY, List.of(
             List.of("[1 msec]", "[0]", PrimitiveType.FILE),
             List.of("[foo, {bar: baz}]", "[1]", PrimitiveType.FILE),
@@ -2222,6 +2231,40 @@ public class LinguaFrancaValidationTest {
             "Unrecognized target: Pjthon");
     }
 
+
+    @Test
+    public void testWrongStructureForLabelAttribute() throws Exception {
+        String testCase = """
+                target C;
+                @label(name="something")
+                main reactor { }
+            """;
+        validator.assertError(parseWithoutError(testCase), LfPackage.eINSTANCE.getAttribute(), null,
+            "Unknown attribute parameter.");
+    }
+
+    @Test
+    public void testMissingName() throws Exception {
+        String testCase = """
+                target C;
+                @label("something", "else")
+                main reactor { }
+            """;
+        validator.assertError(parseWithoutError(testCase), LfPackage.eINSTANCE.getAttribute(), null,
+            "Missing name for attribute parameter.");
+    }
+
+    @Test
+    public void testWrongParamType() throws Exception {
+        String testCase = """
+                target C;
+                @label(value=1)
+                main reactor { }
+            """;
+        validator.assertError(parseWithoutError(testCase), LfPackage.eINSTANCE.getAttribute(), null,
+            "Incorrect type: \"value\" should have type String.");
+    }
+
     @Test
     public void testInitialMode() throws Exception {
         String testCase = """
@@ -2350,9 +2393,10 @@ public class LinguaFrancaValidationTest {
             }
         """;
         validator.assertError(parseWithoutError(testCase), LfPackage.eINSTANCE.getMode(), null,
-                "This reactor contains state variables that are not reset upon mode entry. "
-                + "The instatiated reactor (or any inner reactor) neither marks its state variables for automatic reset nor defines a reset reaction. "
-                + "It is usafe to instatiate this reactor inside a mode.");
+                "This reactor contains state variables that are not reset upon mode entry: "
+                + "s in R"
+                + ".\nThe state variables are neither marked for automatic reset nor have a dedicated reset reaction. "
+                + "It is usafe to instatiate this reactor inside a mode entered with reset.");
     }
 
     @Test
@@ -2367,6 +2411,25 @@ public class LinguaFrancaValidationTest {
         """;
         validator.assertError(parseWithoutError(testCase), LfPackage.eINSTANCE.getStateVar(), null,
             "The state variable can not be automatically reset without an initial value.");
+    }
+
+    @Test
+    public void testUnspecifiedTransitionType() throws Exception {
+        String testCase = """
+            target C;
+            main reactor {
+                initial mode IM {
+                    reaction(startup) -> M {==}
+                }
+                mode M {
+                    reset state s:int(0);
+                }
+            }
+        """;
+        validator.assertWarning(parseWithoutError(testCase), LfPackage.eINSTANCE.getReaction(), null,
+                "You should specifiy a transition type! "
+                + "Reset and history transitions have different effects on this target mode. "
+                + "Currently, a reset type is implicitly assumed.");
     }
 
 }

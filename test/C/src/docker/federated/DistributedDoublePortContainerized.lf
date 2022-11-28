@@ -1,9 +1,7 @@
 /**
- * Test the case for when two upstream federates
- * send messages to a downstream federte on two
- * different ports. One message should carry a
- * microstep delay relative to the other
- * message.
+ * Test the case for when two upstream federates send messages to a downstream
+ * federte on two different ports. One message should carry a microstep delay
+ * relative to the other message.
  *
  * @author Soroush Bateni
  */
@@ -12,16 +10,16 @@ target C {
     logging: DEBUG,
     coordination: centralized,
     docker: true
-};
+}
 
-import Count from "../../lib/Count.lf";
-import CountMicrostep from "../../federated/DistributedDoublePort.lf";
-import Print from "../../federated/DistributedDoublePort.lf";
+import Count from "../../lib/Count.lf"
+import CountMicrostep from "../../federated/DistributedDoublePort.lf"
+import Print from "../../federated/DistributedDoublePort.lf"
 
 federated reactor DistributedDoublePortContainerized at rti {
-    c = new Count();
-    cm = new CountMicrostep();
-    p = new Print();
-    c.out -> p.in;    // Indicating a 'logical' connection.
-    cm.out -> p.in2;
+    c = new Count()
+    cm = new CountMicrostep()
+    p = new Print()
+    c.out -> p.in  // Indicating a 'logical' connection.
+    cm.out -> p.in2
 }

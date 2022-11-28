@@ -1,25 +1,26 @@
 /**
- * Test a bank of reactors that broadcast a single output
- * back to a multiport input of the same reactors in the bank
- * so that each reactor in the bank receives the output
- * produced by itself and each other reactor.
+ * Test a bank of reactors that broadcast a single output back to a multiport
+ * input of the same reactors in the bank so that each reactor in the bank
+ * receives the output produced by itself and each other reactor.
  *
  * @author Edward A. Lee
  * @author Christian Menard
  */
-target Cpp;
-reactor A(bank_index:size_t(0)) {
-    input[4] in:size_t;
-    output out:size_t;
-    state received:bool(false);
-    reaction(startup) -> out {=
-        out.set(bank_index);
-    =}
+target Cpp
+
+reactor A(bank_index: size_t(0)) {
+    input[4] in: size_t
+    output out: size_t
+    state received: bool(false)
+
+    reaction(startup) -> out {= out.set(bank_index); =}
+
     reaction(in) {=
         for (size_t i = 0; i < in.size(); i++) {
             if (in[i].is_present()) {
                 std::cout << "Reactor " << bank_index << " received "
-                          << *in[i].get() << " on channel " << i << '\n';
+                    << *in[i].get() << " on channel " << i << '\n';
+
                 if (*in[i].get() != i) {
                     std::cerr << "ERROR: Expected " << i << '\n';
                     exit(1);
@@ -32,6 +33,7 @@ reactor A(bank_index:size_t(0)) {
             }
         }
     =}
+
     reaction(shutdown) {=
         if (!received) {
             std::cerr << "ERROR: No inputs received.\n";
@@ -39,7 +41,8 @@ reactor A(bank_index:size_t(0)) {
         }
     =}
 }
+
 main reactor {
-    a  = new[4] A();
-    (a.out)+ -> a.in;
+    a = new[4] A()
+    (a.out)+ -> a.in
 }

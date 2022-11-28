@@ -1,17 +1,14 @@
-/*
- * Modal Reactor Test.
- * Test startup/shutdown reactions in modes.
- */
+/** Modal Reactor Test. Test startup/shutdown reactions in modes. */
 target Python {
     fast: false,
     timeout: 3000 msec
-};
+}
 
 import TraceTesting from "util/TraceTesting.lf"
 
 reactor Modal {
     input next
-    
+
     output mode_switch
     output startup1
     output startup2
@@ -23,119 +20,110 @@ reactor Modal {
     output startup5
     output reset5
     output shutdown5
-    
+
     initial mode One {
         reaction(startup) -> startup1 {=
-            print(f"Startup 1 at ({lf.time.logical_elapsed()}, {get_microstep()}).")
+            print(f"Startup 1 at ({lf.time.logical_elapsed()}, {lf.tag().microstep}).")
             startup1.set(1)
         =}
-        
-        reaction(next) -> Two, mode_switch {=
+
+        reaction(next) -> reset(Two), mode_switch {=
             print("Transitioning to mode 2")
             mode_switch.set(2)
             Two.set()
         =}
     }
-    mode Two {        
+
+    mode Two {
         reaction(startup) -> startup2 {=
-            print(f"Startup 2 at ({lf.time.logical_elapsed()}, {get_microstep()}).")
+            print(f"Startup 2 at ({lf.time.logical_elapsed()}, {lf.tag().microstep}).")
             startup2.set(1)
         =}
-        
-        reaction(next) -> Three, mode_switch {=
+
+        reaction(next) -> reset(Three), mode_switch {=
             print("Transitioning to mode 3")
             mode_switch.set(3)
             Three.set()
-        =} 
-               
+        =}
+
         reaction(shutdown) -> shutdown2 {=
-            print(f"Shutdown 2 at ({lf.time.logical_elapsed()}, {get_microstep()}).")
+            print(f"Shutdown 2 at ({lf.time.logical_elapsed()}, {lf.tag().microstep}).")
             shutdown2.set(1)
         =}
     }
 
-    mode Three {        
-        reaction(next) -> Four, mode_switch {=
+    mode Three {
+        reaction(next) -> reset(Four), mode_switch {=
             print("Transitioning to mode 4")
             mode_switch.set(4)
             Four.set()
-        =} 
-               
+        =}
+
         reaction(shutdown) -> shutdown3 {=
-            print(f"Shutdown 3 at ({lf.time.logical_elapsed()}, {get_microstep()}).")
+            print(f"Shutdown 3 at ({lf.time.logical_elapsed()}, {lf.tag().microstep}).")
             shutdown3.set(1)
         =}
     }
-    
+
     mode Four {
         reaction(startup) -> startup4 {=
-            print(f"Startup 4 at ({lf.time.logical_elapsed()}, {get_microstep()}).")
+            print(f"Startup 4 at ({lf.time.logical_elapsed()}, {lf.tag().microstep}).")
             startup4.set(1)
-        =} 
-        
+        =}
+
         reaction(reset) -> reset4 {=
-            print(f"Reset 4 at ({lf.time.logical_elapsed()}, {get_microstep()}).")
+            print(f"Reset 4 at ({lf.time.logical_elapsed()}, {lf.tag().microstep}).")
             reset4.set(1)
         =}
-            
-        reaction(next) -> Four, mode_switch {=
+
+        reaction(next) -> reset(Four), mode_switch {=
             print("Transitioning to mode 4")
             mode_switch.set(4)
             Four.set()
-        =} 
-               
+        =}
+
         reaction(shutdown) -> shutdown4 {=
-            print(f"Shutdown 4 at ({lf.time.logical_elapsed()}, {get_microstep()}).")
+            print(f"Shutdown 4 at ({lf.time.logical_elapsed()}, {lf.tag().microstep}).")
             shutdown4.set(1)
         =}
     }
-    
-    // Unreachable!
-    mode Five {
+
+    mode Five {  # Unreachable!
         reaction(startup) -> startup5 {=
-            print(f"Startup 5 at ({lf.time.logical_elapsed()}, {get_microstep()}).")
+            print(f"Startup 5 at ({lf.time.logical_elapsed()}, {lf.tag().microstep}).")
             startup5.set(1)
-        =} 
-        
+        =}
+
         reaction(reset) -> reset5 {=
-            print(f"Reset 5 at ({lf.time.logical_elapsed()}, {get_microstep()}).")
+            print(f"Reset 5 at ({lf.time.logical_elapsed()}, {lf.tag().microstep}).")
             reset5.set(1)
         =}
-               
+
         reaction(shutdown) -> shutdown5 {=
-            print(f"Shutdown 5 at ({lf.time.logical_elapsed()}, {get_microstep()}).")
+            print(f"Shutdown 5 at ({lf.time.logical_elapsed()}, {lf.tag().microstep}).")
             shutdown5.set(1)
         =}
     }
 }
 
 main reactor {
-    timer stepper(500msec, 500msec)
-    
-    modal = new Modal()
-    test = new TraceTesting(
-        events_size = 11, 
-        trace = (
-            0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-            500000000,1,2,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-            0,0,2,0,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-            500000000,1,3,0,1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-            500000000,1,4,0,1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-            0,0,4,0,1,0,1,0,0,0,0,1,1,1,1,0,0,0,0,0,0,0,0,
-            500000000,1,4,0,1,0,1,0,0,0,0,0,1,0,1,0,0,0,0,0,0,0,0,
-            0,0,4,0,1,0,1,0,0,0,0,0,1,1,1,0,0,0,0,0,0,0,0,
-            500000000,1,4,0,1,0,1,0,0,0,0,0,1,0,1,0,0,0,0,0,0,0,0,
-            0,0,4,0,1,0,1,0,0,0,0,0,1,1,1,0,0,0,0,0,0,0,0,
-            500000000,1,4,0,1,0,1,1,1,1,1,0,1,0,1,1,1,0,0,0,0,0,0
-        ), 
-        training = False
-    )
+    timer stepper(500 msec, 500 msec)
 
-    // Trigger mode change
-    reaction(stepper) -> modal.next {=
-        modal.next.set(True)
-    =}
-    
+    modal = new Modal()
+    test = new TraceTesting(events_size = 11, trace = (  // keep-format
+        0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        500000000,1,2,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,2,0,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        500000000,1,3,0,1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        500000000,1,4,0,1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,4,0,1,0,1,0,0,0,0,1,1,1,1,0,0,0,0,0,0,0,0,
+        500000000,1,4,0,1,0,1,0,0,0,0,0,1,0,1,0,0,0,0,0,0,0,0,
+        0,0,4,0,1,0,1,0,0,0,0,0,1,1,1,0,0,0,0,0,0,0,0,
+        500000000,1,4,0,1,0,1,0,0,0,0,0,1,0,1,0,0,0,0,0,0,0,0,
+        0,0,4,0,1,0,1,0,0,0,0,0,1,1,1,0,0,0,0,0,0,0,0,
+        500000000,1,4,0,1,0,1,1,1,1,1,0,1,0,1,1,1,0,0,0,0,0,0
+    ), training = False)
+
     modal.mode_switch,
     modal.startup1,
     modal.startup2,
@@ -146,6 +134,9 @@ main reactor {
     modal.shutdown4,
     modal.startup5,
     modal.reset5,
-    modal.shutdown5
-    -> test.events
+    modal.shutdown5 ->
+        test.events
+
+    # Trigger mode change
+    reaction(stepper) -> modal.next {= modal.next.set(True) =}
 }
