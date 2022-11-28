@@ -68,11 +68,6 @@ class CppStandaloneCmakeGenerator(private val targetConfig: TargetConfig, privat
             |set(CMAKE_CXX_STANDARD_REQUIRED ON)
             |set(CMAKE_CXX_EXTENSIONS OFF)
             |
-            |# Use thw new CMP0068 policy. This needs to be set explicitly to avoid a warning message
-            |if(POLICY CMP0068)
-            |  cmake_policy(SET CMP0068 NEW)
-            |endif()
-            |
             |# don't automatically build and install all targets
             |set(CMAKE_SKIP_INSTALL_ALL_DEPENDENCY true)
             |
@@ -94,7 +89,10 @@ class CppStandaloneCmakeGenerator(private val targetConfig: TargetConfig, privat
             |   set(CMAKE_INSTALL_RPATH "$S{CMAKE_INSTALL_PREFIX}/$S{CMAKE_INSTALL_LIBDIR}")
             |endif ()
             |
+            |# Use thw new CMP0068 policy. This needs to be set explicitly to avoid a warning message
+            |cmake_policy(SET CMP0068 NEW)
             |set(CMAKE_BUILD_WITH_INSTALL_RPATH ON)
+            |set(BUILD_WITH_INSTALL_NAME_DIR ON)
             |
             |file(GLOB subdirs RELATIVE "$S{PROJECT_SOURCE_DIR}" "$S{PROJECT_SOURCE_DIR}/*")
             |foreach(subdir $S{subdirs})
