@@ -94,14 +94,14 @@ public class FedGenerator {
     private final Map<Integer, FederateInstance> federateByID = new LinkedHashMap<>();
     /**
      * The federation RTI properties, which defaults to 'localhost: 15045'.
-     * The "overridden" Pair guarantees following user directives, without setting
+     * The "host_overridden" Pair guarantees following user directives, without setting
      * the default values to be "null". A particular use case is when the lf file
      * sets RTI properties, and the command line overrides these.
      */
     final LinkedHashMap<String, Object> federationRTIProperties = CollectionLiterals.newLinkedHashMap(
         Pair.of("host", "localhost"),
         Pair.of("port", 0), // Indicator to use the default port, typically 15045.
-        Pair.of("overridden", false)
+        Pair.of("host_overridden", false)
     );
     /**
      * A map from instantiations to the federate instances for that
@@ -314,7 +314,7 @@ public class FedGenerator {
 
         if (host != null) {
             federationRTIProperties.put("host", host);
-            federationRTIProperties.put("overridden", true);
+            federationRTIProperties.put("host_overridden", true);
         }
         if (port != null) {
             federationRTIProperties.put("port", port);
@@ -338,7 +338,7 @@ public class FedGenerator {
 
         // Make sure that if no federation RTI properties were given in the
         // cmdline, then those specified in the lf file are not lost
-        if (federationRTIProperties.get("overridden").equals(false) &&
+        if (federationRTIProperties.get("host_overridden").equals(false) &&
             fedReactor.getHost() != null &&
             !fedReactor.getHost().getAddr().equals("localhost")) {
             federationRTIProperties.put("host", fedReactor.getHost().getAddr());
