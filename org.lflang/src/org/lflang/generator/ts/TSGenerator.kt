@@ -32,7 +32,6 @@ import org.lflang.ErrorReporter
 import org.lflang.Target
 import org.lflang.TimeValue
 import org.lflang.generator.CodeMap
-import org.lflang.generator.ExpressionGenerator
 import org.lflang.generator.GeneratorBase
 import org.lflang.generator.GeneratorResult
 import org.lflang.generator.GeneratorUtils
@@ -41,15 +40,9 @@ import org.lflang.generator.IntegratedBuilder
 import org.lflang.generator.LFGeneratorContext
 import org.lflang.generator.SubContext
 import org.lflang.generator.TargetTypes
-import org.lflang.graph.InstantiationGraph
-import org.lflang.inferredType
 import org.lflang.lf.Action
 import org.lflang.lf.Expression
-import org.lflang.lf.Instantiation
-import org.lflang.lf.Parameter
 import org.lflang.lf.Preamble
-import org.lflang.lf.StateVar
-import org.lflang.lf.Type
 import org.lflang.lf.VarRef
 import org.lflang.model
 import org.lflang.scoping.LFGlobalScopeProvider
@@ -89,9 +82,6 @@ class TSGenerator(
          */
         val CONFIG_FILES = arrayOf("package.json", "tsconfig.json", "babel.config.js", ".eslintrc.json")
 
-        private val VG =
-            ExpressionGenerator(::timeInTargetLanguage) { param -> "this.${param.name}.get()" }
-
         fun timeInTargetLanguage(value: TimeValue): String {
             return if (value.unit != null) {
                 "TimeValue.${value.unit.canonicalName}(${value.magnitude})"
@@ -113,22 +103,6 @@ class TSGenerator(
         // Set defaults for federate compilation.
         targetConfig.compiler = "gcc"
         targetConfig.compilerFlags.add("-O2")
-    }
-
-    // Wrappers to expose GeneratorBase methods.
-
-    fun getTargetValueW(expr: Expression): String = VG.getTargetValue(expr, false)
-    fun getTargetTypeW(p: Parameter): String = TSTypes.getTargetType(p.inferredType)
-    fun getTargetTypeW(state: StateVar): String = TSTypes.getTargetType(state)
-    fun getTargetTypeW(t: Type): String = TSTypes.getTargetType(t)
-
-    fun getInitializerListW(state: StateVar): List<String> = VG.getInitializerList(state)
-    fun getInitializerListW(param: Parameter): List<String> = VG.getInitializerList(param)
-    fun getInitializerListW(param: Parameter, i: Instantiation): List<String> =
-        VG.getInitializerList(param, i)
-
-    fun getInstantiationGraph(): InstantiationGraph? {
-        return this.instantiationGraph;
     }
 
     /** Generate TypeScript code from the Lingua Franca model contained by the
@@ -267,7 +241,7 @@ class TSGenerator(
         dockerGenerator: TSDockerGenerator,
         preambles: List<Preamble>
     ) {
-        var tsFileName = fileConfig.name
+        val tsFileName = fileConfig.name
 
         val tsFilePath = tsFileConfig.tsSrcGenPath().resolve("$tsFileName.ts")
 
@@ -277,13 +251,13 @@ class TSGenerator(
             targetConfig.protoFiles, preambles)
         tsCode.append(preambleGenerator.generatePreamble())
 
-        val parameterGenerator = TSParameterPreambleGenerator(this, fileConfig, targetConfig, reactors)
+        val parameterGenerator = TSParameterPreambleGenerator(fileConfig, targetConfig, reactors)
         val (mainParameters, parameterCode) = parameterGenerator.generateParameters()
         tsCode.append(parameterCode)
 
         val reactorGenerator = TSReactorGenerator(this, errorReporter, targetConfig)
         for (reactor in reactors) {
-            tsCode.append(reactorGenerator.generateReactorClasses(reactor))
+            tsCode.append(reactorGenerator.generateReactor(reactor))
         }
 
         tsCode.append(reactorGenerator.generateMainReactorInstanceAndStart(this.mainDef, mainParameters))

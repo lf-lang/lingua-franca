@@ -75,7 +75,8 @@ import com.google.common.base.Objects;
 
 /** 
  * Instance of a federate, or marker that no federation has been defined
- * (if isSingleton() returns true). Every top-level reactor (contained
+ * (if isSingleton() returns true) FIXME: this comment makes no sense.
+ * Every top-level reactor (contained
  * directly by the main reactor) is a federate, so there will be one
  * instance of this class for each top-level reactor.
  * 
@@ -602,7 +603,8 @@ public class FederateInstance {
     
     @Override
     public String toString() {
-        return "Federate " + id + ": " + instantiation.getName();
+        return "Federate " + id + ": "
+            + ((instantiation != null) ? instantiation.getName() : "no name");
     }
 
     /////////////////////////////////////////////

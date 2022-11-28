@@ -2,6 +2,7 @@ package org.lflang.generator.ts
 
 import org.lflang.ASTUtils
 import org.lflang.TimeValue
+import org.lflang.generator.getTargetTimeExpr
 import org.lflang.isBank
 import org.lflang.isMultiport
 import org.lflang.lf.Action
@@ -9,7 +10,6 @@ import org.lflang.lf.Expression
 import org.lflang.lf.Parameter
 import org.lflang.lf.ParameterReference
 import org.lflang.lf.Port
-import org.lflang.lf.Type
 import org.lflang.lf.WidthSpec
 import org.lflang.toText
 
@@ -35,48 +35,23 @@ fun WidthSpec.toTSCode(): String = terms.joinToString(" + ") {
     }
 }
 
-private fun Type.getTargetType(): String = TSTypes.getTargetType(this)
-
 /**
  * Return a TS type for the specified port.
  * If the type has not been specified, return
  * "Present" which is the base type for ports.
- * @param port The port
  * @return The TS type.
  */
-fun getPortType(port: Port): String {
-    if (port.type != null) {
-        return port.type.getTargetType()
-    } else {
-        return "Present"
-    }
-}
-
-fun Parameter.getTargetType(): String = TSTypes.getTargetType(this)
+val Port.tsPortType: String
+    get() = type?.let { TSTypes.getTargetType(it) } ?: "Present"
 
 /**
  * Return a TS type for the specified action.
  * If the type has not been specified, return
  * "Present" which is the base type for Actions.
- * @param action The action
  * @return The TS type.
  */
-fun getActionType(action: Action): String {
-    if (action.type != null) {
-        return action.type.getTargetType()
-    } else {
-        return "Present"
-    }
-}
-
-fun timeInTargetLanguage(value: TimeValue): String {
-    return if (value.unit != null) {
-        "TimeValue.${value.unit.canonicalName}(${value.time})"
-    } else {
-        // The value must be zero.
-        "TimeValue.zero()"
-    }
-}
+val Action.tsActionType: String
+    get() = type?.let { TSTypes.getTargetType(it) } ?: "Present"
 
 /**
  * Given a connection 'delay' predicate, return a string that represents the
@@ -92,7 +67,9 @@ fun getNetworkDelayLiteral(delay: Expression?): String {
         } else {
             ASTUtils.getLiteralTimeValue(delay)
         }
-        additionalDelayString = timeInTargetLanguage(tv)
+        additionalDelayString = tv.toTsTime();
     }
     return additionalDelayString
 }
+fun Expression.toTsTime(): String = TSTypes.getTargetTimeExpr(this)
+fun TimeValue.toTsTime(): String = TSTypes.getTargetTimeExpr(this)

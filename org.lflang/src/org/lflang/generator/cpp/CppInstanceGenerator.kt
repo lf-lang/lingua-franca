@@ -132,7 +132,7 @@ class CppInstanceGenerator(
     }
 
     fun generateConstructorInitializers() =
-        reactor.instantiations.filter { it.isBank }.joinToString("\n") { generateConstructorInitializer(it) }
+        reactor.instantiations.filter { it.isBank }.joinWithLn { generateConstructorInitializer(it) }
 
     /** Generate constructor initializers for all reactor instantiations */
     fun generateInitializers(): String =

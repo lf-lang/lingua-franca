@@ -3,6 +3,8 @@ package org.lflang.generator.ts
 import org.lflang.ErrorReporter
 import org.lflang.TargetConfig
 import org.lflang.generator.PrependOperator
+import org.lflang.generator.getTargetInitializer
+import org.lflang.joinWithLn
 import org.lflang.lf.Parameter
 import org.lflang.lf.Reactor
 import java.util.*
@@ -15,34 +17,16 @@ import java.util.*
  * and code to register reactions. This generator also generates federate port action
  * registrations.
  */
-class TSConstructorGenerator (
-    private val tsGenerator: TSGenerator,
+class TSConstructorGenerator(
     private val errorReporter: ErrorReporter,
-    private val reactor : Reactor
+    private val reactor: Reactor
 ) {
-    private fun getInitializerList(param: Parameter): List<String> =
-        tsGenerator.getInitializerListW(param)
 
-    // Initializer functions
-    private fun getTargetInitializerHelper(param: Parameter,
-                                   list: List<String>): String {
-        return if (list.size == 0) {
-            errorReporter.reportError(param, "Parameters must have a default value!")
-        } else if (list.size == 1) {
-            list[0]
-        } else {
-            list.joinToString(", ", "[", "]")
-        }
-    }
-    private fun getTargetInitializer(param: Parameter): String {
-        return getTargetInitializerHelper(param, getInitializerList(param))
-    }
-    private fun initializeParameter(p: Parameter): String {
-        return """${p.name}: ${p.getTargetType()} = ${getTargetInitializer(p)}"""
-    }
+    private fun initializeParameter(p: Parameter): String =
+        "${p.name}: ${TSTypes.getTargetType(p)} = ${TSTypes.getTargetInitializer(p)}"
 
     private fun generateConstructorArguments(reactor: Reactor): String {
-        val arguments = LinkedList<String>()
+        val arguments = StringJoiner(", \n")
         if (reactor.isMain || reactor.isFederated) {
             arguments.add("timeout: TimeValue | undefined = undefined")
             arguments.add("keepAlive: boolean = false")
@@ -62,14 +46,13 @@ class TSConstructorGenerator (
             arguments.add("fail?: () => void")
         }
 
-        return arguments.joinToString(", \n")
+        return arguments.toString()
     }
 
-    private fun generateSuperConstructorCall(reactor: Reactor, isFederate: Boolean): String {
+    private fun generateSuperConstructorCall(reactor: Reactor, isFederate: Boolean): String =
         if (reactor.isMain) {
             if (isFederate) {
-                return with(PrependOperator) {
-                    """
+                """
                     |        var federateConfig = defaultFederateConfig;
                     |        if (__timeout !== undefined) {
                     |            federateConfig.executionTimeout = __timeout;
@@ -79,38 +62,26 @@ class TSConstructorGenerator (
                     |        federateConfig.keepAlive = __keepAlive;
                     |        super(federateConfig, success, fail);
                     """.trimMargin()
-                }
             } else {
-                return "super(timeout, keepAlive, fast, success, fail);"
+                "super(timeout, keepAlive, fast, success, fail);"
             }
+        } else {
+            "super(parent);"
         }
-        else {
-            return "super(parent);"
-        }
-    }
 
     // If the app is federated, register its
     // networkMessageActions with the RTIClient
-    private fun generateFederatePortActionRegistrations(networkMessageActions: List<String>): String {
-        val connectionInstantiations = LinkedList<String>()
-        for ((fedPortID, actionName) in networkMessageActions.withIndex()) {
-            val registration = """this.registerFederatePortAction(${fedPortID}, this.${actionName});"""
-            connectionInstantiations.add(registration)
+    private fun generateFederatePortActionRegistrations(networkMessageActions: List<String>): String =
+        networkMessageActions.withIndex().joinWithLn { (fedPortID, actionName) ->
+            "this.registerFederatePortAction($fedPortID, this.$actionName);"
         }
-        return connectionInstantiations.joinToString("\n")
-    }
 
-    /**
-     * Generate code for setting target configurations.
-     */
+    // Generate code for setting target configurations.
     private fun generateTargetConfigurations(targetConfig: TargetConfig): String {
-        val targetConfigurations = LinkedList<String>()
-        if ((reactor.isMain) &&
-            targetConfig.coordinationOptions.advance_message_interval != null) {
-            targetConfigurations.add(
-                "this.setAdvanceMessageInterval(${timeInTargetLanguage(targetConfig.coordinationOptions.advance_message_interval)})")
-        }
-        return targetConfigurations.joinToString("\n")
+        val interval = targetConfig.coordinationOptions.advance_message_interval
+        return if ((reactor.isMain) && interval != null) {
+            "this.setAdvanceMessageInterval(${interval.toTsTime()})"
+        } else ""
     }
 
     // Generate code for registering Fed IDs that are connected to
@@ -144,7 +115,7 @@ class TSConstructorGenerator (
         networkOutputControlReactionTrigger: String
     ): String {
         val connections = TSConnectionGenerator(reactor.connections, errorReporter)
-        val reactions = TSReactionGenerator(tsGenerator, errorReporter, reactor)
+        val reactions = TSReactionGenerator(errorReporter, reactor)
 
         return with(PrependOperator) {
             """

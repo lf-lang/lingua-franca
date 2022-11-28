@@ -54,6 +54,8 @@ public class CCmakeGenerator {
         )
     """;
 
+    public static final String MIN_CMAKE_VERSION = "3.19";
+
     private final FileConfig fileConfig;
     private final List<String> additionalSources;
     private final SetUpMainTarget setUpMainTarget;
@@ -115,7 +117,7 @@ public class CCmakeGenerator {
         additionalSources.addAll(this.additionalSources);
         cMakeCode.newLine();
 
-        cMakeCode.pr("cmake_minimum_required(VERSION 3.13)");
+        cMakeCode.pr("cmake_minimum_required(VERSION " + MIN_CMAKE_VERSION + ")");
         cMakeCode.pr("project("+executableName+" LANGUAGES C)");
 
         cMakeCode.newLine();
@@ -181,10 +183,20 @@ public class CCmakeGenerator {
 
             // If the LF program itself is threaded or if tracing is enabled, we need to define
             // NUMBER_OF_WORKERS so that platform-specific C files will contain the appropriate functions
-            cMakeCode.pr("# Set the number of workers to enable threading");
+            cMakeCode.pr("# Set the number of workers to enable threading/tracing");
             cMakeCode.pr("target_compile_definitions(${LF_MAIN_TARGET} PUBLIC NUMBER_OF_WORKERS="+targetConfig.workers+")");
             cMakeCode.newLine();
         }
+        
+        // Add additional flags so runtime can distinguish between multi-threaded and single-threaded mode
+        if (targetConfig.threading) {
+            cMakeCode.pr("# Set flag to indicate a multi-threaded runtime");
+            cMakeCode.pr("target_compile_definitions( ${LF_MAIN_TARGET} PUBLIC LF_MULTI_THREADED)");
+        } else {
+            cMakeCode.pr("# Set flag to indicate a single-threaded runtime");
+            cMakeCode.pr("target_compile_definitions( ${LF_MAIN_TARGET} PUBLIC LF_SINGLE_THREADED)");
+        }
+        cMakeCode.newLine();
 
         cMakeCode.pr("# Target definitions\n");
         targetConfig.compileDefinitions.forEach((key, value) -> cMakeCode.pr(

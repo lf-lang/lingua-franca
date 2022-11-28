@@ -332,11 +332,11 @@ Type:
 ;
 
 ArraySpec:
-    ofVariableLength?='[]' | '[' length=INT ']';
-    
+    '[' ( ofVariableLength?=']' | length=INT ']' );
+
 WidthSpec:
-    ofVariableLength?='[]' | '[' (terms+=WidthTerm) ('+' terms+=WidthTerm)* ']';
-    
+    '[' ( ofVariableLength?=']' | (terms+=WidthTerm) ('+' terms+=WidthTerm)* ']' );
+
 WidthTerm:
     width=INT
     | parameter=[Parameter]
@@ -502,7 +502,7 @@ Token:
     // Braces
     '(' | ')' | '{' | '}' |
     // Brackets
-    '[' | ']' | '<' | '>' | '[]' |
+    '[' | ']' | '<' | '>' |
     // Punctuation
     ':' | ';' | ',' | '.' | '::' |
     // Slashes
