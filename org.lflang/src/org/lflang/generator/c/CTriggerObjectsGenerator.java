@@ -389,9 +389,6 @@ public class CTriggerObjectsGenerator {
         for (ReactionInstance r : reactor.reactions) {
             if (currentFederate.contains(r.getDefinition())) {
                 foundOne = true;
-
-                // The most common case is that all runtime instances of the
-                // reaction have the same level and deadline
                 var levelSet = r.getLevels();
                 var deadlineSet = r.getInferredDeadlines();
 

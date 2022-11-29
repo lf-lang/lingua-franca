@@ -93,7 +93,10 @@ public class ReactionInstanceGraph extends PrecedenceGraph<ReactionInstance.Runt
             // throw new InvalidSourceException("Reactions form a cycle!");
         }
     }
-
+    /**
+     * This function rebuilds the graph and propagates and assigns deadlines
+     * to all reactions.
+     */
     public void rebuildAndAssignDeadlines() {
         this.clear();
         addNodesAndEdges(main);
