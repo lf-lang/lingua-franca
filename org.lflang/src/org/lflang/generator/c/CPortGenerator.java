@@ -174,11 +174,8 @@ public class CPortGenerator {
         return input.isMultiport() ?
                 String.join("\n",
                     "for (int i = 0; i < "+input.getWidth()+"; i++) {",
-                    "    _lf_tokens_with_ref_count[_lf_tokens_with_ref_count_count].token",
+                    "    _lf_tokens_with_ref_count[_lf_tokens_with_ref_count_count]",
                     "            = &"+portRef+"[i]->token;",
-                    "    _lf_tokens_with_ref_count[_lf_tokens_with_ref_count_count].status",
-                    "            = (port_status_t*)&"+portRef+"[i]->is_present;",
-                    "    _lf_tokens_with_ref_count[_lf_tokens_with_ref_count_count++].reset_is_present = false;",
                     "};"
                 ) :
                 initializeStartTimeStepTableForPort(portRef);
@@ -188,9 +185,8 @@ public class CPortGenerator {
         String portRef
     ) {
         return String.join("\n",
-            "_lf_tokens_with_ref_count[_lf_tokens_with_ref_count_count].token = &"+portRef+"->token;",
-            "_lf_tokens_with_ref_count[_lf_tokens_with_ref_count_count].status = (port_status_t*)&"+portRef+"->is_present;",
-            "_lf_tokens_with_ref_count[_lf_tokens_with_ref_count_count++].reset_is_present = false;"
+            "// Add port "+portRef+" to array _lf_tokens_with_ref_count.",
+            "_lf_tokens_with_ref_count[_lf_tokens_with_ref_count_count] = &"+portRef+"->token;"
         );
     }
 

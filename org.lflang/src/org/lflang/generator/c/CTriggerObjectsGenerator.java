@@ -88,7 +88,7 @@ public class CTriggerObjectsGenerator {
             // Allocate the initial (before mutations) array of pointers to tokens.
             code.pr(String.join("\n",
                 "_lf_tokens_with_ref_count_size = "+startTimeStepTokens+";",
-                "_lf_tokens_with_ref_count = (token_present_t*)calloc("+startTimeStepTokens+", sizeof(token_present_t));",
+                "_lf_tokens_with_ref_count = (lf_token_t***)calloc("+startTimeStepTokens+", sizeof(lf_token_t**));",
                 "if (_lf_tokens_with_ref_count == NULL) lf_print_error_and_exit(" + addDoubleQuotes("Out of memory!") + ");"
             ));
         }
@@ -960,7 +960,10 @@ public class CTriggerObjectsGenerator {
                 // 'sizeof(void)', which some compilers reject.
                 var size = (rootType.equals("void")) ? "0" : "sizeof("+rootType+")";
                 code.startChannelIteration(output);
-                code.pr(CUtil.portRef(output)+".token = _lf_create_token("+size+");");
+                code.pr(String.join("\n",
+                        CUtil.portRef(output)+".token = _lf_create_token("+size+");",
+                        "_lf_tokens_with_ref_count[_lf_tokens_with_ref_count_count] = &"+CUtil.portRef(output)+".token;"
+                ));
                 code.endChannelIteration(output);
             }
         }

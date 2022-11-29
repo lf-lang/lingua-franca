@@ -536,7 +536,7 @@ public class CReactionGenerator {
         // If the input has not been declared mutable, then this is a pointer
         // to the upstream output. Otherwise, it is a copy of the upstream output,
         // which nevertheless points to the same token and value (hence, as done
-        // below, we have to use writable_copy()). There are 8 cases,
+        // below, we have to use lf_writable_copy()). There are 8 cases,
         // depending on whether the input is mutable, whether it is a multiport,
         // and whether it is a token type.
         // Easy case first.
@@ -570,7 +570,7 @@ public class CReactionGenerator {
                 structType+"* "+inputName+" = &_lf_tmp_"+inputName+";",
                 "if ("+inputName+"->is_present) {",
                 "    "+inputName+"->length = "+inputName+"->token->length;",
-                "    "+inputName+"->token = _lf_writable_copy("+inputName+"->token);",
+                "    "+inputName+"->token = lf_writable_copy("+inputName+"->token);",
                 "    "+inputName+"->value = ("+types.getTargetType(inputType)+")"+inputName+"->token->value;",
                 "} else {",
                 "    "+inputName+"->length = 0;",
@@ -593,15 +593,7 @@ public class CReactionGenerator {
                 "    if ("+inputName+"[i]->is_present) {",
                 "        "+inputName+"[i]->length = "+inputName+"[i]->token->length;",
                 "        lf_token_t* _lf_input_token = "+inputName+"[i]->token;",
-                "        "+inputName+"[i]->token = writable_copy(_lf_input_token);",
-                "        if ("+inputName+"[i]->token != _lf_input_token) {",
-                "            // A copy of the input token has been made.",
-                "            // This needs to be reference counted.",
-                "            "+inputName+"[i]->token->ref_count = 1;",
-                "            // Repurpose the next_free pointer on the token to add to the list.",
-                "            "+inputName+"[i]->token->next_free = _lf_more_tokens_with_ref_count;",
-                "            _lf_more_tokens_with_ref_count = "+inputName+"[i]->token;",
-                "        }",
+                "        "+inputName+"[i]->token = lf_writable_copy(_lf_input_token);",
                 "        "+inputName+"[i]->value = ("+types.getTargetType(inputType)+")"+inputName+"[i]->token->value;",
                 "    } else {",
                 "        "+inputName+"[i]->length = 0;",

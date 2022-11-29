@@ -298,11 +298,9 @@ import com.google.common.collect.Iterables;
  *      seldom present because only fields that have been set to true need to be
  *      reset to false.
  *
- * * _lf_tokens_with_ref_count: An array of pointers to structs that point to lf_token_t
+ * * _lf_tokens_with_ref_count: An array of pointers to pointers to lf_token_t
  *   objects, which carry non-primitive data types between reactors. This is used
- *   by the _lf_start_time_step() function to decrement reference counts, if necessary,
- *   at the conclusion of a time step. Then the reference count reaches zero, the
- *   memory allocated for the lf_token_t object will be freed.  The size of this
+ *   to free memory for tokens used as template tokens.  The size of this
  *   array is stored in the _lf_tokens_with_ref_count_size variable.
  *
  * * _lf_shutdown_triggers: An array of pointers to trigger_t structs for shutdown

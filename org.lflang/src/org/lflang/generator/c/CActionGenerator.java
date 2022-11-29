@@ -87,9 +87,7 @@ public class CActionGenerator {
         return String.join("\n",
             selfStruct+"->_lf__"+actionName+".token = _lf_create_token("+payloadSize+");",
             selfStruct+"->_lf__"+actionName+".status = absent;",
-            "_lf_tokens_with_ref_count[_lf_tokens_with_ref_count_count].token = &"+selfStruct+"->_lf__"+actionName+".token;",
-            "_lf_tokens_with_ref_count[_lf_tokens_with_ref_count_count].status = &"+selfStruct+"->_lf__"+actionName+".status;",
-            "_lf_tokens_with_ref_count[_lf_tokens_with_ref_count_count++].reset_is_present = true;"
+            "_lf_tokens_with_ref_count[_lf_tokens_with_ref_count_count] = &"+selfStruct+"->_lf__"+actionName+".token;"
         );
     }
 
