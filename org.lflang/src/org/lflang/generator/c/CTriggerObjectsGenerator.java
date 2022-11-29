@@ -431,7 +431,7 @@ public class CTriggerObjectsGenerator {
                         CUtil.reactionRef(r)+".chain_id = "+r.chainID+";",
                         "// index is the OR of levels["+runtimeIdx+"] and ",
                         "// deadlines["+runtimeIdx+"] shifted left 16 bits.",
-                        CUtil.reactionRef(r)+".index = ("+inferredDeadline+" << 16) | " +
+                        CUtil.reactionRef(r)+".index = ("+inferredDeadline.toNanoSeconds()+" << 16) | " +
                             r.uniqueID()+"_levels["+runtimeIdx+"];"
                     ));
 
