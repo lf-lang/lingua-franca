@@ -2571,6 +2571,9 @@ public class CGenerator extends GeneratorBase {
                     errorReporter.reportError("Main reactor has causality cycles. Skipping code generation.");
                     return;
                 }
+                if (hasDeadlines) {
+                    this.main.assignDeadlines();
+                }
                 // Inform the run-time of the breadth/parallelism of the reaction graph
                 var breadth = reactionInstanceGraph.getBreadth();
                 if (breadth == 0) {

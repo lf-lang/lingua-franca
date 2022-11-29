@@ -92,14 +92,13 @@ public class ReactionInstanceGraph extends PrecedenceGraph<ReactionInstance.Runt
             // Do not throw an exception so that cycle visualization can proceed.
             // throw new InvalidSourceException("Reactions form a cycle!");
         }
-        // FIXME: Is it OK to also assign deadlines here?
-        // Also do the traversal in the opposite order to calculate the deadlines
+    }
+
+    public void rebuildAndAssignDeadlines() {
         this.clear();
         addNodesAndEdges(main);
-        // Assign a level to each reaction. 
-        // If there are cycles present in the graph, it will be detected here.
         assignInferredDeadlines();
-
+        this.clear();
     }
     
     /*

@@ -343,10 +343,15 @@ public class CTriggerObjectsGenerator {
     ) {
         var foundOne = false;
         // Force calculation of levels if it has not been done.
+        // FIXME: Why is this repeated all over? Are there scenarios where we haven't assigned levels yet?
         reactor.assignLevels();
 
-        // If any reaction has multiple levels, because it is in a bank of reactors
-        // then we need to create an array with the levels and deadlines here
+        // We handle four different scenarios
+        //  1) A reactionInstance has 1 level and 1 deadline
+        //  2) A reactionInstance has 1 level but multiple deadlines
+        //  3) A reaction instance has multiple levels but all have the same deadline
+        //  4) Multple deadlines and levels
+
         var prolog = new CodeBuilder();
         var epilog = new CodeBuilder();
         for (ReactionInstance r : reactor.reactions) {
@@ -354,19 +359,26 @@ public class CTriggerObjectsGenerator {
                 var levelSet = r.getLevels();
                 var deadlineSet = r.getInferredDeadlines();
 
-                if (levelSet.size() != 1 || deadlineSet.size() != 1) {
+                if (levelSet.size() > 1 || deadlineSet.size() > 1) {
+                    // Scenario 2-4
                     if (prolog.length() == 0) {
                         prolog.startScopedBlock();
                         epilog.endScopedBlock();
                     }
-                    // Get inferredDeadlines and map to string representations
+                }
+                if (deadlineSet.size() > 1) {
+                    // Scenario (2) or (4)
                     var deadlines = r.getInferredDeadlinesList().stream()
                         .map(elt -> ("0x" + Long.toString(elt.toNanoSeconds(), 16) + "LL"))
                         .collect(Collectors.toList());
 
+                    prolog.pr("interval_t "+r.uniqueID()+"_inferred_deadlines[] = { "+joinObjects(deadlines, ", ")+" };");
+                }
+
+                if (levelSet.size() > 1) {
+                    // Scenario (3) or (4)
                     // Cannot use the above set of levels because it is a set, not a list.
                     prolog.pr("int "+r.uniqueID()+"_levels[] = { "+joinObjects(r.getLevelsList(), ", ")+" };");
-                    prolog.pr("interval_t "+r.uniqueID()+"_inferred_deadlines[] = { "+joinObjects(deadlines, ", ")+" };");
                 }
             }
         }
@@ -382,16 +394,15 @@ public class CTriggerObjectsGenerator {
                 // reaction have the same level and deadline
                 var levelSet = r.getLevels();
                 var deadlineSet = r.getInferredDeadlines();
-                if (levelSet.size() == 1 && deadlineSet.size() == 1) {
-                    var level = -1;
-                    for (Integer l : levelSet) {
-                        level = l;
-                    }
 
-                    var inferredDeadline = TimeValue.MAX_VALUE;
-                    for (TimeValue t : deadlineSet) {
-                        inferredDeadline = t;
-                    }
+                // Get the head of the associated lists. To avoid duplication in
+                //  several of the following cases
+                var level = r.getLevelsList().get(0);
+                var inferredDeadline = r.getInferredDeadlinesList().get(0);
+                var runtimeIdx =CUtil.runtimeIndex(r.getParent());
+
+                if (levelSet.size() == 1 && deadlineSet.size() == 1) {
+                    // Scenario (1)
 
                     // xtend doesn't support bitwise operators...
                     var indexValue = inferredDeadline.toNanoSeconds() << 16 | level;
@@ -404,11 +415,28 @@ public class CTriggerObjectsGenerator {
                         "// deadline "+ inferredDeadline.toNanoSeconds()+" shifted left 16 bits.",
                         CUtil.reactionRef(r)+".index = "+reactionIndex+";"
                     ));
-                } else {
-                    // The general case where the different reactions in the bank
-                    //  have different level or deadline and thus need its own index
-                    var runtimeIdx =CUtil.runtimeIndex(r.getParent());
+                } else if (levelSet.size() == 1 && deadlineSet.size() > 1) {
+                    // Scenario 2
+                    temp.pr(String.join("\n",
+                        CUtil.reactionRef(r)+".chain_id = "+r.chainID+";",
+                        "// index is the OR of levels["+runtimeIdx+"] and ",
+                        "// deadlines["+runtimeIdx+"] shifted left 16 bits.",
+                        CUtil.reactionRef(r)+".index = ("+r.uniqueID()+"_inferred_deadlines["+runtimeIdx+"] << 16) | " +
+                            level+";"
+                    ));
 
+                } else if (levelSet.size() > 1 && deadlineSet.size() == 1) {
+                    // Scenarion (3)
+                    temp.pr(String.join("\n",
+                        CUtil.reactionRef(r)+".chain_id = "+r.chainID+";",
+                        "// index is the OR of levels["+runtimeIdx+"] and ",
+                        "// deadlines["+runtimeIdx+"] shifted left 16 bits.",
+                        CUtil.reactionRef(r)+".index = ("+inferredDeadline+" << 16) | " +
+                            r.uniqueID()+"_levels["+runtimeIdx+"];"
+                    ));
+
+                } else if (levelSet.size() > 1 && deadlineSet.size() > 1) {
+                    // Scenario (4)
                     temp.pr(String.join("\n",
                         CUtil.reactionRef(r)+".chain_id = "+r.chainID+";",
                         "// index is the OR of levels["+runtimeIdx+"] and ",

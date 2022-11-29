@@ -198,6 +198,12 @@ public abstract class GeneratorBase extends AbstractLFValidator {
      */
     public boolean hasModalReactors = false;
 
+    /**
+     * Indicates whether the program has any deadlines and thus
+     * needs to propagate deadlines through the reaction instance graph
+     */
+    public boolean hasDeadlines = false;
+
     // //////////////////////////////////////////
     // // Target properties, if they are included.
     /**

@@ -351,6 +351,7 @@ public class ReactionInstance extends NamedInstance<Reaction> {
     public Set<Integer> getLevels() {
         Set<Integer> result = new LinkedHashSet<>();
         // Force calculation of levels if it has not been done.
+        // FIXME: Is it necessary to repeat this everywhere?
         parent.assignLevels();
         for (Runtime runtime : runtimeInstances) {
             result.add(runtime.level);
