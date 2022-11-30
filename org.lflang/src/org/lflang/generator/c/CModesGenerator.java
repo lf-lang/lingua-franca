@@ -63,7 +63,8 @@ public class CModesGenerator {
                 "_lf_self_base->_lf__mode_state.initial_mode = &self->_lf__modes["+initialMode+"];",
                 "_lf_self_base->_lf__mode_state.current_mode = _lf_self_base->_lf__mode_state.initial_mode;",
                 "_lf_self_base->_lf__mode_state.next_mode = NULL;",
-                "_lf_self_base->_lf__mode_state.mode_change = no_transition;"
+                "_lf_self_base->_lf__mode_state.mode_change = no_transition;",
+                "_lf_self_base->_lf__mode_state.self = _lf_self_base;"
             ));
         }
     }
@@ -124,7 +125,6 @@ public class CModesGenerator {
         if (parentMode != null) {
             var parentModeRef = "&"+CUtil.reactorRef(parentMode.getParent())+"->_lf__modes["+parentMode.getParent().modes.indexOf(parentMode)+"]";
             code.pr("// Setup relation to enclosing mode");
-    
             // If this reactor does not have its own modes, all reactions must be linked to enclosing mode
             if (instance.modes.isEmpty()) {
                 int i = 0;
@@ -195,6 +195,28 @@ public class CModesGenerator {
             "        _lf_timer_triggers, ",
             "        _lf_timer_triggers_size",
             "    );",
+            "}"
+        );
+    }
+    
+    /**
+     * Generate function for getting reactor_mode_state_t array and its length
+     *
+     * @param hasModalReactors True if there are modal model reactors, false otherwise
+     */
+    public static String generateLfModeGetTransitioningReactors(
+        boolean hasModalReactors
+    ) {
+        if (!hasModalReactors) {
+            return "";
+        }
+        return String.join("\n",
+            "int _lf_mode_get_transitioning_reactors(void *return_vec) {",
+            "   return _lf_mode_collect_transitioning_reactors(",
+            "       &_lf_modal_reactor_states[0],",
+            "       _lf_modal_reactor_states_size,",
+            "       return_vec",
+            "       ); ",
             "}"
         );
     }

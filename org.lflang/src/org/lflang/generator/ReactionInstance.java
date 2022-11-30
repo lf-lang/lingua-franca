@@ -43,6 +43,7 @@ import org.lflang.lf.Timer;
 import org.lflang.lf.TriggerRef;
 import org.lflang.lf.VarRef;
 import org.lflang.lf.Variable;
+import org.lflang.lf.Mode;
 
 /**
  * Representation of a compile-time instance of a reaction.
@@ -177,9 +178,13 @@ public class ReactionInstance extends NamedInstance<Reaction> {
                     (Action)variable);
                 this.effects.add(actionInstance);
                 actionInstance.dependsOnReactions.add(this);
+            } else if (variable instanceof Mode) {
+                var modeInstance = parent.lookupModeInstance(
+                    (Mode)variable);
+                this.modeEffects.add(modeInstance);
             } else {
-                // Effect is either a mode or an unresolved reference.
-                // Do nothing, transitions will be set up by the ModeInstance.
+                // Effect is an unresolved reference.
+                // Do nothing
             }
         }
         // Create a deadline instance if one has been defined.
@@ -209,6 +214,10 @@ public class ReactionInstance extends NamedInstance<Reaction> {
      */
     public Set<TriggerInstance<? extends Variable>> effects = new LinkedHashSet<>();
 
+    /**
+     * The modes that this reaction may trigger transition to
+     */
+    public Set<ModeInstance> modeEffects = new LinkedHashSet<>();
     /**
      * The ports, actions, or timers that this reaction is triggered by or uses.
      */
@@ -467,7 +476,13 @@ public class ReactionInstance extends NamedInstance<Reaction> {
         if (this.parent.isGeneratedDelay()) {
             return this.let = TimeValue.ZERO;
         }
+
+        // If we have any effects triggering mode transition we have zero LET
+        if (!modeEffects.isEmpty()) {
+            return this.let = TimeValue.ZERO;
+        }
         
+        // If no mode effects or other effects, we have maximum LET
         if (effects.isEmpty()) {
             return this.let = TimeValue.MAX_VALUE;
         }

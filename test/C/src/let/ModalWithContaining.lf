@@ -1,0 +1,53 @@
+// Test that a LET reaction within a Reactor contained in a mode
+//  blocks the surrounding mode from changing. Tested by observing physical time
+target C {
+    scheduler: LET,
+    build: "bash replaceReactorC.sh",
+    workers: 2,
+    timeout: 200 msec
+};
+
+reactor LET(offset:time(0)) {
+    timer t(offset, 100 msec)
+    logical action let(50 msec): int
+
+    reaction(t) -> let {=
+        instant_t physical_time = lf_time_physical();
+        while (lf_time_physical() < physical_time + MSEC(50)) {
+            // Do nothing.
+        }
+        lf_schedule_int(let, 0, 42);
+    =} deadline(40 msec) {=
+        lf_print_error_and_exit("Failed to take advantage of LET");
+    =}
+}
+
+reactor Modal {
+    output out: int
+    timer t(20 msec)
+
+    initial mode One {
+        reset state count: int(42);
+        r1 = new LET(offset=10msec)
+
+        reaction(t) -> reset(Two) {=
+            lf_set_mode(Two);
+        =}
+
+    } 
+
+    mode Two {
+        timer t2(0)
+        reaction(t2) {=
+            interval_t phy = lf_time_physical_elapsed();
+            if (phy < MSEC(60)) {
+                lf_print_error_and_exit("ERROR: Did mode change while LET reaction executed");
+            }
+            printf("Mode Two entered at t=%li\n",phy);
+        =}
+    }
+}
+
+main reactor {
+    let = new Modal()
+}
