@@ -51,15 +51,18 @@ public class LFStandaloneModule implements Module {
     // for @Provides, which would allow us to bind this field.
     // So we directly implement Module, instead of extending eg LFRuntimeModule.
     private final ReportingBackend helper;
+    private final Io io;
 
-    public LFStandaloneModule(ReportingBackend helper) {
+    public LFStandaloneModule(ReportingBackend helper, Io io) {
         this.helper = Objects.requireNonNull(helper);
+        this.io = Objects.requireNonNull(io);
     }
 
     @Override
     public void configure(Binder binder) {
         binder.bind(ErrorReporter.class).to(StandaloneErrorReporter.class);
         binder.bind(ReportingBackend.class).toInstance(helper);
+        binder.bind(Io.class).toInstance(io);
         binder.bind(ValidationMessageAcceptor.class).to(StandaloneIssueAcceptor.class);
         // This is required to force the ResourceValidator to
         // use a new registry instance (which is reused by the injector as a singleton).

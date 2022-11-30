@@ -595,7 +595,7 @@ object RustModelBuilder {
                     body = n.code.toText(),
                     isStartup = n.triggers.any { it is BuiltinTriggerRef && it.type == BuiltinTrigger.STARTUP },
                     isShutdown = n.triggers.any { it is BuiltinTriggerRef && it.type == BuiltinTrigger.SHUTDOWN },
-                    debugLabel = AttributeUtils.label(n),
+                    debugLabel = AttributeUtils.getLabel(n),
                     loc = n.locationInfo().let {
                         // remove code block
                         it.copy(lfText = it.lfText.replace(TARGET_BLOCK_R, "{= ... =}"))
