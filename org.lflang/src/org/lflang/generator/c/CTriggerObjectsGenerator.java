@@ -349,7 +349,7 @@ public class CTriggerObjectsGenerator {
         //  1) A reactionInstance has 1 level and 1 deadline
         //  2) A reactionInstance has 1 level but multiple deadlines
         //  3) A reaction instance has multiple levels but all have the same deadline
-        //  4) Multple deadlines and levels
+        //  4) Multiple deadlines and levels
 
         var prolog = new CodeBuilder();
         var epilog = new CodeBuilder();
