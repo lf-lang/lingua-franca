@@ -343,7 +343,6 @@ public class CTriggerObjectsGenerator {
     ) {
         var foundOne = false;
         // Force calculation of levels if it has not been done.
-        // FIXME: Why is this repeated all over? Are there scenarios where we haven't assigned levels yet?
         reactor.assignLevels();
 
         // We handle four different scenarios
