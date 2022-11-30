@@ -21,7 +21,7 @@ if (name.endsWith(".tests")) {
 			xtendOutputDir = 'xtend-gen'
 			resources {
 				srcDirs = ['src', 'src-gen']
-				exclude 'src/lib/rs' // rust runtime does not need to be packed here.
+				exclude 'src/lib/rs/reactor-rust' // rust runtime does not need to be packed here.
 			}
 		}
 		test {
