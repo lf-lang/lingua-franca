@@ -25,6 +25,11 @@ jobs:
     uses: lf-lang/lingua-franca/.github/workflows/build.yml@master
     needs: cancel
 
+  # Check that automatic code formatting works.
+  format:
+    uses: lf-ling/lingua-franca/.github/workflows/format.yml@test-spotless
+    needs: cancel
+
   # Run the unit tests.
   unit-tests:
     uses: lf-lang/lingua-franca/.github/workflows/unit-tests.yml@master
