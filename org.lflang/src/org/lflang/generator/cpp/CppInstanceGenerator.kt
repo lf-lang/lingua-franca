@@ -28,7 +28,6 @@ import org.lflang.isBank
 import org.lflang.isGeneric
 import org.lflang.joinWithLn
 import org.lflang.lf.Instantiation
-import org.lflang.lf.Parameter
 import org.lflang.lf.Reactor
 import org.lflang.reactor
 import org.lflang.toText
@@ -55,28 +54,26 @@ class CppInstanceGenerator(
             "std::unique_ptr<$cppType> $name;"
     }
 
-    private fun Instantiation.getParameterValue(param: Parameter, isBankInstantiation: Boolean = false): String? =
-        if (isBankInstantiation && param.name == "bank_index") {
-            // If we are in a bank instantiation (instanceId != null), then assign the instanceId
-            // to the parameter named "bank_index"
-            """__lf_idx"""
-        } else {
-            CppTypes.getCppArgumentForParameter(param, this)
+    private fun Instantiation.getParameterStruct() {
+        // If this is a bank instantiation and the instantiated reactor defines a "bank_index" parameter, we have to set
+        // bank_index here explicitly.
+        val prefix = if (isBank && reactor.hasBankIndexParameter()) "{.bank_index = __lf_idx, " else "{"
+        parameters.joinToString(", ", prefix, "}") {
+            val expr = it.rhs.exprs[0]
+            assert(!it.rhs.isBraces && !it.rhs.isParens && it.rhs.exprs.size == 0)
+            ".${it.lhs.name} = $expr"
         }
+    }
 
     private fun generateInitializer(inst: Instantiation): String {
         assert(!inst.isBank)
-        val params = inst.reactor.parameters.mapNotNull { inst.getParameterValue(it, isBankInstantiation = false) }
-        val paramsCode = if (params.isEmpty()) "" else params.joinToString(", ", prefix = ", ")
-        return """, ${inst.name}(std::make_unique<${inst.cppType}>("${inst.name}", this$paramsCode))"""
+        return """, ${inst.name}(std::make_unique<${inst.cppType}>("${inst.name}", this${inst.getParameterStruct()}))"""
     }
 
     private fun generateConstructorInitializer(inst: Instantiation): String {
         with(inst) {
             assert(isBank)
-            val params = inst.reactor.parameters.mapNotNull { inst.getParameterValue(it, isBankInstantiation = true) }
-            val paramsCode = if (params.isEmpty()) "" else params.joinToString(", ", prefix = ", ")
-            val emplaceLine = "$name.emplace_back(std::make_unique<$cppType>(__lf_inst_name, this$paramsCode));"
+            val emplaceLine = "$name.emplace_back(std::make_unique<$cppType>(__lf_inst_name, this, ${inst.getParameterStruct()});"
 
             val width = inst.widthSpec.toCppCode()
             return """

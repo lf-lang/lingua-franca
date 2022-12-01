@@ -172,3 +172,5 @@ val TargetProperty.LogLevel.severity
         TargetProperty.LogLevel.LOG   -> 4
         TargetProperty.LogLevel.DEBUG -> 4
     }
+
+fun Reactor.hasBankIndexParameter() = parameters.firstOrNull { it.name == "bank_index" } != null

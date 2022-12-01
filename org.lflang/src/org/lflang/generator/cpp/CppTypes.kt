@@ -27,12 +27,8 @@ package org.lflang.generator.cpp
 import org.lflang.InferredType
 import org.lflang.TimeValue
 import org.lflang.generator.TargetTypes
-import org.lflang.inferredType
 import org.lflang.lf.Initializer
-import org.lflang.lf.Instantiation
-import org.lflang.lf.Parameter
 import org.lflang.lf.ParameterReference
-import org.lflang.lf.StateVar
 
 object CppTypes : TargetTypes {
 
@@ -68,38 +64,6 @@ fun CppTypes.getCppInitializer(init: Initializer?, inferredType: InferredType): 
         val (prefix, postfix) = if (init.isBraces) Pair("{", "}") else Pair("(", ")")
         init.exprs.joinToString(", ", prefix, postfix) {
             getTargetExpr(it, inferredType.componentType)
-        }
-    }
-}
-
-/** Returns an initializer in the form `int(2)` or `Class {1,2}`. */
-fun CppTypes.getCppStandaloneInitializer(init: Initializer?, inferredType: InferredType): String {
-    if (init == null) {
-        return getMissingExpr(inferredType)
-    }
-
-    return buildString {
-        append(getTargetType(inferredType)) // treat as ctor call
-        val (prefix, postfix) = if (init.isBraces) Pair("{", "}") else Pair("(", ")")
-        init.exprs.joinTo(this, ", ", prefix, postfix) {
-            getTargetExpr(it, inferredType.componentType)
-        }
-    }
-}
-
-/** Returns an initializer in the form `int(2)` or `Class {1,2}`. */
-fun CppTypes.getCppArgumentForParameter(param: Parameter, inst: Instantiation): String? {
-    // If the instantiation mentions an argument, then use it verbatim.
-    // note: only the = syntax is handled now. Missing equals is ignored.
-    // = (e*) generates a parenthesized expr: TODO mandate exactly one expr (later)
-    // = {e*} generates an initialization list
-    val explicitArgument = inst.parameters.firstOrNull { it.lhs == param }?.rhs ?: return null
-
-    return buildString {
-        // append(getTargetType(param.inferredType)) // treat as ctor call
-        val (prefix, postfix) = if (explicitArgument.isBraces) Pair("{", "}") else Pair("(", ")")
-        explicitArgument.exprs.joinTo(this, ", ", prefix, postfix) {
-            getTargetExpr(it, param.inferredType.componentType)
         }
     }
 }
