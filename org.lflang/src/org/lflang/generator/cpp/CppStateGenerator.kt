@@ -42,6 +42,6 @@ class CppStateGenerator(private val reactor: Reactor) {
     fun generateInitializers(): String =
         reactor.stateVars.filter { it.isInitialized }
             .joinWithLn(prefix = "// state variables\n") {
-                ", " + CppTypes.getCppInitializerList(it)
+                ", " + CppTypes.getCppInitializer(it.init, it.inferredType)
             }
 }

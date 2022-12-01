@@ -55,20 +55,16 @@ object CppTypes : TargetTypes {
 }
 
 /**
- * Returns the variable initializer used in ctors. Eg returns `fieldName(1)`.
+ * Returns a C++ variable initializer.
  */
-fun CppTypes.getCppInitializerList(state: StateVar): String {
-    val init: Initializer? = state.init
-    val inferredType: InferredType = state.inferredType
-    return buildString {
-        append(state.name)
-        if (init == null) {
-            append("/*missing initializer*/")
-        } else {
-            val (prefix, postfix) = if (init.isBraces) Pair("{", "}") else Pair("(", ")")
-            init.exprs.joinTo(this, ", ", prefix, postfix) {
-                getTargetExpr(it, inferredType.componentType)
-            }
+fun CppTypes.getCppInitializer(init: Initializer?, inferredType: InferredType): String {
+    return if (init == null) {
+        "/*uninitialized*/"
+    } else {
+        assert(init.isBraces || init.isParens)
+        val (prefix, postfix) = if (init.isBraces) Pair("{", "}") else Pair("(", ")")
+        init.exprs.joinToString(", ", prefix, postfix) {
+            getTargetExpr(it, inferredType.componentType)
         }
     }
 }
