@@ -30,7 +30,6 @@ import org.lflang.lf.Array;
 import org.lflang.lf.ArraySpec;
 import org.lflang.lf.Assignment;
 import org.lflang.lf.AttrParm;
-import org.lflang.lf.AttrParmValue;
 import org.lflang.lf.Attribute;
 import org.lflang.lf.BuiltinTriggerRef;
 import org.lflang.lf.Code;
@@ -52,7 +51,6 @@ import org.lflang.lf.Method;
 import org.lflang.lf.MethodArgument;
 import org.lflang.lf.Mode;
 import org.lflang.lf.Model;
-import org.lflang.lf.Mutation;
 import org.lflang.lf.NamedHost;
 import org.lflang.lf.Output;
 import org.lflang.lf.Parameter;
@@ -289,24 +287,7 @@ public class ToLf extends LfSwitch<MalleableString> {
         // (name=ID '=')? value=AttrParmValue;
         var builder = new Builder();
         if (object.getName() != null) builder.append(object.getName()).append(" = ");
-        return builder.append(doSwitch(object.getValue())).get();
-    }
-
-    @Override
-    public MalleableString caseAttrParmValue(AttrParmValue object) {
-        // str=STRING
-        //  | int=SignedInt
-        //  | bool=Boolean
-        //  | float=SignedFloat
-        if (object.getStr() != null) {
-            return MalleableString.anyOf(StringUtil.addDoubleQuotes(object.getStr()));
-        }
-        if (object.getInt() != null) return MalleableString.anyOf(object.getInt());
-        if (object.getBool() != null) return MalleableString.anyOf(object.getBool());
-        if (object.getFloat() != null) return MalleableString.anyOf(object.getFloat());
-        throw new IllegalArgumentException(
-            "The attributes of an AttrParmValue should not all be null."
-        );
+        return builder.append(object.getValue()).get();
     }
 
     @Override
@@ -453,7 +434,6 @@ public class ToLf extends LfSwitch<MalleableString> {
             List.of(
                 object.getReactions(),
                 object.getMethods(),
-                object.getMutations(),
                 object.getModes()
             ),
             true
@@ -653,7 +633,11 @@ public class ToLf extends LfSwitch<MalleableString> {
         // (deadline=Deadline)?
         Builder msb = new Builder();
         addAttributes(msb, object::getAttributes);
-        msb.append("reaction");
+        if (object.isMutation()) {
+            msb.append("mutation");
+        } else {
+            msb.append("reaction");
+        }
         msb.append(list(true, object.getTriggers()));
         msb.append(list(", ", " ", "", true, false, object.getSources()));
         if (!object.getEffects().isEmpty()) {
@@ -714,17 +698,6 @@ public class ToLf extends LfSwitch<MalleableString> {
             .get();
     }
 
-    @Override
-    public MalleableString caseMutation(Mutation object) {
-        // ('mutation')
-        // ('(' (triggers+=TriggerRef (',' triggers+=TriggerRef)*)? ')')?
-        // (sources+=VarRef (',' sources+=VarRef)*)?
-        // ('->' effects+=[VarRef] (',' effects+=[VarRef])*)?
-        // code=Code
-        return new Builder()
-            .append("mutation").append(list(true, object.getTriggers()))
-            .get();
-    }
 
     @Override
     public MalleableString casePreamble(Preamble object) {

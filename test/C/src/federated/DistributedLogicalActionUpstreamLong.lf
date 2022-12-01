@@ -17,7 +17,7 @@ reactor WithLogicalAction {
 
     reaction(startup, act) -> act, out {=
         SET(out, self->counter);
-        schedule_int(act, USEC(50), self->counter++);
+        lf_schedule_int(act, USEC(50), self->counter++);
     =}
 }
 

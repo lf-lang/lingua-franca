@@ -27,6 +27,7 @@ package org.lflang.generator.rust
 import org.lflang.generator.CodeMap
 import org.lflang.generator.PrependOperator
 import org.lflang.generator.rust.RustEmitter.generateRustProject
+import org.lflang.joinWithLn
 import org.lflang.util.FileUtil
 import java.nio.file.Files
 import java.nio.file.Path
@@ -95,7 +96,7 @@ object RustEmitter : RustEmitterBase() {
             """
             |${generatedByComment("//")}
             |
-${"         |"..gen.reactors.joinToString("\n") { it.modDecl() }}
+${"         |"..gen.reactors.joinWithLn { it.modDecl() }}
             |
         """.trimMargin()
         }

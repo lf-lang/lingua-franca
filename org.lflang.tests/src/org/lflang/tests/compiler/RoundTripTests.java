@@ -64,7 +64,7 @@ public class RoundTripTests {
                 smallLineLength,
                 squishedTestCase
             );
-            throw new junit.framework.AssertionFailedError(String.format(
+            throw new AssertionError(String.format(
                 "The reformatted version of %s was not equivalent to the original file.",
                 file.getFileName()
             ));

@@ -26,6 +26,7 @@ package org.lflang.generator.cpp
 
 import org.lflang.inferredType
 import org.lflang.isMultiport
+import org.lflang.joinWithLn
 import org.lflang.lf.Input
 import org.lflang.lf.Output
 import org.lflang.lf.Port
@@ -53,7 +54,24 @@ class CppPortGenerator(private val reactor: Reactor) {
 
             val dataType = inferredType.cppType
             return if (isMultiport) {
-                "std::vector<$portType<$dataType>>"
+                "reactor::ModifableMultiport<$portType<$dataType>>"
+            } else {
+                "$portType<$dataType>"
+            }
+        }
+
+    /** Get the C++ interface type for the receiving port. */
+    val Port.cppInterfaceType: String
+        get() {
+            val portType = when (this) {
+                is Input  -> "reactor::Input"
+                is Output -> "reactor::Output"
+                else      -> throw AssertionError()
+            }
+
+            val dataType = inferredType.cppType
+            return if (isMultiport) {
+                "reactor::Multiport<$portType<$dataType>>"
             } else {
                 "$portType<$dataType>"
             }
@@ -66,14 +84,14 @@ class CppPortGenerator(private val reactor: Reactor) {
             ${name}.reserve($width);
             for (size_t __lf_idx = 0; __lf_idx < $width; __lf_idx++) {
               std::string __lf_port_name = "${name}_" + std::to_string(__lf_idx);
-              ${name}.emplace_back(__lf_port_name, this);
+              ${name}.emplace_back(__lf_port_name, this, (reactor::BaseMultiport*)&${name}, __lf_idx);
             }
         """.trimIndent()
     }
 
     fun generateConstructorInitializers() =
-        reactor.inputs.filter { it.isMultiport }.joinToString("\n") { generateConstructorInitializer(it) } +
-                reactor.outputs.filter { it.isMultiport }.joinToString("\n") { generateConstructorInitializer(it) }
+        reactor.inputs.filter { it.isMultiport }.joinWithLn { generateConstructorInitializer(it) } +
+                reactor.outputs.filter { it.isMultiport }.joinWithLn { generateConstructorInitializer(it) }
 
     fun generateDeclarations() =
         reactor.inputs.joinToString("\n", "// input ports\n", postfix = "\n") { generateDeclaration(it) } +

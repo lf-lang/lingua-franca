@@ -5,6 +5,8 @@ target Python {
     timeout: 6 sec
 }
 
+preamble {= import time =}
+
 reactor Source(period(3 sec)) {
     output y
     timer t(0, period)
@@ -14,10 +16,7 @@ reactor Source(period(3 sec)) {
         if self.count % 2 != 0:
             # The count variable is odd.
             # Take time to cause a deadline violation.
-            sleep_time = MSEC(1500)
-            start_time = lf.time.physical()
-            while (lf.time.physical() < start_time + sleep_time):
-                pass
+            time.sleep(1.5)
 
         print("Source sends: ", self.count)
         y.set(self.count)

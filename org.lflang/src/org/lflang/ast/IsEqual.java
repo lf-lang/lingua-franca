@@ -7,7 +7,6 @@ import java.util.function.BiPredicate;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import org.eclipse.emf.common.util.EList;
 import org.eclipse.emf.ecore.EObject;
 
 import org.lflang.TimeUnit;
@@ -16,7 +15,6 @@ import org.lflang.lf.Array;
 import org.lflang.lf.ArraySpec;
 import org.lflang.lf.Assignment;
 import org.lflang.lf.AttrParm;
-import org.lflang.lf.AttrParmValue;
 import org.lflang.lf.Attribute;
 import org.lflang.lf.BuiltinTriggerRef;
 import org.lflang.lf.Code;
@@ -38,7 +36,6 @@ import org.lflang.lf.Method;
 import org.lflang.lf.MethodArgument;
 import org.lflang.lf.Mode;
 import org.lflang.lf.Model;
-import org.lflang.lf.Mutation;
 import org.lflang.lf.NamedHost;
 import org.lflang.lf.Output;
 import org.lflang.lf.Parameter;
@@ -138,7 +135,6 @@ public class IsEqual extends LfSwitch<Boolean> {
             .listsEquivalent(Reactor::getStateVars)
             .listsEquivalent(Reactor::getReactions)
             .listsEquivalent(Reactor::getMethods)
-            .listsEquivalent(Reactor::getMutations)
             .listsEquivalent(Reactor::getModes)
             .conclusion;
     }
@@ -263,17 +259,7 @@ public class IsEqual extends LfSwitch<Boolean> {
     public Boolean caseAttrParm(AttrParm object) {
         return new ComparisonMachine<>(object, AttrParm.class)
             .equalAsObjects(AttrParm::getName)
-            .equivalent(AttrParm::getValue)
-            .conclusion;
-    }
-
-    @Override
-    public Boolean caseAttrParmValue(AttrParmValue object) {
-        return new ComparisonMachine<>(object, AttrParmValue.class)
-            .equalAsObjects(AttrParmValue::getBool)
-            .equalAsObjects(AttrParmValue::getFloat)
-            .equalAsObjects(AttrParmValue::getInt)
-            .equalAsObjects(AttrParmValue::getStr)
+            .equalAsObjects(AttrParm::getValue)
             .conclusion;
     }
 
@@ -284,6 +270,7 @@ public class IsEqual extends LfSwitch<Boolean> {
             .listsEquivalent(Reaction::getTriggers)
             .listsEquivalent(Reaction::getSources)
             .listsEquivalent(Reaction::getEffects)
+            .equalAsObjects(Reaction::isMutation)
             .equivalent(Reaction::getCode)
             .equivalent(Reaction::getStp)
             .equivalent(Reaction::getDeadline)
@@ -318,15 +305,6 @@ public class IsEqual extends LfSwitch<Boolean> {
             .conclusion;
     }
 
-    @Override
-    public Boolean caseMutation(Mutation object) {
-        return new ComparisonMachine<>(object, Mutation.class)
-            .listsEquivalent(Mutation::getTriggers)
-            .listsEquivalent(Mutation::getSources)
-            .listsEquivalent(Mutation::getEffects)
-            .equivalent(Mutation::getCode)
-            .conclusion;
-    }
 
     @Override
     public Boolean casePreamble(Preamble object) {

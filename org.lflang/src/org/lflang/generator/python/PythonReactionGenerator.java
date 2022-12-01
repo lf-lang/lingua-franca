@@ -7,6 +7,7 @@ import java.util.Set;
 import org.lflang.ASTUtils;
 import org.lflang.ErrorReporter;
 import org.lflang.Target;
+import org.lflang.generator.c.CReactionGenerator;
 import org.lflang.lf.ReactorDecl;
 import org.lflang.lf.Reaction;
 import org.lflang.lf.Reactor;
@@ -20,7 +21,6 @@ import org.lflang.lf.Port;
 import org.lflang.lf.Input;
 import org.lflang.lf.Output;
 import org.lflang.generator.c.CCoreFilesUtils;
-import org.lflang.generator.c.CReactionGenerator;
 import org.lflang.generator.c.CTypes;
 import org.lflang.generator.c.CUtil;
 import org.lflang.generator.CodeBuilder;
@@ -169,7 +169,7 @@ public class PythonReactionGenerator {
                 cInit, reaction.getDeadline().getCode(),
                 generateCPythonDeadlineCaller(decl, reactionIndex, pyObjects)
             ));
-        }        
+        }
         code.pr(
             "#include " + StringUtil.addDoubleQuotes(
                 CCoreFilesUtils.getCTargetSetUndefHeader()));
@@ -573,7 +573,7 @@ public class PythonReactionGenerator {
     public static String generateCPythonDeadlineFunctionName(int reactionIndex) {
         return "_lf_py_deadline_function_"+reactionIndex;
     }
-    
+
     /** Return the function name of the STP violation handler function inside the self struct in the .c file.
      *  @param reactionIndex The reaction index.
      *  @return The function name for the reaction.
