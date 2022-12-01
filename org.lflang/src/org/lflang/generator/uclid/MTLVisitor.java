@@ -46,6 +46,9 @@ public class MTLVisitor extends MTLParserBaseVisitor<String> {
     /** Tactic to be used to prove the property. */
     protected String tactic;
 
+    /** Time horizon (in nanoseconds) of the property */
+    protected long horizon = 0;
+
     // Constructor
     public MTLVisitor(String tactic) {
         this.tactic = tactic;
@@ -171,6 +174,7 @@ public class MTLVisitor extends MTLParserBaseVisitor<String> {
         long lowerBoundNanoSec = getNanoSecFromIntervalContext(ctx.timeInterval, false);
         long upperBoundNanoSec = getNanoSecFromIntervalContext(ctx.timeInterval, true);
         long currentHorizon = horizon + upperBoundNanoSec;
+        this.horizon = currentHorizon;
         String timePredicate = generateTimePredicate(ctx.timeInterval, lowerBoundNanoSec,
                                                     upperBoundNanoSec, "j" + QFIdx, prefixIdx);
 
@@ -217,6 +221,7 @@ public class MTLVisitor extends MTLParserBaseVisitor<String> {
         long lowerBoundNanoSec = getNanoSecFromIntervalContext(ctx.timeInterval, false);
         long upperBoundNanoSec = getNanoSecFromIntervalContext(ctx.timeInterval, true);
         long currentHorizon = horizon + upperBoundNanoSec;
+        this.horizon = currentHorizon;
         String timePredicate = generateTimePredicate(ctx.timeInterval, lowerBoundNanoSec,
                                                     upperBoundNanoSec, "j" + QFIdx, prefixIdx);        
         return "!(" + "finite_exists " + "(" + "j" + QFIdx + " : integer) in indices :: "
@@ -242,6 +247,7 @@ public class MTLVisitor extends MTLParserBaseVisitor<String> {
         long lowerBoundNanoSec = getNanoSecFromIntervalContext(ctx.timeInterval, false);
         long upperBoundNanoSec = getNanoSecFromIntervalContext(ctx.timeInterval, true);
         long currentHorizon = horizon + upperBoundNanoSec;
+        this.horizon = currentHorizon;
         String timePredicate = generateTimePredicate(ctx.timeInterval, lowerBoundNanoSec,
                                                     upperBoundNanoSec, "j" + QFIdx, prefixIdx);        
         return "finite_exists " + "(" + "j" + QFIdx + " : integer) in indices :: "
@@ -451,5 +457,12 @@ public class MTLVisitor extends MTLParserBaseVisitor<String> {
         }
 
         return timePredicate;
+    }
+
+    /**
+     * Get the time horizon (in nanoseconds) of the property.
+     */
+    public long getHorizon() {
+        return this.horizon;
     }
 }

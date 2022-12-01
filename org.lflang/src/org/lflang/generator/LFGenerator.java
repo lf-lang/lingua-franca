@@ -171,6 +171,8 @@ public class LFGenerator extends AbstractGenerator {
         cleanIfNeeded(lfContext, fileConfig);
 
         // Check if @property is used. If so, include UclidGenerator.
+        // The verification model needs to be generated before the target code
+        // since code generation changes LF program (desugar connections, etc.).
         Reactor main = ASTUtils.getMainReactor(resource);
         List<Attribute> properties = AttributeUtils.getAttributes(main)
                                     .stream()
@@ -181,6 +183,7 @@ public class LFGenerator extends AbstractGenerator {
             uclidGenerator.doGenerate(resource, lfContext);
         }
 
+        // Generate target code from the LF program.
         if (generator != null) {
             generator.doGenerate(resource, lfContext);
             generatorErrorsOccurred = generator.errorsOccurred();

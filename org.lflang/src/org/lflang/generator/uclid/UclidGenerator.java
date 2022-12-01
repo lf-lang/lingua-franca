@@ -47,7 +47,9 @@ import org.antlr.v4.runtime.tree.ParseTree;
 import org.antlr.v4.runtime.tree.ParseTreeWalker;
 
 import org.eclipse.emf.common.util.EList;
+import org.eclipse.emf.ecore.EObject;
 import org.eclipse.emf.ecore.resource.Resource;
+import org.eclipse.emf.ecore.util.EcoreUtil;
 import org.eclipse.xtext.xbase.lib.Exceptions;
 
 import org.lflang.ASTUtils;
@@ -78,6 +80,7 @@ import org.lflang.generator.StateVariableInstance;
 import org.lflang.generator.TargetTypes;
 import org.lflang.generator.TimerInstance;
 import org.lflang.generator.TriggerInstance;
+import org.lflang.generator.c.CGenerator;
 import org.lflang.generator.uclid.ast.BuildAstParseTreeVisitor;
 import org.lflang.generator.uclid.ast.CAst;
 import org.lflang.generator.uclid.ast.CAstUtils;
@@ -93,6 +96,11 @@ import org.lflang.lf.Expression;
 import org.lflang.lf.Reaction;
 import org.lflang.lf.Time;
 import org.lflang.lf.VarRef;
+import org.lflang.sim.Event;
+import org.lflang.sim.StateSpaceDiagram;
+import org.lflang.sim.StateSpaceExplorer;
+import org.lflang.sim.StateSpaceNode;
+import org.lflang.sim.Tag;
 import org.lflang.util.StringUtil;
 
 import static org.lflang.ASTUtils.*;
@@ -134,7 +142,18 @@ public class UclidGenerator extends GeneratorBase {
     /** Strings from the property attribute */
     protected String name;
     protected String tactic;
-    protected String spec;
+    protected String spec; // SMTL
+
+    /** 
+     * The horizon (the total time interval required for evaluating
+     * an MTL property, which is derived from the MTL spec),
+     * the completeness threshold (CT) (the number of transitions
+     * required for evaluating the FOL spec in the trace),
+     * and the transpiled FOL spec.
+     */
+    protected long horizon = 0; // in nanoseconds
+    protected String FOLSpec = "";
+    protected int CT = 0;
 
     // Constructor
     public UclidGenerator(FileConfig fileConfig, ErrorReporter errorReporter, List<Attribute> properties) {
@@ -155,6 +174,7 @@ public class UclidGenerator extends GeneratorBase {
         // FIXME: Perform an analysis on the property and remove unrelevant components.
         // FIXME: Support multiple properties here too. We might need to have a UclidGenerator for each attribute.
         super.createMainInstantiation();
+        
         ////////////////////////////////////////
         
         System.out.println("*** Start generating Uclid code.");
@@ -170,7 +190,6 @@ public class UclidGenerator extends GeneratorBase {
         // Create the src-gen directory
         setUpDirectories();
 
-        // FIXME: Calculate the completeness threshold for each property.
         // Generate a Uclid model for each property.
         for (Attribute prop : this.properties) {
             this.name = StringUtil.removeQuotes(
@@ -192,8 +211,9 @@ public class UclidGenerator extends GeneratorBase {
                             .get()
                             .getValue());
 
-            int CT = computeCT();
-            generateUclidFile(CT);
+            processMTLSpec();
+            computeCT();
+            generateUclidFile();
         }
 
         // Generate runner script
@@ -206,13 +226,13 @@ public class UclidGenerator extends GeneratorBase {
     /**
      * Generate the Uclid model.
      */
-    protected void generateUclidFile(int CT) {
+    protected void generateUclidFile() {
         try {  
             // Generate main.ucl and print to file
             code = new CodeBuilder();
             String filename = this.outputDir
                             .resolve(this.tactic + "_" + this.name + ".ucl").toString();
-            generateUclidCode(CT);
+            generateUclidCode();
             code.writeToFile(filename);
         } catch (IOException e) {
             Exceptions.sneakyThrow(e);
@@ -253,7 +273,7 @@ public class UclidGenerator extends GeneratorBase {
     /**
      * The main function that generates Uclid code.
      */
-    protected void generateUclidCode(int CT) {
+    protected void generateUclidCode() {
         code.pr(String.join("\n", 
             "/*******************************",
             " * Auto-generated UCLID5 model *",
@@ -267,7 +287,7 @@ public class UclidGenerator extends GeneratorBase {
         generateTimingSemantics();
 
         // Trace definition
-        generateTraceDefinition(CT);
+        generateTraceDefinition();
 
         // Reaction IDs and state variables
         generateReactionIdsAndStateVars();
@@ -285,7 +305,7 @@ public class UclidGenerator extends GeneratorBase {
         generateReactionAxioms();
 
         // Properties
-        generateProperty(CT);
+        generateProperty();
 
         // Control block
         generateControlBlock();
@@ -365,18 +385,18 @@ public class UclidGenerator extends GeneratorBase {
     /**
      * Macros, type definitions, and variable declarations for trace (path)
      */
-    protected void generateTraceDefinition(int CT) {
+    protected void generateTraceDefinition() {
         // Define various constants.
         code.pr(String.join("\n", 
             "/********************",
             " * Trace Definition *",
             " *******************/",
             "const START : integer = 0;",
-            "const END : integer = " + String.valueOf(CT-1) + ";",
+            "const END : integer = " + String.valueOf(this.CT-1) + ";",
             "",
             "// trace length = k + CT",
             "const k : integer = 1;    // 1-induction should be enough.",
-            "const CT : integer = " + String.valueOf(CT) + ";" + "// The completeness threshold",
+            "const CT : integer = " + String.valueOf(this.CT) + ";" + "// The completeness threshold",
             "\n"
         ));
 
@@ -385,8 +405,8 @@ public class UclidGenerator extends GeneratorBase {
         code.pr("group indices : integer = {");
         code.indent();
         String indices = "";
-        for (int i = 0; i < CT; i++) {
-            indices += String.valueOf(i) + (i == CT-1? "" : ", ");
+        for (int i = 0; i < this.CT; i++) {
+            indices += String.valueOf(i) + (i == this.CT-1? "" : ", ");
         }
         code.pr(indices);
         code.unindent();
@@ -398,7 +418,7 @@ public class UclidGenerator extends GeneratorBase {
             "type step_t = integer;",
             "type event_t = { rxn_t, tag_t, state_t, trigger_t, sched_t };",
             "",
-            "// Create a bounded trace with length " + String.valueOf(CT)
+            "// Create a bounded trace with length " + String.valueOf(this.CT)
         ));
         code.pr("// Potentially unbounded trace, we bound this later.");
         code.pr("type trace_t  = [integer]event_t;");
@@ -1028,27 +1048,18 @@ public class UclidGenerator extends GeneratorBase {
         }
     }
 
-    protected void generateProperty(int CT) {
+    protected void generateProperty() {
         code.pr(String.join("\n", 
             "/************",
             " * Property *",
             " ************/"
         ));
-
-        MTLLexer lexer = new MTLLexer(CharStreams.fromString(this.spec));
-        CommonTokenStream tokens = new CommonTokenStream(lexer);
-        MTLParser parser = new MTLParser(tokens);
-        MtlContext mtlCtx = parser.mtl();
-        MTLVisitor visitor = new MTLVisitor(this.tactic);
-
-        // The visitor transpiles the MTL into a Uclid axiom.
-        String transpiled = visitor.visitMtl(mtlCtx, "i", 0, "0", 0);
         
         code.pr("// The FOL property translated from user-defined MTL property:");
         code.pr("// " + this.spec);
         code.pr("define p(i : step_t) : boolean =");
         code.indent();
-        code.pr(transpiled + ";");
+        code.pr(this.FOLSpec + ";");
         code.unindent();
 
         if (this.tactic.equals("bmc")) {
@@ -1171,6 +1182,7 @@ public class UclidGenerator extends GeneratorBase {
         for (var timer : reactor.timers) {
             this.timerInstances.add(timer);
         }
+
         // Recursion
         for (var child : reactor.children) {
             populateLists(child);
@@ -1178,12 +1190,34 @@ public class UclidGenerator extends GeneratorBase {
     }
 
     /**
-     * Compute a completeness threadhold for each property.
+     * Compute a completeness threadhold for each property
+     * by simulating a worst-case execution by traversing
+     * the reactor instance graph and building a
+     * state space diagram.
      */
-    private int computeCT() {
-        // if (this.spec.equals("bmc")) {
-        // }
-        return 30; // FIXME
+    private void computeCT() {
+        
+        StateSpaceExplorer explorer = new StateSpaceExplorer(this.main);
+        explorer.explore(new Tag(this.horizon, 0, false), false);
+        StateSpaceDiagram diagram = explorer.diagram;
+        diagram.display();  
+
+        this.CT = 10;
+    }
+
+    /**
+     * Process an MTL property.
+     */
+    private void processMTLSpec() {
+        MTLLexer lexer = new MTLLexer(CharStreams.fromString(this.spec));
+        CommonTokenStream tokens = new CommonTokenStream(lexer);
+        MTLParser parser = new MTLParser(tokens);
+        MtlContext mtlCtx = parser.mtl();
+        MTLVisitor visitor = new MTLVisitor(this.tactic);
+
+        // The visitor transpiles the MTL into a Uclid axiom.
+        this.FOLSpec = visitor.visitMtl(mtlCtx, "i", 0, "0", 0);
+        this.horizon = visitor.getHorizon();
     }
 
     /////////////////////////////////////////////////
