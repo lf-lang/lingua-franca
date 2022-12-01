@@ -1,5 +1,6 @@
 target C {
     timeout: 200 ms,
+    workers: 2,
     scheduler: LET
 }
 
