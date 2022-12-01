@@ -12,6 +12,7 @@ import org.lflang.generator.ReactionInstance;
 
 public class StateSpaceNode {
 
+    public int index;
     public Tag tag;
     public ArrayList<ReactionInstance> reactions_invoked;
     public ArrayList<Event> eventQ;
@@ -21,18 +22,21 @@ public class StateSpaceNode {
         ArrayList<ReactionInstance> reactions_invoked,
         ArrayList<Event> eventQ
     ) {
-        this.tag = tag;
-        this.reactions_invoked = reactions_invoked;
+        this.tag    = tag;
         this.eventQ = eventQ;
+        this.reactions_invoked = reactions_invoked;
     }
 
+    /**
+     * This equals method does NOT compare tags,
+     * only compares reactions_invoked and eventQ.
+     */
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
+        if (o == null) return false;
         if (o instanceof StateSpaceNode) {
             StateSpaceNode node = (StateSpaceNode) o;
-            if (this.tag.equals(node.tag)
-                && this.reactions_invoked.equals(node.reactions_invoked)
+            if (this.reactions_invoked.equals(node.reactions_invoked)
                 && this.eventQ.equals(node.eventQ))
                 return true;
         }

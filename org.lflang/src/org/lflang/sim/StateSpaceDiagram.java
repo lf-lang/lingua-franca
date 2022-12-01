@@ -28,14 +28,35 @@ public class StateSpaceDiagram extends DirectedGraph<StateSpaceNode> {
     public StateSpaceNode loopNode;
 
     /**
+     * The logical time elapsed for each loop iteration.
+     */
+    public long loopPeriod;
+
+    /**
+     * The length of the state space diagram (not counting the loop)
+     */
+    public int length;
+
+    /**
+     * Before adding the node, assign it an index.
+     */
+    @Override
+    public void addNode(StateSpaceNode node) {
+        node.index = this.length;
+        this.length++;
+        super.addNode(node);
+    }
+
+    /**
      * Pretty print the diagram.
      */
     public void display() {
-        System.out.println("Pretty printing state space diagram:");
+        System.out.println("*************************************************");
+        System.out.println("* Pretty printing worst-case state space diagram:");
         StateSpaceNode node = this.head;
-        int count = 0;
         while (node != null) {
-            System.out.print("State " + count++ + ": ");
+            System.out.print("* ");
+            System.out.print("State " + node.index + ": ");
             node.display();
             if (!node.equals(this.tail)) {
                 // Assume a unique next state.
@@ -43,7 +64,9 @@ public class StateSpaceDiagram extends DirectedGraph<StateSpaceNode> {
                 if (downstream == null || downstream.size() == 0) break;
                 node = (StateSpaceNode)downstream.toArray()[0];
             }
+            else break;
         }
+        System.out.println("*************************************************");
     }
 
 }

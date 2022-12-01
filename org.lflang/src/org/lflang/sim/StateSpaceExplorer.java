@@ -128,7 +128,8 @@ public class StateSpaceExplorer {
             }
             System.out.println(current_events);
 
-            // Collect all the reactions invoked in this current LOOP ITERATION.
+            // Collect all the reactions invoked in this current LOOP ITERATION
+            // triggered by the earliest events.
             reactions_temp = new ArrayList<ReactionInstance>();
             for (Event e : current_events) {
                 Set<ReactionInstance> dependent_reactions
@@ -138,6 +139,19 @@ public class StateSpaceExplorer {
                 //     System.out.println(reaction);
                 // System.out.println(dependent_reactions);
                 reactions_temp.addAll(dependent_reactions);
+
+                // If the event is a timer firing, enqueue the next firing.
+                if (e.trigger instanceof TimerInstance) {
+                    TimerInstance timer = (TimerInstance) e.trigger;
+                    eventQ.add(new Event(
+                        timer,
+                        new Tag(
+                            current_tag.timestamp + timer.getPeriod().toNanoSeconds(),
+                            0, // A time advancement resets microstep to 0.
+                            false
+                        ))
+                    );
+                }
             }
 
             // For each reaction invoked, compute the new events produced.
@@ -218,15 +232,23 @@ public class StateSpaceExplorer {
                 );
 
                 // If findLoop is true, check for loops.
-                if (findLoop && diagram.hasNode(node)) {
-                    loopFound = true;
-                    // Mark the loop in the diagram.
-                    // FIXME: Get the existing (loop) node in the graph by content matching.
-                    // this.diagram.loopNode = ...;
-                    // this.diagram.tail = current_node;
-                    // this.diagram.addEdge(this.diagram.loopNode, this.diagram.tail);
-                    break; // Exit the while loop early.
-                }
+                // FIXME: For some reason, the below doesn't work.
+                // if (findLoop && diagram.hasNode(node)) {
+                if (findLoop) {
+                    for (StateSpaceNode n : diagram.nodes()) {
+                        if (n.equals(node)) {
+                            loopFound = true;
+                            System.out.println("*** A loop is found!");
+                            // Mark the loop in the diagram.
+                            this.diagram.loopNode = n;
+                            this.diagram.tail = current_node;
+                            this.diagram.loopPeriod = current_tag.timestamp
+                                                        - this.diagram.loopNode.tag.timestamp;
+                            this.diagram.addEdge(this.diagram.loopNode, this.diagram.tail);
+                            return; // Exit the while loop early.
+                        }
+                    }
+                } 
 
                 // Add the new node to the state space diagram.
                 this.diagram.addNode(node);

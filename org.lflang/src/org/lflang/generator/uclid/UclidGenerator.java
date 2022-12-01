@@ -1198,11 +1198,38 @@ public class UclidGenerator extends GeneratorBase {
     private void computeCT() {
         
         StateSpaceExplorer explorer = new StateSpaceExplorer(this.main);
-        explorer.explore(new Tag(this.horizon, 0, false), false);
+        explorer.explore(
+            new Tag(this.horizon, 0, false),
+            true // findLoop
+        );
         StateSpaceDiagram diagram = explorer.diagram;
         diagram.display();  
 
-        this.CT = 10;
+        if (!explorer.loopFound) {
+            this.CT = diagram.length;
+            System.out.println("*** A loop is NOT found.");
+            System.out.println("CT: " + this.CT);
+        } 
+        // Over-approximate CT by estimating the number of loop iterations required.
+        else {
+            // Subtract the non-periodic logical time
+            // interval from the total horizon.
+            long horizonRemained =
+                this.horizon - diagram.loopNode.tag.timestamp;
+            
+            // Check how many loop iteration is required
+            // to check the remaining horizon.
+            int loopIterations = (int) Math.ceil(
+                (double) horizonRemained / diagram.loopPeriod);
+            
+            // CT = steps required for the non-periodic part
+            //      + steps required for the periodic part
+            this.CT = (diagram.loopNode.index + 1)
+                + (diagram.tail.index - diagram.loopNode.index + 1) * loopIterations;
+
+            System.out.println("*** A loop is found!");
+            System.out.println("CT: " + this.CT);
+        }
     }
 
     /**

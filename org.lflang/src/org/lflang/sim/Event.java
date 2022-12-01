@@ -23,13 +23,16 @@ public class Event implements Comparable<Event> {
         return this.tag.compareTo(e.tag);
     }
 
+    /**
+     * This equals() method does NOT compare tags,
+     * only compares triggers.
+     */
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
+        if (o == null) return false;
         if (o instanceof Event) {
             Event e = (Event) o;
-            if (this.trigger.equals(e.trigger)
-                && this.tag.equals(e.tag))
+            if (this.trigger.equals(e.trigger))
                 return true;
         }
         return false;
