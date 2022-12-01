@@ -222,28 +222,6 @@ public class CModesGenerator {
     }
     
     /**
-     * Generate function for getting reactor_mode_state_t array and its length
-     *
-     * @param hasModalReactors True if there are modal model reactors, false otherwise
-     */
-    public static String generateLfModeGetTransitioningReactors(
-        boolean hasModalReactors
-    ) {
-        if (!hasModalReactors) {
-            return "";
-        }
-        return String.join("\n",
-            "int _lf_mode_get_transitioning_reactors(void *return_vec) {",
-            "   return _lf_mode_collect_transitioning_reactors(",
-            "       &_lf_modal_reactor_states[0],",
-            "       _lf_modal_reactor_states_size,",
-            "       return_vec",
-            "       ); ",
-            "}"
-        );
-    }
-    
-    /**
      * Generate code to call `_lf_initialize_modes`.
      *
      * @param hasModalReactors True if there is modal model reactors, false otherwise
