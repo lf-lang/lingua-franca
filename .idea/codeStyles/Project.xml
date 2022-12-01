@@ -54,8 +54,6 @@
     </JavaCodeStyleSettings>
     <JetCodeStyleSettings>
       <option name="ALIGN_IN_COLUMNS_CASE_BRANCH" value="true" />
-      <option name="NAME_COUNT_TO_USE_STAR_IMPORT" value="99" />
-      <option name="NAME_COUNT_TO_USE_STAR_IMPORT_FOR_MEMBERS" value="99" />
       <option name="CODE_STYLE_DEFAULTS" value="KOTLIN_OFFICIAL" />
     </JetCodeStyleSettings>
     <MarkdownNavigatorCodeStyleSettings>
@@ -94,7 +92,6 @@
       <option name="DOWHILE_BRACE_FORCE" value="3" />
       <option name="WHILE_BRACE_FORCE" value="3" />
       <option name="FOR_BRACE_FORCE" value="3" />
-      <option name="SOFT_MARGINS" value="80" />
       <indentOptions>
         <option name="CONTINUATION_INDENT_SIZE" value="4" />
       </indentOptions>

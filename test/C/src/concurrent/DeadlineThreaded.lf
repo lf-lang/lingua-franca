@@ -2,10 +2,10 @@
 // the Source immediately, whereas odd numbers are sent after a big enough delay
 // to violate the deadline.
 target C {
-    timeout: 3 sec
+    timeout: 6 sec
 }
 
-reactor Source(period: time(1500 msec)) {
+reactor Source(period: time(3000 msec)) {
     output y: int
     timer t(0, period)
     state count: int(0)
@@ -14,7 +14,7 @@ reactor Source(period: time(1500 msec)) {
         if (2 * (self->count / 2) != self->count) {
             // The count variable is odd.
             // Take time to cause a deadline violation.
-            lf_nanosleep(MSEC(400));
+            lf_nanosleep(MSEC(210));
         }
         printf("Source sends: %d.\n", self->count);
         lf_set(y, self->count);
@@ -38,7 +38,7 @@ reactor Destination(timeout: time(1 sec)) {
         printf("Destination deadline handler receives: %d\n", x->value);
         if (2 * (self->count / 2) == self->count) {
             // The count variable is even, so the deadline should not have been violated.
-            printf("ERROR: Deadline miss handler invoked without deadline violation.\n");
+            printf("ERROR: Unexpected deadline violation.\n");
             exit(2);
         }
         (self->count)++;

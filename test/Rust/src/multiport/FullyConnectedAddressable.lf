@@ -13,7 +13,7 @@ reactor Node(bank_index: usize(0), num_nodes: usize(4)) {
     reaction(startup) -> out {=
         println!("Hello from node {}!", self.bank_index);
         // send my ID only to my right neighbour
-        ctx.set(out.get((self.bank_index + 1) % self.num_nodes), self.bank_index);
+        ctx.set(&mut out[(self.bank_index + 1) % self.num_nodes], self.bank_index);
     =}
 
     reaction(inpt) {=
@@ -22,7 +22,7 @@ reactor Node(bank_index: usize(0), num_nodes: usize(4)) {
         let mut count = 0;
         let mut result = 0;
         for port in inpt {
-            if let Some(v) = ctx.get(&port) {
+            if let Some(v) = ctx.get(port) {
                 count += 1;
                 result = v;
                 print!("{}, ", result);

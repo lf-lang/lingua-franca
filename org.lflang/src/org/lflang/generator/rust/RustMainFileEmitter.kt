@@ -30,6 +30,7 @@ import org.lflang.generator.PrependOperator
 import org.lflang.generator.PrependOperator.rangeTo
 import org.lflang.generator.UnsupportedGeneratorFeatureException
 import org.lflang.joinWithCommasLn
+import org.lflang.joinWithLn
 import org.lflang.withoutQuotes
 
 
@@ -54,10 +55,10 @@ object RustMainFileEmitter : RustEmitterBase() {
             |extern crate log;
             |
             |// user dependencies
-${"         |"..gen.crate.dependencies.keys.joinToString("\n") { "extern crate ${it.replace('-', '_')};" }}
+${"         |"..gen.crate.dependencies.keys.joinWithLn { "extern crate ${it.replace('-', '_')};" }}
             |
             |// user-defined modules
-${"         |"..gen.crate.modulesToIncludeInMain.joinToString("\n") { "mod ${it.fileName.toString().removeSuffix(".rs")};" }}
+${"         |"..gen.crate.modulesToIncludeInMain.joinWithLn { "mod ${it.fileName.toString().removeSuffix(".rs")};" }}
             |
             |use $rsRuntime::*;
             |use log::LevelFilter;

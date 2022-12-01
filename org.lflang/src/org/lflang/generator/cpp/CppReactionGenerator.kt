@@ -26,6 +26,7 @@ package org.lflang.generator.cpp
 
 import org.lflang.generator.PrependOperator
 import org.lflang.isBank
+import org.lflang.joinWithLn
 import org.lflang.label
 import org.lflang.lf.*
 import org.lflang.priority
@@ -65,7 +66,7 @@ class CppReactionGenerator(
             when (val variable = this.variable) {
                 is Timer  -> "reactor::Timer"
                 is Action -> with(CppActionGenerator) { variable.cppType }
-                is Port   -> with(portGenerator) { variable.cppType }
+                is Port   -> with(portGenerator) { variable.cppInterfaceType }
                 else      -> AssertionError("Unexpected variable type")
             }
 
@@ -176,7 +177,7 @@ class CppReactionGenerator(
         val initializers = variables.map { "${it.variable.name}(reactor->${it.variable.name})" }
 
         val viewDeclaration =
-            if (container.isBank) "reactor::Multiport<$viewClass> $viewInstance;"
+            if (container.isBank) "reactor::ModifableMultiport<$viewClass> $viewInstance;"
             else "$viewClass $viewInstance;"
 
         return with(PrependOperator) {
@@ -193,15 +194,15 @@ class CppReactionGenerator(
     }
 
     private fun generateViews(r: Reaction) =
-        r.allReferencedContainers.joinToString("\n") { generateViewForContainer(r, it) }
+        r.allReferencedContainers.joinWithLn { generateViewForContainer(r, it) }
 
     private fun generateViewInitializers(r: Reaction) =
         r.allReferencedContainers.filterNot { it.isBank }
-            .joinToString("\n") { ", ${r.getViewInstanceName(it)}(${it.name}.get()) " }
+            .joinWithLn { ", ${r.getViewInstanceName(it)}(${it.name}.get()) " }
 
     private fun generateViewConstructorInitializers(r: Reaction) =
         r.allReferencedContainers.filter { it.isBank }
-            .joinToString("\n") {
+            .joinWithLn {
                 val viewInstance = r.getViewInstanceName(it)
                 """
                     $viewInstance.reserve(${it.name}.size());

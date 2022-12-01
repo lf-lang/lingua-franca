@@ -219,6 +219,7 @@ Preamble:
     (visibility=Visibility)? 'preamble' code=Code;
 
 Instantiation:
+    (attributes+=Attribute)*
     name=ID '=' 'new' (widthSpec=WidthSpec)?
     reactorClass=[ReactorDecl] ('<' typeParms+=TypeParm (',' typeParms+=TypeParm)* '>')? '(' 
     (parameters+=Assignment (',' parameters+=Assignment)*)? 
@@ -245,14 +246,7 @@ Attribute:
 ;
 
 AttrParm:
-    (name=ID '=')? value=AttrParmValue;
-
-AttrParmValue:
-    str=STRING
-    | int=SignedInt
-    | bool=Boolean
-    | float=SignedFloat
-;
+    (name=ID '=')? value=Literal;
 
 /////////// For target parameters
 
@@ -332,11 +326,11 @@ Type:
 ;
 
 ArraySpec:
-    ofVariableLength?='[]' | '[' length=INT ']';
-    
+    '[' ( ofVariableLength?=']' | length=INT ']' );
+
 WidthSpec:
-    ofVariableLength?='[]' | '[' (terms+=WidthTerm) ('+' terms+=WidthTerm)* ']';
-    
+    '[' ( ofVariableLength?=']' | (terms+=WidthTerm) ('+' terms+=WidthTerm)* ']' );
+
 WidthTerm:
     width=INT
     | parameter=[Parameter]
@@ -502,7 +496,7 @@ Token:
     // Braces
     '(' | ')' | '{' | '}' |
     // Brackets
-    '[' | ']' | '<' | '>' | '[]' |
+    '[' | ']' | '<' | '>' |
     // Punctuation
     ':' | ';' | ',' | '.' | '::' |
     // Slashes

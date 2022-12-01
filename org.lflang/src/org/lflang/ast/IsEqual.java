@@ -15,7 +15,6 @@ import org.lflang.lf.Array;
 import org.lflang.lf.ArraySpec;
 import org.lflang.lf.Assignment;
 import org.lflang.lf.AttrParm;
-import org.lflang.lf.AttrParmValue;
 import org.lflang.lf.Attribute;
 import org.lflang.lf.BuiltinTriggerRef;
 import org.lflang.lf.Code;
@@ -260,17 +259,7 @@ public class IsEqual extends LfSwitch<Boolean> {
     public Boolean caseAttrParm(AttrParm object) {
         return new ComparisonMachine<>(object, AttrParm.class)
             .equalAsObjects(AttrParm::getName)
-            .equivalent(AttrParm::getValue)
-            .conclusion;
-    }
-
-    @Override
-    public Boolean caseAttrParmValue(AttrParmValue object) {
-        return new ComparisonMachine<>(object, AttrParmValue.class)
-            .equalAsObjects(AttrParmValue::getBool)
-            .equalAsObjects(AttrParmValue::getFloat)
-            .equalAsObjects(AttrParmValue::getInt)
-            .equalAsObjects(AttrParmValue::getStr)
+            .equalAsObjects(AttrParm::getValue)
             .conclusion;
     }
 

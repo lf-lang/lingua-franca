@@ -47,6 +47,7 @@ import org.lflang.generator.GeneratorResult;
 import org.lflang.generator.DockerGeneratorBase;
 import org.lflang.generator.LFGenerator;
 import org.lflang.generator.LFGeneratorContext;
+import org.lflang.generator.LFGeneratorContext.BuildParm;
 import org.lflang.generator.MainContext;
 import org.lflang.tests.Configurators.Configurator;
 import org.lflang.tests.LFTest.Result;
@@ -384,8 +385,21 @@ public abstract class TestBase {
      * @throws IOException if there is any file access problem
      */
     private LFGeneratorContext configure(LFTest test, Configurator configurator, TestLevel level) throws IOException {
+        var props = new Properties();
+        var sysProps = System.getProperties();
+        // Set the external-runtime-path property if it was specified.
+        if (sysProps.containsKey("runtime")) {
+            var rt = sysProps.get("runtime").toString();
+            if (!rt.isEmpty()) {
+                props.setProperty(BuildParm.EXTERNAL_RUNTIME_PATH.getKey(), rt);
+                System.out.println("Using runtime: " + sysProps.get("runtime").toString());
+            }
+        } else {
+            System.out.println("Using default runtime.");
+        }
+
         var context = new MainContext(
-            LFGeneratorContext.Mode.STANDALONE, CancelIndicator.NullImpl, (m, p) -> {}, new Properties(), true,
+            LFGeneratorContext.Mode.STANDALONE, CancelIndicator.NullImpl, (m, p) -> {}, props, true,
             fileConfig -> new DefaultErrorReporter()
         );
 
@@ -446,6 +460,7 @@ public abstract class TestBase {
      * Override to add some LFC arguments to all runs of this test class.
      */
     protected void addExtraLfcArgs(Properties args) {
+        args.setProperty("build-type", "Test");
         args.setProperty("logging", "Debug");
     }
 

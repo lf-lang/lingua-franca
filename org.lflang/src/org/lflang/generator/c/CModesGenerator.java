@@ -96,10 +96,10 @@ public class CModesGenerator {
         }
         return "";
     }
-    
+
     /**
      * Generate counter variable declarations used for registering modal reactors.
-     * 
+     *
      * @param hasModalReactors True if there is modal model reactors, false otherwise
      */
     public static String generateModalInitalizationCounters(boolean hasModalReactors) {
@@ -111,10 +111,10 @@ public class CModesGenerator {
         }
         return "";
     }
-    
+
     /**
      * Generate code for modal reactor registration and hierarchy.
-     * 
+     *
      * @param instance The reactor instance.
      * @param code The code builder.
      */
@@ -145,10 +145,10 @@ public class CModesGenerator {
             code.pr("_lf_modal_reactor_states[_lf_modal_reactor_states_count++] = &((self_base_t*)"+nameOfSelfStruct+")->_lf__mode_state;");
         }
     }
-    
+
     /**
      * Generate code registering a state variable for automatic reset.
-     * 
+     *
      * @param modeRef The code to refer to the mode
      * @param selfRef The code to refer to the self struct
      * @param varName The variable name in the self struct
@@ -198,6 +198,28 @@ public class CModesGenerator {
             "}"
         );
     }
+
+    /**
+     * Generate function for getting reactor_mode_state_t array and its length
+     *
+     * @param hasModalReactors True if there are modal model reactors, false otherwise
+     */
+    public static String generateLfModeGetTransitioningReactors(
+        boolean hasModalReactors
+    ) {
+        if (!hasModalReactors) {
+            return "";
+        }
+        return String.join("\n",
+            "int _lf_mode_get_transitioning_reactors(void *return_vec) {",
+            "   return _lf_mode_collect_transitioning_reactors(",
+            "       &_lf_modal_reactor_states[0],",
+            "       _lf_modal_reactor_states_size,",
+            "       return_vec",
+            "       ); ",
+            "}"
+        );
+    }
     
     /**
      * Generate function for getting reactor_mode_state_t array and its length
@@ -223,14 +245,14 @@ public class CModesGenerator {
     
     /**
      * Generate code to call `_lf_initialize_modes`.
-     * 
+     *
      * @param hasModalReactors True if there is modal model reactors, false otherwise
      */
     public static String generateLfInitializeModes(boolean hasModalReactors) {
         if (!hasModalReactors) {
             return "";
         }
-        return String.join("\n", 
+        return String.join("\n",
             "void _lf_initialize_modes() {",
             "    _lf_initialize_mode_states(",
             "        _lf_modal_reactor_states, ",
