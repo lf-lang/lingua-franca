@@ -24,6 +24,8 @@
 
 package org.lflang.generator.cpp
 
+import org.lflang.generator.PrependOperator
+import org.lflang.generator.cpp.CppParameterGenerator.Companion.constType
 import org.lflang.inferredType
 import org.lflang.joinWithLn
 import org.lflang.lf.Parameter
@@ -37,25 +39,29 @@ class CppParameterGenerator(private val reactor: Reactor) {
         /** Type of the parameter in C++ code */
         val Parameter.targetType get(): String = this.inferredType.cppType
 
-        /** Get the default value of the receiver parameter in C++ code */
-        val Parameter.defaultValue: String
-            get() = CppTypes.getCppStandaloneInitializer(init, inferredType)
-
-        /** Get a C++ type that is a const reference to the parameter type */
-        val Parameter.constRefType: String
+        /** Get a C++ type that is the const parameter type */
+        val Parameter.constType: String
             get() =
-                "typename std::add_lvalue_reference<typename std::add_const<$targetType>::type>::type"
+                "typename typename std::add_const<$targetType>::type"
     }
 
-    /** Generate all parameter declarations */
+    /** Generate all parameter declarations as used in the ineer reactor class */
     fun generateDeclarations() =
         reactor.parameters.joinToString("\n", "// parameters\n", "\n") {
-            "typename std::add_const<${it.targetType}>::type ${it.name};"
+            "${it.constType} ${it.name};"
         }
 
     /** Generate all constructor initializers for parameters */
     fun generateInitializers() =
         reactor.parameters.joinWithLn(prefix = "// parameters\n") {
-            ", ${it.name}(${it.name})"
+            ", ${it.name}(parameters.${it.name})"
+        }
+
+    /** Generate all parameter declarations as used in the parameter struct */
+    fun generateParameterStructDeclarations() =
+        reactor.parameters.joinToString("\n", postfix = "\n") {
+            with(it) {
+                "$constType $name${CppTypes.getCppInitializer(init, inferredType)};"
+            }
         }
 }

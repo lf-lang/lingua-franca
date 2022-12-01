@@ -47,62 +47,26 @@ class CppConstructorGenerator(
     private val environmentOrContainer =
         if (reactor.isMain) "reactor::Environment* environment" else "reactor::Reactor* container"
 
-    /**
-     * Get a list of all parameters as they appear in the argument list of the constructors.
-     *
-     * @param withDefaults If true, then include default parameter values.
-     * @return a list of Strings containing all parameters to be used in the constructor signature
-     */
-    private fun parameterArguments(withDefaults: Boolean) = with(CppParameterGenerator) {
-        if (withDefaults) reactor.parameters.map { "${it.constRefType} ${it.name} = ${it.defaultValue}" }
-        else reactor.parameters.map { "${it.constRefType} ${it.name}" }
-    }
+    private val outerSignature: String =
+         "${reactor.name}(const std::string& name, $environmentOrContainer, const Parameters& parameters)"
 
-    private fun outerSignature(withDefaults: Boolean): String {
-        val parameterArgs = parameterArguments(withDefaults)
-        return if (parameterArgs.isEmpty())
-            """${reactor.name}(const std::string& name, $environmentOrContainer)"""
-        else with(PrependOperator) {
-            """
-                |${reactor.name}(
-                |  const std::string& name,
-                |  $environmentOrContainer,
-            ${" |  "..parameterArgs.joinToString(",\n", postfix = ")")}
-            """.trimMargin()
-        }
-    }
-
-    private fun innerSignature(): String {
-        val args = parameterArguments(false)
-        return when (args.size) {
-            0    -> "Inner(reactor::Reactor* reactor)"
-            1    -> "Inner(reactor::Reactor* reactor, ${args[0]})"
-            else -> with(PrependOperator) {
-                """
-                    |Inner(
-                    |  reactor::Reactor* reactor,
-                ${" |  "..args.joinToString(",\n")})
-                """.trimMargin()
-            }
-        }
-    }
+    private val innerSignature: String = "Inner(reactor::Reactor* reactor, const Parameters& parameters)"
 
     /** Get the constructor declaration of the outer reactor class */
-    fun generateOuterDeclaration() = "${outerSignature(true)};"
+    fun generateOuterDeclaration() = "$outerSignature;"
 
     /** Get the constructor definition of the outer reactor class */
     fun generateOuterDefinition(): String {
-        val innerParameters = listOf("this") + reactor.parameters.map { it.name }
         return with(PrependOperator) {
             """
                 |${reactor.templateLine}
-                |${reactor.templateName}::${outerSignature(false)}
+                |${reactor.templateName}::$outerSignature}
                 |  : reactor::Reactor(name, ${if (reactor.isMain) "environment" else "container"})
             ${" |  "..instances.generateInitializers()}
             ${" |  "..timers.generateInitializers()}
             ${" |  "..actions.generateInitializers()}
             ${" |  "..reactions.generateReactionViewInitializers()}
-                |  , __lf_inner(${innerParameters.joinToString(", ") })
+                |  , __lf_inner(this, parameters)
                 |{
             ${" |  "..ports.generateConstructorInitializers()}
             ${" |  "..instances.generateConstructorInitializers()}
@@ -113,13 +77,13 @@ class CppConstructorGenerator(
     }
 
     /** Get the constructor declaration of the inner reactor class */
-    fun generateInnerDeclaration() = "${innerSignature()};"
+    fun generateInnerDeclaration() = "$innerSignature;"
 
     fun generateInnerDefinition(): String {
         return with(PrependOperator) {
             """
                 |${reactor.templateLine}
-                |${reactor.templateName}::Inner::${innerSignature()}
+                |${reactor.templateName}::Inner::$innerSignature}
                 |  : LFScope(reactor)
             ${" |  "..parameters.generateInitializers()}
             ${" |  "..state.generateInitializers()}

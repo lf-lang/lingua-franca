@@ -21,13 +21,13 @@ class CppStandaloneMainGenerator(
             with(param) {
                 return if(inferredType.isTime) {
                     """
-                        $targetType $name = $defaultValue;
+                        $targetType $name${CppTypes.getCppInitializer(init, inferredType)};
                         options
                             .add_options()("$name", "The $name parameter passed to the main reactor ${main.name}.", cxxopts::value<$targetType>($name)->default_value(time_to_string($name)), "'FLOAT UNIT'");
                     """.trimIndent()
                 } else {
                     """
-                        $targetType $name = $defaultValue;
+                        $targetType $name${CppTypes.getCppInitializer(init, inferredType)};
                         options
                             .add_options()("$name", "The $name parameter passed to the main reactor ${main.name}.", cxxopts::value<$targetType>($name)->default_value(any_to_string($name)), "'$targetType'");
                     """.trimIndent()

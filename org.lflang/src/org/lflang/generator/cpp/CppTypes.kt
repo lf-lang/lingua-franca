@@ -52,6 +52,9 @@ object CppTypes : TargetTypes {
             else magnitude.toString() + unit.cppUnit
         }
 
+    override fun getTargetParamRef(expr: ParameterReference, type: InferredType?): String {
+        return "parameters.${expr.parameter.name}"
+    }
 }
 
 /**
@@ -99,16 +102,4 @@ fun CppTypes.getCppArgumentForParameter(param: Parameter, inst: Instantiation): 
             getTargetExpr(it, param.inferredType.componentType)
         }
     }
-}
-
-/**
- * This object generates types in the context of the outer class,
- * where parameter references need special handling.
- */
-object CppOuterTypes : TargetTypes by CppTypes {
-
-    override fun getTargetParamRef(expr: ParameterReference, type: InferredType?): String {
-        return "__lf_inner.${expr.parameter.name}"
-    }
-
 }

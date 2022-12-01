@@ -68,11 +68,8 @@ val Reaction.name
  *                    This should be set to false if called from code generators for the inner class.
  * @param inferredType Type that the expr has (or null), may guide code generation if ambiguous
  */
-fun Expression.toCppCode(outerContext: Boolean = false, inferredType: InferredType? = null): String =
-    if (outerContext)
-        CppOuterTypes.getTargetExpr(this, inferredType)
-    else
-        CppTypes.getTargetExpr(this, inferredType)
+fun Expression.toCppCode(inferredType: InferredType? = null): String =
+    CppTypes.getTargetExpr(this, inferredType)
 
 
 /**
@@ -83,8 +80,8 @@ fun Expression.toCppCode(outerContext: Boolean = false, inferredType: InferredTy
  * @param outerContext A flag indicating whether to generate code for the scope of the outer reactor class.
  *                    This should be set to false if called from code generators for the inner class.
  */
-fun Expression.toCppTime(outerContext: Boolean = false): String =
-    this.toCppCode(outerContext, inferredType = InferredType.time())
+fun Expression.toCppTime(): String =
+    this.toCppCode(inferredType = InferredType.time())
 
 /**
  * Get textual representation of a value in C++ code
