@@ -63,8 +63,8 @@ class CppStandaloneCmakeGenerator(private val targetConfig: TargetConfig, privat
             |  endif()
             |endif()
             |
-            |# require C++ 17
-            |set(CMAKE_CXX_STANDARD 17 CACHE STRING "The C++ standard is cached for visibility in external tools." FORCE)
+            |# require C++ 20
+            |set(CMAKE_CXX_STANDARD 20 CACHE STRING "The C++ standard is cached for visibility in external tools." FORCE)
             |set(CMAKE_CXX_STANDARD_REQUIRED ON)
             |set(CMAKE_CXX_EXTENSIONS OFF)
             |
