@@ -27,7 +27,7 @@ jobs:
 
   # Check that automatic code formatting works.
   format:
-    uses: lf-lang/lingua-franca/.github/workflows/format.yml@test-spotless
+    uses: lf-lang/lingua-franca/.github/workflows/format.yml@master
     needs: cancel
 
   # Run the unit tests.
