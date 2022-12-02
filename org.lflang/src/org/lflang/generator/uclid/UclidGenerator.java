@@ -386,17 +386,36 @@ public class UclidGenerator extends GeneratorBase {
      * Macros, type definitions, and variable declarations for trace (path)
      */
     protected void generateTraceDefinition() {
+        //// Why do we have a padding at the end of the trace?
+        //
+        // To handle bounded traces for a potentially unbounded execution
+        // (due to, for example, timers or systems forming a loop),
+        // we need to let certain axioms "terminate" the execution and
+        // put any "spilled-over" states in the trace padding.
+        //
+        // For example, an axiom could say "if a reaction is triggered
+        // at step i, it schedules an action that appears 1 sec later
+        // in some future step." Assuming our completeness threshold is 10,
+        // this axiom can block the model (i.e. returns TRIVIALLY true)
+        // at step 10 because there are not any more steps in the bounded trace.
+        // To avoid this, a padding of the size of the number of reactions
+        // is added to the trace. In addition, an antecedent of the form
+        // "i >= START && i <= END" is added to all the axioms. The padding
+        // will store all the spilled-over states in order to prevent
+        // model blocking.
+        int traceEndIndex = this.CT + this.reactionInstances.size();
+
         // Define various constants.
         code.pr(String.join("\n", 
             "/********************",
             " * Trace Definition *",
             " *******************/",
-            "const START : integer = 0;",
-            "const END : integer = " + String.valueOf(this.CT-1) + ";",
-            "",
-            "// trace length = k + CT",
-            "const k : integer = 1;    // 1-induction should be enough.",
-            "const CT : integer = " + String.valueOf(this.CT) + ";" + "// The completeness threshold",
+            "const START : integer = 0; // The start index of the trace.",
+            "const END : integer = " + String.valueOf(this.CT)
+                + "; // The end index of the trace (without padding)",
+            "const END_TRACE : integer = "
+                + String.valueOf(traceEndIndex)
+                + "; // The end index of the trace with padding",
             "\n"
         ));
 
@@ -405,8 +424,8 @@ public class UclidGenerator extends GeneratorBase {
         code.pr("group indices : integer = {");
         code.indent();
         String indices = "";
-        for (int i = 0; i < this.CT; i++) {
-            indices += String.valueOf(i) + (i == this.CT-1? "" : ", ");
+        for (int i = 0; i <= traceEndIndex; i++) {
+            indices += String.valueOf(i) + (i == traceEndIndex ? "" : ", ");
         }
         code.pr(indices);
         code.unindent();
@@ -467,7 +486,7 @@ public class UclidGenerator extends GeneratorBase {
         }
         code.pr("// Helper macro that returns an element based on index.");
         code.pr("define get(tr : trace_t, i : step_t) : event_t =");
-        code.pr("if (i >= START || i <= END) then tr[i] else");
+        code.pr("if (i >= START || i <= END_TRACE) then tr[i] else");
         code.pr("{ NULL, inf(), { " + initialStates + " }, { " + initialTriggerPresence + " }, {" + initialActionsScheduled + "} };");
 
         // Define an event getter from the trace.
@@ -602,12 +621,12 @@ public class UclidGenerator extends GeneratorBase {
             "// based on previous states.",
             "",
             "// Events are ordered by \"happened-before\" relation.",
-            "axiom(finite_forall (i : integer) in indices :: (finite_forall (j : integer) in indices ::",
-            "    hb(elem(i), elem(j)) ==> i < j));",
+            "axiom(finite_forall (i : integer) in indices :: (i >= START && i <= END) ==> (finite_forall (j : integer) in indices ::",
+            "    (j >= START && j <= END) ==> (hb(elem(i), elem(j)) ==> i < j)));",
             "",
             "// the same event can only trigger once in a logical instant",
-            "axiom(finite_forall (i : integer) in indices :: (finite_forall (j : integer) in indices ::",
-            "    ((rxn(i) == rxn(j) && i != j)",
+            "axiom(finite_forall (i : integer) in indices :: (i >= START && i <= END) ==> (finite_forall (j : integer) in indices ::",
+            "    (j >= START && j <= END) ==> ((rxn(i) == rxn(j) && i != j)",
             "        ==> !tag_same(g(i), g(j)))));",
             "",
             "// Tags should be non-negative.",
@@ -915,16 +934,16 @@ public class UclidGenerator extends GeneratorBase {
 
             // Traverse and print.
             CBaseAstVisitor baseVisitor = new CBaseAstVisitor<>(); // For pretty printing.
-            System.out.println("***** Printing the original AST.");
+            // System.out.println("***** Printing the original AST.");
             baseVisitor.visit(ast);
 
             // Convert the AST to If Normal Form (INF).
             IfNormalFormAstVisitor infVisitor = new IfNormalFormAstVisitor();
-            System.out.println("***** Convert to If Normal Form.");
+            // System.out.println("***** Convert to If Normal Form.");
             infVisitor.visit(ast, new ArrayList<CAst.AstNode>());
             CAst.StatementSequenceNode inf = infVisitor.INF;
-            System.out.println(inf);
-            System.out.println("***** Printing the AST in If Normal Form.");
+            // System.out.println(inf);
+            // System.out.println("***** Printing the AST in If Normal Form.");
             baseVisitor.visit(inf);
 
             // For the variables that are used, extract the conditions
@@ -962,12 +981,12 @@ public class UclidGenerator extends GeneratorBase {
                     resetConditions.put(instance, new ArrayList<CAst.AstNode>());
                 }
                 resetConditions.get(instance).add(ifBlockNode.left);
-                System.out.println("!!! Added another reset condition: " + ifBlockNode.left);
+                // System.out.println("!!! Added another reset condition: " + ifBlockNode.left);
             }
 
             // Generate Uclid axiom for the C AST.
             CToUclidVisitor c2uVisitor = new CToUclidVisitor(this, reaction);
-            System.out.println("***** Generating axioms from AST.");
+            // System.out.println("***** Generating axioms from AST.");
             String axiom = c2uVisitor.visit(inf);
             code.pr(String.join("\n", 
                 "// Reaction body of " + reaction,
@@ -979,11 +998,11 @@ public class UclidGenerator extends GeneratorBase {
             ));
             for (NamedInstance key : resetConditions.keySet()) {
                 CAst.AstNode disjunction = CAstUtils.takeDisjunction(resetConditions.get(key));
-                System.out.println("!!! Reset conditions: " + resetConditions.get(key));
+                // System.out.println("!!! Reset conditions: " + resetConditions.get(key));
                 CAst.LogicalNotNode notNode = new CAst.LogicalNotNode();
                 notNode.child = disjunction;
                 String resetCondition = c2uVisitor.visit(notNode);
-                System.out.println("!!! Str: " + resetCondition);
+                // System.out.println("!!! Str: " + resetCondition);
                 code.pr("&& " + "(" + "(" + resetCondition + ")" + " ==> " + "(");
                 if (key instanceof StateVariableInstance) {
                     StateVariableInstance n = (StateVariableInstance)key;

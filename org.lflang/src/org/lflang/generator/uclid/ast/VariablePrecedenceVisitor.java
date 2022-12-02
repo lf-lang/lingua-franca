@@ -14,7 +14,7 @@ public class VariablePrecedenceVisitor extends CBaseAstVisitor<Void> {
     // e.g., self->s = (self->s + 1) - (2 * 2).
     @Override
     public Void visitAssignmentNode(AssignmentNode node) {
-        System.out.println("******* In assignment!!!");
+        // System.out.println("******* In assignment!!!");
         if (node.left instanceof StateVarNode) {
             if (node.right instanceof AstNodeBinary) {
                 AstNodeBinary n = (AstNodeBinary)node.right;
