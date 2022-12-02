@@ -203,16 +203,6 @@ public class CCmakeGenerator {
             cMakeCode.newLine();
         }
         
-        // Add additional flags so runtime can distinguish between multi-threaded and single-threaded mode
-        if (targetConfig.threading) {
-            cMakeCode.pr("# Set flag to indicate a multi-threaded runtime");
-            cMakeCode.pr("target_compile_definitions( ${LF_MAIN_TARGET} PUBLIC LF_MULTI_THREADED)");
-        } else {
-            cMakeCode.pr("# Set flag to indicate a single-threaded runtime");
-            cMakeCode.pr("target_compile_definitions( ${LF_MAIN_TARGET} PUBLIC LF_SINGLE_THREADED)");
-        }
-        cMakeCode.newLine();
-
         cMakeCode.pr("# Target definitions\n");
         targetConfig.compileDefinitions.forEach((key, value) -> cMakeCode.pr(
             "target_compile_definitions(${LF_MAIN_TARGET} PUBLIC "+key+"="+value+")\n"
