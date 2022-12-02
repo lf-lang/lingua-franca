@@ -114,20 +114,6 @@ val Preamble.isPublic: Boolean get() = this.visibility == Visibility.PUBLIC
 /** True if the preamble is private */
 val Preamble.isPrivate: Boolean get() = this.visibility == Visibility.PRIVATE
 
-/** Get a C++ representation of a LF unit. */
-val TimeUnit?.cppUnit
-    get() = when (this) {
-        TimeUnit.NANO   -> "ns"
-        TimeUnit.MICRO  -> "us"
-        TimeUnit.MILLI  -> "ms"
-        TimeUnit.SECOND -> "s"
-        TimeUnit.MINUTE -> "min"
-        TimeUnit.HOUR   -> "h"
-        TimeUnit.DAY    -> "d"
-        TimeUnit.WEEK   -> "d*7"
-        else            -> ""
-    }
-
 /** The template line preceding the class declaration and any member definitions for a `reactor */
 val Reactor.templateLine
     get() =

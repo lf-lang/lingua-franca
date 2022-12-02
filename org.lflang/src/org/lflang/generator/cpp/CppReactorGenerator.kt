@@ -93,10 +93,12 @@ class CppReactorGenerator(private val reactor: Reactor, fileConfig: CppFileConfi
         ${" |  "..reactions.generateReactionViews()}
         ${" |  "..reactions.generateDeclarations()}
             |
+            |public:
             |  struct Parameters {
         ${" |    "..parameters.generateParameterStructDeclarations()}
             |  };
             |
+            |private:
             |  class Inner: public lfutil::LFScope {
         ${" |    "..parameters.generateDeclarations()}
         ${" |    "..state.generateDeclarations()}

@@ -25,6 +25,7 @@
 package org.lflang.generator.cpp
 
 import org.lflang.InferredType
+import org.lflang.TimeUnit
 import org.lflang.TimeValue
 import org.lflang.generator.TargetTypes
 import org.lflang.lf.Initializer
@@ -52,6 +53,20 @@ object CppTypes : TargetTypes {
         return "parameters.${expr.parameter.name}"
     }
 }
+
+/** Get a C++ representation of a LF unit. */
+val TimeUnit?.cppUnit
+    get() = when (this) {
+        TimeUnit.NANO   -> "ns"
+        TimeUnit.MICRO  -> "us"
+        TimeUnit.MILLI  -> "ms"
+        TimeUnit.SECOND -> "s"
+        TimeUnit.MINUTE -> "min"
+        TimeUnit.HOUR   -> "h"
+        TimeUnit.DAY    -> "d"
+        TimeUnit.WEEK   -> "d*7"
+        else            -> ""
+    }
 
 /**
  * Returns a C++ variable initializer.

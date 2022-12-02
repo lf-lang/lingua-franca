@@ -37,10 +37,7 @@ class CppStandaloneMainGenerator(
     }
 
     private fun generateMainReactorInstantiation(): String =
-        if (main.parameters.isEmpty())
-            """auto main = std ::make_unique<${main.name}> ("${main.name}", &e);"""
-        else
-            """auto main = std ::make_unique<${main.name}> ("${main.name}", &e, ${main.parameters.joinToString(", ") { it.name }});"""
+            """auto main = std ::make_unique<${main.name}> ("${main.name}", &e, ${main.name}::Parameters{${main.parameters.joinToString(", ") { ".${it.name} = ${it.name}" }}});"""
 
     fun generateCode() = with(PrependOperator) {
         """

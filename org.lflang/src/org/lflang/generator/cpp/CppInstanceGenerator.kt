@@ -61,13 +61,13 @@ class CppInstanceGenerator(
         parameters.joinToString(", ", prefix, "}") {
             val expr = it.rhs.exprs[0]
             assert(!it.rhs.isBraces && !it.rhs.isParens && it.rhs.exprs.size == 0)
-            ".${it.lhs.name} = $expr"
+            return@joinToString ".${it.lhs.name} = $expr"
         }
     }
 
     private fun generateInitializer(inst: Instantiation): String {
         assert(!inst.isBank)
-        return """, ${inst.name}(std::make_unique<${inst.cppType}>("${inst.name}", this${inst.getParameterStruct()}))"""
+        return """, ${inst.name}(std::make_unique<${inst.cppType}>("${inst.name}", this, ${inst.getParameterStruct()}))"""
     }
 
     private fun generateConstructorInitializer(inst: Instantiation): String {

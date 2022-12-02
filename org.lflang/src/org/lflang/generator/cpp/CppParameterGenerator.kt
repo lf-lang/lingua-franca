@@ -42,7 +42,7 @@ class CppParameterGenerator(private val reactor: Reactor) {
         /** Get a C++ type that is the const parameter type */
         val Parameter.constType: String
             get() =
-                "typename typename std::add_const<$targetType>::type"
+                "typename std::add_const<$targetType>::type"
     }
 
     /** Generate all parameter declarations as used in the ineer reactor class */
