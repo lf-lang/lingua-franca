@@ -24,8 +24,6 @@
 
 package org.lflang.generator.cpp
 
-import org.lflang.generator.PrependOperator
-import org.lflang.generator.cpp.CppParameterGenerator.Companion.constType
 import org.lflang.inferredType
 import org.lflang.joinWithLn
 import org.lflang.lf.Parameter
@@ -39,17 +37,8 @@ class CppParameterGenerator(private val reactor: Reactor) {
         /** Type of the parameter in C++ code */
         val Parameter.targetType get(): String = this.inferredType.cppType
 
-        /** Get a C++ type that is the const parameter type */
-        val Parameter.constType: String
-            get() =
-                "typename std::add_const<$targetType>::type"
+        val Parameter.typeAlias get(): String = "__lf_${name}_t"
     }
-
-    /** Generate all parameter declarations as used in the ineer reactor class */
-    fun generateDeclarations() =
-        reactor.parameters.joinToString("\n", "// parameters\n", "\n") {
-            "${it.constType} ${it.name};"
-        }
 
     /** Generate all constructor initializers for parameters */
     fun generateInitializers() =
@@ -61,7 +50,10 @@ class CppParameterGenerator(private val reactor: Reactor) {
     fun generateParameterStructDeclarations() =
         reactor.parameters.joinToString("\n", postfix = "\n") {
             with(it) {
-                "$constType $name${CppTypes.getCppInitializer(init, inferredType)};"
+                """
+                    using $typeAlias = $targetType;
+                    const $typeAlias $name${if (init == null) "" else " = " + typeAlias + CppTypes.getCppInitializer(init, inferredType)};
+                """.trimIndent()
             }
         }
 }

@@ -31,6 +31,7 @@ import org.lflang.isMultiport
 import org.lflang.joinWithLn
 import org.lflang.lf.Action
 import org.lflang.lf.Connection
+import org.lflang.lf.ParameterReference
 import org.lflang.lf.Port
 import org.lflang.lf.Reaction
 import org.lflang.lf.Reactor
@@ -126,8 +127,11 @@ class CppAssembleMethodGenerator(private val reactor: Reactor) {
         }
     }
 
-    private fun setDeadline(reaction: Reaction): String =
-        "${reaction.name}.set_deadline(${reaction.deadline.delay.toCppTime()}, [this]() { ${reaction.name}_deadline_handler(); });"
+    private fun setDeadline(reaction: Reaction): String {
+        val delay = reaction.deadline.delay
+        val value = if (delay is ParameterReference) "__lf_inner.${delay.parameter.name}" else delay.toCppTime()
+        return "${reaction.name}.set_deadline($value, [this]() { ${reaction.name}_deadline_handler(); });"
+    }
 
     private fun assembleReaction(reaction: Reaction) = with(PrependOperator) {
         """

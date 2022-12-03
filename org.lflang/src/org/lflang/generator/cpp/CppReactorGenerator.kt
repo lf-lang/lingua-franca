@@ -55,7 +55,6 @@ class CppReactorGenerator(private val reactor: Reactor, fileConfig: CppFileConfi
     private val actions = CppActionGenerator(reactor, errorReporter)
     private val ports = CppPortGenerator(reactor)
     private val reactions = CppReactionGenerator(reactor, ports, instances)
-    private val constructor = CppConstructorGenerator(reactor, parameters, state, instances, timers, actions, ports, reactions)
     private val assemble = CppAssembleMethodGenerator(reactor)
 
     private fun publicPreamble() =
@@ -99,13 +98,14 @@ class CppReactorGenerator(private val reactor: Reactor, fileConfig: CppFileConfi
             |  };
             |
             |private:
-            |  class Inner: public lfutil::LFScope {
-        ${" |    "..parameters.generateDeclarations()}
+            |  class Inner: public lfutil::LFScope, public Parameters {
+        ${" |    "..reactor.parameters.joinToString(separator = "") { "using Parameters::${it.name};\n" }}
         ${" |    "..state.generateDeclarations()}
         ${" |    "..methods.generateDeclarations()}
-        ${" |    "..constructor.generateInnerDeclaration()}
         ${" |    "..reactions.generateBodyDeclarations()}
         ${" |    "..reactions.generateDeadlineHandlerDeclarations()}
+            |
+            |    Inner(reactor::Reactor* reactor, Parameters&& parameters);
             |
             |   friend ${reactor.name};
             |  };
@@ -114,7 +114,7 @@ class CppReactorGenerator(private val reactor: Reactor, fileConfig: CppFileConfi
             |
             | public:
         ${" |  "..ports.generateDeclarations()}
-        ${" |  "..constructor.generateOuterDeclaration()}
+            |  $outerConstructorSignature;
             |
             |  void assemble() override;
             |};
@@ -135,10 +135,10 @@ class CppReactorGenerator(private val reactor: Reactor, fileConfig: CppFileConfi
         ${" |  "..privatePreamble()}
             |
             |// outer constructor
-        ${" |"..constructor.generateOuterDefinition()}
+        ${" |"..generateOuterConstructorDefinition()}
             |
             |// inner constructor
-        ${" |"..constructor.generateInnerDefinition()}
+        ${" |"..generateInnerConstructorDefinition()}
             |
         ${" |"..assemble.generateDefinition()}
             |
@@ -147,6 +147,51 @@ class CppReactorGenerator(private val reactor: Reactor, fileConfig: CppFileConfi
         ${" |"..reactions.generateBodyDefinitions()}
         ${" |"..reactions.generateDeadlineHandlerDefinitions()}
         """.trimMargin()
+    }
+
+    private fun generateInnerConstructorDefinition(): String {
+        return with(PrependOperator) {
+            """
+                |${reactor.templateLine}
+                |${reactor.templateName}::Inner::Inner(reactor::Reactor* reactor, Parameters&& parameters)
+                |  : LFScope(reactor)
+            ${" |  , Parameters(std::forward<Parameters>(parameters))"}
+            ${" |  "..state.generateInitializers()}
+                |{}
+                """.trimMargin()
+        }
+    }
+
+    /**
+     * Constructor argument that provides a reference to the next higher level
+     *
+     * For the main reactor, the next higher level is the environment. For all other reactors, it is the containing reactor.
+     */
+    private val environmentOrContainer =
+        if (reactor.isMain) "reactor::Environment* environment" else "reactor::Reactor* container"
+
+    private val outerConstructorSignature: String =
+        "${reactor.name}(const std::string& name, $environmentOrContainer, Parameters&& parameters)"
+
+    /** Get the constructor definition of the outer reactor class */
+    private fun generateOuterConstructorDefinition(): String {
+        return with(PrependOperator) {
+            """
+                |${reactor.templateLine}
+                |${reactor.templateName}::${outerConstructorSignature}
+                |  : reactor::Reactor(name, ${if (reactor.isMain) "environment" else "container"})
+            ${" |  "..instances.generateInitializers()}
+            ${" |  "..timers.generateInitializers()}
+            ${" |  "..actions.generateInitializers()}
+            ${" |  "..reactions.generateReactionViewInitializers()}
+                |  , __lf_inner(this, std::forward<Parameters>(parameters))
+                |{
+            ${" |  "..ports.generateConstructorInitializers()}
+            ${" |  "..instances.generateConstructorInitializers()}
+            ${" |  "..reactions.generateReactionViewConstructorInitializers()}
+                |}
+            """.trimMargin()
+        }
     }
 }
 

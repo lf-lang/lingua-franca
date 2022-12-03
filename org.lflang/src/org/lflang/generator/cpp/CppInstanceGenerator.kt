@@ -24,14 +24,9 @@
 
 package org.lflang.generator.cpp
 
-import org.lflang.isBank
-import org.lflang.isGeneric
-import org.lflang.joinWithLn
+import org.lflang.*
 import org.lflang.lf.Instantiation
 import org.lflang.lf.Reactor
-import org.lflang.reactor
-import org.lflang.toText
-import org.lflang.toUnixString
 
 /** A code genarator for reactor instances */
 class CppInstanceGenerator(
@@ -54,14 +49,16 @@ class CppInstanceGenerator(
             "std::unique_ptr<$cppType> $name;"
     }
 
-    private fun Instantiation.getParameterStruct() {
+    private fun Instantiation.getParameterStruct(): String {
         // If this is a bank instantiation and the instantiated reactor defines a "bank_index" parameter, we have to set
         // bank_index here explicitly.
-        val prefix = if (isBank && reactor.hasBankIndexParameter()) "{.bank_index = __lf_idx, " else "{"
-        parameters.joinToString(", ", prefix, "}") {
+        var prefix = "${cppType}::Parameters{"
+        if (isBank && reactor.hasBankIndexParameter())
+            prefix += ".bank_index = __lf_idx, "
+        return parameters.joinToString(", ", prefix, "}") {
             val expr = it.rhs.exprs[0]
             assert(!it.rhs.isBraces && !it.rhs.isParens && it.rhs.exprs.size == 0)
-            return@joinToString ".${it.lhs.name} = $expr"
+            ".${it.lhs.name} = ${CppTypes.getTargetExpr(expr, it.lhs.inferredType)}"
         }
     }
 
@@ -73,7 +70,8 @@ class CppInstanceGenerator(
     private fun generateConstructorInitializer(inst: Instantiation): String {
         with(inst) {
             assert(isBank)
-            val emplaceLine = "$name.emplace_back(std::make_unique<$cppType>(__lf_inst_name, this, ${inst.getParameterStruct()});"
+            val emplaceLine =
+                "$name.emplace_back(std::make_unique<$cppType>(__lf_inst_name, this, ${inst.getParameterStruct()}));"
 
             val width = inst.widthSpec.toCppCode()
             return """

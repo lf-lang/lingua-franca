@@ -83,13 +83,6 @@ fun Expression.toCppCode(inferredType: InferredType? = null): String =
 fun Expression.toCppTime(): String =
     this.toCppCode(inferredType = InferredType.time())
 
-/**
- * Get textual representation of a value in C++ code
- *
- * If the value evaluates to 0, it is interpreted as a normal value.
- */
-fun Expression.toCppCode(): String = CppTypes.getTargetExpr(this, null)
-
 /** Get the textual representation of a width in C++ code */
 fun WidthSpec.toCppCode(): String = terms.joinToString(" + ") {
     when {
