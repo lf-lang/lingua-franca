@@ -1,0 +1,44 @@
+/* Verify that interrupt reactions are stalled when LET is executing*/
+target C {
+    scheduler: LET,
+    workers: 2,
+    timeout: 200 msec
+};
+
+reactor Interrupting {
+    timer t (10 msec, 10 msec)
+    state i:int(0);
+    output out:int
+
+    reaction(t) -> out {=
+        lf_set(out, ++self->i);
+    =} 
+}
+
+reactor Let {
+    state r1_executing:bool(false)
+    logical action let(50 msec): int
+
+    interrupting = new Interrupting()
+
+
+    reaction(interrupting.out) -> let {=
+        int in_start = interrupting.out->value;
+        instant_t physical_time = lf_time_physical();
+        
+        while (lf_time_physical() < physical_time + MSEC(50)) {
+            // Do nothing.
+        }
+
+        if (interrupting.out->value != in_start) {
+            lf_print_error_and_exit("Interrupting overwriting reaction not stalled");
+        }
+        lf_schedule_int(let, 0, 42);
+    =}
+
+    reaction(let) {= =}
+}
+
+main reactor {
+    let = new Let()
+}
