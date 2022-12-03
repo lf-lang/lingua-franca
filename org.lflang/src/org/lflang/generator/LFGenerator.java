@@ -23,6 +23,7 @@ import org.lflang.Target;
 import org.lflang.generator.c.CGenerator;
 import org.lflang.generator.python.PythonGenerator;
 import org.lflang.generator.uclid.UclidGenerator;
+import org.lflang.generator.uclid.UclidRunner;
 import org.lflang.lf.Attribute;
 import org.lflang.lf.Reactor;
 import org.lflang.scoping.LFGlobalScopeProvider;
@@ -180,7 +181,10 @@ public class LFGenerator extends AbstractGenerator {
                                     .collect(Collectors.toList());
         if (properties.size() > 0) {
             UclidGenerator uclidGenerator = new UclidGenerator(fileConfig, errorReporter, properties);
+            // Generate uclid files.
             uclidGenerator.doGenerate(resource, lfContext);
+            // Invoke the generated uclid files.
+            uclidGenerator.runner.run();
         }
 
         // Generate target code from the LF program.

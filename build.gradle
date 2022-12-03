@@ -72,6 +72,11 @@ subprojects {
         antlr4 'org.antlr:antlr4:4.7.2'
         implementation 'org.antlr:antlr4-runtime:4.7.2'
     }
+
+    // JSON
+    dependencies {
+        implementation 'org.json:json:20200518'
+    }
 }
 
 // Our CI uses --tests filters, which fails if some

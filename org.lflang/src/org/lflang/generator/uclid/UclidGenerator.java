@@ -110,39 +110,45 @@ public class UclidGenerator extends GeneratorBase {
     ////////////////////////////////////////////
     //// Public fields
     // Data structures for storing info about the runtime instances.
-    public List<ReactorInstance>       reactorInstances    = new ArrayList<ReactorInstance>();
+    public List<ReactorInstance>        reactorInstances    = new ArrayList<ReactorInstance>();
     public List<ReactionInstance.Runtime> reactionInstances = new ArrayList<ReactionInstance.Runtime>();
 
     // State variables in the system
-    public List<StateVariableInstance> stateVariables      = new ArrayList<StateVariableInstance>();
+    public List<StateVariableInstance>  stateVariables      = new ArrayList<StateVariableInstance>();
     
     // Triggers in the system
-    public List<ActionInstance>        actionInstances     = new ArrayList<ActionInstance>();
-    public List<PortInstance>          inputInstances      = new ArrayList<PortInstance>();
-    public List<PortInstance>          outputInstances     = new ArrayList<PortInstance>();
-    public List<PortInstance>          portInstances       = new ArrayList<PortInstance>();
-    public List<TimerInstance>         timerInstances      = new ArrayList<TimerInstance>();
+    public List<ActionInstance>         actionInstances     = new ArrayList<ActionInstance>();
+    public List<PortInstance>           inputInstances      = new ArrayList<PortInstance>();
+    public List<PortInstance>           outputInstances     = new ArrayList<PortInstance>();
+    public List<PortInstance>           portInstances       = new ArrayList<PortInstance>();
+    public List<TimerInstance>          timerInstances      = new ArrayList<TimerInstance>();
 
     // Joint lists of the lists above.
-    public List<TriggerInstance>       triggerInstances;   // Triggers = ports + actions + timers
-    public List<NamedInstance>         namedInstances;     // Named instances = triggers + state variables
+    public List<TriggerInstance>        triggerInstances;   // Triggers = ports + actions + timers
+    public List<NamedInstance>          namedInstances;     // Named instances = triggers + state variables
+
+    // A list of paths to the uclid files generated
+    public List<Path>                   generatedFiles      = new ArrayList<Path>();
+
+    // The directory where the generated files are placed
+    public Path                         outputDir;
+
+    // A runner for the generated Uclid files
+    public UclidRunner                  runner;
 
     ////////////////////////////////////////////
     //// Protected fields
 
     // A list of MTL properties represented in Attributes.
-    protected List<Attribute> properties;
-
-    // The directory where the generated files are placed
-    protected Path outputDir;
+    protected List<Attribute>           properties;
 
     /** The main place to put generated code. */
-    protected CodeBuilder code  = new CodeBuilder();
+    protected CodeBuilder               code                = new CodeBuilder();
 
     /** Strings from the property attribute */
-    protected String name;
-    protected String tactic;
-    protected String spec; // SMTL
+    protected String                    name;
+    protected String                    tactic;
+    protected String                    spec; // SMTL
 
     /** 
      * The horizon (the total time interval required for evaluating
@@ -151,14 +157,15 @@ public class UclidGenerator extends GeneratorBase {
      * required for evaluating the FOL spec in the trace),
      * and the transpiled FOL spec.
      */
-    protected long horizon = 0; // in nanoseconds
-    protected String FOLSpec = "";
-    protected int CT = 0;
+    protected long                      horizon             = 0; // in nanoseconds
+    protected String                    FOLSpec             = "";
+    protected int                       CT                  = 0;
 
     // Constructor
     public UclidGenerator(FileConfig fileConfig, ErrorReporter errorReporter, List<Attribute> properties) {
         super(fileConfig, errorReporter);
         this.properties = properties;
+        this.runner = new UclidRunner(this, fileConfig, errorReporter);
     }
 
     ////////////////////////////////////////////////////////////
@@ -184,8 +191,6 @@ public class UclidGenerator extends GeneratorBase {
 
         // Extract information from the named instances.
         populateDataStructures();
-        System.out.println(this.stateVariables);
-        System.out.println(this.triggerInstances);
 
         // Create the src-gen directory
         setUpDirectories();
@@ -217,7 +222,7 @@ public class UclidGenerator extends GeneratorBase {
         }
 
         // Generate runner script
-        generateRunnerScript();
+        // generateRunnerScript();
     }
 
     ////////////////////////////////////////////////////////////
@@ -230,10 +235,11 @@ public class UclidGenerator extends GeneratorBase {
         try {  
             // Generate main.ucl and print to file
             code = new CodeBuilder();
-            String filename = this.outputDir
-                            .resolve(this.tactic + "_" + this.name + ".ucl").toString();
+            Path file = this.outputDir.resolve(this.tactic + "_" + this.name + ".ucl");
+            String filename = file.toString();
             generateUclidCode();
             code.writeToFile(filename);
+            this.generatedFiles.add(file);
         } catch (IOException e) {
             Exceptions.sneakyThrow(e);
         }
@@ -1105,7 +1111,7 @@ public class UclidGenerator extends GeneratorBase {
             "    v = bmc(0);",
             "    check;",
             "    print_results;",
-            "    v.print_cex;",
+            "    v.print_cex_json;",
             "}"
         ));
     }
