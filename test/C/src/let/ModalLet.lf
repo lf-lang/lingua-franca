@@ -2,7 +2,6 @@
 
 target C {
     scheduler: LET,
-    build: "bash replaceReactorC.sh",
     workers: 2,
     timeout: 200 msec
 };

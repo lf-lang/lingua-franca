@@ -1,7 +1,9 @@
 target C {
     timeout: 200 ms,
     workers: 2,
-    scheduler: LET
+    scheduler: LET,
+    // logging: Debug,
+    // build-type: Debug
 }
 
 /**
@@ -25,9 +27,9 @@ reactor LET {
 }
 
 reactor Fast {
-    timer t(1 msec, 10 msec)
+    timer t(1 msec, 20 msec)
 
-    reaction(t) {=  =} deadline(10 msec) {=
+    reaction(t) {=  =} deadline(20 msec) {=
         lf_print_error_and_exit("Failed to take into account LET.");
     =}
 }
