@@ -86,7 +86,7 @@ fun Expression.toCppTime(): String =
 /** Get the textual representation of a width in C++ code */
 fun WidthSpec.toCppCode(): String = terms.joinToString(" + ") {
     when {
-        it.parameter != null -> it.parameter.name
+        it.parameter != null -> "parameters." + it.parameter.name
         it.port != null      -> with(it.port) {
             if (container?.isBank == true) {
                 if ((variable as Port).isMultiport) "(${container.name}.size() * ${container.name}[0]->${variable.name}.size())"
