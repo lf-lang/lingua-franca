@@ -481,28 +481,32 @@ public class CTriggerObjectsGenerator {
                     var mod = (dst.isMultiport() || (src.isInput() && src.isMultiport()))? "" : "&";
                     code.pr("// Connect "+srcRange+" to port "+dstRange);
                     code.startScopedRangeBlock(currentFederate, srcRange, dstRange, isFederated);
+                    var dstPort = "";
                     var dstReactor = "";
-                    var srcReactor = "";
+                    var srcPort = "";
                     if (src.isInput()) {
                         // Source port is written to by reaction in port's parent's parent
                         // and ultimate destination is further downstream.
-                        dstReactor = CUtil.portRef(dst,dr,db,dc);
-                        srcReactor = CUtil.portRefNested(src, sr, sb, sc);
-                        code.pr(dstReactor+" = ("+destStructType+"*)"+mod+srcReactor+";");
+                        dstPort = CUtil.portRef(dst,dr,db,dc);
+                        dstReactor = CUtil.reactorRef(dst.getParent(),dr);
+                        srcPort = CUtil.portRefNested(src, sr, sb, sc);
+                        code.pr(dstPort+" = ("+destStructType+"*)"+mod+srcPort+";");
 
                     } else if (dst.isOutput()) {
                         // An output port of a contained reactor is triggering a reaction.
-                        dstReactor = CUtil.portRefNested(dst,dr,db,dc);
-                        srcReactor = CUtil.portRef(src, sr, sb, sc);
-                        code.pr(dstReactor+" = ("+destStructType+"*)&"+dstReactor+";");
+                        dstPort = CUtil.portRefNested(dst,dr,db,dc);
+                        dstReactor = CUtil.reactorRefNested(dst.getParent(),dr, db);
+                        srcPort = CUtil.portRef(src, sr, sb, sc);
+                        code.pr(dstPort+" = ("+destStructType+"*)&"+dstPort+";");
                     } else {
                         // An output port is triggering an input port.
-                        dstReactor = CUtil.portRef(dst,dr,db,dc);
-                        srcReactor = CUtil.portRef(src, sr, sb, sc);
-                        code.pr(srcReactor+" = ("+destStructType+"*)&"+dstReactor+";");
+                        dstPort = CUtil.portRef(dst,dr,db,dc);
+                        dstReactor = CUtil.reactorRef(dst.getParent(),dr);
+                        srcPort = CUtil.portRef(src, sr, sb, sc);
+                        code.pr(srcPort+" = ("+destStructType+"*)&"+dstPort+";");
                         if (AttributeUtils.isSparse(dst.getDefinition())) {
-                            code.pr(srcReactor+"->sparse_record = "+dstReactor+"__sparse;");
-                            code.pr(dstReactor+"->destination_channel = "+dc+";");
+                            code.pr(srcPort+"->sparse_record = "+dstPort+"__sparse;");
+                            code.pr(dstPort+"->destination_channel = "+dc+";");
                         }
                     }
 
@@ -512,10 +516,11 @@ public class CTriggerObjectsGenerator {
                     if (destinationReactors.add(dstReactor)) {
                         code.pr(String.join("\n",
                             "#ifdef SCHEDULER == LET",
-                            srcReactor+".destination_reactors["+destinationReactorIdx+"] = ",
+                            srcPort+".destination_reactors["+destinationReactorIdx+"] = ",
                             "   &"+dstReactor+";",
                             "#endif"
                         ));
+                        // FIXME: Catch out of bound access of array
                         destinationReactorIdx++;
                     }
                     code.endScopedRangeBlock(srcRange, dstRange, isFederated);
@@ -895,15 +900,16 @@ public class CTriggerObjectsGenerator {
         for (PortInstance output : reactor.outputs) {
             for (SendRange sendingRange : output.eventualDestinations()) {
                 var numDestinations = sendingRange.getNumberOfDestinationReactors();
-                var reactorRef = CUtil.portRef(output,sr,sb,sc);
+                var portRef = CUtil.portRef(output,sr,sb,sc);
+                var reactorRef= CUtil.reactorRef(reactor,sr);
                 code.pr("// For reference counting, set num_destinations for port " + output.getFullName() + ".");
                 code.startScopedRangeBlock(currentFederate, sendingRange, sr, sb, sc, sendingRange.instance.isInput(), isFederated, true);
-                code.pr(reactorRef+".num_destinations = "+numDestinations+";");
+                code.pr(portRef+".num_destinations = "+numDestinations+";");
                 if (numDestinations > 0) {
                     code.pr(String.join("\n",
                         "#ifdef SCHEDULER == LET",
                         "// Allocate memory for destination reactor pointers",
-                        reactorRef+".destination_reactors = (self_base_t**)_lf_allocate(",
+                        portRef+".destination_reactors = (self_base_t**)_lf_allocate(",
                         "        "+numDestinations+", sizeof(self_base_t**),",
                         "        &"+reactorRef+"->base.allocations);",
                         "#endif"));
@@ -911,7 +917,7 @@ public class CTriggerObjectsGenerator {
                     code.pr(String.join("\n",
                         "#ifdef SCHEDULER == LET",
                         "// Port has no destination reactors",
-                        reactorRef+".destination_reactors = NULL;",
+                        portRef+".destination_reactors = NULL;",
                         "#endif"));
                 }
                 code.endScopedRangeBlock(sendingRange, isFederated);
