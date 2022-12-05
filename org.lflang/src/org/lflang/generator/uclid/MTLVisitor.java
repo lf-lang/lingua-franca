@@ -180,7 +180,7 @@ public class MTLVisitor extends MTLParserBaseVisitor<String> {
 
         return "finite_exists " + "(" + "j" + QFIdx + " : integer) in indices :: "
                 + "j" + QFIdx + " >= " + prefixIdx + " && " + "j" + QFIdx + " <= " + end
-                + " && " + "rxn" + "(" + "j" + QFIdx + ")" + " != " + "NULL"
+                + " && " + "!" + "isNULL" + "(" + "j" + QFIdx + ")"
                 + " && " + "(" + _visitUnaryOp(ctx.right, ("j"+QFIdx), QFIdx+1, prefixIdx, currentHorizon) + ")"
                 + " && " + "(" + "\n" 
                 + "// Time Predicate\n"
@@ -226,7 +226,7 @@ public class MTLVisitor extends MTLParserBaseVisitor<String> {
                                                     upperBoundNanoSec, "j" + QFIdx, prefixIdx);        
         return "!(" + "finite_exists " + "(" + "j" + QFIdx + " : integer) in indices :: "
                 + "j" + QFIdx + " >= " + prefixIdx + " && " + "j" + QFIdx + " <= " + end
-                + " && " + "rxn" + "(" + "j" + QFIdx + ")" + " != " + "NULL"
+                + " && " + "!" + "isNULL" + "(" + "j" + QFIdx + ")"
                 + " && " + "!" + "(" + visitPrimary(ctx.formula, ("j"+QFIdx), QFIdx+1, prefixIdx, currentHorizon) + ")"
                 + " && " + "(" + "\n" 
                 + "// Time Predicate\n"
@@ -252,7 +252,7 @@ public class MTLVisitor extends MTLParserBaseVisitor<String> {
                                                     upperBoundNanoSec, "j" + QFIdx, prefixIdx);        
         return "finite_exists " + "(" + "j" + QFIdx + " : integer) in indices :: "
                 + "j" + QFIdx + " >= " + prefixIdx + " && " + "j" + QFIdx + " <= " + end
-                + " && " + "rxn" + "(" + "j" + QFIdx + ")" + " != " + "NULL"
+                + " && " + "!" + "isNULL" + "(" + "j" + QFIdx + ")"
                 + " && " + "(" + visitPrimary(ctx.formula, ("j"+QFIdx), QFIdx+1, prefixIdx, currentHorizon) + ")"
                 + " && " + "(" + "\n" 
                 + "// Time Predicate\n"
@@ -269,7 +269,7 @@ public class MTLVisitor extends MTLParserBaseVisitor<String> {
             // Check if the ID is a reaction.
             // FIXME: Not robust.
             if (ctx.id.getText().contains("_reaction_")) {
-                return "rxn(" + prefixIdx + ") == " + ctx.id.getText();
+                return ctx.id.getText() + "(" + "rxn(" + prefixIdx + ")" + ")";
             } else if (ctx.id.getText().contains("_is_present")) { 
                 return ctx.id.getText() + "(" + "t(" + prefixIdx + ")" + ")";
             } else {

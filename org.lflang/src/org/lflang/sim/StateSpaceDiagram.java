@@ -9,6 +9,7 @@ import java.util.Set;
 
 import org.lflang.graph.DirectedGraph;
 
+// FIXME: Use a linkedlist instead.
 public class StateSpaceDiagram extends DirectedGraph<StateSpaceNode> {
 
     /**

@@ -102,43 +102,39 @@ public class StateSpaceExplorer {
         addInitialEvents(this.main);
         System.out.println(this.eventQ);
         
-        Tag             previous_tag = null; // Tag in the previous loop ITERATION
-        Tag             current_tag  = null;  // Tag in the current  loop ITERATION
-        StateSpaceNode  current_node = null;
+        Tag             previousTag = null; // Tag in the previous loop ITERATION
+        Tag             currentTag  = null;  // Tag in the current  loop ITERATION
+        StateSpaceNode  currentNode = null;
         boolean         stop         = true;
         if (this.eventQ.size() > 0) {
             stop = false;
-            current_tag = (eventQ.peek()).tag;
-            // System.out.println(current_tag);
+            currentTag = (eventQ.peek()).tag;
+            // System.out.println(currentTag);
         }
 
         // A list of reactions invoked at the current logical tag
-        ArrayList<ReactionInstance> reactions_invoked;
+        ArrayList<ReactionInstance> reactionsInvoked;
         // A temporary list of reactions processed in the current LOOP ITERATION
-        ArrayList<ReactionInstance> reactions_temp;
+        ArrayList<ReactionInstance> reactionsTemp;
 
         while (!stop) {
             // Pop the events from the earliest tag off the event queue.
-            ArrayList<Event> current_events = new ArrayList<Event>();
+            ArrayList<Event> currentEvents = new ArrayList<Event>();
             // FIXME: Use stream methods here?
-            while (eventQ.size() > 0 && eventQ.peek().tag.compareTo(current_tag) == 0) {
+            while (eventQ.size() > 0 && eventQ.peek().tag.compareTo(currentTag) == 0) {
                 Event e = eventQ.poll();
-                current_events.add(e);
-                // System.out.println("Adding event to current_events: " + e);
+                currentEvents.add(e);
+                // System.out.println("Adding event to currentEvents: " + e);
             }
-            System.out.println(current_events);
+            System.out.println(currentEvents);
 
             // Collect all the reactions invoked in this current LOOP ITERATION
             // triggered by the earliest events.
-            reactions_temp = new ArrayList<ReactionInstance>();
-            for (Event e : current_events) {
-                Set<ReactionInstance> dependent_reactions
+            reactionsTemp = new ArrayList<ReactionInstance>();
+            for (Event e : currentEvents) {
+                Set<ReactionInstance> dependentReactions
                     = e.trigger.getDependentReactions();
-                // System.out.println("Dependent reactions:");
-                // for (ReactionInstance reaction : dependent_reactions)
-                //     System.out.println(reaction);
-                // System.out.println(dependent_reactions);
-                reactions_temp.addAll(dependent_reactions);
+                reactionsTemp.addAll(dependentReactions);
 
                 // If the event is a timer firing, enqueue the next firing.
                 if (e.trigger instanceof TimerInstance) {
@@ -146,7 +142,7 @@ public class StateSpaceExplorer {
                     eventQ.add(new Event(
                         timer,
                         new Tag(
-                            current_tag.timestamp + timer.getPeriod().toNanoSeconds(),
+                            currentTag.timestamp + timer.getPeriod().toNanoSeconds(),
                             0, // A time advancement resets microstep to 0.
                             false
                         ))
@@ -155,7 +151,7 @@ public class StateSpaceExplorer {
             }
 
             // For each reaction invoked, compute the new events produced.
-            for (ReactionInstance reaction : reactions_temp) {
+            for (ReactionInstance reaction : reactionsTemp) {
                 // Iterate over all the effects produced by this reaction.
                 // If the effect is a port, obtain the downstream port along
                 // a connection and enqueue a future event for that port.
@@ -193,7 +189,7 @@ public class StateSpaceExplorer {
                                 // Create and enqueue a new event.
                                 Event e = new Event(
                                     downstreamPort,
-                                    new Tag(current_tag.timestamp + delay, 0, false)
+                                    new Tag(currentTag.timestamp + delay, 0, false)
                                 );
                                 eventQ.add(e);
                             }
@@ -205,7 +201,7 @@ public class StateSpaceExplorer {
                         // Create and enqueue a new event.
                         Event e = new Event(
                             effect,
-                            new Tag(current_tag.timestamp + min_delay, 0, false)
+                            new Tag(currentTag.timestamp + min_delay, 0, false)
                         );
                         eventQ.add(e);
                     }
@@ -214,11 +210,11 @@ public class StateSpaceExplorer {
 
             // When we first advance to a new tag, create a new node in the state space diagram.
             if (
-                previous_tag == null // The first iteration
-                || current_tag.compareTo(previous_tag) > 0
+                previousTag == null // The first iteration
+                || currentTag.compareTo(previousTag) > 0
             ) {
-                // Copy the reactions in reactions_temp.
-                reactions_invoked = new ArrayList<ReactionInstance>(reactions_temp);
+                // Copy the reactions in reactionsTemp.
+                reactionsInvoked = new ArrayList<ReactionInstance>(reactionsTemp);
 
                 // Create a new state in the SSD for the current tag,
                 // add the reactions triggered to the state,
@@ -226,8 +222,8 @@ public class StateSpaceExplorer {
                 // generated by reaction invocations in the curren tag)
                 // to the state.
                 StateSpaceNode node = new StateSpaceNode(
-                    current_tag,                    // Current tag
-                    reactions_invoked,              // Reactions invoked at this tag
+                    currentTag,                    // Current tag
+                    reactionsInvoked,              // Reactions invoked at this tag
                     new ArrayList<Event>(eventQ)    // A snapshot of the event queue
                 );
 
@@ -241,8 +237,8 @@ public class StateSpaceExplorer {
                             System.out.println("*** A loop is found!");
                             // Mark the loop in the diagram.
                             this.diagram.loopNode = n;
-                            this.diagram.tail = current_node;
-                            this.diagram.loopPeriod = current_tag.timestamp
+                            this.diagram.tail = currentNode;
+                            this.diagram.loopPeriod = currentTag.timestamp
                                                         - this.diagram.loopNode.tag.timestamp;
                             this.diagram.addEdge(this.diagram.loopNode, this.diagram.tail);
                             return; // Exit the while loop early.
@@ -257,35 +253,35 @@ public class StateSpaceExplorer {
                 
                 // If the head is not empty, add an edge from the previous state
                 // to the next state. Otherwise initialize the head to the new node.
-                if (this.diagram.head != null && current_node != null) {
-                    // System.out.println("--- Add a new edge between " + current_node + " and " + node);
-                    this.diagram.addEdge(node, current_node); // Sink first, then source
+                if (this.diagram.head != null && currentNode != null) {
+                    // System.out.println("--- Add a new edge between " + currentNode + " and " + node);
+                    this.diagram.addEdge(node, currentNode); // Sink first, then source
                 }
                 else
                     this.diagram.head = node; // Initialize the head.
                 
                 // Update the current node.
-                current_node = node;
+                currentNode = node;
             }
             // Time does not advance because we are processing
             // connections with zero delay.
             else {
                 // Add reactions explored in the current loop iteration
                 // to the existing state space node.
-                current_node.reactions_invoked.addAll(reactions_temp);
+                currentNode.reactionsInvoked.addAll(reactionsTemp);
             }
 
             // Update the current tag for the next iteration.
             if (eventQ.size() > 0) {
-                previous_tag = current_tag;
-                current_tag = eventQ.peek().tag;
+                previousTag = currentTag;
+                currentTag = eventQ.peek().tag;
             }
 
             // Stop if:
             // 1. the event queue is empty, or
             // 2. the horizon is reached.
             if (eventQ.size() == 0 
-                || current_tag.compareTo(horizon) > 0)
+                || currentTag.compareTo(horizon) > 0)
                 stop = true;
         }
         return;

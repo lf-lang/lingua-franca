@@ -14,29 +14,29 @@ public class StateSpaceNode {
 
     public int index;
     public Tag tag;
-    public ArrayList<ReactionInstance> reactions_invoked;
+    public ArrayList<ReactionInstance> reactionsInvoked;
     public ArrayList<Event> eventQ;
 
     public StateSpaceNode(
         Tag tag,
-        ArrayList<ReactionInstance> reactions_invoked,
+        ArrayList<ReactionInstance> reactionsInvoked,
         ArrayList<Event> eventQ
     ) {
         this.tag    = tag;
         this.eventQ = eventQ;
-        this.reactions_invoked = reactions_invoked;
+        this.reactionsInvoked = reactionsInvoked;
     }
 
     /**
      * This equals method does NOT compare tags,
-     * only compares reactions_invoked and eventQ.
+     * only compares reactionsInvoked and eventQ.
      */
     @Override
     public boolean equals(Object o) {
         if (o == null) return false;
         if (o instanceof StateSpaceNode) {
             StateSpaceNode node = (StateSpaceNode) o;
-            if (this.reactions_invoked.equals(node.reactions_invoked)
+            if (this.reactionsInvoked.equals(node.reactionsInvoked)
                 && this.eventQ.equals(node.eventQ))
                 return true;
         }
@@ -44,7 +44,7 @@ public class StateSpaceNode {
     }
 
     public void display() {
-        System.out.println("(" + tag + ", " + reactions_invoked + ", " + eventQ + ")");
+        System.out.println("(" + tag + ", " + reactionsInvoked + ", " + eventQ + ")");
     }
     
 }

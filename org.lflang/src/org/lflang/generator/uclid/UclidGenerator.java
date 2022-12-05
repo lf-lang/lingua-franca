@@ -136,6 +136,11 @@ public class UclidGenerator extends GeneratorBase {
     // A runner for the generated Uclid files
     public UclidRunner                  runner;
 
+    // If true, use logical time-based semantics;
+    // otherwise, use event-based semantics,
+    // as described in Sirjani et. al (2020).
+    public boolean                      logicalTimeBased    = false;
+
     ////////////////////////////////////////////
     //// Protected fields
 
@@ -464,8 +469,16 @@ public class UclidGenerator extends GeneratorBase {
             " ****************/"
         ));
 
-        // Define a tuple getter.
-        // FIXME: Support this feature in Uclid.
+        // Define a getter for uclid arrays.
+        String initialReactions = "";
+        if (this.reactionInstances.size() > 0) {
+            initialReactions = "false, ".repeat(this.reactionInstances.size());
+            initialReactions = initialReactions.substring(0, initialReactions.length()-2);
+        } else {
+            // Initialize a dummy variable just to make the code compile.
+            initialReactions = "false";
+        }
+        initialReactions = "{" + initialReactions + "}";
         String initialStates = "";
         if (this.namedInstances.size() > 0) {
             initialStates = "0, ".repeat(this.namedInstances.size());
@@ -493,7 +506,8 @@ public class UclidGenerator extends GeneratorBase {
         code.pr("// Helper macro that returns an element based on index.");
         code.pr("define get(tr : trace_t, i : step_t) : event_t =");
         code.pr("if (i >= START || i <= END_TRACE) then tr[i] else");
-        code.pr("{ NULL, inf(), { " + initialStates + " }, { " + initialTriggerPresence + " }, {" + initialActionsScheduled + "} };");
+        code.pr("{ " + initialReactions + ", inf(), { " + initialStates + " }, { " + initialTriggerPresence
+            + " }, {" + initialActionsScheduled + "} };");
 
         // Define an event getter from the trace.
         code.pr(String.join("\n", 
@@ -506,8 +520,7 @@ public class UclidGenerator extends GeneratorBase {
             "define s        (i : step_t) : state_t      = elem(i)._3;",
             "define t        (i : step_t) : trigger_t    = elem(i)._4;",
             "define d        (i : step_t) : sched_t      = elem(i)._5;",
-            "define isNULL   (i : step_t) : boolean      = rxn(i) == NULL;",
-            ""
+            "define isNULL   (i : step_t) : boolean      = rxn(i) == " + initialReactions + ";"
         ));
     }
 
@@ -528,18 +541,26 @@ public class UclidGenerator extends GeneratorBase {
 
         // Enumerate over all reactions.
         code.pr(String.join("\n",
-            "// Reaction ids",
-            "type rxn_t = enum {"
+            "// Reactions",
+            "type rxn_t = {"
         ));
         code.indent();
-        for (var rxn : this.reactionInstances) {
+        for (var i = 0 ; i < this.reactionInstances.size(); i++) {
             // Print a list of reaction IDs.
             // Add a comma if not last.
-            code.pr(rxn.getReaction().getFullNameWithJoiner("_") + ",");
+            code.pr("boolean" + ((i == this.reactionInstances.size() - 1) ? "" : ",")
+                + "\t// " + this.reactionInstances.get(i));
         }
-        code.pr("NULL");
         code.unindent();
-        code.pr("};\n\n");
+        code.pr("};\n");
+
+        // Generate projection macros.
+        code.pr("// Reaction projection macros");
+        for (var i = 0 ; i < this.reactionInstances.size(); i++) {
+            code.pr("define " + this.reactionInstances.get(i).getReaction().getFullNameWithJoiner("_")
+                + "(n : rxn_t) : boolean = n._" + (i+1) + ";");
+        }
+        code.pr("\n"); // Newline
 
         // State variables and triggers
         // FIXME: expand to data types other than integer
@@ -548,7 +569,8 @@ public class UclidGenerator extends GeneratorBase {
         code.indent();
         if (this.namedInstances.size() > 0) {
             for (var i = 0 ; i < this.namedInstances.size(); i++) {
-                code.pr("integer" + ((i == this.namedInstances.size() - 1) ? "" : ",") + "\t// " + this.namedInstances.get(i));
+                code.pr("integer" + ((i == this.namedInstances.size() - 1) ? "" : ",")
+                    + "\t// " + this.namedInstances.get(i));
             }
         } else {
             code.pr(String.join("\n", 
@@ -561,7 +583,8 @@ public class UclidGenerator extends GeneratorBase {
         code.pr("};");
         code.pr("// State variable projection macros");
         for (var i = 0; i < this.namedInstances.size(); i++) {
-            code.pr("define " + this.namedInstances.get(i).getFullNameWithJoiner("_") + "(s : state_t) : integer = s._" + (i+1) + ";");
+            code.pr("define " + this.namedInstances.get(i).getFullNameWithJoiner("_")
+                + "(s : state_t) : integer = s._" + (i+1) + ";");
         }
         code.pr("\n"); // Newline
 
@@ -571,7 +594,8 @@ public class UclidGenerator extends GeneratorBase {
         code.indent();
         if (this.triggerInstances.size() > 0) {
             for (var i = 0 ; i < this.triggerInstances.size(); i++) {
-                code.pr("boolean" + ((i == this.triggerInstances.size() - 1) ? "" : ",") + "\t// " + this.triggerInstances.get(i));
+                code.pr("boolean" + ((i == this.triggerInstances.size() - 1) ? "" : ",")
+                    + "\t// " + this.triggerInstances.get(i));
             }
         } else {
             code.pr(String.join("\n", 
@@ -584,7 +608,8 @@ public class UclidGenerator extends GeneratorBase {
         code.pr("};");
         code.pr("// Trigger presence projection macros");
         for (var i = 0; i < this.triggerInstances.size(); i++) {
-            code.pr("define " + this.triggerInstances.get(i).getFullNameWithJoiner("_") + "_is_present" + "(t : trigger_t) : boolean = t._" + (i+1) + ";");
+            code.pr("define " + this.triggerInstances.get(i).getFullNameWithJoiner("_")
+                + "_is_present" + "(t : trigger_t) : boolean = t._" + (i+1) + ";");
         }
 
         // A boolean tuple indicating whether actions are scheduled by reactions
@@ -597,7 +622,8 @@ public class UclidGenerator extends GeneratorBase {
         code.indent();
         if (this.actionInstances.size() > 0) {
             for (var i = 0 ; i < this.actionInstances.size(); i++) {
-                code.pr("boolean" + ((i == this.actionInstances.size() - 1) ? "" : ",") + "\t// " + this.actionInstances.get(i));
+                code.pr("boolean" + ((i == this.actionInstances.size() - 1) ? "" : ",")
+                    + "\t// " + this.actionInstances.get(i));
             }
         } else {
             code.pr(String.join("\n", 
@@ -610,7 +636,8 @@ public class UclidGenerator extends GeneratorBase {
         code.pr("};");
         code.pr("// Projection macros for action schedule flag");
         for (var i = 0; i < this.actionInstances.size(); i++) {
-            code.pr("define " + this.actionInstances.get(i).getFullNameWithJoiner("_") + "_scheduled" + "(d : sched_t) : boolean = d._" + (i+1) + ";");
+            code.pr("define " + this.actionInstances.get(i).getFullNameWithJoiner("_")
+                + "_scheduled" + "(d : sched_t) : boolean = d._" + (i+1) + ";");
         }
     }
 
@@ -622,37 +649,6 @@ public class UclidGenerator extends GeneratorBase {
             "/*********************",
             " * Reactor Semantics *",
             " *********************/",
-            "/** transition relation **/",
-            "// transition relation constrains future states",
-            "// based on previous states.",
-            "",
-            "// Events are ordered by \"happened-before\" relation.",
-            "axiom(finite_forall (i : integer) in indices :: (i >= START && i <= END) ==> (finite_forall (j : integer) in indices ::",
-            "    (j >= START && j <= END) ==> (hb(elem(i), elem(j)) ==> i < j)));",
-            "",
-            "// the same event can only trigger once in a logical instant",
-            "axiom(finite_forall (i : integer) in indices :: (i >= START && i <= END) ==> (finite_forall (j : integer) in indices ::",
-            "    (j >= START && j <= END) ==> ((rxn(i) == rxn(j) && i != j)",
-            "        ==> !tag_same(g(i), g(j)))));",
-            "",
-            "// Tags should be non-negative.",
-            "axiom(finite_forall (i : integer) in indices :: (i > START && i <= END)",
-            "    ==> pi1(g(i)) >= 0);",
-            "",
-            "// Microsteps should be non-negative.",
-            "axiom(finite_forall (i : integer) in indices :: (i > START && i <= END)",
-            "    ==> pi2(g(i)) >= 0);",
-            "",
-            "// Begin the frame at the start time specified.",
-            "define start_frame(i : step_t) : boolean =",
-            "    (tag_same(g(i), {start_time, 0}) || tag_later(g(i), {start_time, 0}));",
-            "axiom(finite_forall (i : integer) in indices :: (i > START && i <= END)",
-            "    ==> start_frame(i));",
-            "",
-            "// NULL events should appear in the suffix, except for START.",
-            "axiom(finite_forall (j : integer) in indices :: (j > START && j <= END) ==> (",
-            "    (rxn(j)) != NULL) ==> ",
-            "        (finite_forall (i : integer) in indices :: (i > START && i < j) ==> (rxn(i) != NULL)));",
             ""
         ));
 
@@ -662,21 +658,66 @@ public class UclidGenerator extends GeneratorBase {
             "define hb(e1, e2 : event_t) : boolean",
             "= tag_earlier(e1._2, e2._2)"
         ));
-        code.indent();
-        // Get happen-before relation between two reactions.
-        code.pr("|| (tag_same(e1._2, e2._2) && ( false");
-        // Iterate over every pair of reactions.
-        for (var upstreamRuntime : this.reactionInstances) {
-            var downstreamReactions = upstreamRuntime.getReaction().dependentReactions();
-            for (var downstream : downstreamReactions) {
-                for (var downstreamRuntime : downstream.getRuntimeInstances()) {
-                    code.pr("|| (e1._1 == " + upstreamRuntime.getReaction().getFullNameWithJoiner("_")
-                            + " && e2._1 == " + downstreamRuntime.getReaction().getFullNameWithJoiner("_") + ")");
+        if (!this.logicalTimeBased) {
+            code.indent();
+            // Get happen-before relation between two reactions.
+            code.pr("|| (tag_same(e1._2, e2._2) && ( false");
+            // Iterate over every pair of reactions.
+            for (var upstreamRuntime : this.reactionInstances) {
+                var downstreamReactions = upstreamRuntime.getReaction().dependentReactions();
+                for (var downstream : downstreamReactions) {
+                    for (var downstreamRuntime : downstream.getRuntimeInstances()) {
+                        code.pr("|| (" + upstreamRuntime.getReaction().getFullNameWithJoiner("_") + "(e1._1)"
+                            + " && " + downstreamRuntime.getReaction().getFullNameWithJoiner("_") + "(e2._1)" + ")");
+                    }
                 }
             }
+            code.unindent();
+            code.pr("))");
         }
-        code.unindent();
-        code.pr("));");
+        code.pr(";");
+
+        code.pr(String.join("\n", 
+            "/** transition relation **/",
+            "// transition relation constrains future states",
+            "// based on previous states.",
+            "",
+            "// Events are ordered by \"happened-before\" relation.",
+            "axiom(finite_forall (i : integer) in indices :: (i >= START && i <= END_TRACE) ==> (finite_forall (j : integer) in indices ::",
+            "    (j >= START && j <= END_TRACE) ==> (hb(elem(i), elem(j)) ==> i < j)));",
+            "",
+            "// Tags should be non-negative.",
+            "axiom(finite_forall (i : integer) in indices :: (i > START && i <= END_TRACE)",
+            "    ==> pi1(g(i)) >= 0);",
+            "",
+            "// Microsteps should be non-negative.",
+            "axiom(finite_forall (i : integer) in indices :: (i > START && i <= END_TRACE)",
+            "    ==> pi2(g(i)) >= 0);",
+            "",
+            "// Begin the frame at the start time specified.",
+            "define start_frame(i : step_t) : boolean =",
+            "    (tag_same(g(i), {start_time, 0}) || tag_later(g(i), {start_time, 0}));",
+            "axiom(finite_forall (i : integer) in indices :: (i > START && i <= END_TRACE)",
+            "    ==> start_frame(i));",
+            "",
+            "// NULL events should appear in the suffix, except for START.",
+            "axiom(finite_forall (j : integer) in indices :: (j > START && j <= END_TRACE) ==> (",
+            "    !isNULL(j)) ==> ",
+            "        (finite_forall (i : integer) in indices :: (i > START && i < j) ==> (!isNULL(i))));",
+            ""
+        ));
+
+        // For logical time-based semantics, there is no need for this since each logical instant
+        // will only happen once in the trace.
+        if (!this.logicalTimeBased) {
+            code.pr(String.join("\n",
+                "// the same event can only trigger once in a logical instant",
+                "axiom(finite_forall (i : integer) in indices :: (i >= START && i <= END) ==> (finite_forall (j : integer) in indices ::",
+                "    (j >= START && j <= END) ==> ((rxn(i) == rxn(j) && i != j)",
+                "        ==> !tag_same(g(i), g(j)))));",
+                ""
+            ));
+        }
     }
 
     /**
@@ -747,7 +788,7 @@ public class UclidGenerator extends GeneratorBase {
                     // If destination is not present, then its value resets to 0.
                     code.pr(String.join("\n", 
                         "// If " + destination.getFullNameWithJoiner("_") + " is not present, then its value resets to 0.",
-                        "axiom(finite_forall (i : integer) in indices :: (i > START && i <= END && rxn(i) != NULL) ==> (",
+                        "axiom(finite_forall (i : integer) in indices :: (i > START && i <= END && !isNULL(i)) ==> (",
                         "    (!" + destination.getFullNameWithJoiner("_") + "_is_present" + "(t(i)) ==> (",
                         "        " + destination.getFullNameWithJoiner("_") + "(s(i)) == 0",
                         "    ))",
@@ -775,7 +816,7 @@ public class UclidGenerator extends GeneratorBase {
                         // OR because only any present trigger can trigger the reaction.
                         "|| (" + action.getFullNameWithJoiner("_") + "_is_present" + "(t(i)) ==> (",
                         "    finite_exists (j : integer) in indices :: j >= START && j < i",
-                        "    && rxn(j) == " + reaction.getFullNameWithJoiner("_"),
+                        "    && " + reaction.getFullNameWithJoiner("_") + "(rxn(j))",
                         "    && g(i) == tag_schedule(g(j), " + action.getMinDelay().toNanoSeconds() + ")",
                         "    && " + action.getFullNameWithJoiner("_") + "_scheduled" + "(d(j))",
                         "))"
@@ -794,7 +835,7 @@ public class UclidGenerator extends GeneratorBase {
                 // If the action is not present, then its value resets to 0.
                 code.pr(String.join("\n", 
                     "// If " + action.getFullNameWithJoiner("_") + "  is not present, then its value resets to 0.",
-                    "axiom(finite_forall (i : integer) in indices :: (i > START && i <= END && rxn(i) != NULL) ==> (",
+                    "axiom(finite_forall (i : integer) in indices :: (i > START && i <= END && !isNULL(i)) ==> (",
                     "    (!" + action.getFullNameWithJoiner("_") + "_is_present" + "(t(i)) ==> (",
                     "        " + action.getFullNameWithJoiner("_") + "(s(i)) == 0",
                     "    ))",
@@ -835,10 +876,10 @@ public class UclidGenerator extends GeneratorBase {
                             "axiom(",
                             "    ((start_time == 0) ==> (",
                             "        finite_exists (i : integer) in indices :: i > START && i <= END",
-                            "            && rxn(i) == " + reaction.getReaction().getFullNameWithJoiner("_") + " && tag_same(g(i), zero())",
+                            "            && " + reaction.getReaction().getFullNameWithJoiner("_") + "(rxn(i))" + " && tag_same(g(i), zero())",
                             "            && !(",
                             "            finite_exists (j : integer) in indices :: j > START && j <= END",
-                            "            && rxn(j) == " + reaction.getReaction().getFullNameWithJoiner("_") ,
+                            "            && " + reaction.getReaction().getFullNameWithJoiner("_") + "(rxn(j))",
                             "            && j != i",
                             "            )",
                             "    ))",
@@ -866,7 +907,7 @@ public class UclidGenerator extends GeneratorBase {
                 for (var instance : trigger.getDependentReactions()) {
                     for (var runtime : ((ReactionInstance)instance).getRuntimeInstances()) {
                         if (runtime == reaction) continue; // Skip the current reaction.
-                        exclusion += " && rxn(i) != " + runtime.getReaction().getFullNameWithJoiner("_");
+                        exclusion += " && !" + runtime.getReaction().getFullNameWithJoiner("_") + "(rxn(i))";
                     }
                 }
                 
@@ -875,7 +916,7 @@ public class UclidGenerator extends GeneratorBase {
             }
 
             // If any of the above trigger is present, then trigger the reaction.
-            str += "\n) <==> (rxn(i) == " + reaction.getReaction().getFullNameWithJoiner("_") + ")));";
+            str += "\n) <==> (" + reaction.getReaction().getFullNameWithJoiner("_") + "(rxn(i))" + ")));";
             code.pr(str);
         }
     }
@@ -890,7 +931,7 @@ public class UclidGenerator extends GeneratorBase {
             " *********************/",
             "define initial_condition() : boolean",
             "= start_time == 0",
-            "    && rxn(0) == NULL",
+            "    && isNULL(0)",
             "    && g(0) == {0, 0}"
         ));
         code.indent();
@@ -919,6 +960,7 @@ public class UclidGenerator extends GeneratorBase {
             " * Reactions *",
             " *************/"
         ));
+
         for (ReactionInstance.Runtime reaction : this.reactionInstances) {
             System.out.println("Printing reaction body of " + reaction);
             String body = reaction.getReaction().getDefinition().getCode().getBody();
@@ -952,13 +994,13 @@ public class UclidGenerator extends GeneratorBase {
             // System.out.println("***** Printing the AST in If Normal Form.");
             baseVisitor.visit(inf);
 
-            // For the variables that are used, extract the conditions
+            // For the variables that are USED inside this reaction, extract the conditions
             // for setting them, and take the negation of their conjunction
-            // to get the condition for resetting them.
+            // to get the condition for maintaining their values.
             List<StateVariableInstance> unusedStates = new ArrayList<>(this.stateVariables);
             List<PortInstance> unusedOutputs = new ArrayList<>(this.outputInstances);
             List<ActionInstance> unusedActions = new ArrayList<>(this.actionInstances);
-            HashMap<NamedInstance, List<CAst.AstNode>> resetConditions = new HashMap<>();
+            HashMap<NamedInstance, List<CAst.AstNode>> defaultBehaviorConditions = new HashMap<>();
             for (CAst.AstNode node : inf.children) {
                 CAst.IfBlockNode ifBlockNode = (CAst.IfBlockNode)node;
                 CAst.AstNode ifBody = ((CAst.IfBodyNode)ifBlockNode.right).left;
@@ -983,10 +1025,10 @@ public class UclidGenerator extends GeneratorBase {
                     unusedActions.remove(instance);
                 } else continue;
                 // Create a new entry in the list if there isn't one yet.
-                if (resetConditions.get(instance) == null) {
-                    resetConditions.put(instance, new ArrayList<CAst.AstNode>());
+                if (defaultBehaviorConditions.get(instance) == null) {
+                    defaultBehaviorConditions.put(instance, new ArrayList<CAst.AstNode>());
                 }
-                resetConditions.get(instance).add(ifBlockNode.left);
+                defaultBehaviorConditions.get(instance).add(ifBlockNode.left);
                 // System.out.println("!!! Added another reset condition: " + ifBlockNode.left);
             }
 
@@ -997,14 +1039,14 @@ public class UclidGenerator extends GeneratorBase {
             code.pr(String.join("\n", 
                 "// Reaction body of " + reaction,
                 "axiom(finite_forall (i : integer) in indices :: (i > START && i <= END) ==> (",
-                "    (rxn(i) == " + reaction.getReaction().getFullNameWithJoiner("_") + ")",
+                "    (" + reaction.getReaction().getFullNameWithJoiner("_") + "(rxn(i))" + ")",
                 "        ==> " + "(" + "(" + axiom + ")",
                 "&& " + "( " + "true",
-                "// Default behavior of the used variables"
+                "// By default, the value of the variables used in this reaction stay the same."
             ));
-            for (NamedInstance key : resetConditions.keySet()) {
-                CAst.AstNode disjunction = CAstUtils.takeDisjunction(resetConditions.get(key));
-                // System.out.println("!!! Reset conditions: " + resetConditions.get(key));
+            for (NamedInstance key : defaultBehaviorConditions.keySet()) {
+                CAst.AstNode disjunction = CAstUtils.takeDisjunction(defaultBehaviorConditions.get(key));
+                // System.out.println("!!! Reset conditions: " + defaultBehaviorConditions.get(key));
                 CAst.LogicalNotNode notNode = new CAst.LogicalNotNode();
                 notNode.child = disjunction;
                 String resetCondition = c2uVisitor.visit(notNode);
@@ -1038,38 +1080,71 @@ public class UclidGenerator extends GeneratorBase {
                 }
                 code.pr("))");
             }
-            // Unused state variables and ports reset by default.
-            code.pr("// Unused state variables and ports reset by default.");
-            for (StateVariableInstance s : unusedStates) {
-                code.pr("&& (true ==> (");
-                code.pr(s.getFullNameWithJoiner("_") + "(" + "s" + "(" + "i" + ")" + ")"
-                    + " == "
-                    + s.getFullNameWithJoiner("_") + "(" + "s" + "(" + "i" + "-1" + ")" + ")");
-                code.pr("))");
-            }
-            for (PortInstance p : unusedOutputs) {
-                code.pr("&& (true ==> (");
-                code.pr(
-                        "("
-                        + " true"
-                        // Reset value
-                        + "\n&& " + p.getFullNameWithJoiner("_") + "(" + "s" + "(" + "i" + ")" + ")"
+
+            // For state variables and ports that are NOT used in this reaction,
+            // their values stay the same by default.
+            code.pr("// Unused state variables and ports are reset by default.");
+            if (this.logicalTimeBased) {
+                // If all other reactions that can modify the SAME state variable
+                // are not triggered, then the state variable stay the same.
+                //
+                // FIXME: What if two reactions modifying the same state variable
+                // are triggered at the same time?
+                // How to use axioms to model reaction priority?
+                // The main difficulty of logical time based semantics is composing
+                // the effect of simultaneous reactions.
+                //
+                // A path way to implement it in the future:
+                // 1. For each variable, port, and action, determine a list of
+                //    reactions that can modify/schedule it.
+                // 2. Reaction axioms should be generated wrt each reactor.
+                //    For example, assuming a reactor with two input ports,
+                //    each triggering a distinct reaction. The axioms will need
+                //    to handle four cases: i. reaction 1 gets triggered and 2
+                //    does not; ii. reaction 2 gets triggered and 1 does not;
+                //    iii. both reactions get triggered; iv. none of them get
+                //    triggered. Since it is hard to specify in an independent way,
+                //    due to reaction priorities,
+                //    what happens when two reactions (modifying the same state var.)
+                //    get triggered simultaneously, some combinatorial blowup will
+                //    be incurred. In this example, four axioms (instead of two),
+                //    each handling one case, seems needed. The good news is that
+                //    axioms across reactors may be specified independently.
+                //    For example, if there is another reactor of the same class,
+                //    Only four more axioms need to be added (in total 2^2 + 2^2),
+                //    instead of 16 axioms (2^4).
+            } else {
+                for (StateVariableInstance s : unusedStates) {
+                    code.pr("&& (true ==> (");
+                    code.pr(s.getFullNameWithJoiner("_") + "(" + "s" + "(" + "i" + ")" + ")"
                         + " == "
-                        + "0" // Default value
-                        // Reset presence
-                        + "\n&& " + p.getFullNameWithJoiner("_") + "_is_present" + "(" + "t" + "(" + "i" + ")" + ")"
-                        + " == "
-                        + false // default presence
-                        + ")"
-                    );
-                code.pr("))");
+                        + s.getFullNameWithJoiner("_") + "(" + "s" + "(" + "i" + "-1" + ")" + ")");
+                    code.pr("))");
+                }
+                for (PortInstance p : unusedOutputs) {
+                    code.pr("&& (true ==> (");
+                    code.pr(
+                            "("
+                            + " true"
+                            // Reset value
+                            + "\n&& " + p.getFullNameWithJoiner("_") + "(" + "s" + "(" + "i" + ")" + ")"
+                            + " == "
+                            + "0" // Default value
+                            // Reset presence
+                            + "\n&& " + p.getFullNameWithJoiner("_") + "_is_present" + "(" + "t" + "(" + "i" + ")" + ")"
+                            + " == "
+                            + false // default presence
+                            + ")"
+                        );
+                    code.pr("))");
+                }
+                for (ActionInstance a : unusedActions) {
+                    code.pr("&& (true ==> (");
+                    code.pr(a.getFullNameWithJoiner("_") + "_scheduled" + "(" + "d" + "(" + "i" + ")" + ")" + " == " + "false");
+                    code.pr("))");
+                }
+                code.pr("))));");
             }
-            for (ActionInstance a : unusedActions) {
-                code.pr("&& (true ==> (");
-                code.pr(a.getFullNameWithJoiner("_") + "_scheduled" + "(" + "d" + "(" + "i" + ")" + ")" + " == " + "false");
-                code.pr("))");
-            }
-            code.pr("))));");
         }
     }
 
@@ -1231,7 +1306,21 @@ public class UclidGenerator extends GeneratorBase {
         diagram.display();  
 
         if (!explorer.loopFound) {
-            this.CT = diagram.length;
+            if (this.logicalTimeBased)
+                this.CT = diagram.length;
+            else {
+                // FIXME: This could be much more efficient with a linkedlist implementation.
+                StateSpaceNode node = diagram.head;
+                this.CT = diagram.head.reactionsInvoked.size();
+                while (diagram.getDownstreamAdjacentNodes(node).size() != 0) {
+                    Set<StateSpaceNode> downstreamNodes = diagram.getDownstreamAdjacentNodes(node);
+                    for (StateSpaceNode n : downstreamNodes) {
+                        node = n; // Go to the next node.
+                        break;
+                    }
+                    this.CT += node.reactionsInvoked.size();
+                }
+            }
             System.out.println("*** A loop is NOT found.");
             System.out.println("CT: " + this.CT);
         } 
@@ -1241,17 +1330,45 @@ public class UclidGenerator extends GeneratorBase {
             // interval from the total horizon.
             long horizonRemained =
                 this.horizon - diagram.loopNode.tag.timestamp;
-            
+        
             // Check how many loop iteration is required
             // to check the remaining horizon.
             int loopIterations = (int) Math.ceil(
                 (double) horizonRemained / diagram.loopPeriod);
-            
-            // CT = steps required for the non-periodic part
-            //      + steps required for the periodic part
-            this.CT = (diagram.loopNode.index + 1)
-                + (diagram.tail.index - diagram.loopNode.index + 1) * loopIterations;
 
+            if (this.logicalTimeBased) {
+                // CT = steps required for the non-periodic part
+                //      + steps required for the periodic part
+                this.CT = (diagram.loopNode.index + 1)
+                    + (diagram.tail.index - diagram.loopNode.index + 1) * loopIterations;
+            } else {
+                // Get the number of events before the loop.
+                // This stops right before the loopNode is encountered.
+                StateSpaceNode node = diagram.head;
+                int numReactionInvocationsBeforeLoop = 0;
+                while (node != diagram.loopNode) {
+                    numReactionInvocationsBeforeLoop += node.reactionsInvoked.size();
+                    Set<StateSpaceNode> downstreamNodes = diagram.getDownstreamAdjacentNodes(node);
+                    for (StateSpaceNode n : downstreamNodes) {
+                        node = n; // Go to the next node.
+                        break;
+                    }
+                }
+                int numReactionInvocationsInsideLoop = node.reactionsInvoked.size();
+                while (node != diagram.loopNode) {
+                    Set<StateSpaceNode> downstreamNodes = diagram.getDownstreamAdjacentNodes(node);
+                    for (StateSpaceNode n : downstreamNodes) {
+                        node = n; // Go to the next node.
+                        break;
+                    }
+                    numReactionInvocationsInsideLoop += node.reactionsInvoked.size();
+                }
+
+                // CT = steps required for the non-periodic part
+                //      + steps required for the periodic part
+                this.CT = numReactionInvocationsBeforeLoop
+                    + numReactionInvocationsInsideLoop * loopIterations;
+            }
             System.out.println("*** A loop is found!");
             System.out.println("CT: " + this.CT);
         }

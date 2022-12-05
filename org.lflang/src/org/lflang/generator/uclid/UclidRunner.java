@@ -69,38 +69,42 @@ public class UclidRunner {
     public StateInfo parseStateInfo(String smtStr) {
         StateInfo info = new StateInfo();
 
+        // Split the counterexample string by newline.
+        String[] splitedSmtStr = smtStr.split("\\r?\\n");
+
         // Reactions
-        Pattern p = Pattern.compile("\\(_tuple_0([^\\)]+)\\(");
-        Matcher m = p.matcher(smtStr);
+        Pattern p = Pattern.compile("\\(_tuple_\\d+ \\(_tuple_\\d+ ([^\\)]+)\\)");
+        Matcher m = p.matcher(splitedSmtStr[0].strip());
         m.find();
-        String[] splited = m.group(1).split("\\s+");
-        info.reactions.addAll(Arrays.asList(splited));
+        String[] reactions = m.group(1).strip().split("\\s+");
+        for (int i = 0; i < reactions.length; i++) {
+            if (reactions[i].equals("true"))
+                info.reactions.add(generator.reactionInstances.get(i).getReaction().getFullName());
+        }
 
         // Time tag
-        p = Pattern.compile("\\(_tuple_1([^\\)]+)\\)");
-        m = p.matcher(smtStr);
+        p = Pattern.compile("\\(_tuple_\\d+([^\\)]+)\\)");
+        m = p.matcher(splitedSmtStr[1].strip());
         m.find();
-        splited = m.group(1).strip().split("\\s+");
+        String[] tag = m.group(1).strip().split("\\s+");
         info.tag = new Tag(
-            Long.parseLong(splited[0]),
-            Long.parseLong(splited[1]), false);
+            Long.parseLong(tag[0]),
+            Long.parseLong(tag[1]), false);
 
         // Variables
-        p = Pattern.compile("\\(_tuple_2([^\\)]+)\\)");
-        m = p.matcher(smtStr);
+        m = p.matcher(splitedSmtStr[2].strip());
         m.find();
-        splited = m.group(1).strip().split("\\s+");
-        for (int i = 1; i < splited.length; i++) {
-            info.variables.put(generator.namedInstances.get(i).getFullName(), splited[i]);
+        String[] variables = m.group(1).strip().split("\\s+");
+        for (int i = 0; i < variables.length; i++) {
+            info.variables.put(generator.namedInstances.get(i).getFullName(), variables[i]);
         }
 
         // Triggers
-        p = Pattern.compile("\\(_tuple_3([^\\)]+)\\)");
-        m = p.matcher(smtStr);
+        m = p.matcher(splitedSmtStr[3].strip());
         m.find();
-        splited = m.group(1).strip().split("\\s+");
-        for (int i = 1; i < splited.length; i++) {
-            info.triggers.put(generator.triggerInstances.get(i).getFullName(), splited[i]);
+        String[] triggers = m.group(1).strip().split("\\s+");
+        for (int i = 0; i < triggers.length; i++) {
+            info.triggers.put(generator.triggerInstances.get(i).getFullName(), triggers[i]);
         }
 
         return info;
@@ -130,7 +134,7 @@ public class UclidRunner {
                     String cexJSONStr = Files.readString(
                         Paths.get(path.toString() + ".json"),
                         StandardCharsets.UTF_8);
-                    System.out.println(cexJSONStr);
+                    // System.out.println(cexJSONStr);
                     JSONObject cexJSON = new JSONObject(cexJSONStr);
 
                     //// Extract the counterexample trace from JSON.

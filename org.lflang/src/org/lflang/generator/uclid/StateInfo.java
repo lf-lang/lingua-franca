@@ -24,6 +24,6 @@ public class StateInfo {
         System.out.println("tag: " + tag);
         System.out.println("variables: " + variables);
         System.out.println("triggers: " + triggers);
-        System.out.println("scheduled: " + scheduled);
+        // System.out.println("scheduled: " + scheduled);
     }
 }
