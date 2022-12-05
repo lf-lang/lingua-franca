@@ -79,7 +79,10 @@ configurations {
 task updateRustRuntime(type: Exec) {
     description('Record the VCS revisions of the language runtimes into a properties file available at runtime.')
     workingDir project.rootDir
-    def command = "git submodule status -- org.lflang/src/lib/rs/reactor-rs" // Note: no --cached, so the checked out rev will be used
+
+    def module = "org.lflang/src/lib/rs/reactor-rs"
+    def command = "git submodule status -- $module"
+    // Note: no --cached, so the checked out rev will be used
     if (System.getProperty('os.name').toLowerCase(Locale.ROOT).contains('windows')) {
         commandLine 'cmd', '/c', command
     } else {
@@ -88,13 +91,18 @@ task updateRustRuntime(type: Exec) {
     standardOutput = new ByteArrayOutputStream()
 
     ext.outputFile = file("$project.projectDir/src/lib/rs/runtime-version.properties")
-    ext.rustRuntimeHeadFile = file("$rootProject.projectDir/.git/modules/org.lflang/src/lib/rs/reactor-rs/HEAD") // just depend on the HEAD
-    inputs.file(rustRuntimeHeadFile)
+    ext.rustRuntimeHeadFile = file("$rootProject.projectDir/.git/modules/$module/HEAD")
+    if (rustRuntimeHeadFile.exists()) {
+        // just depend on the HEAD
+        inputs.file(rustRuntimeHeadFile)
+    }
+    // else the submodule has not been checked out, do not declare inputs,
+    // the task will be rerun.
+
     outputs.file(outputFile)
 
     doLast {
-        // note: this is written to match any submodule, even if the task was scoped down to just the rust module
-        def matcher = standardOutput.toString() =~ ~"(?m)^[+ ]?([0-9a-f]+) org.lflang/src/lib/\\w+/reactor-([-a-zA-Z]+)"
+        def matcher = standardOutput.toString() =~ ~"(?m)^[+ ]?([0-9a-f]+) $module"
         def properties = new StringBuilder()
         if (matcher.find()) {
             def rev = matcher.group(1)
@@ -104,8 +112,9 @@ task updateRustRuntime(type: Exec) {
         outputFile.text = properties
     }
 }
-// add the generated resources dir as an output
+// add the generated file as an output
 sourceSets.main.output.dir tasks.updateRustRuntime.outputFile, builtBy: updateRustRuntime
+tasks.processResources.dependsOn(updateRustRuntime)
 
 task checkRuntimeVersionMatches(type: Exec) {
     description('Check that the runtime version reco')
