@@ -2079,6 +2079,7 @@ public class CGenerator extends GeneratorBase {
      * @param instance The reactor instance.
      */
     private void generateSetLET(ReactorInstance instance) {
+        // FIXME: Should we use #ifdefs instead?
         if (targetConfig.schedulerType == TargetProperty.SchedulerOption.LET) {
             for (ReactionInstance reaction : instance.reactions) {
                 if (currentFederate.contains(reaction.getDefinition())) {
@@ -2524,6 +2525,7 @@ public class CGenerator extends GeneratorBase {
     protected void generateMutexInit(ReactorInstance instance) {
         // We only have the reactor-mutex if we are using the LET scheduler
         //  in the future, Watchdogs will also require this.
+        // FIXME: Should this be hidden behind #ifdefs instead?
         if (targetConfig.schedulerType == TargetProperty.SchedulerOption.LET) {
             var selfRef = CUtil.reactorRef(instance);
             initializeTriggerObjects.pr("// Initialize local mutex only if reactor has either: ");
@@ -2541,6 +2543,7 @@ public class CGenerator extends GeneratorBase {
     }
     
     protected void generateParentPointer (ReactorInstance instance) {
+        // FIXME: Should we use #ifdefs here?
         if (targetConfig.schedulerType == TargetProperty.SchedulerOption.LET) {
             var selfRef = CUtil.reactorRef(instance);
             var parentRef = "NULL";
