@@ -868,10 +868,29 @@ public class CTriggerObjectsGenerator {
                     code.pr("// For reference counting, set num_destinations for port "+port.getParent().getName()+"."+port.getName()+".");
                     // The input port may itself have multiple destinations.
                     for (SendRange sendingRange : port.eventualDestinations()) {
+                        var numDestinations = sendingRange.getNumberOfDestinationReactors();
+                        var portRef = CUtil.portRef(port,sr,sb,sc);
+                        var reactorRef= CUtil.reactorRef(port.getParent(),sr);
+
                         code.startScopedRangeBlock(currentFederate, sendingRange, sr, sb, sc, sendingRange.instance.isInput(), isFederated, true);
                         // Syntax is slightly different for a multiport output vs. single port.
                         var connector = (port.isMultiport())? "->" : ".";
-                        code.pr(CUtil.portRefNested(port, sr, sb, sc)+connector+"num_destinations = "+sendingRange.getNumberOfDestinationReactors()+";");
+                        code.pr(portRef+connector+"num_destinations = "+numDestinations+";");
+                        if (numDestinations > 0) {
+                            code.pr(String.join("\n",
+                                "#if SCHEDULER == LET",
+                                "// Allocate memory for destination reactor pointers",
+                                portRef+".destination_reactors = (self_base_t**)_lf_allocate(",
+                                "        "+numDestinations+", sizeof(self_base_t**),",
+                                "        &"+reactorRef+"->base.allocations);",
+                                "#endif"));
+                        } else {
+                            code.pr(String.join("\n",
+                                "#if SCHEDULER == LET",
+                                "// Port has no destination reactors",
+                                portRef+".destination_reactors = NULL;",
+                                "#endif"));
+                        }
                         code.endScopedRangeBlock(sendingRange, isFederated);
                     }
                 }
