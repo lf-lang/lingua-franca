@@ -25,6 +25,8 @@ package org.lflang.generator.cpp
 
 import org.lflang.ErrorReporter
 import org.lflang.generator.PrependOperator
+import org.lflang.generator.cpp.CppParameterGenerator.Companion.targetType
+import org.lflang.generator.cpp.CppParameterGenerator.Companion.typeAlias
 import org.lflang.isGeneric
 import org.lflang.lf.Reactor
 import org.lflang.toText
@@ -85,21 +87,14 @@ class CppReactorGenerator(private val reactor: Reactor, fileConfig: CppFileConfi
             |
             |${reactor.templateLine}
             |class ${reactor.name}: public reactor::Reactor {
-            | private:
-        ${" |  "..instances.generateDeclarations()}
-        ${" |  "..timers.generateDeclarations()}
-        ${" |  "..actions.generateDeclarations()}
-        ${" |  "..reactions.generateReactionViews()}
-        ${" |  "..reactions.generateDeclarations()}
-            |
             |public:
             |  struct Parameters {
         ${" |    "..parameters.generateParameterStructDeclarations()}
             |  };
             |
-            |private:
+            | private:
             |  class Inner: public lfutil::LFScope, public Parameters {
-        ${" |    "..reactor.parameters.joinToString(separator = "") { "using Parameters::${it.name};\n" }}
+        ${" |    "..parameters.generateUsingDeclarations()}
         ${" |    "..state.generateDeclarations()}
         ${" |    "..methods.generateDeclarations()}
         ${" |    "..reactions.generateBodyDeclarations()}
@@ -111,6 +106,13 @@ class CppReactorGenerator(private val reactor: Reactor, fileConfig: CppFileConfi
             |  };
             |
             |  Inner __lf_inner;
+            |
+        ${" |  "..parameters.generateOuterAliasDeclarations()}
+        ${" |  "..instances.generateDeclarations()}
+        ${" |  "..timers.generateDeclarations()}
+        ${" |  "..actions.generateDeclarations()}
+        ${" |  "..reactions.generateReactionViews()}
+        ${" |  "..reactions.generateDeclarations()}
             |
             | public:
         ${" |  "..ports.generateDeclarations()}
@@ -180,11 +182,11 @@ class CppReactorGenerator(private val reactor: Reactor, fileConfig: CppFileConfi
                 |${reactor.templateLine}
                 |${reactor.templateName}::${outerConstructorSignature}
                 |  : reactor::Reactor(name, ${if (reactor.isMain) "environment" else "container"})
+                |  , __lf_inner(this, std::forward<Parameters>(parameters))
             ${" |  "..instances.generateInitializers()}
             ${" |  "..timers.generateInitializers()}
             ${" |  "..actions.generateInitializers()}
             ${" |  "..reactions.generateReactionViewInitializers()}
-                |  , __lf_inner(this, std::forward<Parameters>(parameters))
                 |{
             ${" |  "..ports.generateConstructorInitializers()}
             ${" |  "..instances.generateConstructorInitializers()}
