@@ -495,7 +495,10 @@ public class CTriggerObjectsGenerator {
                     } else if (dst.isOutput()) {
                         // An output port of a contained reactor is triggering a reaction.
                         dstPort = CUtil.portRefNested(dst,dr,db,dc);
-                        dstReactor = CUtil.reactorRefNested(dst.getParent(),dr, db);
+                        // FIXME: Is this correct? Is this the correct destination reactor?
+                        //  It should be the reactor containing the reactions triggered by the port.
+                        //  during lf_set the writing reaction will acquire this reactors mutex.
+                        dstReactor = CUtil.reactorRef(dst.getParent(),dr);
                         srcPort = CUtil.portRef(src, sr, sb, sc);
                         code.pr(dstPort+" = ("+destStructType+"*)&"+dstPort+";");
                     } else {
@@ -503,7 +506,7 @@ public class CTriggerObjectsGenerator {
                         dstPort = CUtil.portRef(dst,dr,db,dc);
                         dstReactor = CUtil.reactorRef(dst.getParent(),dr);
                         srcPort = CUtil.portRef(src, sr, sb, sc);
-                        code.pr(srcPort+" = ("+destStructType+"*)&"+dstPort+";");
+                        code.pr(dstPort+" = ("+destStructType+"*)&"+srcPort+";");
                         if (AttributeUtils.isSparse(dst.getDefinition())) {
                             code.pr(srcPort+"->sparse_record = "+dstPort+"__sparse;");
                             code.pr(dstPort+"->destination_channel = "+dc+";");
@@ -515,9 +518,9 @@ public class CTriggerObjectsGenerator {
                     //  or check which scheduler is used here.i
                     if (destinationReactors.add(dstReactor)) {
                         code.pr(String.join("\n",
-                            "#ifdef SCHEDULER == LET",
+                            "#if SCHEDULER == LET",
                             srcPort+".destination_reactors["+destinationReactorIdx+"] = ",
-                            "   &"+dstReactor+";",
+                            "   (self_base_t *) "+dstReactor+";",
                             "#endif"
                         ));
                         // FIXME: Catch out of bound access of array
@@ -907,7 +910,7 @@ public class CTriggerObjectsGenerator {
                 code.pr(portRef+".num_destinations = "+numDestinations+";");
                 if (numDestinations > 0) {
                     code.pr(String.join("\n",
-                        "#ifdef SCHEDULER == LET",
+                        "#if SCHEDULER == LET",
                         "// Allocate memory for destination reactor pointers",
                         portRef+".destination_reactors = (self_base_t**)_lf_allocate(",
                         "        "+numDestinations+", sizeof(self_base_t**),",
@@ -915,7 +918,7 @@ public class CTriggerObjectsGenerator {
                         "#endif"));
                 } else {
                     code.pr(String.join("\n",
-                        "#ifdef SCHEDULER == LET",
+                        "#if SCHEDULER == LET",
                         "// Port has no destination reactors",
                         portRef+".destination_reactors = NULL;",
                         "#endif"));

@@ -82,7 +82,7 @@ public class CPortGenerator {
         ));
 
         code.pr(String.join("\n",
-            "#ifdef SCHEDULER == LET",
+            "#if SCHEDULER == LET",
             "self_base_t** destination_reactors;",
             "#endif"
         ));
