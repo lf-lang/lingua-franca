@@ -855,7 +855,7 @@ public class UclidGenerator extends GeneratorBase {
         for (ReactionInstance.Runtime reaction : this.reactionInstances) {
             String str = String.join("\n", 
                 "// " + reaction.getReaction().getFullNameWithJoiner("_") + " is invoked when any of it triggers are present.",
-                "axiom(finite_forall (i : integer) in indices :: (i > START && i <= END) ==> ((",
+                "axiom(finite_forall (i : integer) in indices :: (i > START && i <= END_TRACE) ==> ((",
                 "    false"
             );
 

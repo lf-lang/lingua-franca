@@ -69,12 +69,15 @@ public class UclidRunner {
     public StateInfo parseStateInfo(String smtStr) {
         StateInfo info = new StateInfo();
 
-        // Split the counterexample string by newline.
-        String[] splitedSmtStr = smtStr.split("\\r?\\n");
+        // Remove the outer tuple layer.
+        Pattern p = Pattern.compile("^\\(_tuple_\\d+((.|\\n)*)\\)$");
+        Matcher m = p.matcher(smtStr.strip());
+        m.find();
+        String itemized = m.group(1).strip();
 
         // Reactions
-        Pattern p = Pattern.compile("\\(_tuple_\\d+ \\(_tuple_\\d+ ([^\\)]+)\\)");
-        Matcher m = p.matcher(splitedSmtStr[0].strip());
+        p = Pattern.compile("\\(_tuple_\\d+([^\\)]+)\\)");
+        m = p.matcher(itemized);
         m.find();
         String[] reactions = m.group(1).strip().split("\\s+");
         for (int i = 0; i < reactions.length; i++) {
@@ -83,8 +86,6 @@ public class UclidRunner {
         }
 
         // Time tag
-        p = Pattern.compile("\\(_tuple_\\d+([^\\)]+)\\)");
-        m = p.matcher(splitedSmtStr[1].strip());
         m.find();
         String[] tag = m.group(1).strip().split("\\s+");
         info.tag = new Tag(
@@ -92,7 +93,6 @@ public class UclidRunner {
             Long.parseLong(tag[1]), false);
 
         // Variables
-        m = p.matcher(splitedSmtStr[2].strip());
         m.find();
         String[] variables = m.group(1).strip().split("\\s+");
         for (int i = 0; i < variables.length; i++) {
@@ -100,11 +100,17 @@ public class UclidRunner {
         }
 
         // Triggers
-        m = p.matcher(splitedSmtStr[3].strip());
         m.find();
         String[] triggers = m.group(1).strip().split("\\s+");
         for (int i = 0; i < triggers.length; i++) {
             info.triggers.put(generator.triggerInstances.get(i).getFullName(), triggers[i]);
+        }
+
+        // Actions scheduled
+        m.find();
+        String[] scheduled = m.group(1).strip().split("\\s+");
+        for (int i = 0; i < scheduled.length; i++) {
+            info.scheduled.put(generator.actionInstances.get(i).getFullName(), scheduled[i]);
         }
 
         return info;
