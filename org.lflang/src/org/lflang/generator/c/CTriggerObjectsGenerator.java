@@ -1068,6 +1068,7 @@ public class CTriggerObjectsGenerator {
             ));
         }
         // If we are doing LET Scheduling we must store pointers to any dependent Reactors
+        // FIXME: I do not think this will work with banks and runtime indices. How do I adapt for this?
         if (targetConfig.schedulerType == TargetProperty.SchedulerOption.LET) {
             init.startScopedBlock();
             var dependentReactions = reaction.dependentReactions();
@@ -1079,13 +1080,13 @@ public class CTriggerObjectsGenerator {
             code.pr(CUtil.reactionRef(reaction)+".num_downstream_reactors = " + n_downstream + ";");
             if (n_downstream > 0) {
                 code.pr(String.join("\n",
-                    "self_base_t* _downstream_reactors[] = { " + String.join(",", dependentReactor.stream().map(r -> CUtil.reactorRef(r)).collect(Collectors.toList())) + "};",
+                    "void* _downstream_reactors[] = { (void *)" + String.join(", (void *)", dependentReactor.stream().map(r -> CUtil.reactorRef(r)).collect(Collectors.toList())) + "};",
                     "// Allocate memory for downstream reactors",
-                    CUtil.reactionRef(reaction)+".downstream_reactors = (self_base_t**)_lf_allocate(",
-                    "        "+n_downstream+", sizeof(self_base_t*),",
+                    CUtil.reactionRef(reaction)+".downstream_reactors = (void**)_lf_allocate(",
+                    "        "+n_downstream+", sizeof(void*),",
                     "        &"+reactorSelfStruct+"->base.allocations);",
                     "for (int i=0; i<"+n_downstream+"; i++) {",
-                    "   "+ CUtil.reactionRef(reaction)+".downstream_reactors[i] = _downstream_reactors[i];",
+                    "   "+ CUtil.reactionRef(reaction)+".downstream_reactors[i] = (void *) _downstream_reactors[i];",
                     "}"
                 ));
             }
