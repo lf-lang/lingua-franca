@@ -1097,7 +1097,7 @@ public class CTriggerObjectsGenerator {
                     }
 
                     code.pr(String.join("\n",
-                        "void* _upstream_reactors[] = { (void *)" + String.join(", (void *)", upstreamReactors.stream().map(r -> CUtil.reactorRef(r)).collect(Collectors.toList())) + "};",
+                        "void* _upstream_reactors[] = { (void *)" + joinObjects(upstreamReactorRefs, ", (void *)") + "};",
                         "// Allocate memory for upstream reactors",
                         CUtil.reactionRef(reaction)+".upstream_reactors = (void**)_lf_allocate(",
                         "        "+n_upstream+", sizeof(void*),",
