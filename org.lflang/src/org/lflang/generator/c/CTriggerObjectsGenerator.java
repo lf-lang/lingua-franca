@@ -11,12 +11,14 @@ import static org.lflang.util.StringUtil.joinObjects;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.stream.Collectors;
 
 import org.lflang.ASTUtils;
 import org.lflang.AttributeUtils;
 import org.lflang.TargetConfig;
+import org.lflang.TargetProperty;
 import org.lflang.TargetProperty.CoordinationType;
 import org.lflang.TargetProperty.LogLevel;
 import org.lflang.federated.CGeneratorExtension;
@@ -1064,6 +1066,30 @@ public class CTriggerObjectsGenerator {
                 "        "+outputCount+", sizeof(bool*),",
                 "        &"+reactorSelfStruct+"->base.allocations);"
             ));
+        }
+        // If we are doing LET Scheduling we must store pointers to any dependent Reactors
+        if (targetConfig.schedulerType == TargetProperty.SchedulerOption.LET) {
+            init.startScopedBlock();
+            var dependentReactions = reaction.dependentReactions();
+            var dependentReactor = new LinkedHashSet<ReactorInstance>();
+            for (ReactionInstance r : dependentReactions) {
+                dependentReactor.add(r.getParent());
+            }
+            var n_downstream = dependentReactor.size();
+            code.pr(CUtil.reactionRef(reaction)+".num_downstream_reactors = " + n_downstream + ";");
+            if (n_downstream > 0) {
+                code.pr(String.join("\n",
+                    "self_base_t* _downstream_reactors[] = { " + String.join(",", dependentReactor.stream().map(r -> CUtil.reactorRef(r)).collect(Collectors.toList())) + "};",
+                    "// Allocate memory for downstream reactors",
+                    CUtil.reactionRef(reaction)+".downstream_reactors = (self_base_t**)_lf_allocate(",
+                    "        "+n_downstream+", sizeof(self_base_t*),",
+                    "        &"+reactorSelfStruct+"->base.allocations);",
+                    "for (int i=0; i<"+n_downstream+"; i++) {",
+                    "   "+ CUtil.reactionRef(reaction)+".downstream_reactors[i] = _downstream_reactors[i];",
+                    "}"
+                ));
+            }
+            init.endScopedBlock();
         }
 
         code.pr(String.join("\n",
