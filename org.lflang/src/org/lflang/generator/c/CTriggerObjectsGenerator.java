@@ -21,6 +21,7 @@ import org.lflang.TargetConfig;
 import org.lflang.TargetProperty;
 import org.lflang.TargetProperty.CoordinationType;
 import org.lflang.TargetProperty.LogLevel;
+import org.lflang.TimeValue;
 import org.lflang.federated.CGeneratorExtension;
 import org.lflang.federated.FederateInstance;
 import org.lflang.generator.CodeBuilder;
@@ -466,10 +467,6 @@ public class CTriggerObjectsGenerator {
         if (!currentFederate.contains(src.getParent())) return "";
         var code = new CodeBuilder();
         for (SendRange srcRange: src.eventualDestinations()) {
-            // FIXME: Express this better. A Set of strings should not be necessary, but
-            //  what do we have unique ideas for runtime reactors?
-            var destinationReactors = new LinkedHashSet<String>(); // Set of destination reactors
-            var destinationReactorIdx = 0;
             for (RuntimeRange<PortInstance> dstRange : srcRange.destinations) {
                 var dst = dstRange.instance;
                 var destStructType = CGenerator.variableStructType(dst);
@@ -482,50 +479,20 @@ public class CTriggerObjectsGenerator {
                     var mod = (dst.isMultiport() || (src.isInput() && src.isMultiport()))? "" : "&";
                     code.pr("// Connect "+srcRange+" to port "+dstRange);
                     code.startScopedRangeBlock(currentFederate, srcRange, dstRange, isFederated);
-                    var dstPort = "";
-                    var dstReactor = "";
-                    var srcPort = "";
                     if (src.isInput()) {
                         // Source port is written to by reaction in port's parent's parent
                         // and ultimate destination is further downstream.
-                        dstPort = CUtil.portRef(dst,dr,db,dc);
-                        dstReactor = CUtil.reactorRef(dst.getParent(),dr);
-                        srcPort = CUtil.portRefNested(src, sr, sb, sc);
-                        code.pr(dstPort+" = ("+destStructType+"*)"+mod+srcPort+";");
-
+                        code.pr(CUtil.portRef(dst, dr, db, dc)+" = ("+destStructType+"*)"+mod+CUtil.portRefNested(src, sr, sb, sc)+";");
                     } else if (dst.isOutput()) {
                         // An output port of a contained reactor is triggering a reaction.
-                        dstPort = CUtil.portRefNested(dst,dr,db,dc);
-                        // FIXME: Is this correct? Is this the correct destination reactor?
-                        //  It should be the reactor containing the reactions triggered by the port.
-                        //  during lf_set the writing reaction will acquire this reactors mutex.
-                        dstReactor = CUtil.reactorRef(dst.getParent(),dr);
-                        srcPort = CUtil.portRef(src, sr, sb, sc);
-                        code.pr(dstPort+" = ("+destStructType+"*)&"+dstPort+";");
+                        code.pr(CUtil.portRefNested(dst, dr, db, dc)+" = ("+destStructType+"*)&"+CUtil.portRef(src, sr, sb, sc)+";");
                     } else {
                         // An output port is triggering an input port.
-                        dstPort = CUtil.portRef(dst,dr,db,dc);
-                        dstReactor = CUtil.reactorRef(dst.getParent(),dr);
-                        srcPort = CUtil.portRef(src, sr, sb, sc);
-                        code.pr(dstPort+" = ("+destStructType+"*)&"+srcPort+";");
+                        code.pr(CUtil.portRef(dst, dr, db, dc)+" = ("+destStructType+"*)&"+CUtil.portRef(src, sr, sb, sc)+";");
                         if (AttributeUtils.isSparse(dst.getDefinition())) {
-                            code.pr(srcPort+"->sparse_record = "+dstPort+"__sparse;");
-                            code.pr(dstPort+"->destination_channel = "+dc+";");
+                            code.pr(CUtil.portRef(dst, dr, db, dc)+"->sparse_record = "+CUtil.portRefName(dst, dr, db, dc)+"__sparse;");
+                            code.pr(CUtil.portRef(dst, dr, db, dc)+"->destination_channel = "+dc+";");
                         }
-                    }
-
-                    // Add a pointer from src port to dst reactor from LET scheduling
-                    // FIXME: Consider whether to hide this behind #ifdefs (as it is done currently)
-                    //  or check which scheduler is used here.i
-                    if (destinationReactors.add(dstReactor)) {
-                        code.pr(String.join("\n",
-                            "#if SCHEDULER == LET",
-                            srcPort+".destination_reactors["+destinationReactorIdx+"] = ",
-                            "   (self_base_t *) "+dstReactor+";",
-                            "#endif"
-                        ));
-                        // FIXME: Catch out of bound access of array
-                        destinationReactorIdx++;
                     }
                     code.endScopedRangeBlock(srcRange, dstRange, isFederated);
                 }
@@ -869,29 +836,10 @@ public class CTriggerObjectsGenerator {
                     code.pr("// For reference counting, set num_destinations for port "+port.getParent().getName()+"."+port.getName()+".");
                     // The input port may itself have multiple destinations.
                     for (SendRange sendingRange : port.eventualDestinations()) {
-                        var numDestinations = sendingRange.getNumberOfDestinationReactors();
-                        var portRef = CUtil.portRef(port,sr,sb,sc);
-                        var reactorRef= CUtil.reactorRef(port.getParent(),sr);
-
                         code.startScopedRangeBlock(currentFederate, sendingRange, sr, sb, sc, sendingRange.instance.isInput(), isFederated, true);
                         // Syntax is slightly different for a multiport output vs. single port.
                         var connector = (port.isMultiport())? "->" : ".";
-                        code.pr(portRef+connector+"num_destinations = "+numDestinations+";");
-                        if (numDestinations > 0) {
-                            code.pr(String.join("\n",
-                                "#if SCHEDULER == LET",
-                                "// Allocate memory for destination reactor pointers",
-                                portRef+".destination_reactors = (self_base_t**)_lf_allocate(",
-                                "        "+numDestinations+", sizeof(self_base_t**),",
-                                "        &"+reactorRef+"->base.allocations);",
-                                "#endif"));
-                        } else {
-                            code.pr(String.join("\n",
-                                "#if SCHEDULER == LET",
-                                "// Port has no destination reactors",
-                                portRef+".destination_reactors = NULL;",
-                                "#endif"));
-                        }
+                        code.pr(CUtil.portRefNested(port, sr, sb, sc)+connector+"num_destinations = "+sendingRange.getNumberOfDestinationReactors()+";");
                         code.endScopedRangeBlock(sendingRange, isFederated);
                     }
                 }
@@ -922,27 +870,9 @@ public class CTriggerObjectsGenerator {
         var code = new CodeBuilder();
         for (PortInstance output : reactor.outputs) {
             for (SendRange sendingRange : output.eventualDestinations()) {
-                var numDestinations = sendingRange.getNumberOfDestinationReactors();
-                var portRef = CUtil.portRef(output,sr,sb,sc);
-                var reactorRef= CUtil.reactorRef(reactor,sr);
                 code.pr("// For reference counting, set num_destinations for port " + output.getFullName() + ".");
                 code.startScopedRangeBlock(currentFederate, sendingRange, sr, sb, sc, sendingRange.instance.isInput(), isFederated, true);
-                code.pr(portRef+".num_destinations = "+numDestinations+";");
-                if (numDestinations > 0) {
-                    code.pr(String.join("\n",
-                        "#if SCHEDULER == LET",
-                        "// Allocate memory for destination reactor pointers",
-                        portRef+".destination_reactors = (self_base_t**)_lf_allocate(",
-                        "        "+numDestinations+", sizeof(self_base_t**),",
-                        "        &"+reactorRef+"->base.allocations);",
-                        "#endif"));
-                } else {
-                    code.pr(String.join("\n",
-                        "#if SCHEDULER == LET",
-                        "// Port has no destination reactors",
-                        portRef+".destination_reactors = NULL;",
-                        "#endif"));
-                }
+                code.pr(CUtil.portRef(output, sr, sb, sc)+".num_destinations = "+sendingRange.getNumberOfDestinationReactors()+";");
                 code.endScopedRangeBlock(sendingRange, isFederated);
             }
         }
@@ -1142,26 +1072,55 @@ public class CTriggerObjectsGenerator {
         // FIXME: I do not think this will work with banks and runtime indices. How do I adapt for this?
         if (targetConfig.schedulerType == TargetProperty.SchedulerOption.LET) {
             code.startScopedBlock();
-            var dependentReactions = reaction.dependentReactions();
-            var dependentReactor = new LinkedHashSet<ReactorInstance>();
-            for (ReactionInstance r : dependentReactions) {
-                dependentReactor.add(r.getParent());
+            var upstreamReactions = reaction.dependsOnReactions();
+            var upstreamReactors = new LinkedHashSet<ReactorInstance>();
+            for (ReactionInstance r : upstreamReactions) {
+                upstreamReactors.add(r.getParent());
             }
-            var n_downstream = dependentReactor.size();
-            code.pr(CUtil.reactionRef(reaction)+".num_downstream_reactors = " + n_downstream + ";");
-            if (n_downstream > 0) {
+            var n_upstream = upstreamReactors.size();
+            code.pr(CUtil.reactionRef(reaction)+".num_upstream_reactors = " + n_upstream + ";");
+            if (n_upstream > 0) {
                 code.pr(String.join("\n",
-                    "void* _downstream_reactors[] = { (void *)" + String.join(", (void *)", dependentReactor.stream().map(r -> CUtil.reactorRef(r)).collect(Collectors.toList())) + "};",
-                    "// Allocate memory for downstream reactors",
-                    CUtil.reactionRef(reaction)+".downstream_reactors = (void**)_lf_allocate(",
-                    "        "+n_downstream+", sizeof(void*),",
+                    "void* _upstream_reactors[] = { (void *)" + String.join(", (void *)", upstreamReactors.stream().map(r -> CUtil.reactorRef(r)).collect(Collectors.toList())) + "};",
+                    "// Allocate memory for upstream reactors",
+                    CUtil.reactionRef(reaction)+".upstream_reactors = (void**)_lf_allocate(",
+                    "        "+n_upstream+", sizeof(void*),",
                     "        &"+reactorSelfStruct+"->base.allocations);",
-                    "for (int i=0; i<"+n_downstream+"; i++) {",
-                    "   "+ CUtil.reactionRef(reaction)+".downstream_reactors[i] = (void *) _downstream_reactors[i];",
+                    "for (int i=0; i<"+n_upstream+"; i++) {",
+                    "   "+ CUtil.reactionRef(reaction)+".upstream_reactors[i] = (void *) _upstream_reactors[i];",
                     "}"
                 ));
             }
             code.endScopedBlock();
+        }
+        // If we are doing LET Scheduling we must store pointers to any dependent Reactors
+        if (targetConfig.schedulerType == TargetProperty.SchedulerOption.LET) {
+            if (TimeValue.ZERO.isEarlierThan(reaction.getLogicalExecutionTime())) {
+                init.startScopedBlock();
+                var upstreamReactions = reaction.dependsOnReactions();
+                var upstreamReactors = new LinkedHashSet<ReactorInstance>();
+                for (ReactionInstance r : upstreamReactions) {
+                    upstreamReactors.add(r.getParent());
+                }
+                var n_upstream = upstreamReactors.size();
+                code.pr(CUtil.reactionRef(reaction)+".num_upstream_reactors = " + n_upstream + ";");
+                if (n_upstream > 0) {
+                    code.pr(String.join("\n",
+                        "self_base_t* _upstream_reactors[] = { " + String.join(",", upstreamReactors.stream().map(r -> CUtil.reactorRef(r)).collect(Collectors.toList())) + "};",
+                        "// Allocate memory for upstream reactors",
+                        CUtil.reactionRef(reaction)+".upstream_reactors = (void**)_lf_allocate(",
+                        "        "+n_upstream+", sizeof(self_base_t*),",
+                        "        &"+reactorSelfStruct+"->base.allocations);",
+                        "for (int i=0; i<"+n_upstream+"; i++) {",
+                        "   "+ CUtil.reactionRef(reaction)+".upstream_reactors[i] = _upstream_reactors[i];",
+                        "}"
+                    ));
+                }
+                init.endScopedBlock();
+            } else {
+                code.pr("// This is not a LET reaction, to save memory dont store upstream reactors");
+                code.pr(CUtil.reactionRef(reaction)+".num_upstream_reactors = 0;");
+            }
         }
 
         code.pr(String.join("\n",
