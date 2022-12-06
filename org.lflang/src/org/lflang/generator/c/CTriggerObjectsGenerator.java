@@ -1070,7 +1070,7 @@ public class CTriggerObjectsGenerator {
         // If we are doing LET Scheduling we must store pointers to any dependent Reactors
         // FIXME: I do not think this will work with banks and runtime indices. How do I adapt for this?
         if (targetConfig.schedulerType == TargetProperty.SchedulerOption.LET) {
-            init.startScopedBlock();
+            code.startScopedBlock();
             var dependentReactions = reaction.dependentReactions();
             var dependentReactor = new LinkedHashSet<ReactorInstance>();
             for (ReactionInstance r : dependentReactions) {
@@ -1090,7 +1090,7 @@ public class CTriggerObjectsGenerator {
                     "}"
                 ));
             }
-            init.endScopedBlock();
+            code.endScopedBlock();
         }
 
         code.pr(String.join("\n",
