@@ -83,8 +83,8 @@ class CppReactionGenerator(
         get() = when {
             this is BuiltinTriggerRef && this.type == BuiltinTrigger.STARTUP  -> "reactor::StartupAction"
             this is BuiltinTriggerRef && this.type == BuiltinTrigger.SHUTDOWN -> "reactor::ShutdownAction"
-            this is VarRef  -> cppType
-            else            -> AssertionError("Unexpected trigger type")
+            this is VarRef                                                    -> cppType
+            else                                                              -> AssertionError("Unexpected trigger type")
         }
 
     private fun Reaction.getBodyParameters(): List<String> =
@@ -228,6 +228,14 @@ class CppReactionGenerator(
         reactor.reactions.joinToString(separator = "\n", prefix = "// reaction views\n", postfix = "\n") {
             generateViewInitializers(it)
         }
+
+    fun generateReactionViewForwardDeclarations(): String {
+        val classNames = reactor.reactions.map { r -> r.allReferencedContainers.map { r.getViewClassName(it) } }.flatten()
+        if (classNames.isEmpty()) {
+            return ""
+        }
+        return classNames.joinWithLn(prefix = "// reaction view forward declarations\n") { "struct $it;" }
+    }
 
     fun generateReactionViewConstructorInitializers() =
         reactor.reactions.joinToString(separator = "\n", prefix = "// reaction views\n", postfix = "\n") {

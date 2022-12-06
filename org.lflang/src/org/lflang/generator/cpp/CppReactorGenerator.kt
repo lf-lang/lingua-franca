@@ -93,6 +93,8 @@ class CppReactorGenerator(private val reactor: Reactor, fileConfig: CppFileConfi
             |  };
             |
             | private:
+        ${" |  "..reactions.generateReactionViewForwardDeclarations()}
+            |
             |  class Inner: public lfutil::LFScope, public Parameters {
         ${" |    "..parameters.generateUsingDeclarations()}
         ${" |    "..state.generateDeclarations()}
