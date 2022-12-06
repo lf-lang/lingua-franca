@@ -45,7 +45,7 @@ public class LFTest implements Comparable<LFTest> {
     private final Path relativePath;
 
     /** Records compilation stdout/stderr. */
-    private final ByteArrayOutputStream compilationLog = new ByteArrayOutputStream();
+    public final ByteArrayOutputStream compilationLog = new ByteArrayOutputStream();
 
     /** Specialized object for capturing output streams while executing the test. */
     public final ExecutionLogger execLog = new ExecutionLogger();

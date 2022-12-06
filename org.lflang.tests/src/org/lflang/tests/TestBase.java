@@ -36,6 +36,7 @@ import org.eclipse.xtext.util.CancelIndicator;
 import org.eclipse.xtext.util.RuntimeIOException;
 import org.eclipse.xtext.validation.CheckMode;
 import org.eclipse.xtext.validation.IResourceValidator;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.extension.ExtendWith;
 
 import org.lflang.DefaultErrorReporter;
@@ -384,7 +385,7 @@ public abstract class TestBase {
      * transformation that may have occured in other tests.
      * @throws IOException if there is any file access problem
      */
-    private LFGeneratorContext configure(LFTest test, Configurator configurator, TestLevel level) throws IOException {
+    private LFGeneratorContext configure(LFTest test, Configurator configurator, TestLevel level) throws IOException, TestExecutionException {
         var props = new Properties();
         var sysProps = System.getProperties();
         // Set the external-runtime-path property if it was specified.
@@ -426,7 +427,7 @@ public abstract class TestBase {
         // Update the test by applying the configuration. E.g., to carry out an AST transformation.
         if (configurator != null && !configurator.configure(test)) {
             test.result = Result.CONFIG_FAIL;
-            throw new AssertionError("Test configuration unsuccessful.");
+            throw new TestExecutionException("Test configuration unsuccessful.");
         }
 
         return context;
@@ -435,7 +436,7 @@ public abstract class TestBase {
     /**
      * Validate the given test. Throw an AssertionError if validation failed.
      */
-    private void validate(LFTest test, IGeneratorContext context) {
+    private void validate(LFTest test, IGeneratorContext context) throws TestExecutionException {
         // Validate the resource and store issues in the test object.
         try {
             var issues = validator.validate(test.fileConfig.resource,
@@ -447,11 +448,11 @@ public abstract class TestBase {
                     test.result = Result.VALIDATE_FAIL;
                 }
             }
-        } catch (Exception e) {
+        } catch (Exception | AssertionError e) {
             test.result = Result.VALIDATE_FAIL;
         }
         if (test.result == Result.VALIDATE_FAIL) {
-            throw new AssertionError("Validation unsuccessful.");
+            throw new TestExecutionException("Validation unsuccessful.");
         }
     }
 
@@ -467,19 +468,28 @@ public abstract class TestBase {
 
     /**
      * Invoke the code generator for the given test.
+     *
      * @param test The test to generate code for.
      */
-    private GeneratorResult generateCode(LFTest test) {
-        GeneratorResult result = GeneratorResult.NOTHING;
-        if (test.fileConfig.resource != null) {
-            generator.doGenerate(test.fileConfig.resource, fileAccess, test.context);
-            result = test.context.getResult();
-            if (generator.errorsOccurred()) {
-                test.result = Result.CODE_GEN_FAIL;
-                throw new AssertionError("Code generation unsuccessful.");
-            }
+    private GeneratorResult generateCode(LFTest test) throws TestExecutionException {
+        if (test.fileConfig.resource == null) {
+            return GeneratorResult.NOTHING;
         }
-        return result;
+
+        try {
+            generator.doGenerate(test.fileConfig.resource, fileAccess, test.context);
+        } catch (AssertionError | Exception e) {
+            test.result = Result.CODE_GEN_FAIL;
+            // Add the stack trace to the test output
+            e.printStackTrace(new PrintWriter(test.compilationLog, true));
+            throw new TestExecutionException("Code generation unsuccessful.");
+        }
+        if (generator.errorsOccurred()) {
+            test.result = Result.CODE_GEN_FAIL;
+            throw new TestExecutionException("Code generation unsuccessful.");
+        }
+
+        return test.context.getResult();
     }
 
 
@@ -696,11 +706,9 @@ public abstract class TestBase {
                     test.result = Result.TEST_PASS;
                 }
 
-            } catch (AssertionError e) {
-                // Do not report assertion errors. They are pretty printed
-                // during reporting.
-            } catch (Exception e) {
-                test.issues.append(e.getMessage());
+            } catch (TestExecutionException e) {
+                // This exception is thrown by any of the test steps above. We mainly use the exception
+                // to abort test execution. There is no need to report the error here.
             } finally {
                 restoreOutputs();
             }
