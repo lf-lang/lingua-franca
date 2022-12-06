@@ -1071,32 +1071,8 @@ public class CTriggerObjectsGenerator {
         // If we are doing LET Scheduling we must store pointers to any dependent Reactors
         // FIXME: I do not think this will work with banks and runtime indices. How do I adapt for this?
         if (targetConfig.schedulerType == TargetProperty.SchedulerOption.LET) {
-            code.startScopedBlock();
-            var upstreamReactions = reaction.dependsOnReactions();
-            var upstreamReactors = new LinkedHashSet<ReactorInstance>();
-            for (ReactionInstance r : upstreamReactions) {
-                upstreamReactors.add(r.getParent());
-            }
-            var n_upstream = upstreamReactors.size();
-            code.pr(CUtil.reactionRef(reaction)+".num_upstream_reactors = " + n_upstream + ";");
-            if (n_upstream > 0) {
-                code.pr(String.join("\n",
-                    "void* _upstream_reactors[] = { (void *)" + String.join(", (void *)", upstreamReactors.stream().map(r -> CUtil.reactorRef(r)).collect(Collectors.toList())) + "};",
-                    "// Allocate memory for upstream reactors",
-                    CUtil.reactionRef(reaction)+".upstream_reactors = (void**)_lf_allocate(",
-                    "        "+n_upstream+", sizeof(void*),",
-                    "        &"+reactorSelfStruct+"->base.allocations);",
-                    "for (int i=0; i<"+n_upstream+"; i++) {",
-                    "   "+ CUtil.reactionRef(reaction)+".upstream_reactors[i] = (void *) _upstream_reactors[i];",
-                    "}"
-                ));
-            }
-            code.endScopedBlock();
-        }
-        // If we are doing LET Scheduling we must store pointers to any dependent Reactors
-        if (targetConfig.schedulerType == TargetProperty.SchedulerOption.LET) {
             if (TimeValue.ZERO.isEarlierThan(reaction.getLogicalExecutionTime())) {
-                init.startScopedBlock();
+                code.startScopedBlock();
                 var upstreamReactions = reaction.dependsOnReactions();
                 var upstreamReactors = new LinkedHashSet<ReactorInstance>();
                 for (ReactionInstance r : upstreamReactions) {
@@ -1106,17 +1082,17 @@ public class CTriggerObjectsGenerator {
                 code.pr(CUtil.reactionRef(reaction)+".num_upstream_reactors = " + n_upstream + ";");
                 if (n_upstream > 0) {
                     code.pr(String.join("\n",
-                        "self_base_t* _upstream_reactors[] = { " + String.join(",", upstreamReactors.stream().map(r -> CUtil.reactorRef(r)).collect(Collectors.toList())) + "};",
+                        "void* _upstream_reactors[] = { (void *)" + String.join(", (void *)", upstreamReactors.stream().map(r -> CUtil.reactorRef(r)).collect(Collectors.toList())) + "};",
                         "// Allocate memory for upstream reactors",
                         CUtil.reactionRef(reaction)+".upstream_reactors = (void**)_lf_allocate(",
-                        "        "+n_upstream+", sizeof(self_base_t*),",
+                        "        "+n_upstream+", sizeof(void*),",
                         "        &"+reactorSelfStruct+"->base.allocations);",
                         "for (int i=0; i<"+n_upstream+"; i++) {",
-                        "   "+ CUtil.reactionRef(reaction)+".upstream_reactors[i] = _upstream_reactors[i];",
+                        "   "+ CUtil.reactionRef(reaction)+".upstream_reactors[i] = (void *) _upstream_reactors[i];",
                         "}"
                     ));
                 }
-                init.endScopedBlock();
+                code.endScopedBlock();
             } else {
                 code.pr("// This is not a LET reaction, to save memory dont store upstream reactors");
                 code.pr(CUtil.reactionRef(reaction)+".num_upstream_reactors = 0;");
