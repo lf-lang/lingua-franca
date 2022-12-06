@@ -18,6 +18,7 @@ import java.util.stream.Collectors;
 import org.lflang.ASTUtils;
 import org.lflang.AttributeUtils;
 import org.lflang.TargetConfig;
+import org.lflang.TargetProperty;
 import org.lflang.TargetProperty.CoordinationType;
 import org.lflang.TargetProperty.LogLevel;
 import org.lflang.federated.CGeneratorExtension;
@@ -1136,6 +1137,31 @@ public class CTriggerObjectsGenerator {
                 "        "+outputCount+", sizeof(bool*),",
                 "        &"+reactorSelfStruct+"->base.allocations);"
             ));
+        }
+        // If we are doing LET Scheduling we must store pointers to any dependent Reactors
+        // FIXME: I do not think this will work with banks and runtime indices. How do I adapt for this?
+        if (targetConfig.schedulerType == TargetProperty.SchedulerOption.LET) {
+            code.startScopedBlock();
+            var dependentReactions = reaction.dependentReactions();
+            var dependentReactor = new LinkedHashSet<ReactorInstance>();
+            for (ReactionInstance r : dependentReactions) {
+                dependentReactor.add(r.getParent());
+            }
+            var n_downstream = dependentReactor.size();
+            code.pr(CUtil.reactionRef(reaction)+".num_downstream_reactors = " + n_downstream + ";");
+            if (n_downstream > 0) {
+                code.pr(String.join("\n",
+                    "void* _downstream_reactors[] = { (void *)" + String.join(", (void *)", dependentReactor.stream().map(r -> CUtil.reactorRef(r)).collect(Collectors.toList())) + "};",
+                    "// Allocate memory for downstream reactors",
+                    CUtil.reactionRef(reaction)+".downstream_reactors = (void**)_lf_allocate(",
+                    "        "+n_downstream+", sizeof(void*),",
+                    "        &"+reactorSelfStruct+"->base.allocations);",
+                    "for (int i=0; i<"+n_downstream+"; i++) {",
+                    "   "+ CUtil.reactionRef(reaction)+".downstream_reactors[i] = (void *) _downstream_reactors[i];",
+                    "}"
+                ));
+            }
+            code.endScopedBlock();
         }
 
         code.pr(String.join("\n",
