@@ -8,6 +8,7 @@ import static org.lflang.generator.c.CMixedRadixGenerator.sr;
 import static org.lflang.util.StringUtil.addDoubleQuotes;
 import static org.lflang.util.StringUtil.joinObjects;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -1081,6 +1082,20 @@ public class CTriggerObjectsGenerator {
                 var n_upstream = upstreamReactors.size();
                 code.pr(CUtil.reactionRef(reaction)+".num_upstream_reactors = " + n_upstream + ";");
                 if (n_upstream > 0) {
+                    // First build a List of all the references to the upstream reactors of this
+                    //  LET reaction. If any upstream is a bank, then all the reactors in the bank are added
+                    // FIXME: How can we add only the runtime instances which actually are connected?
+                    var upstreamReactorRefs = new ArrayList<String>();
+                    for (ReactorInstance r : upstreamReactors) {
+                        if (r.getWidth() == 1) {
+                            upstreamReactorRefs.add(CUtil.reactorRef(r));
+                        } else {
+                            for (int i = 0; i<r.getWidth(); i++) {
+                                upstreamReactorRefs.add(CUtil.reactorRef(r, Integer.toString(i)));
+                            }
+                        }
+                    }
+
                     code.pr(String.join("\n",
                         "void* _upstream_reactors[] = { (void *)" + String.join(", (void *)", upstreamReactors.stream().map(r -> CUtil.reactorRef(r)).collect(Collectors.toList())) + "};",
                         "// Allocate memory for upstream reactors",
