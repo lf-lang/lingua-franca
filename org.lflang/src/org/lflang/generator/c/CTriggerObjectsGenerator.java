@@ -21,6 +21,7 @@ import org.lflang.TargetConfig;
 import org.lflang.TargetProperty;
 import org.lflang.TargetProperty.CoordinationType;
 import org.lflang.TargetProperty.LogLevel;
+import org.lflang.TimeValue;
 import org.lflang.federated.CGeneratorExtension;
 import org.lflang.federated.FederateInstance;
 import org.lflang.generator.CodeBuilder;
@@ -1003,6 +1004,7 @@ public class CTriggerObjectsGenerator {
         var outputCount = 0;
         var init = new CodeBuilder();
 
+
         init.startScopedBlock();
         init.pr("int count = 0; SUPPRESS_UNUSED_WARNING(count);");
         for (PortInstance effect : Iterables.filter(reaction.effects, PortInstance.class)) {
@@ -1069,27 +1071,33 @@ public class CTriggerObjectsGenerator {
         }
         // If we are doing LET Scheduling we must store pointers to any dependent Reactors
         if (targetConfig.schedulerType == TargetProperty.SchedulerOption.LET) {
-            init.startScopedBlock();
-            var dependentReactions = reaction.dependentReactions();
-            var dependentReactor = new LinkedHashSet<ReactorInstance>();
-            for (ReactionInstance r : dependentReactions) {
-                dependentReactor.add(r.getParent());
+            // Only if we have a LET reaction do we bother with storing the upstream reactors
+            if (TimeValue.ZERO.isEarlierThan(reaction.getLogicalExecutionTime())) {
+                init.startScopedBlock();
+                var upstreamReactions = reaction.dependsOnReactions();
+                var upstreamReactors = new LinkedHashSet<ReactorInstance>();
+                for (ReactionInstance r : upstreamReactions) {
+                    upstreamReactors.add(r.getParent());
+                }
+                var n_upstream = upstreamReactors.size();
+                code.pr(CUtil.reactionRef(reaction)+".num_upstream_reactors = " + n_upstream + ";");
+                if (n_upstream > 0) {
+                    code.pr(String.join("\n",
+                        "self_base_t* _upstream_reactors[] = { " + String.join(",", upstreamReactors.stream().map(r -> CUtil.reactorRef(r)).collect(Collectors.toList())) + "};",
+                        "// Allocate memory for upstream reactors",
+                        CUtil.reactionRef(reaction)+".upstream_reactors = (self_base_t**)_lf_allocate(",
+                        "        "+n_upstream+", sizeof(self_base_t*),",
+                        "        &"+reactorSelfStruct+"->base.allocations);",
+                        "for (int i=0; i<"+n_upstream+"; i++) {",
+                        "   "+ CUtil.reactionRef(reaction)+".upstream_reactors[i] = _upstream_reactors[i];",
+                        "}"
+                    ));
+                }
+                init.endScopedBlock();
+            } else {
+                code.pr("// This is not a LET reaction so `num_upstream_reactors` is set to 0");
+                code.pr(CUtil.reactionRef(reaction)+".num_upstream_reactors = 0;");
             }
-            var n_downstream = dependentReactor.size();
-            code.pr(CUtil.reactionRef(reaction)+".num_downstream_reactors = " + n_downstream + ";");
-            if (n_downstream > 0) {
-                code.pr(String.join("\n",
-                    "self_base_t* _downstream_reactors[] = { " + String.join(",", dependentReactor.stream().map(r -> CUtil.reactorRef(r)).collect(Collectors.toList())) + "};",
-                    "// Allocate memory for downstream reactors",
-                    CUtil.reactionRef(reaction)+".downstream_reactors = (self_base_t**)_lf_allocate(",
-                    "        "+n_downstream+", sizeof(self_base_t*),",
-                    "        &"+reactorSelfStruct+"->base.allocations);",
-                    "for (int i=0; i<"+n_downstream+"; i++) {",
-                    "   "+ CUtil.reactionRef(reaction)+".downstream_reactors[i] = _downstream_reactors[i];",
-                    "}"
-                ));
-            }
-            init.endScopedBlock();
         }
 
         code.pr(String.join("\n",
