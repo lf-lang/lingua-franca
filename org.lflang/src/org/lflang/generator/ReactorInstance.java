@@ -672,7 +672,7 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
     public boolean hasDirectlyDownstreamLetReactions() {
         for (ReactionInstance reaction : reactions) {
             for (ReactionInstance downstream : reaction.dependentReactions()) {
-                if(!reaction.getLogicalExecutionTime().equals(TimeValue.ZERO)) {
+                if(!downstream.getLogicalExecutionTime().equals(TimeValue.ZERO)) {
                     return true;
                 }
             }
