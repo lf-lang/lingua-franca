@@ -1,109 +1,34 @@
-// This tests continuations, which implement something like JavaScript's async/await.
+// This tests continuations, which are like JavaScript's async/await.
 
 target C
 
 preamble {=
-    #include <stddef.h>
-    #include <stdlib.h>
     #include <setjmp.h>
-
-    typedef struct context_t {
-        jmp_buf registers;
-        int n;
-        long *stack;
-    } context_t;
-
-    static void save_stack(context_t *c, long *top_of_stack, long *bottom_of_stack) {
-        int n = top_of_stack-bottom_of_stack;
-        c->stack = (long *) malloc(n*sizeof(long));
-        c->n = n;
-        for (int i = 0; i < n; i++) {
-            c->stack[i] = top_of_stack[-i];
-        }
-    }
-
-    context_t* save_context(long* top_of_stack) {
-        context_t* ret = (context_t*) malloc(sizeof(context_t));
-        long bottom_of_stack;
-        if (!setjmp(ret->registers)) {
-            save_stack(ret, top_of_stack, &bottom_of_stack);
-            return ret;
-        } else {
-            return NULL; // setjmp was returned to by a longjmp call
-        }
-    }
-
-    void context_switch(context_t* c, long* top_of_stack) {
-        long mem_allocated_on_stack[12];
-        long current_bottom_of_stack;
-        if (top_of_stack - &current_bottom_of_stack < c->n) context_switch(c, top_of_stack);
-        for (int i = 0; i < c->n; i++) {
-            top_of_stack[-i] = c->stack[i];
-        }
-        longjmp(c->registers, 1);
-    }
-
-    void context_free(context_t* ctx) {
-        free(ctx->stack);
-        free(ctx);
-    }
+    #include "context_switch.h"
 =}
 
 reactor Callee {
-    input request: request_int_t
-    output response: response_int_t
-    reaction(request) -> response {=
-        lf_print("received request, value=%d", request->value.value);
-        response_int_t res = (response_int_t) {
-            .ctx=request->value.ctx,
-            .value=request->value.value - 10
-        };
-        lf_set(response, res);
+    input req: request<int>
+    output res: request<int>
+    reaction(req) -> res {=
+        lf_print("received request, value=%d", req->value.value);
+        lf_set(res, ((lf_request_int_t) { .ctx=req->value.ctx, .value=req->value.value - 10 }));
     =}
 }
 
 reactor Caller {
 
     preamble {=
-        typedef struct request_int_t {
-            context_t* ctx;
-            int value;
-        } request_int_t;
-        typedef struct response_int {
-            context_t* ctx;
-            int value;
-        } response_int_t;
+        LF_DECLARE_REQUEST(int)
     =}
 
     preamble {=
-        // typedef struct {
-        //     bool is_present;
-        //     lf_sparse_io_record_t* sparse_record;
-        //     int destination_channel;
-        //     request_int_t value;
-        //     int num_destinations;
-        //     lf_token_t* token;
-        //     int length;
-        //     void (*destructor) (void* value);
-        //     void* (*copy_constructor) (void* value);
-        // } callee_request_t_;
-        // typedef struct {
-        //     bool is_present;
-        //     lf_sparse_io_record_t* sparse_record;
-        //     int destination_channel;
-        //     response_int_t value;
-        //     int num_destinations;
-        //     lf_token_t* token;
-        //     int length;
-        //     void (*destructor) (void* value);
-        //     void* (*copy_constructor) (void* value);
-        // } callee_response_t_;
 
         typedef struct {
             bool is_present;
             lf_sparse_io_record_t* sparse_record;
             int destination_channel;
-            response_int_t value;
+            lf_request(int) value;
             int num_destinations;
             lf_token_t* token;
             int length;
@@ -114,7 +39,7 @@ reactor Caller {
             bool is_present;
             lf_sparse_io_record_t* sparse_record;
             int destination_channel;
-            request_int_t value;
+            lf_request(int) value;
             int num_destinations;
             lf_token_t* token;
             int length;
@@ -145,8 +70,8 @@ reactor Caller {
         void reaction_function_0(
             long* top_of_stack,
             caller_self_t_* self,
-            caller_request_t_* request,
-            caller_response_t_* response
+            caller_request_t_* req,
+            caller_response_t_* res
         ) {
             int sum;
             for (int i = self->n; i < self->n+9; i++) {
@@ -155,21 +80,20 @@ reactor Caller {
             lf_print("%s\n", "sending request");
             // injected code start
             // Proposed API: lf_request(request, sum);
-            context_t* ctx = save_context(top_of_stack);
+            context_t* ctx = context_save(top_of_stack);
             if (ctx != NULL) {
-                request_int_t req = (request_int_t) { .ctx=ctx, .value=sum };
-                lf_set(request, req);
+                lf_set(req, ((lf_request_int_t) { .ctx=ctx, .value=sum }));
                 return;
-            } else if (response->is_present) {
+            } else if (res->is_present) {
                 // Crash if the response does not have a valid context attached
-                context_free(response->value.ctx);
+                context_free(res->value.ctx);
             }
             // injected code end
             lf_print(
-                "sum=%d, response=%d, response - sum = %d.\n",
+                "sum=%d, res=%d, res - sum = %d.\n",
                 sum,
-                response->value.value,
-                response->value.value - sum
+                res->value.value,
+                res->value.value - sum
             );
             // injected code start
             longjmp(self->ra, 1);
@@ -177,19 +101,19 @@ reactor Caller {
         #include "include/api/set_undef.h"
     =}
 
-    output request: request_int_t
-    input response: response_int_t
+    output req: request<int>
+    input res: request<int>
     state n: int(0)
     state ra: jmp_buf  // injected code
-    reaction(startup, response) -> request {=
+    reaction(startup, res) -> req {=
         // injected code start
         long top_of_stack;
-        if (response->is_present && !setjmp(self->ra)) {
-            context_switch(response->value.ctx, &top_of_stack);
+        if (res->is_present && !setjmp(self->ra)) {
+            context_switch(res->value.ctx, &top_of_stack);
         }
         // ... do the same for other requests if necessary
-        if (/*startup->is_present*/!response->is_present) {
-            reaction_function_0(&top_of_stack, (caller_self_t_*) self, (caller_request_t_*) request, (caller_response_t_*) response);
+        if (/*startup->is_present*/!res->is_present) {
+            reaction_function_0(&top_of_stack, (caller_self_t_*) self, (caller_request_t_*) req, (caller_response_t_*) res);
         }
         // injected code end
     =}
@@ -198,6 +122,6 @@ reactor Caller {
 main reactor {
     caller = new Caller();
     callee = new Callee();
-    caller.request -> callee.request;
-    callee.response -> caller.response after 1 nsec;
+    caller.req -> callee.req;
+    callee.res -> caller.res after 1 nsec;
 }

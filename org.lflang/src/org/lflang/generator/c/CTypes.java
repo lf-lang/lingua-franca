@@ -70,6 +70,12 @@ public class CTypes implements TargetTypes {
      */
     @Override
     public String getTargetType(InferredType type) {
+        if (type.astType.isRequest()) {
+            return String.format(
+                "lf_request(%s)",
+                TargetTypes.super.getTargetType(type.astType.getTypeParm())
+            );
+        }
         var result = TargetTypes.super.getTargetType(type);
         Matcher matcher = arrayPattern.matcher(result);
         if (matcher.find()) {
@@ -102,7 +108,8 @@ public class CTypes implements TargetTypes {
             boolean initializer
     ) {
         String t = TargetTypes.super.getTargetType(type);
-        Matcher matcher = arrayPattern.matcher(t);
+        if (t.equals("null")) t = getTargetType(type); // FIXME: This is wrong, but it is also wrong that we have to use the super method in the first place. The whole thing needs to be refactored.
+        Matcher matcher = arrayPattern.matcher(t);  // FIXME: Don't use regexes deep in the code generator! All nontrivial parsing belongs in the parser.
         String declaration = String.format("%s %s", t, variableName);
         if (matcher.find()) {
             // For array types, we have to move the []
