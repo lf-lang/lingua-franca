@@ -844,6 +844,118 @@ public class UclidGenerator extends GeneratorBase {
             }
         }
 
+        if (this.timerInstances.size() > 0) {
+            code.pr(String.join("\n", 
+            "/**********",
+            " * Timers *",
+            " **********/"
+            ));
+            /**
+             * The timer axioms take the following form:
+             * 
+            // An initial firing at {offset, 0}
+            axiom(
+                ((g(END)._1 >= 500000000) ==> (
+                    finite_exists (j : integer) in indices :: (j > START && j <= END)
+                        && Timer_t_is_present(t(j))
+                        && tag_same(g(j), {500000000, 0})
+                ))
+                && ((g(END)._1 < 500000000) ==> (
+                    finite_forall (i : integer) in indices :: (i > START && i <= END)
+                        ==> (!isNULL(i))
+                ))
+            );
+            // Schedule subsequent firings.
+            axiom(
+                finite_forall (i : integer) in indices :: (i >= START && i <= END) ==> (
+                    Timer_t_is_present(t(i)) ==> (
+                        (
+                            finite_exists (j : integer) in indices :: (j >= START && j > i)
+                                && Timer_t_is_present(t(j))
+                                && (g(j) == tag_schedule(g(i), 1000000000))
+                        )
+                    )
+                )
+            );
+            // All firings must be evenly spaced out.
+            axiom(
+                finite_forall (i : integer) in indices :: (i >= START && i <= END) ==> (
+                    Timer_t_is_present(t(i)) ==> (
+                        // Timestamp must be offset + n * period
+                        (
+                            exists (n : integer) :: (
+                                n >= 0 &&
+                                g(i)._1 == 500000000 + n * 1000000000
+                            )
+                        )
+                        // Microstep must be 0
+                        && (
+                            g(i)._2 == 0
+                        )
+                    )
+                )
+            );
+             */
+            for (var timer : this.timerInstances) {
+                long offset = timer.getOffset().toNanoSeconds();
+                long period = timer.getPeriod().toNanoSeconds();
+
+                code.pr("//// Axioms for " + timer.getFullName());
+                
+                // An initial firing at {offset, 0}
+                code.pr(String.join("\n", 
+                    "// " + timer.getFullName() + ": an initial firing at (" + offset + ", 0)",
+                    "axiom(",
+                    "    ((pi1(g(END)) >= " + offset + ") ==> (",
+                    "        finite_exists (j : integer) in indices :: (j > START && j <= END)",
+                    "            && " + timer.getFullNameWithJoiner("_") + "_is_present(t(j))",
+                    "            && tag_same(g(j), {" + offset + ", 0})",
+                    "     ))",
+                    "     && ((pi1(g(END)) < " + offset + ") ==> (",
+                    "        finite_forall (i : integer) in indices :: (i > START && i <= END)",
+                    "            ==> (!isNULL(i))",
+                    "     ))",
+                    ");"
+                ));
+
+                // Schedule subsequent firings.
+                code.pr(String.join("\n", 
+                    "// " + timer.getFullName() + ": schedule subsequent firings every " + period + " ns",
+                    "axiom(",
+                    "    finite_forall (i : integer) in indices :: (i >= START && i <= END) ==> (",
+                    "        " + timer.getFullNameWithJoiner("_") + "_is_present(t(i)) ==> (",
+                    "            (",
+                    "                finite_exists (j : integer) in indices :: (j >= START && j > i)",
+                    "                    && " + timer.getFullNameWithJoiner("_") + "_is_present(t(j))",
+                    "                    && (g(j) == tag_schedule(g(i), " + period + "))",
+                    "            )",
+                    "        )",
+                    "    )",
+                    ");"
+                ));
+
+                // All firings must be evenly spaced out.
+                code.pr(String.join("\n", 
+                    "// " + timer.getFullName() + ": all firings must be evenly spaced out.",
+                    "axiom(",
+                    "    finite_forall (i : integer) in indices :: (i >= START && i <= END) ==> (",
+                    "        " + timer.getFullNameWithJoiner("_") + "_is_present(t(i)) ==> (",
+                    "            // Timestamp must be offset + n * period.",
+                    "            (",
+                    "                exists (n : integer) :: (",
+                    "                    n >= 0 &&",
+                    "                    pi1(g(i)) == " + offset + " + n * " + period,
+                    "                )",
+                    "            )",
+                    "            // Microstep must be 0.",
+                    "            && (pi2(g(i)) == 0)",
+                    "        )",
+                    "    )",
+                    ");"
+                ));
+            }
+        }
+
         code.pr(String.join("\n", 
             "/********************************",
             " * Reactions and Their Triggers *",

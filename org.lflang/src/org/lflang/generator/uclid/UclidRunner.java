@@ -80,7 +80,9 @@ public class UclidRunner {
         m = p.matcher(itemized);
         m.find();
         String[] reactions = m.group(1).strip().split("\\s+");
-        for (int i = 0; i < reactions.length; i++) {
+        // Iterating over generator lists avoids accounting for
+        // the single dummy Uclid variable inserted earlier.
+        for (int i = 0; i < generator.reactionInstances.size(); i++) {
             if (reactions[i].equals("true"))
                 info.reactions.add(generator.reactionInstances.get(i).getReaction().getFullName());
         }
@@ -95,21 +97,21 @@ public class UclidRunner {
         // Variables
         m.find();
         String[] variables = m.group(1).strip().split("\\s+");
-        for (int i = 0; i < variables.length; i++) {
+        for (int i = 0; i < generator.namedInstances.size(); i++) {
             info.variables.put(generator.namedInstances.get(i).getFullName(), variables[i]);
         }
 
         // Triggers
         m.find();
         String[] triggers = m.group(1).strip().split("\\s+");
-        for (int i = 0; i < triggers.length; i++) {
+        for (int i = 0; i < generator.triggerInstances.size(); i++) {
             info.triggers.put(generator.triggerInstances.get(i).getFullName(), triggers[i]);
         }
 
         // Actions scheduled
         m.find();
         String[] scheduled = m.group(1).strip().split("\\s+");
-        for (int i = 0; i < scheduled.length; i++) {
+        for (int i = 0; i < generator.actionInstances.size(); i++) {
             info.scheduled.put(generator.actionInstances.get(i).getFullName(), scheduled[i]);
         }
 
