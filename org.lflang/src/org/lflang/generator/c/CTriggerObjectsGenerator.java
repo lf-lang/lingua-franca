@@ -178,7 +178,10 @@ public class CTriggerObjectsGenerator {
             return "";
         }
         var code = new CodeBuilder();
-        var numReactionsPerLevel = main.assignLevels().getNumReactionsPerLevel();
+        // FIXME: Comment out this as I think it is redundant. to assignLevels again
+        //  If it is NOT redundant then deadline propagation is not correct
+        // var numReactionsPerLevel = main.assignLevels().getNumReactionsPerLevel();
+        var numReactionsPerLevel = main.getNumReactionsPerLevel();
         var numReactionsPerLevelJoined = Arrays.stream(numReactionsPerLevel)
                 .map(String::valueOf)
                 .collect(Collectors.joining(", "));
@@ -343,7 +346,9 @@ public class CTriggerObjectsGenerator {
     ) {
         var foundOne = false;
         // Force calculation of levels if it has not been done.
-        reactor.assignLevels();
+        // FIXME: Comment out this as I think it is redundant.
+        //  If it is NOT redundant then deadline propagation is not correct
+        // reactor.assignLevels();
 
         // We handle four different scenarios
         //  1) A reactionInstance has 1 level and 1 deadline

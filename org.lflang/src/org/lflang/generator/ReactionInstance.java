@@ -351,7 +351,9 @@ public class ReactionInstance extends NamedInstance<Reaction> {
     public Set<Integer> getLevels() {
         Set<Integer> result = new LinkedHashSet<>();
         // Force calculation of levels if it has not been done.
-        parent.assignLevels();
+        // FIXME: Comment out this as I think it is redundant.
+        //  If it is NOT redundant then deadline propagation is not correct
+        // parent.assignLevels();
         for (Runtime runtime : runtimeInstances) {
             result.add(runtime.level);
         }
@@ -380,7 +382,9 @@ public class ReactionInstance extends NamedInstance<Reaction> {
     public List<Integer> getLevelsList() {
         List<Integer> result = new LinkedList<>();
         // Force calculation of levels if it has not been done.
-        parent.assignLevels();
+        // FIXME: Comment out this as I think it is redundant.
+        //  If it is NOT redundant then deadline propagation is not correct
+        // parent.assignLevels();
         for (Runtime runtime : runtimeInstances) {
             result.add(runtime.level);
         }
