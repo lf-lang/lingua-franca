@@ -1087,15 +1087,10 @@ public class CTriggerObjectsGenerator {
                     // FIXME: How can we add only the runtime instances which actually are connected?
                     var upstreamReactorRefs = new ArrayList<String>();
                     for (ReactorInstance r : upstreamReactors) {
-                        if (r.getWidth() == 1) {
-                            upstreamReactorRefs.add(CUtil.reactorRef(r));
-                        } else {
                             for (int i = 0; i<r.getWidth(); i++) {
                                 upstreamReactorRefs.add(CUtil.reactorRef(r, Integer.toString(i)));
                             }
                         }
-                    }
-
                     code.pr(String.join("\n",
                         "void* _upstream_reactors[] = { (void *)" + joinObjects(upstreamReactorRefs, ", (void *)") + "};",
                         "// Allocate memory for upstream reactors",

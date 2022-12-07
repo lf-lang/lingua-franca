@@ -877,9 +877,11 @@ public class CGenerator extends GeneratorBase {
                 hasModalReactors,
                 modalStateResetCount
             ));
-            code.pr(CModesGenerator.generateLfModeGetTransitioningReactors(
-                hasModalReactors
-            ));
+            if (targetConfig.schedulerType == TargetProperty.SchedulerOption.LET) {
+                code.pr(CModesGenerator.generateLfModeGetTransitioningReactors(
+                    hasModalReactors
+                ));
+            }
             code.pr(CReactionGenerator.generateLfModeTriggeredReactions(
                 startupReactionCount,
                 resetReactionCount,
