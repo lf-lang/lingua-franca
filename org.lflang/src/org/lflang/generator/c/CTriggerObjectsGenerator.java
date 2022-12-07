@@ -1069,30 +1069,33 @@ public class CTriggerObjectsGenerator {
                 "        &"+reactorSelfStruct+"->base.allocations);"
             ));
         }
-        // If we are doing LET Scheduling we must store pointers to any dependent Reactors
-        // FIXME: I do not think this will work with banks and runtime indices. How do I adapt for this?
+        // If we are doing LET scheduling we need to store pointers from any reactor to 
+        //  immediate downstream LET reactors
         if (targetConfig.schedulerType == TargetProperty.SchedulerOption.LET) {
-            if (TimeValue.ZERO.isEarlierThan(reaction.getLogicalExecutionTime())) {
                 code.startScopedBlock();
+                // Collect references to downstream LET reactors.
                 var downstreamReactions = reaction.dependentReactions();
+                // Use a set to find unique Reactor instances
                 var downstreamReactors = new LinkedHashSet<ReactorInstance>();
-                for (ReactionInstance r : downstreamReactions) {
-                    downstreamReactors.add(r.getParent());
+                // Collect runtime references in List of strings
+                var downstreamReactorRefs = new ArrayList<String>();
+                for (ReactionInstance rreaction : downstreamReactions) {
+                    ReactorInstance reactor = rreaction.getParent();
+                    if(downstreamReactors.add(reactor)) {
+                        if(reactor.hasLetReactions()) {
+                            for (int i = 0; i<reactor.getWidth(); i++) {
+                                downstreamReactorRefs.add(CUtil.reactorRef(reactor, Integer.toString(i)));
+                            }
+                        }
+                    }
                 }
-                var n_downstream = downstreamReactors.size();
+
+                var n_downstream = downstreamReactorRefs.size();
                 code.pr(CUtil.reactionRef(reaction)+".num_downstream_let_reactors = " + n_downstream + ";");
                 if (n_downstream > 0) {
                     // First build a List of all the references to the downstream reactors of this
                     //  LET reaction. If any downstream is a bank, then all the reactors in the bank are added
                     // FIXME: How can we add only the runtime instances which actually are connected?
-                    var downstreamReactorRefs = new ArrayList<String>();
-                    for (ReactorInstance r : downstreamReactors) {
-                            if(r.hasLetReactions()) {
-                                for (int i = 0; i<r.getWidth(); i++) {
-                                    downstreamReactorRefs.add(CUtil.reactorRef(r, Integer.toString(i)));
-                                }
-                            }
-                        }
                     code.pr(String.join("\n",
                         "void* _downstream_let_reactors[] = { (void *)" + joinObjects(downstreamReactorRefs, ", (void *)") + "};",
                         "// Allocate memory for downstream reactors",
@@ -1105,11 +1108,7 @@ public class CTriggerObjectsGenerator {
                     ));
                 }
                 code.endScopedBlock();
-            } else {
-                code.pr("// This is not a LET reaction, to save memory dont store downstream reactors");
-                code.pr(CUtil.reactionRef(reaction)+".num_downstream_let_reactors = 0;");
             }
-        }
 
         code.pr(String.join("\n",
             init.toString(),
