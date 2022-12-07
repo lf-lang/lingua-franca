@@ -178,10 +178,7 @@ public class CTriggerObjectsGenerator {
             return "";
         }
         var code = new CodeBuilder();
-        // FIXME: Comment out this as I think it is redundant. to assignLevels again
-        //  If it is NOT redundant then deadline propagation is not correct
-        // var numReactionsPerLevel = main.assignLevels().getNumReactionsPerLevel();
-        var numReactionsPerLevel = main.getNumReactionsPerLevel();
+        var numReactionsPerLevel = main.assignLevels().getNumReactionsPerLevel();
         var numReactionsPerLevelJoined = Arrays.stream(numReactionsPerLevel)
                 .map(String::valueOf)
                 .collect(Collectors.joining(", "));
