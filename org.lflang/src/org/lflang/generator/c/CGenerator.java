@@ -2536,9 +2536,7 @@ public class CGenerator extends GeneratorBase {
             initializeTriggerObjects.pr("//     3. Any directly downstream Reactor has LET reactions");
 
             if  (instance.hasLetReactions() || 
-                (!instance.modes.isEmpty() && instance.getNumberOfLetReactions() > 0 ||
-                 instance.hasDirectlyDownstreamLetReactions()
-                )
+                (!instance.modes.isEmpty() && instance.getNumberOfLetReactions() > 0)
             ) {
                 initializeTriggerObjects.pr("lf_mutex_init(&((self_base_t *)"+selfRef+")->mutex);");
                 initializeTriggerObjects.pr("((self_base_t *) "+selfRef+")->has_mutex = true;");

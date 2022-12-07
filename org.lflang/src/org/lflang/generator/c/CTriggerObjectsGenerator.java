@@ -1074,38 +1074,40 @@ public class CTriggerObjectsGenerator {
         if (targetConfig.schedulerType == TargetProperty.SchedulerOption.LET) {
             if (TimeValue.ZERO.isEarlierThan(reaction.getLogicalExecutionTime())) {
                 code.startScopedBlock();
-                var upstreamReactions = reaction.dependsOnReactions();
-                var upstreamReactors = new LinkedHashSet<ReactorInstance>();
-                for (ReactionInstance r : upstreamReactions) {
-                    upstreamReactors.add(r.getParent());
+                var downstreamReactions = reaction.dependentReactions();
+                var downstreamReactors = new LinkedHashSet<ReactorInstance>();
+                for (ReactionInstance r : downstreamReactions) {
+                    downstreamReactors.add(r.getParent());
                 }
-                var n_upstream = upstreamReactors.size();
-                code.pr(CUtil.reactionRef(reaction)+".num_upstream_reactors = " + n_upstream + ";");
-                if (n_upstream > 0) {
-                    // First build a List of all the references to the upstream reactors of this
-                    //  LET reaction. If any upstream is a bank, then all the reactors in the bank are added
+                var n_downstream = downstreamReactors.size();
+                code.pr(CUtil.reactionRef(reaction)+".num_downstream_let_reactors = " + n_downstream + ";");
+                if (n_downstream > 0) {
+                    // First build a List of all the references to the downstream reactors of this
+                    //  LET reaction. If any downstream is a bank, then all the reactors in the bank are added
                     // FIXME: How can we add only the runtime instances which actually are connected?
-                    var upstreamReactorRefs = new ArrayList<String>();
-                    for (ReactorInstance r : upstreamReactors) {
-                            for (int i = 0; i<r.getWidth(); i++) {
-                                upstreamReactorRefs.add(CUtil.reactorRef(r, Integer.toString(i)));
+                    var downstreamReactorRefs = new ArrayList<String>();
+                    for (ReactorInstance r : downstreamReactors) {
+                            if(r.hasLetReactions()) {
+                                for (int i = 0; i<r.getWidth(); i++) {
+                                    downstreamReactorRefs.add(CUtil.reactorRef(r, Integer.toString(i)));
+                                }
                             }
                         }
                     code.pr(String.join("\n",
-                        "void* _upstream_reactors[] = { (void *)" + joinObjects(upstreamReactorRefs, ", (void *)") + "};",
-                        "// Allocate memory for upstream reactors",
-                        CUtil.reactionRef(reaction)+".upstream_reactors = (void**)_lf_allocate(",
-                        "        "+n_upstream+", sizeof(void*),",
+                        "void* _downstream_let_reactors[] = { (void *)" + joinObjects(downstreamReactorRefs, ", (void *)") + "};",
+                        "// Allocate memory for downstream reactors",
+                        CUtil.reactionRef(reaction)+".downstream_let_reactors = (void**)_lf_allocate(",
+                        "        "+n_downstream+", sizeof(void*),",
                         "        &"+reactorSelfStruct+"->base.allocations);",
-                        "for (int i=0; i<"+n_upstream+"; i++) {",
-                        "   "+ CUtil.reactionRef(reaction)+".upstream_reactors[i] = (void *) _upstream_reactors[i];",
+                        "for (int i=0; i<"+n_downstream+"; i++) {",
+                        "   "+ CUtil.reactionRef(reaction)+".downstream_let_reactors[i] = (void *) _downstream_let_reactors[i];",
                         "}"
                     ));
                 }
                 code.endScopedBlock();
             } else {
-                code.pr("// This is not a LET reaction, to save memory dont store upstream reactors");
-                code.pr(CUtil.reactionRef(reaction)+".num_upstream_reactors = 0;");
+                code.pr("// This is not a LET reaction, to save memory dont store downstream reactors");
+                code.pr(CUtil.reactionRef(reaction)+".num_downstream_let_reactors = 0;");
             }
         }
 
