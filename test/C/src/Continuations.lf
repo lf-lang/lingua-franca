@@ -19,11 +19,10 @@ reactor Callee {
 reactor Caller {
 
     preamble {=
-        LF_DECLARE_REQUEST(int)
+        LF_DECLARE_REQUEST(int);
     =}
 
     preamble {=
-
         typedef struct {
             bool is_present;
             lf_sparse_io_record_t* sparse_record;
@@ -78,16 +77,17 @@ reactor Caller {
                 sum += i*i;
             }
             lf_print("%s\n", "sending request");
+            lf_call(req, sum, res);
             // injected code start
-            // Proposed API: lf_request(request, sum);
-            context_t* ctx = context_save(top_of_stack);
-            if (ctx != NULL) {
-                lf_set(req, ((lf_request_int_t) { .ctx=ctx, .value=sum }));
-                return;
-            } else if (res->is_present) {
-                // Crash if the response does not have a valid context attached
-                context_free(res->value.ctx);
-            }
+            // // Proposed API: lf_request(request, sum);
+            // context_t* ctx = context_save(top_of_stack);
+            // if (ctx != NULL) {
+            //     lf_set(req, ((lf_request_int_t) { .ctx=ctx, .value=sum }));
+            //     return;
+            // } else if (res->is_present) {
+            //     // Crash if the response does not have a valid context attached
+            //     context_free(res->value.ctx);
+            // }
             // injected code end
             lf_print(
                 "sum=%d, res=%d, res - sum = %d.\n",
