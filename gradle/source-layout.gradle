@@ -17,7 +17,6 @@ if (name.endsWith(".tests")) {
 		main {
 			java.srcDirs = ['src', 'src-gen']
 			kotlin.srcDirs = ['src', 'src-gen']
-			resources.srcDirs = ['src', 'src-gen']
 			xtendOutputDir = 'xtend-gen'
 			resources {
 				srcDirs = ['src', 'src-gen']
