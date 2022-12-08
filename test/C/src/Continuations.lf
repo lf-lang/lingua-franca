@@ -1,6 +1,8 @@
 // This tests continuations, which are like JavaScript's async/await.
 
-target C
+target C {
+    Build-Type: Debug
+}
 
 preamble {=
     #include <setjmp.h>
@@ -10,6 +12,7 @@ preamble {=
 reactor Callee {
     input req: request<int>
     output res: request<int>
+    state ra: jmp_buf
     reaction(req) -> res {=
         lf_print("received request, value=%d", req->value.value);
         lf_set(res, ((lf_request_int_t) { .ctx=req->value.ctx, .value=req->value.value - 10 }));
@@ -23,82 +26,6 @@ reactor Caller {
     =}
 
     preamble {=
-        typedef struct {
-            bool is_present;
-            lf_sparse_io_record_t* sparse_record;
-            int destination_channel;
-            lf_request(int) value;
-            int num_destinations;
-            lf_token_t* token;
-            int length;
-            void (*destructor) (void* value);
-            void* (*copy_constructor) (void* value);
-        } caller_response_t_;
-        typedef struct {
-            bool is_present;
-            lf_sparse_io_record_t* sparse_record;
-            int destination_channel;
-            lf_request(int) value;
-            int num_destinations;
-            lf_token_t* token;
-            int length;
-            void (*destructor) (void* value);
-            void* (*copy_constructor) (void* value);
-        } caller_request_t_;
-        typedef struct {
-            struct self_base_t base;
-            int n;
-            jmp_buf ra;
-            caller_response_t_* _lf_response;
-            // width of -2 indicates that it is not a multiport.
-            int _lf_response_width;
-            // Default input (in case it does not get connected)
-            caller_response_t_ _lf_default__response;
-            caller_request_t_ _lf_request;
-            int _lf_request_width;
-            reaction_t _lf__reaction_0;
-            trigger_t _lf__startup;
-            reaction_t* _lf__startup_reactions[1];
-            trigger_t _lf__response;
-            reaction_t* _lf__response_reactions[1];
-        } caller_self_t_;
-    =}
-
-    preamble {=
-        #include "include/api/set.h"
-        void reaction_function_0(
-            long* top_of_stack,
-            caller_self_t_* self,
-            caller_request_t_* req,
-            caller_response_t_* res
-        ) {
-            int sum;
-            for (int i = self->n; i < self->n+9; i++) {
-                sum += i*i;
-            }
-            lf_print("%s\n", "sending request");
-            lf_call(req, sum, res);
-            // injected code start
-            // // Proposed API: lf_request(request, sum);
-            // context_t* ctx = context_save(top_of_stack);
-            // if (ctx != NULL) {
-            //     lf_set(req, ((lf_request_int_t) { .ctx=ctx, .value=sum }));
-            //     return;
-            // } else if (res->is_present) {
-            //     // Crash if the response does not have a valid context attached
-            //     context_free(res->value.ctx);
-            // }
-            // injected code end
-            lf_print(
-                "sum=%d, res=%d, res - sum = %d.\n",
-                sum,
-                res->value.value,
-                res->value.value - sum
-            );
-            // injected code start
-            longjmp(self->ra, 1);
-        }
-        #include "include/api/set_undef.h"
     =}
 
     output req: request<int>
@@ -106,16 +33,18 @@ reactor Caller {
     state n: int(0)
     state ra: jmp_buf  // injected code
     reaction(startup, res) -> req {=
-        // injected code start
-        long top_of_stack;
-        if (res->is_present && !setjmp(self->ra)) {
-            context_switch(res->value.ctx, &top_of_stack);
+        int sum = 0;
+        for (int i = self->n; i < self->n+9; i++) {
+            sum += i*i;
         }
-        // ... do the same for other requests if necessary
-        if (/*startup->is_present*/!res->is_present) {
-            reaction_function_0(&top_of_stack, (caller_self_t_*) self, (caller_request_t_*) req, (caller_response_t_*) res);
-        }
-        // injected code end
+        lf_print("%s, sum=%d\n", "sending request", sum);
+        lf_call(req, sum, res);
+        lf_print(
+            "sum=%d, res=%d, res - sum = %d.\n",
+            sum,
+            res->value.value,
+            res->value.value - sum
+        );
     =}
 }
 

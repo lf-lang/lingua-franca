@@ -1092,10 +1092,13 @@ public class CReactionGenerator {
         code.pr(
             "#include " + StringUtil.addDoubleQuotes(
                 CCoreFilesUtils.getCTargetSetHeader()));
+        if (CContinuationReactionGenerator.isContinuationReaction(reaction)) {
+            code.pr(CContinuationReactionGenerator.generateAuxiliaryFunction(decl, reaction, reactionIndex));
+        }
         CMethodGenerator.generateMacrosForMethods(ASTUtils.toDefinition(decl), code);
         code.pr(generateFunction(
             generateReactionFunctionHeader(decl, reactionIndex),
-            init, reaction.getCode()
+            init, reactionFunctionBody(decl, reaction, reactionIndex)
         ));
 
         // Now generate code for the late function, if there is one
@@ -1104,14 +1107,14 @@ public class CReactionGenerator {
         if (reaction.getStp() != null) {
             code.pr(generateFunction(
                 generateStpFunctionHeader(decl, reactionIndex),
-                init, reaction.getStp().getCode()));
+                init, ASTUtils.toText(reaction.getStp().getCode())));
         }
 
         // Now generate code for the deadline violation function, if there is one.
         if (reaction.getDeadline() != null) {
             code.pr(generateFunction(
                 generateDeadlineFunctionHeader(decl, reactionIndex),
-                init, reaction.getDeadline().getCode()));
+                init, ASTUtils.toText(reaction.getDeadline().getCode())));
         }
         CMethodGenerator.generateMacroUndefsForMethods(ASTUtils.toDefinition(decl), code);
         code.pr(
@@ -1120,16 +1123,27 @@ public class CReactionGenerator {
         return code.toString();
     }
 
-    public static String generateFunction(String header, String init, Code code) {
+    public static String generateFunction(String header, String init, String body) {
         var function = new CodeBuilder();
         function.pr(header + " {");
         function.indent();
         function.pr(init);
-        function.prSourceLineNumber(code);
-        function.pr(ASTUtils.toText(code));
+        function.pr(body);
         function.unindent();
         function.pr("}");
         return function.toString();
+    }
+
+    private static String reactionFunctionBody(ReactorDecl decl, Reaction reaction, int reactionCount) {
+        var ret = new CodeBuilder();
+        if (CContinuationReactionGenerator.isContinuationReaction(reaction)) {
+            ret.pr(CContinuationReactionGenerator.generateCoordinationBody(decl, reaction, reactionCount));
+        } else {
+            Code code = reaction.getCode();
+            ret.prSourceLineNumber(code);
+            ret.pr(ASTUtils.toText(code));
+        }
+        return ret.toString();
     }
 
     /**
