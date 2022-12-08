@@ -22,7 +22,7 @@ jobs:
 
   # Test the Gradle build.
   build:
-    uses: lf-lang/lingua-franca/.github/workflows/build.yml@master
+    uses: lf-lang/lingua-franca/.github/workflows/build.yml@epoch-migration
     needs: cancel
 
   # Check that automatic code formatting works.
