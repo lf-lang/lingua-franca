@@ -64,6 +64,7 @@ jobs:
       - name: Perform tests for C target with default scheduler
         run: |
           ./gradlew test --tests org.lflang.tests.runtime.CTest.*
+        continue-on-error: true
         if: ${{ !inputs.use-cpp && !inputs.scheduler }}
       - name: Setup tmate session
         uses: mxschmitt/action-tmate@v3
