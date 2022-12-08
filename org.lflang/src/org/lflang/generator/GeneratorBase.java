@@ -306,9 +306,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
 
         // Clear any IDE markers that may have been created by a previous build.
         // Markers mark problems in the Eclipse IDE when running in integrated mode.
-        if (errorReporter instanceof EclipseErrorReporter) {
-            ((EclipseErrorReporter) errorReporter).clearMarkers();
-        }
+        errorReporter.clearHistory();
 
         ASTUtils.setMainName(fileConfig.resource, fileConfig.name);
 

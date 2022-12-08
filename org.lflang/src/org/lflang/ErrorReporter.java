@@ -170,4 +170,10 @@ public interface ErrorReporter {
      * @return true if errors where reported
      */
     boolean getErrorsOccurred();
+
+    /**
+     * Clear error history, if exists.
+     * This is usually only the case for error markers in Epoch (Eclipse).
+     */
+    default void clearHistory() {}
 }

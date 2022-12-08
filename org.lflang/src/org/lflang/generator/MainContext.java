@@ -4,7 +4,6 @@ import java.util.Properties;
 import java.util.function.Function;
 
 import org.eclipse.xtext.util.CancelIndicator;
-
 import org.lflang.DefaultErrorReporter;
 import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
@@ -18,6 +17,12 @@ import org.lflang.generator.IntegratedBuilder.ReportProgress;
  * @author Peter Donovan <peterdonovan@berkeley.edu>
  */
 public class MainContext implements LFGeneratorContext {
+    
+    /**
+     * This constructor will be set by the LF plugin, if the generator is running in Epoch.
+     */
+    public static Function<FileConfig, ErrorReporter> EPOCH_ERROR_REPORTER_CONSTRUCTOR = null;
+    
     /**
      * The indicator that shows whether this build
      * process is canceled.
@@ -44,7 +49,9 @@ public class MainContext implements LFGeneratorContext {
     public MainContext(Mode mode, CancelIndicator cancelIndicator) {
         this(
             mode, cancelIndicator, (message, completion) -> {}, new Properties(), false,
-            fileConfig -> new DefaultErrorReporter()
+            (mode == Mode.EPOCH && EPOCH_ERROR_REPORTER_CONSTRUCTOR != null) ?
+                    EPOCH_ERROR_REPORTER_CONSTRUCTOR :
+                    fileConfig -> new DefaultErrorReporter()
         );
     }
 

@@ -7,7 +7,6 @@ import java.util.Properties;
 
 import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.xtext.generator.IGeneratorContext;
-
 import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
 import org.lflang.util.LFCommand;
@@ -192,10 +191,7 @@ public interface LFGeneratorContext extends IGeneratorContext {
      */
     static LFGeneratorContext lfGeneratorContextOf(IGeneratorContext context, Resource resource) {
         if (context instanceof LFGeneratorContext) return (LFGeneratorContext) context;
-        if (resource.getURI().isPlatform()) return new MainContext(
-            Mode.EPOCH, context.getCancelIndicator(), (m, p) -> {}, new Properties(), false,
-            EclipseErrorReporter::new
-        );
+        if (resource.getURI().isPlatform()) return new MainContext(Mode.EPOCH, context.getCancelIndicator());
         return new MainContext(Mode.LSP_FAST, context.getCancelIndicator());
     }
 }
