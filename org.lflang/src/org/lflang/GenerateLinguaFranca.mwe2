@@ -40,6 +40,10 @@ Workflow {
                 preferXtendStubs = false
             }
         }
+        /*
+         * IMPORTANT: Any changes to this configuration must be synchronized with 
+         * the GenerateLinguaFrancaEpoch.mwe2 file in the Epoch repository!
+         */
         language = StandardLanguage {
             name = "org.lflang.LinguaFranca"
             fileExtensions = "lf"
