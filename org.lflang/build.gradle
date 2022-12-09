@@ -2,7 +2,7 @@ import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
 
 repositories {
     mavenCentral()
-    // TODO Remove this in-official maven repository as soon as Klighd is released to maven central in the future.
+    // TODO Replace this unofficial maven repository as soon as Klighd is released to maven central in the future.
     maven {
         url "https://rtsys.informatik.uni-kiel.de/~kieler/files/repo/"
     }
