@@ -32,6 +32,7 @@ import org.lflang.lf.Reactor
 class CppInstanceGenerator(
     private val reactor: Reactor,
     private val fileConfig: CppFileConfig,
+    private val errorReporter: ErrorReporter
 ) {
 
     val Instantiation.cppType: String
@@ -50,16 +51,27 @@ class CppInstanceGenerator(
     }
 
     private fun Instantiation.getParameterStruct(): String {
+        val assignments = parameters.mapNotNull {
+            if (it.rhs.isParens || it.rhs.isBraces) {
+                errorReporter.reportError(it, "Parenthesis based initialization is not allowed here!")
+                return@mapNotNull null
+            }
+            if (it.rhs.exprs.size != 1) {
+                errorReporter.reportError(it, "Expected exactly one expression.")
+                return@mapNotNull null
+            }
+            return@mapNotNull Pair(it.lhs.name, CppTypes.getTargetExpr(it.rhs.exprs[0], it.lhs.inferredType))
+        }.toMap().toMutableMap()
+
         // If this is a bank instantiation and the instantiated reactor defines a "bank_index" parameter, we have to set
         // bank_index here explicitly.
-        var prefix = "${cppType}::Parameters{"
         if (isBank && reactor.hasBankIndexParameter())
-            prefix += ".bank_index = __lf_idx, "
-        return parameters.joinToString(", ", prefix, "}") {
-            val expr = it.rhs.exprs[0]
-            assert(!it.rhs.isBraces && !it.rhs.isParens && it.rhs.exprs.size == 0)
-            ".${it.lhs.name} = ${CppTypes.getTargetExpr(expr, it.lhs.inferredType)}"
-        }
+            assignments["bank_index"] = "__lf_idx"
+
+        // by iterating over the reactor parameters we make sure that the parameters are assigned in declaration order
+        return reactor.parameters.mapNotNull {
+            if (it.name in assignments) ".${it.name} = ${assignments[it.name]}" else null
+        }.joinToString(", ", "${cppType}::Parameters{", "}")
     }
 
     private fun generateInitializer(inst: Instantiation): String {
