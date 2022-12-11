@@ -94,12 +94,17 @@ public class CPreambleGenerator {
         if (tracing != null) {
             targetConfig.compileDefinitions.put("LINGUA_FRANCA_TRACE", tracing.traceFileName);
         }
-//        if (clockSyncIsOn) {
-//            code.pr(generateClockSyncDefineDirective(
-//                targetConfig.clockSync,
-//                targetConfig.clockSyncOptions
-//            ));
-//        }
+        // if (clockSyncIsOn) {
+        //     code.pr(generateClockSyncDefineDirective(
+        //         targetConfig.clockSync,
+        //         targetConfig.clockSyncOptions
+        //     ));
+        // }
+        if (targetConfig.threading) {
+            targetConfig.compileDefinitions.put("LF_THREADED", "1");
+        } else {
+            targetConfig.compileDefinitions.put("LF_UNTHREADED", "1");
+        }
         code.newLine();
         return code.toString();
     }
