@@ -104,6 +104,11 @@ public class CPreambleGenerator {
                 targetConfig.clockSyncOptions
             ));
         }
+        if (targetConfig.threading) {
+            targetConfig.compileDefinitions.put("LF_THREADED", "1");
+        } else {
+            targetConfig.compileDefinitions.put("LF_UNTHREADED", "1");
+        }
         code.newLine();
         return code.toString();
     }
