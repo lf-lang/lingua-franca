@@ -1,0 +1,126 @@
+target C
+
+preamble {=
+    #include <setjmp.h>
+    #include "context_switch.h"
+    typedef int vector[4];
+    typedef int matrix[4][4];   // row-major order
+    LF_DECLARE_REQUEST(vector)
+    LF_DECLARE_REQUEST(int)
+=}
+
+reactor MatMul(n: int(4)) {
+    state ra: jmp_buf  // injected code
+
+    state A: matrix
+    state B: matrix
+    state C: matrix  // TODO: Dynamically allocate C, and put the pointer to C on the stack?
+
+    dot_products = new[n] DotProduct(n(n))
+    row_distributor = new PassThroughVector()
+    go_distributor = new PassThroughInt()
+    products = new[n] PassThroughInt()
+    dot_products.product -> products.in after 0
+
+    (row_distributor.out)+ -> dot_products.row
+
+    reaction(startup) {=
+        // No dynamic memory allocation required!
+        for (int row = 0; row < self->n; row++) {
+            for (int col = 0; col < self->n; col++) {
+                self->A[row][col] = 2 * row + col;
+                self->B[row][col] = row + 2 * col;
+            }
+        }
+    =}
+
+    reaction(startup, products.out) ->
+    dot_products.column, row_distributor.in, go_distributor.in {=
+        instant_t parallel_matmul_start_time = lf_time_physical();
+        // Distribute columns of the matrix
+        for (int row = 0; row < self->n; row++) {
+            for (int col = 0; col < self->n; col++) {
+                // You can't win here: Read locality or write locality, but not both.
+                dot_products[col].column->value[row] = self->B[row][col];
+            }
+        }
+        for (int col = 0; col < self->n; col++) {
+            _lf_set_present((lf_port_base_t*) dot_products[col].column);
+        }
+        // Compute dot products in parallel
+        for (int row = 0; row < self->n; row++) {
+            for (int acol = 0; acol < self->n; acol++) {
+                row_distributor.in->value[acol] = self->A[row][acol];
+            }
+            _lf_set_present((lf_port_base_t*) row_distributor.in);
+            // Assume all products will come back at the same time
+            lf_call(go, 0, dot_products[0].product);
+            for (int bcol = 0; bcol < self->n; bcol++) {
+                self->C[row][bcol] = dot_products[bcol].product->value;
+            }
+        }
+        instant_t parallel_matmul_end_time = lf_time_physical();
+        // Check that the result is correct
+        for (int arow = 0; arow < self->n; arow++) {
+            for (int brow = 0; brow < self->n; brow++) {
+                int expected = 0;
+                for (int s = 0; s < self->n; s++) {
+                    expected += self->A[arow] * self->B[brow];
+                }
+                if (self->C[arow][brow] != expected) {
+                    lf_print_error_and_exit("Fail: %d != %d.", self->C[arow][brow], expected);
+                };
+            }
+        }
+        instant_t checking_end_time = lf_time_physical();
+        lf_print(
+            "Time to compute in parallel: " PRINTF_TIME ".",
+            parallel_matmul_end_time - parallel_matmul_start_time
+        );
+        // Note that checking does not involve memory writes, and so might be
+        // faster than an actual naive matmul implementation
+        lf_print(
+            "Time to check results: " PRINTF_TIME ".",
+            checking_end_time - parallel_matmul_end_time
+        );
+        lf_print("Success.");
+    =}
+}
+
+reactor DotProduct(n: int(4)) {
+    input column: vector
+    input row: vector
+    input go: request<int>
+    output product: request<int>
+
+    state c: vector
+
+    reaction(column) {=
+        for (int i = 0; i < self->n; i++) {
+            self->c[i] = column->value[i];
+        }
+    =}
+    reaction(go) row -> product {=
+        int sum = 0;
+        for (int i = 0; i < self->n; i++) {
+            sum += self->c[i] * row->value[i];
+        }
+        lf_set(product, ((lf_request(int)) { .ctx=go->value.ctx, .value=sum }));
+    =}
+}
+
+reactor PassThroughVector {
+    input in: vector
+    output out: vector
+    in -> out
+}
+
+reactor PassThroughInt {
+    input in: request<int>
+    output out: request<int>
+    in -> out
+}
+
+main reactor {
+    matmul = new MatMul()
+}

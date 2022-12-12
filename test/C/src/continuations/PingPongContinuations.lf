@@ -1,0 +1,51 @@
+target C
+
+preamble {=
+    #include <setjmp.h>
+    #include "context_switch.h"
+=}
+
+reactor Ping(count: int(10)) {
+    preamble {=
+        LF_DECLARE_REQUEST(int)
+    =}
+    input receive: request<int>
+    output send: request<int>
+    state ra: jmp_buf  // injected code
+
+    reaction(startup, receive) -> send {=
+        for (int i = 0; i < self->count; i++) {
+            lf_print("ping %d", i);
+            lf_call(send, i, receive);
+        }
+    =}
+}
+
+reactor Pong(expected: int(10)) {
+    input receive: request<int>
+    output send: request<int>
+    state count: int(0)
+
+    reaction(receive) -> send {=
+        self->count++;
+        lf_print("pong %d", receive->value);
+        lf_set(send, ((lf_request(int)) { .ctx=receive->value.ctx, .value=receive->value.value }));
+    =}
+
+    reaction(shutdown) {=
+        if (self->count != self->expected) {
+            fprintf(stderr, "ERROR: Pong expected to receive %d inputs, but it received %d.\n",
+                self->expected, self->count
+            );
+            exit(1);
+        }
+        printf("Success.\n");
+    =}
+}
+
+main reactor PingPongContinuations {
+    ping = new Ping()
+    pong = new Pong()
+    ping.send -> pong.receive
+    pong.send -> ping.receive after 0
+}
