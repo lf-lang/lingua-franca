@@ -494,6 +494,8 @@ public class ASTUtils {
         defaultTime.setUnit(null);
         defaultTime.setInterval(0);
         Initializer init = factory.createInitializer();
+        init.setParens(true);
+        init.setBraces(false);
         init.getExprs().add(defaultTime);
         delayParameter.setInit(init);
 
