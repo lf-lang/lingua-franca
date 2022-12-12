@@ -288,7 +288,7 @@ Assignment:
     (equals='=')? rhs=AssignmentInitializer
 ;
 
-// TODO fold that into Initializer when = initializer are introduced
+// TODO Only allow = based parameter assignment
 AssignmentInitializer returns Initializer:
       exprs+=Expression
     | parens?='(' (exprs+=Expression (','  exprs+=Expression)* (trailingComma?=',')?)? ')'
