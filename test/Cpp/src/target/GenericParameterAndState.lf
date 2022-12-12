@@ -4,7 +4,6 @@ reactor Foo<T>(bar: T(0), expected: T(14542135)) {
     state baz: T(bar)
 
     reaction(startup) {=
-        request_stop();
         if (bar != expected) {
           std::cerr << "ERROR: Expected baz=" << expected << " but got baz=" << bar << '\n';
           exit(1);
