@@ -4,9 +4,15 @@ on:
   workflow_call:
     inputs:
       compiler-ref:
+        description: >
+          Git revision of the LF repo to use. Provided only if this workflow
+          is being run from the reactor-rs repository.
         required: false
         type: string
       runtime-ref:
+        description: >
+          Git revision of the reactor runtime repo to use. Provided
+          only if this workflow is being run from the reactor-rs repository.
         required: false
         type: string
 
@@ -33,7 +39,10 @@ jobs:
           repository: lf-lang/reactor-rs
           path: org.lflang/src/lib/rs/reactor-rs
           ref: ${{ inputs.runtime-ref }}
-        if: ${{ inputs.runtime-ref }}
+        if: inputs.runtime-ref
+      - name: Update runtime ref if we use a custom runtime version
+        run: ./gradlew updateRustRuntime
+        if: inputs.runtime-ref
       - name: Setup Rust
         id: rustup
         uses: ATiltedTree/setup-rust@v1
@@ -54,13 +63,16 @@ jobs:
         # The following task compares the checked out submodule
         # version to the version used at runtime by LF.
         run: ./gradlew checkRuntimeVersionFileUpToDate
+        # Don't perform this check if we checked out a non-default
+        # runtime version. This allows running this workflow in the
+        # reactor-rs build.
+        if: !inputs.compiler-ref  # i.e., if this is part of the main repo's CI
       - name: Run Rust tests
-        run: |
-          ./gradlew test --tests org.lflang.tests.runtime.RustTest.*
+        run: ./gradlew test --tests org.lflang.tests.runtime.RustTest.*
       - name: Report to CodeCov
         uses: codecov/codecov-action@v2.1.0
         with:
           file: org.lflang.tests/build/reports/xml/jacoco
           fail_ci_if_error: false
           verbose: true
-        if: ${{ !inputs.compiler-ref }}  # i.e., if this is part of the main repo's CI
+        if: !inputs.compiler-ref  # i.e., if this is part of the main repo's CI
