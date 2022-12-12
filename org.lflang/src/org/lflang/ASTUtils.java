@@ -414,7 +414,6 @@ public class ASTUtils {
      */
     private static Instantiation getDelayInstance(Reactor delayClass, 
             Connection connection, String generic, Boolean defineWidthFromConnection) {
-        Time delay = toTime(connection.getDelay());
         Instantiation delayInstance = factory.createInstantiation();
         delayInstance.setReactorClass(delayClass);
         if (!StringExtensions.isNullOrEmpty(generic)) {
@@ -442,7 +441,7 @@ public class ASTUtils {
         Assignment assignment = factory.createAssignment();
         assignment.setLhs(delayClass.getParameters().get(0));
         Initializer init = factory.createInitializer();
-        init.getExprs().add(delay);
+        init.getExprs().add(connection.getDelay());
         assignment.setRhs(init);
         delayInstance.getParameters().add(assignment);
         delayInstance.setName("delay");  // This has to be overridden.
