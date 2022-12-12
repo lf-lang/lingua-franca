@@ -63,10 +63,6 @@ jobs:
         # The following task compares the checked out submodule
         # version to the version used at runtime by LF.
         run: ./gradlew checkRuntimeVersionFileUpToDate
-        # Don't perform this check if we checked out a non-default
-        # runtime version. This allows running this workflow in the
-        # reactor-rs build.
-        if: !inputs.compiler-ref  # i.e., if this is part of the main repo's CI
       - name: Run Rust tests
         run: ./gradlew test --tests org.lflang.tests.runtime.RustTest.*
       - name: Report to CodeCov
