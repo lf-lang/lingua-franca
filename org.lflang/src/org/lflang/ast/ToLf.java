@@ -710,9 +710,6 @@ public class ToLf extends LfSwitch<MalleableString> {
               .map(this::doSwitch)
               .collect(new Joiner(String.format(",%n"))));
     }
-    msb.append("", MalleableString.anyOf("\n").indent());
-    msb.append(object.isPhysical() ? " ~>" : " ->");
-    msb.append(minimallyDelimitedList(object.getRightPorts()));
     String arrow = object.isPhysical() ? "~>" : "->";
     right.append(minimallyDelimitedList(object.getRightPorts()));
     msb.append(
