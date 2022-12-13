@@ -157,7 +157,7 @@ class CppReactorGenerator(private val reactor: Reactor, fileConfig: CppFileConfi
         return with(PrependOperator) {
             """
                 |${reactor.templateLine}
-                |${reactor.templateName}::Inner::Inner(reactor::Reactor* reactor, Parameters&& parameters)
+                |${reactor.templateName}::Inner::Inner(::reactor::Reactor* reactor, Parameters&& parameters)
                 |  : LFScope(reactor)
             ${" |  , Parameters(std::forward<Parameters>(parameters))"}
             ${" |  "..state.generateInitializers()}

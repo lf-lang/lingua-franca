@@ -71,5 +71,5 @@ class CppParameterGenerator(private val reactor: Reactor) {
      *  This is required for some code bodies (e.g. target code in parameter initializers) to have access to the local parameters.
      */
     fun generateOuterAliasDeclarations() =
-        reactor.parameters.joinToString(separator = "") { "const Parameters::${it.typeAlias}& ${it.name} = __lf_inner.${it.name};\n" }
+        reactor.parameters.joinToString(separator = "") { "const typename Parameters::${it.typeAlias}& ${it.name} = __lf_inner.${it.name};\n" }
 }
