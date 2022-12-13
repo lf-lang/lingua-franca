@@ -282,6 +282,10 @@ public abstract class GeneratorBase extends AbstractLFValidator {
         }
     }
 
+    public void doGenerate(Resource resource, LFGeneratorContext context) {
+        doGenerate(resource, context, true);
+    }
+
     /**
      * Generate code from the Lingua Franca model contained by the specified resource.
      *
@@ -294,7 +298,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
      * @param context Context relating to invocation of the code generator.
      * In standalone mode, this object is also used to relay CLI arguments.
      */
-    public void doGenerate(Resource resource, LFGeneratorContext context) {
+    public void doGenerate(Resource resource, LFGeneratorContext context, Boolean transformDelays) {
 
         GeneratorUtils.setTargetConfig(
             context, GeneratorUtils.findTarget(fileConfig.resource), targetConfig, errorReporter
@@ -356,9 +360,11 @@ public abstract class GeneratorBase extends AbstractLFValidator {
         // FIXME: Should the GeneratorBase pull in `files` from imported
         // resources?
 
-        // Reroute connections that have delays associated with them via
-        // generated delay reactors.
-        transformDelays();
+        if (transformDelays) {
+            // Reroute connections that have delays associated with them via
+            // generated delay reactors.
+            transformDelays();
+        }
 
         // Transform connections that reside in mutually exclusive modes and are otherwise conflicting
         // This should be done before creating the instantiation graph

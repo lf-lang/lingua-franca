@@ -42,7 +42,7 @@ object LeanTypes : TargetTypes {
                 TimeUnit.DAY    -> "day"
                 TimeUnit.WEEK   -> "week"
             }
-            return "(Time.of $magnitude .$unitName)"
+            return "Time.of $magnitude .$unitName"
         }
     }
 

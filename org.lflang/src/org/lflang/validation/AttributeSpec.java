@@ -208,5 +208,8 @@ class AttributeSpec {
         ATTRIBUTE_SPECS_BY_NAME.put("icon", new AttributeSpec(
             List.of(new AttrParamSpec(AttributeSpec.VALUE_ATTR, AttrParamType.STRING, null))
         ));
+        // @io
+        // This is used in the Lean-target to mark reactions that can use IO.
+        ATTRIBUTE_SPECS_BY_NAME.put("io", new AttributeSpec(null));
     }
 }
