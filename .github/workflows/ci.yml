@@ -93,7 +93,7 @@ jobs:
 
   # Run the Rust integration tests.
   rs-tests:
-    uses: lf-lang/lingua-franca/.github/workflows/rs-tests.yml@master
+    uses: lf-lang/lingua-franca/.github/workflows/rs-tests.yml@clem.rust-dont-clone-runtime
     needs: cancel
 
   # Run the Rust benchmark tests.
