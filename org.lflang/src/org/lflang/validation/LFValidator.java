@@ -1142,19 +1142,7 @@ public class LFValidator extends BaseLFValidator {
     @Check(CheckType.FAST)
     public void checkType(Type type) {
         // FIXME: disallow the use of generics in C
-        if (this.target == Target.CPP) {
-            if (type.getStars().size() > 0) {
-                warning(
-                    "Raw pointers should be avoided in conjunction with LF. Ports " +
-                    "and actions implicitly use smart pointers. In this case, " +
-                    "the pointer here is likely not needed. For parameters and state " +
-                    "smart pointers should be used explicitly if pointer semantics " +
-                    "are really needed.",
-                    Literals.TYPE__STARS
-                );
-            }
-        }
-        else if (this.target == Target.Python) {
+        if (this.target == Target.Python) {
             if (type != null) {
                 error(
                     "Types are not allowed in the Python target",
