@@ -44,8 +44,6 @@ class CppRos2Generator(generator: CppGenerator) : CppPlatformGenerator(generator
                         "Also see https://docs.ros.org/en/galactic/Installation.html"
             )
             return false
-        } else if (ros2Version != "galactic") {
-            errorReporter.reportWarning("LF support for ROS2 has only been tested on galactic.")
         }
 
         val colconCommand = commandFactory.createCommand(
