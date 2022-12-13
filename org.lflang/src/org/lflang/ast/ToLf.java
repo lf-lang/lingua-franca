@@ -470,6 +470,7 @@ public class ToLf extends LfSwitch<MalleableString> {
     msb.append("state ").append(object.getName());
     msb.append(typeAnnotationFor(object.getType()));
     msb.append(initializer(object.getInit(), true));
+
     return msb.get();
   }
 
@@ -698,10 +699,12 @@ public class ToLf extends LfSwitch<MalleableString> {
     // (serializer=Serializer)?
     // ';'?
     Builder msb = new Builder();
+    Builder left = new Builder();
+    Builder right = new Builder();
     if (object.isIterated()) {
-      msb.append(list(false, object.getLeftPorts())).append("+");
+      left.append(list(false, object.getLeftPorts())).append("+");
     } else {
-      msb.append(
+      left.append(
           object.getLeftPorts().stream().map(this::doSwitch).collect(new Joiner(", ")),
           object.getLeftPorts().stream()
               .map(this::doSwitch)
@@ -710,6 +713,20 @@ public class ToLf extends LfSwitch<MalleableString> {
     msb.append("", MalleableString.anyOf("\n").indent());
     msb.append(object.isPhysical() ? " ~>" : " ->");
     msb.append(minimallyDelimitedList(object.getRightPorts()));
+    String arrow = object.isPhysical() ? "~>" : "->";
+    right.append(minimallyDelimitedList(object.getRightPorts()));
+    msb.append(
+        MalleableString.anyOf(
+            new Builder()
+                .append(left.get())
+                .append(MalleableString.anyOf(" " + arrow))
+                .append(right.get())
+                .get(),
+            new Builder()
+                .append(left.get())
+                .append(MalleableString.anyOf("\n" + arrow).indent())
+                .append(right.get())
+                .get()));
     if (object.getDelay() != null) msb.append(" after ").append(doSwitch(object.getDelay()));
     if (object.getSerializer() != null) {
       msb.append(" ").append(doSwitch(object.getSerializer()));
@@ -827,6 +844,7 @@ public class ToLf extends LfSwitch<MalleableString> {
     }
     return list(", ", prefix, suffix, nothingIfEmpty, false, init.getExprs());
   }
+
 
   @Override
   public MalleableString caseParameter(Parameter object) {
