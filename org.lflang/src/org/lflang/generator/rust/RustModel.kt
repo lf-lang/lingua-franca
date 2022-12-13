@@ -42,7 +42,6 @@ import org.lflang.inBlock
 import org.lflang.indexInContainer
 import org.lflang.inferredType
 import org.lflang.isBank
-import org.lflang.isInitWithBraces
 import org.lflang.isInput
 import org.lflang.isLogical
 import org.lflang.isMultiport
