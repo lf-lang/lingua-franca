@@ -96,7 +96,7 @@ public class CContinuationReactionGenerator {
     }
 
     private static String auxiliaryFunctionArgumentList(Reaction reaction) {
-        return variableStream(reaction).map(Variable::getName).collect(Collectors.joining(", "));
+        return varRefStream(reaction).map(CContinuationReactionGenerator::representVarRef).collect(Collectors.joining(", "));
     }
 
     private static String auxiliaryFunctionParameterList(ReactorDecl decl, Reaction reaction) {
@@ -106,12 +106,12 @@ public class CContinuationReactionGenerator {
         parameterNames.add("top_of_stack");
         parameterTypes.add(CUtil.selfType(decl) + "*");
         parameterNames.add("self");
-        variableStream(reaction)
-            .map(it -> CGenerator.variableStructType(it, decl))
+        varRefStream(reaction)
+            .map(it -> CGenerator.variableStructType(it.getVariable(), it.getContainer().getReactorClass()))
             .map(it -> it + "*")
             .forEach(parameterTypes::add);
-        variableStream(reaction)
-            .map(Variable::getName)
+        varRefStream(reaction)
+            .map(CContinuationReactionGenerator::cVariableOfVarRef)
             .forEach(parameterNames::add);
         List<String> typesAndNames = new ArrayList<>();
         for (int i = 0; i < parameterNames.size(); i++) {
@@ -120,18 +120,29 @@ public class CContinuationReactionGenerator {
         return String.join(", ", typesAndNames);
     }
 
-    private static Stream<Variable> inputVariableStream(Reaction reaction) {
+    private static Stream<VarRef> inputVarRefStream(Reaction reaction) {
         return Stream.concat(reaction.getTriggers().stream(), reaction.getSources().stream())
             .map(it -> it instanceof VarRef v ? v : null)
-            .filter(Objects::nonNull)
-            .map(VarRef::getVariable);
+            .filter(Objects::nonNull);
     }
 
-    private static Stream<Variable> outputVariableStream(Reaction reaction) {
-        return reaction.getEffects().stream().map(VarRef::getVariable);
+    private static Stream<VarRef> outputVarRefStream(Reaction reaction) {
+        return reaction.getEffects().stream();
     }
 
-    private static Stream<Variable> variableStream(Reaction reaction) {
-        return Stream.concat(inputVariableStream(reaction), outputVariableStream(reaction));
+    private static Stream<Variable> inputVariableStream(Reaction reaction) {
+        return inputVarRefStream(reaction).map(VarRef::getVariable);
+    }
+
+    private static String representVarRef(VarRef it) {
+        return it.getContainer() != null ? String.format("%s.%s", it.getContainer().getName(), it.getVariable().getName()) : it.getVariable().getName();
+    }
+
+    private static String cVariableOfVarRef(VarRef it) {
+        return it.getContainer() != null ? it.getContainer().getName() : it.getVariable().getName();
+    }
+
+    private static Stream<VarRef> varRefStream(Reaction reaction) {
+        return Stream.concat(inputVarRefStream(reaction), outputVarRefStream(reaction));
     }
 }
