@@ -64,8 +64,6 @@ val Reaction.name
 
 /**
  * Convert a LF time value to a representation in C++ code.
- * @param outerContext A flag indicating whether to generate code for the scope of the outer reactor class.
- *                    This should be set to false if called from code generators for the inner class.
  * @param inferredType Type that the expr has (or null), may guide code generation if ambiguous
  */
 fun Expression.toCppCode(inferredType: InferredType? = null): String =
