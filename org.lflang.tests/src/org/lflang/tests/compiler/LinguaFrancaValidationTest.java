@@ -1217,12 +1217,12 @@ public class LinguaFrancaValidationTest {
 //             ) {
 //                 state offset:time(42);       // ERROR: units missing
 //                 state w:time(x);             // ERROR: parameter is not a time
-//                 state foo:time("bla");       // ERROR: assigned value not a time
+//                 state foo:time("bla");       // ERROR: assigned value not a time;
 //                 timer tick(1);               // ERROR: not a time
 //             }
 //         """
 // Java 11:
-        String testCase = String.join(System.lineSeparator(),
+        String testCase = String.join(System.getProperty("line.separator"),
             "target C;",
             "reactor Bar(a(0),              // ERROR: type missing",
             "            b:int,             // ERROR: uninitialized",
