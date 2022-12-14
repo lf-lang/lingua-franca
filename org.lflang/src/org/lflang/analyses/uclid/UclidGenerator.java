@@ -27,7 +27,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * 
  * @author{Shaokai Lin <shaokai@berkeley.edu>}
  */
-package org.lflang.generator.uclid;
+package org.lflang.analyses.uclid;
 
 import java.io.File;
 import java.io.IOException;
@@ -58,6 +58,18 @@ import org.lflang.FileConfig;
 import org.lflang.Target;
 import org.lflang.TimeUnit;
 import org.lflang.TimeValue;
+import org.lflang.analyses.cast.BuildAstParseTreeVisitor;
+import org.lflang.analyses.cast.CAst;
+import org.lflang.analyses.cast.CAstUtils;
+import org.lflang.analyses.cast.CBaseAstVisitor;
+import org.lflang.analyses.cast.CToUclidVisitor;
+import org.lflang.analyses.cast.IfNormalFormAstVisitor;
+import org.lflang.analyses.cast.VariablePrecedenceVisitor;
+import org.lflang.analyses.statespace.Event;
+import org.lflang.analyses.statespace.StateSpaceDiagram;
+import org.lflang.analyses.statespace.StateSpaceExplorer;
+import org.lflang.analyses.statespace.StateSpaceNode;
+import org.lflang.analyses.statespace.Tag;
 import org.lflang.dsl.CLexer;
 import org.lflang.dsl.CParser;
 import org.lflang.dsl.MTLLexer;
@@ -81,13 +93,6 @@ import org.lflang.generator.TargetTypes;
 import org.lflang.generator.TimerInstance;
 import org.lflang.generator.TriggerInstance;
 import org.lflang.generator.c.CGenerator;
-import org.lflang.generator.uclid.ast.BuildAstParseTreeVisitor;
-import org.lflang.generator.uclid.ast.CAst;
-import org.lflang.generator.uclid.ast.CAstUtils;
-import org.lflang.generator.uclid.ast.CBaseAstVisitor;
-import org.lflang.generator.uclid.ast.CToUclidVisitor;
-import org.lflang.generator.uclid.ast.IfNormalFormAstVisitor;
-import org.lflang.generator.uclid.ast.VariablePrecedenceVisitor;
 import org.lflang.lf.Action;
 import org.lflang.lf.Attribute;
 import org.lflang.lf.Code;
@@ -96,11 +101,6 @@ import org.lflang.lf.Expression;
 import org.lflang.lf.Reaction;
 import org.lflang.lf.Time;
 import org.lflang.lf.VarRef;
-import org.lflang.sim.Event;
-import org.lflang.sim.StateSpaceDiagram;
-import org.lflang.sim.StateSpaceExplorer;
-import org.lflang.sim.StateSpaceNode;
-import org.lflang.sim.Tag;
 import org.lflang.util.StringUtil;
 
 import static org.lflang.ASTUtils.*;

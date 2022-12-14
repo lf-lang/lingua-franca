@@ -1,7 +1,7 @@
 /**
  * Explores the state space of an LF program.
  */
-package org.lflang.sim;
+package org.lflang.analyses.statespace;
 
 import java.util.ArrayList;
 import java.util.PriorityQueue;
@@ -9,7 +9,8 @@ import java.util.Set;
 
 import org.lflang.TimeUnit;
 import org.lflang.TimeValue;
-
+import org.lflang.analyses.statespace.Event;
+import org.lflang.analyses.statespace.Tag;
 import org.lflang.generator.ActionInstance;
 import org.lflang.generator.PortInstance;
 import org.lflang.generator.ReactionInstance;

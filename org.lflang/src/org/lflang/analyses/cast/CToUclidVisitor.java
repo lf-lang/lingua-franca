@@ -1,9 +1,7 @@
-package org.lflang.generator.uclid.ast;
+package org.lflang.analyses.cast;
 
 import java.util.ArrayList;
 import java.util.List;
-
-import javax.swing.Action;
 
 import org.lflang.generator.ActionInstance;
 import org.lflang.generator.NamedInstance;
@@ -12,8 +10,8 @@ import org.lflang.generator.ReactionInstance;
 import org.lflang.generator.ReactorInstance;
 import org.lflang.generator.StateVariableInstance;
 import org.lflang.generator.TriggerInstance;
-import org.lflang.generator.uclid.UclidGenerator;
-import org.lflang.generator.uclid.ast.CAst.*;
+import org.lflang.analyses.uclid.UclidGenerator;
+import org.lflang.analyses.cast.CAst.*;
 
 public class CToUclidVisitor extends CBaseAstVisitor<String> {
 

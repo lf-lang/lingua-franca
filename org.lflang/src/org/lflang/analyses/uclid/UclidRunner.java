@@ -3,7 +3,7 @@
  * 
  * @author{Shaokai Lin <shaokai@berkeley.edu>}
  */
-package org.lflang.generator.uclid;
+package org.lflang.analyses.uclid;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -25,8 +25,9 @@ import org.json.JSONObject;
 
 import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
+import org.lflang.analyses.statespace.StateInfo;
+import org.lflang.analyses.statespace.Tag;
 import org.lflang.generator.GeneratorCommandFactory;
-import org.lflang.sim.Tag;
 import org.lflang.util.LFCommand;
 
 public class UclidRunner {

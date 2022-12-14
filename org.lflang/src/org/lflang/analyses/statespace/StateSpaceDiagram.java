@@ -3,7 +3,7 @@
  * 
  * @author{Shaokai Lin <shaokai@berkeley.edu>}
  */
-package org.lflang.sim;
+package org.lflang.analyses.statespace;
 
 import java.util.Set;
 

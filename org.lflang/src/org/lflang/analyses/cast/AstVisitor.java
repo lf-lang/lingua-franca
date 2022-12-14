@@ -1,4 +1,4 @@
-package org.lflang.generator.uclid.ast;
+package org.lflang.analyses.cast;
 
 import java.util.List;
 

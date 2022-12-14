@@ -4,12 +4,10 @@
  * 
  * @author{Shaokai Lin <shaokai@berkeley.edu>}
  */
-package org.lflang.generator.uclid;
+package org.lflang.analyses.statespace;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-
-import org.lflang.sim.Tag;
 
 public class StateInfo {
 

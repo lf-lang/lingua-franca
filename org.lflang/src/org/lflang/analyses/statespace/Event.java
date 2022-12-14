@@ -4,7 +4,7 @@
  * 
  * @author{Shaokai Lin <shaokai@berkeley.edu>}
  */
-package org.lflang.sim;
+package org.lflang.analyses.statespace;
 
 import org.lflang.generator.TriggerInstance;
 

@@ -27,7 +27,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * 
  * @author{Shaokai Lin <shaokai@berkeley.edu>}
  */
-package org.lflang.generator.uclid;
+package org.lflang.analyses.uclid;
 
 import org.lflang.TimeUnit;
 import org.lflang.TimeValue;

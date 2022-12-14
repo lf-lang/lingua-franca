@@ -1,9 +1,9 @@
-package org.lflang.generator.uclid.ast;
+package org.lflang.analyses.cast;
 
 import java.util.ArrayList;
 import java.util.List;
 
-import org.lflang.generator.uclid.ast.CAst.*;
+import org.lflang.analyses.cast.CAst.*;
 
 /**
  * This visitor marks certain variable node as "previous."
