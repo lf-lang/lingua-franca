@@ -1074,9 +1074,9 @@ public class UclidGenerator extends GeneratorBase {
         ));
 
         for (ReactionInstance.Runtime reaction : this.reactionInstances) {
-            System.out.println("Printing reaction body of " + reaction);
             String body = reaction.getReaction().getDefinition().getCode().getBody();
-            System.out.println(body);
+            // System.out.println("Printing reaction body of " + reaction);
+            // System.out.println(body);
 
             // Generate a parse tree.
             CLexer lexer = new CLexer(CharStreams.fromString(body));
@@ -1454,27 +1454,22 @@ public class UclidGenerator extends GeneratorBase {
                 this.CT = (diagram.loopNode.index + 1)
                     + (diagram.tail.index - diagram.loopNode.index + 1) * loopIterations;
             } else {
-                // Get the number of events before the loop.
+                // Get the number of events before the loop starts.
                 // This stops right before the loopNode is encountered.
                 StateSpaceNode node = diagram.head;
                 int numReactionInvocationsBeforeLoop = 0;
                 while (node != diagram.loopNode) {
                     numReactionInvocationsBeforeLoop += node.reactionsInvoked.size();
-                    Set<StateSpaceNode> downstreamNodes = diagram.getDownstreamAdjacentNodes(node);
-                    for (StateSpaceNode n : downstreamNodes) {
-                        node = n; // Go to the next node.
-                        break;
-                    }
+                    node = getDownstreamNode(diagram, node);
                 }
-                int numReactionInvocationsInsideLoop = node.reactionsInvoked.size();
-                while (node != diagram.loopNode) {
-                    Set<StateSpaceNode> downstreamNodes = diagram.getDownstreamAdjacentNodes(node);
-                    for (StateSpaceNode n : downstreamNodes) {
-                        node = n; // Go to the next node.
-                        break;
-                    }
+                
+                // Count the events from the loop node until
+                // loop node is reached again.
+                int numReactionInvocationsInsideLoop = 0;
+                do {
+                    node = getDownstreamNode(diagram, node);
                     numReactionInvocationsInsideLoop += node.reactionsInvoked.size();
-                }
+                } while (node != diagram.loopNode);
 
                 // CT = steps required for the non-periodic part
                 //      + steps required for the periodic part
@@ -1499,6 +1494,16 @@ public class UclidGenerator extends GeneratorBase {
         // The visitor transpiles the MTL into a Uclid axiom.
         this.FOLSpec = visitor.visitMtl(mtlCtx, "i", 0, "0", 0);
         this.horizon = visitor.getHorizon();
+    }
+
+    /**
+     * Get the immediately downstream node.
+     * FIXME: Check if there are multiple downstream nodes.
+     */
+    private StateSpaceNode getDownstreamNode(StateSpaceDiagram diagram, StateSpaceNode node) {
+        Set<StateSpaceNode> downstreamNodes = diagram.getDownstreamAdjacentNodes(node);
+        Iterator<StateSpaceNode> iterator = downstreamNodes.iterator();
+        return iterator.next();
     }
 
     /////////////////////////////////////////////////

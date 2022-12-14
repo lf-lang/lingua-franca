@@ -12,7 +12,7 @@ import org.lflang.generator.ReactionInstance;
 
 public class StateSpaceNode {
 
-    public int index;
+    public int index; // Set in StateSpaceDiagram.java
     public Tag tag;
     public ArrayList<ReactionInstance> reactionsInvoked;
     public ArrayList<Event> eventQ;
@@ -28,6 +28,25 @@ public class StateSpaceNode {
     }
 
     /**
+     * Assuming both eventQs have the same length,
+     * for each pair of events in eventQ1 and eventQ2,
+     * check if the time distances between the node's tag
+     * and the two events' tags are equal.
+     */
+    private boolean equidistant(StateSpaceNode n1,
+                                StateSpaceNode n2) {
+        if (n1.eventQ.size() != n2.eventQ.size())
+            return false;
+        for (int i = 0; i < n1.eventQ.size(); i++) {
+            if (n1.eventQ.get(i).tag.timestamp - n1.tag.timestamp
+                != n2.eventQ.get(i).tag.timestamp - n2.tag.timestamp) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
      * This equals method does NOT compare tags,
      * only compares reactionsInvoked and eventQ.
      */
@@ -37,7 +56,8 @@ public class StateSpaceNode {
         if (o instanceof StateSpaceNode) {
             StateSpaceNode node = (StateSpaceNode) o;
             if (this.reactionsInvoked.equals(node.reactionsInvoked)
-                && this.eventQ.equals(node.eventQ))
+                && this.eventQ.equals(node.eventQ)
+                && equidistant(this, node))
                 return true;
         }
         return false;
@@ -47,4 +67,7 @@ public class StateSpaceNode {
         System.out.println("(" + tag + ", " + reactionsInvoked + ", " + eventQ + ")");
     }
     
+    public String toString() {
+        return "(" + tag + ", " + reactionsInvoked + ", " + eventQ + ")";
+    }
 }

@@ -19,7 +19,7 @@ public class BuildAstParseTreeVisitor extends CBaseVisitor<CAst.AstNode> {
             stmtSeq.children.add(visit(blockItem));
         }
 
-        System.out.println(stmtSeq.children);
+        // System.out.println(stmtSeq.children);
 
         return stmtSeq;
     }

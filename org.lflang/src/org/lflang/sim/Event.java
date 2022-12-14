@@ -37,4 +37,9 @@ public class Event implements Comparable<Event> {
         }
         return false;
     }
+
+    @Override
+    public String toString() {
+        return "(" + trigger.getFullName() + ", " + tag + ")";
+    }
 }

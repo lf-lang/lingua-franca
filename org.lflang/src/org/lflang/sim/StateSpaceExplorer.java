@@ -100,7 +100,7 @@ public class StateSpaceExplorer {
         // FIXME: It seems that we need to handle shutdown triggers 
         // separately, because they could break the back loop.
         addInitialEvents(this.main);
-        System.out.println(this.eventQ);
+        // System.out.println(this.eventQ);
         
         Tag             previousTag = null; // Tag in the previous loop ITERATION
         Tag             currentTag  = null;  // Tag in the current  loop ITERATION
@@ -126,7 +126,7 @@ public class StateSpaceExplorer {
                 currentEvents.add(e);
                 // System.out.println("Adding event to currentEvents: " + e);
             }
-            System.out.println(currentEvents);
+            // System.out.println(currentEvents);
 
             // Collect all the reactions invoked in this current LOOP ITERATION
             // triggered by the earliest events.
@@ -230,11 +230,14 @@ public class StateSpaceExplorer {
                 // If findLoop is true, check for loops.
                 // FIXME: For some reason, the below doesn't work.
                 // if (findLoop && diagram.hasNode(node)) {
+                //
+                // The current implementation does not scale!
+                // Perhaps there exists a faster implementation
+                // using hashmaps.
                 if (findLoop) {
                     for (StateSpaceNode n : diagram.nodes()) {
                         if (n.equals(node)) {
                             loopFound = true;
-                            System.out.println("*** A loop is found!");
                             // Mark the loop in the diagram.
                             this.diagram.loopNode = n;
                             this.diagram.tail = currentNode;
@@ -248,8 +251,6 @@ public class StateSpaceExplorer {
 
                 // Add the new node to the state space diagram.
                 this.diagram.addNode(node);
-                System.out.println("Adding a new node to the diagram.");
-                node.display();
                 
                 // If the head is not empty, add an edge from the previous state
                 // to the next state. Otherwise initialize the head to the new node.
