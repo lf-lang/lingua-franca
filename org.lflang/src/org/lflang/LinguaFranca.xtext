@@ -57,6 +57,7 @@ Model:
     (imports+=Import)*
     (preambles+=Preamble)*
     (reactors+=Reactor)+
+    (postambles+=Postamble)*
     ;
 
 /////////// Top level elements
@@ -217,6 +218,9 @@ STP:
 
 Preamble:
     (visibility=Visibility)? 'preamble' code=Code;
+
+Postamble:
+    'postamble' code=Code;
 
 Instantiation:
     name=ID '=' 'new' (widthSpec=WidthSpec)?
@@ -486,13 +490,15 @@ Body:
 // the end of a target-code segment.
 Token:
     // Non-constant terminals
-    ID | INT | FLOAT_EXP_SUFFIX | LT_ANNOT | STRING | CHAR_LIT | ML_COMMENT | SL_COMMENT | WS | ANY_OTHER |
+    ID | INT | FLOAT_EXP_SUFFIX | LT_ANNOT | STRING | CHAR_LIT | ML_COMMENT |
+    SL_COMMENT | WS | ANY_OTHER |
     // Keywords
     'target' | 'import' | 'main' | 'realtime' | 'reactor' | 'state' | 'time' | 
     'mutable' | 'input' | 'output' | 'timer' | 'action' | 'reaction' | 
     'startup' | 'shutdown' | 'after' | 'deadline' | 'mutation' | 'preamble' |
-    'new' | 'federated' | 'at' | 'as' | 'from' | 'widthof' | 'const' | 'method' |
-    'interleaved' | 'mode' | 'initial' | 'reset' | 'history' |
+    'postamble' | 'new' | 'federated' | 'at' | 'as' | 'from' | 'widthof' |
+    'const' | 'method' | 'interleaved' | 'mode' | 'initial' | 'reset' |
+    'history' |
     // Other terminals
     NEGINT | TRUE | FALSE |
     // Action origins

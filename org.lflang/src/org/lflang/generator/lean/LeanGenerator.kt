@@ -294,6 +294,14 @@ class LeanGenerator(
         }
     }
 
+    private fun genPostamble() =
+        resources
+            .flatMap {
+                it.eResource.model.postambles.map {
+                    ASTUtils.toOriginalText(it.code)
+                }
+            }.joinLn()
+
     private fun genLFBlock(reactors: List<Reactor>): String {
         // Moves the main reactor to the front of the list.
         Collections.swap(reactors, 0, reactors.indexOfFirst { it.isMain })
@@ -316,7 +324,9 @@ class LeanGenerator(
             """
                |import Runtime
             ${"|"..(genPreamble())}
-            ${"|"..(genLFBlock(reactors))} 
+            ${"|"..(genLFBlock(reactors))}
+               |
+            ${"|"..(genPostamble())}
             """.trimMargin()
         }
     }
