@@ -62,7 +62,7 @@ class CppRos2NodeGenerator(
             |  unsigned workers = ${if (targetConfig.workers != 0) targetConfig.workers else "std::thread::hardware_concurrency()"};
             |  bool fast{${targetConfig.fastMode}};
             |  bool keepalive{${targetConfig.keepalive}};
-            |  reactor::Duration lf_timeout{${targetConfig.timeout?.toCppCode() ?: "reactor::Duration::zero()"}};
+            |  reactor::Duration lf_timeout{${targetConfig.timeout?.toCppCode() ?: "reactor::Duration::max()"}};
             |
             |  // provide a globally accessible reference to this node
             |  // FIXME: this is pretty hacky...
@@ -72,11 +72,6 @@ class CppRos2NodeGenerator(
             |
             |  // instantiate the main reactor
             |  lf_main_reactor = std::make_unique<${main.name}> ("${main.name}", lf_env.get());
-            |
-            |  // optionally instantiate the timeout reactor
-            |  if (lf_timeout != reactor::Duration::zero()) {
-            |    lf_timeout_reactor = std::make_unique<__lf_Timeout>("__lf_Timeout", lf_env.get(), lf_timeout);
-            |  }
             |
             |  // assemble reactor program
             |  lf_env->assemble();
