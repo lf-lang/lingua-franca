@@ -1240,23 +1240,23 @@ public class LinguaFrancaValidationTest {
         Model model = parseWithoutError(testCase);
 
 
-        validator.assertError(model, LfPackage.eINSTANCE.getParameter(), null, 22, 4,
+        validator.assertError(model, LfPackage.eINSTANCE.getParameter(), null,
             "Type declaration missing.");
-        validator.assertError(model, LfPackage.eINSTANCE.getParameter(), null, 76, 5,
+        validator.assertError(model, LfPackage.eINSTANCE.getParameter(), null,
             "Parameter must have a default value.");
-        validator.assertError(model, LfPackage.eINSTANCE.getParameter(), null, 137, 4,
+        validator.assertError(model, LfPackage.eINSTANCE.getParameter(), null,
             "Missing time unit.");
-        validator.assertError(model, LfPackage.eINSTANCE.getParameter(), null, 214, 7,
+        validator.assertError(model, LfPackage.eINSTANCE.getParameter(), null,
             "Invalid time value.");
-        validator.assertError(model, LfPackage.eINSTANCE.getParameter(), null, 265, 16,
+        validator.assertError(model, LfPackage.eINSTANCE.getParameter(), null,
             "Expected exactly one time value.");
-        validator.assertError(model, LfPackage.eINSTANCE.getParameter(), null, 322, 3,
+        validator.assertError(model, LfPackage.eINSTANCE.getParameter(), null,
             "Parameter cannot be initialized using parameter.");
-        validator.assertError(model, LfPackage.eINSTANCE.getStateVar(), null, 392, 4,
+        validator.assertError(model, LfPackage.eINSTANCE.getStateVar(), null,
             "Missing time unit.");
-        validator.assertError(model, LfPackage.eINSTANCE.getStateVar(), null, 442, 3,
+        validator.assertError(model, LfPackage.eINSTANCE.getStateVar(), null,
             "Referenced parameter is not of time type.");
-        validator.assertError(model, LfPackage.eINSTANCE.getStateVar(), null, 509, 7,
+        validator.assertError(model, LfPackage.eINSTANCE.getStateVar(), null,
             "Invalid time value.");
         validator.assertError(model, LfPackage.eINSTANCE.getTimer(), null,
             "Missing time unit.");
