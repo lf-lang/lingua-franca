@@ -37,7 +37,6 @@ import org.lflang.TimeValue
 import org.lflang.allComponents
 import org.lflang.camelToSnakeCase
 import org.lflang.generator.*
-import org.lflang.generator.cpp.toCppCode
 import org.lflang.inBlock
 import org.lflang.indexInContainer
 import org.lflang.inferredType
@@ -403,7 +402,7 @@ data class PortData(
                 lfName = port.name,
                 isInput = port.isInput,
                 dataType = RustTypes.getTargetType(port.type),
-                widthSpec = port.widthSpec?.toCppCode()
+                widthSpec = port.widthSpec?.toRustExpr()
             )
     }
 }
