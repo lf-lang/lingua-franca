@@ -113,7 +113,8 @@ public class CReactionGenerator {
                         fieldsForStructsForContainedReactors,
                         triggerAsVarRef,
                         decl,
-                        types);
+                        types,
+                        reactionIndex);
                 } else if (triggerAsVarRef.getVariable() instanceof Action) {
                     reactionInitialization.pr(generateActionVariablesInReaction(
                         (Action) triggerAsVarRef.getVariable(),
@@ -129,13 +130,13 @@ public class CReactionGenerator {
             // Declare an argument for every input.
             // NOTE: this does not include contained outputs.
             for (Input input : reactor.getInputs()) {
-                reactionInitialization.pr(generateInputVariablesInReaction(input, decl, types));
+                reactionInitialization.pr(generateInputVariablesInReaction(input, decl, types, reactionIndex));
             }
         }
         // Define argument for non-triggering inputs.
         for (VarRef src : ASTUtils.convertToEmptyListIfNull(reaction.getSources())) {
             if (src.getVariable() instanceof Port) {
-                generatePortVariablesInReaction(reactionInitialization, fieldsForStructsForContainedReactors, src, decl, types);
+                generatePortVariablesInReaction(reactionInitialization, fieldsForStructsForContainedReactors, src, decl, types, reactionIndex);
             } else if (src.getVariable() instanceof Action) {
                 // It's a bit odd to read but not be triggered by an action, but
                 // OK, I guess we allow it.
@@ -417,10 +418,11 @@ public class CReactionGenerator {
         Map<Instantiation,CodeBuilder> structs,
         VarRef port,
         ReactorDecl decl,
-        CTypes types
+        CTypes types,
+        int reactionIndex
     ) {
         if (port.getVariable() instanceof Input) {
-            builder.pr(generateInputVariablesInReaction((Input) port.getVariable(), decl, types));
+            builder.pr(generateInputVariablesInReaction((Input) port.getVariable(), decl, types, reactionIndex));
         } else {
             // port is an output of a contained reactor.
             Output output = (Output) port.getVariable();
@@ -524,7 +526,8 @@ public class CReactionGenerator {
     private static String generateInputVariablesInReaction(
         Input input,
         ReactorDecl decl,
-        CTypes types
+        CTypes types,
+        int reactionIndex
     ) {
         String structType = CGenerator.variableStructType(input, decl);
         InferredType inputType = ASTUtils.getInferredType(input);
@@ -542,9 +545,20 @@ public class CReactionGenerator {
         // Easy case first.
         if (!input.isMutable() && !CUtil.isTokenType(inputType, types) && !ASTUtils.isMultiport(input)) {
             // Non-mutable, non-multiport, primitive type.
-            builder.pr(structType+"* "+inputName+" = self->_lf_"+inputName+";");
+            builder.pr(String.join("\n",
+            "#if SCHEDULER == LET",
+            "if (self->_lf__reaction_"+reactionIndex+".let > 0) {",
+            "   "+structType+"* "+inputName+" = self->_lf_default__"+inputName+";",
+            "} else {",
+            "   "+structType+"* "+inputName+" = self->_lf_"+inputName+";",
+            "}",
+            "#else",
+                structType+"* "+inputName+" = self->_lf_"+inputName+";",
+                "#endif"
+            ));
         } else if (input.isMutable()&& !CUtil.isTokenType(inputType, types) && !ASTUtils.isMultiport(input)) {
             // Mutable, non-multiport, primitive type.
+            assert(false);
             builder.pr(String.join("\n",
                 "// Mutable input, so copy the input into a temporary variable.",
                 "// The input value on the struct is a copy.",
@@ -552,6 +566,7 @@ public class CReactionGenerator {
                 structType+"* "+inputName+" = &_lf_tmp_"+inputName+";"
             ));
         } else if (!input.isMutable()&& CUtil.isTokenType(inputType, types) && !ASTUtils.isMultiport(input)) {
+            assert(false);
             // Non-mutable, non-multiport, token type.
             builder.pr(String.join("\n",
                 structType+"* "+inputName+" = self->_lf_"+inputName+";",
@@ -563,6 +578,7 @@ public class CReactionGenerator {
                 "}"
             ));
         } else if (input.isMutable()&& CUtil.isTokenType(inputType, types) && !ASTUtils.isMultiport(input)) {
+            assert(false);
             // Mutable, non-multiport, token type.
             builder.pr(String.join("\n",
                 "// Mutable input, so copy the input struct into a temporary variable.",
@@ -586,9 +602,11 @@ public class CReactionGenerator {
                 "}"
             ));
         } else if (!input.isMutable()&& ASTUtils.isMultiport(input)) {
+            assert(false);
             // Non-mutable, multiport, primitive or token type.
             builder.pr(structType+"** "+inputName+" = self->_lf_"+inputName+";");
         } else if (CUtil.isTokenType(inputType, types)) {
+            assert(false);
             // Mutable, multiport, token type
             builder.pr(String.join("\n",
                 "// Mutable multiport input, so copy the input structs",
@@ -618,6 +636,7 @@ public class CReactionGenerator {
                 "}"
             ));
         } else {
+            assert(false);
             // Mutable, multiport, primitive type
             builder.pr(String.join("\n",
                 "// Mutable multiport input, so copy the input structs",
@@ -784,7 +803,11 @@ public class CReactionGenerator {
                     "self->_lf__reaction_"+reactionCount+".name = "+addDoubleQuotes("?")+";",
                     (reaction.eContainer() instanceof Mode ?
                     "self->_lf__reaction_"+reactionCount+".mode = &self->_lf__modes["+reactor.getModes().indexOf((Mode) reaction.eContainer())+"];" :
-                    "self->_lf__reaction_"+reactionCount+".mode = NULL;")
+                    "self->_lf__reaction_"+reactionCount+".mode = NULL;"),
+                    "#if SCHEDULER == LET",
+                    "self->_lf__reaction_"+reactionCount+".let_setup = "+ CReactionGenerator.generateReactionSetupFunctionName(decl, reactionCount)+";",
+                    "self->_lf__reaction_"+reactionCount+".let_cleanup = "+ CReactionGenerator.generateReactionCleanupFunctionName(decl, reactionCount)+";",
+                    "#endif"
                 ));
 
             }
@@ -1064,6 +1087,150 @@ public class CReactionGenerator {
         return s.toString();
     }
 
+    public static String generateReactionSetup(
+        Reaction reaction,
+        ReactorDecl decl,
+        CTypes types,
+        int reactionIndex
+    ) {
+        var setup = new CodeBuilder();
+        var code = new CodeBuilder();
+
+        // Define the "self" struct.
+        String structType = CUtil.selfType(decl);
+        // A null structType means there are no inputs, state,
+        // or anything else. No need to declare it.
+        if (structType != null) {
+            setup.pr(String.join("\n",
+                structType+"* self = ("+structType+"*)instance_args; SUPPRESS_UNUSED_WARNING(self);"
+            ));
+        }
+
+        for (TriggerRef trigger : ASTUtils.convertToEmptyListIfNull(reaction.getTriggers())) {
+            if (trigger instanceof VarRef triggerAsVarRef) {
+                if (triggerAsVarRef.getVariable() instanceof Input) {
+                    Input input = (Input) triggerAsVarRef.getVariable();
+                    InferredType inputType = ASTUtils.getInferredType(input);
+                    String inputName = input.getName();
+                    String inputWidth = generateWidthVariable(inputName);
+
+                    if (input.isMutable()) {
+                        System.err.println("LET reaction with mutable input is not allowed");
+                        return "";
+                    }
+
+                    if (!CUtil.isTokenType(inputType, types) && !ASTUtils.isMultiport(input)) {
+                        // Non-mutable, non-multiport, primitive type, .
+                        var inputOriginal ="self->_lf_"+inputName;
+                        var inputDest = "self->_lf_default__"+inputName;
+
+                        setup.pr(String.join("\n",
+                            "// Copy data from the input port into the default container",
+                            inputDest+".is_present = "+inputOriginal+"->is_present;",
+                            "if ("+inputDest+".is_present) {",
+                            "  "+inputDest+".value = "+inputOriginal+"->value;",
+                            "}"
+                        ));
+
+                    } else if (CUtil.isTokenType(inputType, types) && !ASTUtils.isMultiport(input)) {
+                        assert(false);
+                        // Non-mutable, non-multiport, token type.
+                    } else if (ASTUtils.isMultiport(input)) {
+                        // Non-mutable, multiport, primitive or token type.
+                        assert(false);
+                    }
+                }
+            }
+        }
+        code.pr("#if SCHEDULER == LET");
+        code.pr(
+            "#include " + StringUtil.addDoubleQuotes(
+                CCoreFilesUtils.getCTargetSetHeader()));
+
+        code.pr(generateReactionSetupFunctionHeader(decl, reactionIndex) + "{");
+        code.indent();
+        code.pr(setup.getCode());
+        code.unindent();
+        code.pr("}");
+        code.pr(
+            "#include " + StringUtil.addDoubleQuotes(
+                CCoreFilesUtils.getCTargetSetUndefHeader()
+            ));
+        code.pr("#endif // SCHEDULER == LET");
+        return code.getCode();
+    }
+
+    public static String generateReactionCleanup(
+        Reaction reaction,
+        ReactorDecl decl,
+        CTypes types,
+        int reactionIndex
+    ) {
+        var clean = new CodeBuilder();
+        var code = new CodeBuilder();
+
+        // Define the "self" struct.
+        String structType = CUtil.selfType(decl);
+        // A null structType means there are no inputs, state,
+        // or anything else. No need to declare it.
+        if (structType != null) {
+            clean.pr(String.join("\n",
+                structType+"* self = ("+structType+"*)instance_args; SUPPRESS_UNUSED_WARNING(self);"
+            ));
+        }
+
+        for (TriggerRef trigger : ASTUtils.convertToEmptyListIfNull(reaction.getTriggers())) {
+            if (trigger instanceof VarRef triggerAsVarRef) {
+                if (triggerAsVarRef.getVariable() instanceof Input) {
+                    Input input = (Input) triggerAsVarRef.getVariable();
+                    InferredType inputType = ASTUtils.getInferredType(input);
+                    String inputName = input.getName();
+                    String inputWidth = generateWidthVariable(inputName);
+
+                    if (input.isMutable()) {
+                        System.err.println("LET reaction with mutable input is not allowed");
+                        return "";
+                    }
+
+                    if (!CUtil.isTokenType(inputType, types) && !ASTUtils.isMultiport(input)) {
+                        // Non-mutable, non-multiport, primitive type, .
+                        var inputOriginal ="self->_lf_"+inputName;
+                        var inputDest = "self->_lf_default__"+inputName;
+
+                        clean.pr(String.join("\n",
+                            "// FIXME: Free the token used with `_lf_done_using`?",
+                            ""
+                        ));
+
+                    } else if (CUtil.isTokenType(inputType, types) && !ASTUtils.isMultiport(input)) {
+                        assert(false);
+                        // Non-mutable, non-multiport, token type.
+                    } else if (ASTUtils.isMultiport(input)) {
+                        // Non-mutable, multiport, primitive or token type.
+                        assert(false);
+                    }
+                }
+            }
+        }
+        // FIXME: We could hide this in the code-generator by checking if we are using the LET scheduler also
+        code.pr("#if SCHEDULER == LET");
+        code.pr(
+            "#include " + StringUtil.addDoubleQuotes(
+                CCoreFilesUtils.getCTargetSetHeader()));
+
+        code.pr(generateReactionCleanupFunctionHeader(decl, reactionIndex) + "{");
+        code.indent();
+        code.pr(clean.getCode());
+        code.unindent();
+        code.pr("}");
+        code.pr(
+            "#include " + StringUtil.addDoubleQuotes(
+                CCoreFilesUtils.getCTargetSetUndefHeader()
+            ));
+        code.pr("#endif // SCHEDULER == LET");
+        return code.getCode();
+    }
+
     /** Generate a reaction function definition for a reactor.
      *  This function will have a single argument that is a void* pointing to
      *  a struct that contains parameters, state variables, inputs (triggering or not),
@@ -1132,6 +1299,7 @@ public class CReactionGenerator {
         return function.toString();
     }
 
+
     /**
      * Returns the name of the deadline function for reaction.
      * @param decl The reactor with the deadline
@@ -1150,6 +1318,14 @@ public class CReactionGenerator {
      */
     public static String generateReactionFunctionName(ReactorDecl reactor, int reactionIndex) {
         return reactor.getName().toLowerCase() + "reaction_function_" + reactionIndex;
+    }
+
+    public static String generateReactionSetupFunctionName(ReactorDecl reactor, int reactionIndex) {
+        return reactor.getName().toLowerCase() + "reaction_setup_function_" + reactionIndex;
+    }
+
+    public static String generateReactionCleanupFunctionName(ReactorDecl reactor, int reactionIndex) {
+        return reactor.getName().toLowerCase() + "reaction_cleanup_function_" + reactionIndex;
     }
 
     /**
@@ -1180,6 +1356,18 @@ public class CReactionGenerator {
     public static String generateReactionFunctionHeader(ReactorDecl decl,
                                                         int reactionIndex) {
         String functionName = generateReactionFunctionName(decl, reactionIndex);
+        return generateFunctionHeader(functionName);
+    }
+
+    public static String generateReactionSetupFunctionHeader(ReactorDecl decl,
+        int reactionIndex) {
+        String functionName = generateReactionSetupFunctionName(decl, reactionIndex);
+        return generateFunctionHeader(functionName);
+    }
+
+    public static String generateReactionCleanupFunctionHeader(ReactorDecl decl,
+        int reactionIndex) {
+        String functionName = generateReactionCleanupFunctionName(decl, reactionIndex);
         return generateFunctionHeader(functionName);
     }
 

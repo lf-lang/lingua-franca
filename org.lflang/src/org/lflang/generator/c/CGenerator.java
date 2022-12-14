@@ -1553,6 +1553,14 @@ public class CGenerator extends GeneratorBase {
      *  @param reactionIndex The position of the reaction within the reactor.
      */
     protected void generateReaction(Reaction reaction, ReactorDecl decl, int reactionIndex) {
+        // Generate setup function needed if this is a LET reaction
+        code.pr(CReactionGenerator.generateReactionSetup(
+            reaction,
+            decl,
+            types,
+            reactionIndex
+        ));
+
         code.pr(CReactionGenerator.generateReaction(
             reaction,
             decl,
@@ -1562,6 +1570,14 @@ public class CGenerator extends GeneratorBase {
             types,
             isFederatedAndDecentralized(),
             getTarget().requiresTypes
+        ));
+
+        // Generate setup function needed if this is a LET reaction
+        code.pr(CReactionGenerator.generateReactionCleanup(
+            reaction,
+            decl,
+            types,
+            reactionIndex
         ));
     }
 
