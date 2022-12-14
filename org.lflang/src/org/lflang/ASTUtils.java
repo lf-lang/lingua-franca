@@ -996,10 +996,6 @@ public class ASTUtils {
         }
         return false;
     }
-    
-    public static boolean isZero(Code code) {
-        return code != null && isZero(toOriginalText(code));
-    }
 
     /**
      * Report whether the given expression is zero or not.
@@ -1010,27 +1006,8 @@ public class ASTUtils {
     public static boolean isZero(Expression expr) {
         if (expr instanceof Literal) {
             return isZero(((Literal) expr).getLiteral());
-        } else if (expr instanceof Code) {
-            return isZero((Code) expr);
         }
         return false;
-    }
-
-    /**
-     * If the expression is a valid time, then return a {@link Time}
-     * instance equivalent to the expression (possibly the expression
-     * itself). Otherwise return null.
-     */
-    public static Time toTime(Expression expr) {
-        if (expr instanceof Time) {
-            return (Time) expr;
-        } else if (ASTUtils.isZero(expr)) {
-            Time time = LfFactory.eINSTANCE.createTime();
-            time.setInterval(0);
-            time.setUnit("s");
-            return time;
-        }
-        return null;
     }
 
     /**
@@ -1108,9 +1085,6 @@ public class ASTUtils {
                 return isValidTime((Time) expr);
             } else if (expr instanceof Literal) {
                 return isZero(((Literal) expr).getLiteral());
-            } else if (expr instanceof Code) {
-                // Todo #657 remove this branch.
-                return isZero((Code) expr);
             }
         return false;
     }

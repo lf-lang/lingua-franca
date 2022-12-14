@@ -1631,12 +1631,6 @@ public class LFValidator extends BaseLFValidator {
                 return;
             }
             // fallthrough
-        } else if (value instanceof CodeExpr) {
-            if (ASTUtils.isZero(((CodeExpr) value).getCode())) {
-                // todo #657 remove, CodeExpr should be assumed to be valid
-                return;
-            }
-            // fallthrough
         }
 
         error("Invalid time value.", feature);
