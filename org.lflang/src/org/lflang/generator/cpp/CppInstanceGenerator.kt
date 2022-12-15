@@ -52,15 +52,22 @@ class CppInstanceGenerator(
 
     private fun Instantiation.getParameterStruct(): String {
         val assignments = parameters.mapNotNull {
-            if (it.rhs.isParens || it.rhs.isBraces) {
-                errorReporter.reportError(it, "Parenthesis based initialization is not allowed here!")
-                return@mapNotNull null
+            when {
+                it.rhs.isParens || it.rhs.isBraces -> {
+                    errorReporter.reportError(it, "Parenthesis based initialization is not allowed here!")
+                    null
+                }
+
+                it.rhs.exprs.size != 1             -> {
+                    errorReporter.reportError(it, "Expected exactly one expression.")
+                    null
+                }
+
+                else                               -> Pair(
+                    it.lhs.name,
+                    CppTypes.getTargetExpr(it.rhs.exprs[0], it.lhs.inferredType)
+                )
             }
-            if (it.rhs.exprs.size != 1) {
-                errorReporter.reportError(it, "Expected exactly one expression.")
-                return@mapNotNull null
-            }
-            return@mapNotNull Pair(it.lhs.name, CppTypes.getTargetExpr(it.rhs.exprs[0], it.lhs.inferredType))
         }.toMap().toMutableMap()
 
         // If this is a bank instantiation and the instantiated reactor defines a "bank_index" parameter, we have to set

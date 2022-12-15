@@ -32,6 +32,7 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.function.Predicate;
 import java.util.regex.Matcher;
@@ -441,7 +442,7 @@ public class ASTUtils {
         Assignment assignment = factory.createAssignment();
         assignment.setLhs(delayClass.getParameters().get(0));
         Initializer init = factory.createInitializer();
-        init.getExprs().add(connection.getDelay());
+        init.getExprs().add(Objects.requireNonNull(connection.getDelay(), "null delay"));
         assignment.setRhs(init);
         delayInstance.getParameters().add(assignment);
         delayInstance.setName("delay");  // This has to be overridden.

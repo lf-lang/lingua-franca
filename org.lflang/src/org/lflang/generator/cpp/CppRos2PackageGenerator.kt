@@ -31,7 +31,7 @@ class CppRos2PackageGenerator(generator: CppGenerator, private val nodeName: Str
             |  <buildtool_depend>ament_cmake</buildtool_depend>
             |  <buildtool_depend>ament_cmake_auto</buildtool_depend>
             |  
-        ${" |"..dependencies.joinWithLn { "<depend>$it</depend>" } }
+        ${" |"..dependencies.joinWithLn { "<depend>$it</depend>" }}
             |
             |  <test_depend>ament_lint_auto</test_depend>
             |  <test_depend>ament_lint_common</test_depend>
@@ -50,12 +50,13 @@ class CppRos2PackageGenerator(generator: CppGenerator, private val nodeName: Str
         val includeFiles = targetConfig.cmakeIncludes?.map { fileConfig.srcPath.resolve(it).toUnixString() }
 
         return with(PrependOperator) {
-            """
-                |cmake_minimum_required(VERSION 3.5)
+            with(CppGenerator) {
+                """
+                |cmake_minimum_required(VERSION $MINIMUM_CMAKE_VERSION)
                 |project(${fileConfig.name} VERSION 0.0.0 LANGUAGES CXX)
                 |
-                |# require C++ 20
-                |set(CMAKE_CXX_STANDARD 20 CACHE STRING "The C++ standard is cached for visibility in external tools." FORCE)
+                |# require C++ $CPP_VERSION
+                |set(CMAKE_CXX_STANDARD $CPP_VERSION CACHE STRING "The C++ standard is cached for visibility in external tools." FORCE)
                 |set(CMAKE_CXX_STANDARD_REQUIRED ON)
                 |set(CMAKE_CXX_EXTENSIONS OFF)
                 |
@@ -97,6 +98,7 @@ class CppRos2PackageGenerator(generator: CppGenerator, private val nodeName: Str
                 |
             ${" |"..(includeFiles?.joinWithLn { "include(\"$it\")" } ?: "")}
             """.trimMargin()
+            }
         }
     }
 

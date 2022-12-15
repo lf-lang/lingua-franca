@@ -43,8 +43,9 @@ class CppStandaloneCmakeGenerator(private val targetConfig: TargetConfig, privat
     private val S = '$' // a little trick to escape the dollar sign with $S
 
     fun generateRootCmake(projectName: String): String {
-        return """
-            |cmake_minimum_required(VERSION 3.5)
+        return with(CppGenerator) {
+            """
+            |cmake_minimum_required(VERSION $MINIMUM_CMAKE_VERSION)
             |project($projectName VERSION 0.0.0 LANGUAGES CXX)
             |
             |# The Test build type is the Debug type plus coverage generation
@@ -63,8 +64,8 @@ class CppStandaloneCmakeGenerator(private val targetConfig: TargetConfig, privat
             |  endif()
             |endif()
             |
-            |# require C++ 20
-            |set(CMAKE_CXX_STANDARD 20 CACHE STRING "The C++ standard is cached for visibility in external tools." FORCE)
+            |# require C++ $CPP_VERSION
+            |set(CMAKE_CXX_STANDARD $CPP_VERSION CACHE STRING "The C++ standard is cached for visibility in external tools." FORCE)
             |set(CMAKE_CXX_STANDARD_REQUIRED ON)
             |set(CMAKE_CXX_EXTENSIONS OFF)
             |
@@ -110,6 +111,7 @@ class CppStandaloneCmakeGenerator(private val targetConfig: TargetConfig, privat
             |  endif()
             |endforeach()
         """.trimMargin()
+        }
     }
 
     fun generateSubdirCmake(): String {
@@ -131,8 +133,8 @@ class CppStandaloneCmakeGenerator(private val targetConfig: TargetConfig, privat
 
         val reactorCppTarget = when {
             targetConfig.externalRuntimePath != null -> "reactor-cpp"
-            targetConfig.runtimeVersion != null -> "reactor-cpp-${targetConfig.runtimeVersion}"
-            else -> "reactor-cpp-default"
+            targetConfig.runtimeVersion != null      -> "reactor-cpp-${targetConfig.runtimeVersion}"
+            else                                     -> "reactor-cpp-default"
         }
 
         return with(PrependOperator) {

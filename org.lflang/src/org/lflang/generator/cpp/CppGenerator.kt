@@ -60,6 +60,10 @@ class CppGenerator(
     companion object {
         /** Path to the Cpp lib directory (relative to class path)  */
         const val libDir = "/lib/cpp"
+
+        const val MINIMUM_CMAKE_VERSION = "3.5"
+
+        const val CPP_VERSION = "20"
     }
 
     override fun doGenerate(resource: Resource, context: LFGeneratorContext) {
