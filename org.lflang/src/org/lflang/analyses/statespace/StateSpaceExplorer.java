@@ -3,7 +3,10 @@
  */
 package org.lflang.analyses.statespace;
 
+import java.lang.Integer;
+
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.PriorityQueue;
 import java.util.Set;
 
@@ -103,9 +106,11 @@ public class StateSpaceExplorer {
         addInitialEvents(this.main);
         // System.out.println(this.eventQ);
         
-        Tag             previousTag = null; // Tag in the previous loop ITERATION
-        Tag             currentTag  = null;  // Tag in the current  loop ITERATION
-        StateSpaceNode  currentNode = null;
+        Tag             previousTag  = null; // Tag in the previous loop ITERATION
+        Tag             currentTag   = null;  // Tag in the current  loop ITERATION
+        StateSpaceNode  currentNode  = null;
+        StateSpaceNode  previousNode = null;
+        HashMap<Integer,StateSpaceNode> uniqueNodes = new HashMap<>();
         boolean         stop         = true;
         if (this.eventQ.size() > 0) {
             stop = false;
@@ -214,6 +219,42 @@ public class StateSpaceExplorer {
                 previousTag == null // The first iteration
                 || currentTag.compareTo(previousTag) > 0
             ) {
+                if (previousTag != null) {
+                    // Whenever we finish a tag, check for loops fist.
+                    // If currentNode matches an existing node in uniqueNodes,
+                    // duplicate is set to the existing node.
+                    StateSpaceNode duplicate;
+                    if (findLoop &&
+                        (duplicate = uniqueNodes.put(
+                            currentNode.hashCode(), currentNode)) != null) {
+
+                        // Mark the loop in the diagram.
+                        loopFound = true;
+                        this.diagram.loopNode = duplicate;
+                        this.diagram.tail = previousNode;
+                        this.diagram.loopPeriod = this.diagram.tail.tag.timestamp
+                                                    - this.diagram.loopNode.tag.timestamp;
+                        this.diagram.addEdge(this.diagram.loopNode, this.diagram.tail);
+                        System.out.println("LoopNode index " + this.diagram.loopNode.index); // Why is this 5?
+                        return; // Exit the while loop early.
+                    }
+
+                    // Now we are at a new tag, and a loop is not found,
+                    // add the node to the state space diagram.
+                    this.diagram.addNode(currentNode);
+                    
+                    // If the head is not empty, add an edge from the previous state
+                    // to the next state. Otherwise initialize the head to the new node.
+                    if (this.diagram.head != null && currentNode != null) {
+                        // System.out.println("--- Add a new edge between " + currentNode + " and " + node);
+                        this.diagram.addEdge(currentNode, previousNode); // Sink first, then source
+                    }
+                    else
+                        this.diagram.head = currentNode; // Initialize the head.
+                }
+
+                //// Now we are done with the node at the previous tag,
+                //// work on the new node at the current timestamp.
                 // Copy the reactions in reactionsTemp.
                 reactionsInvoked = new ArrayList<ReactionInstance>(reactionsTemp);
 
@@ -227,41 +268,9 @@ public class StateSpaceExplorer {
                     reactionsInvoked,              // Reactions invoked at this tag
                     new ArrayList<Event>(eventQ)    // A snapshot of the event queue
                 );
-
-                // If findLoop is true, check for loops.
-                // FIXME: For some reason, the below doesn't work.
-                // if (findLoop && diagram.hasNode(node)) {
-                //
-                // The current implementation does not scale!
-                // Perhaps there exists a faster implementation
-                // using hashmaps.
-                if (findLoop) {
-                    for (StateSpaceNode n : diagram.nodes()) {
-                        if (n.equals(node)) {
-                            loopFound = true;
-                            // Mark the loop in the diagram.
-                            this.diagram.loopNode = n;
-                            this.diagram.tail = currentNode;
-                            this.diagram.loopPeriod = currentTag.timestamp
-                                                        - this.diagram.loopNode.tag.timestamp;
-                            this.diagram.addEdge(this.diagram.loopNode, this.diagram.tail);
-                            return; // Exit the while loop early.
-                        }
-                    }
-                } 
-
-                // Add the new node to the state space diagram.
-                this.diagram.addNode(node);
                 
-                // If the head is not empty, add an edge from the previous state
-                // to the next state. Otherwise initialize the head to the new node.
-                if (this.diagram.head != null && currentNode != null) {
-                    // System.out.println("--- Add a new edge between " + currentNode + " and " + node);
-                    this.diagram.addEdge(node, currentNode); // Sink first, then source
-                }
-                else
-                    this.diagram.head = node; // Initialize the head.
-                
+                // Update the previous node.
+                previousNode = currentNode;
                 // Update the current node.
                 currentNode = node;
             }

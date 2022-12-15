@@ -165,6 +165,7 @@ public class UclidGenerator extends GeneratorBase {
     protected long                      horizon             = 0; // in nanoseconds
     protected String                    FOLSpec             = "";
     protected int                       CT                  = 0;
+    protected static final int          CT_MAX_SUPPORTED    = 20;
 
     // Constructor
     public UclidGenerator(FileConfig fileConfig, ErrorReporter errorReporter, List<Attribute> properties) {
@@ -184,7 +185,6 @@ public class UclidGenerator extends GeneratorBase {
         super.printInfo(context.getMode());
         ASTUtils.setMainName(fileConfig.resource, fileConfig.name);
         // FIXME: Perform an analysis on the property and remove unrelevant components.
-        // FIXME: Support multiple properties here too. We might need to have a UclidGenerator for each attribute.
         super.createMainInstantiation();
         
         ////////////////////////////////////////
@@ -198,7 +198,7 @@ public class UclidGenerator extends GeneratorBase {
         populateDataStructures();
 
         // Create the src-gen directory
-        setUpDirectories();
+        setupDirectories();
 
         // Generate a Uclid model for each property.
         for (Attribute prop : this.properties) {
@@ -222,12 +222,17 @@ public class UclidGenerator extends GeneratorBase {
                             .getValue());
 
             processMTLSpec();
+            
             computeCT();
+            if (this.CT > CT_MAX_SUPPORTED) {
+                System.out.println("ERROR: The maximum steps supported is " + CT_MAX_SUPPORTED
+                    + " but checking this property requires " + this.CT + " steps. "
+                    + "This property will NOT be checked.");
+                continue;
+            }
+
             generateUclidFile();
         }
-
-        // Generate runner script
-        // generateRunnerScript();
     }
 
     ////////////////////////////////////////////////////////////
@@ -1339,7 +1344,7 @@ public class UclidGenerator extends GeneratorBase {
         }
     }
 
-    private void setUpDirectories() {
+    private void setupDirectories() {
         // Make sure the target directory exists.
         Path modelGenDir = this.fileConfig.getModelGenPath();
         this.outputDir = Paths.get(modelGenDir.toString());
@@ -1433,7 +1438,6 @@ public class UclidGenerator extends GeneratorBase {
                     this.CT += node.reactionsInvoked.size();
                 }
             }
-            System.out.println("*** A loop is NOT found.");
             System.out.println("CT: " + this.CT);
         } 
         // Over-approximate CT by estimating the number of loop iterations required.
@@ -1476,7 +1480,6 @@ public class UclidGenerator extends GeneratorBase {
                 this.CT = numReactionInvocationsBeforeLoop
                     + numReactionInvocationsInsideLoop * loopIterations;
             }
-            System.out.println("*** A loop is found!");
             System.out.println("CT: " + this.CT);
         }
     }
@@ -1501,9 +1504,10 @@ public class UclidGenerator extends GeneratorBase {
      * FIXME: Check if there are multiple downstream nodes.
      */
     private StateSpaceNode getDownstreamNode(StateSpaceDiagram diagram, StateSpaceNode node) {
-        Set<StateSpaceNode> downstreamNodes = diagram.getDownstreamAdjacentNodes(node);
-        Iterator<StateSpaceNode> iterator = downstreamNodes.iterator();
-        return iterator.next();
+        Set<StateSpaceNode> downstream = diagram.getDownstreamAdjacentNodes(node);
+        if (downstream == null || downstream.size() == 0)
+            System.out.println("There are no downstream nodes!");
+        return (StateSpaceNode)downstream.toArray()[0];
     }
 
     /////////////////////////////////////////////////

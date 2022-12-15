@@ -17,6 +17,10 @@ public class Event implements Comparable<Event> {
         this.trigger = trigger;
         this.tag = tag;
     }
+
+    public TriggerInstance getTrigger() {
+        return this.trigger;
+    }
     
     @Override
     public int compareTo(Event e) {

@@ -67,6 +67,8 @@ public class StateSpaceDiagram extends DirectedGraph<StateSpaceNode> {
             }
             else break;
         }
+        if (this.loopNode != null)
+            System.out.println("* Loop node: state " + this.loopNode.index);
         System.out.println("*************************************************");
     }
 

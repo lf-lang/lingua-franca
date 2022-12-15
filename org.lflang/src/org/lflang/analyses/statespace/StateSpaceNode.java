@@ -7,8 +7,11 @@
 package org.lflang.analyses.statespace;
 
 import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
 
 import org.lflang.generator.ReactionInstance;
+import org.lflang.generator.TriggerInstance;
 
 public class StateSpaceNode {
 
@@ -47,8 +50,19 @@ public class StateSpaceNode {
     }
 
     /**
+     * Two methods for pretty printing
+     */
+    public void display() {
+        System.out.println("(" + tag + ", " + reactionsInvoked + ", " + eventQ + ")");
+    }
+    public String toString() {
+        return "(" + tag + ", " + reactionsInvoked + ", " + eventQ + ")";
+    }
+
+    /**
      * This equals method does NOT compare tags,
-     * only compares reactionsInvoked and eventQ.
+     * only compares reactionsInvoked, eventQ,
+     * and whether future events are equally distant.
      */
     @Override
     public boolean equals(Object o) {
@@ -63,11 +77,30 @@ public class StateSpaceNode {
         return false;
     }
 
-    public void display() {
-        System.out.println("(" + tag + ", " + reactionsInvoked + ", " + eventQ + ")");
-    }
-    
-    public String toString() {
-        return "(" + tag + ", " + reactionsInvoked + ", " + eventQ + ")";
+    /**
+     * Generate hash code for the node.
+     */
+    @Override
+    public int hashCode() {
+        // Initial value
+        int result = 17;
+
+        // Generate hash for the reactions invoked.
+        result = 31 * result + reactionsInvoked.hashCode();
+
+        // Generate hash for the triggers in the queued events.
+        List<String> eventNames = this.eventQ.stream()
+                                    .map(Event::getTrigger)
+                                    .map(TriggerInstance::getFullName)
+                                    .collect(Collectors.toList());
+        result = 31 * result + eventNames.hashCode();
+
+        // Generate hash for the time differences.
+        List<Long> timeDiff = this.eventQ.stream().map(e -> {
+            return e.tag.timestamp - this.tag.timestamp;
+        }).collect(Collectors.toList());
+        result = 31 * result + timeDiff.hashCode();
+
+        return result;
     }
 }
