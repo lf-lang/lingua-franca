@@ -88,7 +88,7 @@ import com.google.common.collect.Iterables;
  * @author{Matt Weber <matt.weber@berkeley.edu>}
  * @author{Soroush Bateni <soroush@utdallas.edu>}
  */
-public abstract class GeneratorBase extends AbstractLFValidator {
+public abstract class GeneratorBase extends AbstractLFValidator implements IDelayBodyGenerator {
 
     ////////////////////////////////////////////
     //// Public fields.
@@ -472,44 +472,6 @@ public abstract class GeneratorBase extends AbstractLFValidator {
      * Return the TargetTypes instance associated with this.
      */
     public abstract TargetTypes getTargetTypes();
-
-    /**
-     * Generate code for the body of a reaction that takes an input and
-     * schedules an action with the value of that input.
-     * @param action the action to schedule
-     * @param port the port to read from
-     */
-    public abstract String generateDelayBody(Action action, VarRef port);
-
-    /**
-     * Generate code for the body of a reaction that is triggered by the
-     * given action and writes its value to the given port.
-     * @param action the action that triggers the reaction
-     * @param port the port to write to
-     */
-    public abstract String generateForwardBody(Action action, VarRef port);
-
-    /**
-     * Generate code for the generic type to be used in the class definition
-     * of a generated delay reactor.
-     */
-    public abstract String generateDelayGeneric();
-
-    /**
-     * Return true if the reaction is unordered. An unordered reaction is one
-     * that does not have any dependency on other reactions in the containing
-     * reactor, and where no other reaction in the containing reactor depends
-     * on it. There is currently no way in the syntax of LF to make a reaction
-     * unordered, deliberately, because it can introduce unexpected
-     * nondeterminacy. However, certain automatically generated reactions are
-     * known to be safe to be unordered because they do not interact with the
-     * state of the containing reactor. To make a reaction unordered, when
-     * the Reaction instance is created, add that instance to this set.
-     * @return True if the reaction has been marked unordered.
-     */
-    public boolean isUnordered(Reaction reaction) {
-        return unorderedReactions != null && unorderedReactions.contains(reaction);
-    }
 
     /**
      * Mark the reaction unordered. An unordered reaction is one that does not
