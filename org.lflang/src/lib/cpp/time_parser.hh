@@ -127,7 +127,7 @@ std::stringstream &operator>>(std::stringstream& in, reactor::Duration& dur) {
     } else if (unit == "hour" || unit == "hours" || unit == "h") {
       std::chrono::duration<double, std::ratio<3600, 1>> tmp{value};
       dur = std::chrono::duration_cast<reactor::Duration>(tmp);
-    } else if (unit == "day" || unit == "days" || unit == "?") {
+    } else if (unit == "day" || unit == "days" || unit == "d") {
       std::chrono::duration<double, std::ratio<24*3600, 1>> tmp{value};
       dur = std::chrono::duration_cast<reactor::Duration>(tmp);
     } else if (unit == "week" || unit == "weeks" || unit == "w") {
