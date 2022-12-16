@@ -19,7 +19,6 @@ class CppRos2NodeGenerator(
             |
             |#include <rclcpp/rclcpp.hpp>
             |#include "reactor-cpp/reactor-cpp.hh"
-            |#include "lf_timeout.hh"
             |
             |#include "${fileConfig.getReactorHeaderPath(main).toUnixString()}"
             |
