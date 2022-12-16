@@ -15,8 +15,8 @@ main reactor {
     state count: usize(0)
 
     reaction(startup) c.out {=
-        for i in 0..c__out.len() {
-            let result = ctx.get(&c__out.get(i)).unwrap();
+        for (i, chan) in c__out.iter().enumerate() {
+            let result = ctx.get(chan).unwrap();
             println!("Startup reaction reading output of contained reactor: {}", result);
             assert_eq!(result, 42 * i);
         }
@@ -24,8 +24,8 @@ main reactor {
     =}
 
     reaction(c.out) {=
-        for i in 0..c__out.len() {
-            let result = ctx.get(&c__out.get(i)).unwrap();
+        for (i, chan) in c__out.iter().enumerate() {
+            let result = ctx.get(chan).unwrap();
             println!("Reading output of contained reactor: {}", result);
             assert_eq!(result, 42 * i);
         }
@@ -33,8 +33,8 @@ main reactor {
     =}
 
     reaction(startup, c.out) {=
-        for i in 0..c__out.len() {
-            let result = ctx.get(&c__out.get(i)).unwrap();
+        for (i, chan) in c__out.iter().enumerate() {
+            let result = ctx.get(chan).unwrap();
             println!("Alternate triggering reading output of contained reactor: {}", result);
             assert_eq!(result, 42 * i);
         }
