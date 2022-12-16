@@ -31,6 +31,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -55,6 +56,7 @@ import org.lflang.TargetConfig;
 import org.lflang.TargetProperty.CoordinationType;
 import org.lflang.TimeUnit;
 import org.lflang.TimeValue;
+import org.lflang.ast.ITransformation;
 import org.lflang.federated.FedASTUtils;
 import org.lflang.federated.FederateInstance;
 import org.lflang.federated.serialization.SupportedSerializers;
@@ -234,12 +236,26 @@ public abstract class GeneratorBase extends AbstractLFValidator {
     // // Private fields.
 
     /**
+     * A list ot AST transformations to apply before code generation
+     */
+    private List<ITransformation> astTransformations = new LinkedList();
+
+    /**
      * Create a new GeneratorBase object.
      */
     public GeneratorBase(FileConfig fileConfig, ErrorReporter errorReporter) {
         this.fileConfig = fileConfig;
         this.errorReporter = errorReporter;
         this.commandFactory = new GeneratorCommandFactory(errorReporter, fileConfig);
+    }
+
+    /**
+     * Register an AST transformation to be applied to the AST.
+     *
+     * The transformations will be applied in the order that they are registered in.
+     */
+    protected void registerTransformation(ITransformation transformation) {
+        astTransformations.add(transformation);
     }
 
     // //////////////////////////////////////////
@@ -355,6 +371,10 @@ public abstract class GeneratorBase extends AbstractLFValidator {
         );
         // FIXME: Should the GeneratorBase pull in `files` from imported
         // resources?
+
+        for (ITransformation transformation : astTransformations) {
+            transformation.applyTransformation(reactors);
+        }
 
         // Reroute connections that have delays associated with them via
         // generated delay reactors.
