@@ -1420,11 +1420,22 @@ public class UclidGenerator extends GeneratorBase {
             true // findLoop
         );
         StateSpaceDiagram diagram = explorer.diagram;
-        diagram.display();  
+        diagram.display();
 
+        // Generate a dot file.
+        try {
+            CodeBuilder dot = diagram.generateDot();
+            Path file = this.outputDir.resolve(this.tactic + "_" + this.name + ".dot");
+            String filename = file.toString();
+            dot.writeToFile(filename);
+        } catch (IOException e) {
+            Exceptions.sneakyThrow(e);
+        }
+
+        //// Compute CT
         if (!explorer.loopFound) {
             if (this.logicalTimeBased)
-                this.CT = diagram.length;
+                this.CT = diagram.nodeCount();
             else {
                 // FIXME: This could be much more efficient with a linkedlist implementation.
                 StateSpaceNode node = diagram.head;
@@ -1464,14 +1475,14 @@ public class UclidGenerator extends GeneratorBase {
                 int numReactionInvocationsBeforeLoop = 0;
                 while (node != diagram.loopNode) {
                     numReactionInvocationsBeforeLoop += node.reactionsInvoked.size();
-                    node = getDownstreamNode(diagram, node);
+                    node = diagram.getDownstreamNode(node);
                 }
                 
                 // Count the events from the loop node until
                 // loop node is reached again.
                 int numReactionInvocationsInsideLoop = 0;
                 do {
-                    node = getDownstreamNode(diagram, node);
+                    node = diagram.getDownstreamNode(node);
                     numReactionInvocationsInsideLoop += node.reactionsInvoked.size();
                 } while (node != diagram.loopNode);
 
@@ -1497,17 +1508,6 @@ public class UclidGenerator extends GeneratorBase {
         // The visitor transpiles the MTL into a Uclid axiom.
         this.FOLSpec = visitor.visitMtl(mtlCtx, "i", 0, "0", 0);
         this.horizon = visitor.getHorizon();
-    }
-
-    /**
-     * Get the immediately downstream node.
-     * FIXME: Check if there are multiple downstream nodes.
-     */
-    private StateSpaceNode getDownstreamNode(StateSpaceDiagram diagram, StateSpaceNode node) {
-        Set<StateSpaceNode> downstream = diagram.getDownstreamAdjacentNodes(node);
-        if (downstream == null || downstream.size() == 0)
-            System.out.println("There are no downstream nodes!");
-        return (StateSpaceNode)downstream.toArray()[0];
     }
 
     /////////////////////////////////////////////////

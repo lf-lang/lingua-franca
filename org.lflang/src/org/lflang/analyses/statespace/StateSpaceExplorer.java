@@ -15,6 +15,7 @@ import org.lflang.TimeValue;
 import org.lflang.analyses.statespace.Event;
 import org.lflang.analyses.statespace.Tag;
 import org.lflang.generator.ActionInstance;
+import org.lflang.generator.CodeBuilder;
 import org.lflang.generator.PortInstance;
 import org.lflang.generator.ReactionInstance;
 import org.lflang.generator.ReactorInstance;
@@ -231,8 +232,11 @@ public class StateSpaceExplorer {
                         // Mark the loop in the diagram.
                         loopFound = true;
                         this.diagram.loopNode = duplicate;
+                        this.diagram.loopNodeNext = currentNode;
                         this.diagram.tail = previousNode;
-                        this.diagram.loopPeriod = this.diagram.tail.tag.timestamp
+                        // Loop period is the time difference between the 1st time
+                        // the node is reached and the 2nd time the node is reached.
+                        this.diagram.loopPeriod = this.diagram.loopNodeNext.tag.timestamp
                                                     - this.diagram.loopNode.tag.timestamp;
                         this.diagram.addEdge(this.diagram.loopNode, this.diagram.tail);
                         System.out.println("LoopNode index " + this.diagram.loopNode.index); // Why is this 5?
