@@ -462,7 +462,7 @@ public class ASTUtils {
         // Set the reaction language
 
         AttrParm attrParam = ASTUtils.factory.createAttrParm();
-        attrParam.setValue(target.getDisplayName());
+        attrParam.setValue(StringUtil.addDoubleQuotes(target.getDisplayName()));
 
         Attribute attr = ASTUtils.factory.createAttribute();
         attr.setAttrName("language");

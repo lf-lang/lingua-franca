@@ -165,7 +165,7 @@ public class AttributeUtils {
     public static Target findReactionLanguageAttribute(Reaction reaction) {
         for (var attribute : getAttributes(reaction)) {
             if (attribute.getAttrName().equalsIgnoreCase("language")) {
-                return Target.valueOf(attribute.getAttrParms().get(0).getValue());
+                return Target.valueOf(StringUtil.removeQuotes(attribute.getAttrParms().get(0).getValue()));
             }
         }
         return null;
