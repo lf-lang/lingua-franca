@@ -78,13 +78,7 @@ class RustGenerator(
 
         Files.createDirectories(fileConfig.srcGenPath)
 
-        FileUtil.copyDirectoryFromClassPath(
-            runtimeDir,
-            fileConfig.srcGenBasePath.resolve(runtimeName),
-            true
-        )
-
-        val gen = RustModelBuilder.makeGenerationInfo(targetConfig, fileConfig, reactors, errorReporter)
+        val gen = RustModelBuilder.makeGenerationInfo(targetConfig, reactors, errorReporter)
         val codeMaps: Map<Path, CodeMap> = RustEmitter.generateRustProject(fileConfig, gen)
 
         if (targetConfig.noCompile || errorsOccurred()) {

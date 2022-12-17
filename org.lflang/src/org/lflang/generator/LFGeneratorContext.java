@@ -25,6 +25,7 @@ public interface LFGeneratorContext extends IGeneratorContext {
      * Enumeration of keys used to parameterize the build process.
      */
     public enum BuildParm {
+        BUILD_TYPE("The build type to use"),
         CLEAN("Clean before building."),
         EXTERNAL_RUNTIME_PATH("Specify an external runtime library to be used by the compiled binary."),
         FEDERATED("Treat main reactor as federated."),

@@ -98,6 +98,15 @@ public abstract class MalleableString {
     return ret;
   }
 
+  @Override
+  public String toString() {
+    List<String> temp = comments;
+    comments = List.of();
+    String ret = render(0, "", false, null).rendering;
+    comments = temp;
+    return ret;
+  }
+
   /** Build a {@code MalleableString} in a manner analogous to the way we build {@code String}s. */
   public static final class Builder {
 

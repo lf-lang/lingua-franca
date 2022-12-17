@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, TU Dresden.
+ * Copyright (c) 2022, TU Dresden.
  *
  * Redistribution and use in source and binary forms, with or without modification,
  * are permitted provided that the following conditions are met:
@@ -22,24 +22,27 @@
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package org.lflang.tests.runtime;
+package org.lflang.generator
 
-import java.util.Properties;
+import java.util.*
 
-import org.lflang.Target;
-import org.lflang.tests.RuntimeTest;
+/** Mediates access to the persisted Git revisions of the language runtime submodules. */
+object LanguageRuntimeVersions {
 
-/**
- *
- */
-public class RustTest extends RuntimeTest {
-
-    public RustTest() {
-        super(Target.Rust);
+    /** The committed version of the Rust runtime. */
+    val rustRuntimeVersion: String by lazy {
+        loadVersion("rs")
     }
 
-    @Override
-    protected boolean supportsGenericTypes() {
-        return true;
+
+    private fun loadVersion(languageId: String): String {
+        val fileName = "lib/$languageId/runtime-version.properties"
+        val stream = Thread.currentThread().contextClassLoader.getResourceAsStream(fileName)
+            ?: throw IllegalStateException("Cannot find $fileName on classpath!")
+        val props = Properties().apply { load(stream) }
+        return props[languageId]?.toString()
+            ?: throw IllegalStateException("Malformed properties file $fileName, expected a git commit as the $languageId entry")
     }
+
+
 }

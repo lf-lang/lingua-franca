@@ -191,14 +191,14 @@ class AttributeSpec {
                 }
                 break;
             case LANGUAGE:
-                if (parm.getValue().getStr() == null) {
+                if (parm.getValue() == null) {
                     validator.error("Incorrect type: \"" + parm.getName() + "\"" + " should have a value.",
                                     Literals.ATTRIBUTE__ATTR_NAME);
                 } else if (
                     !Arrays.stream(Target.values())
                            .map(Target::getDisplayName)
                            .toList()
-                           .contains(parm.getValue().getStr())
+                           .contains(parm.getValue())
                 ) {
                     validator.error(
                         """
@@ -240,7 +240,7 @@ class AttributeSpec {
         ATTRIBUTE_SPECS_BY_NAME.put("sparse", new AttributeSpec(null));
         // @language(lang)
         ATTRIBUTE_SPECS_BY_NAME.put("language", new AttributeSpec(
-            List.of(new AttrParamSpec(AttributeSpec.VALUE_ATTR, LANGUAGE, null))
+            List.of(new AttrParamSpec(AttributeSpec.VALUE_ATTR, AttrParamType.LANGUAGE, null))
         ));
         // @_fed_recv
         ATTRIBUTE_SPECS_BY_NAME.put("_fed_recv", new AttributeSpec(null));

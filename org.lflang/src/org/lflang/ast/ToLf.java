@@ -28,7 +28,6 @@ import org.lflang.lf.Array;
 import org.lflang.lf.ArraySpec;
 import org.lflang.lf.Assignment;
 import org.lflang.lf.AttrParm;
-import org.lflang.lf.AttrParmValue;
 import org.lflang.lf.Attribute;
 import org.lflang.lf.BuiltinTriggerRef;
 import org.lflang.lf.Code;
@@ -264,23 +263,7 @@ public class ToLf extends LfSwitch<MalleableString> {
     // (name=ID '=')? value=AttrParmValue;
     var builder = new Builder();
     if (object.getName() != null) builder.append(object.getName()).append(" = ");
-    return builder.append(doSwitch(object.getValue())).get();
-  }
-
-  @Override
-  public MalleableString caseAttrParmValue(AttrParmValue object) {
-    // str=STRING
-    //  | int=SignedInt
-    //  | bool=Boolean
-    //  | float=SignedFloat
-    if (object.getStr() != null) {
-      return MalleableString.anyOf(StringUtil.addDoubleQuotes(object.getStr()));
-    }
-    if (object.getInt() != null) return MalleableString.anyOf(object.getInt());
-    if (object.getBool() != null) return MalleableString.anyOf(object.getBool());
-    if (object.getFloat() != null) return MalleableString.anyOf(object.getFloat());
-    throw new IllegalArgumentException(
-        "The attributes of an AttrParmValue should not all be null.");
+    return builder.append(object.getValue()).get();
   }
 
   @Override
@@ -711,18 +694,31 @@ public class ToLf extends LfSwitch<MalleableString> {
     // (serializer=Serializer)?
     // ';'?
     Builder msb = new Builder();
+    Builder left = new Builder();
+    Builder right = new Builder();
     if (object.isIterated()) {
-      msb.append(list(false, object.getLeftPorts())).append("+");
+      left.append(list(false, object.getLeftPorts())).append("+");
     } else {
-      msb.append(
+      left.append(
           object.getLeftPorts().stream().map(this::doSwitch).collect(new Joiner(", ")),
           object.getLeftPorts().stream()
               .map(this::doSwitch)
               .collect(new Joiner(String.format(",%n"))));
     }
-    msb.append("", MalleableString.anyOf("\n").indent());
-    msb.append(object.isPhysical() ? " ~>" : " ->");
-    msb.append(minimallyDelimitedList(object.getRightPorts()));
+    String arrow = object.isPhysical() ? "~>" : "->";
+    right.append(minimallyDelimitedList(object.getRightPorts()));
+    msb.append(
+        MalleableString.anyOf(
+            new Builder()
+                .append(left.get())
+                .append(MalleableString.anyOf(" " + arrow))
+                .append(right.get())
+                .get(),
+            new Builder()
+                .append(left.get())
+                .append(MalleableString.anyOf("\n" + arrow).indent())
+                .append(right.get())
+                .get()));
     if (object.getDelay() != null) msb.append(" after ").append(doSwitch(object.getDelay()));
     if (object.getSerializer() != null) {
       msb.append(" ").append(doSwitch(object.getSerializer()));

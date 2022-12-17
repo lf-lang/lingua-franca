@@ -24,10 +24,12 @@
 
 package org.lflang.generator.rust;
 
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 import org.lflang.ASTUtils;
 import org.lflang.TargetProperty;
@@ -53,7 +55,7 @@ public class CargoDependencySpec {
   private String rev;
   private String gitTag;
   private String localPath;
-  private final List<String> features;
+  private final Set<String> features;
 
   /**
    * A listing of all field aliases in this class to make translation between this class and String
@@ -94,7 +96,10 @@ public class CargoDependencySpec {
     this.rev = rev;
     this.gitTag = gitTag;
     this.localPath = StringUtil.removeQuotes(localPath);
-    this.features = features;
+    this.features = new HashSet<>();
+    if (features != null) {
+      this.features.addAll(features);
+    }
   }
 
   @Override
@@ -159,7 +164,7 @@ public class CargoDependencySpec {
   }
 
   /** Returns the list of features that are enabled on the crate. May be null. */
-  public List<String> getFeatures() {
+  public Set<String> getFeatures() {
     return features;
   }
 
@@ -224,23 +229,14 @@ public class CargoDependencySpec {
               pair.getValue(), "Expected string literal for key '" + name + "'");
         }
         switch (name) {
-          case "version":
-            version = literal;
-            break;
-          case "git":
-            gitRepo = literal;
-            break;
-          case "rev":
-            rev = literal;
-            break;
-          case "tag":
-            tag = literal;
-            break;
-          case "path":
-            localPath = literal;
-            break;
-          default:
-            throw new InvalidLfSourceException(pair, "Unknown key: '" + name + "'");
+        case "version" -> version = literal;
+        case "git" -> gitRepo = literal;
+        case "rev" -> rev = literal;
+        case "tag" -> tag = literal;
+        case "path" -> localPath = literal;
+        default -> throw new InvalidLfSourceException(pair,
+                                                      "Unknown key: '" + name
+                                                          + "'");
         }
       }
       if (isRuntimeCrate || version != null || localPath != null || gitRepo != null) {
@@ -268,36 +264,36 @@ public class CargoDependencySpec {
         KeyValuePair pair = LfFactory.eINSTANCE.createKeyValuePair();
         pair.setName(t.toString());
         switch (t) {
-          case VERSION:
-            if (spec.version == null) continue;
-            pair.setValue(ASTUtils.toElement(spec.version));
-            break;
-          case GIT_REPO:
-            if (spec.gitRepo == null) continue;
-            pair.setValue(ASTUtils.toElement(spec.gitRepo));
-            break;
-          case REV:
-            if (spec.rev == null) continue;
-            pair.setValue(ASTUtils.toElement(spec.rev));
-            break;
-          case GIT_TAG:
-            if (spec.gitTag == null) continue;
-            pair.setValue(ASTUtils.toElement(spec.gitTag));
-            break;
-          case LOCAL_PATH:
-            if (spec.localPath == null) continue;
-            pair.setValue(ASTUtils.toElement(spec.localPath));
-            break;
-          case FEATURES:
-            if (spec.features == null || spec.features.isEmpty()) continue;
-            Element subE = LfFactory.eINSTANCE.createElement();
-            Array arr = LfFactory.eINSTANCE.createArray();
-            for (String f : spec.features) {
-              arr.getElements().add(ASTUtils.toElement(f));
-            }
-            subE.setArray(arr);
-            pair.setValue(subE);
-            break;
+        case VERSION -> {
+          if (spec.version == null) continue;
+          pair.setValue(ASTUtils.toElement(spec.version));
+        }
+        case GIT_REPO -> {
+          if (spec.gitRepo == null) continue;
+          pair.setValue(ASTUtils.toElement(spec.gitRepo));
+        }
+        case REV -> {
+          if (spec.rev == null) continue;
+          pair.setValue(ASTUtils.toElement(spec.rev));
+        }
+        case GIT_TAG -> {
+          if (spec.gitTag == null) continue;
+          pair.setValue(ASTUtils.toElement(spec.gitTag));
+        }
+        case LOCAL_PATH -> {
+          if (spec.localPath == null) continue;
+          pair.setValue(ASTUtils.toElement(spec.localPath));
+        }
+        case FEATURES -> {
+          if (spec.features == null || spec.features.isEmpty()) continue;
+          Element subE = LfFactory.eINSTANCE.createElement();
+          Array arr = LfFactory.eINSTANCE.createArray();
+          for (String f : spec.features) {
+            arr.getElements().add(ASTUtils.toElement(f));
+          }
+          subE.setArray(arr);
+          pair.setValue(subE);
+        }
         }
         kvp.getPairs().add(pair);
       }

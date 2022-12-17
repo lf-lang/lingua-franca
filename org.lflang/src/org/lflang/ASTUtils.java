@@ -11,15 +11,15 @@ are permitted provided that the following conditions are met:
    this list of conditions and the following disclaimer in the documentation
    and/or other materials provided with the distribution.
 
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
-ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED 
-WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE 
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
 DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR
-ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES 
-(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; 
-LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON 
-ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT 
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS 
+ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
+ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
@@ -51,7 +51,6 @@ import org.eclipse.xtext.nodemodel.ICompositeNode;
 import org.eclipse.xtext.nodemodel.INode;
 import org.eclipse.xtext.nodemodel.impl.HiddenLeafNode;
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils;
-import org.eclipse.xtext.resource.XtextResource;
 import org.eclipse.xtext.util.Pair;
 import org.eclipse.xtext.util.Tuples;
 import org.eclipse.xtext.xbase.lib.IterableExtensions;
@@ -65,7 +64,6 @@ import org.lflang.lf.Action;
 import org.lflang.lf.ActionOrigin;
 import org.lflang.lf.Assignment;
 import org.lflang.lf.AttrParm;
-import org.lflang.lf.AttrParmValue;
 import org.lflang.lf.Attribute;
 import org.lflang.lf.Code;
 import org.lflang.lf.Connection;
@@ -110,12 +108,12 @@ import com.google.common.collect.Iterators;
  * @author {Christian Menard <christian.menard@tu-dresden.de>}
  */
 public class ASTUtils {
-    
+
     /**
      * The Lingua Franca factory for creating new AST nodes.
      */
     public static final LfFactory factory = LfFactory.eINSTANCE;
-    
+
     /**
      * The Lingua Franca feature package.
      */
@@ -123,7 +121,7 @@ public class ASTUtils {
 
     /* Match an abbreviated form of a float literal. */
     private static final Pattern ABBREVIATED_FLOAT = Pattern.compile("[+\\-]?\\.\\d+[\\deE+\\-]*");
-    
+
     /**
      * A mapping from Reactor features to corresponding Mode features for collecting contained elements.
      */
@@ -150,13 +148,13 @@ public class ASTUtils {
     }
 
     /**
-     * Find connections in the given resource that have a delay associated with them, 
+     * Find connections in the given resource that have a delay associated with them,
      * and reroute them via a generated delay reactor.
      * @param resource The AST.
      * @param generator A code generator.
      */
     public static void insertGeneratedDelays(Resource resource, GeneratorBase generator) {
-        // The resulting changes to the AST are performed _after_ iterating 
+        // The resulting changes to the AST are performed _after_ iterating
         // in order to avoid concurrent modification problems.
         List<Connection> oldConnections = new ArrayList<>();
         Map<EObject, List<Connection>> newConnections = new LinkedHashMap<>();
@@ -165,13 +163,13 @@ public class ASTUtils {
         // Iterate over the connections in the tree.
         for (Reactor container : getAllReactors(resource)) {
             for (Connection connection : allConnections(container)) {
-                if (connection.getDelay() != null) { 
+                if (connection.getDelay() != null) {
                     EObject parent = connection.eContainer();
                     // Assume all the types are the same, so just use the first on the right.
                     Type type = ((Port) connection.getRightPorts().get(0).getVariable()).getType();
                     Reactor delayClass = getDelayClass(type, generator);
                     String generic = generator.getTargetTypes().supportsGenerics() ? generator.getTargetTypes().getTargetType(InferredType.fromAST(type)) : "";
-                    Instantiation delayInstance = getDelayInstance(delayClass, connection, generic, 
+                    Instantiation delayInstance = getDelayInstance(delayClass, connection, generic,
                         !generator.generateAfterDelaysWithVariableWidth());
 
                     // Stage the new connections for insertion into the tree.
@@ -206,7 +204,7 @@ public class ASTUtils {
             }
         });
         // Finally, insert the instances and, before doing so, assign them a unique name.
-        delayInstances.forEach((container, instantiations) -> 
+        delayInstances.forEach((container, instantiations) ->
             instantiations.forEach(instantiation -> {
                 if (container instanceof Reactor) {
                     instantiation.setName(getUniqueIdentifier((Reactor) container, "delay"));
@@ -218,11 +216,11 @@ public class ASTUtils {
             })
         );
     }
-    
+
     /**
      * Find connections in the given resource that would be conflicting writes if they were not located in mutually
      * exclusive modes.
-     * 
+     *
      * @param resource The AST.
      * @return a list of connections being able to be transformed
      */
@@ -232,7 +230,7 @@ public class ASTUtils {
         for (Reactor reactor : getAllReactors(resource)) {
             if (!reactor.getModes().isEmpty()) { // Only for modal reactors
                 var allWriters = HashMultimap.<Pair<Instantiation, Variable>, EObject>create();
-                
+
                 // Collect destinations
                 for (var rea : allReactions(reactor)) {
                     for (var eff : rea.getEffects()) {
@@ -246,7 +244,7 @@ public class ASTUtils {
                         allWriters.put(Tuples.pair(port.getContainer(), port.getVariable()), con);
                     }
                 }
-                
+
                 // Handle conflicting writers
                 for (var key : allWriters.keySet()) {
                     var writers = allWriters.get(key);
@@ -273,12 +271,12 @@ public class ASTUtils {
                 }
             }
         }
-        
+
         return transform;
     }
-    
+
     /**
-     * Return the enclosing reactor of an LF EObject in a reactor or mode. 
+     * Return the enclosing reactor of an LF EObject in a reactor or mode.
      * @param obj the LF model element
      * @return the reactor or null
      */
@@ -314,7 +312,7 @@ public class ASTUtils {
         r.setFederated(true);
         return true;
     }
-    
+
     /**
      * Change the target name to 'newTargetName'.
      * For example, change C to CCpp.
@@ -345,7 +343,7 @@ public class ASTUtils {
         config.getPairs().add(newProperty);
         return true;
     }
-    
+
     /**
      * Return true if the connection involves multiple ports on the left or right side of the connection, or
      * if the port on the left or right of the connection involves a bank of reactors or a multiport.
@@ -366,7 +364,7 @@ public class ASTUtils {
             || rightPortAsPort.getWidthSpec() != null
             || rightContainer != null && rightContainer.getWidthSpec() != null;
     }
-    
+
     /**
      * Take a connection and reroute it via an instance of a generated delay
      * reactor. This method returns a list to new connections to substitute
@@ -374,16 +372,16 @@ public class ASTUtils {
      * @param connection The connection to reroute.
      * @param delayInstance The delay instance to route the connection through.
      */
-    private static List<Connection> rerouteViaDelay(Connection connection, 
+    private static List<Connection> rerouteViaDelay(Connection connection,
             Instantiation delayInstance) {
-        List<Connection> connections = new ArrayList<>();    
+        List<Connection> connections = new ArrayList<>();
         Connection upstream = factory.createConnection();
         Connection downstream = factory.createConnection();
         VarRef input = factory.createVarRef();
         VarRef output = factory.createVarRef();
 
         Reactor delayClass = toDefinition(delayInstance.getReactorClass());
-        
+
         // Establish references to the involved ports.
         input.setContainer(delayInstance);
         input.setVariable(delayClass.getInputs().get(0));
@@ -398,7 +396,7 @@ public class ASTUtils {
         connections.add(downstream);
         return connections;
     }
-    
+
     /**
      * Create a new instance delay instances using the given reactor class.
      * The supplied time value is used to override the default interval (which
@@ -411,17 +409,17 @@ public class ASTUtils {
      * avoid name collisions in the container in which the instantiation is
      * to be placed. Such checks (or modifications of the AST) are not
      * performed in this method in order to avoid causing concurrent
-     * modification exceptions. 
+     * modification exceptions.
      * @param delayClass The class to create an instantiation for
      * @param connection The connection to create a delay instantiation foe
-     * @param generic A string that denotes the appropriate type parameter, 
+     * @param generic A string that denotes the appropriate type parameter,
      *  which should be null or empty if the target does not support generics.
-     * @param defineWidthFromConnection If this is true and if the connection 
+     * @param defineWidthFromConnection If this is true and if the connection
      *  is a wide connection, then instantiate a bank of delays where the width
      *  is given by ports involved in the connection. Otherwise, the width will
      *  be  unspecified indicating a variable length.
      */
-    private static Instantiation getDelayInstance(Reactor delayClass, 
+    private static Instantiation getDelayInstance(Reactor delayClass,
             Connection connection, String generic, Boolean defineWidthFromConnection) {
         Expression delay = connection.getDelay();
         Instantiation delayInstance = factory.createInstantiation();
@@ -442,7 +440,7 @@ public class ASTUtils {
                     WidthTerm term = factory.createWidthTerm();
                     term.setPort(EcoreUtil.copy(port));
                     widthSpec.getTerms().add(term);
-                }   
+                }
             } else {
                 widthSpec.setOfVariableLength(true);
             }
@@ -462,11 +460,9 @@ public class ASTUtils {
     public static void setReactionLanguageAttribute(Reaction reaction, Target target) {
         if (target == null) return;
         // Set the reaction language
-        AttrParmValue value = ASTUtils.factory.createAttrParmValue();
-        value.setStr(target.getDisplayName());
 
         AttrParm attrParam = ASTUtils.factory.createAttrParm();
-        attrParam.setValue(value);
+        attrParam.setValue(target.getDisplayName());
 
         Attribute attr = ASTUtils.factory.createAttribute();
         attr.setAttrName("language");
@@ -474,12 +470,12 @@ public class ASTUtils {
 
         reaction.getAttributes().add(attr);
     }
-    
+
     /**
      * Return a synthesized AST node that represents the definition of a delay
      * reactor. Depending on whether the target supports generics, either this
      * method will synthesize a generic definition and keep returning it upon
-     * subsequent calls, or otherwise, it will synthesize a new definition for 
+     * subsequent calls, or otherwise, it will synthesize a new definition for
      * each new type it hasn't yet created a compatible delay reactor for.
      * @param type The type the delay class must be compatible with.
      * @param generator A code generator.
@@ -498,7 +494,7 @@ public class ASTUtils {
         if (classDef != null) {
             return classDef;
         }
-        
+
         Reactor delayClass = factory.createReactor();
         Parameter delayParameter = factory.createParameter();
         Action action = factory.createAction();
@@ -561,7 +557,7 @@ public class ASTUtils {
         r1.getEffects().add(effectRef);
         r1.setCode(factory.createCode());
         r1.getCode().setBody(generator.generateDelayBody(action, inRef));
-        
+
         // Configure the first reaction, which produces the output.
         r2.getTriggers().add(triggerRef);
         r2.getEffects().add(outRef);
@@ -587,7 +583,7 @@ public class ASTUtils {
         generator.addDelayClass(delayClass);
         return delayClass;
     }
-    
+
     /**
      * Produce a unique identifier within a reactor based on a
      * given based name. If the name does not exists, it is returned;
@@ -607,7 +603,7 @@ public class ASTUtils {
 
         int index = 0;
         String suffix = "";
-        boolean exists = true; 
+        boolean exists = true;
         while (exists) {
             String id = name + suffix;
             if (IterableExtensions.exists(vars, it -> it.equals(id))) {
@@ -619,10 +615,10 @@ public class ASTUtils {
         }
         return name + suffix;
     }
-   
+
     ////////////////////////////////
     //// Utility functions for supporting inheritance and modes
-    
+
     /**
      * Given a reactor class, return a list of all its actions,
      * which includes actions of base classes that it extends.
@@ -633,7 +629,7 @@ public class ASTUtils {
     public static List<Action> allActions(Reactor definition) {
         return ASTUtils.collectElements(definition, featurePackage.getReactor_Actions());
     }
-    
+
     /**
      * Given a reactor class, return a list of all its connections,
      * which includes connections of base classes that it extends.
@@ -644,7 +640,7 @@ public class ASTUtils {
     public static List<Connection> allConnections(Reactor definition) {
         return ASTUtils.collectElements(definition, featurePackage.getReactor_Connections());
     }
-    
+
     /**
      * Given a reactor class, return a list of all its inputs,
      * which includes inputs of base classes that it extends.
@@ -656,7 +652,7 @@ public class ASTUtils {
     public static List<Input> allInputs(Reactor definition) {
         return ASTUtils.collectElements(definition, featurePackage.getReactor_Inputs());
     }
-    
+
     /**
      * Given a reactor class, return a list of all its instantiations,
      * which includes instantiations of base classes that it extends.
@@ -667,7 +663,7 @@ public class ASTUtils {
     public static List<Instantiation> allInstantiations(Reactor definition) {
         return ASTUtils.collectElements(definition, featurePackage.getReactor_Instantiations());
     }
-    
+
     /**
      * Given a reactor class, return a list of all its methods,
      * which includes methods of base classes that it extends.
@@ -694,7 +690,7 @@ public class ASTUtils {
     public static List<Parameter> allParameters(Reactor definition) {
         return ASTUtils.collectElements(definition, featurePackage.getReactor_Parameters());
     }
-    
+
     /**
      * Given a reactor class, return a list of all its reactions,
      * which includes reactions of base classes that it extends.
@@ -705,7 +701,7 @@ public class ASTUtils {
     public static List<Reaction> allReactions(Reactor definition) {
         return ASTUtils.collectElements(definition, featurePackage.getReactor_Reactions());
     }
-    
+
     /**
      * Given a reactor class, return a list of all its state variables,
      * which includes state variables of base classes that it extends.
@@ -716,7 +712,7 @@ public class ASTUtils {
     public static List<StateVar> allStateVars(Reactor definition) {
         return ASTUtils.collectElements(definition, featurePackage.getReactor_StateVars());
     }
-    
+
     /**
      * Given a reactor class, return a list of all its timers,
      * which includes timers of base classes that it extends.
@@ -736,7 +732,7 @@ public class ASTUtils {
     public static List<Mode> allModes(Reactor definition) {
         return ASTUtils.collectElements(definition, featurePackage.getReactor_Modes());
     }
-    
+
     /**
      * Return all the superclasses of the specified reactor
      * in deepest-first order. For example, if A extends B and C, and
@@ -761,7 +757,7 @@ public class ASTUtils {
     public static <T extends EObject> List<T> collectElements(Reactor definition, EStructuralFeature feature) {
         return ASTUtils.collectElements(definition, feature, true, true);
     }
-    
+
     /**
      * Collect elements of type T contained in given reactor definition, including
      * modes and the class hierarchy defined depending on configuration.
@@ -775,7 +771,7 @@ public class ASTUtils {
     @SuppressWarnings("unchecked")
     public static <T extends EObject> List<T> collectElements(Reactor definition, EStructuralFeature feature, boolean includeSuperClasses, boolean includeModes) {
         List<T> result = new ArrayList<>();
-        
+
         if (includeSuperClasses) {
             // Add elements of elements defined in superclasses.
             LinkedHashSet<Reactor> s = superClasses(definition);
@@ -785,10 +781,10 @@ public class ASTUtils {
                 }
             }
         }
-        
+
         // Add elements of the current reactor.
         result.addAll((EList<T>) definition.eGet(feature));
-        
+
         if (includeModes && reactorModeFeatureMap.containsKey(feature)) {
             var modeFeature = reactorModeFeatureMap.get(feature);
             // Add elements of elements defined in modes.
@@ -796,16 +792,16 @@ public class ASTUtils {
                 insertModeElementsAtTextualPosition(result, (EList<T>) mode.eGet(modeFeature), mode);
             }
         }
-        
+
         return result;
     }
-    
+
     /**
      * Adds the elements into the given list at a location matching to their textual position.
-     * 
+     *
      * When creating a flat view onto reactor elements including modes, the final list must be ordered according
      * to the textual positions.
-     * 
+     *
      * Example:
      * reactor R {
      *   reaction // -> is R.reactions[0]
@@ -815,9 +811,9 @@ public class ASTUtils {
      *   }
      *   reaction // -> is R.reactions[1]
      * }
-     * In this example, it is important that the reactions in the mode are inserted between the top-level 
+     * In this example, it is important that the reactions in the mode are inserted between the top-level
      * reactions to retain the correct global reaction ordering, which will be derived from this flattened view.
-     * 
+     *
      * @param list The list to add the elements into.
      * @param elements The elements to add.
      * @param mode The mode containing the elements.
@@ -827,7 +823,7 @@ public class ASTUtils {
         if (elements.isEmpty()) {
             return; // Nothing to add
         }
-        
+
         var idx = list.size();
         if (idx > 0) {
             // If there are elements in the list, first check if the last element has the same container as the mode.
@@ -889,28 +885,28 @@ public class ASTUtils {
         if (node == null) return "";
         return ToText.instance.doSwitch(node);
     }
-    
+
     /**
      * Return an integer representation of the given element.
-     * 
+     *
      * Internally, this method uses Integer.decode, so it will
      * also understand hexadecimal, binary, etc.
-     * 
+     *
      * @param e The element to be rendered as an integer.
      */
     public static Integer toInteger(Element e) {
         return Integer.decode(e.getLiteral());
     }
-    
+
     /**
      * Return a time value based on the given element.
-     * 
+     *
      * @param e The element to be rendered as a time value.
      */
     public static TimeValue toTimeValue(Element e) {
         return new TimeValue(e.getTime(), TimeUnit.fromName(e.getUnit()));
     }
-    
+
     /**
      * Returns the time value represented by the given AST node.
      */
@@ -924,7 +920,7 @@ public class ASTUtils {
 
     /**
      * Return a boolean based on the given element.
-     * 
+     *
      * @param e The element to be rendered as a boolean.
      */
     public static boolean toBoolean(Element e) {
@@ -952,7 +948,7 @@ public class ASTUtils {
     /**
      * Given the right-hand side of a target property, return a list with all
      * the strings that the property lists.
-     * 
+     *
      * Arrays are traversed, so strings are collected recursively. Empty strings
      * are ignored; they are not added to the list.
      * @param value The right-hand side of a target property.
@@ -1072,7 +1068,7 @@ public class ASTUtils {
     public static Element toElement(int val) {
         return toElement(Integer.toString(val), false);
     }
-    
+
     /**
      * Translate the given type into its textual representation, but
      * do not append any array specifications.
@@ -1104,7 +1100,7 @@ public class ASTUtils {
         }
         return "";
     }
-        
+
     /**
      * Report whether the given literal is zero or not.
      * @param literal AST node to inspect.
@@ -1122,7 +1118,7 @@ public class ASTUtils {
         }
         return false;
     }
-    
+
     public static boolean isZero(Code code) {
         return code != null && isZero(toOriginalText(code));
     }
@@ -1157,6 +1153,30 @@ public class ASTUtils {
         return true;
     }
 
+    /**
+     * Report whether the given string literal is a boolean value or not.
+     * @param literal AST node to inspect.
+     * @return True if the given value is a boolean, false otherwise.
+     */
+    public static boolean isBoolean(String literal) {
+        return literal.equalsIgnoreCase("true") || literal.equalsIgnoreCase("false");
+    }
+
+    /**
+     * Report whether the given string literal is a float value or not.
+     * @param literal AST node to inspect.
+     * @return True if the given value is a float, false otherwise.
+     */
+    public static boolean isFloat(String literal) {
+        try {
+            //noinspection ResultOfMethodCallIgnored
+            Float.parseFloat(literal);
+        } catch (NumberFormatException e) {
+            return false;
+        }
+        return true;
+    }
+
 	/**
      * Report whether the given code is an integer number or not.
      * @param code AST node to inspect.
@@ -1165,7 +1185,7 @@ public class ASTUtils {
 	public static boolean isInteger(Code code) {
         return isInteger(toText(code));
     }
-    
+
     /**
      * Report whether the given expression is an integer number or not.
      * @param expr AST node to inspect.
@@ -1179,7 +1199,7 @@ public class ASTUtils {
         }
         return false;
     }
-    
+
     /**
      * Report whether the given expression denotes a valid time or not.
      * @param expr AST node to inspect.
@@ -1312,7 +1332,7 @@ public class ASTUtils {
         return getInferredType(p.getType(), null);
     }
 
-    
+
 
     /**
      * If the given string can be recognized as a floating-point number that has a leading decimal point,
@@ -1405,13 +1425,13 @@ public class ASTUtils {
     /**
      * Given a parameter, return its initial value.
      * The initial value is a list of instances of Expressions.
-     * 
+     *
      * If the instantiations argument is null or an empty list, then the
      * value returned is simply the default value given when the parameter
      * is defined.
-     * 
+     *
      * If a list of instantiations is given, then the first instantiation
-     * is required to be an instantiation of the reactor class that is 
+     * is required to be an instantiation of the reactor class that is
      * parameterized by the parameter. I.e.,
      * ```
      *     parameter.eContainer == instantiations.get(0).reactorClass
@@ -1427,11 +1447,11 @@ public class ASTUtils {
      * ```
      * If any of these conditions is not satisfied, then an IllegalArgumentException
      * will be thrown.
-     * 
+     *
      * Note that this chain of reactions cannot be inferred from the parameter because
      * in each of the predicates above, there may be more than one instantiation that
      * can appear on the right hand side of the predicate.
-     * 
+     *
      * For example, consider the following program:
      * ```
      *     reactor A(x:int(1)) {}
@@ -1457,7 +1477,7 @@ public class ASTUtils {
      * ```
      * (Actually, in each of the above cases, the returned value is a list with
      * one entry, a Literal, e.g. ["1"]).
-     * 
+     *
      * There are two instances of reactor class B.
      * ```
      *     initialValue(y, null) returns 2
@@ -1465,12 +1485,12 @@ public class ASTUtils {
      *     initialValue(y, [b1]) returns 3
      *     initialValue(y, [b2]) returns -2
      * ```
-     * 
+     *
      * @param parameter The parameter.
      * @param instantiations The (optional) list of instantiations.
-     * 
+     *
      * @return The value of the parameter.
-     * 
+     *
      * @throws IllegalArgumentException If an instantiation provided is not an
      *  instantiation of the reactor class that is parameterized by the
      *  respective parameter or if the chain of instantiations is not nested.
@@ -1528,7 +1548,7 @@ public class ASTUtils {
         // parameter's initial value.
         return parameter.getInit();
     }
-    
+
     /**
      * Return true if the specified object (a Parameter, Port, Action, or Timer)
      * belongs to the specified instantiation, meaning that it is defined in
@@ -1540,7 +1560,7 @@ public class ASTUtils {
         Reactor reactor = toDefinition(instantiation.getReactorClass());
         return belongsTo(eobject, reactor);
     }
-    
+
     /**
      * Return true if the specified object (a Parameter, Port, Action, or Timer)
      * belongs to the specified reactor, meaning that it is defined in
@@ -1557,7 +1577,7 @@ public class ASTUtils {
         }
         return false;
     }
-    
+
     /**
      * Given a parameter return its integer value or null
      * if it does not have an integer value.
@@ -1565,10 +1585,10 @@ public class ASTUtils {
      * return the sum of value in the list.
      * The instantiations parameter is as in
      * {@link #initialValue(Parameter, List)}.
-     * 
+     *
      * @param parameter The parameter.
      * @param instantiations The (optional) list of instantiations.
-     * 
+     *
      * @return The integer value of the parameter, or null if it does not have an integer value.
      *
      * @throws IllegalArgumentException If an instantiation provided is not an
@@ -1590,7 +1610,7 @@ public class ASTUtils {
         }
         return result;
     }
-    
+
     /**
      * Given the width specification of port or instantiation
      * and an (optional) list of nested instantiations, return
@@ -1601,8 +1621,8 @@ public class ASTUtils {
      * or the list of instantiations is incomplete or missing.
      * If there are parameter references in the width, they are
      * evaluated to the extent possible given the instantiations list.
-     * 
-     * The instantiations list is as in 
+     *
+     * The instantiations list is as in
      * {@link #initialValue(Parameter, List)}.
      * If the spec belongs to an instantiation (for a bank of reactors),
      * then the first element on this list should be the instantiation
@@ -1612,7 +1632,7 @@ public class ASTUtils {
      *
      * @param spec The width specification or null (to return 1).
      * @param instantiations The (optional) list of instantiations.
-     * 
+     *
      * @return The width, or -1 if the width could not be determined.
      *
      * @throws IllegalArgumentException If an instantiation provided is not as
@@ -1658,12 +1678,12 @@ public class ASTUtils {
      * which is an Instantiation that may refer to a bank of reactors.
      * The width will be the product of the bank width and the port width.
      * The returned value will be 1 if the port is not in a bank and is not a multiport.
-     * 
+     *
      * If the width cannot be determined, this will return -1.
      * The width cannot be determined if the list of instantiations is
      * missing or incomplete.
-     * 
-     * The instantiations list is as in 
+     *
+     * The instantiations list is as in
      * {@link #initialValue(Parameter, List)}.
      * The first element on this list should be the instantiation
      * that contains the specified connection.
@@ -1671,7 +1691,7 @@ public class ASTUtils {
      * @param reference A port reference.
      * @param connection A connection, or null if not in the context of a connection.
      * @param instantiations The (optional) list of instantiations.
-     * 
+     *
      * @return The width or -1 if it could not be determined.
      *
      * @throws IllegalArgumentException If an instantiation provided is not as
@@ -1693,11 +1713,11 @@ public class ASTUtils {
             }
 
             int portWidth = width(((Port) reference.getVariable()).getWidthSpec(), extended);
-            if (portWidth < 0) { 
+            if (portWidth < 0) {
                 // Could not determine port width.
-                return -1; 
+                return -1;
             }
-            
+
             // Next determine the bank width. This may be unspecified, in which
             // case it has to be inferred using the connection.
             int bankWidth = 1;
@@ -1754,12 +1774,12 @@ public class ASTUtils {
                         // Check that portWidth divides the discrepancy.
                         if (discrepancy % portWidth != 0) {
                             // This is an error.
-                            return -1; 
+                            return -1;
                         }
                         bankWidth = discrepancy / portWidth;
                     } else {
                         // Could not determine the bank width.
-                        return -1; 
+                        return -1;
                     }
                 }
             }
@@ -1768,7 +1788,7 @@ public class ASTUtils {
         // Argument is not a port.
         return -1;
     }
-    
+
     /**
      * Given an instantiation of a reactor or bank of reactors, return
      * the width. This will be 1 if this is not a reactor bank. Otherwise,
@@ -1784,7 +1804,7 @@ public class ASTUtils {
      * @see #width(WidthSpec, List)
      *
      * @param instantiation A reactor instantiation.
-     * 
+     *
      * @return The width, if it can be determined.
      * @deprecated
      */
@@ -1808,20 +1828,20 @@ public class ASTUtils {
     }
 
     /**
-     * Report whether the given time state variable is initialized using a 
+     * Report whether the given time state variable is initialized using a
      * parameter or not.
      * @param s A state variable.
-     * @return True if the argument is initialized using a parameter, false 
+     * @return True if the argument is initialized using a parameter, false
      * otherwise.
      */
     public static boolean isParameterized(StateVar s) {
-        return s.getInit() != null && 
+        return s.getInit() != null &&
                IterableExtensions.exists(s.getInit(), it -> it instanceof ParameterReference);
     }
 
     /**
      * Check if the reactor class uses generics
-     * @param r the reactor to check 
+     * @param r the reactor to check
      * @return true if the reactor uses generics
      */
     public static boolean isGeneric(Reactor r) {
@@ -1830,7 +1850,7 @@ public class ASTUtils {
         }
         return r.getTypeParms().size() != 0;
     }
-    
+
     /**
      * If the specified reactor declaration is an import, then
      * return the imported reactor class definition. Otherwise,
@@ -1903,42 +1923,20 @@ public class ASTUtils {
             return false;
         };
     }
-    
-    /**
-     * Retrieve a specific annotation in a comment associated with the given model element in the AST.
-     * 
-     * This will look for a comment. If one is found, it searches for the given annotation `key`.
-     * and extracts any string that follows the annotation marker.  
-     * 
-     * @param object the AST model element to search a comment for
-     * @param key the specific annotation key to be extracted
-     * @return `null` if no JavaDoc style comment was found or if it does not contain the given key.
-     *     The string immediately following the annotation marker otherwise.
-     */
-    public static String findAnnotationInComments(EObject object, String key) {
-        if (!(object.eResource() instanceof XtextResource)) return null;
-        ICompositeNode node = NodeModelUtils.findActualNodeFor(object);
-        return getPrecedingComments(node, n -> true).flatMap(String::lines)
-            .filter(line -> line.contains(key))
-            .map(String::trim)
-            .map(it -> it.substring(it.indexOf(key) + key.length()))
-            .map(it -> it.endsWith("*/") ? it.substring(0, it.length() - "*/".length()) : it)
-            .findFirst().orElse(null);
-    }
 
     /**
      * Find the main reactor and set its name if none was defined.
      * @param resource The resource to find the main reactor in.
      */
     public static void setMainName(Resource resource, String name) {
-        Reactor main = IteratorExtensions.findFirst(Iterators.filter(resource.getAllContents(), Reactor.class), 
+        Reactor main = IteratorExtensions.findFirst(Iterators.filter(resource.getAllContents(), Reactor.class),
             it -> it.isMain() || it.isFederated()
         );
         if (main != null && StringExtensions.isNullOrEmpty(main.getName())) {
             main.setName(name);
         }
     }
-    
+
     /**
      * Create a new instantiation node with the given reactor as its defining class.
      * @param reactor The reactor class to create an instantiation of.
@@ -1957,7 +1955,7 @@ public class ASTUtils {
             } else {
                 inst.setName("");
             }
-            
+
         } else {
             inst.setName(reactor.getName());
         }
@@ -1979,10 +1977,10 @@ public class ASTUtils {
     public static TargetDecl targetDecl(Resource model) {
         return IteratorExtensions.head(Iterators.filter(model.getAllContents(), TargetDecl.class));
     }
-    
+
     /////////////////////////////////////////////////////////
     //// Private methods
-    
+
     /**
      * Returns the list if it is not null. Otherwise, return an empty list.
      */

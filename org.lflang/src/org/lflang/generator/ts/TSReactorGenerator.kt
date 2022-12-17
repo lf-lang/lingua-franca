@@ -115,7 +115,7 @@ ${"             |"..preamble.code.toText()}
                 isFederate = true
                 for (attrParam in attribute.attrParms) {
                     if (attrParam.name == "network_message_actions") {
-                        networkMessageActions = attrParam.value.str.split(",").filter { it.isNotEmpty() }
+                        networkMessageActions = attrParam.value.split(",").filter { it.isNotEmpty() }
                     }
                 }
             }

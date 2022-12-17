@@ -3,7 +3,7 @@ target Rust
 reactor Source {
     output out: i32
 
-    reaction(startup) -> out {= ctx.set(&mut out, 76600) =}
+    reaction(startup) -> out {= ctx.set(out, 76600) =}
 }
 
 reactor Sink {

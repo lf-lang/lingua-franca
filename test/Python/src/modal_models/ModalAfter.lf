@@ -92,8 +92,8 @@ main reactor {
     modal.produced1,
     modal.consumed1,
     modal.produced2,
-    modal.consumed2 ->
-        test.events
+    modal.consumed2
+        -> test.events
 
     # Trigger mode change
     reaction(stepper) -> modal.next {= modal.next.set(True) =}
