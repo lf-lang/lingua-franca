@@ -34,13 +34,15 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.lflang.Target;
+import org.lflang.ASTUtils;
 import org.lflang.lf.AttrParm;
 import org.lflang.lf.Attribute;
 import org.lflang.lf.LfPackage.Literals;
+import org.lflang.util.StringUtil;
 
 /**
  * Specification of the structure of an attribute annotation.
- * 
+ *
  * @author{Clément Fournier, TU Dresden, INSA Rennes}
  * @author{Shaokai Lin <shaokai@berkeley.edu>}
  */
@@ -110,7 +112,7 @@ class AttributeSpec {
      * these names are known, and whether the named parameters
      * conform to the param spec (whether the param has the
      * right type, etc.).
-     * 
+     *
      * @param validator The current validator in use.
      * @param attr The attribute being checked.
      * @return A set of named attribute parameters the user provides.
@@ -127,7 +129,7 @@ class AttributeSpec {
                     validator.error("Missing name for attribute parameter.", Literals.ATTRIBUTE__ATTR_NAME);
                     continue;
                 }
-    
+
                 AttrParamSpec parmSpec = paramSpecByName.get(parm.getName());
                 if (parmSpec == null) {
                     validator.error("\"" + parm.getName() + "\"" + " is an unknown attribute parameter.",
@@ -144,7 +146,7 @@ class AttributeSpec {
 
     /**
      * The specification of the attribute parameter.
-     * 
+     *
      * @param name The name of the attribute parameter
      * @param type The type of the parameter
      * @param defaultValue If non-null, parameter is optional.
@@ -158,31 +160,36 @@ class AttributeSpec {
         // Check if a parameter has the right type.
         // Currently, only String, Int, Boolean, Float, and target language are supported.
         public void check(LFValidator validator, AttrParm parm) {
-            switch(type) {
-                case STRING:
-                    if (parm.getValue().getStr() == null) {
-                        validator.error("Incorrect type: \"" + parm.getName() + "\"" + " should have type String.",
-                                        Literals.ATTRIBUTE__ATTR_NAME);
-                    }
-                    break;
-                case INT:
-                    if (parm.getValue().getInt() == null) {
-                        validator.error("Incorrect type: \"" + parm.getName() + "\"" + " should have type Int.",
-                                        Literals.ATTRIBUTE__ATTR_NAME);
-                    }
-                    break;
-                case BOOLEAN:
-                    if (parm.getValue().getBool() == null) {
-                        validator.error("Incorrect type: \"" + parm.getName() + "\"" + " should have type Boolean.",
-                                        Literals.ATTRIBUTE__ATTR_NAME);
-                    }
-                    break;
-                case FLOAT:
-                    if (parm.getValue().getFloat() == null) {
-                        validator.error("Incorrect type: \"" + parm.getName() + "\"" + " should have type Float.",
-                                        Literals.ATTRIBUTE__ATTR_NAME);
-                    }
-                    break;
+            switch (type) {
+            case STRING:
+                if (!StringUtil.hasQuotes(parm.getValue())) {
+                    validator.error("Incorrect type: \"" + parm.getName() + "\""
+                            + " should have type String.",
+                        Literals.ATTRIBUTE__ATTR_NAME);
+                }
+                break;
+            case INT:
+                if (!ASTUtils.isInteger(parm.getValue())) {
+                    validator.error(
+                        "Incorrect type: \"" + parm.getName() + "\"" + " should have type Int.",
+                        Literals.ATTRIBUTE__ATTR_NAME);
+                }
+                break;
+            case BOOLEAN:
+                if (!ASTUtils.isBoolean(parm.getValue())) {
+                    validator.error(
+                        "Incorrect type: \"" + parm.getName() + "\"" + " should have type Boolean.",
+                        Literals.ATTRIBUTE__ATTR_NAME);
+                }
+                break;
+            case FLOAT:
+                if (!ASTUtils.isFloat(parm.getValue())) {
+                    validator.error(
+                        "Incorrect type: \"" + parm.getName() + "\""
+                            + " should have type Float.",
+                        Literals.ATTRIBUTE__ATTR_NAME);
+                }
+                break;
             case LANGUAGE:
                 if (parm.getValue().getStr() == null) {
                     validator.error("Incorrect type: \"" + parm.getName() + "\"" + " should have a value.",
@@ -233,7 +240,7 @@ class AttributeSpec {
         ATTRIBUTE_SPECS_BY_NAME.put("sparse", new AttributeSpec(null));
         // @language(lang)
         ATTRIBUTE_SPECS_BY_NAME.put("language", new AttributeSpec(
-            List.of(new AttrParamSpec(AttributeSpec.VALUE_ATTR, AttrParamType.LANGUAGE, null))
+            List.of(new AttrParamSpec(AttributeSpec.VALUE_ATTR, LANGUAGE, null))
         ));
         // @_fed_recv
         ATTRIBUTE_SPECS_BY_NAME.put("_fed_recv", new AttributeSpec(null));
@@ -245,11 +252,11 @@ class AttributeSpec {
         ATTRIBUTE_SPECS_BY_NAME.put("_fed_out_ctrl", new AttributeSpec(null));
         // @_fed_config
         ATTRIBUTE_SPECS_BY_NAME.put("_fed_config", new AttributeSpec(
-                List.of(new AttrParamSpec(AttributeSpec.NETWORK_MESSAGE_ACTIONS, 
+                List.of(new AttrParamSpec(AttributeSpec.NETWORK_MESSAGE_ACTIONS,
                 AttrParamType.STRING, null))));
         // @icon("value")
         ATTRIBUTE_SPECS_BY_NAME.put("icon", new AttributeSpec(
-            List.of(new AttrParamSpec(AttributeSpec.VALUE_ATTR, 
+            List.of(new AttrParamSpec(AttributeSpec.VALUE_ATTR,
                     AttrParamType.STRING, null))
         ));
     }
