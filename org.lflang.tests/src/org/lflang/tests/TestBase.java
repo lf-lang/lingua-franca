@@ -701,6 +701,7 @@ public abstract class TestBase {
                 // during reporting.
             } catch (Exception e) {
                 test.issues.append(e.getMessage());
+                e.printStackTrace();
             } finally {
                 restoreOutputs();
             }
