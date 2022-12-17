@@ -197,6 +197,7 @@ class AttributeSpec {
                 } else if (
                     !Arrays.stream(Target.values())
                            .map(Target::getDisplayName)
+                           .map(it -> "\"" + it + "\"")
                            .toList()
                            .contains(parm.getValue())
                 ) {
