@@ -206,7 +206,7 @@ public class FedGenerator {
     /** Return whether federated execution is supported for {@code resource}. */
     private boolean federatedExecutionIsSupported(Resource resource) {
         var target = Target.fromDecl(GeneratorUtils.findTarget(resource));
-        var ret = List.of(Target.C, Target.Python, Target.TS, Target.CPP).contains(target);
+        var ret = List.of(Target.C, Target.Python, Target.TS, Target.CPP, Target.CCPP).contains(target);
         if (!ret) {
             errorReporter.reportError(
                 "Federated execution is not supported with target " + target + "."
