@@ -5,9 +5,14 @@
  */
 package org.lflang.analyses.statespace;
 
+import java.util.List;
 import java.util.Set;
+import java.util.stream.Collector;
+import java.util.stream.Collectors;
 
+import org.lflang.TimeValue;
 import org.lflang.generator.CodeBuilder;
+import org.lflang.generator.ReactionInstance;
 import org.lflang.graph.DirectedGraph;
 
 // FIXME: Use a linkedlist instead.
@@ -73,14 +78,12 @@ public class StateSpaceDiagram extends DirectedGraph<StateSpaceNode> {
         System.out.println("* Pretty printing worst-case state space diagram:");
         StateSpaceNode node = this.head;
         long timestamp;
-        long microstep;
         while (node != null) {
             System.out.print("* State " + node.index + ": ");
             node.display();
 
             // Store the tag of the prior step.
             timestamp = node.tag.timestamp;
-            microstep = node.tag.microstep;
 
             if (!node.equals(this.tail)) {
                 // Assume a unique next state.
@@ -88,18 +91,16 @@ public class StateSpaceDiagram extends DirectedGraph<StateSpaceNode> {
 
                 // Compute time difference
                 if (node != null) {
-                    timestamp = node.tag.timestamp - timestamp;
-                    microstep = node.tag.microstep - microstep;
-                    System.out.println("*     => Advance time by (" + timestamp + ", " + microstep + ")");
+                    TimeValue tsDiff = TimeValue.fromNanoSeconds(node.tag.timestamp - timestamp);
+                    System.out.println("*     => Advance time by " + tsDiff + " ns");
                 }
             }
             else break;
         }
         if (this.loopNode != null) {
             // Compute time difference
-            timestamp = loopNodeNext.tag.timestamp - tail.tag.timestamp;
-            microstep = loopNodeNext.tag.microstep - tail.tag.microstep;
-            System.out.println("*     => Advance time by (" + timestamp + ", " + microstep + ")");
+            TimeValue tsDiff = TimeValue.fromNanoSeconds(loopNodeNext.tag.timestamp - tail.tag.timestamp);
+            System.out.println("*     => Advance time by " + tsDiff + " ns");
 
             System.out.println("* Goes back to loop node: state " + this.loopNode.index);
             System.out.print("* Loop node reached 2nd time: ");
@@ -118,29 +119,41 @@ public class StateSpaceDiagram extends DirectedGraph<StateSpaceNode> {
             dot = new CodeBuilder();
             dot.pr("digraph G {");
             dot.indent();
+            if (this.loopNode != null) {
+                dot.pr("layout=\"circo\";");
+                dot.pr("mindist=\"2.5\";");
+            }
             dot.pr("rankdir=\"LR\";");
             dot.pr("node [shape=Mrecord]");
 
             // Generate a node for each state.
             for (StateSpaceNode n : this.nodes()) {
-                dot.pr("S" + n.index + " [" + "label = \"" + "S" + n.index + " | " + n.tag + "\"" + "]");
+                List<String> reactions = n.reactionsInvoked.stream()
+                    .map(ReactionInstance::getFullName).collect(Collectors.toList());
+                String reactionsStr = String.join("\\n", reactions);
+                dot.pr("S" + n.index + " [" + "label = \"" + "S" + n.index
+                    + " | " + n.tag
+                    + " | " + reactionsStr
+                    // + " | " + "Reactions: " + n.reactionsInvoked.size() // Simplified version
+                    + " | " + "Pending events: " + n.eventQ.size()
+                    + "\"" + "]");
             }
 
             StateSpaceNode current = this.head;
             StateSpaceNode next = getDownstreamNode(this.head);
             while (current != null && next != null && current != this.tail) {
-                long tsDiff = next.tag.timestamp - current.tag.timestamp;
-                long msDiff = next.tag.microstep - current.tag.microstep;
-                dot.pr("S" + current.index + " -> " + "S" + next.index + " [label = " + "\"" + "+(" + tsDiff + ", " + msDiff + ")" + "\"" + "]");
+                TimeValue tsDiff = TimeValue.fromNanoSeconds(next.tag.timestamp - current.tag.timestamp);
+                dot.pr("S" + current.index + " -> " + "S" + next.index + " [label = " + "\"" + "+" + tsDiff + "\"" + "]");
                 current = next;
                 next = getDownstreamNode(next);
             }
 
             if (loopNode != null) {
-                long tsDiff = loopNodeNext.tag.timestamp - tail.tag.timestamp;
-                long msDiff = loopNodeNext.tag.microstep - tail.tag.microstep;
+                TimeValue tsDiff = TimeValue.fromNanoSeconds(loopNodeNext.tag.timestamp - tail.tag.timestamp);
+                TimeValue period = TimeValue.fromNanoSeconds(loopPeriod);
                 dot.pr("S" + current.index + " -> " + "S" + next.index
-                    + " [label = " + "\"" + "+(" + tsDiff + ", " + msDiff + ")" + "\"" + " weight = 0 " + "]");
+                    + " [label = " + "\"" + "+" + tsDiff + " -" + period + "\""
+                    + " weight = 0 " + "]");
             }
 
             dot.unindent();

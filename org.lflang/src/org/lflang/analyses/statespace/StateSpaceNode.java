@@ -10,13 +10,15 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import org.lflang.TimeValue;
 import org.lflang.generator.ReactionInstance;
 import org.lflang.generator.TriggerInstance;
 
 public class StateSpaceNode {
 
-    public int index; // Set in StateSpaceDiagram.java
+    public int index;       // Set in StateSpaceDiagram.java
     public Tag tag;
+    public TimeValue time;  // Readable representation of tag.timestamp
     public ArrayList<ReactionInstance> reactionsInvoked;
     public ArrayList<Event> eventQ;
 
@@ -28,6 +30,7 @@ public class StateSpaceNode {
         this.tag    = tag;
         this.eventQ = eventQ;
         this.reactionsInvoked = reactionsInvoked;
+        this.time   = TimeValue.fromNanoSeconds(tag.timestamp);
     }
 
     /**
@@ -53,10 +56,10 @@ public class StateSpaceNode {
      * Two methods for pretty printing
      */
     public void display() {
-        System.out.println("(" + tag + ", " + reactionsInvoked + ", " + eventQ + ")");
+        System.out.println("(" + this.time + ", " + reactionsInvoked + ", " + eventQ + ")");
     }
     public String toString() {
-        return "(" + tag + ", " + reactionsInvoked + ", " + eventQ + ")";
+        return "(" + this.time + ", " + reactionsInvoked + ", " + eventQ + ")";
     }
 
     /**

@@ -7,6 +7,8 @@
  */
 package org.lflang.analyses.statespace;
 
+import org.lflang.TimeValue;
+
 public class Tag implements Comparable<Tag> {
 
     public long timestamp;
@@ -57,6 +59,9 @@ public class Tag implements Comparable<Tag> {
     @Override
     public String toString() {
         if (this.forever) return "(FOREVER, " + this.microstep + ")";
-        else return "(" + this.timestamp + ", " + this.microstep + ")";
+        else {
+            TimeValue time = TimeValue.fromNanoSeconds(this.timestamp);
+            return "(" + time + ", " + this.microstep + ")";
+        }
     }
 }
