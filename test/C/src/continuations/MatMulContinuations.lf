@@ -1,3 +1,17 @@
+/**
+ * As a benchmark, this program has a few interesting properties:
+ * - It hits the event queue hard by sending work items to hundreds of workers.
+ *   Obviously a more optimized design would not do that unless it were running
+ *   on hardware with hundreds of cores. But it might be worthwhile to handle
+ *   this adverse condition better. Right now we have a linear-time operation
+ *   (pqueue_find_equal_same_priority) taking 60% of instructions executed and
+ *   about a third of clock cycles.
+ * - Stack copying overhead seems pretty small.
+ * - No under-the-table shared memory, unlike the Savina benchmark, and lots of
+ *   data movement as a result. This is exacerbated by the number of workers,
+ *   which hurts spatial locality.
+ */
+
 target C
 
 preamble {=
