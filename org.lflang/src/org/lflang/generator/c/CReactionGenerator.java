@@ -1093,7 +1093,7 @@ public class CReactionGenerator {
             "#include " + StringUtil.addDoubleQuotes(
                 CCoreFilesUtils.getCTargetSetHeader()));
         if (CContinuationReactionGenerator.isContinuationReaction(reaction)) {
-            code.pr(CContinuationReactionGenerator.generateAuxiliaryFunction(decl, reaction, reactionIndex));
+            code.pr(CContinuationReactionGenerator.generateAuxiliaryFunction(init, decl, reaction, reactionIndex));
         }
         CMethodGenerator.generateMacrosForMethods(ASTUtils.toDefinition(decl), code);
         code.pr(generateFunction(

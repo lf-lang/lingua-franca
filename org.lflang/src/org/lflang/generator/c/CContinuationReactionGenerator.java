@@ -1,9 +1,8 @@
 package org.lflang.generator.c;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import java.util.stream.Collectors;
+import java.util.function.Function;
 import java.util.stream.Stream;
 
 import org.lflang.ASTUtils;
@@ -11,6 +10,7 @@ import org.lflang.generator.CodeBuilder;
 import org.lflang.lf.Port;
 import org.lflang.lf.Reaction;
 import org.lflang.lf.ReactorDecl;
+import org.lflang.lf.TriggerRef;
 import org.lflang.lf.VarRef;
 import org.lflang.lf.Variable;
 
@@ -35,29 +35,29 @@ public class CContinuationReactionGenerator {
             bool handled_response = false;
             bool handled_non_response = false;
         """);
-        for (Variable port : responsePorts(reaction)) {
-            builder.pr(String.format(
+        for (VarRef port : responsePorts(reaction)) {
+            builder.pr(iterateOverPorts(port, portRef -> String.format(
                 """
                 if (%s->is_present) {
                     if (!setjmp(self->ra)) context_switch(%s->value.ctx, &top_of_stack);
                     handled_response = true;
                 }""",
-                port.getName(),
-                port.getName()
-            ));
+                portRef,
+                portRef
+            )));
         }
-        for (Variable trigger : nonResponseTriggers(reaction)) {
-            builder.pr(String.format(
+        for (VarRef port : nonResponseTriggeringPorts(reaction)) {
+            builder.pr(iterateOverPorts(port, portRef -> String.format(
                 """
                 if (%s->is_present) {
                     handled_non_response = true;
                 }""",
-                trigger.getName()
-                ));
+                portRef
+            )));
         }
         builder.pr(String.format(
             """
-            if (handled_non_response || !handled_response) %s(&top_of_stack, self, %s);
+            if (handled_non_response || !handled_response) %s(&top_of_stack, %s);
             """,
             auxiliaryFunctionName(decl, reactionCount),
             auxiliaryFunctionArgumentList(reaction)
@@ -65,29 +65,58 @@ public class CContinuationReactionGenerator {
         return builder.toString();
     }
 
-    public static String generateAuxiliaryFunction(ReactorDecl decl, Reaction reaction, int reactionCount) {
+    public static String generateAuxiliaryFunction(String init, ReactorDecl decl, Reaction reaction, int reactionCount) {
         return String.format(
             """
             void %s(%s) {
+            %s
             %s
                 longjmp(self->ra, 1);
             }
             """,
             auxiliaryFunctionName(decl, reactionCount),
             auxiliaryFunctionParameterList(decl, reaction),
+            init.indent(4),
             ASTUtils.toText(reaction.getCode()).indent(4)
         );
     }
 
-    private static List<Variable> responsePorts(Reaction reaction) {
-        return inputVariableStream(reaction)
-            .filter(it -> it instanceof Port p && p.getType().isRequest())
+    private static String iterateOverPorts(VarRef port, Function<String, String> getLoopBody) {
+        String loopBody = getLoopBody.apply(representVarRef(port, "i", "j"));
+        if (port.getVariable() instanceof Port p && p.getWidthSpec() != null) {
+            loopBody = String.format(
+                """
+                for (int i = 0; i < %s; i++) {
+                %s
+                }
+                """,
+                ASTUtils.width(p.getWidthSpec(), List.of(port.getContainer())),
+                loopBody.indent(4)
+            );
+        }
+        if (port.getContainer().getWidthSpec() != null) {
+            loopBody = String.format(
+                """
+                for (int j = 0; j < %s; j++) {
+                %s
+                }
+                """,
+                CUtil.generateWidthVariable(port.getContainer().getName()),
+                loopBody.indent(4)
+            );
+        }
+        return loopBody;
+    }
+
+    private static List<VarRef> responsePorts(Reaction reaction) {
+        return inputVarRefStream(reaction)
+            .filter(it -> it.getVariable() instanceof Port p && p.getType().isRequest())
             .toList();
     }
 
-    private static List<Variable> nonResponseTriggers(Reaction reaction) {
-        return inputVariableStream(reaction)
-            .filter(it -> it instanceof Port p && !p.getType().isRequest() || !(it instanceof Port))
+    private static List<VarRef> nonResponseTriggeringPorts(Reaction reaction) {
+        return triggerVarRefStream(reaction)
+            .filter(it -> it.getVariable() instanceof Port p && !p.getType().isRequest() || !(it.getVariable() instanceof Port))
             .toList();
     }
 
@@ -96,33 +125,23 @@ public class CContinuationReactionGenerator {
     }
 
     private static String auxiliaryFunctionArgumentList(Reaction reaction) {
-        return varRefStream(reaction).map(CContinuationReactionGenerator::representVarRef).collect(Collectors.joining(", "));
+        return "instance_args";
     }
 
     private static String auxiliaryFunctionParameterList(ReactorDecl decl, Reaction reaction) {
-        List<String> parameterTypes = new ArrayList<>();
-        List<String> parameterNames = new ArrayList<>();
-        parameterTypes.add("long*");
-        parameterNames.add("top_of_stack");
-        parameterTypes.add(CUtil.selfType(decl) + "*");
-        parameterNames.add("self");
-        varRefStream(reaction)
-            .map(it -> CGenerator.variableStructType(it.getVariable(), it.getContainer().getReactorClass()))
-            .map(it -> it + "*")
-            .forEach(parameterTypes::add);
-        varRefStream(reaction)
-            .map(CContinuationReactionGenerator::cVariableOfVarRef)
-            .forEach(parameterNames::add);
-        List<String> typesAndNames = new ArrayList<>();
-        for (int i = 0; i < parameterNames.size(); i++) {
-            typesAndNames.add(parameterTypes.get(i) + " " + parameterNames.get(i));
-        }
-        return String.join(", ", typesAndNames);
+        return "long* top_of_stack, void* instance_args";
     }
 
     private static Stream<VarRef> inputVarRefStream(Reaction reaction) {
-        return Stream.concat(reaction.getTriggers().stream(), reaction.getSources().stream())
-            .map(it -> it instanceof VarRef v ? v : null)
+        return varRefStream(Stream.concat(reaction.getTriggers().stream(), reaction.getSources().stream()));
+    }
+
+    private static Stream<VarRef> triggerVarRefStream(Reaction reaction) {
+        return varRefStream(reaction.getTriggers().stream());
+    }
+
+    private static Stream<VarRef> varRefStream(Stream<TriggerRef> toFilter) {
+        return toFilter.map(it -> it instanceof VarRef v ? v : null)
             .filter(Objects::nonNull);
     }
 
@@ -134,8 +153,15 @@ public class CContinuationReactionGenerator {
         return inputVarRefStream(reaction).map(VarRef::getVariable);
     }
 
-    private static String representVarRef(VarRef it) {
-        return it.getContainer() != null ? String.format("%s.%s", it.getContainer().getName(), it.getVariable().getName()) : it.getVariable().getName();
+    private static String representVarRef(VarRef it, String multiportIndex, String bankIndex) {
+        String containerRepresentation = it.getContainer() == null ? null :
+            it.getContainer().getName() + (
+                it.getContainer().getWidthSpec() == null ? "" : "[" + bankIndex + "]"
+            );
+        String varRepresentation = it.getVariable().getName() + (
+            !(it instanceof Port p) ? "" : p.getWidthSpec() == null ? "" : "[" + multiportIndex + "]"
+        );
+        return (containerRepresentation == null ? "" : containerRepresentation + ".") + varRepresentation;
     }
 
     private static String cVariableOfVarRef(VarRef it) {

@@ -3,8 +3,9 @@ target C
 preamble {=
     #include <setjmp.h>
     #include "context_switch.h"
-    typedef int vector[4];
-    typedef int matrix[4][4];   // row-major order
+    #define N 500
+    typedef int vector[N];
+    typedef int matrix[N][N];   // row-major order
     LF_DECLARE_REQUEST(vector)
     LF_DECLARE_REQUEST(int)
 =}
@@ -18,11 +19,12 @@ reactor MatMul(n: int(4)) {
 
     dot_products = new[n] DotProduct(n(n))
     row_distributor = new PassThroughVector()
-    go_distributor = new PassThroughInt()
+    go_distributor = new SynchronizedRequestManager()
     products = new[n] PassThroughInt()
     dot_products.product -> products.in after 0
 
     (row_distributor.out)+ -> dot_products.row
+    (go_distributor.out)+ -> dot_products.go
 
     reaction(startup) {=
         // No dynamic memory allocation required!
@@ -34,7 +36,7 @@ reactor MatMul(n: int(4)) {
         }
     =}
 
-    reaction(startup, products.out) ->
+    reaction(startup, go_distributor.done) products.out ->
     dot_products.column, row_distributor.in, go_distributor.in {=
         instant_t parallel_matmul_start_time = lf_time_physical();
         // Distribute columns of the matrix
@@ -54,34 +56,34 @@ reactor MatMul(n: int(4)) {
             }
             _lf_set_present((lf_port_base_t*) row_distributor.in);
             // Assume all products will come back at the same time
-            lf_call(go, 0, dot_products[0].product);
+            lf_call(go_distributor.in, 0, go_distributor.done);
             for (int bcol = 0; bcol < self->n; bcol++) {
-                self->C[row][bcol] = dot_products[bcol].product->value;
+                self->C[row][bcol] = products[bcol].out->value;
             }
         }
         instant_t parallel_matmul_end_time = lf_time_physical();
         // Check that the result is correct
         for (int arow = 0; arow < self->n; arow++) {
-            for (int brow = 0; brow < self->n; brow++) {
+            for (int bcol = 0; bcol < self->n; bcol++) {
                 int expected = 0;
                 for (int s = 0; s < self->n; s++) {
-                    expected += self->A[arow] * self->B[brow];
+                    expected += self->A[arow][s] * self->B[s][bcol];
                 }
-                if (self->C[arow][brow] != expected) {
-                    lf_print_error_and_exit("Fail: %d != %d.", self->C[arow][brow], expected);
+                if (self->C[arow][bcol] != expected) {
+                    lf_print_error_and_exit("Fail: %d != %d.", self->C[arow][bcol], expected);
                 };
             }
         }
         instant_t checking_end_time = lf_time_physical();
         lf_print(
-            "Time to compute in parallel: " PRINTF_TIME ".",
-            parallel_matmul_end_time - parallel_matmul_start_time
+            "Time to compute in parallel: " PRINTF_TIME " milliseconds.",
+            (parallel_matmul_end_time - parallel_matmul_start_time) / 1000000
         );
         // Note that checking does not involve memory writes, and so might be
         // faster than an actual naive matmul implementation
         lf_print(
-            "Time to check results: " PRINTF_TIME ".",
-            checking_end_time - parallel_matmul_end_time
+            "Time to check results: " PRINTF_TIME " milliseconds.",
+            (checking_end_time - parallel_matmul_end_time) / 1000000
         );
         lf_print("Success.");
     =}
@@ -91,7 +93,7 @@ reactor DotProduct(n: int(4)) {
     input column: vector
     input row: vector
     input go: request<int>
-    output product: request<int>
+    output product: int
 
     state c: vector
 
@@ -105,7 +107,7 @@ reactor DotProduct(n: int(4)) {
         for (int i = 0; i < self->n; i++) {
             sum += self->c[i] * row->value[i];
         }
-        lf_set(product, ((lf_request(int)) { .ctx=go->value.ctx, .value=sum }));
+        lf_set(product, sum);
     =}
 }
 
@@ -116,11 +118,19 @@ reactor PassThroughVector {
 }
 
 reactor PassThroughInt {
-    input in: request<int>
-    output out: request<int>
+    input in: int
+    output out: int
     in -> out
 }
 
+reactor SynchronizedRequestManager(t: time(0)) {
+    input in: request<int>
+    output out: request<int>
+    in -> out
+    output done: request<int>
+    in -> done after t
+}
+
 main reactor {
-    matmul = new MatMul()
+    matmul = new MatMul(n(500))  // FIXME: you must update the preamble according to N
 }
