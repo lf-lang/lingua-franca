@@ -12,12 +12,14 @@
  *   which hurts spatial locality.
  */
 
-target C
+target C {Build-Type: Debug, logging: DEBUG}
+
+import TrackSyncronizedRequest from "lib/TrackRequest.lf"
 
 preamble {=
     #include <setjmp.h>
     #include "context_switch.h"
-    #define N 500
+    #define N 1
     typedef int vector[N];
     typedef int matrix[N][N];   // row-major order
     LF_DECLARE_REQUEST(vector)
@@ -33,12 +35,11 @@ reactor MatMul(n: int(4)) {
 
     dot_products = new[n] DotProduct(n(n))
     row_distributor = new PassThroughVector()
-    go_distributor = new SynchronizedRequestManager()
-    products = new[n] PassThroughInt()
-    dot_products.product -> products.in after 0
+    get_products = new TrackSyncronizedRequest(fanout(n))
+    dot_products.product -> get_products.responses_in after 0
 
     (row_distributor.out)+ -> dot_products.row
-    (go_distributor.out)+ -> dot_products.go
+    (get_products.request_out)+ -> dot_products.go
 
     reaction(startup) {=
         // No dynamic memory allocation required!
@@ -50,8 +51,8 @@ reactor MatMul(n: int(4)) {
         }
     =}
 
-    reaction(startup, go_distributor.done) products.out ->
-    dot_products.column, row_distributor.in, go_distributor.in {=
+    reaction(startup, get_products.done) get_products.responses_out ->
+    dot_products.column, row_distributor.in, get_products.request_in {=
         instant_t parallel_matmul_start_time = lf_time_physical();
         // Distribute columns of the matrix
         for (int row = 0; row < self->n; row++) {
@@ -70,9 +71,9 @@ reactor MatMul(n: int(4)) {
             }
             _lf_set_present((lf_port_base_t*) row_distributor.in);
             // Assume all products will come back at the same time
-            lf_call(go_distributor.in, 0, go_distributor.done);
+            lf_call(get_products.request_in, 0, get_products.done);
             for (int bcol = 0; bcol < self->n; bcol++) {
-                self->C[row][bcol] = products[bcol].out->value;
+                self->C[row][bcol] = get_products.responses_out[bcol]->value;
             }
         }
         instant_t parallel_matmul_end_time = lf_time_physical();
@@ -137,14 +138,6 @@ reactor PassThroughInt {
     in -> out
 }
 
-reactor SynchronizedRequestManager(t: time(0)) {
-    input in: request<int>
-    output out: request<int>
-    in -> out
-    output done: request<int>
-    in -> done after t
-}
-
 main reactor {
-    matmul = new MatMul(n(500))  // FIXME: you must update the preamble according to N
+    matmul = new MatMul(n(1))  // FIXME: you must update the preamble according to N
 }

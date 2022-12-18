@@ -120,6 +120,11 @@ public class CCmakeGenerator {
         cMakeCode.pr("cmake_minimum_required(VERSION " + MIN_CMAKE_VERSION + ")");
         cMakeCode.pr("project("+executableName+" LANGUAGES C)");
         cMakeCode.newLine();
+        cMakeCode.pr("""
+            # allow dangerous, non-standards-compliant stack-copying
+            set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fno-stack-protector -U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=0")
+            
+            """);
 
         // The Test build type is the Debug type plus coverage generation
         cMakeCode.pr("if(CMAKE_BUILD_TYPE STREQUAL \"Test\")");
@@ -202,7 +207,7 @@ public class CCmakeGenerator {
             cMakeCode.pr("target_compile_definitions(${LF_MAIN_TARGET} PUBLIC NUMBER_OF_WORKERS="+targetConfig.workers+")");
             cMakeCode.newLine();
         }
-        
+
         // Add additional flags so runtime can distinguish between multi-threaded and single-threaded mode
         if (targetConfig.threading) {
             cMakeCode.pr("# Set flag to indicate a multi-threaded runtime");

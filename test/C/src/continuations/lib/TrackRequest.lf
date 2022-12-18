@@ -1,0 +1,22 @@
+target C
+
+/**
+ * Forward request. Assume all responses come back without context, all after
+ * t time, and return a notification that t time has passed in the form of a
+ * response (with context).
+ */
+reactor TrackSyncronizedRequest(t: time(0), fanout: int(2)) {
+    input request_in: request<int>
+    input[fanout] responses_in: int
+    output[fanout] request_out: request<int>
+    output[fanout] responses_out: int
+    output done: request<int>
+    (request_in)+ -> request_out
+    (request_in)+ -> done after t
+    responses_in -> responses_out
+
+    reaction (responses_in) {=
+        printf("%s\n", "Hello from TrackSynchronizedRequest!");
+        //if (lf_get_n_present(responses_in) != self->fanout) exit(1); // This should be a compile-time error
+    =}
+}

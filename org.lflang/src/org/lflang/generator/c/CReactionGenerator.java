@@ -1096,6 +1096,9 @@ public class CReactionGenerator {
             code.pr(CContinuationReactionGenerator.generateAuxiliaryFunction(init, decl, reaction, reactionIndex));
         }
         CMethodGenerator.generateMacrosForMethods(ASTUtils.toDefinition(decl), code);
+        if (CContinuationReactionGenerator.isContinuationReaction(reaction)) {
+            code.pr("__attribute__ ((noinline)) // FIXME: SUPPORT COMPILERS OTHER THAN CLANG/GCC https://stackoverflow.com/questions/1474030/how-can-i-tell-gcc-not-to-inline-a-function");
+        }
         code.pr(generateFunction(
             generateReactionFunctionHeader(decl, reactionIndex),
             init, reactionFunctionBody(decl, reaction, reactionIndex)

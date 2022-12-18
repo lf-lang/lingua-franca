@@ -68,6 +68,7 @@ public class CContinuationReactionGenerator {
     public static String generateAuxiliaryFunction(String init, ReactorDecl decl, Reaction reaction, int reactionCount) {
         return String.format(
             """
+            __attribute__ ((noinline)) // FIXME: SUPPORT COMPILERS OTHER THAN CLANG/GCC https://stackoverflow.com/questions/1474030/how-can-i-tell-gcc-not-to-inline-a-function
             void %s(%s) {
             %s
             %s
