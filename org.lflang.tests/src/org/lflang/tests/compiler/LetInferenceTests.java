@@ -99,7 +99,7 @@ class LetInferenceTest  {
         ));
 
         Assertions.assertNotNull(model);
-        AfterDelayTransformation.insertGeneratedDelays(model.eResource(), new CGenerator(new FileConfig(model.eResource(), Path.of("./a/"), true), new DefaultErrorReporter()));
+        AfterDelayTransformation.insertGeneratedDelays(model.eResource(), new CGenerator(new FileConfig(model.eResource(), Path.of("./a/"), true), new DefaultErrorReporter(), false));
         Assertions.assertTrue(model.eResource().getErrors().isEmpty(),
                               "Encountered unexpected error while parsing: " +
                                   model.eResource().getErrors());

@@ -1,11 +1,6 @@
 package org.lflang.generator;
 
-import org.eclipse.emf.ecore.EObject;
-import org.eclipse.xtext.xbase.lib.IteratorExtensions;
-
 import org.lflang.lf.Action;
-import org.lflang.lf.Model;
-import org.lflang.lf.Reactor;
 import org.lflang.lf.VarRef;
 
 public interface IDelayBodyGenerator {

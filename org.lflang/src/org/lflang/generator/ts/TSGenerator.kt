@@ -121,7 +121,7 @@ class TSGenerator(
      */
     override fun doGenerate(resource: Resource, context: LFGeneratorContext) {
         // Register the after delay transformation to be applied by GeneratorBase.
-        registerTransformation(AfterDelayTransformation(this, CppTypes, resource))
+        registerTransformation(AfterDelayTransformation(TSDelayBodyGenerator(), CppTypes, resource))
 
         super.doGenerate(resource, context)
 
@@ -518,21 +518,6 @@ class TSGenerator(
     override fun getTargetTypes(): TargetTypes = TSTypes
 
     /**
-     * Return a TS type for the specified action.
-     * If the type has not been specified, return
-     * "Present" which is the base type for Actions.
-     * @param action The action
-     * @return The TS type.
-     */
-    private fun getActionType(action: Action): String {
-        return if (action.type != null) {
-            TSTypes.getTargetType(action.type)
-        } else {
-            "Present"
-        }
-    }
-
-    /**
      * Generate code for the body of a reaction that handles the
      * action that is triggered by receiving a message from a remote
      * federate.
@@ -660,22 +645,7 @@ class TSGenerator(
         }
     }
 
-    // Virtual methods.
-    override fun generateDelayBody(action: Action, port: VarRef): String {
-        return "actions.${action.name}.schedule(0, ${ASTUtils.generateVarRef(port)} as ${getActionType(action)});"
-    }
-
-    override fun generateForwardBody(action: Action, port: VarRef): String {
-        return "${ASTUtils.generateVarRef(port)} = ${action.name} as ${getActionType(action)};"
-    }
-
-    override fun generateDelayGeneric(): String {
-        return "T extends Present"
-    }
-
     override fun getTarget(): Target {
         return Target.TS
     }
-
-    override fun generateAfterDelaysWithVariableWidth() = false
 }

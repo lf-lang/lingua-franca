@@ -6,6 +6,7 @@ import org.lflang.ASTUtils;
 import org.lflang.federated.FederateInstance;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.generator.GeneratorBase;
+import org.lflang.generator.IDelayBodyGenerator;
 import org.lflang.generator.ParameterInstance;
 import org.lflang.generator.ReactorInstance;
 import org.lflang.lf.Reaction;
@@ -43,7 +44,7 @@ public class PythonReactorGenerator {
         if (instance != main && !federate.contains(instance) ||
                 instantiatedClasses == null ||
                 // Do not generate code for delay reactors in Python
-                className.contains(GeneratorBase.GEN_DELAY_CLASS_NAME)) {
+                className.contains(IDelayBodyGenerator.GEN_DELAY_CLASS_NAME)) {
             return "";
         }
 
@@ -138,7 +139,7 @@ public class PythonReactorGenerator {
         }
         String className = instance.getDefinition().getReactorClass().getName();
         // Do not instantiate delay reactors in Python
-        if (className.contains(GeneratorBase.GEN_DELAY_CLASS_NAME)) {
+        if (className.contains(IDelayBodyGenerator.GEN_DELAY_CLASS_NAME)) {
             return "";
         }
 

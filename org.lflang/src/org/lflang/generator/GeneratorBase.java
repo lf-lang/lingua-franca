@@ -87,7 +87,7 @@ import com.google.common.collect.Iterables;
  * @author{Matt Weber <matt.weber@berkeley.edu>}
  * @author{Soroush Bateni <soroush@utdallas.edu>}
  */
-public abstract class GeneratorBase extends AbstractLFValidator implements IDelayBodyGenerator {
+public abstract class GeneratorBase extends AbstractLFValidator {
 
     ////////////////////////////////////////////
     //// Public fields.
@@ -1167,20 +1167,6 @@ public abstract class GeneratorBase extends AbstractLFValidator implements IDela
         System.out.println("******** mode: " + mode);
         System.out.println("******** generated sources: " + fileConfig.getSrcGenPath());
     }
-
-    /**
-     * Indicates whether delay banks generated from after delays should have a variable length width.
-     *
-     * If this is true, any delay reactors that are inserted for after delays on multiport connections
-     * will have an unspecified variable length width. The code generator is then responsible for inferring the
-     * correct width of the delay bank, which is only possible if the precise connection width is known at compile time.
-     *
-     * If this is false, the width specification of the generated bank will list all the ports listed on the right
-     * side of the connection. This gives the code generator the information needed to infer the correct width at
-     * runtime.
-     */
-    @Override
-    public boolean generateAfterDelaysWithVariableWidth() { return true; }
 
     /**
      * Get the buffer type used for network messages

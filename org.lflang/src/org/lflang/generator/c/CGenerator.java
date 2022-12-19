@@ -74,6 +74,7 @@ import org.lflang.generator.CodeBuilder;
 import org.lflang.generator.GeneratorBase;
 import org.lflang.generator.GeneratorResult;
 import org.lflang.generator.GeneratorUtils;
+import org.lflang.generator.IDelayBodyGenerator;
 import org.lflang.generator.IntegratedBuilder;
 import org.lflang.generator.LFGeneratorContext;
 import org.lflang.generator.LFResource;
@@ -390,26 +391,31 @@ public class CGenerator extends GeneratorBase {
         ErrorReporter errorReporter,
         boolean CCppMode,
         CTypes types,
-        CCmakeGenerator cmakeGenerator
+        CCmakeGenerator cmakeGenerator,
+        IDelayBodyGenerator delayBodyGenerator
     ) {
         super(fileConfig, errorReporter);
         this.CCppMode = CCppMode;
         this.types = types;
         this.cmakeGenerator = cmakeGenerator;
+
+        // Register the after delay transformation to be applied by GeneratorBase.
+        registerTransformation(new AfterDelayTransformation(delayBodyGenerator, types, fileConfig.resource));
     }
 
-    public CGenerator(FileConfig fileConfig, ErrorReporter errorReporter, boolean CCppMode) {
+    public CGenerator(FileConfig fileConfig, ErrorReporter errorReporter, boolean CCppMode, CTypes types) {
         this(
             fileConfig,
             errorReporter,
             CCppMode,
-            new CTypes(errorReporter),
-            new CCmakeGenerator(fileConfig, List.of())
+            types,
+            new CCmakeGenerator(fileConfig, List.of()),
+            new CDelayBodyGenerator(types)
         );
     }
 
-    public CGenerator(FileConfig fileConfig, ErrorReporter errorReporter) {
-        this(fileConfig, errorReporter, false);
+    public CGenerator(FileConfig fileConfig, ErrorReporter errorReporter, boolean CCppMode) {
+        this(fileConfig, errorReporter, CCppMode, new CTypes(errorReporter));
     }
 
     ////////////////////////////////////////////
@@ -495,9 +501,6 @@ public class CGenerator extends GeneratorBase {
      */
     @Override
     public void doGenerate(Resource resource, LFGeneratorContext context) {
-        // Register the after delay transformation to be applied by GeneratorBase.
-        registerTransformation(new AfterDelayTransformation(this, types, resource));
-
         super.doGenerate(resource, context);
         if (!GeneratorUtils.canGenerate(errorsOccurred(), mainDef, errorReporter, context)) return;
         if (!isOSCompatible()) return; // Incompatible OS and configuration
@@ -2238,40 +2241,7 @@ public class CGenerator extends GeneratorBase {
         }
     }
 
-    /**
-     * Generate code for the body of a reaction that takes an input and
-     * schedules an action with the value of that input.
-     * @param action The action to schedule
-     * @param port The port to read from
-     */
-    @Override
-    public String generateDelayBody(Action action, VarRef port) {
-        var ref = ASTUtils.generateVarRef(port);
-        return CReactionGenerator.generateDelayBody(
-            ref,
-            action.getName(),
-            CUtil.isTokenType(getInferredType(action), types)
-        );
-    }
 
-    /**
-     * Generate code for the body of a reaction that is triggered by the
-     * given action and writes its value to the given port. This realizes
-     * the receiving end of a logical delay specified with the 'after'
-     * keyword.
-     * @param action The action that triggers the reaction
-     * @param port The port to write to.
-     */
-    @Override
-    public String generateForwardBody(Action action, VarRef port) {
-        var outputName = ASTUtils.generateVarRef(port);
-        return CReactionGenerator.generateForwardBody(
-            outputName,
-            types.getTargetType(action),
-            action.getName(),
-            CUtil.isTokenType(getInferredType(action), types)
-        );
-    }
 
     /**
      * Generate code for the body of a reaction that handles the
@@ -2546,12 +2516,6 @@ public class CGenerator extends GeneratorBase {
     @Override
     public String getNetworkBufferType() {
         return "uint8_t*";
-    }
-
-
-    @Override
-    public String generateDelayGeneric() {
-        throw new UnsupportedOperationException("TODO: auto-generated method stub");
     }
 
     ////////////////////////////////////////////////////////////

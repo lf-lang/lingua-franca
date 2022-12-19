@@ -72,9 +72,6 @@ class RustGenerator(
     }
 
     override fun doGenerate(resource: Resource, context: LFGeneratorContext) {
-        // Register the after delay transformation to be applied by GeneratorBase.
-        registerTransformation(AfterDelayTransformation(this, CppTypes, resource))
-
         super.doGenerate(resource, context)
 
         if (!canGenerate(errorsOccurred(), mainDef, errorReporter, context)) return
@@ -168,17 +165,5 @@ class RustGenerator(
     override fun getTarget(): Target = Target.Rust
 
     override fun getTargetTypes(): TargetTypes = RustTypes
-
-    override fun generateDelayBody(action: Action, port: VarRef): String {
-        TODO("Not yet implemented")
-    }
-
-    override fun generateForwardBody(action: Action, port: VarRef): String {
-        TODO("Not yet implemented")
-    }
-
-    override fun generateDelayGeneric(): String {
-        TODO("Not yet implemented")
-    }
 
 }

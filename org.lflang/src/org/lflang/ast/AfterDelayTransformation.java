@@ -15,7 +15,6 @@ import org.eclipse.xtext.xbase.lib.StringExtensions;
 
 import org.lflang.ASTUtils;
 import org.lflang.InferredType;
-import org.lflang.generator.GeneratorBase;
 import org.lflang.generator.IDelayBodyGenerator;
 import org.lflang.generator.TargetTypes;
 import org.lflang.lf.Action;
@@ -50,22 +49,22 @@ public class AfterDelayTransformation implements ITransformation {
     /**
      * A code generator used to insert reaction bodies for the generated delay reactors.
      */
-    private IDelayBodyGenerator generator;
+    private final IDelayBodyGenerator generator;
 
     /**
      * A target type instance that is used during the transformation to manage target specific types
      */
-    private TargetTypes targetTypes;
+    private final TargetTypes targetTypes;
 
     /**
      * The Eclipse eCore view of the main LF file.
      */
-    private Resource mainResource;
+    private final Resource mainResource;
 
     /**
      * Collection of generated delay classes.
      */
-    private LinkedHashSet<Reactor> delayClasses = new LinkedHashSet<>();
+    private final LinkedHashSet<Reactor> delayClasses = new LinkedHashSet<>();
 
     public AfterDelayTransformation(IDelayBodyGenerator generator, TargetTypes targetTypes, Resource mainResource) {
         this.generator = generator;
@@ -250,10 +249,10 @@ public class AfterDelayTransformation implements ITransformation {
     private Reactor getDelayClass(Type type) {
         String className;
         if (targetTypes.supportsGenerics()) {
-            className = GeneratorBase.GEN_DELAY_CLASS_NAME;
+            className = IDelayBodyGenerator.GEN_DELAY_CLASS_NAME;
         } else {
             String id = Integer.toHexString(InferredType.fromAST(type).toText().hashCode());
-            className = String.format("%s_%s", GeneratorBase.GEN_DELAY_CLASS_NAME, id);
+            className = String.format("%s_%s", IDelayBodyGenerator.GEN_DELAY_CLASS_NAME, id);
         }
 
         // Only add class definition if it is not already there.
