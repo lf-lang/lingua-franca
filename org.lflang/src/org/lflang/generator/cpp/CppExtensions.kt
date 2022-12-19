@@ -1,12 +1,7 @@
 package org.lflang.generator.cpp
 
 import org.eclipse.emf.ecore.resource.Resource
-import org.lflang.InferredType
-import org.lflang.TargetProperty
-import org.lflang.indexInContainer
-import org.lflang.isBank
-import org.lflang.isGeneric
-import org.lflang.isMultiport
+import org.lflang.*
 import org.lflang.lf.BuiltinTriggerRef
 import org.lflang.lf.Expression
 import org.lflang.lf.Port
@@ -17,8 +12,6 @@ import org.lflang.lf.TriggerRef
 import org.lflang.lf.VarRef
 import org.lflang.lf.Visibility
 import org.lflang.lf.WidthSpec
-import org.lflang.toText
-import org.lflang.unreachable
 
 /*************
  * Copyright (c) 2019-2021, TU Dresden.
@@ -60,6 +53,9 @@ val Reaction.name
  */
 // TODO: Most of the extensions defined here should be moved to companion objects of their
 //  corresponding generator classes. See for instance the CppParameterGenerator
+
+/** Convert a LF time value to a representation in C++ code */
+fun TimeValue.toCppCode() = CppTypes.getTargetTimeExpr(this)
 
 /**
  * Convert a LF time value to a representation in C++ code.
