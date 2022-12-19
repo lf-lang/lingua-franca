@@ -55,8 +55,4 @@ public class CDelayBodyGenerator implements IDelayBodyGenerator {
         throw new UnsupportedOperationException("TODO: auto-generated method stub");
     }
 
-    @Override
-    public boolean generateAfterDelaysWithVariableWidth() {
-        return false;
-    }
 }

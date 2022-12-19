@@ -32,6 +32,4 @@ class TSDelayBodyGenerator : IDelayBodyGenerator {
     override fun generateDelayGeneric(): String {
         return "T extends Present"
     }
-
-    override fun generateAfterDelaysWithVariableWidth() = false
 }
