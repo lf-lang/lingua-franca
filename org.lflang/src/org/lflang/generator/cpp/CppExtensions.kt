@@ -3,7 +3,6 @@ package org.lflang.generator.cpp
 import org.eclipse.emf.ecore.resource.Resource
 import org.lflang.InferredType
 import org.lflang.TargetProperty
-import org.lflang.TimeUnit
 import org.lflang.indexInContainer
 import org.lflang.isBank
 import org.lflang.isGeneric

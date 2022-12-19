@@ -68,7 +68,7 @@ class CppRos2NodeGenerator(
             |  // FIXME: this is pretty hacky...
             |  lf_node = this;
             |
-            |  lf_env = std::make_unique<reactor::Environment>(workers, keepalive, fast);
+            |  lf_env = std::make_unique<reactor::Environment>(workers, keepalive, fast, lf_timeout);
             |
             |  // instantiate the main reactor
             |  lf_main_reactor = std::make_unique<${main.name}> ("${main.name}", lf_env.get(), ${main.name}::Parameters{});
