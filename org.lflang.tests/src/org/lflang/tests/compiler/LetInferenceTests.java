@@ -37,11 +37,11 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
-import org.lflang.ASTUtils;
 import org.lflang.DefaultErrorReporter;
 import org.lflang.FileConfig;
 import org.lflang.TimeUnit;
 import org.lflang.TimeValue;
+import org.lflang.ast.AfterDelayTransformation;
 import org.lflang.generator.ReactionInstance;
 import org.lflang.generator.ReactorInstance;
 import org.lflang.generator.c.CGenerator;
@@ -99,7 +99,7 @@ class LetInferenceTest  {
         ));
 
         Assertions.assertNotNull(model);
-        ASTUtils.insertGeneratedDelays(model.eResource(), new CGenerator(new FileConfig(model.eResource(), Path.of("./a/"), true), new DefaultErrorReporter()));
+        AfterDelayTransformation.insertGeneratedDelays(model.eResource(), new CGenerator(new FileConfig(model.eResource(), Path.of("./a/"), true), new DefaultErrorReporter()));
         Assertions.assertTrue(model.eResource().getErrors().isEmpty(),
                               "Encountered unexpected error while parsing: " +
                                   model.eResource().getErrors());
