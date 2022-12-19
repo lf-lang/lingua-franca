@@ -1,7 +1,9 @@
 package org.lflang.generator.cpp
 
 import org.lflang.TargetConfig
+import org.lflang.generator.orZero
 import org.lflang.lf.Reactor
+import org.lflang.toTimeNode
 import org.lflang.toUnixString
 
 /** A C++ code generator for creating a ROS2 node from a main reactor definition */
@@ -60,7 +62,7 @@ class CppRos2NodeGenerator(
             |  unsigned workers = ${if (targetConfig.workers != 0) targetConfig.workers else "std::thread::hardware_concurrency()"};
             |  bool fast{${targetConfig.fastMode}};
             |  bool keepalive{${targetConfig.keepalive}};
-            |  reactor::Duration lf_timeout{${targetConfig.timeout?.toCppCode() ?: "reactor::Duration::max()"}};
+            |  reactor::Duration lf_timeout{${targetConfig.timeout?.toTimeNode().orZero().toCppTime() ?: "reactor::Duration::max()"}};
             |
             |  // provide a globally accessible reference to this node
             |  // FIXME: this is pretty hacky...
@@ -69,14 +71,14 @@ class CppRos2NodeGenerator(
             |  lf_env = std::make_unique<reactor::Environment>(workers, keepalive, fast);
             |
             |  // instantiate the main reactor
-            |  lf_main_reactor = std::make_unique<${main.name}> ("${main.name}", lf_env.get());
+            |  lf_main_reactor = std::make_unique<${main.name}> ("${main.name}", lf_env.get(), ${main.name}::Parameters{});
             |
             |  // assemble reactor program
             |  lf_env->assemble();
             |
             |  // start execution
             |  lf_main_thread = lf_env->startup();
-            |  lf_shutdown_thread = std::thread([=] { wait_for_lf_shutdown(); });
+            |  lf_shutdown_thread = std::thread([this] { wait_for_lf_shutdown(); });
             |}
             |
             |$nodeName::~$nodeName() {

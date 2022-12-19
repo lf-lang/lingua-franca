@@ -1,0 +1,16 @@
+// This is a smoke test to see if parameters can be initiailized out of
+// definition order. Compilation without errors is success.
+target Cpp
+
+reactor Foo(a: int(0), b: std::string(""), c: float(0.0)) {
+    reaction(startup) {=
+        if (a != 42 || b != "bar" || c < 3.1) {
+            reactor::log::Error() << "received an unexpected parameter!";
+            exit(1);
+        }
+    =}
+}
+
+main reactor {
+    foo = new Foo(c = 3.14, b = "bar", a = 42)
+}

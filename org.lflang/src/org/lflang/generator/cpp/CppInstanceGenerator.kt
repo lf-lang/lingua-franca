@@ -25,15 +25,14 @@
 package org.lflang.generator.cpp
 
 import org.lflang.*
-import org.lflang.generator.cpp.CppParameterGenerator.Companion.targetType
 import org.lflang.lf.Instantiation
-import org.lflang.lf.Parameter
 import org.lflang.lf.Reactor
 
 /** A code genarator for reactor instances */
 class CppInstanceGenerator(
     private val reactor: Reactor,
     private val fileConfig: CppFileConfig,
+    private val errorReporter: ErrorReporter
 ) {
     private val Instantiation.isAffiliate: Boolean get() = AttributeUtils.isAffiliate(this)
 
@@ -59,56 +58,44 @@ class CppInstanceGenerator(
         }
     }
 
-    private fun Instantiation.getParameterValue(param: Parameter, isBankInstantiation: Boolean = false): String {
-        val assignment = this.parameters.firstOrNull { it.lhs === param }
+    private fun Instantiation.getParameterStruct(): String {
+        val assignments = parameters.mapNotNull {
+            when {
+                it.rhs.isParens || it.rhs.isBraces -> {
+                    errorReporter.reportError(it, "Parenthesis based initialization is not allowed here!")
+                    null
+                }
 
-        return if (isBankInstantiation && param.name == "bank_index") {
-            // If we are in a bank instantiation (instanceId != null), then assign the instanceId
-            // to the parameter named "bank_index"
-            """__lf_idx"""
-        } else if (assignment == null) {
-            // If no assignment was found, then the parameter is not overwritten and we assign the
-            // default value
-            with(CppParameterGenerator) { param.defaultValue }
-        } else {
-            // Otherwise, we use the assigned value.
-            if (assignment.equals == "=") {
-                if (!assignment.braces.isNullOrEmpty()) {
-                    "{${assignment.rhs.joinToString(", ") { it.toCppCode() }}}"
-                } else if (!assignment.parens.isNullOrEmpty()) {
-                    "(${assignment.rhs.joinToString(", ") { it.toCppCode() }})"
-                } else {
-                    assert(assignment.rhs.size == 1)
-                    assignment.rhs[0].toCppCode()
+                it.rhs.exprs.size != 1             -> {
+                    errorReporter.reportError(it, "Expected exactly one expression.")
+                    null
                 }
-            } else {
-                if (!assignment.braces.isNullOrEmpty()) {
-                    "${param.targetType}{${assignment.rhs.joinToString(", ") { it.toCppCode() }}}"
-                } else {
-                    "${param.targetType}(${assignment.rhs.joinToString(", ") { it.toCppCode() }})"
-                }
+
+                else                               -> Pair(
+                    it.lhs.name,
+                    CppTypes.getTargetExpr(it.rhs.exprs[0], it.lhs.inferredType)
+                )
             }
-        }
-    }
+        }.toMap().toMutableMap()
 
-    private fun Instantiation.getParameterValues() = reactor.parameters.joinToString(", ") { getParameterValue(it) }
+        // If this is a bank instantiation and the instantiated reactor defines a "bank_index" parameter, we have to set
+        // bank_index here explicitly.
+        if (isBank && reactor.hasBankIndexParameter())
+            assignments["bank_index"] = "__lf_idx"
 
-    private fun Instantiation.getUniquePointerInitializer(parentRef: String): String {
-        val params = getParameterValues()
-        return if (params.isEmpty())
-            """std::make_unique<$cppType>("$name", $parentRef)"""
-        else {
-            """std::make_unique<$cppType>("$name", $parentRef, $params)"""
-        }
+        // by iterating over the reactor parameters we make sure that the parameters are assigned in declaration order
+        return reactor.parameters.mapNotNull {
+            if (it.name in assignments) ".${it.name} = ${assignments[it.name]}" else null
+        }.joinToString(", ", "${cppType}::Parameters{", "}")
     }
 
     private fun generateInitializer(inst: Instantiation): String {
         with(inst) {
             assert(!isBank)
-            return if (!isAffiliate) ", $name(${getUniquePointerInitializer("this")})"
+            return if (!isAffiliate) """, $name(std::make_unique<$cppType>("$name}", this, ${getParameterStruct()}))"""
             else """
                 , __lf_env_$name(this->fqn() + ".$name", this->environment())
-                , $name(${getUniquePointerInitializer("&__lf_env_$name")})
+                , $name(std::make_unique<$cppType>("$name}", &__lf_env_$name, ${getParameterStruct()}))
             """.trimIndent()
         }
     }
@@ -117,7 +104,8 @@ class CppInstanceGenerator(
         with(inst) {
             assert(isBank)
             assert(!isAffiliate)
-            val emplaceLine = "$name.emplace_back(${getUniquePointerInitializer("this")});"
+            val emplaceLine =
+                "$name.emplace_back(std::make_unique<$cppType>(__lf_inst_name, this, ${inst.getParameterStruct()}));"
 
             val width = inst.widthSpec.toCppCode()
             return """

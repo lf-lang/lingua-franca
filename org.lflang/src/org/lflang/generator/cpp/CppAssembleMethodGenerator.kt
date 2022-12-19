@@ -25,11 +25,18 @@
 package org.lflang.generator.cpp
 
 import org.lflang.generator.PrependOperator
+import org.lflang.hasMultipleConnections
 import org.lflang.isBank
 import org.lflang.isMultiport
-import org.lflang.hasMultipleConnections
 import org.lflang.joinWithLn
-import org.lflang.lf.*
+import org.lflang.lf.Action
+import org.lflang.lf.Connection
+import org.lflang.lf.ParameterReference
+import org.lflang.lf.Port
+import org.lflang.lf.Reaction
+import org.lflang.lf.Reactor
+import org.lflang.lf.TriggerRef
+import org.lflang.lf.VarRef
 
 /**
  * A code generator for the assemble() method of a C++ reactor class
@@ -117,8 +124,11 @@ class CppAssembleMethodGenerator(private val reactor: Reactor) {
         }
     }
 
-    private fun setDeadline(reaction: Reaction): String =
-        "${reaction.name}.set_deadline(${reaction.deadline.delay.toTime(true)}, [this]() { ${reaction.name}_deadline_handler(); });"
+    private fun setDeadline(reaction: Reaction): String {
+        val delay = reaction.deadline.delay
+        val value = if (delay is ParameterReference) "__lf_inner.${delay.parameter.name}" else delay.toCppTime()
+        return "${reaction.name}.set_deadline($value, [this]() { ${reaction.name}_deadline_handler(); });"
+    }
 
     private fun assembleReaction(reaction: Reaction): String {
         val sources = reaction.sources.filter { it.variable is Port }
