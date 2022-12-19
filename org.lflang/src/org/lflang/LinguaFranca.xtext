@@ -57,7 +57,7 @@ Model:
     (imports+=Import)*
     (preambles+=Preamble)*
     (reactors+=Reactor)+
-    (postambles+=Postamble)*
+    (epilogues+=Epilogue)*
     ;
 
 /////////// Top level elements
@@ -219,8 +219,8 @@ STP:
 Preamble:
     (visibility=Visibility)? 'preamble' code=Code;
 
-Postamble:
-    'postamble' code=Code;
+Epilogue:
+    'epilogue' code=Code;
 
 Instantiation:
     name=ID '=' 'new' (widthSpec=WidthSpec)?
@@ -496,7 +496,7 @@ Token:
     'target' | 'import' | 'main' | 'realtime' | 'reactor' | 'state' | 'time' | 
     'mutable' | 'input' | 'output' | 'timer' | 'action' | 'reaction' | 
     'startup' | 'shutdown' | 'after' | 'deadline' | 'mutation' | 'preamble' |
-    'postamble' | 'new' | 'federated' | 'at' | 'as' | 'from' | 'widthof' |
+    'epilogue' | 'new' | 'federated' | 'at' | 'as' | 'from' | 'widthof' |
     'const' | 'method' | 'interleaved' | 'mode' | 'initial' | 'reset' |
     'history' |
     // Other terminals

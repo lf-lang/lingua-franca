@@ -294,10 +294,10 @@ class LeanGenerator(
         }
     }
 
-    private fun genPostamble() =
+    private fun genEpilogue() =
         resources
             .flatMap {
-                it.eResource.model.postambles.map {
+                it.eResource.model.epilogues.map {
                     ASTUtils.toOriginalText(it.code)
                 }
             }.joinLn()
@@ -326,7 +326,7 @@ class LeanGenerator(
             ${"|"..(genPreamble())}
             ${"|"..(genLFBlock(reactors))}
                |
-            ${"|"..(genPostamble())}
+            ${"|"..(genEpilogue())}
             """.trimMargin()
         }
     }
