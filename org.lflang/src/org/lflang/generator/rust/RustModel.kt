@@ -547,7 +547,7 @@ object RustModelBuilder {
                     body = n.code.toText(),
                     isStartup = n.triggers.any { it is BuiltinTriggerRef && it.type == BuiltinTrigger.STARTUP },
                     isShutdown = n.triggers.any { it is BuiltinTriggerRef && it.type == BuiltinTrigger.SHUTDOWN },
-                    debugLabel = AttributeUtils.label(n),
+                    debugLabel = AttributeUtils.getLabel(n),
                     loc = n.locationInfo().let {
                         // remove code block
                         it.copy(lfText = it.lfText.replace(TARGET_BLOCK_R, "{= ... =}"))
@@ -694,6 +694,7 @@ private val TypeParm.identifier: String
 val BuildType.cargoProfileName: String
     get() = when (this) {
         BuildType.DEBUG             -> "debug"
+        BuildType.TEST              -> "test"
         BuildType.RELEASE           -> "release"
         BuildType.REL_WITH_DEB_INFO -> "release-with-debug-info"
         BuildType.MIN_SIZE_REL      -> "release-with-min-size"

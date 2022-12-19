@@ -36,6 +36,7 @@ import java.util.stream.Stream;
 import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
 import org.lflang.TargetConfig;
+import org.lflang.TargetProperty;
 import org.lflang.TargetProperty.Platform;
 import org.lflang.generator.GeneratorBase;
 import org.lflang.generator.GeneratorCommandFactory;
@@ -174,7 +175,7 @@ public class CCompiler {
 
 
             if (makeReturnCode == 0 && build.getErrors().toString().length() == 0) {
-                System.out.println("SUCCESS: Compiling generated code for "+ fileConfig.name +" finished with no errors.");
+                System.out.println("SUCCESS: Compiling generated code for " + fileConfig.name + " finished with no errors.");
             }
 
         }
@@ -195,8 +196,9 @@ public class CCompiler {
                 buildPath);
         if (command == null) {
             errorReporter.reportError(
-                    "The C/CCpp target requires CMAKE >= 3.5 to compile the generated code. " +
-                            "Auto-compiling can be disabled using the \"no-compile: true\" target property.");
+                "The C/CCpp target requires CMAKE >= " + CCmakeGenerator.MIN_CMAKE_VERSION
+                    + " to compile the generated code. " +
+                    "Auto-compiling can be disabled using the \"no-compile: true\" target property.");
         }
         return command;
     }
@@ -210,6 +212,7 @@ public class CCompiler {
         List<String> arguments = new ArrayList<>();
         cmakeCompileDefinitions(targetConfig).forEachOrdered(arguments::add);
         arguments.addAll(List.of(
+            "-DCMAKE_BUILD_TYPE=" + ((targetConfig.cmakeBuildType!=null) ? targetConfig.cmakeBuildType.toString() : "Release"),
             "-DCMAKE_INSTALL_PREFIX=" + FileUtil.toUnixString(fileConfig.getOutPath()),
             "-DCMAKE_INSTALL_BINDIR=" + FileUtil.toUnixString(
                 fileConfig.getOutPath().relativize(
@@ -231,6 +234,20 @@ public class CCompiler {
         return arguments;
     }
 
+    /**
+     * Return the cmake config name correspnding to a given build type.
+     */
+    private String buildTypeToCmakeConfig(TargetProperty.BuildType type) {
+        if (type == null) {
+            return "Release";
+        }
+        switch (type) {
+        case TEST:
+            return "Debug";
+        default:
+            return type.toString();
+        }
+    }
 
     /**
      * Return a command to build the specified C file using CMake.
@@ -246,8 +263,7 @@ public class CCompiler {
         LFCommand command =  commandFactory.createCommand(
                 "cmake", List.of(
                         "--build", ".", "--target", "install", "--parallel", cores, "--config",
-                        targetConfig.cmakeBuildType != null ?
-                            targetConfig.cmakeBuildType.toString() : "Release"
+                        buildTypeToCmakeConfig(targetConfig.cmakeBuildType)
                     ),
                 buildPath);
         if (command == null) {

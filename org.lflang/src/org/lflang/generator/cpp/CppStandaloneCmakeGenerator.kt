@@ -26,6 +26,7 @@ package org.lflang.generator.cpp
 
 import org.lflang.TargetConfig
 import org.lflang.generator.PrependOperator
+import org.lflang.joinWithLn
 import org.lflang.toUnixString
 import java.nio.file.Path
 
@@ -45,6 +46,22 @@ class CppStandaloneCmakeGenerator(private val targetConfig: TargetConfig, privat
         return """
             |cmake_minimum_required(VERSION 3.5)
             |project($projectName VERSION 0.0.0 LANGUAGES CXX)
+            |
+            |# The Test build type is the Debug type plus coverage generation
+            |if(CMAKE_BUILD_TYPE STREQUAL "Test")
+            |  set(CMAKE_BUILD_TYPE "Debug")
+            |
+            |  if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+            |    find_program(LCOV_BIN lcov)
+            |    if(LCOV_BIN MATCHES "lcov$S")
+            |      set(CMAKE_CXX_FLAGS "$S{CMAKE_CXX_FLAGS} --coverage -fprofile-arcs -ftest-coverage")
+            |    else()
+            |      message("Not producing code coverage information since lcov was not found")
+            |    endif()
+            |  else()
+            |    message("Not producing code coverage information since the selected compiler is no gcc")
+            |  endif()
+            |endif()
             |
             |# require C++ 17
             |set(CMAKE_CXX_STANDARD 17 CACHE STRING "The C++ standard is cached for visibility in external tools." FORCE)
@@ -128,7 +145,7 @@ class CppStandaloneCmakeGenerator(private val targetConfig: TargetConfig, privat
                 |set(LF_MAIN_TARGET ${fileConfig.name})
                 |
                 |add_executable($S{LF_MAIN_TARGET}
-            ${" |    "..sources.joinToString("\n") { it.toUnixString() }}
+            ${" |    "..sources.joinWithLn { it.toUnixString() }}
                 |)
                 |target_include_directories($S{LF_MAIN_TARGET} PUBLIC
                 |    "$S{LF_SRC_PKG_PATH}/src"
@@ -156,7 +173,7 @@ class CppStandaloneCmakeGenerator(private val targetConfig: TargetConfig, privat
                 |set(${includesVarName(fileConfig.name)} $S{TARGET_INCLUDE_DIRECTORIES} CACHE STRING "Directories included in the main target." FORCE)
                 |set($compilerIdName $S{CMAKE_CXX_COMPILER_ID} CACHE STRING "The name of the C++ compiler." FORCE)
                 |
-            ${" |"..(includeFiles?.joinToString("\n") { "include(\"$it\")" } ?: "")}
+            ${" |"..(includeFiles?.joinWithLn { "include(\"$it\")" } ?: "")}
             """.trimMargin()
         }
     }

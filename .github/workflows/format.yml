@@ -1,0 +1,19 @@
+name: Test the automatic code formatting task
+
+on:
+  workflow_call:
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out lingua-franca repository
+        uses: actions/checkout@v3
+        with:
+          submodules: recursive
+          fetch-depth: 0
+      - name: Prepare build environment
+        uses: ./.github/actions/prepare-build-env
+      - name: Run spotlessCheck
+        run: ./gradlew spotlessCheck
+        shell: bash

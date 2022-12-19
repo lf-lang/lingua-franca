@@ -28,6 +28,7 @@ import org.lflang.TargetProperty.BuildType.*
 import org.lflang.escapeStringLiteral
 import org.lflang.generator.PrependOperator.rangeTo
 import org.lflang.joinWithCommas
+import org.lflang.joinWithLn
 import org.lflang.withDQuotes
 import java.nio.file.Paths
 
@@ -52,7 +53,7 @@ object RustCargoTomlEmitter : RustEmitterBase() {
             |env_logger = "0.9"
             |log = { version = "0.4", features = ["release_max_level_info"] }
             |clap = { version = "3.1.8", features = ["derive", "env"], optional = true }
-${"         |"..crate.dependencies.asIterable().joinToString("\n") { (name, spec) -> name + " = " + spec.toToml() }}
+${"         |"..crate.dependencies.asIterable().joinWithLn { (name, spec) -> name + " = " + spec.toToml() }}
             |
             |[[bin]]
             |name = "${gen.executableName}"
