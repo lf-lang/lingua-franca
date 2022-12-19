@@ -37,6 +37,7 @@ import org.lflang.lf.Type;
 import org.lflang.lf.TypeParm;
 import org.lflang.lf.VarRef;
 import org.lflang.lf.WidthSpec;
+import org.lflang.lf.WidthTerm;
 
 public class AfterDelayTransformation implements AstTransformation {
 
@@ -100,7 +101,8 @@ public class AfterDelayTransformation implements AstTransformation {
                     Type type = ((Port) connection.getRightPorts().get(0).getVariable()).getType();
                     Reactor delayClass = getDelayClass(type);
                     String generic = targetTypes.supportsGenerics() ? targetTypes.getTargetType(InferredType.fromAST(type)) : "";
-                    Instantiation delayInstance = getDelayInstance(delayClass, connection, generic);
+                    Instantiation delayInstance = getDelayInstance(delayClass, connection, generic,
+                        !generator.generateAfterDelaysWithVariableWidth());
 
                     // Stage the new connections for insertion into the tree.
                     List<Connection> connections = ASTUtils.convertToEmptyListIfNull(newConnections.get(parent));
@@ -196,9 +198,13 @@ public class AfterDelayTransformation implements AstTransformation {
      * @param connection The connection to create a delay instantiation foe
      * @param generic A string that denotes the appropriate type parameter,
      *  which should be null or empty if the target does not support generics.
+     * @param defineWidthFromConnection If this is true and if the connection
+     *  is a wide connection, then instantiate a bank of delays where the width
+     *  is given by ports involved in the connection. Otherwise, the width will
+     *  be  unspecified indicating a variable length.
      */
     private static Instantiation getDelayInstance(Reactor delayClass,
-        Connection connection, String generic) {
+        Connection connection, String generic, Boolean defineWidthFromConnection) {
         Expression delay = connection.getDelay();
         Instantiation delayInstance = factory.createInstantiation();
         delayInstance.setReactorClass(delayClass);
@@ -209,7 +215,19 @@ public class AfterDelayTransformation implements AstTransformation {
         }
         if (ASTUtils.hasMultipleConnections(connection)) {
             WidthSpec widthSpec = factory.createWidthSpec();
-            widthSpec.setOfVariableLength(true);
+            if (defineWidthFromConnection) {
+                // Add all left ports of the connection to the WidthSpec of the generated delay instance.
+                // This allows the code generator to later infer the width from the involved ports.
+                // We only consider the left ports here, as they could be part of a broadcast. In this case, we want
+                // to delay the ports first, and then broadcast the output of the delays.
+                for (VarRef port : connection.getLeftPorts()) {
+                    WidthTerm term = factory.createWidthTerm();
+                    term.setPort(EcoreUtil.copy(port));
+                    widthSpec.getTerms().add(term);
+                }
+            } else {
+                widthSpec.setOfVariableLength(true);
+            }
             delayInstance.setWidthSpec(widthSpec);
         }
         Assignment assignment = factory.createAssignment();
