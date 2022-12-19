@@ -3,11 +3,11 @@ package org.lflang.generator.c;
 import static org.lflang.ASTUtils.getInferredType;
 
 import org.lflang.ASTUtils;
-import org.lflang.generator.IDelayBodyGenerator;
+import org.lflang.generator.DelayBodyGenerator;
 import org.lflang.lf.Action;
 import org.lflang.lf.VarRef;
 
-public class CDelayBodyGenerator implements IDelayBodyGenerator {
+public class CDelayBodyGenerator implements DelayBodyGenerator {
 
     protected CTypes types;
 

@@ -1,11 +1,11 @@
 package org.lflang.generator.ts
 
 import org.lflang.ASTUtils
-import org.lflang.generator.IDelayBodyGenerator
+import org.lflang.generator.DelayBodyGenerator
 import org.lflang.lf.Action
 import org.lflang.lf.VarRef
 
-class TSDelayBodyGenerator : IDelayBodyGenerator {
+object TSDelayBodyGenerator : DelayBodyGenerator {
     /**
      * Return a TS type for the specified action.
      * If the type has not been specified, return

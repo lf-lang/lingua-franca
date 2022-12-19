@@ -56,9 +56,9 @@ import org.lflang.federated.serialization.FedNativePythonSerialization;
 import org.lflang.federated.serialization.SupportedSerializers;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.generator.CodeMap;
+import org.lflang.generator.DelayBodyGenerator;
 import org.lflang.generator.GeneratorResult;
 import org.lflang.generator.GeneratorUtils;
-import org.lflang.generator.IDelayBodyGenerator;
 import org.lflang.generator.IntegratedBuilder;
 import org.lflang.generator.LFGeneratorContext;
 import org.lflang.generator.ReactorInstance;
@@ -652,7 +652,7 @@ public class PythonGenerator extends CGenerator {
         Reactor reactor = ASTUtils.toDefinition(decl);
 
         // Delay reactors and top-level reactions used in the top-level reactor(s) in federated execution are generated in C
-        if (reactor.getName().contains(IDelayBodyGenerator.GEN_DELAY_CLASS_NAME) ||
+        if (reactor.getName().contains(DelayBodyGenerator.GEN_DELAY_CLASS_NAME) ||
             mainDef != null && decl == mainDef.getReactorClass() && reactor.isFederated()) {
             super.generateReaction(reaction, decl, reactionIndex);
             return;

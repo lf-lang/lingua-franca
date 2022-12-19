@@ -56,7 +56,7 @@ import org.lflang.TargetConfig;
 import org.lflang.TargetProperty.CoordinationType;
 import org.lflang.TimeUnit;
 import org.lflang.TimeValue;
-import org.lflang.ast.ITransformation;
+import org.lflang.ast.AstTransformation;
 import org.lflang.federated.FedASTUtils;
 import org.lflang.federated.FederateInstance;
 import org.lflang.federated.serialization.SupportedSerializers;
@@ -227,7 +227,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
     /**
      * A list ot AST transformations to apply before code generation
      */
-    private List<ITransformation> astTransformations = new LinkedList();
+    private List<AstTransformation> astTransformations = new ArrayList();
 
     /**
      * Create a new GeneratorBase object.
@@ -243,7 +243,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
      *
      * The transformations will be applied in the order that they are registered in.
      */
-    protected void registerTransformation(ITransformation transformation) {
+    protected void registerTransformation(AstTransformation transformation) {
         astTransformations.add(transformation);
     }
 
@@ -341,7 +341,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
         // FIXME: Should the GeneratorBase pull in `files` from imported
         // resources?
 
-        for (ITransformation transformation : astTransformations) {
+        for (AstTransformation transformation : astTransformations) {
             transformation.applyTransformation(reactors);
         }
 

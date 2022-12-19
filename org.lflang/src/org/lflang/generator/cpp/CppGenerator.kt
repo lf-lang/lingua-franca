@@ -65,7 +65,7 @@ class CppGenerator(
 
     override fun doGenerate(resource: Resource, context: LFGeneratorContext) {
         // Register the after delay transformation to be applied by GeneratorBase.
-        registerTransformation(AfterDelayTransformation(CppDelayBodyGenerator(), CppTypes, resource))
+        registerTransformation(AfterDelayTransformation(CppDelayBodyGenerator, CppTypes, resource))
         super.doGenerate(resource, context)
 
         if (!canGenerate(errorsOccurred(), mainDef, errorReporter, context)) return

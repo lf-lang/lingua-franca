@@ -1,11 +1,11 @@
 package org.lflang.generator.cpp
 
-import org.lflang.generator.IDelayBodyGenerator
+import org.lflang.generator.DelayBodyGenerator
 import org.lflang.lf.Action
 import org.lflang.lf.VarRef
 
 
-class CppDelayBodyGenerator : IDelayBodyGenerator {
+object CppDelayBodyGenerator : DelayBodyGenerator {
 
     /**
      * Generate code for the body of a reaction that takes an input and

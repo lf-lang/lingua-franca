@@ -15,7 +15,7 @@ import org.eclipse.xtext.xbase.lib.StringExtensions;
 
 import org.lflang.ASTUtils;
 import org.lflang.InferredType;
-import org.lflang.generator.IDelayBodyGenerator;
+import org.lflang.generator.DelayBodyGenerator;
 import org.lflang.generator.TargetTypes;
 import org.lflang.lf.Action;
 import org.lflang.lf.ActionOrigin;
@@ -38,7 +38,7 @@ import org.lflang.lf.TypeParm;
 import org.lflang.lf.VarRef;
 import org.lflang.lf.WidthSpec;
 
-public class AfterDelayTransformation implements ITransformation {
+public class AfterDelayTransformation implements AstTransformation {
 
     /**
      * The Lingua Franca factory for creating new AST nodes.
@@ -48,7 +48,7 @@ public class AfterDelayTransformation implements ITransformation {
     /**
      * A code generator used to insert reaction bodies for the generated delay reactors.
      */
-    private final IDelayBodyGenerator generator;
+    private final DelayBodyGenerator generator;
 
     /**
      * A target type instance that is used during the transformation to manage target specific types
@@ -65,7 +65,7 @@ public class AfterDelayTransformation implements ITransformation {
      */
     private final LinkedHashSet<Reactor> delayClasses = new LinkedHashSet<>();
 
-    public AfterDelayTransformation(IDelayBodyGenerator generator, TargetTypes targetTypes, Resource mainResource) {
+    public AfterDelayTransformation(DelayBodyGenerator generator, TargetTypes targetTypes, Resource mainResource) {
         this.generator = generator;
         this.targetTypes = targetTypes;
         this.mainResource = mainResource;
@@ -231,10 +231,10 @@ public class AfterDelayTransformation implements ITransformation {
     private Reactor getDelayClass(Type type) {
         String className;
         if (targetTypes.supportsGenerics()) {
-            className = IDelayBodyGenerator.GEN_DELAY_CLASS_NAME;
+            className = DelayBodyGenerator.GEN_DELAY_CLASS_NAME;
         } else {
             String id = Integer.toHexString(InferredType.fromAST(type).toText().hashCode());
-            className = String.format("%s_%s", IDelayBodyGenerator.GEN_DELAY_CLASS_NAME, id);
+            className = String.format("%s_%s", DelayBodyGenerator.GEN_DELAY_CLASS_NAME, id);
         }
 
         // Only add class definition if it is not already there.

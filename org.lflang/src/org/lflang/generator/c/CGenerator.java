@@ -74,7 +74,7 @@ import org.lflang.generator.CodeBuilder;
 import org.lflang.generator.GeneratorBase;
 import org.lflang.generator.GeneratorResult;
 import org.lflang.generator.GeneratorUtils;
-import org.lflang.generator.IDelayBodyGenerator;
+import org.lflang.generator.DelayBodyGenerator;
 import org.lflang.generator.IntegratedBuilder;
 import org.lflang.generator.LFGeneratorContext;
 import org.lflang.generator.LFResource;
@@ -392,7 +392,7 @@ public class CGenerator extends GeneratorBase {
         boolean CCppMode,
         CTypes types,
         CCmakeGenerator cmakeGenerator,
-        IDelayBodyGenerator delayBodyGenerator
+        DelayBodyGenerator delayBodyGenerator
     ) {
         super(fileConfig, errorReporter);
         this.CCppMode = CCppMode;

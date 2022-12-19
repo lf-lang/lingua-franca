@@ -3,7 +3,7 @@ package org.lflang.generator;
 import org.lflang.lf.Action;
 import org.lflang.lf.VarRef;
 
-public interface IDelayBodyGenerator {
+public interface DelayBodyGenerator {
 
     /**
      * Constant that specifies how to name generated delay reactors.

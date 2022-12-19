@@ -1124,7 +1124,7 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
      * @return True if this is a generated delay, false otherwise.
      */
     public boolean isGeneratedDelay() {
-        if (this.definition.getReactorClass().getName().contains(IDelayBodyGenerator.GEN_DELAY_CLASS_NAME)) {
+        if (this.definition.getReactorClass().getName().contains(DelayBodyGenerator.GEN_DELAY_CLASS_NAME)) {
             return true;
         }
         return false;
