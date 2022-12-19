@@ -396,9 +396,6 @@ public class CGenerator extends GeneratorBase {
         this.CCppMode = CCppMode;
         this.types = types;
         this.cmakeGenerator = cmakeGenerator;
-
-        // Register the after delay transformation to be applied by GeneratorBase.
-        registerTransformation(new AfterDelayTransformation(this, types));
     }
 
     public CGenerator(FileConfig fileConfig, ErrorReporter errorReporter, boolean CCppMode) {
@@ -498,6 +495,9 @@ public class CGenerator extends GeneratorBase {
      */
     @Override
     public void doGenerate(Resource resource, LFGeneratorContext context) {
+        // Register the after delay transformation to be applied by GeneratorBase.
+        registerTransformation(new AfterDelayTransformation(this, types, resource));
+
         super.doGenerate(resource, context);
         if (!GeneratorUtils.canGenerate(errorsOccurred(), mainDef, errorReporter, context)) return;
         if (!isOSCompatible()) return; // Incompatible OS and configuration

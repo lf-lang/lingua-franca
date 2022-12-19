@@ -73,7 +73,7 @@ class RustGenerator(
 
     override fun doGenerate(resource: Resource, context: LFGeneratorContext) {
         // Register the after delay transformation to be applied by GeneratorBase.
-        registerTransformation(AfterDelayTransformation(this, CppTypes))
+        registerTransformation(AfterDelayTransformation(this, CppTypes, resource))
 
         super.doGenerate(resource, context)
 

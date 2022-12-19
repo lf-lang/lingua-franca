@@ -2,11 +2,15 @@ package org.lflang.ast;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 
 import org.eclipse.emf.ecore.EObject;
+import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.emf.ecore.util.EcoreUtil;
+import org.eclipse.xtext.xbase.lib.IterableExtensions;
+import org.eclipse.xtext.xbase.lib.IteratorExtensions;
 import org.eclipse.xtext.xbase.lib.StringExtensions;
 
 import org.lflang.ASTUtils;
@@ -23,6 +27,7 @@ import org.lflang.lf.Input;
 import org.lflang.lf.Instantiation;
 import org.lflang.lf.LfFactory;
 import org.lflang.lf.Mode;
+import org.lflang.lf.Model;
 import org.lflang.lf.Output;
 import org.lflang.lf.Parameter;
 import org.lflang.lf.Port;
@@ -52,9 +57,20 @@ public class AfterDelayTransformation implements ITransformation {
      */
     private TargetTypes targetTypes;
 
-    public AfterDelayTransformation(IDelayBodyGenerator generator, TargetTypes targetTypes) {
+    /**
+     * The Eclipse eCore view of the main LF file.
+     */
+    private Resource mainResource;
+
+    /**
+     * Collection of generated delay classes.
+     */
+    private LinkedHashSet<Reactor> delayClasses = new LinkedHashSet<>();
+
+    public AfterDelayTransformation(IDelayBodyGenerator generator, TargetTypes targetTypes, Resource mainResource) {
         this.generator = generator;
         this.targetTypes = targetTypes;
+        this.mainResource = mainResource;
     }
 
     /**
@@ -68,8 +84,7 @@ public class AfterDelayTransformation implements ITransformation {
     /**
      * Find connections in the given resource that have a delay associated with them,
      * and reroute them via a generated delay reactor.
-     * @param resource The AST.
-     * @param generator A code generator.
+     * @param reactors A list of reactors to apply the transformation to.
      */
     private void insertGeneratedDelays(List<Reactor> reactors) {
         // The resulting changes to the AST are performed _after_ iterating
@@ -242,7 +257,7 @@ public class AfterDelayTransformation implements ITransformation {
         }
 
         // Only add class definition if it is not already there.
-        Reactor classDef = generator.findDelayClass(className);
+        Reactor classDef = findDelayClass(className);
         if (classDef != null) {
             return classDef;
         }
@@ -329,7 +344,27 @@ public class AfterDelayTransformation implements ITransformation {
         delayClass.getInputs().add(input);
         delayClass.getOutputs().add(output);
         delayClass.getParameters().add(delayParameter);
-        generator.addDelayClass(delayClass);
+        addDelayClass(delayClass);
         return delayClass;
+    }
+
+    /**
+     * Store the given reactor in the collection of generated delay classes
+     * and insert it in the AST under the top-level reactor's node.
+     */
+    private void addDelayClass(Reactor generatedDelay) {
+        // Record this class, so it can be reused.
+        delayClasses.add(generatedDelay);
+        // And hook it into the AST.
+        EObject node = IteratorExtensions.findFirst(mainResource.getAllContents(), Model.class::isInstance);
+        ((Model) node).getReactors().add(generatedDelay);
+    }
+
+    /**
+     * Return the generated delay reactor that corresponds to the given class
+     * name if it had been created already, `null` otherwise.
+     */
+    private Reactor findDelayClass(String className) {
+        return IterableExtensions.findFirst(delayClasses, it -> it.getName().equals(className));
     }
 }

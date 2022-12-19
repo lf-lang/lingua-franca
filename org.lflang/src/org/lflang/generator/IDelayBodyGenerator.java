@@ -58,8 +58,4 @@ public interface IDelayBodyGenerator {
      */
     boolean generateAfterDelaysWithVariableWidth();
 
-    void addDelayClass(Reactor generatedDelay);
-
-    Reactor findDelayClass(String className);
-
 }

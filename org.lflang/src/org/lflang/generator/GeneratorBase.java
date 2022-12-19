@@ -67,7 +67,6 @@ import org.lflang.lf.Expression;
 import org.lflang.lf.Instantiation;
 import org.lflang.lf.LfFactory;
 import org.lflang.lf.Mode;
-import org.lflang.lf.Model;
 import org.lflang.lf.Parameter;
 import org.lflang.lf.Reaction;
 import org.lflang.lf.Reactor;
@@ -122,11 +121,6 @@ public abstract class GeneratorBase extends AbstractLFValidator implements IDela
     protected GeneratorCommandFactory commandFactory;
 
     public GeneratorCommandFactory getCommandFactory() { return commandFactory; }
-
-    /**
-     * Collection of generated delay classes.
-     */
-    private LinkedHashSet<Reactor> delayClasses = new LinkedHashSet<>();
 
     /**
      * Definition of the main (top-level) reactor.
@@ -255,26 +249,6 @@ public abstract class GeneratorBase extends AbstractLFValidator implements IDela
 
     // //////////////////////////////////////////
     // // Code generation functions to override for a concrete code generator.
-
-    /**
-     * Store the given reactor in the collection of generated delay classes
-     * and insert it in the AST under the top-level reactor's node.
-     */
-    public void addDelayClass(Reactor generatedDelay) {
-        // Record this class, so it can be reused.
-        delayClasses.add(generatedDelay);
-        // And hook it into the AST.
-        EObject node = IteratorExtensions.findFirst(fileConfig.resource.getAllContents(), Model.class::isInstance);
-        ((Model) node).getReactors().add(generatedDelay);
-    }
-
-    /**
-     * Return the generated delay reactor that corresponds to the given class
-     * name if it had been created already, `null` otherwise.
-     */
-    public Reactor findDelayClass(String className) {
-        return IterableExtensions.findFirst(delayClasses, it -> it.getName().equals(className));
-    }
 
     /**
      * If there is a main or federated reactor, then create a synthetic Instantiation
