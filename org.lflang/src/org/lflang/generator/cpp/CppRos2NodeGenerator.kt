@@ -28,7 +28,6 @@ class CppRos2NodeGenerator(
             |private:
             |  std::unique_ptr<reactor::Environment> lf_env;
             |  std::unique_ptr<${main.name}> lf_main_reactor;
-            |  std::unique_ptr<__lf_Timeout> lf_timeout_reactor;
             |
             |  // main thread of the LF execution
             |  std::thread lf_main_thread;
