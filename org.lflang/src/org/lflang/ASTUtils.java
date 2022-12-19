@@ -58,7 +58,9 @@ import org.eclipse.xtext.xbase.lib.StringExtensions;
 import org.lflang.ast.ToText;
 import org.lflang.generator.CodeMap;
 import org.lflang.generator.GeneratorBase;
+import org.lflang.generator.IDelayBodyGenerator;
 import org.lflang.generator.InvalidSourceException;
+import org.lflang.generator.TargetTypes;
 import org.lflang.lf.Action;
 import org.lflang.lf.ActionOrigin;
 import org.lflang.lf.Assignment;
@@ -150,7 +152,7 @@ public class ASTUtils {
      * @param resource The AST.
      * @param generator A code generator.
      */
-    public static void insertGeneratedDelays(Resource resource, GeneratorBase generator) {
+    public static void insertGeneratedDelays(List<Reactor> reactors, IDelayBodyGenerator generator, TargetTypes targetTypes) {
         // The resulting changes to the AST are performed _after_ iterating 
         // in order to avoid concurrent modification problems.
         List<Connection> oldConnections = new ArrayList<>();
@@ -158,14 +160,14 @@ public class ASTUtils {
         Map<EObject, List<Instantiation>> delayInstances = new LinkedHashMap<>();
 
         // Iterate over the connections in the tree.
-        for (Reactor container : getAllReactors(resource)) {
+        for (Reactor container : reactors) {
             for (Connection connection : allConnections(container)) {
                 if (connection.getDelay() != null) { 
                     EObject parent = connection.eContainer();
                     // Assume all the types are the same, so just use the first on the right.
                     Type type = ((Port) connection.getRightPorts().get(0).getVariable()).getType();
-                    Reactor delayClass = getDelayClass(type, generator);
-                    String generic = generator.getTargetTypes().supportsGenerics() ? generator.getTargetTypes().getTargetType(InferredType.fromAST(type)) : "";
+                    Reactor delayClass = getDelayClass(type, generator, targetTypes);
+                    String generic = targetTypes.supportsGenerics() ? targetTypes.getTargetType(InferredType.fromAST(type)) : "";
                     Instantiation delayInstance = getDelayInstance(delayClass, connection, generic, 
                         !generator.generateAfterDelaysWithVariableWidth());
 
@@ -455,9 +457,9 @@ public class ASTUtils {
      * @param type The type the delay class must be compatible with.
      * @param generator A code generator.
      */
-    private static Reactor getDelayClass(Type type, GeneratorBase generator) {
+    private static Reactor getDelayClass(Type type, IDelayBodyGenerator generator, TargetTypes targetTypes) {
         String className;
-        if (generator.getTargetTypes().supportsGenerics()) {
+        if (targetTypes.supportsGenerics()) {
             className = GeneratorBase.GEN_DELAY_CLASS_NAME;
         } else {
             String id = Integer.toHexString(InferredType.fromAST(type).toText().hashCode());
@@ -499,7 +501,7 @@ public class ASTUtils {
         action.setMinDelay(paramRef);
         action.setOrigin(ActionOrigin.LOGICAL);
 
-        if (generator.getTargetTypes().supportsGenerics()) {
+        if (targetTypes.supportsGenerics()) {
             action.setType(factory.createType());
             action.getType().setId("T");
         } else {
@@ -544,7 +546,7 @@ public class ASTUtils {
         delayClass.getReactions().add(r1);
 
         // Add a type parameter if the target supports it.
-        if (generator.getTargetTypes().supportsGenerics()) {
+        if (targetTypes.supportsGenerics()) {
             TypeParm parm = factory.createTypeParm();
             parm.setLiteral(generator.generateDelayGeneric());
             delayClass.getTypeParms().add(parm);

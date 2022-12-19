@@ -94,11 +94,6 @@ public abstract class GeneratorBase extends AbstractLFValidator implements IDela
     //// Public fields.
 
     /**
-     * Constant that specifies how to name generated delay reactors.
-     */
-    public static String GEN_DELAY_CLASS_NAME = "_lf_GenDelay";
-
-    /**
      * The main (top-level) reactor instance.
      */
     public ReactorInstance main;
@@ -376,10 +371,6 @@ public abstract class GeneratorBase extends AbstractLFValidator implements IDela
             transformation.applyTransformation(reactors);
         }
 
-        // Reroute connections that have delays associated with them via
-        // generated delay reactors.
-        transformDelays();
-
         // Transform connections that reside in mutually exclusive modes and are otherwise conflicting
         // This should be done before creating the instantiation graph
         transformConflictingConnectionsInModalReactors();
@@ -437,15 +428,6 @@ public abstract class GeneratorBase extends AbstractLFValidator implements IDela
                     reactors.add(r);
                 }
             }
-        }
-    }
-
-    /**
-     * For each involved resource, replace connections with delays with generated delay reactors.
-     */
-    private void transformDelays() {
-        for (LFResource r : resources) {
-            ASTUtils.insertGeneratedDelays(r.eResource, this);
         }
     }
 
@@ -1223,6 +1205,7 @@ public abstract class GeneratorBase extends AbstractLFValidator implements IDela
      * side of the connection. This gives the code generator the information needed to infer the correct width at
      * runtime.
      */
+    @Override
     public boolean generateAfterDelaysWithVariableWidth() { return true; }
 
     /**

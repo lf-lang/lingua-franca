@@ -32,6 +32,7 @@ import org.lflang.ErrorReporter
 import org.lflang.InferredType
 import org.lflang.Target
 import org.lflang.TimeValue
+import org.lflang.ast.AfterDelayTransformation
 import org.lflang.federated.FederateInstance
 import org.lflang.federated.launcher.FedTSLauncher
 import org.lflang.federated.serialization.SupportedSerializers
@@ -46,6 +47,7 @@ import org.lflang.generator.PrependOperator
 import org.lflang.generator.ReactorInstance
 import org.lflang.generator.SubContext
 import org.lflang.generator.TargetTypes
+import org.lflang.generator.cpp.CppTypes
 import org.lflang.lf.Action
 import org.lflang.lf.Expression
 import org.lflang.lf.VarRef
@@ -118,6 +120,9 @@ class TSGenerator(
      *  @param context The context of this build.
      */
     override fun doGenerate(resource: Resource, context: LFGeneratorContext) {
+        // Register the after delay transformation to be applied by GeneratorBase.
+        registerTransformation(AfterDelayTransformation(this, CppTypes))
+
         super.doGenerate(resource, context)
 
         if (!canGenerate(errorsOccurred(), mainDef, errorReporter, context)) return

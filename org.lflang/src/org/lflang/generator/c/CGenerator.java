@@ -63,6 +63,7 @@ import org.lflang.TargetProperty.ClockSyncMode;
 import org.lflang.TargetProperty.CoordinationType;
 import org.lflang.TargetProperty.Platform;
 import org.lflang.TimeValue;
+import org.lflang.ast.AfterDelayTransformation;
 import org.lflang.federated.FedFileConfig;
 import org.lflang.federated.FederateInstance;
 import org.lflang.federated.launcher.FedCLauncher;
@@ -395,6 +396,9 @@ public class CGenerator extends GeneratorBase {
         this.CCppMode = CCppMode;
         this.types = types;
         this.cmakeGenerator = cmakeGenerator;
+
+        // Register the after delay transformation to be applied by GeneratorBase.
+        registerTransformation(new AfterDelayTransformation(this, types));
     }
 
     public CGenerator(FileConfig fileConfig, ErrorReporter errorReporter, boolean CCppMode) {
