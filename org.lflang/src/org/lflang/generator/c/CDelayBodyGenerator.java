@@ -57,6 +57,6 @@ public class CDelayBodyGenerator implements DelayBodyGenerator {
 
     @Override
     public boolean generateAfterDelaysWithVariableWidth() {
-        return false;
+        return true;
     }
 }
