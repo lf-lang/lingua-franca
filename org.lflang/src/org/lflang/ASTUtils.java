@@ -132,7 +132,7 @@ public class ASTUtils {
      * @param resource the resource to extract reactors from
      * @return An iterable over all reactors found in the resource
      */
-    public static Iterable<Reactor> getAllReactors(Resource resource) {
+    public static List<Reactor> getAllReactors(Resource resource) {
         return StreamSupport.stream(IteratorExtensions.toIterable(resource.getAllContents()).spliterator(), false)
                      .filter(Reactor.class::isInstance)
                      .map(Reactor.class::cast)
