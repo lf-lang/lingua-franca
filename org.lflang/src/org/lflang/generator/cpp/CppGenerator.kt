@@ -31,6 +31,7 @@ import org.lflang.ErrorReporter
 import org.lflang.Target
 import org.lflang.TimeUnit
 import org.lflang.TimeValue
+import org.lflang.ast.AfterDelayTransformation
 import org.lflang.generator.CodeMap
 import org.lflang.generator.GeneratorBase
 import org.lflang.generator.GeneratorResult
@@ -63,6 +64,8 @@ class CppGenerator(
     }
 
     override fun doGenerate(resource: Resource, context: LFGeneratorContext) {
+        // Register the after delay transformation to be applied by GeneratorBase.
+        registerTransformation(AfterDelayTransformation(CppDelayBodyGenerator(), CppTypes, resource))
         super.doGenerate(resource, context)
 
         if (!canGenerate(errorsOccurred(), mainDef, errorReporter, context)) return

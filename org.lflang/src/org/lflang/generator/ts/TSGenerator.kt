@@ -121,7 +121,7 @@ class TSGenerator(
      */
     override fun doGenerate(resource: Resource, context: LFGeneratorContext) {
         // Register the after delay transformation to be applied by GeneratorBase.
-        registerTransformation(AfterDelayTransformation(TSDelayBodyGenerator(), CppTypes, resource))
+        registerTransformation(AfterDelayTransformation(TSDelayBodyGenerator(), targetTypes, resource))
 
         super.doGenerate(resource, context)
 
