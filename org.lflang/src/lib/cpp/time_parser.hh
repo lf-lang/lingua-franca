@@ -34,6 +34,16 @@ std::stringstream &operator>>(std::stringstream& in, reactor::Duration& dur);
 #include <iostream>
 #include <string>
 #include <regex>
+#include <algorithm>
+
+bool iequals(const std::string& a, const std::string& b)
+{
+    return std::equal(a.begin(), a.end(),
+                      b.begin(), b.end(),
+                      [](char a, char b) {
+                          return tolower(a) == tolower(b);
+                      });
+}
 
 class argument_incorrect_type_with_reason : public cxxopts::OptionParseException
 {
@@ -51,11 +61,15 @@ class argument_incorrect_type_with_reason : public cxxopts::OptionParseException
 std::string validate_time_string(const std::string& time);
 
 /**
- * converts a reactor::Duration to a string with nsecs as unit
+ * converts a reactor::Duration to a string with ns as unit
  */
 std::string time_to_string(const reactor::Duration& dur) {
+  if (dur == reactor::Duration::max()) {
+    return "forever";
+  }
+
   std::stringstream ss;
-  ss << dur.count() << " nsecs";
+  ss << dur.count() << " ns";
   return ss.str();
 }
 
@@ -76,6 +90,12 @@ std::stringstream &operator>>(std::stringstream& in, reactor::Duration& dur) {
     throw argument_incorrect_type_with_reason(in.str(), validation_msg);
   }
 
+  if (iequals(in.str(), "forever")) {
+    in >> unit; // parse the entire string
+    dur = reactor::Duration::max();
+    return in;
+  }
+
   // try to read as double
   in >> value;
 
@@ -87,30 +107,30 @@ std::stringstream &operator>>(std::stringstream& in, reactor::Duration& dur) {
     }
   } else {
     in >> unit;
-    if (unit == "nsec" || unit == "nsecs") {
+    if (unit == "nsec" || unit == "nsecs" || unit == "ns" ) {
       std::chrono::duration<double, std::nano> tmp{value};
       dur = std::chrono::duration_cast<reactor::Duration>(tmp);
-    } else if (unit == "usec" || unit == "usecs") {
+    } else if (unit == "usec" || unit == "usecs" || unit == "us") {
       std::chrono::duration<double, std::micro> tmp{value};
       dur = std::chrono::duration_cast<reactor::Duration>(tmp);
-    } else if (unit == "msec" || unit == "msecs") {
+    } else if (unit == "msec" || unit == "msecs" || unit == "ms") {
       std::chrono::duration<double, std::milli> tmp{value};
       dur = std::chrono::duration_cast<reactor::Duration>(tmp);
     } else if (unit == "sec" || unit == "secs" ||
-               unit == "second" || unit == "seconds") {
+               unit == "second" || unit == "seconds" || unit == "s") {
       std::chrono::duration<double, std::ratio<1, 1>> tmp{value};
       dur = std::chrono::duration_cast<reactor::Duration>(tmp);
     } else if (unit == "min" || unit == "mins" ||
-               unit == "minute" || unit == "minutes") {
+               unit == "minute" || unit == "minutes" || unit == "m") {
       std::chrono::duration<double, std::ratio<60, 1>> tmp{value};
       dur = std::chrono::duration_cast<reactor::Duration>(tmp);
-    } else if (unit == "hour" || unit == "hours") {
+    } else if (unit == "hour" || unit == "hours" || unit == "h") {
       std::chrono::duration<double, std::ratio<3600, 1>> tmp{value};
       dur = std::chrono::duration_cast<reactor::Duration>(tmp);
-    } else if (unit == "day" || unit == "days") {
+    } else if (unit == "day" || unit == "days" || unit == "d") {
       std::chrono::duration<double, std::ratio<24*3600, 1>> tmp{value};
       dur = std::chrono::duration_cast<reactor::Duration>(tmp);
-    } else if (unit == "week" || unit == "weeks") {
+    } else if (unit == "week" || unit == "weeks" || unit == "w") {
       std::chrono::duration<double, std::ratio<7*24*3600, 1>> tmp{value};
       dur = std::chrono::duration_cast<reactor::Duration>(tmp);
     } else {
@@ -131,6 +151,8 @@ std::string validate_time_string(const std::string& time) {
     return "The empty string is not a valid time!";
   } else if (trimmed[0] == '-') {
     return "Negative values are not a valid time!";
+  } else if (iequals("forever", time)) {
+    return ""; // "forever" is a valid value
   } else if (trimmed.find_first_not_of("0.") == std::string::npos) {
     return "";
   } else {
@@ -139,16 +161,16 @@ std::string validate_time_string(const std::string& time) {
       return "No unit given!";
     } else {
       auto unit = trimmed.substr(pos);
-      if (unit == "nsec" || unit == "nsecs" ||
-          unit == "usec" || unit == "usecs" ||
-          unit == "msec" || unit == "msecs" ||
+      if (unit == "nsec" || unit == "nsecs" || unit == "ns" ||
+          unit == "usec" || unit == "usecs" || unit == "us" ||
+          unit == "msec" || unit == "msecs" || unit == "ms" ||
           unit == "sec" || unit == "secs" ||
-          unit == "second" || unit == "seconds" ||
+          unit == "second" || unit == "seconds" || unit == "s" ||
           unit == "min" || unit == "mins" ||
-          unit == "minute" || unit == "minutes" ||
-          unit == "hour" || unit == "hours" ||
-          unit == "day" || unit == "days" ||
-          unit == "week" || unit == "weeks") {
+          unit == "minute" || unit == "minutes" || unit == "m" ||
+          unit == "hour" || unit == "hours" || unit == "h" ||
+          unit == "day" || unit == "days" || unit == "d" ||
+          unit == "week" || unit == "weeks" || unit == "w") {
         return "";
       } else {
         std::stringstream ss;

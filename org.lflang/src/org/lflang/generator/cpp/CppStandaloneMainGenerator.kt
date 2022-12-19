@@ -57,7 +57,6 @@ class CppStandaloneMainGenerator(
             |#include "${fileConfig.getReactorHeaderPath(main).toUnixString()}"
             |
             |#include "time_parser.hh"
-            |#include "lf_timeout.hh"
             |
             |int main(int argc, char **argv) {
             |  cxxopts::Options options("${fileConfig.name}", "Reactor Program");
@@ -65,7 +64,7 @@ class CppStandaloneMainGenerator(
             |  unsigned workers = ${if (targetConfig.workers != 0) targetConfig.workers else "std::thread::hardware_concurrency()"};
             |  bool fast{${targetConfig.fastMode}};
             |  bool keepalive{${targetConfig.keepalive}};
-            |  reactor::Duration timeout = ${targetConfig.timeout?.toCppCode() ?: "reactor::Duration::zero()"};
+            |  reactor::Duration timeout = ${targetConfig.timeout?.toCppCode() ?: "reactor::Duration::max()"};
             |  
             |  // the timeout variable needs to be tested beyond fitting the Duration-type 
             |  options
@@ -95,16 +94,10 @@ class CppStandaloneMainGenerator(
             |       return parse_error ? -1 : 0;
             |  }
             |
-            |  reactor::Environment e{workers, keepalive, fast};
+            |  reactor::Environment e{workers, keepalive, fast, timeout};
             |
             |  // instantiate the main reactor
             |  ${generateMainReactorInstantiation()}
-            |
-            |  // optionally instantiate the timeout reactor
-            |  std::unique_ptr<__lf_Timeout> t{nullptr};
-            |  if (timeout != reactor::Duration::zero()) {
-            |    t = std::make_unique<__lf_Timeout>("__lf_Timeout", &e, timeout);
-            |  }
             |
             |  // assemble reactor program
             |  e.assemble();

@@ -19,7 +19,6 @@ class CppRos2NodeGenerator(
             |
             |#include <rclcpp/rclcpp.hpp>
             |#include "reactor-cpp/reactor-cpp.hh"
-            |#include "lf_timeout.hh"
             |
             |#include "${fileConfig.getReactorHeaderPath(main).toUnixString()}"
             |
@@ -29,7 +28,6 @@ class CppRos2NodeGenerator(
             |private:
             |  std::unique_ptr<reactor::Environment> lf_env;
             |  std::unique_ptr<${main.name}> lf_main_reactor;
-            |  std::unique_ptr<__lf_Timeout> lf_timeout_reactor;
             |
             |  // main thread of the LF execution
             |  std::thread lf_main_thread;
@@ -62,7 +60,7 @@ class CppRos2NodeGenerator(
             |  unsigned workers = ${if (targetConfig.workers != 0) targetConfig.workers else "std::thread::hardware_concurrency()"};
             |  bool fast{${targetConfig.fastMode}};
             |  bool keepalive{${targetConfig.keepalive}};
-            |  reactor::Duration lf_timeout{${targetConfig.timeout?.toCppCode() ?: "reactor::Duration::zero()"}};
+            |  reactor::Duration lf_timeout{${targetConfig.timeout?.toCppCode() ?: "reactor::Duration::max()"}};
             |
             |  // provide a globally accessible reference to this node
             |  // FIXME: this is pretty hacky...
@@ -72,11 +70,6 @@ class CppRos2NodeGenerator(
             |
             |  // instantiate the main reactor
             |  lf_main_reactor = std::make_unique<${main.name}> ("${main.name}", lf_env.get());
-            |
-            |  // optionally instantiate the timeout reactor
-            |  if (lf_timeout != reactor::Duration::zero()) {
-            |    lf_timeout_reactor = std::make_unique<__lf_Timeout>("__lf_Timeout", lf_env.get(), lf_timeout);
-            |  }
             |
             |  // assemble reactor program
             |  lf_env->assemble();
