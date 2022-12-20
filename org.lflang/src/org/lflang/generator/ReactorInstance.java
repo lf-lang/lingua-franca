@@ -189,6 +189,22 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
         }
         return cachedReactionLoopGraph;
     }
+
+    /**
+     * This function assigns/propagates deadlines through the Reaction Instance Graph.
+     * It performs Kahn`s algorithm in reverse, starting from the leaf nodes and
+     * propagates deadlines upstream. To reduce cost, it should only be invoked when
+     * there are user-specified deadlines in the program.
+     * @return
+     */
+    public ReactionInstanceGraph assignDeadlines() {
+        if (depth != 0) return root().assignDeadlines();
+        if (cachedReactionLoopGraph == null) {
+            cachedReactionLoopGraph = new ReactionInstanceGraph(this);
+        }
+        cachedReactionLoopGraph.rebuildAndAssignDeadlines();
+        return cachedReactionLoopGraph;
+    }
     
     /** 
      * Return the instance of a child rector created by the specified
@@ -1124,7 +1140,7 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
      * @return True if this is a generated delay, false otherwise.
      */
     public boolean isGeneratedDelay() {
-        if (this.definition.getReactorClass().getName().contains(GeneratorBase.GEN_DELAY_CLASS_NAME)) {
+        if (this.definition.getReactorClass().getName().contains(DelayBodyGenerator.GEN_DELAY_CLASS_NAME)) {
             return true;
         }
         return false;
