@@ -130,6 +130,8 @@ public class TestRegistry {
     public enum TestCategory {
         /** Tests about concurrent execution. */
         CONCURRENT(true),
+        /** Test about enclaves */
+        ENCLAVE(false),
         /** Generic tests, ie, tests that all targets are supposed to implement. */
         GENERIC(true),
         /** Tests about generics, not to confuse with {@link #GENERIC}. */

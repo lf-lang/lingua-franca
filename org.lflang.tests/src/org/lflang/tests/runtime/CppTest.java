@@ -47,6 +47,9 @@ public class CppTest extends RuntimeTest {
         super(Target.CPP);
     }
 
+    @Override
+    protected boolean supportsEnclaves() { return true; }
+
     @Test
     @Override
     public void runGenericTests() {
