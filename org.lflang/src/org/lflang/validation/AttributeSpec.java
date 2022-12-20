@@ -50,6 +50,8 @@ class AttributeSpec {
 
     public static final String VALUE_ATTR = "value";
 
+    public static final String INDIVIDUAL_ATTR = "individual";
+
     /** A map from a string to a supported AttributeSpec */
     public static final Map<String, AttributeSpec> ATTRIBUTE_SPECS_BY_NAME = new HashMap<>();
 
@@ -206,15 +208,17 @@ class AttributeSpec {
     static {
         // @label("value")
         ATTRIBUTE_SPECS_BY_NAME.put("label", new AttributeSpec(
-            List.of(new AttrParamSpec(AttributeSpec.VALUE_ATTR, AttrParamType.STRING, null))
+            List.of(new AttrParamSpec(VALUE_ATTR, AttrParamType.STRING, null))
         ));
         // @sparse
         ATTRIBUTE_SPECS_BY_NAME.put("sparse", new AttributeSpec(null));
         // @icon("value")
         ATTRIBUTE_SPECS_BY_NAME.put("icon", new AttributeSpec(
-            List.of(new AttrParamSpec(AttributeSpec.VALUE_ATTR, AttrParamType.STRING, null))
+            List.of(new AttrParamSpec(VALUE_ATTR, AttrParamType.STRING, null))
         ));
-        // @sparse
-        ATTRIBUTE_SPECS_BY_NAME.put("enclave", new AttributeSpec(null));
+        // @enclave(indivdual=boolean)
+        ATTRIBUTE_SPECS_BY_NAME.put("enclave", new AttributeSpec(
+            List.of(new AttrParamSpec(INDIVIDUAL_ATTR, AttrParamType.BOOLEAN, false))
+        ));
     }
 }

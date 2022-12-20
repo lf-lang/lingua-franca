@@ -1,4 +1,4 @@
-// This is a smoke test for nested enclaves
+// This is a smoke test for an enclaved bank
 target Cpp {
     timeout: 1 sec
 }
