@@ -2,11 +2,9 @@ package org.lflang.generator.cpp
 
 import org.lflang.TargetConfig
 import org.lflang.generator.PrependOperator
-import org.lflang.generator.orZero
 import org.lflang.inferredType
 import org.lflang.lf.Parameter
 import org.lflang.lf.Reactor
-import org.lflang.toTimeNode
 import org.lflang.toUnixString
 
 /** C++ code generator responsible for generating the main file including the main() function */

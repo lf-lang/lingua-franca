@@ -446,7 +446,7 @@ public class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
             if (hasDeadlineCode) {
                 KText contentContainerText = _kContainerRenderingExtensions.addText(contentContainer, 
                         _utilityExtensions.trimCode(reaction.getDefinition().getDeadline().getCode()));
-                associateWith(contentContainerText, reaction.deadline);
+                associateWith(contentContainerText, reaction.declaredDeadline);
                 _kRenderingExtensions.setForeground(contentContainerText, Colors.BROWN);
                 _kRenderingExtensions.setFontSize(contentContainerText, 6);
                 _kRenderingExtensions.setFontName(contentContainerText, KlighdConstants.DEFAULT_MONOSPACE_FONT_NAME);

@@ -1,9 +1,7 @@
 package org.lflang.generator.cpp
 
 import org.lflang.TargetConfig
-import org.lflang.generator.orZero
 import org.lflang.lf.Reactor
-import org.lflang.toTimeNode
 import org.lflang.toUnixString
 
 /** A C++ code generator for creating a ROS2 node from a main reactor definition */

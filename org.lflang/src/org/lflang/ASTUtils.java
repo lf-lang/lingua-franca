@@ -28,7 +28,6 @@ package org.lflang;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
-import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -45,7 +44,6 @@ import org.eclipse.emf.common.util.EList;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.emf.ecore.EStructuralFeature;
 import org.eclipse.emf.ecore.resource.Resource;
-import org.eclipse.emf.ecore.util.EcoreUtil;
 import org.eclipse.xtext.TerminalRule;
 import org.eclipse.xtext.nodemodel.ICompositeNode;
 import org.eclipse.xtext.nodemodel.INode;
@@ -58,10 +56,8 @@ import org.eclipse.xtext.xbase.lib.IteratorExtensions;
 import org.eclipse.xtext.xbase.lib.StringExtensions;
 import org.lflang.ast.ToText;
 import org.lflang.generator.CodeMap;
-import org.lflang.generator.GeneratorBase;
 import org.lflang.generator.InvalidSourceException;
 import org.lflang.lf.Action;
-import org.lflang.lf.ActionOrigin;
 import org.lflang.lf.Assignment;
 import org.lflang.lf.Code;
 import org.lflang.lf.Connection;
@@ -89,7 +85,6 @@ import org.lflang.lf.TargetDecl;
 import org.lflang.lf.Time;
 import org.lflang.lf.Timer;
 import org.lflang.lf.Type;
-import org.lflang.lf.TypeParm;
 import org.lflang.lf.VarRef;
 import org.lflang.lf.Variable;
 import org.lflang.lf.WidthSpec;
@@ -139,83 +134,13 @@ public class ASTUtils {
      * @param resource the resource to extract reactors from
      * @return An iterable over all reactors found in the resource
      */
-    public static Iterable<Reactor> getAllReactors(Resource resource) {
+    public static List<Reactor> getAllReactors(Resource resource) {
         return StreamSupport.stream(IteratorExtensions.toIterable(resource.getAllContents()).spliterator(), false)
                      .filter(Reactor.class::isInstance)
                      .map(Reactor.class::cast)
                      .collect(Collectors.toList());
     }
 
-    /**
-     * Find connections in the given resource that have a delay associated with them, 
-     * and reroute them via a generated delay reactor.
-     * @param resource The AST.
-     * @param generator A code generator.
-     */
-    public static void insertGeneratedDelays(Resource resource, GeneratorBase generator) {
-        // The resulting changes to the AST are performed _after_ iterating 
-        // in order to avoid concurrent modification problems.
-        List<Connection> oldConnections = new ArrayList<>();
-        Map<EObject, List<Connection>> newConnections = new LinkedHashMap<>();
-        Map<EObject, List<Instantiation>> delayInstances = new LinkedHashMap<>();
-
-        // Iterate over the connections in the tree.
-        for (Reactor container : getAllReactors(resource)) {
-            for (Connection connection : allConnections(container)) {
-                if (connection.getDelay() != null) { 
-                    EObject parent = connection.eContainer();
-                    // Assume all the types are the same, so just use the first on the right.
-                    Type type = ((Port) connection.getRightPorts().get(0).getVariable()).getType();
-                    Reactor delayClass = getDelayClass(type, generator);
-                    String generic = generator.getTargetTypes().supportsGenerics() ? generator.getTargetTypes().getTargetType(InferredType.fromAST(type)) : "";
-                    Instantiation delayInstance = getDelayInstance(delayClass, connection, generic, 
-                        !generator.generateAfterDelaysWithVariableWidth());
-
-                    // Stage the new connections for insertion into the tree.
-                    List<Connection> connections = convertToEmptyListIfNull(newConnections.get(parent));
-                    connections.addAll(rerouteViaDelay(connection, delayInstance));
-                    newConnections.put(parent, connections);
-                    // Stage the original connection for deletion from the tree.
-                    oldConnections.add(connection);
-
-                    // Stage the newly created delay reactor instance for insertion
-                    List<Instantiation> instances = convertToEmptyListIfNull(delayInstances.get(parent));
-                    instances.add(delayInstance);
-                    delayInstances.put(parent, instances);
-                }
-            }
-        }
-
-        // Remove old connections; insert new ones.
-        oldConnections.forEach(connection -> {
-            var container = connection.eContainer();
-            if (container instanceof Reactor) {
-                ((Reactor) container).getConnections().remove(connection);
-            } else if (container instanceof Mode) {
-                ((Mode) container).getConnections().remove(connection);
-            }
-        });
-        newConnections.forEach((container, connections) -> {
-            if (container instanceof Reactor) {
-                ((Reactor) container).getConnections().addAll(connections);
-            } else if (container instanceof Mode) {
-                ((Mode) container).getConnections().addAll(connections);
-            }
-        });
-        // Finally, insert the instances and, before doing so, assign them a unique name.
-        delayInstances.forEach((container, instantiations) -> 
-            instantiations.forEach(instantiation -> {
-                if (container instanceof Reactor) {
-                    instantiation.setName(getUniqueIdentifier((Reactor) container, "delay"));
-                    ((Reactor) container).getInstantiations().add(instantiation);
-                } else if (container instanceof Mode) {
-                    instantiation.setName(getUniqueIdentifier((Reactor) container.eContainer(), "delay"));
-                    ((Mode) container).getInstantiations().add(instantiation);
-                }
-            })
-        );
-    }
-    
     /**
      * Find connections in the given resource that would be conflicting writes if they were not located in mutually
      * exclusive modes.
@@ -358,211 +283,7 @@ public class ASTUtils {
             || rightPortAsPort.getWidthSpec() != null
             || rightContainer != null && rightContainer.getWidthSpec() != null;
     }
-    
-    /**
-     * Take a connection and reroute it via an instance of a generated delay
-     * reactor. This method returns a list to new connections to substitute
-     * the original one.
-     * @param connection The connection to reroute.
-     * @param delayInstance The delay instance to route the connection through.
-     */
-    private static List<Connection> rerouteViaDelay(Connection connection, 
-            Instantiation delayInstance) {
-        List<Connection> connections = new ArrayList<>();    
-        Connection upstream = factory.createConnection();
-        Connection downstream = factory.createConnection();
-        VarRef input = factory.createVarRef();
-        VarRef output = factory.createVarRef();
 
-        Reactor delayClass = toDefinition(delayInstance.getReactorClass());
-        
-        // Establish references to the involved ports.
-        input.setContainer(delayInstance);
-        input.setVariable(delayClass.getInputs().get(0));
-        output.setContainer(delayInstance);
-        output.setVariable(delayClass.getOutputs().get(0));
-        upstream.getLeftPorts().addAll(connection.getLeftPorts());
-        upstream.getRightPorts().add(input);
-        downstream.getLeftPorts().add(output);
-        downstream.getRightPorts().addAll(connection.getRightPorts());
-        downstream.setIterated(connection.isIterated());
-        connections.add(upstream);
-        connections.add(downstream);
-        return connections;
-    }
-    
-    /**
-     * Create a new instance delay instances using the given reactor class.
-     * The supplied time value is used to override the default interval (which
-     * is zero).
-     * If the target supports parametric polymorphism, then a single class may
-     * be used for each instantiation, in which case a non-empty string must
-     * be supplied to parameterize the instance.
-     * A default name ("delay") is assigned to the instantiation, but this
-     * name must be overridden at the call site, where checks can be done to
-     * avoid name collisions in the container in which the instantiation is
-     * to be placed. Such checks (or modifications of the AST) are not
-     * performed in this method in order to avoid causing concurrent
-     * modification exceptions. 
-     * @param delayClass The class to create an instantiation for
-     * @param connection The connection to create a delay instantiation foe
-     * @param generic A string that denotes the appropriate type parameter, 
-     *  which should be null or empty if the target does not support generics.
-     * @param defineWidthFromConnection If this is true and if the connection 
-     *  is a wide connection, then instantiate a bank of delays where the width
-     *  is given by ports involved in the connection. Otherwise, the width will
-     *  be  unspecified indicating a variable length.
-     */
-    private static Instantiation getDelayInstance(Reactor delayClass, 
-            Connection connection, String generic, Boolean defineWidthFromConnection) {
-        Instantiation delayInstance = factory.createInstantiation();
-        delayInstance.setReactorClass(delayClass);
-        if (!StringExtensions.isNullOrEmpty(generic)) {
-            TypeParm typeParm = factory.createTypeParm();
-            typeParm.setLiteral(generic);
-            delayInstance.getTypeParms().add(typeParm);
-        }
-        if (hasMultipleConnections(connection)) {
-            WidthSpec widthSpec = factory.createWidthSpec();
-            if (defineWidthFromConnection) {
-                // Add all left ports of the connection to the WidthSpec of the generated delay instance.
-                // This allows the code generator to later infer the width from the involved ports.
-                // We only consider the left ports here, as they could be part of a broadcast. In this case, we want
-                // to delay the ports first, and then broadcast the output of the delays.
-                for (VarRef port : connection.getLeftPorts()) {
-                    WidthTerm term = factory.createWidthTerm();
-                    term.setPort(EcoreUtil.copy(port));
-                    widthSpec.getTerms().add(term);
-                }
-            } else {
-                widthSpec.setOfVariableLength(true);
-            }
-            delayInstance.setWidthSpec(widthSpec);
-        }
-        Assignment assignment = factory.createAssignment();
-        assignment.setLhs(delayClass.getParameters().get(0));
-        Initializer init = factory.createInitializer();
-        init.getExprs().add(Objects.requireNonNull(connection.getDelay(), "null delay"));
-        assignment.setRhs(init);
-        delayInstance.getParameters().add(assignment);
-        delayInstance.setName("delay");  // This has to be overridden.
-        return delayInstance;
-    }
-    
-    /**
-     * Return a synthesized AST node that represents the definition of a delay
-     * reactor. Depending on whether the target supports generics, either this
-     * method will synthesize a generic definition and keep returning it upon
-     * subsequent calls, or otherwise, it will synthesize a new definition for 
-     * each new type it hasn't yet created a compatible delay reactor for.
-     * @param type The type the delay class must be compatible with.
-     * @param generator A code generator.
-     */
-    private static Reactor getDelayClass(Type type, GeneratorBase generator) {
-        String className;
-        if (generator.getTargetTypes().supportsGenerics()) {
-            className = GeneratorBase.GEN_DELAY_CLASS_NAME;
-        } else {
-            String id = Integer.toHexString(InferredType.fromAST(type).toText().hashCode());
-            className = String.format("%s_%s", GeneratorBase.GEN_DELAY_CLASS_NAME, id);
-        }
-
-        // Only add class definition if it is not already there.
-        Reactor classDef = generator.findDelayClass(className);
-        if (classDef != null) {
-            return classDef;
-        }
-        
-        Reactor delayClass = factory.createReactor();
-        Parameter delayParameter = factory.createParameter();
-        Action action = factory.createAction();
-        VarRef triggerRef = factory.createVarRef();
-        VarRef effectRef = factory.createVarRef();
-        Input input = factory.createInput();
-        Output output = factory.createOutput();
-        VarRef inRef = factory.createVarRef();
-        VarRef outRef = factory.createVarRef();
-
-        Reaction r1 = factory.createReaction();
-        Reaction r2 = factory.createReaction();
-        
-        delayParameter.setName("delay");
-        delayParameter.setType(factory.createType());
-        delayParameter.getType().setId("time");
-        delayParameter.getType().setTime(true);
-        Time defaultTime = factory.createTime();
-        defaultTime.setUnit(null);
-        defaultTime.setInterval(0);
-        Initializer init = factory.createInitializer();
-        init.setParens(true);
-        init.setBraces(false);
-        init.getExprs().add(defaultTime);
-        delayParameter.setInit(init);
-
-        // Name the newly created action; set its delay and type.
-        action.setName("act");
-        var paramRef = factory.createParameterReference();
-        paramRef.setParameter(delayParameter);
-        action.setMinDelay(paramRef);
-        action.setOrigin(ActionOrigin.LOGICAL);
-
-        if (generator.getTargetTypes().supportsGenerics()) {
-            action.setType(factory.createType());
-            action.getType().setId("T");
-        } else {
-            action.setType(EcoreUtil.copy(type));
-        }
-
-        input.setName("inp");
-        input.setType(EcoreUtil.copy(action.getType()));
-
-        output.setName("out");
-        output.setType(EcoreUtil.copy(action.getType()));
-
-        // Establish references to the involved ports.
-        inRef.setVariable(input);
-        outRef.setVariable(output);
-
-        // Establish references to the action.
-        triggerRef.setVariable(action);
-        effectRef.setVariable(action);
-
-        // Add the action to the reactor.
-        delayClass.setName(className);
-        delayClass.getActions().add(action);
-
-        // Configure the second reaction, which reads the input.
-        r1.getTriggers().add(inRef);
-        r1.getEffects().add(effectRef);
-        r1.setCode(factory.createCode());
-        r1.getCode().setBody(generator.generateDelayBody(action, inRef));
-        
-        // Configure the first reaction, which produces the output.
-        r2.getTriggers().add(triggerRef);
-        r2.getEffects().add(outRef);
-        r2.setCode(factory.createCode());
-        r2.getCode().setBody(generator.generateForwardBody(action, outRef));
-
-        // Add the reactions to the newly created reactor class.
-        // These need to go in the opposite order in case
-        // a new input arrives at the same time the delayed
-        // output is delivered!
-        delayClass.getReactions().add(r2);
-        delayClass.getReactions().add(r1);
-
-        // Add a type parameter if the target supports it.
-        if (generator.getTargetTypes().supportsGenerics()) {
-            TypeParm parm = factory.createTypeParm();
-            parm.setLiteral(generator.generateDelayGeneric());
-            delayClass.getTypeParms().add(parm);
-        }
-        delayClass.getInputs().add(input);
-        delayClass.getOutputs().add(output);
-        delayClass.getParameters().add(delayParameter);
-        generator.addDelayClass(delayClass);
-        return delayClass;
-    }
-    
     /**
      * Produce a unique identifier within a reactor based on a
      * given based name. If the name does not exists, it is returned;
