@@ -28,7 +28,16 @@ import org.lflang.generator.PrependOperator
 import org.lflang.isBank
 import org.lflang.joinWithLn
 import org.lflang.label
-import org.lflang.lf.*
+import org.lflang.lf.Action
+import org.lflang.lf.BuiltinTrigger
+import org.lflang.lf.BuiltinTriggerRef
+import org.lflang.lf.Instantiation
+import org.lflang.lf.Port
+import org.lflang.lf.Reaction
+import org.lflang.lf.Reactor
+import org.lflang.lf.Timer
+import org.lflang.lf.TriggerRef
+import org.lflang.lf.VarRef
 import org.lflang.priority
 import org.lflang.toText
 
@@ -74,8 +83,8 @@ class CppReactionGenerator(
         get() = when {
             this is BuiltinTriggerRef && this.type == BuiltinTrigger.STARTUP  -> "reactor::StartupTrigger"
             this is BuiltinTriggerRef && this.type == BuiltinTrigger.SHUTDOWN -> "reactor::ShutdownTrigger"
-            this is VarRef  -> cppType
-            else            -> AssertionError("Unexpected trigger type")
+            this is VarRef                                                    -> cppType
+            else                                                              -> AssertionError("Unexpected trigger type")
         }
 
     private fun Reaction.getBodyParameters(): List<String> =
@@ -219,6 +228,14 @@ class CppReactionGenerator(
         reactor.reactions.joinToString(separator = "\n", prefix = "// reaction views\n", postfix = "\n") {
             generateViewInitializers(it)
         }
+
+    fun generateReactionViewForwardDeclarations(): String {
+        val classNames = reactor.reactions.map { r -> r.allReferencedContainers.map { r.getViewClassName(it) } }.flatten()
+        if (classNames.isEmpty()) {
+            return ""
+        }
+        return classNames.joinWithLn(prefix = "// reaction view forward declarations\n") { "struct $it;" }
+    }
 
     fun generateReactionViewConstructorInitializers() =
         reactor.reactions.joinToString(separator = "\n", prefix = "// reaction views\n", postfix = "\n") {

@@ -69,14 +69,14 @@ class CppRos2NodeGenerator(
             |  lf_env = std::make_unique<reactor::Environment>(workers, keepalive, fast, lf_timeout);
             |
             |  // instantiate the main reactor
-            |  lf_main_reactor = std::make_unique<${main.name}> ("${main.name}", lf_env.get());
+            |  lf_main_reactor = std::make_unique<${main.name}> ("${main.name}", lf_env.get(), ${main.name}::Parameters{});
             |
             |  // assemble reactor program
             |  lf_env->assemble();
             |
             |  // start execution
             |  lf_main_thread = lf_env->startup();
-            |  lf_shutdown_thread = std::thread([=] { wait_for_lf_shutdown(); });
+            |  lf_shutdown_thread = std::thread([this] { wait_for_lf_shutdown(); });
             |}
             |
             |$nodeName::~$nodeName() {

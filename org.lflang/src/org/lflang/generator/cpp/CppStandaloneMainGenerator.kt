@@ -19,13 +19,13 @@ class CppStandaloneMainGenerator(
             with(param) {
                 return if(inferredType.isTime) {
                     """
-                        $targetType $name = $defaultValue;
+                        $targetType $name${CppTypes.getCppInitializer(init, inferredType)};
                         options
                             .add_options()("$name", "The $name parameter passed to the main reactor ${main.name}.", cxxopts::value<$targetType>($name)->default_value(time_to_string($name)), "'FLOAT UNIT'");
                     """.trimIndent()
                 } else {
                     """
-                        $targetType $name = $defaultValue;
+                        $targetType $name${CppTypes.getCppInitializer(init, inferredType)};
                         options
                             .add_options()("$name", "The $name parameter passed to the main reactor ${main.name}.", cxxopts::value<$targetType>($name)->default_value(any_to_string($name)), "'$targetType'");
                     """.trimIndent()
@@ -35,10 +35,7 @@ class CppStandaloneMainGenerator(
     }
 
     private fun generateMainReactorInstantiation(): String =
-        if (main.parameters.isEmpty())
-            """auto main = std ::make_unique<${main.name}> ("${main.name}", &e);"""
-        else
-            """auto main = std ::make_unique<${main.name}> ("${main.name}", &e, ${main.parameters.joinToString(", ") { it.name }});"""
+            """auto main = std ::make_unique<${main.name}> ("${main.name}", &e, ${main.name}::Parameters{${main.parameters.joinToString(", ") { ".${it.name} = ${it.name}" }}});"""
 
     fun generateCode() = with(PrependOperator) {
         """
