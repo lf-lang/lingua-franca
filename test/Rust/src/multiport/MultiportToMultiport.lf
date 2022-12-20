@@ -15,8 +15,8 @@ reactor Sink {
     input[4] in: usize
 
     reaction(in) {=
-        for (i, port) in r#in.into_iter().enumerate() {
-            assert_eq!(Some(i), ctx.get(&port), "Failed for input in[{}]", i);
+        for (i, port) in r#in.iter().enumerate() {
+            assert_eq!(Some(i), ctx.get(port), "Failed for input in[{}]", i);
         }
         println!("Success");
     =}
