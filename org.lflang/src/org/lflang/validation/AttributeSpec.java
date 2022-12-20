@@ -215,6 +215,6 @@ class AttributeSpec {
             List.of(new AttrParamSpec(AttributeSpec.VALUE_ATTR, AttrParamType.STRING, null))
         ));
         // @sparse
-        ATTRIBUTE_SPECS_BY_NAME.put("affiliate", new AttributeSpec(null));
+        ATTRIBUTE_SPECS_BY_NAME.put("enclave", new AttributeSpec(null));
     }
 }

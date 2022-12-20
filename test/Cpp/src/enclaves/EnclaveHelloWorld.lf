@@ -6,10 +6,10 @@ reactor Hello(msg: std::string("World")) {
     =}
 }
 
-main reactor(msg1: std::string("World"), msg2: std::string("Affiliated World")) {
+main reactor(msg1: std::string("World"), msg2: std::string("Enclave")) {
 
     hello1 = new Hello(msg=msg1)
 
-    @affiliate
+    @enclave
     hello2 = new Hello(msg=msg2)
 }

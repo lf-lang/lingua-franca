@@ -174,10 +174,10 @@ public class AttributeUtils {
     }
 
     /**
-     * Return true if the specified instance has an {@code @affiliate} attribute.
+     * Return true if the specified instance has an {@code @enclave} attribute.
      */
-    public static boolean isAffiliate(Instantiation node) {
-        return findAttributeByName(node, "affiliate") != null;
+    public static boolean isEnclave(Instantiation node) {
+        return findAttributeByName(node, "enclave") != null;
     }
 
 }

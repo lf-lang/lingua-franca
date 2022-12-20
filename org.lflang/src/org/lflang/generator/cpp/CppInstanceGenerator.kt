@@ -28,13 +28,13 @@ import org.lflang.*
 import org.lflang.lf.Instantiation
 import org.lflang.lf.Reactor
 
-/** A code genarator for reactor instances */
+/** A code generator for reactor instances */
 class CppInstanceGenerator(
     private val reactor: Reactor,
     private val fileConfig: CppFileConfig,
     private val errorReporter: ErrorReporter
 ) {
-    private val Instantiation.isAffiliate: Boolean get() = AttributeUtils.isAffiliate(this)
+    private val Instantiation.isEnclave: Boolean get() = AttributeUtils.isEnclave(this)
 
     val Instantiation.cppType: String
         get() {
@@ -46,15 +46,15 @@ class CppInstanceGenerator(
 
     private fun generateDeclaration(inst: Instantiation): String = with(inst) {
         return when {
-            !isBank && !isAffiliate -> "std::unique_ptr<$cppType> $name;"
-            isBank && !isAffiliate  -> "std::vector<std::unique_ptr<$cppType>> $name;"
-            !isBank && isAffiliate  -> """
+            !isBank && !isEnclave -> "std::unique_ptr<$cppType> $name;"
+            isBank && !isEnclave  -> "std::vector<std::unique_ptr<$cppType>> $name;"
+            !isBank && isEnclave  -> """
                 reactor::Environment __lf_env_$name;
                 std::unique_ptr<$cppType> $name;
             """.trimIndent()
 
-            isBank && isAffiliate   -> TODO("Affiliated banks are not supported yet")
-            else                    -> throw RuntimeException("Unexpected case")
+            isBank && isEnclave   -> TODO("Enclave banks are not supported yet")
+            else                  -> throw RuntimeException("Unexpected case")
         }
     }
 
@@ -92,7 +92,7 @@ class CppInstanceGenerator(
     private fun generateInitializer(inst: Instantiation): String {
         with(inst) {
             assert(!isBank)
-            return if (!isAffiliate) """, $name(std::make_unique<$cppType>("$name}", this, ${getParameterStruct()}))"""
+            return if (!isEnclave) """, $name(std::make_unique<$cppType>("$name}", this, ${getParameterStruct()}))"""
             else """
                 , __lf_env_$name(this->fqn() + ".$name", this->environment())
                 , $name(std::make_unique<$cppType>("$name}", &__lf_env_$name, ${getParameterStruct()}))
@@ -103,7 +103,7 @@ class CppInstanceGenerator(
     private fun generateConstructorInitializer(inst: Instantiation): String {
         with(inst) {
             assert(isBank)
-            assert(!isAffiliate)
+            assert(!isEnclave)
             val emplaceLine =
                 "$name.emplace_back(std::make_unique<$cppType>(__lf_inst_name, this, ${inst.getParameterStruct()}));"
 
