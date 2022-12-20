@@ -98,7 +98,7 @@ class AttributeSpec {
             Map<String, AttrParamSpec> missingParams = new HashMap<>(paramSpecByName);
             missingParams.keySet().removeAll(seen);
             missingParams.forEach((name, paramSpec) -> {
-                if (!paramSpec.isOptional()) {
+                if (!paramSpec.isOptional) {
                     validator.error("Missing required attribute parameter '" + name + "'.", Literals.ATTRIBUTE__ATTR_PARMS);
                 }
             });
@@ -149,11 +149,7 @@ class AttributeSpec {
      * @param type The type of the parameter
      * @param defaultValue If non-null, parameter is optional.
      */
-    record AttrParamSpec(String name, AttrParamType type, Object defaultValue) {
-
-        private boolean isOptional() {
-            return defaultValue == null;
-        }
+    record AttrParamSpec(String name, AttrParamType type, boolean isOptional) {
 
         // Check if a parameter has the right type.
         // Currently only String, Int, Boolean, and Float are supported.
@@ -208,17 +204,17 @@ class AttributeSpec {
     static {
         // @label("value")
         ATTRIBUTE_SPECS_BY_NAME.put("label", new AttributeSpec(
-            List.of(new AttrParamSpec(VALUE_ATTR, AttrParamType.STRING, null))
+            List.of(new AttrParamSpec(VALUE_ATTR, AttrParamType.STRING, true))
         ));
         // @sparse
         ATTRIBUTE_SPECS_BY_NAME.put("sparse", new AttributeSpec(null));
         // @icon("value")
         ATTRIBUTE_SPECS_BY_NAME.put("icon", new AttributeSpec(
-            List.of(new AttrParamSpec(VALUE_ATTR, AttrParamType.STRING, null))
+            List.of(new AttrParamSpec(VALUE_ATTR, AttrParamType.STRING, true))
         ));
         // @enclave(indivdual=boolean)
         ATTRIBUTE_SPECS_BY_NAME.put("enclave", new AttributeSpec(
-            List.of(new AttrParamSpec(INDIVIDUAL_ATTR, AttrParamType.BOOLEAN, false))
+            List.of(new AttrParamSpec(INDIVIDUAL_ATTR, AttrParamType.BOOLEAN, true))
         ));
     }
 }
