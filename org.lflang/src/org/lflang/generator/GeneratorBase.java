@@ -31,6 +31,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -55,6 +56,7 @@ import org.lflang.TargetConfig;
 import org.lflang.TargetProperty.CoordinationType;
 import org.lflang.TimeUnit;
 import org.lflang.TimeValue;
+import org.lflang.ast.AstTransformation;
 import org.lflang.federated.FedASTUtils;
 import org.lflang.federated.FederateInstance;
 import org.lflang.federated.serialization.SupportedSerializers;
@@ -65,7 +67,6 @@ import org.lflang.lf.Expression;
 import org.lflang.lf.Instantiation;
 import org.lflang.lf.LfFactory;
 import org.lflang.lf.Mode;
-import org.lflang.lf.Model;
 import org.lflang.lf.Parameter;
 import org.lflang.lf.Reaction;
 import org.lflang.lf.Reactor;
@@ -90,11 +91,6 @@ public abstract class GeneratorBase extends AbstractLFValidator {
 
     ////////////////////////////////////////////
     //// Public fields.
-
-    /**
-     * Constant that specifies how to name generated delay reactors.
-     */
-    public static String GEN_DELAY_CLASS_NAME = "_lf_GenDelay";
 
     /**
      * The main (top-level) reactor instance.
@@ -125,11 +121,6 @@ public abstract class GeneratorBase extends AbstractLFValidator {
     protected GeneratorCommandFactory commandFactory;
 
     public GeneratorCommandFactory getCommandFactory() { return commandFactory; }
-
-    /**
-     * Collection of generated delay classes.
-     */
-    private LinkedHashSet<Reactor> delayClasses = new LinkedHashSet<>();
 
     /**
      * Definition of the main (top-level) reactor.
@@ -234,6 +225,11 @@ public abstract class GeneratorBase extends AbstractLFValidator {
     // // Private fields.
 
     /**
+     * A list ot AST transformations to apply before code generation
+     */
+    private List<AstTransformation> astTransformations = new ArrayList();
+
+    /**
      * Create a new GeneratorBase object.
      */
     public GeneratorBase(FileConfig fileConfig, ErrorReporter errorReporter) {
@@ -242,28 +238,17 @@ public abstract class GeneratorBase extends AbstractLFValidator {
         this.commandFactory = new GeneratorCommandFactory(errorReporter, fileConfig);
     }
 
+    /**
+     * Register an AST transformation to be applied to the AST.
+     *
+     * The transformations will be applied in the order that they are registered in.
+     */
+    protected void registerTransformation(AstTransformation transformation) {
+        astTransformations.add(transformation);
+    }
+
     // //////////////////////////////////////////
     // // Code generation functions to override for a concrete code generator.
-
-    /**
-     * Store the given reactor in the collection of generated delay classes
-     * and insert it in the AST under the top-level reactor's node.
-     */
-    public void addDelayClass(Reactor generatedDelay) {
-        // Record this class, so it can be reused.
-        delayClasses.add(generatedDelay);
-        // And hook it into the AST.
-        EObject node = IteratorExtensions.findFirst(fileConfig.resource.getAllContents(), Model.class::isInstance);
-        ((Model) node).getReactors().add(generatedDelay);
-    }
-
-    /**
-     * Return the generated delay reactor that corresponds to the given class
-     * name if it had been created already, `null` otherwise.
-     */
-    public Reactor findDelayClass(String className) {
-        return IterableExtensions.findFirst(delayClasses, it -> it.getName().equals(className));
-    }
 
     /**
      * If there is a main or federated reactor, then create a synthetic Instantiation
@@ -356,9 +341,9 @@ public abstract class GeneratorBase extends AbstractLFValidator {
         // FIXME: Should the GeneratorBase pull in `files` from imported
         // resources?
 
-        // Reroute connections that have delays associated with them via
-        // generated delay reactors.
-        transformDelays();
+        for (AstTransformation transformation : astTransformations) {
+            transformation.applyTransformation(reactors);
+        }
 
         // Transform connections that reside in mutually exclusive modes and are otherwise conflicting
         // This should be done before creating the instantiation graph
@@ -421,15 +406,6 @@ public abstract class GeneratorBase extends AbstractLFValidator {
     }
 
     /**
-     * For each involved resource, replace connections with delays with generated delay reactors.
-     */
-    private void transformDelays() {
-        for (LFResource r : resources) {
-            ASTUtils.insertGeneratedDelays(r.eResource, this);
-        }
-    }
-
-    /**
      * Copy user specific files to the src-gen folder.
      *
      * This should be overridden by the target generators.
@@ -452,44 +428,6 @@ public abstract class GeneratorBase extends AbstractLFValidator {
      * Return the TargetTypes instance associated with this.
      */
     public abstract TargetTypes getTargetTypes();
-
-    /**
-     * Generate code for the body of a reaction that takes an input and
-     * schedules an action with the value of that input.
-     * @param action the action to schedule
-     * @param port the port to read from
-     */
-    public abstract String generateDelayBody(Action action, VarRef port);
-
-    /**
-     * Generate code for the body of a reaction that is triggered by the
-     * given action and writes its value to the given port.
-     * @param action the action that triggers the reaction
-     * @param port the port to write to
-     */
-    public abstract String generateForwardBody(Action action, VarRef port);
-
-    /**
-     * Generate code for the generic type to be used in the class definition
-     * of a generated delay reactor.
-     */
-    public abstract String generateDelayGeneric();
-
-    /**
-     * Return true if the reaction is unordered. An unordered reaction is one
-     * that does not have any dependency on other reactions in the containing
-     * reactor, and where no other reaction in the containing reactor depends
-     * on it. There is currently no way in the syntax of LF to make a reaction
-     * unordered, deliberately, because it can introduce unexpected
-     * nondeterminacy. However, certain automatically generated reactions are
-     * known to be safe to be unordered because they do not interact with the
-     * state of the containing reactor. To make a reaction unordered, when
-     * the Reaction instance is created, add that instance to this set.
-     * @return True if the reaction has been marked unordered.
-     */
-    public boolean isUnordered(Reaction reaction) {
-        return unorderedReactions != null && unorderedReactions.contains(reaction);
-    }
 
     /**
      * Mark the reaction unordered. An unordered reaction is one that does not
@@ -1229,19 +1167,6 @@ public abstract class GeneratorBase extends AbstractLFValidator {
         System.out.println("******** mode: " + mode);
         System.out.println("******** generated sources: " + fileConfig.getSrcGenPath());
     }
-
-    /**
-     * Indicates whether delay banks generated from after delays should have a variable length width.
-     *
-     * If this is true, any delay reactors that are inserted for after delays on multiport connections
-     * will have an unspecified variable length width. The code generator is then responsible for inferring the
-     * correct width of the delay bank, which is only possible if the precise connection width is known at compile time.
-     *
-     * If this is false, the width specification of the generated bank will list all the ports listed on the right
-     * side of the connection. This gives the code generator the information needed to infer the correct width at
-     * runtime.
-     */
-    public boolean generateAfterDelaysWithVariableWidth() { return true; }
 
     /**
      * Get the buffer type used for network messages
