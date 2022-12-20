@@ -5,6 +5,7 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.emf.ecore.resource.Resource;
@@ -21,7 +22,7 @@ import org.lflang.lf.Action;
 import org.lflang.lf.ActionOrigin;
 import org.lflang.lf.Assignment;
 import org.lflang.lf.Connection;
-import org.lflang.lf.Expression;
+import org.lflang.lf.Initializer;
 import org.lflang.lf.Input;
 import org.lflang.lf.Instantiation;
 import org.lflang.lf.LfFactory;
@@ -205,7 +206,6 @@ public class AfterDelayTransformation implements AstTransformation {
      */
     private static Instantiation getDelayInstance(Reactor delayClass,
         Connection connection, String generic, Boolean defineWidthFromConnection) {
-        Expression delay = connection.getDelay();
         Instantiation delayInstance = factory.createInstantiation();
         delayInstance.setReactorClass(delayClass);
         if (!StringExtensions.isNullOrEmpty(generic)) {
@@ -232,7 +232,9 @@ public class AfterDelayTransformation implements AstTransformation {
         }
         Assignment assignment = factory.createAssignment();
         assignment.setLhs(delayClass.getParameters().get(0));
-        assignment.getRhs().add(delay);
+        Initializer init = factory.createInitializer();
+        init.getExprs().add(Objects.requireNonNull(connection.getDelay(), "null delay"));
+        assignment.setRhs(init);
         delayInstance.getParameters().add(assignment);
         delayInstance.setName("delay");  // This has to be overridden.
         return delayInstance;
@@ -281,7 +283,11 @@ public class AfterDelayTransformation implements AstTransformation {
         Time defaultTime = factory.createTime();
         defaultTime.setUnit(null);
         defaultTime.setInterval(0);
-        delayParameter.getInit().add(defaultTime);
+        Initializer init = factory.createInitializer();
+        init.setParens(true);
+        init.setBraces(false);
+        init.getExprs().add(defaultTime);
+        delayParameter.setInit(init);
 
         // Name the newly created action; set its delay and type.
         action.setName("act");

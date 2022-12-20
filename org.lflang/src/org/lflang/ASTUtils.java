@@ -31,6 +31,7 @@ import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.function.Predicate;
 import java.util.regex.Matcher;
@@ -63,6 +64,7 @@ import org.lflang.lf.Connection;
 import org.lflang.lf.Element;
 import org.lflang.lf.Expression;
 import org.lflang.lf.ImportedReactor;
+import org.lflang.lf.Initializer;
 import org.lflang.lf.Input;
 import org.lflang.lf.Instantiation;
 import org.lflang.lf.LfFactory;
@@ -716,10 +718,6 @@ public class ASTUtils {
         }
         return false;
     }
-    
-    public static boolean isZero(Code code) {
-        return code != null && isZero(toOriginalText(code));
-    }
 
     /**
      * Report whether the given expression is zero or not.
@@ -730,14 +728,13 @@ public class ASTUtils {
     public static boolean isZero(Expression expr) {
         if (expr instanceof Literal) {
             return isZero(((Literal) expr).getLiteral());
-        } else if (expr instanceof Code) {
-            return isZero((Code) expr);
         }
         return false;
     }
 
     /**
      * Report whether the given string literal is an integer number or not.
+     *
      * @param literal AST node to inspect.
      * @return True if the given value is an integer, false otherwise.
      */
@@ -810,8 +807,6 @@ public class ASTUtils {
                 return isValidTime((Time) expr);
             } else if (expr instanceof Literal) {
                 return isZero(((Literal) expr).getLiteral());
-            } else if (expr instanceof Code) {
-                return isZero((Code) expr);
             }
         return false;
     }
@@ -828,6 +823,32 @@ public class ASTUtils {
                TimeUnit.isValidUnit(unit);
     }
 
+
+    /**
+     * If the initializer contains exactly one expression,
+     * return it. Otherwise, return null.
+     */
+    public static Expression asSingleExpr(Initializer init) {
+        if (init == null) {
+            return null;
+        }
+        var exprs = init.getExprs();
+        return exprs.size() == 1 ? exprs.get(0) : null;
+    }
+
+    public static boolean isSingleExpr(Initializer init) {
+        // todo expand that to = initialization
+        if (init == null) {
+            return false;
+        }
+        var exprs = init.getExprs();
+        return exprs.size() == 1;
+    }
+
+    public static boolean isListInitializer(Initializer init) {
+        return init != null && !isSingleExpr(init);
+    }
+
     /**
      * Return the type of a declaration with the given
      * (nullable) explicit type, and the given (nullable)
@@ -837,27 +858,26 @@ public class ASTUtils {
      * "undefined" type if neither can be inferred.
      *
      * @param type     Explicit type declared on the declaration
-     * @param initList A list of expressions used to initialize a parameter or
-     *                 state variable.
+     * @param init The initializer expression
      * @return The inferred type, or "undefined" if none could be inferred.
      */
-    public static InferredType getInferredType(Type type, List<Expression> initList) {
+    public static InferredType getInferredType(Type type, Initializer init) {
         if (type != null) {
             return InferredType.fromAST(type);
-        } else if (initList == null) {
+        } else if (init == null) {
             return InferredType.undefined();
         }
 
-        if (initList.size() == 1) {
+        var single = asSingleExpr(init);
+        if (single != null) {
             // If there is a single element in the list, and it is a proper
             // time value with units, we infer the type "time".
-            Expression expr = initList.get(0);
-            if (expr instanceof ParameterReference) {
-                return getInferredType(((ParameterReference)expr).getParameter());
-            } else if (ASTUtils.isValidTime(expr) && !ASTUtils.isZero(expr)) {
+            if (single instanceof ParameterReference) {
+                return getInferredType(((ParameterReference) single).getParameter());
+            } else if (single instanceof Time) {
                 return InferredType.time();
             }
-        } else if (initList.size() > 1) {
+        } else if (init.getExprs().size() > 1) {
             // If there are multiple elements in the list, and there is at
             // least one proper time value with units, and all other elements
             // are valid times (including zero without units), we infer the
@@ -865,11 +885,11 @@ public class ASTUtils {
             var allValidTime = true;
             var foundNonZero = false;
 
-            for (var expr : initList) {
-                if (!ASTUtils.isValidTime(expr)) {
+            for (var e : init.getExprs()) {
+                if (!ASTUtils.isValidTime(e)) {
                     allValidTime = false;
                 }
-                if (!ASTUtils.isZero(expr)) {
+                if (!ASTUtils.isZero(e)) {
                     foundNonZero = true;
                 }
             }
@@ -994,7 +1014,7 @@ public class ASTUtils {
      */
     public static TimeValue getDefaultAsTimeValue(Parameter p) {
         if (isOfTimeType(p)) {
-            var init = p.getInit().get(0);
+            var init = asSingleExpr(p.getInit());
             if (init != null) {
                 return getLiteralTimeValue(init);
             }
@@ -1075,7 +1095,7 @@ public class ASTUtils {
      * ```
      * (Actually, in each of the above cases, the returned value is a list with
      * one entry, a Literal, e.g. ["1"]).
-     * 
+     *
      * There are two instances of reactor class B.
      * ```
      *     initialValue(y, null) returns 2
@@ -1120,7 +1140,7 @@ public class ASTUtils {
             if (lastAssignment != null) {
                 // Right hand side can be a list. Collect the entries.
                 List<Expression> result = new ArrayList<>();
-                for (Expression expr: lastAssignment.getRhs()) {
+                for (Expression expr: lastAssignment.getRhs().getExprs()) {
                     if (expr instanceof ParameterReference) {
                         if (instantiations.size() > 1
                             && instantiation.eContainer() != instantiations.get(1).getReactorClass()
@@ -1144,7 +1164,7 @@ public class ASTUtils {
         // If we reach here, then either no instantiation was supplied or
         // there was no assignment in the instantiation. So just use the
         // parameter's initial value.
-        return parameter.getInit();
+        return parameter.getInit().getExprs();
     }
     
     /**
@@ -1422,7 +1442,7 @@ public class ASTUtils {
      * @return True if the variable was initialized, false otherwise.
      */
     public static boolean isInitialized(StateVar v) {
-        return v != null && (v.getParens().size() == 2 || v.getBraces().size() == 2);
+        return v != null && v.getInit() != null;
     }
 
     /**
@@ -1434,7 +1454,7 @@ public class ASTUtils {
      */
     public static boolean isParameterized(StateVar s) {
         return s.getInit() != null && 
-               IterableExtensions.exists(s.getInit(), it -> it instanceof ParameterReference);
+               IterableExtensions.exists(s.getInit().getExprs(), it -> it instanceof ParameterReference);
     }
 
     /**

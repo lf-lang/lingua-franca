@@ -29,17 +29,15 @@ package org.lflang.generator.cpp
 import org.eclipse.emf.ecore.resource.Resource
 import org.lflang.ErrorReporter
 import org.lflang.Target
-import org.lflang.TimeUnit
-import org.lflang.TimeValue
 import org.lflang.ast.AfterDelayTransformation
 import org.lflang.generator.CodeMap
 import org.lflang.generator.GeneratorBase
 import org.lflang.generator.GeneratorResult
+import org.lflang.generator.GeneratorUtils.canGenerate
 import org.lflang.generator.IntegratedBuilder
 import org.lflang.generator.LFGeneratorContext
 import org.lflang.generator.LFGeneratorContext.Mode
 import org.lflang.generator.TargetTypes
-import org.lflang.generator.GeneratorUtils.canGenerate
 import org.lflang.isGeneric
 import org.lflang.scoping.LFGlobalScopeProvider
 import org.lflang.util.FileUtil
@@ -61,6 +59,10 @@ class CppGenerator(
     companion object {
         /** Path to the Cpp lib directory (relative to class path)  */
         const val libDir = "/lib/cpp"
+
+        const val MINIMUM_CMAKE_VERSION = "3.5"
+
+        const val CPP_VERSION = "20"
     }
 
     override fun doGenerate(resource: Resource, context: LFGeneratorContext) {
@@ -185,36 +187,3 @@ class CppGenerator(
     override fun getTargetTypes(): TargetTypes = CppTypes
 }
 
-object CppTypes : TargetTypes {
-
-    override fun supportsGenerics() = true
-
-    override fun getTargetTimeType() = "reactor::Duration"
-    override fun getTargetTagType() = "reactor::Tag"
-
-    override fun getTargetFixedSizeListType(baseType: String, size: Int) = "std::array<$baseType, $size>"
-    override fun getTargetVariableSizeListType(baseType: String) = "std::vector<$baseType>"
-
-    override fun getTargetUndefinedType() = "void"
-
-    override fun getTargetTimeExpr(timeValue: TimeValue): String =
-        with(timeValue) {
-            if (magnitude == 0L) "reactor::Duration::zero()"
-            else magnitude.toString() + unit.cppUnit
-        }
-
-}
-
-/** Get a C++ representation of a LF unit. */
-val TimeUnit?.cppUnit
-    get() = when (this) {
-        TimeUnit.NANO   -> "ns"
-        TimeUnit.MICRO  -> "us"
-        TimeUnit.MILLI  -> "ms"
-        TimeUnit.SECOND -> "s"
-        TimeUnit.MINUTE -> "min"
-        TimeUnit.HOUR   -> "h"
-        TimeUnit.DAY    -> "d"
-        TimeUnit.WEEK   -> "d*7"
-        else            -> ""
-    }

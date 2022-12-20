@@ -129,13 +129,19 @@ TargetDecl:
  */
  StateVar:
     (attributes+=Attribute)*
-    (reset?='reset')? 'state' name=ID (
-        (':' (type=Type))? 
-        ((parens+='(' (init+=Expression (','  init+=Expression)*)? parens+=')')
-            | (braces+='{' (init+=Expression (','  init+=Expression)*)? braces+='}')
-        )?
-    ) ';'?
+    (reset?='reset')? 'state' name=ID
+    (':' type=Type)?
+    init=Initializer?
+    ';'?
 ;
+
+// An initializer expression. Used in state vars and parameters.
+Initializer:
+      parens?='(' (exprs+=Expression (','  exprs+=Expression)* (trailingComma?=',')?)? ')'
+    | braces?='{' (exprs+=Expression (','  exprs+=Expression)* (trailingComma?=',')?)? '}'
+//    | assign?='=' exprs+=Expression // todo later
+;
+
 
 Method:
     const?='const'? 'method' name=ID
@@ -161,10 +167,6 @@ Output:
 // The latter means fire with period 1000, offset 100.
 Timer:
    (attributes+=Attribute)* 'timer' name=ID ('(' offset=Expression (',' period=Expression)? ')')? ';'?;
-
-Boolean:
-    TRUE | FALSE
-;
 
 Mode:
     {Mode} (initial?='initial')? 'mode' (name=ID)?
@@ -260,7 +262,7 @@ Array: // todo allow empty array in grammar, replace with validator error
     '[' elements+=Element (',' (elements+=Element))* ','? ']';
 
 Element:
-    keyvalue=KeyValuePairs 
+    keyvalue=KeyValuePairs
     | array=Array
     | literal=Literal 
     | (time=INT unit=TimeUnit)
@@ -282,29 +284,32 @@ VarRefOrModeTransition returns VarRef:
     VarRef | transition=ModeTransition '(' variable=[Mode] ')';
 
 Assignment:
-    (lhs=[Parameter] (
-        (equals='=' rhs+=Expression)
-        | ((equals='=')? (
-            parens+='(' (rhs+=Expression (',' rhs+=Expression)*)? parens+=')'
-            | braces+='{' (rhs+=Expression (',' rhs+=Expression)*)? braces+='}'))
-    ));
+    lhs=[Parameter]
+    (equals='=')? rhs=AssignmentInitializer
+;
+
+// TODO Only allow = based parameter assignment
+AssignmentInitializer returns Initializer:
+      exprs+=Expression
+    | parens?='(' (exprs+=Expression (','  exprs+=Expression)* (trailingComma?=',')?)? ')'
+    | braces?='{' (exprs+=Expression (','  exprs+=Expression)* (trailingComma?=',')?)? '}'
+;
+
 
 /**
  * Parameter declaration with optional type and mandatory initialization.
  */
 Parameter:
     (attributes+=Attribute)*
-    name=ID (':' (type=Type))?
-    ((parens+='(' (init+=Expression (','  init+=Expression)*)? parens+=')')
-        | (braces+='{' (init+=Expression (','  init+=Expression)*)? braces+='}')
-    )?
+    name=ID (':' type=Type)?
+    init=Initializer?
 ;
 
 Expression:
-    {Literal} literal = Literal
+      {Literal} literal=Literal
     | Time
     | ParameterReference
-    | Code
+    | {CodeExpr} code=Code
 ;
 
 ParameterReference:
@@ -366,7 +371,12 @@ SignedInt:
 ;
 
 Literal:
-    STRING | CHAR_LIT | SignedFloat | SignedInt | Boolean;
+    STRING | CHAR_LIT | SignedFloat | SignedInt | Boolean
+;
+
+Boolean:
+    TRUE | FALSE
+;
 
 /////////// Elementary components
 

@@ -11,6 +11,7 @@ import org.eclipse.xtext.nodemodel.util.NodeModelUtils;
 import org.lflang.ASTUtils;
 import org.lflang.lf.ArraySpec;
 import org.lflang.lf.Code;
+import org.lflang.lf.CodeExpr;
 import org.lflang.lf.Host;
 import org.lflang.lf.Literal;
 import org.lflang.lf.ParameterReference;
@@ -37,6 +38,11 @@ public class ToText extends LfSwitch<String> {
     @Override
     public String caseArraySpec(ArraySpec spec) {
         return ToLf.instance.doSwitch(spec).toString();
+    }
+
+    @Override
+    public String caseCodeExpr(CodeExpr object) {
+        return caseCode(object.getCode());
     }
 
     @Override
