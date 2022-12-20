@@ -118,8 +118,8 @@ class CppReactorGenerator(private val reactor: Reactor, fileConfig: CppFileConfi
             |
             | public:
         ${" |  "..ports.generateDeclarations()}
-        ${" |  "..outerConstructorSignature(true)}
-        ${" |  "..outerConstructorSignature(false)}
+        ${" |  "..outerConstructorSignature(true)};
+        ${" |  "..outerConstructorSignature(false)};
             |
             |  void assemble() override;
             |};
