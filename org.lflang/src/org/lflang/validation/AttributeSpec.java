@@ -32,9 +32,11 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.lflang.ASTUtils;
 import org.lflang.lf.AttrParm;
 import org.lflang.lf.Attribute;
 import org.lflang.lf.LfPackage.Literals;
+import org.lflang.util.StringUtil;
 
 /**
  * Specification of the structure of an attribute annotation.
@@ -154,31 +156,35 @@ class AttributeSpec {
         // Check if a parameter has the right type.
         // Currently only String, Int, Boolean, and Float are supported.
         public void check(LFValidator validator, AttrParm parm) {
-            switch(type) {
-                case STRING:
-                    if (parm.getValue().getStr() == null) {
-                        validator.error("Incorrect type: \"" + parm.getName() + "\"" + " should have type String.",
-                                        Literals.ATTRIBUTE__ATTR_NAME);
-                    }
-                    break;
-                case INT:
-                    if (parm.getValue().getInt() == null) {
-                        validator.error("Incorrect type: \"" + parm.getName() + "\"" + " should have type Int.",
-                                        Literals.ATTRIBUTE__ATTR_NAME);
-                    }
-                    break;
-                case BOOLEAN:
-                    if (parm.getValue().getBool() == null) {
-                        validator.error("Incorrect type: \"" + parm.getName() + "\"" + " should have type Boolean.",
-                                        Literals.ATTRIBUTE__ATTR_NAME);
-                    }
-                    break;
-                case FLOAT:
-                    if (parm.getValue().getFloat() == null) {
-                        validator.error("Incorrect type: \"" + parm.getName() + "\"" + " should have type Float.",
-                                        Literals.ATTRIBUTE__ATTR_NAME);
-                    }
-                    break;
+            switch (type) {
+            case STRING:
+                if (!StringUtil.hasQuotes(parm.getValue())) {
+                    validator.error("Incorrect type: \"" + parm.getName() + "\""
+                            + " should have type String.",
+                        Literals.ATTRIBUTE__ATTR_NAME);
+                }
+                break;
+            case INT:
+                if (!ASTUtils.isInteger(parm.getValue())) {
+                    validator.error(
+                        "Incorrect type: \"" + parm.getName() + "\"" + " should have type Int.",
+                        Literals.ATTRIBUTE__ATTR_NAME);
+                }
+                break;
+            case BOOLEAN:
+                if (!ASTUtils.isBoolean(parm.getValue())) {
+                    validator.error(
+                        "Incorrect type: \"" + parm.getName() + "\"" + " should have type Boolean.",
+                        Literals.ATTRIBUTE__ATTR_NAME);
+                }
+                break;
+            case FLOAT:
+                if (!ASTUtils.isFloat(parm.getValue())) {
+                    validator.error(
+                        "Incorrect type: \"" + parm.getName() + "\"" + " should have type Float.",
+                        Literals.ATTRIBUTE__ATTR_NAME);
+                }
+                break;
             }
         }
     }

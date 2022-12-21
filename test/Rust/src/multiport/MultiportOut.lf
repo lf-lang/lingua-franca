@@ -10,7 +10,7 @@ reactor Source {
 
     reaction(t) -> out {=
         for i in 0..out.len() {
-            ctx.set(out.get(i), self.s);
+            ctx.set(&mut out[i], self.s);
         }
         self.s += 1;
     =}
@@ -36,7 +36,7 @@ reactor Destination {
     reaction(in) {=
         let mut sum = 0;
         for channel in r#in {
-            if let Some(ci) = ctx.get(&channel) {
+            if let Some(ci) = ctx.get(channel) {
                sum += ci;
             }
         }

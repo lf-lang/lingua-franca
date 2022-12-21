@@ -54,6 +54,8 @@ public class CCmakeGenerator {
         )
     """;
 
+    public static final String MIN_CMAKE_VERSION = "3.19";
+
     private final FileConfig fileConfig;
     private final List<String> additionalSources;
     private final SetUpMainTarget setUpMainTarget;
@@ -115,10 +117,25 @@ public class CCmakeGenerator {
         additionalSources.addAll(this.additionalSources);
         cMakeCode.newLine();
 
-        cMakeCode.pr("cmake_minimum_required(VERSION 3.13)");
+        cMakeCode.pr("cmake_minimum_required(VERSION " + MIN_CMAKE_VERSION + ")");
         cMakeCode.pr("project("+executableName+" LANGUAGES C)");
-
         cMakeCode.newLine();
+
+        // The Test build type is the Debug type plus coverage generation
+        cMakeCode.pr("if(CMAKE_BUILD_TYPE STREQUAL \"Test\")");
+        cMakeCode.pr("  set(CMAKE_BUILD_TYPE \"Debug\")");
+        cMakeCode.pr("  if(CMAKE_C_COMPILER_ID STREQUAL \"GNU\")");
+        cMakeCode.pr("    find_program(LCOV_BIN lcov)");
+        cMakeCode.pr("    if(LCOV_BIN MATCHES \"lcov$\")");
+        cMakeCode.pr("      set(CMAKE_C_FLAGS \"${CMAKE_C_FLAGS} --coverage -fprofile-arcs -ftest-coverage\")");
+        cMakeCode.pr("    else()");
+        cMakeCode.pr("      message(\"Not producing code coverage information since lcov was not found\")");
+        cMakeCode.pr("    endif()");
+        cMakeCode.pr("  else()");
+        cMakeCode.pr("    message(\"Not producing code coverage information since the selected compiler is no gcc\")");
+        cMakeCode.pr("  endif()");
+        cMakeCode.pr("endif()");
+
         cMakeCode.pr("# Require C11");
         cMakeCode.pr("set(CMAKE_C_STANDARD 11)");
         cMakeCode.pr("set(CMAKE_C_STANDARD_REQUIRED ON)");
@@ -172,6 +189,22 @@ public class CCmakeGenerator {
         cMakeCode.pr("target_include_directories(${LF_MAIN_TARGET} PUBLIC include/core/modal_models)");
         cMakeCode.pr("target_include_directories(${LF_MAIN_TARGET} PUBLIC include/core/utils)");
 
+        if(targetConfig.auth) {
+            // If security is requested, add the auth option.
+            var osName = System.getProperty("os.name").toLowerCase();
+            // if platform target was set, use given platform instead
+            if (targetConfig.platformOptions.platform != Platform.AUTO) {
+                osName = targetConfig.platformOptions.platform.toString();
+            }
+            if (osName.contains("mac")) {
+                cMakeCode.pr("set(OPENSSL_ROOT_DIR /usr/local/opt/openssl)");
+            }
+            cMakeCode.pr("# Find OpenSSL and link to it");
+            cMakeCode.pr("find_package(OpenSSL REQUIRED)");
+            cMakeCode.pr("target_link_libraries( ${LF_MAIN_TARGET} PRIVATE OpenSSL::SSL)");
+            cMakeCode.newLine();
+        }
+
         if (targetConfig.threading || targetConfig.tracing != null) {
             // If threaded computation is requested, add the threads option.
             cMakeCode.pr("# Find threads and link to it");
@@ -181,10 +214,20 @@ public class CCmakeGenerator {
 
             // If the LF program itself is threaded or if tracing is enabled, we need to define
             // NUMBER_OF_WORKERS so that platform-specific C files will contain the appropriate functions
-            cMakeCode.pr("# Set the number of workers to enable threading");
+            cMakeCode.pr("# Set the number of workers to enable threading/tracing");
             cMakeCode.pr("target_compile_definitions(${LF_MAIN_TARGET} PUBLIC NUMBER_OF_WORKERS="+targetConfig.workers+")");
             cMakeCode.newLine();
         }
+        
+        // Add additional flags so runtime can distinguish between multi-threaded and single-threaded mode
+        if (targetConfig.threading) {
+            cMakeCode.pr("# Set flag to indicate a multi-threaded runtime");
+            cMakeCode.pr("target_compile_definitions( ${LF_MAIN_TARGET} PUBLIC LF_MULTI_THREADED)");
+        } else {
+            cMakeCode.pr("# Set flag to indicate a single-threaded runtime");
+            cMakeCode.pr("target_compile_definitions( ${LF_MAIN_TARGET} PUBLIC LF_SINGLE_THREADED)");
+        }
+        cMakeCode.newLine();
 
         cMakeCode.pr("# Target definitions\n");
         targetConfig.compileDefinitions.forEach((key, value) -> cMakeCode.pr(

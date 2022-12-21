@@ -56,6 +56,7 @@ import org.lflang.federated.serialization.FedNativePythonSerialization;
 import org.lflang.federated.serialization.SupportedSerializers;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.generator.CodeMap;
+import org.lflang.generator.DelayBodyGenerator;
 import org.lflang.generator.GeneratorResult;
 import org.lflang.generator.GeneratorUtils;
 import org.lflang.generator.IntegratedBuilder;
@@ -124,7 +125,7 @@ public class PythonGenerator extends CGenerator {
     }
 
     private PythonGenerator(FileConfig fileConfig, ErrorReporter errorReporter, PythonTypes types, CCmakeGenerator cmakeGenerator) {
-        super(fileConfig, errorReporter, false, types, cmakeGenerator);
+        super(fileConfig, errorReporter, false, types, cmakeGenerator, new PythonDelayBodyGenerator(types));
         this.targetConfig.compiler = "gcc";
         this.targetConfig.compilerFlags = new ArrayList<>();
         this.targetConfig.linkerFlags = "";
@@ -638,35 +639,6 @@ public class PythonGenerator extends CGenerator {
         return new PythonDockerGenerator(isFederated, targetConfig);
     }
 
-    /**
-     * Generate code for the body of a reaction that takes an input and
-     * schedules an action with the value of that input.
-     * @param action The action to schedule
-     * @param port The port to read from
-     */
-    @Override
-    public String generateDelayBody(Action action, VarRef port) {
-        return PythonReactionGenerator.generateCDelayBody(action, port, CUtil.isTokenType(ASTUtils.getInferredType(action), types));
-    }
-
-    /**
-     * Generate code for the body of a reaction that is triggered by the
-     * given action and writes its value to the given port. This realizes
-     * the receiving end of a logical delay specified with the 'after'
-     * keyword.
-     * @param action The action that triggers the reaction
-     * @param port The port to write to.
-     */
-    @Override
-    public String generateForwardBody(Action action, VarRef port) {
-        String outputName = ASTUtils.generateVarRef(port);
-        if (CUtil.isTokenType(ASTUtils.getInferredType(action), types)) {
-            return super.generateForwardBody(action, port);
-        } else {
-            return "lf_set("+outputName+", "+action.getName()+"->token->value);";
-        }
-    }
-
     /** Generate a reaction function definition for a reactor.
      *  This function has a single argument that is a void* pointing to
      *  a struct that contains parameters, state variables, inputs (triggering or not),
@@ -680,7 +652,7 @@ public class PythonGenerator extends CGenerator {
         Reactor reactor = ASTUtils.toDefinition(decl);
 
         // Delay reactors and top-level reactions used in the top-level reactor(s) in federated execution are generated in C
-        if (reactor.getName().contains(GEN_DELAY_CLASS_NAME) ||
+        if (reactor.getName().contains(DelayBodyGenerator.GEN_DELAY_CLASS_NAME) ||
             mainDef != null && decl == mainDef.getReactorClass() && reactor.isFederated()) {
             super.generateReaction(reaction, decl, reactionIndex);
             return;
@@ -799,7 +771,7 @@ public class PythonGenerator extends CGenerator {
             add_subdirectory(core)
             set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR})
             set(LF_MAIN_TARGET <pyModuleName>)
-            find_package(Python COMPONENTS Interpreter Development)
+            find_package(Python 3.7.0...<3.11.0 COMPONENTS Interpreter Development)
             Python_add_library(
                 ${LF_MAIN_TARGET}
                 MODULE

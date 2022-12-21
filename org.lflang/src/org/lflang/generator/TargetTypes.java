@@ -6,11 +6,11 @@ import java.util.stream.Collectors;
 
 import org.lflang.ASTUtils;
 import org.lflang.InferredType;
-import org.lflang.TimeUnit;
 import org.lflang.TimeValue;
 import org.lflang.lf.Action;
-import org.lflang.lf.Code;
+import org.lflang.lf.CodeExpr;
 import org.lflang.lf.Expression;
+import org.lflang.lf.Initializer;
 import org.lflang.lf.Literal;
 import org.lflang.lf.Parameter;
 import org.lflang.lf.ParameterReference;
@@ -63,6 +63,10 @@ public interface TargetTypes {
      */
     String getTargetVariableSizeListType(String baseType);
 
+
+    default String getTargetParamRef(ParameterReference expr, InferredType typeOrNull) {
+        return escapeIdentifier(expr.getParameter().getName());
+    }
 
     /**
      * Return an "undefined" type which is used as a default
@@ -130,13 +134,13 @@ public interface TargetTypes {
      * initializer list. If both are absent, then the undefined
      * type is returned.
      */
-    default String getTargetType(Type type, List<Expression> init) {
+    default String getTargetType(Type type, Initializer init) {
         return getTargetType(ASTUtils.getInferredType(type, init));
     }
 
     /**
      * Returns the target type of the type node. This just provides
-     * a default parameter for {@link #getTargetType(Type, List)}.
+     * a default parameter for {@link #getTargetType(Type, Initializer)}.
      * If the parameter is null, then the undefined type is returned.
      */
     default String getTargetType(Type type) {
@@ -203,21 +207,23 @@ public interface TargetTypes {
      * expression in target code. The given type, if non-null,
      * may inform the code generation.
      *
-     * @param init           Initializer list (non-null)
+     * @param init           Initializer node (nullable)
      * @param type           Declared type of the expression (nullable)
-     * @param initWithBraces Whether the initializer uses the braced form.
      */
-    default String getTargetInitializer(List<Expression> init, Type type, boolean initWithBraces) {
-        Objects.requireNonNull(init);
+    default String getTargetInitializer(Initializer init, Type type) {
         var inferredType = ASTUtils.getInferredType(type, init);
-        if (init.size() == 1) {
-            return getTargetExpr(init.get(0), inferredType);
+        if (init == null) {
+            return getMissingExpr(inferredType);
         }
-        var targetValues = init.stream().map(it -> getTargetExpr(it, inferredType)).collect(Collectors.toList());
+        var single = ASTUtils.asSingleExpr(init);
+        if (single != null) {
+            return getTargetExpr(single, inferredType);
+        }
+        var targetValues = init.getExprs().stream().map(it -> getTargetExpr(it, inferredType)).collect(Collectors.toList());
         if (inferredType.isFixedSizeList) {
-            return getFixedSizeListInitExpression(targetValues, inferredType.listSize, initWithBraces);
+            return getFixedSizeListInitExpression(targetValues, inferredType.listSize, init.isBraces());
         } else if (inferredType.isVariableSizeList) {
-            return getVariableSizeListInitExpression(targetValues, initWithBraces);
+            return getVariableSizeListInitExpression(targetValues, init.isBraces());
         } else {
             return getMissingExpr(inferredType);
         }
@@ -232,13 +238,13 @@ public interface TargetTypes {
         if (ASTUtils.isZero(expr) && type != null && type.isTime) {
             return getTargetTimeExpr(TimeValue.ZERO);
         } else if (expr instanceof ParameterReference) {
-            return escapeIdentifier(((ParameterReference) expr).getParameter().getName());
+            return getTargetParamRef((ParameterReference) expr, type);
         } else if (expr instanceof Time) {
             return getTargetTimeExpr((Time) expr);
         } else if (expr instanceof Literal) {
             return ASTUtils.addZeroToLeadingDot(((Literal) expr).getLiteral()); // here we don't escape
-        } else if (expr instanceof Code) {
-            return ASTUtils.toText(expr);
+        } else if (expr instanceof CodeExpr) {
+            return ASTUtils.toText(((CodeExpr) expr).getCode());
         } else {
             throw new IllegalStateException("Invalid value " + expr);
         }
@@ -249,6 +255,6 @@ public interface TargetTypes {
      * target code.
      */
     default String getTargetTimeExpr(Time t) {
-        return getTargetTimeExpr(new TimeValue(t.getInterval(), TimeUnit.fromName(t.getUnit())));
+        return getTargetTimeExpr(ASTUtils.toTimeValue(t));
     }
 }

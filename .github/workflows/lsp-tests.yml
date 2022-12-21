@@ -59,6 +59,10 @@ jobs:
           brew install protobuf
           brew install protobuf-c
         if: ${{ runner.os == 'macOS' }}
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
       - name: Run language server Python tests without PyLint
         run: ./gradlew test --tests org.lflang.tests.lsp.LspTests.pythonValidationTestSyntaxOnly
       - name: Report to CodeCov
@@ -69,6 +73,10 @@ jobs:
           verbose: true
       - name: Install pylint
         run: python3 -m pip install pylint
+        if: ${{ runner.os != 'macOS' }}
+      - name: Install pylint macOS
+        run: brew install pylint
+        if: ${{ runner.os == 'macOS' }}
       - name: Run language server tests
         run: ./gradlew clean test --tests org.lflang.tests.lsp.LspTests.*ValidationTest
       - name: Report to CodeCov

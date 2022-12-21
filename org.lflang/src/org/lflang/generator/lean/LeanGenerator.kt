@@ -3,10 +3,8 @@ package org.lflang.generator.lean
 import org.eclipse.emf.ecore.resource.Resource
 import org.lflang.ASTUtils
 import org.lflang.ErrorReporter
-import org.lflang.FileConfig
 import org.lflang.InferredType
 import org.lflang.Target
-import org.lflang.TargetProperty
 import org.lflang.baseType
 import org.lflang.generator.CodeMap
 import org.lflang.generator.GeneratorBase
@@ -18,39 +16,24 @@ import org.lflang.generator.PrependOperator.rangeTo
 import org.lflang.generator.ReactionInstanceGraph
 import org.lflang.generator.ReactorInstance
 import org.lflang.generator.TargetTypes
-import org.lflang.generator.cpp.CppTypes
-import org.lflang.generator.cpp.name
-import org.lflang.generator.cpp.toTime
 import org.lflang.isLogical
 import org.lflang.joinLn
 import org.lflang.joinWithCommas
-import org.lflang.joinWithCommasLn
 import org.lflang.lf.Action
-import org.lflang.lf.ActionOrigin
 import org.lflang.lf.BuiltinTrigger
 import org.lflang.lf.BuiltinTriggerRef
 import org.lflang.lf.Connection
-import org.lflang.lf.Expression
-import org.lflang.lf.Input
 import org.lflang.lf.Instantiation
-import org.lflang.lf.Literal
-import org.lflang.lf.Output
 import org.lflang.lf.Parameter
-import org.lflang.lf.ParameterReference
 import org.lflang.lf.Port
 import org.lflang.lf.Reaction
 import org.lflang.lf.Reactor
 import org.lflang.lf.StateVar
-import org.lflang.lf.Time
 import org.lflang.lf.Timer
-import org.lflang.lf.TriggerRef
 import org.lflang.lf.TypedVariable
 import org.lflang.lf.VarRef
-import org.lflang.lf.Visibility
 import org.lflang.model
 import org.lflang.scoping.LFGlobalScopeProvider
-import org.lflang.toText
-import org.lflang.toTextTokenBased
 import org.lflang.util.FileUtil
 import java.nio.file.Files
 import java.nio.file.Path
@@ -70,7 +53,7 @@ class LeanGenerator(
     }
 
     override fun doGenerate(resource: Resource, context: LFGeneratorContext) {
-        super.doGenerate(resource, context, false)
+        super.doGenerate(resource, context)
 
         if (!GeneratorUtils.canGenerate(errorsOccurred(), mainDef, errorReporter, context)) return
 
@@ -85,13 +68,13 @@ class LeanGenerator(
     }
 
     private fun genParameter(param: Parameter) =
-        "${param.name} : ${LeanTypes.getTargetType(param.type)} := ${LeanTypes.getTargetInitializer(param.init, param.type, param.braces.isNotEmpty())}"
+        "${param.name} : ${LeanTypes.getTargetType(param.type)} := ${LeanTypes.getTargetInitializer(param.init, param.type)}"
 
     private fun genTypedVar(v: TypedVariable) =
         "${v.name} : ${LeanTypes.getTargetType(v.type)}"
 
     private fun genState(stateVar: StateVar): String {
-        val default = LeanTypes.getTargetInitializer(stateVar.init, stateVar.type, stateVar.braces.isNotEmpty())
+        val default = LeanTypes.getTargetInitializer(stateVar.init, stateVar.type)
         val defaultStr = default.let { " := $it" } ?: ""
         return "${stateVar.name} : ${LeanTypes.getTargetType(stateVar.type)}$defaultStr"
     }
@@ -110,7 +93,7 @@ class LeanGenerator(
 
     private fun genNested(nested: Instantiation): String {
         val params = nested.parameters.joinWithCommas(trailing = false) { a ->
-            "${a.lhs.name} : ${a.lhs.type.baseType} := ${LeanTypes.getTargetInitializer(a.rhs, a.lhs.type, a.lhs.braces.isNotEmpty())}"
+            "${a.lhs.name} : ${a.lhs.type.baseType} := ${LeanTypes.getTargetInitializer(a.rhs, a.lhs.type)}"
         }
         return "${nested.name} : ${nested.reactorClass.name} := [$params]"
     }
@@ -354,13 +337,4 @@ class LeanGenerator(
     override fun getTarget() = Target.Lean
 
     override fun getTargetTypes(): TargetTypes = LeanTypes
-
-    // The Lean-target runtime has native support for delayed connections
-    // and hence doesn't want LF's automatic transformation to occur
-    // (which transforms a delayed connection into a nested reactor with a
-    // single reaction and action). This transformation is turned off above
-    // in `doGenerate` by passing `false` for the last parameter.
-    override fun generateDelayBody(action: Action, port: VarRef): String = TODO()
-    override fun generateForwardBody(action: Action?, port: VarRef?): String = TODO()
-    override fun generateDelayGeneric(): String = TODO()
 }
