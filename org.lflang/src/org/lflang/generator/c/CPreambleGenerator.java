@@ -96,7 +96,7 @@ public class CPreambleGenerator {
             }
         }
         if (tracing != null) {
-            targetConfig.compileDefinitions.put("LINGUA_FRANCA_TRACE", tracing.traceFileName);
+            targetConfig.compileDefinitions.put("LF_TRACE", tracing.traceFileName);
         }
         if (clockSyncIsOn) {
             code.pr(generateClockSyncDefineDirective(
