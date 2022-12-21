@@ -164,6 +164,10 @@ public class CCmakeGenerator {
         cMakeCode.pr("endif()\n");
         cMakeCode.newLine();
 
+        cMakeCode.pr("# do not print install messages\n");
+        cMakeCode.pr("set(CMAKE_INSTALL_MESSAGE NEVER)\n");
+        cMakeCode.newLine();
+
         if (CppMode) {
             // Suppress warnings about const char*.
             cMakeCode.pr("set(CMAKE_CXX_FLAGS \"${CMAKE_CXX_FLAGS} -Wno-write-strings\")");
