@@ -147,7 +147,7 @@ class AttributeSpec {
      * 
      * @param name The name of the attribute parameter
      * @param type The type of the parameter
-     * @param defaultValue If non-null, parameter is optional.
+     * @param isOptional True if the parameter is optional.
      */
     record AttrParamSpec(String name, AttrParamType type, boolean isOptional) {
 
@@ -197,20 +197,20 @@ class AttributeSpec {
         FLOAT
     }
 
-    /**
+    /*
      * The specs of the known annotations are declared here.
      * Note: If an attribute only has one parameter, the parameter name should be "value."
      */
     static {
         // @label("value")
         ATTRIBUTE_SPECS_BY_NAME.put("label", new AttributeSpec(
-            List.of(new AttrParamSpec(VALUE_ATTR, AttrParamType.STRING, true))
+            List.of(new AttrParamSpec(VALUE_ATTR, AttrParamType.STRING, false))
         ));
         // @sparse
         ATTRIBUTE_SPECS_BY_NAME.put("sparse", new AttributeSpec(null));
         // @icon("value")
         ATTRIBUTE_SPECS_BY_NAME.put("icon", new AttributeSpec(
-            List.of(new AttrParamSpec(VALUE_ATTR, AttrParamType.STRING, true))
+            List.of(new AttrParamSpec(VALUE_ATTR, AttrParamType.STRING, false))
         ));
         // @enclave(indivdual=boolean)
         ATTRIBUTE_SPECS_BY_NAME.put("enclave", new AttributeSpec(
