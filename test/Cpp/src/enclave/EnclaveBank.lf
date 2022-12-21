@@ -7,7 +7,7 @@ reactor Node(
     bank_index: size_t(0),
     id: std::string({= "node" + std::to_string(bank_index) =}),
     period: time(100 msec),
-    duration: time(70 msec)
+    duration: time(20 msec)
 ) {
     logical action a: void
 
