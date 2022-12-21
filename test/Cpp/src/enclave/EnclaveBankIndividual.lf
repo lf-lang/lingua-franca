@@ -1,4 +1,5 @@
-// This is a smoke test for an enclaved bank where each individual instance is an enclave
+// This is a smoke test for an enclaved bank where each individual instance is
+// an enclave
 target Cpp {
     timeout: 1 sec
 }
@@ -16,7 +17,7 @@ reactor Node(
         std::this_thread::sleep_for(duration);
         reactor::log::Info() << id << " reaction done.";
         a.schedule(period);
-    =} deadline(50 msec) {=
+    =} deadline(400 msec) {=
         reactor::log::Error() << id << " deadline was violated!";
         exit(1);
     =}
@@ -24,6 +25,6 @@ reactor Node(
 
 main reactor {
     slow = new Node(id = "slow", period = {= 1s =}, duration = {= 700ms =})
-    @enclave(individual=true)
+    @enclave(individual = true)
     nodes = new[4] Node()
 }
