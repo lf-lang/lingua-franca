@@ -83,8 +83,8 @@ class CppActionGenerator(private val reactor: Reactor, private val errorReporter
             " |"..reactor.actions.joinToString("\n", "// actions\n", "\n") { generateDeclaration(it) }
         }
             |// default actions
-            |reactor::StartupAction $startupName {"$startupName", this};
-            |reactor::ShutdownAction $shutdownName {"$shutdownName", this};
+            |reactor::StartupTrigger $startupName {"$startupName", this};
+            |reactor::ShutdownTrigger $shutdownName {"$shutdownName", this};
         """.trimMargin()
     }
 

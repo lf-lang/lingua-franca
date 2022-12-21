@@ -106,14 +106,11 @@ class CppAssembleMethodGenerator(private val reactor: Reactor) {
             "${reaction.name}.declare_trigger(&${trigger.name});"
         }
 
-    private fun declareDependency(reaction: Reaction, dependency: VarRef): String =
-        if (dependency.variable is Port) {
-            // if the trigger is a port, then it could be a multiport or contained in a bank
-            iterateOverAllPortsAndApply(dependency) { port: String -> "${reaction.name}.declare_dependency(&$port);" }
-        } else {
-            // treat as single dependency otherwise
-            "${reaction.name}.declare_dependency(&${dependency.name});"
-        }
+    private fun declareDependency(reaction: Reaction, dependency: VarRef): String {
+        assert(dependency.variable is Port)
+        // if the trigger is a port, then it could be a multiport or contained in a bank
+        return iterateOverAllPortsAndApply(dependency) { port: String -> "${reaction.name}.declare_dependency(&$port);" }
+    }
 
     private fun declareAntidependency(reaction: Reaction, antidependency: VarRef): String {
         val variable = antidependency.variable
@@ -133,14 +130,17 @@ class CppAssembleMethodGenerator(private val reactor: Reactor) {
         return "${reaction.name}.set_deadline($value, [this]() { ${reaction.name}_deadline_handler(); });"
     }
 
-    private fun assembleReaction(reaction: Reaction) = with(PrependOperator) {
-        """
+    private fun assembleReaction(reaction: Reaction): String {
+        val sources = reaction.sources.filter { it.variable is Port }
+        return with(PrependOperator) {
+            """
             |// ${reaction.name}
         ${" |"..reaction.triggers.joinToString(separator = "\n") { declareTrigger(reaction, it) }}
-        ${" |"..reaction.sources.joinToString(separator = "\n") { declareDependency(reaction, it) }}
+        ${" |"..sources.joinToString(separator = "\n") { declareDependency(reaction, it) }}
         ${" |"..reaction.effects.joinToString(separator = "\n") { declareAntidependency(reaction, it) }}
         ${" |"..if (reaction.deadline != null) setDeadline(reaction) else ""}
         """.trimMargin()
+        }
     }
 
     private fun declareConnection(c: Connection, idx: Int): String {

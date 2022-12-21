@@ -81,8 +81,8 @@ class CppReactionGenerator(
 
     private val TriggerRef.cppType
         get() = when {
-            this is BuiltinTriggerRef && this.type == BuiltinTrigger.STARTUP  -> "reactor::StartupAction"
-            this is BuiltinTriggerRef && this.type == BuiltinTrigger.SHUTDOWN -> "reactor::ShutdownAction"
+            this is BuiltinTriggerRef && this.type == BuiltinTrigger.STARTUP  -> "reactor::StartupTrigger"
+            this is BuiltinTriggerRef && this.type == BuiltinTrigger.SHUTDOWN -> "reactor::ShutdownTrigger"
             this is VarRef                                                    -> cppType
             else                                                              -> AssertionError("Unexpected trigger type")
         }

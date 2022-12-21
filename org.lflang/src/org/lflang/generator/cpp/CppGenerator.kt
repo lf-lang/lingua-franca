@@ -128,7 +128,7 @@ class CppGenerator(
     private fun generateFiles(srcGenPath: Path) {
         // copy static library files over to the src-gen directory
         val genIncludeDir = srcGenPath.resolve("__include__")
-        listOf("lfutil.hh", "time_parser.hh", "lf_timeout.hh").forEach {
+        listOf("lfutil.hh", "time_parser.hh").forEach {
             FileUtil.copyFileFromClassPath("$libDir/$it", genIncludeDir.resolve(it), true)
         }
         FileUtil.copyFileFromClassPath(
