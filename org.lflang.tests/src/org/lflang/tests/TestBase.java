@@ -1,7 +1,7 @@
 package org.lflang.tests;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
 import java.io.PrintStream;
@@ -366,7 +366,7 @@ public abstract class TestBase {
             test.reportErrors();
         }
         for (LFTest lfTest : tests) {
-            assertSame(Result.TEST_PASS, lfTest.result);
+            assertTrue(lfTest.hasPassed());
         }
     }
 
@@ -545,9 +545,6 @@ public abstract class TestBase {
         } catch (Throwable e) {
             throw new TestExecutionException("Exception during test execution.", Result.TEST_EXCEPTION, e);
         }
-        test.result = Result.TEST_PASS;
-        // clear the log if the test succeeded to free memory
-        test.execLog.clear();
     }
 
     static private void appendStackTrace(Throwable t, StringBuffer buffer) {
@@ -698,9 +695,8 @@ public abstract class TestBase {
                 }
                 if (level == TestLevel.EXECUTION) {
                     execute(test, result);
-                } else if (test.result == Result.UNKNOWN) {
-                    test.result = Result.TEST_PASS;
                 }
+                test.markPassed();
             } catch (TestExecutionException e) {
                 test.handleTestExecutionException(e);
             } catch (Throwable e) {

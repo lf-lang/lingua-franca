@@ -32,7 +32,7 @@ public class LFTest implements Comparable<LFTest> {
     public final String name;
 
     /** The result of the test. */
-    public Result result = Result.UNKNOWN;
+    private Result result = Result.UNKNOWN;
 
     /** Object used to determine where the code generator puts files. */
     public FileConfig fileConfig;
@@ -118,6 +118,10 @@ public class LFTest implements Comparable<LFTest> {
         return result != Result.TEST_PASS;
     }
 
+    public boolean hasPassed() {
+        return result == Result.TEST_PASS;
+    }
+
     /**
      * Compile a string that contains all collected errors and return it.
      * @return A string that contains all collected errors.
@@ -148,6 +152,13 @@ public class LFTest implements Comparable<LFTest> {
             issues.append(sw);
         }
     }
+
+    public void markPassed() {
+        result = Result.TEST_PASS;
+        // clear the execution log to free memory
+        execLog.clear();
+    }
+
 
     /**
      * Print the message to the system output, but only if the message is not empty.
