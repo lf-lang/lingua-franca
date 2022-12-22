@@ -14,7 +14,7 @@ reactor Node(
         reactor::log::Info() << id << " reaction executes.";
         std::this_thread::sleep_for(duration);
         reactor::log::Info() << id << " reaction done.";
-    =} deadline(50 msec) {=
+    =} deadline(150 msec) {=
         reactor::log::Error() << id << " deadline was violated!";
         exit(1);
     =}
@@ -22,20 +22,20 @@ reactor Node(
 
 reactor MiddleNode {
     @enclave
-    inner = new Node(id = "inner", period = 1 sec, duration = 700 msec)
+    inner = new Node(id = "inner", period = 1 sec, duration = 400 msec)
 
-    middle = new Node(id = "middle", period = 200 msec, duration = 100 msec)
+    middle = new Node(id = "middle", period = 200 msec, duration = 70 msec)
 }
 
 reactor OuterNode {
     @enclave
     middle = new MiddleNode()
 
-    outer = new Node(id = "outer", period = 500 msec, duration = 300 msec)
+    outer = new Node(id = "outer", period = 500 msec, duration = 200 msec)
 }
 
 main reactor {
     outer = new OuterNode()
     @enclave
-    node = new Node(id = "node", period = 2 sec, duration = 1500 msec)
+    node = new Node(id = "node", period = 2 sec, duration = 500 msec)
 }
