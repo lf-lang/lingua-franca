@@ -95,7 +95,7 @@ public class PythonParameterGenerator {
      * @return Initialization code
      */
     private static String generatePythonInitializer(Parameter p) {
-        List<String> values = p.getInit().stream().map(PyUtil::getPythonTargetValue).collect(Collectors.toList());
+        List<String> values = p.getInit().getExprs().stream().map(PyUtil::getPythonTargetValue).toList();
         return values.size() > 1 ? "(" + String.join(", ", values) + ")" : values.get(0);
     }
 
@@ -118,7 +118,7 @@ public class PythonParameterGenerator {
         if (lastAssignment != null) {
             // The parameter has an assignment.
             // Right hand side can be a list. Collect the entries.
-            for (Expression expr : lastAssignment.getRhs()) {
+            for (Expression expr : lastAssignment.getRhs().getExprs()) {
                 if (expr instanceof ParameterReference) {
                     // The parameter is being assigned a parameter value.
                     // Assume that parameter belongs to the parent's parent.

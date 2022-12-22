@@ -65,6 +65,7 @@ import org.eclipse.xtext.xbase.lib.StringExtensions;
 import org.lflang.ASTUtils;
 import org.lflang.AttributeUtils;
 import org.lflang.InferredType;
+import org.lflang.ast.FormattingUtils;
 import org.lflang.diagram.synthesis.action.CollapseAllReactorsAction;
 import org.lflang.diagram.synthesis.action.ExpandAllReactorsAction;
 import org.lflang.diagram.synthesis.action.FilterCycleAction;
@@ -1219,10 +1220,8 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
             var t = InferredType.fromAST(variable.getType());
             b.append(":").append(t.toOriginalText());
         }
-        if (!IterableExtensions.isNullOrEmpty(variable.getInit())) {
-            b.append("(");
-            b.append(IterableExtensions.join(variable.getInit(), ", ", ASTUtils::toOriginalText));
-            b.append(")");
+        if (variable.getInit() != null) {
+            b.append(FormattingUtils.render(variable.getInit()));
         }
         return b.toString();
     }

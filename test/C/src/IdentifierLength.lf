@@ -37,6 +37,6 @@ main reactor IdentifierLength {
     another_really_long_name_for_a_test_instance = new Another_Really_Long_Name_For_A_Test_Class(
 
     )
-    a_really_long_name_for_a_source_instance.y ->
-        another_really_long_name_for_a_test_instance.x
+    a_really_long_name_for_a_source_instance.y
+        -> another_really_long_name_for_a_test_instance.x
 }

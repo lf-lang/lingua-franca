@@ -1,16 +1,16 @@
 /*
- * Copyright (c) 2020, TU Dresden.
-
+ * Copyright (c) 2022, TU Dresden.
+ *
  * Redistribution and use in source and binary forms, with or without modification,
  * are permitted provided that the following conditions are met:
-
+ *
  * 1. Redistributions of source code must retain the above copyright notice,
  *    this list of conditions and the following disclaimer.
-
+ *
  * 2. Redistributions in binary form must reproduce the above copyright notice,
  *    this list of conditions and the following disclaimer in the documentation
  *    and/or other materials provided with the distribution.
-
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY
  * EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
  * MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL
@@ -22,19 +22,27 @@
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+package org.lflang.generator
 
-#include "reactor-cpp/reactor-cpp.hh"
+import java.util.*
 
-class __lf_Timeout : public reactor::Reactor {
- private:
-  reactor::Timer timer;
-  reactor::Reaction r_timer{"r_timer", 1, this, [this]() { environment()->sync_shutdown();} };
- public:
-  __lf_Timeout(const std ::string &name, reactor::Environment *env, reactor::Duration timeout)
-      : reactor::Reactor(name, env)
-      , timer{"timer", this, reactor::Duration::zero(), timeout} {}
-  void assemble() override {
-    r_timer.declare_trigger(&timer);
-  }
-};
+/** Mediates access to the persisted Git revisions of the language runtime submodules. */
+object LanguageRuntimeVersions {
+
+    /** The committed version of the Rust runtime. */
+    val rustRuntimeVersion: String by lazy {
+        loadVersion("rs")
+    }
+
+
+    private fun loadVersion(languageId: String): String {
+        val fileName = "lib/$languageId/runtime-version.properties"
+        val stream = Thread.currentThread().contextClassLoader.getResourceAsStream(fileName)
+            ?: throw IllegalStateException("Cannot find $fileName on classpath!")
+        val props = Properties().apply { load(stream) }
+        return props[languageId]?.toString()
+            ?: throw IllegalStateException("Malformed properties file $fileName, expected a git commit as the $languageId entry")
+    }
+
+
+}

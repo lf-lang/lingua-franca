@@ -1,0 +1,22 @@
+// This test simply checks if combined type names consisting of multiple words
+// (such as `unsigned int`) can be used correctly in LF code.
+target Cpp
+
+reactor Foo(
+    bar: {= unsigned int =}(0),
+    baz: {= const unsigned int* =}({= nullptr =})
+) {
+    state s_bar: {= unsigned int =}(bar)
+    state s_baz: {= const unsigned int* =}(baz)
+
+    reaction(startup) {=
+        if (bar != 42 || s_bar != 42 || *baz != 42 || *s_baz != 42) {
+            reactor::log::Error() << "Unexpected value!";
+            exit(1);
+                    }
+    =}
+}
+
+main reactor(bar: {= unsigned int =}(42)) {
+    foo = new Foo(bar = bar, baz = {= &bar =})
+}
