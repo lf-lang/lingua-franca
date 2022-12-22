@@ -386,32 +386,22 @@ public class TestRegistry {
         @Override
         public FileVisitResult visitFile(Path path, BasicFileAttributes attr) {
             if (attr.isRegularFile() && path.toString().endsWith(".lf")) {
-                // Parse the file. If this is unsuccessful, add the test and
-                // report that it didn't compile.
-                Resource r = rs.getResource(
-                        URI.createFileURI(path.toFile().getAbsolutePath()),
-                        true);
+                // Try to parse the file.
+                Resource r = rs.getResource(URI.createFileURI(path.toFile().getAbsolutePath()),true);
                 // FIXME: issue warning if target doesn't match!
                 LFTest test = new LFTest(target, path);
-                EList<Diagnostic> errors = r.getErrors();
-                if (!errors.isEmpty()) {
-                    for (Diagnostic d : errors) {
-                        test.issues.append(d.toString());
-                    }
-                    test.result = Result.PARSE_FAIL;
-                } else {
-                    Iterator<Reactor> reactors =
-                        IteratorExtensions.filter(r.getAllContents(), Reactor.class);
 
-                    if (!IteratorExtensions.exists(reactors,
-                            it -> it.isMain() || it.isFederated())) {
-                        // If the test compiles but doesn't have a main reactor,
-                        // _do not add the file_. We assume it is a library
-                        // file.
-                        ignored.getTests(this.target, this.stack.peek()).add(test);
-                        return CONTINUE;
-                    }
+                Iterator<Reactor> reactors = IteratorExtensions.filter(r.getAllContents(), Reactor.class);
+
+                if (r.getErrors().isEmpty() && !IteratorExtensions.exists(reactors,
+                    it -> it.isMain() || it.isFederated())) {
+                    // If the test compiles but doesn't have a main reactor,
+                    // _do not add the file_. We assume it is a library
+                    // file.
+                    ignored.getTests(this.target, this.stack.peek()).add(test);
+                    return CONTINUE;
                 }
+
                 registered.getTests(this.target, this.stack.peek()).add(test);
             }
             return CONTINUE;

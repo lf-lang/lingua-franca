@@ -25,6 +25,7 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import org.eclipse.emf.common.util.URI;
+import org.eclipse.emf.ecore.resource.Resource.Diagnostic;
 import org.eclipse.emf.ecore.resource.ResourceSet;
 import org.eclipse.xtext.diagnostics.Severity;
 import org.eclipse.xtext.generator.IGeneratorContext;
@@ -407,7 +408,8 @@ public abstract class TestBase {
             true);
 
         if (r.getErrors().size() > 0) {
-            throw new TestExecutionException("Test did not parse correctly.", Result.PARSE_FAIL);
+            String message = r.getErrors().stream().map(Diagnostic::toString).collect(Collectors.joining(System.lineSeparator()));
+            throw new TestExecutionException(message, Result.PARSE_FAIL);
         }
 
         fileAccess.setOutputPath(FileConfig.findPackageRoot(test.srcFile, s -> {}).resolve(FileConfig.DEFAULT_SRC_GEN_DIR).toString());
