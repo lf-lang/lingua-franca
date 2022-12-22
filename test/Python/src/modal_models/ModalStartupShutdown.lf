@@ -134,8 +134,8 @@ main reactor {
     modal.shutdown4,
     modal.startup5,
     modal.reset5,
-    modal.shutdown5 ->
-        test.events
+    modal.shutdown5
+        -> test.events
 
     # Trigger mode change
     reaction(stepper) -> modal.next {= modal.next.set(True) =}
