@@ -143,9 +143,11 @@ public class LFTest implements Comparable<LFTest> {
         }
     }
 
-    public void handlTestExecutionException(TestExecutionException e) {
+    public void handleTestExecutionException(TestExecutionException e) {
         result = e.getResult();
-        issues.append(e.getMessage());
+        if (e.getMessage() != null) {
+            issues.append(e.getMessage());
+        }
         if (e.getException() != null) {
             issues.append(System.lineSeparator());
             StringWriter sw = new StringWriter();

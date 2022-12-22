@@ -491,7 +491,7 @@ public abstract class TestBase {
      * did not execute, took too long to execute, or executed but exited with
      * an error code.
      */
-    private void execute(LFTest test, GeneratorResult generatorResult) {
+    private void execute(LFTest test, GeneratorResult generatorResult) throws TestExecutionException {
         final List<ProcessBuilder> pbList = getExecCommand(test, generatorResult);
         if (pbList.isEmpty()) {
             return;
@@ -512,11 +512,9 @@ public abstract class TestBase {
                     stdout.interrupt();
                     stderr.interrupt();
                     p.destroyForcibly();
-                    test.result = Result.TEST_TIMEOUT;
-                    return;
+                    throw new TestExecutionException(Result.TEST_TIMEOUT);
                 } else {
                     if (stdoutException.get() != null || stderrException.get() != null) {
-                        test.result = Result.TEST_EXCEPTION;
                         test.execLog.buffer.setLength(0);
                         if (stdoutException.get() != null) {
                             test.execLog.buffer.append("Error during stdout handling:\n");
@@ -526,20 +524,16 @@ public abstract class TestBase {
                             test.execLog.buffer.append("Error during stderr handling:\n");
                             appendStackTrace(stderrException.get(), test.execLog.buffer);
                         }
-                        return;
+                        throw new TestExecutionException(Result.TEST_EXCEPTION);
                     }
                     if (p.exitValue() != 0) {
-                        test.result = Result.TEST_FAIL;
                         test.exitValue = Integer.toString(p.exitValue());
-                        return;
+                        throw new TestExecutionException(Result.TEST_FAIL);
                     }
                 }
             }
-        } catch (Exception e) {
-            test.result = Result.TEST_EXCEPTION;
-            // Add the stack trace to the test output
-            appendStackTrace(e, test.execLog.buffer);
-            return;
+        } catch (Throwable e) {
+            throw new TestExecutionException("Exception during test execution.", Result.TEST_EXCEPTION, e);
         }
         test.result = Result.TEST_PASS;
         // clear the log if the test succeeded to free memory
@@ -647,7 +641,7 @@ public abstract class TestBase {
      * that should be used to execute the test program.
      * @param test The test to get the execution command for.
      */
-    private List<ProcessBuilder> getExecCommand(LFTest test, GeneratorResult generatorResult) {
+    private List<ProcessBuilder> getExecCommand(LFTest test, GeneratorResult generatorResult) throws TestExecutionException {
         var srcBasePath = test.fileConfig.srcPkgPath.resolve("src");
         var relativePathName = srcBasePath.relativize(test.fileConfig.srcPath).toString();
 
@@ -659,8 +653,7 @@ public abstract class TestBase {
         } else {
             LFCommand command = generatorResult.getCommand();
             if (command == null) {
-                test.result = Result.NO_EXEC_FAIL;
-                test.issues.append("File: ").append(generatorResult.getExecutable()).append(System.lineSeparator());
+                throw new TestExecutionException("File: " + generatorResult.getExecutable(), Result.NO_EXEC_FAIL);
             }
             return command == null ? List.of() : List.of(
                 new ProcessBuilder(command.command()).directory(command.directory())
@@ -699,9 +692,9 @@ public abstract class TestBase {
                     test.result = Result.TEST_PASS;
                 }
             } catch (TestExecutionException e) {
-                test.handlTestExecutionException(e);
+                test.handleTestExecutionException(e);
             } catch (Throwable e) {
-                test.handlTestExecutionException(new TestExecutionException(
+                test.handleTestExecutionException(new TestExecutionException(
                     "Unknown exception during test execution", Result.TEST_EXCEPTION, e));
             } finally {
                 restoreOutputs();

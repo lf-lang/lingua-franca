@@ -18,6 +18,9 @@ public class TestExecutionException extends Exception {
         this(errorMessage, result, null);
     }
 
+    public TestExecutionException(Result result) {
+        this(null, result, null);
+    }
 
     public Result getResult() {return result;}
 
