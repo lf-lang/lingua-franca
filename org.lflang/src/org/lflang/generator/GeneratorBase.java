@@ -53,6 +53,7 @@ import org.lflang.MainConflictChecker;
 import org.lflang.Target;
 import org.lflang.TargetConfig;
 import org.lflang.TargetProperty.CoordinationType;
+import org.lflang.TargetProperty.SchedulerOption;
 import org.lflang.TimeUnit;
 import org.lflang.TimeValue;
 import org.lflang.federated.FedASTUtils;
@@ -62,15 +63,19 @@ import org.lflang.graph.InstantiationGraph;
 import org.lflang.lf.Action;
 import org.lflang.lf.Connection;
 import org.lflang.lf.Expression;
+import org.lflang.lf.Input;
 import org.lflang.lf.Instantiation;
 import org.lflang.lf.LfFactory;
 import org.lflang.lf.Mode;
 import org.lflang.lf.Model;
+import org.lflang.lf.Output;
 import org.lflang.lf.Parameter;
 import org.lflang.lf.Reaction;
 import org.lflang.lf.Reactor;
 import org.lflang.lf.Time;
+import org.lflang.lf.TriggerRef;
 import org.lflang.lf.VarRef;
+import org.lflang.lf.Variable;
 import org.lflang.validation.AbstractLFValidator;
 
 import com.google.common.base.Objects;
@@ -355,6 +360,11 @@ public abstract class GeneratorBase extends AbstractLFValidator {
         );
         // FIXME: Should the GeneratorBase pull in `files` from imported
         // resources?
+        // If we have specified a LET scheduler, then make all inputs to LET reactions
+        //  mutable.
+        if (targetConfig.schedulerType == SchedulerOption.LET) {
+            makeLetReactionInputsMutable();
+        }
 
         // Reroute connections that have delays associated with them via
         // generated delay reactors.
@@ -1299,4 +1309,82 @@ public abstract class GeneratorBase extends AbstractLFValidator {
         }
         return ASTUtils.toText(expr);
     }
+
+    // NOTE: With this implementation, LET reactions can have NO port dependencies.
+    // FIXME: This should be invoked before creation of generated delay reactors.
+    // FIXME: We have to redo this logic in ReactionInstance when we set the LET
+    //  Why cant we just set Let and change inputs to mutable in one go?
+    //  Part of the problem is that LET is currently a property of ReactionInstance
+    //  and mutability of ports is a Reaction property. Can we make LET a Reaction property?
+    public void makeLetReactionInputsMutable() {
+        for (Reactor reactor : reactors) {
+            for (Reaction reaction : reactor.getReactions()) {
+                boolean hasLet = false;
+                if (reaction.getEffects() != null) {
+                    for (VarRef effect : reaction.getEffects()) {
+                        Variable variable = effect.getVariable();
+                        if (variable instanceof Action) {
+                            // It is an action, not an output.
+                            // If it has already appeared as trigger, do not redefine it.
+                            Time minDelay = (Time) ((Action) variable).getMinDelay();
+                            if (minDelay.getInterval() > 0) {
+                                hasLet = true;
+                            } else {
+                                hasLet = false;
+                                break;
+                            }
+                            System.out.println(minDelay.getInterval());
+                        } else if (variable instanceof Mode) {
+                            // Mode change effect
+                            hasLet= false;
+                            break;
+                        } else if (variable instanceof Output) {
+                            hasLet= false;
+                            break;
+                        } else if (variable instanceof Input) {
+                            hasLet= false;
+                            break;
+                        } else {
+                                errorReporter.reportError(
+                                    reaction,
+                                    "In makeLetReactionInputsMutable(): effect is neither action, mode, input or output."
+                                );
+                            }
+                        }
+                    } else { // If no effects of this reaction
+                    hasLet = true;
+                }
+                // If reaction has a a LET. Then we modify all the inputs ports it sees
+                //  to mutable.
+                if (hasLet) {
+                    if (reaction.getTriggers().size() > 0) {
+                        for (TriggerRef trigger : reaction.getTriggers()) {
+                            if (trigger instanceof VarRef triggerAsVarRef) {
+                                if (triggerAsVarRef.getVariable() instanceof Input) {
+                                    ((Input) triggerAsVarRef.getVariable()).setMutable(true);
+                                } else if (triggerAsVarRef.getVariable() instanceof Output) {
+                                    assert (false);
+                                }
+                            }
+                        }
+                    } else {
+                        for (Input input : reactor.getInputs()) {
+                            input.setMutable(true);
+                        }
+                    }
+
+                    for (VarRef source : reaction.getSources()) {
+                        Variable variable = source.getVariable();
+                        if (variable instanceof Input) {
+                            ((Input) variable).setMutable(true);
+                        } else if (variable instanceof Output) {
+                            assert (false);
+                        }
+                    }
+                }
+            }
+        }
+    }
 }
+
+

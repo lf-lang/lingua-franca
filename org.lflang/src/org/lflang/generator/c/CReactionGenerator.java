@@ -223,6 +223,20 @@ public class CReactionGenerator {
         }
         // Next generate all the collected setup code.
         code.pr(reactionInitialization.toString());
+
+        // If this is a LET reaction, and LET scheduling is enabled.
+        // generate a call into scheduler_LET to do reaction prologue
+        // FIXME: Consider factoring this into a separate function
+        // FIXME: Consider checking the target property whether LET scheduling is enabled
+        code.pr(String.join("\n",
+            "#if SCHEDULER == LET",
+            "if (self->_lf__reaction_"+reactionIndex+".let > 0) {",
+            "   // This is a LET reaction. Retire this worker thread from",
+            "   // from worker pool. To allow time advancement",
+            "   lf_sched_retire_let_worker(&self->_lf__reaction_"+reactionIndex+", worker);",
+            "}",
+            "#endif"
+            ));
         return code.toString();
     }
 
@@ -1190,6 +1204,6 @@ public class CReactionGenerator {
     }
 
     private static String generateFunctionHeader(String functionName) {
-        return "void " + functionName + "(void* instance_args)";
+        return "void " + functionName + "(void* instance_args, int worker)";
     }
 }
