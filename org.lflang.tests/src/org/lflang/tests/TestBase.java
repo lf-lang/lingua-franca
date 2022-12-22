@@ -404,7 +404,7 @@ public abstract class TestBase {
         );
 
         var r = resourceSetProvider.get().getResource(
-            URI.createFileURI(test.srcFile.toFile().getAbsolutePath()),
+            URI.createFileURI(test.getSrcPath().toFile().getAbsolutePath()),
             true);
 
         if (r.getErrors().size() > 0) {
@@ -412,7 +412,7 @@ public abstract class TestBase {
             throw new TestExecutionException(message, Result.PARSE_FAIL);
         }
 
-        fileAccess.setOutputPath(FileConfig.findPackageRoot(test.srcFile, s -> {}).resolve(FileConfig.DEFAULT_SRC_GEN_DIR).toString());
+        fileAccess.setOutputPath(FileConfig.findPackageRoot(test.getSrcPath(), s -> {}).resolve(FileConfig.DEFAULT_SRC_GEN_DIR).toString());
         test.configure(context, new FileConfig(r, FileConfig.getSrcGenRoot(fileAccess), context.useHierarchicalBin()));
 
         // Set the no-compile flag the test is not supposed to reach the build stage.

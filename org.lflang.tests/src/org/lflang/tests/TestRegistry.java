@@ -278,7 +278,7 @@ public class TestRegistry {
         s.append(TestBase.THIN_LINE);
         
         for (LFTest test : ignored) {
-            s.append("No main reactor in: ").append(test.name).append("\n");
+            s.append("No main reactor in: ").append(test).append("\n");
         }
         
         Set<LFTest> own = getRegisteredTests(target, category, false);

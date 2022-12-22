@@ -14,7 +14,6 @@ import java.nio.file.Paths;
 import org.eclipse.xtext.util.RuntimeIOException;
 
 import org.lflang.FileConfig;
-import org.lflang.LFSyntaxErrorMessageProvider;
 import org.lflang.Target;
 import org.lflang.generator.LFGeneratorContext;
 
@@ -27,10 +26,10 @@ import org.lflang.generator.LFGeneratorContext;
 public class LFTest implements Comparable<LFTest> {
 
     /** The path to the test. */
-    public final Path srcFile;
+    private final Path srcPath;
 
     /** The name of the test. */
-    public final String name;
+    private final String name;
 
     /** The result of the test. */
     private Result result = Result.UNKNOWN;
@@ -64,14 +63,14 @@ public class LFTest implements Comparable<LFTest> {
      */
     public LFTest(Target target, Path srcFile) {
         this.target = target;
-        this.srcFile = srcFile;
+        this.srcPath = srcFile;
         this.name = FileConfig.findPackageRoot(srcFile, s -> {}).relativize(srcFile).toString();
         this.relativePath = Paths.get(name);
     }
 
     /** Copy constructor */
     public LFTest(LFTest test) {
-        this(test.target, test.srcFile);
+        this(test.target, test.srcPath);
     }
 
     /** Stream object for capturing standard and error output. */
@@ -82,6 +81,8 @@ public class LFTest implements Comparable<LFTest> {
     public FileConfig getFileConfig() { return fileConfig; }
 
     public LFGeneratorContext getContext() { return context; }
+
+    public Path getSrcPath() { return srcPath; }
 
     /**
      * Comparison implementation to allow for tests to be sorted (e.g., when added to a
