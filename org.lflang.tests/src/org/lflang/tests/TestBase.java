@@ -529,11 +529,19 @@ public abstract class TestBase {
                         throw new TestExecutionException(Result.TEST_EXCEPTION);
                     }
                     if (p.exitValue() != 0) {
-                        test.exitValue = Integer.toString(p.exitValue());
-                        throw new TestExecutionException(Result.TEST_FAIL);
+                        String message = "Exit code: " + p.exitValue();
+                        if (p.exitValue() == 139) {
+                            // The java ProcessBuiler and Process interface does not allow us to reliably retrieve stderr and stdout
+                            // from a process that segfaults. We can only print a message indicating that the putput is incomplete.
+                            message += System.lineSeparator() +
+                            "This exit code typically indicates a segfault. In this case, the execution output is likely missing or incomplete.";
+                        }
+                        throw new TestExecutionException(message, Result.TEST_FAIL);
                     }
                 }
             }
+        } catch (TestExecutionException e) {
+            throw  e;
         } catch (Throwable e) {
             throw new TestExecutionException("Exception during test execution.", Result.TEST_EXCEPTION, e);
         }
