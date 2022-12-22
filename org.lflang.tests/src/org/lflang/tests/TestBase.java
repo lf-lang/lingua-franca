@@ -699,9 +699,9 @@ public abstract class TestBase {
                 }
                 test.markPassed();
             } catch (TestError e) {
-                test.handleTestExecutionException(e);
+                test.handleTestError(e);
             } catch (Throwable e) {
-                test.handleTestExecutionException(new TestError(
+                test.handleTestError(new TestError(
                     "Unknown exception during test execution", Result.TEST_EXCEPTION, e));
             } finally {
                 restoreOutputs();
