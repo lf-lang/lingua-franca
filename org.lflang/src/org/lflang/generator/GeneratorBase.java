@@ -1324,16 +1324,13 @@ public abstract class GeneratorBase extends AbstractLFValidator {
                     for (VarRef effect : reaction.getEffects()) {
                         Variable variable = effect.getVariable();
                         if (variable instanceof Action) {
-                            // It is an action, not an output.
-                            // If it has already appeared as trigger, do not redefine it.
                             Time minDelay = (Time) ((Action) variable).getMinDelay();
-                            if (minDelay.getInterval() > 0) {
+                            if (minDelay != null && minDelay.getInterval() > 0) {
                                 hasLet = true;
                             } else {
                                 hasLet = false;
                                 break;
                             }
-                            System.out.println(minDelay.getInterval());
                         } else if (variable instanceof Mode) {
                             // Mode change effect
                             hasLet= false;
