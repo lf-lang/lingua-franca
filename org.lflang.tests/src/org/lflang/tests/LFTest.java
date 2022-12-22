@@ -5,7 +5,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
+import java.io.PrintWriter;
 import java.io.Reader;
+import java.io.StringWriter;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
@@ -45,7 +47,7 @@ public class LFTest implements Comparable<LFTest> {
     private final Path relativePath;
 
     /** Records compilation stdout/stderr. */
-    public final ByteArrayOutputStream compilationLog = new ByteArrayOutputStream();
+    private final ByteArrayOutputStream compilationLog = new ByteArrayOutputStream();
 
     /** Specialized object for capturing output streams while executing the test. */
     public final ExecutionLogger execLog = new ExecutionLogger();
@@ -138,6 +140,18 @@ public class LFTest implements Comparable<LFTest> {
             printIfNotEmpty("Compilation output", this.compilationLog.toString());
             printIfNotEmpty("Execution output", this.execLog.toString());
             System.out.println("+---------------------------------------------------------------------------+");
+        }
+    }
+
+    public void handlTestExecutionException(TestExecutionException e) {
+        result = e.getResult();
+        issues.append(e.getMessage());
+        if (e.getException() != null) {
+            issues.append(System.lineSeparator());
+            StringWriter sw = new StringWriter();
+            PrintWriter pw = new PrintWriter(sw);
+            e.getException().printStackTrace(pw);
+            issues.append(sw);
         }
     }
 

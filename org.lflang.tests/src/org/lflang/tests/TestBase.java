@@ -7,7 +7,6 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.io.PrintWriter;
 import java.io.StringWriter;
-import java.lang.Thread.UncaughtExceptionHandler;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.nio.file.Path;
@@ -36,7 +35,6 @@ import org.eclipse.xtext.util.CancelIndicator;
 import org.eclipse.xtext.util.RuntimeIOException;
 import org.eclipse.xtext.validation.CheckMode;
 import org.eclipse.xtext.validation.IResourceValidator;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.extension.ExtendWith;
 
 import org.lflang.DefaultErrorReporter;
@@ -409,8 +407,7 @@ public abstract class TestBase {
             true);
 
         if (r.getErrors().size() > 0) {
-            test.result = Result.PARSE_FAIL;
-            throw new AssertionError("Test did not parse correctly.");
+            throw new TestExecutionException("Test did not parse correctly.", Result.PARSE_FAIL);
         }
 
         fileAccess.setOutputPath(FileConfig.findPackageRoot(test.srcFile, s -> {}).resolve(FileConfig.DEFAULT_SRC_GEN_DIR).toString());
@@ -426,17 +423,17 @@ public abstract class TestBase {
 
         // Update the test by applying the configuration. E.g., to carry out an AST transformation.
         if (configurator != null && !configurator.configure(test)) {
-            test.result = Result.CONFIG_FAIL;
-            throw new TestExecutionException("Test configuration unsuccessful.");
+            throw new TestExecutionException("Test configuration unsuccessful.", Result.CONFIG_FAIL);
         }
 
         return context;
     }
 
     /**
-     * Validate the given test. Throw an AssertionError if validation failed.
+     * Validate the given test. Throw an TestExecutionException if validation failed.
      */
     private void validate(LFTest test, IGeneratorContext context) throws TestExecutionException {
+        boolean success = true;
         // Validate the resource and store issues in the test object.
         try {
             var issues = validator.validate(test.fileConfig.resource,
@@ -445,14 +442,14 @@ public abstract class TestBase {
                 String issuesToString = issues.stream().map(Objects::toString).collect(Collectors.joining(System.lineSeparator()));
                 test.issues.append(issuesToString);
                 if (issues.stream().anyMatch(it -> it.getSeverity() == Severity.ERROR)) {
-                    test.result = Result.VALIDATE_FAIL;
+                    success = false;
                 }
             }
-        } catch (Exception | AssertionError e) {
-            test.result = Result.VALIDATE_FAIL;
+        } catch (Throwable e) {
+            throw new TestExecutionException("Exception during validation.", Result.VALIDATE_FAIL, e);
         }
-        if (test.result == Result.VALIDATE_FAIL) {
-            throw new TestExecutionException("Validation unsuccessful.");
+        if (!success) {
+            throw new TestExecutionException("Validation unsuccessful.", Result.VALIDATE_FAIL);
         }
     }
 
@@ -478,15 +475,11 @@ public abstract class TestBase {
 
         try {
             generator.doGenerate(test.fileConfig.resource, fileAccess, test.context);
-        } catch (AssertionError | Exception e) {
-            test.result = Result.CODE_GEN_FAIL;
-            // Add the stack trace to the test output
-            e.printStackTrace(new PrintWriter(test.compilationLog, true));
-            throw new TestExecutionException("Code generation unsuccessful.");
+        } catch (Throwable e) {
+            throw new TestExecutionException("Code generation unsuccessful.", Result.CODE_GEN_FAIL, e);
         }
         if (generator.errorsOccurred()) {
-            test.result = Result.CODE_GEN_FAIL;
-            throw new TestExecutionException("Code generation unsuccessful.");
+            throw new TestExecutionException("Code generation unsuccessful.", Result.CODE_GEN_FAIL);
         }
 
         return test.context.getResult();
@@ -705,10 +698,11 @@ public abstract class TestBase {
                 } else if (test.result == Result.UNKNOWN) {
                     test.result = Result.TEST_PASS;
                 }
-
             } catch (TestExecutionException e) {
-                // This exception is thrown by any of the test steps above. We mainly use the exception
-                // to abort test execution. There is no need to report the error here.
+                test.handlTestExecutionException(e);
+            } catch (Throwable e) {
+                test.handlTestExecutionException(new TestExecutionException(
+                    "Unknown exception during test execution", Result.TEST_EXCEPTION, e));
             } finally {
                 restoreOutputs();
             }
