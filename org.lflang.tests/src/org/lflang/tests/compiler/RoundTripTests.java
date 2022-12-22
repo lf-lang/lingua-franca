@@ -28,7 +28,7 @@ public class RoundTripTests {
         for (Target target : Target.values()) {
             for (TestCategory category : TestCategory.values()) {
                 for (LFTest test : TestRegistry.getRegisteredTests(target, category, false)) {
-                    run(test.srcFile);
+                    run(test.getSrcPath());
                 }
             }
         }

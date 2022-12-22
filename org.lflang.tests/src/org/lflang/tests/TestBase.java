@@ -384,7 +384,7 @@ public abstract class TestBase {
      * transformation that may have occured in other tests.
      * @throws IOException if there is any file access problem
      */
-    private LFGeneratorContext configure(LFTest test, Configurator configurator, TestLevel level) throws IOException, TestExecutionException {
+    private LFGeneratorContext configure(LFTest test, Configurator configurator, TestLevel level) throws IOException, TestError {
         var props = new Properties();
         var sysProps = System.getProperties();
         // Set the external-runtime-path property if it was specified.
@@ -409,7 +409,7 @@ public abstract class TestBase {
 
         if (r.getErrors().size() > 0) {
             String message = r.getErrors().stream().map(Diagnostic::toString).collect(Collectors.joining(System.lineSeparator()));
-            throw new TestExecutionException(message, Result.PARSE_FAIL);
+            throw new TestError(message, Result.PARSE_FAIL);
         }
 
         fileAccess.setOutputPath(FileConfig.findPackageRoot(test.getSrcPath(), s -> {}).resolve(FileConfig.DEFAULT_SRC_GEN_DIR).toString());
@@ -424,16 +424,16 @@ public abstract class TestBase {
 
         // Update the test by applying the configuration. E.g., to carry out an AST transformation.
         if (configurator != null && !configurator.configure(test)) {
-            throw new TestExecutionException("Test configuration unsuccessful.", Result.CONFIG_FAIL);
+            throw new TestError("Test configuration unsuccessful.", Result.CONFIG_FAIL);
         }
 
         return context;
     }
 
     /**
-     * Validate the given test. Throw an TestExecutionException if validation failed.
+     * Validate the given test. Throw an TestError if validation failed.
      */
-    private void validate(LFTest test, IGeneratorContext context) throws TestExecutionException {
+    private void validate(LFTest test, IGeneratorContext context) throws TestError {
         // Validate the resource and store issues in the test object.
         try {
             var issues = validator.validate(test.getFileConfig().resource,
@@ -441,13 +441,13 @@ public abstract class TestBase {
             if (issues != null && !issues.isEmpty()) {
                 if (issues.stream().anyMatch(it -> it.getSeverity() == Severity.ERROR)) {
                     String message = issues.stream().map(Objects::toString).collect(Collectors.joining(System.lineSeparator()));
-                    throw new TestExecutionException(message, Result.VALIDATE_FAIL);
+                    throw new TestError(message, Result.VALIDATE_FAIL);
                 }
             }
-        } catch (TestExecutionException e) {
+        } catch (TestError e) {
             throw e;
         } catch (Throwable e) {
-            throw new TestExecutionException("Exception during validation.", Result.VALIDATE_FAIL, e);
+            throw new TestError("Exception during validation.", Result.VALIDATE_FAIL, e);
         }
     }
 
@@ -466,7 +466,7 @@ public abstract class TestBase {
      *
      * @param test The test to generate code for.
      */
-    private GeneratorResult generateCode(LFTest test) throws TestExecutionException {
+    private GeneratorResult generateCode(LFTest test) throws TestError {
         if (test.getFileConfig().resource == null) {
             return GeneratorResult.NOTHING;
         }
@@ -474,10 +474,10 @@ public abstract class TestBase {
         try {
             generator.doGenerate(test.getFileConfig().resource, fileAccess, test.getContext());
         } catch (Throwable e) {
-            throw new TestExecutionException("Code generation unsuccessful.", Result.CODE_GEN_FAIL, e);
+            throw new TestError("Code generation unsuccessful.", Result.CODE_GEN_FAIL, e);
         }
         if (generator.errorsOccurred()) {
-            throw new TestExecutionException("Code generation unsuccessful.", Result.CODE_GEN_FAIL);
+            throw new TestError("Code generation unsuccessful.", Result.CODE_GEN_FAIL);
         }
 
         return test.getContext().getResult();
@@ -489,7 +489,7 @@ public abstract class TestBase {
      * did not execute, took too long to execute, or executed but exited with
      * an error code.
      */
-    private void execute(LFTest test, GeneratorResult generatorResult) throws TestExecutionException {
+    private void execute(LFTest test, GeneratorResult generatorResult) throws TestError {
         final List<ProcessBuilder> pbList = getExecCommand(test, generatorResult);
         if (pbList.isEmpty()) {
             return;
@@ -513,7 +513,7 @@ public abstract class TestBase {
                     stdout.interrupt();
                     stderr.interrupt();
                     p.destroyForcibly();
-                    throw new TestExecutionException(Result.TEST_TIMEOUT);
+                    throw new TestError(Result.TEST_TIMEOUT);
                 } else {
                     if (stdoutException.get() != null || stderrException.get() != null) {
                         StringWriter sw = new StringWriter();
@@ -527,7 +527,7 @@ public abstract class TestBase {
                             pw.println("Error during stderr handling:");
                             stderrException.get().printStackTrace(pw);
                         }
-                        throw new TestExecutionException(sw.toString(), Result.TEST_EXCEPTION);
+                        throw new TestError(sw.toString(), Result.TEST_EXCEPTION);
                     }
                     if (p.exitValue() != 0) {
                         String message = "Exit code: " + p.exitValue();
@@ -537,14 +537,14 @@ public abstract class TestBase {
                             message += System.lineSeparator() +
                             "This exit code typically indicates a segfault. In this case, the execution output is likely missing or incomplete.";
                         }
-                        throw new TestExecutionException(message, Result.TEST_FAIL);
+                        throw new TestError(message, Result.TEST_FAIL);
                     }
                 }
             }
-        } catch (TestExecutionException e) {
+        } catch (TestError e) {
             throw  e;
         } catch (Throwable e) {
-            throw new TestExecutionException("Exception during test execution.", Result.TEST_EXCEPTION, e);
+            throw new TestError("Exception during test execution.", Result.TEST_EXCEPTION, e);
         }
     }
 
@@ -649,7 +649,7 @@ public abstract class TestBase {
      * that should be used to execute the test program.
      * @param test The test to get the execution command for.
      */
-    private List<ProcessBuilder> getExecCommand(LFTest test, GeneratorResult generatorResult) throws TestExecutionException {
+    private List<ProcessBuilder> getExecCommand(LFTest test, GeneratorResult generatorResult) throws TestError {
         var srcBasePath = test.getFileConfig().srcPkgPath.resolve("src");
         var relativePathName = srcBasePath.relativize(test.getFileConfig().srcPath).toString();
 
@@ -661,7 +661,7 @@ public abstract class TestBase {
         } else {
             LFCommand command = generatorResult.getCommand();
             if (command == null) {
-                throw new TestExecutionException("File: " + generatorResult.getExecutable(), Result.NO_EXEC_FAIL);
+                throw new TestError("File: " + generatorResult.getExecutable(), Result.NO_EXEC_FAIL);
             }
             return command == null ? List.of() : List.of(
                 new ProcessBuilder(command.command()).directory(command.directory())
@@ -698,10 +698,10 @@ public abstract class TestBase {
                     execute(test, result);
                 }
                 test.markPassed();
-            } catch (TestExecutionException e) {
+            } catch (TestError e) {
                 test.handleTestExecutionException(e);
             } catch (Throwable e) {
-                test.handleTestExecutionException(new TestExecutionException(
+                test.handleTestExecutionException(new TestError(
                     "Unknown exception during test execution", Result.TEST_EXCEPTION, e));
             } finally {
                 restoreOutputs();

@@ -150,7 +150,7 @@ public class LFTest implements Comparable<LFTest> {
         }
     }
 
-    public void handleTestExecutionException(TestExecutionException e) {
+    public void handleTestExecutionException(TestError e) {
         result = e.getResult();
         if (e.getMessage() != null) {
             issues.append(e.getMessage());

@@ -3,22 +3,22 @@ package org.lflang.tests;
 import org.lflang.tests.LFTest.Result;
 
 /// Indicates an error during test execution
-public class TestExecutionException extends Exception {
+public class TestError extends Exception {
 
     private Throwable exception;
     private Result result;
 
-    public TestExecutionException(String errorMessage, Result result, Throwable exception) {
+    public TestError(String errorMessage, Result result, Throwable exception) {
         super(errorMessage);
         this.exception = exception;
         this.result = result;
     }
 
-    public TestExecutionException(String errorMessage, Result result) {
+    public TestError(String errorMessage, Result result) {
         this(errorMessage, result, null);
     }
 
-    public TestExecutionException(Result result) {
+    public TestError(Result result) {
         this(null, result, null);
     }
 
