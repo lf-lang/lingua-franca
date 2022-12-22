@@ -14,6 +14,7 @@ import java.nio.file.Paths;
 import org.eclipse.xtext.util.RuntimeIOException;
 
 import org.lflang.FileConfig;
+import org.lflang.LFSyntaxErrorMessageProvider;
 import org.lflang.Target;
 import org.lflang.generator.LFGeneratorContext;
 
@@ -35,10 +36,10 @@ public class LFTest implements Comparable<LFTest> {
     private Result result = Result.UNKNOWN;
 
     /** Object used to determine where the code generator puts files. */
-    public FileConfig fileConfig;
+    private FileConfig fileConfig;
 
     /** Context provided to the code generators */
-    public LFGeneratorContext context;
+    private LFGeneratorContext context;
 
     /** Path of the test program relative to the package root. */
     private final Path relativePath;
@@ -50,7 +51,7 @@ public class LFTest implements Comparable<LFTest> {
     public final ExecutionLogger execLog = new ExecutionLogger();
 
     /** String builder for collecting issues encountered during test execution. */
-    public final StringBuilder issues = new StringBuilder();
+    private final StringBuilder issues = new StringBuilder();
 
     /** The target of the test program. */
     public final Target target;
@@ -72,6 +73,10 @@ public class LFTest implements Comparable<LFTest> {
     public OutputStream getOutputStream() {
         return compilationLog;
     }
+
+    public FileConfig getFileConfig() { return fileConfig; }
+
+    public LFGeneratorContext getContext() { return context; }
 
     /**
      * Comparison implementation to allow for tests to be sorted (e.g., when added to a
@@ -159,6 +164,10 @@ public class LFTest implements Comparable<LFTest> {
         execLog.clear();
     }
 
+    void configure(LFGeneratorContext context, FileConfig fileConfig) {
+        this.context = context;
+        this.fileConfig = fileConfig;
+    }
 
     /**
      * Print the message to the system output, but only if the message is not empty.

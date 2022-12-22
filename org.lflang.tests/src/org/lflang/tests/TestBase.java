@@ -413,8 +413,7 @@ public abstract class TestBase {
         }
 
         fileAccess.setOutputPath(FileConfig.findPackageRoot(test.srcFile, s -> {}).resolve(FileConfig.DEFAULT_SRC_GEN_DIR).toString());
-        test.context = context;
-        test.fileConfig = new FileConfig(r, FileConfig.getSrcGenRoot(fileAccess), context.useHierarchicalBin());
+        test.configure(context, new FileConfig(r, FileConfig.getSrcGenRoot(fileAccess), context.useHierarchicalBin()));
 
         // Set the no-compile flag the test is not supposed to reach the build stage.
         if (level.compareTo(TestLevel.BUILD) < 0) {
@@ -435,23 +434,20 @@ public abstract class TestBase {
      * Validate the given test. Throw an TestExecutionException if validation failed.
      */
     private void validate(LFTest test, IGeneratorContext context) throws TestExecutionException {
-        boolean success = true;
         // Validate the resource and store issues in the test object.
         try {
-            var issues = validator.validate(test.fileConfig.resource,
+            var issues = validator.validate(test.getFileConfig().resource,
                                             CheckMode.ALL, context.getCancelIndicator());
             if (issues != null && !issues.isEmpty()) {
-                String issuesToString = issues.stream().map(Objects::toString).collect(Collectors.joining(System.lineSeparator()));
-                test.issues.append(issuesToString);
                 if (issues.stream().anyMatch(it -> it.getSeverity() == Severity.ERROR)) {
-                    success = false;
+                    String message = issues.stream().map(Objects::toString).collect(Collectors.joining(System.lineSeparator()));
+                    throw new TestExecutionException(message, Result.VALIDATE_FAIL);
                 }
             }
+        } catch (TestExecutionException e) {
+            throw e;
         } catch (Throwable e) {
             throw new TestExecutionException("Exception during validation.", Result.VALIDATE_FAIL, e);
-        }
-        if (!success) {
-            throw new TestExecutionException("Validation unsuccessful.", Result.VALIDATE_FAIL);
         }
     }
 
@@ -471,12 +467,12 @@ public abstract class TestBase {
      * @param test The test to generate code for.
      */
     private GeneratorResult generateCode(LFTest test) throws TestExecutionException {
-        if (test.fileConfig.resource == null) {
+        if (test.getFileConfig().resource == null) {
             return GeneratorResult.NOTHING;
         }
 
         try {
-            generator.doGenerate(test.fileConfig.resource, fileAccess, test.context);
+            generator.doGenerate(test.getFileConfig().resource, fileAccess, test.getContext());
         } catch (Throwable e) {
             throw new TestExecutionException("Code generation unsuccessful.", Result.CODE_GEN_FAIL, e);
         }
@@ -484,7 +480,7 @@ public abstract class TestBase {
             throw new TestExecutionException("Code generation unsuccessful.", Result.CODE_GEN_FAIL);
         }
 
-        return test.context.getResult();
+        return test.getContext().getResult();
     }
 
 
@@ -607,7 +603,7 @@ public abstract class TestBase {
             System.out.println(Message.MISSING_DOCKER);
             return List.of(new ProcessBuilder("exit", "1"));
         }
-        var srcGenPath = test.fileConfig.getSrcGenPath();
+        var srcGenPath = test.getFileConfig().getSrcGenPath();
         var dockerComposeFile = FileUtil.globFilesEndsWith(srcGenPath, "docker-compose.yml").get(0);
         var dockerComposeCommand = DockerGeneratorBase.getDockerComposeCommand();
         return List.of(new ProcessBuilder(dockerComposeCommand, "-f", dockerComposeFile.toString(), "rm", "-f"),
@@ -624,7 +620,7 @@ public abstract class TestBase {
             System.out.println(Message.MISSING_DOCKER);
             return List.of(new ProcessBuilder("exit", "1"));
         }
-        var srcGenPath = test.fileConfig.getSrcGenPath();
+        var srcGenPath = test.getFileConfig().getSrcGenPath();
         List<Path> dockerFiles = FileUtil.globFilesEndsWith(srcGenPath, ".Dockerfile");
         try {
             File testScript = File.createTempFile("dockertest", null);
@@ -649,8 +645,8 @@ public abstract class TestBase {
      * @param test The test to get the execution command for.
      */
     private List<ProcessBuilder> getExecCommand(LFTest test, GeneratorResult generatorResult) throws TestExecutionException {
-        var srcBasePath = test.fileConfig.srcPkgPath.resolve("src");
-        var relativePathName = srcBasePath.relativize(test.fileConfig.srcPath).toString();
+        var srcBasePath = test.getFileConfig().srcPkgPath.resolve("src");
+        var relativePathName = srcBasePath.relativize(test.getFileConfig().srcPath).toString();
 
         // special case to test docker file generation
         if (relativePathName.equalsIgnoreCase(TestCategory.DOCKER.getPath())) {
