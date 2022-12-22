@@ -95,10 +95,10 @@ class CppInstanceGenerator(
 
     private fun generateInitializer(inst: Instantiation): String? = with(inst) {
         when {
-            !isBank && !isEnclave                       -> """, $name(std::make_unique<$cppType>("$name}", this, ${getParameterStruct()}))"""
+            !isBank && !isEnclave                       -> """, $name(std::make_unique<$cppType>("$name", this, ${getParameterStruct()}))"""
             !isBank && isEnclave                        -> """
                     , __lf_env_$name(this->fqn() + ".$name", this->environment())
-                    , $name(std::make_unique<$cppType>("$name}", &__lf_env_$name, ${getParameterStruct()}))
+                    , $name(std::make_unique<$cppType>("$name", &__lf_env_$name, ${getParameterStruct()}))
                 """.trimIndent()
 
             isBank && isEnclave && !isIndividualEnclave -> """, __lf_env_$name(this->fqn() + ".$name", this->environment())"""
