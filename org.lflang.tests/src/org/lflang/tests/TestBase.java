@@ -497,14 +497,17 @@ public abstract class TestBase {
         try {
             for (ProcessBuilder pb : pbList) {
                 var p = pb.start();
-                var stdout = test.execLog.recordStdOut(p);
-                var stderr = test.execLog.recordStdErr(p);
+                var stdout = test.recordStdOut(p);
+                var stderr = test.recordStdErr(p);
 
                 var stdoutException = new AtomicReference<Throwable>(null);
                 var stderrException = new AtomicReference<Throwable>(null);
 
                 stdout.setUncaughtExceptionHandler((thread, throwable) -> stdoutException.set(throwable));
                 stderr.setUncaughtExceptionHandler((thread, throwable) -> stderrException.set(throwable));
+
+                stderr.start();
+                stdout.start();
 
                 if (!p.waitFor(MAX_EXECUTION_TIME_SECONDS, TimeUnit.SECONDS)) {
                     stdout.interrupt();
@@ -513,16 +516,18 @@ public abstract class TestBase {
                     throw new TestExecutionException(Result.TEST_TIMEOUT);
                 } else {
                     if (stdoutException.get() != null || stderrException.get() != null) {
-                        test.execLog.buffer.setLength(0);
+                        StringWriter sw = new StringWriter();
+                        PrintWriter pw = new PrintWriter(sw);
+
                         if (stdoutException.get() != null) {
-                            test.execLog.buffer.append("Error during stdout handling:\n");
-                            appendStackTrace(stdoutException.get(), test.execLog.buffer);
+                            pw.println("Error during stdout handling:");
+                            stdoutException.get().printStackTrace(pw);
                         }
                         if (stderrException.get() != null) {
-                            test.execLog.buffer.append("Error during stderr handling:\n");
-                            appendStackTrace(stderrException.get(), test.execLog.buffer);
+                            pw.println("Error during stderr handling:");
+                            stderrException.get().printStackTrace(pw);
                         }
-                        throw new TestExecutionException(Result.TEST_EXCEPTION);
+                        throw new TestExecutionException(sw.toString(), Result.TEST_EXCEPTION);
                     }
                     if (p.exitValue() != 0) {
                         String message = "Exit code: " + p.exitValue();

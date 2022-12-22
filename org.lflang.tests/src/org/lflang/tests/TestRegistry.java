@@ -254,7 +254,7 @@ public class TestRegistry {
         if (copy) {
             Set<LFTest> copies = new TreeSet<>();
             for (LFTest test : registered.getTests(target, category)) {
-                copies.add(new LFTest(test.target, test.srcFile));
+                copies.add(new LFTest(test));
             }
             return copies;
         } else {

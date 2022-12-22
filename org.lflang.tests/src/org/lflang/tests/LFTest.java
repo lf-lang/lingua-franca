@@ -48,13 +48,13 @@ public class LFTest implements Comparable<LFTest> {
     private final ByteArrayOutputStream compilationLog = new ByteArrayOutputStream();
 
     /** Specialized object for capturing output streams while executing the test. */
-    public final ExecutionLogger execLog = new ExecutionLogger();
+    private final ExecutionLogger execLog = new ExecutionLogger();
 
     /** String builder for collecting issues encountered during test execution. */
     private final StringBuilder issues = new StringBuilder();
 
     /** The target of the test program. */
-    public final Target target;
+    private final Target target;
 
     /**
      * Create a new test.
@@ -67,6 +67,11 @@ public class LFTest implements Comparable<LFTest> {
         this.srcFile = srcFile;
         this.name = FileConfig.findPackageRoot(srcFile, s -> {}).relativize(srcFile).toString();
         this.relativePath = Paths.get(name);
+    }
+
+    /** Copy constructor */
+    public LFTest(LFTest test) {
+        this(test.target, test.srcFile);
     }
 
     /** Stream object for capturing standard and error output. */
@@ -253,7 +258,7 @@ public class LFTest implements Comparable<LFTest> {
          * @param inputStream The stream to read from.
          */
         private Thread recordStream(StringBuffer builder, InputStream inputStream) {
-            Thread t = new Thread(() -> {
+            return new Thread(() -> {
                 try (Reader reader = new InputStreamReader(inputStream)) {
                     int len;
                     char[] buf = new char[1024];
@@ -263,9 +268,8 @@ public class LFTest implements Comparable<LFTest> {
                 } catch (IOException e) {
                     throw new RuntimeIOException(e);
                 }
+
             });
-            t.start();
-            return t;
         }
 
         @Override
@@ -276,5 +280,22 @@ public class LFTest implements Comparable<LFTest> {
         public void clear() {
             buffer = null;
         }
+    }
+
+
+    /**
+     * Return a thread responsible for recording the standard output stream of the given process.
+     * A separate thread is used so that the activity can be preempted.
+     */
+    public Thread recordStdOut(Process process) {
+        return execLog.recordStdOut(process);
+    }
+
+    /**
+     * Return a thread responsible for recording the error stream of the given process.
+     * A separate thread is used so that the activity can be preempted.
+     */
+    public Thread recordStdErr(Process process) {
+        return execLog.recordStdErr(process);
     }
 }
