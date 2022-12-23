@@ -274,7 +274,12 @@ public class ToLf extends LfSwitch<MalleableString> {
   @Override
   public MalleableString caseTime(Time t) {
     // (interval=INT unit=TimeUnit)
-    return MalleableString.anyOf(ASTUtils.toTimeValue(t).toString());
+    final var interval = Integer.toString(t.getInterval());
+    if (t.getUnit() == null) {
+      return MalleableString.anyOf(interval);
+    }
+
+    return MalleableString.anyOf(interval + " " + t.getUnit());
   }
 
   @Override
