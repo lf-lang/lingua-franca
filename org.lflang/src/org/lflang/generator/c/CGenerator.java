@@ -1104,8 +1104,7 @@ public class CGenerator extends GeneratorBase {
         // if platform target was set, use given platform instead
         if (targetConfig.platformOptions.platform != Platform.AUTO) {
             osName = targetConfig.platformOptions.platform.toString();
-        }
-        if (Stream.of("mac", "darwin", "win", "nux", "arduino").noneMatch(osName::contains)) {
+        } else if (Stream.of("mac", "darwin", "win", "nux").noneMatch(osName::contains)) {
             errorReporter.reportError("Platform " + osName + " is not supported");
         }
     }
@@ -1831,7 +1830,7 @@ public class CGenerator extends GeneratorBase {
             List.of("--c_out="+this.fileConfig.getSrcGenPath(), filename),
             fileConfig.srcPath);
         if (protoc == null) {
-            errorReporter.reportError("Processing .proto files requires proto-c >= 1.3.3.");
+            errorReporter.reportError("Processing .proto files requires protoc-c >= 1.3.3.");
             return;
         }
         var returnCode = protoc.run(cancelIndicator);
