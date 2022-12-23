@@ -516,18 +516,16 @@ public abstract class TestBase {
                     throw new TestError(Result.TEST_TIMEOUT);
                 } else {
                     if (stdoutException.get() != null || stderrException.get() != null) {
-                        StringWriter sw = new StringWriter();
-                        PrintWriter pw = new PrintWriter(sw);
-
+                        StringBuffer sb = new StringBuffer();
                         if (stdoutException.get() != null) {
-                            pw.println("Error during stdout handling:");
-                            stdoutException.get().printStackTrace(pw);
+                            sb.append("Error during stdout handling:" + System.lineSeparator());
+                            sb.append(stackTraceToString(stdoutException.get()));
                         }
                         if (stderrException.get() != null) {
-                            pw.println("Error during stderr handling:");
-                            stderrException.get().printStackTrace(pw);
+                            sb.append("Error during stderr handling:" + System.lineSeparator());
+                            sb.append(stackTraceToString(stderrException.get()));
                         }
-                        throw new TestError(sw.toString(), Result.TEST_EXCEPTION);
+                        throw new TestError(sb.toString(), Result.TEST_EXCEPTION);
                     }
                     if (p.exitValue() != 0) {
                         String message = "Exit code: " + p.exitValue();
@@ -548,11 +546,13 @@ public abstract class TestBase {
         }
     }
 
-    static private void appendStackTrace(Throwable t, StringBuffer buffer) {
+    static public String stackTraceToString(Throwable t) {
         StringWriter sw = new StringWriter();
         PrintWriter pw = new PrintWriter(sw);
         t.printStackTrace(pw);
-        buffer.append(sw);
+        pw.flush();
+        pw.close();
+        return sw.toString();
     }
 
     /**
