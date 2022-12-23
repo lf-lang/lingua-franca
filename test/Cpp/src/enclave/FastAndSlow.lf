@@ -11,7 +11,7 @@ reactor Slow {
         reactor::log::Info() << "Slow reaction starts";
         std::this_thread::sleep_for(700ms);
         reactor::log::Info() << "Slow reaction ends";
-    =} deadline(50 msec) {=
+    =} deadline(200 msec) {=
         reactor::log::Error() << "Slow deadline was violated!";
         exit(1);
     =}
@@ -23,7 +23,7 @@ reactor Fast {
     reaction(t) {=
         reactor::log::Info() << "Fast reaction executes";
     =} deadline(
-        50 msec
+        200 msec
     ) {=
         reactor::log::Error() << "Fast deadline was violated!";
         exit(2);
