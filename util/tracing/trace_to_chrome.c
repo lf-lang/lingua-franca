@@ -30,7 +30,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * for viewing in Chrome's event visualizer. To visualize the resulting file,
  * point your chrome browser to chrome://tracing/ and the load the .json file.
  */
-#define LINGUA_FRANCA_TRACE
+#define LF_TRACE
 #include "reactor.h"
 #include "trace.h"
 #include "trace_util.h"
