@@ -418,7 +418,7 @@ public abstract class TestBase {
 
         // Set the no-compile flag the test is not supposed to reach the build stage.
         if (level.compareTo(TestLevel.BUILD) < 0) {
-            context.getArgs().setProperty("no-compile", "");
+            context.getArgs().setProperty(BuildParm.NO_COMPILE.getKey(), "");
         }
 
         addExtraLfcArgs(context.getArgs());

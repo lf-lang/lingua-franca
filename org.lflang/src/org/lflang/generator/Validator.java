@@ -3,6 +3,7 @@ package org.lflang.generator;
 import org.eclipse.xtext.util.CancelIndicator;
 
 import org.lflang.ErrorReporter;
+import org.lflang.generator.LFGeneratorContext.BuildParm;
 import org.lflang.util.LFCommand;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -78,7 +79,7 @@ public abstract class Validator {
      * @param context The context of the current build.
      */
     private boolean validationEnabled(LFGeneratorContext context) {
-        return context.getArgs().containsKey("lint") || validationEnabledByDefault(context);
+        return context.getArgs().containsKey(BuildParm.LINT.getKey()) || validationEnabledByDefault(context);
     }
 
     /**

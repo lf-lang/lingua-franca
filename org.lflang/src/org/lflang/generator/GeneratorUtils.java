@@ -1,5 +1,7 @@
 package org.lflang.generator;
 
+import static org.lflang.generator.LFGeneratorContext.BuildParm.BUILD_TYPE;
+
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -28,6 +30,7 @@ import org.lflang.TargetConfig;
 import org.lflang.TargetProperty.BuildType;
 import org.lflang.TargetProperty.LogLevel;
 import org.lflang.TargetProperty.UnionType;
+import org.lflang.generator.LFGeneratorContext.BuildParm;
 import org.lflang.generator.LFGeneratorContext.Mode;
 import org.lflang.TargetProperty;
 import org.lflang.TargetProperty.SchedulerOption;
@@ -83,27 +86,27 @@ public class GeneratorUtils {
             List<KeyValuePair> pairs = target.getConfig().getPairs();
             TargetProperty.set(targetConfig, pairs != null ? pairs : List.of(), errorReporter);
         }
-        if (context.getArgs().containsKey("no-compile")) {
+        if (context.getArgs().containsKey(BuildParm.NO_COMPILE.getKey())) {
             targetConfig.noCompile = true;
         }
-        if (context.getArgs().containsKey("build-type")) {
-            targetConfig.cmakeBuildType = (BuildType) UnionType.BUILD_TYPE_UNION.forName(context.getArgs().getProperty("build-type"));
+        if (context.getArgs().containsKey(BuildParm.BUILD_TYPE.getKey())) {
+            targetConfig.cmakeBuildType = (BuildType) UnionType.BUILD_TYPE_UNION.forName(context.getArgs().getProperty(BuildParm.BUILD_TYPE.getKey()));
         }
-        if (context.getArgs().containsKey("logging")) {
-            targetConfig.logLevel = LogLevel.valueOf(context.getArgs().getProperty("logging").toUpperCase());
+        if (context.getArgs().containsKey(BuildParm.LOGGING.getKey())) {
+            targetConfig.logLevel = LogLevel.valueOf(context.getArgs().getProperty(BuildParm.LOGGING.getKey()).toUpperCase());
         }
-        if (context.getArgs().containsKey("workers")) {
-            targetConfig.workers = Integer.parseInt(context.getArgs().getProperty("workers"));
+        if (context.getArgs().containsKey(BuildParm.WORKERS.getKey())) {
+            targetConfig.workers = Integer.parseInt(context.getArgs().getProperty(BuildParm.WORKERS.getKey()));
         }
-        if (context.getArgs().containsKey("threading")) {
-            targetConfig.threading = Boolean.parseBoolean(context.getArgs().getProperty("threading"));
+        if (context.getArgs().containsKey(BuildParm.THREADING.getKey())) {
+            targetConfig.threading = Boolean.parseBoolean(context.getArgs().getProperty(BuildParm.THREADING.getKey()));
         }
-        if (context.getArgs().containsKey("target-compiler")) {
-            targetConfig.compiler = context.getArgs().getProperty("target-compiler");
+        if (context.getArgs().containsKey(BuildParm.TARGET_COMPILER.getKey())) {
+            targetConfig.compiler = context.getArgs().getProperty(BuildParm.TARGET_COMPILER.getKey());
         }
-        if (context.getArgs().containsKey("scheduler")) {
+        if (context.getArgs().containsKey(BuildParm.SCHEDULER.getKey())) {
             targetConfig.schedulerType = SchedulerOption.valueOf(
-                context.getArgs().getProperty("scheduler")
+                context.getArgs().getProperty(BuildParm.SCHEDULER.getKey())
             );
             targetConfig.setByUser.add(TargetProperty.SCHEDULER);
         }
@@ -115,11 +118,11 @@ public class GeneratorUtils {
                 ));
             }
         }
-        if (context.getArgs().containsKey("runtime-version")) {
-            targetConfig.runtimeVersion = context.getArgs().getProperty("runtime-version");
+        if (context.getArgs().containsKey(BuildParm.RUNTIME_VERSION.getKey())) {
+            targetConfig.runtimeVersion = context.getArgs().getProperty(BuildParm.RUNTIME_VERSION.getKey());
         }
-        if (context.getArgs().containsKey("external-runtime-path")) {
-            targetConfig.externalRuntimePath = context.getArgs().getProperty("external-runtime-path");
+        if (context.getArgs().containsKey(BuildParm.EXTERNAL_RUNTIME_PATH.getKey())) {
+            targetConfig.externalRuntimePath = context.getArgs().getProperty(BuildParm.EXTERNAL_RUNTIME_PATH.getKey());
         }
         if (context.getArgs().containsKey(TargetProperty.KEEPALIVE.description)) {
             targetConfig.keepalive = Boolean.parseBoolean(
