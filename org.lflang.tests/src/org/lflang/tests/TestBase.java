@@ -62,7 +62,7 @@ import com.google.inject.Provider;
 /**
  * Base class for test classes that define JUnit tests.
  *
- * @author Marten Lohstroh <marten@berkeley.edu>
+ * @author Marten Lohstroh
  */
 @ExtendWith(InjectionExtension.class)
 @InjectWith(LFInjectorProvider.class)
@@ -102,14 +102,14 @@ public abstract class TestBase {
 
     /**
      * An enumeration of test levels.
-     * @author Marten Lohstroh <marten@berkeley.edu>
+     * @author Marten Lohstroh
      *
      */
     public enum TestLevel {VALIDATION, CODE_GEN, BUILD, EXECUTION}
 
     /**
      * Static function for converting a path to its associated test level.
-     * @author Anirudh Rengarajan <arengarajan@berkeley.edu>
+     * @author Anirudh Rengarajan
      */
     public static TestLevel pathToLevel(Path path) {
         while(path.getParent() != null) {
@@ -127,7 +127,7 @@ public abstract class TestBase {
     /**
      * A collection messages often used throughout the test package.
      *
-     * @author Marten Lohstroh <marten@berkeley.edu>
+     * @author Marten Lohstroh
      *
      */
     public static class Message {

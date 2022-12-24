@@ -11,7 +11,7 @@ import org.lflang.util.StringUtil;
 /**
  * Generate the docker file related code for the C and CCpp target.
  *
- * @author Hou Seng Wong <housengw@berkeley.edu>
+ * @author Hou Seng Wong
  */
 public class CDockerGenerator extends DockerGeneratorBase {
     private static final String DEFAULT_BASE_IMAGE = "alpine:latest";

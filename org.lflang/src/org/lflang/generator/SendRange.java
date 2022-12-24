@@ -45,7 +45,7 @@ import org.lflang.lf.Connection;
  * This class and subclasses are designed to be immutable.
  * Modifications always return a new RuntimeRange.
  *
- * @author{Edward A. Lee <eal@berkeley.edu>}
+ * @author Edward A. Lee
 */
 public class SendRange extends RuntimeRange.Port {
     

@@ -10,8 +10,8 @@ import org.lflang.lf.ParameterReference;
 /**
  * Generate code for federate related functionality
  *
- * @author {Soroush Bateni <soroush@utdallas.edu>}
- * @author {Hou Seng Wong <housengw@berkeley.edu>}
+ * @author Soroush Bateni
+ * @author Hou Seng Wong
  */
 public class CFederateGenerator {
     /**

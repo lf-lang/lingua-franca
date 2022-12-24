@@ -49,7 +49,7 @@ import de.cau.cs.kieler.klighd.krendering.KRenderingFactory;
 /**
  * Adjusts the port position of reactions node AFTER layout, to allow free port order but also adapt (snuggle) to pointy shape of reaction node.
  * 
- * @author{Alexander Schulz-Rosengarten <als@informatik.uni-kiel.de>}
+ * @author Alexander Schulz-Rosengarten
  */
 public class ReactionPortAdjustment implements IStyleModifier {
 

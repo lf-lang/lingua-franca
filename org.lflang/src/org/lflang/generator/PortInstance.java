@@ -51,8 +51,8 @@ import org.lflang.lf.WidthTerm;
  * functions report the connectivity of all such channels as lists of
  * {@link SendRange} and {@link RuntimeRange} objects.
  *  
- * @author{Marten Lohstroh <marten@berkeley.edu>}
- * @author{Edward A. Lee <eal@berkeley.edu>}
+ * @author Marten Lohstroh
+ * @author Edward A. Lee
  */
 public class PortInstance extends TriggerInstance<Port> {
 

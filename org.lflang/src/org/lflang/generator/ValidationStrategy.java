@@ -7,7 +7,7 @@ import org.lflang.util.LFCommand;
 /**
  * A means of validating generated code.
  *
- * @author Peter Donovan <peterdonovan@berkeley.edu>
+ * @author Peter Donovan
  */
 public interface ValidationStrategy {
 

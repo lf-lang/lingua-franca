@@ -28,7 +28,7 @@ package org.lflang;
 /**
  * Represents an amount of time (a duration).
  *
- * @author Marten Lohstroh <marten@berkeley.edu>
+ * @author Marten Lohstroh
  * @author Clément Fournier - TU Dresden, INSA Rennes
  */
 public final class TimeValue implements Comparable<TimeValue> {

@@ -63,11 +63,11 @@ import com.google.inject.Inject;
 /**
  * Collection of unit tests to ensure validation is done correctly.
  * 
- * @author{Edward A. Lee <eal@berkeley.edu>}
- * @author{Marten Lohstroh <marten@berkeley.edu>}
- * @author{Matt Weber <matt.weber@berkeley.edu>}
- * @author(Christian Menard <christian.menard@tu-dresden.de>}
- * @author{Alexander Schulz-Rosengarten <als@informatik.uni-kiel.de>}
+ * @author Edward A. Lee
+ * @author Marten Lohstroh
+ * @author Matt Weber
+ * @author (Christian Menard}
+ * @author Alexander Schulz-Rosengarten
  */
 public class LinguaFrancaValidationTest {
     @Inject 

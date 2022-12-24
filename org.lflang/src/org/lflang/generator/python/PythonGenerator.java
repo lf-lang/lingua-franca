@@ -93,7 +93,7 @@ import com.google.common.base.Objects;
  * A backend is also generated using the CGenerator that interacts with the C code library (see CGenerator.xtend).
  * The backend is responsible for passing arguments to the Python reactor functions.
  *
- * @author Soroush Bateni <soroush@utdallas.edu>
+ * @author Soroush Bateni
  */
 public class PythonGenerator extends CGenerator {
 
