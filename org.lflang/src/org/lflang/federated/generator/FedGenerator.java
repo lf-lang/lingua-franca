@@ -40,6 +40,7 @@ import org.lflang.generator.GeneratorUtils;
 import org.lflang.generator.IntegratedBuilder;
 import org.lflang.generator.LFGenerator;
 import org.lflang.generator.LFGeneratorContext;
+import org.lflang.generator.LFGeneratorContext.BuildParm;
 import org.lflang.generator.MixedRadixInt;
 import org.lflang.generator.PortInstance;
 import org.lflang.generator.ReactorInstance;
@@ -172,7 +173,7 @@ public class FedGenerator {
      * @param context
      */
     protected void cleanIfNeeded(LFGeneratorContext context) {
-        if (context.getArgs().containsKey("clean")) {
+        if (context.getArgs().containsKey(BuildParm.CLEAN.getKey())) {
             try {
                 fileConfig.doClean();
             } catch (IOException e) {
