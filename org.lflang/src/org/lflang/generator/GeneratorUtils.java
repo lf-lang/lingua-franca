@@ -1,7 +1,5 @@
 package org.lflang.generator;
 
-import static org.lflang.generator.LFGeneratorContext.BuildParm.BUILD_TYPE;
-
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;

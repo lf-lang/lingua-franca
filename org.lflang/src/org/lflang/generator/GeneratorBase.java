@@ -60,6 +60,7 @@ import org.lflang.ast.AstTransformation;
 import org.lflang.federated.FedASTUtils;
 import org.lflang.federated.FederateInstance;
 import org.lflang.federated.serialization.SupportedSerializers;
+import org.lflang.generator.LFGeneratorContext.BuildParm;
 import org.lflang.graph.InstantiationGraph;
 import org.lflang.lf.Action;
 import org.lflang.lf.Connection;
