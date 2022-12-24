@@ -40,6 +40,7 @@ import org.lflang.generator.GeneratorUtils;
 import org.lflang.generator.IntegratedBuilder;
 import org.lflang.generator.LFGenerator;
 import org.lflang.generator.LFGeneratorContext;
+import org.lflang.generator.LFGeneratorContext.BuildParm;
 import org.lflang.generator.MixedRadixInt;
 import org.lflang.generator.PortInstance;
 import org.lflang.generator.ReactorInstance;
@@ -293,7 +294,7 @@ public class FedGenerator {
      * @param context Context of the build process.
      */
     private void processCLIArguments(LFGeneratorContext context) {
-        if (context.getArgs().containsKey("rti")) {
+        if (context.getArgs().containsKey(BuildParm.RTI.getKey())) {
             setFederationRTIProperties(context);
         }
     }
@@ -304,7 +305,7 @@ public class FedGenerator {
      * @param context Context of the build process.
      */
     private void setFederationRTIProperties(LFGeneratorContext context) {
-        String rtiAddr = context.getArgs().getProperty("rti");
+        String rtiAddr = context.getArgs().getProperty(BuildParm.RTI.getKey());
         Pattern pattern = Pattern.compile("([a-zA-Z0-9]+@)?([a-zA-Z0-9]+\\.?[a-z]{2,}|[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+):?([0-9]+)?");
         Matcher matcher = pattern.matcher(rtiAddr);
 

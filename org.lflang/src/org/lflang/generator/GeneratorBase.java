@@ -47,6 +47,7 @@ import org.lflang.Target;
 import org.lflang.TargetConfig;
 import org.lflang.TimeUnit;
 import org.lflang.TimeValue;
+import org.lflang.generator.LFGeneratorContext.BuildParm;
 import org.lflang.graph.InstantiationGraph;
 import org.lflang.lf.Action;
 import org.lflang.lf.Connection;
@@ -269,7 +270,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
 
         // Configure the command factory
         commandFactory.setVerbose();
-        if (Objects.equal(context.getMode(), LFGeneratorContext.Mode.STANDALONE) && context.getArgs().containsKey("quiet")) {
+        if (Objects.equal(context.getMode(), LFGeneratorContext.Mode.STANDALONE) && context.getArgs().containsKey(BuildParm.QUIET.getKey())) {
             commandFactory.setQuiet();
         }
 
@@ -322,7 +323,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
      * the clean step.
      */
     protected void cleanIfNeeded(LFGeneratorContext context) {
-        if (context.getArgs().containsKey("clean")) {
+        if (context.getArgs().containsKey(BuildParm.CLEAN.getKey())) {
             try {
                 fileConfig.doClean();
             } catch (IOException e) {
