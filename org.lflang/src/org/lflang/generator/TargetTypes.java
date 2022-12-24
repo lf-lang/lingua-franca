@@ -6,7 +6,6 @@ import java.util.stream.Collectors;
 
 import org.lflang.ASTUtils;
 import org.lflang.InferredType;
-import org.lflang.TimeUnit;
 import org.lflang.TimeValue;
 import org.lflang.lf.Action;
 import org.lflang.lf.Code;
@@ -63,6 +62,10 @@ public interface TargetTypes {
      */
     String getTargetVariableSizeListType(String baseType);
 
+
+    default String getTargetParamRef(ParameterReference expr, InferredType typeOrNull) {
+        return escapeIdentifier(expr.getParameter().getName());
+    }
 
     /**
      * Return an "undefined" type which is used as a default
@@ -232,7 +235,7 @@ public interface TargetTypes {
         if (ASTUtils.isZero(expr) && type != null && type.isTime) {
             return getTargetTimeExpr(TimeValue.ZERO);
         } else if (expr instanceof ParameterReference) {
-            return escapeIdentifier(((ParameterReference) expr).getParameter().getName());
+            return getTargetParamRef((ParameterReference) expr, type);
         } else if (expr instanceof Time) {
             return getTargetTimeExpr((Time) expr);
         } else if (expr instanceof Literal) {
@@ -249,6 +252,6 @@ public interface TargetTypes {
      * target code.
      */
     default String getTargetTimeExpr(Time t) {
-        return getTargetTimeExpr(new TimeValue(t.getInterval(), TimeUnit.fromName(t.getUnit())));
+        return getTargetTimeExpr(ASTUtils.toTimeValue(t));
     }
 }

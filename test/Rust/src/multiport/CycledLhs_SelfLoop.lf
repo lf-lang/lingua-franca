@@ -17,7 +17,7 @@ reactor Test {
     reaction(act) -> out {= ctx.set_opt(out, ctx.get(act)); =}
 
     reaction(in) -> act {=
-        let sum: u32 = r#in.into_iter().map(|p| ctx.get(&p).unwrap()).sum();
+        let sum: u32 = r#in.iterate_values().sum();
         println!("Sum of received: {}", sum);
         assert_eq!(self.last * 2, sum);
         self.last = sum;

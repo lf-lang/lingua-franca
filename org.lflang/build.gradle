@@ -1,3 +1,5 @@
+import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
+
 dependencies {
     implementation "org.eclipse.xtext:org.eclipse.xtext:${xtextVersion}"
     implementation "org.eclipse.xtext:org.eclipse.xtext.xbase.lib:${xtextVersion}"
@@ -67,3 +69,138 @@ generateXtext.dependsOn(generateXtextLanguage)
 clean.dependsOn(cleanGenerateXtextLanguage)
 eclipse.classpath.plusConfigurations += [configurations.mwe2]
 
+configurations {
+    cli_impl {
+        extendsFrom implementation
+    }
+}
+
+task getSubmoduleVersions(type: Exec) {
+    description('Run a Git command to get the current status of submodules')
+    workingDir project.rootDir
+
+    def command = "git submodule status"
+    if (System.getProperty('os.name').toLowerCase(Locale.ROOT).contains('windows')) {
+        commandLine 'cmd', '/c', command
+    } else {
+        commandLine 'sh', '-c', command
+    }
+    standardOutput = new ByteArrayOutputStream()
+
+    ext.outputFile = file("$project.buildDir/submodule-status.properties")
+    outputs.file(outputFile)
+
+    doLast {
+        def matcher = standardOutput.toString() =~ ~"(?m)^[-+ ]?([0-9a-f]+) org.lflang/src/lib/\\w+/reactor-([-a-zA-Z]+)"
+        def properties = new StringBuilder()
+        while (matcher.find()) {
+            def rev = matcher.group(1)
+            def language = matcher.group(2)
+            properties << "$language = $rev\n"
+        }
+        outputFile.text = properties
+    }
+}
+
+task updateRustRuntime {
+    description('Record the VCS revisions of the language runtimes into a properties file available at runtime.')
+
+    dependsOn getSubmoduleVersions
+    ext.outputFile = file("$project.projectDir/src/lib/rs/runtime-version.properties")
+    outputs.file(outputFile)
+
+    doLast {
+        def upToDateProps = new Properties()
+        getSubmoduleVersions.outputFile.withReader { r -> upToDateProps.load(r) }
+        outputFile.text = "rs = " + upToDateProps.get("rs") + "\n"
+    }
+}
+// add the generated file as an output
+sourceSets.main.output.dir tasks.updateRustRuntime.outputFile, builtBy: updateRustRuntime
+tasks.processResources.dependsOn(updateRustRuntime)
+
+task checkRuntimeVersionFileUpToDate {
+    description('Check that the runtime version recorded in the built Jar for LFC matches the version of the checked out submodule')
+    dependsOn getSubmoduleVersions
+    inputs.file updateRustRuntime.outputFile
+
+    doLast {
+        def rtProps = new Properties()
+        updateRustRuntime.outputFile.withReader { r -> rtProps.load(r) }
+        def upToDateProps = new Properties()
+        getSubmoduleVersions.outputFile.withReader { r -> upToDateProps.load(r) }
+
+        upToDateProps.each { language, rev ->
+            def actualLanguage = rtProps.get(language)
+            if (actualLanguage == null)
+                return
+            if (actualLanguage != rev) {
+                logger.error("Runtime for $language is not checked out at correct revision:\n" +
+                        "expected: $rev\n" +
+                        "actual:   $actualLanguage\n" +
+                        "You may need to call `./gradlew updateRustRuntime`.")
+            } else {
+                logger.info("Success: Runtime for $language is checked out at expected revision $rev")
+            }
+        }
+    }
+}
+
+apply plugin: 'application'
+apply plugin: 'com.github.johnrengelman.shadow'
+
+task buildAll() {
+    apply plugin: 'application'
+    apply plugin: 'com.github.johnrengelman.shadow'
+    mainClassName = 'org.lflang.cli.Lfc'
+}
+
+// define buildLfc as an alias to buildAll
+task buildLfc {
+    dependsOn buildAll
+    doFirst({{logger.warn("The buildLfc task is deprecated! Please use buildAll instead.")}})
+}
+
+task jarCliTools(type: ShadowJar) {
+    manifest {
+        attributes('Main-Class': 'org.lflang.cli.Lfc')
+    }
+    configurations = [project.configurations.cli_impl]
+    exclude 'test/*'
+    exclude 'META-INF/*.RSA', 'META-INF/*.SF', 'META-INF/*.DSA'
+    // We should use minimize() here to reduce the size of the JAR, but it causes problems
+    // with regard to our Kotlin classes. Since we don't use imports to load them but load
+    // the classes manually, minimize does not see the dependency. While we can add an exclude
+    // rule, this does not seem to work very well and causes problems when compiling for a
+    // second time. Also see https://github.com/lf-lang/lingua-franca/pull/1285
+    transform(com.github.jengelman.gradle.plugins.shadow.transformers.AppendingTransformer){
+        resource = 'plugin.properties'
+    }
+    from sourceSets.main.output
+}
+
+buildAll.finalizedBy jarCliTools
+
+// Tasks for running specific CLI tools.
+// The working directory will be the root directory of the lingua franca project
+// CLI arguments can be passed to lfc by using --args. Note that you need
+// to escape cli flags which start with --.For instance --args ' --help'.
+// Otherwise they're parsed as arguments to the Gradle CLI, not lfc.
+
+task runLfc(type: JavaExec) {
+    // builds and runs lfc
+    description = "Build and run lfc, use --args to pass arguments"
+    group = "application"
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'org.lflang.cli.Lfc'
+    workingDir = '..'
+}
+
+task runLff(type: JavaExec) {
+    // builds and runs lff
+    description = "Build and run lff, use --args to pass arguments"
+    group = "application"
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'org.lflang.cli.Lff'
+    workingDir = '..'
+}

@@ -94,6 +94,18 @@ class LinguaFrancaParsingTest {
         parseWithoutError(testCase);
     }
 
+    @Test
+    public void testTokenizeEmptyWidth() throws Exception {
+        String testCase = """
+                target C;
+                main reactor {
+                    state foo: int[];
+                    state foo: int[   ]; //spaces are allowed
+                }
+            """;
+        parseWithoutError(testCase);
+    }
+
     private Model parseWithoutError(String s) throws Exception {
         Model model = parser.parse(s);
         Assertions.assertNotNull(model);

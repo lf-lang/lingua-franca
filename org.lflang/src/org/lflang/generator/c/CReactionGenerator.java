@@ -222,7 +222,6 @@ public class CReactionGenerator {
         }
         // Next generate all the collected setup code.
         code.pr(reactionInitialization.toString());
-        
         return code.toString();
     }
 
@@ -799,7 +798,7 @@ public class CReactionGenerator {
             constructorCode.pr(CExtensionUtils.surroundWithIfFederatedDecentralized(
                 "self->_lf__"+timer.getName()+".intended_tag = (tag_t) { .time = NEVER, .microstep = 0u};"));
         }
-        
+
         // Handle builtin triggers.
         if (startupReactions.size() > 0) {
             generateBuiltinTriggeredReactionsArray(startupReactions, "startup", body, constructorCode);
@@ -911,10 +910,10 @@ public class CReactionGenerator {
     public static void generateBuiltinTriggeredReactionsArray(
             Set<Integer> reactions,
             String name,
-            CodeBuilder body, 
+            CodeBuilder body,
             CodeBuilder constructorCode
     ) {
-        body.pr(String.join("\n", 
+        body.pr(String.join("\n",
             "trigger_t _lf__"+name+";",
             "reaction_t* _lf__"+name+"_reactions["+reactions.size()+"];"
         ));
@@ -924,14 +923,14 @@ public class CReactionGenerator {
         for (Integer reactionIndex : reactions) {
             constructorCode.pr("self->_lf__"+name+"_reactions["+i+++"] = &self->_lf__reaction_"+reactionIndex+";");
         }
-        constructorCode.pr(String.join("\n", 
+        constructorCode.pr(String.join("\n",
             "self->_lf__"+name+".last = NULL;",
             "self->_lf__"+name+".reactions = &self->_lf__"+name+"_reactions[0];",
             "self->_lf__"+name+".number_of_reactions = "+reactions.size()+";",
             "self->_lf__"+name+".is_timer = false;"
         ));
     }
-    
+
     public static String generateBuiltinTriggersTable(int reactionCount, String name) {
         return String.join("\n", List.of(
             "// Array of pointers to "+name+" triggers.",
@@ -1019,7 +1018,7 @@ public class CReactionGenerator {
         s.append("}\n");
         return s.toString();
     }
-    
+
     /**
      * Generate the _lf_handle_mode_triggered_reactions function.
      */

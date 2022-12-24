@@ -65,16 +65,14 @@ subprojects {
     }
 }
 
-gradle.projectsEvaluated {
-    // Our CI uses --tests filters, which fails if some
-    // subprojects have no matching test.
-    //
-    // https://stackoverflow.com/questions/26147480/how-to-make-gradle-not-to-mark-build-failed-if-no-tests-are-found
-    subprojects {
-        test {
-            filter {
-                setFailOnNoMatchingTests(false)
-            }
+// Our CI uses --tests filters, which fails if some
+// subprojects have no matching test.
+//
+// https://stackoverflow.com/questions/26147480/how-to-make-gradle-not-to-mark-build-failed-if-no-tests-are-found
+subprojects {
+    test {
+        filter {
+            setFailOnNoMatchingTests(false)
         }
     }
 }
@@ -112,4 +110,4 @@ spotless {
         formatAnnotations()
     }
 }
-tasks.withType(SpotlessTask) { it.dependsOn(":org.lflang.cli:jarLff") }
+tasks.withType(SpotlessTask) { it.dependsOn(":org.lflang:jarCliTools") }

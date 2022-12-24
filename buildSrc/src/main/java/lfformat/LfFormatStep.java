@@ -61,18 +61,19 @@ public final class LfFormatStep {
               new URLClassLoader(new URL[] {resourcePath.toUri().toURL()}));
       final Path lffPath =
           Path.of(
-              "org.lflang.cli",
+              "org.lflang",
               "build",
               "libs",
-              String.format("org.lflang.cli-%s-lff.jar", properties.getString("VERSION")));
+              String.format("org.lflang-%s.jar", properties.getString("VERSION")));
       // It looks silly to invoke Java from Java, but it is necessary in
       // order to break the circularity of needing the program to be built
       // in order for it to be built.
       return new ProcessBuilder(
               List.of(
                   "java",
-                  "-jar",
+                  "-cp",
                   lffPath.toString(),
+                  "org.lflang.cli.Lff",
                   "--dry-run",
                   file.getAbsoluteFile().toString()))
           .start();

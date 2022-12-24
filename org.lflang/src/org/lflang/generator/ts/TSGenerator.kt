@@ -32,7 +32,6 @@ import org.lflang.ErrorReporter
 import org.lflang.Target
 import org.lflang.TimeValue
 import org.lflang.generator.CodeMap
-import org.lflang.generator.ExpressionGenerator
 import org.lflang.generator.GeneratorBase
 import org.lflang.generator.GeneratorResult
 import org.lflang.generator.GeneratorUtils
@@ -41,15 +40,9 @@ import org.lflang.generator.IntegratedBuilder
 import org.lflang.generator.LFGeneratorContext
 import org.lflang.generator.SubContext
 import org.lflang.generator.TargetTypes
-import org.lflang.graph.InstantiationGraph
-import org.lflang.inferredType
 import org.lflang.lf.Action
 import org.lflang.lf.Expression
-import org.lflang.lf.Instantiation
-import org.lflang.lf.Parameter
 import org.lflang.lf.Preamble
-import org.lflang.lf.StateVar
-import org.lflang.lf.Type
 import org.lflang.lf.VarRef
 import org.lflang.model
 import org.lflang.scoping.LFGlobalScopeProvider
@@ -89,11 +82,6 @@ class TSGenerator(
          */
         val CONFIG_FILES = arrayOf("package.json", "tsconfig.json", "babel.config.js", ".eslintrc.json")
 
-        val RT_CONFIG_FILES = arrayOf("package.json", "package-lock.json", "tsconfig.json", ".babelrc")
-
-        private val VG =
-            ExpressionGenerator(::timeInTargetLanguage) { param -> "this.${param.name}.get()" }
-
         fun timeInTargetLanguage(value: TimeValue): String {
             return if (value.unit != null) {
                 "TimeValue.${value.unit.canonicalName}(${value.magnitude})"
@@ -117,22 +105,6 @@ class TSGenerator(
         targetConfig.compilerFlags.add("-O2")
     }
 
-    // Wrappers to expose GeneratorBase methods.
-
-    fun getTargetValueW(expr: Expression): String = VG.getTargetValue(expr, false)
-    fun getTargetTypeW(p: Parameter): String = TSTypes.getTargetType(p.inferredType)
-    fun getTargetTypeW(state: StateVar): String = TSTypes.getTargetType(state)
-    fun getTargetTypeW(t: Type): String = TSTypes.getTargetType(t)
-
-    fun getInitializerListW(state: StateVar): List<String> = VG.getInitializerList(state)
-    fun getInitializerListW(param: Parameter): List<String> = VG.getInitializerList(param)
-    fun getInitializerListW(param: Parameter, i: Instantiation): List<String> =
-        VG.getInitializerList(param, i)
-
-    fun getInstantiationGraph(): InstantiationGraph? {
-        return this.instantiationGraph;
-    }
-
     /** Generate TypeScript code from the Lingua Franca model contained by the
      *  specified resource. This is the main entry point for code
      *  generation.
@@ -150,9 +122,8 @@ class TSGenerator(
         // createMainReactorInstance()
 
         clean(context)
-        copyRuntime()
-        collectDependencies(resource, context, tsFileConfig.reactorTsPath(), true)
         copyConfigFiles()
+        updatePackageConfig(context)
 
         val codeMaps = HashMap<Path, CodeMap>()
         val dockerGenerator = TSDockerGenerator(false)
@@ -170,8 +141,8 @@ class TSGenerator(
             )
             if (shouldCollectDependencies(context)) collectDependencies(resource, context, tsFileConfig.srcGenPkgPath, false)
             if (errorsOccurred()) {
-                context.unsuccessfulFinish();
-                return;
+                context.unsuccessfulFinish()
+                return
             }
             if (targetConfig.protoFiles.size != 0) {
                 protoc()
@@ -196,6 +167,41 @@ class TSGenerator(
     }
 
     /**
+     * Prefix the given path with a scheme if missing.
+     */
+    private fun formatRuntimePath(path: String): String {
+        return if (path.startsWith("file:") || path.startsWith("git:") || path.startsWith("git+")) {
+            path
+        } else {
+            "file:/$path"
+        }
+    }
+
+    /**
+     * Update package.json according to given build parameters.
+     */
+    private fun updatePackageConfig(context: LFGeneratorContext) {
+        var rtPath = LFGeneratorContext.BuildParm.EXTERNAL_RUNTIME_PATH.getValue(context)
+        val rtVersion = LFGeneratorContext.BuildParm.RUNTIME_VERSION.getValue(context)
+        val sb = StringBuffer("");
+        val manifest = fileConfig.srcGenPath.resolve("package.json");
+        val rtRegex = Regex("(\"@lf-lang/reactor-ts\")(.+)")
+        if (rtPath != null) rtPath = formatRuntimePath(rtPath)
+        // FIXME: do better CLI arg validation upstream
+        // https://github.com/lf-lang/lingua-franca/issues/1429
+        manifest.toFile().forEachLine {
+            var line = it.replace("\"LinguaFrancaDefault\"", "\"${fileConfig.name}\"");
+            if (rtPath != null) {
+                line = line.replace(rtRegex, "$1: \"$rtPath\",")
+            } else if (rtVersion != null) {
+                line = line.replace(rtRegex, "$1: \"git://github.com/lf-lang/reactor-ts.git#$rtVersion\",")
+            }
+            sb.appendLine(line)
+        }
+        manifest.toFile().writeText(sb.toString());
+    }
+
+    /**
      * Clean up the src-gen directory as needed to prepare for code generation.
      */
     private fun clean(context: LFGeneratorContext) {
@@ -203,23 +209,6 @@ class TSGenerator(
         if (context.mode != LFGeneratorContext.Mode.LSP_MEDIUM) FileUtil.deleteDirectory(
             fileConfig.srcGenPath
         )
-    }
-
-    /**
-     * Copy the TypeScript runtime so that it is accessible to the generated code.
-     */
-    private fun copyRuntime() {
-        FileUtil.copyDirectoryFromClassPath(
-            "$LIB_PATH/reactor-ts/src/core",
-            tsFileConfig.reactorTsPath().resolve("src").resolve("core"),
-            true
-        )
-        for (configFile in RT_CONFIG_FILES) {
-            FileUtil.copyFileFromClassPath(
-                "$LIB_PATH/reactor-ts/$configFile",
-                tsFileConfig.reactorTsPath().resolve(configFile)
-            )
-        }
     }
 
     /**
@@ -252,7 +241,7 @@ class TSGenerator(
         dockerGenerator: TSDockerGenerator,
         preambles: List<Preamble>
     ) {
-        var tsFileName = fileConfig.name
+        val tsFileName = fileConfig.name
 
         val tsFilePath = tsFileConfig.tsSrcGenPath().resolve("$tsFileName.ts")
 
@@ -262,13 +251,13 @@ class TSGenerator(
             targetConfig.protoFiles, preambles)
         tsCode.append(preambleGenerator.generatePreamble())
 
-        val parameterGenerator = TSParameterPreambleGenerator(this, fileConfig, targetConfig, reactors)
+        val parameterGenerator = TSParameterPreambleGenerator(fileConfig, targetConfig, reactors)
         val (mainParameters, parameterCode) = parameterGenerator.generateParameters()
         tsCode.append(parameterCode)
 
         val reactorGenerator = TSReactorGenerator(this, errorReporter, targetConfig)
         for (reactor in reactors) {
-            tsCode.append(reactorGenerator.generateReactorClasses(reactor))
+            tsCode.append(reactorGenerator.generateReactor(reactor))
         }
 
         tsCode.append(reactorGenerator.generateMainReactorInstanceAndStart(this.mainDef, mainParameters))

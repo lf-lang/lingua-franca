@@ -18,11 +18,8 @@ import org.lflang.generator.DiagnosticReporting;
 import org.lflang.generator.DiagnosticReporting.Strategy;
 import org.lflang.generator.Position;
 import org.lflang.generator.ValidationStrategy;
-import org.lflang.generator.Validator;
 import org.lflang.util.LFCommand;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationFeature;
@@ -35,7 +32,7 @@ import com.google.common.collect.ImmutableSet;
  *
  * @author Peter Donovan <peterdonovan@berkeley.edu>
  */
-public class PythonValidator extends Validator {
+public class PythonValidator extends org.lflang.generator.Validator {
 
     /** The pattern that diagnostics from the Python compiler typically follow. */
     private static final Pattern DIAGNOSTIC_MESSAGE_PATTERN = Pattern.compile(

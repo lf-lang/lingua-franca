@@ -92,7 +92,7 @@ public class CActionGenerator {
     /**
      * Generate the declarations of actions in the self struct
      *
-     * @param reactor The reactor to generatet declarations for
+     * @param reactor The reactor to generate declarations for
      * @param decl The reactor's declaration
      * @param body The content of the self struct
      * @param constructorCode The constructor code of the reactor
