@@ -223,6 +223,12 @@ public class ReactionInstance extends NamedInstance<Reaction> {
      */
     public DeadlineInstance declaredDeadline;
 
+    //FIXME: modif4watchdog
+    /**
+     * Watchdog for this reaction instance, if declared.
+     */
+    public WatchdogInstance declaredWatchdog;
+
     /**
      * Inferred deadline. Defaults to the maximum long value.
      */

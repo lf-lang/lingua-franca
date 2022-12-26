@@ -201,7 +201,8 @@ Reaction:
     ('->' effects+=VarRefOrModeTransition (',' effects+=VarRefOrModeTransition)*)?
     code=Code
     (stp=STP)?
-    (deadline=Deadline)?;
+    (deadline=Deadline)?
+    (watchdog=Watchdog)?;
 
 TriggerRef:
     BuiltinTriggerRef | VarRef;
@@ -211,6 +212,9 @@ BuiltinTriggerRef:
 
 Deadline:
     'deadline' '(' delay=Expression ')' code=Code;
+
+Watchdog:
+    'watchdog' nameID=Expression '(' delay=Expression ')' code=Code;
     
 STP:
     'STP' '(' value=Expression ')' code=Code;
@@ -486,7 +490,7 @@ Token:
     'mutable' | 'input' | 'output' | 'timer' | 'action' | 'reaction' | 
     'startup' | 'shutdown' | 'after' | 'deadline' | 'mutation' | 'preamble' |
     'new' | 'federated' | 'at' | 'as' | 'from' | 'widthof' | 'const' | 'method' |
-    'interleaved' | 'mode' | 'initial' | 'reset' | 'history' |
+    'interleaved' | 'mode' | 'initial' | 'reset' | 'history' | 'watchdog'
     // Other terminals
     NEGINT | TRUE | FALSE |
     // Action origins

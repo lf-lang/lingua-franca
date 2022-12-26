@@ -1132,6 +1132,17 @@ public class CReactionGenerator {
         return function.toString();
     }
 
+    // FIXME: modif4watchdogs
+    /**
+     * Returns the name of the watchdog function for reaction.
+     * @param decl The reactor with the watchdog
+     * @param reactionIndex The number assigned to this reaction watchdog
+     * @return Name of the watchdog function for reaction
+     */
+    public static String generateWatchdogFunctionName(ReactorDecl decl, int reactionIndex) {
+        return decl.getName().toLowerCase() + "_watchdog_function" + reactionIndex;
+    }
+
     /**
      * Returns the name of the deadline function for reaction.
      * @param decl The reactor with the deadline
