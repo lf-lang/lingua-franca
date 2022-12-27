@@ -68,9 +68,9 @@ public class CActionGenerator {
     }
 
     /**
-     * Create a reference token initialized to the payload size.
+     * Create a template token initialized to the payload size.
      * This token is marked to not be freed so that the trigger_t struct
-     * always has a reference token.
+     * always has a template token.
      * At the start of each time step, we need to initialize the is_present field
      * of each action's trigger object to false and free a previously
      * allocated token if appropriate. This code sets up the table that does that.
@@ -85,9 +85,10 @@ public class CActionGenerator {
         String payloadSize
     ) {
         return String.join("\n",
-            selfStruct+"->_lf__"+actionName+".token = _lf_create_token("+payloadSize+");",
-            selfStruct+"->_lf__"+actionName+".status = absent;",
-            "_lf_tokens_with_ref_count[_lf_tokens_with_ref_count_count] = &"+selfStruct+"->_lf__"+actionName+".token;"
+                "_lf_initialize_template((token_template_t*)",
+                "        &("+selfStruct+"->_lf__"+actionName+"),",
+                         payloadSize+");",
+            selfStruct+"->_lf__"+actionName+".status = absent;"
         );
     }
 

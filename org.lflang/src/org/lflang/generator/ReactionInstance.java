@@ -528,9 +528,12 @@ public class ReactionInstance extends NamedInstance<Reaction> {
     ///////////////////////////////////////////////////////////
     //// Inner classes
 
-    /** Inner class representing a runtime instance. */
+    /** Inner class representing a runtime instance of a reaction. */
     public class Runtime {
         public TimeValue deadline = TimeValue.MAX_VALUE;
+        // If this reaction instance depends on exactly one upstream
+        // reaction (via a port), then the "dominating" field will
+        // point to that upstream reaction.
         public Runtime dominating = null;
         /** ID ranging from 0 to parent.getTotalWidth() - 1. */
         public int id = 0;

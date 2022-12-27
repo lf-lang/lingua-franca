@@ -52,7 +52,6 @@ public class CTriggerObjectsGenerator {
         CTypes types,
         String lfModuleName,
         LinkedHashMap<String, Object> federationRTIProperties,
-        int startTimeStepTokens,
         int startTimeStepIsPresentCount,
         boolean isFederated,
         boolean isFederatedAndDecentralized,
@@ -83,15 +82,6 @@ public class CTriggerObjectsGenerator {
             )); // .lft is for Lingua Franca trace
         }
 
-        // Create the table used to decrement reference counts between time steps.
-        if (startTimeStepTokens > 0) {
-            // Allocate the initial (before mutations) array of pointers to tokens.
-            code.pr(String.join("\n",
-                "_lf_tokens_with_ref_count_size = "+startTimeStepTokens+";",
-                "_lf_tokens_with_ref_count = (lf_token_t***)calloc("+startTimeStepTokens+", sizeof(lf_token_t**));",
-                "if (_lf_tokens_with_ref_count == NULL) lf_print_error_and_exit(" + addDoubleQuotes("Out of memory!") + ");"
-            ));
-        }
         // Create the table to initialize is_present fields to false between time steps.
         if (startTimeStepIsPresentCount > 0) {
             // Allocate the initial (before mutations) array of pointers to _is_present fields.
@@ -941,10 +931,10 @@ public class CTriggerObjectsGenerator {
 
     /**
      * For each output of the specified reactor that has a token type
-     * (type* or type[]), create a default token and put it on the self struct.
+     * (type* or type[]), create a template token and put it on the self struct.
      * @param reactor The reactor.
      */
-    private static String deferredCreateDefaultTokens(
+    private static String deferredCreateTemplateTokens(
         ReactorInstance reactor,
         CTypes types
     ) {
@@ -961,8 +951,9 @@ public class CTriggerObjectsGenerator {
                 var size = (rootType.equals("void")) ? "0" : "sizeof("+rootType+")";
                 code.startChannelIteration(output);
                 code.pr(String.join("\n",
-                        CUtil.portRef(output)+".token = _lf_create_token("+size+");",
-                        "_lf_tokens_with_ref_count[_lf_tokens_with_ref_count_count] = &"+CUtil.portRef(output)+".token;"
+                        "_lf_initialize_template((token_template_t*)",
+                        "        &("+CUtil.portRef(output)+"),",
+                                 size+");"
                 ));
                 code.endChannelIteration(output);
             }
@@ -1225,7 +1216,7 @@ public class CTriggerObjectsGenerator {
 
         // For outputs that are not primitive types (of form type* or type[]),
         // create a default token on the self struct.
-        code.pr(deferredCreateDefaultTokens(
+        code.pr(deferredCreateTemplateTokens(
             reactor,
             types
         ));

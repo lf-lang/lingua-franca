@@ -79,7 +79,7 @@ reactor TokenPrint(scale: int(1)) {
         for (int i = 0; i < in->value->length; i++) {
             in->value->data[i] *= self->scale;
         }
-        lf_set_token(out, in->token);
+        lf_set(out, in->value);
     =}
 }
 

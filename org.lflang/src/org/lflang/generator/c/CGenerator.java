@@ -166,15 +166,7 @@ import com.google.common.collect.Iterables;
  *     r_x_t* x = self->_lf_x;
  * ```
  * where `r` is the full name of the reactor class and the struct type `r_x_t`
- * will be defined like this:
- * ```
- *     typedef struct {
- *         int value;
- *         bool is_present;
- *         int num_destinations;
- *     } r_x_t;
- * ```
- * The above assumes the type of `x` is `int`.
+ * has fields `is_present` and `value`, where the type of `value` matches the port type.
  * If the programmer fails to declare that it uses x, then the absence of the
  * above code will trigger a compile error when the verbatim code attempts to read `x`.
  *
@@ -206,11 +198,8 @@ import com.google.common.collect.Iterables;
  *   This field is reset to false at the start of every time
  *   step. There is also a field `num_destinations` whose value matches the
  *   number of downstream reactors that use this variable. This field must be
- *   set when connections are made or changed. It is used to initialize
- *   reference counts for dynamically allocated message payloads.
- *   The reference count is decremented in each destination reactor at the
- *   conclusion of each time step, and when it drops to zero, the memory
- *   is freed.
+ *   set when connections are made or changed. It is used to determine for
+ *   a mutable input destination whether a copy needs to be made.
  *
  * * Inputs: For each input named `in` of type T, there is a field named `_lf_in`
  *   that is a pointer struct with a value field of type T. The struct pointed
@@ -298,11 +287,6 @@ import com.google.common.collect.Iterables;
  *      seldom present because only fields that have been set to true need to be
  *      reset to false.
  *
- * * _lf_tokens_with_ref_count: An array of pointers to pointers to lf_token_t
- *   objects, which carry non-primitive data types between reactors. This is used
- *   to free memory for tokens used as template tokens.  The size of this
- *   array is stored in the _lf_tokens_with_ref_count_size variable.
- *
  * * _lf_shutdown_triggers: An array of pointers to trigger_t structs for shutdown
  *   reactions. The length of this table is in the _lf_shutdown_triggers_size
  *   variable.
@@ -367,7 +351,6 @@ public class CGenerator extends GeneratorBase {
     /** Count of the number of token pointers that need to have their
      *  reference count decremented in _lf_start_time_step().
      */
-    private int startTimeStepTokens = 0;
     private int timerCount = 0;
     private int startupReactionCount = 0;
     private int shutdownReactionCount = 0;
@@ -723,7 +706,6 @@ public class CGenerator extends GeneratorBase {
         String lfModuleName
     ) {
         startTimeStepIsPresentCount = 0;
-        startTimeStepTokens = 0;
         code.pr(generateDirectives());
         code.pr(generateTopLevelPreambles());
         code.pr(new CMainFunctionGenerator(targetConfig).generateCode());
@@ -743,8 +725,6 @@ public class CGenerator extends GeneratorBase {
                 "SUPPRESS_UNUSED_WARNING(_lf_reset_reactions_count);",
                 "int _lf_timer_triggers_count = 0;",
                 "SUPPRESS_UNUSED_WARNING(_lf_timer_triggers_count);",
-                "int _lf_tokens_with_ref_count_count = 0;",
-                "SUPPRESS_UNUSED_WARNING(_lf_tokens_with_ref_count_count);",
                 "int bank_index;",
                 "SUPPRESS_UNUSED_WARNING(bank_index);"
             ));
@@ -825,7 +805,6 @@ public class CGenerator extends GeneratorBase {
                 types,
                 lfModuleName,
                 federationRTIProperties,
-                startTimeStepTokens,
                 startTimeStepIsPresentCount,
                 isFederated,
                 isFederatedAndDecentralized(),
@@ -1612,31 +1591,6 @@ public class CGenerator extends GeneratorBase {
      * into startTimeStep.
      */
     private void generateStartTimeStep(ReactorInstance instance) {
-        // First, set up to decrement reference counts for each token type
-        // input of a contained reactor that is present.
-        for (ReactorInstance child : instance.children) {
-            if (currentFederate.contains(child) && child.inputs.size() > 0) {
-
-                // Avoid generating code if not needed.
-                var foundOne = false;
-                var temp = new CodeBuilder();
-
-                temp.startScopedBlock(child, currentFederate, isFederated, true);
-
-                for (PortInstance input : child.inputs) {
-                    if (CUtil.isTokenType(getInferredType(input.getDefinition()), types)) {
-                        foundOne = true;
-                        temp.pr(CPortGenerator.initializeStartTimeStepTableForInput(input));
-                        startTimeStepTokens += currentFederate.numRuntimeInstances(input.getParent()) * input.getWidth();
-                    }
-                }
-                temp.endScopedBlock();
-
-                if (foundOne) {
-                    startTimeStep.pr(temp.toString());
-                }
-            }
-        }
         // Avoid generating dead code if nothing is relevant.
         var foundOne = false;
         var temp = new CodeBuilder();
@@ -1692,28 +1646,6 @@ public class CGenerator extends GeneratorBase {
                                 temp.endScopedBankChannelIteration(port, "count");
                             }
                        }
-                    }
-                }
-                // Find outputs of contained reactors that have token types and therefore
-                // need to have their reference counts decremented.
-                for (PortInstance port : Iterables.filter(reaction.sources, PortInstance.class)) {
-                    if (port.isOutput() && !portsSeen.contains(port)) {
-                        portsSeen.add(port);
-                        // This reaction is receiving data from the port.
-                        if (CUtil.isTokenType(ASTUtils.getInferredType(port.getDefinition()), types)) {
-                            foundOne = true;
-                            temp.pr("// Add port "+port.getFullName()+" to array _lf_tokens_with_ref_count.");
-                            // Potentially have to iterate over bank members of the instance
-                            // (parent of the reaction), bank members of the contained reactor (if a bank),
-                            // and channels of the multiport (if multiport).
-                            temp.startScopedBlock(instance, currentFederate, isFederated, true);
-                            temp.startScopedBankChannelIteration(port, currentFederate, "count", isFederated);
-                            var portRef = CUtil.portRef(port, true, true, null, null, null);
-                            temp.pr(CPortGenerator.initializeStartTimeStepTableForPort(portRef));
-                            startTimeStepTokens += port.getWidth() * currentFederate.numRuntimeInstances(port.getParent());
-                            temp.endScopedBankChannelIteration(port, "count");
-                            temp.endScopedBlock();
-                        }
                     }
                 }
             }
@@ -2001,7 +1933,6 @@ public class CGenerator extends GeneratorBase {
                         selfStruct, action.getName(), payloadSize
                     )
                 );
-                startTimeStepTokens += currentFederate.numRuntimeInstances(action.getParent());
             }
         }
     }
