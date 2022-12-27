@@ -58,7 +58,13 @@ import com.google.common.collect.ImmutableList;
  * @author{Marten Lohstroh <marten@berkeley.edu>}
  */
 public enum TargetProperty {
-
+    /**
+     * Directive to allow including OpenSSL libraries and process HMAC authentication.
+     */
+    AUTH("auth", PrimitiveType.BOOLEAN,
+            Arrays.asList(Target.C, Target.CCPP), (config, value, err) -> {
+                config.auth = ASTUtils.toBoolean(value);
+            }),
 
     /**
      * Directive to let the generator use the custom build command.
@@ -1404,6 +1410,7 @@ public enum TargetProperty {
     public enum Platform {
         AUTO,
         ARDUINO("Arduino"),
+        NRF52("Nrf52"),
         LINUX("Linux"),
         MAC("Darwin"),
         WINDOWS("Windows");
