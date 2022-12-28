@@ -486,7 +486,7 @@ public class CReactionGenerator {
         // If the action has a type, create variables for accessing the value.
         InferredType type = ASTUtils.getInferredType(action);
         // Pointer to the lf_token_t sent as the payload in the trigger.
-        String tokenPointer = "(self->_lf__"+action.getName()+".token)";
+        String tokenPointer = "(self->_lf__"+action.getName()+".template.token)";
         CodeBuilder builder = new CodeBuilder();
 
         builder.pr(
