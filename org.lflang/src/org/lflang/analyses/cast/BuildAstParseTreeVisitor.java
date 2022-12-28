@@ -353,6 +353,7 @@ public class BuildAstParseTreeVisitor extends CBaseVisitor<CAst.AstNode> {
 
     @Override
     public CAst.AstNode visitUnaryExpression(UnaryExpressionContext ctx) {
+        // Check for prefixes and mark them as opaque (unsupported for now).
         if (ctx.PlusPlus().size() > 0
             || ctx.MinusMinus().size() > 0
             || ctx.Sizeof().size() > 0) {
@@ -361,23 +362,52 @@ public class BuildAstParseTreeVisitor extends CBaseVisitor<CAst.AstNode> {
                 "Prefix '++', '--', and 'sizeof' are currently not supported.",
                 "Marking the statement as opaque."
             ));
+            AstUtils.printStackTraceAndMatchedText(ctx);
             return new CAst.OpaqueNode();
         }
+        // Handle the postfixExpression rule
+        // (look up the grammar in C.g4 to get more details).
         if (ctx.postfixExpression() != null) {
             return visitPostfixExpression(ctx.postfixExpression());
         }
+        // Handle the unary operators '!' (logical not)
+        // and '-' (negative).
         if (ctx.unaryOperator() != null
-            && ctx.unaryOperator().Not() != null
             && ctx.castExpression() != null) {
-            CAst.LogicalNotNode node = new CAst.LogicalNotNode();
-            node.child = visitCastExpression(ctx.castExpression());
-            return node;
+            CAst.AstNodeUnary node;
+            if (ctx.unaryOperator().Not() != null) {
+                // Handle the logical not expression.
+                node = new CAst.LogicalNotNode();
+                node.child = visitCastExpression(ctx.castExpression());
+                return node;
+            }
+            else if (ctx.unaryOperator().Minus() != null) {
+                // Handle negative numbers.
+                // -5 will be translated as -1 * (5)
+                // which is a NegativeNode with a
+                // LiteralNode inside.
+                //
+                // FIXME: Need to perform precise error handling
+                // because we will go from a castExpression to
+                // a Constant under primaryExpression and anything
+                // else matching besides Constant could be problematic.
+                // For example, we cannot have a NegativeNode with
+                // a StringLiteralNode inside. This can be caught by
+                // the GCC, but if compilation is not involved, it
+                // would be useful to catch it here ourselves.
+                node = new CAst.NegativeNode();
+                node.child = visitCastExpression(ctx.castExpression());
+                return node;
+            }
         }
+        
+        // Mark all the remaining cases as opaque.
         System.out.println(String.join(" ", 
             "Warning (line " + ctx.getStart().getLine() + "):",
             "only postfixExpression and '!' in a unaryExpression is currently supported.",
             "Marking the statement as opaque."
         ));
+        AstUtils.printStackTraceAndMatchedText(ctx);
         return new CAst.OpaqueNode();
     }
 

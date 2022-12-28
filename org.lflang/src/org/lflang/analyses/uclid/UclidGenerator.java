@@ -58,9 +58,9 @@ import org.lflang.FileConfig;
 import org.lflang.Target;
 import org.lflang.TimeUnit;
 import org.lflang.TimeValue;
+import org.lflang.analyses.cast.AstUtils;
 import org.lflang.analyses.cast.BuildAstParseTreeVisitor;
 import org.lflang.analyses.cast.CAst;
-import org.lflang.analyses.cast.CAstUtils;
 import org.lflang.analyses.cast.CBaseAstVisitor;
 import org.lflang.analyses.cast.CToUclidVisitor;
 import org.lflang.analyses.cast.IfNormalFormAstVisitor;
@@ -1080,8 +1080,8 @@ public class UclidGenerator extends GeneratorBase {
 
         for (ReactionInstance.Runtime reaction : this.reactionInstances) {
             String body = reaction.getReaction().getDefinition().getCode().getBody();
-            // System.out.println("Printing reaction body of " + reaction);
-            // System.out.println(body);
+            System.out.println("Printing reaction body of " + reaction);
+            System.out.println(body);
 
             // Generate a parse tree.
             CLexer lexer = new CLexer(CharStreams.fromString(body));
@@ -1097,19 +1097,10 @@ public class UclidGenerator extends GeneratorBase {
             VariablePrecedenceVisitor precVisitor = new VariablePrecedenceVisitor();
             precVisitor.visit(ast);
 
-            // Traverse and print.
-            CBaseAstVisitor baseVisitor = new CBaseAstVisitor<>(); // For pretty printing.
-            // System.out.println("***** Printing the original AST.");
-            baseVisitor.visit(ast);
-
             // Convert the AST to If Normal Form (INF).
             IfNormalFormAstVisitor infVisitor = new IfNormalFormAstVisitor();
-            // System.out.println("***** Convert to If Normal Form.");
             infVisitor.visit(ast, new ArrayList<CAst.AstNode>());
             CAst.StatementSequenceNode inf = infVisitor.INF;
-            // System.out.println(inf);
-            // System.out.println("***** Printing the AST in If Normal Form.");
-            baseVisitor.visit(inf);
 
             // For the variables that are USED inside this reaction, extract the conditions
             // for setting them, and take the negation of their conjunction
@@ -1151,7 +1142,6 @@ public class UclidGenerator extends GeneratorBase {
 
             // Generate Uclid axiom for the C AST.
             CToUclidVisitor c2uVisitor = new CToUclidVisitor(this, reaction);
-            // System.out.println("***** Generating axioms from AST.");
             String axiom = c2uVisitor.visit(inf);
             code.pr(String.join("\n", 
                 "// Reaction body of " + reaction,
@@ -1162,12 +1152,24 @@ public class UclidGenerator extends GeneratorBase {
                 "// By default, the value of the variables used in this reaction stay the same."
             ));
             for (NamedInstance key : defaultBehaviorConditions.keySet()) {
-                CAst.AstNode disjunction = CAstUtils.takeDisjunction(defaultBehaviorConditions.get(key));
-                // System.out.println("!!! Reset conditions: " + defaultBehaviorConditions.get(key));
+                CAst.AstNode disjunction = AstUtils.takeDisjunction(defaultBehaviorConditions.get(key));
                 CAst.LogicalNotNode notNode = new CAst.LogicalNotNode();
                 notNode.child = disjunction;
                 String resetCondition = c2uVisitor.visit(notNode);
-                // System.out.println("!!! Str: " + resetCondition);
+                
+                // Check for invalid reset conditions.
+                // If found, stop the execution.
+                // FIXME: A more systematic check is needed
+                // to ensure that the generated Uclid file
+                // is valid.
+                try {
+                    if (resetCondition.contains("null")) {
+                        throw new Exception("Null detected in a reset condition. Stop.");
+                    }
+                } catch (Exception e) {
+                    Exceptions.sneakyThrow(e);
+                }
+
                 code.pr("&& " + "(" + "(" + resetCondition + ")" + " ==> " + "(");
                 if (key instanceof StateVariableInstance) {
                     StateVariableInstance n = (StateVariableInstance)key;

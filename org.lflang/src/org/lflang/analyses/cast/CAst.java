@@ -227,6 +227,15 @@ public class CAst {
         }
     }
 
+    public static class NegativeNode extends AstNodeUnary implements Visitable {
+        @Override public <T> T accept(AstVisitor<? extends T> visitor) {
+            return ((CAstVisitor<? extends T>)visitor).visitNegativeNode(this);
+        }
+        @Override public <T> T accept(AstVisitor<? extends T> visitor, List<AstNode> nodeList) {
+            return ((CAstVisitor<? extends T>)visitor).visitNegativeNode(this, nodeList);
+        }
+    }
+
     public static class LessThanNode extends AstNodeBinary implements Visitable {
         @Override public <T> T accept(AstVisitor<? extends T> visitor) {
             return ((CAstVisitor<? extends T>)visitor).visitLessThanNode(this);

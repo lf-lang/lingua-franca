@@ -27,6 +27,7 @@ public interface CAstVisitor<T> extends AstVisitor<T> {
 
 	T visitEqualNode(CAst.EqualNode node);
 	T visitNotEqualNode(CAst.NotEqualNode node);
+	T visitNegativeNode(CAst.NegativeNode node);
 	T visitLessThanNode(CAst.LessThanNode node);
 	T visitLessEqualNode(CAst.LessEqualNode node);
 	T visitGreaterThanNode(CAst.GreaterThanNode node);
@@ -61,6 +62,7 @@ public interface CAstVisitor<T> extends AstVisitor<T> {
 
 	T visitEqualNode(CAst.EqualNode node, List<CAst.AstNode> nodeList);
 	T visitNotEqualNode(CAst.NotEqualNode node, List<CAst.AstNode> nodeList);
+	T visitNegativeNode(CAst.NegativeNode node, List<CAst.AstNode> nodeList);
 	T visitLessThanNode(CAst.LessThanNode node, List<CAst.AstNode> nodeList);
 	T visitLessEqualNode(CAst.LessEqualNode node, List<CAst.AstNode> nodeList);
 	T visitGreaterThanNode(CAst.GreaterThanNode node, List<CAst.AstNode> nodeList);

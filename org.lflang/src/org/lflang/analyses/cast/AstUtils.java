@@ -2,7 +2,12 @@ package org.lflang.analyses.cast;
 
 import java.util.List;
 
-public class CAstUtils {
+import org.antlr.v4.runtime.ParserRuleContext;
+import org.antlr.v4.runtime.misc.Interval;
+
+import org.eclipse.xtext.xbase.lib.Exceptions;
+
+public class AstUtils {
     
     public static CAst.AstNode takeConjunction(List<CAst.AstNode> conditions) {
         if (conditions.size() == 0) {
@@ -46,5 +51,30 @@ public class CAstUtils {
             }
             return top;
         }
+    }
+
+    // A handy function for debugging ASTs.
+    // It prints the stack trace of the visitor functions
+    // and shows the text matched by the ANTLR rules.
+    public static void printStackTraceAndMatchedText(ParserRuleContext ctx) {
+        System.out.println("========== AST DEBUG ==========");
+
+        // Print matched text
+        int a = ctx.start.getStartIndex();
+        int b = ctx.stop.getStopIndex();
+        Interval interval = new Interval(a,b);
+        String matchedText = ctx.start.getInputStream().getText(interval);
+        System.out.println("Matched text: " + matchedText);
+
+        // Print stack trace
+        StackTraceElement[] cause = Thread.currentThread().getStackTrace();
+        System.out.print("Stack trace: ");
+        for (int i = 0; i < cause.length; i++) {
+            System.out.print(cause[i].getMethodName());
+            if (i != cause.length - 1) System.out.print(", ");
+        }
+        System.out.println(".");
+
+        System.out.println("===============================");
     }
 }

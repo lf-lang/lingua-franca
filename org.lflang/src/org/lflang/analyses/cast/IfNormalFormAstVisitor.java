@@ -76,7 +76,7 @@ public class IfNormalFormAstVisitor extends CBaseAstVisitor<Void> {
         // Create an If Block node.
         CAst.IfBlockNode ifNode = new CAst.IfBlockNode();
         // Set the condition of the if block node.
-        CAst.AstNode conjunction = CAstUtils.takeConjunction(conditions);
+        CAst.AstNode conjunction = AstUtils.takeConjunction(conditions);
         ifNode.left = conjunction;
         // Create a new body node.
         CAst.IfBodyNode body = new CAst.IfBodyNode();

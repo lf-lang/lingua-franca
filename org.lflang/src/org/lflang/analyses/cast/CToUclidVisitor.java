@@ -160,6 +160,11 @@ public class CToUclidVisitor extends CBaseAstVisitor<String> {
     }
 
     @Override
+    public String visitNegativeNode(NegativeNode node) {
+        return "(" + "-1*(" + visit(node.child) + "))";
+    }
+
+    @Override
     public String visitScheduleActionNode(ScheduleActionNode node) {
         String name = ((VariableNode)node.children.get(0)).name;
         NamedInstance instance = getInstanceByName(name);
