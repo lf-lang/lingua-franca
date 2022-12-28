@@ -1080,8 +1080,8 @@ public class UclidGenerator extends GeneratorBase {
 
         for (ReactionInstance.Runtime reaction : this.reactionInstances) {
             String body = reaction.getReaction().getDefinition().getCode().getBody();
-            System.out.println("Printing reaction body of " + reaction);
-            System.out.println(body);
+            // System.out.println("Printing reaction body of " + reaction);
+            // System.out.println(body);
 
             // Generate a parse tree.
             CLexer lexer = new CLexer(CharStreams.fromString(body));
