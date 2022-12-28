@@ -52,6 +52,11 @@ public class StateSpaceDiagram extends DirectedGraph<StateSpaceNode> {
     private CodeBuilder dot;
 
     /**
+     * 
+     */
+    private final boolean compactDot = true;
+
+    /**
      * Before adding the node, assign it an index.
      */
     @Override
@@ -120,23 +125,36 @@ public class StateSpaceDiagram extends DirectedGraph<StateSpaceNode> {
             dot.pr("digraph G {");
             dot.indent();
             if (this.loopNode != null) {
-                dot.pr("layout=\"circo\";");
-                dot.pr("mindist=\"2.5\";");
+                dot.pr("layout=circo;");
             }
-            dot.pr("rankdir=\"LR\";");
-            dot.pr("node [shape=Mrecord]");
-
+            dot.pr("rankdir=LR;");
+            if (this.compactDot) {
+                dot.pr("mindist=1.5;");
+                dot.pr("overlap=false");
+                dot.pr("node [shape=Mrecord fontsize=40]");
+                dot.pr("edge [fontsize=40 penwidth=3 arrowsize=2]");
+            } else {
+                dot.pr("node [shape=Mrecord]");
+            }
             // Generate a node for each state.
-            for (StateSpaceNode n : this.nodes()) {
-                List<String> reactions = n.reactionsInvoked.stream()
-                    .map(ReactionInstance::getFullName).collect(Collectors.toList());
-                String reactionsStr = String.join("\\n", reactions);
-                dot.pr("S" + n.index + " [" + "label = \"" + "S" + n.index
-                    + " | " + n.tag
-                    + " | " + reactionsStr
-                    // + " | " + "Reactions: " + n.reactionsInvoked.size() // Simplified version
-                    + " | " + "Pending events: " + n.eventQ.size()
-                    + "\"" + "]");
+            if (this.compactDot) {
+                for (StateSpaceNode n : this.nodes()) {
+                    dot.pr("S" + n.index + " [" + "label = \" {" + "S" + n.index
+                        + " | " + n.reactionsInvoked.size() + " | " + n.eventQ.size() + "}"
+                        + " | " + n.tag
+                        + "\"" + "]");
+                }
+            } else {
+                for (StateSpaceNode n : this.nodes()) {
+                    List<String> reactions = n.reactionsInvoked.stream()
+                        .map(ReactionInstance::getFullName).collect(Collectors.toList());
+                    String reactionsStr = String.join("\\n", reactions);
+                    dot.pr("S" + n.index + " [" + "label = \"" + "S" + n.index
+                        + " | " + n.tag
+                        + " | " + reactionsStr
+                        + " | " + "Pending events: " + n.eventQ.size()
+                        + "\"" + "]");
+                }
             }
 
             StateSpaceNode current = this.head;

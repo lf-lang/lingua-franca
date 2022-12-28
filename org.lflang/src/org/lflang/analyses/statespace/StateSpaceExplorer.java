@@ -215,7 +215,9 @@ public class StateSpaceExplorer {
                 }
             }
 
-            // When we first advance to a new tag, create a new node in the state space diagram.
+            // When we advance to a new tag,
+            // create a new node in the state space diagram
+            // for everything processed in the previous tag.
             if (
                 previousTag == null // The first iteration
                 || currentTag.compareTo(previousTag) > 0
