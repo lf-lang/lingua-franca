@@ -1111,22 +1111,25 @@ public class UclidGenerator extends GeneratorBase {
             HashMap<NamedInstance, List<CAst.AstNode>> defaultBehaviorConditions = new HashMap<>();
             for (CAst.AstNode node : inf.children) {
                 CAst.IfBlockNode ifBlockNode = (CAst.IfBlockNode)node;
-                CAst.AstNode ifBody = ((CAst.IfBodyNode)ifBlockNode.right).left;
+                // Under the INF form, a C statement is
+                // the THEN branch of an IF block.
+                CAst.AstNode stmt = ((CAst.IfBodyNode)ifBlockNode.right).left;
                 NamedInstance instance = null;
-                if ((ifBody instanceof CAst.AssignmentNode 
-                    && ((CAst.AssignmentNode)ifBody).left instanceof CAst.StateVarNode)) {
-                    CAst.StateVarNode n = (CAst.StateVarNode)((CAst.AssignmentNode)ifBody).left;
+                // Match stmt with different cases
+                if ((stmt instanceof CAst.AssignmentNode 
+                    && ((CAst.AssignmentNode)stmt).left instanceof CAst.StateVarNode)) {
+                    CAst.StateVarNode n = (CAst.StateVarNode)((CAst.AssignmentNode)stmt).left;
                     instance = reaction.getReaction().getParent().states.stream()
                                 .filter(s -> s.getName().equals(n.name)).findFirst().get();
                     unusedStates.remove(instance);
-                } else if (ifBody instanceof CAst.SetPortNode) {
-                    CAst.SetPortNode n = (CAst.SetPortNode)ifBody;
+                } else if (stmt instanceof CAst.SetPortNode) {
+                    CAst.SetPortNode n = (CAst.SetPortNode)stmt;
                     String name = ((CAst.VariableNode)n.left).name;
                     instance = reaction.getReaction().getParent().outputs.stream()
                                 .filter(s -> s.getName().equals(name)).findFirst().get();
                     unusedOutputs.remove(instance);
-                } else if (ifBody instanceof CAst.ScheduleActionNode) {
-                    CAst.ScheduleActionNode n = (CAst.ScheduleActionNode)ifBody;
+                } else if (stmt instanceof CAst.ScheduleActionNode) {
+                    CAst.ScheduleActionNode n = (CAst.ScheduleActionNode)stmt;
                     String name = ((CAst.VariableNode)n.children.get(0)).name;
                     instance = reaction.getReaction().getParent().actions.stream()
                                 .filter(s -> s.getName().equals(name)).findFirst().get();

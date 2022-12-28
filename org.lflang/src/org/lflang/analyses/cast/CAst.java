@@ -55,9 +55,9 @@ public class CAst {
     }
 
     /**
-     * AST node for an if block.
+     * AST node for an IF block.
      * The left node is the condition.
-     * The right node is the if body.
+     * The right node is the IF body.
      */
     public static class IfBlockNode extends AstNodeBinary implements Visitable {
         @Override public <T> T accept(AstVisitor<? extends T> visitor) {
@@ -69,9 +69,9 @@ public class CAst {
     }
 
     /**
-     * AST node for an if block.
-     * The left node is the then branch.
-     * The right node is the else branch.
+     * AST node for the body of an IF block.
+     * The left node is the THEN branch.
+     * The right node is the ELSE branch.
      */
     public static class IfBodyNode extends AstNodeBinary implements Visitable {
         @Override public <T> T accept(AstVisitor<? extends T> visitor) {
