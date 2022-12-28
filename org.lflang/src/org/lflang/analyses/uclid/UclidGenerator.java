@@ -386,8 +386,13 @@ public class UclidGenerator extends GeneratorBase {
             "    || (pi1(t1) == pi1(t2) && pi2(t1) < pi2(t2))",
             "    || (!isInf(t1) && isInf(t2));",
             "",
+            "// Used for incrementing a tag through an action",
             "define tag_schedule(t : tag_t, i : integer) : tag_t",
             "= if (i == 0) then { pi1(t), pi2(t)+1 } else { pi1(t)+i, 0 };",
+            "",
+            "// Used for incrementing a tag along a connection",
+            "define tag_delay(t : tag_t, i : integer) : tag_t",
+            "= if (i == 0) then { pi1(t), pi2(t) } else { pi1(t)+i, 0 };",
             "",
             "// Only consider timestamp for now.",
             "define tag_diff(t1, t2: tag_t) : interval_t",
@@ -776,7 +781,7 @@ public class UclidGenerator extends GeneratorBase {
                         "    finite_exists (j : integer) in indices :: j > i && j <= END",
                         "    && " + destination.getFullNameWithJoiner("_") + "_is_present" + "(t(j))",
                         "    && " + destination.getFullNameWithJoiner("_") + "(s(j)) == " + source.getFullNameWithJoiner("_") + "(s(i))",
-                        connection.isPhysical() ? "" : "&& g(j) == tag_schedule(g(i), " + delay + ")",
+                        connection.isPhysical() ? "" : "&& g(j) == tag_delay(g(i), " + delay + ")",
                         ")",
                         ")) // Closes (" + source.getFullNameWithJoiner("_") + "_is_present" + "(t(i)) ==> ((.",
                         //// Separator
@@ -785,7 +790,7 @@ public class UclidGenerator extends GeneratorBase {
                         "&& (" + destination.getFullNameWithJoiner("_") + "_is_present" + "(t(i)) ==> (",
                         "    finite_exists (j : integer) in indices :: j >= START && j < i",
                         "    && " + source.getFullNameWithJoiner("_") + "_is_present" + "(t(j))",
-                        connection.isPhysical() ? "" : "    && g(i) == tag_schedule(g(j), " + delay + ")",
+                        connection.isPhysical() ? "" : "    && g(i) == tag_delay(g(j), " + delay + ")",
                         ")) // Closes the one-to-one relationship.",
                         "));"
                     ));
