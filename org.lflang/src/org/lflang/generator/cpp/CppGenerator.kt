@@ -81,7 +81,7 @@ class CppGenerator(
 
         if (targetConfig.noCompile || errorsOccurred()) {
             println("Exiting before invoking target compiler.")
-            context.finish(GeneratorResult.GENERATED_NO_EXECUTABLE.apply(codeMaps))
+            context.finish(GeneratorResult.GENERATED_NO_EXECUTABLE.apply(context, codeMaps))
         } else if (context.mode == Mode.LSP_MEDIUM) {
             context.reportProgress(
                 "Code generation complete. Validating generated code...", IntegratedBuilder.GENERATED_PERCENT_PROGRESS
@@ -89,7 +89,7 @@ class CppGenerator(
 
             if (platformGenerator.doCompile(context)) {
                 CppValidator(cppFileConfig, errorReporter, codeMaps).doValidate(context)
-                context.finish(GeneratorResult.GENERATED_NO_EXECUTABLE.apply(codeMaps))
+                context.finish(GeneratorResult.GENERATED_NO_EXECUTABLE.apply(context, codeMaps))
             } else {
                 context.unsuccessfulFinish()
             }
@@ -98,7 +98,7 @@ class CppGenerator(
                 "Code generation complete. Compiling...", IntegratedBuilder.GENERATED_PERCENT_PROGRESS
             )
             if (platformGenerator.doCompile(context)) {
-                context.finish(GeneratorResult.Status.COMPILED, fileConfig.name, fileConfig, codeMaps)
+                context.finish(GeneratorResult.Status.COMPILED, codeMaps)
             } else {
                 context.unsuccessfulFinish()
             }

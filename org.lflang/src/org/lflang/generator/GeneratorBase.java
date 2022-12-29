@@ -47,6 +47,7 @@ import org.lflang.Target;
 import org.lflang.TargetConfig;
 import org.lflang.TimeUnit;
 import org.lflang.TimeValue;
+import org.lflang.generator.c.CFileConfig;
 import org.lflang.graph.InstantiationGraph;
 import org.lflang.lf.Action;
 import org.lflang.lf.Connection;
@@ -104,7 +105,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
     /**
      * The current target configuration.
      */
-    protected TargetConfig targetConfig = new TargetConfig();
+    protected final TargetConfig targetConfig;
 
     public TargetConfig getTargetConfig() { return this.targetConfig;}
 
@@ -144,7 +145,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
     /**
      * The set of resources referenced reactor classes reside in.
      */
-    protected Set<LFResource> resources = new LinkedHashSet<>();
+    protected Set<LFResource> resources = new LinkedHashSet<>(); // FIXME: Why do we need this?
 
     /**
      * Graph that tracks dependencies between instantiations.
@@ -171,7 +172,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
     protected Set<Reaction> unorderedReactions = null;
 
     /**
-     * Indicates whether or not the current Lingua Franca program
+     * Indicates whether the current Lingua Franca program
      * contains model reactors.
      */
     public boolean hasModalReactors = false;
@@ -182,8 +183,9 @@ public abstract class GeneratorBase extends AbstractLFValidator {
     /**
      * Create a new GeneratorBase object.
      */
-    public GeneratorBase(FileConfig fileConfig, ErrorReporter errorReporter) {
-        this.fileConfig = fileConfig;
+    public GeneratorBase(LFGeneratorContext context, ErrorReporter errorReporter) {
+        this.fileConfig = context.getFileConfig();
+        this.targetConfig = context.getTargetConfig();
         this.errorReporter = errorReporter;
         this.commandFactory = new GeneratorCommandFactory(errorReporter, fileConfig);
     }
@@ -242,10 +244,8 @@ public abstract class GeneratorBase extends AbstractLFValidator {
      */
     public void doGenerate(Resource resource, LFGeneratorContext context) {
 
-        GeneratorUtils.setTargetConfig(
-            context, GeneratorUtils.findTarget(fileConfig.resource), targetConfig, errorReporter
-        );
-
+        // FIXME: the signature can be reduced to only take context.
+        // The constructor also need not take a file config because this is tied to the context as well.
         cleanIfNeeded(context);
 
         printInfo(context.getMode());

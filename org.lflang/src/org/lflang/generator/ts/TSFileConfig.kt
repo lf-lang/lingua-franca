@@ -28,8 +28,10 @@ package org.lflang.generator.ts
 import org.eclipse.emf.ecore.resource.Resource
 import org.lflang.FileConfig
 import org.lflang.util.FileUtil
+import org.lflang.util.LFCommand
 import java.io.IOException
 import java.nio.file.Path
+import java.util.List
 
 /**
  * Generator for TypeScript target.
@@ -53,6 +55,23 @@ class TSFileConfig(
         FileUtil.deleteDirectory(srcGenPath)
     }
 
+    override fun getCommand(): LFCommand {
+        return LFCommand.get(
+            "node",
+            List.of(srcPkgPath.relativize(executable).toString()),
+            true,
+            srcPkgPath
+        )
+    }
+
+    override fun getExecutableExtension(): String {
+        return ".js"
+    }
+
+    override fun getExecutable(): Path {
+        return binPath.resolve(name + executableExtension)
+    }
+
     /**
      * Path to TypeScript source code.
      */
@@ -62,13 +81,6 @@ class TSFileConfig(
      * Path to TypeScript core source code.
      */
     fun reactorTsPath(): Path = srcGenPath.resolve("reactor-ts")
-
-    /**
-     * Path to the generated docker file
-     */
-    fun tsDockerFilePath(tsFileName: String): Path {
-        return srcGenPath.resolve("$tsFileName.Dockerfile")
-    }
 
     /**
      * Path to the generated docker compose file

@@ -31,6 +31,7 @@ import java.nio.file.Path;
 import org.eclipse.emf.ecore.resource.Resource;
 
 import org.lflang.FileConfig;
+import org.lflang.util.LFCommand;
 
 /**
  * A child class of @see FileConfig that extends the base functionality to add support
@@ -43,9 +44,22 @@ import org.lflang.FileConfig;
 public class FedFileConfig extends FileConfig {
 
     public FedFileConfig(Resource resource, Path srcGenBasePath, boolean useHierarchicalBin) throws IOException {
+        // FIMXE: It is unclear to me that we need this class.
         super(resource, srcGenBasePath, useHierarchicalBin);
 
     }
+
+//    @Override
+//    public LFCommand getCommand() {
+//        // FIXME: what should this point to? The launcher script?
+//        return null;
+//    }
+//
+//    @Override
+//    public Path getExecutable() {
+//        // FIXME: what should this point to? The launcher script?
+//        return null;
+//    }
 
     public FedFileConfig(FileConfig fileConfig) throws IOException {
         super(fileConfig.resource, fileConfig.getSrcGenBasePath(), fileConfig.useHierarchicalBin);

@@ -41,7 +41,6 @@ import org.lflang.generator.LFGeneratorContext
 import org.lflang.generator.SubContext
 import org.lflang.generator.TargetTypes
 import org.lflang.lf.Action
-import org.lflang.lf.Expression
 import org.lflang.lf.Preamble
 import org.lflang.lf.VarRef
 import org.lflang.model
@@ -126,15 +125,14 @@ class TSGenerator(
         updatePackageConfig(context)
 
         val codeMaps = HashMap<Path, CodeMap>()
-        val dockerGenerator = TSDockerGenerator(false)
-        generateCode(codeMaps, dockerGenerator, resource.model.preambles)
+        generateCode(codeMaps, resource.model.preambles)
         if (targetConfig.dockerOptions != null) {
-            dockerGenerator.writeDockerFiles(tsFileConfig.tsDockerComposeFilePath())
+                TSDockerGenerator(context).writeDockerFiles()
         }
         // For small programs, everything up until this point is virtually instantaneous. This is the point where cancellation,
         // progress reporting, and IDE responsiveness become real considerations.
         if (targetConfig.noCompile) {
-            context.finish(GeneratorResult.GENERATED_NO_EXECUTABLE.apply(null))
+            context.finish(GeneratorResult.GENERATED_NO_EXECUTABLE.apply(context, null))
         } else {
             context.reportProgress(
                 "Code generation complete. Collecting dependencies...", IntegratedBuilder.GENERATED_PERCENT_PROGRESS
@@ -155,7 +153,7 @@ class TSGenerator(
                 && passesChecks(TSValidator(tsFileConfig, errorReporter, codeMaps), parsingContext)
             ) {
                 if (context.mode == LFGeneratorContext.Mode.LSP_MEDIUM) {
-                    context.finish(GeneratorResult.GENERATED_NO_EXECUTABLE.apply(codeMaps))
+                    context.finish(GeneratorResult.GENERATED_NO_EXECUTABLE.apply(context, codeMaps))
                 } else {
                     compile(resource, parsingContext)
                     concludeCompilation(context, codeMaps)
@@ -238,7 +236,6 @@ class TSGenerator(
      */
     private fun generateCode(
         codeMaps: MutableMap<Path, CodeMap>,
-        dockerGenerator: TSDockerGenerator,
         preambles: List<Preamble>
     ) {
         val tsFileName = fileConfig.name
@@ -266,9 +263,6 @@ class TSGenerator(
         codeMaps[tsFilePath] = codeMap
         FileUtil.writeToFile(codeMap.generatedCode, tsFilePath)
 
-        if (targetConfig.dockerOptions != null) {
-            dockerGenerator.addFile(dockerGenerator.fromData(tsFileName, tsFileConfig))
-        }
     }
 
     private fun compile(resource: Resource, parsingContext: LFGeneratorContext) {
@@ -417,10 +411,7 @@ class TSGenerator(
         if (errorReporter.errorsOccurred) {
             context.unsuccessfulFinish()
         } else {
-            context.finish(
-                GeneratorResult.Status.COMPILED, fileConfig.name + ".js",
-                fileConfig.srcGenPkgPath.resolve("dist"), fileConfig, codeMaps, "node"
-            )
+            context.finish(GeneratorResult.Status.COMPILED, codeMaps)
         }
     }
 

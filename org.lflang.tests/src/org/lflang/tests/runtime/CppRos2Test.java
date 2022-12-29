@@ -30,7 +30,7 @@ public class CppRos2Test extends TestBase {
         Element trueLiteral = LfFactory.eINSTANCE.createElement();
         trueLiteral.setLiteral("true");
         runTestsForTargets(Message.DESC_ROS2, it -> true,
-                           it -> ASTUtils.addTargetProperty(it.fileConfig.resource, "ros2", trueLiteral),
+                           it -> ASTUtils.addTargetProperty(it.context.getFileConfig().resource, "ros2", trueLiteral),
                            true);
     }
 }

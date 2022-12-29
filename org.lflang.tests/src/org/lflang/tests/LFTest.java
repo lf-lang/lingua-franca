@@ -35,9 +35,6 @@ public class LFTest implements Comparable<LFTest> {
     /** The exit code of the test. **/
     public String exitValue = "?";
 
-    /** Object used to determine where the code generator puts files. */
-    public FileConfig fileConfig;
-
     /** Context provided to the code generators */
     public LFGeneratorContext context;
 

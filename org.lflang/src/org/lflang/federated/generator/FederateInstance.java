@@ -107,7 +107,7 @@ public class FederateInstance {
         this.target =  GeneratorUtils.findTarget(
             ASTUtils.toDefinition(instantiation.getReactorClass()).eResource()
         );
-
+        this.targetConfig = new TargetConfig(target); // FIXME: this is actually set in FedTargetEmitter. Why?
         if (instantiation != null) {
             this.name = instantiation.getName();
             // If the instantiation is in a bank, then we have to append
@@ -190,7 +190,7 @@ public class FederateInstance {
 
     /**
      * The name of this federate instance. This will be the instantiation
-     * name, poassibly appended with "__n", where n is the bank position of
+     * name, possibly appended with "__n", where n is the bank position of
      * this instance if the instantiation is of a bank of reactors.
      */
     public String name = "Unnamed";
@@ -258,7 +258,7 @@ public class FederateInstance {
     /**
      * Parsed target config of the federate.
      */
-    public TargetConfig targetConfig = new TargetConfig();
+    public TargetConfig targetConfig;
 
     /**
      * Keep a unique list of enabled serializers

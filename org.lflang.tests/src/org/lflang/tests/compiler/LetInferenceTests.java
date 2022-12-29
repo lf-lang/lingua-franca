@@ -44,6 +44,7 @@ import org.lflang.TimeUnit;
 import org.lflang.TimeValue;
 import org.lflang.generator.ReactionInstance;
 import org.lflang.generator.ReactorInstance;
+import org.lflang.generator.c.CFileConfig;
 import org.lflang.generator.c.CGenerator;
 import org.lflang.lf.Instantiation;
 import org.lflang.lf.LfFactory;
@@ -99,7 +100,7 @@ class LetInferenceTest  {
         ));
 
         Assertions.assertNotNull(model);
-        ASTUtils.insertGeneratedDelays(model.eResource(), new CGenerator(new FileConfig(model.eResource(), Path.of("./a/"), true), new DefaultErrorReporter()));
+        ASTUtils.insertGeneratedDelays(model.eResource(), new CGenerator(new CFileConfig(model.eResource(), Path.of("./a/"), true), new DefaultErrorReporter()));
         Assertions.assertTrue(model.eResource().getErrors().isEmpty(),
                               "Encountered unexpected error while parsing: " +
                                   model.eResource().getErrors());

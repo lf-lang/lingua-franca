@@ -13,7 +13,7 @@ import org.lflang.TargetConfig;
  */
 public class LFResource {
     LFResource(Resource resource, FileConfig fileConfig, TargetConfig targetConfig) {
-        this.eResource = resource;
+        this.eResource = resource; // FIXME: this is redundant because fileConfig already has the resource.
         this.fileConfig = fileConfig;
         this.targetConfig = targetConfig;
     }

@@ -2,6 +2,7 @@ package org.lflang.tests.lsp;
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.io.ObjectInputFilter.Config;
 import java.io.PrintWriter;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -16,6 +17,8 @@ import java.util.function.BiPredicate;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
+
+import org.lflang.FileConfig;
 
 import com.google.common.collect.ImmutableList;
 
@@ -68,7 +71,7 @@ class ErrorInserter {
         /** The zero-based indices of the touched lines. */
         private final List<Integer> badLines;
         /** The original test on which this is based. */
-        private final Path path;
+        private final FileConfig fileConfig;
         /** The content of this test. */
         private final LinkedList<String> lines;
         /** Whether the error inserter is permitted to insert a line before the current line. */
@@ -80,11 +83,11 @@ class ErrorInserter {
          * @param insertCondition Whether the error inserter is permitted to insert a line between two given lines.
          * @throws IOException if the content of {@code originalTest} cannot be read.
          */
-        private AlteredTest(Path originalTest, BiPredicate<String, String> insertCondition) throws IOException {
+        private AlteredTest(FileConfig fileConfig, BiPredicate<String, String> insertCondition) throws IOException {
             this.badLines = new ArrayList<>();
-            this.path = originalTest;
+            this.fileConfig = fileConfig;
             this.lines = new LinkedList<>();  // Constant-time insertion during iteration is desired.
-            this.lines.addAll(Files.readAllLines(originalTest));
+            this.lines.addAll(Files.readAllLines(fileConfig.srcFile));
             this.insertCondition = it -> {
                 it.previous();
                 String s0 = it.previous();
@@ -95,8 +98,8 @@ class ErrorInserter {
         }
 
         /** Return the location where the content of {@code this} lives. */
-        public Path getPath() {
-            return path;
+        public FileConfig getFileConfig() {
+            return fileConfig;
         }
 
         /**
@@ -104,10 +107,11 @@ class ErrorInserter {
          * @throws IOException If an I/O error occurred.
          */
         public void write() throws IOException {
-            if (!path.toFile().renameTo(swapFile(path).toFile())) {
+            Path src = fileConfig.srcFile;
+            if (!src.toFile().renameTo(swapFile(src).toFile())) {
                 throw new IOException("Failed to create a swap file.");
             }
-            try (PrintWriter writer = new PrintWriter(path.toFile())) {
+            try (PrintWriter writer = new PrintWriter(src.toFile())) {
                 lines.forEach(writer::println);
             }
         }
@@ -117,11 +121,12 @@ class ErrorInserter {
          */
         @Override
         public void close() throws IOException {
-            if (!swapFile(path).toFile().exists()) throw new IllegalStateException("Swap file does not exist.");
-            if (!path.toFile().delete()) {
+            Path src = fileConfig.srcFile;
+            if (!swapFile(src).toFile().exists()) throw new IllegalStateException("Swap file does not exist.");
+            if (!src.toFile().delete()) {
                 throw new IOException("Failed to delete the file associated with the original test.");
             }
-            if (!swapFile(path).toFile().renameTo(path.toFile())) {
+            if (!swapFile(src).toFile().renameTo(src.toFile())) {
                 throw new IOException("Failed to restore the altered LF file to its original state.");
             }
         }
@@ -334,11 +339,11 @@ class ErrorInserter {
 
     /**
      * Alter the given test and return the altered version.
-     * @param test An LF file that can be used as a test.
+     * @param fileConfig File configuration of the LF to be altered.
      * @return An {@code AlteredTest} that is based on {@code test}.
      */
-    public AlteredTest alterTest(Path test) throws IOException {
-        AlteredTest alterable = new AlteredTest(test, insertCondition);
+    public AlteredTest alterTest(FileConfig fileConfig) throws IOException {
+        AlteredTest alterable = new AlteredTest(fileConfig, insertCondition);
         int remainingAlterationAttempts = MAX_ALTERATION_ATTEMPTS;
         while (alterable.getBadLines().isEmpty() && remainingAlterationAttempts-- > 0) {
             if (random.nextBoolean() && !replacers.isEmpty()) {

@@ -46,6 +46,10 @@ class RustFileConfig(resource: Resource, srcGenBasePath: Path, useHierarchicalBi
         FileUtil.deleteDirectory(outPath.resolve("target"))
     }
 
+//    override fun getCommand(): String {
+//        TODO("Not yet implemented")
+//    }
+
     inline fun emit(codeMaps: MutableMap<Path, CodeMap>, p: Path, f: Emitter.() -> Unit) {
         measureTimeMillis {
             Emitter(codeMaps, p).use { it.f() }

@@ -88,7 +88,7 @@ class RustGenerator(
         val codeMaps: Map<Path, CodeMap> = RustEmitter.generateRustProject(fileConfig, gen)
 
         if (targetConfig.noCompile || errorsOccurred()) {
-            context.finish(GeneratorResult.GENERATED_NO_EXECUTABLE.apply(codeMaps))
+            context.finish(GeneratorResult.GENERATED_NO_EXECUTABLE.apply(context, codeMaps))
             println("Exiting before invoking target compiler.")
         } else {
             context.reportProgress(
@@ -155,7 +155,7 @@ class RustGenerator(
             println("SUCCESS (compiling generated Rust code)")
             println("Generated source code is in ${fileConfig.srcGenPath}")
             println("Compiled binary is in ${fileConfig.binPath}")
-            context.finish(GeneratorResult.Status.COMPILED, executableName, fileConfig, codeMaps)
+            context.finish(GeneratorResult.Status.COMPILED, codeMaps)
         } else if (context.cancelIndicator.isCanceled) {
             context.finish(GeneratorResult.CANCELLED)
         } else {

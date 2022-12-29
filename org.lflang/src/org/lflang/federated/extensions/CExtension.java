@@ -38,7 +38,6 @@ import java.util.List;
 import org.lflang.ASTUtils;
 import org.lflang.ErrorReporter;
 import org.lflang.InferredType;
-import org.lflang.Target;
 import org.lflang.TargetProperty;
 import org.lflang.TargetProperty.CoordinationType;
 import org.lflang.TimeValue;
@@ -140,27 +139,24 @@ public class CExtension implements FedTargetExtension {
      */
     private void generateDockerFile(FederateInstance federate, FedFileConfig fileConfig, LinkedHashMap<String, Object> federationRTIProperties) {
         // Docker related paths
-        CDockerGenerator dockerGenerator = (CDockerGenerator)newDockerGeneratorInstance(federate);
-
-        // Create docker file.
-        if (federate.targetConfig.dockerOptions != null) {
-            dockerGenerator.addFile(
-                dockerGenerator.fromData(fileConfig.name, federate.name, fileConfig));
-        }
-
-        if (federate.targetConfig.dockerOptions != null) {
-            dockerGenerator.setHost(federationRTIProperties.get("host"));
-            try {
-                dockerGenerator.writeDockerFiles(
-                    fileConfig.getFedSrcGenPath().resolve("docker-compose.yml"));
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-        }
-    }
-
-    protected DockerGeneratorBase newDockerGeneratorInstance(FederateInstance federate) {
-        return new CDockerGenerator(true, false, federate.targetConfig);
+// FIXME
+//        CDockerGenerator dockerGenerator = (CDockerGenerator)newDockerGeneratorInstance(federate);
+//
+//        // Create docker file.
+//        if (federate.targetConfig.dockerOptions != null) {
+//            dockerGenerator.add(
+//                dockerGenerator.fromData(fileConfig.name, federate.name, fileConfig));
+//        }
+//
+//        if (federate.targetConfig.dockerOptions != null) {
+//            dockerGenerator.setHost(federationRTIProperties.get("host"));
+//            try {
+//                dockerGenerator.writeDockerFiles(
+//                    fileConfig.getFedSrcGenPath().resolve("docker-compose.yml"));
+//            } catch (IOException e) {
+//                throw new RuntimeException(e);
+//            }
+//        }
     }
 
     /**

@@ -467,15 +467,8 @@ public class PythonGenerator extends CGenerator {
         if (errorReporter.getErrorsOccurred()) {
             context.unsuccessfulFinish();
         } else {
-            context.finish(GeneratorResult.Status.COMPILED, fileConfig.name
-                               + ".py", fileConfig.getSrcGenPath(), fileConfig,
-                           codeMaps, "python3");   // TODO: Conditionally use "python" instead
+            context.finish(GeneratorResult.Status.COMPILED, codeMaps);
         }
-    }
-
-    @Override
-    protected PythonDockerGenerator getDockerGenerator() {
-        return new PythonDockerGenerator(false, targetConfig);
     }
 
     /**

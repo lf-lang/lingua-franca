@@ -4,11 +4,13 @@
 
 package org.lflang.cli;
 
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 import java.util.Properties;
 import java.util.stream.Collectors;
 
@@ -22,6 +24,7 @@ import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.xtext.generator.GeneratorDelegate;
 import org.eclipse.xtext.generator.JavaIoFileSystemAccess;
 import org.eclipse.xtext.util.CancelIndicator;
+import org.eclipse.xtext.util.RuntimeIOException;
 
 import org.lflang.ASTUtils;
 import org.lflang.ErrorReporter;
@@ -29,6 +32,8 @@ import org.lflang.FileConfig;
 import org.lflang.LFRuntimeModule;
 import org.lflang.LFStandaloneSetup;
 import org.lflang.LocalStrings;
+import org.lflang.Target;
+import org.lflang.generator.LFGenerator;
 import org.lflang.generator.LFGeneratorContext;
 import org.lflang.generator.LFGeneratorContext.BuildParm;
 import org.lflang.generator.MainContext;
@@ -237,8 +242,9 @@ public class Lfc extends CliBase {
             exitIfCollectedErrors();
 
             LFGeneratorContext context = new MainContext(
-                LFGeneratorContext.Mode.STANDALONE, CancelIndicator.NullImpl, (m, p) -> {}, properties, false,
-                fileConfig -> injector.getInstance(ErrorReporter.class)
+                LFGeneratorContext.Mode.STANDALONE, CancelIndicator.NullImpl,
+                (m, p) -> {}, properties, resource, this.fileAccess,
+                fc -> injector.getInstance(ErrorReporter.class)
             );
 
             this.generator.generate(resource, this.fileAccess, context);
