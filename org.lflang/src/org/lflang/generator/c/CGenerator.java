@@ -1459,14 +1459,7 @@ public class CGenerator extends GeneratorBase {
                         // Since the self struct is created using calloc, there is no need to set
                         // self->_lf_"+containedReactor.getName()+"."+port.getName()+"_trigger.reactions = NULL
                     }
-                    // Since the self struct is created using calloc, there is no need to set
-                    // self->_lf_"+containedReactor.getName()+"."+port.getName()+"_trigger.token = NULL;
-                    // self->_lf_"+containedReactor.getName()+"."+port.getName()+"_trigger.is_present = false;
-                    // self->_lf_"+containedReactor.getName()+"."+port.getName()+"_trigger.is_timer = false;
-                    // self->_lf_"+containedReactor.getName()+"."+port.getName()+"_trigger.is_physical = false;
-                    // self->_lf_"+containedReactor.getName()+"."+port.getName()+"_trigger.drop = false;
-                    // self->_lf_"+containedReactor.getName()+"."+port.getName()+"_trigger.element_size = 0;
-                    // self->_lf_"+containedReactor.getName()+"."+port.getName()+"_trigger.intended_tag = (0, 0);
+                    // Since the self struct is created using calloc, there is no need to set falsy fields.
                     constructorCode.pr(port, String.join("\n",
                         portOnSelf+"_trigger.last = NULL;",
                         portOnSelf+"_trigger.number_of_reactions = "+triggered.size()+";"

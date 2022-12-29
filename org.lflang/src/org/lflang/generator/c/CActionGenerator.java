@@ -139,13 +139,19 @@ public class CActionGenerator {
         var code = new CodeBuilder();
         code.pr("typedef struct {");
         code.indent();
-        code.pr("trigger_t* trigger;");
-        code.pr(valueDeclaration(action, target, types));
+        // NOTE: The following fields are required to be the first ones so that
+        // pointer to this struct can be cast to a (lf_action_base_t*) or to
+        // (token_template_t*) to access these fields for any port.
+        // IMPORTANT: These must match exactly the fields defined in port.h!!
         code.pr(String.join("\n",
-                    "bool is_present;",
-                    "bool has_value;",
-                    "lf_token_t* token;"
+                "token_type_t type;",  // From token_template_t
+                "lf_token_t* token;",  // From token_template_t
+                "size_t length;",      // From token_template_t
+                "bool is_present;",    // From lf_action_base_t
+                "bool has_value;",     // From lf_action_base_t
+                "trigger_t* trigger;"  // From lf_action_base_t
         ));
+        code.pr(valueDeclaration(action, target, types));
         code.pr(federatedExtension.toString());
         code.unindent();
         code.pr("} " + variableStructType(action, decl) + ";");

@@ -781,10 +781,7 @@ public class CReactionGenerator {
         // Start with the timers.
         for (Timer timer : ASTUtils.allTimers(reactor)) {
             createTriggerT(body, timer, triggerMap, constructorCode, types, isFederated, isFederatedAndDecentralized);
-            // Since the self struct is allocated using calloc, there is no need to set:
-            // self->_lf__"+timer.name+".is_physical = false;
-            // self->_lf__"+timer.name+".drop = false;
-            // self->_lf__"+timer.name+".element_size = 0;
+            // Since the self struct is allocated using calloc, there is no need to set falsy fields.
             constructorCode.pr("self->_lf__"+timer.getName()+".is_timer = true;");
             if (isFederatedAndDecentralized) {
                 constructorCode.pr("self->_lf__"+timer.getName()+".intended_tag = (tag_t) { .time = NEVER, .microstep = 0u};");
@@ -826,7 +823,9 @@ public class CReactionGenerator {
                     (!(action.getPolicy() == null || action.getPolicy().isEmpty()) ?
                     "self->_lf__"+action.getName()+".policy = "+action.getPolicy()+";" :
                     ""),
-                    "self->_lf__"+action.getName()+".element_size = "+elementSize+";"
+                    // Need to set the element_size in the trigger_t and the action struct.
+                    "self->_lf__"+action.getName()+".template.type.element_size = "+elementSize+";",
+                    "self->_lf_"+action.getName()+".type.element_size = "+elementSize+";"
                 ));
             }
         }
@@ -887,16 +886,11 @@ public class CReactionGenerator {
         }
         if (variable instanceof Input) {
             var rootType = CUtil.rootType(types.getTargetType((Input) variable));
-            // Since the self struct is allocated using calloc, there is no need to set:
-            // self->_lf__"+input.name+".is_timer = false;
-            // self->_lf__"+input.name+".offset = 0LL;
-            // self->_lf__"+input.name+".period = 0LL;
-            // self->_lf__"+input.name+".is_physical = false;
-            // self->_lf__"+input.name+".drop = false;
+            // Since the self struct is allocated using calloc, there is no need to set falsy fields.
             // If the input type is 'void', we need to avoid generating the code
             // 'sizeof(void)', which some compilers reject.
             var size = (rootType.equals("void")) ? "0" : "sizeof("+rootType+")";
-            constructorCode.pr("self->_lf__"+varName+".element_size = "+size+";");
+            constructorCode.pr("self->_lf__"+varName+".template.type.element_size = "+size+";");
             if (isFederated) {
                 body.pr(
                     CGeneratorExtension.createPortStatusFieldForInput((Input) variable)
