@@ -1,6 +1,5 @@
 /**
- * Basic test of token type passed from a source to a destination.
- * @author Hou Seng (Steven) Wong (housengw@berkeley.edu)
+ * Basic test of token type passed from a reaction to a contained destination.
  * @author Edward A. Lee (eal@berkeley.edu)
  */
 target C {
