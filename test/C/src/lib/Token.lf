@@ -99,11 +99,9 @@ reactor TokenDelay {
     output out:int_array_t*
     logical action a:int_array_t*
     reaction(a) -> out {=
-        lf_print("Delayed token %p.", a->token);
         lf_set_token(out, a->token);
     =}
     reaction(in) -> a {=
-        lf_print("Scheduling token %p.", in->token);
         lf_schedule_token(a, MSEC(1), in->token);
     =}
 }
