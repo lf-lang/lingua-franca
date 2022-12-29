@@ -17,7 +17,6 @@ import java.util.stream.Collectors;
 import org.lflang.ASTUtils;
 import org.lflang.AttributeUtils;
 import org.lflang.TargetConfig;
-import org.lflang.TimeValue;
 import org.lflang.TargetProperty.CoordinationType;
 import org.lflang.TargetProperty.LogLevel;
 import org.lflang.federated.CGeneratorExtension;
@@ -123,6 +122,7 @@ public class CTriggerObjectsGenerator {
             main,
             main,
             reactionsInFederate,
+            types,
             isFederated
         ));
         // Next, for every input port, populate its "self" struct
@@ -844,16 +844,19 @@ public class CTriggerObjectsGenerator {
      * the reaction's parent reactor equal to the total number of
      * destination reactors. This is used to initialize reference
      * counts in dynamically allocated tokens sent to other reactors.
+     * If the port has a token type, this also initializes it with a token.
+     * @param currentFederate The current federate.
      * @param reactions The reactions.
+     * @param types The C types.
+     * @param isFederated True if federated.
      */
     private static String deferredInputNumDestinations(
         FederateInstance currentFederate,
         Iterable<ReactionInstance> reactions,
+        CTypes types,
         boolean isFederated
     ) {
-        // Reference counts are decremented by each destination reactor
-        // at the conclusion of a time step. Hence, the initial reference
-        // count should equal the number of destination _reactors_, not the
+        // We need the number of destination _reactors_, not the
         // number of destination ports nor the number of destination reactions.
         // One of the destination reactors may be the container of this
         // instance because it may have a reaction to an output of this instance.
@@ -866,13 +869,31 @@ public class CTriggerObjectsGenerator {
                 if (port.isInput() && !portsHandled.contains(port)) {
                     // Port is an input of a contained reactor that gets data from a reaction of this reactor.
                     portsHandled.add(port);
-                    code.pr("// For reference counting, set num_destinations for port "+port.getParent().getName()+"."+port.getName()+".");
+                    code.pr("// Set number of destination reactors for port "+port.getParent().getName()+"."+port.getName()+".");
                     // The input port may itself have multiple destinations.
                     for (SendRange sendingRange : port.eventualDestinations()) {
                         code.startScopedRangeBlock(currentFederate, sendingRange, sr, sb, sc, sendingRange.instance.isInput(), isFederated, true);
                         // Syntax is slightly different for a multiport output vs. single port.
                         var connector = (port.isMultiport())? "->" : ".";
                         code.pr(CUtil.portRefNested(port, sr, sb, sc)+connector+"num_destinations = "+sendingRange.getNumberOfDestinationReactors()+";");
+
+                        // Initialize token types.
+                        var type = ASTUtils.getInferredType(port.getDefinition());
+                        if (CUtil.isTokenType(type, types)) {
+                            // Create the template token that goes in the port struct.
+                            var rootType = CUtil.rootType(types.getTargetType(type));
+                            // If the rootType is 'void', we need to avoid generating the code
+                            // 'sizeof(void)', which some compilers reject.
+                            var size = (rootType.equals("void")) ? "0" : "sizeof("+rootType+")";
+                            code.startChannelIteration(port);
+                            code.pr(String.join("\n",
+                                    "_lf_initialize_template((token_template_t*)",
+                                    "        &("+CUtil.portRefNested(port, sr, sb, sc)+"),",
+                                             size+");"
+                            ));
+                            code.endChannelIteration(port);
+                        }
+                        
                         code.endScopedRangeBlock(sendingRange, isFederated);
                     }
                 }
@@ -918,15 +939,22 @@ public class CTriggerObjectsGenerator {
      * This function does not create nested loops over nested banks,
      * so each function it calls must handle its own iteration
      * over all runtime instance.
-     * @param reactor The container.
      * @param currentFederate The federate (used to determine whether a
      *  reaction belongs to the federate).
+     * @param reactor The container.
+     * @param main The top-level reactor.
+     * @param reactions The list of reactions to consider, which is
+     *  the reactions in reactor, unless reactor==main, in which case
+     *  it is the reactions in the federate.
+     * @param types The C types.
+     * @param isFederated True if federated.
      */
     private static String deferredInitializeNonNested(
         FederateInstance currentFederate,
         ReactorInstance reactor,
         ReactorInstance main,
         Iterable<ReactionInstance> reactions,
+        CTypes types,
         boolean isFederated
     ) {
         var code = new CodeBuilder();
@@ -937,6 +965,7 @@ public class CTriggerObjectsGenerator {
         code.pr(deferredInputNumDestinations(
             currentFederate,
             reactions,
+            types,
             isFederated
         ));
 
@@ -967,6 +996,7 @@ public class CTriggerObjectsGenerator {
                     child,
                     main,
                     child.reactions,
+                    types,
                     isFederated
                 ));
             }
