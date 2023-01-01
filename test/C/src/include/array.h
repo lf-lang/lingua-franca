@@ -22,10 +22,10 @@ typedef struct int_array_t {
  * @return A pointer to the array struct. 
  */
 int_array_t* int_array_constructor(size_t length) {
-    int_array_t* val = (int_array_t*) malloc(sizeof(int_array_t));
-    val->data = (int*) calloc(length, sizeof(int));
-    val->length = length;
-    return val;
+    int_array_t* result = (int_array_t*) malloc(sizeof(int_array_t));
+    result->data = (int*) calloc(length, sizeof(int));
+    result->length = length;
+    return result;
 }
 
 /**
@@ -37,14 +37,14 @@ int_array_t* int_array_constructor(size_t length) {
  * @return void* 
  */
 void* int_array_copy_constructor(void* array) {
-    int_array_t* other_arr = (int_array_t*) array;
-    int_array_t* val = (int_array_t*) malloc(sizeof(int_array_t));
-    val->data = (int*) calloc(other_arr->length, sizeof(int));
-    val->length = other_arr->length;
-    for (size_t i = 0; i < other_arr->length; i++) {
-        val->data[i] = other_arr->data[i];
+    int_array_t* source = (int_array_t*) array;
+    int_array_t* copy = (int_array_t*) malloc(sizeof(int_array_t));
+    copy->data = (int*) calloc(source->length, sizeof(int));
+    copy->length = source->length;
+    for (size_t i = 0; i < source->length; i++) {
+        copy->data[i] = source->data[i];
     }
-    return (void*) val;
+    return (void*) copy;
 }
 
 /**
