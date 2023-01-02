@@ -322,9 +322,8 @@ public class CReactionGenerator {
         return isTokenType ?
                 String.join("\n",
                     DISABLE_REACTION_INITIALIZATION_MARKER,
-                    "self->_lf_"+outputName+".value = ("+targetType+")self->_lf__"+actionName+".token->value;",
-                    "self->_lf_"+outputName+".token = (lf_token_t*)self->_lf__"+actionName+".token;",
-                    "((lf_token_t*)self->_lf__"+actionName+".token)->ref_count++;",
+                    "self->_lf_"+outputName+".value = ("+targetType+")self->_lf__"+actionName+".template.token->value;",
+                    "_lf_replace_template_token((token_template_t*)&self->_lf_"+outputName+", (lf_token_t*)self->_lf__"+actionName+".template.token);",
                     "self->_lf_"+outputName+".is_present = true;"
                 ) :
                 "lf_set("+outputName+", "+actionName+"->value);";
