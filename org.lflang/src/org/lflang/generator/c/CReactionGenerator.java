@@ -496,7 +496,7 @@ public class CReactionGenerator {
             "// Set the fields of the action struct to match the current trigger.",
             action.getName()+"->is_present = (bool)self->_lf__"+action.getName()+".status;",
             action.getName()+"->has_value = ("+tokenPointer+" != NULL && "+tokenPointer+"->value != NULL);",
-            action.getName()+"->token = "+tokenPointer+";")
+            "_lf_replace_template_token((token_template_t*)"+action.getName()+", "+tokenPointer+");")
         );
         // Set the value field only if there is a type.
         if (!type.isUndefined()) {
