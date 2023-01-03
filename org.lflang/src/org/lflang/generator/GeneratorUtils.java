@@ -85,6 +85,9 @@ public class GeneratorUtils {
         if (context.getArgs().containsKey("no-compile")) {
             targetConfig.noCompile = true;
         }
+        if (context.getArgs().containsKey("no-verify")) {
+            targetConfig.noVerify = true;
+        }
         if (context.getArgs().containsKey("build-type")) {
             targetConfig.cmakeBuildType = (BuildType) UnionType.BUILD_TYPE_UNION.forName(context.getArgs().getProperty("build-type"));
         }

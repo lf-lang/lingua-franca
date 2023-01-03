@@ -39,6 +39,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 import org.antlr.v4.runtime.CharStreams;
@@ -94,6 +95,7 @@ import org.lflang.generator.TimerInstance;
 import org.lflang.generator.TriggerInstance;
 import org.lflang.generator.c.CGenerator;
 import org.lflang.lf.Action;
+import org.lflang.lf.AttrParm;
 import org.lflang.lf.Attribute;
 import org.lflang.lf.Code;
 import org.lflang.lf.Connection;
@@ -165,7 +167,7 @@ public class UclidGenerator extends GeneratorBase {
     protected long                      horizon             = 0; // in nanoseconds
     protected String                    FOLSpec             = "";
     protected int                       CT                  = 0;
-    protected static final int          CT_MAX_SUPPORTED    = 20;
+    protected static final int          CT_MAX_SUPPORTED    = 100;
 
     // Constructor
     public UclidGenerator(FileConfig fileConfig, ErrorReporter errorReporter, List<Attribute> properties) {
@@ -189,8 +191,6 @@ public class UclidGenerator extends GeneratorBase {
         
         ////////////////////////////////////////
         
-        System.out.println("*** Start generating Uclid code.");
-
         // Create the main reactor instance if there is a main reactor.
         createMainReactorInstance();
 
@@ -223,7 +223,14 @@ public class UclidGenerator extends GeneratorBase {
 
             processMTLSpec();
             
-            computeCT();
+            Optional<AttrParm> CTattr = prop.getAttrParms().stream()
+                            .filter(attr -> attr.getName().equals("CT"))
+                            .findFirst();
+            if (CTattr.isPresent()) {
+                this.CT = Integer.parseInt(CTattr.get().getValue());
+            } else {
+                computeCT();
+            }   
             if (this.CT > CT_MAX_SUPPORTED) {
                 System.out.println("ERROR: The maximum steps supported is " + CT_MAX_SUPPORTED
                     + " but checking this property requires " + this.CT + " steps. "
@@ -863,48 +870,48 @@ public class UclidGenerator extends GeneratorBase {
             /**
              * The timer axioms take the following form:
              * 
-            // An initial firing at {offset, 0}
-            axiom(
-                ((g(END)._1 >= 500000000) ==> (
-                    finite_exists (j : integer) in indices :: (j > START && j <= END)
-                        && Timer_t_is_present(t(j))
-                        && tag_same(g(j), {500000000, 0})
-                ))
-                && ((g(END)._1 < 500000000) ==> (
-                    finite_forall (i : integer) in indices :: (i > START && i <= END)
-                        ==> (!isNULL(i))
-                ))
-            );
-            // Schedule subsequent firings.
-            axiom(
-                finite_forall (i : integer) in indices :: (i >= START && i <= END) ==> (
-                    Timer_t_is_present(t(i)) ==> (
-                        (
-                            finite_exists (j : integer) in indices :: (j >= START && j > i)
-                                && Timer_t_is_present(t(j))
-                                && (g(j) == tag_schedule(g(i), 1000000000))
-                        )
-                    )
-                )
-            );
-            // All firings must be evenly spaced out.
-            axiom(
-                finite_forall (i : integer) in indices :: (i >= START && i <= END) ==> (
-                    Timer_t_is_present(t(i)) ==> (
-                        // Timestamp must be offset + n * period
-                        (
-                            exists (n : integer) :: (
-                                n >= 0 &&
-                                g(i)._1 == 500000000 + n * 1000000000
-                            )
-                        )
-                        // Microstep must be 0
-                        && (
-                            g(i)._2 == 0
-                        )
-                    )
-                )
-            );
+             * // An initial firing at {offset, 0}
+             * axiom(
+             *     ((g(END)._1 >= 500000000) ==> (
+             *         finite_exists (j : integer) in indices :: (j > START && j <= END)
+             *             && Timer_t_is_present(t(j))
+             *             && tag_same(g(j), {500000000, 0})
+             *     ))
+             *     && ((g(END)._1 < 500000000) ==> (
+             *         finite_forall (i : integer) in indices :: (i > START && i <= END)
+             *             ==> (!isNULL(i))
+             *     ))
+             * );
+             * // Schedule subsequent firings.
+             * axiom(
+             *     finite_forall (i : integer) in indices :: (i >= START && i <= END) ==> (
+             *         Timer_t_is_present(t(i)) ==> (
+             *             (
+             *                 finite_exists (j : integer) in indices :: (j >= START && j > i)
+             *                     && Timer_t_is_present(t(j))
+             *                     && (g(j) == tag_schedule(g(i), 1000000000))
+             *             )
+             *         )
+             *     )
+             * );
+             * // All firings must be evenly spaced out.
+             * axiom(
+             *     finite_forall (i : integer) in indices :: (i >= START && i <= END) ==> (
+             *         Timer_t_is_present(t(i)) ==> (
+             *             // Timestamp must be offset + n * period
+             *             (
+             *                 exists (n : integer) :: (
+             *                     n >= 0 &&
+             *                     g(i)._1 == 500000000 + n * 1000000000
+             *                 )
+             *             )
+             *             // Microstep must be 0
+             *             && (
+             *                 g(i)._2 == 0
+             *             )
+             *         )
+             *     )
+             * );
              */
             for (var timer : this.timerInstances) {
                 long offset = timer.getOffset().toNanoSeconds();
@@ -1085,7 +1092,7 @@ public class UclidGenerator extends GeneratorBase {
 
         for (ReactionInstance.Runtime reaction : this.reactionInstances) {
             String body = reaction.getReaction().getDefinition().getCode().getBody();
-            // System.out.println("Printing reaction body of " + reaction);
+            // System.out.println("DEBUG: Printing reaction body of " + reaction);
             // System.out.println(body);
 
             // Generate a parse tree.
@@ -1145,7 +1152,7 @@ public class UclidGenerator extends GeneratorBase {
                     defaultBehaviorConditions.put(instance, new ArrayList<CAst.AstNode>());
                 }
                 defaultBehaviorConditions.get(instance).add(ifBlockNode.left);
-                // System.out.println("!!! Added another reset condition: " + ifBlockNode.left);
+                // System.out.println("DEBUG: Added a reset condition: " + ifBlockNode.left);
             }
 
             // Generate Uclid axiom for the C AST.
@@ -1447,15 +1454,13 @@ public class UclidGenerator extends GeneratorBase {
             if (this.logicalTimeBased)
                 this.CT = diagram.nodeCount();
             else {
-                // FIXME: This could be much more efficient with a linkedlist implementation.
+                // FIXME: This could be much more efficient with
+                // a linkedlist implementation. We can go straight
+                // to the next node.
                 StateSpaceNode node = diagram.head;
                 this.CT = diagram.head.reactionsInvoked.size();
-                while (diagram.getDownstreamAdjacentNodes(node).size() != 0) {
-                    Set<StateSpaceNode> downstreamNodes = diagram.getDownstreamAdjacentNodes(node);
-                    for (StateSpaceNode n : downstreamNodes) {
-                        node = n; // Go to the next node.
-                        break;
-                    }
+                while (node != diagram.tail) {
+                    node = diagram.getDownstreamNode(node);
                     this.CT += node.reactionsInvoked.size();
                 }
             }
@@ -1466,18 +1471,41 @@ public class UclidGenerator extends GeneratorBase {
             // Subtract the non-periodic logical time
             // interval from the total horizon.
             long horizonRemained =
-                this.horizon - diagram.loopNode.tag.timestamp;
+                Math.subtractExact(this.horizon, diagram.loopNode.tag.timestamp);
         
             // Check how many loop iteration is required
             // to check the remaining horizon.
-            int loopIterations = (int) Math.ceil(
-                (double) horizonRemained / diagram.loopPeriod);
+            int loopIterations = 0; 
+            if (diagram.loopPeriod == 0 && horizonRemained != 0)
+                Exceptions.sneakyThrow(new Exception(
+                    "ERROR: Zeno behavior detected while the horizon is non-zero. The program has no finite CT."));
+            else if (diagram.loopPeriod == 0 && horizonRemained == 0) {
+                // Handle this edge case.
+                Exceptions.sneakyThrow(new Exception(
+                    "Unhandled case: both the horizon and period are 0!"));
+            }
+            else {
+                loopIterations = (int) Math.ceil(
+                    (double) horizonRemained / diagram.loopPeriod);
+            }
+            
 
             if (this.logicalTimeBased) {
-                // CT = steps required for the non-periodic part
-                //      + steps required for the periodic part
+                /*
+                CT = steps required for the non-periodic part
+                     + steps required for the periodic part
+                
                 this.CT = (diagram.loopNode.index + 1)
                     + (diagram.tail.index - diagram.loopNode.index + 1) * loopIterations;
+                
+                An overflow-safe version of the line above
+                */
+                int t0 = Math.addExact(diagram.loopNode.index, 1);
+                int t1 = Math.subtractExact(diagram.tail.index, diagram.loopNode.index);
+                int t2 = Math.addExact(t1, 1);
+                int t3 = Math.multiplyExact(t2, loopIterations);
+                this.CT = Math.addExact(t0, t3);
+                
             } else {
                 // Get the number of events before the loop starts.
                 // This stops right before the loopNode is encountered.
@@ -1487,6 +1515,8 @@ public class UclidGenerator extends GeneratorBase {
                     numReactionInvocationsBeforeLoop += node.reactionsInvoked.size();
                     node = diagram.getDownstreamNode(node);
                 }
+                // Account for the loop node in numReactionInvocationsBeforeLoop.
+                numReactionInvocationsBeforeLoop += node.reactionsInvoked.size();
                 
                 // Count the events from the loop node until
                 // loop node is reached again.
@@ -1496,10 +1526,20 @@ public class UclidGenerator extends GeneratorBase {
                     numReactionInvocationsInsideLoop += node.reactionsInvoked.size();
                 } while (node != diagram.loopNode);
 
-                // CT = steps required for the non-periodic part
-                //      + steps required for the periodic part
+                /*
+                CT = steps required for the non-periodic part
+                     + steps required for the periodic part
+                
                 this.CT = numReactionInvocationsBeforeLoop
                     + numReactionInvocationsInsideLoop * loopIterations;
+                
+                An overflow-safe version of the line above
+                */
+                // System.out.println("DEBUG: numReactionInvocationsBeforeLoop: " + numReactionInvocationsBeforeLoop);
+                // System.out.println("DEBUG: numReactionInvocationsInsideLoop: " + numReactionInvocationsInsideLoop);
+                // System.out.println("DEBUG: loopIterations: " + loopIterations);
+                int t0 = Math.multiplyExact(numReactionInvocationsInsideLoop, loopIterations);
+                this.CT = Math.addExact(numReactionInvocationsBeforeLoop, t0);
             }
             System.out.println("CT: " + this.CT);
         }
@@ -1509,11 +1549,11 @@ public class UclidGenerator extends GeneratorBase {
      * Process an MTL property.
      */
     private void processMTLSpec() {
-        MTLLexer lexer = new MTLLexer(CharStreams.fromString(this.spec));
-        CommonTokenStream tokens = new CommonTokenStream(lexer);
-        MTLParser parser = new MTLParser(tokens);
-        MtlContext mtlCtx = parser.mtl();
-        MTLVisitor visitor = new MTLVisitor(this.tactic);
+        MTLLexer            lexer   = new MTLLexer(CharStreams.fromString(this.spec));
+        CommonTokenStream   tokens  = new CommonTokenStream(lexer);
+        MTLParser           parser  = new MTLParser(tokens);
+        MtlContext          mtlCtx  = parser.mtl();
+        MTLVisitor          visitor = new MTLVisitor(this.tactic);
 
         // The visitor transpiles the MTL into a Uclid axiom.
         this.FOLSpec = visitor.visitMtl(mtlCtx, "i", 0, "0", 0);

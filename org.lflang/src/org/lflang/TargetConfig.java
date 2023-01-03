@@ -183,6 +183,12 @@ public class TargetConfig {
     public boolean noRuntimeValidation = false;
 
     /**
+     * If true, do not check the generated verification model.
+     * The default is false.
+     */
+    public boolean noVerify = false;
+
+    /**
      * Set the target platform config.
      * This tells the build system what platform-specific support
      * files it needs to incorporate at compile time.

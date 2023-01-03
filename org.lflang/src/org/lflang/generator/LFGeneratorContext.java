@@ -33,6 +33,7 @@ public interface LFGeneratorContext extends IGeneratorContext {
         LOGGING("The logging level to use by the generated binary"),
         LINT("Enable or disable linting of generated code."),
         NO_COMPILE("Do not invoke target compiler."),
+        NO_VERIFY("Do not check the generated verification model."),
         OUTPUT_PATH("Specify the root output directory."),
         QUIET("Suppress output of the target compiler and other commands"),
         RTI("Specify the location of the RTI."),

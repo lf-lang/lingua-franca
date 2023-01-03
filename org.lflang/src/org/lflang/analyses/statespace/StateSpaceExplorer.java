@@ -124,11 +124,16 @@ public class StateSpaceExplorer {
         ArrayList<ReactionInstance> reactionsTemp;
 
         while (!stop) {
+
             // Pop the events from the earliest tag off the event queue.
             ArrayList<Event> currentEvents = new ArrayList<Event>();
             // FIXME: Use stream methods here?
-            while (eventQ.size() > 0 && eventQ.peek().tag.compareTo(currentTag) == 0) {
+            while (
+                eventQ.size() > 0 
+                && eventQ.peek().tag.compareTo(currentTag) == 0
+            ) {
                 Event e = eventQ.poll();
+                // System.out.println("DEBUG: Popped an event: " + e);
                 currentEvents.add(e);
             }
 
@@ -139,6 +144,7 @@ public class StateSpaceExplorer {
                 Set<ReactionInstance> dependentReactions
                     = e.trigger.getDependentReactions();
                 reactionsTemp.addAll(dependentReactions);
+                // System.out.println("DEBUG: ReactionTemp: " + reactionsTemp);
 
                 // If the event is a timer firing, enqueue the next firing.
                 if (e.trigger instanceof TimerInstance) {
@@ -146,7 +152,7 @@ public class StateSpaceExplorer {
                     eventQ.add(new Event(
                         timer,
                         new Tag(
-                            currentTag.timestamp + timer.getPeriod().toNanoSeconds(),
+                            e.tag.timestamp + timer.getPeriod().toNanoSeconds(),
                             0, // A time advancement resets microstep to 0.
                             false
                         ))
@@ -187,6 +193,7 @@ public class StateSpaceExplorer {
                                     downstreamPort,
                                     new Tag(currentTag.timestamp + delay, 0, false)
                                 );
+                                // System.out.println("DEBUG: Added a port event: " + e);
                                 eventQ.add(e);
                             }
                         }
@@ -194,11 +201,16 @@ public class StateSpaceExplorer {
                     else if (effect instanceof ActionInstance) {
                         // Get the minimum delay of this action.
                         long min_delay = ((ActionInstance)effect).getMinDelay().toNanoSeconds();
+                        long microstep = 0;
+                        if (min_delay == 0) {
+                            microstep = currentTag.microstep + 1;
+                        }
                         // Create and enqueue a new event.
                         Event e = new Event(
                             effect,
-                            new Tag(currentTag.timestamp + min_delay, 0, false)
+                            new Tag(currentTag.timestamp + min_delay, microstep, false)
                         );
+                        // System.out.println("DEBUG: Added an action event: " + e);
                         eventQ.add(e);
                     }
                 }
@@ -207,6 +219,7 @@ public class StateSpaceExplorer {
             // We are at the first iteration.
             // Initialize currentNode.
             if (previousTag == null) {
+                // System.out.println("DEBUG: Case 1");
                 //// Now we are done with the node at the previous tag,
                 //// work on the new node at the current timestamp.
                 // Copy the reactions in reactionsTemp.
@@ -226,20 +239,24 @@ public class StateSpaceExplorer {
                 // Initialize currentNode.
                 currentNode = node;
             }
-            // When we advance to a new tag,
+            // When we advance to a new TIMESTAMP (not a new tag),
             // create a new node in the state space diagram
-            // for everything processed in the previous tag.
+            // for everything processed in the previous timestamp.
+            // This makes sure that the granularity of nodes is
+            // at the timestamp-level, so that we don't have to
+            // worry about microsteps.
             else if (
                 previousTag != null
-                && currentTag.compareTo(previousTag) > 0
+                && currentTag.timestamp > previousTag.timestamp
             ) {
+                // System.out.println("DEBUG: Case 2");
                 // Whenever we finish a tag, check for loops fist.
                 // If currentNode matches an existing node in uniqueNodes,
                 // duplicate is set to the existing node.
                 StateSpaceNode duplicate;
                 if (findLoop &&
                     (duplicate = uniqueNodes.put(
-                        currentNode.hashCode(), currentNode)) != null) {
+                        currentNode.hash(), currentNode)) != null) {
 
                     // Mark the loop in the diagram.
                     loopFound = true;
@@ -251,19 +268,24 @@ public class StateSpaceExplorer {
                     this.diagram.loopPeriod = this.diagram.loopNodeNext.tag.timestamp
                                                 - this.diagram.loopNode.tag.timestamp;
                     this.diagram.addEdge(this.diagram.loopNode, this.diagram.tail);
-                    System.out.println("LoopNode index " + this.diagram.loopNode.index); // Why is this 5?
                     return; // Exit the while loop early.
                 }
 
                 // Now we are at a new tag, and a loop is not found,
                 // add the node to the state space diagram.
+                // Adding a node to the graph once it is finalized
+                // because this makes checking duplicate nodes easier.
+                // We don't have to remove a node from the graph.
                 this.diagram.addNode(currentNode);
+                this.diagram.tail = currentNode; // Update the current tail.
                 
                 // If the head is not empty, add an edge from the previous state
                 // to the next state. Otherwise initialize the head to the new node.
-                if (this.diagram.head != null) {
+                if (previousNode != null) {
                     // System.out.println("--- Add a new edge between " + currentNode + " and " + node);
-                    this.diagram.addEdge(currentNode, previousNode); // Sink first, then source
+                    // this.diagram.addEdge(currentNode, previousNode); // Sink first, then source
+                    if (previousNode != currentNode)
+                        this.diagram.addEdge(currentNode, previousNode);
                 }
                 else
                     this.diagram.head = currentNode; // Initialize the head.
@@ -289,16 +311,18 @@ public class StateSpaceExplorer {
                 // Update the current node to the new (potentially incomplete) node.
                 currentNode = node;
             }
-            // Time does not advance because we are processing
+            // Timestamp does not advance because we are processing
             // connections with zero delay.
             else if (
                 previousTag != null
-                && currentTag.compareTo(previousTag) == 0
+                && currentTag.timestamp == previousTag.timestamp
             ) {
+                // System.out.println("DEBUG: Case 3");
                 // Add reactions explored in the current loop iteration
                 // to the existing state space node.
                 currentNode.reactionsInvoked.addAll(reactionsTemp);
-            }
+                // Update the eventQ snapshot.
+                currentNode.eventQ = new ArrayList<Event>(eventQ);            }
             else {
                 // Unreachable
                 Exceptions.sneakyThrow(new Exception("Reached an unreachable part."));
@@ -313,10 +337,32 @@ public class StateSpaceExplorer {
             // Stop if:
             // 1. the event queue is empty, or
             // 2. the horizon is reached.
-            if (eventQ.size() == 0 
-                || currentTag.compareTo(horizon) > 0)
+            if (eventQ.size() == 0) {
+                // System.out.println("DEBUG: Stopping because eventQ is empty!");
                 stop = true;
+            }
+            else if (currentTag.timestamp > horizon.timestamp) {
+                // System.out.println("DEBUG: Stopping because horizon is reached! Horizon: " + horizon + " Current Tag: " + currentTag);
+                // System.out.println("DEBUG: EventQ: " + eventQ);
+                stop = true;
+            }
         }
+
+        // Check if the last current node is added to the graph yet.
+        // If not, add it now.
+        // This could happen when condition (previousTag == null)
+        // or (previousTag != null
+        // && currentTag.compareTo(previousTag) > 0) is true and then
+        // the simulation ends, leaving a new node dangling.
+        if (previousNode == null 
+            || previousNode.tag.timestamp < currentNode.tag.timestamp) {
+            this.diagram.addNode(currentNode);
+            this.diagram.tail = currentNode; // Update the current tail.
+            if (previousNode != null) {
+                this.diagram.addEdge(currentNode, previousNode);
+            }
+        }
+
         // When we exit and we still don't have a head,
         // that means there is only one node in the diagram.
         // Set the current node as the head.

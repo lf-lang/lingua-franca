@@ -292,6 +292,15 @@ public enum TargetProperty {
             }),
 
     /**
+     * Directive to not check the generated verification model.
+     */
+    NO_VERIFY("no-verify", PrimitiveType.BOOLEAN,
+            Arrays.asList(Target.C),
+            (config, value, err) -> {
+                config.noVerify = ASTUtils.toBoolean(value);
+            }),
+
+    /**
      * Directive to specify the platform for cross code generation. This is either a string of the platform
      * or a dictionary of options that includes the string name.
      */

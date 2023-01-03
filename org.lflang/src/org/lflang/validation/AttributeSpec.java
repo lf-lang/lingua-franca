@@ -218,9 +218,10 @@ class AttributeSpec {
         // SMTL is the safety fragment of Metric Temporal Logic (MTL).
         ATTRIBUTE_SPECS_BY_NAME.put("property", new AttributeSpec(
             List.of(
-                new AttrParamSpec("name", AttrParamType.STRING, null),
-                new AttrParamSpec("tactic", AttrParamType.STRING, null),
-                new AttrParamSpec("spec", AttrParamType.STRING, null)
+                new AttrParamSpec("name", AttrParamType.STRING, "test"),
+                new AttrParamSpec("tactic", AttrParamType.STRING, "bmc"),
+                new AttrParamSpec("spec", AttrParamType.STRING, "false"),
+                new AttrParamSpec("CT", AttrParamType.INT, null)
             )
         ));
     }

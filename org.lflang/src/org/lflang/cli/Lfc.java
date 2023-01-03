@@ -69,6 +69,7 @@ public class Lfc extends CliBase {
         LOGGING(BuildParm.LOGGING, null, true, false, true),
         LINT(BuildParm.LINT, "l",false, false,  true),
         NO_COMPILE(BuildParm.NO_COMPILE, "n", false, false, true),
+        NO_VERIFY(BuildParm.NO_VERIFY, null, false, false, true),
         OUTPUT_PATH(BuildParm.OUTPUT_PATH, "o", true, false, false),
         QUIET(BuildParm.QUIET, "q", false, false,  true),
         RTI(BuildParm.RTI, "r", true, false, true),

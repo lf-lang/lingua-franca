@@ -54,7 +54,7 @@ public class StateSpaceDiagram extends DirectedGraph<StateSpaceNode> {
     /**
      * 
      */
-    private final boolean compactDot = true;
+    private final boolean compactDot = false;
 
     /**
      * Before adding the node, assign it an index.
@@ -81,31 +81,38 @@ public class StateSpaceDiagram extends DirectedGraph<StateSpaceNode> {
     public void display() {
         System.out.println("*************************************************");
         System.out.println("* Pretty printing worst-case state space diagram:");
-        StateSpaceNode node = this.head;
         long timestamp;
-        while (node != null) {
+        StateSpaceNode node = this.head;
+        if (node == null) {
+            System.out.println("* EMPTY");
+            System.out.println("*************************************************");
+            return;
+        }
+        while(node != this.tail) {
             System.out.print("* State " + node.index + ": ");
             node.display();
 
             // Store the tag of the prior step.
             timestamp = node.tag.timestamp;
 
-            if (!node.equals(this.tail)) {
-                // Assume a unique next state.
-                node = getDownstreamNode(node);
+            // Assume a unique next state.
+            node = getDownstreamNode(node);
 
-                // Compute time difference
-                if (node != null) {
-                    TimeValue tsDiff = TimeValue.fromNanoSeconds(node.tag.timestamp - timestamp);
-                    System.out.println("*     => Advance time by " + tsDiff + " ns");
-                }
+            // Compute time difference
+            if (node != null) {
+                TimeValue tsDiff = TimeValue.fromNanoSeconds(node.tag.timestamp - timestamp);
+                System.out.println("*     => Advance time by " + tsDiff);
             }
-            else break;
         }
+
+        // Print tail node
+        System.out.print("* (Tail) state " + node.index + ": ");
+        node.display();
+
         if (this.loopNode != null) {
             // Compute time difference
             TimeValue tsDiff = TimeValue.fromNanoSeconds(loopNodeNext.tag.timestamp - tail.tag.timestamp);
-            System.out.println("*     => Advance time by " + tsDiff + " ns");
+            System.out.println("*     => Advance time by " + tsDiff);
 
             System.out.println("* Goes back to loop node: state " + this.loopNode.index);
             System.out.print("* Loop node reached 2nd time: ");
@@ -145,14 +152,18 @@ public class StateSpaceDiagram extends DirectedGraph<StateSpaceNode> {
                         + "\"" + "]");
                 }
             } else {
+                System.out.println("***** nodes: " + this.nodes());
                 for (StateSpaceNode n : this.nodes()) {
                     List<String> reactions = n.reactionsInvoked.stream()
                         .map(ReactionInstance::getFullName).collect(Collectors.toList());
                     String reactionsStr = String.join("\\n", reactions);
+                    List<String> events = n.eventQ.stream()
+                        .map(Event::toString).collect(Collectors.toList());
+                    String eventsStr = String.join("\\n", events);
                     dot.pr("S" + n.index + " [" + "label = \"" + "S" + n.index
                         + " | " + n.tag
-                        + " | " + reactionsStr
-                        + " | " + "Pending events: " + n.eventQ.size()
+                        + " | " + "Reactions invoked:\\n" + reactionsStr
+                        + " | " + "Pending events:\\n" + eventsStr
                         + "\"" + "]");
                 }
             }

@@ -81,10 +81,14 @@ public class StateSpaceNode {
     }
 
     /**
-     * Generate hash code for the node.
+     * Generate hash for the node.
+     * This hash function is used for checking
+     * the uniqueness of nodes.
+     * It is not meant to be used as a hashCode()
+     * because doing so interferes with node
+     * insertion in the state space diagram.
      */
-    @Override
-    public int hashCode() {
+    public int hash() {
         // Initial value
         int result = 17;
 

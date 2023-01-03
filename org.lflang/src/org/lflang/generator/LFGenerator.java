@@ -171,7 +171,7 @@ public class LFGenerator extends AbstractGenerator {
         // If "-c" or "--clean" is specified, delete any existing generated directories.
         cleanIfNeeded(lfContext, fileConfig);
 
-        // Check if @property is used. If so, include UclidGenerator.
+        // Check if @property is used. If so, instantiate a UclidGenerator.
         // The verification model needs to be generated before the target code
         // since code generation changes LF program (desugar connections, etc.).
         Reactor main = ASTUtils.getMainReactor(resource);
@@ -183,8 +183,12 @@ public class LFGenerator extends AbstractGenerator {
             UclidGenerator uclidGenerator = new UclidGenerator(fileConfig, errorReporter, properties);
             // Generate uclid files.
             uclidGenerator.doGenerate(resource, lfContext);
-            // Invoke the generated uclid files.
-            uclidGenerator.runner.run();
+            if (uclidGenerator.targetConfig.noVerify == false) {
+                // Invoke the generated uclid files.
+                uclidGenerator.runner.run();
+            } else {
+                System.out.println("\"no-verify\" is set to true. Skip checking the verification model.");
+            }
         }
 
         // Generate target code from the LF program.
