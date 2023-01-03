@@ -59,8 +59,8 @@ public class Configurators {
      * @return True if successful, false otherwise.
      */
     public static boolean disableThreading(LFTest test) {
-        test.context.getArgs().setProperty(BuildParm.THREADING.getKey(), "false");
-        test.context.getArgs().setProperty(BuildParm.WORKERS.getKey(), "1");
+        test.getContext().getArgs().setProperty(BuildParm.THREADING.getKey(), "false");
+        test.getContext().getArgs().setProperty(BuildParm.WORKERS.getKey(), "1");
         return true;
     }
 
