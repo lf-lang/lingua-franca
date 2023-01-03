@@ -32,7 +32,7 @@ public class PythonStateGenerator {
         if (!ASTUtils.isInitialized(state)) {
             return "None";
         }
-        List<String> list = state.getInit().stream().map(PyUtil::getPythonTargetValue).collect(Collectors.toList());
+        List<String> list = state.getInit().getExprs().stream().map(PyUtil::getPythonTargetValue).toList();
         return list.size() > 1 ? "[" + String.join(", ", list) + "]" : list.get(0);
     }
 }

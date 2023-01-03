@@ -25,7 +25,7 @@ reactor Source {
     output out: int
     timer t
 
-    // reaction(t) -> out after 100 msec {=
+    // reaction(t) -> out after 100 msec
     reaction(t) -> out {= lf_set(out, 1); =}
 }
 

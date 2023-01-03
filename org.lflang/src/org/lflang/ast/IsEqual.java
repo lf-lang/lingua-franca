@@ -18,6 +18,7 @@ import org.lflang.lf.AttrParm;
 import org.lflang.lf.Attribute;
 import org.lflang.lf.BuiltinTriggerRef;
 import org.lflang.lf.Code;
+import org.lflang.lf.CodeExpr;
 import org.lflang.lf.Connection;
 import org.lflang.lf.Deadline;
 import org.lflang.lf.Element;
@@ -27,6 +28,7 @@ import org.lflang.lf.IPV4Host;
 import org.lflang.lf.IPV6Host;
 import org.lflang.lf.Import;
 import org.lflang.lf.ImportedReactor;
+import org.lflang.lf.Initializer;
 import org.lflang.lf.Input;
 import org.lflang.lf.Instantiation;
 import org.lflang.lf.KeyValuePair;
@@ -164,10 +166,20 @@ public class IsEqual extends LfSwitch<Boolean> {
             .listsEquivalent(StateVar::getAttributes)
             .equalAsObjects(StateVar::getName)
             .equivalent(StateVar::getType)
-            .listsEquivalent(StateVar::getInit)
-            // Empty braces or parentheses are semantically equivalent to no init at all.
-            .listsEqualAsObjects(stateVar -> stateVar.getInit().isEmpty() ? null : stateVar.getBraces())
-            .listsEqualAsObjects(stateVar -> stateVar.getInit().isEmpty() ? null : stateVar.getParens())
+            .equivalent(StateVar::getInit)
+            .conclusion;
+    }
+
+    @Override
+    public Boolean caseInitializer(Initializer object) {
+        // Empty braces are not equivalent to no init.
+        return new ComparisonMachine<>(object, Initializer.class)
+            .equalAsObjects(Initializer::isBraces)
+            // An initializer with no parens is equivalent to one with parens,
+            // if the list has a single element. This is probably going to change
+            // when we introduce equals initializers.
+            // .equalAsObjects(Initializer::isParens)
+            .listsEquivalent(Initializer::getExprs)
             .conclusion;
     }
 
@@ -404,9 +416,7 @@ public class IsEqual extends LfSwitch<Boolean> {
         return new ComparisonMachine<>(object, Assignment.class)
             .equivalent(Assignment::getLhs)
             .equalAsObjects(Assignment::getEquals)
-            .listsEqualAsObjects(Assignment::getBraces)
-            .listsEqualAsObjects(Assignment::getParens)
-            .listsEquivalent(Assignment::getRhs)
+            .equivalent(Assignment::getRhs)
             .conclusion;
     }
 
@@ -416,9 +426,7 @@ public class IsEqual extends LfSwitch<Boolean> {
             .listsEquivalent(Parameter::getAttributes)
             .equalAsObjects(Parameter::getName)
             .equivalent(Parameter::getType)
-            .listsEqualAsObjects(Parameter::getParens)
-            .listsEqualAsObjects(Parameter::getBraces)
-            .listsEquivalent(Parameter::getInit)
+            .equivalent(Parameter::getInit)
             .conclusion;
     }
 
@@ -519,6 +527,11 @@ public class IsEqual extends LfSwitch<Boolean> {
             .equalAsObjects(Host::getAddr)
             .equalAsObjects(Host::getPort)
             .conclusion;
+    }
+
+    @Override
+    public Boolean caseCodeExpr(CodeExpr object) {
+        return new ComparisonMachine<>(object, CodeExpr.class).equivalent(CodeExpr::getCode).conclusion;
     }
 
     @Override

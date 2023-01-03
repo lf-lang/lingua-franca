@@ -38,7 +38,7 @@ reactor Print {
 }
 
 main reactor ArrayAsParameter {
-    s = new Source(sequence{1, 2, 3, 4})
+    s = new Source(sequence = {= {1, 2, 3, 4} =})
     p = new Print()
     s.out -> p.in
 }

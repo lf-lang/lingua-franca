@@ -29,7 +29,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * Header file for common utilities used in converting Lingua Franca trace files
  * into other formats.
  */
-#define LINGUA_FRANCA_TRACE
+#define LF_TRACE
 #include "reactor.h"
 #include "trace.h"
 
