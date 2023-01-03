@@ -16,18 +16,18 @@ reactor Test {
 
     reaction(act) -> out {=
         let (a, b) = ctx.get(act).unwrap();
-        ctx.set(out.get(0), a);
-        ctx.set(out.get(1), b);
+        ctx.set(&mut out[0], a);
+        ctx.set(&mut out[1], b);
     =}
 
     reaction(in) -> act {=
         // compute the nth fibonacci number
         // r#in is [fib(n-2), fib(n-1), fib(n-2), fib(n-1)]
-        let fib_n_1 = ctx.get(&r#in.get(1)).unwrap();
-        let fib_n_2 = ctx.get(&r#in.get(0)).unwrap();
+        let fib_n_1 = ctx.get(&r#in[1]).unwrap();
+        let fib_n_2 = ctx.get(&r#in[0]).unwrap();
         let fib_n: u32 = fib_n_2 + fib_n_1;
-        assert_eq!(ctx.get(&r#in.get(2)).unwrap(), fib_n_2);
-        assert_eq!(ctx.get(&r#in.get(3)).unwrap(), fib_n_1);
+        assert_eq!(ctx.get(&r#in[2]).unwrap(), fib_n_2);
+        assert_eq!(ctx.get(&r#in[3]).unwrap(), fib_n_1);
         println!("{} + {} = {}", fib_n_2, fib_n_1, fib_n);
         self.last = fib_n;
         // send fib(n-1) and fib(n)

@@ -203,7 +203,11 @@ public class Lfc extends CliBase {
                 fileConfig -> errorReporter
             );
 
-            this.generator.generate(resource, this.fileAccess, context);
+            try {
+                this.generator.generate(resource, this.fileAccess, context);
+            } catch (Exception e) {
+                reporter.printFatalErrorAndExit("Error running generator", e);
+            }
 
             exitIfCollectedErrors();
             // print all other issues (not errors)

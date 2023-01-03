@@ -45,7 +45,7 @@ public class CParameterGenerator {
         if (lastAssignment != null) {
             // The parameter has an assignment.
             // Right hand side can be a list. Collect the entries.
-            for (Expression expr: lastAssignment.getRhs()) {
+            for (Expression expr: lastAssignment.getRhs().getExprs()) {
                 if (expr instanceof ParameterReference) {
                     // The parameter is being assigned a parameter value.
                     // Assume that parameter belongs to the parent's parent.

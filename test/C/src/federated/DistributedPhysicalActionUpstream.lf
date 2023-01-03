@@ -21,7 +21,7 @@ preamble {=
     void* take_time(void* a) {
         while (_counter < 15) {
             instant_t sleep_time = MSEC(10);
-            lf_nanosleep(sleep_time);
+            lf_sleep(sleep_time);
             callback(a);
         }
         return NULL;

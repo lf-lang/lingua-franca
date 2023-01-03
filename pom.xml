@@ -63,18 +63,6 @@
                 <module>org.lflang.targetplatform</module>
             </modules>
         </profile>
-        <profile>
-            <id>lds</id>
-
-            <modules>
-                <module>org.lflang</module>
-                <module>org.lflang.ide</module>
-                <module>org.lflang.diagram</module>
-
-                <module>org.lflang.lds</module>
-                <module>org.lflang.targetplatform</module>
-            </modules>
-        </profile>
     </profiles>
     <pluginRepositories>
         <pluginRepository>

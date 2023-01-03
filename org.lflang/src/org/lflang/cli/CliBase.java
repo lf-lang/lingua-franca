@@ -83,14 +83,19 @@ public abstract class CliBase {
     }
 
     protected static void cliMain(String toolName, Class<? extends CliBase> toolClass, Io io, String[] args) {
-        final ReportingBackend reporter = new ReportingBackend(io, toolName + ": ");
-
         // Injector used to obtain Main instance.
-        final Injector injector = new LFStandaloneSetup(new LFRuntimeModule(), new LFStandaloneModule(reporter, io))
-            .createInjectorAndDoEMFRegistration();
+        final Injector injector = getInjector(toolName, io);
         // Main instance.
         final CliBase main = injector.getInstance(toolClass);
         main.runMain(args);
+    }
+
+    protected static Injector getInjector(String toolName, Io io) {
+        final ReportingBackend reporter = new ReportingBackend(io, toolName + ": ");
+
+        // Injector used to obtain Main instance.
+        return new LFStandaloneSetup(new LFRuntimeModule(), new LFStandaloneModule(reporter, io))
+            .createInjectorAndDoEMFRegistration();
     }
 
 

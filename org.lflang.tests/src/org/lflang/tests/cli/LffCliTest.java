@@ -31,16 +31,15 @@ import static org.lflang.tests.TestUtils.TempDirBuilder.dirBuilder;
 import static org.lflang.tests.TestUtils.TempDirChecker.dirChecker;
 
 import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import org.lflang.LocalStrings;
+import org.lflang.tests.cli.CliToolTestFixture.ExecutionResult;
 import org.lflang.cli.Io;
 import org.lflang.cli.Lff;
-import org.lflang.tests.cli.CliToolTestFixture.ExecutionResult;
 
 /**
  * @author Clément Fournier
