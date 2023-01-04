@@ -152,7 +152,6 @@ public class StateSpaceDiagram extends DirectedGraph<StateSpaceNode> {
                         + "\"" + "]");
                 }
             } else {
-                System.out.println("***** nodes: " + this.nodes());
                 for (StateSpaceNode n : this.nodes()) {
                     List<String> reactions = n.reactionsInvoked.stream()
                         .map(ReactionInstance::getFullName).collect(Collectors.toList());

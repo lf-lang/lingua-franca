@@ -230,7 +230,9 @@ public class UclidGenerator extends GeneratorBase {
                 this.CT = Integer.parseInt(CTattr.get().getValue());
             } else {
                 computeCT();
-            }   
+            }
+            // For automating data collection, print the CT to stderr.
+            System.err.println("CT: " + this.CT);
             if (this.CT > CT_MAX_SUPPORTED) {
                 System.out.println("ERROR: The maximum steps supported is " + CT_MAX_SUPPORTED
                     + " but checking this property requires " + this.CT + " steps. "
@@ -1464,7 +1466,6 @@ public class UclidGenerator extends GeneratorBase {
                     this.CT += node.reactionsInvoked.size();
                 }
             }
-            System.out.println("CT: " + this.CT);
         } 
         // Over-approximate CT by estimating the number of loop iterations required.
         else {
@@ -1489,7 +1490,6 @@ public class UclidGenerator extends GeneratorBase {
                     (double) horizonRemained / diagram.loopPeriod);
             }
             
-
             if (this.logicalTimeBased) {
                 /*
                 CT = steps required for the non-periodic part
@@ -1541,7 +1541,6 @@ public class UclidGenerator extends GeneratorBase {
                 int t0 = Math.multiplyExact(numReactionInvocationsInsideLoop, loopIterations);
                 this.CT = Math.addExact(numReactionInvocationsBeforeLoop, t0);
             }
-            System.out.println("CT: " + this.CT);
         }
     }
 

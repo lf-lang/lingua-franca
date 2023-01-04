@@ -428,30 +428,26 @@ public class MTLVisitor extends MTLParserBaseVisitor<String> {
 
         if (ctx instanceof MTLParser.SingletonContext) {
             MTLParser.SingletonContext singletonCtx = (MTLParser.SingletonContext)ctx;
-            timePredicate += "tag_same(g(" + prefixIdx + "), " + "tag_schedule(g(" 
+            timePredicate += "tag_same(g(" + prefixIdx + "), " + "tag_delay(g(" 
                                 + prevPrefixIdx + "), " + upperBoundNanoSec + "))";
         } else {
+            // Since MTL doesn't include microsteps, we only compare timestamps here.
             MTLParser.RangeContext rangeCtx = (MTLParser.RangeContext)ctx;
             timePredicate += "(";
             if (rangeCtx.LBRACKET() != null) {
-                // FIXME: Check if this can be replaced by a !tag_earlier.
-                timePredicate += "tag_later(g(" + prefixIdx + "), "
-                    + "tag_schedule(g(" + prevPrefixIdx + "), " + lowerBoundNanoSec + "))"
-                    + " || " + "tag_same(g(" + prefixIdx + "), "
-                    + "tag_schedule(g(" + prevPrefixIdx + "), " + lowerBoundNanoSec + "))";
+                timePredicate += "pi1(g(" + prefixIdx + "))" + " >= "
+                    + "(" + "pi1(g(" + prevPrefixIdx + "))" + " + " + lowerBoundNanoSec + ")";
             } else {
-                timePredicate += "tag_later(g(" + prefixIdx + "), "
-                    + "tag_schedule(g(" + prevPrefixIdx + "), " + lowerBoundNanoSec + "))";
+                timePredicate += "pi1(g(" + prefixIdx + "))" + " > "
+                    + "(" + "pi1(g(" + prevPrefixIdx + "))" + " + " + lowerBoundNanoSec + ")";
             }
             timePredicate += ") && (";
             if (rangeCtx.RBRACKET() != null) {
-                timePredicate += "tag_earlier(g(" + prefixIdx + "), "
-                    + "tag_schedule(g(" + prevPrefixIdx + "), " + upperBoundNanoSec + "))"
-                    + " || " + "tag_same(g(" + prefixIdx + "), "
-                    + "tag_schedule(g(" + prevPrefixIdx + "), " + upperBoundNanoSec + "))";
+                timePredicate += "pi1(g(" + prefixIdx + "))" + " <= "
+                    + "(" + "pi1(g(" + prevPrefixIdx + "))" + " + " + lowerBoundNanoSec + ")";
             } else {
-                timePredicate += "tag_earlier(g(" + prefixIdx + "), "
-                    + "tag_schedule(g(" + prevPrefixIdx + "), " + upperBoundNanoSec + "))";
+                timePredicate += "pi1(g(" + prefixIdx + "))" + " < "
+                    + "(" + "pi1(g(" + prevPrefixIdx + "))" + " + " + lowerBoundNanoSec + ")";
             }
             timePredicate += ")";
         }
