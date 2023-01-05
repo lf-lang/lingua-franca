@@ -48,7 +48,7 @@ import org.lflang.util.StringUtil;
  * A helper class for processing attributes in the AST.
  * 
  * @author Shaokai Lin
- * @author Clément Fournier, TU Dresden, INSA Rennes
+ * @author Clément Fournier
  * @author Alexander Schulz-Rosengarten
  */
 public class AttributeUtils {

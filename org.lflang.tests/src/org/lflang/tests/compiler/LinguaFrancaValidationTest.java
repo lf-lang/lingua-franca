@@ -66,7 +66,7 @@ import com.google.inject.Inject;
  * @author Edward A. Lee
  * @author Marten Lohstroh
  * @author Matt Weber
- * @author (Christian Menard}
+ * @author Christian Menard
  * @author Alexander Schulz-Rosengarten
  */
 public class LinguaFrancaValidationTest {
