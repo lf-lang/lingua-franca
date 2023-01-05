@@ -759,6 +759,14 @@ public class CReactionGenerator {
                     deadlineFunctionPointer = "&" + deadlineFunctionName;
                 }
 
+                // FIXME: modif4watchdogs
+                // FIXME: '.getWatchdog()' not implemented
+                var watchdogFunctionPointer = "NULL";
+                if (reaction.getWatchdog() != null) {
+                    var watchdogFunctionName = generateWatchdogFunctionName(decl, reactionCount);
+                    watchdogFunctionPointer = "&" + watchdogFunctionName;
+                }
+
                 // Assign the STP handler
                 var STPFunctionPointer = "NULL";
                 if (reaction.getStp() != null) {
@@ -780,6 +788,7 @@ public class CReactionGenerator {
                     "self->_lf__reaction_"+reactionCount+".function = "+ CReactionGenerator.generateReactionFunctionName(decl, reactionCount)+";",
                     "self->_lf__reaction_"+reactionCount+".self = self;",
                     "self->_lf__reaction_"+reactionCount+".deadline_violation_handler = "+deadlineFunctionPointer+";",
+                    "self->_lf__reaction_"+reactionCount+".watchdog_handler = "+watchdogFunctionPointer+";",
                     "self->_lf__reaction_"+reactionCount+".STP_handler = "+STPFunctionPointer+";",
                     "self->_lf__reaction_"+reactionCount+".name = "+addDoubleQuotes("?")+";",
                     (reaction.eContainer() instanceof Mode ?

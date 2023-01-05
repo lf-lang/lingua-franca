@@ -929,6 +929,11 @@ public class CGenerator extends GeneratorBase {
         return false;
     }
 
+    //FIXME: modif4watchdogs
+    private boolean hasWatchdogs(List<Reactor> reactors) {
+        
+    }
+
     /**
      * Look at the 'reactor' eResource.
      * If it is an imported .lf file, incorporate it into the current
