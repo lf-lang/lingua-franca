@@ -1,20 +1,21 @@
 target Cpp
 
-reactor Foo<T>(bar: T(0)) {
+reactor Foo<T>(bar: T(0), expected: T(14542135)) {
     state baz: T(bar)
 
     reaction(startup) {=
-        if (bar != 42) {
-          std::cerr << "ERROR: Expected baz=42 but got baz=" << bar << '\n';
+        if (bar != expected) {
+          std::cerr << "ERROR: Expected baz=" << expected << " but got baz=" << bar << '\n';
           exit(1);
         }
-        if (baz != 42) {
-          std::cerr << "ERROR: Expected baz=42 but got baz=" << baz << '\n';
+        if (baz != expected) {
+          std::cerr << "ERROR: Expected baz=" << expected << " but got baz=" << baz << '\n';
           exit(1);
         }
     =}
 }
 
 main reactor {
-    foo = new Foo<int>(bar = 42)
+    foo = new Foo<int>(bar = 42, expected = 42)
+    bar = new Foo<int>(expected = 0)  // default value is used
 }

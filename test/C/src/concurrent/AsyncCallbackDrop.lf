@@ -20,7 +20,7 @@ main reactor {
         // Simulate time passing before a callback occurs.
         void* take_time(void* a) {
             instant_t sleep_time = 100000000;
-            lf_nanosleep(sleep_time);
+            lf_sleep(sleep_time);
             callback(a);
             return NULL;
         }

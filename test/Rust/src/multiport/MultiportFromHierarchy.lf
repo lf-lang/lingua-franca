@@ -10,8 +10,8 @@ reactor Source {
     state s: u32(0)
 
     reaction(t) -> out {=
-        for mut chan in out {
-            ctx.set(&mut chan, self.s);
+        for chan in out {
+            ctx.set(chan, self.s);
             self.s += 1;
         }
     =}
@@ -22,7 +22,7 @@ reactor Destination {
     input[4] in: u32
 
     reaction(in) {=
-        let sum: u32 = r#in.into_iter().map(|p| ctx.get(&p).unwrap()).sum();
+        let sum: u32 = r#in.iterate_values().sum();
         println!("Sum of received: {}", sum);
         assert_eq!(sum, self.s);
         self.s += 16;

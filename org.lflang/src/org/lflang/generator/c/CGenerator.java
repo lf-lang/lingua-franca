@@ -63,6 +63,7 @@ import org.lflang.TargetProperty.ClockSyncMode;
 import org.lflang.TargetProperty.CoordinationType;
 import org.lflang.TargetProperty.Platform;
 import org.lflang.TimeValue;
+import org.lflang.ast.AfterDelayTransformation;
 import org.lflang.federated.FedFileConfig;
 import org.lflang.federated.FederateInstance;
 import org.lflang.federated.launcher.FedCLauncher;
@@ -73,6 +74,7 @@ import org.lflang.generator.CodeBuilder;
 import org.lflang.generator.GeneratorBase;
 import org.lflang.generator.GeneratorResult;
 import org.lflang.generator.GeneratorUtils;
+import org.lflang.generator.DelayBodyGenerator;
 import org.lflang.generator.IntegratedBuilder;
 import org.lflang.generator.LFGeneratorContext;
 import org.lflang.generator.LFResource;
@@ -389,26 +391,31 @@ public class CGenerator extends GeneratorBase {
         ErrorReporter errorReporter,
         boolean CCppMode,
         CTypes types,
-        CCmakeGenerator cmakeGenerator
+        CCmakeGenerator cmakeGenerator,
+        DelayBodyGenerator delayBodyGenerator
     ) {
         super(fileConfig, errorReporter);
         this.CCppMode = CCppMode;
         this.types = types;
         this.cmakeGenerator = cmakeGenerator;
+
+        // Register the after delay transformation to be applied by GeneratorBase.
+        registerTransformation(new AfterDelayTransformation(delayBodyGenerator, types, fileConfig.resource));
     }
 
-    public CGenerator(FileConfig fileConfig, ErrorReporter errorReporter, boolean CCppMode) {
+    public CGenerator(FileConfig fileConfig, ErrorReporter errorReporter, boolean CCppMode, CTypes types) {
         this(
             fileConfig,
             errorReporter,
             CCppMode,
-            new CTypes(errorReporter),
-            new CCmakeGenerator(fileConfig, List.of())
+            types,
+            new CCmakeGenerator(fileConfig, List.of()),
+            new CDelayBodyGenerator(types)
         );
     }
 
-    public CGenerator(FileConfig fileConfig, ErrorReporter errorReporter) {
-        this(fileConfig, errorReporter, false);
+    public CGenerator(FileConfig fileConfig, ErrorReporter errorReporter, boolean CCppMode) {
+        this(fileConfig, errorReporter, CCppMode, new CTypes(errorReporter));
     }
 
     ////////////////////////////////////////////
@@ -420,6 +427,10 @@ public class CGenerator extends GeneratorBase {
         if (isFederated) {
             // Add compile definitions for federated execution
             targetConfig.compileDefinitions.put("FEDERATED", "");
+            if(targetConfig.auth) {
+                // The federates are authenticated before joining federation.
+                targetConfig.compileDefinitions.put("FEDERATED_AUTHENTICATED", "");
+            }
             if (targetConfig.coordination == CoordinationType.CENTRALIZED) {
                 // The coordination is centralized.
                 targetConfig.compileDefinitions.put("FEDERATED_CENTRALIZED", "");
@@ -1093,8 +1104,7 @@ public class CGenerator extends GeneratorBase {
         // if platform target was set, use given platform instead
         if (targetConfig.platformOptions.platform != Platform.AUTO) {
             osName = targetConfig.platformOptions.platform.toString();
-        }
-        if (Stream.of("mac", "darwin", "win", "nux", "arduino").noneMatch(osName::contains)) {
+        } else if (Stream.of("mac", "darwin", "win", "nux").noneMatch(osName::contains)) {
             errorReporter.reportError("Platform " + osName + " is not supported");
         }
     }
@@ -1820,7 +1830,7 @@ public class CGenerator extends GeneratorBase {
             List.of("--c_out="+this.fileConfig.getSrcGenPath(), filename),
             fileConfig.srcPath);
         if (protoc == null) {
-            errorReporter.reportError("Processing .proto files requires proto-c >= 1.3.3.");
+            errorReporter.reportError("Processing .proto files requires protoc-c >= 1.3.3.");
             return;
         }
         var returnCode = protoc.run(cancelIndicator);
@@ -2234,40 +2244,7 @@ public class CGenerator extends GeneratorBase {
         }
     }
 
-    /**
-     * Generate code for the body of a reaction that takes an input and
-     * schedules an action with the value of that input.
-     * @param action The action to schedule
-     * @param port The port to read from
-     */
-    @Override
-    public String generateDelayBody(Action action, VarRef port) {
-        var ref = ASTUtils.generateVarRef(port);
-        return CReactionGenerator.generateDelayBody(
-            ref,
-            action.getName(),
-            CUtil.isTokenType(getInferredType(action), types)
-        );
-    }
 
-    /**
-     * Generate code for the body of a reaction that is triggered by the
-     * given action and writes its value to the given port. This realizes
-     * the receiving end of a logical delay specified with the 'after'
-     * keyword.
-     * @param action The action that triggers the reaction
-     * @param port The port to write to.
-     */
-    @Override
-    public String generateForwardBody(Action action, VarRef port) {
-        var outputName = ASTUtils.generateVarRef(port);
-        return CReactionGenerator.generateForwardBody(
-            outputName,
-            types.getTargetType(action),
-            action.getName(),
-            CUtil.isTokenType(getInferredType(action), types)
-        );
-    }
 
     /**
      * Generate code for the body of a reaction that handles the
@@ -2544,12 +2521,6 @@ public class CGenerator extends GeneratorBase {
         return "uint8_t*";
     }
 
-
-    @Override
-    public String generateDelayGeneric() {
-        throw new UnsupportedOperationException("TODO: auto-generated method stub");
-    }
-
     ////////////////////////////////////////////////////////////
     //// Private methods
 
@@ -2570,6 +2541,9 @@ public class CGenerator extends GeneratorBase {
                 if (reactionInstanceGraph.nodeCount() > 0) {
                     errorReporter.reportError("Main reactor has causality cycles. Skipping code generation.");
                     return;
+                }
+                if (hasDeadlines) {
+                    this.main.assignDeadlines();
                 }
                 // Inform the run-time of the breadth/parallelism of the reaction graph
                 var breadth = reactionInstanceGraph.getBreadth();

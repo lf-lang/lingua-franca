@@ -319,6 +319,9 @@ class FedLauncher {
         } else {
             commands.add("RTI -i ${FEDERATION_ID} \\");
         }
+        if (targetConfig.auth) {
+            commands.add("                        -a \\");
+        }
         commands.addAll(List.of(
             "                        -n "+federates.size()+" \\",
             "                        -c "+targetConfig.clockSync.toString()+" \\"

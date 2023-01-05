@@ -14,8 +14,8 @@ reactor Destination(port_width: usize(2)) {
     input[port_width] in: usize
 
     reaction(in) {=
-        for (i, port) in r#in.into_iter().enumerate() {
-            assert_eq!(Some(i), ctx.get(&port), "Failed for input in[{}]", i);
+        for (i, port) in r#in.enumerate_set() {
+            assert_eq!(Some(i), ctx.get(port), "Failed for input in[{}]", i);
         }
         println!("Success");
     =}

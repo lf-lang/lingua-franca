@@ -50,7 +50,7 @@ bin/lfc --output-path . test/C/src/Minimal.lf
 #    --runtime-version <arg>         Specify the version of the runtime
 #                                    library used for compiling LF
 #                                    programs.
-bin/lfc --runtime-version 46a618c01e494b7b476707c30dd6067ad66759d6 test/Cpp/src/Minimal.lf
+bin/lfc --runtime-version 82e07c3f7a9c31fa92c1bb0fe2eb66064e031dbb test/Cpp/src/Minimal.lf
 
 # -w,--workers                       Specify the default number of worker threads.
 bin/lfc -w 2 test/C/src/Minimal.lf

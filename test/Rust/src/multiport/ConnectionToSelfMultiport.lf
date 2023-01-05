@@ -13,7 +13,7 @@ reactor Node(num_nodes: usize(4)) {
     =}
 
     reaction(in) {=
-        let count = r#in.into_iter().filter(|p| ctx.is_present(p)).count();
+        let count = r#in.iterate_set().count();
         assert_eq!(count, self.num_nodes);
         println!("success")
     =}

@@ -116,6 +116,9 @@ fun String.joinLines(): String = replace(nlPattern, " ")
 fun unreachable(message: String? = null): Nothing =
     throw AssertionError("Unreachable branch" + message?.let { ": $it" }.orEmpty())
 
+/** Turn the first char into uppercase. The stdlib capitalize is deprecated. */
+fun String.capitalize(): String = replaceFirstChar { it.uppercaseChar() }
+
 /** Returns true if this string is an alphanumeric identifier. */
 val String.isIdentifier get() = matches(IDENT_REGEX)
 

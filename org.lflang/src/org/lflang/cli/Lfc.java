@@ -6,35 +6,26 @@ package org.lflang.cli;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Properties;
 import java.util.stream.Collectors;
 
-import org.apache.commons.cli.CommandLineParser;
-import org.apache.commons.cli.DefaultParser;
-import org.apache.commons.cli.HelpFormatter;
+import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
-import org.apache.commons.cli.ParseException;
 import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.xtext.generator.GeneratorDelegate;
 import org.eclipse.xtext.generator.JavaIoFileSystemAccess;
 import org.eclipse.xtext.util.CancelIndicator;
 
 import org.lflang.ASTUtils;
-import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
-import org.lflang.LFRuntimeModule;
-import org.lflang.LFStandaloneSetup;
-import org.lflang.LocalStrings;
 import org.lflang.generator.LFGeneratorContext;
 import org.lflang.generator.LFGeneratorContext.BuildParm;
 import org.lflang.generator.MainContext;
 
 import com.google.inject.Inject;
-import com.google.inject.Injector;
 
 /**
  * Standalone version of the Lingua Franca compiler (lfc).
@@ -55,6 +46,9 @@ public class Lfc extends CliBase {
     @Inject
     private JavaIoFileSystemAccess fileAccess;
 
+    public Lfc() {
+        super("lfc");
+    }
 
     /**
      * Supported CLI options.
@@ -72,7 +66,6 @@ public class Lfc extends CliBase {
         TARGET_COMPILER(BuildParm.TARGET_COMPILER, null, true, false, true),
         EXTERNAL_RUNTIME_PATH(BuildParm.EXTERNAL_RUNTIME_PATH, null, true, false, true),
         FEDERATED(BuildParm.FEDERATED, "f", false, false, false),
-        HELP(BuildParm.HELP, "h", false, false,  true),
         LOGGING(BuildParm.LOGGING, null, true, false, true),
         LINT(BuildParm.LINT, "l",false, false,  true),
         NO_COMPILE(BuildParm.NO_COMPILE, "n", false, false, true),
@@ -82,7 +75,6 @@ public class Lfc extends CliBase {
         RUNTIME_VERSION(BuildParm.RUNTIME_VERSION, null, true, false, true),
         SCHEDULER(BuildParm.SCHEDULER, "s", true, false, true),
         THREADING(BuildParm.THREADING, "t", true, false, true),
-        VERSION(BuildParm.VERSION, "version", false, false, false),
         WORKERS(BuildParm.WORKERS, "w", true, false, true);
 
         /**
@@ -133,78 +125,52 @@ public class Lfc extends CliBase {
          */
         public static List<Option> getPassedOptions() {
             return Arrays.stream(CLIOption.values())
-                         .filter(opt -> opt.passOn).map(opt -> opt.option)
-                         .collect(Collectors.toList());
+                .filter(opt -> opt.passOn).map(opt -> opt.option)
+                .collect(Collectors.toList());
         }
     }
 
     /**
      * Main function of the stand-alone compiler.
+     * Caution: this will invoke System.exit.
      *
      * @param args CLI arguments
      */
     public static void main(final String[] args) {
-        final ReportingBackend reporter = new ReportingBackend(new Io(), "lfc: ");
+        main(Io.SYSTEM, args);
+    }
 
-        // Injector used to obtain Main instance.
-        final Injector injector = new LFStandaloneSetup(new LFRuntimeModule(), new LFStandaloneModule(reporter))
-            .createInjectorAndDoEMFRegistration();
-        // Main instance.
-        final Lfc main = injector.getInstance(Lfc.class);
-        // Apache Commons Options object configured to according to available CLI arguments.
-        Options options = CLIOption.getOptions();
-        // CLI arguments parser.
-        CommandLineParser parser = new DefaultParser();
-        // Helper object for printing "help" menu.
-        HelpFormatter formatter = new HelpFormatter();
+    /**
+     * Main function of the standalone compiler, with a custom IO.
+     *
+     * @param io IO streams.
+     * @param args Command-line arguments.
+     */
+    public static void main(Io io, final String... args) {
+        cliMain("lfc", Lfc.class, io, args);
+    }
 
-        try {
-            main.cmd = parser.parse(options, args, true);
-
-            // If requested, print help and abort
-            if (main.cmd.hasOption(CLIOption.HELP.option.getOpt())) {
-                formatter.printHelp("lfc", options);
-                System.exit(0);
-            }
-
-            // If requested, print version and abort
-            if (main.cmd.hasOption(CLIOption.VERSION.option.getLongOpt())) {
-                System.out.println("lfc " + LocalStrings.VERSION);
-                System.exit(0);
-            }
-
-            List<String> files = main.cmd.getArgList();
-
-            if (files.size() < 1) {
-                reporter.printFatalErrorAndExit("No input files.");
-            }
-            try {
-                List<Path> paths = files.stream().map(Paths::get).collect(Collectors.toList());
-                main.runGenerator(paths, injector);
-            } catch (RuntimeException e) {
-                reporter.printFatalErrorAndExit("An unexpected error occurred:", e);
-            }
-        } catch (ParseException e) {
-            reporter.printFatalError("Unable to parse commandline arguments. Reason: " + e.getMessage());
-            formatter.printHelp("lfc", options);
-            System.exit(1);
-        }
+    @Override
+    protected Options getOptions() {
+        return CLIOption.getOptions();
     }
 
     /**
      * Load the resource, validate it, and, invoke the code generator.
      */
-    private void runGenerator(List<Path> files, Injector injector) {
-        Properties properties = this.filterProps(CLIOption.getPassedOptions());
+    @Override
+    protected void runTool(CommandLine cmd, List<Path> files) {
+        Properties properties = this.filterProps(cmd, CLIOption.getPassedOptions());
         String pathOption = CLIOption.OUTPUT_PATH.option.getOpt();
         Path root = null;
         if (cmd.hasOption(pathOption)) {
-            root = Paths.get(cmd.getOptionValue(pathOption)).normalize();
+            root = io.getWd().resolve(cmd.getOptionValue(pathOption)).normalize();
             if (!Files.exists(root)) { // FIXME: Create it instead?
                 reporter.printFatalErrorAndExit("Output location '" + root + "' does not exist.");
             }
             if (!Files.isDirectory(root)) {
-                reporter.printFatalErrorAndExit("Output location '" + root + "' is not a directory.");
+                reporter.printFatalErrorAndExit(
+                    "Output location '" + root + "' is not a directory.");
             }
         }
 
@@ -214,22 +180,16 @@ public class Lfc extends CliBase {
             }
         }
         for (Path path : files) {
-            path = path.toAbsolutePath();
-            Path pkgRoot = FileConfig.findPackageRoot(path, reporter::printWarning);
-            String resolved;
-            if (root != null) {
-                resolved = root.resolve("src-gen").toString();
-            } else {
-                resolved = pkgRoot.resolve("src-gen").toString();
-            }
-            this.fileAccess.setOutputPath(resolved);
+            path = toAbsolutePath(path);
+            String outputPath = getActualOutputPath(root, path).toString();
+            this.fileAccess.setOutputPath(outputPath);
 
             final Resource resource = getResource(path);
             if (resource == null) {
                 reporter.printFatalErrorAndExit(
                     path + " is not an LF file. Use the .lf file extension to denote LF files.");
             }
-            else if (cmd != null && cmd.hasOption(CLIOption.FEDERATED.option.getOpt())) {
+            else if (cmd.hasOption(CLIOption.FEDERATED.option.getOpt())) {
                 if (!ASTUtils.makeFederated(resource)) {
                     reporter.printError("Unable to change main reactor to federated reactor.");
                 }
@@ -240,16 +200,29 @@ public class Lfc extends CliBase {
 
             LFGeneratorContext context = new MainContext(
                 LFGeneratorContext.Mode.STANDALONE, CancelIndicator.NullImpl, (m, p) -> {}, properties, false,
-                fileConfig -> injector.getInstance(ErrorReporter.class)
+                fileConfig -> errorReporter
             );
 
-            this.generator.generate(resource, this.fileAccess, context);
+            try {
+                this.generator.generate(resource, this.fileAccess, context);
+            } catch (Exception e) {
+                reporter.printFatalErrorAndExit("Error running generator", e);
+            }
 
             exitIfCollectedErrors();
             // print all other issues (not errors)
             issueCollector.getAllIssues().forEach(reporter::printIssue);
 
-            System.out.println("Code generation finished.");
+            this.io.getOut().println("Code generation finished.");
+        }
+    }
+
+    private Path getActualOutputPath(Path root, Path path) {
+        if (root != null) {
+            return root.resolve("src-gen");
+        } else {
+            Path pkgRoot = FileConfig.findPackageRoot(path, reporter::printWarning);
+            return pkgRoot.resolve("src-gen");
         }
     }
 
