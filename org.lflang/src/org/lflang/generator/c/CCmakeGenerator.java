@@ -121,7 +121,7 @@ public class CCmakeGenerator {
         cMakeCode.pr("project("+executableName+" LANGUAGES C)");
         cMakeCode.newLine();
         if (targetConfig.platformOptions.platform == Platform.ZEPHYR) {
-            cMakeCode.pr("find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE}");
+            cMakeCode.pr("find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})");
             cMakeCode.newLine();
         }
         
