@@ -1413,6 +1413,7 @@ public enum TargetProperty {
         NRF52("Nrf52"),
         LINUX("Linux"),
         MAC("Darwin"),
+        ZEPHYR("Zephyr"),
         WINDOWS("Windows");
 
         String cMakeName;
