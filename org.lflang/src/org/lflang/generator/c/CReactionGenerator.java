@@ -1006,6 +1006,16 @@ public class CReactionGenerator {
     }
 
     /**
+     * Generate _lf_initialize_watchdog_mutexes function.
+     */
+    //FIXME: modif4watchdogs
+    //FIXME: finish implementing
+    public static String generateLfInitializeWatchdogMutexes(List<Reactor> reactors) {
+        // need to find way to assign get watchdog from AST
+        // need to assign watchdog to correct reaction
+    }
+
+    /**
      * Generate the _lf_trigger_shutdown_reactions function.
      */
     public static String generateLfTriggerShutdownReactions(int shutdownReactionCount, boolean hasModalReactors) {
@@ -1122,6 +1132,15 @@ public class CReactionGenerator {
                 generateDeadlineFunctionHeader(decl, reactionIndex),
                 init, reaction.getDeadline().getCode()));
         }
+
+        // FIXME:modif4watchdogs
+        // Now generate code for the watchdog handler function, if there is one.
+        if (reaction.getWatchdog() != null) {
+            code.pr(generateFunction(
+                generateWatchdogFunctionHeader(decl, reactionIndex),
+                init, reaction.getWatchdog().getCode()));
+        }
+
         CMethodGenerator.generateMacroUndefsForMethods(ASTUtils.toDefinition(decl), code);
         code.pr(
             "#include " + StringUtil.addDoubleQuotes(
@@ -1189,6 +1208,18 @@ public class CReactionGenerator {
     public static String generateDeadlineFunctionHeader(ReactorDecl decl,
                                                         int reactionIndex) {
         String functionName = generateDeadlineFunctionName(decl, reactionIndex);
+        return generateFunctionHeader(functionName);
+    }
+
+    /** Return the top level C function header for the watchdog function numbered "reactionIndex" in "decl"
+     * @param decl The reactor declaration
+     * @param reactionIndex The reaction index.
+     * @return The function name for the watchdog function.
+     */
+    //FIXME: modif4watchdogs
+    public static String generateWatchdogFunctionHeader(ReactorDecl decl,
+                                                        int reactionIndex) {
+        String functionName = generateWatchdogFunctionName(decl, reactionIndex);
         return generateFunctionHeader(functionName);
     }
 

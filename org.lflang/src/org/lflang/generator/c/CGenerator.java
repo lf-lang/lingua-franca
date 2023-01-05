@@ -930,8 +930,14 @@ public class CGenerator extends GeneratorBase {
     }
 
     //FIXME: modif4watchdogs
-    private boolean hasWatchdogs(List<Reactor> reactors) {
-        
+    //FIXME: getWatchdog() has not been implemented
+    private boolean hasWatchdogs(Reactor reactor) {
+        for (Reaction reaction : allReactions(reactor)) {
+            if (reaction.getWatchdog() != null) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**

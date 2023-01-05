@@ -187,6 +187,14 @@ public class ReactionInstance extends NamedInstance<Reaction> {
             this.declaredDeadline = new DeadlineInstance(
                 this.definition.getDeadline(), this);
         }
+
+        //FIXME: modif4watchdogs
+        // getWatchdog not implemented
+        // need to implement matching reaction output with watchdog
+        if (this.definition.getWatchdog() != null) {
+            this.declaredWatchdog = new WatchdogInstance(
+                this.definition.getWatchdog(), this);
+        }
     }
 
     //////////////////////////////////////////////////////

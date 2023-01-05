@@ -144,6 +144,19 @@ public class ASTUtils {
                      .collect(Collectors.toList());
     }
 
+    /** 
+     * Get all watchdogs defined in the given resource.
+     * @param resource the resource to extract watchdogs from
+     * @return An iterable over all watchdogs found in the resource
+     */
+    //FIXME: modif4watchdogs
+    public static Iterable<Watchdog> getAllWatchdogs(Resource resource) {
+        return StreamSupport.stream(IteratorExtensions.toIterable(resource.getAllContents()).spliterator(), false)
+                     .filter(Watchdog.class::isInstance)
+                     .map(Watchdog.class::cast)
+                     .collect(Collectors.toList());
+    }
+
     /**
      * Find connections in the given resource that have a delay associated with them, 
      * and reroute them via a generated delay reactor.
