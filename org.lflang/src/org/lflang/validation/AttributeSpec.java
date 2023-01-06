@@ -44,13 +44,13 @@ import org.lflang.util.StringUtil;
  * @author{Clément Fournier, TU Dresden, INSA Rennes}
  * @author{Shaokai Lin <shaokai@berkeley.edu>}
  */
-class AttributeSpec {
+public class AttributeSpec {
 
     private final Map<String, AttrParamSpec> paramSpecByName;
 
     public static final String VALUE_ATTR = "value";
 
-    public static final String INDIVIDUAL_ATTR = "individual";
+    public static final String EACH_ATTR = "each";
 
     /** A map from a string to a supported AttributeSpec */
     public static final Map<String, AttributeSpec> ATTRIBUTE_SPECS_BY_NAME = new HashMap<>();
@@ -212,9 +212,9 @@ class AttributeSpec {
         ATTRIBUTE_SPECS_BY_NAME.put("icon", new AttributeSpec(
             List.of(new AttrParamSpec(VALUE_ATTR, AttrParamType.STRING, false))
         ));
-        // @enclave(indivdual=boolean)
+        // @enclave(each=boolean)
         ATTRIBUTE_SPECS_BY_NAME.put("enclave", new AttributeSpec(
-            List.of(new AttrParamSpec(INDIVIDUAL_ATTR, AttrParamType.BOOLEAN, true))
+            List.of(new AttrParamSpec(EACH_ATTR, AttrParamType.BOOLEAN, true))
         ));
     }
 }

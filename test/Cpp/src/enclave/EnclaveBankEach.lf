@@ -25,6 +25,6 @@ reactor Node(
 
 main reactor {
     slow = new Node(id = "slow", period = {= 1s =}, duration = {= 700ms =})
-    @enclave(individual = true)
+    @enclave(each = true)
     nodes = new[4] Node()
 }
