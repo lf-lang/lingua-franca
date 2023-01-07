@@ -46,6 +46,7 @@ import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.eclipse.emf.ecore.resource.Resource;
@@ -630,7 +631,13 @@ public class CGenerator extends GeneratorBase {
             //  take over and do the rest of compilation.
 
             try {
-                FileUtil.writeToFile("HelloWorld\n", Path.of(fileConfig.getSrcGenPath() + File.separator + "CompileDefinitions.txt"));
+                String compileDefs = targetConfig.compileDefinitions.keySet().stream()
+                    .map(key -> key + "=" + targetConfig.compileDefinitions.get(key))
+                    .collect(Collectors.joining("\n"));
+                FileUtil.writeToFile(
+                    compileDefs,
+                    Path.of(fileConfig.getSrcGenPath() + File.separator + "CompileDefinitions.txt")
+                );
             } catch (IOException e) {
                 Exceptions.sneakyThrow(e);
             }
