@@ -1,7 +1,10 @@
 #!/usr/bin/bash
 
 echo "Building Zephyr application"
+echo "ZEPHYR_BASE=${ZEPHYR_BASE}"
 SCRIPT_DIR=$(dirname $0)
+
+
 
 set -e # Return on first error
 
@@ -20,8 +23,15 @@ cp $LF_SRC_DIRECTORY/$SCRIPT_DIR/Kconfig $LF_SOURCE_GEN_DIRECTORY/
 
 cd $LF_SOURCE_GEN_DIRECTORY
 
+# Parse additional compile defs
+COMPILE_DEFS=""
+while IFS= read -r line; do
+  COMPILE_DEFS="${COMPILE_DEFS} -D$line"
+done < CompileDefinitions.txt
+echo "Passing compile defs: $COMPILE_DEFS to cmake"
+
 # Build project
-west build -b $BOARD 
+west build -b $BOARD -- $COMPILE_DEFS
 
 if [[ "$2" == "flash" ]]; then
 
