@@ -39,6 +39,7 @@ import static org.lflang.util.StringUtil.addDoubleQuotes;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -621,6 +622,16 @@ public class CGenerator extends GeneratorBase {
                 cmakeCode.writeToFile(cmakeFile);
             } catch (IOException e) {
                 //noinspection ThrowableNotThrown,ResultOfMethodCallIgnored
+                Exceptions.sneakyThrow(e);
+            }
+
+            // Dump the additional compile definitions to a file to keep the generated project
+            //  self contained. In this way, third-party build tools like PlatformIO, west, arduino-cli can
+            //  take over and do the rest of compilation.
+
+            try {
+                FileUtil.writeToFile("HelloWorld\n", Path.of(fileConfig.getSrcGenPath() + File.separator + "CompileDefinitions.txt"));
+            } catch (IOException e) {
                 Exceptions.sneakyThrow(e);
             }
 
