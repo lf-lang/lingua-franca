@@ -52,24 +52,26 @@ class CppFileConfig(resource: Resource, srcGenBasePath: Path, useHierarchicalBin
         outPath.resolve("share")
     )
 
-    /** Relative path to the directory where all source files for this resource should be generated in. */
-    private fun getGenDir(r: Resource): Path = getDirectory(r).resolve(r.name)
+    class CppFiles(val fileConfig: FileConfig) {
+        /** Relative path to the directory where all source files for this resource should be generated in. */
+        private fun getGenDir(r: Resource): Path = fileConfig.getDirectory(r).resolve(r.name)
 
-    /** Path to the preamble header file corresponding to this resource */
-    fun getPreambleHeaderPath(r: Resource): Path = getGenDir(r).resolve("_lf_preamble.hh")
+        /** Path to the preamble header file corresponding to this resource */
+        fun getPreambleHeaderPath(r: Resource): Path = getGenDir(r).resolve("_lf_preamble.hh")
 
-    /** Path to the preamble source file corresponding to this resource */
-    fun getPreambleSourcePath(r: Resource): Path = getGenDir(r).resolve("_lf_preamble.cc")
+        /** Path to the preamble source file corresponding to this resource */
+        fun getPreambleSourcePath(r: Resource): Path = getGenDir(r).resolve("_lf_preamble.cc")
 
-    /** Path to the header file corresponding to this reactor */
-    fun getReactorHeaderPath(r: Reactor): Path = getGenDir(r.eResource()).resolve("${r.name}.hh")
+        /** Path to the header file corresponding to this reactor */
+        fun getReactorHeaderPath(r: Reactor): Path = getGenDir(r.eResource()).resolve("${r.name}.hh")
 
-    /** Path to the implementation header file corresponding to this reactor (needed for generic reactors) */
-    fun getReactorHeaderImplPath(r: Reactor): Path = getGenDir(r.eResource()).resolve("${r.name}_impl.hh")
+        /** Path to the implementation header file corresponding to this reactor (needed for generic reactors) */
+        fun getReactorHeaderImplPath(r: Reactor): Path = getGenDir(r.eResource()).resolve("${r.name}_impl.hh")
 
-    /** Path to the source file corresponding to this reactor (needed for non generic reactors)  */
-    fun getReactorSourcePath(r: Reactor): Path = getGenDir(r.eResource()).resolve("${r.name}.cc")
+        /** Path to the source file corresponding to this reactor (needed for non generic reactors)  */
+        fun getReactorSourcePath(r: Reactor): Path = getGenDir(r.eResource()).resolve("${r.name}.cc")
 
-    /** Path to the build directory containing CMake-generated files */
-    val buildPath: Path get() = outPath.resolve("build")
+        /** Path to the build directory containing CMake-generated files */
+        val buildPath: Path get() = fileConfig.outPath.resolve("build")
+    }
 }

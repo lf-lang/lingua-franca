@@ -49,11 +49,11 @@ import java.nio.file.Path
 
 @Suppress("unused")
 class CppGenerator(
-    val cppFileConfig: CppFileConfig,
+    val context: LFGeneratorContext,
     errorReporter: ErrorReporter,
     private val scopeProvider: LFGlobalScopeProvider
 ) :
-    GeneratorBase(cppFileConfig, errorReporter) {
+    GeneratorBase(context, errorReporter) {
 
     // keep a list of all source files we generate
     val cppSources = mutableListOf<Path>()
@@ -69,7 +69,7 @@ class CppGenerator(
 
         if (!canGenerate(errorsOccurred(), mainDef, errorReporter, context)) return
 
-        // create a platform specifi generator
+        // create a platform-specific generator
         val platformGenerator: CppPlatformGenerator =
             if (targetConfig.ros2) CppRos2Generator(this) else CppStandaloneGenerator(this)
 
@@ -88,7 +88,7 @@ class CppGenerator(
             )
 
             if (platformGenerator.doCompile(context)) {
-                CppValidator(cppFileConfig, errorReporter, codeMaps).doValidate(context)
+                CppValidator(fileConfig, errorReporter, codeMaps).doValidate(context)
                 context.finish(GeneratorResult.GENERATED_NO_EXECUTABLE.apply(context, codeMaps))
             } else {
                 context.unsuccessfulFinish()
@@ -149,9 +149,9 @@ class CppGenerator(
 
         // generate header and source files for all reactors
         for (r in reactors) {
-            val generator = CppReactorGenerator(r, cppFileConfig, errorReporter)
-            val headerFile = cppFileConfig.getReactorHeaderPath(r)
-            val sourceFile = if (r.isGeneric) cppFileConfig.getReactorHeaderImplPath(r) else cppFileConfig.getReactorSourcePath(r)
+            val generator = CppReactorGenerator(r, fileConfig, errorReporter)
+            val headerFile = fileConfig.cpp.getReactorHeaderPath(r)
+            val sourceFile = if (r.isGeneric) fileConfig.cpp.getReactorHeaderImplPath(r) else fileConfig.cpp.getReactorSourcePath(r)
             val reactorCodeMap = CodeMap.fromGeneratedCode(generator.generateSource())
             if (!r.isGeneric)
                 cppSources.add(sourceFile)
@@ -165,9 +165,9 @@ class CppGenerator(
 
         // generate file level preambles for all resources
         for (r in resources) {
-            val generator = CppPreambleGenerator(r.eResource, cppFileConfig, scopeProvider)
-            val sourceFile = cppFileConfig.getPreambleSourcePath(r.eResource)
-            val headerFile = cppFileConfig.getPreambleHeaderPath(r.eResource)
+            val generator = CppPreambleGenerator(r.eResource, fileConfig, scopeProvider)
+            val sourceFile = fileConfig.cpp.getPreambleSourcePath(r.eResource)
+            val headerFile = fileConfig.cpp.getPreambleHeaderPath(r.eResource)
             val preambleCodeMap = CodeMap.fromGeneratedCode(generator.generateSource())
             cppSources.add(sourceFile)
             codeMaps[srcGenPath.resolve(sourceFile)] = preambleCodeMap

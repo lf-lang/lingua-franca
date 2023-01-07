@@ -24,6 +24,7 @@
 package org.lflang.generator.cpp
 
 import org.lflang.ErrorReporter
+import org.lflang.FileConfig
 import org.lflang.generator.PrependOperator
 import org.lflang.isGeneric
 import org.lflang.lf.Reactor
@@ -33,19 +34,19 @@ import org.lflang.toUnixString
 /**
  * A C++ code generator that produces a C++ class representing a single reactor
  */
-class CppReactorGenerator(private val reactor: Reactor, fileConfig: CppFileConfig, errorReporter: ErrorReporter) {
+class CppReactorGenerator(private val reactor: Reactor, fileConfig: FileConfig, errorReporter: ErrorReporter) {
 
     /** Comment to be inserted at the top of generated files */
     private val fileComment = fileComment(reactor.eResource())
 
     /** The header file that declares `reactor` */
-    private val headerFile = fileConfig.getReactorHeaderPath(reactor).toUnixString()
+    private val headerFile = fileConfig.cpp.getReactorHeaderPath(reactor).toUnixString()
 
     /** The implementation header file that declares a `reactor` if it is generic*/
-    private val implHeaderFile = fileConfig.getReactorHeaderImplPath(reactor).toUnixString()
+    private val implHeaderFile = fileConfig.cpp.getReactorHeaderImplPath(reactor).toUnixString()
 
     /** The header file that contains the public file-level preamble of the file containing `reactor` */
-    private val preambleHeaderFile = fileConfig.getPreambleHeaderPath(reactor.eResource()).toUnixString()
+    private val preambleHeaderFile = fileConfig.cpp.getPreambleHeaderPath(reactor.eResource()).toUnixString()
 
     private val parameters = CppParameterGenerator(reactor)
     private val state = CppStateGenerator(reactor)

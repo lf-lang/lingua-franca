@@ -26,6 +26,7 @@ package org.lflang.generator.cpp
 
 import org.eclipse.emf.common.util.EList
 import org.eclipse.emf.ecore.resource.Resource
+import org.lflang.FileConfig
 import org.lflang.generator.PrependOperator
 import org.lflang.lf.Preamble
 import org.lflang.model
@@ -36,7 +37,7 @@ import org.lflang.toUnixString
 
 class CppPreambleGenerator(
     private val resource: Resource,
-    private val fileConfig: CppFileConfig,
+    private val fileConfig: FileConfig,
     private val scopeProvider: LFGlobalScopeProvider
 ) {
     /** A list of all preambles defined in the resource (file) */
@@ -44,7 +45,7 @@ class CppPreambleGenerator(
 
     fun generateHeader(): String {
         val importedResources = scopeProvider.getImportedResources(resource)
-        val includes = importedResources.map { """#include "${fileConfig.getPreambleHeaderPath(it)}"""" }
+        val includes = importedResources.map { """#include "${fileConfig.cpp.getPreambleHeaderPath(it)}"""" }
 
         val publicPreambles = preambles.filter { it.isPublic }
 
@@ -74,7 +75,7 @@ class CppPreambleGenerator(
                 |
                 |#include "reactor-cpp/reactor-cpp.hh"
                 |
-                |#include "${fileConfig.getPreambleHeaderPath(resource).toUnixString()}"
+                |#include "${fileConfig.cpp.getPreambleHeaderPath(resource).toUnixString()}"
                 |
                 |using namespace std::chrono_literals;
                 |using namespace reactor::operators;
