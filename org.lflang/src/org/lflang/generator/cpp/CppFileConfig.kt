@@ -42,17 +42,18 @@ class CppFileConfig(resource: Resource, srcGenBasePath: Path, useHierarchicalBin
     @Throws(IOException::class)
     override fun doClean() {
         super.doClean()
-        cppBuildDirectories.forEach { FileUtil.deleteDirectory(it) }
+        this.cpp.cppBuildDirectories.forEach { FileUtil.deleteDirectory(it) }
     }
 
-    val cppBuildDirectories = listOf<Path>(
-        outPath.resolve("build"),
-        outPath.resolve("lib"),
-        outPath.resolve("include"),
-        outPath.resolve("share")
-    )
-
     class CppFiles(val fileConfig: FileConfig) {
+
+        val cppBuildDirectories = listOf<Path>(
+            fileConfig.outPath.resolve("build"),
+            fileConfig.outPath.resolve("lib"),
+            fileConfig.outPath.resolve("include"),
+            fileConfig.outPath.resolve("share")
+        )
+
         /** Relative path to the directory where all source files for this resource should be generated in. */
         private fun getGenDir(r: Resource): Path = fileConfig.getDirectory(r).resolve(r.name)
 

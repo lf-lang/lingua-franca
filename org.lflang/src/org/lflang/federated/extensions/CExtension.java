@@ -104,7 +104,7 @@ public class CExtension implements FedTargetExtension {
         federate.targetConfig.setByUser.add(TargetProperty.FILES);
         FileUtil.copyDirectoryFromClassPath(
             "/lib/c/reactor-c/core/federated",
-            fileConfig.getFedSrcPath().resolve("include" + File.separator + "federated"),
+            fileConfig.fed.getFedSrcPath().resolve("include" + File.separator + "federated"),
             true
         );
 
@@ -532,7 +532,7 @@ public class CExtension implements FedTargetExtension {
         // Put the C preamble in a `include/_federate.name + _preamble.c` file
         String cPreamble = makePreamble(federate, fileConfig, federationRTIProperties, errorReporter);
         String relPath = "include" + File.separator + "_" + federate.name + "_preamble.c";
-        Path fedPreamblePath = fileConfig.getFedSrcPath().resolve(relPath);
+        Path fedPreamblePath = fileConfig.fed.getFedSrcPath().resolve(relPath);
         try (var writer = Files.newBufferedWriter(fedPreamblePath)) {
             writer.write(cPreamble);
         }

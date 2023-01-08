@@ -15,6 +15,8 @@ import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.xtext.generator.IFileSystemAccess2;
 
 
+import org.lflang.federated.generator.FedFileConfig;
+import org.lflang.federated.generator.FedFileConfig.FedFiles;
 import org.lflang.generator.GeneratorUtils;
 import org.lflang.generator.cpp.CppFileConfig;
 import org.lflang.generator.cpp.CppFileConfig.CppFiles;
@@ -100,6 +102,7 @@ public abstract class FileConfig {
     public final boolean useHierarchicalBin;
 
     public final CppFileConfig.CppFiles cpp;
+    public final FedFileConfig.FedFiles fed;
 
     // Protected fields.
 
@@ -159,6 +162,7 @@ public abstract class FileConfig {
 
         this.iResource = FileUtil.getIResource(resource);
         this.cpp = new CppFiles(this);
+        this.fed = new FedFiles(this);
     }
     
     /**

@@ -44,7 +44,7 @@ public class FedImportEmitter {
                    Path importPath =
                        fileConfig.srcPath
                            .resolve(i.getImportURI()).toAbsolutePath();
-                   i.setImportURI(fileConfig.getFedSrcPath().relativize(importPath)
+                   i.setImportURI(fileConfig.fed.getFedSrcPath().relativize(importPath)
                                             .toString()
                    );
                });

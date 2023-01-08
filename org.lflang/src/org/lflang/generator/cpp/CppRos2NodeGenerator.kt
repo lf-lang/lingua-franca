@@ -1,5 +1,6 @@
 package org.lflang.generator.cpp
 
+import org.lflang.FileConfig
 import org.lflang.TargetConfig
 import org.lflang.lf.Reactor
 import org.lflang.toUnixString
@@ -8,7 +9,7 @@ import org.lflang.toUnixString
 class CppRos2NodeGenerator(
     private val main: Reactor,
     private val targetConfig: TargetConfig,
-    private val fileConfig: CppFileConfig
+    private val fileConfig: FileConfig
 ) {
 
     val nodeName = "${fileConfig.name}Node"
@@ -21,7 +22,7 @@ class CppRos2NodeGenerator(
             |#include "reactor-cpp/reactor-cpp.hh"
             |#include "lf_timeout.hh"
             |
-            |#include "${fileConfig.getReactorHeaderPath(main).toUnixString()}"
+            |#include "${fileConfig.cpp.getReactorHeaderPath(main).toUnixString()}"
             |
             |rclcpp::Node* lf_node{nullptr};
             |

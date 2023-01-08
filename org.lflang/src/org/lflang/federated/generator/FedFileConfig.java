@@ -25,6 +25,7 @@
 
 package org.lflang.federated.generator;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
 
@@ -35,8 +36,8 @@ import org.lflang.util.LFCommand;
 
 /**
  * A child class of @see FileConfig that extends the base functionality to add support
- * for federated execution. The code generator should create one instance of this class 
- * for each federate.
+ * for compiling federated LF programs. The code generator should create one instance
+ * of this class for each federate.
  * 
  * @author Soroush Bateni
  *
@@ -49,7 +50,12 @@ public class FedFileConfig extends FileConfig {
 
     }
 
-//    @Override
+    public FedFileConfig(FileConfig fileConfig) throws IOException {
+        super(fileConfig.resource, fileConfig.getSrcGenBasePath(), fileConfig.useHierarchicalBin);
+    }
+
+
+    //    @Override
 //    public LFCommand getCommand() {
 //        // FIXME: what should this point to? The launcher script?
 //        return null;
@@ -61,34 +67,40 @@ public class FedFileConfig extends FileConfig {
 //        return null;
 //    }
 
-    public FedFileConfig(FileConfig fileConfig) throws IOException {
-        super(fileConfig.resource, fileConfig.getSrcGenBasePath(), fileConfig.useHierarchicalBin);
-    }
+    // FIXME: it seems that the "fed" methods below should just be overrides in
+    //  the other class of the normal ones.
+    public static class FedFiles {
+        private final FileConfig fileConfig;
 
-    /**
-     * Return the path to the root of a LF project generated on the basis of a
-     * federated LF program currently under compilation.
-     */
-    public Path getFedGenPath() {
-        return srcPkgPath.resolve("fed-gen").resolve(this.name);
-    }
+        public FedFiles(FileConfig fileConfig) {
+            this.fileConfig = fileConfig;
+        }
 
-    /**
-     * Return the path for storing generated LF sources that jointly constitute a
-     * federation.
-     */
-    public Path getFedSrcPath() {
-        return getFedGenPath().resolve("src");
-    }
+        /**
+         * Return the path to the root of a LF project generated on the basis of a
+         * federated LF program currently under compilation.
+         */
+        public Path getFedGenPath() {
+            return fileConfig.srcPkgPath.resolve("fed-gen").resolve(fileConfig.name);
+        }
 
-    /**
-     * The directory in which to put the generated sources.
-     * This takes into account the location of the source file relative to the
-     * package root. Specifically, if the source file is x/y/Z.lf relative
-     * to the package root, then the generated sources will be put in x/y/Z
-     * relative to srcGenBasePath.
-     */
-    public Path getFedSrcGenPath() {
-        return getFedGenPath().resolve("src-gen");
+        /**
+         * Return the path for storing generated LF sources that jointly constitute a
+         * federation.
+         */
+        public Path getFedSrcPath() {
+            return getFedGenPath().resolve("src");
+        }
+
+        /**
+         * The directory in which to put the generated sources.
+         * This takes into account the location of the source file relative to the
+         * package root. Specifically, if the source file is x/y/Z.lf relative
+         * to the package root, then the generated sources will be put in x/y/Z
+         * relative to srcGenBasePath.
+         */
+        public Path getFedSrcGenPath() {
+            return getFedGenPath().resolve("src-gen");
+        }
     }
 }

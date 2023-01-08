@@ -175,8 +175,7 @@ public class LFGenerator extends AbstractGenerator {
 
         if (FedASTUtils.findFederatedReactor(resource) != null) {
             try {
-                generatorErrorsOccurred = (new FedGenerator(
-                    new FedFileConfig(lfContext.getFileConfig()),
+                generatorErrorsOccurred = (new FedGenerator(lfContext,
                     errorReporter)).doGenerate(resource, lfContext);
             } catch (IOException e) {
                 throw new RuntimeIOException("Error during federated code generation", e);

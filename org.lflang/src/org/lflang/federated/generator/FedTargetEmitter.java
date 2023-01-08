@@ -105,6 +105,6 @@ public class FedTargetEmitter {
 
     private String relativizePath(String path, FedFileConfig fileConfig) {
         Path resolvedPath = fileConfig.srcPath.resolve(path).toAbsolutePath();
-        return fileConfig.getFedSrcPath().relativize(resolvedPath).toString();
+        return fileConfig.fed.getFedSrcPath().relativize(resolvedPath).toString();
     }
 }

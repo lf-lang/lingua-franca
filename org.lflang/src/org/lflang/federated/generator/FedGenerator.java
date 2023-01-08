@@ -217,7 +217,7 @@ public class FedGenerator {
         LFGenerator gen = inj.getInstance(LFGenerator.class);
         // define output path here
         JavaIoFileSystemAccess fsa = inj.getInstance(JavaIoFileSystemAccess.class);
-        fsa.setOutputPath("DEFAULT_OUTPUT", fileConfig.getFedSrcGenPath().toString());
+        fsa.setOutputPath("DEFAULT_OUTPUT", fileConfig.fed.getFedSrcGenPath().toString());
 
         var numOfCompileThreads = Math.min(6,
                                            Math.min(
@@ -234,9 +234,9 @@ public class FedGenerator {
             final int id = i;
             compileThreadPool.execute(() -> {
                 Resource res = rs.getResource(URI.createFileURI(
-                    fileConfig.getFedSrcPath().resolve(fed.name + ".lf").toAbsolutePath().toString()
+                    fileConfig.fed.getFedSrcPath().resolve(fed.name + ".lf").toAbsolutePath().toString()
                 ), true);
-                FileConfig fc = LFGenerator.createFileConfig(res, fileConfig.getFedSrcGenPath(), false);
+                FileConfig fc = LFGenerator.createFileConfig(res, fileConfig.fed.getFedSrcGenPath(), false);
                 ErrorReporter er = new LineAdjustingErrorReporter(errorReporter, lf2lfCodeMapMap);
                 SubContext cont = new SubContext(context, IntegratedBuilder.VALIDATED_PERCENT_PROGRESS, 100) {
                     @Override
