@@ -91,6 +91,7 @@ Reactor:
         | (connections+=Connection)
         | (reactions+=Reaction)
         | (modes+=Mode)
+          (watchdogs+=Watchdog)
     )* '}';
 
 
