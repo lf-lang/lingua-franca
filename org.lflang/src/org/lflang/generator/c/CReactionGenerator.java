@@ -1013,6 +1013,9 @@ public class CReactionGenerator {
     public static String generateLfInitializeWatchdogMutexes(List<Reactor> reactors) {
         // need to find way to assign get watchdog from AST
         // need to assign watchdog to correct reaction
+        var s = new StringBuilder();
+        s.append("void _lf_initialize_watchdog_mutexes() {\n");
+        
     }
 
     /**

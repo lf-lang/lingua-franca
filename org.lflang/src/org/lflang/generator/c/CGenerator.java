@@ -840,6 +840,10 @@ public class CGenerator extends GeneratorBase {
             // Generate function to schedule timers for all reactors.
             code.pr(CTimerGenerator.generateLfInitializeTimer(timerCount));
 
+            //FIXME:modif4watchdogs
+            // Generate function to initialize mutexes for all reactors with watchdogs.
+            code.pr(CReactionGenerator.generateLfInitializeWatchdogMutexes());
+
             // Generate a function that will either do nothing
             // (if there is only one federate or the coordination
             // is set to decentralized) or, if there are
