@@ -201,8 +201,7 @@ Reaction:
     ('->' effects+=VarRefOrModeTransition (',' effects+=VarRefOrModeTransition)*)?
     code=Code
     (stp=STP)?
-    (deadline=Deadline)?
-    (watchdog=Watchdog)?;
+    (deadline=Deadline)?;
 
 TriggerRef:
     BuiltinTriggerRef | VarRef;
@@ -214,7 +213,7 @@ Deadline:
     'deadline' '(' delay=Expression ')' code=Code;
 
 Watchdog:
-    'watchdog' nameID=Expression '(' delay=Expression ')' code=Code;
+    'watchdog' name=Expression '(' timeout=Expression ')' code=Code;
     
 STP:
     'STP' '(' value=Expression ')' code=Code;
@@ -283,7 +282,7 @@ VarRef:
     | interleaved?='interleaved' '(' (variable=[Variable] | container=[Instantiation] '.' variable=[Variable]) ')'
 ;
 VarRefOrModeTransition returns VarRef:
-    VarRef | transition=ModeTransition '(' variable=[Mode] ')';
+    VarRef | Watchdog | transition=ModeTransition '(' variable=[Mode] ')';
 
 Assignment:
     (lhs=[Parameter] (
