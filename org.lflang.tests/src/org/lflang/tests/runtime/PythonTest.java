@@ -41,7 +41,7 @@ import org.lflang.tests.RuntimeTest;
  * This is typically done by right-clicking on the name of the test method and
  * then clicking "Run".
  *
- * @author Marten Lohstroh {@literal <marten@berkeley.edu>}
+ * @author Marten Lohstroh
  */
 public class PythonTest extends RuntimeTest {
 

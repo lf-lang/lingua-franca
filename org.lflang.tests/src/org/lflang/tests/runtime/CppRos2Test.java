@@ -15,7 +15,7 @@ import org.lflang.tests.TestRegistry.TestCategory;
  *
  * NOTE: This test does not inherit any tests because it directly extends TestBase.
  *
- * @author Christian Menard <christian.menard@tu-dresden.de>
+ * @author Christian Menard
  */
 public class CppRos2Test extends TestBase {
 

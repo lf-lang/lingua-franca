@@ -18,7 +18,7 @@ import org.lflang.util.FileUtil;
 /**
  * Base class that governs the interactions between code generators and the file system.
  *  
- * @author Marten Lohstroh <marten@berkeley.edu>
+ * @author Marten Lohstroh
  *
  */
 public class FileConfig {

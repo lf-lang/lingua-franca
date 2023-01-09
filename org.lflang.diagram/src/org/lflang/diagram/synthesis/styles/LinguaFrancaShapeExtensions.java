@@ -91,7 +91,7 @@ import de.cau.cs.kieler.klighd.syntheses.DiagramSyntheses;
 /**
  * Extension class that provides shapes and figures for the Lingua France diagram synthesis.
  * 
- * @author{Alexander Schulz-Rosengarten <als@informatik.uni-kiel.de>}
+ * @author Alexander Schulz-Rosengarten
  */
 @ViewSynthesisShared
 public class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {

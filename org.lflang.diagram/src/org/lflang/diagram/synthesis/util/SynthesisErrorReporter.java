@@ -29,7 +29,7 @@ import org.eclipse.emf.ecore.EObject;
 import org.lflang.ErrorReporter;
 
 /**
- * @author{Alexander Schulz-Rosengarten <als@informatik.uni-kiel.de>}
+ * @author Alexander Schulz-Rosengarten
  */
 public class SynthesisErrorReporter implements ErrorReporter {
     @Override

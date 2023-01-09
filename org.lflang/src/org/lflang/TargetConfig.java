@@ -44,7 +44,7 @@ import org.lflang.generator.rust.RustTargetConfig;
  *
  * Class members of type String are initialized as empty strings,
  * unless otherwise stated.
- * @author Marten Lohstroh <marten@berkeley.edu>
+ * @author Marten Lohstroh
  */
 public class TargetConfig {
 
@@ -190,8 +190,8 @@ public class TargetConfig {
      * This is now a wrapped class to account for overloaded definitions 
      * of defining platform (either a string or dictionary of values)
      *
-     * @author Samuel Berkun (sberkun@berkeley.edu)
-     * @author Anirudh Rengarajan (arengarajan@berkeley.edu)
+     * @author Samuel Berkun
+     * @author Anirudh Rengarajan
      */
     public PlatformOptions platformOptions = new PlatformOptions();
 

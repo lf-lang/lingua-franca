@@ -54,7 +54,7 @@ import org.lflang.lf.STP;
  * NOTE: the validator used on imported files uses the same instance! Hence, this class should not contain any info
  * specific to any particular resource that is involved in the compilation.
  *
- * @author Marten Lohstroh <marten@berkeley.edu>
+ * @author Marten Lohstroh
  */
 public class ModelInfo {
 

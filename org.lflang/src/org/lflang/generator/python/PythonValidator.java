@@ -30,7 +30,7 @@ import com.google.common.collect.ImmutableSet;
 /**
  * A validator for generated Python.
  *
- * @author Peter Donovan <peterdonovan@berkeley.edu>
+ * @author Peter Donovan
  */
 public class PythonValidator extends org.lflang.generator.Validator {
 
