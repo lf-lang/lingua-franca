@@ -55,7 +55,7 @@ jobs:
         if: ${{ runner.os == 'macOS' }}
       - name: Install Arduino CLI for Linux
         run: |
-          curl -fsSL https://raw.githubusercontent.com/arduino/arduino-cli/master/install.sh | sh
+          curl -fsSL https://raw.githubusercontent.com/arduino/arduino-cli/master/install.sh | sh -s 0.29.0
         if: ${{ runner.os == 'Linux' }}
       - name: Build RTI docker image
         uses: ./.github/actions/build-rti-docker
