@@ -28,6 +28,7 @@ public interface LFGeneratorContext extends IGeneratorContext {
      * Enumeration of keys used to parameterize the build process.
      */
     enum BuildParm {
+        BUILD_TYPE("The build type to use"),
         CLEAN("Clean before building."),
         EXTERNAL_RUNTIME_PATH("Specify an external runtime library to be used by the compiled binary."),
         FEDERATED("Treat main reactor as federated."),
@@ -147,8 +148,9 @@ public interface LFGeneratorContext extends IGeneratorContext {
     /**
      * Return the {@code LFGeneratorContext} that best describes the given {@code context} when
      * building {@code Resource}.
+     * @param resource
+     * @param fsa
      * @param context The context of a Lingua Franca build process.
-     * @param fileConfig The configuration for interacting with the filesystem
      * @return The {@code LFGeneratorContext} that best describes the given {@code context} when
      * building {@code Resource}.
      */

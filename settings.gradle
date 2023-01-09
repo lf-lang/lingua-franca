@@ -1,3 +1,5 @@
 include 'org.lflang'
+include 'org.lflang.ide'
+include 'org.lflang.diagram'
 include 'org.lflang.cli'
 include 'org.lflang.tests'

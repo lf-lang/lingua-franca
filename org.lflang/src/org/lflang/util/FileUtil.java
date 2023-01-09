@@ -249,12 +249,17 @@ public class FileUtil {
      */
     private static void copyInputStream(InputStream source, Path destination, boolean skipIfUnchanged) throws IOException {
         Files.createDirectories(destination.getParent());
+
+        // Read the stream once and keep a copy of all bytes. This is required as a stream cannot be read twice.
+        final var bytes = source.readAllBytes();
+        // abort if the destination file does not change
         if(skipIfUnchanged && Files.isRegularFile(destination)) {
-            if (Arrays.equals(source.readAllBytes(), Files.readAllBytes(destination))) {
+            if (Arrays.equals(bytes, Files.readAllBytes(destination))) {
                 return;
             }
         }
-        Files.copy(source, destination, StandardCopyOption.REPLACE_EXISTING);
+
+        Files.write(destination, bytes);
     }
 
     /**

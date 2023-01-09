@@ -450,6 +450,7 @@ public abstract class TestBase {
      * Override to add some LFC arguments to all runs of this test class.
      */
     protected void addExtraLfcArgs(Properties args) {
+        args.setProperty("build-type", "Test");
         args.setProperty("logging", "Debug");
     }
 
@@ -685,6 +686,7 @@ public abstract class TestBase {
                 // during reporting.
             } catch (Exception e) {
                 test.issues.append(e.getMessage());
+                e.printStackTrace();
             } finally {
                 restoreOutputs();
             }

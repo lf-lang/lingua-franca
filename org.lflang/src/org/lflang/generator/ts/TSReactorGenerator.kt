@@ -115,7 +115,9 @@ ${"             |"..preamble.code.toText()}
                 isFederate = true
                 for (attrParam in attribute.attrParms) {
                     if (attrParam.name == "network_message_actions") {
-                        networkMessageActions = attrParam.value.str.split(",").filter { it.isNotEmpty() }
+                        val params = attrParam.value.split(",")
+                        if (!params.all { it[0] == '"' && it[it.length - 1] == '"'}) throw IllegalArgumentException()
+                        networkMessageActions = attrParam.value.split(",").map { it.substring(1, it.length-1) }.filter { it.isNotEmpty() }
                     }
                 }
             }

@@ -90,7 +90,7 @@ class LFLanguageServerExtension implements ILanguageServerExtension {
     @JsonNotification("generator/buildAndRun")
     public CompletableFuture<String[]> buildAndRun(String uri) {
         return new CompletableFuture<String[]>().completeAsync(() -> {
-            LFCommand result = buildWithProgress(client, uri, true).getCommand();
+            LFCommand result = buildWithProgress(client, uri, true).getContext().getFileConfig().getCommand();
             if (result == null) return null;
             ArrayList<String> ret = new ArrayList<>();
             ret.add(result.directory().toString());

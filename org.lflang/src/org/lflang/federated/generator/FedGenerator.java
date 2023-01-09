@@ -123,6 +123,7 @@ public class FedGenerator {
     }
 
     public boolean doGenerate(Resource resource, LFGeneratorContext context) throws IOException {
+        if (!federatedExecutionIsSupported(resource)) return true;
 
         // In a federated execution, we need keepalive to be true,
         // otherwise a federate could exit simply because it hasn't received
@@ -205,10 +206,23 @@ public class FedGenerator {
         // System.out.println(PythonInfoGenerator.generateFedRunInfo(fileConfig));
     }
 
+    /** Return whether federated execution is supported for {@code resource}. */
+    private boolean federatedExecutionIsSupported(Resource resource) {
+        var target = Target.fromDecl(GeneratorUtils.findTarget(resource));
+        var ret = List.of(Target.C, Target.Python, Target.TS, Target.CPP, Target.CCPP).contains(target);
+        if (!ret) {
+            errorReporter.reportError(
+                "Federated execution is not supported with target " + target + "."
+            );
+        }
+        return ret;
+    }
+
     private Map<Path, CodeMap> compileFederates(
             LFGeneratorContext context,
             Map<Path, CodeMap> lf2lfCodeMapMap,
             Consumer<Map<FederateInstance, FileConfig>> finalize) {
+
         // FIXME: Use the appropriate resource set instead of always using standalone
         Injector inj = new LFStandaloneSetup()
             .createInjectorAndDoEMFRegistration();
@@ -332,6 +346,14 @@ public class FedGenerator {
         mainDef = LfFactory.eINSTANCE.createInstantiation();
         mainDef.setName(fedReactor.getName());
         mainDef.setReactorClass(fedReactor);
+
+        // Make sure that if no federation RTI properties were given in the
+        // cmdline, then those specified in the lf file are not lost
+        if (federationRTIProperties.get("host").equals("localhost") &&
+            fedReactor.getHost() != null &&
+            !fedReactor.getHost().getAddr().equals("localhost")) {
+            federationRTIProperties.put("host", fedReactor.getHost().getAddr());
+        }
 
         // Since federates are always within the main (federated) reactor,
         // create a list containing just that one containing instantiation.
