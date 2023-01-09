@@ -72,6 +72,7 @@ public class LFGenerator extends AbstractGenerator {
                 return new FedFileConfig(resource, srcGenBasePath, useHierarchicalBin);
             }
             switch (target) {
+            case CCPP:
             case C: return new CFileConfig(resource, srcGenBasePath, useHierarchicalBin);
             case Python: return new PyFileConfig(resource, srcGenBasePath, useHierarchicalBin);
             case CPP:
