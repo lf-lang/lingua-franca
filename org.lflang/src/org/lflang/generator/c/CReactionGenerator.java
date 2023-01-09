@@ -887,7 +887,7 @@ public class CReactionGenerator {
                 {
                     Input input = (Input) triggerAsVarRef.getVariable();
                     String inputName = input.getName();
-                    code.pr(inputName + "->token->ref_count=2;");
+                code.pr("if ("+inputName+"->token) "+inputName + "->token->ref_count=2;");
                 }
             }
         }
@@ -899,7 +899,7 @@ public class CReactionGenerator {
             // NOTE: this does not include contained outputs.
             for (Input input : reactor.getInputs()) {
                 String inputName = input.getName();
-                code.pr(inputName + "->token->ref_count=2;");
+                code.pr("if ("+inputName+"->token) "+inputName + "->token->ref_count=2;");
 
             }
         }
@@ -911,12 +911,12 @@ public class CReactionGenerator {
                 {
                     Input input = (Input) triggerAsVarRef.getVariable();
                     String inputName = input.getName();
-                    code.pr(inputName + "->token->ref_count=2;");
+                code.pr("if ("+inputName+"->token) "+inputName + "->token->ref_count=2;");
                 }
             }
         }
 
-        code.pr("lf_sched_reaction_prologuedd(&self->_lf__reaction_"+reactionIndex+", worker);");
+        code.pr("lf_sched_retire_let_worker(&self->_lf__reaction_"+reactionIndex+", worker);");
         code.unindent();
 
         code.pr("}");
