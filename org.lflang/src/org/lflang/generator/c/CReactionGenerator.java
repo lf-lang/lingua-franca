@@ -880,38 +880,26 @@ public class CReactionGenerator {
         code.pr("if (self->_lf__reaction_"+reactionIndex+".let > 0) {");
         code.indent();
 
-        // Loop through all reaction triggers
+        // Loop through all reaction triggers and get the ports
         for (TriggerRef trigger : ASTUtils.convertToEmptyListIfNull(reaction.getTriggers())) {
             if (trigger instanceof VarRef triggerAsVarRef) {
-                if (triggerAsVarRef.getVariable() instanceof Port)
-                {
-                    Input input = (Input) triggerAsVarRef.getVariable();
-                    String inputName = input.getName();
-                code.pr("if ("+inputName+"->token) "+inputName + "->token->ref_count=2;");
+                if (triggerAsVarRef.getVariable() instanceof Port port) {
+                    code.pr(generateSetRefCountTo2ForPort(port, reactor));
                 }
             }
         }
 
         // If no triggers, then all inputs are triggers
         if (reaction.getTriggers() == null || reaction.getTriggers().size() == 0) {
-            // No triggers are given, which means react to any input.
-            // Declare an argument for every input.
-            // NOTE: this does not include contained outputs.
-            for (Input input : reactor.getInputs()) {
-                String inputName = input.getName();
-                code.pr("if ("+inputName+"->token) "+inputName + "->token->ref_count=2;");
-
-            }
+            assert(false);
         }
 
         // Loop through all sources
         for (TriggerRef trigger : ASTUtils.convertToEmptyListIfNull(reaction.getSources())) {
             if (trigger instanceof VarRef triggerAsVarRef) {
-                if (triggerAsVarRef.getVariable() instanceof Port)
+                if (triggerAsVarRef.getVariable() instanceof Port port)
                 {
-                    Input input = (Input) triggerAsVarRef.getVariable();
-                    String inputName = input.getName();
-                code.pr("if ("+inputName+"->token) "+inputName + "->token->ref_count=2;");
+                    code.pr(generateSetRefCountTo2ForPort(port, reactor));
                 }
             }
         }
@@ -925,7 +913,44 @@ public class CReactionGenerator {
         return code.toString();
     }
 
-
+    private static String generateSetRefCountTo2ForPort(
+        Port port,
+        Reactor reactor
+    ) {
+        CodeBuilder code = new CodeBuilder();
+        if (port instanceof Input input) {
+            // Input port
+            String inputName = input.getName();
+            if (!ASTUtils.isMultiport(input)) {
+                // Single port
+                code.pr("if ("+inputName+"->token) "+inputName + "->token->ref_count=2;");
+            } else {
+                // Multiport
+                code.pr(String.join("\n",
+                    "for (int i = 0; i < "+CUtil.multiportWidthExpression(input)+"; i++) {",
+                    "    if ("+inputName+"[i]->token) "+inputName + "[i]->token->ref_count=2;",
+                    "}"
+                ));
+            }
+        } else if (port instanceof Output output) {
+            // Output. Which means that we are getting data from a contained reactor
+            String portName = output.getName();
+            String reactorName = reactor.getName(); // FIXME: Will this work realiably with banks?
+            String inputName = reactorName + "." + portName;
+            if (!ASTUtils.isMultiport(output)) {
+                // Single port
+                code.pr("if ("+inputName+"->token) "+inputName + "->token->ref_count=2;");
+            } else {
+                // Multiport
+                code.pr(String.join("\n",
+                    "for (int i = 0; i < "+CUtil.multiportWidthExpression(output)+"; i++) {",
+                    "    if ("+inputName+"[i]->token) "+inputName + "[i]->token->ref_count=2;",
+                    "}"
+                ));
+            }
+        }
+        return code.toString();
+    }
     public static String generateLetReactionEpilogue(
         Reactor reactor,
         Reaction reaction,
@@ -939,11 +964,8 @@ public class CReactionGenerator {
             // Loop through all reaction triggers
             for (TriggerRef trigger : ASTUtils.convertToEmptyListIfNull(reaction.getTriggers())) {
                 if (trigger instanceof VarRef triggerAsVarRef) {
-                    if (triggerAsVarRef.getVariable() instanceof Port)
-                    {
-                        Input input = (Input) triggerAsVarRef.getVariable();
-                        String inputName = input.getName();
-                        code.pr("_lf_done_using(" + inputName + "->token);");
+                    if (triggerAsVarRef.getVariable() instanceof Port port) {
+                        code.pr(generateLfDoneUsingOnPort(port, reactor));
                     }
                 }
             }
@@ -954,20 +976,16 @@ public class CReactionGenerator {
                 // Declare an argument for every input.
                 // NOTE: this does not include contained outputs.
                 for (Input input : reactor.getInputs()) {
-                    String inputName = input.getName();
-                    code.pr("_lf_done_using(" + inputName + "->token);");
-
+                    code.pr(generateLfDoneUsingOnPort((Port) input, reactor));
                 }
             }
 
             // Loop through all sources
             for (TriggerRef trigger : ASTUtils.convertToEmptyListIfNull(reaction.getSources())) {
                 if (trigger instanceof VarRef triggerAsVarRef) {
-                    if (triggerAsVarRef.getVariable() instanceof Port)
+                    if (triggerAsVarRef.getVariable() instanceof Port port)
                     {
-                        Input input = (Input) triggerAsVarRef.getVariable();
-                        String inputName = input.getName();
-                        code.pr("_lf_done_using(" + inputName + "->token);");
+                        code.pr(generateLfDoneUsingOnPort(port, reactor));
                     }
                 }
             }
@@ -980,6 +998,44 @@ public class CReactionGenerator {
             return code.toString();
     }
 
+    private static String generateLfDoneUsingOnPort(
+        Port port,
+        Reactor reactor
+    ) {
+        CodeBuilder code = new CodeBuilder();
+        if (port instanceof Input input) {
+            // Input
+            String inputName = input.getName();
+            if (!ASTUtils.isMultiport(input)) {
+                // Single port
+                code.pr("_lf_done_using(" + inputName + "->token);");
+            } else {
+                // Multiport
+                code.pr(String.join("\n",
+                    "for (int i = 0; i < "+CUtil.multiportWidthExpression(input)+"; i++) {",
+                    "    _lf_done_using("+inputName+"[i]->token);",
+                    "}"
+                ));
+            }
+        } else if (port instanceof Output output) {
+            // Output. Which means that we are getting data from a contained reactor
+            String portName = output.getName();
+            String reactorName = reactor.getName(); // FIXME: Will this work reliably with banks?
+            String inputName = reactorName + "." + portName;
+            if (!ASTUtils.isMultiport(output)) {
+                // Single port
+                code.pr("_lf_done_using(" + inputName + "->token);");
+            } else {
+                // Multiport
+                code.pr(String.join("\n",
+                    "for (int i = 0; i < "+CUtil.multiportWidthExpression(output)+"; i++) {",
+                    "    _lf_done_using("+inputName+"[i]->token);",
+                    "}"
+                ));
+            }
+        }
+        return code.toString();
+    }
 
     /**
      * Define the trigger_t object on the self struct, an array of
