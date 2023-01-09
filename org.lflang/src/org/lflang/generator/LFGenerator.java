@@ -133,15 +133,10 @@ public class LFGenerator extends AbstractGenerator {
         String classPrefix = "org.lflang.generator." + target.packageName + "." + target.classNamePrefix;
         try {
             Class<?> generatorClass = Class.forName(classPrefix + "Generator");
-            Class<?> contextClass = Class.forName("LFGeneratorContext");
             Constructor<?> ctor = generatorClass
-                .getDeclaredConstructor(contextClass, LFGlobalScopeProvider.class);
+                .getDeclaredConstructor(LFGeneratorContext.class, LFGlobalScopeProvider.class);
 
             return (GeneratorBase) ctor.newInstance(context, scopeProvider);
-
-        } catch (InvocationTargetException e) {
-            throw new RuntimeException("Exception instantiating " + classPrefix + "FileConfig",
-                                       e.getTargetException());
         } catch (ReflectiveOperationException e) {
             generatorErrorsOccurred = true;
             context.getErrorReporter().reportError(
