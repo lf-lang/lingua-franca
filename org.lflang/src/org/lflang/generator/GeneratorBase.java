@@ -47,7 +47,6 @@ import org.lflang.Target;
 import org.lflang.TargetConfig;
 import org.lflang.TimeUnit;
 import org.lflang.TimeValue;
-import org.lflang.generator.c.CFileConfig;
 import org.lflang.graph.InstantiationGraph;
 import org.lflang.lf.Action;
 import org.lflang.lf.Connection;
