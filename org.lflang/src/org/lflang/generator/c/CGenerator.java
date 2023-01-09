@@ -585,7 +585,7 @@ public class CGenerator extends GeneratorBase {
                     dockerGenerator.fromData(lfModuleName, federate.name, fileConfig));
             }
             // If cmake is requested, generate the CMakeLists.txt
-            if (targetConfig.platformOptions.platform != Platform.ARDUINO){
+            if (targetConfig.platformOptions.platform != Platform.ARDUINO) {
                 var cmakeFile = fileConfig.getSrcGenPath() + File.separator + "CMakeLists.txt";
                 var cmakeCode = cmakeGenerator.generateCMakeCode(
                     List.of(cFilename),

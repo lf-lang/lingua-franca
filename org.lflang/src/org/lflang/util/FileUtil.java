@@ -388,7 +388,7 @@ public class FileUtil {
     }
 
     /**
-     * Deletes Unused Files from Arduino-CLI based compilation.
+     * Delete unused Files from Arduino-CLI based compilation.
      *
      * Arduino-CLI (the build system) uses lazy compilation (i.e. compiles every file recursively from 
      * a source directory). This does the work of CMake by explicitly deleting files that 
@@ -425,7 +425,7 @@ public class FileUtil {
             fileName = fileName.substring(lastPath+1);
         }
         Path p = fileStringToFilePath.get(fileName);
-        if(p == null){
+        if(p == null) {
             return "#include \"" + fileName + "\"";
         }
         String relativePath = currPath.getParent().relativize(p).toString();
@@ -433,7 +433,7 @@ public class FileUtil {
     }
 
     /**
-     * Converts all includes recursively inside files within a specified folder to relative links
+     * Convert all includes recursively inside files within a specified folder to relative links
      *
      * @param dir The folder to search for includes to change. 
      * @throws IOException If the given set of files cannot be relativized.
