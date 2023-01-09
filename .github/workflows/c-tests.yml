@@ -47,16 +47,13 @@ jobs:
       - name: Install RTI
         uses: ./.github/actions/install-rti
         if: ${{ runner.os == 'macOS' || runner.os == 'Linux' }}
-      - name: Install Arduino Platform for MacOS
+      - name: Install Arduino CLI for MacOS
         run: |
-          brew install --cask arduino
+          brew install arduino-cli
         if: ${{ runner.os == 'macOS' }}
-      - name: Install Arduino Platform for Linux
+      - name: Install Arduino CLI for Linux
         run: |
-          wget "https://downloads.arduino.cc/arduino-1.8.19-linux32.tar.xz"
-          tar -xvf arduino-1.8.19-linux32.tar.xz
-          cd arduino-1.8.19/
-          sudo ./install.sh
+          curl -fsSL https://raw.githubusercontent.com/arduino/arduino-cli/master/install.sh | sh
         if: ${{ runner.os == 'Linux' }}
       - name: Build RTI docker image
         uses: ./.github/actions/build-rti-docker
