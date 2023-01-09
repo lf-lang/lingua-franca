@@ -182,11 +182,19 @@ public class CCmakeGenerator {
             cMakeCode.pr("set(CMAKE_SYSTEM_NAME "+targetConfig.platformOptions.platform.getcMakeName()+")");
         }
 
-        cMakeCode.pr(setUpMainTarget.getCmakeCode(
-            hasMain,
-            executableName,
-            Stream.concat(additionalSources.stream(), sources.stream())
-        ));
+        if (targetConfig.platformOptions.platform == Platform.ZEPHYR) {
+            cMakeCode.pr(setUpMainTargetZephyr(
+                hasMain,
+                executableName,
+                Stream.concat(additionalSources.stream(), sources.stream())
+            ));
+        } else {
+            cMakeCode.pr(setUpMainTarget(
+                hasMain,
+                executableName,
+                Stream.concat(additionalSources.stream(), sources.stream())
+            ));
+        }
 
         cMakeCode.pr("target_link_libraries(${LF_MAIN_TARGET} PRIVATE core)");
 
@@ -339,6 +347,39 @@ public class CCmakeGenerator {
         }
         code.indent();
         code.pr("${LF_MAIN_TARGET}");
+        cSources.forEach(code::pr);
+        code.unindent();
+        code.pr(")");
+        code.newLine();
+        return code.toString();
+    }
+
+    private static String setUpMainTargetZephyr(
+        boolean hasMain,
+        String executableName,
+        Stream<String> cSources
+    ) {
+        var code = new CodeBuilder();
+        code.pr("add_subdirectory(core)");
+        code.pr("target_link_libraries(core PUBLIC zephyr_interface)");
+        code.newLine();
+
+        if (hasMain) {
+            code.pr("# Declare a new executable target and list all its sources");
+            code.pr("set(LF_MAIN_TARGET app)");
+            code.pr("target_sources(");
+        } else {
+            code.pr("# Declare a new library target and list all its sources");
+            code.pr("set(LF_MAIN_TARGET"+executableName+")");
+            code.pr("add_library(");
+        }
+        code.indent();
+        code.pr("${LF_MAIN_TARGET}");
+
+        if (hasMain) {
+            code.pr("PRIVATE");
+        }
+
         cSources.forEach(code::pr);
         code.unindent();
         code.pr(")");
