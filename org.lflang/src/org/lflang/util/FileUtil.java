@@ -458,7 +458,10 @@ public class FileUtil {
         Map<String, Path> fileStringToFilePath = new HashMap<String, Path>();
         for (Path path : allPaths) {
             String fileName = path.getFileName().toString();
-            fileStringToFilePath.put(fileName, path);
+            if(path.getFileName().toString().contains("CMakeLists.txt")) continue;
+            if(fileStringToFilePath.put(fileName, path) != null) {
+                throw new IOException("Directory has different files with the same name. Cannot Relativize.");
+            }
         }
         Pattern regexExpression = Pattern.compile("#include\s+[\"]([^\"]+)*[\"]");
         for (Path path : allPaths) {
