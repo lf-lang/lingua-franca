@@ -39,8 +39,8 @@ import org.eclipse.emf.ecore.EObject;
  * will be more than one runtime instance if the object or any of its
  * parents is a bank of reactors.
  *  
- * @author{Marten Lohstroh <marten@berkeley.edu>}
- * @author{Edward A. Lee <eal@berkeley.edu>}
+ * @author Marten Lohstroh
+ * @author Edward A. Lee
  */
 public abstract class NamedInstance<T extends EObject> {
         

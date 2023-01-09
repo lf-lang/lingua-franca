@@ -43,8 +43,8 @@ import org.lflang.util.FileUtil;
  *
  * Adapted from @see org.lflang.generator.CppCmakeGenerator.kt
  *
- * @author Soroush Bateni <soroush@utdallas.edu>
- * @author Peter Donovan <peterdonovan@berkeley.edu>
+ * @author Soroush Bateni
+ * @author Peter Donovan
  */
 public class CCmakeGenerator {
     private static final String DEFAULT_INSTALL_CODE = """

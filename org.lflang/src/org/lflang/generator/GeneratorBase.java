@@ -81,11 +81,11 @@ import com.google.common.collect.Iterables;
  * Generator base class for specifying core functionality
  * that all code generators should have.
  *
- * @author{Edward A. Lee <eal@berkeley.edu>}
- * @author{Marten Lohstroh <marten@berkeley.edu>}
- * @author{Christian Menard <christian.menard@tu-dresden.de}
- * @author{Matt Weber <matt.weber@berkeley.edu>}
- * @author{Soroush Bateni <soroush@utdallas.edu>}
+ * @author Edward A. Lee
+ * @author Marten Lohstroh
+ * @author Christian Menard
+ * @author Matt Weber
+ * @author Soroush Bateni
  */
 public abstract class GeneratorBase extends AbstractLFValidator {
 

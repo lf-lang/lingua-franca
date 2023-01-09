@@ -77,8 +77,8 @@ import org.lflang.lf.WidthSpec;
  * {@link #hasCycles()} will return true and {@link #getCycles()} will
  * return the ports and reaction instances involved in the cycles.
  *
- * @author{Marten Lohstroh <marten@berkeley.edu>}
- * @author{Edward A. Lee <eal@berkeley.edu>}
+ * @author Marten Lohstroh
+ * @author Edward A. Lee
  */
 public class ReactorInstance extends NamedInstance<Instantiation> {
 

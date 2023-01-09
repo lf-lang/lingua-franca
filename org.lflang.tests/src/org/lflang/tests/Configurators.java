@@ -30,7 +30,7 @@ import org.lflang.tests.TestRegistry.TestCategory;
  * Configuration procedures for {@link TestBase} methods.
  *
  * @author Clément Fournier
- * @author Marten Lohstroh <marten@berkeley.edu>
+ * @author Marten Lohstroh
  */
 public class Configurators {
 

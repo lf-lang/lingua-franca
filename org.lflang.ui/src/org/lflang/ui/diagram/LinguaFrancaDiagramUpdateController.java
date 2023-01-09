@@ -51,7 +51,7 @@ import edu.umd.cs.piccolo.event.PInputEventListener;
  * This class is registered and associated with the LF editor via the plugin.xml, if the class name
  * changes, update the plugin.xml!
  * 
- * @author{Alexander Schulz-Rosengarten <als@informatik.uni-kiel.de>}
+ * @author Alexander Schulz-Rosengarten
  */
 public class LinguaFrancaDiagramUpdateController extends EcoreXtextSaveUpdateController implements PInputEventListener {
     

@@ -44,7 +44,7 @@ import de.cau.cs.kieler.klighd.kgraph.KNode;
  * allows correct initialization synthesis runs for the same model.
  * Prevents automatic collapsing of manually expanded nodes.
  * 
- * @author{Alexander Schulz-Rosengarten <als@informatik.uni-kiel.de>}
+ * @author Alexander Schulz-Rosengarten
  */
 public class MemorizingExpandCollapseAction extends AbstractAction {
     

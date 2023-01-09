@@ -320,14 +320,14 @@ import com.google.common.collect.Iterables;
  * * _lf_action_table: For a federated execution, each federate will have this table
  *   that maps port IDs to the corresponding trigger_t struct.
  *
- * @author {Edward A. Lee <eal@berkeley.edu>}
- * @author {Marten Lohstroh <marten@berkeley.edu>}
- * @author {Mehrdad Niknami <mniknami@berkeley.edu>}
- * @author {Christian Menard <christian.menard@tu-dresden.de>}
- * @author {Matt Weber <matt.weber@berkeley.edu>}
- * @author {Soroush Bateni <soroush@utdallas.edu>}
- * @author {Alexander Schulz-Rosengarten <als@informatik.uni-kiel.de>}
- * @author {Hou Seng Wong <housengw@berkeley.edu>}
+ * @author Edward A. Lee
+ * @author Marten Lohstroh
+ * @author Mehrdad Niknami
+ * @author Christian Menard
+ * @author Matt Weber
+ * @author Soroush Bateni
+ * @author Alexander Schulz-Rosengarten
+ * @author Hou Seng Wong
  */
 @SuppressWarnings("StaticPseudoFunctionalStyleMethod")
 public class CGenerator extends GeneratorBase {
