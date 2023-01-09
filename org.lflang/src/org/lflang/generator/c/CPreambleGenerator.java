@@ -39,32 +39,37 @@ public class CPreambleGenerator {
     ) {
         var tracing = targetConfig.tracing;
         CodeBuilder code = new CodeBuilder();
-        if (cppMode) {
+        if (cppMode || targetConfig.platformOptions.platform == Platform.ARDUINO) {
             code.pr("extern \"C\" {");
         }
+        
+        String relPathHeader = "";
         if (targetConfig.platformOptions.platform == Platform.ARDUINO) {
-            CCoreFilesUtils.getArduinoTargetHeaders().forEach(
+            relPathHeader = "src/include/";
+
+            CCoreFilesUtils.getCTargetHeader().forEach(
+                it -> code.pr("#include " + StringUtil.addDoubleQuotes("src/" + it))
+            );
+        } else { 
+            CCoreFilesUtils.getCTargetHeader().forEach(
                 it -> code.pr("#include " + StringUtil.addDoubleQuotes(it))
             );
         }
-        CCoreFilesUtils.getCTargetHeader().forEach(
-            it -> code.pr("#include " + StringUtil.addDoubleQuotes(it))
-        );
-        code.pr("#include \"core/reactor.h\"");
-        code.pr("#include \"core/reactor_common.h\"");
+        code.pr("#include \"" + relPathHeader + "core/reactor.h\"");
+        code.pr("#include \"" + relPathHeader + "core/reactor_common.h\"");
         if (targetConfig.threading) {
-            code.pr("#include \"core/threaded/scheduler.h\"");
+            code.pr("#include \"" + relPathHeader + "core/threaded/scheduler.h\"");
         }
         if (isFederated) {
-            code.pr("#include \"core/federated/federate.c\"");
+            code.pr("#include \"" + relPathHeader + "core/federated/federate.c\"");
         }
         if (tracing != null) {
-            code.pr("#include \"core/trace.h\"");
+            code.pr("#include \"" + relPathHeader + "core/trace.h\"");
         }
-        code.pr("#include \"core/mixed_radix.h\"");
-        code.pr("#include \"core/port.h\"");
+        code.pr("#include \"" + relPathHeader + "core/mixed_radix.h\"");
+        code.pr("#include \"" + relPathHeader + "core/port.h\"");
         code.pr("int lf_reactor_c_main(int argc, const char* argv[]);");
-        if (cppMode) {
+        if (cppMode || targetConfig.platformOptions.platform == Platform.ARDUINO) {
             code.pr("}");
         }
         return code.toString();
