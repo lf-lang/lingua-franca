@@ -46,6 +46,7 @@ import org.eclipse.xtext.xbase.lib.IterableExtensions;
 import org.eclipse.xtext.xbase.lib.IteratorExtensions;
 import org.eclipse.xtext.xbase.lib.Pair;
 import org.lflang.ASTUtils;
+import org.lflang.AttributeUtils;
 import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
 import org.lflang.InferredType;
@@ -117,7 +118,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
      */
     protected TargetConfig targetConfig = new TargetConfig();
 
-    public TargetConfig getTargetConfig() { return this.targetConfig;}
+    public TargetConfig getTargetConfig() {return this.targetConfig;}
 
     /**
      * The current file configuration.
@@ -129,7 +130,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
      */
     protected GeneratorCommandFactory commandFactory;
 
-    public GeneratorCommandFactory getCommandFactory() { return commandFactory; }
+    public GeneratorCommandFactory getCommandFactory() {return commandFactory;}
 
     /**
      * Collection of generated delay classes.
@@ -142,7 +143,8 @@ public abstract class GeneratorBase extends AbstractLFValidator {
      * reactor.
      */
     protected Instantiation mainDef;
-    public Instantiation getMainDef() { return mainDef; }
+
+    public Instantiation getMainDef() {return mainDef;}
 
     /**
      * A list of Reactor definitions in the main resource, including non-main
@@ -160,7 +162,8 @@ public abstract class GeneratorBase extends AbstractLFValidator {
     /**
      * Graph that tracks dependencies between instantiations.
      * This is a graph where each node is a Reactor (not a ReactorInstance)
-     * and an arc from Reactor A to Reactor B means that B contains an instance of A, constructed with a statement
+     * and an arc from Reactor A to Reactor B means that B contains an instance of A, constructed
+     * with a statement
      * like `a = new A();`  After creating the graph,
      * sort the reactors in topological order and assign them to the reactors class variable.
      * Hence, after this method returns, `this.reactors` will be a list of Reactors such that any
@@ -184,7 +187,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
     /**
      * Map from reactions to bank indices
      */
-    protected Map<Reaction,Integer> reactionBankIndices = null;
+    protected Map<Reaction, Integer> reactionBankIndices = null;
 
     /**
      * Keep a unique list of enabled serializers
@@ -207,7 +210,8 @@ public abstract class GeneratorBase extends AbstractLFValidator {
     // // Target properties, if they are included.
     /**
      * A list of federate instances or a list with a single empty string
-     * if there are no federates specified. FIXME: Why put a single empty string there? It should be just empty...
+     * if there are no federates specified. FIXME: Why put a single empty string there? It should be
+     * just empty...
      */
     public List<FederateInstance> federates = new ArrayList<>();
 
@@ -289,12 +293,13 @@ public abstract class GeneratorBase extends AbstractLFValidator {
 
     /**
      * Generate code from the Lingua Franca model contained by the specified resource.
-     *
+     * <p>
      * This is the main entry point for code generation. This base class finds all
      * reactor class definitions, including any reactors defined in imported .lf files
      * (except any main reactors in those imported files), and adds them to the
      * {@link GeneratorBase#reactors reactors} list. If errors occur during
      * generation, then a subsequent call to errorsOccurred() will return true.
+     *
      * @param resource The resource containing the source code.
      * @param context Context relating to invocation of the code generator.
      * In standalone mode, this object is also used to relay CLI arguments.
@@ -320,15 +325,18 @@ public abstract class GeneratorBase extends AbstractLFValidator {
         createMainInstantiation();
 
         // Check if there are any conflicting main reactors elsewhere in the package.
-        if (Objects.equal(context.getMode(), LFGeneratorContext.Mode.STANDALONE) && mainDef != null) {
+        if (Objects.equal(context.getMode(), LFGeneratorContext.Mode.STANDALONE)
+            && mainDef != null) {
             for (String conflict : new MainConflictChecker(fileConfig).conflicts) {
-                errorReporter.reportError(this.mainDef.getReactorClass(), "Conflicting main reactor in " + conflict);
+                errorReporter.reportError(this.mainDef.getReactorClass(),
+                    "Conflicting main reactor in " + conflict);
             }
         }
 
         // Configure the command factory
         commandFactory.setVerbose();
-        if (Objects.equal(context.getMode(), LFGeneratorContext.Mode.STANDALONE) && context.getArgs().containsKey("quiet")) {
+        if (Objects.equal(context.getMode(), LFGeneratorContext.Mode.STANDALONE)
+            && context.getArgs().containsKey("quiet")) {
             commandFactory.setQuiet();
         }
 
@@ -348,7 +356,8 @@ public abstract class GeneratorBase extends AbstractLFValidator {
         GeneratorUtils.validate(context, fileConfig, instantiationGraph, errorReporter);
         List<Resource> allResources = GeneratorUtils.getResources(reactors);
         resources.addAll(allResources.stream()  // FIXME: This filter reproduces the behavior of the method it replaces. But why must it be so complicated? Why are we worried about weird corner cases like this?
-            .filter(it -> !Objects.equal(it, fileConfig.resource) || mainDef != null && it == mainDef.getReactorClass().eResource())
+            .filter(it -> !Objects.equal(it, fileConfig.resource)
+                || mainDef != null && it == mainDef.getReactorClass().eResource())
             .map(it -> GeneratorUtils.getLFResource(it, fileConfig.getSrcGenBasePath(), context, errorReporter))
             .toList()
         );
@@ -360,9 +369,8 @@ public abstract class GeneratorBase extends AbstractLFValidator {
         );
         // FIXME: Should the GeneratorBase pull in `files` from imported
         // resources?
-        // If we have specified a LET scheduler, then make all inputs to LET reactions
-        //  mutable.
-        if (targetConfig.schedulerType == SchedulerOption.LET) {
+        // If we have specified a LET scheduler, then make all inputs to LET reactions mutable
+        if (getTarget() == Target.C &&  targetConfig.schedulerType == SchedulerOption.LET) {
             makeLetReactionInputsMutable();
         }
 
@@ -401,8 +409,10 @@ public abstract class GeneratorBase extends AbstractLFValidator {
     }
 
     /**
-     * Create a new instantiation graph. This is a graph where each node is a Reactor (not a ReactorInstance)
-     * and an arc from Reactor A to Reactor B means that B contains an instance of A, constructed with a statement
+     * Create a new instantiation graph. This is a graph where each node is a Reactor (not a
+     * ReactorInstance)
+     * and an arc from Reactor A to Reactor B means that B contains an instance of A, constructed
+     * with a statement
      * like `a = new A();`  After creating the graph,
      * sort the reactors in topological order and assign them to the reactors class variable.
      * Hence, after this method returns, `this.reactors` will be a list of Reactors such that any
@@ -441,7 +451,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
 
     /**
      * Copy user specific files to the src-gen folder.
-     *
+     * <p>
      * This should be overridden by the target generators.
      *
      * @param targetConfig The targetConfig to read the `files` from.
@@ -452,6 +462,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
     /**
      * Return true if errors occurred in the last call to doGenerate().
      * This will return true if any of the reportError methods was called.
+     *
      * @return True if errors occurred.
      */
     public boolean errorsOccurred() {
@@ -466,6 +477,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
     /**
      * Generate code for the body of a reaction that takes an input and
      * schedules an action with the value of that input.
+     *
      * @param action the action to schedule
      * @param port the port to read from
      */
@@ -474,6 +486,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
     /**
      * Generate code for the body of a reaction that is triggered by the
      * given action and writes its value to the given port.
+     *
      * @param action the action that triggers the reaction
      * @param port the port to write to
      */
@@ -495,6 +508,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
      * known to be safe to be unordered because they do not interact with the
      * state of the containing reactor. To make a reaction unordered, when
      * the Reaction instance is created, add that instance to this set.
+     *
      * @return True if the reaction has been marked unordered.
      */
     public boolean isUnordered(Reaction reaction) {
@@ -511,6 +525,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
      * to be unordered because they do not interact with the state of the
      * containing reactor. To make a reaction unordered, when the Reaction
      * instance is created, add that instance to this set.
+     *
      * @param reaction The reaction to make unordered.
      */
     public void makeUnordered(Reaction reaction) {
@@ -526,6 +541,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
      * a specific bank index as an effect or trigger. Reactions that
      * send messages between federates, including absent messages,
      * need to be specific to a bank member.
+     *
      * @param reaction The reaction.
      * @param bankIndex The bank index, or -1 if there is no bank.
      */
@@ -541,9 +557,10 @@ public abstract class GeneratorBase extends AbstractLFValidator {
 
     /**
      * Return the reaction bank index.
-     * @see #setReactionBankIndex(Reaction reaction, int bankIndex)
+     *
      * @param reaction The reaction.
      * @return The reaction bank index, if one has been set, and -1 otherwise.
+     * @see #setReactionBankIndex(Reaction reaction, int bankIndex)
      */
     public int getReactionBankIndex(Reaction reaction) {
         if (reactionBankIndices == null) return -1;
@@ -559,6 +576,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
      * generators will need to either define functions or macros for each possible
      * time unit or override this method to return something acceptable to the
      * target language.
+     *
      * @param time A TimeValue that represents a time.
      * @return A string, such as "MSEC(100)" for 100 milliseconds.
      */
@@ -584,17 +602,19 @@ public abstract class GeneratorBase extends AbstractLFValidator {
     /**
      * Checks whether modal reactors are present and require appropriate code generation.
      * This will set the hasModalReactors variable.
+     *
      * @param isSupported indicates if modes are supported by this code generation.
      */
     protected void checkModalReactorSupport(boolean isSupported) {
         if (hasModalReactors && !isSupported) {
             errorReporter.reportError("The currently selected code generation or " +
-                                      "target configuration does not support modal reactors!");
+                "target configuration does not support modal reactors!");
         }
     }
 
     /**
-     * Finds and transforms connections into forwarding reactions iff the connections have the same destination as other
+     * Finds and transforms connections into forwarding reactions iff the connections have the same
+     * destination as other
      * connections or reaction in mutually exclusive modes.
      */
     private void transformConflictingConnectionsInModalReactors() {
@@ -604,13 +624,15 @@ public abstract class GeneratorBase extends AbstractLFValidator {
                 var factory = LfFactory.eINSTANCE;
                 for (Connection connection : transform) {
                     // Currently only simple transformations are supported
-                    if (connection.isPhysical() || connection.getDelay() != null || connection.isIterated() ||
-                        connection.getLeftPorts().size() > 1 || connection.getRightPorts().size() > 1
+                    if (connection.isPhysical() || connection.getDelay() != null
+                        || connection.isIterated() ||
+                        connection.getLeftPorts().size() > 1
+                        || connection.getRightPorts().size() > 1
                     ) {
                         errorReporter.reportError(connection, "Cannot transform connection in modal reactor. Connection uses currently not supported features.");
                     } else {
                         var reaction = factory.createReaction();
-                        ((Mode)connection.eContainer()).getReactions().add(reaction);
+                        ((Mode) connection.eContainer()).getReactions().add(reaction);
 
                         var sourceRef = connection.getLeftPorts().get(0);
                         var destRef = connection.getRightPorts().get(0);
@@ -619,9 +641,11 @@ public abstract class GeneratorBase extends AbstractLFValidator {
 
                         var code = factory.createCode();
                         var source = (sourceRef.getContainer() != null ?
-                                sourceRef.getContainer().getName() + "." : "") + sourceRef.getVariable().getName();
+                            sourceRef.getContainer().getName() + "." : "")
+                            + sourceRef.getVariable().getName();
                         var dest = (destRef.getContainer() != null ?
-                                destRef.getContainer().getName() + "." : "") + destRef.getVariable().getName();
+                            destRef.getContainer().getName() + "." : "")
+                            + destRef.getVariable().getName();
                         code.setBody(getConflictingConnectionsInModalReactorsBody(source, dest));
                         reaction.setCode(code);
 
@@ -631,17 +655,18 @@ public abstract class GeneratorBase extends AbstractLFValidator {
             }
         }
     }
+
     /**
      * Return target code for forwarding reactions iff the connections have the
      * same destination as other connections or reaction in mutually exclusive modes.
-     *
+     * <p>
      * This method needs to be overridden in target specific code generators that
      * support modal reactors.
      */
     protected String getConflictingConnectionsInModalReactorsBody(String source, String dest) {
         errorReporter.reportError("The currently selected code generation " +
-                                  "is missing an implementation for conflicting " +
-                                  "transforming connections in modal reactors.");
+            "is missing an implementation for conflicting " +
+            "transforming connections in modal reactors.");
         return "MODAL MODELS NOT SUPPORTED";
     }
 
@@ -656,6 +681,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
      * Generate code for the body of a reaction that handles the
      * action that is triggered by receiving a message from a remote
      * federate.
+     *
      * @param action The action.
      * @param sendingPort The output port providing the data to send.
      * @param receivingPort The ID of the destination port.
@@ -687,6 +713,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
     /**
      * Generate code for the body of a reaction that handles an output
      * that is to be sent over the network. This base class throws an exception.
+     *
      * @param sendingPort The output port providing the data to send.
      * @param receivingPort The ID of the destination port.
      * @param receivingPortID The ID of the destination port.
@@ -697,8 +724,8 @@ public abstract class GeneratorBase extends AbstractLFValidator {
      * @param type The type.
      * @param isPhysical Indicates whether the connection is physical or not
      * @param delay The delay value imposed on the connection using after
-     * @throws UnsupportedOperationException If the target does not support this operation.
      * @param serializer The serializer used on the connection.
+     * @throws UnsupportedOperationException If the target does not support this operation.
      */
     public String generateNetworkSenderBody(
         VarRef sendingPort,
@@ -722,7 +749,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
      *
      * @param receivingPortID port The port to generate the control reaction for
      * @param maxSTP The maximum value of STP is assigned to reactions (if any)
-     *  that have port as their trigger or source
+     * that have port as their trigger or source
      */
     public String generateNetworkInputControlReactionBody(
         int receivingPortID,
@@ -760,8 +787,8 @@ public abstract class GeneratorBase extends AbstractLFValidator {
     public void enableSupportForSerializationIfApplicable(CancelIndicator cancelIndicator) {
         if (!IterableExtensions.isNullOrEmpty(enabledSerializers)) {
             throw new UnsupportedOperationException(
-                "Serialization is target-specific "+
-                " and is not implemented for the "+getTarget().toString()+" target."
+                "Serialization is target-specific " +
+                    " and is not implemented for the " + getTarget().toString() + " target."
             );
         }
     }
@@ -786,6 +813,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
      * Parsed error message from a compiler is returned here.
      */
     public static class ErrorFileAndLine {
+
         public String filepath = null;
         public String line = "1";
         public String character = "0";
@@ -794,7 +822,8 @@ public abstract class GeneratorBase extends AbstractLFValidator {
 
         @Override
         public String toString() {
-          return (isError ? "Error" : "Non-error") + " at " + line + ":" + character + " of file " + filepath + ": " + message;
+            return (isError ? "Error" : "Non-error") + " at " + line + ":" + character + " of file "
+                + filepath + ": " + message;
         }
     }
 
@@ -803,6 +832,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
      * an instance of ErrorFileAndLine if the line is recognized as
      * the first line of an error message. Otherwise, return null.
      * This base class simply returns null.
+     *
      * @param line A line of output from a compiler or other external
      * tool that might generate errors.
      * @return If the line is recognized as the start of an error message,
@@ -854,11 +884,13 @@ public abstract class GeneratorBase extends AbstractLFValidator {
                         // statements to find which one matches and mark all the
                         // import statements down the chain. But what a pain!
                         if (severity == IMarker.SEVERITY_ERROR) {
-                            errorReporter.reportError(originalPath, 1, "Error in imported file: " + path);
+                            errorReporter.reportError(originalPath, 1,
+                                "Error in imported file: " + path);
                         } else {
-                            errorReporter.reportWarning(originalPath, 1, "Warning in imported file: " + path);
+                            errorReporter.reportWarning(originalPath, 1,
+                                "Warning in imported file: " + path);
                         }
-                     }
+                    }
                 }
                 if (parsed.isError) {
                     severity = IMarker.SEVERITY_ERROR;
@@ -908,7 +940,8 @@ public abstract class GeneratorBase extends AbstractLFValidator {
                 if (severity == IMarker.SEVERITY_ERROR) {
                     errorReporter.reportError(originalPath, 1, "Error in imported file: " + path);
                 } else {
-                    errorReporter.reportWarning(originalPath, 1, "Warning in imported file: " + path);
+                    errorReporter.reportWarning(originalPath, 1,
+                        "Warning in imported file: " + path);
                 }
             }
         }
@@ -930,14 +963,14 @@ public abstract class GeneratorBase extends AbstractLFValidator {
     /**
      * Remove triggers in each federates' network reactions that are defined
      * in remote federates.
-     *
+     * <p>
      * This must be done in code generators after the dependency graphs
      * are built and levels are assigned. Otherwise, these disconnected ports
      * might reference data structures in remote federates and cause
      * compile/runtime errors.
      *
      * @param instance The reactor instance to remove these ports from if any.
-     *  Can be null.
+     * Can be null.
      */
     protected void removeRemoteFederateConnectionPorts(ReactorInstance instance) {
         if (!isFederated) {
@@ -1001,10 +1034,10 @@ public abstract class GeneratorBase extends AbstractLFValidator {
      * to multiple machines, then set the {@link #isFederated} field to true,
      * create a FederateInstance for each federate, and record various
      * properties of the federation
-     *
+     * <p>
      * In addition, for each top-level connection, add top-level reactions to the AST
      * that send and receive messages over the network.
-     *
+     * <p>
      * This class is target independent, so the target code
      * generator still has quite a bit of work to do.
      * It needs to provide the body of the sending and
@@ -1017,7 +1050,8 @@ public abstract class GeneratorBase extends AbstractLFValidator {
         // Next, if there actually are federates, analyze the topology
         // interconnecting them and replace the connections between them
         // with an action and two reactions.
-        Reactor mainReactor = mainDef != null ? ASTUtils.toDefinition(mainDef.getReactorClass()) : null;
+        Reactor mainReactor = mainDef != null ? ASTUtils.toDefinition(mainDef.getReactorClass())
+            : null;
 
         if (mainDef == null || !mainReactor.isFederated()) {
             // The program is not federated.
@@ -1056,7 +1090,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
             mainReactorContext.add(mainDef);
 
             // Create a FederateInstance for each top-level reactor.
-            for (Instantiation instantiation :  ASTUtils.allInstantiations(mainReactor)) {
+            for (Instantiation instantiation : ASTUtils.allInstantiations(mainReactor)) {
                 int bankWidth = ASTUtils.width(instantiation.getWidthSpec(), mainReactorContext);
                 if (bankWidth < 0) {
                     errorReporter.reportError(instantiation, "Cannot determine bank width! Assuming width of 1.");
@@ -1120,7 +1154,8 @@ public abstract class GeneratorBase extends AbstractLFValidator {
      * handle sending and receiving data.
      */
     private void replaceFederateConnectionsWithActions() {
-        Reactor mainReactor = mainDef != null ? ASTUtils.toDefinition(mainDef.getReactorClass()) : null;
+        Reactor mainReactor = mainDef != null ? ASTUtils.toDefinition(mainDef.getReactorClass())
+            : null;
 
         // Each connection in the AST may represent more than one connection between
         // federate instances because of banks and multiports. We need to generate communication
@@ -1139,6 +1174,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
 
     /**
      * Replace the connections from the specified output port for the specified federate reactor.
+     *
      * @param output The output port instance.
      * @param federateReactor The reactor instance for that federate.
      * @param mainInstance The main reactor instance.
@@ -1174,11 +1210,11 @@ public abstract class GeneratorBase extends AbstractLFValidator {
                     if (connection == null) {
                         // This should not happen.
                         errorReporter.reportError(output.definition,
-                                "Unexpected error. Cannot find output connection for port");
+                            "Unexpected error. Cannot find output connection for port");
                     } else {
                         if (
                             !connection.isPhysical()
-                            && targetConfig.coordination != CoordinationType.DECENTRALIZED
+                                && targetConfig.coordination != CoordinationType.DECENTRALIZED
                         ) {
                             // Map the delays on connections between federates.
                             Set<Expression> dependsOnDelays = dstFederate.dependsOn.computeIfAbsent(
@@ -1241,22 +1277,28 @@ public abstract class GeneratorBase extends AbstractLFValidator {
     }
 
     /**
-     * Indicates whether delay banks generated from after delays should have a variable length width.
-     *
-     * If this is true, any delay reactors that are inserted for after delays on multiport connections
-     * will have an unspecified variable length width. The code generator is then responsible for inferring the
-     * correct width of the delay bank, which is only possible if the precise connection width is known at compile time.
-     *
-     * If this is false, the width specification of the generated bank will list all the ports listed on the right
-     * side of the connection. This gives the code generator the information needed to infer the correct width at
+     * Indicates whether delay banks generated from after delays should have a variable length
+     * width.
+     * <p>
+     * If this is true, any delay reactors that are inserted for after delays on multiport
+     * connections
+     * will have an unspecified variable length width. The code generator is then responsible for
+     * inferring the
+     * correct width of the delay bank, which is only possible if the precise connection width is
+     * known at compile time.
+     * <p>
+     * If this is false, the width specification of the generated bank will list all the ports
+     * listed on the right
+     * side of the connection. This gives the code generator the information needed to infer the
+     * correct width at
      * runtime.
      */
-    public boolean generateAfterDelaysWithVariableWidth() { return true; }
+    public boolean generateAfterDelaysWithVariableWidth() {return true;}
 
     /**
      * Get the buffer type used for network messages
      */
-    public String getNetworkBufferType() { return ""; }
+    public String getNetworkBufferType() {return "";}
 
     /**
      * Return the Targets enum for the current target
@@ -1277,7 +1319,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
 
     /**
      * Get textual representation of a value in the target language.
-     *
+     * <p>
      * If the value evaluates to 0, it is interpreted as a normal value.
      *
      * @param expr An AST node
@@ -1286,14 +1328,14 @@ public abstract class GeneratorBase extends AbstractLFValidator {
     // FIXME: this should be placed in ExpressionGenerator
     public static String getTargetValue(Expression expr) {
         if (expr instanceof Time) {
-            return getTargetTime((Time)expr);
+            return getTargetTime((Time) expr);
         }
         return ASTUtils.toText(expr);
     }
 
     /**
      * Get textual representation of a value in the target language.
-     *
+     * <p>
      * If the value evaluates to 0, it is interpreted as a time.
      *
      * @param expr A time AST node
@@ -1302,7 +1344,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
     // FIXME: this should be placed in ExpressionGenerator
     public static String getTargetTime(Expression expr) {
         if (expr instanceof Time) {
-            return getTargetTime((Time)expr);
+            return getTargetTime((Time) expr);
         } else if (ASTUtils.isZero(expr)) {
             TimeValue value = TimeValue.ZERO;
             return timeInTargetLanguage(value);
@@ -1310,72 +1352,89 @@ public abstract class GeneratorBase extends AbstractLFValidator {
         return ASTUtils.toText(expr);
     }
 
-    // NOTE: With this implementation, LET reactions can have NO port dependencies.
-    // FIXME: This should be invoked before creation of generated delay reactors.
-    // FIXME: We have to redo this logic in ReactionInstance when we set the LET
-    //  Why cant we just set Let and change inputs to mutable in one go?
-    //  Part of the problem is that LET is currently a property of ReactionInstance
-    //  and mutability of ports is a Reaction property. Can we make LET a Reaction property?
+    /**
+     * Make all inputs to LET reactions mutable. Throws error if reaction
+     * is attributed as a let but is in fact not a
+     */
     public void makeLetReactionInputsMutable() {
         for (Reactor reactor : reactors) {
             for (Reaction reaction : reactor.getReactions()) {
                 boolean hasLet = false;
-                if (reaction.getEffects() != null) {
-                    for (VarRef effect : reaction.getEffects()) {
-                        Variable variable = effect.getVariable();
-                        if (variable instanceof Action) {
-                            Time minDelay = (Time) ((Action) variable).getMinDelay();
-                            if (minDelay != null && minDelay.getInterval() > 0) {
-                                hasLet = true;
-                            } else {
-                                hasLet = false;
-                                break;
-                            }
-                        } else if (variable instanceof Mode) {
-                            // Mode change effect
-                            hasLet= false;
-                            break;
-                        } else if (variable instanceof Output) {
-                            hasLet= false;
-                            break;
-                        } else if (variable instanceof Input) {
-                            hasLet= false;
-                            break;
-                        } else {
-                                errorReporter.reportError(
-                                    reaction,
-                                    "In makeLetReactionInputsMutable(): effect is neither action, mode, input or output."
-                                );
-                            }
-                        }
-                    } else { // If no effects of this reaction
-                    hasLet = true;
-                }
-                // If reaction has a a LET. Then we modify all the inputs ports it sees
-                //  to mutable.
-                if (hasLet) {
-                    if (reaction.getTriggers().size() > 0) {
-                        for (TriggerRef trigger : reaction.getTriggers()) {
-                            if (trigger instanceof VarRef triggerAsVarRef) {
-                                if (triggerAsVarRef.getVariable() instanceof Input) {
-                                    ((Input) triggerAsVarRef.getVariable()).setMutable(true);
-                                } else if (triggerAsVarRef.getVariable() instanceof Output) {
-                                    assert (false);
+                String letWarning = "";
+                // FIXME: Should we use the @let attribute?
+//                if (AttributeUtils.isLet(reaction)) {
+                if(true) {
+                    if (reaction.getEffects() != null) {
+                        for (VarRef effect : reaction.getEffects()) {
+                            Variable variable = effect.getVariable();
+                            if (variable instanceof Action) {
+                                Time minDelay = ((Time) ((Action) variable).getMinDelay());
+                                if (minDelay != null && minDelay.getInterval() > 0) {
+                                    hasLet = true;
+                                } else {
+                                    hasLet = false;
+                                    letWarning = "Reaction marked LET but has Action with min_delay 0 as effect.";
+                                    break;
                                 }
+                            } else if (variable instanceof Mode) {
+                                // Mode change effect
+                                hasLet = false;
+                                letWarning = "Reaction marked as LET, but has mode transition as effect.";
+                                break;
+                            } else if (variable instanceof Output) {
+                                hasLet = false;
+                                letWarning = "Reaction marked as LET, but has mode output port as effect.";
+                                break;
+                            } else if (variable instanceof Input) {
+                                hasLet = false;
+                                letWarning = "Reaction marked as LET, but has mode port as effect.";
+                                break;
                             }
                         }
                     } else {
-                        for (Input input : reactor.getInputs()) {
-                            input.setMutable(true);
+                        // Reaction has no effects and thus has a LET
+                        hasLet = true;
+                    }
+
+                    // Also, make sure that none of the triggers are outputs of contained reactors.
+                    //  This makes our current strategy of marking triggers as mutable, infeasible.
+                    //  FIXME: Is this true? Can we mark the output as mutable and it would work?
+                    if (reaction.getTriggers().size() > 0) {
+                        for (TriggerRef trigger : reaction.getTriggers()) {
+                            if (trigger instanceof VarRef triggerAsVarRef) {
+                                if (triggerAsVarRef.getVariable() instanceof Output) {
+                                    hasLet = false;
+                                    letWarning = "Reaction marked as LET, but is triggered by contained reactor and can thus not have LET.";
+                                }
+                            }
                         }
                     }
 
-                    for (VarRef source : reaction.getSources()) {
-                        Variable variable = source.getVariable();
-                        if (variable instanceof Input) {
-                            ((Input) variable).setMutable(true);
-                        } else if (variable instanceof Output) {
-                            assert (false);
+                    // Check if we had any errors
+                    if (!hasLet) {
+                        // FIXME: Should this be a warning instead?
+                        // errorReporter.reportError(reaction, letWarning);
+                    } else {
+                        // Change all inputs to mutable
+                        if (reaction.getTriggers().size() > 0) {
+                            for (TriggerRef trigger : reaction.getTriggers()) {
+                                if (trigger instanceof VarRef triggerAsVarRef) {
+                                    if (triggerAsVarRef.getVariable() instanceof Input) {
+                                        ((Input) triggerAsVarRef.getVariable()).setMutable(true);
+                                    }
+                                }
+                            }
+                        } else {
+                            for (Input input : reactor.getInputs()) {
+                                input.setMutable(true);
+                            }
+                        }
+
+                        for (VarRef source : reaction.getSources()) {
+                            Variable variable = source.getVariable();
+                            if (variable instanceof Input) {
+                                ((Input) variable).setMutable(true);
+                            }
                         }
                     }
                 }

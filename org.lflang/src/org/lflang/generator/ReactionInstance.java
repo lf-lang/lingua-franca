@@ -33,6 +33,8 @@ import java.util.List;
 import java.util.Set;
 
 import org.lflang.ASTUtils;
+import org.lflang.AttributeUtils;
+import org.lflang.ErrorReporter;
 import org.lflang.TimeUnit;
 import org.lflang.TimeValue;
 import org.lflang.lf.Action;
@@ -473,6 +475,13 @@ public class ReactionInstance extends NamedInstance<Reaction> {
             return this.let;
         }
 
+        // If reaction is not marked as LET it has let=0
+        if (!AttributeUtils.isLet(this.getDefinition())) {
+            return this.let = TimeValue.ZERO;
+        }
+
+        // A generated delay (due to an after-delay on a connection)
+        //  is not considered to have a let.
         if (this.parent.isGeneratedDelay()) {
             return this.let = TimeValue.ZERO;
         }
@@ -492,38 +501,7 @@ public class ReactionInstance extends NamedInstance<Reaction> {
         // Iterate over effect and find minimum delay.
         for (TriggerInstance<? extends Variable> effect : effects) {
             if (effect instanceof PortInstance) {
-                // NOTE: We do not yet support after delays for specifying
-                // logical execution time because the generated delay reactor
-                // has a reaction that will have to be put on the reaction queue
-                // when the LET reaction terminates, and the reaction queue may
-                // have advanced to a future logical time.
-                // Hence, for now, we simply return 0 for the LET if the reaction
-                // has any effect that is a port.  The only way right now to get the
-                // effect of LET is to use a logical action, as shown in
-                // test/C/src/LogicalExecutionTime.lf.
-                // Also, the code below is unncessarily cryptic and complicated.
-                // What it needs to do is use the effect (a PortInstance) to
-                // get each downstream port that is contained by a generated delay,
-                // and then get the amount of delay.
                 return this.let = TimeValue.ZERO;
-                /* Preserving this old code for when we support specifying LET with after delays.
-                var afters = this.parent.getParent().children.stream().filter(c -> {
-                    if (c.isGeneratedDelay()) {
-                        return c.inputs.get(0).getDependsOnPorts().get(0).instance
-                                       .equals((PortInstance) effect);
-                    }
-                    return false;
-                }).map(c -> c.actions.get(0).getMinDelay())
-                  .min(TimeValue::compare);
-                
-                if (afters.isPresent()) {
-                    if (let == null) {
-                        let = afters.get();
-                    } else {
-                        let = TimeValue.min(afters.get(), let);
-                    }
-                }
-                */
             } else if (effect instanceof ActionInstance) {
                 var action = ((ActionInstance) effect).getMinDelay();
                 if (let == null) {
