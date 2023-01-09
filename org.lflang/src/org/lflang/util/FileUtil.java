@@ -417,6 +417,17 @@ public class FileUtil {
         }
     }
 
+    /**
+     * Helper function for getting the string representation of the relative path 
+     * to take to get from one file (currPath) to get to the other (fileName).
+     *
+     * Generally, this is useful for converting includes to have relative pathing when 
+     * you lack access to adding additional include paths when compiling.
+     * 
+     * @param fileName File to search for.
+     * @param currPath The current path to the file whose include statements we are modifying.
+     * @param fileStringToFilePath Mapping of File Names to their paths.
+     */
     private static String fileNameMatchConverter(String fileName, Path currPath, Map<String, Path> fileStringToFilePath) 
         throws NullPointerException {
         // First get the child file
