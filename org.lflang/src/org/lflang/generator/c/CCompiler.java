@@ -221,12 +221,6 @@ public class CCompiler {
             ),
             FileUtil.toUnixString(fileConfig.getSrcGenPath())
         ));
-        if (targetConfig.platformOptions.platform == Platform.ARDUINO) {
-            arguments.add(0, "-DCMAKE_TOOLCHAIN_FILE="
-                + FileUtil.globFilesEndsWith(fileConfig.srcPkgPath.getParent().getParent(), "Arduino-toolchain.cmake").get(0));
-            arguments.add(0, "-DARDUINO_BOARD_OPTIONS_FILE="
-                + FileUtil.globFilesEndsWith(fileConfig.getSrcGenPath(), "BoardOptions.cmake").get(0));
-        }
 
         if (GeneratorUtils.isHostWindows()) {
             arguments.add("-DCMAKE_SYSTEM_VERSION=\"10.0\"");
@@ -321,7 +315,7 @@ public class CCompiler {
         String fileToCompile,
         boolean noBinary
     ) {
-        String cFilename = getTargetFileName(fileToCompile, cppMode);
+        String cFilename = getTargetFileName(fileToCompile, cppMode, targetConfig);
 
         Path relativeSrcPath = fileConfig.getOutPath().relativize(
             fileConfig.getSrcGenPath().resolve(Paths.get(cFilename)));
@@ -383,7 +377,10 @@ public class CCompiler {
      * In C++ mode, the compiler produces .cpp files instead
      * of .c files and uses a C++ compiler to compiler the code.
      */
-    static String getTargetFileName(String fileName, boolean cppMode) {
+    static String getTargetFileName(String fileName, boolean cppMode, TargetConfig targetConfig) {
+        if (targetConfig.platformOptions.platform == Platform.ARDUINO) {
+            return fileName + ".ino";
+        }
         if (cppMode) {
             // If the C++ mode is enabled, use a .cpp extension
             return fileName + ".cpp";
