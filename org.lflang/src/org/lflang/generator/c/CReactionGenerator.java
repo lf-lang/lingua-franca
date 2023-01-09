@@ -228,7 +228,7 @@ public class CReactionGenerator {
         // generate a call into scheduler_LET to do reaction prologue
         // FIXME: Consider factoring this into a separate function
         // FIXME: Consider checking thetarget property whether LET scheduling is enabled
-        code.pr(generateLetReactionPrologue(reactor,reaction, reactionIndex));
+        code.pr(generateLetReactionPrologue(decl,reaction, reactionIndex));
 
         return code.toString();
     }
@@ -866,12 +866,12 @@ public class CReactionGenerator {
      *  this will stop the runtime from freeing up the dynamically allocated memory
      *  which is used by this reaction. The freeing must take place in the epilogue
      * 2) Call `lf_sched_let_prologue` where the current worker is retired from the workforce
-     * @param reactor
+     * @param decl
      * @param reaction
      * @param reactionIndex
      */
     public static String generateLetReactionPrologue(
-        Reactor reactor,
+        ReactorDecl decl,
         Reaction reaction,
         int reactionIndex
     ) {
@@ -879,12 +879,13 @@ public class CReactionGenerator {
         code.pr("#if SCHEDULER == LET");
         code.pr("if (self->_lf__reaction_"+reactionIndex+".let > 0) {");
         code.indent();
+        Reactor reactor = ASTUtils.toDefinition(decl);
 
         // Loop through all reaction triggers and get the ports
         for (TriggerRef trigger : ASTUtils.convertToEmptyListIfNull(reaction.getTriggers())) {
             if (trigger instanceof VarRef triggerAsVarRef) {
                 if (triggerAsVarRef.getVariable() instanceof Port port) {
-                    code.pr(generateSetRefCountTo2ForPort(port, reactor));
+                    code.pr(generateSetRefCountTo2ForPort(port, decl));
                 }
             }
         }
@@ -899,7 +900,7 @@ public class CReactionGenerator {
             if (trigger instanceof VarRef triggerAsVarRef) {
                 if (triggerAsVarRef.getVariable() instanceof Port port)
                 {
-                    code.pr(generateSetRefCountTo2ForPort(port, reactor));
+                    code.pr(generateSetRefCountTo2ForPort(port, decl));
                 }
             }
         }
@@ -915,7 +916,7 @@ public class CReactionGenerator {
 
     private static String generateSetRefCountTo2ForPort(
         Port port,
-        Reactor reactor
+        ReactorDecl reactorDecl
     ) {
         CodeBuilder code = new CodeBuilder();
         if (port instanceof Input input) {
@@ -935,7 +936,7 @@ public class CReactionGenerator {
         } else if (port instanceof Output output) {
             // Output. Which means that we are getting data from a contained reactor
             String portName = output.getName();
-            String reactorName = reactor.getName(); // FIXME: Will this work realiably with banks?
+            String reactorName = reactorDecl.getName(); // FIXME: Will this work realiably with banks?
             String inputName = reactorName + "." + portName;
             if (!ASTUtils.isMultiport(output)) {
                 // Single port
