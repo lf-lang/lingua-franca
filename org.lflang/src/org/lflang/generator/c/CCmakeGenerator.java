@@ -118,12 +118,14 @@ public class CCmakeGenerator {
         cMakeCode.newLine();
 
         cMakeCode.pr("cmake_minimum_required(VERSION " + MIN_CMAKE_VERSION + ")");
-        cMakeCode.pr("project("+executableName+" LANGUAGES C)");
-        cMakeCode.newLine();
+        
         if (targetConfig.platformOptions.platform == Platform.ZEPHYR) {
             cMakeCode.pr("find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})");
             cMakeCode.newLine();
         }
+        
+        cMakeCode.pr("project("+executableName+" LANGUAGES C)");
+        cMakeCode.newLine();
         
         // The Test build type is the Debug type plus coverage generation
         cMakeCode.pr("if(CMAKE_BUILD_TYPE STREQUAL \"Test\")");

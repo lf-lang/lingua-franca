@@ -50,3 +50,5 @@ else
     echo "Unrecognized board $BOARD" 
     exit 1
 fi
+
+fi
