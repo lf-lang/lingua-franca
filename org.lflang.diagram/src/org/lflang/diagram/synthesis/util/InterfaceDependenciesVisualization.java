@@ -65,7 +65,7 @@ import org.lflang.diagram.synthesis.styles.LinguaFrancaStyleExtensions;
 /**
  * Utility class to handle dependency edges for collapsed reactors in Lingua Franca diagrams.
  * 
- * @author{Alexander Schulz-Rosengarten <als@informatik.uni-kiel.de>}
+ * @author Alexander Schulz-Rosengarten
  */
 @ViewSynthesisShared
 public class InterfaceDependenciesVisualization extends AbstractSynthesisExtensions {

@@ -53,7 +53,7 @@ import org.lflang.tests.LFInjectorProvider;
 /**
  * Collection of unit tests on the ASTutils.
  * 
- * @author{Christian Menard <christian.menard@tu-dresden.de>}
+ * @author Christian Menard
  */
 
 @ExtendWith(InjectionExtension.class)

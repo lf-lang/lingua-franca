@@ -20,9 +20,9 @@ import org.lflang.lf.VarRef;
 /**
  * Helper class to handle code generation of contained reactors.
  *
- * @author {Edward A. Lee <eal@berkeley.edu>}
- * @author {Soroush Bateni <soroush@utdallas.edu>}
- * @author {Hou Seng Wong <housengw@berkeley.edu>}
+ * @author Edward A. Lee
+ * @author Soroush Bateni
+ * @author Hou Seng Wong
  */
 
 public class InteractingContainedReactors {

@@ -7,8 +7,8 @@ import org.lflang.generator.TimerInstance;
 /**
  * Generates C code to declare and initialize timers.
  *
- * @author {Edward A. Lee <eal@berkeley.edu>}
- * @author {Soroush Bateni <soroush@utdallas.edu>
+ * @author Edward A. Lee
+ * @author {Soroush Bateni
  */
 public class CTimerGenerator {
     /**

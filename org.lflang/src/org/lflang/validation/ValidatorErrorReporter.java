@@ -46,7 +46,7 @@ import org.lflang.ErrorReporter;
  * during code generation. This class bridges the gap between the ErrorReporter
  * interface and the messages that the validator expects.
  * 
- * @author Christian Menard <christian.menard@tu-dresden.de>
+ * @author Christian Menard
  */
 public class ValidatorErrorReporter implements ErrorReporter {
 

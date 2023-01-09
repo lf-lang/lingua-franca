@@ -26,7 +26,7 @@ import com.google.common.collect.Iterables;
  * Class that (upon instantiation) determines whether there are any conflicting main reactors in the current package.
  * Conflicts are reported in the instance's conflicts list.
  * 
- * @author Marten Lohstroh <marten@berkeley.edu>
+ * @author Marten Lohstroh
  *
  */
 public class MainConflictChecker {
@@ -72,7 +72,7 @@ public class MainConflictChecker {
      * If the name matches the current file (but is not the file itself), then parse that file and determine whether 
      * there is a main reactor declared. If there is one, report a conflict.
      * 
-     * @author Marten Lohstroh <marten@berkeley.edu>
+     * @author Marten Lohstroh
      *
      */
     public class PackageVisitor extends SimpleFileVisitor<Path> {

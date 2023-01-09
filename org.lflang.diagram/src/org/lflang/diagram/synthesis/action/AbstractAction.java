@@ -33,7 +33,7 @@ import org.lflang.lf.Reactor;
 /**
  * Abstract super class for diagram actions that provides some convince methods.
  * 
- * @author{Alexander Schulz-Rosengarten <als@informatik.uni-kiel.de>}
+ * @author Alexander Schulz-Rosengarten
  */
 public abstract class AbstractAction implements IAction {
     public Object sourceElement(final KGraphElement elem) {

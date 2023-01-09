@@ -20,15 +20,15 @@ import static org.lflang.util.StringUtil.addDoubleQuotes;
  * This includes #include and #define directives at the top
  * of each generated ".c" file.
  *
- * @author Edward A. Lee <eal@berkeley.edu>
- * @author Marten Lohstroh <marten@berkeley.edu>
- * @author Mehrdad Niknami <mniknami@berkeley.edu>
- * @author Christian Menard <christian.menard@tu-dresden.de>
- * @author Matt Weber <matt.weber@berkeley.edu>
- * @author Soroush Bateni <soroush@utdallas.edu>
- * @author Alexander Schulz-Rosengarten <als@informatik.uni-kiel.de>
- * @author Hou Seng Wong <housengw@berkeley.edu>
- * @author Peter Donovan <peterdonovan@berkeley.edu>
+ * @author Edward A. Lee
+ * @author Marten Lohstroh
+ * @author Mehrdad Niknami
+ * @author Christian Menard
+ * @author Matt Weber
+ * @author Soroush Bateni
+ * @author Alexander Schulz-Rosengarten
+ * @author Hou Seng Wong
+ * @author Peter Donovan
  */
 public class CPreambleGenerator {
     /** Add necessary source files specific to the target language.  */

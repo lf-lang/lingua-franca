@@ -49,7 +49,7 @@ import de.cau.cs.kieler.klighd.syntheses.DiagramSyntheses;
 /**
  * Set layout configuration options for the Lingua Franca diagram synthesis.
  * 
- * @author{Sören Domrös <sdo@informatik.uni-kiel.de>}
+ * @author Sören Domrös
  */
 @ViewSynthesisShared
 public class LayoutPostProcessing extends AbstractSynthesisExtensions {

@@ -37,7 +37,7 @@ import org.lflang.tests.TestBase.TestLevel;
 /**
  * A registry to retrieve tests from, organized by target and category.
  * 
- * @author Marten Lohstroh <marten@berkeley.edu>
+ * @author Marten Lohstroh
  */
 public class TestRegistry {
     
@@ -125,7 +125,7 @@ public class TestRegistry {
      * - C/Threaded.lf (maps to COMMON)
      * - C/threaded/federated/foo.lf (maps to FEDERATED)
      * 
-     * @author Marten Lohstroh <marten@berkeley.edu>
+     * @author Marten Lohstroh
      */
     public enum TestCategory {
         /** Tests about concurrent execution. */
@@ -314,7 +314,7 @@ public class TestRegistry {
      * is TestCategory.COMMON, meaning that test files in the top-level test
      * directory for a given target will be mapped to that category.
      * 
-     * @author Marten Lohstroh <marten@berkeley.edu>
+     * @author Marten Lohstroh
      */
     public static class TestDirVisitor extends SimpleFileVisitor<Path> {
 

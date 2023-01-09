@@ -33,7 +33,7 @@ import com.google.inject.Singleton;
  * Original: org.eclipse.xtext.ui.generator.EclipseBasedShouldGenerate
  * 
  * @author Sven Efftinge - Initial contribution and API
- * @author Alexander Schulz-Rosengarten <als@informatik.uni-kiel.de> - adjustment for LF
+ * @author Alexander Schulz-Rosengarten - adjustment for LF
  */
 @Singleton
 public class EclipseBasedShouldGenerateLF implements IShouldGenerate {

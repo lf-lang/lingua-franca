@@ -51,7 +51,7 @@ import org.lflang.lf.VarRef;
  * federate.c communicate the status of a network input port with network input
  * control reactions.
  * 
- * @author Soroush Bateni {soroush@utdallas.edu}
+ * @author Soroush Bateni
  *
  */
 public class CGeneratorExtension {

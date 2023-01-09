@@ -45,7 +45,7 @@ import org.lflang.LFResourceDescriptionStrategy;
  * <p>
  * Adapted from from Xtext manual, Chapter 8.7.
  *
- * @author Marten Lohstroh <marten@berkeley.edu>
+ * @author Marten Lohstroh
  * @see <a href="https://www.eclipse.org/Xtext/documentation/2.6.0/Xtext%20Documentation.pdf">xtext doc</a>
  */
 public class LFGlobalScopeProvider extends ImportUriGlobalScopeProvider {
