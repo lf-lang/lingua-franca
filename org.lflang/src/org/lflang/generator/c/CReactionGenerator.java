@@ -227,16 +227,9 @@ public class CReactionGenerator {
         // If this is a LET reaction, and LET scheduling is enabled.
         // generate a call into scheduler_LET to do reaction prologue
         // FIXME: Consider factoring this into a separate function
-        // FIXME: Consider checking the target property whether LET scheduling is enabled
-        code.pr(String.join("\n",
-            "#if SCHEDULER == LET",
-            "if (self->_lf__reaction_"+reactionIndex+".let > 0) {",
-            "   // This is a LET reaction. Retire this worker thread from",
-            "   // from worker pool. To allow time advancement",
-            "   lf_sched_retire_let_worker(&self->_lf__reaction_"+reactionIndex+", worker);",
-            "}",
-            "#endif"
-            ));
+        // FIXME: Consider checking thetarget property whether LET scheduling is enabled
+        code.pr(generateLetReactionPrologue(reactor,reaction, reactionIndex));
+
         return code.toString();
     }
 
@@ -868,6 +861,127 @@ public class CReactionGenerator {
     }
 
     /**
+     * Generates the LET prologue to a reaction. It consists in
+     * 1) Set ref_count of all triggers/sources of the LET reaction to 2.
+     *  this will stop the runtime from freeing up the dynamically allocated memory
+     *  which is used by this reaction. The freeing must take place in the epilogue
+     * 2) Call `lf_sched_let_prologue` where the current worker is retired from the workforce
+     * @param reactor
+     * @param reaction
+     * @param reactionIndex
+     */
+    public static String generateLetReactionPrologue(
+        Reactor reactor,
+        Reaction reaction,
+        int reactionIndex
+    ) {
+        CodeBuilder code = new CodeBuilder();
+        code.pr("#if SCHEDULER == LET");
+        code.pr("if (self->_lf__reaction_"+reactionIndex+".let > 0) {");
+        code.indent();
+
+        // Loop through all reaction triggers
+        for (TriggerRef trigger : ASTUtils.convertToEmptyListIfNull(reaction.getTriggers())) {
+            if (trigger instanceof VarRef triggerAsVarRef) {
+                if (triggerAsVarRef.getVariable() instanceof Port)
+                {
+                    Input input = (Input) triggerAsVarRef.getVariable();
+                    String inputName = input.getName();
+                    code.pr(inputName + "->token->ref_count=2;");
+                }
+            }
+        }
+
+        // If no triggers, then all inputs are triggers
+        if (reaction.getTriggers() == null || reaction.getTriggers().size() == 0) {
+            // No triggers are given, which means react to any input.
+            // Declare an argument for every input.
+            // NOTE: this does not include contained outputs.
+            for (Input input : reactor.getInputs()) {
+                String inputName = input.getName();
+                code.pr(inputName + "->token->ref_count=2;");
+
+            }
+        }
+
+        // Loop through all sources
+        for (TriggerRef trigger : ASTUtils.convertToEmptyListIfNull(reaction.getSources())) {
+            if (trigger instanceof VarRef triggerAsVarRef) {
+                if (triggerAsVarRef.getVariable() instanceof Port)
+                {
+                    Input input = (Input) triggerAsVarRef.getVariable();
+                    String inputName = input.getName();
+                    code.pr(inputName + "->token->ref_count=2;");
+                }
+            }
+        }
+
+        code.pr("lf_sched_reaction_prologuedd(&self->_lf__reaction_"+reactionIndex+", worker);");
+        code.unindent();
+
+        code.pr("}");
+        code.pr("#endif");
+
+        return code.toString();
+    }
+
+
+    public static String generateLetReactionEpilogue(
+        Reactor reactor,
+        Reaction reaction,
+        int reactionIndex
+    ) {
+            CodeBuilder code = new CodeBuilder();
+            code.pr("#if SCHEDULER == LET");
+            code.pr("if (self->_lf__reaction_"+reactionIndex+".let > 0) {");
+            code.indent();
+
+            // Loop through all reaction triggers
+            for (TriggerRef trigger : ASTUtils.convertToEmptyListIfNull(reaction.getTriggers())) {
+                if (trigger instanceof VarRef triggerAsVarRef) {
+                    if (triggerAsVarRef.getVariable() instanceof Port)
+                    {
+                        Input input = (Input) triggerAsVarRef.getVariable();
+                        String inputName = input.getName();
+                        code.pr("_lf_done_using(" + inputName + "->token);");
+                    }
+                }
+            }
+
+            // If no triggers, then all inputs are triggers
+            if (reaction.getTriggers() == null || reaction.getTriggers().size() == 0) {
+                // No triggers are given, which means react to any input.
+                // Declare an argument for every input.
+                // NOTE: this does not include contained outputs.
+                for (Input input : reactor.getInputs()) {
+                    String inputName = input.getName();
+                    code.pr("_lf_done_using(" + inputName + "->token);");
+
+                }
+            }
+
+            // Loop through all sources
+            for (TriggerRef trigger : ASTUtils.convertToEmptyListIfNull(reaction.getSources())) {
+                if (trigger instanceof VarRef triggerAsVarRef) {
+                    if (triggerAsVarRef.getVariable() instanceof Port)
+                    {
+                        Input input = (Input) triggerAsVarRef.getVariable();
+                        String inputName = input.getName();
+                        code.pr("_lf_done_using(" + inputName + "->token);");
+                    }
+                }
+            }
+
+            code.unindent();
+
+            code.pr("}");
+            code.pr("#endif");
+
+            return code.toString();
+    }
+
+
+    /**
      * Define the trigger_t object on the self struct, an array of
      * reaction_t pointers pointing to reactions triggered by this variable,
      * and initialize the pointers in the array in the constructor.
@@ -1096,6 +1210,7 @@ public class CReactionGenerator {
         boolean isFederatedAndDecentralized,
         boolean requiresType
     ) {
+        Reactor reactor = ASTUtils.toDefinition(decl);
         var code = new CodeBuilder();
         var body = ASTUtils.toText(reaction.getCode());
         String init = generateInitializationForReaction(
@@ -1103,13 +1218,14 @@ public class CReactionGenerator {
                         types, errorReporter, mainDef,
                         isFederatedAndDecentralized,
                         requiresType);
+        String post = generateLetReactionEpilogue(reactor, reaction, reactionIndex);
         code.pr(
             "#include " + StringUtil.addDoubleQuotes(
                 CCoreFilesUtils.getCTargetSetHeader()));
         CMethodGenerator.generateMacrosForMethods(ASTUtils.toDefinition(decl), code);
         code.pr(generateFunction(
             generateReactionFunctionHeader(decl, reactionIndex),
-            init, reaction.getCode()
+            init, reaction.getCode(), post
         ));
 
         // Now generate code for the late function, if there is one
@@ -1118,14 +1234,14 @@ public class CReactionGenerator {
         if (reaction.getStp() != null) {
             code.pr(generateFunction(
                 generateStpFunctionHeader(decl, reactionIndex),
-                init, reaction.getStp().getCode()));
+                init, reaction.getStp().getCode(), ""));
         }
 
         // Now generate code for the deadline violation function, if there is one.
         if (reaction.getDeadline() != null) {
             code.pr(generateFunction(
                 generateDeadlineFunctionHeader(decl, reactionIndex),
-                init, reaction.getDeadline().getCode()));
+                init, reaction.getDeadline().getCode(), ""));
         }
         CMethodGenerator.generateMacroUndefsForMethods(ASTUtils.toDefinition(decl), code);
         code.pr(
@@ -1134,13 +1250,14 @@ public class CReactionGenerator {
         return code.toString();
     }
 
-    public static String generateFunction(String header, String init, Code code) {
+    public static String generateFunction(String header, String init, Code code, String post) {
         var function = new CodeBuilder();
         function.pr(header + " {");
         function.indent();
         function.pr(init);
         function.prSourceLineNumber(code);
         function.pr(ASTUtils.toText(code));
+        function.pr(post);
         function.unindent();
         function.pr("}");
         return function.toString();
