@@ -228,7 +228,7 @@ public class CReactionGenerator {
         // generate a call into scheduler_LET to do reaction prologue
         // FIXME: Consider factoring this into a separate function
         // FIXME: Consider checking thetarget property whether LET scheduling is enabled
-        code.pr(generateLetReactionPrologue(decl,reaction, reactionIndex));
+        code.pr(generateLetReactionPrologue(reaction, reactionIndex));
 
         return code.toString();
     }
@@ -871,7 +871,6 @@ public class CReactionGenerator {
      * @param reactionIndex
      */
     public static String generateLetReactionPrologue(
-        ReactorDecl decl,
         Reaction reaction,
         int reactionIndex
     ) {
@@ -879,13 +878,12 @@ public class CReactionGenerator {
         code.pr("#if SCHEDULER == LET");
         code.pr("if (self->_lf__reaction_"+reactionIndex+".let > 0) {");
         code.indent();
-        Reactor reactor = ASTUtils.toDefinition(decl);
 
         // Loop through all reaction triggers and get the ports
         for (TriggerRef trigger : ASTUtils.convertToEmptyListIfNull(reaction.getTriggers())) {
             if (trigger instanceof VarRef triggerAsVarRef) {
                 if (triggerAsVarRef.getVariable() instanceof Port port) {
-                    code.pr(generateSetRefCountTo2ForPort(port, decl));
+                    code.pr(generateSetRefCountTo2ForPort(port, triggerAsVarRef));
                 }
             }
         }
@@ -900,7 +898,7 @@ public class CReactionGenerator {
             if (trigger instanceof VarRef triggerAsVarRef) {
                 if (triggerAsVarRef.getVariable() instanceof Port port)
                 {
-                    code.pr(generateSetRefCountTo2ForPort(port, decl));
+                    code.pr(generateSetRefCountTo2ForPort(port, triggerAsVarRef));
                 }
             }
         }
@@ -916,7 +914,7 @@ public class CReactionGenerator {
 
     private static String generateSetRefCountTo2ForPort(
         Port port,
-        ReactorDecl reactorDecl
+        VarRef varRef
     ) {
         CodeBuilder code = new CodeBuilder();
         if (port instanceof Input input) {
@@ -936,7 +934,7 @@ public class CReactionGenerator {
         } else if (port instanceof Output output) {
             // Output. Which means that we are getting data from a contained reactor
             String portName = output.getName();
-            String reactorName = reactorDecl.getName(); // FIXME: Will this work realiably with banks?
+            String reactorName = varRef.getContainer().getName(); // FIXME: Will this work realiably with banks?
             String inputName = reactorName + "." + portName;
             if (!ASTUtils.isMultiport(output)) {
                 // Single port
