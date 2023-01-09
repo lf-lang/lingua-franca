@@ -155,6 +155,7 @@ public class ASTUtils {
      * @param resource The AST.
      * @param generator A code generator.
      */
+    // FIXME: the code below should not depend on an entire generator instance.
     public static void insertGeneratedDelays(Resource resource, GeneratorBase generator) {
         // The resulting changes to the AST are performed _after_ iterating 
         // in order to avoid concurrent modification problems.

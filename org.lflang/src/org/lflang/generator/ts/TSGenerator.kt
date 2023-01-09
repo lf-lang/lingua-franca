@@ -29,6 +29,7 @@ import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.util.CancelIndicator
 import org.lflang.ASTUtils
 import org.lflang.ErrorReporter
+import org.lflang.FileConfig
 import org.lflang.Target
 import org.lflang.TimeValue
 import org.lflang.generator.CodeMap
@@ -66,10 +67,9 @@ private const val NO_NPM_MESSAGE = "The TypeScript target requires npm >= 6.14.4
  *  @author {Hokeun Kim <hokeunkim@berkeley.edu>}
  */
 class TSGenerator(
-    private val tsFileConfig: TSFileConfig,
-    errorReporter: ErrorReporter,
+    private val context: LFGeneratorContext,
     private val scopeProvider: LFGlobalScopeProvider
-) : GeneratorBase(tsFileConfig, errorReporter) {
+) : GeneratorBase(context) {
 
     companion object {
         /** Path to the TS lib directory (relative to class path)  */
@@ -137,7 +137,7 @@ class TSGenerator(
             context.reportProgress(
                 "Code generation complete. Collecting dependencies...", IntegratedBuilder.GENERATED_PERCENT_PROGRESS
             )
-            if (shouldCollectDependencies(context)) collectDependencies(resource, context, tsFileConfig.srcGenPkgPath, false)
+            if (shouldCollectDependencies(context)) collectDependencies(resource, context, context.fileConfig.srcGenPkgPath, false)
             if (errorsOccurred()) {
                 context.unsuccessfulFinish();
                 return;
@@ -150,7 +150,7 @@ class TSGenerator(
             val parsingContext = SubContext(context, COLLECTED_DEPENDENCIES_PERCENT_PROGRESS, 100)
             if (
                 !context.cancelIndicator.isCanceled
-                && passesChecks(TSValidator(tsFileConfig, errorReporter, codeMaps), parsingContext)
+                && passesChecks(TSValidator(context.fileConfig, errorReporter, codeMaps), parsingContext)
             ) {
                 if (context.mode == LFGeneratorContext.Mode.LSP_MEDIUM) {
                     context.finish(GeneratorResult.GENERATED_NO_EXECUTABLE.apply(context, codeMaps))
@@ -240,7 +240,7 @@ class TSGenerator(
     ) {
         val tsFileName = fileConfig.name
 
-        val tsFilePath = tsFileConfig.tsSrcGenPath().resolve("$tsFileName.ts")
+        val tsFilePath = context.fileConfig.srcGenPath.resolve("$tsFileName.ts")
 
         val tsCode = StringBuilder()
 
@@ -338,17 +338,17 @@ class TSGenerator(
 
         // FIXME: Check whether protoc is installed and provides hints how to install if it cannot be found.
         val protocArgs = LinkedList<String>()
-        val tsOutPath = tsFileConfig.srcPath.relativize(tsFileConfig.tsSrcGenPath())
+        val tsOutPath = context.fileConfig.srcPath.relativize(context.fileConfig.srcGenPath)
 
         protocArgs.addAll(
             listOf(
-                "--plugin=protoc-gen-ts=" + tsFileConfig.srcGenPkgPath.resolve("node_modules").resolve(".bin").resolve("protoc-gen-ts"),
+                "--plugin=protoc-gen-ts=" + context.fileConfig.srcGenPkgPath.resolve("node_modules").resolve(".bin").resolve("protoc-gen-ts"),
                 "--js_out=import_style=commonjs,binary:$tsOutPath",
                 "--ts_out=$tsOutPath"
             )
         )
         protocArgs.addAll(targetConfig.protoFiles)
-        val protoc = commandFactory.createCommand("protoc", protocArgs, tsFileConfig.srcPath)
+        val protoc = commandFactory.createCommand("protoc", protocArgs, context.fileConfig.srcPath)
 
         if (protoc == null) {
             errorReporter.reportError("Processing .proto files requires libprotoc >= 3.6.1.")

@@ -65,6 +65,6 @@ public class FedTSLauncher extends FedLauncher {
     protected
     String executeCommandForLocalFederate(FedFileConfig fileConfig, FederateInstance federate) {
         String jsFilename = federate.name + ".js";
-        return "node "+fileConfig.getFedSrcGenPath().resolve(federate.name).resolve("dist").resolve(jsFilename)+" -i $FEDERATION_ID";
+        return "node "+fileConfig.fed.getFedSrcGenPath().resolve(federate.name).resolve("dist").resolve(jsFilename)+" -i $FEDERATION_ID";
     }
 }

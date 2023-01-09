@@ -368,30 +368,28 @@ public class CGenerator extends GeneratorBase {
     private final CCmakeGenerator cmakeGenerator;
 
     protected CGenerator(
-        FileConfig fileConfig,
-        ErrorReporter errorReporter,
+        LFGeneratorContext context,
         boolean CCppMode,
         CTypes types,
         CCmakeGenerator cmakeGenerator
     ) {
-        super(fileConfig, errorReporter);
+        super(context);
         this.CCppMode = CCppMode;
         this.types = types;
         this.cmakeGenerator = cmakeGenerator;
     }
 
-    public CGenerator(FileConfig fileConfig, ErrorReporter errorReporter, boolean CCppMode) {
+    public CGenerator(LFGeneratorContext context, boolean ccppMode) {
         this(
-            fileConfig,
-            errorReporter,
-            CCppMode,
-            new CTypes(errorReporter),
-            new CCmakeGenerator(fileConfig, List.of())
+            context,
+            ccppMode,
+            new CTypes(context.getErrorReporter()),
+            new CCmakeGenerator(context.getFileConfig(), List.of())
         );
     }
 
-    public CGenerator(FileConfig fileConfig, ErrorReporter errorReporter) {
-        this(fileConfig, errorReporter, false);
+    public CGenerator(LFGeneratorContext context) {
+        this(context, false);
     }
 
     ////////////////////////////////////////////

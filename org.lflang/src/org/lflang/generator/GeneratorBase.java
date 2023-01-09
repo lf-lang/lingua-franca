@@ -183,10 +183,10 @@ public abstract class GeneratorBase extends AbstractLFValidator {
     /**
      * Create a new GeneratorBase object.
      */
-    public GeneratorBase(LFGeneratorContext context, ErrorReporter errorReporter) {
+    public GeneratorBase(LFGeneratorContext context) {
         this.fileConfig = context.getFileConfig();
         this.targetConfig = context.getTargetConfig();
-        this.errorReporter = errorReporter;
+        this.errorReporter = context.getErrorReporter();
         this.commandFactory = new GeneratorCommandFactory(errorReporter, fileConfig);
     }
 

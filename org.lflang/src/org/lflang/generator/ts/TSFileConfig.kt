@@ -31,7 +31,6 @@ import org.lflang.util.FileUtil
 import org.lflang.util.LFCommand
 import java.io.IOException
 import java.nio.file.Path
-import java.util.List
 
 /**
  * Generator for TypeScript target.
@@ -58,7 +57,7 @@ class TSFileConfig(
     override fun getCommand(): LFCommand {
         return LFCommand.get(
             "node",
-            List.of(srcPkgPath.relativize(executable).toString()),
+            listOf(srcPkgPath.relativize(executable).toString()),
             true,
             srcPkgPath
         )
@@ -75,17 +74,6 @@ class TSFileConfig(
     /**
      * Path to TypeScript source code.
      */
-    fun tsSrcGenPath(): Path = srcGenPath.resolve("src")
+    override fun getSrcGenPath(): Path = srcGenPath.resolve("src")
 
-    /**
-     * Path to TypeScript core source code.
-     */
-    fun reactorTsPath(): Path = srcGenPath.resolve("reactor-ts")
-
-    /**
-     * Path to the generated docker compose file
-     */
-    fun tsDockerComposeFilePath(): Path {
-        return srcGenPath.resolve("docker-compose.yml")
-    }
 }

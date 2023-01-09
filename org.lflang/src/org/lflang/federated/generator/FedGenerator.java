@@ -116,10 +116,10 @@ public class FedGenerator {
      */
     private Instantiation mainDef;
 
-    public FedGenerator(LFGeneratorContext context, ErrorReporter errorReporter) {
+    public FedGenerator(LFGeneratorContext context) {
         this.fileConfig = (FedFileConfig) context.getFileConfig();
         this.targetConfig = context.getTargetConfig();
-        this.errorReporter = errorReporter;
+        this.errorReporter = context.getErrorReporter();
     }
 
     public boolean doGenerate(Resource resource, LFGeneratorContext context) throws IOException {

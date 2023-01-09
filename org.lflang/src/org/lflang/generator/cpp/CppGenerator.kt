@@ -50,10 +50,9 @@ import java.nio.file.Path
 @Suppress("unused")
 class CppGenerator(
     val context: LFGeneratorContext,
-    errorReporter: ErrorReporter,
     private val scopeProvider: LFGlobalScopeProvider
 ) :
-    GeneratorBase(context, errorReporter) {
+    GeneratorBase(context) {
 
     // keep a list of all source files we generate
     val cppSources = mutableListOf<Path>()

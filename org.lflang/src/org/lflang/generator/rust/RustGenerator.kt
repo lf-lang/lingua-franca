@@ -58,10 +58,9 @@ import java.nio.file.Path
  */
 @Suppress("unused")
 class RustGenerator(
-    fileConfig: RustFileConfig,
-    errorReporter: ErrorReporter,
+    context: LFGeneratorContext,
     @Suppress("UNUSED_PARAMETER") unused: LFGlobalScopeProvider
-) : GeneratorBase(fileConfig, errorReporter) {
+) : GeneratorBase(context) {
 
     companion object {
         /** Path to the rust runtime library (relative to class path)  */
@@ -143,7 +142,7 @@ class RustGenerator(
             }
 
             val buildType = targetConfig.rust.buildType
-            var binaryPath = validator.getMetadata()?.targetDirectory!!
+            val binaryPath = validator.getMetadata()?.targetDirectory!!
                 .resolve(buildType.cargoProfileName)
                 .resolve(localizedExecName)
             val destPath = fileConfig.binPath.resolve(localizedExecName)

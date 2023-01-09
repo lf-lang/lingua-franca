@@ -118,8 +118,9 @@ abstract public class DockerGeneratorBase {
     public DockerGeneratorBase(LFGeneratorContext context) {
         this.context = context;
         var fileConfig = context.getFileConfig();
+        // FIXME: in FedFileConfig we should probably just have an override of getSrcGenPath instead.
         if (fileConfig instanceof FedFileConfig) {
-            this.dockerComposeFilePath = ((FedFileConfig) fileConfig).getFedSrcGenPath().resolve("docker-compose.yml");
+            this.dockerComposeFilePath = fileConfig.fed.getFedSrcGenPath().resolve("docker-compose.yml");
         } else {
             this.dockerComposeFilePath = fileConfig.getSrcGenPath().resolve("docker-compose.yml");
         }

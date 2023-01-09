@@ -114,6 +114,6 @@ public class FedCLauncher extends FedLauncher {
     @Override
     protected
     String executeCommandForLocalFederate(FedFileConfig fileConfig, FederateInstance federate) {
-        return fileConfig.getFedGenPath().resolve("bin/"+federate.name)+" -i $FEDERATION_ID";
+        return fileConfig.fed.getFedGenPath().resolve("bin/"+federate.name)+" -i $FEDERATION_ID";
     }
 }

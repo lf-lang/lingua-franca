@@ -98,15 +98,15 @@ public class LFGenerator extends AbstractGenerator {
      *  Create a generator object for the given target.
      *  Returns null if the generator could not be created.
      */
-    private GeneratorBase createGenerator(FileConfig fileConfig, ErrorReporter errorReporter) {
-        final Target target = Target.fromDecl(ASTUtils.targetDecl(fileConfig.resource));
+    private GeneratorBase createGenerator(LFGeneratorContext context) {
+        final Target target = Target.fromDecl(ASTUtils.targetDecl(context.getFileConfig().resource));
         assert target != null;
         return switch (target) {
-            case C -> new CGenerator(fileConfig, errorReporter, false);
-            case CCPP -> new CGenerator(fileConfig, errorReporter, true);
-            case Python -> new PythonGenerator(fileConfig, errorReporter);
+            case C -> new CGenerator(context, false);
+            case CCPP -> new CGenerator(context, true);
+            case Python -> new PythonGenerator(context);
             case CPP, TS, Rust ->
-                createKotlinBaseGenerator(target, fileConfig, errorReporter);
+                createKotlinBaseGenerator(target, context);
             // If no case matched, then throw a runtime exception.
             default -> throw new RuntimeException("Unexpected target!");
         };
@@ -125,8 +125,7 @@ public class LFGenerator extends AbstractGenerator {
      *
      * @return A Kotlin Generator object if the class can be found
      */
-    private GeneratorBase createKotlinBaseGenerator(Target target, FileConfig fileConfig,
-                                                ErrorReporter errorReporter) {
+    private GeneratorBase createKotlinBaseGenerator(Target target, LFGeneratorContext context) {
         // Since our Eclipse Plugin uses code injection via guice, we need to
         // play a few tricks here so that Kotlin FileConfig and
         // Kotlin Generator do not appear as an import. Instead, we look the
@@ -134,18 +133,18 @@ public class LFGenerator extends AbstractGenerator {
         String classPrefix = "org.lflang.generator." + target.packageName + "." + target.classNamePrefix;
         try {
             Class<?> generatorClass = Class.forName(classPrefix + "Generator");
-            Class<?> fileConfigClass = Class.forName(classPrefix + "FileConfig");
+            Class<?> contextClass = Class.forName("LFGeneratorContext");
             Constructor<?> ctor = generatorClass
-                .getDeclaredConstructor(fileConfigClass, ErrorReporter.class, LFGlobalScopeProvider.class);
+                .getDeclaredConstructor(contextClass, LFGlobalScopeProvider.class);
 
-            return (GeneratorBase) ctor.newInstance(fileConfig, errorReporter, scopeProvider);
+            return (GeneratorBase) ctor.newInstance(context, scopeProvider);
 
         } catch (InvocationTargetException e) {
             throw new RuntimeException("Exception instantiating " + classPrefix + "FileConfig",
                                        e.getTargetException());
         } catch (ReflectiveOperationException e) {
             generatorErrorsOccurred = true;
-            errorReporter.reportError(
+            context.getErrorReporter().reportError(
                 "The code generator for the " + target + " target could not be found. "
                     + "This is likely because you built Epoch using "
                     + "Eclipse. The " + target + " code generator is written in Kotlin "
@@ -171,25 +170,23 @@ public class LFGenerator extends AbstractGenerator {
         // The fastest way to generate code is to not generate any code.
         if (lfContext.getMode() == LFGeneratorContext.Mode.LSP_FAST) return;
 
-        final ErrorReporter errorReporter = lfContext.getErrorReporter();
-
         if (FedASTUtils.findFederatedReactor(resource) != null) {
             try {
-                generatorErrorsOccurred = (new FedGenerator(lfContext,
-                    errorReporter)).doGenerate(resource, lfContext);
+                generatorErrorsOccurred = (new FedGenerator(lfContext)).doGenerate(resource, lfContext);
             } catch (IOException e) {
                 throw new RuntimeIOException("Error during federated code generation", e);
             }
 
         } else {
 
-            final GeneratorBase generator = createGenerator(lfContext.getFileConfig(), errorReporter);
+            final GeneratorBase generator = createGenerator(lfContext);
 
             if (generator != null) {
                 generator.doGenerate(resource, lfContext);
                 generatorErrorsOccurred = generator.errorsOccurred();
             }
         }
+        final ErrorReporter errorReporter = lfContext.getErrorReporter();
         if (errorReporter instanceof LanguageServerErrorReporter) {
             ((LanguageServerErrorReporter) errorReporter).publishDiagnostics();
         }

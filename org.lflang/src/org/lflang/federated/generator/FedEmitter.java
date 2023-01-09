@@ -46,12 +46,12 @@ public class FedEmitter {
         int numOfFederates
     ) throws IOException {
         String fedName = federate.name;
-        Files.createDirectories(fileConfig.getFedSrcPath());
+        Files.createDirectories(fileConfig.fed.getFedSrcPath());
         System.out.println("##### Generating code for federate " + fedName
                                + " in directory "
-                               + fileConfig.getFedSrcPath());
+                               + fileConfig.fed.getFedSrcPath());
 
-        Path lfFilePath = fileConfig.getFedSrcPath().resolve(
+        Path lfFilePath = fileConfig.fed.getFedSrcPath().resolve(
             fedName + ".lf");
 
         String federateCode = String.join(

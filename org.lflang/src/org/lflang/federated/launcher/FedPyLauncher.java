@@ -78,6 +78,6 @@ public class FedPyLauncher extends FedLauncher {
     @Override
     protected
     String executeCommandForLocalFederate(FedFileConfig fileConfig, FederateInstance federate) {
-        return "python3 " + fileConfig.getFedSrcGenPath() + "/" + federate.name + "/" + federate.name+".py -i $FEDERATION_ID";
+        return "python3 " + fileConfig.fed.getFedSrcGenPath() + "/" + federate.name + "/" + federate.name+".py -i $FEDERATION_ID";
     }
 }
