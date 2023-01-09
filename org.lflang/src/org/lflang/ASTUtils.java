@@ -28,10 +28,10 @@ package org.lflang;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
-import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.function.Predicate;
 import java.util.regex.Matcher;
@@ -44,7 +44,6 @@ import org.eclipse.emf.common.util.EList;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.emf.ecore.EStructuralFeature;
 import org.eclipse.emf.ecore.resource.Resource;
-import org.eclipse.emf.ecore.util.EcoreUtil;
 import org.eclipse.xtext.TerminalRule;
 import org.eclipse.xtext.nodemodel.ICompositeNode;
 import org.eclipse.xtext.nodemodel.INode;
@@ -57,16 +56,15 @@ import org.eclipse.xtext.xbase.lib.IteratorExtensions;
 import org.eclipse.xtext.xbase.lib.StringExtensions;
 import org.lflang.ast.ToText;
 import org.lflang.generator.CodeMap;
-import org.lflang.generator.GeneratorBase;
 import org.lflang.generator.InvalidSourceException;
 import org.lflang.lf.Action;
-import org.lflang.lf.ActionOrigin;
 import org.lflang.lf.Assignment;
 import org.lflang.lf.Code;
 import org.lflang.lf.Connection;
 import org.lflang.lf.Element;
 import org.lflang.lf.Expression;
 import org.lflang.lf.ImportedReactor;
+import org.lflang.lf.Initializer;
 import org.lflang.lf.Input;
 import org.lflang.lf.Instantiation;
 import org.lflang.lf.LfFactory;
@@ -87,7 +85,6 @@ import org.lflang.lf.TargetDecl;
 import org.lflang.lf.Time;
 import org.lflang.lf.Timer;
 import org.lflang.lf.Type;
-import org.lflang.lf.TypeParm;
 import org.lflang.lf.VarRef;
 import org.lflang.lf.Variable;
 import org.lflang.lf.WidthSpec;
@@ -137,83 +134,13 @@ public class ASTUtils {
      * @param resource the resource to extract reactors from
      * @return An iterable over all reactors found in the resource
      */
-    public static Iterable<Reactor> getAllReactors(Resource resource) {
+    public static List<Reactor> getAllReactors(Resource resource) {
         return StreamSupport.stream(IteratorExtensions.toIterable(resource.getAllContents()).spliterator(), false)
                      .filter(Reactor.class::isInstance)
                      .map(Reactor.class::cast)
                      .collect(Collectors.toList());
     }
 
-    /**
-     * Find connections in the given resource that have a delay associated with them, 
-     * and reroute them via a generated delay reactor.
-     * @param resource The AST.
-     * @param generator A code generator.
-     */
-    public static void insertGeneratedDelays(Resource resource, GeneratorBase generator) {
-        // The resulting changes to the AST are performed _after_ iterating 
-        // in order to avoid concurrent modification problems.
-        List<Connection> oldConnections = new ArrayList<>();
-        Map<EObject, List<Connection>> newConnections = new LinkedHashMap<>();
-        Map<EObject, List<Instantiation>> delayInstances = new LinkedHashMap<>();
-
-        // Iterate over the connections in the tree.
-        for (Reactor container : getAllReactors(resource)) {
-            for (Connection connection : allConnections(container)) {
-                if (connection.getDelay() != null) { 
-                    EObject parent = connection.eContainer();
-                    // Assume all the types are the same, so just use the first on the right.
-                    Type type = ((Port) connection.getRightPorts().get(0).getVariable()).getType();
-                    Reactor delayClass = getDelayClass(type, generator);
-                    String generic = generator.getTargetTypes().supportsGenerics() ? generator.getTargetTypes().getTargetType(InferredType.fromAST(type)) : "";
-                    Instantiation delayInstance = getDelayInstance(delayClass, connection, generic, 
-                        !generator.generateAfterDelaysWithVariableWidth());
-
-                    // Stage the new connections for insertion into the tree.
-                    List<Connection> connections = convertToEmptyListIfNull(newConnections.get(parent));
-                    connections.addAll(rerouteViaDelay(connection, delayInstance));
-                    newConnections.put(parent, connections);
-                    // Stage the original connection for deletion from the tree.
-                    oldConnections.add(connection);
-
-                    // Stage the newly created delay reactor instance for insertion
-                    List<Instantiation> instances = convertToEmptyListIfNull(delayInstances.get(parent));
-                    instances.add(delayInstance);
-                    delayInstances.put(parent, instances);
-                }
-            }
-        }
-
-        // Remove old connections; insert new ones.
-        oldConnections.forEach(connection -> {
-            var container = connection.eContainer();
-            if (container instanceof Reactor) {
-                ((Reactor) container).getConnections().remove(connection);
-            } else if (container instanceof Mode) {
-                ((Mode) container).getConnections().remove(connection);
-            }
-        });
-        newConnections.forEach((container, connections) -> {
-            if (container instanceof Reactor) {
-                ((Reactor) container).getConnections().addAll(connections);
-            } else if (container instanceof Mode) {
-                ((Mode) container).getConnections().addAll(connections);
-            }
-        });
-        // Finally, insert the instances and, before doing so, assign them a unique name.
-        delayInstances.forEach((container, instantiations) -> 
-            instantiations.forEach(instantiation -> {
-                if (container instanceof Reactor) {
-                    instantiation.setName(getUniqueIdentifier((Reactor) container, "delay"));
-                    ((Reactor) container).getInstantiations().add(instantiation);
-                } else if (container instanceof Mode) {
-                    instantiation.setName(getUniqueIdentifier((Reactor) container.eContainer(), "delay"));
-                    ((Mode) container).getInstantiations().add(instantiation);
-                }
-            })
-        );
-    }
-    
     /**
      * Find connections in the given resource that would be conflicting writes if they were not located in mutually
      * exclusive modes.
@@ -356,206 +283,7 @@ public class ASTUtils {
             || rightPortAsPort.getWidthSpec() != null
             || rightContainer != null && rightContainer.getWidthSpec() != null;
     }
-    
-    /**
-     * Take a connection and reroute it via an instance of a generated delay
-     * reactor. This method returns a list to new connections to substitute
-     * the original one.
-     * @param connection The connection to reroute.
-     * @param delayInstance The delay instance to route the connection through.
-     */
-    private static List<Connection> rerouteViaDelay(Connection connection, 
-            Instantiation delayInstance) {
-        List<Connection> connections = new ArrayList<>();    
-        Connection upstream = factory.createConnection();
-        Connection downstream = factory.createConnection();
-        VarRef input = factory.createVarRef();
-        VarRef output = factory.createVarRef();
 
-        Reactor delayClass = toDefinition(delayInstance.getReactorClass());
-        
-        // Establish references to the involved ports.
-        input.setContainer(delayInstance);
-        input.setVariable(delayClass.getInputs().get(0));
-        output.setContainer(delayInstance);
-        output.setVariable(delayClass.getOutputs().get(0));
-        upstream.getLeftPorts().addAll(connection.getLeftPorts());
-        upstream.getRightPorts().add(input);
-        downstream.getLeftPorts().add(output);
-        downstream.getRightPorts().addAll(connection.getRightPorts());
-        downstream.setIterated(connection.isIterated());
-        connections.add(upstream);
-        connections.add(downstream);
-        return connections;
-    }
-    
-    /**
-     * Create a new instance delay instances using the given reactor class.
-     * The supplied time value is used to override the default interval (which
-     * is zero).
-     * If the target supports parametric polymorphism, then a single class may
-     * be used for each instantiation, in which case a non-empty string must
-     * be supplied to parameterize the instance.
-     * A default name ("delay") is assigned to the instantiation, but this
-     * name must be overridden at the call site, where checks can be done to
-     * avoid name collisions in the container in which the instantiation is
-     * to be placed. Such checks (or modifications of the AST) are not
-     * performed in this method in order to avoid causing concurrent
-     * modification exceptions. 
-     * @param delayClass The class to create an instantiation for
-     * @param connection The connection to create a delay instantiation foe
-     * @param generic A string that denotes the appropriate type parameter, 
-     *  which should be null or empty if the target does not support generics.
-     * @param defineWidthFromConnection If this is true and if the connection 
-     *  is a wide connection, then instantiate a bank of delays where the width
-     *  is given by ports involved in the connection. Otherwise, the width will
-     *  be  unspecified indicating a variable length.
-     */
-    private static Instantiation getDelayInstance(Reactor delayClass, 
-            Connection connection, String generic, Boolean defineWidthFromConnection) {
-        Expression delay = connection.getDelay();
-        Instantiation delayInstance = factory.createInstantiation();
-        delayInstance.setReactorClass(delayClass);
-        if (!StringExtensions.isNullOrEmpty(generic)) {
-            TypeParm typeParm = factory.createTypeParm();
-            typeParm.setLiteral(generic);
-            delayInstance.getTypeParms().add(typeParm);
-        }
-        if (hasMultipleConnections(connection)) {
-            WidthSpec widthSpec = factory.createWidthSpec();
-            if (defineWidthFromConnection) {
-                // Add all left ports of the connection to the WidthSpec of the generated delay instance.
-                // This allows the code generator to later infer the width from the involved ports.
-                // We only consider the left ports here, as they could be part of a broadcast. In this case, we want
-                // to delay the ports first, and then broadcast the output of the delays.
-                for (VarRef port : connection.getLeftPorts()) {
-                    WidthTerm term = factory.createWidthTerm();
-                    term.setPort(EcoreUtil.copy(port));
-                    widthSpec.getTerms().add(term);
-                }   
-            } else {
-                widthSpec.setOfVariableLength(true);
-            }
-            delayInstance.setWidthSpec(widthSpec);
-        }
-        Assignment assignment = factory.createAssignment();
-        assignment.setLhs(delayClass.getParameters().get(0));
-        assignment.getRhs().add(delay);
-        delayInstance.getParameters().add(assignment);
-        delayInstance.setName("delay");  // This has to be overridden.
-        return delayInstance;
-    }
-    
-    /**
-     * Return a synthesized AST node that represents the definition of a delay
-     * reactor. Depending on whether the target supports generics, either this
-     * method will synthesize a generic definition and keep returning it upon
-     * subsequent calls, or otherwise, it will synthesize a new definition for 
-     * each new type it hasn't yet created a compatible delay reactor for.
-     * @param type The type the delay class must be compatible with.
-     * @param generator A code generator.
-     */
-    private static Reactor getDelayClass(Type type, GeneratorBase generator) {
-        String className;
-        if (generator.getTargetTypes().supportsGenerics()) {
-            className = GeneratorBase.GEN_DELAY_CLASS_NAME;
-        } else {
-            String id = Integer.toHexString(InferredType.fromAST(type).toText().hashCode());
-            className = String.format("%s_%s", GeneratorBase.GEN_DELAY_CLASS_NAME, id);
-        }
-
-        // Only add class definition if it is not already there.
-        Reactor classDef = generator.findDelayClass(className);
-        if (classDef != null) {
-            return classDef;
-        }
-        
-        Reactor delayClass = factory.createReactor();
-        Parameter delayParameter = factory.createParameter();
-        Action action = factory.createAction();
-        VarRef triggerRef = factory.createVarRef();
-        VarRef effectRef = factory.createVarRef();
-        Input input = factory.createInput();
-        Output output = factory.createOutput();
-        VarRef inRef = factory.createVarRef();
-        VarRef outRef = factory.createVarRef();
-
-        Reaction r1 = factory.createReaction();
-        Reaction r2 = factory.createReaction();
-        
-        delayParameter.setName("delay");
-        delayParameter.setType(factory.createType());
-        delayParameter.getType().setId("time");
-        delayParameter.getType().setTime(true);
-        Time defaultTime = factory.createTime();
-        defaultTime.setUnit(null);
-        defaultTime.setInterval(0);
-        delayParameter.getInit().add(defaultTime);
-
-        // Name the newly created action; set its delay and type.
-        action.setName("act");
-        var paramRef = factory.createParameterReference();
-        paramRef.setParameter(delayParameter);
-        action.setMinDelay(paramRef);
-        action.setOrigin(ActionOrigin.LOGICAL);
-
-        if (generator.getTargetTypes().supportsGenerics()) {
-            action.setType(factory.createType());
-            action.getType().setId("T");
-        } else {
-            action.setType(EcoreUtil.copy(type));
-        }
-
-        input.setName("inp");
-        input.setType(EcoreUtil.copy(action.getType()));
-
-        output.setName("out");
-        output.setType(EcoreUtil.copy(action.getType()));
-
-        // Establish references to the involved ports.
-        inRef.setVariable(input);
-        outRef.setVariable(output);
-
-        // Establish references to the action.
-        triggerRef.setVariable(action);
-        effectRef.setVariable(action);
-
-        // Add the action to the reactor.
-        delayClass.setName(className);
-        delayClass.getActions().add(action);
-
-        // Configure the second reaction, which reads the input.
-        r1.getTriggers().add(inRef);
-        r1.getEffects().add(effectRef);
-        r1.setCode(factory.createCode());
-        r1.getCode().setBody(generator.generateDelayBody(action, inRef));
-        
-        // Configure the first reaction, which produces the output.
-        r2.getTriggers().add(triggerRef);
-        r2.getEffects().add(outRef);
-        r2.setCode(factory.createCode());
-        r2.getCode().setBody(generator.generateForwardBody(action, outRef));
-
-        // Add the reactions to the newly created reactor class.
-        // These need to go in the opposite order in case
-        // a new input arrives at the same time the delayed
-        // output is delivered!
-        delayClass.getReactions().add(r2);
-        delayClass.getReactions().add(r1);
-
-        // Add a type parameter if the target supports it.
-        if (generator.getTargetTypes().supportsGenerics()) {
-            TypeParm parm = factory.createTypeParm();
-            parm.setLiteral(generator.generateDelayGeneric());
-            delayClass.getTypeParms().add(parm);
-        }
-        delayClass.getInputs().add(input);
-        delayClass.getOutputs().add(output);
-        delayClass.getParameters().add(delayParameter);
-        generator.addDelayClass(delayClass);
-        return delayClass;
-    }
-    
     /**
      * Produce a unique identifier within a reactor based on a
      * given based name. If the name does not exists, it is returned;
@@ -990,10 +718,6 @@ public class ASTUtils {
         }
         return false;
     }
-    
-    public static boolean isZero(Code code) {
-        return code != null && isZero(toOriginalText(code));
-    }
 
     /**
      * Report whether the given expression is zero or not.
@@ -1004,14 +728,13 @@ public class ASTUtils {
     public static boolean isZero(Expression expr) {
         if (expr instanceof Literal) {
             return isZero(((Literal) expr).getLiteral());
-        } else if (expr instanceof Code) {
-            return isZero((Code) expr);
         }
         return false;
     }
 
     /**
      * Report whether the given string literal is an integer number or not.
+     *
      * @param literal AST node to inspect.
      * @return True if the given value is an integer, false otherwise.
      */
@@ -1084,8 +807,6 @@ public class ASTUtils {
                 return isValidTime((Time) expr);
             } else if (expr instanceof Literal) {
                 return isZero(((Literal) expr).getLiteral());
-            } else if (expr instanceof Code) {
-                return isZero((Code) expr);
             }
         return false;
     }
@@ -1102,6 +823,32 @@ public class ASTUtils {
                TimeUnit.isValidUnit(unit);
     }
 
+
+    /**
+     * If the initializer contains exactly one expression,
+     * return it. Otherwise, return null.
+     */
+    public static Expression asSingleExpr(Initializer init) {
+        if (init == null) {
+            return null;
+        }
+        var exprs = init.getExprs();
+        return exprs.size() == 1 ? exprs.get(0) : null;
+    }
+
+    public static boolean isSingleExpr(Initializer init) {
+        // todo expand that to = initialization
+        if (init == null) {
+            return false;
+        }
+        var exprs = init.getExprs();
+        return exprs.size() == 1;
+    }
+
+    public static boolean isListInitializer(Initializer init) {
+        return init != null && !isSingleExpr(init);
+    }
+
     /**
      * Return the type of a declaration with the given
      * (nullable) explicit type, and the given (nullable)
@@ -1111,27 +858,26 @@ public class ASTUtils {
      * "undefined" type if neither can be inferred.
      *
      * @param type     Explicit type declared on the declaration
-     * @param initList A list of expressions used to initialize a parameter or
-     *                 state variable.
+     * @param init The initializer expression
      * @return The inferred type, or "undefined" if none could be inferred.
      */
-    public static InferredType getInferredType(Type type, List<Expression> initList) {
+    public static InferredType getInferredType(Type type, Initializer init) {
         if (type != null) {
             return InferredType.fromAST(type);
-        } else if (initList == null) {
+        } else if (init == null) {
             return InferredType.undefined();
         }
 
-        if (initList.size() == 1) {
+        var single = asSingleExpr(init);
+        if (single != null) {
             // If there is a single element in the list, and it is a proper
             // time value with units, we infer the type "time".
-            Expression expr = initList.get(0);
-            if (expr instanceof ParameterReference) {
-                return getInferredType(((ParameterReference)expr).getParameter());
-            } else if (ASTUtils.isValidTime(expr) && !ASTUtils.isZero(expr)) {
+            if (single instanceof ParameterReference) {
+                return getInferredType(((ParameterReference) single).getParameter());
+            } else if (single instanceof Time) {
                 return InferredType.time();
             }
-        } else if (initList.size() > 1) {
+        } else if (init.getExprs().size() > 1) {
             // If there are multiple elements in the list, and there is at
             // least one proper time value with units, and all other elements
             // are valid times (including zero without units), we infer the
@@ -1139,11 +885,11 @@ public class ASTUtils {
             var allValidTime = true;
             var foundNonZero = false;
 
-            for (var expr : initList) {
-                if (!ASTUtils.isValidTime(expr)) {
+            for (var e : init.getExprs()) {
+                if (!ASTUtils.isValidTime(e)) {
                     allValidTime = false;
                 }
-                if (!ASTUtils.isZero(expr)) {
+                if (!ASTUtils.isZero(e)) {
                     foundNonZero = true;
                 }
             }
@@ -1268,7 +1014,7 @@ public class ASTUtils {
      */
     public static TimeValue getDefaultAsTimeValue(Parameter p) {
         if (isOfTimeType(p)) {
-            var init = p.getInit().get(0);
+            var init = asSingleExpr(p.getInit());
             if (init != null) {
                 return getLiteralTimeValue(init);
             }
@@ -1349,7 +1095,7 @@ public class ASTUtils {
      * ```
      * (Actually, in each of the above cases, the returned value is a list with
      * one entry, a Literal, e.g. ["1"]).
-     * 
+     *
      * There are two instances of reactor class B.
      * ```
      *     initialValue(y, null) returns 2
@@ -1394,7 +1140,7 @@ public class ASTUtils {
             if (lastAssignment != null) {
                 // Right hand side can be a list. Collect the entries.
                 List<Expression> result = new ArrayList<>();
-                for (Expression expr: lastAssignment.getRhs()) {
+                for (Expression expr: lastAssignment.getRhs().getExprs()) {
                     if (expr instanceof ParameterReference) {
                         if (instantiations.size() > 1
                             && instantiation.eContainer() != instantiations.get(1).getReactorClass()
@@ -1418,7 +1164,7 @@ public class ASTUtils {
         // If we reach here, then either no instantiation was supplied or
         // there was no assignment in the instantiation. So just use the
         // parameter's initial value.
-        return parameter.getInit();
+        return parameter.getInit().getExprs();
     }
     
     /**
@@ -1696,7 +1442,7 @@ public class ASTUtils {
      * @return True if the variable was initialized, false otherwise.
      */
     public static boolean isInitialized(StateVar v) {
-        return v != null && (v.getParens().size() == 2 || v.getBraces().size() == 2);
+        return v != null && v.getInit() != null;
     }
 
     /**
@@ -1708,7 +1454,7 @@ public class ASTUtils {
      */
     public static boolean isParameterized(StateVar s) {
         return s.getInit() != null && 
-               IterableExtensions.exists(s.getInit(), it -> it instanceof ParameterReference);
+               IterableExtensions.exists(s.getInit().getExprs(), it -> it instanceof ParameterReference);
     }
 
     /**

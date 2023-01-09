@@ -28,6 +28,7 @@ import org.eclipse.emf.ecore.resource.Resource
 import org.lflang.ErrorReporter
 import org.lflang.Target
 import org.lflang.TargetProperty.BuildType
+import org.lflang.ast.AfterDelayTransformation
 import org.lflang.generator.GeneratorUtils.canGenerate
 import org.lflang.generator.CodeMap
 import org.lflang.generator.GeneratorBase
@@ -35,6 +36,7 @@ import org.lflang.generator.GeneratorResult
 import org.lflang.generator.IntegratedBuilder
 import org.lflang.generator.LFGeneratorContext
 import org.lflang.generator.TargetTypes
+import org.lflang.generator.cpp.CppTypes
 import org.lflang.joinWithCommas
 import org.lflang.lf.Action
 import org.lflang.lf.VarRef
@@ -163,17 +165,5 @@ class RustGenerator(
     override fun getTarget(): Target = Target.Rust
 
     override fun getTargetTypes(): TargetTypes = RustTypes
-
-    override fun generateDelayBody(action: Action, port: VarRef): String {
-        TODO("Not yet implemented")
-    }
-
-    override fun generateForwardBody(action: Action, port: VarRef): String {
-        TODO("Not yet implemented")
-    }
-
-    override fun generateDelayGeneric(): String {
-        TODO("Not yet implemented")
-    }
 
 }

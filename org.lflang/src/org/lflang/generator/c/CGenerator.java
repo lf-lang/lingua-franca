@@ -39,13 +39,14 @@ import static org.lflang.util.StringUtil.addDoubleQuotes;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
-import java.nio.file.Paths;
+import java.nio.file.Path;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.eclipse.emf.ecore.resource.Resource;
@@ -64,6 +65,7 @@ import org.lflang.TargetProperty.ClockSyncMode;
 import org.lflang.TargetProperty.CoordinationType;
 import org.lflang.TargetProperty.Platform;
 import org.lflang.TimeValue;
+import org.lflang.ast.AfterDelayTransformation;
 import org.lflang.federated.FedFileConfig;
 import org.lflang.federated.FederateInstance;
 import org.lflang.federated.launcher.FedCLauncher;
@@ -74,6 +76,7 @@ import org.lflang.generator.CodeBuilder;
 import org.lflang.generator.GeneratorBase;
 import org.lflang.generator.GeneratorResult;
 import org.lflang.generator.GeneratorUtils;
+import org.lflang.generator.DelayBodyGenerator;
 import org.lflang.generator.IntegratedBuilder;
 import org.lflang.generator.LFGeneratorContext;
 import org.lflang.generator.LFResource;
@@ -390,26 +393,31 @@ public class CGenerator extends GeneratorBase {
         ErrorReporter errorReporter,
         boolean CCppMode,
         CTypes types,
-        CCmakeGenerator cmakeGenerator
+        CCmakeGenerator cmakeGenerator,
+        DelayBodyGenerator delayBodyGenerator
     ) {
         super(fileConfig, errorReporter);
         this.CCppMode = CCppMode;
         this.types = types;
         this.cmakeGenerator = cmakeGenerator;
+
+        // Register the after delay transformation to be applied by GeneratorBase.
+        registerTransformation(new AfterDelayTransformation(delayBodyGenerator, types, fileConfig.resource));
     }
 
-    public CGenerator(FileConfig fileConfig, ErrorReporter errorReporter, boolean CCppMode) {
+    public CGenerator(FileConfig fileConfig, ErrorReporter errorReporter, boolean CCppMode, CTypes types) {
         this(
             fileConfig,
             errorReporter,
             CCppMode,
-            new CTypes(errorReporter),
-            new CCmakeGenerator(fileConfig, List.of())
+            types,
+            new CCmakeGenerator(fileConfig, List.of()),
+            new CDelayBodyGenerator(types)
         );
     }
 
-    public CGenerator(FileConfig fileConfig, ErrorReporter errorReporter) {
-        this(fileConfig, errorReporter, false);
+    public CGenerator(FileConfig fileConfig, ErrorReporter errorReporter, boolean CCppMode) {
+        this(fileConfig, errorReporter, CCppMode, new CTypes(errorReporter));
     }
 
     ////////////////////////////////////////////
@@ -421,6 +429,10 @@ public class CGenerator extends GeneratorBase {
         if (isFederated) {
             // Add compile definitions for federated execution
             targetConfig.compileDefinitions.put("FEDERATED", "");
+            if(targetConfig.auth) {
+                // The federates are authenticated before joining federation.
+                targetConfig.compileDefinitions.put("FEDERATED_AUTHENTICATED", "");
+            }
             if (targetConfig.coordination == CoordinationType.CENTRALIZED) {
                 // The coordination is centralized.
                 targetConfig.compileDefinitions.put("FEDERATED_CENTRALIZED", "");
@@ -599,6 +611,22 @@ public class CGenerator extends GeneratorBase {
                     //noinspection ThrowableNotThrown,ResultOfMethodCallIgnored
                     Exceptions.sneakyThrow(e);
                 }
+            }
+
+            // Dump the additional compile definitions to a file to keep the generated project
+            //  self contained. In this way, third-party build tools like PlatformIO, west, arduino-cli can
+            //  take over and do the rest of compilation.
+
+            try {
+                String compileDefs = targetConfig.compileDefinitions.keySet().stream()
+                    .map(key -> key + "=" + targetConfig.compileDefinitions.get(key))
+                    .collect(Collectors.joining("\n"));
+                FileUtil.writeToFile(
+                    compileDefs,
+                    Path.of(fileConfig.getSrcGenPath() + File.separator + "CompileDefinitions.txt")
+                );
+            } catch (IOException e) {
+                Exceptions.sneakyThrow(e);
             }
 
             // If this code generator is directly compiling the code, compile it now so that we
@@ -1081,8 +1109,7 @@ public class CGenerator extends GeneratorBase {
         // if platform target was set, use given platform instead
         if (targetConfig.platformOptions.platform != Platform.AUTO) {
             osName = targetConfig.platformOptions.platform.toString();
-        }
-        if (Stream.of("mac", "darwin", "win", "nux", "arduino").noneMatch(osName::contains)) {
+        } else if (Stream.of("mac", "darwin", "win", "nux").noneMatch(osName::contains)) {
             errorReporter.reportError("Platform " + osName + " is not supported");
         }
     }
@@ -1813,7 +1840,7 @@ public class CGenerator extends GeneratorBase {
             List.of("--c_out="+this.fileConfig.getSrcGenPath(), filename),
             fileConfig.srcPath);
         if (protoc == null) {
-            errorReporter.reportError("Processing .proto files requires proto-c >= 1.3.3.");
+            errorReporter.reportError("Processing .proto files requires protoc-c >= 1.3.3.");
             return;
         }
         var returnCode = protoc.run(cancelIndicator);
@@ -2233,40 +2260,7 @@ public class CGenerator extends GeneratorBase {
         }
     }
 
-    /**
-     * Generate code for the body of a reaction that takes an input and
-     * schedules an action with the value of that input.
-     * @param action The action to schedule
-     * @param port The port to read from
-     */
-    @Override
-    public String generateDelayBody(Action action, VarRef port) {
-        var ref = ASTUtils.generateVarRef(port);
-        return CReactionGenerator.generateDelayBody(
-            ref,
-            action.getName(),
-            CUtil.isTokenType(getInferredType(action), types)
-        );
-    }
 
-    /**
-     * Generate code for the body of a reaction that is triggered by the
-     * given action and writes its value to the given port. This realizes
-     * the receiving end of a logical delay specified with the 'after'
-     * keyword.
-     * @param action The action that triggers the reaction
-     * @param port The port to write to.
-     */
-    @Override
-    public String generateForwardBody(Action action, VarRef port) {
-        var outputName = ASTUtils.generateVarRef(port);
-        return CReactionGenerator.generateForwardBody(
-            outputName,
-            types.getTargetType(action),
-            action.getName(),
-            CUtil.isTokenType(getInferredType(action), types)
-        );
-    }
 
     /**
      * Generate code for the body of a reaction that handles the
@@ -2543,12 +2537,6 @@ public class CGenerator extends GeneratorBase {
         return "uint8_t*";
     }
 
-
-    @Override
-    public String generateDelayGeneric() {
-        throw new UnsupportedOperationException("TODO: auto-generated method stub");
-    }
-
     ////////////////////////////////////////////////////////////
     //// Private methods
 
@@ -2569,6 +2557,9 @@ public class CGenerator extends GeneratorBase {
                 if (reactionInstanceGraph.nodeCount() > 0) {
                     errorReporter.reportError("Main reactor has causality cycles. Skipping code generation.");
                     return;
+                }
+                if (hasDeadlines) {
+                    this.main.assignDeadlines();
                 }
                 // Inform the run-time of the breadth/parallelism of the reaction graph
                 var breadth = reactionInstanceGraph.getBreadth();

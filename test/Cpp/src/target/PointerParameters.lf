@@ -1,0 +1,18 @@
+// This is a smoke test to see if pointers can be used as parameters.
+// Compilation without errors is success.
+target Cpp
+
+reactor Foo(ptr: int*{{= nullptr =}}) {
+    reaction(startup) {=
+        if (ptr == nullptr || *ptr != 42) {
+            reactor::log::Error() << "received an unexpected value!";
+            exit(1);
+        }
+    =}
+}
+
+main reactor {
+    private preamble {= int a{42}; =}
+
+    foo = new Foo(ptr = {= &a =})
+}

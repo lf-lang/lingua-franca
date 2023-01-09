@@ -32,6 +32,7 @@ import org.lflang.ErrorReporter
 import org.lflang.InferredType
 import org.lflang.Target
 import org.lflang.TimeValue
+import org.lflang.ast.AfterDelayTransformation
 import org.lflang.federated.FederateInstance
 import org.lflang.federated.launcher.FedTSLauncher
 import org.lflang.federated.serialization.SupportedSerializers
@@ -46,6 +47,7 @@ import org.lflang.generator.PrependOperator
 import org.lflang.generator.ReactorInstance
 import org.lflang.generator.SubContext
 import org.lflang.generator.TargetTypes
+import org.lflang.generator.cpp.CppTypes
 import org.lflang.lf.Action
 import org.lflang.lf.Expression
 import org.lflang.lf.VarRef
@@ -118,6 +120,9 @@ class TSGenerator(
      *  @param context The context of this build.
      */
     override fun doGenerate(resource: Resource, context: LFGeneratorContext) {
+        // Register the after delay transformation to be applied by GeneratorBase.
+        registerTransformation(AfterDelayTransformation(TSDelayBodyGenerator, targetTypes, resource))
+
         super.doGenerate(resource, context)
 
         if (!canGenerate(errorsOccurred(), mainDef, errorReporter, context)) return
@@ -513,21 +518,6 @@ class TSGenerator(
     override fun getTargetTypes(): TargetTypes = TSTypes
 
     /**
-     * Return a TS type for the specified action.
-     * If the type has not been specified, return
-     * "Present" which is the base type for Actions.
-     * @param action The action
-     * @return The TS type.
-     */
-    private fun getActionType(action: Action): String {
-        return if (action.type != null) {
-            TSTypes.getTargetType(action.type)
-        } else {
-            "Present"
-        }
-    }
-
-    /**
      * Generate code for the body of a reaction that handles the
      * action that is triggered by receiving a message from a remote
      * federate.
@@ -655,22 +645,7 @@ class TSGenerator(
         }
     }
 
-    // Virtual methods.
-    override fun generateDelayBody(action: Action, port: VarRef): String {
-        return "actions.${action.name}.schedule(0, ${ASTUtils.generateVarRef(port)} as ${getActionType(action)});"
-    }
-
-    override fun generateForwardBody(action: Action, port: VarRef): String {
-        return "${ASTUtils.generateVarRef(port)} = ${action.name} as ${getActionType(action)};"
-    }
-
-    override fun generateDelayGeneric(): String {
-        return "T extends Present"
-    }
-
     override fun getTarget(): Target {
         return Target.TS
     }
-
-    override fun generateAfterDelaysWithVariableWidth() = false
 }
