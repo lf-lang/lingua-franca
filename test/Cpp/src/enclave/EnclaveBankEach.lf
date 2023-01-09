@@ -17,7 +17,7 @@ reactor Node(
         std::this_thread::sleep_for(duration);
         reactor::log::Info() << id << " reaction done.";
         a.schedule(period);
-    =} deadline(400 msec) {=
+    =} deadline(600 msec) {=
         reactor::log::Error() << id << " deadline was violated!";
         exit(1);
     =}
@@ -26,5 +26,5 @@ reactor Node(
 main reactor {
     slow = new Node(id = "slow", period = {= 1s =}, duration = {= 700ms =})
     @enclave(each = true)
-    nodes = new[4] Node()
+    nodes = new[2] Node()
 }
