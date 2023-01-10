@@ -59,6 +59,7 @@ import org.lflang.TargetProperty.Platform;
 import org.lflang.federated.extensions.CExtensionUtils;
 import org.lflang.generator.ActionInstance;
 import org.lflang.generator.CodeBuilder;
+import org.lflang.generator.DockerGeneratorBase;
 import org.lflang.generator.GeneratorBase;
 import org.lflang.generator.GeneratorResult;
 import org.lflang.generator.GeneratorUtils;
@@ -516,7 +517,7 @@ public class CGenerator extends GeneratorBase {
             // Create docker file.
             if (targetConfig.dockerOptions != null && mainDef != null) {
                 try {
-                    (new CDockerGenerator(context)).writeDockerFiles();
+                    getDockerGenerator(context).writeDockerFiles();
                 } catch (IOException e) {
                     throw new RuntimeException("Error while writing Docker files", e);
                 }
@@ -1906,6 +1907,10 @@ public class CGenerator extends GeneratorBase {
     @Override
     public TargetTypes getTargetTypes() {
         return types;
+    }
+
+    protected DockerGeneratorBase getDockerGenerator(LFGeneratorContext context) {
+        return new CDockerGenerator(context);
     }
 
     // //////////////////////////////////////////

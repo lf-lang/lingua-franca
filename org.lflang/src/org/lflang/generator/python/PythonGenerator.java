@@ -44,6 +44,7 @@ import org.lflang.Target;
 import org.lflang.TargetProperty;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.generator.CodeMap;
+import org.lflang.generator.DockerGeneratorBase;
 import org.lflang.generator.GeneratorResult;
 import org.lflang.generator.IntegratedBuilder;
 import org.lflang.generator.LFGeneratorContext;
@@ -178,6 +179,12 @@ public class PythonGenerator extends CGenerator {
 
     // //////////////////////////////////////////
     // // Protected methods
+
+
+    @Override
+    protected DockerGeneratorBase getDockerGenerator(LFGeneratorContext context) {
+        return new PythonDockerGenerator(context);
+    }
 
     /**
      * Generate all Python classes if they have a reaction
