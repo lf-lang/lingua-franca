@@ -15,6 +15,7 @@ reactor LET {
     timer t(0, 100 msec)
     logical action let(50 msec): int
 
+    @let
     reaction(t) -> let {=
         instant_t physical_time = lf_time_physical();
         while (lf_time_physical() < physical_time + MSEC(50)) {

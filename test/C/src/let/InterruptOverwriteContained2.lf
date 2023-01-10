@@ -12,6 +12,7 @@ reactor Let {
     logical action let(50 msec): int
     input in:int
 
+    @let
     reaction(in) -> let {=
         int in_start = in->value;
         instant_t physical_time = lf_time_physical();

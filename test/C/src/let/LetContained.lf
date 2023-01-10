@@ -1,28 +1,19 @@
-/* Verify that interrupt reactions are stalled when LET is executing*/
 target C {
-    scheduler: LET,
-    workers: 2,
-    timeout: 200 msec
-};
-
-reactor Interrupting {
-    timer t (10 msec, 10 msec)
-    state i:int(0);
-    output out:int
-
-    reaction(t) -> out {=
-        lf_set(out, ++self->i);
-    =} 
+    timeout: 1 sec
 }
 
-reactor Sink {
-    input in:int
-    reaction(in) {==}
+reactor Source{
+    timer t(0, 100 msec)
+    output o:int
+    reaction(t) -> o {=
+        static int i = 0;
+        lf_set(o, i++);
+    =}
 }
+
 
 reactor Let {
-    state r1_executing:bool(false)
-    input in:int
+    mutable input in:int
     logical action let(50 msec): int
 
     @let
@@ -44,9 +35,7 @@ reactor Let {
 }
 
 main reactor {
-    interrupting = new Interrupting()
-    let = new Let()
-    sink = new Sink()
-
-    (interrupting.out)+ -> let.in, sink.in
+    s = new Source()
+    l = new Let()
+    s.o ->l.in 
 }

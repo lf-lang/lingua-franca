@@ -35,6 +35,7 @@ import org.lflang.lf.TriggerRef;
 import org.lflang.lf.VarRef;
 import org.lflang.lf.Variable;
 import org.lflang.util.StringUtil;
+import org.lflang.TimeValue;
 
 public class CReactionGenerator {
     protected static String DISABLE_REACTION_INITIALIZATION_MARKER

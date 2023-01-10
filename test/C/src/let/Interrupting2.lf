@@ -1,0 +1,65 @@
+/* Verify that interrupt reactions are stalled when LET is executing*/
+target C {
+    scheduler: LET,
+    workers: 2,
+    timeout: 200 msec
+};
+
+
+reactor Top {
+    logical action a :int
+    
+    let = new Let()
+
+    reaction(a) -> a {=
+        printf("Quick start\n");
+        lf_schedule_int(a, MSEC(10), -1);
+    =}
+
+    reaction(startup) -> a {=
+        lf_schedule_int(a, MSEC(0), 42);
+    =}
+
+    reaction(a) -> a {=
+        printf("Quick start\n");
+        lf_schedule_int(a, MSEC(10), -1);
+    =}
+}
+
+
+reactor Let {
+    logical action let(50 msec): int
+
+    input in:int
+
+
+    @let
+    reaction(in) -> let {=
+        printf("LET start\n");
+        int a_start = in->value;
+        instant_t physical_time = lf_time_physical();
+        
+        while (lf_time_physical() < physical_time + MSEC(50)) {
+            // Do nothing.
+        }
+
+        int a_end = in->value;
+        if(a_start != a_end) {
+            lf_print_error_and_exit("trigger value changed during execution");
+        }
+
+        printf("LET end\n");
+        lf_schedule_int(let, 0, 42);
+    =}
+
+
+    reaction(let) {=
+        if (let->value != 42) {
+            lf_print_error_and_exit("Wrong value received from action");
+        }    
+    =}
+}
+
+main reactor {
+    let = new Let()
+}
