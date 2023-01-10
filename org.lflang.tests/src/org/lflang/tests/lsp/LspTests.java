@@ -15,7 +15,6 @@ import org.eclipse.emf.common.util.URI;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
-import org.lflang.FileConfig;
 import org.lflang.LFRuntimeModule;
 import org.lflang.LFStandaloneSetup;
 import org.lflang.Target;
@@ -102,8 +101,8 @@ class LspTests {
                         System.out.println(" but the expected error could not be found.");
                         System.out.printf(
                             "%s failed. Content of altered version of %s:%n%s%n",
-                            alteredTest.getFileConfig().srcFile,
-                            alteredTest.getFileConfig().srcFile,
+                            alteredTest.getSrcFile(),
+                            alteredTest.getSrcFile(),
                             TestBase.THIN_LINE
                         );
                         System.out.println(alteredTest + "\n" + TestBase.THIN_LINE);
@@ -137,9 +136,9 @@ class LspTests {
         LanguageServerErrorReporter.setClient(client);
         for (LFTest test : selectTests(target, random)) {
             client.clearDiagnostics();
-            runTest(test.context.getFileConfig());
             if (alterer != null) {
-                try (AlteredTest altered = alterer.alterTest(test.context.getFileConfig())) {
+                try (AlteredTest altered = alterer.alterTest(test.srcFile)) {
+                    runTest(altered.getSrcFile());
                     Assertions.assertTrue(requirementGetter.apply(altered).test(client.getReceivedDiagnostics()));
                 }
             } else {
@@ -193,7 +192,7 @@ class LspTests {
      * @param requiredText A keyword that a list of diagnostics should be searched for.
      * @return The predicate, "X includes {@code requiredText}."
      */
-    private static Predicate<List<Diagnostic>> diagnosticsIncludeText(String requiredText) {
+    private static Predicate<List<Diagnostic>> diagnosticsIncludeText(@SuppressWarnings("SameParameterValue") String requiredText) {
         return diagnostics -> diagnostics.stream().anyMatch(
             d -> d.getMessage().toLowerCase().contains(requiredText)
         );
@@ -201,13 +200,13 @@ class LspTests {
 
     /**
      * Run the given test.
-     * @param fileConfig File configuration of a given test.
+     * @param test The test b
      */
-    private void runTest(FileConfig fileConfig) {
+    private void runTest(Path test) {
         MockReportProgress reportProgress = new MockReportProgress();
         try {
             builder.run(
-                fileConfig.resource.getURI(),
+                URI.createFileURI(test.toString()),
                 false, reportProgress,
                 () -> false
             );

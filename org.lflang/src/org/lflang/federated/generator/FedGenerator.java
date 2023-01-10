@@ -251,11 +251,11 @@ public class FedGenerator {
                     fileConfig.fed.getFedSrcPath().resolve(fed.name + ".lf").toAbsolutePath().toString()
                 ), true);
                 FileConfig fc = LFGenerator.createFileConfig(res, fileConfig.fed.getFedSrcGenPath(), false);
-                ErrorReporter er = new LineAdjustingErrorReporter(errorReporter, lf2lfCodeMapMap);
-                SubContext cont = new SubContext(context, IntegratedBuilder.VALIDATED_PERCENT_PROGRESS, 100) {
+                ErrorReporter subContextErrorReporter = new LineAdjustingErrorReporter(errorReporter, lf2lfCodeMapMap);
+                SubContext subContext = new SubContext(context, IntegratedBuilder.VALIDATED_PERCENT_PROGRESS, 100) {
                     @Override
                     public ErrorReporter getErrorReporter() {
-                        return this.errorReporter;
+                        return subContextErrorReporter;
                     }
 
                     @Override
@@ -270,10 +270,10 @@ public class FedGenerator {
 
                 };
 
-                gen.doGenerate(res, fsa, cont);
-                codeMapMap.putAll(cont.getResult().getCodeMaps());
+                gen.doGenerate(res, fsa, subContext);
+                codeMapMap.putAll(subContext.getResult().getCodeMaps());
                 // FIXME
-                //cont.getFileConfig()
+                //subContext.getFileConfig()
                 //finalize.accept();
             });
         }
