@@ -120,6 +120,7 @@ public class CCmakeGenerator {
         cMakeCode.pr("cmake_minimum_required(VERSION " + MIN_CMAKE_VERSION + ")");
         
         if (targetConfig.platformOptions.platform == Platform.ZEPHYR) {
+            cMakeCode.pr("set(CONF_FILE prj_lf.conf)");
             cMakeCode.pr("find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})");
             cMakeCode.newLine();
         }

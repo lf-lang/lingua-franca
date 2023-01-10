@@ -1,7 +1,5 @@
 #!/usr/bin/bash
-
 echo "Building Zephyr application"
-echo "ZEPHYR_BASE=${ZEPHYR_BASE}"
 SCRIPT_DIR=$(dirname $0)
 
 
@@ -18,20 +16,7 @@ fi
 export BOARD=$1
 export LF_SRC_DIRECTORY=$(pwd)
 
-cp $LF_SRC_DIRECTORY/$SCRIPT_DIR/prj.conf $LF_SOURCE_GEN_DIRECTORY/
-cp $LF_SRC_DIRECTORY/$SCRIPT_DIR/Kconfig $LF_SOURCE_GEN_DIRECTORY/
-mkdir $LF_SOURCE_GEN_DIRECTORY/boards
-cp $LF_SRC_DIRECTORY/$SCRIPT_DIR/*.overlay $LF_SOURCE_GEN_DIRECTORY/boards/
-
-
 cd $LF_SOURCE_GEN_DIRECTORY
-
-# Parse additional compile defs
-COMPILE_DEFS=""
-while IFS= read -r line; do
-  COMPILE_DEFS="${COMPILE_DEFS} -D$line"
-done < CompileDefinitions.txt
-echo "Passing compile defs: $COMPILE_DEFS to cmake"
 
 # Build project
 west build -b $BOARD -- $COMPILE_DEFS

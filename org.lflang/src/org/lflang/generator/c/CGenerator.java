@@ -596,6 +596,27 @@ public class CGenerator extends GeneratorBase {
                         fileConfig.getSrcGenPath().resolve("toolchain/BoardOptions.cmake"));
                 }
 
+                // If Zephyr target then copy default config and board files 
+                //  for Zephyr support
+                if (targetConfig.platformOptions.platform == Platform.ZEPHYR) {
+                    FileUtil.copyDirectoryFromClassPath(
+                        "/lib/platform/zephyr/boards",
+                        fileConfig.getSrcGenPath().resolve("boards"),
+                        false
+                    );
+                    FileUtil.copyFileFromClassPath(
+                        "/lib/platform/zephyr/prj_lf.conf",
+                        fileConfig.getSrcGenPath().resolve("prj_lf.conf"),
+                        true
+                    );
+
+                    FileUtil.copyFileFromClassPath(
+                        "/lib/platform/zephyr/Kconfig",
+                        fileConfig.getSrcGenPath().resolve("Kconfig"),
+                        true
+                    );
+                }
+
                 // Write the generated code
                 code.writeToFile(targetFile);
             } catch (IOException e) {
