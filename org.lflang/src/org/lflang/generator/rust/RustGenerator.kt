@@ -87,14 +87,13 @@ class RustGenerator(
             context.reportProgress(
                 "Code generation complete. Compiling...", IntegratedBuilder.GENERATED_PERCENT_PROGRESS
             )
-            val exec = fileConfig.binPath.toAbsolutePath().resolve(gen.executableName)
-            Files.deleteIfExists(exec) // cleanup, cargo doesn't do it
+            Files.deleteIfExists(fileConfig.executable) // cleanup, cargo doesn't do it
             if (context.mode == LFGeneratorContext.Mode.LSP_MEDIUM) RustValidator(fileConfig, errorReporter, codeMaps).doValidate(context)
-            else invokeRustCompiler(context, gen.executableName, codeMaps)
+            else invokeRustCompiler(context, codeMaps)
         }
     }
 
-    private fun invokeRustCompiler(context: LFGeneratorContext, executableName: String, codeMaps: Map<Path, CodeMap>) {
+    private fun invokeRustCompiler(context: LFGeneratorContext, codeMaps: Map<Path, CodeMap>) {
 
         val args = mutableListOf<String>().apply {
             this += "build"
@@ -128,18 +127,11 @@ class RustGenerator(
 
         if (cargoReturnCode == 0) {
             // We still have to copy the compiled binary to the destination folder.
-            val isWindows = System.getProperty("os.name").lowercase().contains("win")
-            val localizedExecName = if (isWindows) {
-                "$executableName.exe"
-            } else {
-                executableName
-            }
-
             val buildType = targetConfig.rust.buildType
             val binaryPath = validator.getMetadata()?.targetDirectory!!
                 .resolve(buildType.cargoProfileName)
-                .resolve(localizedExecName)
-            val destPath = fileConfig.binPath.resolve(localizedExecName)
+                .resolve(fileConfig.executable.fileName)
+            val destPath = fileConfig.executable
 
             FileUtil.copyFile(binaryPath, destPath)
             // Files do not retain permissions when copied.

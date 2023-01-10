@@ -26,6 +26,8 @@ package org.lflang.generator.rust
 
 import org.eclipse.emf.ecore.resource.Resource
 import org.lflang.FileConfig
+import org.lflang.TargetConfig
+import org.lflang.camelToSnakeCase
 import org.lflang.generator.CodeMap
 import org.lflang.util.FileUtil
 import java.io.Closeable
@@ -46,9 +48,19 @@ class RustFileConfig(resource: Resource, srcGenBasePath: Path, useHierarchicalBi
         FileUtil.deleteDirectory(outPath.resolve("target"))
     }
 
-//    override fun getCommand(): String {
-//        TODO("Not yet implemented")
-//    }
+    override fun getExecutable(): Path {
+        val localizedExecName = "${name.camelToSnakeCase()}$executableExtension"
+        return binPath.resolve(localizedExecName)
+    }
+
+    override fun getExecutableExtension(): String {
+        val isWindows = System.getProperty("os.name").lowercase().contains("win")
+        return if (isWindows) {
+            ".exe"
+        } else {
+            ""
+        }
+    }
 
     inline fun emit(codeMaps: MutableMap<Path, CodeMap>, p: Path, f: Emitter.() -> Unit) {
         measureTimeMillis {
@@ -112,4 +124,3 @@ class Emitter(
         Files.writeString(output, codeMap.generatedCode)
     }
 }
-
