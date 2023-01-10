@@ -240,7 +240,7 @@ class TSGenerator(
     ) {
         val tsFileName = fileConfig.name
 
-        val tsFilePath = context.fileConfig.srcGenPath.resolve("$tsFileName.ts")
+        val tsFilePath = context.fileConfig.srcGenPath.resolve("src").resolve("$tsFileName.ts")
 
         val tsCode = StringBuilder()
 
