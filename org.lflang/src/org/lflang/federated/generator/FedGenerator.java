@@ -9,6 +9,7 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
@@ -229,7 +230,6 @@ public class FedGenerator {
             .createInjectorAndDoEMFRegistration();
         XtextResourceSet rs = inj.getInstance(XtextResourceSet.class);
         rs.addLoadOption(XtextResource.OPTION_RESOLVE_ALL, Boolean.TRUE);
-        LFGenerator gen = inj.getInstance(LFGenerator.class);
         // define output path here
         JavaIoFileSystemAccess fsa = inj.getInstance(JavaIoFileSystemAccess.class);
         fsa.setOutputPath("DEFAULT_OUTPUT", fileConfig.fed.getFedSrcGenPath().toString());
@@ -251,8 +251,11 @@ public class FedGenerator {
                 Resource res = rs.getResource(URI.createFileURI(
                     fileConfig.fed.getFedSrcPath().resolve(fed.name + ".lf").toAbsolutePath().toString()
                 ), true);
-                FileConfig fc = LFGenerator.createFileConfig(res, fileConfig.fed.getFedSrcGenPath(), false);
+                FileConfig subFileConfig = LFGenerator.createFileConfig(res, fileConfig.fed.getFedSrcGenPath(), false);
                 ErrorReporter subContextErrorReporter = new LineAdjustingErrorReporter(errorReporter, lf2lfCodeMapMap);
+                TargetConfig subConfig = GeneratorUtils.getTargetConfig(
+                    new Properties(), GeneratorUtils.findTarget(subFileConfig.resource), subContextErrorReporter
+                );
                 SubContext subContext = new SubContext(context, IntegratedBuilder.VALIDATED_PERCENT_PROGRESS, 100) {
                     @Override
                     public ErrorReporter getErrorReporter() {
@@ -266,12 +269,16 @@ public class FedGenerator {
 
                     @Override
                     public FileConfig getFileConfig() {
-                        return fc;
+                        return subFileConfig;
                     }
 
+                    @Override
+                    public TargetConfig getTargetConfig() {
+                        return subConfig;
+                    }
                 };
 
-                gen.doGenerate(res, fsa, subContext);
+                inj.getInstance(LFGenerator.class).doGenerate(res, fsa, subContext);
                 codeMapMap.putAll(subContext.getResult().getCodeMaps());
                 // FIXME
                 //subContext.getFileConfig()
