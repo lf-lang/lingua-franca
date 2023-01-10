@@ -148,8 +148,9 @@ public class TestRegistry {
         DOCKER_FEDERATED(true, "docker" + File.separator + "federated"),
         SERIALIZATION(false),
         ARDUINO(false, TestLevel.BUILD),
+        ZEPHYR(false, TestLevel.BUILD),
         TARGET(false);
-        
+
         /**
          * Whether or not we should compare coverage against other targets.
          */
