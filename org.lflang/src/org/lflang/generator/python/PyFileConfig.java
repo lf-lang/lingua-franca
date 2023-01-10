@@ -21,9 +21,14 @@ public class PyFileConfig extends FileConfig {
                       true,
                       srcPkgPath);
     }
+
+    @Override
+    public Path getExecutable() {
+        return srcGenPath.resolve(name + getExecutableExtension());
+    }
+
+    @Override
+    protected String getExecutableExtension() {
+        return ".py";
+    }
 }
-
-
-
-
-
