@@ -1361,16 +1361,19 @@ public abstract class GeneratorBase extends AbstractLFValidator {
             for (Reaction reaction : reactor.getReactions()) {
                 boolean hasLet = false;
                 String letWarning = "";
-                // FIXME: Should we use the @let attribute?
-//                if (AttributeUtils.isLet(reaction)) {
-                if(true) {
+                if (AttributeUtils.isLet(reaction)) {
+                    hasLet = true;
+                    TimeValue let = TimeValue.MAX_VALUE;
                     if (reaction.getEffects() != null) {
                         for (VarRef effect : reaction.getEffects()) {
                             Variable variable = effect.getVariable();
                             if (variable instanceof Action) {
-                                Time minDelay = ((Time) ((Action) variable).getMinDelay());
-                                if (minDelay != null && minDelay.getInterval() > 0) {
-                                    hasLet = true;
+                                Time _minDelay = (Time) ((Action) variable).getMinDelay();
+                                if (_minDelay != null && _minDelay.getInterval() > 0) {
+                                    TimeValue minDelay = ASTUtils.toTimeValue(_minDelay);
+                                    if (minDelay.isEarlierThan(let)) {
+                                        let = minDelay;
+                                    }
                                 } else {
                                     hasLet = false;
                                     letWarning = "Reaction marked LET but has Action with min_delay 0 as effect.";
@@ -1398,7 +1401,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
 
                     // Also, make sure that none of the triggers are outputs of contained reactors.
                     //  This makes our current strategy of marking triggers as mutable, infeasible.
-                    //  FIXME: Is this true? Can we mark the output as mutable and it would work?
+                    //  TODO: This is solved by enabling mutable triggers in the syntax
                     if (reaction.getTriggers().size() > 0) {
                         for (TriggerRef trigger : reaction.getTriggers()) {
                             if (trigger instanceof VarRef triggerAsVarRef) {
@@ -1413,7 +1416,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
                     // Check if we had any errors
                     if (!hasLet) {
                         // FIXME: Should this be a warning instead?
-                        // errorReporter.reportError(reaction, letWarning);
+                         errorReporter.reportError(reaction, letWarning);
                     } else {
                         // Change all inputs to mutable
                         if (reaction.getTriggers().size() > 0) {
@@ -1430,12 +1433,16 @@ public abstract class GeneratorBase extends AbstractLFValidator {
                             }
                         }
 
+                        // Also make all sources mutable
                         for (VarRef source : reaction.getSources()) {
                             Variable variable = source.getVariable();
                             if (variable instanceof Input) {
                                 ((Input) variable).setMutable(true);
                             }
                         }
+
+                        // Record let
+                        LetUtils.setReactionLet(reaction, let);
                     }
                 }
             }

@@ -459,63 +459,8 @@ public class ReactionInstance extends NamedInstance<Reaction> {
         return getName() + " of " + parent.getFullName();
     }
 
-    /**
-     * Get the logical execution time of this reaction, which is the minimum
-     * of the logical delays on the effects of this reaction.
-     * Those logical delays are the minimum delay of an action
-     * that is an effect of this reaction.
-     * The LET is zero if there are any effects that are ports
-     * or if there is an effect that is a logical
-     * action with zero minimum delay.
-     * The LET is TimeValue.MAX_VALUE if there are no effects.
-     * This method caches the result so as to not recompute it if called again.
-     */
     public TimeValue getLogicalExecutionTime() {
-        if (this.let != null) {
-            return this.let;
-        }
-
-        // If reaction is not marked as LET it has let=0
-        if (!AttributeUtils.isLet(this.getDefinition())) {
-            return this.let = TimeValue.ZERO;
-        }
-
-        // A generated delay (due to an after-delay on a connection)
-        //  is not considered to have a let.
-        if (this.parent.isGeneratedDelay()) {
-            return this.let = TimeValue.ZERO;
-        }
-
-        // If we have any effects triggering mode transition we have zero LET
-        if (!modeEffects.isEmpty()) {
-            return this.let = TimeValue.ZERO;
-        }
-        
-        // If no mode effects or other effects, we have maximum LET
-        if (effects.isEmpty()) {
-            return this.let = TimeValue.MAX_VALUE;
-        }
-
-        TimeValue let = null;
-
-        // Iterate over effect and find minimum delay.
-        for (TriggerInstance<? extends Variable> effect : effects) {
-            if (effect instanceof PortInstance) {
-                return this.let = TimeValue.ZERO;
-            } else if (effect instanceof ActionInstance) {
-                var action = ((ActionInstance) effect).getMinDelay();
-                if (let == null) {
-                    let = action;
-                } else {
-                    let = TimeValue.min(action, let);
-                }
-            }
-        }
-
-        if (let == null) {
-            let = TimeValue.ZERO;
-        }
-        return this.let = let;
+        return LetUtils.getReactionLet(this.getDefinition());
     }
 
     //////////////////////////////////////////////////////
@@ -541,8 +486,6 @@ public class ReactionInstance extends NamedInstance<Reaction> {
      * is the mixed radix number b2%w2; b1%w1.
      */
     private List<Runtime> runtimeInstances;
-
-    private TimeValue let = null;
 
     ///////////////////////////////////////////////////////////
     //// Inner classes

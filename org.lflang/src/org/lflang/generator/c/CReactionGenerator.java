@@ -16,6 +16,7 @@ import org.lflang.InferredType;
 import org.lflang.federated.CGeneratorExtension;
 import org.lflang.federated.FederateInstance;
 import org.lflang.generator.CodeBuilder;
+import org.lflang.generator.LetUtils;
 import org.lflang.lf.Action;
 import org.lflang.lf.ActionOrigin;
 import org.lflang.lf.BuiltinTriggerRef;
@@ -224,11 +225,9 @@ public class CReactionGenerator {
         // Next generate all the collected setup code.
         code.pr(reactionInitialization.toString());
 
-        // If this is a LET reaction, and LET scheduling is enabled.
-        // generate a call into scheduler_LET to do reaction prologue
-        // FIXME: Consider factoring this into a separate function
-        // FIXME: Consider checking thetarget property whether LET scheduling is enabled
-        code.pr(generateLetReactionPrologue(reaction, reactionIndex));
+        if (LetUtils.getReactionLet(reaction) != TimeValue.ZERO) {
+            code.pr(generateLetReactionPrologue(reaction, reactionIndex));
+        }
 
         return code.toString();
     }
@@ -876,8 +875,6 @@ public class CReactionGenerator {
     ) {
         CodeBuilder code = new CodeBuilder();
         code.pr("#if SCHEDULER == LET");
-        code.pr("if (self->_lf__reaction_"+reactionIndex+".let > 0) {");
-        code.indent();
 
         // Loop through all reaction triggers and get the ports
         for (TriggerRef trigger : ASTUtils.convertToEmptyListIfNull(reaction.getTriggers())) {
@@ -886,11 +883,6 @@ public class CReactionGenerator {
                     code.pr(generateSetRefCountTo2ForPort(port, triggerAsVarRef));
                 }
             }
-        }
-
-        // If no triggers, then all inputs are triggers
-        if (reaction.getTriggers() == null || reaction.getTriggers().size() == 0) {
-            assert(false);
         }
 
         // Loop through all sources
@@ -904,9 +896,6 @@ public class CReactionGenerator {
         }
 
         code.pr("lf_sched_retire_let_worker(&self->_lf__reaction_"+reactionIndex+", worker);");
-        code.unindent();
-
-        code.pr("}");
         code.pr("#endif");
 
         return code.toString();
@@ -957,8 +946,6 @@ public class CReactionGenerator {
     ) {
             CodeBuilder code = new CodeBuilder();
             code.pr("#if SCHEDULER == LET");
-            code.pr("if (self->_lf__reaction_"+reactionIndex+".let > 0) {");
-            code.indent();
 
             // Loop through all reaction triggers
             for (TriggerRef trigger : ASTUtils.convertToEmptyListIfNull(reaction.getTriggers())) {
@@ -989,9 +976,6 @@ public class CReactionGenerator {
                 }
             }
 
-            code.unindent();
-
-            code.pr("}");
             code.pr("#endif");
 
             return code.toString();
@@ -1273,14 +1257,22 @@ public class CReactionGenerator {
                         types, errorReporter, mainDef,
                         isFederatedAndDecentralized,
                         requiresType);
-        String post = generateLetReactionEpilogue(reactor, reaction, reactionIndex);
+
+        // Generate reaction
+        String reactionEpilogue;
+        if (LetUtils.getReactionLet(reaction) != TimeValue.ZERO) {
+            reactionEpilogue = generateLetReactionEpilogue(reactor, reaction, reactionIndex);
+        } else {
+            reactionEpilogue = "";
+        }
+
         code.pr(
             "#include " + StringUtil.addDoubleQuotes(
                 CCoreFilesUtils.getCTargetSetHeader()));
         CMethodGenerator.generateMacrosForMethods(ASTUtils.toDefinition(decl), code);
         code.pr(generateFunction(
             generateReactionFunctionHeader(decl, reactionIndex),
-            init, reaction.getCode(), post
+            init, reaction.getCode(), reactionEpilogue
         ));
 
         // Now generate code for the late function, if there is one
