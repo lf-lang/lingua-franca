@@ -41,6 +41,7 @@ import org.lflang.FileConfig;
 import org.lflang.LFRuntimeModule;
 import org.lflang.LFStandaloneSetup;
 import org.lflang.Target;
+import org.lflang.federated.generator.FedFileConfig;
 import org.lflang.generator.DockerGeneratorBase;
 import org.lflang.generator.LFGenerator;
 import org.lflang.generator.LFGeneratorContext;
@@ -606,7 +607,7 @@ public abstract class TestBase {
             System.out.println(Message.MISSING_DOCKER);
             return List.of(new ProcessBuilder("exit", "1"));
         }
-        var srcGenPath = test.context.getFileConfig().getSrcGenPath();
+        var srcGenPath = new FedFileConfig.FedFiles(test.context.getFileConfig()).getFedSrcGenPath();
         List<Path> dockerFiles = FileUtil.globFilesEndsWith(srcGenPath, ".Dockerfile");
         try {
             File testScript = File.createTempFile("dockertest", null);
