@@ -52,6 +52,11 @@
                         <version>${commonsCliVersion}</version>
                     </dependency>
                     <dependency>
+                        <groupId>org.picocli</groupId>
+                        <artifactId>picocli</artifactId>
+                        <version>${picocliVersion}</version>
+                    </dependency>
+                    <dependency>
                         <groupId>org.eclipse.emf</groupId>
                         <artifactId>org.eclipse.emf.mwe2.launch</artifactId>
                         <!-- If the Eclipse release is updated, then update the version number below.
