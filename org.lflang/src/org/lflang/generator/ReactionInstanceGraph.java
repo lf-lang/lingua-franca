@@ -27,13 +27,20 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 package org.lflang.generator;
 
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Queue;
 import java.util.Set;
+import java.util.Stack;
 
 import org.lflang.generator.ReactionInstance.Runtime;
 import org.lflang.graph.PrecedenceGraph;
 import org.lflang.lf.Variable;
+
+import kotlin.Pair;
 
 /**
  * This class analyzes the dependencies between reaction runtime instances.
@@ -258,57 +265,127 @@ public class ReactionInstanceGraph extends PrecedenceGraph<ReactionInstance.Runt
     ///////////////////////////////////////////////////////////
     //// Private methods
 
+    // WARNING: The C target will definitely be broken as a result of this change.
     /**
      * Analyze the dependencies between reactions and assign each reaction
-     * instance a level. This method removes nodes from this graph as it
-     * assigns levels. Any remaining nodes are part of causality cycles.
-     * 
-     * This procedure is based on Kahn's algorithm for topological sorting.
-     * Rather than establishing a total order, we establish a partial order.
-     * In this order, the level of each reaction is the least upper bound of
-     * the levels of the reactions it depends on.
+     * instance a level.
+     * This procedure is based on https://en.wikipedia.org/wiki/Topological_sorting#Depth-first_search.
      */
+    // TODO: The `PrecedenceGraph` type has a `sortNodes` which seems to use exactly this algorithm
+    //       (but the recursive version).
     private void assignLevels() {
-        List<ReactionInstance.Runtime> start = new ArrayList<>(rootNodes());
-        
-        // All root nodes start with level 0.
-        for (Runtime origin : start) {
-            origin.level = 0;
+        List<Runtime> roots = new ArrayList<>(rootNodes());
+
+        // If there are no root nodes, the graph must be cyclic.
+        if (roots.isEmpty()) {
+            throw new Error("ReactionInstanceGraph.assignLevels: Graph is cyclic.");
         }
 
-        // No need to do any of this if there are no root nodes; 
-        // the graph must be cyclic.
-        while (!start.isEmpty()) {
-            Runtime origin = start.remove(0);
-            Set<Runtime> toRemove = new LinkedHashSet<>();
-            Set<Runtime> downstreamAdjacentNodes = getDownstreamAdjacentNodes(origin);
+        // These sets indicate which node has which marking.
+        // There are three kinds of markings:
+        // * no marking:        if the node is in neither set
+        // * temporary marking: if the node is in `hasTempMark`
+        // * permanent marking: if the node is in `hasPermMark`
+        // We need to manually ensure that a node does not appear in both sets.
+        //
+        // A temporary marking means that the marked node has been visited, but the subtree induced
+        // by it has not been fully processed yet.
+        // A permanent marking means that the marked node has been visited, and the subtree induced
+        // by it has been fully processed.
+        //
+        // Note: We use two sets instead of a map of the form
+        //       "ReactionInstance.Runtime -> Marking" for efficiency.
+        //       Namely, checking whether every node is permanently marked
+        //       (which we need to know to check for completion of the algorithm)
+        //       is O(n) in the map-based approach but O(1) in our current approach.
+        Set<Runtime> hasTempMark = new HashSet<>();
+        Set<Runtime> hasPermMark = new HashSet<>();
 
-            // Visit effect nodes.
-            for (Runtime effect : downstreamAdjacentNodes) {
-                // Stage edge between origin and effect for removal.
-                toRemove.add(effect);
-                
-                // Update level of downstream node.
-                effect.level = origin.level + 1;
+        // This is required for the "visit procedure" below.
+        // If a node is visited where the boolean flag is `false`, it is being visited for the first
+        // time. In this case we keep the node on the stack and set its flag to `true`. This node
+        // will then be visited a second time immediately after its subtree has been processed.
+        // This gives us a chance to perform actions which should only occur immediately after a
+        // nodes subtree has finished processing. After these actions have been performed, the node
+        // is popped from the stack.
+        Stack<Pair<Runtime, Boolean>> toVisit = new Stack<>();
+
+        // The condition checks whether all nodes have the permanent marking.
+        // If this is the case, we've assigned a level to every node and are done.
+        while (hasPermMark.size() < nodeCount()) {
+            // If we don't have any start nodes left to process, but there are still
+            // nodes without a permanent marking, then there must be a cycle forming
+            // a disconnected component.
+            if (roots.isEmpty()) {
+                throw new Error("ReactionInstanceGraph.assignLevels: Graph is cyclic.");
             }
-            // Remove visited edges.
-            for (Runtime effect : toRemove) {
-                removeEdge(effect, origin);
-                // If the effect node has no more incoming edges,
-                // then move it in the start set.
-                if (getUpstreamAdjacentNodes(effect).size() == 0) {
-                    start.add(effect);
+
+            // Gets an arbitrary unprocessed root node.
+            Runtime root = roots.remove(0);
+
+            // Root nodes are assigned a level of 0.
+            root.level = 0;
+            toVisit.push(new Pair<>(root, false));
+
+            // Visit procedure:
+            while (!toVisit.isEmpty()) {
+                Pair<Runtime, Boolean> entry = toVisit.pop();
+                Runtime node = entry.getFirst();
+
+                if (entry.getSecond() == true) {
+                    // If this branch is reached, the given node has had its complete subtree
+                    // processed. That is, we've completed the "recursive calls" of the visit
+                    // procedure on the node's successors.
+                    hasTempMark.remove(node);
+                    hasPermMark.add(node);
+                    continue;
+                } else {
+                    // If this branch is reached, the given node is being visited for the first time
+                    // on the current stack. Farther down, we will set the marking for this node to
+                    // "temporary", thus indicating that it has been visited but its subtree still
+                    // needs to be processed. Additionally though, *here* we retain the node on the
+                    // stack (by pushing it back onto the stack), and also set the boolean flag
+                    // indicating that this node has been visited to `true`. Thus, when the node's
+                    // subtree has completed processing, we will visit this node *again* and have a
+                    // chance to perform actions which should only occur once the node's subtree has
+                    // been fully processed. These actions are contained in the positive branch of
+                    // this if-else statement.
+                    toVisit.push(new Pair<>(node, true));
+                }
+
+                // Perform bookkeeping for `numReactionsPerLevel`.
+                // Note: Any node in `toVisit` will have had its level assigned before it is pushed
+                //       onto the stack.
+                adjustNumReactionsPerLevel(node.level, 1);
+
+                if (hasPermMark.contains(node)) {
+                    // We can visit a node that has already been permanently marked, through graphs
+                    // like: (here we assume the graph is directed from top to bottom)
+                    //    A
+                    //   / \
+                    //  B   C
+                    //   \ /
+                    //    D
+                    // If we first visit A -> B -> D, then when we process C we will again come upon
+                    // D. In this case we can simply ignore D and its (potential) subtree.
+                    continue;
+                } else if (hasTempMark.contains(node)) {
+                    // A node with a temporary mark is currently having its subtree processed. Thus,
+                    // if we visit a node that has a temporary mark, it must be part of its own
+                    // subtree - so we have a cycle.
+                    throw new Error("ReactionInstanceGraph.assignLevels: Graph is cyclic.");
+                }
+
+                hasTempMark.add(node);
+
+                for (Runtime adj : getDownstreamAdjacentNodes(node)) {
+                    adj.level = node.level + 1;
+                    toVisit.push(new Pair<>(adj, false));
                 }
             }
-            
-            // Remove visited origin.
-            removeNode(origin);
-
-            // Update numReactionsPerLevel info
-            adjustNumReactionsPerLevel(origin.level, 1);
         }
     }
-   
+
     /**
      * This function assigns inferred deadlines to all the reactions in the graph.
      * It is modeled after `assignLevels` but it starts at the leaf nodes and uses

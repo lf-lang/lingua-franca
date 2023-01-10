@@ -258,6 +258,7 @@ class LeanGenerator(
         main = ReactorInstance(ASTUtils.toDefinition(mainDef.reactorClass), errorReporter, unorderedReactions)
         return ReactionInstanceGraph(main)
             .nodesInReverseTopologicalOrder()
+            .reversed()
             .joinToString(",\n") {
                 "${it.reaction.parent.fullName}._${it.reaction.index}"
             }
@@ -309,6 +310,7 @@ class LeanGenerator(
             ${"|"..(genPreamble())}
             ${"|"..(genLFBlock(reactors))}
                |
+               |open LF
             ${"|"..(genEpilogue())}
             """.trimMargin()
         }
