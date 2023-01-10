@@ -70,10 +70,4 @@ class TSFileConfig(
     override fun getExecutable(): Path {
         return srcGenPath.resolve("dist").resolve(name + executableExtension)
     }
-
-    /**
-     * Path to TypeScript source code.
-     */
-    override fun getSrcGenPath(): Path = srcGenPath
-
 }
