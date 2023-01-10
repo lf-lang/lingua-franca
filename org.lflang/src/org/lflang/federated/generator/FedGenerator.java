@@ -10,6 +10,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
@@ -241,7 +242,7 @@ public class FedGenerator {
         );
         var compileThreadPool = Executors.newFixedThreadPool(numOfCompileThreads);
         System.out.println("******** Using "+numOfCompileThreads+" threads to compile the program.");
-        Map<Path, CodeMap> codeMapMap = new HashMap<>();
+        Map<Path, CodeMap> codeMapMap = new ConcurrentHashMap<>();
         Averager averager = new Averager(federates.size());
         for (int i = 0; i < federates.size(); i++) {
             FederateInstance fed = federates.get(i);
