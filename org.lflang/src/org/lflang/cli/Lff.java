@@ -23,10 +23,19 @@ import org.lflang.ast.FormattingUtils;
 import org.lflang.LocalStrings;
 import org.lflang.util.FileUtil;
 
+/**
+ * Standalone version of the Lingua Franca formatter (lff). Based on lfc.
+ *
+ * @author {Marten Lohstroh <marten@berkeley.edu>}
+ * @author {Christian Menard <christian.menard@tu-dresden.de>}
+ * @author {Billy Bao <billybao@berkeley.edu>}
+ * @author {Atharva Patil <atharva.patil@berkeley.edu>}
+ */
 @Command(
     name = "lff",
     // Automatically add usageHelp and versionHelp options.
     mixinStandardHelpOptions = true,
+    // TODO: Import version from StringsBundle.properties. 
     version = "0.3.1-SNAPSHOT")
 public class Lff extends CliBaseNew {
     /**
