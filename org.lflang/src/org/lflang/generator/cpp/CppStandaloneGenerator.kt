@@ -23,7 +23,7 @@ class CppStandaloneGenerator(generator: CppGenerator) :
                 CppStandaloneMainGenerator(
                     mainReactor,
                     generator.targetConfig,
-                    generator.context.fileConfig as CppFileConfig
+                    generator.fileConfig
                 ).generateCode()
             )
         cppSources.add(mainFile)
@@ -33,7 +33,7 @@ class CppStandaloneGenerator(generator: CppGenerator) :
         FileUtil.writeToFile(mainCodeMap.generatedCode, srcGenPath.resolve(mainFile))
 
         // generate the cmake scripts
-        val cmakeGenerator = CppStandaloneCmakeGenerator(targetConfig, generator.context.fileConfig)
+        val cmakeGenerator = CppStandaloneCmakeGenerator(targetConfig, generator.fileConfig)
         val srcGenRoot = fileConfig.srcGenBasePath
         val pkgName = fileConfig.srcGenPkgPath.fileName.toString()
         FileUtil.writeToFile(cmakeGenerator.generateRootCmake(pkgName), srcGenRoot.resolve("CMakeLists.txt"), true)
