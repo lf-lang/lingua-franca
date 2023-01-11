@@ -58,6 +58,7 @@ import org.eclipse.xtext.xbase.lib.IteratorExtensions;
 import org.eclipse.xtext.xbase.lib.StringExtensions;
 import org.lflang.ast.ToText;
 import org.lflang.generator.CodeMap;
+import org.lflang.generator.DelayGenerator;
 import org.lflang.generator.GeneratorBase;
 import org.lflang.generator.InvalidSourceException;
 import org.lflang.lf.Action;
@@ -154,7 +155,7 @@ public class ASTUtils {
      * @param generator A code generator.
      */
     // FIXME: the code below should not depend on an entire generator instance.
-    public static void insertGeneratedDelays(Resource resource, GeneratorBase generator) {
+    public static void insertGeneratedDelays(Resource resource, DelayGenerator generator) {
         // The resulting changes to the AST are performed _after_ iterating
         // in order to avoid concurrent modification problems.
         List<Connection> oldConnections = new ArrayList<>();
@@ -168,7 +169,8 @@ public class ASTUtils {
                     EObject parent = connection.eContainer();
                     // Assume all the types are the same, so just use the first on the right.
                     Type type = ((Port) connection.getRightPorts().get(0).getVariable()).getType();
-                    Reactor delayClass = getDelayClass(type, generator);
+
+                    Reactor delayClass = generator.getDelayClass(type);
                     String generic = generator.getTargetTypes().supportsGenerics() ? generator.getTargetTypes().getTargetType(InferredType.fromAST(type)) : "";
                     Instantiation delayInstance = getDelayInstance(delayClass, connection, generic,
                         !generator.generateAfterDelaysWithVariableWidth());
@@ -398,62 +400,7 @@ public class ASTUtils {
         return connections;
     }
 
-    /**
-     * Create a new instance delay instances using the given reactor class.
-     * The supplied time value is used to override the default interval (which
-     * is zero).
-     * If the target supports parametric polymorphism, then a single class may
-     * be used for each instantiation, in which case a non-empty string must
-     * be supplied to parameterize the instance.
-     * A default name ("delay") is assigned to the instantiation, but this
-     * name must be overridden at the call site, where checks can be done to
-     * avoid name collisions in the container in which the instantiation is
-     * to be placed. Such checks (or modifications of the AST) are not
-     * performed in this method in order to avoid causing concurrent
-     * modification exceptions.
-     * @param delayClass The class to create an instantiation for
-     * @param connection The connection to create a delay instantiation foe
-     * @param generic A string that denotes the appropriate type parameter,
-     *  which should be null or empty if the target does not support generics.
-     * @param defineWidthFromConnection If this is true and if the connection
-     *  is a wide connection, then instantiate a bank of delays where the width
-     *  is given by ports involved in the connection. Otherwise, the width will
-     *  be  unspecified indicating a variable length.
-     */
-    private static Instantiation getDelayInstance(Reactor delayClass,
-            Connection connection, String generic, Boolean defineWidthFromConnection) {
-        Expression delay = connection.getDelay();
-        Instantiation delayInstance = factory.createInstantiation();
-        delayInstance.setReactorClass(delayClass);
-        if (!StringExtensions.isNullOrEmpty(generic)) {
-            TypeParm typeParm = factory.createTypeParm();
-            typeParm.setLiteral(generic);
-            delayInstance.getTypeParms().add(typeParm);
-        }
-        if (hasMultipleConnections(connection)) {
-            WidthSpec widthSpec = factory.createWidthSpec();
-            if (defineWidthFromConnection) {
-                // Add all left ports of the connection to the WidthSpec of the generated delay instance.
-                // This allows the code generator to later infer the width from the involved ports.
-                // We only consider the left ports here, as they could be part of a broadcast. In this case, we want
-                // to delay the ports first, and then broadcast the output of the delays.
-                for (VarRef port : connection.getLeftPorts()) {
-                    WidthTerm term = factory.createWidthTerm();
-                    term.setPort(EcoreUtil.copy(port));
-                    widthSpec.getTerms().add(term);
-                }
-            } else {
-                widthSpec.setOfVariableLength(true);
-            }
-            delayInstance.setWidthSpec(widthSpec);
-        }
-        Assignment assignment = factory.createAssignment();
-        assignment.setLhs(delayClass.getParameters().get(0));
-        assignment.getRhs().add(delay);
-        delayInstance.getParameters().add(assignment);
-        delayInstance.setName("delay");  // This has to be overridden.
-        return delayInstance;
-    }
+
 
     /**
      * Set the reaction's @language attribute to Target.
@@ -470,119 +417,6 @@ public class ASTUtils {
         attr.getAttrParms().add(attrParam);
 
         reaction.getAttributes().add(attr);
-    }
-
-    /**
-     * Return a synthesized AST node that represents the definition of a delay
-     * reactor. Depending on whether the target supports generics, either this
-     * method will synthesize a generic definition and keep returning it upon
-     * subsequent calls, or otherwise, it will synthesize a new definition for
-     * each new type it hasn't yet created a compatible delay reactor for.
-     * @param type The type the delay class must be compatible with.
-     * @param generator A code generator.
-     */
-    private static Reactor getDelayClass(Type type, GeneratorBase generator) {
-        String className;
-        if (generator.getTargetTypes().supportsGenerics()) {
-            className = GeneratorBase.GEN_DELAY_CLASS_NAME;
-        } else {
-            String id = Integer.toHexString(InferredType.fromAST(type).toText().hashCode());
-            className = String.format("%s_%s", GeneratorBase.GEN_DELAY_CLASS_NAME, id);
-        }
-
-        // Only add class definition if it is not already there.
-        Reactor classDef = generator.findDelayClass(className);
-        if (classDef != null) {
-            return classDef;
-        }
-
-        Reactor delayClass = factory.createReactor();
-        Parameter delayParameter = factory.createParameter();
-        Action action = factory.createAction();
-        VarRef triggerRef = factory.createVarRef();
-        VarRef effectRef = factory.createVarRef();
-        Input input = factory.createInput();
-        Output output = factory.createOutput();
-        VarRef inRef = factory.createVarRef();
-        VarRef outRef = factory.createVarRef();
-
-        Reaction r1 = factory.createReaction();
-        Reaction r2 = factory.createReaction();
-
-        setReactionLanguageAttribute(r1, generator.getDelayTarget());
-        setReactionLanguageAttribute(r2, generator.getDelayTarget());
-
-        delayParameter.setName("delay");
-        delayParameter.setType(factory.createType());
-        delayParameter.getType().setId("time");
-        delayParameter.getType().setTime(true);
-        Time defaultTime = factory.createTime();
-        defaultTime.setUnit(null);
-        defaultTime.setInterval(0);
-        delayParameter.getInit().add(defaultTime);
-
-        // Name the newly created action; set its delay and type.
-        action.setName("act");
-        var paramRef = factory.createParameterReference();
-        paramRef.setParameter(delayParameter);
-        action.setMinDelay(paramRef);
-        action.setOrigin(ActionOrigin.LOGICAL);
-
-        if (generator.getTargetTypes().supportsGenerics()) {
-            action.setType(factory.createType());
-            action.getType().setId("T");
-        } else {
-            action.setType(EcoreUtil.copy(type));
-        }
-
-        input.setName("inp");
-        input.setType(EcoreUtil.copy(action.getType()));
-
-        output.setName("out");
-        output.setType(EcoreUtil.copy(action.getType()));
-
-        // Establish references to the involved ports.
-        inRef.setVariable(input);
-        outRef.setVariable(output);
-
-        // Establish references to the action.
-        triggerRef.setVariable(action);
-        effectRef.setVariable(action);
-
-        // Add the action to the reactor.
-        delayClass.setName(className);
-        delayClass.getActions().add(action);
-
-        // Configure the second reaction, which reads the input.
-        r1.getTriggers().add(inRef);
-        r1.getEffects().add(effectRef);
-        r1.setCode(factory.createCode());
-        r1.getCode().setBody(generator.generateDelayBody(action, inRef));
-
-        // Configure the first reaction, which produces the output.
-        r2.getTriggers().add(triggerRef);
-        r2.getEffects().add(outRef);
-        r2.setCode(factory.createCode());
-        r2.getCode().setBody(generator.generateForwardBody(action, outRef));
-
-        // Add the reactions to the newly created reactor class.
-        // These need to go in the opposite order in case
-        // a new input arrives at the same time the delayed
-        // output is delivered!
-        delayClass.getReactions().add(r2);
-        delayClass.getReactions().add(r1);
-
-        // Add a type parameter if the target supports it.
-        if (generator.getTargetTypes().supportsGenerics()) {
-            TypeParm parm = factory.createTypeParm();
-            parm.setLiteral(generator.generateDelayGeneric());
-            delayClass.getTypeParms().add(parm);
-        }
-        delayClass.getInputs().add(input);
-        delayClass.getOutputs().add(output);
-        delayClass.getParameters().add(delayParameter);
-        generator.addDelayClass(delayClass);
-        return delayClass;
     }
 
     /**

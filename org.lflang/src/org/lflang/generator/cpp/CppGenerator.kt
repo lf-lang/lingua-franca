@@ -31,13 +31,8 @@ import org.lflang.ErrorReporter
 import org.lflang.Target
 import org.lflang.TimeUnit
 import org.lflang.TimeValue
-import org.lflang.generator.CodeMap
-import org.lflang.generator.GeneratorBase
-import org.lflang.generator.GeneratorResult
-import org.lflang.generator.IntegratedBuilder
-import org.lflang.generator.LFGeneratorContext
+import org.lflang.generator.*
 import org.lflang.generator.LFGeneratorContext.Mode
-import org.lflang.generator.TargetTypes
 import org.lflang.generator.GeneratorUtils.canGenerate
 import org.lflang.isGeneric
 import org.lflang.lf.Action
@@ -104,6 +99,10 @@ class CppGenerator(
                 context.unsuccessfulFinish()
             }
         }
+    }
+
+    override fun getDelayGenerator(): DelayGenerator {
+        return CppDelayGenerator();
     }
 
     private fun fetchReactorCpp() {
@@ -179,42 +178,6 @@ class CppGenerator(
             FileUtil.writeToFile(preambleCodeMap.generatedCode, srcGenPath.resolve(sourceFile), true)
         }
     }
-
-    /**
-     * Generate code for the body of a reaction that takes an input and
-     * schedules an action with the value of that input.
-     * @param action the action to schedule
-     * @param port the port to read from
-     */
-    override fun generateDelayBody(action: Action, port: VarRef): String {
-        // Since we cannot easily decide whether a given type evaluates
-        // to void, we leave this job to the target compiler, by calling
-        // the template function below.
-        return """
-        // delay body for ${action.name}
-        lfutil::after_delay(&${action.name}, &${port.name});
-        """.trimIndent()
-    }
-
-    /**
-     * Generate code for the body of a reaction that is triggered by the
-     * given action and writes its value to the given port.
-     * @param action the action that triggers the reaction
-     * @param port the port to write to
-     */
-    override fun generateForwardBody(action: Action, port: VarRef): String {
-        // Since we cannot easily decide whether a given type evaluates
-        // to void, we leave this job to the target compiler, by calling
-        // the template function below.
-        return """
-        // forward body for ${action.name}
-        lfutil::after_forward(&${action.name}, &${port.name});
-        """.trimIndent()
-    }
-
-    override fun generateDelayGeneric() = "T"
-
-    override fun generateAfterDelaysWithVariableWidth() = false
 
     override fun getTarget() = Target.CPP
 

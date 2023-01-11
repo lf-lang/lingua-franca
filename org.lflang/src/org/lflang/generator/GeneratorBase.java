@@ -58,7 +58,6 @@ import org.lflang.lf.Model;
 import org.lflang.lf.Reaction;
 import org.lflang.lf.Reactor;
 import org.lflang.lf.Time;
-import org.lflang.lf.VarRef;
 import org.lflang.validation.AbstractLFValidator;
 
 import com.google.common.base.Objects;
@@ -78,17 +77,6 @@ public abstract class GeneratorBase extends AbstractLFValidator {
 
     ////////////////////////////////////////////
     //// Public fields.
-
-    /**
-     * Constant that specifies how to name generated delay reactors.
-     */
-    public static String GEN_DELAY_CLASS_NAME = "_lf_GenDelay";
-
-    /**
-     * Return the Target language in which delay reactors are implemented in.
-     * @return
-     */
-    public Target getDelayTarget() { return getTarget(); }
 
     /**
      * The main (top-level) reactor instance.
@@ -116,11 +104,6 @@ public abstract class GeneratorBase extends AbstractLFValidator {
     protected GeneratorCommandFactory commandFactory;
 
     public GeneratorCommandFactory getCommandFactory() { return commandFactory; }
-
-    /**
-     * Collection of generated delay classes.
-     */
-    private final LinkedHashSet<Reactor> delayClasses = new LinkedHashSet<>();
 
     /**
      * Definition of the main (top-level) reactor.
@@ -188,26 +171,6 @@ public abstract class GeneratorBase extends AbstractLFValidator {
 
     // //////////////////////////////////////////
     // // Code generation functions to override for a concrete code generator.
-
-    /**
-     * Store the given reactor in the collection of generated delay classes
-     * and insert it in the AST under the top-level reactor's node.
-     */
-    public void addDelayClass(Reactor generatedDelay) {
-        // Record this class, so it can be reused.
-        delayClasses.add(generatedDelay);
-        // And hook it into the AST.
-        EObject node = IteratorExtensions.findFirst(context.getFileConfig().resource.getAllContents(), Model.class::isInstance);
-        ((Model) node).getReactors().add(generatedDelay);
-    }
-
-    /**
-     * Return the generated delay reactor that corresponds to the given class
-     * name if it had been created already, `null` otherwise.
-     */
-    public Reactor findDelayClass(String className) {
-        return IterableExtensions.findFirst(delayClasses, it -> it.getName().equals(className));
-    }
 
     /**
      * If there is a main or federated reactor, then create a synthetic Instantiation
@@ -362,9 +325,12 @@ public abstract class GeneratorBase extends AbstractLFValidator {
      */
     private void transformDelays() {
         for (LFResource r : resources) {
-            ASTUtils.insertGeneratedDelays(r.eResource, this);
+            getTargetTypes().supportsGenerics();
+            ASTUtils.insertGeneratedDelays(r.eResource, this.getDelayGenerator());
         }
     }
+
+    protected abstract DelayGenerator getDelayGenerator();
 
     /**
      * Copy user specific files to the src-gen folder.
@@ -389,28 +355,6 @@ public abstract class GeneratorBase extends AbstractLFValidator {
      * Return the TargetTypes instance associated with this.
      */
     public abstract TargetTypes getTargetTypes();
-
-    /**
-     * Generate code for the body of a reaction that takes an input and
-     * schedules an action with the value of that input.
-     * @param action the action to schedule
-     * @param port the port to read from
-     */
-    public abstract String generateDelayBody(Action action, VarRef port);
-
-    /**
-     * Generate code for the body of a reaction that is triggered by the
-     * given action and writes its value to the given port.
-     * @param action the action that triggers the reaction
-     * @param port the port to write to
-     */
-    public abstract String generateForwardBody(Action action, VarRef port);
-
-    /**
-     * Generate code for the generic type to be used in the class definition
-     * of a generated delay reactor.
-     */
-    public abstract String generateDelayGeneric();
 
     /**
      * Given a representation of time that may possibly include units, return
@@ -657,19 +601,6 @@ public abstract class GeneratorBase extends AbstractLFValidator {
         System.out.println("******** mode: " + mode);
         System.out.println("******** generated sources: " + context.getFileConfig().getSrcGenPath());
     }
-
-    /**
-     * Indicates whether delay banks generated from after delays should have a variable length width.
-     *
-     * If this is true, any delay reactors that are inserted for after delays on multiport connections
-     * will have an unspecified variable length width. The code generator is then responsible for inferring the
-     * correct width of the delay bank, which is only possible if the precise connection width is known at compile time.
-     *
-     * If this is false, the width specification of the generated bank will list all the ports listed on the right
-     * side of the connection. This gives the code generator the information needed to infer the correct width at
-     * runtime.
-     */
-    public boolean generateAfterDelaysWithVariableWidth() { return true; }
 
     /**
      * Return the Targets enum for the current target

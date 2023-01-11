@@ -50,7 +50,6 @@ import org.eclipse.xtext.xbase.lib.IterableExtensions;
 import org.eclipse.xtext.xbase.lib.StringExtensions;
 
 import org.lflang.ASTUtils;
-import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
 import org.lflang.Target;
 import org.lflang.TargetConfig;
@@ -59,6 +58,7 @@ import org.lflang.TargetProperty.Platform;
 import org.lflang.federated.extensions.CExtensionUtils;
 import org.lflang.generator.ActionInstance;
 import org.lflang.generator.CodeBuilder;
+import org.lflang.generator.DelayGenerator;
 import org.lflang.generator.DockerGeneratorBase;
 import org.lflang.generator.GeneratorBase;
 import org.lflang.generator.GeneratorResult;
@@ -85,7 +85,6 @@ import org.lflang.lf.Reaction;
 import org.lflang.lf.Reactor;
 import org.lflang.lf.ReactorDecl;
 import org.lflang.lf.StateVar;
-import org.lflang.lf.VarRef;
 import org.lflang.lf.Variable;
 import org.lflang.util.FileUtil;
 
@@ -609,6 +608,11 @@ public class CGenerator extends GeneratorBase {
 
         // In case we are in Eclipse, make sure the generated code is visible.
         GeneratorUtils.refreshProject(resource, context.getMode());
+    }
+
+    @Override
+    protected DelayGenerator getDelayGenerator() {
+        return new CDelayGenerator(types);
     }
 
     private void generateCodeFor(
@@ -1953,40 +1957,8 @@ public class CGenerator extends GeneratorBase {
         pickCompilePlatform();
     }
 
-    /**
-     * Generate code for the body of a reaction that takes an input and
-     * schedules an action with the value of that input.
-     * @param action The action to schedule
-     * @param port The port to read from
-     */
-    @Override
-    public String generateDelayBody(Action action, VarRef port) {
-        var ref = ASTUtils.generateVarRef(port);
-        return CReactionGenerator.generateDelayBody(
-            ref,
-            action.getName(),
-            CUtil.isTokenType(getInferredType(action), types)
-        );
-    }
 
-    /**
-     * Generate code for the body of a reaction that is triggered by the
-     * given action and writes its value to the given port. This realizes
-     * the receiving end of a logical delay specified with the 'after'
-     * keyword.
-     * @param action The action that triggers the reaction
-     * @param port The port to write to.
-     */
-    @Override
-    public String generateForwardBody(Action action, VarRef port) {
-        var outputName = ASTUtils.generateVarRef(port);
-        return CReactionGenerator.generateForwardBody(
-            outputName,
-            types.getTargetType(action),
-            action.getName(),
-            CUtil.isTokenType(getInferredType(action), types)
-        );
-    }
+
 
     protected void handleProtoFiles() {
         // Handle .proto files.
@@ -2084,10 +2056,6 @@ public class CGenerator extends GeneratorBase {
         return Target.C;
     }
 
-    @Override
-    public String generateDelayGeneric() {
-        throw new UnsupportedOperationException("TODO: auto-generated method stub");
-    }
 
     ////////////////////////////////////////////////////////////
     //// Private methods
