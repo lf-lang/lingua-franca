@@ -1,8 +1,11 @@
 target C {
-    platform: "Zephyr",
-    build: "bash scripts/zephyr_build.sh qemu_cortex_m3 flash",
     threading: false,
-}
+    platform: {
+        name: Zephyr,
+        board: nrf52dk_nrf52832,
+        flash: true,
+    },
+} 
 
 main reactor {
     reaction(startup) {=

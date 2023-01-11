@@ -1,0 +1,12 @@
+
+target C {
+    platform: "Zephyr",
+    threading: false,
+}
+
+main reactor {
+    timer t(0, 1 sec)
+    reaction(t) {=
+        printf("Hello\n");
+    =}
+}

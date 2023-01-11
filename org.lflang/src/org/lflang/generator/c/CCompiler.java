@@ -286,6 +286,12 @@ public class CCompiler {
         return command;
     }
 
+    /**
+     * Return a flash/emulate command using west.
+     * If board is null (defaults to qemu_cortex_m3) or qemu_*
+     * Return a flash command which runs the target as an emulation
+     * If ordinary target, return `west flash`
+     */
     public LFCommand buildWestFlashCommand() {
         // Set the build directory to be "build"
         Path buildPath = fileConfig.getSrcGenPath().resolve("build");
@@ -293,7 +299,7 @@ public class CCompiler {
         LFCommand cmd;
         if (board == null || board.startsWith("qemu")) {
             cmd = commandFactory.createCommand(
-                "west", List.of("build", "-t"), buildPath);
+                "west", List.of("build", "-t", "run"), buildPath);
         } else {
             cmd = commandFactory.createCommand(
                 "west", List.of("flash"), buildPath);

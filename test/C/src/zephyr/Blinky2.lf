@@ -1,0 +1,14 @@
+target C {
+    platform: {
+        name: "Zephyr",
+        board: nrf52dk_nrf52832,
+        flash: true,
+    },
+    threading: false,
+}
+
+import NrfLeds from "lib/Led.lf"
+
+main reactor {
+    led0 = new NrfLeds()
+}
