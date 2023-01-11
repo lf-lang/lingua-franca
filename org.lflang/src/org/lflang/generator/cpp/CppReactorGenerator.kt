@@ -24,7 +24,6 @@
 package org.lflang.generator.cpp
 
 import org.lflang.ErrorReporter
-import org.lflang.FileConfig
 import org.lflang.generator.PrependOperator
 import org.lflang.isGeneric
 import org.lflang.lf.Reactor

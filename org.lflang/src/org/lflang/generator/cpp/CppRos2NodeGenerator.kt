@@ -1,6 +1,5 @@
 package org.lflang.generator.cpp
 
-import org.lflang.FileConfig
 import org.lflang.TargetConfig
 import org.lflang.lf.Reactor
 import org.lflang.toUnixString

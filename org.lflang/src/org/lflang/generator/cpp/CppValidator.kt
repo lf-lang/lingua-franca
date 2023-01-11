@@ -1,7 +1,6 @@
 package org.lflang.generator.cpp
 
 import org.lflang.ErrorReporter
-import org.lflang.FileConfig
 import org.lflang.generator.ValidationStrategy
 import org.lflang.generator.CodeMap
 import org.lflang.generator.DiagnosticReporting
