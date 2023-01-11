@@ -310,6 +310,7 @@ class TSGenerator(
                     GeneratorUtils.findTarget(resource),
                     "ERROR: pnpm install command failed" + if (errors.isBlank()) "." else ":\n$errors")
             }
+            installProtoBufsIfNeeded(true, path, context.cancelIndicator)
         } else {
             errorReporter.reportWarning(
                 "Falling back on npm. To prevent an accumulation of replicated dependencies, " +
@@ -330,6 +331,17 @@ class TSGenerator(
                         "\nFor installation instructions, see: https://www.npmjs.com/get-npm")
                 return
             }
+            installProtoBufsIfNeeded(true, path, context.cancelIndicator)
+        }
+    }
+
+    private fun installProtoBufsIfNeeded(pnpmIsAvailable: Boolean, cwd: Path, cancelIndicator: CancelIndicator) {
+        if (targetConfig.protoFiles.size != 0) {
+            commandFactory.createCommand(
+                if (pnpmIsAvailable) "pnpm" else "npm",
+                listOf("install", "google-protobuf"),
+                cwd, true
+            ).run(cancelIndicator)
         }
     }
 
@@ -342,7 +354,7 @@ class TSGenerator(
 
         // FIXME: Check whether protoc is installed and provides hints how to install if it cannot be found.
         val protocArgs = LinkedList<String>()
-        val tsOutPath = fileConfig.srcPath.relativize(fileConfig.srcGenPath)
+        val tsOutPath = fileConfig.srcPath.relativize(context.fileConfig.srcGenPath).resolve("src")
 
         protocArgs.addAll(
             listOf(
