@@ -118,7 +118,7 @@ public class CCmakeGenerator {
         cMakeCode.newLine();
 
         cMakeCode.pr("cmake_minimum_required(VERSION " + MIN_CMAKE_VERSION + ")");
-        
+
         if (targetConfig.platformOptions.platform == Platform.ZEPHYR) {
             cMakeCode.pr("# Set default configuration file. To add custom configurations");
             cMakeCode.pr("# Pass -- -DOVERLAY_CONFIG=my_config.prj to either cmake or west");
@@ -134,10 +134,10 @@ public class CCmakeGenerator {
             cMakeCode.pr("find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE} EXACT 3.2.0)");
             cMakeCode.newLine();
         }
-        
+
         cMakeCode.pr("project("+executableName+" LANGUAGES C)");
         cMakeCode.newLine();
-        
+
         // The Test build type is the Debug type plus coverage generation
         cMakeCode.pr("if(CMAKE_BUILD_TYPE STREQUAL \"Test\")");
         cMakeCode.pr("  set(CMAKE_BUILD_TYPE \"Debug\")");
@@ -194,7 +194,7 @@ public class CCmakeGenerator {
         if (targetConfig.platformOptions.platform != Platform.AUTO) {
             cMakeCode.pr("set(CMAKE_SYSTEM_NAME "+targetConfig.platformOptions.platform.getcMakeName()+")");
         }
-        
+
         cMakeCode.pr("# Target definitions\n");
         targetConfig.compileDefinitions.forEach((key, value) -> cMakeCode.pr(
             "add_compile_definitions("+key+"="+value+")\n"
@@ -208,7 +208,7 @@ public class CCmakeGenerator {
                 Stream.concat(additionalSources.stream(), sources.stream())
             ));
         } else {
-            cMakeCode.pr(setUpMainTarget(
+            cMakeCode.pr(setUpMainTarget.getCmakeCode(
                 hasMain,
                 executableName,
                 Stream.concat(additionalSources.stream(), sources.stream())
@@ -253,7 +253,7 @@ public class CCmakeGenerator {
             cMakeCode.pr("target_compile_definitions(${LF_MAIN_TARGET} PUBLIC NUMBER_OF_WORKERS="+targetConfig.workers+")");
             cMakeCode.newLine();
         }
-        
+
         // Add additional flags so runtime can distinguish between multi-threaded and single-threaded mode
         if (targetConfig.threading) {
             cMakeCode.pr("# Set flag to indicate a multi-threaded runtime");
