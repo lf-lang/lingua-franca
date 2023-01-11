@@ -35,12 +35,12 @@ jobs:
           fetch-depth: 0
       - name: Install java and others
         run : |
-        apt update
-        wget https://download.oracle.com/java/17/archive/jdk-17.0.5_linux-x64_bin.tar.gz
-        tar xvzf jdk-17.0.5_linux-x64_bin.tar.gz -C /opt
-        export JAVA_HOME=/opt/jdk-17.0.5
-        export PATH=$PATH:$JAVA_HOME/bin
-        apt install maven -y
+          apt update
+          wget https://download.oracle.com/java/17/archive/jdk-17.0.5_linux-x64_bin.tar.gz
+          tar xvzf jdk-17.0.5_linux-x64_bin.tar.gz -C /opt
+          export JAVA_HOME=/opt/jdk-17.0.5
+          export PATH=$PATH:$JAVA_HOME/bin
+          apt install maven -y
 
       - name: Prepare build environment
         uses: ./.github/actions/prepare-build-env
