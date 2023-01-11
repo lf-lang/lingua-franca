@@ -97,9 +97,9 @@ import com.google.common.collect.Iterators;
 
 /**
  * A helper class for modifying and analyzing the AST.
- * @author {Marten Lohstroh <marten@berkeley.edu>}
- * @author {Edward A. Lee <eal@berkeley.edu>}
- * @author {Christian Menard <christian.menard@tu-dresden.de>}
+ * @author Marten Lohstroh
+ * @author Edward A. Lee
+ * @author Christian Menard
  */
 public class ASTUtils {
     

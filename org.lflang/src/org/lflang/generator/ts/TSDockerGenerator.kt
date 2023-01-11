@@ -6,7 +6,7 @@ import org.lflang.FileConfig;
 /**
  * Generates the docker file related code for the Typescript target.
  *
- * @author{Hou Seng Wong <housengw@berkeley.edu>}
+ * @author Hou Seng Wong
  */
 class TSDockerGenerator(isFederated: Boolean) : DockerGeneratorBase(isFederated) {
     /**

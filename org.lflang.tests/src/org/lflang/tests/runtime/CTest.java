@@ -43,7 +43,7 @@ import org.lflang.tests.TestRegistry.TestCategory;
  * like Eclipse and IntelliJ.
  * This is typically done by right-clicking on the name of the test method and
  * then clicking "Run".*
- * @author Marten Lohstroh <marten@berkeley.edu>
+ * @author Marten Lohstroh
  */
 public class CTest extends RuntimeTest {
 

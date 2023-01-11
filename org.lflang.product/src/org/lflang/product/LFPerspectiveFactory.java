@@ -7,7 +7,7 @@ import org.eclipse.ui.IPerspectiveFactory;
 /**
  * Perspective for modeling with lingua franca.
  * 
- * @author{Alexander Schulz-Rosengarten <als@informatik.uni-kiel.de>}
+ * @author Alexander Schulz-Rosengarten
  */
 public class LFPerspectiveFactory implements IPerspectiveFactory {
     

@@ -32,8 +32,8 @@ import org.lflang.lf.ActionOrigin;
 
 /**
  * Instance of an action.
- * @author{Edward A. Lee <eal@berkeley.edu>}
- * @author{Marten Lohstroh <marten@berkeley.edu>}
+ * @author Edward A. Lee
+ * @author Marten Lohstroh
  */
 public class ActionInstance extends TriggerInstance<Action> {
 
