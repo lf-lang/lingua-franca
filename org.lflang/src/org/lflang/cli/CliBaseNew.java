@@ -5,8 +5,10 @@ import java.io.PrintStream;
 import java.io.PrintWriter;
 import java.nio.file.Path;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Properties;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import picocli.CommandLine;
@@ -125,6 +127,53 @@ public abstract class CliBaseNew implements Runnable {
      */
     protected Path toAbsolutePath(Path other) {
         return io.getWd().resolve(other).toAbsolutePath();
+    }
+
+    /**
+     * Filter the command-line arguments needed by the code generator, and
+     * return them as properties.
+     */
+    protected Properties filterPassOnProps() {
+        // Parameters to be passed on to the generator as properties.
+        List<BuildParm> passOnParams = Arrays.asList(
+            BuildParm.BUILD_TYPE,
+            BuildParm.CLEAN,
+            BuildParm.TARGET_COMPILER,
+            BuildParm.EXTERNAL_RUNTIME_PATH,
+            BuildParm.LOGGING,
+            BuildParm.LINT,
+            BuildParm.NO_COMPILE,
+            BuildParm.QUIET,
+            BuildParm.RTI,
+            BuildParm.RUNTIME_VERSION,
+            BuildParm.SCHEDULER,
+            BuildParm.THREADING,
+            BuildParm.WORKERS
+        );
+
+        Properties props = new Properties();
+        ParseResult pr = spec.commandLine().getParseResult();
+
+        passOnParams.forEach((param) -> {
+            // Get the option with the specified name, or null if no option
+            // with that name was matched on the command line.
+            OptionSpec matchedOption = pr.matchedOption(param.getKey());
+            if (matchedOption != null) {
+                String value = "";
+                if (matchedOption.getValue() instanceof Boolean) {
+                    value = "true";
+                } else {
+                    value = matchedOption.getValue();
+                }
+
+                props.setProperty(
+                    matchedOption.longestName(),
+                    value
+                );
+            }
+        });
+
+        return props;
     }
 
     /**
