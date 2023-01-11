@@ -12,7 +12,7 @@ import org.lflang.tests.TestRegistry.TestCategory;
  *
  * NOTE: This test does not inherit any tests because it directly extends TestBase.
  *
- * @author Marten Lohstroh <marten@berkeley.edu>
+ * @author Marten Lohstroh
  */
 public class CCppTest extends TestBase {
 
@@ -31,7 +31,7 @@ public class CCppTest extends TestBase {
     public void runAsCCpp() {
         Assumptions.assumeFalse(isWindows(), Message.NO_WINDOWS_SUPPORT);
         runTestsForTargets(Message.DESC_AS_CCPP, CCppTest::isExcludedFromCCpp,
-                           it -> ASTUtils.changeTargetName(it.context.getFileConfig().resource,
+                           it -> ASTUtils.changeTargetName(it.getFileConfig().resource,
                                                            Target.CCPP.getDisplayName()),
                            true);
     }

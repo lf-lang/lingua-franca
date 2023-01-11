@@ -1,7 +1,7 @@
 package org.lflang.tests;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
 import java.io.PrintStream;
@@ -25,6 +25,7 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import org.eclipse.emf.common.util.URI;
+import org.eclipse.emf.ecore.resource.Resource.Diagnostic;
 import org.eclipse.emf.ecore.resource.ResourceSet;
 import org.eclipse.xtext.diagnostics.Severity;
 import org.eclipse.xtext.generator.JavaIoFileSystemAccess;
@@ -60,7 +61,7 @@ import com.google.inject.Provider;
 /**
  * Base class for test classes that define JUnit tests.
  *
- * @author Marten Lohstroh <marten@berkeley.edu>
+ * @author Marten Lohstroh
  */
 @ExtendWith(InjectionExtension.class)
 @InjectWith(LFInjectorProvider.class)
@@ -100,14 +101,14 @@ public abstract class TestBase {
 
     /**
      * An enumeration of test levels.
-     * @author Marten Lohstroh <marten@berkeley.edu>
+     * @author Marten Lohstroh
      *
      */
     public enum TestLevel {VALIDATION, CODE_GEN, BUILD, EXECUTION}
 
     /**
      * Static function for converting a path to its associated test level.
-     * @author Anirudh Rengarajan <arengarajan@berkeley.edu>
+     * @author Anirudh Rengarajan
      */
     public static TestLevel pathToLevel(Path path) {
         while(path.getParent() != null) {
@@ -125,7 +126,7 @@ public abstract class TestBase {
     /**
      * A collection messages often used throughout the test package.
      *
-     * @author Marten Lohstroh <marten@berkeley.edu>
+     * @author Marten Lohstroh
      *
      */
     public static class Message {
@@ -360,7 +361,7 @@ public abstract class TestBase {
             test.reportErrors();
         }
         for (LFTest lfTest : tests) {
-            assertSame(Result.TEST_PASS, lfTest.result);
+            assertTrue(lfTest.hasPassed());
         }
     }
 
@@ -375,7 +376,7 @@ public abstract class TestBase {
      * @param level The level of testing in which the generator context will be
      * used.
      */
-    private void configure(LFTest test, Configurator configurator, TestLevel level) {
+    private void configure(LFTest test, Configurator configurator, TestLevel level) throws IOException, TestError {
         var props = new Properties();
         props.setProperty("hierarchical-bin", "true");
         var sysProps = System.getProperties();
@@ -391,22 +392,22 @@ public abstract class TestBase {
         }
 
         var r = resourceSetProvider.get().getResource(
-            URI.createFileURI(test.srcFile.toFile().getAbsolutePath()),
+            URI.createFileURI(test.getSrcPath().toFile().getAbsolutePath()),
             true);
 
         if (r.getErrors().size() > 0) {
-            test.result = Result.PARSE_FAIL;
-            throw new AssertionError("Test did not parse correctly.");
+            String message = r.getErrors().stream().map(Diagnostic::toString).collect(Collectors.joining(System.lineSeparator()));
+            throw new TestError(message, Result.PARSE_FAIL);
         }
 
-        fileAccess.setOutputPath(FileConfig.findPackageRoot(test.srcFile, s -> {}).resolve(FileConfig.DEFAULT_SRC_GEN_DIR).toString());
+        fileAccess.setOutputPath(FileConfig.findPackageRoot(test.getSrcPath(), s -> {}).resolve(FileConfig.DEFAULT_SRC_GEN_DIR).toString());
 
         var context = new MainContext(
             LFGeneratorContext.Mode.STANDALONE, CancelIndicator.NullImpl, (m, p) -> {}, props, r, fileAccess,
             fileConfig -> new DefaultErrorReporter()
         );
 
-        test.context = context;
+        test.configure(context);
 
         // Set the no-compile flag the test is not supposed to reach the build stage.
         if (level.compareTo(TestLevel.BUILD) < 0) {
@@ -417,32 +418,29 @@ public abstract class TestBase {
 
         // Update the test by applying the configuration. E.g., to carry out an AST transformation.
         if (configurator != null && !configurator.configure(test)) {
-            test.result = Result.CONFIG_FAIL;
-            throw new AssertionError("Test configuration unsuccessful.");
+            throw new TestError("Test configuration unsuccessful.", Result.CONFIG_FAIL);
         }
     }
 
     /**
-     * Validate the given test. Throw an AssertionError if validation failed.
+     * Validate the given test. Throw an TestError if validation failed.
      */
-    private void validate(LFTest test) {
+    private void validate(LFTest test) throws TestError {
         // Validate the resource and store issues in the test object.
         try {
-            var context = test.context;
+            var context = test.getContext();
             var issues = validator.validate(context.getFileConfig().resource,
                                             CheckMode.ALL, context.getCancelIndicator());
             if (issues != null && !issues.isEmpty()) {
-                String issuesToString = issues.stream().map(Objects::toString).collect(Collectors.joining(System.lineSeparator()));
-                test.issues.append(issuesToString);
                 if (issues.stream().anyMatch(it -> it.getSeverity() == Severity.ERROR)) {
-                    test.result = Result.VALIDATE_FAIL;
+                    String message = issues.stream().map(Objects::toString).collect(Collectors.joining(System.lineSeparator()));
+                    throw new TestError(message, Result.VALIDATE_FAIL);
                 }
             }
-        } catch (Exception e) {
-            test.result = Result.VALIDATE_FAIL;
-        }
-        if (test.result == Result.VALIDATE_FAIL) {
-            throw new AssertionError("Validation unsuccessful.");
+        } catch (TestError e) {
+            throw e;
+        } catch (Throwable e) {
+            throw new TestError("Exception during validation.", Result.VALIDATE_FAIL, e);
         }
     }
 
@@ -457,15 +455,17 @@ public abstract class TestBase {
 
     /**
      * Invoke the code generator for the given test.
+     *
      * @param test The test to generate code for.
      */
-    private void generateCode(LFTest test) {
-        if (test.context.getFileConfig().resource != null) {
-            generator.doGenerate(test.context.getFileConfig().resource, fileAccess, test.context);
-            if (generator.errorsOccurred()) {
-                test.result = Result.CODE_GEN_FAIL;
-                throw new AssertionError("Code generation unsuccessful.");
-            }
+    private void generateCode(LFTest test) throws TestError {
+        try {
+            generator.doGenerate(test.getFileConfig().resource, fileAccess, test.getContext());
+        } catch (Throwable e) {
+            throw new TestError("Code generation unsuccessful.", Result.CODE_GEN_FAIL, e);
+        }
+        if (generator.errorsOccurred()) {
+            throw new TestError("Code generation unsuccessful.", Result.CODE_GEN_FAIL);
         }
     }
 
@@ -475,16 +475,17 @@ public abstract class TestBase {
      * did not execute, took too long to execute, or executed but exited with
      * an error code.
      */
-    private void execute(LFTest test) {
+    private void execute(LFTest test) throws TestError {
         final List<ProcessBuilder> pbList = getExecCommand(test);
+
         if (pbList.isEmpty()) {
             return;
         }
         try {
             for (ProcessBuilder pb : pbList) {
                 var p = pb.start();
-                var stdout = test.execLog.recordStdOut(p);
-                var stderr = test.execLog.recordStdErr(p);
+                var stdout = test.recordStdOut(p);
+                var stderr = test.recordStdErr(p);
 
                 var stdoutException = new AtomicReference<Throwable>(null);
                 var stderrException = new AtomicReference<Throwable>(null);
@@ -492,49 +493,53 @@ public abstract class TestBase {
                 stdout.setUncaughtExceptionHandler((thread, throwable) -> stdoutException.set(throwable));
                 stderr.setUncaughtExceptionHandler((thread, throwable) -> stderrException.set(throwable));
 
+                stderr.start();
+                stdout.start();
+
                 if (!p.waitFor(MAX_EXECUTION_TIME_SECONDS, TimeUnit.SECONDS)) {
                     stdout.interrupt();
                     stderr.interrupt();
                     p.destroyForcibly();
-                    test.result = Result.TEST_TIMEOUT;
-                    return;
+                    throw new TestError(Result.TEST_TIMEOUT);
                 } else {
                     if (stdoutException.get() != null || stderrException.get() != null) {
-                        test.result = Result.TEST_EXCEPTION;
-                        test.execLog.buffer.setLength(0);
+                        StringBuffer sb = new StringBuffer();
                         if (stdoutException.get() != null) {
-                            test.execLog.buffer.append("Error during stdout handling:\n");
-                            appendStackTrace(stdoutException.get(), test.execLog.buffer);
+                            sb.append("Error during stdout handling:" + System.lineSeparator());
+                            sb.append(stackTraceToString(stdoutException.get()));
                         }
                         if (stderrException.get() != null) {
-                            test.execLog.buffer.append("Error during stderr handling:\n");
-                            appendStackTrace(stderrException.get(), test.execLog.buffer);
+                            sb.append("Error during stderr handling:" + System.lineSeparator());
+                            sb.append(stackTraceToString(stderrException.get()));
                         }
-                        return;
+                        throw new TestError(sb.toString(), Result.TEST_EXCEPTION);
                     }
                     if (p.exitValue() != 0) {
-                        test.result = Result.TEST_FAIL;
-                        test.exitValue = Integer.toString(p.exitValue());
-                        return;
+                        String message = "Exit code: " + p.exitValue();
+                        if (p.exitValue() == 139) {
+                            // The java ProcessBuiler and Process interface does not allow us to reliably retrieve stderr and stdout
+                            // from a process that segfaults. We can only print a message indicating that the putput is incomplete.
+                            message += System.lineSeparator() +
+                            "This exit code typically indicates a segfault. In this case, the execution output is likely missing or incomplete.";
+                        }
+                        throw new TestError(message, Result.TEST_FAIL);
                     }
                 }
             }
-        } catch (Exception e) {
-            test.result = Result.TEST_EXCEPTION;
-            // Add the stack trace to the test output
-            appendStackTrace(e, test.execLog.buffer);
-            return;
+        } catch (TestError e) {
+            throw  e;
+        } catch (Throwable e) {
+            throw new TestError("Exception during test execution.", Result.TEST_EXCEPTION, e);
         }
-        test.result = Result.TEST_PASS;
-        // clear the log if the test succeeded to free memory
-        test.execLog.clear();
     }
 
-    private static void appendStackTrace(Throwable t, StringBuffer buffer) {
+    static public String stackTraceToString(Throwable t) {
         StringWriter sw = new StringWriter();
         PrintWriter pw = new PrintWriter(sw);
         t.printStackTrace(pw);
-        buffer.append(sw);
+        pw.flush();
+        pw.close();
+        return sw.toString();
     }
 
     /**
@@ -590,7 +595,7 @@ public abstract class TestBase {
             System.out.println(Message.MISSING_DOCKER);
             return List.of(new ProcessBuilder("exit", "1"));
         }
-        var srcGenPath = test.context.getFileConfig().getSrcGenPath();
+        var srcGenPath = test.getFileConfig().getSrcGenPath();
         var dockerComposeFile = FileUtil.globFilesEndsWith(srcGenPath, "docker-compose.yml").get(0);
         var dockerComposeCommand = DockerGeneratorBase.getDockerComposeCommand();
         return List.of(new ProcessBuilder(dockerComposeCommand, "-f", dockerComposeFile.toString(), "rm", "-f"),
@@ -607,7 +612,7 @@ public abstract class TestBase {
             System.out.println(Message.MISSING_DOCKER);
             return List.of(new ProcessBuilder("exit", "1"));
         }
-        var srcGenPath = test.context.getFileConfig().getSrcGenPath();
+        var srcGenPath = test.getFileConfig().getSrcGenPath();
         List<Path> dockerFiles = FileUtil.globFilesEndsWith(srcGenPath, ".Dockerfile");
         try {
             File testScript = File.createTempFile("dockertest", null);
@@ -631,9 +636,9 @@ public abstract class TestBase {
      * that should be used to execute the test program.
      * @param test The test to get the execution command for.
      */
-    private List<ProcessBuilder> getExecCommand(LFTest test) {
-        var srcBasePath = test.context.getFileConfig().srcPkgPath.resolve("src");
-        var relativePathName = srcBasePath.relativize(test.context.getFileConfig().srcPath).toString();
+    private List<ProcessBuilder> getExecCommand(LFTest test) throws TestError {
+        var srcBasePath = test.getFileConfig().srcPkgPath.resolve("src");
+        var relativePathName = srcBasePath.relativize(test.getFileConfig().srcPath).toString();
 
         // special case to test docker file generation
         if (relativePathName.equalsIgnoreCase(TestCategory.DOCKER.getPath())) {
@@ -641,10 +646,9 @@ public abstract class TestBase {
         } else if (relativePathName.equalsIgnoreCase(TestCategory.DOCKER_FEDERATED.getPath())) {
             return getFederatedDockerExecCommand(test);
         } else {
-            LFCommand command = test.context.getFileConfig().getCommand();
+            LFCommand command = test.getFileConfig().getCommand();
             if (command == null) {
-                test.result = Result.NO_EXEC_FAIL;
-                test.issues.append("File: ").append(test.context.getFileConfig().getExecutable()).append(System.lineSeparator());
+                throw new TestError("File: " + test.getFileConfig().getExecutable(), Result.NO_EXEC_FAIL);
             }
             return command == null ? List.of() : List.of(
                 new ProcessBuilder(command.command()).directory(command.directory())
@@ -678,16 +682,13 @@ public abstract class TestBase {
                 }
                 if (level == TestLevel.EXECUTION) {
                     execute(test);
-                } else if (test.result == Result.UNKNOWN) {
-                    test.result = Result.TEST_PASS;
                 }
-
-            } catch (AssertionError e) {
-                // Do not report assertion errors. They are pretty printed
-                // during reporting.
-            } catch (Exception e) {
-                test.issues.append(e.getMessage());
-                e.printStackTrace();
+                test.markPassed();
+            } catch (TestError e) {
+                test.handleTestError(e);
+            } catch (Throwable e) {
+                test.handleTestError(new TestError(
+                    "Unknown exception during test execution", Result.TEST_EXCEPTION, e));
             } finally {
                 restoreOutputs();
             }
