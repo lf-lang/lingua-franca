@@ -10,7 +10,7 @@ import org.lflang.lf.Reactor;
 /**
  * Collection of functions to generate Python code to declare methods.
  *
- * @author {Soroush Bateni <soroush@berkeley.edu>}
+ * @author Soroush Bateni
  */
 public class PythonMethodGenerator {
 

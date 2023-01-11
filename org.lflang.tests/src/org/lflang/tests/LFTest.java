@@ -18,7 +18,7 @@ import org.lflang.generator.LFGeneratorContext;
 /**
  * Information about an indexed Lingua Franca test program.
  * 
- * @author Marten Lohstroh <marten@berkeley.edu>
+ * @author Marten Lohstroh
  *
  */
 public class LFTest implements Comparable<LFTest> {
@@ -218,7 +218,7 @@ public class LFTest implements Comparable<LFTest> {
      * recording output streams up until the moment that a test is interrupted
      * upon timing out.
      *
-     * @author Marten Lohstroh <marten@berkeley.edu>
+     * @author Marten Lohstroh
      *
      */
     public static final class ExecutionLogger {

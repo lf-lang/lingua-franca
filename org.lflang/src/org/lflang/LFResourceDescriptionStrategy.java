@@ -45,7 +45,7 @@ import com.google.inject.Inject;
  * <p>
  * Adapted from example provided by Itemis.
  *
- * @author Marten Lohstroh <marten@berkeley.edu>
+ * @author Marten Lohstroh
  * @see "https://blogs.itemis.com/en/in-five-minutes-to-transitive-imports-within-a-dsl-with-xtext"
  */
 public class LFResourceDescriptionStrategy extends DefaultResourceDescriptionStrategy {

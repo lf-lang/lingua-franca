@@ -36,9 +36,9 @@ import com.google.common.collect.Iterables;
 /**
  * Generate code for the "_lf_initialize_trigger_objects" function
  *
- * @author {Edward A. Lee <eal@berkeley.edu>}
- * @author {Soroush Bateni <soroush@utdallas.edu>}
- * @author {Hou Seng Wong <housengw@berkeley.edu>}
+ * @author Edward A. Lee
+ * @author Soroush Bateni
+ * @author Hou Seng Wong
  */
 public class CTriggerObjectsGenerator {
     /**

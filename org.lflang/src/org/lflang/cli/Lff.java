@@ -24,9 +24,9 @@ import org.lflang.util.FileUtil;
 /**
  * Standalone version of the Lingua Franca formatter (lff). Based on lfc.
  *
- * @author {Marten Lohstroh <marten@berkeley.edu>}
- * @author {Christian Menard <christian.menard@tu-dresden.de>}
- * @author {Billy Bao <billybao@berkeley.edu>}
+ * @author Marten Lohstroh
+ * @author Christian Menard
+ * @author Billy Bao
  */
 public class Lff extends CliBase {
 
@@ -41,8 +41,8 @@ public class Lff extends CliBase {
    * specified,
    * and stores whether to pass the option to the code generator.
    *
-   * @author Marten Lohstroh <marten@berkeley.edu>
-   * @author {Billy Bao <billybao@berkeley.edu>}
+   * @author Marten Lohstroh
+   * @author Billy Bao
    */
   enum CLIOption {
     DRY_RUN(

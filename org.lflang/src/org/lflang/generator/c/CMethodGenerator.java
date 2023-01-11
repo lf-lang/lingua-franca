@@ -12,7 +12,7 @@ import org.lflang.lf.ReactorDecl;
 /**
  * Collection of functions to generate C code to declare methods.
  *
- * @author {Edward A. Lee <eal@berkeley.edu>}
+ * @author Edward A. Lee
  */
 public class CMethodGenerator {
 

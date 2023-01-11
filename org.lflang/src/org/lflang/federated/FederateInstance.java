@@ -67,7 +67,7 @@ import com.google.common.base.Objects;
  * directly by the main reactor) is a federate, so there will be one
  * instance of this class for each top-level reactor.
  * 
- * @author{Edward A. Lee <eal@berkeley.edu>}
+ * @author Edward A. Lee
  */
 public class FederateInstance {
 

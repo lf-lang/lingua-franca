@@ -136,7 +136,7 @@ import de.cau.cs.kieler.klighd.util.KlighdProperties;
 /**
  * Diagram synthesis for Lingua Franca programs.
  * 
- * @author{Alexander Schulz-Rosengarten <als@informatik.uni-kiel.de>}
+ * @author Alexander Schulz-Rosengarten
  */
 @ViewSynthesisShared
 public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {

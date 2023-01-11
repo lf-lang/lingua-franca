@@ -25,17 +25,8 @@
 
 package org.lflang.generator.rust
 
-import org.lflang.ASTUtils
-import org.lflang.AttributeUtils
-import org.lflang.ErrorReporter
-import org.lflang.IDENT_REGEX
-import org.lflang.InferredType
-import org.lflang.TargetConfig
+import org.lflang.*
 import org.lflang.TargetProperty.BuildType
-import org.lflang.TimeUnit
-import org.lflang.TimeValue
-import org.lflang.allComponents
-import org.lflang.camelToSnakeCase
 import org.lflang.generator.*
 import org.lflang.inBlock
 import org.lflang.indexInContainer
@@ -44,31 +35,11 @@ import org.lflang.isBank
 import org.lflang.isInput
 import org.lflang.isLogical
 import org.lflang.isMultiport
-import org.lflang.lf.Action
-import org.lflang.lf.BuiltinTrigger
-import org.lflang.lf.BuiltinTriggerRef
-import org.lflang.lf.Code
-import org.lflang.lf.Connection
-import org.lflang.lf.Expression
-import org.lflang.lf.Input
-import org.lflang.lf.Instantiation
-import org.lflang.lf.Literal
-import org.lflang.lf.ParameterReference
-import org.lflang.lf.Port
-import org.lflang.lf.Reaction
-import org.lflang.lf.Reactor
-import org.lflang.lf.Time
+import org.lflang.lf.*
 import org.lflang.lf.Timer
-import org.lflang.lf.TypeParm
-import org.lflang.lf.VarRef
-import org.lflang.lf.Variable
-import org.lflang.lf.WidthSpec
-import org.lflang.reactor
-import org.lflang.toPath
-import org.lflang.toText
-import org.lflang.toTimeValue
 import java.nio.file.Path
 import java.util.*
+import kotlin.text.capitalize
 
 private typealias Ident = String
 const val PARALLEL_RT_FEATURE = "parallel-runtime"
@@ -218,12 +189,18 @@ data class ChildPortReference(
     override val lfName: Ident,
     override val isInput: Boolean,
     override val dataType: TargetCode,
-    override val isMultiport: Boolean
+    val widthSpecMultiport: TargetCode?,
+    val widthSpecChild: TargetCode?,
 ) : PortLike() {
+    override val isMultiport: Boolean
+        get() = widthSpecMultiport != null
+    override val isContainedInBank: Boolean get() = widthSpecChild != null
     val rustFieldOnChildName: String = lfName.escapeRustIdent()
 
     /** Sync with [NestedReactorInstance.rustLocalName]. */
     val rustChildName: TargetCode = childLfName.escapeRustIdent()
+
+    val widthParamName: TargetCode = (rustFieldName + "__width").escapeRustIdent()
 }
 
 /**
@@ -380,7 +357,10 @@ sealed class PortLike : ReactorComponent() {
     abstract val isInput: Boolean
 
     abstract val dataType: TargetCode
+    val isGeneratedAsMultiport: Boolean
+        get() = isMultiport || isContainedInBank
     abstract val isMultiport: Boolean
+    abstract val isContainedInBank: Boolean
 }
 
 /**
@@ -395,6 +375,7 @@ data class PortData(
     val widthSpec: TargetCode?,
 ) : PortLike() {
     override val isMultiport: Boolean get() = widthSpec != null
+    override val isContainedInBank = false
 
     companion object {
         fun from(port: Port) =
@@ -574,7 +555,8 @@ object RustModelBuilder {
                                 lfName = variable.name,
                                 isInput = variable is Input,
                                 dataType = container.reactor.instantiateType(formalType, it.container.typeParms),
-                                isMultiport = variable.isMultiport
+                                widthSpecMultiport = variable.widthSpec?.toRustExpr(),
+                                widthSpecChild = container.widthSpec?.toRustExpr(),
                             )
                         } else {
                             components[variable.name] ?: throw UnsupportedGeneratorFeatureException(
