@@ -191,7 +191,7 @@ public class FedGenerator {
                                                       errorReporter);
         } else {
             launcher = FedLauncherFactory.getLauncher(
-                federates.get(0), // FIXME: This architecture only works for one target.
+                federates.get(0), // FIXME: This would not work for mixed-target programs.
                 fileConfig,
                 errorReporter
             );
