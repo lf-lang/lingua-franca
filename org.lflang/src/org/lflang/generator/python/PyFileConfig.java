@@ -7,9 +7,10 @@ import java.util.List;
 import org.eclipse.emf.ecore.resource.Resource;
 
 import org.lflang.FileConfig;
+import org.lflang.generator.c.CFileConfig;
 import org.lflang.util.LFCommand;
 
-public class PyFileConfig extends FileConfig {
+public class PyFileConfig extends CFileConfig {
     public PyFileConfig(Resource resource, Path srcGenBasePath, boolean useHierarchicalBin) throws IOException {
         super(resource, srcGenBasePath, useHierarchicalBin);
     }
