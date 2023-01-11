@@ -99,7 +99,11 @@ public abstract class CliBaseNew implements Runnable {
         // Main instance.
         final CliBaseNew main = injector.getInstance(toolClass);
         // Parse arguments and execute main logic.
-        new CommandLine(main).execute(args);
+        CommandLine cmd = new CommandLine(main)
+            .setOut(new PrintWriter(io.getOut()))
+            .setErr(new PrintWriter(io.getErr()));
+        int exitCode = cmd.execute(args);
+        io.callSystemExit(exitCode);
     }
 
     public abstract void run();

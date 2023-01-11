@@ -36,7 +36,7 @@ import org.lflang.util.FileUtil;
     // Automatically add usageHelp and versionHelp options.
     mixinStandardHelpOptions = true,
     // TODO: Import version from StringsBundle.properties. 
-    version = "0.3.1-SNAPSHOT")
+    version = "lff 0.3.1-SNAPSHOT")
 public class Lff extends CliBaseNew {
     /**
      * Supported CLI options for LFF.
@@ -107,7 +107,6 @@ public class Lff extends CliBaseNew {
         } catch (RuntimeException e) {
             reporter.printFatalErrorAndExit("An unexpected error occurred:", e);
         }
-        io.callSystemExit(0);
     }
 
     /**
