@@ -1,0 +1,47 @@
+name: C Zephyr tests
+
+on:
+  workflow_call:
+    inputs:
+      compiler-ref:
+        required: false
+        type: string
+      runtime-ref:
+        required: false
+        type: string
+      use-cpp:
+        required: false
+        type: boolean
+        default: false
+      scheduler:
+        required: false
+        type: string
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    # FIXME: Can we specify the Zephyr version? We are currently hardcoding a 
+    #   requirement on exactly v3.2.0
+    container: zephyrprojectrtos/ci:latest
+    env:
+      CMAKE_PREFIX_PATH: /opt/toolchains
+    steps:
+      - name: Check out lingua-franca repository
+        uses: actions/checkout@v3
+        with:
+          repository: lf-lang/lingua-franca
+          submodules: true
+          ref: ${{ inputs.compiler-ref }}
+          fetch-depth: 0
+      - name: Prepare build environment
+        uses: ./.github/actions/prepare-build-env
+      - name: Check out specific ref of reactor-c
+        uses: actions/checkout@v3
+        with:
+          repository: lf-lang/reactor-c
+          path: org.lflang/src/lib/c/reactor-c
+          ref: ${{ inputs.runtime-ref }}
+        if: ${{ inputs.runtime-ref }}
+      - name: Perform Zephyr tests for C target with default scheduler
+        run: |
+          ./gradlew test --tests org.lflang.tests.runtime.CZephyrTests.*

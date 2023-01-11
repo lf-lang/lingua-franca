@@ -102,14 +102,6 @@ public class CTest extends RuntimeTest {
 
 
     @Test
-    public void runZephyrTests() {
-        Assumptions.assumeTrue(isLinux(), "Zephyr tests only run on Linux");
-        super.runTestsFor(List.of(Target.C),
-            Message.DESC_ZEPHYR,
-            TestCategory.ZEPHYR::equals, Configurators::makeZephyrCompatible,
-            false);
-    }
-    @Test
     @Disabled("TODO only 27/96 tests pass")
     @Override
     public void runAsFederated() {

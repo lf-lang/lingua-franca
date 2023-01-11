@@ -62,6 +62,11 @@ jobs:
   c-tests:
     uses: lf-lang/lingua-franca/.github/workflows/c-tests.yml@master
     needs: cancel
+  
+  # Run the C Zephyr integration tests.
+  c-tests:
+    uses: lf-lang/lingua-franca/.github/workflows/c-zephyr-tests.yml@master
+    needs: cancel
 
   # Run the CCpp integration tests.
   ccpp-tests:
