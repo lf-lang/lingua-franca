@@ -38,7 +38,6 @@ import org.lflang.TargetProperty.CoordinationType;
 import org.lflang.federated.launcher.FedLauncher;
 import org.lflang.federated.launcher.FedLauncherFactory;
 import org.lflang.generator.CodeMap;
-import org.lflang.generator.DockerGeneratorBase;
 import org.lflang.generator.GeneratorResult.Status;
 import org.lflang.generator.GeneratorUtils;
 import org.lflang.generator.IntegratedBuilder;
@@ -232,7 +231,7 @@ public class FedGenerator {
         rs.addLoadOption(XtextResource.OPTION_RESOLVE_ALL, Boolean.TRUE);
         // define output path here
         JavaIoFileSystemAccess fsa = inj.getInstance(JavaIoFileSystemAccess.class);
-        fsa.setOutputPath("DEFAULT_OUTPUT", fileConfig.fed.getFedSrcGenPath().toString());
+        fsa.setOutputPath("DEFAULT_OUTPUT", fileConfig.getSrcGenPath().toString());
 
         var numOfCompileThreads = Math.min(6,
                                            Math.min(
@@ -249,9 +248,9 @@ public class FedGenerator {
             final int id = i;
             compileThreadPool.execute(() -> {
                 Resource res = rs.getResource(URI.createFileURI(
-                    fileConfig.fed.getFedSrcPath().resolve(fed.name + ".lf").toAbsolutePath().toString()
+                    fileConfig.getSrcPath().resolve(fed.name + ".lf").toAbsolutePath().toString()
                 ), true);
-                FileConfig subFileConfig = LFGenerator.createFileConfig(res, fileConfig.fed.getFedSrcGenPath(), false);
+                FileConfig subFileConfig = LFGenerator.createFileConfig(res, fileConfig.getSrcGenPath(), false);
                 ErrorReporter subContextErrorReporter = new LineAdjustingErrorReporter(errorReporter, lf2lfCodeMapMap);
                 TargetConfig subConfig = GeneratorUtils.getTargetConfig(
                     new Properties(), GeneratorUtils.findTarget(subFileConfig.resource), subContextErrorReporter

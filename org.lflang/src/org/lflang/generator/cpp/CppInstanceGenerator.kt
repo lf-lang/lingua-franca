@@ -33,7 +33,7 @@ import org.lflang.lf.Reactor
 /** A code genarator for reactor instances */
 class CppInstanceGenerator(
     private val reactor: Reactor,
-    private val fileConfig: FileConfig,
+    private val fileConfig: CppFileConfig,
 ) {
 
     val Instantiation.cppType: String
@@ -119,7 +119,7 @@ class CppInstanceGenerator(
 
     /** Generate C++ include statements for each reactor that is instantiated */
     fun generateIncludes(): String =
-        reactor.instantiations.map { fileConfig.cpp.getReactorHeaderPath(it.reactor) }
+        reactor.instantiations.map { fileConfig.getReactorHeaderPath(it.reactor) }
             .distinct()
             .joinToString(separator = "\n") { """#include "${it.toUnixString()}" """ }
 

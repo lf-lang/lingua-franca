@@ -35,6 +35,7 @@ import org.lflang.generator.GeneratorResult
 import org.lflang.generator.IntegratedBuilder
 import org.lflang.generator.LFGeneratorContext
 import org.lflang.generator.TargetTypes
+import org.lflang.generator.cpp.CppFileConfig
 import org.lflang.joinWithCommas
 import org.lflang.lf.Action
 import org.lflang.lf.VarRef
@@ -62,6 +63,8 @@ class RustGenerator(
     @Suppress("UNUSED_PARAMETER") unused: LFGlobalScopeProvider
 ) : GeneratorBase(context) {
 
+    val fileConfig: RustFileConfig = context.fileConfig as RustFileConfig
+
     companion object {
         /** Path to the rust runtime library (relative to class path)  */
         const val runtimeDir = "/lib/rs/reactor-rs"
@@ -72,8 +75,6 @@ class RustGenerator(
         super.doGenerate(resource, context)
 
         if (!canGenerate(errorsOccurred(), mainDef, errorReporter, context)) return
-
-        val fileConfig = fileConfig as RustFileConfig
 
         Files.createDirectories(fileConfig.srcGenPath)
 

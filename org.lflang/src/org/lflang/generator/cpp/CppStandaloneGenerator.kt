@@ -19,7 +19,13 @@ class CppStandaloneGenerator(generator: CppGenerator) :
         // generate the main source file (containing main())
         val mainFile = Paths.get("main.cc")
         val mainCodeMap =
-            CodeMap.fromGeneratedCode(CppStandaloneMainGenerator(mainReactor, generator.targetConfig, generator.context.fileConfig).generateCode())
+            CodeMap.fromGeneratedCode(
+                CppStandaloneMainGenerator(
+                    mainReactor,
+                    generator.targetConfig,
+                    generator.context.fileConfig as CppFileConfig
+                ).generateCode()
+            )
         cppSources.add(mainFile)
         codeMaps[fileConfig.srcGenPath.resolve(mainFile)] = mainCodeMap
         println("Path: $srcGenPath $srcGenPath")
@@ -43,7 +49,7 @@ class CppStandaloneGenerator(generator: CppGenerator) :
 
     override fun doCompile(context: LFGeneratorContext, onlyGenerateBuildFiles: Boolean): Boolean {
         var runMake = !onlyGenerateBuildFiles
-        if (onlyGenerateBuildFiles && !fileConfig.cpp.cppBuildDirectories.all { it.toFile().exists() }) {
+        if (onlyGenerateBuildFiles && !fileConfig.cppBuildDirectories.all { it.toFile().exists() }) {
             // Special case: Some build directories do not exist, perhaps because this is the first C++ validation
             //  that has been done in this LF package since the last time the package was cleaned.
             //  We must compile in order to install the dependencies. Future validations will be faster.
@@ -51,7 +57,7 @@ class CppStandaloneGenerator(generator: CppGenerator) :
         }
 
         // make sure the build directory exists
-        Files.createDirectories(fileConfig.cpp.buildPath)
+        Files.createDirectories(fileConfig.buildPath)
 
         val version = checkCmakeVersion()
         if (version != null) {
@@ -59,11 +65,11 @@ class CppStandaloneGenerator(generator: CppGenerator) :
 
             if (cmakeReturnCode == 0 && runMake) {
                 // If cmake succeeded, run make
-                val makeCommand = createMakeCommand(fileConfig.cpp.buildPath, version, fileConfig.name)
+                val makeCommand = createMakeCommand(fileConfig.buildPath, version, fileConfig.name)
                 val makeReturnCode = CppValidator(fileConfig, errorReporter, codeMaps).run(makeCommand, context.cancelIndicator)
                 var installReturnCode = 0
                 if (makeReturnCode == 0) {
-                    val installCommand = createMakeCommand(fileConfig.cpp.buildPath, version, "install")
+                    val installCommand = createMakeCommand(fileConfig.buildPath, version, "install")
                     installReturnCode = installCommand.run(context.cancelIndicator)
                     if (installReturnCode == 0) {
                         println("SUCCESS (compiling generated C++ code)")
@@ -85,7 +91,7 @@ class CppStandaloneGenerator(generator: CppGenerator) :
 
     private fun checkCmakeVersion(): String? {
         // get the installed cmake version and make sure it is at least 3.5
-        val cmd = commandFactory.createCommand("cmake", listOf("--version"), fileConfig.cpp.buildPath)
+        val cmd = commandFactory.createCommand("cmake", listOf("--version"), fileConfig.buildPath)
         var version: String? = null
         if (cmd != null && cmd.run() == 0) {
             val regex = "\\d+(\\.\\d+)+".toRegex()
@@ -108,7 +114,7 @@ class CppStandaloneGenerator(generator: CppGenerator) :
      * @return True, if cmake run successfully
      */
     private fun runCmake(context: LFGeneratorContext): Int {
-        val cmakeCommand = createCmakeCommand(fileConfig.cpp.buildPath, fileConfig.outPath)
+        val cmakeCommand = createCmakeCommand(fileConfig.buildPath, fileConfig.outPath)
         return cmakeCommand.run(context.cancelIndicator)
     }
 

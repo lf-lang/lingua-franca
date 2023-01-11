@@ -15,7 +15,6 @@ import org.lflang.ast.FormattingUtils;
 import org.lflang.federated.extensions.FedTargetExtensionFactory;
 import org.lflang.generator.GeneratorUtils;
 import org.lflang.generator.LFGeneratorContext;
-import org.lflang.lf.TargetDecl;
 
 public class FedTargetEmitter {
 
@@ -105,6 +104,6 @@ public class FedTargetEmitter {
 
     private String relativizePath(String path, FedFileConfig fileConfig) {
         Path resolvedPath = fileConfig.srcPath.resolve(path).toAbsolutePath();
-        return fileConfig.fed.getFedSrcPath().relativize(resolvedPath).toString();
+        return fileConfig.getSrcPath().relativize(resolvedPath).toString();
     }
 }

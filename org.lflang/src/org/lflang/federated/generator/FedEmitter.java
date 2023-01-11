@@ -5,7 +5,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 
 import org.lflang.ErrorReporter;
@@ -46,12 +45,12 @@ public class FedEmitter {
         int numOfFederates
     ) throws IOException {
         String fedName = federate.name;
-        Files.createDirectories(fileConfig.fed.getFedSrcPath());
+        Files.createDirectories(fileConfig.getSrcPath());
         System.out.println("##### Generating code for federate " + fedName
                                + " in directory "
-                               + fileConfig.fed.getFedSrcPath());
+                               + fileConfig.getSrcPath());
 
-        Path lfFilePath = fileConfig.fed.getFedSrcPath().resolve(
+        Path lfFilePath = fileConfig.getSrcPath().resolve(
             fedName + ".lf");
 
         String federateCode = String.join(

@@ -108,10 +108,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
 
     public TargetConfig getTargetConfig() { return this.targetConfig;}
 
-    /**
-     * The current file configuration.
-     */
-    protected FileConfig fileConfig;
+    public final LFGeneratorContext context;
 
     /**
      * A factory for compiler commands.
@@ -183,10 +180,10 @@ public abstract class GeneratorBase extends AbstractLFValidator {
      * Create a new GeneratorBase object.
      */
     public GeneratorBase(LFGeneratorContext context) {
-        this.fileConfig = context.getFileConfig();
+        this.context = context;
         this.targetConfig = context.getTargetConfig();
         this.errorReporter = context.getErrorReporter();
-        this.commandFactory = new GeneratorCommandFactory(errorReporter, fileConfig);
+        this.commandFactory = new GeneratorCommandFactory(errorReporter, context.getFileConfig());
     }
 
     // //////////////////////////////////////////
@@ -200,7 +197,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
         // Record this class, so it can be reused.
         delayClasses.add(generatedDelay);
         // And hook it into the AST.
-        EObject node = IteratorExtensions.findFirst(fileConfig.resource.getAllContents(), Model.class::isInstance);
+        EObject node = IteratorExtensions.findFirst(context.getFileConfig().resource.getAllContents(), Model.class::isInstance);
         ((Model) node).getReactors().add(generatedDelay);
     }
 
@@ -218,7 +215,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
      */
     private void createMainInstantiation() {
         // Find the main reactor and create an AST node for its instantiation.
-        Iterable<EObject> nodes = IteratorExtensions.toIterable(fileConfig.resource.getAllContents());
+        Iterable<EObject> nodes = IteratorExtensions.toIterable(context.getFileConfig().resource.getAllContents());
         for (Reactor reactor : Iterables.filter(nodes, Reactor.class)) {
             if (reactor.isMain()) {
                 // Creating a definition for the main reactor because there isn't one.
@@ -255,13 +252,13 @@ public abstract class GeneratorBase extends AbstractLFValidator {
             ((EclipseErrorReporter) errorReporter).clearMarkers();
         }
 
-        ASTUtils.setMainName(fileConfig.resource, fileConfig.name);
+        ASTUtils.setMainName(context.getFileConfig().resource, context.getFileConfig().name);
 
         createMainInstantiation();
 
         // Check if there are any conflicting main reactors elsewhere in the package.
         if (Objects.equal(context.getMode(), LFGeneratorContext.Mode.STANDALONE) && mainDef != null) {
-            for (String conflict : new MainConflictChecker(fileConfig).conflicts) {
+            for (String conflict : new MainConflictChecker(context.getFileConfig()).conflicts) {
                 errorReporter.reportError(this.mainDef.getReactorClass(), "Conflicting main reactor in " + conflict);
             }
         }
@@ -275,18 +272,18 @@ public abstract class GeneratorBase extends AbstractLFValidator {
         // Process target files. Copy each of them into the src-gen dir.
         // FIXME: Should we do this here? This doesn't make sense for federates the way it is
         // done here.
-        copyUserFiles(this.targetConfig, this.fileConfig);
+        copyUserFiles(this.targetConfig, context.getFileConfig());
 
         // Collect reactors and create an instantiation graph.
         // These are needed to figure out which resources we need
         // to validate, which happens in setResources().
         setReactorsAndInstantiationGraph(context.getMode());
 
-        GeneratorUtils.validate(context, fileConfig, instantiationGraph, errorReporter);
+        GeneratorUtils.validate(context, context.getFileConfig(), instantiationGraph, errorReporter);
         List<Resource> allResources = GeneratorUtils.getResources(reactors);
         resources.addAll(allResources.stream()  // FIXME: This filter reproduces the behavior of the method it replaces. But why must it be so complicated? Why are we worried about weird corner cases like this?
-            .filter(it -> !Objects.equal(it, fileConfig.resource) || mainDef != null && it == mainDef.getReactorClass().eResource())
-            .map(it -> GeneratorUtils.getLFResource(it, fileConfig.getSrcGenBasePath(), context, errorReporter))
+            .filter(it -> !Objects.equal(it, context.getFileConfig().resource) || mainDef != null && it == mainDef.getReactorClass().eResource())
+            .map(it -> GeneratorUtils.getLFResource(it, context.getFileConfig().getSrcGenBasePath(), context, errorReporter))
             .toList()
         );
         GeneratorUtils.accommodatePhysicalActionsIfPresent(
@@ -323,7 +320,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
     protected void cleanIfNeeded(LFGeneratorContext context) {
         if (context.getArgs().containsKey("clean")) {
             try {
-                fileConfig.doClean();
+                context.getFileConfig().doClean();
             } catch (IOException e) {
                 System.err.println("WARNING: IO Error during clean");
             }
@@ -340,7 +337,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
      */
     protected void setReactorsAndInstantiationGraph(LFGeneratorContext.Mode mode) {
         // Build the instantiation graph .
-        instantiationGraph = new InstantiationGraph(fileConfig.resource, false);
+        instantiationGraph = new InstantiationGraph(context.getFileConfig().resource, false);
 
         // Topologically sort the reactors such that all of a reactor's instantiation dependencies occur earlier in
         // the sorted list of reactors. This helps the code generator output code in the correct order.
@@ -351,7 +348,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
         // If there is no main reactor or if all reactors in the file need to be validated, then make sure the reactors
         // list includes even reactors that are not instantiated anywhere.
         if (mainDef == null || Objects.equal(mode, LFGeneratorContext.Mode.LSP_MEDIUM)) {
-            Iterable<EObject> nodes = IteratorExtensions.toIterable(fileConfig.resource.getAllContents());
+            Iterable<EObject> nodes = IteratorExtensions.toIterable(context.getFileConfig().resource.getAllContents());
             for (Reactor r : IterableExtensions.filter(nodes, Reactor.class)) {
                 if (!reactors.contains(r)) {
                     reactors.add(r);
@@ -566,7 +563,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
         String[] lines = stderr.split("\\r?\\n");
         StringBuilder message = new StringBuilder();
         Integer lineNumber = null;
-        Path path = fileConfig.srcFile;
+        Path path = context.getFileConfig().srcFile;
         // In case errors occur within an imported file, record the original path.
         Path originalPath = path;
 
@@ -656,9 +653,9 @@ public abstract class GeneratorBase extends AbstractLFValidator {
      * what mode the generator is in, and where the generated sources are to be put.
      */
     public void printInfo(LFGeneratorContext.Mode mode) {
-        System.out.println("Generating code for: " + fileConfig.resource.getURI().toString());
+        System.out.println("Generating code for: " + context.getFileConfig().resource.getURI().toString());
         System.out.println("******** mode: " + mode);
-        System.out.println("******** generated sources: " + fileConfig.getSrcGenPath());
+        System.out.println("******** generated sources: " + context.getFileConfig().getSrcGenPath());
     }
 
     /**

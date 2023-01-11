@@ -12,7 +12,7 @@ import org.lflang.toUnixString
 class CppStandaloneMainGenerator(
     private val main: Reactor,
     private val targetConfig: TargetConfig,
-    private val fileConfig: FileConfig,
+    private val fileConfig: CppFileConfig,
 ) {
     // Cxxopts generation
     private fun generateParameterParser(param: Parameter): String {
@@ -55,7 +55,7 @@ class CppStandaloneMainGenerator(
             |using namespace reactor::operators;
             |
             |
-            |#include "${fileConfig.cpp.getReactorHeaderPath(main).toUnixString()}"
+            |#include "${fileConfig.getReactorHeaderPath(main).toUnixString()}"
             |
             |#include "time_parser.hh"
             |#include "lf_timeout.hh"

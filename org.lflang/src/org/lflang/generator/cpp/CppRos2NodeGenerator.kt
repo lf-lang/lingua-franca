@@ -9,7 +9,7 @@ import org.lflang.toUnixString
 class CppRos2NodeGenerator(
     private val main: Reactor,
     private val targetConfig: TargetConfig,
-    private val fileConfig: FileConfig
+    private val fileConfig: CppFileConfig
 ) {
 
     val nodeName = "${fileConfig.name}Node"
@@ -22,7 +22,7 @@ class CppRos2NodeGenerator(
             |#include "reactor-cpp/reactor-cpp.hh"
             |#include "lf_timeout.hh"
             |
-            |#include "${fileConfig.cpp.getReactorHeaderPath(main).toUnixString()}"
+            |#include "${fileConfig.getReactorHeaderPath(main).toUnixString()}"
             |
             |rclcpp::Node* lf_node{nullptr};
             |

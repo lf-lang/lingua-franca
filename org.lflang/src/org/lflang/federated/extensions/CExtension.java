@@ -47,13 +47,11 @@ import org.lflang.federated.generator.FedFileConfig;
 import org.lflang.federated.generator.FederateInstance;
 import org.lflang.federated.serialization.FedROS2CPPSerialization;
 import org.lflang.generator.CodeBuilder;
-import org.lflang.generator.DockerGeneratorBase;
 import org.lflang.generator.GeneratorBase;
 import org.lflang.generator.GeneratorUtils;
 import org.lflang.generator.LFGeneratorContext;
 import org.lflang.generator.ReactionInstance;
 import org.lflang.generator.ReactorInstance;
-import org.lflang.generator.c.CDockerGenerator;
 import org.lflang.generator.c.CGenerator;
 import org.lflang.generator.c.CTypes;
 import org.lflang.generator.c.CUtil;
@@ -104,7 +102,7 @@ public class CExtension implements FedTargetExtension {
         federate.targetConfig.setByUser.add(TargetProperty.FILES);
         FileUtil.copyDirectoryFromClassPath(
             "/lib/c/reactor-c/core/federated",
-            fileConfig.fed.getFedSrcPath().resolve("include" + File.separator + "federated"),
+            fileConfig.getSrcPath().resolve("include" + File.separator + "federated"),
             true
         );
 
@@ -532,7 +530,7 @@ public class CExtension implements FedTargetExtension {
         // Put the C preamble in a `include/_federate.name + _preamble.c` file
         String cPreamble = makePreamble(federate, fileConfig, federationRTIProperties, errorReporter);
         String relPath = "include" + File.separator + "_" + federate.name + "_preamble.c";
-        Path fedPreamblePath = fileConfig.fed.getFedSrcPath().resolve(relPath);
+        Path fedPreamblePath = fileConfig.getSrcPath().resolve(relPath);
         Files.createDirectories(fedPreamblePath.getParent());
         try (var writer = Files.newBufferedWriter(fedPreamblePath)) {
             writer.write(cPreamble);

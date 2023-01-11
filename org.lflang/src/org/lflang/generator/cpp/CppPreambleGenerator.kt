@@ -37,7 +37,7 @@ import org.lflang.toUnixString
 
 class CppPreambleGenerator(
     private val resource: Resource,
-    private val fileConfig: FileConfig,
+    private val fileConfig: CppFileConfig,
     private val scopeProvider: LFGlobalScopeProvider
 ) {
     /** A list of all preambles defined in the resource (file) */
@@ -45,7 +45,7 @@ class CppPreambleGenerator(
 
     fun generateHeader(): String {
         val importedResources = scopeProvider.getImportedResources(resource)
-        val includes = importedResources.map { """#include "${fileConfig.cpp.getPreambleHeaderPath(it)}"""" }
+        val includes = importedResources.map { """#include "${fileConfig.getPreambleHeaderPath(it)}"""" }
 
         val publicPreambles = preambles.filter { it.isPublic }
 
@@ -75,7 +75,7 @@ class CppPreambleGenerator(
                 |
                 |#include "reactor-cpp/reactor-cpp.hh"
                 |
-                |#include "${fileConfig.cpp.getPreambleHeaderPath(resource).toUnixString()}"
+                |#include "${fileConfig.getPreambleHeaderPath(resource).toUnixString()}"
                 |
                 |using namespace std::chrono_literals;
                 |using namespace reactor::operators;

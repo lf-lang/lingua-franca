@@ -42,37 +42,34 @@ class CppFileConfig(resource: Resource, srcGenBasePath: Path, useHierarchicalBin
     @Throws(IOException::class)
     override fun doClean() {
         super.doClean()
-        this.cpp.cppBuildDirectories.forEach { FileUtil.deleteDirectory(it) }
+        this.cppBuildDirectories.forEach { FileUtil.deleteDirectory(it) }
     }
 
-    class CppFiles(val fileConfig: FileConfig) {
+    val cppBuildDirectories = listOf<Path>(
+        this.outPath.resolve("build"),
+        this.outPath.resolve("lib"),
+        this.outPath.resolve("include"),
+        this.outPath.resolve("share")
+    )
 
-        val cppBuildDirectories = listOf<Path>(
-            fileConfig.outPath.resolve("build"),
-            fileConfig.outPath.resolve("lib"),
-            fileConfig.outPath.resolve("include"),
-            fileConfig.outPath.resolve("share")
-        )
+    /** Relative path to the directory where all source files for this resource should be generated in. */
+    private fun getGenDir(r: Resource): Path = this.getDirectory(r).resolve(r.name)
 
-        /** Relative path to the directory where all source files for this resource should be generated in. */
-        private fun getGenDir(r: Resource): Path = fileConfig.getDirectory(r).resolve(r.name)
+    /** Path to the preamble header file corresponding to this resource */
+    fun getPreambleHeaderPath(r: Resource): Path = getGenDir(r).resolve("_lf_preamble.hh")
 
-        /** Path to the preamble header file corresponding to this resource */
-        fun getPreambleHeaderPath(r: Resource): Path = getGenDir(r).resolve("_lf_preamble.hh")
+    /** Path to the preamble source file corresponding to this resource */
+    fun getPreambleSourcePath(r: Resource): Path = getGenDir(r).resolve("_lf_preamble.cc")
 
-        /** Path to the preamble source file corresponding to this resource */
-        fun getPreambleSourcePath(r: Resource): Path = getGenDir(r).resolve("_lf_preamble.cc")
+    /** Path to the header file corresponding to this reactor */
+    fun getReactorHeaderPath(r: Reactor): Path = getGenDir(r.eResource()).resolve("${r.name}.hh")
 
-        /** Path to the header file corresponding to this reactor */
-        fun getReactorHeaderPath(r: Reactor): Path = getGenDir(r.eResource()).resolve("${r.name}.hh")
+    /** Path to the implementation header file corresponding to this reactor (needed for generic reactors) */
+    fun getReactorHeaderImplPath(r: Reactor): Path = getGenDir(r.eResource()).resolve("${r.name}_impl.hh")
 
-        /** Path to the implementation header file corresponding to this reactor (needed for generic reactors) */
-        fun getReactorHeaderImplPath(r: Reactor): Path = getGenDir(r.eResource()).resolve("${r.name}_impl.hh")
+    /** Path to the source file corresponding to this reactor (needed for non generic reactors)  */
+    fun getReactorSourcePath(r: Reactor): Path = getGenDir(r.eResource()).resolve("${r.name}.cc")
 
-        /** Path to the source file corresponding to this reactor (needed for non generic reactors)  */
-        fun getReactorSourcePath(r: Reactor): Path = getGenDir(r.eResource()).resolve("${r.name}.cc")
-
-        /** Path to the build directory containing CMake-generated files */
-        val buildPath: Path get() = fileConfig.outPath.resolve("build")
-    }
+    /** Path to the build directory containing CMake-generated files */
+    val buildPath: Path get() = this.outPath.resolve("build")
 }

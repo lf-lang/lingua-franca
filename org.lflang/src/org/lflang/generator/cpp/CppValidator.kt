@@ -19,7 +19,7 @@ import java.util.regex.Pattern
  * @author Peter Donovan <peterdonovan@berkeley.edu>
  */
 class CppValidator(
-    private val fileConfig: FileConfig,
+    private val fileConfig: CppFileConfig,
     errorReporter: ErrorReporter,
     codeMaps: Map<Path, CodeMap>
 ): Validator(errorReporter, codeMaps) {
@@ -163,7 +163,7 @@ class CppValidator(
         get() = getFromCache("CMAKE_GENERATOR_INSTANCE")
 
     /** The CMake cache. */
-    private val cmakeCache: File = fileConfig.cpp.buildPath.resolve("CMakeCache.txt").toFile()
+    private val cmakeCache: File = fileConfig.buildPath.resolve("CMakeCache.txt").toFile()
 
     override fun getPossibleStrategies(): Collection<ValidationStrategy> = CppValidationStrategyFactory.values().map { it.create(this) }
 }

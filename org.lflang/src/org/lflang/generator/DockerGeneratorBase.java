@@ -2,10 +2,7 @@ package org.lflang.generator;
 
 import java.io.IOException;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.List;
 
-import org.lflang.FileConfig;
 import org.lflang.federated.generator.FedFileConfig;
 import org.lflang.util.FileUtil;
 
@@ -120,7 +117,7 @@ abstract public class DockerGeneratorBase {
         var fileConfig = context.getFileConfig();
         // FIXME: in FedFileConfig we should probably just have an override of getSrcGenPath instead.
         if (fileConfig instanceof FedFileConfig) {
-            this.dockerComposeFilePath = fileConfig.fed.getFedSrcGenPath().resolve("docker-compose.yml");
+            this.dockerComposeFilePath = ((FedFileConfig)fileConfig).getSrcGenPath().resolve("docker-compose.yml");
         } else {
             this.dockerComposeFilePath = fileConfig.getSrcGenPath().resolve("docker-compose.yml");
         }

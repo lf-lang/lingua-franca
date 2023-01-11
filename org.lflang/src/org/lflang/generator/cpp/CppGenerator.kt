@@ -58,6 +58,8 @@ class CppGenerator(
     val cppSources = mutableListOf<Path>()
     val codeMaps = mutableMapOf<Path, CodeMap>()
 
+    val fileConfig: CppFileConfig = context.fileConfig as CppFileConfig
+
     companion object {
         /** Path to the Cpp lib directory (relative to class path)  */
         const val libDir = "/lib/cpp"
@@ -149,8 +151,8 @@ class CppGenerator(
         // generate header and source files for all reactors
         for (r in reactors) {
             val generator = CppReactorGenerator(r, fileConfig, errorReporter)
-            val headerFile = fileConfig.cpp.getReactorHeaderPath(r)
-            val sourceFile = if (r.isGeneric) fileConfig.cpp.getReactorHeaderImplPath(r) else fileConfig.cpp.getReactorSourcePath(r)
+            val headerFile = fileConfig.getReactorHeaderPath(r)
+            val sourceFile = if (r.isGeneric) fileConfig.getReactorHeaderImplPath(r) else fileConfig.getReactorSourcePath(r)
             val reactorCodeMap = CodeMap.fromGeneratedCode(generator.generateSource())
             if (!r.isGeneric)
                 cppSources.add(sourceFile)
@@ -165,8 +167,8 @@ class CppGenerator(
         // generate file level preambles for all resources
         for (r in resources) {
             val generator = CppPreambleGenerator(r.eResource, fileConfig, scopeProvider)
-            val sourceFile = fileConfig.cpp.getPreambleSourcePath(r.eResource)
-            val headerFile = fileConfig.cpp.getPreambleHeaderPath(r.eResource)
+            val sourceFile = fileConfig.getPreambleSourcePath(r.eResource)
+            val headerFile = fileConfig.getPreambleHeaderPath(r.eResource)
             val preambleCodeMap = CodeMap.fromGeneratedCode(generator.generateSource())
             cppSources.add(sourceFile)
             codeMaps[srcGenPath.resolve(sourceFile)] = preambleCodeMap

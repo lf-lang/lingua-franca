@@ -334,6 +334,8 @@ public class CGenerator extends GeneratorBase {
     /** Place to collect code to initialize the trigger objects for all reactor instances. */
     protected CodeBuilder initializeTriggerObjects = new CodeBuilder();
 
+    protected final CFileConfig fileConfig;
+
     /**
      * Count of the number of is_present fields of the self struct that
      * need to be reinitialized in _lf_start_time_step().
@@ -375,6 +377,7 @@ public class CGenerator extends GeneratorBase {
         CCmakeGenerator cmakeGenerator
     ) {
         super(context);
+        this.fileConfig = (CFileConfig) context.getFileConfig();
         this.CCppMode = CCppMode;
         this.types = types;
         this.cmakeGenerator = cmakeGenerator;
