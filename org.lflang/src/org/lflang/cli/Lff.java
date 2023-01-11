@@ -74,9 +74,9 @@ public class Lff extends CliBaseNew {
         description = "Print more details on files affected.")
     private boolean verbose = false;
 
-    // public Lff() {
-    //     super("lff");
-    // }
+    public Lff() {
+        super("lff");
+    }
 
     /**
      * Programmatic entry point, with a custom IO.

@@ -85,11 +85,11 @@ public abstract class CliBaseNew implements Runnable {
     private IResourceValidator validator;
 
     /** Name of the program, eg "lfc". */
-    // private final String toolName;
+    private final String toolName;
 
-    // protected CliBaseNew(String toolName) {
-    //     this.toolName = toolName;
-    // }
+    protected CliBaseNew(String toolName) {
+        this.toolName = toolName;
+    }
 
     protected static void cliMain(
             String toolName, Class<? extends CliBaseNew> toolClass,
