@@ -39,7 +39,7 @@ import org.lflang.util.FileUtil;
     version = "lff 0.3.1-SNAPSHOT")
 public class Lff extends CliBase {
     /**
-     * Supported CLI options for LFF.
+     * Supported CLI options for Lff.
      */
     @Option(
         names = {"-d", "--dry-run"},
@@ -57,7 +57,8 @@ public class Lff extends CliBase {
 
     @Option(
         names = "--no-recurse",
-        description = "Do not format files in subdirectories of the specified paths.")
+        description = "Do not format files in subdirectories of the"
+                    + " specified paths.")
     private boolean noRecurse = false;
 
     @Option(
@@ -79,6 +80,16 @@ public class Lff extends CliBase {
     }
 
     /**
+     * Main function of the formatter.
+     * Caution: this will invoke System.exit.
+     *
+     * @param args CLI arguments
+     */
+    public static void main(String[] args) {
+        main(Io.SYSTEM, args);
+    }
+
+    /**
      * Programmatic entry point, with a custom IO.
      *
      * @param io IO streams.
@@ -88,12 +99,8 @@ public class Lff extends CliBase {
         cliMain("lff", Lff.class, io, args);
     }
 
-    public static void main(String[] args) {
-        main(Io.SYSTEM, args);
-    }
-
-    /*
-     * The first method in LFF that is invoked when the parent CliBase Runnable
+    /**
+     * The first method in Lff that is invoked when the parent CliBase Runnable
      * class is instantiated, i.e. the first method to run after the arguments
      * are parsed.
      */

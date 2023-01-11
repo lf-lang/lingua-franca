@@ -169,8 +169,8 @@ public class Lfc extends CliBase {
         cliMain("lfc", Lfc.class, io, args);
     }
 
-    /*
-     * The first method in LFC that is invoked when the parent CliBase Runnable
+    /**
+     * The first method in Lfc that is invoked when the parent CliBase Runnable
      * class is instantiated, i.e. the first method to run after the arguments
      * are parsed.
      */
@@ -216,9 +216,10 @@ public class Lfc extends CliBase {
     }
 
     /**
-     * Invoke the code generator on the given valid file paths.
+     * Invoke the code generator on the given validated file paths.
      */
-    protected void invokeGenerator(List<Path> files, Path root, Properties properties) {
+    protected void invokeGenerator(
+            List<Path> files, Path root, Properties properties) {
         for (Path path : files) {
             path = toAbsolutePath(path);
             String outputPath = getActualOutputPath(root, path).toString();
@@ -235,8 +236,8 @@ public class Lfc extends CliBase {
                         "Unable to change main reactor to federated reactor.");
                 }
             }
-            validateResource(resource);
 
+            validateResource(resource);
             exitIfCollectedErrors();
 
             LFGeneratorContext context = new MainContext(
@@ -252,7 +253,7 @@ public class Lfc extends CliBase {
             }
 
             exitIfCollectedErrors();
-            // print all other issues (not errors)
+            // Print all other issues (not errors).
             issueCollector.getAllIssues().forEach(reporter::printIssue);
 
             this.io.getOut().println("Code generation finished.");

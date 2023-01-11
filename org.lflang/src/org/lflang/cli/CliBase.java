@@ -38,10 +38,22 @@ import com.google.inject.Inject;
 import com.google.inject.Injector;
 import com.google.inject.Provider;
 
+/**
+ * Base class for standalone CLI applications.
+ *
+ * @author {Marten Lohstroh <marten@berkeley.edu>}
+ * @author {Christian Menard <christian.menard@tu-dresden.de>}
+ * @author {Billy Bao <billybao@berkeley.edu>}
+ * @author {Atharva Patil <atharva.patil@berkeley.edu>}
+ */
 public abstract class CliBase implements Runnable {
+    /**
+     * Models a command specification, including the options, positional
+     * parameters and subcommands supported by the command.
+     */
     @Spec CommandSpec spec;
 
-    /*
+    /**
      * Options and parameters present in both Lfc and Lff.
      */
     @Parameters(
@@ -175,7 +187,8 @@ public abstract class CliBase implements Runnable {
     }
 
     /**
-     * If some errors were collected, print them and abort execution. Otherwise, return.
+     * If some errors were collected, print them and abort execution.
+     * Otherwise, return.
      */
     protected void exitIfCollectedErrors() {
         if (issueCollector.getErrorsOccurred()) {
@@ -212,7 +225,8 @@ public abstract class CliBase implements Runnable {
                 resource, CheckMode.ALL, CancelIndicator.NullImpl);
 
         for (Issue issue : issues) {
-            URI uri = issue.getUriToProblem(); // Issues may also relate to imported resources.
+            // Issues may also relate to imported resources.
+            URI uri = issue.getUriToProblem(); 
             try {
                 issueCollector.accept(
                         new LfIssue(
