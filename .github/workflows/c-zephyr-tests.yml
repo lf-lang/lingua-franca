@@ -48,7 +48,7 @@ jobs:
           wget https://github.com/zephyrproject-rtos/sdk-ng/releases/download/v${SDK_VERSION}/zephyr-sdk-${SDK_VERSION}_linux-x86_64.tar.gz
           wget -O - https://github.com/zephyrproject-rtos/sdk-ng/releases/download/v${SDK_VERSION}/sha256.sum | shasum --check --ignore-missing
 
-          tar xvf zephyr-sdk-${SDK_VERSION}_linux-x86_64.tar.gz /opt
+          tar xvf zephyr-sdk-${SDK_VERSION}_linux-x86_64.tar.gz --directory /opt
           cd /opt/zephyr-sdk-${SDK_VERSION}
           ./setup.sh
 
