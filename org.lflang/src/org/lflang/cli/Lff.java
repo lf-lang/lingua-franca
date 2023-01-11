@@ -33,7 +33,7 @@ import org.lflang.util.FileUtil;
  */
 @Command(
     name = "lff",
-    // Automatically add usageHelp and versionHelp options.
+    // Enable usageHelp (--help) and versionHelp (--version) options.
     mixinStandardHelpOptions = true,
     // TODO: Import version from StringsBundle.properties. 
     version = "lff 0.3.1-SNAPSHOT")
@@ -99,7 +99,6 @@ public class Lff extends CliBaseNew {
      */
     @Override
     public void run() {
-        // TODO: Directly load paths instead of converting strings to paths.
         try {
             List<Path> paths = files.stream().map(
                     io.getWd()::resolve).collect(Collectors.toList());
@@ -110,11 +109,11 @@ public class Lff extends CliBaseNew {
     }
 
     /**
-     * Check all given input paths and the output path, then invokes the formatter on all files
-     * given.
+     * Check all given input paths and the output path, then invokes the 
+     * formatter on all files given.
      */
     @Override
-    protected void runTool(List<Path> files) {
+    protected void runTool(List<Path> paths) {
         final Path outputRoot;
         if (!outputPath.isEmpty()){
             outputRoot = 
@@ -132,43 +131,15 @@ public class Lff extends CliBaseNew {
             outputRoot = null;
         }
 
-        for (Path path : files) {
+        for (Path path : paths) {
             if (!Files.exists(path)) {
                 reporter.printFatalErrorAndExit(
                         path + ": No such file or directory");
             }
         }
 
-        for (Path relativePath : files) {
-            if (verbose) {
-                reporter.printInfo("Formatting "
-                        + io.getWd().relativize(relativePath) + ":");
-            }
-            Path path = toAbsolutePath(relativePath);
-            if (Files.isDirectory(path) && !noRecurse) {
-                // this is a directory, walk its contents.
-                try {
-                    Files.walkFileTree(path, new SimpleFileVisitor<>() {
-                        @Override
-                        public FileVisitResult visitFile(
-                                Path file, BasicFileAttributes attrs) {
-                            formatSingleFile(
-                                file, path, outputRoot,
-                                lineLength, dryRun, verbose);
-                            return FileVisitResult.CONTINUE;
-                        }
-                    });
-                } catch (IOException e) {
-                    reporter.printError("IO error: " + e);
-                }
-
-            } else {
-                // Simple file
-                formatSingleFile(
-                    path, path.getParent(), outputRoot,
-                    lineLength, dryRun, verbose);
-            }
-        }
+        // Format all files defined by the list of paths.
+        formatAllFiles(paths, outputRoot);
 
         exitIfCollectedErrors();
         if (!dryRun || verbose) {
@@ -176,19 +147,52 @@ public class Lff extends CliBaseNew {
         }
     }
 
-    private void formatSingleFile(
-            Path file, Path inputRoot, Path outputRoot,
-            int lineLength, boolean dryRun, boolean verbose) {
-        file = file.normalize();
-        Path outputPath = outputRoot == null
-            ? file // format in place
-            : outputRoot.resolve(inputRoot.relativize(file)).normalize();
+    /*
+     * Invokes the formatter on all files defined by the list of paths.
+     */
+    private void formatAllFiles(List<Path> paths, Path outputRoot) {
+        for (Path relativePath : paths) {
+            if (verbose) {
+                reporter.printInfo("Formatting "
+                        + io.getWd().relativize(relativePath) + ":");
+            }
 
-        final Resource resource = getResource(file);
+            Path path = toAbsolutePath(relativePath);
+            if (Files.isDirectory(path) && !noRecurse) {
+                // Walk the contents of this directory.
+                try {
+                    Files.walkFileTree(path, new SimpleFileVisitor<>() {
+                        @Override
+                        public FileVisitResult visitFile(
+                                Path file, BasicFileAttributes attrs) {
+                            formatSingleFile(file, path, outputRoot);
+                            return FileVisitResult.CONTINUE;
+                        }
+                    });
+                } catch (IOException e) {
+                    reporter.printError("IO error: " + e);
+                }
+            } else {
+                // Simple file.
+                formatSingleFile(path, path.getParent(), outputRoot);
+            }
+        }
+    }
+
+    /*
+     * Invokes the formatter on a single file defined by the given path.
+     */
+    private void formatSingleFile(Path path, Path inputRoot, Path outputRoot) {
+        path = path.normalize();
+        Path outputPath = outputRoot == null
+            ? path // Format in place.
+            : outputRoot.resolve(inputRoot.relativize(path)).normalize();
+
+        final Resource resource = getResource(path);
         // Skip file if not an LF file.
         if (resource == null) {
             if (verbose) {
-                reporter.printInfo("Skipped " + file + ": not an LF file");
+                reporter.printInfo("Skipped " + path + ": not an LF file");
             }
             return; 
         }
@@ -221,11 +225,10 @@ public class Lff extends CliBaseNew {
         exitIfCollectedErrors();
         issueCollector.getAllIssues().forEach(reporter::printIssue);
         if (verbose) {
-            String msg = "Formatted " + io.getWd().relativize(file);
-            if (file != outputPath) msg += 
+            String msg = "Formatted " + io.getWd().relativize(path);
+            if (path != outputPath) msg += 
                 " -> " + io.getWd().relativize(outputPath);
             reporter.printInfo(msg);
         }
     }
-    
 }
