@@ -110,7 +110,7 @@ ${"             |    "..otherComponents.joinWithCommasLn { it.toStructField() }}
                 |
                 |        let __impl = {
                 |            // declare them all here so that they are visible to the initializers of state vars declared later
-${"             |            "..reactor.stateVars.joinWithLn { "let ${it.lfName} = ${it.init};" }}
+${"             |            "..reactor.stateVars.joinWithLn { "let ${it.lfName}: ${it.type} = ${it.init};" }}
                 |
                 |            $structName {
                 |                __phantom: std::marker::PhantomData,
