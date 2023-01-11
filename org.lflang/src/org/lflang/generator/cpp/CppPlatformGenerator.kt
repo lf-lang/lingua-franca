@@ -12,7 +12,7 @@ abstract class CppPlatformGenerator(protected val generator: CppGenerator) {
     protected val codeMaps = generator.codeMaps
     protected val cppSources = generator.cppSources
     protected val errorReporter: ErrorReporter = generator.errorReporter
-    protected val fileConfig: CppFileConfig = generator.context.fileConfig as CppFileConfig
+    protected val fileConfig: CppFileConfig = generator.fileConfig
     protected val targetConfig: TargetConfig = generator.targetConfig
     protected val commandFactory: GeneratorCommandFactory = generator.commandFactory
     protected val mainReactor = generator.mainDef.reactorClass.toDefinition()
