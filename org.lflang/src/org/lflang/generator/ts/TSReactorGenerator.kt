@@ -115,9 +115,8 @@ ${"             |"..preamble.code.toText()}
                 isFederate = true
                 for (attrParam in attribute.attrParms) {
                     if (attrParam.name == "network_message_actions") {
-                        val params = attrParam.value.split(",")
-                        if (!params.all { it[0] == '"' && it[it.length - 1] == '"'}) throw IllegalArgumentException()
-                        networkMessageActions = attrParam.value.split(",").map { it.substring(1, it.length-1) }.filter { it.isNotEmpty() }
+                        if (attrParam.value[0] != '"' || attrParam.value[attrParam.value.length - 1] != '"') throw IllegalArgumentException("Expected attrParam.value to be wrapped in double quotes")
+                        networkMessageActions = attrParam.value.substring(1, attrParam.value.length - 1).split(",")
                     }
                 }
             }
