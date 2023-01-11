@@ -30,6 +30,11 @@ subprojects {
             jvmTarget = kotlinJvmTarget
         }
     }
+    compileTestKotlin {
+        kotlinOptions {
+            jvmTarget = kotlinJvmTarget
+        }
+    }
 
     dependencies {
         implementation platform("org.eclipse.xtext:xtext-dev-bom:${xtextVersion}")
@@ -73,6 +78,10 @@ subprojects {
     test {
         filter {
             setFailOnNoMatchingTests(false)
+        }
+        testLogging {
+            // print exception message when a test fails.
+            exceptionFormat "full"
         }
     }
 }

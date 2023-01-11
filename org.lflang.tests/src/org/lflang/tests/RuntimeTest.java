@@ -12,7 +12,7 @@ import org.lflang.tests.TestRegistry.TestCategory;
 /**
  * A collection of JUnit tests to perform on a given set of targets.
  * 
- * @author Marten Lohstroh <marten@berkeley.edu>
+ * @author Marten Lohstroh
  *
  */
 public abstract class RuntimeTest extends TestBase {
@@ -97,7 +97,7 @@ public abstract class RuntimeTest extends TestBase {
         runTestsFor(List.of(Target.C),
                     Message.DESC_AS_FEDERATED,
                     categories::contains,
-                    it -> ASTUtils.makeFederated(it.context.getFileConfig().resource),
+                    it -> ASTUtils.makeFederated(it.getFileConfig().resource),
                     true);
     }
 

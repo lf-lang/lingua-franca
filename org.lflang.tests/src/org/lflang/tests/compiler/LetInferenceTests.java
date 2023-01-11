@@ -25,38 +25,15 @@ package org.lflang.tests.compiler;/* Parsing unit tests. */
  SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  ***************/
 
-import java.nio.file.Path;
 import javax.inject.Inject;
 
-import org.eclipse.emf.common.util.TreeIterator;
-import org.eclipse.emf.ecore.EObject;
-import org.eclipse.emf.ecore.resource.Resource;
-import org.eclipse.xtext.generator.IFileSystemAccess;
-import org.eclipse.xtext.generator.IFileSystemAccess2;
-import org.eclipse.xtext.generator.IGeneratorContext;
 import org.eclipse.xtext.testing.InjectWith;
 import org.eclipse.xtext.testing.extensions.InjectionExtension;
 import org.eclipse.xtext.testing.util.ParseHelper;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
-import org.lflang.ASTUtils;
-import org.lflang.DefaultErrorReporter;
-import org.lflang.FileConfig;
-import org.lflang.TimeUnit;
-import org.lflang.TimeValue;
-import org.lflang.generator.LFGeneratorContext;
-import org.lflang.generator.ReactionInstance;
-import org.lflang.generator.ReactorInstance;
-import org.lflang.generator.c.CFileConfig;
-import org.lflang.generator.c.CGenerator;
-import org.lflang.lf.Instantiation;
-import org.lflang.lf.LfFactory;
 import org.lflang.lf.Model;
-import org.lflang.lf.Reactor;
 import org.lflang.tests.LFInjectorProvider;
-import static org.lflang.ASTUtils.*;
 
 @ExtendWith(InjectionExtension.class)
 @InjectWith(LFInjectorProvider.class)
@@ -64,10 +41,10 @@ import static org.lflang.ASTUtils.*;
 /**
  * Test for getting minimum delay in reactions.
  * Checking the actions and port's delay,then get the minimum reaction delay.
- * @author{Wonseo Choi <wonsuh1202@hanyang.ac.kr>}
- * @author{Yunsang Cho <snsc7878@hanyang.ac.kr>}
- * @author{Marten Lohstroh <marten@berkeley.edu>}
- * @author{Hokeun Kim <hokeunkim@berkeley.edu>}
+ * @author Wonseo Choi
+ * @author Yunsang Cho
+ * @author Marten Lohstroh
+ * @author Hokeun Kim
  */
 class LetInferenceTest  {
 

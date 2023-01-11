@@ -30,7 +30,7 @@ import org.lflang.tests.TestRegistry.TestCategory;
  * Configuration procedures for {@link TestBase} methods.
  *
  * @author Clément Fournier
- * @author Marten Lohstroh <marten@berkeley.edu>
+ * @author Marten Lohstroh
  */
 public class Configurators {
 
@@ -57,8 +57,8 @@ public class Configurators {
      * @return True if successful, false otherwise.
      */
     public static boolean disableThreading(LFTest test) {
-        test.context.getArgs().setProperty("threading", "false");
-        test.context.getArgs().setProperty("workers", "1");
+        test.getContext().getArgs().setProperty("threading", "false");
+        test.getContext().getArgs().setProperty("workers", "1");
         return true;
     }
 

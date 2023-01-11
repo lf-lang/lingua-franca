@@ -21,7 +21,7 @@ import com.google.common.collect.ImmutableList;
 
 /**
  * Insert problems into integration tests.
- * @author Peter Donovan <peterdonovan@berkeley.edu>
+ * @author Peter Donovan
  */
 @SuppressWarnings("ClassCanBeRecord")
 class ErrorInserter {
