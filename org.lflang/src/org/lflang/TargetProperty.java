@@ -330,7 +330,7 @@ public enum TargetProperty {
                                 config.platformOptions.board = ASTUtils.elementToSingleString(entry.getValue());
                                 break;
                             case FLASH:
-                                config.platformOptions.flash = ASTUtils.toBoolean(entry.getValue())    ;
+                                config.platformOptions.flash = ASTUtils.toBoolean(entry.getValue());
                                 break;
                             default:
                                 break;

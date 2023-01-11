@@ -425,6 +425,9 @@ public class TargetConfig {
          */
         public int baudRate = 9600;
 
+/**
+ * Should LFC invoke external tools to flash the resulting binary onto the target board
+ */
         public boolean flash = false;
     }   
 
