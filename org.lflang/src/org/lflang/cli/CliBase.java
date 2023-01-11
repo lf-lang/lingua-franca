@@ -5,17 +5,21 @@ import java.io.PrintStream;
 import java.io.PrintWriter;
 import java.nio.file.Path;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Properties;
+import java.util.Set;
 import java.util.stream.Collectors;
 
-import org.apache.commons.cli.CommandLine;
-import org.apache.commons.cli.CommandLineParser;
-import org.apache.commons.cli.DefaultParser;
-import org.apache.commons.cli.HelpFormatter;
-import org.apache.commons.cli.Option;
-import org.apache.commons.cli.Options;
-import org.apache.commons.cli.ParseException;
+import picocli.CommandLine;
+import picocli.CommandLine.Command;
+import picocli.CommandLine.Model.CommandSpec;
+import picocli.CommandLine.Model.OptionSpec;
+import picocli.CommandLine.Option;
+import picocli.CommandLine.Parameters;
+import picocli.CommandLine.ParseResult;
+import picocli.CommandLine.Spec;
+
 import org.eclipse.emf.common.util.URI;
 import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.emf.ecore.resource.ResourceSet;
@@ -30,45 +34,52 @@ import org.lflang.LFStandaloneSetup;
 import org.lflang.LocalStrings;
 import org.lflang.generator.LFGeneratorContext.BuildParm;
 import org.lflang.util.FileUtil;
-
 import com.google.inject.Inject;
 import com.google.inject.Injector;
 import com.google.inject.Provider;
 
-/**
- * Base class for standalone CLI applications.
- *
- * @author {Marten Lohstroh <marten@berkeley.edu>}
- * @author {Christian Menard <christian.menard@tu-dresden.de>}
- * @author {Billy Bao <billybao@berkeley.edu>}
- */
-public abstract class CliBase {
+public abstract class CliBase implements Runnable {
+    @Spec CommandSpec spec;
+
+    /*
+     * Options and parameters present in both Lfc and Lff.
+     */
+    @Parameters(
+        arity = "1..",
+        paramLabel = "FILES",
+        description = "Paths of the files to run the formatter on.")
+    protected List<String> files;
 
     /**
      * Used to collect all errors that happen during validation/generation.
      */
     @Inject
     protected IssueCollector issueCollector;
+
     /**
      * Used to report error messages at the end.
      */
     @Inject
     protected ReportingBackend reporter;
+
     /**
      * Used to report error messages at the end.
      */
     @Inject
     protected ErrorReporter errorReporter;
+
     /**
      * IO context of this run.
      */
     @Inject
     protected Io io;
+    
     /**
      * Injected resource provider.
      */
     @Inject
     private Provider<ResourceSet> resourceSetProvider;
+    
     /**
      * Injected resource validator.
      */
@@ -82,123 +93,84 @@ public abstract class CliBase {
         this.toolName = toolName;
     }
 
-    protected static void cliMain(String toolName, Class<? extends CliBase> toolClass, Io io, String[] args) {
+    protected static void cliMain(
+            String toolName, Class<? extends CliBase> toolClass,
+            Io io, String[] args) {
         // Injector used to obtain Main instance.
         final Injector injector = getInjector(toolName, io);
         // Main instance.
         final CliBase main = injector.getInstance(toolClass);
-        main.runMain(args);
+        // Parse arguments and execute main logic.
+        CommandLine cmd = new CommandLine(main)
+            .setOut(new PrintWriter(io.getOut()))
+            .setErr(new PrintWriter(io.getErr()));
+        int exitCode = cmd.execute(args);
+        io.callSystemExit(exitCode);
     }
+
+    public abstract void run();
+    protected abstract void runTool(List<Path> inputFiles);
 
     protected static Injector getInjector(String toolName, Io io) {
-        final ReportingBackend reporter = new ReportingBackend(io, toolName + ": ");
+        final ReportingBackend reporter 
+            = new ReportingBackend(io, toolName + ": ");
 
         // Injector used to obtain Main instance.
-        return new LFStandaloneSetup(new LFRuntimeModule(), new LFStandaloneModule(reporter, io))
-            .createInjectorAndDoEMFRegistration();
+        return new LFStandaloneSetup(
+            new LFRuntimeModule(),
+            new LFStandaloneModule(reporter, io)
+        ).createInjectorAndDoEMFRegistration();
     }
-
 
     /**
-     * Main function of the tool.
-     *
-     * @param args Command-line arguments.
+     * Resolve to an absolute path, in the given {@link #io} context.
      */
-    protected void runMain(final String... args) {
-
-        // Main instance.
-        // Apache Commons Options object configured to according to available CLI arguments.
-        Options options = getOptions();
-        // CLI arguments parser.
-        CommandLineParser parser = new DefaultParser();
-        // Helper object for printing "help" menu.
-        HelpFormatter formatter = new HelpFormatter();
-
-        final Option helpOption = new Option("h", "help", false, BuildParm.HELP.description);
-        final Option versionOption = new Option("version", "version", false, BuildParm.VERSION.description);
-
-        options.addOption(helpOption);
-        options.addOption(versionOption);
-
-        CommandLine cmd;
-        try {
-            cmd = parser.parse(options, args, false);
-        } catch (ParseException e) {
-            reporter.printFatalError(
-                "Unable to parse command-line arguments. Reason: " + e.getMessage() + "\n"
-                    + "The full command-line was: " + Arrays.toString(args));
-            printHelp(options, formatter, io.getErr());
-            io.callSystemExit(1);
-            return;
-        }
-
-        // If requested, print help and abort
-        if (cmd.hasOption(helpOption.getOpt())) {
-            printHelp(options, formatter, io.getOut());
-            io.callSystemExit(0);
-        }
-
-        // If requested, print version and abort
-        if (cmd.hasOption(versionOption.getLongOpt())) {
-            io.getOut().println(toolName + " " + LocalStrings.VERSION);
-            io.callSystemExit(0);
-        }
-
-        List<String> files = cmd.getArgList();
-
-        if (files.size() < 1) {
-            reporter.printFatalErrorAndExit("No input files.");
-        }
-        try {
-            List<Path> paths = files.stream().map(io.getWd()::resolve).collect(Collectors.toList());
-            runTool(cmd, paths);
-        } catch (RuntimeException e) {
-            reporter.printFatalErrorAndExit("An unexpected error occurred:", e);
-        }
-        io.callSystemExit(0);
-    }
-
-    protected abstract Options getOptions();
-    protected abstract void runTool(CommandLine cmd, List<Path> inputFiles);
-
-    // Print help on the correct output stream. Unfortunately the library doesn't have
-    // a more convenient overload.
-    private void printHelp(Options options, HelpFormatter formatter, PrintStream out) {
-        try (PrintWriter pw = new PrintWriter(out)) {
-            formatter.printHelp(pw,
-                formatter.getWidth(),
-                toolName,
-                null,
-                options,
-                formatter.getLeftPadding(),
-                formatter.getDescPadding(),
-                null,
-                false);
-        }
-    }
-
-    /** Resolve to an absolute path, in the given {@link #io} context. */
     protected Path toAbsolutePath(Path other) {
         return io.getWd().resolve(other).toAbsolutePath();
     }
 
     /**
-     * Store command-line arguments as properties, to be passed on to the runtime.
-     *
-     * @param passOptions Which options should be passed to the runtime.
-     * @return Provided arguments in cmd as properties, which should be passed to the runtime.
+     * Filter the command-line arguments needed by the code generator, and
+     * return them as properties.
      */
-    protected Properties filterProps(CommandLine cmd, List<Option> passOptions) {
+    protected Properties filterPassOnProps() {
+        // Parameters corresponding to the options that need to be passed on to
+        // the generator as properties.
+        List<BuildParm> passOnParams = Arrays.asList(
+            BuildParm.BUILD_TYPE,
+            BuildParm.CLEAN,
+            BuildParm.TARGET_COMPILER,
+            BuildParm.EXTERNAL_RUNTIME_PATH,
+            BuildParm.LOGGING,
+            BuildParm.LINT,
+            BuildParm.NO_COMPILE,
+            BuildParm.QUIET,
+            BuildParm.RTI,
+            BuildParm.RUNTIME_VERSION,
+            BuildParm.SCHEDULER,
+            BuildParm.THREADING,
+            BuildParm.WORKERS
+        );
+
         Properties props = new Properties();
-        for (Option o : cmd.getOptions()) {
-            if (passOptions.contains(o)) {
+        ParseResult pr = spec.commandLine().getParseResult();
+
+        passOnParams.forEach((param) -> {
+            // Get the option with the specified name, or null if no option
+            // with that name was matched on the command line.
+            OptionSpec matchedOption = pr.matchedOption(param.getKey());
+            if (matchedOption != null) {
                 String value = "";
-                if (o.hasArg()) {
-                    value = o.getValue();
+                // If a boolean option was set, its value is true.
+                if (matchedOption.getValue() instanceof Boolean) {
+                    value = "true";
+                } else {
+                    value = matchedOption.getValue();
                 }
-                props.setProperty(o.getLongOpt(), value);
+                props.setProperty(matchedOption.longestName(), value);
             }
-        }
+        });
+
         return props;
     }
 
@@ -209,9 +181,11 @@ public abstract class CliBase {
         if (issueCollector.getErrorsOccurred()) {
             // if there are errors, don't print warnings.
             List<LfIssue> errors = printErrorsIfAny();
-            String cause = errors.size() == 1 ? "previous error"
-                                              : errors.size() + " previous errors";
-            reporter.printFatalErrorAndExit("Aborting due to " + cause);
+            String cause = errors.size() + " previous error";
+            if (errors.size() > 1) {
+                cause += 's';
+            }
+            reporter.printFatalErrorAndExit("Aborting due to " + cause + '.');
         }
     }
 
@@ -234,23 +208,32 @@ public abstract class CliBase {
     public void validateResource(Resource resource) {
         assert resource != null;
 
-        List<Issue> issues = this.validator.validate(resource, CheckMode.ALL, CancelIndicator.NullImpl);
+        List<Issue> issues = this.validator.validate(
+                resource, CheckMode.ALL, CancelIndicator.NullImpl);
 
         for (Issue issue : issues) {
             URI uri = issue.getUriToProblem(); // Issues may also relate to imported resources.
             try {
-                issueCollector.accept(new LfIssue(issue.getMessage(), issue.getSeverity(),
-                                                  issue.getLineNumber(), issue.getColumn(),
-                                                  issue.getLineNumberEnd(), issue.getColumnEnd(),
-                                                  issue.getLength(), FileUtil.toPath(uri)));
+                issueCollector.accept(
+                        new LfIssue(
+                            issue.getMessage(),
+                            issue.getSeverity(),
+                            issue.getLineNumber(),
+                            issue.getColumn(),
+                            issue.getLineNumberEnd(),
+                            issue.getColumnEnd(),
+                            issue.getLength(),
+                            FileUtil.toPath(uri)));
             } catch (IOException e) {
-                reporter.printError("Unable to convert '" + uri + "' to path." + e);
+                reporter.printError(
+                        "Unable to convert '" + uri + "' to path." + e);
             }
         }
     }
 
     /**
      * Obtains a resource from a path. Returns null if path is not an LF file.
+     *
      * @param path The path to obtain the resource from.
      * @return The obtained resource. Set to null if path is not an LF file.
      */

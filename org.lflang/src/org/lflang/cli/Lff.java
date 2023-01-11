@@ -37,7 +37,7 @@ import org.lflang.util.FileUtil;
     mixinStandardHelpOptions = true,
     // TODO: Import version from StringsBundle.properties. 
     version = "lff 0.3.1-SNAPSHOT")
-public class Lff extends CliBaseNew {
+public class Lff extends CliBase {
     /**
      * Supported CLI options for LFF.
      */
