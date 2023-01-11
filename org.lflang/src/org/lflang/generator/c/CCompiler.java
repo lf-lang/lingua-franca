@@ -178,6 +178,10 @@ public class CCompiler {
                 System.out.println("SUCCESS: Compiling generated code for " + fileConfig.name + " finished with no errors.");
             }
 
+            if (targetConfig.platformOptions.platform == Platform.ZEPHYR && targetConfig.platformOptions.flash) {
+                LFCommand flash = buildWestFlashCommand();
+            }
+
         }
         return cMakeReturnCode == 0 && makeReturnCode == 0;
     }
@@ -273,6 +277,27 @@ public class CCompiler {
             );
         }
         return command;
+    }
+
+    public LFCommand buildWestFlashCommand() {
+        // Set the build directory to be "build"
+        Path buildPath = fileConfig.getSrcGenPath().resolve("build");
+        String board = targetConfig.platformOptions.board;
+        LFCommand cmd;
+        if (board == null || board.startsWith("qemu")) {
+            cmd = commandFactory.createCommand(
+                "west", List.of("build", "-t"), buildPath);
+        } else {
+            cmd = commandFactory.createCommand(
+                "west", List.of("flash"), buildPath);
+        }
+        if (cmd == null) {
+            errorReporter.reportError(
+                "Could not create west flash command."
+            );
+        }
+
+        return cmd;
     }
 
     /**
