@@ -106,7 +106,7 @@ public class CTest extends RuntimeTest {
         Assumptions.assumeTrue(isLinux(), "Zephyr tests only run on Linux");
         super.runTestsFor(List.of(Target.C),
             Message.DESC_ZEPHYR,
-            TestCategory.ZEPHYR::equals, Configurators::disableThreading,
+            TestCategory.ZEPHYR::equals, Configurators::makeZephyrCompatible,
             false);
     }
     @Test

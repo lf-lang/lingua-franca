@@ -185,7 +185,7 @@ public class CCompiler {
                 if (flashRet != 0) {
                     errorReporter.reportError("West flash command failed with error code " + flashRet);
                 } else {
-                    System.out.println("SUCCESS: Flash application with west");
+                    System.out.println("SUCCESS: Flashed application with west");
                 }
             }
 
