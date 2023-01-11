@@ -134,7 +134,8 @@ public abstract class CliBaseNew implements Runnable {
      * return them as properties.
      */
     protected Properties filterPassOnProps() {
-        // Parameters to be passed on to the generator as properties.
+        // Parameters corresponding to the options that need to be passed on to
+        // the generator as properties.
         List<BuildParm> passOnParams = Arrays.asList(
             BuildParm.BUILD_TYPE,
             BuildParm.CLEAN,
@@ -160,30 +161,16 @@ public abstract class CliBaseNew implements Runnable {
             OptionSpec matchedOption = pr.matchedOption(param.getKey());
             if (matchedOption != null) {
                 String value = "";
+                // If a boolean option was set, its value is true.
                 if (matchedOption.getValue() instanceof Boolean) {
                     value = "true";
                 } else {
                     value = matchedOption.getValue();
                 }
-
-                props.setProperty(
-                    matchedOption.longestName(),
-                    value
-                );
+                props.setProperty(matchedOption.longestName(), value);
             }
         });
 
-        return props;
-    }
-
-    /**
-     * Store command-line arguments as properties, to be passed on to the runtime.
-     */
-    protected Properties filterProps() {
-        Properties props = new Properties();
-        for (OptionSpec option : spec.options()) {
-            props.setProperty(option.longestName(), option.getValue());
-        }
         return props;
     }
 

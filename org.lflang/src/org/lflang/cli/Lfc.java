@@ -68,9 +68,9 @@ public class Lfc extends CliBaseNew {
 
     @Option(
         names = {"-c", "--clean"},
+        arity = "0",
         description = "Clean before building.")
-    // boolean?
-    private String clean;
+    private boolean clean;
 
     @Option(
         names = "--target-compiler",
@@ -85,6 +85,7 @@ public class Lfc extends CliBaseNew {
 
     @Option(
         names = {"-f", "--federated"},
+        arity = "0",
         description = "Treat main reactor as federated.")
     private boolean federated;
 
@@ -95,14 +96,14 @@ public class Lfc extends CliBaseNew {
 
     @Option(
         names = {"-l", "--lint"},
+        arity = "0",
         description = "Enable or disable linting of generated code.")
-    // boolean?
-    private String lint;
+    private boolean lint;
 
     @Option(
         names = {"-n", "--no-compile"},
+        arity = "0",
         description = "Do not invoke target compiler.")
-    // boolean?
     private boolean noCompile;
 
     @Option(
@@ -114,9 +115,10 @@ public class Lfc extends CliBaseNew {
 
     @Option(
         names = {"-q", "--quiet"},
-        description = "Suppress output of the target compiler and other commands")
-    // boolean?
-    private String quiet;
+        arity = "0",
+        description = 
+            "Suppress output of the target compiler and other commands")
+    private boolean quiet;
 
     @Option(
         names = {"-r", "--rti"},
@@ -134,11 +136,12 @@ public class Lfc extends CliBaseNew {
         description = "Specify the runtime scheduler (if supported).")
     private String scheduler;
 
-    // TODO: could be boolean?
     @Option(
         names = {"-t", "--threading"},
-        description = "Specify whether the runtime should use multi-threading (true/false).")
-    private String threading;
+        arity = "0",
+        description = "Specify whether the runtime should use multi-threading"
+                    + " (true/false).")
+    private boolean threading;
 
     // TODO: could be int?
     @Option(
@@ -209,7 +212,13 @@ public class Lfc extends CliBaseNew {
                     path + ": No such file or directory");
             }
         }
+        invokeGenerator(files, root, properties);
+    }
 
+    /**
+     * Invoke the code generator on the given valid file paths.
+     */
+    protected void invokeGenerator(List<Path> files, Path root, Properties properties) {
         for (Path path : files) {
             path = toAbsolutePath(path);
             String outputPath = getActualOutputPath(root, path).toString();
@@ -254,7 +263,8 @@ public class Lfc extends CliBaseNew {
         if (root != null) {
             return root.resolve("src-gen");
         } else {
-            Path pkgRoot = FileConfig.findPackageRoot(path, reporter::printWarning);
+            Path pkgRoot = FileConfig.findPackageRoot(
+                path, reporter::printWarning);
             return pkgRoot.resolve("src-gen");
         }
     }
