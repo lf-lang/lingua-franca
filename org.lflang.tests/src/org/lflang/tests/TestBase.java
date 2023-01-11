@@ -379,6 +379,8 @@ public abstract class TestBase {
     private void configure(LFTest test, Configurator configurator, TestLevel level) throws IOException, TestError {
         var props = new Properties();
         props.setProperty("hierarchical-bin", "true");
+        addExtraLfcArgs(props);
+
         var sysProps = System.getProperties();
         // Set the external-runtime-path property if it was specified.
         if (sysProps.containsKey("runtime")) {
@@ -413,8 +415,6 @@ public abstract class TestBase {
         if (level.compareTo(TestLevel.BUILD) < 0) {
             context.getArgs().setProperty("no-compile", "");
         }
-
-        addExtraLfcArgs(context.getArgs());
 
         // Update the test by applying the configuration. E.g., to carry out an AST transformation.
         if (configurator != null && !configurator.configure(test)) {
