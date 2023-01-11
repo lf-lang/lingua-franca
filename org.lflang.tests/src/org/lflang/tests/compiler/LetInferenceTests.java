@@ -50,7 +50,12 @@ import org.lflang.generator.LFGeneratorContext;
 import org.lflang.generator.ReactionInstance;
 import org.lflang.generator.ReactorInstance;
 import org.lflang.generator.c.CFileConfig;
+import org.lflang.ast.AfterDelayTransformation;
+import org.lflang.generator.ReactionInstance;
+import org.lflang.generator.ReactorInstance;
+import org.lflang.generator.c.CDelayBodyGenerator;
 import org.lflang.generator.c.CGenerator;
+import org.lflang.generator.c.CTypes;
 import org.lflang.lf.Instantiation;
 import org.lflang.lf.LfFactory;
 import org.lflang.lf.Model;
@@ -64,10 +69,10 @@ import static org.lflang.ASTUtils.*;
 /**
  * Test for getting minimum delay in reactions.
  * Checking the actions and port's delay,then get the minimum reaction delay.
- * @author{Wonseo Choi <wonsuh1202@hanyang.ac.kr>}
- * @author{Yunsang Cho <snsc7878@hanyang.ac.kr>}
- * @author{Marten Lohstroh <marten@berkeley.edu>}
- * @author{Hokeun Kim <hokeunkim@berkeley.edu>}
+ * @author Wonseo Choi
+ * @author Yunsang Cho
+ * @author Marten Lohstroh
+ * @author Hokeun Kim
  */
 class LetInferenceTest  {
 
