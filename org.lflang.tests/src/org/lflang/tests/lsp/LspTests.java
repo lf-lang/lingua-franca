@@ -137,13 +137,8 @@ class LspTests {
         for (LFTest test : selectTests(target, random)) {
             client.clearDiagnostics();
             if (alterer != null) {
-                try (AlteredTest altered = alterer.alterTest(test.srcFile)) {
-                    runTest(altered.getSrcFile());
-                    Assertions.assertTrue(requirementGetter.apply(altered).test(client.getReceivedDiagnostics()));
-                }
-            } else {
                 try (AlteredTest altered = alterer.alterTest(test.getSrcPath())) {
-                    runTest(altered.getPath());
+                    runTest(altered.getSrcFile());
                     Assertions.assertTrue(requirementGetter.apply(altered).test(client.getReceivedDiagnostics()));
                 }
             } else {
