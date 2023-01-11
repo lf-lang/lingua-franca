@@ -45,7 +45,7 @@ jobs:
 
           SDK_VERSION=0.15.2
           cd ~
-          wget https://github.com/zephyrproject-rtos/sdk-ng/releases/download/v${SDK_VERSION}/zephyr-sdk-${SDK_VERSION}?linux-x86_64.tar.gz
+          wget https://github.com/zephyrproject-rtos/sdk-ng/releases/download/v${SDK_VERSION}/zephyr-sdk-${SDK_VERSION}_linux-x86_64.tar.gz
           wget -O -
           https://github.com/zephyrproject-rtos/sdk-ng/releases/download/v${SDK_VERSION}/sha256.sum
           | shasum --check --ignore-missing
