@@ -179,7 +179,14 @@ public class CCompiler {
             }
 
             if (targetConfig.platformOptions.platform == Platform.ZEPHYR && targetConfig.platformOptions.flash) {
+                System.out.println("Invoking flash command for Zephyr");
                 LFCommand flash = buildWestFlashCommand();
+                int flashRet = flash.run();
+                if (flashRet != 0) {
+                    errorReporter.reportError("West flash command failed with error code " + flashRet);
+                } else {
+                    System.out.println("SUCCESS: Flash application with west");
+                }
             }
 
         }
