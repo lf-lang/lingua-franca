@@ -120,8 +120,18 @@ public class CCmakeGenerator {
         cMakeCode.pr("cmake_minimum_required(VERSION " + MIN_CMAKE_VERSION + ")");
         
         if (targetConfig.platformOptions.platform == Platform.ZEPHYR) {
+            cMakeCode.pr("# Set default configuration file. To add custom configurations");
+            cMakeCode.pr("# Pass -- -DOVERLAY_CONFIG=my_config.prj to either cmake or west");
             cMakeCode.pr("set(CONF_FILE prj_lf.conf)");
-            cMakeCode.pr("find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})");
+            if (targetConfig.platformOptions.board != null) {
+                cMakeCode.pr("# Selecting board specified in target property");
+                cMakeCode.pr("set(BOARD "+targetConfig.platformOptions.board+")");
+            } else {
+                cMakeCode.pr("# Selecting default board");
+                cMakeCode.pr("set(BOARD qemu_cortex_m3)");
+            }
+            cMakeCode.pr("# We require Zephyr version 3.2.0");
+            cMakeCode.pr("find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE} EXACT 3.2.0)");
             cMakeCode.newLine();
         }
         

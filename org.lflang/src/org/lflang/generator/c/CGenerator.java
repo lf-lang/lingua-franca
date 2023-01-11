@@ -590,7 +590,7 @@ public class CGenerator extends GeneratorBase {
 
                     StringBuilder s = new StringBuilder();
                     s.append("set(ARDUINO_BOARD \"");
-                    s.append(targetConfig.platformOptions.board.getBoardName());
+//                    s.append(targetConfig.platformOptions.board.getBoardName());
                     s.append("\")");
                     FileUtil.writeToFile(s.toString(),
                         fileConfig.getSrcGenPath().resolve("toolchain/BoardOptions.cmake"));
