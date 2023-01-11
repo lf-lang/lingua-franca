@@ -331,7 +331,7 @@ class TSGenerator(
                         "\nFor installation instructions, see: https://www.npmjs.com/get-npm")
                 return
             }
-            installProtoBufsIfNeeded(true, path, context.cancelIndicator)
+            installProtoBufsIfNeeded(false, path, context.cancelIndicator)
         }
     }
 
