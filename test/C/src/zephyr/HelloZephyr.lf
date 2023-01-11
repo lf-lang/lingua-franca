@@ -3,12 +3,10 @@ target C {
     platform: {
         name: Zephyr,
         board: nrf52dk_nrf52832,
-        flash: true,
-    },
-} 
+        flash: true
+    }
+}
 
 main reactor {
-    reaction(startup) {=
-        printf("Hello World!\n");
-    =}
+    reaction(startup) {= printf("Hello World!\n"); =}
 }

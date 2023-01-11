@@ -2,9 +2,9 @@ target C {
     platform: {
         name: "Zephyr",
         board: nrf52dk_nrf52832,
-        flash: true,
+        flash: true
     },
-    threading: false,
+    threading: false
 }
 
 import NrfLeds from "lib/Led.lf"
