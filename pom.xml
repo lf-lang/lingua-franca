@@ -16,7 +16,6 @@
     <properties>
         <!-- Version Properties -->
         <!-- Sync with build.gradle -->
-        <commonsCliVersion>1.4</commonsCliVersion>
         <picocliVersion>4.7.0</picocliVersion>
         <!-- Note that this version is tied to our version of Gradle -->
         <kotlinVersion>1.6.20</kotlinVersion>
