@@ -216,11 +216,6 @@ public class PythonExtension extends CExtension {
     }
 
     @Override
-    protected DockerGeneratorBase newDockerGeneratorInstance(FederateInstance federate) {
-        return new PythonDockerGenerator(true, federate.targetConfig);
-    }
-
-    @Override
     public Target getNetworkReactionTarget() {
         return Target.C;
     }

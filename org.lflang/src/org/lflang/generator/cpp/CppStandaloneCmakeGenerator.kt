@@ -24,6 +24,7 @@
 
 package org.lflang.generator.cpp
 
+import org.lflang.FileConfig
 import org.lflang.TargetConfig
 import org.lflang.generator.PrependOperator
 import org.lflang.joinWithLn
@@ -31,7 +32,7 @@ import org.lflang.toUnixString
 import java.nio.file.Path
 
 /** Code generator for producing a cmake script for compiling all generated C++ sources */
-class CppStandaloneCmakeGenerator(private val targetConfig: TargetConfig, private val fileConfig: CppFileConfig) {
+class CppStandaloneCmakeGenerator(private val targetConfig: TargetConfig, private val fileConfig: FileConfig) {
 
     companion object {
         /** Return the name of the variable that gives the includes of the given target. */

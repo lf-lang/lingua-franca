@@ -27,6 +27,7 @@ import java.nio.file.Path;
 import org.eclipse.emf.ecore.resource.Resource;
 
 import org.lflang.FileConfig;
+import org.lflang.util.LFCommand;
 
 /**
  * A child class of @see FileConfig that extends the base functionality to add support
@@ -56,5 +57,15 @@ public class OldFedFileConfig extends FileConfig {
         this.federateName = federateName;
         // The generated code for each federate should be located at fileConfig.srcGenPath + "/federateName/"
         this.srcGenPath = fileConfig.getSrcGenPath().resolve(federateName);
+    }
+
+    @Override
+    public LFCommand getCommand() {
+        return null;
+    }
+
+    @Override
+    public Path getExecutable() {
+        return null;
     }
 }

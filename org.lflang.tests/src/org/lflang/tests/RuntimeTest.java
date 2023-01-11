@@ -97,7 +97,7 @@ public abstract class RuntimeTest extends TestBase {
         runTestsFor(List.of(Target.C),
                     Message.DESC_AS_FEDERATED,
                     categories::contains,
-                    it -> ASTUtils.makeFederated(it.fileConfig.resource),
+                    it -> ASTUtils.makeFederated(it.context.getFileConfig().resource),
                     true);
     }
 

@@ -3,9 +3,10 @@ package org.lflang.generator.c;
 import java.util.stream.Collectors;
 
 import org.eclipse.xtext.xbase.lib.IterableExtensions;
-import org.lflang.FileConfig;
-import org.lflang.TargetConfig;
+
+import org.lflang.Target;
 import org.lflang.generator.DockerGeneratorBase;
+import org.lflang.generator.LFGeneratorContext;
 import org.lflang.util.StringUtil;
 
 /**
@@ -15,73 +16,44 @@ import org.lflang.util.StringUtil;
  */
 public class CDockerGenerator extends DockerGeneratorBase {
     private static final String DEFAULT_BASE_IMAGE = "alpine:latest";
-    private final boolean CCppMode;
-    private final TargetConfig targetConfig;
 
     /**
-     * The interface for data from the C code generator.
+     * The constructor for the base docker file generation class.
      *
-     * @param lfModuleName The name of the LF module in CGenerator.
-     *                     Typically, this is "fileConfig.name + _ + federate.name"
-     *                     in federated execution and "fileConfig.name" in non-federated
-     *                     execution.
-     * @param federateName The value of "currentFederate.name" in CGenerator.
-     * @param fileConfig   The value of "fileConfig" in CGenerator.
+     * @param context The context of the code generator.
      */
-    public record CGeneratorData(
-        String lfModuleName, String federateName, FileConfig fileConfig
-    ) implements GeneratorData {}
-
-    public CDockerGenerator(boolean isFederated, boolean CCppMode, TargetConfig targetConfig) {
-        super(isFederated);
-        this.CCppMode = CCppMode;
-        this.targetConfig = targetConfig;
-    }
-
-    /**
-     * Translate data from the code generator to a map.
-     *
-     * @return data from the code generator put in a Map.
-     */
-    public CGeneratorData fromData(
-        String lfModuleName,
-        String federateName,
-        FileConfig fileConfig
-    ) {
-        return new CGeneratorData(lfModuleName, federateName, fileConfig);
+    public CDockerGenerator(LFGeneratorContext context) {
+        super(context);
     }
 
     /**
      * Translate data from the code generator to docker data as
      * specified in the DockerData class.
      *
-     * @param generatorData Data from the code generator.
      * @return docker data as specified in the DockerData class
      */
     @Override
-    protected DockerData generateDockerData(GeneratorData generatorData) {
-        CGeneratorData cGeneratorData = (CGeneratorData) generatorData;
-        var lfModuleName = cGeneratorData.lfModuleName();
-        var federateName = cGeneratorData.federateName();
-        var fileConfig = cGeneratorData.fileConfig();
+    protected DockerData generateDockerData() {
+
+        var fileConfig = context.getFileConfig();
+        var lfModuleName = fileConfig.name;
         var dockerFilePath = fileConfig.getSrcGenPath().resolve(lfModuleName + ".Dockerfile");
-        var dockerFileContent = generateDockerFileContent(cGeneratorData);
-        var dockerBuildContext = isFederated ? federateName : ".";
+        var dockerFileContent = generateDockerFileContent();
+        var dockerBuildContext = "."; // FIXME: if federated, use federateName
         return new DockerData(dockerFilePath, dockerFileContent,dockerBuildContext);
     }
 
     /**
      * Generate the contents of the docker file.
-     *
-     * @param generatorData Data from the code generator.
      */
-    protected String generateDockerFileContent(CGeneratorData generatorData) {
-        var lfModuleName = generatorData.lfModuleName();
-        var compileCommand = IterableExtensions.isNullOrEmpty(targetConfig.buildCommands) ?
+    protected String generateDockerFileContent() {
+        var lfModuleName = context.getFileConfig().name;
+        var config = context.getTargetConfig();
+        var compileCommand = IterableExtensions.isNullOrEmpty(config.buildCommands) ?
                                  generateDefaultCompileCommand() :
-                                 StringUtil.joinObjects(targetConfig.buildCommands, " ");
-        var compiler = CCppMode ? "g++" : "gcc";
-        var baseImage = targetConfig.dockerOptions.from == null ? DEFAULT_BASE_IMAGE : targetConfig.dockerOptions.from;
+                                 StringUtil.joinObjects(config.buildCommands, " ");
+        var compiler = config.target == Target.CPP ? "g++" : "gcc";
+        var baseImage = config.dockerOptions.from == null ? DEFAULT_BASE_IMAGE : config.dockerOptions.from;
         return String.join("\n",
             "# For instructions, see: https://www.lf-lang.org/docs/handbook/containerized-execution",
             "FROM "+baseImage+" AS builder",
@@ -106,7 +78,7 @@ public class CDockerGenerator extends DockerGeneratorBase {
         return String.join("\n",
             "RUN set -ex && \\",
             "mkdir bin && \\",
-            "cmake " + CCompiler.cmakeCompileDefinitions(targetConfig)
+            "cmake " + CCompiler.cmakeCompileDefinitions(context.getTargetConfig())
                 .collect(Collectors.joining(" "))
                 + " -S src-gen -B bin && \\",
             "cd bin && \\",

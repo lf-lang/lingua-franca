@@ -15,7 +15,6 @@ import org.lflang.ast.FormattingUtils;
 import org.lflang.federated.extensions.FedTargetExtensionFactory;
 import org.lflang.generator.GeneratorUtils;
 import org.lflang.generator.LFGeneratorContext;
-import org.lflang.lf.TargetDecl;
 
 public class FedTargetEmitter {
 
@@ -27,11 +26,10 @@ public class FedTargetEmitter {
         ErrorReporter errorReporter,
         LinkedHashMap<String, Object> federationRTIProperties
     ) throws IOException {
-
-        GeneratorUtils.setTargetConfig(
-            context,
+        federate.targetConfig =
+        GeneratorUtils.getTargetConfig(
+            context.getArgs(),
             federate.target,
-            federate.targetConfig,
             errorReporter
         );
         // FIXME: Should we merge some properties with the main .lf file if the federate is imported?
@@ -106,6 +104,6 @@ public class FedTargetEmitter {
 
     private String relativizePath(String path, FedFileConfig fileConfig) {
         Path resolvedPath = fileConfig.srcPath.resolve(path).toAbsolutePath();
-        return fileConfig.getFedSrcPath().relativize(resolvedPath).toString();
+        return fileConfig.getSrcPath().relativize(resolvedPath).toString();
     }
 }

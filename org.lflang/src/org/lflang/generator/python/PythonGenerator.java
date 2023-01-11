@@ -36,26 +36,18 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.eclipse.emf.ecore.resource.Resource;
-import org.eclipse.xtext.util.CancelIndicator;
 import org.eclipse.xtext.xbase.lib.Exceptions;
-import org.eclipse.xtext.xbase.lib.IterableExtensions;
 
 import org.lflang.ASTUtils;
 import org.lflang.AttributeUtils;
-import org.lflang.ErrorReporter;
-import org.lflang.FileConfig;
 import org.lflang.Target;
 import org.lflang.TargetProperty;
-import org.lflang.federated.generator.FederateInstance;
-import org.lflang.federated.OldFedFileConfig;
-import org.lflang.federated.launcher.FedPyLauncher;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.generator.CodeMap;
+import org.lflang.generator.DockerGeneratorBase;
 import org.lflang.generator.GeneratorResult;
-import org.lflang.generator.GeneratorUtils;
 import org.lflang.generator.IntegratedBuilder;
 import org.lflang.generator.LFGeneratorContext;
-import org.lflang.generator.LFResource;
 import org.lflang.generator.ReactorInstance;
 import org.lflang.generator.SubContext;
 import org.lflang.generator.TargetTypes;
@@ -105,13 +97,11 @@ public class PythonGenerator extends CGenerator {
 
     private final PythonTypes types;
 
-    public PythonGenerator(FileConfig fileConfig, ErrorReporter errorReporter) {
-        this(
-            fileConfig,
-            errorReporter,
-            new PythonTypes(errorReporter),
+    public PythonGenerator(LFGeneratorContext context) {
+        this(context,
+            new PythonTypes(context.getErrorReporter()),
             new CCmakeGenerator(
-                fileConfig,
+                context.getFileConfig(),
                 List.of("lib/python_action.c",
                     "lib/python_port.c",
                     "lib/python_tag.c",
@@ -124,8 +114,8 @@ public class PythonGenerator extends CGenerator {
         );
     }
 
-    private PythonGenerator(FileConfig fileConfig, ErrorReporter errorReporter, PythonTypes types, CCmakeGenerator cmakeGenerator) {
-        super(fileConfig, errorReporter, false, types, cmakeGenerator);
+    private PythonGenerator(LFGeneratorContext context, PythonTypes types, CCmakeGenerator cmakeGenerator) {
+        super(context, false, types, cmakeGenerator);
         this.targetConfig.compiler = "gcc";
         this.targetConfig.compilerFlags = new ArrayList<>();
         this.targetConfig.linkerFlags = "";
@@ -189,6 +179,12 @@ public class PythonGenerator extends CGenerator {
 
     // //////////////////////////////////////////
     // // Protected methods
+
+
+    @Override
+    protected DockerGeneratorBase getDockerGenerator(LFGeneratorContext context) {
+        return new PythonDockerGenerator(context);
+    }
 
     /**
      * Generate all Python classes if they have a reaction
@@ -467,15 +463,8 @@ public class PythonGenerator extends CGenerator {
         if (errorReporter.getErrorsOccurred()) {
             context.unsuccessfulFinish();
         } else {
-            context.finish(GeneratorResult.Status.COMPILED, fileConfig.name
-                               + ".py", fileConfig.getSrcGenPath(), fileConfig,
-                           codeMaps, "python3");   // TODO: Conditionally use "python" instead
+            context.finish(GeneratorResult.Status.COMPILED, codeMaps);
         }
-    }
-
-    @Override
-    protected PythonDockerGenerator getDockerGenerator() {
-        return new PythonDockerGenerator(false, targetConfig);
     }
 
     /**

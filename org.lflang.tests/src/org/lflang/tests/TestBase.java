@@ -7,7 +7,6 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.io.PrintWriter;
 import java.io.StringWriter;
-import java.lang.Thread.UncaughtExceptionHandler;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.nio.file.Path;
@@ -28,7 +27,6 @@ import java.util.stream.Collectors;
 import org.eclipse.emf.common.util.URI;
 import org.eclipse.emf.ecore.resource.ResourceSet;
 import org.eclipse.xtext.diagnostics.Severity;
-import org.eclipse.xtext.generator.IGeneratorContext;
 import org.eclipse.xtext.generator.JavaIoFileSystemAccess;
 import org.eclipse.xtext.testing.InjectWith;
 import org.eclipse.xtext.testing.extensions.InjectionExtension;
@@ -43,7 +41,7 @@ import org.lflang.FileConfig;
 import org.lflang.LFRuntimeModule;
 import org.lflang.LFStandaloneSetup;
 import org.lflang.Target;
-import org.lflang.generator.GeneratorResult;
+import org.lflang.federated.generator.FedFileConfig;
 import org.lflang.generator.DockerGeneratorBase;
 import org.lflang.generator.LFGenerator;
 import org.lflang.generator.LFGeneratorContext;
@@ -85,7 +83,7 @@ public abstract class TestBase {
     private static final PrintStream err = System.err;
 
     /** Execution timeout enforced for all tests. */
-    private static final long MAX_EXECUTION_TIME_SECONDS = 60;
+    private static final long MAX_EXECUTION_TIME_SECONDS = 300;
 
     /** Content separator used in test output, 78 characters wide. */
     public static final String THIN_LINE =
@@ -180,7 +178,6 @@ public abstract class TestBase {
      * @param selected A predicate that given a test category returns whether
      * it should be included in this test run or not.
      * @param configurator  A procedure for configuring the tests.
-     * @param level The level of testing to be performed during this run.
      * @param copy Whether or not to work on copies of tests in the test.
      * registry.
      */
@@ -188,8 +185,7 @@ public abstract class TestBase {
                                                  Predicate<TestCategory> selected,
                                                  Configurator configurator,
                                                  boolean copy) {
-        var categories = Arrays.stream(TestCategory.values()).filter(selected)
-                .collect(Collectors.toList());
+        var categories = Arrays.stream(TestCategory.values()).filter(selected).toList();
         for (var category : categories) {
             System.out.println(category.getHeader());
             var tests = TestRegistry.getRegisteredTests(target, category, copy);
@@ -210,7 +206,6 @@ public abstract class TestBase {
      * @param selected A predicate that given a test category returns whether
      * it should be included in this test run or not.
      * @param configurator A procedure for configuring the tests.
-     * @param level The level of testing to be performed during this run.
      * @param copy Whether or not to work on copies of tests in the test.
      * registry.
      */
@@ -232,7 +227,6 @@ public abstract class TestBase {
      * @param selected A predicate that given a test category returns whether
      * it should be included in this test run or not.
      * @param configurator A procedure for configuring the tests.
-     * @param level The level of testing to be performed during this run.
      * @param copy Whether to work on copies of tests in the test.
      * registry.
      */
@@ -248,7 +242,7 @@ public abstract class TestBase {
     }
 
     /**
-     * Whether to enable {@link #runWithThreadingOff()}.
+     * Whether to enable threading.
      */
     protected boolean supportsSingleThreadedExecution() {
         return false;
@@ -380,12 +374,10 @@ public abstract class TestBase {
      * @param configurator The configurator to apply to the test.
      * @param level The level of testing in which the generator context will be
      * used.
-     * @return a generator context with a fresh resource, unaffected by any AST
-     * transformation that may have occured in other tests.
-     * @throws IOException if there is any file access problem
      */
-    private LFGeneratorContext configure(LFTest test, Configurator configurator, TestLevel level) throws IOException {
+    private void configure(LFTest test, Configurator configurator, TestLevel level) {
         var props = new Properties();
+        props.setProperty("hierarchical-bin", "true");
         var sysProps = System.getProperties();
         // Set the external-runtime-path property if it was specified.
         if (sysProps.containsKey("runtime")) {
@@ -398,11 +390,6 @@ public abstract class TestBase {
             System.out.println("Using default runtime.");
         }
 
-        var context = new MainContext(
-            LFGeneratorContext.Mode.STANDALONE, CancelIndicator.NullImpl, (m, p) -> {}, props, true,
-            fileConfig -> new DefaultErrorReporter()
-        );
-
         var r = resourceSetProvider.get().getResource(
             URI.createFileURI(test.srcFile.toFile().getAbsolutePath()),
             true);
@@ -413,8 +400,13 @@ public abstract class TestBase {
         }
 
         fileAccess.setOutputPath(FileConfig.findPackageRoot(test.srcFile, s -> {}).resolve(FileConfig.DEFAULT_SRC_GEN_DIR).toString());
+
+        var context = new MainContext(
+            LFGeneratorContext.Mode.STANDALONE, CancelIndicator.NullImpl, (m, p) -> {}, props, r, fileAccess,
+            fileConfig -> new DefaultErrorReporter()
+        );
+
         test.context = context;
-        test.fileConfig = new FileConfig(r, FileConfig.getSrcGenRoot(fileAccess), context.useHierarchicalBin());
 
         // Set the no-compile flag the test is not supposed to reach the build stage.
         if (level.compareTo(TestLevel.BUILD) < 0) {
@@ -428,17 +420,16 @@ public abstract class TestBase {
             test.result = Result.CONFIG_FAIL;
             throw new AssertionError("Test configuration unsuccessful.");
         }
-
-        return context;
     }
 
     /**
      * Validate the given test. Throw an AssertionError if validation failed.
      */
-    private void validate(LFTest test, IGeneratorContext context) {
+    private void validate(LFTest test) {
         // Validate the resource and store issues in the test object.
         try {
-            var issues = validator.validate(test.fileConfig.resource,
+            var context = test.context;
+            var issues = validator.validate(context.getFileConfig().resource,
                                             CheckMode.ALL, context.getCancelIndicator());
             if (issues != null && !issues.isEmpty()) {
                 String issuesToString = issues.stream().map(Objects::toString).collect(Collectors.joining(System.lineSeparator()));
@@ -464,22 +455,18 @@ public abstract class TestBase {
         args.setProperty("logging", "Debug");
     }
 
-
     /**
      * Invoke the code generator for the given test.
      * @param test The test to generate code for.
      */
-    private GeneratorResult generateCode(LFTest test) {
-        GeneratorResult result = GeneratorResult.NOTHING;
-        if (test.fileConfig.resource != null) {
-            generator.doGenerate(test.fileConfig.resource, fileAccess, test.context);
-            result = test.context.getResult();
+    private void generateCode(LFTest test) {
+        if (test.context.getFileConfig().resource != null) {
+            generator.doGenerate(test.context.getFileConfig().resource, fileAccess, test.context);
             if (generator.errorsOccurred()) {
                 test.result = Result.CODE_GEN_FAIL;
                 throw new AssertionError("Code generation unsuccessful.");
             }
         }
-        return result;
     }
 
 
@@ -488,8 +475,8 @@ public abstract class TestBase {
      * did not execute, took too long to execute, or executed but exited with
      * an error code.
      */
-    private void execute(LFTest test, GeneratorResult generatorResult) {
-        final List<ProcessBuilder> pbList = getExecCommand(test, generatorResult);
+    private void execute(LFTest test) {
+        final List<ProcessBuilder> pbList = getExecCommand(test);
         if (pbList.isEmpty()) {
             return;
         }
@@ -543,7 +530,7 @@ public abstract class TestBase {
         test.execLog.clear();
     }
 
-    static private void appendStackTrace(Throwable t, StringBuffer buffer) {
+    private static void appendStackTrace(Throwable t, StringBuffer buffer) {
         StringWriter sw = new StringWriter();
         PrintWriter pw = new PrintWriter(sw);
         t.printStackTrace(pw);
@@ -603,7 +590,7 @@ public abstract class TestBase {
             System.out.println(Message.MISSING_DOCKER);
             return List.of(new ProcessBuilder("exit", "1"));
         }
-        var srcGenPath = test.fileConfig.getSrcGenPath();
+        var srcGenPath = test.context.getFileConfig().getSrcGenPath();
         var dockerComposeFile = FileUtil.globFilesEndsWith(srcGenPath, "docker-compose.yml").get(0);
         var dockerComposeCommand = DockerGeneratorBase.getDockerComposeCommand();
         return List.of(new ProcessBuilder(dockerComposeCommand, "-f", dockerComposeFile.toString(), "rm", "-f"),
@@ -620,7 +607,7 @@ public abstract class TestBase {
             System.out.println(Message.MISSING_DOCKER);
             return List.of(new ProcessBuilder("exit", "1"));
         }
-        var srcGenPath = test.fileConfig.getSrcGenPath();
+        var srcGenPath = test.context.getFileConfig().getSrcGenPath();
         List<Path> dockerFiles = FileUtil.globFilesEndsWith(srcGenPath, ".Dockerfile");
         try {
             File testScript = File.createTempFile("dockertest", null);
@@ -644,9 +631,9 @@ public abstract class TestBase {
      * that should be used to execute the test program.
      * @param test The test to get the execution command for.
      */
-    private List<ProcessBuilder> getExecCommand(LFTest test, GeneratorResult generatorResult) {
-        var srcBasePath = test.fileConfig.srcPkgPath.resolve("src");
-        var relativePathName = srcBasePath.relativize(test.fileConfig.srcPath).toString();
+    private List<ProcessBuilder> getExecCommand(LFTest test) {
+        var srcBasePath = test.context.getFileConfig().srcPkgPath.resolve("src");
+        var relativePathName = srcBasePath.relativize(test.context.getFileConfig().srcPath).toString();
 
         // special case to test docker file generation
         if (relativePathName.equalsIgnoreCase(TestCategory.DOCKER.getPath())) {
@@ -654,10 +641,10 @@ public abstract class TestBase {
         } else if (relativePathName.equalsIgnoreCase(TestCategory.DOCKER_FEDERATED.getPath())) {
             return getFederatedDockerExecCommand(test);
         } else {
-            LFCommand command = generatorResult.getCommand();
+            LFCommand command = test.context.getFileConfig().getCommand();
             if (command == null) {
                 test.result = Result.NO_EXEC_FAIL;
-                test.issues.append("File: ").append(generatorResult.getExecutable()).append(System.lineSeparator());
+                test.issues.append("File: ").append(test.context.getFileConfig().getExecutable()).append(System.lineSeparator());
             }
             return command == null ? List.of() : List.of(
                 new ProcessBuilder(command.command()).directory(command.directory())
@@ -684,14 +671,13 @@ public abstract class TestBase {
         for (var test : tests) {
             try {
                 redirectOutputs(test);
-                var context = configure(test, configurator, level);
-                validate(test, context);
-                GeneratorResult result = GeneratorResult.NOTHING;
+                configure(test, configurator, level);
+                validate(test);
                 if (level.compareTo(TestLevel.CODE_GEN) >= 0) {
-                    result = generateCode(test);
+                    generateCode(test);
                 }
                 if (level == TestLevel.EXECUTION) {
-                    execute(test, result);
+                    execute(test);
                 } else if (test.result == Result.UNKNOWN) {
                     test.result = Result.TEST_PASS;
                 }

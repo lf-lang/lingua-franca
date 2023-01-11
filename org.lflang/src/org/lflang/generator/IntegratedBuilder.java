@@ -78,8 +78,6 @@ public class IntegratedBuilder {
         ReportProgress reportProgress,
         CancelIndicator cancelIndicator
     ) {
-        // FIXME: A refactoring of the following line is needed. This refactor will affect FileConfig and
-        //  org.lflang.cli.Lfc. The issue is that there is duplicated code.
         fileAccess.setOutputPath(
             FileConfig.findPackageRoot(Path.of(uri.path()), s -> {}).resolve(FileConfig.DEFAULT_SRC_GEN_DIR).toString()
         );
@@ -124,9 +122,12 @@ public class IntegratedBuilder {
         ReportProgress reportProgress,
         CancelIndicator cancelIndicator
     ) {
+        var resource = getResource(uri);
         LFGeneratorContext context = new MainContext(
-            mustComplete ? Mode.LSP_SLOW : LFGeneratorContext.Mode.LSP_MEDIUM, cancelIndicator, reportProgress, new Properties(),
-            false, fileConfig -> new LanguageServerErrorReporter(fileConfig.resource.getContents().get(0))
+            mustComplete ? Mode.LSP_SLOW : LFGeneratorContext.Mode.LSP_MEDIUM,
+            cancelIndicator, reportProgress, new Properties(),
+            resource, fileAccess,
+            fileConfig -> new LanguageServerErrorReporter(resource.getContents().get(0))
         );
         generator.generate(getResource(uri), fileAccess, context);
         return context.getResult();

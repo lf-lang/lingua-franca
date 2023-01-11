@@ -35,6 +35,7 @@ import org.lflang.generator.GeneratorResult
 import org.lflang.generator.IntegratedBuilder
 import org.lflang.generator.LFGeneratorContext
 import org.lflang.generator.TargetTypes
+import org.lflang.generator.cpp.CppFileConfig
 import org.lflang.joinWithCommas
 import org.lflang.lf.Action
 import org.lflang.lf.VarRef
@@ -58,10 +59,11 @@ import java.nio.file.Path
  */
 @Suppress("unused")
 class RustGenerator(
-    fileConfig: RustFileConfig,
-    errorReporter: ErrorReporter,
+    context: LFGeneratorContext,
     @Suppress("UNUSED_PARAMETER") unused: LFGlobalScopeProvider
-) : GeneratorBase(fileConfig, errorReporter) {
+) : GeneratorBase(context) {
+
+    val fileConfig: RustFileConfig = context.fileConfig as RustFileConfig
 
     companion object {
         /** Path to the rust runtime library (relative to class path)  */
@@ -74,28 +76,25 @@ class RustGenerator(
 
         if (!canGenerate(errorsOccurred(), mainDef, errorReporter, context)) return
 
-        val fileConfig = fileConfig as RustFileConfig
-
         Files.createDirectories(fileConfig.srcGenPath)
 
         val gen = RustModelBuilder.makeGenerationInfo(targetConfig, reactors, errorReporter)
         val codeMaps: Map<Path, CodeMap> = RustEmitter.generateRustProject(fileConfig, gen)
 
         if (targetConfig.noCompile || errorsOccurred()) {
-            context.finish(GeneratorResult.GENERATED_NO_EXECUTABLE.apply(codeMaps))
+            context.finish(GeneratorResult.GENERATED_NO_EXECUTABLE.apply(context, codeMaps))
             println("Exiting before invoking target compiler.")
         } else {
             context.reportProgress(
                 "Code generation complete. Compiling...", IntegratedBuilder.GENERATED_PERCENT_PROGRESS
             )
-            val exec = fileConfig.binPath.toAbsolutePath().resolve(gen.executableName)
-            Files.deleteIfExists(exec) // cleanup, cargo doesn't do it
+            Files.deleteIfExists(fileConfig.executable) // cleanup, cargo doesn't do it
             if (context.mode == LFGeneratorContext.Mode.LSP_MEDIUM) RustValidator(fileConfig, errorReporter, codeMaps).doValidate(context)
-            else invokeRustCompiler(context, gen.executableName, codeMaps)
+            else invokeRustCompiler(context, codeMaps)
         }
     }
 
-    private fun invokeRustCompiler(context: LFGeneratorContext, executableName: String, codeMaps: Map<Path, CodeMap>) {
+    private fun invokeRustCompiler(context: LFGeneratorContext, codeMaps: Map<Path, CodeMap>) {
 
         val args = mutableListOf<String>().apply {
             this += "build"
@@ -129,18 +128,11 @@ class RustGenerator(
 
         if (cargoReturnCode == 0) {
             // We still have to copy the compiled binary to the destination folder.
-            val isWindows = System.getProperty("os.name").lowercase().contains("win")
-            val localizedExecName = if (isWindows) {
-                "$executableName.exe"
-            } else {
-                executableName
-            }
-
             val buildType = targetConfig.rust.buildType
-            var binaryPath = validator.getMetadata()?.targetDirectory!!
+            val binaryPath = validator.getMetadata()?.targetDirectory!!
                 .resolve(buildType.cargoProfileName)
-                .resolve(localizedExecName)
-            val destPath = fileConfig.binPath.resolve(localizedExecName)
+                .resolve(fileConfig.executable.fileName)
+            val destPath = fileConfig.executable
 
             FileUtil.copyFile(binaryPath, destPath)
             // Files do not retain permissions when copied.
@@ -149,7 +141,7 @@ class RustGenerator(
             println("SUCCESS (compiling generated Rust code)")
             println("Generated source code is in ${fileConfig.srcGenPath}")
             println("Compiled binary is in ${fileConfig.binPath}")
-            context.finish(GeneratorResult.Status.COMPILED, executableName, fileConfig, codeMaps)
+            context.finish(GeneratorResult.Status.COMPILED, codeMaps)
         } else if (context.cancelIndicator.isCanceled) {
             context.finish(GeneratorResult.CANCELLED)
         } else {

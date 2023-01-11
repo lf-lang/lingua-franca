@@ -59,17 +59,16 @@ import org.lflang.TargetProperty.Platform;
 import org.lflang.federated.extensions.CExtensionUtils;
 import org.lflang.generator.ActionInstance;
 import org.lflang.generator.CodeBuilder;
+import org.lflang.generator.DockerGeneratorBase;
 import org.lflang.generator.GeneratorBase;
 import org.lflang.generator.GeneratorResult;
 import org.lflang.generator.GeneratorUtils;
-import org.lflang.generator.IntegratedBuilder;
 import org.lflang.generator.LFGeneratorContext;
 import org.lflang.generator.LFResource;
 import org.lflang.generator.ParameterInstance;
 import org.lflang.generator.PortInstance;
 import org.lflang.generator.ReactionInstance;
 import org.lflang.generator.ReactorInstance;
-import org.lflang.generator.SubContext;
 import org.lflang.generator.TargetTypes;
 import org.lflang.generator.TimerInstance;
 import org.lflang.generator.TriggerInstance;
@@ -335,6 +334,8 @@ public class CGenerator extends GeneratorBase {
     /** Place to collect code to initialize the trigger objects for all reactor instances. */
     protected CodeBuilder initializeTriggerObjects = new CodeBuilder();
 
+    protected final CFileConfig fileConfig;
+
     /**
      * Count of the number of is_present fields of the self struct that
      * need to be reinitialized in _lf_start_time_step().
@@ -370,30 +371,29 @@ public class CGenerator extends GeneratorBase {
     private final CCmakeGenerator cmakeGenerator;
 
     protected CGenerator(
-        FileConfig fileConfig,
-        ErrorReporter errorReporter,
+        LFGeneratorContext context,
         boolean CCppMode,
         CTypes types,
         CCmakeGenerator cmakeGenerator
     ) {
-        super(fileConfig, errorReporter);
+        super(context);
+        this.fileConfig = (CFileConfig) context.getFileConfig();
         this.CCppMode = CCppMode;
         this.types = types;
         this.cmakeGenerator = cmakeGenerator;
     }
 
-    public CGenerator(FileConfig fileConfig, ErrorReporter errorReporter, boolean CCppMode) {
+    public CGenerator(LFGeneratorContext context, boolean ccppMode) {
         this(
-            fileConfig,
-            errorReporter,
-            CCppMode,
-            new CTypes(errorReporter),
-            new CCmakeGenerator(fileConfig, List.of())
+            context,
+            ccppMode,
+            new CTypes(context.getErrorReporter()),
+            new CCmakeGenerator(context.getFileConfig(), List.of())
         );
     }
 
-    public CGenerator(FileConfig fileConfig, ErrorReporter errorReporter) {
-        this(fileConfig, errorReporter, false);
+    public CGenerator(LFGeneratorContext context) {
+        this(context, false);
     }
 
     ////////////////////////////////////////////
@@ -462,20 +462,10 @@ public class CGenerator extends GeneratorBase {
         // Perform set up that does not generate code
         setUpGeneralParameters();
 
-        var commonCode = new CodeBuilder(code);
-
         FileUtil.createDirectoryIfDoesNotExist(fileConfig.getSrcGenPath().toFile());
         FileUtil.createDirectoryIfDoesNotExist(fileConfig.binPath.toFile());
         handleProtoFiles();
-        // Docker related paths
-        CDockerGenerator dockerGenerator = getDockerGenerator();
 
-        // Keep a separate file config for each federate
-        var oldFileConfig = fileConfig;
-
-        LFGeneratorContext generatingContext = new SubContext(
-            context, IntegratedBuilder.VALIDATED_PERCENT_PROGRESS, IntegratedBuilder.GENERATED_PERCENT_PROGRESS
-        );
         var lfModuleName = fileConfig.name;
         generateCodeFor(lfModuleName);
 
@@ -529,9 +519,13 @@ public class CGenerator extends GeneratorBase {
 
             // Create docker file.
             if (targetConfig.dockerOptions != null && mainDef != null) {
-                dockerGenerator.addFile(
-                    dockerGenerator.fromData(lfModuleName, main.getName(), fileConfig));
+                try {
+                    getDockerGenerator(context).writeDockerFiles();
+                } catch (IOException e) {
+                    throw new RuntimeException("Error while writing Docker files", e);
+                }
             }
+
             var cmakeFile = fileConfig.getSrcGenPath() + File.separator + "CMakeLists.txt";
             var cmakeCode = cmakeGenerator.generateCMakeCode(
                 List.of(cFilename),
@@ -583,21 +577,12 @@ public class CGenerator extends GeneratorBase {
                     context.unsuccessfulFinish();
                 } else {
                     context.finish(
-                        GeneratorResult.Status.COMPILED, execName, fileConfig, null
+                        GeneratorResult.Status.COMPILED, null
                     );
                 }
                 cleanCode.writeToFile(targetFile);
             } catch (IOException e) {
                 Exceptions.sneakyThrow(e);
-            }
-        }
-
-        if (targetConfig.dockerOptions != null && mainDef != null) {
-            try {
-                dockerGenerator.writeDockerFiles(
-                    fileConfig.getSrcGenPath().resolve("docker-compose.yml"));
-            } catch (IOException e) {
-                throw new RuntimeException(e);
             }
         }
 
@@ -614,12 +599,12 @@ public class CGenerator extends GeneratorBase {
                     context.getMode()
                 );
                 context.finish(
-                    GeneratorResult.Status.COMPILED, fileConfig.name, fileConfig, null
+                    GeneratorResult.Status.COMPILED, null
                 );
             }
             System.out.println("Compiled binary is in " + fileConfig.binPath);
         } else {
-            context.finish(GeneratorResult.GENERATED_NO_EXECUTABLE.apply(null));
+            context.finish(GeneratorResult.GENERATED_NO_EXECUTABLE.apply(context, null));
         }
 
         // In case we are in Eclipse, make sure the generated code is visible.
@@ -747,10 +732,6 @@ public class CGenerator extends GeneratorBase {
                 hasModalReactors
             ));
         }
-    }
-
-    protected CDockerGenerator getDockerGenerator() {
-        return new CDockerGenerator(false, CCppMode, targetConfig);
     }
 
     @Override
@@ -1929,6 +1910,10 @@ public class CGenerator extends GeneratorBase {
     @Override
     public TargetTypes getTargetTypes() {
         return types;
+    }
+
+    protected DockerGeneratorBase getDockerGenerator(LFGeneratorContext context) {
+        return new CDockerGenerator(context);
     }
 
     // //////////////////////////////////////////

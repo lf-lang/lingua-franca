@@ -1,22 +1,16 @@
 package org.lflang.federated.generator;
 
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.eclipse.emf.ecore.util.EcoreUtil;
 
-import org.lflang.ASTUtils;
 import org.lflang.ast.FormattingUtils;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.lf.Import;
 import org.lflang.lf.Model;
-import org.lflang.lf.Reactor;
-import org.lflang.lf.ReactorDecl;
 
 /**
  * Helper class to generate import statements for a federate.
@@ -44,7 +38,7 @@ public class FedImportEmitter {
                    Path importPath =
                        fileConfig.srcPath
                            .resolve(i.getImportURI()).toAbsolutePath();
-                   i.setImportURI(fileConfig.getFedSrcPath().relativize(importPath)
+                   i.setImportURI(fileConfig.getSrcPath().relativize(importPath)
                                             .toString()
                    );
                });

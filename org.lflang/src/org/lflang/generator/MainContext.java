@@ -1,13 +1,19 @@
 package org.lflang.generator;
 
+import java.io.IOException;
+import java.util.Objects;
 import java.util.Properties;
 import java.util.function.Function;
 
+import org.eclipse.emf.ecore.resource.Resource;
+import org.eclipse.xtext.generator.IFileSystemAccess2;
 import org.eclipse.xtext.util.CancelIndicator;
+import org.eclipse.xtext.util.RuntimeIOException;
 
 import org.lflang.DefaultErrorReporter;
 import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
+import org.lflang.TargetConfig;
 import org.lflang.generator.IntegratedBuilder.ReportProgress;
 
 /**
@@ -25,14 +31,18 @@ public class MainContext implements LFGeneratorContext {
     private final CancelIndicator cancelIndicator;
     /** The {@code ReportProgress} function of {@code this}. */
     private final ReportProgress reportProgress;
+
+    private final FileConfig fileConfig;
+
     /** Whether the requested build is required to be complete. */
     private final Mode mode;
+
+    private final TargetConfig targetConfig;
+
     /** The result of the code generation process. */
     private GeneratorResult result = null;
     private final Properties args;
-    private final boolean hierarchicalBin;  // FIXME: The interface would be simpler if this were part of {@code args}, and in addition, a potentially useful feature would be exposed to the user.
-    private final Function<FileConfig, ErrorReporter> constructErrorReporter;
-    private ErrorReporter errorReporter;
+    private final ErrorReporter errorReporter;
 
     /**
      * Initialize the context of a build process whose cancellation is
@@ -41,10 +51,10 @@ public class MainContext implements LFGeneratorContext {
      * @param cancelIndicator The cancel indicator of the code generation
      *                        process to which this corresponds.
      */
-    public MainContext(Mode mode, CancelIndicator cancelIndicator) {
+    public MainContext(Mode mode, Resource resource, IFileSystemAccess2 fsa, CancelIndicator cancelIndicator) {
         this(
-            mode, cancelIndicator, (message, completion) -> {}, new Properties(), false,
-            fileConfig -> new DefaultErrorReporter()
+            mode, cancelIndicator, (message, completion) -> {}, new Properties(), resource, fsa,
+            fg -> new DefaultErrorReporter()
         );
     }
 
@@ -58,8 +68,8 @@ public class MainContext implements LFGeneratorContext {
      *                       {@code this}.
      * @param args Any arguments that may be used to affect the product of the
      *             build.
-     * @param hierarchicalBin Whether the bin directory should be structured
-     *                        hierarchically.
+     * @param resource ...
+     * @param fsa ...
      * @param constructErrorReporter A function that constructs the appropriate
      *                               error reporter for the given FileConfig.
      */
@@ -68,16 +78,29 @@ public class MainContext implements LFGeneratorContext {
         CancelIndicator cancelIndicator,
         ReportProgress reportProgress,
         Properties args,
-        boolean hierarchicalBin,
+        Resource resource,
+        IFileSystemAccess2 fsa,
         Function<FileConfig, ErrorReporter> constructErrorReporter
     ) {
         this.mode = mode;
         this.cancelIndicator = cancelIndicator == null ? () -> false : cancelIndicator;
         this.reportProgress = reportProgress;
         this.args = args;
-        this.hierarchicalBin = hierarchicalBin;
-        this.constructErrorReporter = constructErrorReporter;
-        this.errorReporter = null;
+
+        try {
+            var useHierarchicalBin = args.containsKey("hierarchical-bin") && Boolean.parseBoolean(args.getProperty("hierarchical-bin"));
+            fileConfig = Objects.requireNonNull(LFGenerator.createFileConfig(resource, FileConfig.getSrcGenRoot(fsa), useHierarchicalBin));
+        } catch (IOException e) {
+            throw new RuntimeIOException("Error during FileConfig instantiation", e);
+        }
+
+        this.errorReporter = constructErrorReporter.apply(this.fileConfig);
+
+        this.targetConfig = GeneratorUtils.getTargetConfig(
+            args, GeneratorUtils.findTarget(fileConfig.resource), errorReporter
+        );
+
+
     }
 
     @Override
@@ -95,19 +118,6 @@ public class MainContext implements LFGeneratorContext {
         return args;
     }
 
-    @Override
-    public boolean useHierarchicalBin() {
-        return hierarchicalBin;
-    }
-
-    @Override
-    public ErrorReporter constructErrorReporter(FileConfig fileConfig) {
-        if (errorReporter != null) {
-            throw new IllegalStateException("Only one error reporter should be constructed for a given context.");
-        }
-        errorReporter = constructErrorReporter.apply(fileConfig);
-        return errorReporter;
-    }
 
     @Override
     public ErrorReporter getErrorReporter() {
@@ -124,6 +134,16 @@ public class MainContext implements LFGeneratorContext {
     @Override
     public GeneratorResult getResult() {
         return result != null ? result : GeneratorResult.NOTHING;
+    }
+
+    @Override
+    public FileConfig getFileConfig() {
+        return this.fileConfig;
+    }
+
+    @Override
+    public TargetConfig getTargetConfig() {
+        return this.targetConfig;
     }
 
     @Override

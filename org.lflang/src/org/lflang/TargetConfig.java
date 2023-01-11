@@ -39,6 +39,7 @@ import org.lflang.TargetProperty.LogLevel;
 import org.lflang.TargetProperty.Platform;
 import org.lflang.TargetProperty.SchedulerOption;
 import org.lflang.generator.rust.RustTargetConfig;
+import org.lflang.lf.TargetDecl;
 
 /**
  * A class for keeping the current target configuration.
@@ -48,6 +49,12 @@ import org.lflang.generator.rust.RustTargetConfig;
  * @author Marten Lohstroh <marten@berkeley.edu>
  */
 public class TargetConfig {
+
+    public final Target target;
+
+    public TargetConfig(TargetDecl target) {
+        this.target = Target.fromDecl(target);
+    }
 
     /**
      * Keep track of every target property that is explicitly set by the user.

@@ -108,7 +108,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * The data can then be viewed in the InfluxDB browser, or you can configure an external
  * tool such as Grafana to visualize it (see https://grafana.com/docs/grafana/latest/datasources/influxdb/).
  */
-#define LINGUA_FRANCA_TRACE
+#define LF_TRACE
 #include "reactor.h"
 #include "trace.h"
 #include "trace_util.h"

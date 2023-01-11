@@ -33,9 +33,9 @@ import org.eclipse.emf.ecore.resource.Resource;
 import org.lflang.FileConfig;
 
 /**
- * A child class of @see FileConfig that extends the base functionality to add support
- * for federated execution. The code generator should create one instance of this class 
- * for each federate.
+ * A subclass of @see FileConfig that extends the base functionality to add support
+ * for compiling federated LF programs. The code generator should create one instance
+ * of this class for each federate.
  * 
  * @author Soroush Bateni
  *
@@ -43,6 +43,7 @@ import org.lflang.FileConfig;
 public class FedFileConfig extends FileConfig {
 
     public FedFileConfig(Resource resource, Path srcGenBasePath, boolean useHierarchicalBin) throws IOException {
+        // FIMXE: It is unclear to me that we need this class.
         super(resource, srcGenBasePath, useHierarchicalBin);
 
     }
@@ -51,20 +52,36 @@ public class FedFileConfig extends FileConfig {
         super(fileConfig.resource, fileConfig.getSrcGenBasePath(), fileConfig.useHierarchicalBin);
     }
 
+
+    //    @Override
+//    public LFCommand getCommand() {
+//        // FIXME: what should this point to? The launcher script?
+//        return null;
+//    }
+//
+//    @Override
+//    public Path getExecutable() {
+//        // FIXME: what should this point to? The launcher script?
+//        return null;
+//    }
+
+    // FIXME: it seems that the "fed" methods below should just be overrides in
+    //  the other class of the normal ones.
+
     /**
      * Return the path to the root of a LF project generated on the basis of a
      * federated LF program currently under compilation.
      */
-    public Path getFedGenPath() {
-        return srcPkgPath.resolve("fed-gen").resolve(this.name);
+    public Path getGenPath() {
+        return srcPkgPath.resolve("fed-gen").resolve(name);
     }
 
     /**
      * Return the path for storing generated LF sources that jointly constitute a
      * federation.
      */
-    public Path getFedSrcPath() {
-        return getFedGenPath().resolve("src");
+    public Path getSrcPath() {
+        return getGenPath().resolve("src");
     }
 
     /**
@@ -74,7 +91,9 @@ public class FedFileConfig extends FileConfig {
      * to the package root, then the generated sources will be put in x/y/Z
      * relative to srcGenBasePath.
      */
-    public Path getFedSrcGenPath() {
-        return getFedGenPath().resolve("src-gen");
+    @Override
+    public Path getSrcGenPath() {
+        return getGenPath().resolve("src-gen");
     }
+
 }
