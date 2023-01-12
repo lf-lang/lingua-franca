@@ -20,41 +20,9 @@ on:
 jobs:
   run:
     runs-on: ubuntu-latest
+    container:
+      image: zephyrprojectrtos/zephyr-build:latest
     steps:
-      #FIXME: The ZEPHYR_VERSION and SDK_VERSION should not be hard-coded here.
-      # But I dont know where... 
-      - name: Install zephyr and west
-        run : |
-          sudo apt update && sudo apt upgrade -y
-          wget https://apt.kitware.com/kitware-archive.sh
-          sudo bash kitware-archive.sh
-          sudo apt install --no-install-recommends git cmake ninja-build gperf \
-          ccache dfu-util device-tree-compiler wget \
-          python3-dev python3-pip python3-setuptools python3-tk python3-wheel xz-utils file \
-          make gcc gcc-multilib g++-multilib libsdl2-dev libmagic1
-          sudo apt install python3-venv
-          python3 -m venv ~/zephyrproject/.venv
-          source ~/zephyrproject/.venv/bin/activate
-          pip install west
-          ZEPHYR_VERSION=v3.2.0
-          west init --mr ${ZEPHYR_VERSION} ~/zephyrproject
-          cd ~/zephyrproject
-          west update
-          west zephyr-export
-          pip install -r ~/zephyrproject/zephyr/scripts/requirements.txt
-
-          SDK_VERSION=0.15.2
-          cd ~
-          wget https://github.com/zephyrproject-rtos/sdk-ng/releases/download/v${SDK_VERSION}/zephyr-sdk-${SDK_VERSION}_linux-x86_64.tar.gz
-          wget -O - https://github.com/zephyrproject-rtos/sdk-ng/releases/download/v${SDK_VERSION}/sha256.sum | shasum --check --ignore-missing
-
-          tar xvf zephyr-sdk-${SDK_VERSION}_linux-x86_64.tar.gz --directory /opt
-          cd /opt/zephyr-sdk-${SDK_VERSION}
-          ./setup.sh
-
-          sudo cp ~/zephyr-sdk-${SDK_VERSION}/sysroots/x86_64-pokysdk-linux/usr/share/openocd/contrib/60-openocd.rules /etc/udev/rules.d
-          sudo udevadm control --reload
-
       - name: Check out lingua-franca repository
         uses: actions/checkout@v3
         with:
