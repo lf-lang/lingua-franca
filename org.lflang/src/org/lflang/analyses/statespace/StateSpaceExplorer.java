@@ -7,7 +7,7 @@ import java.lang.Integer;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.PriorityQueue;
+import java.util.HashSet;
 import java.util.Set;
 
 import org.eclipse.xtext.xbase.lib.Exceptions;
@@ -25,7 +25,6 @@ import org.lflang.generator.RuntimeRange;
 import org.lflang.generator.SendRange;
 import org.lflang.generator.TimerInstance;
 import org.lflang.generator.TriggerInstance;
-
 import org.lflang.lf.Expression;
 import org.lflang.lf.Time;
 import org.lflang.lf.Variable;
@@ -48,7 +47,7 @@ public class StateSpaceExplorer {
      * defines a unique logical timeline (assuming all reactions
      * behave _consistently_ throughout the execution).
      */
-    public PriorityQueue<Event> eventQ = new PriorityQueue<Event>();
+    public EventQueue eventQ = new EventQueue();
 
     /**
      * The main reactor instance based on which the state space
@@ -119,9 +118,9 @@ public class StateSpaceExplorer {
         }
 
         // A list of reactions invoked at the current logical tag
-        ArrayList<ReactionInstance> reactionsInvoked;
+        Set<ReactionInstance> reactionsInvoked;
         // A temporary list of reactions processed in the current LOOP ITERATION
-        ArrayList<ReactionInstance> reactionsTemp;
+        Set<ReactionInstance> reactionsTemp;
 
         while (!stop) {
 
@@ -139,7 +138,10 @@ public class StateSpaceExplorer {
 
             // Collect all the reactions invoked in this current LOOP ITERATION
             // triggered by the earliest events.
-            reactionsTemp = new ArrayList<ReactionInstance>();
+            // Using a hash set here to make sure the reactions invoked
+            // are unique. Sometimes multiple events can trigger the same reaction,
+            // and we do not want to record duplicate reaction invocations.
+            reactionsTemp = new HashSet<ReactionInstance>();
             for (Event e : currentEvents) {
                 Set<ReactionInstance> dependentReactions
                     = e.trigger.getDependentReactions();
@@ -223,7 +225,7 @@ public class StateSpaceExplorer {
                 //// Now we are done with the node at the previous tag,
                 //// work on the new node at the current timestamp.
                 // Copy the reactions in reactionsTemp.
-                reactionsInvoked = new ArrayList<ReactionInstance>(reactionsTemp);
+                reactionsInvoked = new HashSet<ReactionInstance>(reactionsTemp);
 
                 // Create a new state in the SSD for the current tag,
                 // add the reactions triggered to the state,
@@ -233,7 +235,7 @@ public class StateSpaceExplorer {
                 StateSpaceNode node = new StateSpaceNode(
                     currentTag,                    // Current tag
                     reactionsInvoked,              // Reactions invoked at this tag
-                    new ArrayList<Event>(eventQ)    // A snapshot of the event queue
+                    new ArrayList<Event>(eventQ)   // A snapshot of the event queue
                 );
 
                 // Initialize currentNode.
@@ -293,7 +295,7 @@ public class StateSpaceExplorer {
                 //// Now we are done with the node at the previous tag,
                 //// work on the new node at the current timestamp.
                 // Copy the reactions in reactionsTemp.
-                reactionsInvoked = new ArrayList<ReactionInstance>(reactionsTemp);
+                reactionsInvoked = new HashSet<ReactionInstance>(reactionsTemp);
 
                 // Create a new state in the SSD for the current tag,
                 // add the reactions triggered to the state,

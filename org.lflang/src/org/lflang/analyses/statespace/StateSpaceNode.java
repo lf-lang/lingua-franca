@@ -8,6 +8,7 @@ package org.lflang.analyses.statespace;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.lflang.TimeValue;
@@ -19,12 +20,12 @@ public class StateSpaceNode {
     public int index;       // Set in StateSpaceDiagram.java
     public Tag tag;
     public TimeValue time;  // Readable representation of tag.timestamp
-    public ArrayList<ReactionInstance> reactionsInvoked;
+    public Set<ReactionInstance> reactionsInvoked;
     public ArrayList<Event> eventQ;
 
     public StateSpaceNode(
         Tag tag,
-        ArrayList<ReactionInstance> reactionsInvoked,
+        Set<ReactionInstance> reactionsInvoked,
         ArrayList<Event> eventQ
     ) {
         this.tag    = tag;
