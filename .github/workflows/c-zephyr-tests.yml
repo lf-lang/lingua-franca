@@ -52,6 +52,9 @@ jobs:
           path: org.lflang/src/lib/c/reactor-c
           ref: ${{ inputs.runtime-ref }}
         if: ${{ inputs.runtime-ref }}
+      - name: Fix git safe issue
+        run: |
+          git config --add safe.directory *  --global
       - name: Perform Zephyr tests for C target with default scheduler
         run: |
           ./gradlew test --tests org.lflang.tests.runtime.CZephyrTest.*
