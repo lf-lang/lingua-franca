@@ -116,6 +116,10 @@ public class PythonReactorGenerator {
         CodeBuilder code = new CodeBuilder();
 
         String className = PyUtil.getName(instance.reactorDeclaration);
+        // Do not instantiate delay reactors in Python
+        if (className.contains(DelayBodyGenerator.GEN_DELAY_CLASS_NAME)) {
+            return "";
+        }
 
         if (instance.getWidth() > 0) {
             // For each reactor instance, create a list regardless of whether it is a bank or not.
