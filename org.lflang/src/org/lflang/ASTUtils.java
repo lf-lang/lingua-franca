@@ -122,13 +122,16 @@ public class ASTUtils {
     /**
      * A mapping from Reactor features to corresponding Mode features for collecting contained elements.
      */
+    //FIXME: modif4watchdogs
+    // added 'featurePackage.getReactor_Watchdogs'
     private static final Map<EStructuralFeature, EStructuralFeature> reactorModeFeatureMap = Map.of(
             featurePackage.getReactor_Actions(),        featurePackage.getMode_Actions(),
             featurePackage.getReactor_Connections(),    featurePackage.getMode_Connections(),
             featurePackage.getReactor_Instantiations(), featurePackage.getMode_Instantiations(),
             featurePackage.getReactor_Reactions(),      featurePackage.getMode_Reactions(),
             featurePackage.getReactor_StateVars(),      featurePackage.getMode_StateVars(),
-            featurePackage.getReactor_Timers(),         featurePackage.getMode_Timers()
+            featurePackage.getReactor_Timers(),         featurePackage.getMode_Timers(),
+            featurePackage.getReactor_Watchdogs()
             );
 
 
@@ -141,19 +144,6 @@ public class ASTUtils {
         return StreamSupport.stream(IteratorExtensions.toIterable(resource.getAllContents()).spliterator(), false)
                      .filter(Reactor.class::isInstance)
                      .map(Reactor.class::cast)
-                     .collect(Collectors.toList());
-    }
-
-    /** 
-     * Get all watchdogs defined in the given resource.
-     * @param resource the resource to extract watchdogs from
-     * @return An iterable over all watchdogs found in the resource
-     */
-    //FIXME: modif4watchdogs
-    public static Iterable<Watchdog> getAllWatchdogs(Resource resource) {
-        return StreamSupport.stream(IteratorExtensions.toIterable(resource.getAllContents()).spliterator(), false)
-                     .filter(Watchdog.class::isInstance)
-                     .map(Watchdog.class::cast)
                      .collect(Collectors.toList());
     }
 
@@ -685,6 +675,16 @@ public class ASTUtils {
      */
     public static List<Reaction> allReactions(Reactor definition) {
         return ASTUtils.collectElements(definition, featurePackage.getReactor_Reactions());
+    }
+
+    /**
+     * Given a reactor class, return a list of all its watchdogs.
+     * @param definition Reactor class definition
+     * @return List<Watchdog>
+     */
+    // FIXME: modif4watchdogs
+    public static List<Watchdog> allWatchdogs(Reactor definition) {
+        return ASTUtils.collectElements(definition, featurePackage.getReactor_Watchdogs());
     }
     
     /**

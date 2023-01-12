@@ -934,12 +934,9 @@ public class CGenerator extends GeneratorBase {
     }
 
     //FIXME: modif4watchdogs
-    //FIXME: getWatchdog() has not been implemented
     private boolean hasWatchdogs(Reactor reactor) {
-        for (Reaction reaction : allReactions(reactor)) {
-            if (reaction.getWatchdog() != null) {
-                return true;
-            }
+        if (ASTUtils.allWatchdogs(reactor) != null) {
+            return true;
         }
         return false;
     }
@@ -1530,6 +1527,18 @@ public class CGenerator extends GeneratorBase {
         CodeBuilder constructorCode
     ) {
         // Do nothing
+    }
+
+    /**
+     * Generate watchdog functions definition for a reactor.
+     * @param decl The reactor
+     * @param federate The federate, or null if this is not 
+     * federated or not the main reactor and watchdogs should be
+     * unconditionally generated.
+     */
+    //FIXME: modif4watchdogs
+    public void generateWatchdogFunctions(ReactorDecl decl, FederateInstance federate) {
+        
     }
 
     /** Generate reaction functions definition for a reactor.

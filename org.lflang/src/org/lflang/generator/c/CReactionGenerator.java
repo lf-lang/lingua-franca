@@ -195,6 +195,15 @@ public class CReactionGenerator {
                             effect.getContainer(),
                             (Input) variable
                         );
+                    } else if (variable instanceof Watchdog) {
+                        //FIXME: modif4watchdogs
+                        // How does it know if instance of watchdog?
+                        reactionInitialization.pr(generateWatchdogVariablesInReaction(
+                            effect,
+                            decl,
+                            errorReporter,
+                            requiresTypes
+                        ));
                     } else {
                         errorReporter.reportError(
                             reaction,
@@ -679,6 +688,31 @@ public class CReactionGenerator {
         }
     }
 
+    /** 
+     * Generate into the specified string builder the code to 
+     * initialize local variables for watchdogs in a reaction function
+     * from the "self" struct.
+     * @param effect The effect declared by the reaction. This must refer to a watchdog.
+     * @param decl The reactor containing the reaction or the import statement.
+     */
+    //FIXME: modif4watchdogs
+    // Fine to have watchdog be in reactor self struct?
+    public static String generateWatchdogVariablesInReaction(
+        VarRef effect,
+        ReactorDecl decl,
+        ErrorReporter errorReporter,
+        boolean requiresTypes
+    ) {
+        Watchdog watchdog = (Watchdog) effect.getVariable();
+        String watchdogName = watchdog.getName();
+        if (watchdog.getType() == null && requiresTypes) {
+            errorReporter.reportError(watchdog, "Watchdog is required to have a type: " + watchdogName);
+            return "";
+        } else {
+            return "watchdog_t* "+watchdogName+" = &self->_lf_watchdog_"+watchdogName+";";
+        }
+    }
+
     /**
      * Generate the fields of the self struct and statements for the constructor
      * to create and initialize a reaction_t struct for each reaction in the
@@ -757,14 +791,6 @@ public class CReactionGenerator {
                     // The following has to match the name chosen in generateReactions
                     var deadlineFunctionName = generateDeadlineFunctionName(decl, reactionCount);
                     deadlineFunctionPointer = "&" + deadlineFunctionName;
-                }
-
-                // FIXME: modif4watchdogs
-                // FIXME: '.getWatchdog()' not implemented
-                var watchdogFunctionPointer = "NULL";
-                if (reaction.getWatchdog() != null) {
-                    var watchdogFunctionName = generateWatchdogFunctionName(decl, reactionCount);
-                    watchdogFunctionPointer = "&" + watchdogFunctionName;
                 }
 
                 // Assign the STP handler
@@ -1006,19 +1032,6 @@ public class CReactionGenerator {
     }
 
     /**
-     * Generate _lf_initialize_watchdog_mutexes function.
-     */
-    //FIXME: modif4watchdogs
-    //FIXME: finish implementing
-    public static String generateLfInitializeWatchdogMutexes(List<Reactor> reactors) {
-        // need to find way to assign get watchdog from AST
-        // need to assign watchdog to correct reaction
-        var s = new StringBuilder();
-        s.append("void _lf_initialize_watchdog_mutexes() {\n");
-        
-    }
-
-    /**
      * Generate the _lf_trigger_shutdown_reactions function.
      */
     public static String generateLfTriggerShutdownReactions(int shutdownReactionCount, boolean hasModalReactors) {
@@ -1136,14 +1149,6 @@ public class CReactionGenerator {
                 init, reaction.getDeadline().getCode()));
         }
 
-        // FIXME:modif4watchdogs
-        // Now generate code for the watchdog handler function, if there is one.
-        if (reaction.getWatchdog() != null) {
-            code.pr(generateFunction(
-                generateWatchdogFunctionHeader(decl, reactionIndex),
-                init, reaction.getWatchdog().getCode()));
-        }
-
         CMethodGenerator.generateMacroUndefsForMethods(ASTUtils.toDefinition(decl), code);
         code.pr(
             "#include " + StringUtil.addDoubleQuotes(
@@ -1161,17 +1166,6 @@ public class CReactionGenerator {
         function.unindent();
         function.pr("}");
         return function.toString();
-    }
-
-    // FIXME: modif4watchdogs
-    /**
-     * Returns the name of the watchdog function for reaction.
-     * @param decl The reactor with the watchdog
-     * @param reactionIndex The number assigned to this reaction watchdog
-     * @return Name of the watchdog function for reaction
-     */
-    public static String generateWatchdogFunctionName(ReactorDecl decl, int reactionIndex) {
-        return decl.getName().toLowerCase() + "_watchdog_function" + reactionIndex;
     }
 
     /**
@@ -1214,18 +1208,6 @@ public class CReactionGenerator {
         return generateFunctionHeader(functionName);
     }
 
-    /** Return the top level C function header for the watchdog function numbered "reactionIndex" in "decl"
-     * @param decl The reactor declaration
-     * @param reactionIndex The reaction index.
-     * @return The function name for the watchdog function.
-     */
-    //FIXME: modif4watchdogs
-    public static String generateWatchdogFunctionHeader(ReactorDecl decl,
-                                                        int reactionIndex) {
-        String functionName = generateWatchdogFunctionName(decl, reactionIndex);
-        return generateFunctionHeader(functionName);
-    }
-
     /** Return the top level C function header for the reaction numbered "reactionIndex" in "decl"
      *  @param decl The reactor declaration
      *  @param reactionIndex The reaction index.
@@ -1243,7 +1225,8 @@ public class CReactionGenerator {
         return generateFunctionHeader(functionName);
     }
 
-    private static String generateFunctionHeader(String functionName) {
+    //FIXME: modif4watchdogs (changed from private to public to access in CWatchdogGenerator)
+    public static String generateFunctionHeader(String functionName) {
         return "void " + functionName + "(void* instance_args)";
     }
 }

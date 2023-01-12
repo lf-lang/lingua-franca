@@ -150,6 +150,10 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
     /** List of reaction instances for this reactor instance. */
     public final List<ReactionInstance> reactions = new ArrayList<>();
 
+    /** List of watchdog instances for this reactor instance. */
+    //FIXME: modif4watchdogs
+    public final List<WatchdogInstance> watchdogs = new ArrayList<>();
+
     /** The timer instances belonging to this reactor instance. */
     public final List<TimerInstance> timers = new ArrayList<>();
     
