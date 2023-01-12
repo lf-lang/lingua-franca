@@ -38,6 +38,7 @@ jobs:
           ref: ${{ inputs.runtime-ref }}
         if: ${{ inputs.runtime-ref }}
       - name: Perform Zephyr tests for C target with default scheduler
-        uses: docker://zephyrprojectrtos/zephyr-build:latest
+        container:
+          image: zephyrprojectrtos/zephyr-build:latest
         run: |
           ./gradlew test --tests org.lflang.tests.runtime.CZephyrTests.*
