@@ -42,7 +42,6 @@ subprojects {
         implementation group: 'com.google.inject', name: 'guice', version: guiceVersion
         // https://picocli.info/
         implementation group: 'info.picocli', name: 'picocli', version: picocliVersion
-        // implementation 'info.picocli:picocli:4.7.0'
     }
     dependencies {
         implementation group: 'org.jetbrains.kotlin', name: 'kotlin-stdlib', version: kotlinVersion

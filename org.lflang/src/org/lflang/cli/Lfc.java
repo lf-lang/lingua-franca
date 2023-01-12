@@ -33,7 +33,7 @@ import com.google.inject.Inject;
  */
 @Command(
     name = "lfc",
-    // Automatically add usageHelp and versionHelp options.
+    // Enable usageHelp (--help) and versionHelp (--version) options.
     mixinStandardHelpOptions = true,
     // TODO: Import version from StringsBundle.properties. 
     version = "lfc 0.3.1-SNAPSHOT")
