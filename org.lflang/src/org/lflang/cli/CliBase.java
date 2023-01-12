@@ -59,7 +59,7 @@ public abstract class CliBase implements Runnable {
         arity = "1..",
         paramLabel = "FILES",
         description = "Paths of the files to run the formatter on.")
-    protected List<String> files;
+    protected List<Path> files;
 
     @Option(
         names = {"-o", "--output-path"},
@@ -67,7 +67,7 @@ public abstract class CliBase implements Runnable {
         fallbackValue = "",
         description = "Specify the root output directory.")
 
-    private String outputPath;
+    private Path outputPath;
     /**
      * Used to collect all errors that happen during validation/generation.
      */
@@ -155,7 +155,7 @@ public abstract class CliBase implements Runnable {
     protected Properties filterPassOnProps() {
         // Parameters corresponding to the options that need to be passed on to
         // the generator as properties.
-        List<BuildParm> passOnParams = Arrays.asList(
+        final List<BuildParm> passOnParams = Arrays.asList(
             BuildParm.BUILD_TYPE,
             BuildParm.CLEAN,
             BuildParm.TARGET_COMPILER,
@@ -220,7 +220,7 @@ public abstract class CliBase implements Runnable {
      */
     protected Path getOutputRoot() {
         Path root = null;
-        if (!outputPath.isEmpty()) {
+        if (!outputPath.toString().isEmpty()) {
             root = io.getWd().resolve(outputPath).normalize();
             if (!Files.exists(root)) { // FIXME: Create it instead?
                 reporter.printFatalErrorAndExit(

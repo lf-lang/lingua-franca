@@ -136,7 +136,6 @@ public class Lfc extends CliBase {
                     + " (true/false).")
     private boolean threading;
 
-    // TODO: could be int?
     @Option(
         names = {"-w", "--workers"},
         description = "Specify the default number of worker threads.")
