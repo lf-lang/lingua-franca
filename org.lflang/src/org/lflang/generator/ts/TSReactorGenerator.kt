@@ -116,7 +116,7 @@ ${"             |"..preamble.code.toText()}
                 for (attrParam in attribute.attrParms) {
                     if (attrParam.name == "network_message_actions") {
                         if (attrParam.value[0] != '"' || attrParam.value[attrParam.value.length - 1] != '"') throw IllegalArgumentException("Expected attrParam.value to be wrapped in double quotes")
-                        networkMessageActions = attrParam.value.substring(1, attrParam.value.length - 1).split(",")
+                        networkMessageActions = attrParam.value.substring(1, attrParam.value.length - 1).split(",").filter { it.isNotEmpty() }
                     }
                 }
             }
