@@ -10,6 +10,7 @@ import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Properties;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -62,15 +63,6 @@ public class Lff extends CliBase {
     private boolean noRecurse = false;
 
     @Option(
-        names = {"-o", "--output-path"},
-        defaultValue = "",
-        fallbackValue = "",
-        description = "If specified, outputs all formatted files into this" 
-                        + " directory instead of overwriting the original"
-                        + " files. Subdirectory structure will be preserved.")
-    private String outputPath;
-
-    @Option(
         names = {"-v", "--verbose"},
         description = "Print more details on files affected.")
     private boolean verbose = false;
@@ -100,58 +92,25 @@ public class Lff extends CliBase {
     }
 
     /**
-     * The first method in Lff that is invoked when the parent CliBase Runnable
-     * class is instantiated, i.e. the first method to run after the arguments
-     * are parsed.
+     * Validates all paths and invokes the formatter on the input paths.
      */
     @Override
     public void run() {
+        List<Path> paths = getInputPaths();
+        final Path outputRoot = getOutputRoot();
+        // Hard code the props based on the options we want.
+        Properties properties = this.filterPassOnProps();
+
         try {
-            List<Path> paths = files.stream()
-                                    .map(io.getWd()::resolve)
-                                    .collect(Collectors.toList());
-            runTool(paths);
+            // Format all files defined by the list of paths.
+            formatAllFiles(paths, outputRoot);
+
+            exitIfCollectedErrors();
+            if (!dryRun || verbose) {
+                reporter.printInfo("Done formatting.");
+            }
         } catch (RuntimeException e) {
             reporter.printFatalErrorAndExit("An unexpected error occurred:", e);
-        }
-    }
-
-    /**
-     * Check all given input paths and the output path, then invokes the 
-     * formatter on all files given.
-     */
-    @Override
-    protected void runTool(List<Path> paths) {
-        final Path outputRoot;
-        if (!outputPath.isEmpty()){
-            outputRoot = 
-                io.getWd().resolve(outputPath).toAbsolutePath().normalize();
-            if (!Files.exists(outputRoot)) {
-                reporter.printFatalErrorAndExit(
-                        "Output location '" + outputRoot + "' does not exist.");
-            }
-            if (!Files.isDirectory(outputRoot)) {
-                reporter.printFatalErrorAndExit(
-                        "Output location '"
-                        + outputRoot + "' is not a directory.");
-            }
-        } else {
-            outputRoot = null;
-        }
-
-        for (Path path : paths) {
-            if (!Files.exists(path)) {
-                reporter.printFatalErrorAndExit(
-                        path + ": No such file or directory");
-            }
-        }
-
-        // Format all files defined by the list of paths.
-        formatAllFiles(paths, outputRoot);
-
-        exitIfCollectedErrors();
-        if (!dryRun || verbose) {
-            reporter.printInfo("Done formatting.");
         }
     }
 

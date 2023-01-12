@@ -107,13 +107,6 @@ public class Lfc extends CliBase {
     private boolean noCompile;
 
     @Option(
-        names = {"-o", "--output-path"},
-        defaultValue = "",
-        fallbackValue = "",
-        description = "Specify the root output directory.")
-    private String outputPath;
-
-    @Option(
         names = {"-q", "--quiet"},
         arity = "0",
         description = 
@@ -170,49 +163,21 @@ public class Lfc extends CliBase {
     }
 
     /**
-     * The first method in Lfc that is invoked when the parent CliBase Runnable
-     * class is instantiated, i.e. the first method to run after the arguments
-     * are parsed.
-     */
-    @Override
-    public void run() {
-        try {
-            List<Path> paths = files.stream().map(
-                    io.getWd()::resolve).collect(Collectors.toList());
-            runTool(paths);
-        } catch (RuntimeException e) {
-            reporter.printFatalErrorAndExit("An unexpected error occurred:", e);
-        }
-    }
-
-    /**
      * Load the resource, validate it, and, invoke the code generator.
      */
     @Override
-    protected void runTool(List<Path> files) {
+    public void run() {
+        List<Path> paths = getInputPaths();
+        final Path outputRoot = getOutputRoot();
         // Hard code the props based on the options we want.
         Properties properties = this.filterPassOnProps();
 
-        Path root = null;
-        if (!outputPath.isEmpty()) {
-            root = io.getWd().resolve(outputPath).normalize();
-            if (!Files.exists(root)) { // FIXME: Create it instead?
-                reporter.printFatalErrorAndExit(
-                    "Output location '" + root + "' does not exist.");
-            }
-            if (!Files.isDirectory(root)) {
-                reporter.printFatalErrorAndExit(
-                    "Output location '" + root + "' is not a directory.");
-            }
+        try {
+            // Invoke the generator on all input file paths.
+            invokeGenerator(paths, outputRoot, properties);
+        } catch (RuntimeException e) {
+            reporter.printFatalErrorAndExit("An unexpected error occurred:", e);
         }
-
-        for (Path path : files) {
-            if (!Files.exists(path)) {
-                reporter.printFatalErrorAndExit(
-                    path + ": No such file or directory");
-            }
-        }
-        invokeGenerator(files, root, properties);
     }
 
     /**

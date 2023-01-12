@@ -3,6 +3,7 @@ package org.lflang.cli;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.io.PrintWriter;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.List;
@@ -60,6 +61,13 @@ public abstract class CliBase implements Runnable {
         description = "Paths of the files to run the formatter on.")
     protected List<String> files;
 
+    @Option(
+        names = {"-o", "--output-path"},
+        defaultValue = "",
+        fallbackValue = "",
+        description = "Specify the root output directory.")
+
+    private String outputPath;
     /**
      * Used to collect all errors that happen during validation/generation.
      */
@@ -119,7 +127,6 @@ public abstract class CliBase implements Runnable {
     }
 
     public abstract void run();
-    protected abstract void runTool(List<Path> inputFiles);
 
     protected static Injector getInjector(String toolName, Io io) {
         final ReportingBackend reporter 
@@ -142,6 +149,8 @@ public abstract class CliBase implements Runnable {
     /**
      * Filter the command-line arguments needed by the code generator, and
      * return them as properties.
+     *
+     * @return Properties for the code generator.
      */
     protected Properties filterPassOnProps() {
         // Parameters corresponding to the options that need to be passed on to
@@ -182,6 +191,48 @@ public abstract class CliBase implements Runnable {
         });
 
         return props;
+    }
+
+    /**
+     * Returns the validated input paths.
+     *
+     * @return Validated input paths.
+     */
+    protected List<Path> getInputPaths() {
+        List<Path> paths = files.stream()
+            .map(io.getWd()::resolve)
+            .collect(Collectors.toList());
+
+        for (Path path : paths) {
+            if (!Files.exists(path)) {
+                reporter.printFatalErrorAndExit(
+                    path + ": No such file or directory");
+            }
+        }
+
+        return paths;
+    }
+
+    /**
+     * Returns the validated, normalized output path.
+     *
+     * @return Validated, normalized output path.
+     */
+    protected Path getOutputRoot() {
+        Path root = null;
+        if (!outputPath.isEmpty()) {
+            root = io.getWd().resolve(outputPath).normalize();
+            if (!Files.exists(root)) { // FIXME: Create it instead?
+                reporter.printFatalErrorAndExit(
+                    "Output location '" + root + "' does not exist.");
+            }
+            if (!Files.isDirectory(root)) {
+                reporter.printFatalErrorAndExit(
+                    "Output location '" + root + "' is not a directory.");
+            }
+        }
+
+        return root;
     }
 
     /**
