@@ -1,0 +1,30 @@
+// Test writing inputs to a contained reactor bank
+target Rust
+
+reactor Contained(bank_index: usize(0)) {
+    state bank_index(bank_index)
+
+    input inpt: usize
+    state count: usize(0)
+
+    reaction(inpt) {=
+        let result = ctx.get(inpt).unwrap();
+        println!("Instance {} received {}", self.bank_index, result);
+        assert_eq!(result, self.bank_index * 42);
+        self.count += 1;
+    =}
+
+    reaction(shutdown) {=
+        assert_eq!(self.count, 1, "One of the reactions failed to trigger");
+    =}
+}
+
+main reactor {
+    c = new[4] Contained()
+
+    reaction(startup) -> c.inpt {=
+        for i in 0..c__inpt.len() {
+            ctx.set(&mut c__inpt[i], i * 42);
+        }
+    =}
+}

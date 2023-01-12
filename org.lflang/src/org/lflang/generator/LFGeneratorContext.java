@@ -17,7 +17,7 @@ import org.lflang.util.LFCommand;
  * It is the point of communication between a build process and the environment
  * in which it is executed.
  *
- * @author Peter Donovan <peterdonovan@berkeley.edu>
+ * @author Peter Donovan
  */
 public interface LFGeneratorContext extends IGeneratorContext {
 

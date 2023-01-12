@@ -1,5 +1,9 @@
 package org.lflang.tests.compiler;
 
+import static java.util.Collections.emptyList;
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.MatcherAssert.assertThat;
+
 import java.nio.file.Files;
 import java.nio.file.Path;
 
@@ -28,7 +32,7 @@ public class RoundTripTests {
         for (Target target : Target.values()) {
             for (TestCategory category : TestCategory.values()) {
                 for (LFTest test : TestRegistry.getRegisteredTests(target, category, false)) {
-                    run(test.srcFile);
+                    run(test.getSrcPath());
                 }
             }
         }
@@ -36,12 +40,13 @@ public class RoundTripTests {
 
     private void run(Path file) throws Exception {
         Model originalModel = LfParsingUtil.parse(file);
-        Assertions.assertTrue(originalModel.eResource().getErrors().isEmpty());
+        assertThat(originalModel.eResource().getErrors(), equalTo(emptyList()));
         // TODO: Check that the output is a fixed point
         final int smallLineLength = 20;
         final String squishedTestCase = FormattingUtils.render(originalModel, smallLineLength);
         final Model resultingModel = LfParsingUtil.parseSourceAsIfInDirectory(file.getParent(), squishedTestCase);
 
+        assertThat(resultingModel.eResource().getErrors(), equalTo(emptyList()));
         Assertions.assertTrue(
             new IsEqual(originalModel).doSwitch(resultingModel),
             String.format(

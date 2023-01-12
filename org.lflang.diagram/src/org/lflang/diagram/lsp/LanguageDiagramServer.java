@@ -28,7 +28,7 @@ import de.cau.cs.kieler.klighd.lsp.launch.Language;
 /**
  * Language server with extended diagram communication.
  * 
- * @author{Alexander Schulz-Rosengarten <als@informatik.uni-kiel.de>}
+ * @author Alexander Schulz-Rosengarten
  */
 public class LanguageDiagramServer extends AbstractLanguageServer {
     

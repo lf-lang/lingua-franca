@@ -56,7 +56,7 @@ public class BaseLFValidator extends AbstractLFValidator {
      * The validator only gives protected access to its own state. With
      * this class, we can grant access to the inner state to other objects.
      *
-     * @author Christian Menard <christian.menard@tu-dresden.de>
+     * @author Christian Menard
      */
     protected class ValidatorStateAccess {
         public EObject getCurrentObject() {

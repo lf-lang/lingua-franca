@@ -23,7 +23,7 @@ import com.google.common.collect.ImmutableMap;
 /**
  * Validate generated code.
  *
- * @author Peter Donovan <peterdonovan@berkeley.edu>
+ * @author Peter Donovan
  */
 public abstract class Validator {
 

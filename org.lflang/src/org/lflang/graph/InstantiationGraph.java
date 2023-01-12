@@ -56,7 +56,7 @@ import com.google.common.collect.Iterables;
  * that induce the dependencies. These can be retrieved using the method
  * `getInstantiations(Reactor)`.
  *
- * @author{Marten Lohstroh <marten@berkeley.edu>}
+ * @author Marten Lohstroh
  */
 public class InstantiationGraph extends PrecedenceGraph<Reactor> {
     /**

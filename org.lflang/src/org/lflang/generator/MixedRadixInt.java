@@ -60,7 +60,7 @@ import java.util.Set;
  * and r is the radix. For example, the number "1%2, 2%3, 1%4" has value 11,
  * 1 + (2*2) + (1*2*3).
  * 
- * @author{Edward A. Lee <eal@berkeley.edu>}
+ * @author Edward A. Lee
  */
 public class MixedRadixInt {
     
