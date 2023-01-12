@@ -31,7 +31,6 @@ jobs:
           sudo apt-get install -y maven
           echo "export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64" | sudo tee -a /etc/environment
           source /etc/environment
-    steps:
       - name: Initialize zephyr
         run: |
           ZEPHYR_INSTALL=/workdir/zephyrproject
