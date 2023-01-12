@@ -22,6 +22,7 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: zephyrprojectrtos/zephyr-build:latest
+      options: -u root --entrypoint /bin/sh 
     steps:
       - name: Check out lingua-franca repository
         uses: actions/checkout@v2
@@ -33,7 +34,7 @@ jobs:
       - name: Prepare build environment
         uses: ./.github/actions/prepare-build-env
       - name: Check out specific ref of reactor-c
-        uses: actions/checkout@v3
+        uses: actions/checkout@v2
         with:
           repository: lf-lang/reactor-c
           path: org.lflang/src/lib/c/reactor-c
