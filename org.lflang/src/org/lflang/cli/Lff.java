@@ -107,8 +107,9 @@ public class Lff extends CliBase {
     @Override
     public void run() {
         try {
-            List<Path> paths = files.stream().map(
-                    io.getWd()::resolve).collect(Collectors.toList());
+            List<Path> paths = files.stream()
+                                    .map(io.getWd()::resolve)
+                                    .collect(Collectors.toList());
             runTool(paths);
         } catch (RuntimeException e) {
             reporter.printFatalErrorAndExit("An unexpected error occurred:", e);
