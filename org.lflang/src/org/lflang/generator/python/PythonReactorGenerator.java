@@ -35,7 +35,9 @@ public class PythonReactorGenerator {
         ReactorDecl decl = instance.getDefinition().getReactorClass();
         Reactor reactor = ASTUtils.toDefinition(decl);
         String className = PyUtil.getName(decl);
-        if (instantiatedClasses == null) {
+        if (instantiatedClasses == null ||
+            // Do not generate code for delay reactors in Python
+            className.contains(DelayBodyGenerator.GEN_DELAY_CLASS_NAME)) {
             return "";
         }
 
