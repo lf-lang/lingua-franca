@@ -24,8 +24,23 @@ jobs:
       image: zephyrprojectrtos/zephyr-build:latest
       options: -u root --entrypoint /bin/sh 
     steps:
+      - name: Install Java 17, Maven and set JAVA_HOME
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y openjdk-17-jdk
+          sudo apt-get install -y maven
+          echo "export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64" | sudo tee -a /etc/environment
+          source /etc/environment
+    steps:
+      - name: Initialize zephyr
+        run: |
+          ZEPHYR_INSTALL=/workdir/zephyrproject
+          west init $ZEPHYR_INSTALL --mr v3.2.0
+          cd $ZEPHYR_INSTALL 
+          west update
+          export ZEPHYR_BASE $ZEPHYR_INSTALL/zephyr
       - name: Check out lingua-franca repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           repository: lf-lang/lingua-franca
           submodules: true
@@ -34,7 +49,7 @@ jobs:
       - name: Prepare build environment
         uses: ./.github/actions/prepare-build-env
       - name: Check out specific ref of reactor-c
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           repository: lf-lang/reactor-c
           path: org.lflang/src/lib/c/reactor-c
