@@ -4,7 +4,7 @@ target Rust {
     cargo-features: ["cli"]
 }
 
-main reactor AsyncCallback(period: time(1 msec)) {
+main reactor AsyncCallback(period: time(10 msec)) {
     preamble {= use std::thread; =}
 
     timer t(0, period)
@@ -19,6 +19,9 @@ main reactor AsyncCallback(period: time(1 msec)) {
     reaction(t) -> act {=
         let act = act.clone();
         let period = self.period;
+        if let Some(old_thread) = self.thread.take() {
+            old_thread.join().ok();
+        }
         // start new thread
         let new_thread = ctx.spawn_physical_thread(move |ctx| {
             // Simulate time passing before a callback occurs
@@ -31,9 +34,7 @@ main reactor AsyncCallback(period: time(1 msec)) {
             ctx.schedule_physical(&act, Asap).ok();
         });
 
-        if let Some(old_thread) = self.thread.replace(new_thread) {
-            old_thread.join().ok();
-        }
+        self.thread.replace(new_thread);
     =}
 
     reaction(act) {=
