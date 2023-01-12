@@ -29,8 +29,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y openjdk-17-jdk
           sudo apt-get install -y maven
-          echo "export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64" | sudo tee -a /etc/environment
-          source /etc/environment
+          export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
       - name: Initialize zephyr
         run: |
           ZEPHYR_INSTALL=/workdir/zephyrproject
@@ -56,4 +55,4 @@ jobs:
         if: ${{ inputs.runtime-ref }}
       - name: Perform Zephyr tests for C target with default scheduler
         run: |
-          ./gradlew test --tests org.lflang.tests.runtime.CZephyrTests.*
+          ./gradlew test --tests org.lflang.tests.runtime.CZephyrTest.*
