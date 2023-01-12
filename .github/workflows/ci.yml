@@ -63,10 +63,11 @@ jobs:
     uses: lf-lang/lingua-franca/.github/workflows/c-tests.yml@master
     needs: cancel
   
+  # FIXME: Find a way to efficiently install zephyr in CI. Maybe pull-down a docker container?
   # Run the C Zephyr integration tests.
-  c-zephyr-tests:
-    uses: lf-lang/lingua-franca/.github/workflows/c-zephyr-tests.yml@c-zephyr-support
-    needs: cancel
+  # c-zephyr-tests:
+  #   uses: lf-lang/lingua-franca/.github/workflows/c-zephyr-tests.yml@c-zephyr-support
+  #   needs: cancel
 
   # Run the CCpp integration tests.
   ccpp-tests:
