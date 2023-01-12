@@ -49,7 +49,7 @@ import org.lflang.lf.Mode;
 
 /**
  * Representation of a compile-time instance of a reaction.
- * Like {@link ReactorInstance}, one or more parents of this reaction
+ * Like {@link ReactorInstance}, if one or more parents of this reaction
  * is a bank of reactors, then there will be more than one runtime instance
  * corresponding to this compile-time instance.  The {@link #getRuntimeInstances()}
  * method returns a list of these runtime instances, each an instance of the

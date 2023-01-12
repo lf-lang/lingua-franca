@@ -877,9 +877,11 @@ public class CGenerator extends GeneratorBase {
                 hasModalReactors,
                 modalStateResetCount
             ));
-            code.pr(CModesGenerator.generateLfModeGetTransitioningReactors(
-                hasModalReactors
-            ));
+            if (targetConfig.schedulerType == TargetProperty.SchedulerOption.LET) {
+                code.pr(CModesGenerator.generateLfModeGetTransitioningReactors(
+                    hasModalReactors
+                ));
+            }
             code.pr(CReactionGenerator.generateLfModeTriggeredReactions(
                 startupReactionCount,
                 resetReactionCount,
@@ -1551,6 +1553,14 @@ public class CGenerator extends GeneratorBase {
      *  @param reactionIndex The position of the reaction within the reactor.
      */
     protected void generateReaction(Reaction reaction, ReactorDecl decl, int reactionIndex) {
+        // Generate setup function needed if this is a LET reaction
+        code.pr(CReactionGenerator.generateReactionSetup(
+            reaction,
+            decl,
+            types,
+            reactionIndex
+        ));
+
         code.pr(CReactionGenerator.generateReaction(
             reaction,
             decl,
@@ -1560,6 +1570,14 @@ public class CGenerator extends GeneratorBase {
             types,
             isFederatedAndDecentralized(),
             getTarget().requiresTypes
+        ));
+
+        // Generate setup function needed if this is a LET reaction
+        code.pr(CReactionGenerator.generateReactionCleanup(
+            reaction,
+            decl,
+            types,
+            reactionIndex
         ));
     }
 
@@ -2079,6 +2097,7 @@ public class CGenerator extends GeneratorBase {
      * @param instance The reactor instance.
      */
     private void generateSetLET(ReactorInstance instance) {
+        // FIXME: Should we use #ifdefs instead?
         if (targetConfig.schedulerType == TargetProperty.SchedulerOption.LET) {
             for (ReactionInstance reaction : instance.reactions) {
                 if (currentFederate.contains(reaction.getDefinition())) {
@@ -2524,11 +2543,14 @@ public class CGenerator extends GeneratorBase {
     protected void generateMutexInit(ReactorInstance instance) {
         // We only have the reactor-mutex if we are using the LET scheduler
         //  in the future, Watchdogs will also require this.
+        // FIXME: Should this be hidden behind #ifdefs instead?
         if (targetConfig.schedulerType == TargetProperty.SchedulerOption.LET) {
             var selfRef = CUtil.reactorRef(instance);
             initializeTriggerObjects.pr("// Initialize local mutex only if reactor has either: ");
             initializeTriggerObjects.pr("//     1. LET reactions, and thus needs to be locked ");
             initializeTriggerObjects.pr("//     2. Modes and has containing LET reactions ");
+            initializeTriggerObjects.pr("//     3. Any directly downstream Reactor has LET reactions");
+
             if  (instance.hasLetReactions() || 
                 (!instance.modes.isEmpty() && instance.getNumberOfLetReactions() > 0)
             ) {
@@ -2541,6 +2563,7 @@ public class CGenerator extends GeneratorBase {
     }
     
     protected void generateParentPointer (ReactorInstance instance) {
+        // FIXME: Should we use #ifdefs here?
         if (targetConfig.schedulerType == TargetProperty.SchedulerOption.LET) {
             var selfRef = CUtil.reactorRef(instance);
             var parentRef = "NULL";

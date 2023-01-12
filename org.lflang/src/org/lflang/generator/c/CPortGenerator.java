@@ -80,6 +80,12 @@ public class CPortGenerator {
                     "void* (*copy_constructor) (void* value);",
                     federatedExtension.toString()
         ));
+
+        code.pr(String.join("\n",
+            "#if SCHEDULER == LET",
+            "self_base_t** destination_reactors;",
+            "#endif"
+        ));
         code.unindent();
         code.pr("} "+variableStructType(port, decl)+";");
         return code.toString();

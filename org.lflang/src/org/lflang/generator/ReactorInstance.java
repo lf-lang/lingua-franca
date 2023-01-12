@@ -654,12 +654,27 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
     }
 
     /**
-     * Return number of LET reactions inside Reactor
+     * Return whether the reactor instance contains LET reactions
      */
     public boolean hasLetReactions() {
         for (ReactionInstance reaction : reactions) {            
             if(!reaction.getLogicalExecutionTime().equals(TimeValue.ZERO)) {
                 return true;
+            }
+        }
+        return false;
+    }
+    
+    /**
+      * Return whether the reactor instance has any directly downstream
+      * LET reactions.
+     */
+    public boolean hasDirectlyDownstreamLetReactions() {
+        for (ReactionInstance reaction : reactions) {
+            for (ReactionInstance downstream : reaction.dependentReactions()) {
+                if(!downstream.getLogicalExecutionTime().equals(TimeValue.ZERO)) {
+                    return true;
+                }
             }
         }
         return false;
