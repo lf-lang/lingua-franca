@@ -54,7 +54,7 @@ public class CZephyrTest extends RuntimeTest {
             TestCategory.ZEPHYR::equals, Configurators::makeZephyrCompatible,
             false);
     }
-    @Test
+    // @Test
     // public void runGenericTests() {
     //     Assumptions.assumeTrue(isLinux(), "Zephyr tests only run on Linux");
     //     super.runTestsFor(List.of(Target.C),
