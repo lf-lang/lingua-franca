@@ -20,8 +20,6 @@ on:
 jobs:
   run:
     runs-on: ubuntu-latest
-    container:
-      image: zephyrprojectrtos/zephyr-build:latest
     steps:
       - name: Check out lingua-franca repository
         uses: actions/checkout@v3
@@ -30,24 +28,6 @@ jobs:
           submodules: true
           ref: ${{ inputs.compiler-ref }}
           fetch-depth: 0
-      - name: Install java and others
-        run : |
-          apt update
-          JAVA_VERSION=17.0.5.
-          wget https://download.oracle.com/java/17/archive/jdk-${JAVA_VERSION}_linux-x64_bin.tar.gz
-          tar xvzf jdk-${JAVA_VERSION}_linux-x64_bin.tar.gz -C /opt
-          export JAVA_HOME=/opt/jdk-${JAVA_VERSION}
-          export PATH=$PATH:$JAVA_HOME/bin
-          apt install maven -y
-          GRADLE_VERSION=6.5.1
-          wget
-          https://services.gradle.org/distributions/gradle-${VERSION}-bin.zip -P
-          /tmp
-          sudo unzip -d /opt/gradle /tmp/gradle-${VERSION}-bin.zip
-          sudo ln -s /opt/gradle/gradle-${VERSION} /opt/gradle/latest
-          export GRADLE_HOME=/opt/gradle/latest
-          export PATH=${GRADLE_HOME}/bin:${PATH}
-
       - name: Prepare build environment
         uses: ./.github/actions/prepare-build-env
       - name: Check out specific ref of reactor-c
@@ -60,3 +40,4 @@ jobs:
       - name: Perform Zephyr tests for C target with default scheduler
         run: |
           ./gradlew test --tests org.lflang.tests.runtime.CZephyrTests.*
+        uses: docker://zephyrprojectrtos/zephyr-build:latest
