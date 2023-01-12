@@ -20,9 +20,11 @@ on:
 jobs:
   run:
     runs-on: ubuntu-latest
+    container:
+      image: zephyrprojectrtos/zephyr-build:latest
     steps:
       - name: Check out lingua-franca repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v2
         with:
           repository: lf-lang/lingua-franca
           submodules: true
@@ -38,7 +40,5 @@ jobs:
           ref: ${{ inputs.runtime-ref }}
         if: ${{ inputs.runtime-ref }}
       - name: Perform Zephyr tests for C target with default scheduler
-        container:
-          image: zephyrprojectrtos/zephyr-build:latest
         run: |
           ./gradlew test --tests org.lflang.tests.runtime.CZephyrTests.*
