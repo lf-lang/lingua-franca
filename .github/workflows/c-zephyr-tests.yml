@@ -29,13 +29,13 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y openjdk-17-jdk
           sudo apt-get install -y maven
-          export JAVA_HOME_17_X64=/usr/lib/jvm/java-17-openjdk-amd64
+          echo "JAVA_HOME_17_X64=/usr/lib/jvm/java-17-openjdk-amd64" >> $GITHUB_ENV
       - name: Initialize zephyr
         run: |
           west init /workdir/zephyrproject --mr v3.2.0
           cd /workdir/zephyrproject
           west update
-          export ZEPHYR_BASE=/workdir/zephyrproject/zephyr
+          echo "ZEPHYR_BASE=/workdir/zephyrproject/zephyr" >> $GITHUB_ENV
       - name: Check out lingua-franca repository
         uses: actions/checkout@v3
         with:
