@@ -159,6 +159,9 @@ public class AttributeUtils {
         return findAttributeByName(node, "sparse") != null;
     }
 
+    public static boolean isLet(EObject node) {
+        return findAttributeByName(node, "let") != null;
+    }
     /**
      * Return the declared label of the node, as given by the @label annotation.
      */

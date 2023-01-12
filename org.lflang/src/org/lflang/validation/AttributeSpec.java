@@ -214,5 +214,7 @@ class AttributeSpec {
         ATTRIBUTE_SPECS_BY_NAME.put("icon", new AttributeSpec(
             List.of(new AttrParamSpec(AttributeSpec.VALUE_ATTR, AttrParamType.STRING, null))
         ));
+        // @let
+        ATTRIBUTE_SPECS_BY_NAME.put("let", new AttributeSpec(null));
     }
 }

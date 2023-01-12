@@ -16,6 +16,7 @@ import org.lflang.InferredType;
 import org.lflang.federated.CGeneratorExtension;
 import org.lflang.federated.FederateInstance;
 import org.lflang.generator.CodeBuilder;
+import org.lflang.generator.LetUtils;
 import org.lflang.lf.Action;
 import org.lflang.lf.ActionOrigin;
 import org.lflang.lf.BuiltinTriggerRef;
@@ -34,6 +35,7 @@ import org.lflang.lf.TriggerRef;
 import org.lflang.lf.VarRef;
 import org.lflang.lf.Variable;
 import org.lflang.util.StringUtil;
+import org.lflang.TimeValue;
 
 public class CReactionGenerator {
     protected static String DISABLE_REACTION_INITIALIZATION_MARKER
@@ -224,6 +226,11 @@ public class CReactionGenerator {
         }
         // Next generate all the collected setup code.
         code.pr(reactionInitialization.toString());
+
+        if (LetUtils.getReactionLet(reaction) != TimeValue.ZERO) {
+            code.pr(generateLetReactionPrologue(reaction, reactionIndex));
+        }
+
         return code.toString();
     }
 
@@ -877,6 +884,167 @@ public class CReactionGenerator {
     }
 
     /**
+     * Generates the LET prologue to a reaction. It consists in
+     * 1) Set ref_count of all triggers/sources of the LET reaction to 2.
+     *  this will stop the runtime from freeing up the dynamically allocated memory
+     *  which is used by this reaction. The freeing must take place in the epilogue
+     * 2) Call `lf_sched_let_prologue` where the current worker is retired from the workforce
+     * @param decl
+     * @param reaction
+     * @param reactionIndex
+     */
+    public static String generateLetReactionPrologue(
+        Reaction reaction,
+        int reactionIndex
+    ) {
+        CodeBuilder code = new CodeBuilder();
+        code.pr("#if SCHEDULER == LET");
+
+        // Loop through all reaction triggers and get the ports
+        for (TriggerRef trigger : ASTUtils.convertToEmptyListIfNull(reaction.getTriggers())) {
+            if (trigger instanceof VarRef triggerAsVarRef) {
+                if (triggerAsVarRef.getVariable() instanceof Port port) {
+                    code.pr(generateSetRefCountTo2ForPort(port, triggerAsVarRef));
+                }
+            }
+        }
+
+        // Loop through all sources
+        for (TriggerRef trigger : ASTUtils.convertToEmptyListIfNull(reaction.getSources())) {
+            if (trigger instanceof VarRef triggerAsVarRef) {
+                if (triggerAsVarRef.getVariable() instanceof Port port)
+                {
+                    code.pr(generateSetRefCountTo2ForPort(port, triggerAsVarRef));
+                }
+            }
+        }
+
+        code.pr("lf_sched_retire_let_worker(&self->_lf__reaction_"+reactionIndex+", worker);");
+        code.pr("#endif");
+
+        return code.toString();
+    }
+
+    private static String generateSetRefCountTo2ForPort(
+        Port port,
+        VarRef varRef
+    ) {
+        CodeBuilder code = new CodeBuilder();
+        if (port instanceof Input input) {
+            // Input port
+            String inputName = input.getName();
+            if (!ASTUtils.isMultiport(input)) {
+                // Single port
+                code.pr("if ("+inputName+"->token) "+inputName + "->token->ref_count=2;");
+            } else {
+                // Multiport
+                code.pr(String.join("\n",
+                    "for (int i = 0; i < "+CUtil.multiportWidthExpression(input)+"; i++) {",
+                    "    if ("+inputName+"[i]->token) "+inputName + "[i]->token->ref_count=2;",
+                    "}"
+                ));
+            }
+        } else if (port instanceof Output output) {
+            // Output. Which means that we are getting data from a contained reactor
+            String portName = output.getName();
+            String reactorName = varRef.getContainer().getName(); // FIXME: Will this work realiably with banks?
+            String inputName = reactorName + "." + portName;
+            if (!ASTUtils.isMultiport(output)) {
+                // Single port
+                code.pr("if ("+inputName+"->token) "+inputName + "->token->ref_count=2;");
+            } else {
+                // Multiport
+                code.pr(String.join("\n",
+                    "for (int i = 0; i < "+CUtil.multiportWidthExpression(output)+"; i++) {",
+                    "    if ("+inputName+"[i]->token) "+inputName + "[i]->token->ref_count=2;",
+                    "}"
+                ));
+            }
+        }
+        return code.toString();
+    }
+    public static String generateLetReactionEpilogue(
+        Reactor reactor,
+        Reaction reaction,
+        int reactionIndex
+    ) {
+            CodeBuilder code = new CodeBuilder();
+            code.pr("#if SCHEDULER == LET");
+
+            // Loop through all reaction triggers
+            for (TriggerRef trigger : ASTUtils.convertToEmptyListIfNull(reaction.getTriggers())) {
+                if (trigger instanceof VarRef triggerAsVarRef) {
+                    if (triggerAsVarRef.getVariable() instanceof Port port) {
+                        code.pr(generateLfDoneUsingOnPort(port, reactor));
+                    }
+                }
+            }
+
+            // If no triggers, then all inputs are triggers
+            if (reaction.getTriggers() == null || reaction.getTriggers().size() == 0) {
+                // No triggers are given, which means react to any input.
+                // Declare an argument for every input.
+                // NOTE: this does not include contained outputs.
+                for (Input input : reactor.getInputs()) {
+                    code.pr(generateLfDoneUsingOnPort((Port) input, reactor));
+                }
+            }
+
+            // Loop through all sources
+            for (TriggerRef trigger : ASTUtils.convertToEmptyListIfNull(reaction.getSources())) {
+                if (trigger instanceof VarRef triggerAsVarRef) {
+                    if (triggerAsVarRef.getVariable() instanceof Port port)
+                    {
+                        code.pr(generateLfDoneUsingOnPort(port, reactor));
+                    }
+                }
+            }
+
+            code.pr("#endif");
+
+            return code.toString();
+    }
+
+    private static String generateLfDoneUsingOnPort(
+        Port port,
+        Reactor reactor
+    ) {
+        CodeBuilder code = new CodeBuilder();
+        if (port instanceof Input input) {
+            // Input
+            String inputName = input.getName();
+            if (!ASTUtils.isMultiport(input)) {
+                // Single port
+                code.pr("_lf_done_using(" + inputName + "->token);");
+            } else {
+                // Multiport
+                code.pr(String.join("\n",
+                    "for (int i = 0; i < "+CUtil.multiportWidthExpression(input)+"; i++) {",
+                    "    _lf_done_using("+inputName+"[i]->token);",
+                    "}"
+                ));
+            }
+        } else if (port instanceof Output output) {
+            // Output. Which means that we are getting data from a contained reactor
+            String portName = output.getName();
+            String reactorName = reactor.getName(); // FIXME: Will this work reliably with banks?
+            String inputName = reactorName + "." + portName;
+            if (!ASTUtils.isMultiport(output)) {
+                // Single port
+                code.pr("_lf_done_using(" + inputName + "->token);");
+            } else {
+                // Multiport
+                code.pr(String.join("\n",
+                    "for (int i = 0; i < "+CUtil.multiportWidthExpression(output)+"; i++) {",
+                    "    _lf_done_using("+inputName+"[i]->token);",
+                    "}"
+                ));
+            }
+        }
+        return code.toString();
+    }
+
+    /**
      * Define the trigger_t object on the self struct, an array of
      * reaction_t pointers pointing to reactions triggered by this variable,
      * and initialize the pointers in the array in the constructor.
@@ -1249,6 +1417,7 @@ public class CReactionGenerator {
         boolean isFederatedAndDecentralized,
         boolean requiresType
     ) {
+        Reactor reactor = ASTUtils.toDefinition(decl);
         var code = new CodeBuilder();
         var body = ASTUtils.toText(reaction.getCode());
         String init = generateInitializationForReaction(
@@ -1256,13 +1425,22 @@ public class CReactionGenerator {
                         types, errorReporter, mainDef,
                         isFederatedAndDecentralized,
                         requiresType);
+
+        // Generate reaction
+        String reactionEpilogue;
+        if (LetUtils.getReactionLet(reaction) != TimeValue.ZERO) {
+            reactionEpilogue = generateLetReactionEpilogue(reactor, reaction, reactionIndex);
+        } else {
+            reactionEpilogue = "";
+        }
+
         code.pr(
             "#include " + StringUtil.addDoubleQuotes(
                 CCoreFilesUtils.getCTargetSetHeader()));
         CMethodGenerator.generateMacrosForMethods(ASTUtils.toDefinition(decl), code);
         code.pr(generateFunction(
             generateReactionFunctionHeader(decl, reactionIndex),
-            init, reaction.getCode()
+            init, reaction.getCode(), reactionEpilogue
         ));
 
         // Now generate code for the late function, if there is one
@@ -1271,14 +1449,14 @@ public class CReactionGenerator {
         if (reaction.getStp() != null) {
             code.pr(generateFunction(
                 generateStpFunctionHeader(decl, reactionIndex),
-                init, reaction.getStp().getCode()));
+                init, reaction.getStp().getCode(), ""));
         }
 
         // Now generate code for the deadline violation function, if there is one.
         if (reaction.getDeadline() != null) {
             code.pr(generateFunction(
                 generateDeadlineFunctionHeader(decl, reactionIndex),
-                init, reaction.getDeadline().getCode()));
+                init, reaction.getDeadline().getCode(), ""));
         }
         CMethodGenerator.generateMacroUndefsForMethods(ASTUtils.toDefinition(decl), code);
         code.pr(
@@ -1287,13 +1465,14 @@ public class CReactionGenerator {
         return code.toString();
     }
 
-    public static String generateFunction(String header, String init, Code code) {
+    public static String generateFunction(String header, String init, Code code, String post) {
         var function = new CodeBuilder();
         function.pr(header + " {");
         function.indent();
         function.pr(init);
         function.prSourceLineNumber(code);
         function.pr(ASTUtils.toText(code));
+        function.pr(post);
         function.unindent();
         function.pr("}");
         return function.toString();
@@ -1378,6 +1557,6 @@ public class CReactionGenerator {
     }
 
     private static String generateFunctionHeader(String functionName) {
-        return "void " + functionName + "(void* instance_args)";
+        return "void " + functionName + "(void* instance_args, int worker)";
     }
 }

@@ -2,45 +2,49 @@
 target C {
     scheduler: LET,
     workers: 2,
-    timeout: 200 msec
+    timeout: 2 msec,
+    build-type: Debug
 };
 
-reactor Interrupting {
-    timer t (10 msec, 10 msec)
-    state i:int(0);
+
+reactor Source {
     output out:int
 
-    reaction(t) -> out {=
-        lf_set(out, ++self->i);
-    =} 
+    reaction(startup) -> out {= lf_set(out, 1); =}
+    reaction(shutdown) {= =}
 }
 
 reactor Let {
-    state r1_executing:bool(false)
+    input in:int
     logical action let(50 msec): int
 
-    interrupting = new Interrupting()
-
-    // FIXME: This program should work. But we cannot mark the trigger
-    //  `interrupting.out` as mutable since it is an output of a reactor since  
-    // @let
-    reaction(interrupting.out) -> let {=
-        int in_start = interrupting.out->value;
+    @let
+    reaction(in) -> let {=
+        int in_start = in->value;
         instant_t physical_time = lf_time_physical();
         
         while (lf_time_physical() < physical_time + MSEC(50)) {
             // Do nothing.
         }
 
-        if (interrupting.out->value != in_start) {
+        
+        if (in->value != in_start) {
             lf_print_error_and_exit("Interrupting overwriting reaction not stalled");
         }
+        if (!in->is_present) {
+            lf_print_error_and_exit("Trigger not present at end");
+        }
+
         lf_schedule_int(let, 0, 42);
     =}
 
     reaction(let) {= =}
+
+    reaction(shutdown) {= =}
 }
 
 main reactor {
+    src = new Source()
     let = new Let()
+    src.out -> let.in
 }

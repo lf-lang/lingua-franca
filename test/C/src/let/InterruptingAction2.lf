@@ -1,0 +1,65 @@
+
+/* Verify that interrupt reactions are stalled when LET is executing*/
+target C {
+    scheduler: LET,
+    workers: 2,
+    timeout: 200 msec,
+    logging: Debug,
+    build-type: Debug
+};
+
+
+reactor Other {
+    logical action a
+    logical action b
+    output out:int
+    reaction(startup) -> a {=
+        lf_schedule(a, MSEC(0));
+    =}
+
+    reaction(a) -> out, b{=
+        lf_set(out, 1);
+        lf_schedule(b, MSEC(10));
+    =}
+
+    reaction(b) {=
+
+    =}
+}
+reactor Let {
+    input in:int
+    logical action let(50 msec): int
+    state cnt:int(0)
+
+    @let
+    reaction(in) -> let {=
+        int in_start = in->value;
+        instant_t physical_time = lf_time_physical();
+        
+        while (lf_time_physical() < physical_time + MSEC(50)) {
+            // Do nothing.
+        }
+
+        if (!in->is_present) {
+            lf_print_error_and_exit("Action present bit was false");
+        }
+        lf_schedule_int(let, 0, 42);
+    =}
+
+    reaction(let) {=
+        self->cnt++;
+    =}
+
+    reaction(shutdown) {=
+        printf("Shutdown invoked\n");
+        if (self->cnt != 1) {
+            lf_print_error_and_exit("Interrupting trigger update not blocked. LET excuted %d vs expected 2", self->cnt);
+        }
+    =}
+}
+
+main reactor {
+    let = new Let()
+    other = new Other()
+    other.out ->let.in
+}
