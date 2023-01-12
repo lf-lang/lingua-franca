@@ -63,15 +63,15 @@ public class Configurators {
     }
 
 
-    public static boolean makeZephyrCompatible(LFTest test) {
+    // TODO: In the future we want to execute to the test with QEMU
+    //  but it requires parsing QEMU output until either:
+    //  1) A timeout
+    //  2) "exit" is printed to stdout. Then look if there is a FATAL ERROR printed somewhere
+    // So it would requre continously parsing the stdout and waiting for exit keyword
+    public static boolean platformZephyrQemuNoFlash(LFTest test) {
         test.getContext().getArgs().setProperty("threading", "false");
-        test.getContext().getArgs().setProperty("platform.name", "Zephyr");
-        test.getContext().getArgs().setProperty("platform.board", "qemu_cortex_m3");
-        // TODO: In the future we want to execute to the test with QEMU
-        //  but it requires parsing QEMU output until either:
-        //  1) A timeout
-        //  2) "exit" is printed to stdout. Then look if there is a FATAL ERROR printed somewhere
-        test.getContext().getArgs().setProperty("platform.flash", "false");
+        // TODO: How can I set platform as a dictionary (platform.board platform.flash etc)
+        // test.getContext().getArgs().setProperty("platform", "Zephyr");
         return true;
     }
     /**

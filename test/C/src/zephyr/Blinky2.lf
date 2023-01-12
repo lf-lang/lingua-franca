@@ -1,8 +1,7 @@
 target C {
     platform: {
-        name: "Zephyr",
+        name: Zephyr,
         board: nrf52dk_nrf52832,
-        flash: true
     },
     threading: false
 }

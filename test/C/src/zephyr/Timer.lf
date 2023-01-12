@@ -1,5 +1,8 @@
 target C {
-    platform: "Zephyr",
+    platform: {
+        name: Zephyr,
+        board: qemu_cortex_m3,
+    },
     threading: false
 }
 
