@@ -5,7 +5,7 @@ target Cpp {
     fast: true
 }
 
-reactor Source(bank_index: int(0)) {
+reactor Source(bank_index: size_t(0)) {
     output out: int
 
     reaction(startup) -> out {= out.set(bank_index); =}

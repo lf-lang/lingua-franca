@@ -16,14 +16,14 @@ import static org.lflang.generator.c.CGenerator.variableStructType;
 /**
  * Generates code for actions (logical or physical) for the C and CCpp target.
  *
- * @author{Edward A. Lee <eal@berkeley.edu>}
- * @author{Marten Lohstroh <marten@berkeley.edu>}
- * @author{Mehrdad Niknami <mniknami@berkeley.edu>}
- * @author{Christian Menard <christian.menard@tu-dresden.de>}
- * @author{Matt Weber <matt.weber@berkeley.edu>}
- * @author{Soroush Bateni <soroush@utdallas.edu>
- * @author{Alexander Schulz-Rosengarten <als@informatik.uni-kiel.de>}
- * @author{Hou Seng Wong <housengw@berkeley.edu>}
+ * @author Edward A. Lee
+ * @author Marten Lohstroh
+ * @author Mehrdad Niknami
+ * @author Christian Menard
+ * @author Matt Weber
+ * @author {Soroush Bateni
+ * @author Alexander Schulz-Rosengarten
+ * @author Hou Seng Wong
  */
 public class CActionGenerator {
     /**

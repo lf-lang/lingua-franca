@@ -21,7 +21,7 @@ import org.lflang.ErrorReporter;
 /**
  * Report diagnostics to the language client.
  *
- * @author Peter Donovan <peterdonovan@berkeley.edu>
+ * @author Peter Donovan
  */
 public class LanguageServerErrorReporter implements ErrorReporter {
 

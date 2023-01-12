@@ -44,8 +44,8 @@ import org.lflang.federated.OldFedFileConfig;
 /**
  * Utility class that can be used to create a launcher for federated LF programs.
  * 
- * @author Edward A. Lee <eal@berkeley.edu>
- * @author Soroush Bateni <soroush@utdallas.edu>
+ * @author Edward A. Lee
+ * @author Soroush Bateni
  */
 public class FedLauncher {
 
@@ -328,6 +328,9 @@ public class FedLauncher {
             commands.add("RTI -i '${FEDERATION_ID}' \\");
         } else {
             commands.add("RTI -i ${FEDERATION_ID} \\");
+        }
+        if (targetConfig.auth) {
+            commands.add("                        -a \\");
         }
         commands.addAll(List.of(
             "                        -n "+federates.size()+" \\",

@@ -15,9 +15,9 @@ import org.lflang.lf.Reactor;
 /**
  * Generates C code to declare and initialize parameters.
  *
- * @author {Edward A. Lee <eal@berkeley.edu>}
- * @author {Soroush Bateni <soroush@utdallas.edu>}
- * @author {Hou Seng Wong <housengw@berkeley.edu>}
+ * @author Edward A. Lee
+ * @author Soroush Bateni
+ * @author Hou Seng Wong
  */
 public class CParameterGenerator {
     /**
@@ -45,7 +45,7 @@ public class CParameterGenerator {
         if (lastAssignment != null) {
             // The parameter has an assignment.
             // Right hand side can be a list. Collect the entries.
-            for (Expression expr: lastAssignment.getRhs()) {
+            for (Expression expr: lastAssignment.getRhs().getExprs()) {
                 if (expr instanceof ParameterReference) {
                     // The parameter is being assigned a parameter value.
                     // Assume that parameter belongs to the parent's parent.

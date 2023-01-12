@@ -7,7 +7,7 @@ import org.lflang.generator.LFGeneratorContext
 /**
  * Generates the docker file related code for the Typescript target.
  *
- * @author{Hou Seng Wong <housengw@berkeley.edu>}
+ * @author Hou Seng Wong
  */
 class TSDockerGenerator(context: LFGeneratorContext) : DockerGeneratorBase(context) {
 

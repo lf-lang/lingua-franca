@@ -34,7 +34,7 @@ import org.lflang.lf.VarRef;
 /**
  * Representation of a runtime instance of a mode.
  *  
- * @author{Alexander Schulz-Rosengarten <als@informatik.uni-kiel.de>}
+ * @author Alexander Schulz-Rosengarten
  */
 public class ModeInstance extends NamedInstance<Mode> {
 

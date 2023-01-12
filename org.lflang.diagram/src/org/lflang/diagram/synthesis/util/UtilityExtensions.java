@@ -57,7 +57,7 @@ import de.cau.cs.kieler.klighd.krendering.ViewSynthesisShared;
 /**
  * Extension class that provides various utility methods for the synthesis.
  * 
- * @author{Alexander Schulz-Rosengarten <als@informatik.uni-kiel.de>}
+ * @author Alexander Schulz-Rosengarten
  */
 @ViewSynthesisShared
 public class UtilityExtensions extends AbstractSynthesisExtensions {

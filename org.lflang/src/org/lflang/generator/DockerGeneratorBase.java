@@ -26,8 +26,8 @@ import org.lflang.util.FileUtil;
  * docker-specific information inside docker generator classes and
  * prevent docker-related information from polluting target code generators.
  *
- * @author{Hou Seng Wong <housengw@berkeley.edu>}
- * @author{Marten Lohstroh <marten@berkeley.edu>}
+ * @author Hou Seng Wong
+ * @author Marten Lohstroh
  */
 abstract public class DockerGeneratorBase {
 

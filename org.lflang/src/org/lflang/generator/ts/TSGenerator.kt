@@ -27,11 +27,12 @@ package org.lflang.generator.ts
 
 import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.util.CancelIndicator
-import org.lflang.ASTUtils
-import org.lflang.ErrorReporter
-import org.lflang.FileConfig
+
 import org.lflang.Target
 import org.lflang.TimeValue
+
+import org.lflang.ast.AfterDelayTransformation
+
 import org.lflang.generator.CodeMap
 import org.lflang.generator.GeneratorBase
 import org.lflang.generator.GeneratorResult
@@ -41,10 +42,7 @@ import org.lflang.generator.IntegratedBuilder
 import org.lflang.generator.LFGeneratorContext
 import org.lflang.generator.SubContext
 import org.lflang.generator.TargetTypes
-import org.lflang.generator.rust.RustFileConfig
-import org.lflang.lf.Action
 import org.lflang.lf.Preamble
-import org.lflang.lf.VarRef
 import org.lflang.model
 import org.lflang.scoping.LFGlobalScopeProvider
 import org.lflang.util.FileUtil
@@ -61,11 +59,11 @@ private const val NO_NPM_MESSAGE = "The TypeScript target requires npm >= 6.14.4
 /**
  * Generator for TypeScript target.
  *
- *  @author{Matt Weber <matt.weber@berkeley.edu>}
- *  @author{Edward A. Lee <eal@berkeley.edu>}
- *  @author{Marten Lohstroh <marten@berkeley.edu>}
- *  @author {Christian Menard <christian.menard@tu-dresden.de>}
- *  @author {Hokeun Kim <hokeunkim@berkeley.edu>}
+ *  @author Matt Weber
+ *  @author Edward A. Lee
+ *  @author Marten Lohstroh
+ *  @author Christian Menard
+ *  @author Hokeun Kim
  */
 class TSGenerator(
     private val context: LFGeneratorContext,
@@ -115,6 +113,9 @@ class TSGenerator(
      *  @param context The context of this build.
      */
     override fun doGenerate(resource: Resource, context: LFGeneratorContext) {
+        // Register the after delay transformation to be applied by GeneratorBase.
+        registerTransformation(AfterDelayTransformation(TSDelayBodyGenerator, targetTypes, resource))
+
         super.doGenerate(resource, context)
 
         instantiationGraph
@@ -437,37 +438,7 @@ class TSGenerator(
 
     override fun getTargetTypes(): TargetTypes = TSTypes
 
-    /**
-     * Return a TS type for the specified action.
-     * If the type has not been specified, return
-     * "Present" which is the base type for Actions.
-     * @param action The action
-     * @return The TS type.
-     */
-    private fun getActionType(action: Action): String {
-        return if (action.type != null) {
-            TSTypes.getTargetType(action.type)
-        } else {
-            "Present"
-        }
-    }
-
-    // Virtual methods.
-    override fun generateDelayBody(action: Action, port: VarRef): String {
-        return "actions.${action.name}.schedule(0, ${ASTUtils.generateVarRef(port)} as ${getActionType(action)});"
-    }
-
-    override fun generateForwardBody(action: Action, port: VarRef): String {
-        return "${ASTUtils.generateVarRef(port)} = ${action.name} as ${getActionType(action)};"
-    }
-
-    override fun generateDelayGeneric(): String {
-        return "T extends Present"
-    }
-
     override fun getTarget(): Target {
         return Target.TS
     }
-
-    override fun generateAfterDelaysWithVariableWidth() = false
 }

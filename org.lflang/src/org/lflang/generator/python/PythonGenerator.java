@@ -44,7 +44,9 @@ import org.lflang.Target;
 import org.lflang.TargetProperty;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.generator.CodeMap;
+
 import org.lflang.generator.DockerGeneratorBase;
+import org.lflang.generator.DelayBodyGenerator;
 import org.lflang.generator.GeneratorResult;
 import org.lflang.generator.IntegratedBuilder;
 import org.lflang.generator.LFGeneratorContext;
@@ -85,7 +87,7 @@ import com.google.common.base.Objects;
  * The backend is responsible for passing arguments to the Python reactor
  * functions.
  *
- * @author Soroush Bateni <soroush@utdallas.edu>
+ * @author Soroush Bateni
  */
 public class PythonGenerator extends CGenerator {
 
@@ -114,8 +116,9 @@ public class PythonGenerator extends CGenerator {
         );
     }
 
+
     private PythonGenerator(LFGeneratorContext context, PythonTypes types, CCmakeGenerator cmakeGenerator) {
-        super(context, false, types, cmakeGenerator);
+        super(context, false, types, cmakeGenerator, new PythonDelayBodyGenerator(types));
         this.targetConfig.compiler = "gcc";
         this.targetConfig.compilerFlags = new ArrayList<>();
         this.targetConfig.linkerFlags = "";
@@ -165,9 +168,6 @@ public class PythonGenerator extends CGenerator {
         return Target.Python;
     }
 
-    @Override
-    public Target getDelayTarget() { return Target.C; }
-
     private final Set<String> protoNames = new HashSet<>();
 
     // //////////////////////////////////////////
@@ -179,12 +179,6 @@ public class PythonGenerator extends CGenerator {
 
     // //////////////////////////////////////////
     // // Protected methods
-
-
-    @Override
-    protected DockerGeneratorBase getDockerGenerator(LFGeneratorContext context) {
-        return new PythonDockerGenerator(context);
-    }
 
     /**
      * Generate all Python classes if they have a reaction
@@ -467,36 +461,9 @@ public class PythonGenerator extends CGenerator {
         }
     }
 
-    /**
-     * Generate code for the body of a reaction that takes an input and
-     * schedules an action with the value of that input.
-     *
-     * @param action The action to schedule
-     * @param port   The port to read from
-     */
     @Override
-    public String generateDelayBody(Action action, VarRef port) {
-        return PythonReactionGenerator.generateCDelayBody(action, port, CUtil.isTokenType(ASTUtils.getInferredType(action), types));
-    }
-
-    /**
-     * Generate code for the body of a reaction that is triggered by the
-     * given action and writes its value to the given port. This realizes
-     * the receiving end of a logical delay specified with the 'after'
-     * keyword.
-     *
-     * @param action The action that triggers the reaction
-     * @param port   The port to write to.
-     */
-    @Override
-    public String generateForwardBody(Action action, VarRef port) {
-        String outputName = ASTUtils.generateVarRef(port);
-        if (CUtil.isTokenType(ASTUtils.getInferredType(action), types)) {
-            return super.generateForwardBody(action, port);
-        } else {
-            return "lf_set(" + outputName + ", " + action.getName()
-                + "->token->value);";
-        }
+    protected PythonDockerGenerator getDockerGenerator(LFGeneratorContext context) {
+        return new PythonDockerGenerator(context);
     }
 
     /** Generate a reaction function definition for a reactor.
@@ -510,6 +477,7 @@ public class PythonGenerator extends CGenerator {
     @Override
     protected void generateReaction(Reaction reaction, ReactorDecl decl, int reactionIndex) {
         Reactor reactor = ASTUtils.toDefinition(decl);
+
 
         // Reactions marked with a `@language(C)` attribute are generated in C
         var reactionLanguageAttr = AttributeUtils.findReactionLanguageAttribute(reaction);

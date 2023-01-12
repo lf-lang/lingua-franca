@@ -21,7 +21,7 @@ import org.lflang.generator.IntegratedBuilder.ReportProgress;
  * not nested in any other generator context. There is one
  * {@code MainContext} for every build process.
  *
- * @author Peter Donovan <peterdonovan@berkeley.edu>
+ * @author Peter Donovan
  */
 public class MainContext implements LFGeneratorContext {
     /**

@@ -18,8 +18,8 @@ import org.lflang.lf.TargetDecl;
 
 /**
  * Utility functions that determine the specific behavior of the LF formatter.
- * @author {Peter Donovan <peterdonovan@berkeley.edu>}
- * @author {Billy Bao <billybao@berkeley.edu>}
+ * @author Peter Donovan
+ * @author Billy Bao
  */
 public class FormattingUtils {
     /**

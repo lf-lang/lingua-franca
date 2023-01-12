@@ -1,10 +1,10 @@
 package org.lflang.generator.cpp
 
 import org.lflang.ErrorReporter
-import org.lflang.generator.ValidationStrategy
 import org.lflang.generator.CodeMap
 import org.lflang.generator.DiagnosticReporting
 import org.lflang.generator.HumanReadableReportingStrategy
+import org.lflang.generator.ValidationStrategy
 import org.lflang.generator.Validator
 import org.lflang.util.LFCommand
 import java.io.File
@@ -15,7 +15,7 @@ import java.util.regex.Pattern
 /**
  * A validator for generated C++.
  *
- * @author Peter Donovan <peterdonovan@berkeley.edu>
+ * @author Peter Donovan
  */
 class CppValidator(
     private val fileConfig: CppFileConfig,

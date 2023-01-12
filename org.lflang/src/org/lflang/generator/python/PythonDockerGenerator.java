@@ -8,7 +8,7 @@ import org.lflang.generator.c.CDockerGenerator;
 /**
  * Generates the docker file related code for the Python target.
  *
- * @author{Hou Seng Wong <housengw@berkeley.edu>}
+ * @author Hou Seng Wong
  */
 public class PythonDockerGenerator extends CDockerGenerator {
     final String defaultBaseImage = "python:slim";

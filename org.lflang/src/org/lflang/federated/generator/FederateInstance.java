@@ -26,7 +26,6 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 package org.lflang.federated.generator;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -37,7 +36,6 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.eclipse.emf.ecore.EObject;
-import org.eclipse.xtext.xbase.lib.IterableExtensions;
 
 import org.lflang.ASTUtils;
 import org.lflang.ErrorReporter;
@@ -80,8 +78,8 @@ import com.google.common.base.Objects;
  * directly by the main reactor) is a federate, so there will be one
  * instance of this class for each top-level reactor.
  * 
- * @author Edward A. Lee <eal@berkeley.edu>
- * @author Soroush Bateni <soroush@berkeley.edu>
+ * @author Edward A. Lee
+ * @author Soroush Bateni
  */
 public class FederateInstance {
 
@@ -337,6 +335,7 @@ public class FederateInstance {
         // Check if param is referenced in this federate's instantiation
         returnValue = instantiation.getParameters().stream().anyMatch(
             assignment -> assignment.getRhs()
+                                    .getExprs()
                                     .stream()
                                     .filter(
                                         it -> it instanceof ParameterReference
@@ -514,7 +513,7 @@ public class FederateInstance {
         // Construct the set of excluded reactions for this federate.
         // If a reaction is a network reaction that belongs to this federate, we
         // don't need to perform this analysis.
-        Iterable<Reaction> reactions = IterableExtensions.filter(ASTUtils.allReactions(federatedReactor), it -> !networkReactions.contains(it));
+        Iterable<Reaction> reactions = ASTUtils.allReactions(federatedReactor).stream().filter(it -> !networkReactions.contains(it)).collect(Collectors.toList());
         for (Reaction react : reactions) {
             // Create a collection of all the VarRefs (i.e., triggers, sources, and effects) in the react
             // signature that are ports that reference federates.

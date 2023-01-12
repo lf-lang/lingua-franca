@@ -20,15 +20,15 @@ import static org.lflang.util.StringUtil.addDoubleQuotes;
  * This includes #include and #define directives at the top
  * of each generated ".c" file.
  *
- * @author Edward A. Lee <eal@berkeley.edu>
- * @author Marten Lohstroh <marten@berkeley.edu>
- * @author Mehrdad Niknami <mniknami@berkeley.edu>
- * @author Christian Menard <christian.menard@tu-dresden.de>
- * @author Matt Weber <matt.weber@berkeley.edu>
- * @author Soroush Bateni <soroush@utdallas.edu>
- * @author Alexander Schulz-Rosengarten <als@informatik.uni-kiel.de>
- * @author Hou Seng Wong <housengw@berkeley.edu>
- * @author Peter Donovan <peterdonovan@berkeley.edu>
+ * @author Edward A. Lee
+ * @author Marten Lohstroh
+ * @author Mehrdad Niknami
+ * @author Christian Menard
+ * @author Matt Weber
+ * @author Soroush Bateni
+ * @author Alexander Schulz-Rosengarten
+ * @author Hou Seng Wong
+ * @author Peter Donovan
  */
 public class CPreambleGenerator {
     /** Add necessary source files specific to the target language.  */
@@ -79,6 +79,7 @@ public class CPreambleGenerator {
         code.pr("#define LOG_LEVEL " + logLevel);
         code.pr("#define TARGET_FILES_DIRECTORY " + addDoubleQuotes(srcGenPath.toString()));
 
+
         if (targetConfig.platformOptions.platform == Platform.ARDUINO) {
             code.pr("#define MICROSECOND_TIME");
             code.pr("#define BIT_32");
@@ -91,6 +92,17 @@ public class CPreambleGenerator {
 //                    GeneratorBase.timeInTargetLanguage(advanceMessageInterval));
 //            }
 //        }
+// FIXME: the code below comes from master
+//        if (isFederated) {
+//            code.pr("#define NUMBER_OF_FEDERATES " + numFederates);
+//            code.pr(generateFederatedDefineDirective(coordinationType));
+//            if (advanceMessageInterval != null) {
+//                code.pr("#define ADVANCE_MESSAGE_INTERVAL " +
+//                            GeneratorBase.timeInTargetLanguage(advanceMessageInterval));
+//            }
+//        }
+
+
         if (tracing != null) {
             targetConfig.compileDefinitions.put("LF_TRACE", tracing.traceFileName);
         }
@@ -100,6 +112,11 @@ public class CPreambleGenerator {
         //         targetConfig.clockSyncOptions
         //     ));
         // }
+        if (targetConfig.threading) {
+            targetConfig.compileDefinitions.put("LF_THREADED", "1");
+        } else {
+            targetConfig.compileDefinitions.put("LF_UNTHREADED", "1");
+        }
         if (targetConfig.threading) {
             targetConfig.compileDefinitions.put("LF_THREADED", "1");
         } else {

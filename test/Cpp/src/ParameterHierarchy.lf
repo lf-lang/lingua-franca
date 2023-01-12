@@ -23,7 +23,8 @@ reactor Intermediate(p: int(10)) {
 }
 
 reactor Another(p: int(20)) {
-    a = new Intermediate(p = p)
+    // also test forwarding parameters via target code blocks
+    a = new Intermediate(p = {= p =})
 }
 
 main reactor ParameterHierarchy {

@@ -54,8 +54,8 @@ import org.lflang.lf.Variable;
  * its depth an acyclic precedence graph representing the dependencies between
  * reactions at a tag.
  *  
- * @author{Edward A. Lee <eal@berkeley.edu>}
- * @author{Marten Lohstroh <marten@berkeley.edu>}
+ * @author Edward A. Lee
+ * @author Marten Lohstroh
  */
 public class ReactionInstance extends NamedInstance<Reaction> {
 
@@ -224,11 +224,6 @@ public class ReactionInstance extends NamedInstance<Reaction> {
     public DeadlineInstance declaredDeadline;
 
     /**
-     * Inferred deadline. Defaults to the maximum long value.
-     */
-    public TimeValue deadline = new TimeValue(TimeValue.MAX_LONG_DEADLINE, TimeUnit.NANO);
-
-    /**
      * Sadly, we have no way to mark reaction "unordered" in the AST,
      * so instead, we use a magic comment at the start of the reaction body.
      * This is that magic comment.
@@ -356,12 +351,27 @@ public class ReactionInstance extends NamedInstance<Reaction> {
     public Set<Integer> getLevels() {
         Set<Integer> result = new LinkedHashSet<>();
         // Force calculation of levels if it has not been done.
-        parent.assignLevels();
+        // FIXME: Comment out this as I think it is redundant.
+        //  If it is NOT redundant then deadline propagation is not correct
+        // parent.assignLevels();
         for (Runtime runtime : runtimeInstances) {
             result.add(runtime.level);
         }
         return result;
     }
+    
+    /**
+     * Return a set of deadlines that runtime instances of this reaction have.
+     * A ReactionInstance may have more than one deadline if it lies within.
+     */
+    public Set<TimeValue> getInferredDeadlines() {
+        Set<TimeValue> result = new LinkedHashSet<>();
+        for (Runtime runtime : runtimeInstances) {
+            result.add(runtime.deadline);
+        }
+        return result;
+    }
+        
 
     /**
      * Return a list of levels that runtime instances of this reaction have.
@@ -372,12 +382,28 @@ public class ReactionInstance extends NamedInstance<Reaction> {
     public List<Integer> getLevelsList() {
         List<Integer> result = new LinkedList<>();
         // Force calculation of levels if it has not been done.
-        parent.assignLevels();
+        // FIXME: Comment out this as I think it is redundant.
+        //  If it is NOT redundant then deadline propagation is not correct
+        // parent.assignLevels();
         for (Runtime runtime : runtimeInstances) {
             result.add(runtime.level);
         }
         return result;
     }
+    
+    /**
+     * Return a list of the deadlines that runtime instances of this reaction have.
+     * The size of this list is the total number of runtime instances.
+     * A ReactionInstance may have more than one deadline if it lies within
+     */
+    public List<TimeValue> getInferredDeadlinesList() {
+        List<TimeValue> result = new LinkedList<>();
+        for (Runtime runtime : runtimeInstances) {
+            result.add(runtime.deadline);
+        }
+        return result;
+    }
+
 
     /**
      * Return the name of this reaction, which is 'reaction_n',
@@ -530,11 +556,11 @@ public class ReactionInstance extends NamedInstance<Reaction> {
 
     /** Inner class representing a runtime instance. */
     public class Runtime {
-        public TimeValue deadline = TimeValue.MAX_VALUE;
-        public Runtime dominating = null;
+        public TimeValue deadline;
+        public Runtime dominating;
         /** ID ranging from 0 to parent.getTotalWidth() - 1. */
-        public int id = 0;
-        public int level = 0;
+        public int id;
+        public int level;
         
         public ReactionInstance getReaction() {
             return ReactionInstance.this;
@@ -550,6 +576,17 @@ public class ReactionInstance extends NamedInstance<Reaction> {
             }
             result += ")";
             return result;
+        }
+
+        public Runtime() {
+            this.dominating = null;
+            this.id = 0;
+            this.level = 0;
+            if (ReactionInstance.this.declaredDeadline != null) {
+                this.deadline = ReactionInstance.this.declaredDeadline.maxDelay;
+            } else {
+                this.deadline = TimeValue.MAX_VALUE;
+            }
         }
     }
 }

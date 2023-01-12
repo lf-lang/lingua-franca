@@ -34,8 +34,8 @@ import org.lflang.federated.generator.FederateInstance;
  * Utility class that can be used to create a launcher for federated LF programs
  * that are written in TypeScript.
  * 
- * @author Soroush Bateni <soroush@utdallas.edu>
- * @author Hokeun Kim <hokeunkim@berkeley.edu>
+ * @author Soroush Bateni
+ * @author Hokeun Kim
  */
 public class FedTSLauncher extends FedLauncher {
 

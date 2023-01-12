@@ -7,7 +7,6 @@ main reactor(
     z(1 msec),                 // Type is missing but not required
     p: int[](1, 2, 3, 4),      // List of integers
     q: interval_t[](1 msec, 2 msec, 3 msec),  // list of time values
-    r: time({= 0 =}),          // Zero-valued target code also is a valid time
     g: time[](1 msec, 2 msec)  // List of time values
 ) {
     state s: time(y)   // Reference to explicitly typed time parameter

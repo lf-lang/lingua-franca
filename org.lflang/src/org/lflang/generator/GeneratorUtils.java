@@ -40,6 +40,7 @@ import org.lflang.lf.Instantiation;
 import org.lflang.lf.KeyValuePair;
 import org.lflang.lf.KeyValuePairs;
 import org.lflang.lf.Model;
+import org.lflang.lf.Reaction;
 import org.lflang.lf.Reactor;
 import org.lflang.lf.TargetDecl;
 import org.lflang.util.FileUtil;

@@ -32,6 +32,20 @@ import org.eclipse.xtext.testing.extensions.InjectionExtension;
 import org.eclipse.xtext.testing.util.ParseHelper;
 import org.junit.jupiter.api.extension.ExtendWith;
 
+//import org.lflang.ASTUtils;
+//import org.lflang.DefaultErrorReporter;
+//import org.lflang.FileConfig;
+//import org.lflang.TimeUnit;
+//import org.lflang.TimeValue;
+//import org.lflang.ast.AfterDelayTransformation;
+//import org.lflang.generator.ReactionInstance;
+//import org.lflang.generator.ReactorInstance;
+//import org.lflang.generator.c.CDelayBodyGenerator;
+//import org.lflang.generator.c.CGenerator;
+//import org.lflang.generator.c.CTypes;
+//import org.lflang.lf.Instantiation;
+//import org.lflang.lf.LfFactory;
+
 import org.lflang.lf.Model;
 import org.lflang.tests.LFInjectorProvider;
 
@@ -80,7 +94,13 @@ class LetInferenceTest  {
 //            "    =}",
 //            "}"
 //        ));
-//        ASTUtils.insertGeneratedDelays(model.eResource(), new CGenerator(new CFileConfig(model.eResource(), Path.of("./a/"), true), new DefaultErrorReporter()));
+//
+//        Assertions.assertNotNull(model);
+//        final var ctypes = new CTypes(new DefaultErrorReporter());
+//        final var resource = model.eResource();
+//        final var transformation = new AfterDelayTransformation(new CDelayBodyGenerator(ctypes), ctypes, resource);
+//        transformation.applyTransformation(ASTUtils.getAllReactors(resource));
+//
 //        Assertions.assertTrue(model.eResource().getErrors().isEmpty(),
 //                              "Encountered unexpected error while parsing: " +
 //                                  model.eResource().getErrors());
@@ -119,4 +139,5 @@ class LetInferenceTest  {
 //            }
 //        }
 //    }
+
 }

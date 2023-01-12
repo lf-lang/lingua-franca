@@ -14,7 +14,7 @@ import org.lflang.TargetConfig;
  * compilation of generated code may optionally be given a {@code SubContext} because
  * compilation is part of a complete build.
  *
- * @author Peter Donovan <peterdonovan@berkeley.edu>
+ * @author Peter Donovan
  */
 public class SubContext implements LFGeneratorContext {
 

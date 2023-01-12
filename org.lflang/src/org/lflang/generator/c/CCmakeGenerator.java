@@ -43,8 +43,8 @@ import org.lflang.util.FileUtil;
  *
  * Adapted from @see org.lflang.generator.CppCmakeGenerator.kt
  *
- * @author Soroush Bateni <soroush@utdallas.edu>
- * @author Peter Donovan <peterdonovan@berkeley.edu>
+ * @author Soroush Bateni
+ * @author Peter Donovan
  */
 public class CCmakeGenerator {
     private static final String DEFAULT_INSTALL_CODE = """
@@ -164,6 +164,10 @@ public class CCmakeGenerator {
         cMakeCode.pr("endif()\n");
         cMakeCode.newLine();
 
+        cMakeCode.pr("# do not print install messages\n");
+        cMakeCode.pr("set(CMAKE_INSTALL_MESSAGE NEVER)\n");
+        cMakeCode.newLine();
+
         if (CppMode) {
             // Suppress warnings about const char*.
             cMakeCode.pr("set(CMAKE_CXX_FLAGS \"${CMAKE_CXX_FLAGS} -Wno-write-strings\")");
@@ -188,6 +192,22 @@ public class CCmakeGenerator {
         cMakeCode.pr("target_include_directories(${LF_MAIN_TARGET} PUBLIC include/core/platform)");
         cMakeCode.pr("target_include_directories(${LF_MAIN_TARGET} PUBLIC include/core/modal_models)");
         cMakeCode.pr("target_include_directories(${LF_MAIN_TARGET} PUBLIC include/core/utils)");
+
+        if(targetConfig.auth) {
+            // If security is requested, add the auth option.
+            var osName = System.getProperty("os.name").toLowerCase();
+            // if platform target was set, use given platform instead
+            if (targetConfig.platformOptions.platform != Platform.AUTO) {
+                osName = targetConfig.platformOptions.platform.toString();
+            }
+            if (osName.contains("mac")) {
+                cMakeCode.pr("set(OPENSSL_ROOT_DIR /usr/local/opt/openssl)");
+            }
+            cMakeCode.pr("# Find OpenSSL and link to it");
+            cMakeCode.pr("find_package(OpenSSL REQUIRED)");
+            cMakeCode.pr("target_link_libraries( ${LF_MAIN_TARGET} PRIVATE OpenSSL::SSL)");
+            cMakeCode.newLine();
+        }
 
         if (targetConfig.threading || targetConfig.tracing != null) {
             // If threaded computation is requested, add the threads option.

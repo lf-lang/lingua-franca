@@ -44,6 +44,7 @@ import org.lflang.LFStandaloneSetup;
 import org.lflang.Target;
 import org.lflang.federated.generator.FedFileConfig;
 import org.lflang.generator.DockerGeneratorBase;
+import org.lflang.generator.GeneratorResult;
 import org.lflang.generator.LFGenerator;
 import org.lflang.generator.LFGeneratorContext;
 import org.lflang.generator.LFGeneratorContext.BuildParm;
@@ -403,7 +404,6 @@ public abstract class TestBase {
         }
 
         fileAccess.setOutputPath(FileConfig.findPackageRoot(test.getSrcPath(), s -> {}).resolve(FileConfig.DEFAULT_SRC_GEN_DIR).toString());
-
         var context = new MainContext(
             LFGeneratorContext.Mode.STANDALONE, CancelIndicator.NullImpl, (m, p) -> {}, props, r, fileAccess,
             fileConfig -> new DefaultErrorReporter()
@@ -458,7 +458,11 @@ public abstract class TestBase {
      *
      * @param test The test to generate code for.
      */
-    private void generateCode(LFTest test) throws TestError {
+    private GeneratorResult generateCode(LFTest test) throws TestError {
+        if (test.getFileConfig().resource == null) {
+            return GeneratorResult.NOTHING;
+        }
+
         try {
             generator.doGenerate(test.getFileConfig().resource, fileAccess, test.getContext());
         } catch (Throwable e) {
@@ -467,6 +471,8 @@ public abstract class TestBase {
         if (generator.errorsOccurred()) {
             throw new TestError("Code generation unsuccessful.", Result.CODE_GEN_FAIL);
         }
+
+        return test.getContext().getResult();
     }
 
 
@@ -477,7 +483,6 @@ public abstract class TestBase {
      */
     private void execute(LFTest test) throws TestError {
         final List<ProcessBuilder> pbList = getExecCommand(test);
-
         if (pbList.isEmpty()) {
             return;
         }
@@ -636,7 +641,9 @@ public abstract class TestBase {
      * that should be used to execute the test program.
      * @param test The test to get the execution command for.
      */
+
     private List<ProcessBuilder> getExecCommand(LFTest test) throws TestError {
+
         var srcBasePath = test.getFileConfig().srcPkgPath.resolve("src");
         var relativePathName = srcBasePath.relativize(test.getFileConfig().srcPath).toString();
 

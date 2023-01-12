@@ -63,7 +63,7 @@ public class CStateGenerator {
     ) {
         if (ASTUtils.isOfTimeType(stateVar) ||
             ASTUtils.isParameterized(stateVar) &&
-            stateVar.getInit().size() > 0
+            !stateVar.getInit().getExprs().isEmpty()
         ) {
             return selfRef + "->" + stateVar.getName() + " = " + initExpr + ";";
         } else {
@@ -95,7 +95,7 @@ public class CStateGenerator {
 
         if (ASTUtils.isOfTimeType(stateVar) ||
             ASTUtils.isParameterized(stateVar) &&
-            stateVar.getInit().size() > 0) {
+            !stateVar.getInit().getExprs().isEmpty()) {
             return CModesGenerator.generateStateResetStructure(
                 modeRef, selfRef,
                 stateVar.getName(),
@@ -127,7 +127,7 @@ public class CStateGenerator {
      */
     private static String getInitializerExpr(StateVar state, ReactorInstance parent) {
         var list = new LinkedList<String>();
-        for (Expression expr : state.getInit()) {
+        for (Expression expr : state.getInit().getExprs()) {
             if (expr instanceof ParameterReference) {
                 final var param = ((ParameterReference)expr).getParameter();
                 list.add(CUtil.reactorRef(parent) + "->" + param.getName());

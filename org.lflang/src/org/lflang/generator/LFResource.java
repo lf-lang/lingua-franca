@@ -9,7 +9,7 @@ import org.lflang.TargetConfig;
  * during code generation and the supporting structures
  * associated with that resource.
  * 
- * @author Soroush Bateni <soroush@utdallas.edu>
+ * @author Soroush Bateni
  */
 public class LFResource {
     LFResource(Resource resource, FileConfig fileConfig, TargetConfig targetConfig) {
