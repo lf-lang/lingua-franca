@@ -32,11 +32,10 @@ jobs:
           export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
       - name: Initialize zephyr
         run: |
-          ZEPHYR_INSTALL=/workdir/zephyrproject
-          west init $ZEPHYR_INSTALL --mr v3.2.0
-          cd $ZEPHYR_INSTALL 
+          west init /workdir/zephyrproject --mr v3.2.0
+          cd /workdir/zephyrproject
           west update
-          export ZEPHYR_BASE $ZEPHYR_INSTALL/zephyr
+          export ZEPHYR_BASE=/workdir/zephyrproject/zephyr
       - name: Check out lingua-franca repository
         uses: actions/checkout@v3
         with:
