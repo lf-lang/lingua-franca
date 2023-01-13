@@ -43,6 +43,7 @@ import org.lflang.FileConfig;
 import org.lflang.InferredType;
 import org.lflang.TargetConfig;
 import org.lflang.federated.FederateInstance;
+import org.lflang.generator.ActionInstance;
 import org.lflang.generator.GeneratorCommandFactory;
 import org.lflang.generator.LFGeneratorContext;
 import org.lflang.generator.PortInstance;
@@ -81,6 +82,18 @@ public class CUtil {
 
     //////////////////////////////////////////////////////
     //// Public methods.
+
+    /**
+     * Return a reference to the action struct of the specified
+     * action instance. This action_base_t struct is on the self struct.
+     * @param instance The action instance.
+     * @param runtimeIndex An optional index variable name to use to address runtime instances.
+     */
+    public static String actionRef(ActionInstance instance, String runtimeIndex) {
+        return reactorRef(instance.getParent(), runtimeIndex)
+                + "->_lf_"
+                + instance.getName();
+    }
 
     /**
      * Return a default name of a variable to refer to the bank index of a reactor
