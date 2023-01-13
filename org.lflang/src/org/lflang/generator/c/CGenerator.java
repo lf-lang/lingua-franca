@@ -298,7 +298,8 @@ import com.google.common.collect.Iterables;
  *   _lf_timer_triggers_size variable.
  *
  * * _lf_action_table: For a federated execution, each federate will have this table
- *   that maps port IDs to the corresponding trigger_t struct.
+ *   that maps port IDs to the corresponding action struct, which can be cast to
+ *   action_base_t.
  *
  * @author {Edward A. Lee <eal@berkeley.edu>}
  * @author {Marten Lohstroh <marten@berkeley.edu>}
@@ -778,32 +779,26 @@ public class CGenerator extends GeneratorBase {
                 // need a list of trigger struct names for ActionInstances.
                 // There should be exactly one ActionInstance in the
                 // main reactor for each Action.
-                var triggers = new LinkedList<String>();
+                var actions = new LinkedList<String>();
                 for (Action action : currentFederate.networkMessageActions) {
                     // Find the corresponding ActionInstance.
                     var actionInstance = main.lookupActionInstance(action);
-                    triggers.add(CUtil.triggerRef(actionInstance, null));
+                    actions.add(CUtil.actionRef(actionInstance, null));
                 }
                 var actionTableCount = 0;
-                for (String trigger : triggers) {
-                    initializeTriggerObjects.pr("_lf_action_table["+ actionTableCount++ +"] = &"+trigger+";");
+                for (String action : actions) {
+                    initializeTriggerObjects.pr("_lf_action_table["+ actionTableCount++ +"] = (lf_action_base_t*)&"+action+";");
                 }
                 code.pr(String.join("\n",
-                    "trigger_t* _lf_action_table["+currentFederate.networkMessageActions.size()+"];",
-                    "trigger_t* _lf_action_for_port(int port_id) {",
-                    "        if (port_id < "+currentFederate.networkMessageActions.size()+") {",
-                    "        return _lf_action_table[port_id];",
-                    "        } else {",
-                    "        return NULL;",
-                    "        }",
-                    "}"
+                    "lf_action_base_t* _lf_action_table["+currentFederate.networkMessageActions.size()+"];",
+                    "size_t _lf_action_table_size = "+currentFederate.networkMessageActions.size()+";"
                 ));
             } else {
                 code.pr(String.join("\n",
-                    "trigger_t* _lf_action_for_port(int port_id) {",
-                    "        return NULL;",
-                    "}"
-                ));
+                        // Apparently, in C, there is no way to set this array pointer to NULL.
+                        "lf_action_base_t* _lf_action_table[1];",
+                        "size_t _lf_action_table_size = 0;"
+                    ));
             }
 
             // Generate function to initialize the trigger objects for all reactors.
