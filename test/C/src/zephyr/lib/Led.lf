@@ -1,5 +1,4 @@
-target C;
-    
+target C
 
 reactor NrfLeds {
     preamble {=
