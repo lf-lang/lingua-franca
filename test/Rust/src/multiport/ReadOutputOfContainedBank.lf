@@ -1,0 +1,48 @@
+// Test reacting to and reading outputs from a contained reactor bank in various
+// permutations.
+target Rust
+
+reactor Contained(bank_index: usize(0)) {
+    state bank_index(bank_index)
+
+    output out: usize
+
+    reaction(startup) -> out {= ctx.set(out, 42 * self.bank_index); =}
+}
+
+main reactor {
+    c = new[4] Contained()
+    state count: usize(0)
+
+    reaction(startup) c.out {=
+        for (i, chan) in c__out.iter().enumerate() {
+            let result = ctx.get(chan).unwrap();
+            println!("Startup reaction reading output of contained reactor: {}", result);
+            assert_eq!(result, 42 * i);
+        }
+        self.count += 1;
+    =}
+
+    reaction(c.out) {=
+        for (i, chan) in c__out.iter().enumerate() {
+            let result = ctx.get(chan).unwrap();
+            println!("Reading output of contained reactor: {}", result);
+            assert_eq!(result, 42 * i);
+        }
+        self.count += 1;
+    =}
+
+    reaction(startup, c.out) {=
+        for (i, chan) in c__out.iter().enumerate() {
+            let result = ctx.get(chan).unwrap();
+            println!("Alternate triggering reading output of contained reactor: {}", result);
+            assert_eq!(result, 42 * i);
+        }
+        self.count += 1;
+    =}
+
+    reaction(shutdown) {=
+        assert_eq!(self.count, 3);
+        println!("success");
+    =}
+}

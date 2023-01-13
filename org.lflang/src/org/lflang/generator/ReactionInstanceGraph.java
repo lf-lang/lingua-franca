@@ -58,8 +58,8 @@ import kotlin.Pair;
  * cycles, in which case, the resulting graph is a graph of runtime reaction
  * instances that form cycles.
  * 
- * @author{Marten Lohstroh <marten@berkeley.edu>}
- * @author{Edward A. Lee <eal@berkeley.edu>}
+ * @author Marten Lohstroh
+ * @author Edward A. Lee
  */
 public class ReactionInstanceGraph extends PrecedenceGraph<ReactionInstance.Runtime> {
     

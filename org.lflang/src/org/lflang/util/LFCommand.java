@@ -173,7 +173,7 @@ public class LFCommand {
      * @param cancelIndicator The indicator of whether the underlying process
      * should be terminated.
      * @return the process' return code
-     * @author {Christian Menard <christian.menard@tu-dresden.de}
+     * @author Christian Menard
      */
     public int run(CancelIndicator cancelIndicator) {
         assert !didRun;

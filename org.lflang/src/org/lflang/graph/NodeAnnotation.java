@@ -27,7 +27,7 @@ package org.lflang.graph;
  * Note annotations used in Tarjan's algorithm for finding strongly connected
  * components.
  * 
- * @author{Marten Lohstroh <marten@berkeley.edu>}
+ * @author Marten Lohstroh
  */
 public class NodeAnnotation {
     /**

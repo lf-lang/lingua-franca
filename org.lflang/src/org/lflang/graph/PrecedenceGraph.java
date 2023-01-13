@@ -37,7 +37,7 @@ import java.util.ArrayList;
  * Elaboration of `DirectedGraph` that is capable of identifying strongly
  * connected components and topologically sorting its nodes.
  * 
- * @author{Marten Lohstroh <marten@berkeley.edu>}
+ * @author Marten Lohstroh
  */
 public class PrecedenceGraph<T extends Object> extends DirectedGraph<T> {
 

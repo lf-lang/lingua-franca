@@ -38,7 +38,7 @@ import org.lflang.lf.TargetDecl;
  * as input an enum but do not have cases for all members of the enum are also
  * reported by Xtend with a warning message.
  * 
- * @author Marten Lohstroh <marten@berkeley.edu>
+ * @author Marten Lohstroh
  */
 public enum Target {
     C("C", true, Arrays.asList(

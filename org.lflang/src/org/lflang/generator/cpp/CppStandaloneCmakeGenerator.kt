@@ -72,6 +72,9 @@ class CppStandaloneCmakeGenerator(private val targetConfig: TargetConfig, privat
             |# don't automatically build and install all targets
             |set(CMAKE_SKIP_INSTALL_ALL_DEPENDENCY true)
             |
+            |# do not print install messages
+            |set(CMAKE_INSTALL_MESSAGE NEVER)
+            |
             |include($S{CMAKE_ROOT}/Modules/ExternalProject.cmake)
             |include(GNUInstallDirs)
             |

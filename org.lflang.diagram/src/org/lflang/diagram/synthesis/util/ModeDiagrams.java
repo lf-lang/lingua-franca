@@ -104,7 +104,7 @@ import de.cau.cs.kieler.klighd.util.KlighdProperties;
 /**
  * Transformations to support modes in the Lingua Franca diagram synthesis.
  * 
- * @author{Alexander Schulz-Rosengarten <als@informatik.uni-kiel.de>}
+ * @author Alexander Schulz-Rosengarten
  */
 @ViewSynthesisShared
 public class ModeDiagrams extends AbstractSynthesisExtensions {

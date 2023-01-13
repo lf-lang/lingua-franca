@@ -30,8 +30,8 @@ import com.google.inject.Inject;
 /**
  * Standalone version of the Lingua Franca compiler (lfc).
  *
- * @author {Marten Lohstroh <marten@berkeley.edu>}
- * @author {Christian Menard <christian.menard@tu-dresden.de>}
+ * @author Marten Lohstroh
+ * @author Christian Menard
  */
 public class Lfc extends CliBase {
     /**
@@ -57,7 +57,7 @@ public class Lfc extends CliBase {
      * if required if so specified, and stores whether or not to pass the
      * option to the code generator.
      *
-     * @author Marten Lohstroh <marten@berkeley.edu>
+     * @author Marten Lohstroh
      */
     enum CLIOption {
 

@@ -55,7 +55,7 @@ import com.google.common.collect.ImmutableList;
  * A target properties along with a type and a list of supporting targets
  * that supports it, as well as a function for configuration updates.
  *
- * @author{Marten Lohstroh <marten@berkeley.edu>}
+ * @author Marten Lohstroh
  */
 public enum TargetProperty {
     /**
@@ -744,7 +744,7 @@ public enum TargetProperty {
      * A dictionary type with a predefined set of possible keys and assignable
      * types.
      *
-     * @author {Marten Lohstroh <marten@berkeley.edu>}
+     * @author Marten Lohstroh
      *
      */
     public enum DictionaryType implements TargetPropertyType {
@@ -833,7 +833,7 @@ public enum TargetProperty {
     /**
      * A type that can assume one of several types.
      *
-     * @author{Marten Lohstroh <marten@berkeley.edu>}
+     * @author Marten Lohstroh
      *
      */
     public enum UnionType implements TargetPropertyType {
@@ -967,7 +967,7 @@ public enum TargetProperty {
     /**
      * An array type of which the elements confirm to a given type.
      *
-     * @author{Marten Lohstroh <marten@berkeley.edu>}
+     * @author Marten Lohstroh
      *
      */
     public enum ArrayType implements TargetPropertyType {
@@ -1029,7 +1029,7 @@ public enum TargetProperty {
      * Enumeration of Cmake build types. These are also mapped
      * to Cargo profiles for the Rust target (see {@link org.lflang.generator.rust.RustTargetConfig})
      *
-     * @author Christian Menard {@literal <christian.menard@tu-dresden.de>}
+     * @author Christian Menard
      */
     public enum BuildType {
         RELEASE("Release"),
@@ -1062,7 +1062,7 @@ public enum TargetProperty {
     /**
      * Enumeration of coordination types.
      *
-     * @author{Marten Lohstroh <marten@berkeley.edu>}
+     * @author Marten Lohstroh
      */
     public enum CoordinationType {
         CENTRALIZED, DECENTRALIZED;
@@ -1084,7 +1084,7 @@ public enum TargetProperty {
      * - STARTUP: Clock synchronization occurs at startup only.
      * - ON: Clock synchronization occurs at startup and at runtime.
      *
-     * @author{Edward A. Lee <eal@berkeley.edu>}
+     * @author Edward A. Lee
      */
     public enum ClockSyncMode {
         OFF, INIT, ON; // TODO Discuss initial in now a mode keyword (same as startup) and cannot be used as target property value, thus changed it to init
@@ -1102,7 +1102,7 @@ public enum TargetProperty {
     /**
      * An interface for types associated with target properties.
      *
-     * @author{Marten Lohstroh <marten@berkeley.edu>}
+     * @author Marten Lohstroh
      */
     public interface TargetPropertyType {
 
@@ -1143,7 +1143,7 @@ public enum TargetProperty {
      * Primitive types for target properties, each with a description used in
      * error messages and predicate used for validating values.
      *
-     * @author{Marten Lohstroh <marten@berkeley.edu>}
+     * @author Marten Lohstroh
      */
     public enum PrimitiveType implements TargetPropertyType {
         BOOLEAN("'true' or 'false'",
@@ -1251,7 +1251,7 @@ public enum TargetProperty {
 
     /**
      * Clock synchronization options.
-     * @author{Marten Lohstroh <marten@berkeley.edu>}
+     * @author Marten Lohstroh
      */
     public enum ClockSyncOption implements DictionaryElement {
         ATTENUATION("attenuation", PrimitiveType.NON_NEGATIVE_INTEGER),
@@ -1289,7 +1289,7 @@ public enum TargetProperty {
 
     /**
      * Docker options.
-     * @author{Edward A. Lee <eal@berkeley.edu>}
+     * @author Edward A. Lee
      */
     public enum DockerOption implements DictionaryElement {
         FROM("FROM", PrimitiveType.STRING);
@@ -1322,7 +1322,7 @@ public enum TargetProperty {
 
     /**
      * Platform options.
-     * @author{Anirudh Rengarajan <arengarajan@berkeley.edu>}
+     * @author Anirudh Rengarajan
      */
     public enum PlatformOption implements DictionaryElement {
         NAME("name", PrimitiveType.STRING),
@@ -1357,7 +1357,7 @@ public enum TargetProperty {
 
     /**
      * Coordination options.
-     * @author{Edward A. Lee <eal@berkeley.edu>}
+     * @author Edward A. Lee
      */
     public enum CoordinationOption implements DictionaryElement {
         ADVANCE_MESSAGE_INTERVAL("advance-message-interval", PrimitiveType.TIME_VALUE);
@@ -1390,7 +1390,7 @@ public enum TargetProperty {
 
     /**
      * Log levels in descending order of severity.
-     * @author{Marten Lohstroh <marten@berkeley.edu>}
+     * @author Marten Lohstroh
      */
     public enum LogLevel {
         ERROR, WARN, INFO, LOG, DEBUG;
@@ -1410,6 +1410,7 @@ public enum TargetProperty {
     public enum Platform {
         AUTO,
         ARDUINO("Arduino"),
+        NRF52("Nrf52"),
         LINUX("Linux"),
         MAC("Darwin"),
         WINDOWS("Windows");
@@ -1440,7 +1441,7 @@ public enum TargetProperty {
 
     /**
      * Supported schedulers.
-     * @author{Soroush Bateni <soroush@utdallas.edu>}
+     * @author Soroush Bateni
      */
     public enum SchedulerOption {
         NP(false),         // Non-preemptive
@@ -1490,7 +1491,7 @@ public enum TargetProperty {
 
     /**
      * Tracing options.
-     * @author{Edward A. Lee <eal@berkeley.edu>}
+     * @author Edward A. Lee
      */
     public enum TracingOption implements DictionaryElement {
         TRACE_FILE_NAME("trace-file-name", PrimitiveType.STRING);

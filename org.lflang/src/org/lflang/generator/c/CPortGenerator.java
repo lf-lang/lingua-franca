@@ -17,9 +17,9 @@ import static org.lflang.generator.c.CGenerator.variableStructType;
 /**
  * Generates C code to declare and initialize ports.
  *
- * @author {Edward A. Lee <eal@berkeley.edu>}
- * @author {Soroush Bateni <soroush@utdallas.edu>}
- * @author {Hou Seng Wong <housengw@berkeley.edu>}
+ * @author Edward A. Lee
+ * @author Soroush Bateni
+ * @author Hou Seng Wong
  */
 public class CPortGenerator {
     /**

@@ -43,8 +43,8 @@ import org.lflang.util.FileUtil;
  *
  * Adapted from @see org.lflang.generator.CppCmakeGenerator.kt
  *
- * @author Soroush Bateni <soroush@utdallas.edu>
- * @author Peter Donovan <peterdonovan@berkeley.edu>
+ * @author Soroush Bateni
+ * @author Peter Donovan
  */
 public class CCmakeGenerator {
     private static final String DEFAULT_INSTALL_CODE = """
@@ -164,6 +164,10 @@ public class CCmakeGenerator {
         cMakeCode.pr("endif()\n");
         cMakeCode.newLine();
 
+        cMakeCode.pr("# do not print install messages\n");
+        cMakeCode.pr("set(CMAKE_INSTALL_MESSAGE NEVER)\n");
+        cMakeCode.newLine();
+
         if (CppMode) {
             // Suppress warnings about const char*.
             cMakeCode.pr("set(CMAKE_CXX_FLAGS \"${CMAKE_CXX_FLAGS} -Wno-write-strings\")");
@@ -222,10 +226,10 @@ public class CCmakeGenerator {
         // Add additional flags so runtime can distinguish between multi-threaded and single-threaded mode
         if (targetConfig.threading) {
             cMakeCode.pr("# Set flag to indicate a multi-threaded runtime");
-            cMakeCode.pr("target_compile_definitions( ${LF_MAIN_TARGET} PUBLIC LF_MULTI_THREADED)");
+            cMakeCode.pr("target_compile_definitions( ${LF_MAIN_TARGET} PUBLIC LF_THREADED=1)");
         } else {
             cMakeCode.pr("# Set flag to indicate a single-threaded runtime");
-            cMakeCode.pr("target_compile_definitions( ${LF_MAIN_TARGET} PUBLIC LF_SINGLE_THREADED)");
+            cMakeCode.pr("target_compile_definitions( ${LF_MAIN_TARGET} PUBLIC LF_UNTHREADED=1)");
         }
         cMakeCode.newLine();
 
