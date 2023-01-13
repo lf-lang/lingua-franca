@@ -29,7 +29,7 @@ import org.lflang.tests.lsp.ErrorInserter.AlteredTest;
 /**
  * Test the code generator features that are required by the language server.
  *
- * @author Peter Donovan <peterdonovan@berkeley.edu>
+ * @author Peter Donovan
  */
 class LspTests {
 
@@ -137,12 +137,12 @@ class LspTests {
         for (LFTest test : selectTests(target, random)) {
             client.clearDiagnostics();
             if (alterer != null) {
-                try (AlteredTest altered = alterer.alterTest(test.srcFile)) {
+                try (AlteredTest altered = alterer.alterTest(test.getSrcPath())) {
                     runTest(altered.getPath());
                     Assertions.assertTrue(requirementGetter.apply(altered).test(client.getReceivedDiagnostics()));
                 }
             } else {
-                runTest(test.srcFile);
+                runTest(test.getSrcPath());
                 Assertions.assertTrue(requirementGetter.apply(null).test(client.getReceivedDiagnostics()));
             }
         }

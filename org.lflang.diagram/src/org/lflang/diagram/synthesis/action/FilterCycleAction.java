@@ -47,7 +47,7 @@ import org.lflang.diagram.synthesis.util.CycleVisualization;
 /**
  * Action that filters the diagram for only those elements included in a cycle.
  * 
- * @author{Alexander Schulz-Rosengarten <als@informatik.uni-kiel.de>}
+ * @author Alexander Schulz-Rosengarten
  */
 public class FilterCycleAction extends AbstractAction {
     

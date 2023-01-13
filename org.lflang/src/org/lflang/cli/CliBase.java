@@ -42,10 +42,10 @@ import com.google.inject.Provider;
 /**
  * Base class for standalone CLI applications.
  *
- * @author {Marten Lohstroh <marten@berkeley.edu>}
- * @author {Christian Menard <christian.menard@tu-dresden.de>}
- * @author {Billy Bao <billybao@berkeley.edu>}
- * @author {Atharva Patil <atharva.patil@berkeley.edu>}
+ * @author Marten Lohstroh
+ * @author Christian Menard
+ * @author Billy Bao
+ * @author Atharva Patil
  */
 public abstract class CliBase implements Runnable {
     /**

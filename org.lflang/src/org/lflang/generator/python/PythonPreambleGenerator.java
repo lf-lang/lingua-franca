@@ -14,9 +14,9 @@ import org.lflang.lf.Preamble;
  * Generates user-defined preambles and #define and #include directives
  * for the Python target.
  *
- * @author {Edward A. Lee <eal@berkeley.edu>}
- * @author {Soroush Bateni <soroush@utdallas.edu>}
- * @author {Hou Seng Wong <housengw@berkeley.edu>}
+ * @author Edward A. Lee
+ * @author Soroush Bateni
+ * @author Hou Seng Wong
  */
 public class PythonPreambleGenerator {
     /**

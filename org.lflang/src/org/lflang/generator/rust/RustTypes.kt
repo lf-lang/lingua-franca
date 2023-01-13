@@ -74,7 +74,7 @@ object RustTypes : TargetTypes {
         contents.joinToString(", ", "vec![", "]")
 
     override fun getMissingExpr(type: InferredType): String =
-        "<${getTargetType(type)} as Default>::default()"
+        "Default::default()"
 }
 
 val RustKeywords = setOf(

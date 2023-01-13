@@ -27,9 +27,9 @@ import com.google.inject.Inject;
 /**
  * Standalone version of the Lingua Franca compiler (lfc).
  *
- * @author {Marten Lohstroh <marten@berkeley.edu>}
- * @author {Christian Menard <christian.menard@tu-dresden.de>}
- * @author {Atharva Patil <atharva.patil@berkeley.edu>}
+ * @author Marten Lohstroh
+ * @author Christian Menard
+ * @author Atharva Patil
  */
 @Command(
     name = "lfc",
@@ -57,8 +57,8 @@ public class Lfc extends CliBase {
     /**
      * Supported CLI options.
      *
-     * @author Marten Lohstroh <marten@berkeley.edu>
-     * @author Atharva Patil <atharva.patil@berkeley.edu>
+     * @author Marten Lohstroh
+     * @author Atharva Patil
      */
 
     @Option(
