@@ -1,5 +1,6 @@
 package org.lflang.generator;
 
+import org.lflang.Target;
 import org.lflang.lf.Action;
 import org.lflang.lf.VarRef;
 
@@ -53,4 +54,6 @@ public interface DelayBodyGenerator {
      */
     boolean generateAfterDelaysWithVariableWidth();
 
+    /** Return the target language of the generated delay reaction bodies. */
+    Target getDelayTarget();
 }

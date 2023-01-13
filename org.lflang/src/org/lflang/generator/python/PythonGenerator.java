@@ -481,7 +481,7 @@ public class PythonGenerator extends CGenerator {
 
         // Reactions marked with a `@language(C)` attribute are generated in C
         var reactionLanguageAttr = AttributeUtils.findReactionLanguageAttribute(reaction);
-        if (reactor.getName().contains(DelayBodyGenerator.GEN_DELAY_CLASS_NAME) || reactionLanguageAttr != null && reactionLanguageAttr.equals(Target.C)) {
+        if (reactionLanguageAttr != null && reactionLanguageAttr.equals(Target.C)) {
             super.generateReaction(reaction, decl, reactionIndex);
             return;
         }

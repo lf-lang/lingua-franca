@@ -70,5 +70,4 @@ public class PythonDelayBodyGenerator extends CDelayBodyGenerator {
             return "lf_set("+outputName+", "+action.getName()+"->token->value);";
         }
     }
-
 }
