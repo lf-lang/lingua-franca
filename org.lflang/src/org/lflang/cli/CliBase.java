@@ -8,7 +8,9 @@ import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Properties;
+import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
@@ -58,6 +60,7 @@ public abstract class CliBase implements Runnable {
     @Parameters(
         arity = "1..",
         paramLabel = "FILES",
+        descriptionKey = "files",
         description = "Paths of the files to run the formatter on.")
     protected List<Path> files;
 
@@ -65,6 +68,7 @@ public abstract class CliBase implements Runnable {
         names = {"-o", "--output-path"},
         defaultValue = "",
         fallbackValue = "",
+        descriptionKey = "output_path",
         description = "Specify the root output directory.")
 
     private Path outputPath;
@@ -155,7 +159,7 @@ public abstract class CliBase implements Runnable {
     protected Properties filterPassOnProps() {
         // Parameters corresponding to the options that need to be passed on to
         // the generator as properties.
-        final List<BuildParm> passOnParams = Arrays.asList(
+        final Set<String> passOnParams = Stream.of(
             BuildParm.BUILD_TYPE,
             BuildParm.CLEAN,
             BuildParm.TARGET_COMPILER,
@@ -168,28 +172,29 @@ public abstract class CliBase implements Runnable {
             BuildParm.RUNTIME_VERSION,
             BuildParm.SCHEDULER,
             BuildParm.THREADING,
-            BuildParm.WORKERS
-        );
+            BuildParm.WORKERS)
+        .map(param -> param.getKey())
+        .collect(Collectors.toUnmodifiableSet());
 
         Properties props = new Properties();
-        ParseResult pr = spec.commandLine().getParseResult();
 
-        passOnParams.forEach((param) -> {
-            // Get the option with the specified name, or null if no option
-            // with that name was matched on the command line.
-            OptionSpec matchedOption = pr.matchedOption(param.getKey());
-            if (matchedOption != null) {
+        for (OptionSpec option : spec.options()) {
+            String optionName = option.longestName();
+            // Check whether this option needs to be passed on to the code
+            // generator as a property.
+            if (passOnParams.contains(optionName)) {
                 String value = "";
-                // If a boolean option was set, its value is true.
-                if (matchedOption.getValue() instanceof Boolean) {
-                    value = "true";
-                } else {
-                    value = matchedOption.getValue();
+                // Boolean option.
+                if (option.getValue() instanceof Boolean) {
+                    value = String.valueOf(option.getValue());
+                // String option.
+                } else if (option.getValue() instanceof String) {
+                    value = option.getValue();
                 }
-                props.setProperty(matchedOption.longestName(), value);
+                System.out.println("Property " + optionName + " set.");
+                props.setProperty(optionName, value);
             }
-        });
-
+        }
         return props;
     }
 
