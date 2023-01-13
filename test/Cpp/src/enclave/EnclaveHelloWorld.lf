@@ -1,0 +1,12 @@
+target Cpp
+
+reactor Hello(msg: std::string("World")) {
+    reaction(startup) {= reactor::log::Info() << "Hello " << msg << '!'; =}
+}
+
+main reactor(msg1: std::string("World"), msg2: std::string("Enclave")) {
+    hello1 = new Hello(msg = msg1)
+
+    @enclave
+    hello2 = new Hello(msg = msg2)
+}

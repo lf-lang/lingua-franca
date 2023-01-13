@@ -44,11 +44,13 @@ import org.lflang.util.StringUtil;
  * @author Clément Fournier
  * @author Shaokai Lin
  */
-class AttributeSpec {
+public class AttributeSpec {
 
     private final Map<String, AttrParamSpec> paramSpecByName;
 
     public static final String VALUE_ATTR = "value";
+
+    public static final String EACH_ATTR = "each";
 
     /** A map from a string to a supported AttributeSpec */
     public static final Map<String, AttributeSpec> ATTRIBUTE_SPECS_BY_NAME = new HashMap<>();
@@ -96,7 +98,7 @@ class AttributeSpec {
             Map<String, AttrParamSpec> missingParams = new HashMap<>(paramSpecByName);
             missingParams.keySet().removeAll(seen);
             missingParams.forEach((name, paramSpec) -> {
-                if (!paramSpec.isOptional()) {
+                if (!paramSpec.isOptional) {
                     validator.error("Missing required attribute parameter '" + name + "'.", Literals.ATTRIBUTE__ATTR_PARMS);
                 }
             });
@@ -145,13 +147,9 @@ class AttributeSpec {
      * 
      * @param name The name of the attribute parameter
      * @param type The type of the parameter
-     * @param defaultValue If non-null, parameter is optional.
+     * @param isOptional True if the parameter is optional.
      */
-    record AttrParamSpec(String name, AttrParamType type, Object defaultValue) {
-
-        private boolean isOptional() {
-            return defaultValue == null;
-        }
+    record AttrParamSpec(String name, AttrParamType type, boolean isOptional) {
 
         // Check if a parameter has the right type.
         // Currently only String, Int, Boolean, and Float are supported.
@@ -199,20 +197,24 @@ class AttributeSpec {
         FLOAT
     }
 
-    /**
+    /*
      * The specs of the known annotations are declared here.
      * Note: If an attribute only has one parameter, the parameter name should be "value."
      */
     static {
         // @label("value")
         ATTRIBUTE_SPECS_BY_NAME.put("label", new AttributeSpec(
-            List.of(new AttrParamSpec(AttributeSpec.VALUE_ATTR, AttrParamType.STRING, null))
+            List.of(new AttrParamSpec(VALUE_ATTR, AttrParamType.STRING, false))
         ));
         // @sparse
         ATTRIBUTE_SPECS_BY_NAME.put("sparse", new AttributeSpec(null));
         // @icon("value")
         ATTRIBUTE_SPECS_BY_NAME.put("icon", new AttributeSpec(
-            List.of(new AttrParamSpec(AttributeSpec.VALUE_ATTR, AttrParamType.STRING, null))
+            List.of(new AttrParamSpec(VALUE_ATTR, AttrParamType.STRING, false))
+        ));
+        // @enclave(each=boolean)
+        ATTRIBUTE_SPECS_BY_NAME.put("enclave", new AttributeSpec(
+            List.of(new AttrParamSpec(EACH_ATTR, AttrParamType.BOOLEAN, true))
         ));
     }
 }
