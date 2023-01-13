@@ -78,6 +78,7 @@ configurations {
 task getSubmoduleVersions(type: Exec) {
     description('Run a Git command to get the current status of submodules')
     workingDir project.rootDir
+    outputs.upToDateWhen { false }
 
     def command = "git submodule status"
     if (System.getProperty('os.name').toLowerCase(Locale.ROOT).contains('windows')) {
@@ -106,6 +107,7 @@ task updateRustRuntime {
     description('Record the VCS revisions of the language runtimes into a properties file available at runtime.')
 
     dependsOn getSubmoduleVersions
+    inputs.files(getSubmoduleVersions.outputs)
     ext.outputFile = file("$project.projectDir/src/lib/rs/runtime-version.properties")
     outputs.file(outputFile)
 
