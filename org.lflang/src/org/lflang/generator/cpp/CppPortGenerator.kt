@@ -64,9 +64,10 @@ class CppPortGenerator(private val reactor: Reactor) {
         """
             // initialize port $name
             ${name}.reserve($width);
+            auto basemultiport = (reactor::BaseMultiport*)&${name};
             for (size_t __lf_idx = 0; __lf_idx < $width; __lf_idx++) {
               std::string __lf_port_name = "${name}_" + std::to_string(__lf_idx);
-              ${name}.emplace_back(__lf_port_name, this, (reactor::BaseMultiport*)&${name}, __lf_idx);
+              ${name}.emplace_back(__lf_port_name, this, basemultiport->get_set_callback(), basemultiport->get_clean_callback());
             }
         """.trimIndent()
     }
