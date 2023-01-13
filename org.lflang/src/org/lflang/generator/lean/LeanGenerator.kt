@@ -1,41 +1,14 @@
 package org.lflang.generator.lean
 
 import org.eclipse.emf.ecore.resource.Resource
-import org.lflang.ASTUtils
-import org.lflang.ErrorReporter
-import org.lflang.InferredType
+import org.lflang.*
 import org.lflang.Target
-import org.lflang.baseType
-import org.lflang.generator.CodeMap
-import org.lflang.generator.GeneratorBase
-import org.lflang.generator.GeneratorResult
-import org.lflang.generator.GeneratorUtils
-import org.lflang.generator.LFGeneratorContext
-import org.lflang.generator.PrependOperator
+import org.lflang.generator.*
 import org.lflang.generator.PrependOperator.rangeTo
-import org.lflang.generator.ReactionInstanceGraph
-import org.lflang.generator.ReactorInstance
-import org.lflang.generator.TargetTypes
-import org.lflang.isLogical
-import org.lflang.joinLn
-import org.lflang.joinWithCommas
-import org.lflang.lf.Action
-import org.lflang.lf.BuiltinTrigger
-import org.lflang.lf.BuiltinTriggerRef
-import org.lflang.lf.Connection
-import org.lflang.lf.Instantiation
-import org.lflang.lf.Parameter
-import org.lflang.lf.Port
-import org.lflang.lf.Reaction
-import org.lflang.lf.Reactor
-import org.lflang.lf.StateVar
+import org.lflang.lf.*
 import org.lflang.lf.Timer
-import org.lflang.lf.TypedVariable
-import org.lflang.lf.VarRef
-import org.lflang.model
 import org.lflang.scoping.LFGlobalScopeProvider
 import org.lflang.util.FileUtil
-import java.nio.file.Files
 import java.nio.file.Path
 import java.util.*
 
@@ -57,14 +30,18 @@ class LeanGenerator(
 
         if (!GeneratorUtils.canGenerate(errorsOccurred(), mainDef, errorReporter, context)) return
 
-        Files.createDirectories(fileConfig.srcGenPath)
-        FileUtil.copyDirectoryFromClassPath(runtimeDir, fileConfig.srcGenPath, true)
+        FileUtil.copyDirectoryFromClassPath(runtimeDir, fileConfig.srcGenPath, false)
+
         val mainFilePath = fileConfig.srcGenPath.resolve( "Main.lean")
+        val lakefilePath = fileConfig.srcGenPath.resolve( "lakefile.lean")
 
         val mainFile = genMain(reactors)
-        FileUtil.writeToFile(mainFile, mainFilePath, true)
+        val lakefile = genLakefile(mainDef.name, "5770b609aeae209cb80ac74655ee8c750c12aabd")
 
-        invokeLeanCompiler(context, "Main", emptyMap())
+        FileUtil.writeToFile(mainFile, mainFilePath, true)
+        FileUtil.writeToFile(lakefile, lakefilePath, true)
+
+        invokeLeanCompiler(context, mainDef.name, emptyMap())
     }
 
     private fun genParameter(param: Parameter) =
@@ -260,7 +237,8 @@ class LeanGenerator(
             .nodesInReverseTopologicalOrder()
             .reversed()
             .joinToString(",\n") {
-                "${it.reaction.parent.fullName}._${it.reaction.index}"
+                val reactorId = it.reaction.parent.fullName.dropWhile { it != '.' }
+                "${reactorId.drop(1)}._${it.reaction.index}"
             }
     }
 
@@ -316,6 +294,24 @@ class LeanGenerator(
         }
     }
 
+    private fun genLakefile(exeName: String, std4Commit: String) =
+        """
+        |import Lake
+        |open Lake DSL
+        |
+        |package reactor_lean
+        |
+        |lean_lib Runtime
+        |
+        |@[default_target]
+        |lean_exe Executable {
+        |  root := `Main
+        |  exeName := "$exeName"
+        |}
+        |
+        |require std from git "https://github.com/leanprover/std4" @ "$std4Commit"
+        """.trimMargin()
+
     private fun invokeLeanCompiler(context: LFGeneratorContext, executableName: String, codeMaps: Map<Path, CodeMap>) {
         val lakeUpdateCommand = commandFactory.createCommand("lake", listOf("update"), fileConfig.srcGenPath.toAbsolutePath())
         lakeUpdateCommand.run()
@@ -325,7 +321,10 @@ class LeanGenerator(
 
         if (returnCode == 0) {
             println("SUCCESS (compiling generated Lean code)")
-            context.finish(GeneratorResult.Status.COMPILED, executableName, fileConfig, codeMaps)
+
+            // TODO: Figure out how to set the binary path via the file config.
+            val binPath = fileConfig.srcGenBasePath.resolve("${mainDef.name}/build/bin")
+            context.finish(GeneratorResult.Status.COMPILED, executableName, binPath, fileConfig, codeMaps, null)
         } else if (context.cancelIndicator.isCanceled) {
             context.finish(GeneratorResult.CANCELLED)
         } else {

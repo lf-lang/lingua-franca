@@ -1,0 +1,31 @@
+// Tests whether the LF-native time syntax is correctly translated to the 
+// Lean-native time constructs.
+target Lean
+
+reactor Test { 
+    state zero : time(0)
+    state ns   : time(1 nsec)
+    state us   : time(2 usec)
+    state ms   : time(3 msec)
+    state s    : time(4 sec)
+    state min  : time(5 mins)
+    state hour : time(6 hours)
+    state day  : time(7 days)
+    state week : time(8 weeks)
+
+    reaction(startup) {=
+        assert! (← getState .zero) = (0 : Time)
+        assert! (← getState .ns)   = Time.of 1 .ns
+        assert! (← getState .us)   = Time.of 2 .us
+        assert! (← getState .ms)   = Time.of 3 .ms
+        assert! (← getState .s)    = Time.of 4 .s
+        assert! (← getState .min)  = Time.of 5 .mins
+        assert! (← getState .hour) = Time.of 6 .hours
+        assert! (← getState .day)  = Time.of 7 .days
+        assert! (← getState .week) = Time.of 8 .weeks
+    =}
+}
+
+main reactor {
+    t = new Test()
+}

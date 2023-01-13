@@ -1,0 +1,40 @@
+// Tests whether timers work correctly.
+target Lean
+
+reactor Test { 
+    timer a(0, 0)
+    timer b(2 msec, 0)
+    timer c(0, 3 msec)
+    timer d(5 msec, 7 msec)
+
+    // This timer and reaction are only used to stop the test.
+    // As the stop request increments the tag to have a microstep of 1,
+    // we thus also test that the timers don't trigger on a microstep other
+    // than 0.
+    timer stop(75 msec, 0)
+    reaction (stop) {= requestStop =}
+
+    reaction(a) {=
+        assert! (← getTag) = ⟨0, 0⟩
+    =}
+
+    reaction(b) {=
+        assert! (← getTag) = ⟨Time.of 2 .ms, 0⟩
+    =}
+
+    reaction(c) {=
+        let ⟨time, microstep⟩ ← getTag
+        assert! (time.to .ms) % 3 = 0
+        assert! microstep = 0
+    =}
+
+    reaction(d) {=
+        let ⟨time, microstep⟩ ← getTag
+        assert! ((time.to .ms) - 5) % 7 = 0
+        assert! microstep = 0
+    =}
+}
+
+main reactor {
+    t = new Test()
+}

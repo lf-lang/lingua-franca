@@ -1,0 +1,43 @@
+// Tests whether scheduling of actions works correctly. This includes checking
+// the overriding semantics of events.
+//
+// Note: The validity of this test relies on the correctness of `getTag` and 
+//       `getAction`.
+target Lean
+
+// The following sequence of actions should occur:
+// a at (0, 1)
+// b at (0, 2)
+// c at (10 sec, 0) with value `true`
+// Notably, c is first scheduled for time 10 with a value of `false`, but 
+// subsequently overriden a scheduling of c for time 10 with a value of `true`.
+// We thus check that overriding behaviour works correctly.
+reactor Test { 
+    logical action a : Unit
+    logical action b : Unit
+    logical action c : Bool
+
+    reaction(startup) -> a, c {=
+        schedule .a 0 ()
+        schedule .c (Time.of 10 .ms) false
+    =}
+
+    reaction(a) -> b, c {=
+        assert! (← getTag) = ⟨0, 1⟩
+        schedule .b 0 ()
+        schedule .c (Time.of 10 .ms) true
+    =}
+
+    reaction(b) {=
+        assert! (← getTag) = ⟨0, 2⟩
+    =}
+
+    reaction(c) {=
+        assert! (← getTag) = ⟨Time.of 10 .ms, 0⟩
+        assert! (← getAction .c) = (some true)
+    =}
+}
+
+main reactor {
+    t = new Test()
+}

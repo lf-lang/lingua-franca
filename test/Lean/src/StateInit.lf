@@ -1,0 +1,14 @@
+// Tests initialization of state variables.
+target Lean
+
+reactor Test { 
+    state s : Nat(5)
+
+    reaction(startup) {=
+        assert! (← getState .s) = 5
+    =}
+}
+
+main reactor {
+    t = new Test()
+}

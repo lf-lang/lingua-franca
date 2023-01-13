@@ -1,0 +1,20 @@
+// Tests stating (not proving) theorems about reactions.
+// The relevant part is whether the specific syntax for referencing reactions works.
+target Lean
+
+reactor Test { 
+    reaction(startup) {= =}
+    reaction(startup) {= =}
+}
+
+main reactor {
+    t = new Test()
+}
+
+epilogue {=
+    example : (input -[Test.Reaction0]→ output) → (input.state stv = output.state stv) := 
+      sorry
+
+    example : (input -[Test.Reaction1]→ output) → (input.state stv = output.state stv) := 
+      sorry
+=}

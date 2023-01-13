@@ -1,0 +1,15 @@
+// Tests whether state variables are generated as having an optional type when
+// no initial value is provided.
+target Lean
+
+reactor Test { 
+    state s : Nat
+
+    reaction(startup) {=
+        assert! (← getState .s) = none
+    =}
+}
+
+main reactor {
+    t = new Test()
+}

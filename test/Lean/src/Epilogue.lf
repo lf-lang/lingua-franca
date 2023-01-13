@@ -1,0 +1,12 @@
+// Tests whether the `epilogue` command works.
+target Lean
+
+reactor Test {
+    reaction(startup) {= =}
+}
+
+main reactor {
+    t = new Test()
+}
+
+epilogue {= =}

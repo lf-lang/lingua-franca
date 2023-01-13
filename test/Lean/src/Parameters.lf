@@ -1,0 +1,29 @@
+// Tests whether reactors and reactions can properly access parameters,
+// as well as whether setting parameter values on nested reactors works properly.
+target Lean
+
+// This reactor will be instantiated without overriding its parameter.
+reactor Two(p : Nat(2)) { 
+    state s : Nat(p)
+
+    reaction(startup) {=
+        assert! (← getParam .p) = 2
+        assert! (← getState .s) = 2
+    =}
+}
+
+// This reactor will be instantiated with its parameter set to a value of `3`.
+reactor Three(p : Nat(1)) { 
+    state s : Nat(p)
+
+    reaction(startup) {=
+        assert! (← getParam .p) = 3
+        assert! (← getState .s) = 3
+    =}
+}
+
+
+main reactor {
+    two = new Two()
+    three = new Three(p = 3)
+}

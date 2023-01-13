@@ -1,0 +1,29 @@
+// Tests whether delays on connections work correctly.
+//
+// Note: For this test to be valid, the triggering of a reaction as a result a
+//       source port being set needs to work correctly. Also, we rely on
+//       `getTag`, `getInput` and `Output` working correctly.
+target Lean
+
+reactor Src { 
+    output o : Nat
+
+    reaction(startup) -> o {=
+        setOutput .o 5
+    =}
+}
+
+reactor Dst { 
+    input i : Nat
+
+    reaction(i) {=
+        assert! (← getInput .i) = some 5
+        assert! (← getTag) = ⟨Time.of 10 .ms, 0⟩
+    =}
+}
+
+main reactor {
+    src = new Src()
+    dst = new Dst()
+    src.o -> dst.i after 10 msec
+}

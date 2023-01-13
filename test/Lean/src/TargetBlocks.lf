@@ -1,0 +1,22 @@
+// Tests whether using blocks of target code work when delaring the type and 
+// initial values of reactor components.
+//
+// Note: The validity of this test depends on initialization of state variables
+//       and setting of nested reactor parameters working correctly.
+target Lean
+
+reactor Test(p : {= Sum Nat Bool =}({= .inl 5 =})) { 
+    input  i : {= List String =}
+    output o : {= Option Int =}
+    state  s : {= Nat × Nat =}({= (1, 2) =})
+    logical action a : {= Thunk Unit =}
+
+    reaction(startup) {=
+        assert! (← getState .s) = (1, 2)
+        assert! (← getParam .p) = .inr true
+    =}
+}
+
+main reactor {
+    t = new Test(p = {= .inr true =})
+}

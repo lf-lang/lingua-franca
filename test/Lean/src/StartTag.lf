@@ -1,0 +1,14 @@
+// Tests whether the tag correctly starts at (0, 0).
+//
+// Note: The validity of this test relies on the correctness of `getTag`.
+target Lean
+
+reactor Test { 
+    reaction(startup) {=
+        assert! (← getTag) = ⟨0, 0⟩
+    =}
+}
+
+main reactor {
+    t = new Test()
+}

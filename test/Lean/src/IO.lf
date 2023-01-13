@@ -1,0 +1,12 @@
+// Tests whether the `@io` attribute works.
+// The tagged reaction should be able to perform IO operations.
+target Lean
+
+reactor Test {
+    @io 
+    reaction(startup) {= monadLift <| IO.println "" =}
+}
+
+main reactor {
+    t = new Test()
+}
