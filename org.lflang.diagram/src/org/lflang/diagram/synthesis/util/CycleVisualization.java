@@ -44,7 +44,7 @@ import org.lflang.lf.Connection;
 /**
  * Dependency cycle detection for Lingua Franca diagrams.
  * 
- * @author{Alexander Schulz-Rosengarten <als@informatik.uni-kiel.de>}
+ * @author Alexander Schulz-Rosengarten
  */
 @ViewSynthesisShared
 public class CycleVisualization extends AbstractSynthesisExtensions {

@@ -33,7 +33,7 @@ import org.lflang.generator.GeneratorBase;
 /**
  * Enables support for Python pickle serialization.
  * 
- * @author Soroush Bateni <soroush@utdallas.edu>
+ * @author Soroush Bateni
  *
  */
 public class FedNativePythonSerialization implements FedSerialization {

@@ -53,8 +53,8 @@ import org.lflang.lf.Variable;
  * its depth an acyclic precedence graph representing the dependencies between
  * reactions at a tag.
  *  
- * @author{Edward A. Lee <eal@berkeley.edu>}
- * @author{Marten Lohstroh <marten@berkeley.edu>}
+ * @author Edward A. Lee
+ * @author Marten Lohstroh
  */
 public class ReactionInstance extends NamedInstance<Reaction> {
 

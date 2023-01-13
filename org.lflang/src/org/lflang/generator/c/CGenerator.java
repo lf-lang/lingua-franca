@@ -39,12 +39,14 @@ import static org.lflang.util.StringUtil.addDoubleQuotes;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.eclipse.emf.ecore.resource.Resource;
@@ -301,14 +303,14 @@ import com.google.common.collect.Iterables;
  *   that maps port IDs to the corresponding action struct, which can be cast to
  *   action_base_t.
  *
- * @author {Edward A. Lee <eal@berkeley.edu>}
- * @author {Marten Lohstroh <marten@berkeley.edu>}
- * @author {Mehrdad Niknami <mniknami@berkeley.edu>}
- * @author {Christian Menard <christian.menard@tu-dresden.de>}
- * @author {Matt Weber <matt.weber@berkeley.edu>}
- * @author {Soroush Bateni <soroush@utdallas.edu>}
- * @author {Alexander Schulz-Rosengarten <als@informatik.uni-kiel.de>}
- * @author {Hou Seng Wong <housengw@berkeley.edu>}
+ * @author Edward A. Lee
+ * @author Marten Lohstroh
+ * @author Mehrdad Niknami
+ * @author Christian Menard
+ * @author Matt Weber
+ * @author Soroush Bateni
+ * @author Alexander Schulz-Rosengarten
+ * @author Hou Seng Wong
  */
 @SuppressWarnings("StaticPseudoFunctionalStyleMethod")
 public class CGenerator extends GeneratorBase {
@@ -603,6 +605,22 @@ public class CGenerator extends GeneratorBase {
                 cmakeCode.writeToFile(cmakeFile);
             } catch (IOException e) {
                 //noinspection ThrowableNotThrown,ResultOfMethodCallIgnored
+                Exceptions.sneakyThrow(e);
+            }
+
+            // Dump the additional compile definitions to a file to keep the generated project
+            //  self contained. In this way, third-party build tools like PlatformIO, west, arduino-cli can
+            //  take over and do the rest of compilation.
+
+            try {
+                String compileDefs = targetConfig.compileDefinitions.keySet().stream()
+                    .map(key -> key + "=" + targetConfig.compileDefinitions.get(key))
+                    .collect(Collectors.joining("\n"));
+                FileUtil.writeToFile(
+                    compileDefs,
+                    Path.of(fileConfig.getSrcGenPath() + File.separator + "CompileDefinitions.txt")
+                );
+            } catch (IOException e) {
                 Exceptions.sneakyThrow(e);
             }
 

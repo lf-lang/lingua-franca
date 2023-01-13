@@ -62,8 +62,25 @@ object PortEmitter : RustEmitterBase() {
         val self = "&mut __self.$rustFieldName"
         val child = "&mut $rustChildName.$rustFieldOnChildName"
 
-        return if (isInput) "$assembler.bind_ports($self, $child)?;"
-        else "$assembler.bind_ports($child, $self)?;"
+        return if (isGeneratedAsMultiport) {
+            var lhsPorts = "$child.iter_mut()"
+            var rhsPorts = "$self.iter_mut()"
+
+            if (isContainedInBank && !isMultiport) {
+                lhsPorts = "unsafe_iter_bank!($rustChildName # $rustFieldOnChildName)"
+            } else if (isContainedInBank && isMultiport) {
+                lhsPorts = "unsafe_iter_bank!($rustChildName # ($rustFieldOnChildName)+)"
+            }
+
+            if (isInput) {
+                lhsPorts = rhsPorts.also { rhsPorts = lhsPorts }
+            }
+
+            "$assembler.bind_ports_zip($lhsPorts, $rhsPorts)?;"
+        } else {
+            if (isInput) "$assembler.bind_ports($self, $child)?;"
+            else "$assembler.bind_ports($child, $self)?;"
+        }
     }
 
     /**
@@ -91,9 +108,9 @@ object PortEmitter : RustEmitterBase() {
         val container: Instantiation? = container
         val port = PortData.from(variable as Port)
 
-        if (container?.isBank == true && port.isMultiport && isInterleaved) {
+        if (container?.isBank == true && port.isGeneratedAsMultiport && isInterleaved) {
             return "unsafe_iter_bank!(${container.name} # interleaved(${port.rustFieldName}))"
-        } else if (container?.isBank == true && port.isMultiport) {
+        } else if (container?.isBank == true && port.isGeneratedAsMultiport) {
             return "unsafe_iter_bank!(${container.name} # (${port.rustFieldName})+)"
         } else if (container?.isBank == true) {
             return "unsafe_iter_bank!(${container.name} # ${port.rustFieldName})"
@@ -102,7 +119,7 @@ object PortEmitter : RustEmitterBase() {
         // todo this is missing some tests where we try to borrow several multiports from same reactor
         val ref = (container?.name ?: "__self") + "." + port.rustFieldName
 
-        return if (port.isMultiport) {
+        return if (port.isGeneratedAsMultiport) {
             "$ref.iter_mut()"
         } else {
             "std::iter::once(&mut $ref)"

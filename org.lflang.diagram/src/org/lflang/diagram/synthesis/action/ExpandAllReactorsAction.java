@@ -36,7 +36,7 @@ import org.lflang.lf.Mode;
 /**
  * Action that collapses (hides details) of all reactor nodes.
  * 
- * @author{Alexander Schulz-Rosengarten <als@informatik.uni-kiel.de>}
+ * @author Alexander Schulz-Rosengarten
  */
 public class ExpandAllReactorsAction extends AbstractAction {
 

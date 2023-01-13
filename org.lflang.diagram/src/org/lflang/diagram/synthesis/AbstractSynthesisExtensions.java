@@ -32,7 +32,7 @@ import org.eclipse.emf.ecore.EObject;
 /**
  * Abstract super class for extension classes used in for the diagram synthesis that provides some convince methods.
  * 
- * @author{Alexander Schulz-Rosengarten <als@informatik.uni-kiel.de>}
+ * @author Alexander Schulz-Rosengarten
  */
 public abstract class AbstractSynthesisExtensions {
     

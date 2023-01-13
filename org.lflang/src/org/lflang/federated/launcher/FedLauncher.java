@@ -43,8 +43,8 @@ import org.lflang.federated.FederateInstance;
 /**
  * Utility class that can be used to create a launcher for federated LF programs.
  * 
- * @author Edward A. Lee <eal@berkeley.edu>
- * @author Soroush Bateni <soroush@utdallas.edu>
+ * @author Edward A. Lee
+ * @author Soroush Bateni
  */
 class FedLauncher {
 

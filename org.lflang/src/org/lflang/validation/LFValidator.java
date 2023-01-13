@@ -121,12 +121,12 @@ import com.google.inject.Inject;
  *
  * Also see: https://www.eclipse.org/Xtext/documentation/303_runtime_concepts.html#validation
  *
- * @author{Edward A. Lee <eal@berkeley.edu>}
- * @author{Marten Lohstroh <marten@berkeley.edu>}
- * @author{Matt Weber <matt.weber@berkeley.edu>}
- * @author{Christian Menard <christian.menard@tu-dresden.de>}
- * @author{Hou Seng Wong <stevenhouseng@gmail.com>}
- * @author{Clément Fournier <clement.fournier76@gmail.com>}
+ * @author Edward A. Lee
+ * @author Marten Lohstroh
+ * @author Matt Weber
+ * @author Christian Menard
+ * @author Hou Seng Wong
+ * @author Clément Fournier
  */
 public class LFValidator extends BaseLFValidator {
 

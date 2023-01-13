@@ -64,7 +64,7 @@ import org.lflang.util.LFCommand;
  * A collection of utilities for C code generation.
  * This class codifies the coding conventions for the C target code generator.
  * I.e., it defines how variables are named and referenced.
- * @author{Edward A. Lee <eal@berkeley.edu>}
+ * @author Edward A. Lee
  */
 public class CUtil {
 

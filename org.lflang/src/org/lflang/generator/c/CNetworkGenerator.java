@@ -23,9 +23,9 @@ import org.lflang.generator.ReactionInstance;
  * Generates C code to support messaging-related functionalities
  * in federated execution.
  *
- * @author {Edward A. Lee <eal@berkeley.edu>}
- * @author {Soroush Bateni <soroush@utdallas.edu>}
- * @author {Hou Seng Wong <housengw@berkeley.edu>}
+ * @author Edward A. Lee
+ * @author Soroush Bateni
+ * @author Hou Seng Wong
  */
 public class CNetworkGenerator {
     private static boolean isSharedPtrType(InferredType type, CTypes types) {

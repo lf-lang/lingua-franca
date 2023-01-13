@@ -25,7 +25,7 @@ private val TSC_LABEL: Pattern = Pattern.compile("((?<=\\s))(~+)")
 /**
  * A validator for generated TypeScript.
  *
- * @author Peter Donovan <peterdonovan@berkeley.edu>
+ * @author Peter Donovan
  */
 @Suppress("ArrayInDataClass")  // Data classes here must not be used in data structures such as hashmaps.
 class TSValidator(
