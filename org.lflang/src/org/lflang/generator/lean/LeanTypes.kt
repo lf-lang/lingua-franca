@@ -33,14 +33,14 @@ object LeanTypes : TargetTypes {
     override fun getTargetTimeExpr(timeValue: TimeValue): TargetCode = with(timeValue) {
         if (unit == null) "0" else {
             val unitName = when (unit) {
-                TimeUnit.NANO   -> "ns)"
+                TimeUnit.NANO   -> "ns"
                 TimeUnit.MICRO  -> "μs"
                 TimeUnit.MILLI  -> "ms"
                 TimeUnit.SECOND -> "s"
-                TimeUnit.MINUTE -> "min"
-                TimeUnit.HOUR   -> "hour"
-                TimeUnit.DAY    -> "day"
-                TimeUnit.WEEK   -> "week"
+                TimeUnit.MINUTE -> "mins"
+                TimeUnit.HOUR   -> "hours"
+                TimeUnit.DAY    -> "days"
+                TimeUnit.WEEK   -> "weeks"
             }
             return "Time.of $magnitude .$unitName"
         }

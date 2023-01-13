@@ -202,6 +202,11 @@ public interface TargetTypes {
         return getTargetType(ASTUtils.getInferredType(p));
     }
 
+    /** An overload of `getTargetInitializer`. */
+    default String getTargetInitializer(Initializer init, Type type) {
+        return getTargetInitializer(init, type, false);
+    }
+
     /**
      * Returns the representation of the given initializer
      * expression in target code. The given type, if non-null,
@@ -210,14 +215,14 @@ public interface TargetTypes {
      * @param init           Initializer node (nullable)
      * @param type           Declared type of the expression (nullable)
      */
-    default String getTargetInitializer(Initializer init, Type type) {
+    default String getTargetInitializer(Initializer init, Type type, Boolean getCodeAsOriginalText) {
         var inferredType = ASTUtils.getInferredType(type, init);
         if (init == null) {
             return getMissingExpr(inferredType);
         }
         var single = ASTUtils.asSingleExpr(init);
         if (single != null) {
-            return getTargetExpr(single, inferredType);
+            return getTargetExpr(single, inferredType, getCodeAsOriginalText);
         }
         var targetValues = init.getExprs().stream().map(it -> getTargetExpr(it, inferredType)).collect(Collectors.toList());
         if (inferredType.isFixedSizeList) {
@@ -229,12 +234,16 @@ public interface TargetTypes {
         }
     }
 
+    /** An overload for `getTargetExpr`. */
+    default String getTargetExpr(Expression expr, InferredType type) {
+        return getTargetExpr(expr, type, false);
+    }
 
     /**
      * Returns the representation of the given expression in target code.
      * The given type, if non-null, may inform the code generation.
      */
-    default String getTargetExpr(Expression expr, InferredType type) {
+    default String getTargetExpr(Expression expr, InferredType type, Boolean getCodeAsOriginalText) {
         if (ASTUtils.isZero(expr) && type != null && type.isTime) {
             return getTargetTimeExpr(TimeValue.ZERO);
         } else if (expr instanceof ParameterReference) {
@@ -244,7 +253,11 @@ public interface TargetTypes {
         } else if (expr instanceof Literal) {
             return ASTUtils.addZeroToLeadingDot(((Literal) expr).getLiteral()); // here we don't escape
         } else if (expr instanceof CodeExpr) {
-            return ASTUtils.toText(((CodeExpr) expr).getCode());
+            if (getCodeAsOriginalText) {
+                return ASTUtils.toOriginalText(((CodeExpr) expr).getCode());
+            } else {
+                return ASTUtils.toText(((CodeExpr) expr).getCode());
+            }
         } else {
             throw new IllegalStateException("Invalid value " + expr);
         }

@@ -1,0 +1,73 @@
+// This test runs a contrived program which adds two numbers by following the
+// inductive definition of addition on natural numbers.
+// It serves as an integration test.
+target Lean
+
+reactor Id {
+    input inp : Nat 
+    output out : Nat
+
+    reaction(inp) -> out {= 
+        setOutput .out (← getInput .inp).get!
+    =}
+}
+
+reactor Succ {
+    input inp : Nat
+    output out : Nat
+
+    reaction(inp) -> out {=
+        let succ := (← getInput .inp).get! + 1
+        setOutput .out succ
+    =}
+}
+
+reactor Add {
+    input lhs : Nat
+    input rhs : Nat
+    output out : Nat
+    logical action apply : {= Nat × Nat =}
+
+    id = new Id()
+    succ = new Succ()
+
+    reaction(lhs, rhs) -> apply {=
+        let lhs := (← getInput .lhs).get!
+        let rhs := (← getInput .rhs).get!
+        schedule .apply 0 (lhs, rhs)
+    =}
+
+    reaction(apply) -> out, id.inp, succ.inp {=
+        let ⟨lhs, rhs⟩ := (← getAction .apply).get!
+        match lhs with 
+        | 0 => setOutput .out rhs
+        | l + 1 =>
+          setOutput .id.inp l
+          setOutput .succ.inp rhs
+    =}
+
+    reaction (id.out, succ.out) -> apply {=
+        let lhs := (← getInput .id.out).get!
+        let rhs := (← getInput .succ.out).get!
+        schedule .apply 0 (lhs, rhs)
+    =}
+}
+
+reactor Validator(lhs : Nat(0), rhs : Nat(0), expected : Nat(0)) {
+    add = new Add()
+    
+    reaction(startup) -> add.lhs, add.rhs {= 
+        setOutput .add.lhs (← getParam .lhs) 
+        setOutput .add.rhs (← getParam .rhs)
+    =}
+
+    reaction(add.out) {= 
+        assert! (← getInput .add.out) = (← getParam .expected)
+    =}
+}
+
+main reactor {
+    a = new Validator(lhs =  2, rhs = 0, expected = 2)
+    b = new Validator(lhs = 12, rhs = 9, expected = 21)
+    c = new Validator(lhs =  0, rhs = 5, expected = 5)
+}

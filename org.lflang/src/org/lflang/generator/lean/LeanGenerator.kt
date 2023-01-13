@@ -44,16 +44,22 @@ class LeanGenerator(
         invokeLeanCompiler(context, mainDef.name, emptyMap())
     }
 
-    private fun genParameter(param: Parameter) =
-        "${param.name} : ${LeanTypes.getTargetType(param.type)} := ${LeanTypes.getTargetInitializer(param.init, param.type)}"
+    private fun genParameter(param: Parameter): String {
+        val type = param.type.code?.let { ASTUtils.toOriginalText(it) } ?: LeanTypes.getTargetType(param.type)
+        return "${param.name} : ${type} := ${LeanTypes.getTargetInitializer(param.init, param.type, true)}"
+    }
 
-    private fun genTypedVar(v: TypedVariable) =
-        "${v.name} : ${LeanTypes.getTargetType(v.type)}"
+    private fun genTypedVar(v: TypedVariable): String {
+        val type = v.type.code?.let { ASTUtils.toOriginalText(it) } ?: LeanTypes.getTargetType(v.type)
+        return "${v.name} : ${type}"
+    }
 
     private fun genState(stateVar: StateVar): String {
-        val default = LeanTypes.getTargetInitializer(stateVar.init, stateVar.type)
-        val defaultStr = default.let { " := $it" } ?: ""
-        return "${stateVar.name} : ${LeanTypes.getTargetType(stateVar.type)}$defaultStr"
+        val default = LeanTypes.getTargetInitializer(stateVar.init, stateVar.type, true)
+        val defaultStr = default?.let { " := $it" } ?: ""
+
+        val type = stateVar.type.code?.let { ASTUtils.toOriginalText(it) } ?: LeanTypes.getTargetType(stateVar.type)
+        return "${stateVar.name} : ${type}$defaultStr"
     }
 
     private fun genTimer(timer: Timer): String {
@@ -70,7 +76,8 @@ class LeanGenerator(
 
     private fun genNested(nested: Instantiation): String {
         val params = nested.parameters.joinWithCommas(trailing = false) { a ->
-            "${a.lhs.name} : ${a.lhs.type.baseType} := ${LeanTypes.getTargetInitializer(a.rhs, a.lhs.type)}"
+            val type = a.lhs.type.code?.let { ASTUtils.toOriginalText(it) } ?: LeanTypes.getTargetType(a.lhs.type)
+            "${a.lhs.name} : ${type} := ${LeanTypes.getTargetInitializer(a.rhs, a.lhs.type, true)}"
         }
         return "${nested.name} : ${nested.reactorClass.name} := [$params]"
     }

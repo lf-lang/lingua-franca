@@ -14,15 +14,15 @@ reactor Test {
     state week : time(8 weeks)
 
     reaction(startup) {=
-        assert! (← getState .zero) = (0 : Time)
-        assert! (← getState .ns)   = Time.of 1 .ns
-        assert! (← getState .us)   = Time.of 2 .us
-        assert! (← getState .ms)   = Time.of 3 .ms
-        assert! (← getState .s)    = Time.of 4 .s
-        assert! (← getState .min)  = Time.of 5 .mins
-        assert! (← getState .hour) = Time.of 6 .hours
-        assert! (← getState .day)  = Time.of 7 .days
-        assert! (← getState .week) = Time.of 8 .weeks
+        assert! (← getState .zero) = 0
+        assert! (← getState .ns)   = .of 1 .ns
+        assert! (← getState .us)   = .of 2 .μs
+        assert! (← getState .ms)   = .of 3 .ms
+        assert! (← getState .s)    = .of 4 .s
+        assert! (← getState .min)  = .of 5 .mins
+        assert! (← getState .hour) = .of 6 .hours
+        assert! (← getState .day)  = .of 7 .days
+        assert! (← getState .week) = .of 8 .weeks
     =}
 }
 
