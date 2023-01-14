@@ -35,6 +35,11 @@ public abstract class RuntimeTest extends TestBase {
     }
 
     /**
+     * Whether to enable {@link #runEnclaveTests()}.
+     */
+    protected boolean supportsEnclaves() { return false; }
+
+    /**
      * Whether to enable {@link #runFederatedTests()}.
      */
     protected boolean supportsFederatedExecution() {
@@ -165,4 +170,16 @@ public abstract class RuntimeTest extends TestBase {
             true
         );
     }
+
+    /**
+     * Run enclave tests if the target supports enclaves.
+     */
+    @Test
+    public void runEnclaveTests() {
+        Assumptions.assumeTrue(supportsEnclaves(), Message.NO_ENCLAVE_SUPPORT);
+        runTestsForTargets(Message.DESC_ENCLAVE,
+            TestCategory.ENCLAVE::equals, Configurators::noChanges,
+            false);
+    }
+
 }

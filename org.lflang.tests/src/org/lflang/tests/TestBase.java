@@ -135,6 +135,7 @@ public abstract class TestBase {
         public static final String NO_WINDOWS_SUPPORT = "Not (yet) supported on Windows.";
         public static final String NO_SINGLE_THREADED_SUPPORT = "Target does not support single-threaded execution.";
         public static final String NO_FEDERATION_SUPPORT = "Target does not support federated execution.";
+        public static final String NO_ENCLAVE_SUPPORT = "Targeet does not support the enclave feature.";
         public static final String NO_DOCKER_SUPPORT = "Target does not support the 'docker' property.";
         public static final String NO_DOCKER_TEST_SUPPORT = "Docker tests are only supported on Linux.";
         public static final String NO_GENERICS_SUPPORT = "Target does not support generic types.";
@@ -148,6 +149,7 @@ public abstract class TestBase {
         public static final String DESC_FEDERATED = "Run federated tests.";
         public static final String DESC_DOCKER = "Run docker tests.";
         public static final String DESC_DOCKER_FEDERATED = "Run docker federated tests.";
+        public static final String DESC_ENCLAVE = "Run enclave tests.";
         public static final String DESC_CONCURRENT = "Run concurrent tests.";
         public static final String DESC_TARGET_SPECIFIC = "Run target-specific tests";
         public static final String DESC_ARDUINO = "Running Arduino tests.";

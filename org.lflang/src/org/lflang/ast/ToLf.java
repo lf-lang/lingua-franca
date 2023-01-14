@@ -684,6 +684,7 @@ public class ToLf extends LfSwitch<MalleableString> {
     // (parameters+=Assignment (',' parameters+=Assignment)*)?
     // ')' ('at' host=Host)? ';'?;
     Builder msb = new Builder();
+    addAttributes(msb, object::getAttributes);
     msb.append(object.getName()).append(" = new");
     if (object.getWidthSpec() != null) msb.append(doSwitch(object.getWidthSpec()));
     msb.append(" ").append(object.getReactorClass().getName());
