@@ -51,13 +51,22 @@ public class CMainFunctionGenerator {
             "}",
             "void loop() {}"
             );
+        } else if (targetConfig.platformOptions.platform == Platform.ZEPHYR) {
+            // The Zephyr "runtime" does not terminate when main returns.
+            //  Rather, `exit` should be called explicitly.
+            return String.join("\n",
+                "void main(void) {",
+                "   int res = lf_reactor_c_main(0, NULL);",
+                "   exit(res);"
+                "}"
+                );
+        } else {
+            return String.join("\n",
+                "int main(int argc, const char* argv[]) {",
+                "    return lf_reactor_c_main(argc, argv);",
+                "}"
+            );
         }
-        return String.join("\n",
-            "int main(int argc, const char* argv[]) {",
-            "    return lf_reactor_c_main(argc, argv);",
-            "}"
-        );
-    }
 
     /**
      * Generate code that is used to override the
