@@ -62,7 +62,6 @@ public class Configurators {
         return true;
     }
 
-
     // TODO: In the future we want to execute to the test with QEMU
     //  but it requires parsing QEMU output until either:
     //  1) A timeout
