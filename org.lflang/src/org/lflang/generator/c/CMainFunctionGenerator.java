@@ -67,6 +67,7 @@ public class CMainFunctionGenerator {
                 "}"
             );
         }
+    }
 
     /**
      * Generate code that is used to override the
