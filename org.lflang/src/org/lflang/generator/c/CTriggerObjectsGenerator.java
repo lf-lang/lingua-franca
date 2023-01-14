@@ -842,8 +842,7 @@ public class CTriggerObjectsGenerator {
      * from one or more of the specified reactions, set the num_destinations
      * field of the corresponding port structs on the self struct of
      * the reaction's parent reactor equal to the total number of
-     * destination reactors. This is used to initialize reference
-     * counts in dynamically allocated tokens sent to other reactors.
+     * destination reactors.
      * If the port has a token type, this also initializes it with a token.
      * @param currentFederate The current federate.
      * @param reactions The reactions.
@@ -885,10 +884,13 @@ public class CTriggerObjectsGenerator {
                             // If the rootType is 'void', we need to avoid generating the code
                             // 'sizeof(void)', which some compilers reject.
                             var size = (rootType.equals("void")) ? "0" : "sizeof("+rootType+")";
+                            // If the port is a multiport, then the portRefNested is itself a pointer
+                            // so we want its value, not its address.
+                            var indirection = (port.isMultiport())? "" : "&";
                             code.startChannelIteration(port);
                             code.pr(String.join("\n",
                                     "_lf_initialize_template((token_template_t*)",
-                                    "        &("+CUtil.portRefNested(port, sr, sb, sc)+"),",
+                                    "        "+indirection+"("+CUtil.portRefNested(port, sr, sb, sc)+"),",
                                              size+");"
                             ));
                             code.endChannelIteration(port);
