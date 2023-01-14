@@ -30,7 +30,7 @@ class CppStandaloneGenerator(generator: CppGenerator) :
         codeMaps[fileConfig.srcGenPath.resolve(mainFile)] = mainCodeMap
         println("Path: $srcGenPath $srcGenPath")
 
-        FileUtil.writeToFile(mainCodeMap.generatedCode, srcGenPath.resolve(mainFile))
+        FileUtil.writeToFile(mainCodeMap.generatedCode, srcGenPath.resolve(mainFile), true)
 
         // generate the cmake scripts
         val cmakeGenerator = CppStandaloneCmakeGenerator(targetConfig, generator.fileConfig)
