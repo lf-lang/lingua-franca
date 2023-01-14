@@ -41,4 +41,4 @@ cd $LF
 
 ### See also
 
-- [Regression Tests (wiki)](https://github.com/lf-lang/lingua-franca/wiki/Regression-Tests)
+- [Regression Tests (Handbook)](https://www.lf-lang.org/docs/handbook/regression-tests?target=c)
