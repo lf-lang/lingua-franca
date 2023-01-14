@@ -758,7 +758,7 @@ public class ASTUtils {
     }
 
     /**
-     * Converts a TimeValue to its AST representation. The value is type-cast to int in order to fit inside an Element.
+     * Convert a TimeValue to its AST representation. The value is type-cast to int in order to fit inside an Element.
      */
     public static Element toElement(TimeValue tv) {
         Element e = LfFactory.eINSTANCE.createElement();
