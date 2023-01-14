@@ -238,7 +238,7 @@ public class AttributeSpec {
         ATTRIBUTE_SPECS_BY_NAME.put("sparse", new AttributeSpec(null));
         // @language(lang)
         ATTRIBUTE_SPECS_BY_NAME.put("language", new AttributeSpec(
-            List.of(new AttrParamSpec(AttributeSpec.VALUE_ATTR, AttrParamType.LANGUAGE, null))
+            List.of(new AttrParamSpec(AttributeSpec.VALUE_ATTR, AttrParamType.LANGUAGE, false))
         ));
         // @_fed_recv
         ATTRIBUTE_SPECS_BY_NAME.put("_fed_recv", new AttributeSpec(null));
@@ -251,7 +251,7 @@ public class AttributeSpec {
         // @_fed_config
         ATTRIBUTE_SPECS_BY_NAME.put("_fed_config", new AttributeSpec(
                 List.of(new AttrParamSpec(AttributeSpec.NETWORK_MESSAGE_ACTIONS,
-                AttrParamType.STRING, null))));
+                AttrParamType.STRING, false))));
         // @icon("value")
         ATTRIBUTE_SPECS_BY_NAME.put("icon", new AttributeSpec(
             List.of(new AttrParamSpec(VALUE_ATTR, AttrParamType.STRING, false))
