@@ -120,8 +120,8 @@ public class CCmakeGenerator {
         cMakeCode.pr("cmake_minimum_required(VERSION " + MIN_CMAKE_VERSION + ")");
 
         if (targetConfig.platformOptions.platform == Platform.ZEPHYR) {
-            cMakeCode.pr("# Set default configuration file. To add custom configurations");
-            cMakeCode.pr("# Pass -- -DOVERLAY_CONFIG=my_config.prj to either cmake or west");
+            cMakeCode.pr("# Set default configuration file. To add custom configurations,");
+            cMakeCode.pr("# pass -- -DOVERLAY_CONFIG=my_config.prj to either cmake or west");
             cMakeCode.pr("set(CONF_FILE prj_lf.conf)");
             if (targetConfig.platformOptions.board != null) {
                 cMakeCode.pr("# Selecting board specified in target property");
