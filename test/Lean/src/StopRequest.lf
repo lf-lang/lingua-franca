@@ -15,10 +15,10 @@ reactor Test {
     // actually perform the final instantaneous execution.
     logical action a : Unit
 
-    reaction(startup, a) {=
-        // As we request a stop immediately, the final execution of this
-        // reaction should occur at tag (0,1). So if we see a tag greater
-        // than that the stop request has failed.
+    // As we request a stop immediately, the final execution of this
+    // reaction should occur at tag (0,1). So if we see a tag greater
+    // than that the stop request has failed.
+    reaction(startup, a) -> a {=
         assert! (← getTag) ≤ ⟨0, 1⟩
 
         requestStop

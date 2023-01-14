@@ -1,13 +1,13 @@
-// Tests whether definitions declared in the prelude can be used in reactor
+// Tests whether definitions declared in the preamble can be used in reactor
 // declarations and reaction bodies.
 target Lean
 
-prelude {=
+preamble {=
     inductive Custom | c
     def greeting := "hello"
 =}
 
-reactor Test { 
+reactor Test {
     state s : Custom
 
     reaction(startup) {=
