@@ -57,7 +57,7 @@ public class CMainFunctionGenerator {
             return String.join("\n",
                 "void main(void) {",
                 "   int res = lf_reactor_c_main(0, NULL);",
-                "   exit(res);"
+                "   exit(res);",
                 "}"
                 );
         } else {
