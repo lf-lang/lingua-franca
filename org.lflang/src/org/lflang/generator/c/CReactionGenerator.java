@@ -322,8 +322,8 @@ public class CReactionGenerator {
         return isTokenType ?
                 String.join("\n",
                     DISABLE_REACTION_INITIALIZATION_MARKER,
-                    "self->_lf_"+outputName+".value = ("+targetType+")self->_lf__"+actionName+".template.token->value;",
-                    "_lf_replace_template_token((token_template_t*)&self->_lf_"+outputName+", (lf_token_t*)self->_lf__"+actionName+".template.token);",
+                    "self->_lf_"+outputName+".value = ("+targetType+")self->_lf__"+actionName+".tmplt.token->value;",
+                    "_lf_replace_template_token((token_template_t*)&self->_lf_"+outputName+", (lf_token_t*)self->_lf__"+actionName+".tmplt.token);",
                     "self->_lf_"+outputName+".is_present = true;"
                 ) :
                 "lf_set("+outputName+", "+actionName+"->value);";
@@ -485,7 +485,7 @@ public class CReactionGenerator {
         // If the action has a type, create variables for accessing the value.
         InferredType type = ASTUtils.getInferredType(action);
         // Pointer to the lf_token_t sent as the payload in the trigger.
-        String tokenPointer = "(self->_lf__"+action.getName()+".template.token)";
+        String tokenPointer = "(self->_lf__"+action.getName()+".tmplt.token)";
         CodeBuilder builder = new CodeBuilder();
 
         builder.pr(
@@ -823,7 +823,7 @@ public class CReactionGenerator {
                     "self->_lf__"+action.getName()+".policy = "+action.getPolicy()+";" :
                     ""),
                     // Need to set the element_size in the trigger_t and the action struct.
-                    "self->_lf__"+action.getName()+".template.type.element_size = "+elementSize+";",
+                    "self->_lf__"+action.getName()+".tmplt.type.element_size = "+elementSize+";",
                     "self->_lf_"+action.getName()+".type.element_size = "+elementSize+";"
                 ));
             }
@@ -889,7 +889,7 @@ public class CReactionGenerator {
             // If the input type is 'void', we need to avoid generating the code
             // 'sizeof(void)', which some compilers reject.
             var size = (rootType.equals("void")) ? "0" : "sizeof("+rootType+")";
-            constructorCode.pr("self->_lf__"+varName+".template.type.element_size = "+size+";");
+            constructorCode.pr("self->_lf__"+varName+".tmplt.type.element_size = "+size+";");
             if (isFederated) {
                 body.pr(
                     CGeneratorExtension.createPortStatusFieldForInput((Input) variable)
