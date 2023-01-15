@@ -9,9 +9,12 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -84,7 +87,7 @@ public class FedGenerator {
     /**
      * The current target configuration.
      */
-    private final TargetConfig targetConfig = new TargetConfig();
+    private final TargetConfig targetConfig;
     /**
      * A list of federate instances.
      */
@@ -115,15 +118,15 @@ public class FedGenerator {
      */
     private Instantiation mainDef;
 
-    public FedGenerator(FedFileConfig fileConfig, ErrorReporter errorReporter) {
-        this.fileConfig = fileConfig;
-        this.errorReporter = errorReporter;
+    public FedGenerator(LFGeneratorContext context) {
+        this.fileConfig = (FedFileConfig) context.getFileConfig();
+        this.targetConfig = context.getTargetConfig();
+        this.errorReporter = context.getErrorReporter();
     }
 
     public boolean doGenerate(Resource resource, LFGeneratorContext context) throws IOException {
         if (!federatedExecutionIsSupported(resource)) return true;
-        initializeTargetConfig(context);
-        this.cleanIfNeeded(context);
+        cleanIfNeeded(context);
 
         // In a federated execution, we need keepalive to be true,
         // otherwise a federate could exit simply because it hasn't received
@@ -162,9 +165,10 @@ public class FedGenerator {
             ));
         }
 
-        Map<Path, CodeMap> codeMapMap = compileFederates(context, lf2lfCodeMapMap);
-        context.finish(Status.COMPILED, fileConfig.name, fileConfig, codeMapMap);
-        return false;
+        Map<Path, CodeMap> codeMapMap = compileFederates(context, lf2lfCodeMapMap, (fcMap) -> {});
+
+        context.finish(Status.COMPILED, codeMapMap);
+        return false; // FIXME why false?
     }
 
     /**
@@ -172,7 +176,7 @@ public class FedGenerator {
      * the clean step.
      * @param context
      */
-    protected void cleanIfNeeded(LFGeneratorContext context) {
+    private void cleanIfNeeded(LFGeneratorContext context) {
         if (context.getArgs().containsKey(BuildParm.CLEAN.getKey())) {
             try {
                 fileConfig.doClean();
@@ -203,7 +207,7 @@ public class FedGenerator {
                                                       errorReporter);
         } else {
             launcher = FedLauncherFactory.getLauncher(
-                federates.get(0), // FIXME: This architecture only works for one target.
+                federates.get(0), // FIXME: This would not work for mixed-target programs.
                 fileConfig,
                 errorReporter
             );
@@ -232,16 +236,19 @@ public class FedGenerator {
         return ret;
     }
 
-    private Map<Path, CodeMap> compileFederates(LFGeneratorContext context, Map<Path, CodeMap> lf2lfCodeMapMap) {
+    private Map<Path, CodeMap> compileFederates(
+            LFGeneratorContext context,
+            Map<Path, CodeMap> lf2lfCodeMapMap,
+            Consumer<Map<FederateInstance, FileConfig>> finalize) {
+
         // FIXME: Use the appropriate resource set instead of always using standalone
         Injector inj = new LFStandaloneSetup()
             .createInjectorAndDoEMFRegistration();
         XtextResourceSet rs = inj.getInstance(XtextResourceSet.class);
         rs.addLoadOption(XtextResource.OPTION_RESOLVE_ALL, Boolean.TRUE);
-        LFGenerator gen = inj.getInstance(LFGenerator.class);
         // define output path here
         JavaIoFileSystemAccess fsa = inj.getInstance(JavaIoFileSystemAccess.class);
-        fsa.setOutputPath("DEFAULT_OUTPUT", fileConfig.getFedSrcGenPath().toString());
+        fsa.setOutputPath("DEFAULT_OUTPUT", fileConfig.getSrcGenPath().toString());
 
         var numOfCompileThreads = Math.min(6,
                                            Math.min(
@@ -251,29 +258,47 @@ public class FedGenerator {
         );
         var compileThreadPool = Executors.newFixedThreadPool(numOfCompileThreads);
         System.out.println("******** Using "+numOfCompileThreads+" threads to compile the program.");
-        Map<Path, CodeMap> codeMapMap = new HashMap<>();
-
+        Map<Path, CodeMap> codeMapMap = new ConcurrentHashMap<>();
         Averager averager = new Averager(federates.size());
         for (int i = 0; i < federates.size(); i++) {
             FederateInstance fed = federates.get(i);
             final int id = i;
             compileThreadPool.execute(() -> {
-                SubContext cont = new SubContext(context, IntegratedBuilder.VALIDATED_PERCENT_PROGRESS, 100) {
+                Resource res = rs.getResource(URI.createFileURI(
+                    fileConfig.getSrcPath().resolve(fed.name + ".lf").toAbsolutePath().toString()
+                ), true);
+                FileConfig subFileConfig = LFGenerator.createFileConfig(res, fileConfig.getSrcGenPath(), false);
+                ErrorReporter subContextErrorReporter = new LineAdjustingErrorReporter(errorReporter, lf2lfCodeMapMap);
+                TargetConfig subConfig = GeneratorUtils.getTargetConfig(
+                    new Properties(), GeneratorUtils.findTarget(subFileConfig.resource), subContextErrorReporter
+                );
+                SubContext subContext = new SubContext(context, IntegratedBuilder.VALIDATED_PERCENT_PROGRESS, 100) {
                     @Override
-                    public ErrorReporter constructErrorReporter(FileConfig fileConfig) {
-                        return new LineAdjustingErrorReporter(errorReporter, lf2lfCodeMapMap);
+                    public ErrorReporter getErrorReporter() {
+                        return subContextErrorReporter;
                     }
 
                     @Override
                     public void reportProgress(String message, int percentage) {
                         averager.report(id, percentage, meanPercentage -> super.reportProgress(message, meanPercentage));
                     }
+
+                    @Override
+                    public FileConfig getFileConfig() {
+                        return subFileConfig;
+                    }
+
+                    @Override
+                    public TargetConfig getTargetConfig() {
+                        return subConfig;
+                    }
                 };
-                Resource res = rs.getResource(URI.createFileURI(
-                    fileConfig.getFedSrcPath().resolve(fed.name + ".lf").toAbsolutePath().toString()
-                ), true);
-                gen.doGenerate(res, fsa, cont);
-                codeMapMap.putAll(cont.getResult().getCodeMaps());
+
+                inj.getInstance(LFGenerator.class).doGenerate(res, fsa, subContext);
+                codeMapMap.putAll(subContext.getResult().getCodeMaps());
+                // FIXME
+                //subContext.getFileConfig()
+                //finalize.accept();
             });
         }
 
@@ -288,20 +313,6 @@ public class FedGenerator {
             Exceptions.sneakyThrow(e);
         }
         return codeMapMap;
-    }
-
-    /**
-     * Initialize the target config.
-     * @param context
-     * @throws IOException
-     */
-    private void initializeTargetConfig(LFGeneratorContext context) throws IOException {
-        GeneratorUtils.setTargetConfig(
-            context,
-            GeneratorUtils.findTarget(fileConfig.resource),
-            targetConfig,
-            errorReporter
-        );
     }
 
     /**

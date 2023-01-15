@@ -33,8 +33,8 @@ import org.lflang.util.CollectionUtil;
 /**
  * Directed graph that maps nodes to its upstream and downstream neighbors.
  *
- * @author Marten Lohstroh {@literal <marten@berkeley.edu>}
- * @author Clément Fournier {@literal <clement.fournier@mailbox.tu-dresden.de>}
+ * @author Marten Lohstroh
+ * @author Clément Fournier
  */
 public class DirectedGraph<T> implements Graph<T> {
 

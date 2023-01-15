@@ -11,15 +11,15 @@
  *    this list of conditions and the following disclaimer in the documentation
  *    and/or other materials provided with the distribution.
 
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
- * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED 
- * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE 
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
  * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR
- * ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES 
- * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; 
- * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON 
- * ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT 
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS 
+ * ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+ * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+ * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
+ * ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  ***************/
 
@@ -34,16 +34,17 @@ import org.lflang.FileConfig;
 import org.lflang.util.FileUtil;
 
 /**
- * A child class of @see FileConfig that extends the base functionality to add support
- * for federated execution. The code generator should create one instance of this class 
- * for each federate.
- * 
+ * A subclass of @see FileConfig that extends the base functionality to add support
+ * for compiling federated LF programs. The code generator should create one instance
+ * of this class for each federate.
+ *
  * @author Soroush Bateni
  *
  */
 public class FedFileConfig extends FileConfig {
 
     public FedFileConfig(Resource resource, Path srcGenBasePath, boolean useHierarchicalBin) throws IOException {
+        // FIMXE: It is unclear to me that we need this class.
         super(resource, srcGenBasePath, useHierarchicalBin);
 
     }
@@ -52,20 +53,36 @@ public class FedFileConfig extends FileConfig {
         super(fileConfig.resource, fileConfig.getSrcGenBasePath(), fileConfig.useHierarchicalBin);
     }
 
+
+    //    @Override
+//    public LFCommand getCommand() {
+//        // FIXME: what should this point to? The launcher script?
+//        return null;
+//    }
+//
+//    @Override
+//    public Path getExecutable() {
+//        // FIXME: what should this point to? The launcher script?
+//        return null;
+//    }
+
+    // FIXME: it seems that the "fed" methods below should just be overrides in
+    //  the other class of the normal ones.
+
     /**
      * Return the path to the root of a LF project generated on the basis of a
      * federated LF program currently under compilation.
      */
-    public Path getFedGenPath() {
-        return srcPkgPath.resolve("fed-gen").resolve(this.name);
+    public Path getGenPath() {
+        return srcPkgPath.resolve("fed-gen").resolve(name);
     }
 
     /**
      * Return the path for storing generated LF sources that jointly constitute a
      * federation.
      */
-    public Path getFedSrcPath() {
-        return getFedGenPath().resolve("src");
+    public Path getSrcPath() {
+        return getGenPath().resolve("src");
     }
 
     /**
@@ -75,8 +92,17 @@ public class FedFileConfig extends FileConfig {
      * to the package root, then the generated sources will be put in x/y/Z
      * relative to srcGenBasePath.
      */
-    public Path getFedSrcGenPath() {
-        return getFedGenPath().resolve("src-gen");
+    @Override
+    public Path getSrcGenPath() {
+        return getGenPath().resolve("src-gen");
+    }
+
+    /**
+     * Return the path to the root of a LF project generated on the basis of a
+     * federated LF program currently under compilation.
+     */
+    public Path getFedGenPath() {
+        return srcPkgPath.resolve("fed-gen").resolve(this.name);
     }
 
     @Override

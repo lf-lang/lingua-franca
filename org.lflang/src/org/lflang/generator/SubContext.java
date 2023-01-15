@@ -1,18 +1,20 @@
 package org.lflang.generator;
 
+import java.io.File;
 import java.util.Properties;
 
 import org.eclipse.xtext.util.CancelIndicator;
 
 import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
+import org.lflang.TargetConfig;
 
 /**
  * A {@code SubContext} is the context of a process within a build process. For example,
  * compilation of generated code may optionally be given a {@code SubContext} because
  * compilation is part of a complete build.
  *
- * @author Peter Donovan <peterdonovan@berkeley.edu>
+ * @author Peter Donovan
  */
 public class SubContext implements LFGeneratorContext {
 
@@ -20,6 +22,8 @@ public class SubContext implements LFGeneratorContext {
     private final int startPercentProgress;
     private final int endPercentProgress;
     private GeneratorResult result = null;
+
+    protected ErrorReporter errorReporter;
 
     /**
      * Initializes the context within {@code containingContext} of the process that extends from
@@ -52,17 +56,6 @@ public class SubContext implements LFGeneratorContext {
     }
 
     @Override
-    public boolean useHierarchicalBin() {
-        return containingContext.useHierarchicalBin();
-    }
-
-    @Override
-    public ErrorReporter constructErrorReporter(FileConfig fileConfig) {
-        // Always use the error reporter of the parent context.
-        return getErrorReporter();
-    }
-
-    @Override
     public ErrorReporter getErrorReporter() {
         return containingContext.getErrorReporter();
     }
@@ -75,6 +68,16 @@ public class SubContext implements LFGeneratorContext {
     @Override
     public GeneratorResult getResult() {
         return result;
+    }
+
+    @Override
+    public FileConfig getFileConfig() {
+        return containingContext.getFileConfig();
+    }
+
+    @Override
+    public TargetConfig getTargetConfig() {
+        return containingContext.getTargetConfig();
     }
 
     @Override

@@ -39,9 +39,11 @@ import static org.lflang.util.StringUtil.addDoubleQuotes;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.eclipse.emf.ecore.resource.Resource;
@@ -55,21 +57,28 @@ import org.lflang.FileConfig;
 import org.lflang.Target;
 import org.lflang.TargetConfig;
 import org.lflang.TargetProperty;
+import org.lflang.TargetProperty.CoordinationType;
 import org.lflang.TargetProperty.Platform;
+
 import org.lflang.federated.extensions.CExtensionUtils;
+
+import org.lflang.ast.AfterDelayTransformation;
+
 import org.lflang.generator.ActionInstance;
 import org.lflang.generator.CodeBuilder;
+import org.lflang.generator.DockerGeneratorBase;
 import org.lflang.generator.GeneratorBase;
 import org.lflang.generator.GeneratorResult;
 import org.lflang.generator.GeneratorUtils;
-import org.lflang.generator.IntegratedBuilder;
+
+import org.lflang.generator.DelayBodyGenerator;
+
 import org.lflang.generator.LFGeneratorContext;
 import org.lflang.generator.LFResource;
 import org.lflang.generator.ParameterInstance;
 import org.lflang.generator.PortInstance;
 import org.lflang.generator.ReactionInstance;
 import org.lflang.generator.ReactorInstance;
-import org.lflang.generator.SubContext;
 import org.lflang.generator.TargetTypes;
 import org.lflang.generator.TimerInstance;
 import org.lflang.generator.TriggerInstance;
@@ -304,14 +313,14 @@ import com.google.common.collect.Iterables;
  * * _lf_action_table: For a federated execution, each federate will have this table
  *   that maps port IDs to the corresponding trigger_t struct.
  *
- * @author {Edward A. Lee <eal@berkeley.edu>}
- * @author {Marten Lohstroh <marten@berkeley.edu>}
- * @author {Mehrdad Niknami <mniknami@berkeley.edu>}
- * @author {Christian Menard <christian.menard@tu-dresden.de>}
- * @author {Matt Weber <matt.weber@berkeley.edu>}
- * @author {Soroush Bateni <soroush@utdallas.edu>}
- * @author {Alexander Schulz-Rosengarten <als@informatik.uni-kiel.de>}
- * @author {Hou Seng Wong <housengw@berkeley.edu>}
+ * @author Edward A. Lee
+ * @author Marten Lohstroh
+ * @author Mehrdad Niknami
+ * @author Christian Menard
+ * @author Matt Weber
+ * @author Soroush Bateni
+ * @author Alexander Schulz-Rosengarten
+ * @author Hou Seng Wong
  */
 @SuppressWarnings("StaticPseudoFunctionalStyleMethod")
 public class CGenerator extends GeneratorBase {
@@ -334,6 +343,8 @@ public class CGenerator extends GeneratorBase {
 
     /** Place to collect code to initialize the trigger objects for all reactor instances. */
     protected CodeBuilder initializeTriggerObjects = new CodeBuilder();
+
+    protected final CFileConfig fileConfig;
 
     /**
      * Count of the number of is_present fields of the self struct that
@@ -370,34 +381,56 @@ public class CGenerator extends GeneratorBase {
     private final CCmakeGenerator cmakeGenerator;
 
     protected CGenerator(
-        FileConfig fileConfig,
-        ErrorReporter errorReporter,
+        LFGeneratorContext context,
         boolean CCppMode,
         CTypes types,
-        CCmakeGenerator cmakeGenerator
+        CCmakeGenerator cmakeGenerator,
+        DelayBodyGenerator delayBodyGenerator
     ) {
-        super(fileConfig, errorReporter);
+        super(context);
+        this.fileConfig = (CFileConfig) context.getFileConfig();
         this.CCppMode = CCppMode;
         this.types = types;
         this.cmakeGenerator = cmakeGenerator;
+
+        // Register the after delay transformation to be applied by GeneratorBase.
+        registerTransformation(new AfterDelayTransformation(delayBodyGenerator, types, fileConfig.resource));
     }
 
-    public CGenerator(FileConfig fileConfig, ErrorReporter errorReporter, boolean CCppMode) {
+    public CGenerator(LFGeneratorContext context, boolean ccppMode) {
         this(
-            fileConfig,
-            errorReporter,
-            CCppMode,
-            new CTypes(errorReporter),
-            new CCmakeGenerator(fileConfig, List.of())
+            context,
+            ccppMode,
+            new CTypes(context.getErrorReporter()),
+            new CCmakeGenerator(context.getFileConfig(), List.of()),
+            new CDelayBodyGenerator(new CTypes(context.getErrorReporter()))
         );
     }
 
-    public CGenerator(FileConfig fileConfig, ErrorReporter errorReporter) {
-        this(fileConfig, errorReporter, false);
-    }
+//    public CGenerator(LFGeneratorContext context) {
+//        this(context, false, new CTypes(context.getErrorReporter()));
+//    }
 
-    ////////////////////////////////////////////
-    //// Public methods
+//    /**
+//     * Set C-specific default target configurations if needed.
+//     */
+//    public void setCSpecificDefaults() {
+//        if (isFederated) {
+//            // Add compile definitions for federated execution
+//            targetConfig.compileDefinitions.put("FEDERATED", "");
+//            if(targetConfig.auth) {
+//                // The federates are authenticated before joining federation.
+//                targetConfig.compileDefinitions.put("FEDERATED_AUTHENTICATED", "");
+//            }
+//            if (targetConfig.coordination == CoordinationType.CENTRALIZED) {
+//                // The coordination is centralized.
+//                targetConfig.compileDefinitions.put("FEDERATED_CENTRALIZED", "");
+//            } else if (targetConfig.coordination == CoordinationType.DECENTRALIZED) {
+//                // The coordination is decentralized
+//                targetConfig.compileDefinitions.put("FEDERATED_DECENTRALIZED", "");
+//            }
+//        }
+//    }
 
     /**
      * Look for physical actions in all resources.
@@ -462,20 +495,10 @@ public class CGenerator extends GeneratorBase {
         // Perform set up that does not generate code
         setUpGeneralParameters();
 
-        var commonCode = new CodeBuilder(code);
-
         FileUtil.createDirectoryIfDoesNotExist(fileConfig.getSrcGenPath().toFile());
         FileUtil.createDirectoryIfDoesNotExist(fileConfig.binPath.toFile());
         handleProtoFiles();
-        // Docker related paths
-        CDockerGenerator dockerGenerator = getDockerGenerator();
 
-        // Keep a separate file config for each federate
-        var oldFileConfig = fileConfig;
-
-        LFGeneratorContext generatingContext = new SubContext(
-            context, IntegratedBuilder.VALIDATED_PERCENT_PROGRESS, IntegratedBuilder.GENERATED_PERCENT_PROGRESS
-        );
         var lfModuleName = fileConfig.name;
         generateCodeFor(lfModuleName);
 
@@ -529,9 +552,13 @@ public class CGenerator extends GeneratorBase {
 
             // Create docker file.
             if (targetConfig.dockerOptions != null && mainDef != null) {
-                dockerGenerator.addFile(
-                    dockerGenerator.fromData(lfModuleName, main.getName(), fileConfig));
+                try {
+                    getDockerGenerator(context).writeDockerFiles();
+                } catch (IOException e) {
+                    throw new RuntimeException("Error while writing Docker files", e);
+                }
             }
+
             var cmakeFile = fileConfig.getSrcGenPath() + File.separator + "CMakeLists.txt";
             var cmakeCode = cmakeGenerator.generateCMakeCode(
                 List.of(cFilename),
@@ -548,6 +575,22 @@ public class CGenerator extends GeneratorBase {
                 //noinspection ThrowableNotThrown,ResultOfMethodCallIgnored
                 Exceptions.sneakyThrow(e);
             }
+
+        // Dump the additional compile definitions to a file to keep the generated project
+        // self-contained. In this way, third-party build tools like PlatformIO, west, arduino-cli can
+        // take over and do the rest of compilation.
+
+        try {
+            String compileDefs = targetConfig.compileDefinitions.keySet().stream()
+                                                                .map(key -> key + "=" + targetConfig.compileDefinitions.get(key))
+                                                                .collect(Collectors.joining("\n"));
+            FileUtil.writeToFile(
+                compileDefs,
+                Path.of(fileConfig.getSrcGenPath() + File.separator + "CompileDefinitions.txt")
+            );
+        } catch (IOException e) {
+            Exceptions.sneakyThrow(e);
+        }
 
         // If this code generator is directly compiling the code, compile it now so that we
         // clean it up after, removing the #line directives after errors have been reported.
@@ -583,21 +626,12 @@ public class CGenerator extends GeneratorBase {
                     context.unsuccessfulFinish();
                 } else {
                     context.finish(
-                        GeneratorResult.Status.COMPILED, execName, fileConfig, null
+                        GeneratorResult.Status.COMPILED, null
                     );
                 }
                 cleanCode.writeToFile(targetFile);
             } catch (IOException e) {
                 Exceptions.sneakyThrow(e);
-            }
-        }
-
-        if (targetConfig.dockerOptions != null && mainDef != null) {
-            try {
-                dockerGenerator.writeDockerFiles(
-                    fileConfig.getSrcGenPath().resolve("docker-compose.yml"));
-            } catch (IOException e) {
-                throw new RuntimeException(e);
             }
         }
 
@@ -614,12 +648,12 @@ public class CGenerator extends GeneratorBase {
                     context.getMode()
                 );
                 context.finish(
-                    GeneratorResult.Status.COMPILED, fileConfig.name, fileConfig, null
+                    GeneratorResult.Status.COMPILED, null
                 );
             }
             System.out.println("Compiled binary is in " + fileConfig.binPath);
         } else {
-            context.finish(GeneratorResult.GENERATED_NO_EXECUTABLE.apply(null));
+            context.finish(GeneratorResult.GENERATED_NO_EXECUTABLE.apply(context, null));
         }
 
         // In case we are in Eclipse, make sure the generated code is visible.
@@ -747,10 +781,6 @@ public class CGenerator extends GeneratorBase {
                 hasModalReactors
             ));
         }
-    }
-
-    protected CDockerGenerator getDockerGenerator() {
-        return new CDockerGenerator(false, CCppMode, targetConfig);
     }
 
     @Override
@@ -965,8 +995,7 @@ public class CGenerator extends GeneratorBase {
         // if platform target was set, use given platform instead
         if (targetConfig.platformOptions.platform != Platform.AUTO) {
             osName = targetConfig.platformOptions.platform.toString();
-        }
-        if (Stream.of("mac", "darwin", "win", "nux", "arduino").noneMatch(osName::contains)) {
+        } else if (Stream.of("mac", "darwin", "win", "nux").noneMatch(osName::contains)) {
             errorReporter.reportError("Platform " + osName + " is not supported");
         }
     }
@@ -1645,7 +1674,7 @@ public class CGenerator extends GeneratorBase {
             List.of("--c_out="+this.fileConfig.getSrcGenPath(), filename),
             fileConfig.srcPath);
         if (protoc == null) {
-            errorReporter.reportError("Processing .proto files requires proto-c >= 1.3.3.");
+            errorReporter.reportError("Processing .proto files requires protoc-c >= 1.3.3.");
             return;
         }
         var returnCode = protoc.run();
@@ -1931,6 +1960,10 @@ public class CGenerator extends GeneratorBase {
         return types;
     }
 
+    protected DockerGeneratorBase getDockerGenerator(LFGeneratorContext context) {
+        return new CDockerGenerator(context);
+    }
+
     // //////////////////////////////////////////
     // // Protected methods.
 
@@ -1968,40 +2001,47 @@ public class CGenerator extends GeneratorBase {
         pickCompilePlatform();
     }
 
-    /**
-     * Generate code for the body of a reaction that takes an input and
-     * schedules an action with the value of that input.
-     * @param action The action to schedule
-     * @param port The port to read from
-     */
-    @Override
-    public String generateDelayBody(Action action, VarRef port) {
-        var ref = ASTUtils.generateVarRef(port);
-        return CReactionGenerator.generateDelayBody(
-            ref,
-            action.getName(),
-            CUtil.isTokenType(getInferredType(action), types)
-        );
-    }
 
-    /**
-     * Generate code for the body of a reaction that is triggered by the
-     * given action and writes its value to the given port. This realizes
-     * the receiving end of a logical delay specified with the 'after'
-     * keyword.
-     * @param action The action that triggers the reaction
-     * @param port The port to write to.
-     */
-    @Override
-    public String generateForwardBody(Action action, VarRef port) {
-        var outputName = ASTUtils.generateVarRef(port);
-        return CReactionGenerator.generateForwardBody(
-            outputName,
-            types.getTargetType(action),
-            action.getName(),
-            CUtil.isTokenType(getInferredType(action), types)
-        );
-    }
+//    // Perform set up that does not generate code
+//    protected void setUpFederateSpecificParameters(FederateInstance federate, CodeBuilder commonCode) {
+//        currentFederate = federate;
+//        if (isFederated) {
+//            // Reset the cmake-includes and files, to be repopulated for each federate individually.
+//            // This is done to enable support for separately
+//            // adding cmake-includes/files for different federates to prevent linking and mixing
+//            // all federates' supporting libraries/files together.
+//            targetConfig.cmakeIncludes.clear();
+//            targetConfig.cmakeIncludesWithoutPath.clear();
+//            targetConfig.fileNames.clear();
+//            targetConfig.filesNamesWithoutPath.clear();
+//
+//            // Re-apply the cmake-include target property of the main .lf file.
+//            var target = GeneratorUtils.findTarget(mainDef.getReactorClass().eResource());
+//            if (target.getConfig() != null) {
+//                // Update the cmake-include
+//                TargetProperty.updateOne(
+//                    this.targetConfig,
+//                    TargetProperty.CMAKE_INCLUDE,
+//                    convertToEmptyListIfNull(target.getConfig().getPairs()),
+//                    errorReporter
+//                );
+//                // Update the files
+//                TargetProperty.updateOne(
+//                    this.targetConfig,
+//                    TargetProperty.FILES,
+//                    convertToEmptyListIfNull(target.getConfig().getPairs()),
+//                    errorReporter
+//                );
+//            }
+//            // Clear out previously generated code.
+//            code = new CodeBuilder(commonCode);
+//            initializeTriggerObjects = new CodeBuilder();
+//            // Enable clock synchronization if the federate
+//            // is not local and clock-sync is enabled
+//            initializeClockSynchronization();
+//            startTimeStep = new CodeBuilder();
+//        }
+//    }
 
     protected void handleProtoFiles() {
         // Handle .proto files.
@@ -2044,7 +2084,9 @@ public class CGenerator extends GeneratorBase {
 
         // preamble for federated execution setup
         if (targetConfig.fedSetupPreamble != null) {
+            if (targetLanguageIsCpp()) code.pr("extern \"C\" {");
             code.pr("#include \"" + targetConfig.fedSetupPreamble + "\"");
+            if (targetLanguageIsCpp()) code.pr("}");
         }
 
         // user preambles
@@ -2099,11 +2141,6 @@ public class CGenerator extends GeneratorBase {
         return Target.C;
     }
 
-    @Override
-    public String generateDelayGeneric() {
-        throw new UnsupportedOperationException("TODO: auto-generated method stub");
-    }
-
     ////////////////////////////////////////////////////////////
     //// Private methods
 
@@ -2122,6 +2159,9 @@ public class CGenerator extends GeneratorBase {
                 if (reactionInstanceGraph.nodeCount() > 0) {
                     errorReporter.reportError("Main reactor has causality cycles. Skipping code generation.");
                     return;
+                }
+                if (hasDeadlines) {
+                    this.main.assignDeadlines();
                 }
                 // Inform the run-time of the breadth/parallelism of the reaction graph
                 var breadth = reactionInstanceGraph.getBreadth();

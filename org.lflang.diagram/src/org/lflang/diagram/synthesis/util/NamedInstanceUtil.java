@@ -32,7 +32,7 @@ import org.lflang.generator.NamedInstance;
 /**
  * Utility class to link KGraphElements to NamedInstances.
  * 
- * @author{Alexander Schulz-Rosengarten <als@informatik.uni-kiel.de>}
+ * @author Alexander Schulz-Rosengarten
  */
 public class NamedInstanceUtil {
     public static final Property<NamedInstance<?>> LINKED_INSTANCE = new Property<>(

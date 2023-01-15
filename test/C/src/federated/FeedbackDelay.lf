@@ -49,7 +49,7 @@ reactor Planner {
     output response: double
 
     reaction(request) -> response {=
-        lf_nanosleep(MSEC(10));
+        lf_sleep(MSEC(10));
         lf_set(response, request->value);
     =}
 }

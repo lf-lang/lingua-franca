@@ -39,15 +39,22 @@ import org.lflang.TargetProperty.LogLevel;
 import org.lflang.TargetProperty.Platform;
 import org.lflang.TargetProperty.SchedulerOption;
 import org.lflang.generator.rust.RustTargetConfig;
+import org.lflang.lf.TargetDecl;
 
 /**
  * A class for keeping the current target configuration.
  *
  * Class members of type String are initialized as empty strings,
  * unless otherwise stated.
- * @author Marten Lohstroh <marten@berkeley.edu>
+ * @author Marten Lohstroh
  */
 public class TargetConfig {
+
+    public final Target target;
+
+    public TargetConfig(TargetDecl target) {
+        this.target = Target.fromDecl(target);
+    }
 
     /**
      * Keep track of every target property that is explicitly set by the user.
@@ -191,8 +198,8 @@ public class TargetConfig {
      * This is now a wrapped class to account for overloaded definitions 
      * of defining platform (either a string or dictionary of values)
      *
-     * @author Samuel Berkun (sberkun@berkeley.edu)
-     * @author Anirudh Rengarajan (arengarajan@berkeley.edu)
+     * @author Samuel Berkun
+     * @author Anirudh Rengarajan
      */
     public PlatformOptions platformOptions = new PlatformOptions();
 
@@ -227,6 +234,11 @@ public class TargetConfig {
      * the runtime is allowed to freely choose the number of workers.
      */
     public int workers = 0;
+
+    /**
+     * Indicate whether HMAC authentication is used.
+     */
+    public boolean auth = false;
 
     /**
      * Indicate whether the runtime should use multithreaded execution.

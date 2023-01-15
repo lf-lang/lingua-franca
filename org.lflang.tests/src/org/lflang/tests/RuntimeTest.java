@@ -12,7 +12,7 @@ import org.lflang.tests.TestRegistry.TestCategory;
 /**
  * A collection of JUnit tests to perform on a given set of targets.
  * 
- * @author Marten Lohstroh <marten@berkeley.edu>
+ * @author Marten Lohstroh
  *
  */
 public abstract class RuntimeTest extends TestBase {
@@ -33,6 +33,11 @@ public abstract class RuntimeTest extends TestBase {
     protected RuntimeTest(List<Target> targets) {
         super(targets);
     }
+
+    /**
+     * Whether to enable {@link #runEnclaveTests()}.
+     */
+    protected boolean supportsEnclaves() { return false; }
 
     /**
      * Whether to enable {@link #runFederatedTests()}.
@@ -97,7 +102,7 @@ public abstract class RuntimeTest extends TestBase {
         runTestsFor(List.of(Target.C),
                     Message.DESC_AS_FEDERATED,
                     categories::contains,
-                    it -> ASTUtils.makeFederated(it.fileConfig.resource),
+                    it -> ASTUtils.makeFederated(it.getFileConfig().resource),
                     true);
     }
 
@@ -165,4 +170,16 @@ public abstract class RuntimeTest extends TestBase {
             true
         );
     }
+
+    /**
+     * Run enclave tests if the target supports enclaves.
+     */
+    @Test
+    public void runEnclaveTests() {
+        Assumptions.assumeTrue(supportsEnclaves(), Message.NO_ENCLAVE_SUPPORT);
+        runTestsForTargets(Message.DESC_ENCLAVE,
+            TestCategory.ENCLAVE::equals, Configurators::noChanges,
+            false);
+    }
+
 }

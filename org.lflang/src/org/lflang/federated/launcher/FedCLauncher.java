@@ -39,7 +39,7 @@ import org.lflang.generator.c.CCompiler;
  * Utility class that can be used to create a launcher for federated LF programs
  * that are written in C.
  *
- * @author Soroush Bateni <soroush@utdallas.edu>
+ * @author Soroush Bateni
  */
 public class FedCLauncher extends FedLauncher {
 
@@ -114,6 +114,6 @@ public class FedCLauncher extends FedLauncher {
     @Override
     protected
     String executeCommandForLocalFederate(FedFileConfig fileConfig, FederateInstance federate) {
-        return fileConfig.getFedGenPath().resolve("bin/"+federate.name)+" -i $FEDERATION_ID";
+        return fileConfig.getGenPath().resolve("bin/"+federate.name)+" -i $FEDERATION_ID";
     }
 }

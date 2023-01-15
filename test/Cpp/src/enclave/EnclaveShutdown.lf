@@ -1,0 +1,37 @@
+target Cpp
+
+reactor Node(
+    message: std::string("Hello"),
+    period: time(1 sec),
+    stop: time(3 sec)
+) {
+    timer t(0, period)
+    timer s(stop)
+
+    reaction(t) {= reactor::log::Info() << message; =}
+
+    reaction(s) {= request_stop(); =}
+
+    reaction(shutdown) {=
+        reactor::log::Info() << "Goodbye!";
+
+        if (get_elapsed_logical_time() != stop || get_microstep() != 1) {
+            reactor::log::Error() << "Expected to shut down at [" << stop << ", 1]";
+            exit(1);
+        }
+    =}
+}
+
+main reactor {
+    @enclave
+    node1 = new Node(message = "Hello Foo!")
+    @enclave
+    node2 = new Node(message = "Hello Bar!", stop = 2 sec)
+
+    reaction(shutdown) {=
+        if (get_elapsed_logical_time() != 0s || get_microstep() != 1) {
+            reactor::log::Error() << "Expected to shut down at [0, 1]e";
+            exit(1);
+        }
+    =}
+}

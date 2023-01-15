@@ -4,6 +4,7 @@
 
 package org.lflang.cli;
 
+
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
@@ -21,6 +22,7 @@ import org.eclipse.xtext.util.CancelIndicator;
 
 import org.lflang.ASTUtils;
 import org.lflang.FileConfig;
+
 import org.lflang.generator.LFGeneratorContext;
 import org.lflang.generator.LFGeneratorContext.BuildParm;
 import org.lflang.generator.MainContext;
@@ -30,8 +32,8 @@ import com.google.inject.Inject;
 /**
  * Standalone version of the Lingua Franca compiler (lfc).
  *
- * @author {Marten Lohstroh <marten@berkeley.edu>}
- * @author {Christian Menard <christian.menard@tu-dresden.de>}
+ * @author Marten Lohstroh
+ * @author Christian Menard
  */
 public class Lfc extends CliBase {
     /**
@@ -57,7 +59,7 @@ public class Lfc extends CliBase {
      * if required if so specified, and stores whether or not to pass the
      * option to the code generator.
      *
-     * @author Marten Lohstroh <marten@berkeley.edu>
+     * @author Marten Lohstroh
      */
     enum CLIOption {
 
@@ -199,8 +201,8 @@ public class Lfc extends CliBase {
             exitIfCollectedErrors();
 
             LFGeneratorContext context = new MainContext(
-                LFGeneratorContext.Mode.STANDALONE, CancelIndicator.NullImpl, (m, p) -> {}, properties, false,
-                fileConfig -> errorReporter
+                LFGeneratorContext.Mode.STANDALONE, CancelIndicator.NullImpl,
+                (m, p) -> {}, properties, resource, this.fileAccess, fileConfig -> errorReporter
             );
 
             try {

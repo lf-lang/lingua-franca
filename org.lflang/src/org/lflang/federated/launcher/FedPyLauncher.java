@@ -36,7 +36,7 @@ import org.lflang.federated.generator.FederateInstance;
  * Utility class that can be used to create a launcher for federated LF programs
  * that are written in Python.
  * 
- * @author Soroush Bateni <soroush@utdallas.edu>
+ * @author Soroush Bateni
  *
  */
 public class FedPyLauncher extends FedLauncher {
@@ -78,6 +78,6 @@ public class FedPyLauncher extends FedLauncher {
     @Override
     protected
     String executeCommandForLocalFederate(FedFileConfig fileConfig, FederateInstance federate) {
-        return "python3 " + fileConfig.getFedSrcGenPath() + "/" + federate.name + "/" + federate.name+".py -i $FEDERATION_ID";
+        return "python3 " + fileConfig.getSrcGenPath() + "/" + federate.name + "/" + federate.name+".py -i $FEDERATION_ID";
     }
 }

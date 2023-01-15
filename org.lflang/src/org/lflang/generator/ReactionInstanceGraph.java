@@ -53,8 +53,8 @@ import org.lflang.lf.Variable;
  * cycles, in which case, the resulting graph is a graph of runtime reaction
  * instances that form cycles.
  * 
- * @author{Marten Lohstroh <marten@berkeley.edu>}
- * @author{Edward A. Lee <eal@berkeley.edu>}
+ * @author Marten Lohstroh
+ * @author Edward A. Lee
  */
 public class ReactionInstanceGraph extends PrecedenceGraph<ReactionInstance.Runtime> {
     
@@ -98,6 +98,16 @@ public class ReactionInstanceGraph extends PrecedenceGraph<ReactionInstance.Runt
             // Do not throw an exception so that cycle visualization can proceed.
             // throw new InvalidSourceException("Reactions form a cycle!");
         }
+    }
+    /**
+     * This function rebuilds the graph and propagates and assigns deadlines
+     * to all reactions.
+     */
+    public void rebuildAndAssignDeadlines() {
+        this.clear();
+        addNodesAndEdges(main);
+        assignInferredDeadlines();
+        this.clear();
     }
     
     /*
@@ -304,7 +314,46 @@ public class ReactionInstanceGraph extends PrecedenceGraph<ReactionInstance.Runt
             adjustNumReactionsPerLevel(origin.level, 1);
         }
     }
-    
+   
+    /**
+     * This function assigns inferred deadlines to all the reactions in the graph.
+     * It is modeled after `assignLevels` but it starts at the leaf nodes and uses
+     * Kahns algorithm to build a reverse topologically sorted graph
+     * 
+     */
+    private void assignInferredDeadlines() {
+        List<ReactionInstance.Runtime> start = new ArrayList<>(leafNodes());
+        
+        // All leaf nodes have deadline initialized to their declared deadline or MAX_VALUE
+        while (!start.isEmpty()) {
+            Runtime origin = start.remove(0);
+            Set<Runtime> toRemove = new LinkedHashSet<>();
+            Set<Runtime> upstreamAdjacentNodes = getUpstreamAdjacentNodes(origin);
+
+            // Visit effect nodes.
+            for (Runtime upstream : upstreamAdjacentNodes) {
+                // Stage edge between origin and upstream for removal.
+                toRemove.add(upstream);
+                
+                // Update deadline of upstream node if origins deadline is earlier.
+                if (origin.deadline.isEarlierThan(upstream.deadline)) {
+                    upstream.deadline = origin.deadline;
+                }
+            }
+            // Remove visited edges.
+            for (Runtime upstream : toRemove) {
+                removeEdge(origin, upstream);
+                // If the upstream node has no more outgoing edges,
+                // then move it in the start set.
+                if (getDownstreamAdjacentNodes(upstream).size() == 0) {
+                    start.add(upstream);
+                }
+            }
+            
+            // Remove visited origin.
+            removeNode(origin);
+        }
+    }
     
     /**
      * Adjust {@link #numReactionsPerLevel} at index <code>level<code> by

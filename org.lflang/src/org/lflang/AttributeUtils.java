@@ -26,6 +26,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 package org.lflang;
 
 import java.util.List;
+import java.util.Objects;
 
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.xtext.nodemodel.ICompositeNode;
@@ -47,9 +48,9 @@ import org.lflang.util.StringUtil;
 /**
  * A helper class for processing attributes in the AST.
  *
- * @author{Shaokai Lin <shaokai@berkeley.edu>}
- * @author{Clément Fournier, TU Dresden, INSA Rennes}
- * @author{Alexander Schulz-Rosengarten <als@informatik.uni-kiel.de>}
+ * @author Shaokai Lin
+ * @author Clément Fournier
+ * @author Alexander Schulz-Rosengarten
  */
 public class AttributeUtils {
 
@@ -151,6 +152,35 @@ public class AttributeUtils {
     }
 
     /**
+     * Return the parameter of the given attribute with the given name.
+     *
+     * Returns null if no such parameter is found.
+     */
+    public static String getAttributeParameter(Attribute attribute, String parameterName) {
+        return attribute.getAttrParms().stream()
+            .filter(param -> Objects.equals(param.getName(), parameterName))
+            .map(param -> param.getValue())
+            .findFirst()
+            .orElse(null);
+    }
+
+    /**
+     * Return the parameter of the given attribute with the given name and interpret it as a boolean.
+     *
+     * Returns null if no such parameter is found.
+     */
+    public static Boolean getBooleanAttributeParameter(Attribute attribute, String parameterName) {
+        if (attribute == null || parameterName == null) {
+            return null;
+        }
+        final var param = getAttributeParameter(attribute, parameterName);
+        if (param == null) {
+            return null;
+        }
+        return param.equalsIgnoreCase("true");
+    }
+
+    /**
      * Return true if the specified node is an Input and has an {@code @sparse}
      * attribute.
      * @param node An AST node.
@@ -200,6 +230,22 @@ public class AttributeUtils {
      */
     public static  String getIconPath(EObject node) {
         return getAttributeValue(node, "icon");
+    }
+
+    /**
+     * Return the {@code @enclave} attribute annotated on the given node.
+     *
+     * Returns null if there is no such attribute.
+     */
+    public static Attribute getEnclaveAttribute(Instantiation node) {
+        return findAttributeByName(node, "enclave");
+    }
+
+    /**
+     * Return true if the specified instance has an {@code @enclave} attribute.
+     */
+    public static boolean isEnclave(Instantiation node) {
+        return getEnclaveAttribute(node) != null;
     }
 
 }

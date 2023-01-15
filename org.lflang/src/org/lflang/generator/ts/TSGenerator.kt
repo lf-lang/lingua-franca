@@ -27,10 +27,12 @@ package org.lflang.generator.ts
 
 import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.util.CancelIndicator
-import org.lflang.ASTUtils
-import org.lflang.ErrorReporter
+
 import org.lflang.Target
 import org.lflang.TimeValue
+
+import org.lflang.ast.AfterDelayTransformation
+
 import org.lflang.generator.CodeMap
 import org.lflang.generator.GeneratorBase
 import org.lflang.generator.GeneratorResult
@@ -40,10 +42,7 @@ import org.lflang.generator.IntegratedBuilder
 import org.lflang.generator.LFGeneratorContext
 import org.lflang.generator.SubContext
 import org.lflang.generator.TargetTypes
-import org.lflang.lf.Action
-import org.lflang.lf.Expression
 import org.lflang.lf.Preamble
-import org.lflang.lf.VarRef
 import org.lflang.model
 import org.lflang.scoping.LFGlobalScopeProvider
 import org.lflang.util.FileUtil
@@ -60,17 +59,19 @@ private const val NO_NPM_MESSAGE = "The TypeScript target requires npm >= 6.14.4
 /**
  * Generator for TypeScript target.
  *
- *  @author{Matt Weber <matt.weber@berkeley.edu>}
- *  @author{Edward A. Lee <eal@berkeley.edu>}
- *  @author{Marten Lohstroh <marten@berkeley.edu>}
- *  @author {Christian Menard <christian.menard@tu-dresden.de>}
- *  @author {Hokeun Kim <hokeunkim@berkeley.edu>}
+ *  @author Matt Weber
+ *  @author Edward A. Lee
+ *  @author Marten Lohstroh
+ *  @author Christian Menard
+ *  @author Hokeun Kim
  */
 class TSGenerator(
-    private val tsFileConfig: TSFileConfig,
-    errorReporter: ErrorReporter,
+    private val context: LFGeneratorContext,
     private val scopeProvider: LFGlobalScopeProvider
-) : GeneratorBase(tsFileConfig, errorReporter) {
+) : GeneratorBase(context) {
+
+
+    val fileConfig: TSFileConfig = context.fileConfig as TSFileConfig
 
     companion object {
         /** Path to the TS lib directory (relative to class path)  */
@@ -112,6 +113,9 @@ class TSGenerator(
      *  @param context The context of this build.
      */
     override fun doGenerate(resource: Resource, context: LFGeneratorContext) {
+        // Register the after delay transformation to be applied by GeneratorBase.
+        registerTransformation(AfterDelayTransformation(TSDelayBodyGenerator, targetTypes, resource))
+
         super.doGenerate(resource, context)
 
         instantiationGraph
@@ -126,20 +130,19 @@ class TSGenerator(
         updatePackageConfig(context)
 
         val codeMaps = HashMap<Path, CodeMap>()
-        val dockerGenerator = TSDockerGenerator(false)
-        generateCode(codeMaps, dockerGenerator, resource.model.preambles)
+        generateCode(codeMaps, resource.model.preambles)
         if (targetConfig.dockerOptions != null) {
-            dockerGenerator.writeDockerFiles(tsFileConfig.tsDockerComposeFilePath())
+                TSDockerGenerator(context).writeDockerFiles()
         }
         // For small programs, everything up until this point is virtually instantaneous. This is the point where cancellation,
         // progress reporting, and IDE responsiveness become real considerations.
         if (targetConfig.noCompile) {
-            context.finish(GeneratorResult.GENERATED_NO_EXECUTABLE.apply(null))
+            context.finish(GeneratorResult.GENERATED_NO_EXECUTABLE.apply(context, null))
         } else {
             context.reportProgress(
                 "Code generation complete. Collecting dependencies...", IntegratedBuilder.GENERATED_PERCENT_PROGRESS
             )
-            if (shouldCollectDependencies(context)) collectDependencies(resource, context, tsFileConfig.srcGenPkgPath, false)
+            if (shouldCollectDependencies(context)) collectDependencies(resource, context, fileConfig.srcGenPkgPath, false)
             if (errorsOccurred()) {
                 context.unsuccessfulFinish()
                 return
@@ -152,10 +155,10 @@ class TSGenerator(
             val parsingContext = SubContext(context, COLLECTED_DEPENDENCIES_PERCENT_PROGRESS, 100)
             if (
                 !context.cancelIndicator.isCanceled
-                && passesChecks(TSValidator(tsFileConfig, errorReporter, codeMaps), parsingContext)
+                && passesChecks(TSValidator(fileConfig, errorReporter, codeMaps), parsingContext)
             ) {
                 if (context.mode == LFGeneratorContext.Mode.LSP_MEDIUM) {
-                    context.finish(GeneratorResult.GENERATED_NO_EXECUTABLE.apply(codeMaps))
+                    context.finish(GeneratorResult.GENERATED_NO_EXECUTABLE.apply(context, codeMaps))
                 } else {
                     compile(resource, parsingContext)
                     concludeCompilation(context, codeMaps)
@@ -238,12 +241,11 @@ class TSGenerator(
      */
     private fun generateCode(
         codeMaps: MutableMap<Path, CodeMap>,
-        dockerGenerator: TSDockerGenerator,
         preambles: List<Preamble>
     ) {
         val tsFileName = fileConfig.name
 
-        val tsFilePath = tsFileConfig.tsSrcGenPath().resolve("$tsFileName.ts")
+        val tsFilePath = fileConfig.srcGenPath.resolve("src").resolve("$tsFileName.ts")
 
         val tsCode = StringBuilder()
 
@@ -266,9 +268,6 @@ class TSGenerator(
         codeMaps[tsFilePath] = codeMap
         FileUtil.writeToFile(codeMap.generatedCode, tsFilePath)
 
-        if (targetConfig.dockerOptions != null) {
-            dockerGenerator.addFile(dockerGenerator.fromData(tsFileName, tsFileConfig))
-        }
     }
 
     private fun compile(resource: Resource, parsingContext: LFGeneratorContext) {
@@ -312,6 +311,7 @@ class TSGenerator(
                     GeneratorUtils.findTarget(resource),
                     "ERROR: pnpm install command failed" + if (errors.isBlank()) "." else ":\n$errors")
             }
+            installProtoBufsIfNeeded(true, path, context.cancelIndicator)
         } else {
             errorReporter.reportWarning(
                 "Falling back on npm. To prevent an accumulation of replicated dependencies, " +
@@ -332,6 +332,17 @@ class TSGenerator(
                         "\nFor installation instructions, see: https://www.npmjs.com/get-npm")
                 return
             }
+            installProtoBufsIfNeeded(false, path, context.cancelIndicator)
+        }
+    }
+
+    private fun installProtoBufsIfNeeded(pnpmIsAvailable: Boolean, cwd: Path, cancelIndicator: CancelIndicator) {
+        if (targetConfig.protoFiles.size != 0) {
+            commandFactory.createCommand(
+                if (pnpmIsAvailable) "pnpm" else "npm",
+                listOf("install", "google-protobuf"),
+                cwd, true
+            ).run(cancelIndicator)
         }
     }
 
@@ -344,17 +355,17 @@ class TSGenerator(
 
         // FIXME: Check whether protoc is installed and provides hints how to install if it cannot be found.
         val protocArgs = LinkedList<String>()
-        val tsOutPath = tsFileConfig.srcPath.relativize(tsFileConfig.tsSrcGenPath())
+        val tsOutPath = fileConfig.srcPath.relativize(context.fileConfig.srcGenPath).resolve("src")
 
         protocArgs.addAll(
             listOf(
-                "--plugin=protoc-gen-ts=" + tsFileConfig.srcGenPkgPath.resolve("node_modules").resolve(".bin").resolve("protoc-gen-ts"),
+                "--plugin=protoc-gen-ts=" + fileConfig.srcGenPkgPath.resolve("node_modules").resolve(".bin").resolve("protoc-gen-ts"),
                 "--js_out=import_style=commonjs,binary:$tsOutPath",
                 "--ts_out=$tsOutPath"
             )
         )
         protocArgs.addAll(targetConfig.protoFiles)
-        val protoc = commandFactory.createCommand("protoc", protocArgs, tsFileConfig.srcPath)
+        val protoc = commandFactory.createCommand("protoc", protocArgs, fileConfig.srcPath)
 
         if (protoc == null) {
             errorReporter.reportError("Processing .proto files requires libprotoc >= 3.6.1.")
@@ -417,10 +428,7 @@ class TSGenerator(
         if (errorReporter.errorsOccurred) {
             context.unsuccessfulFinish()
         } else {
-            context.finish(
-                GeneratorResult.Status.COMPILED, fileConfig.name + ".js",
-                fileConfig.srcGenPkgPath.resolve("dist"), fileConfig, codeMaps, "node"
-            )
+            context.finish(GeneratorResult.Status.COMPILED, codeMaps)
         }
     }
 
@@ -430,37 +438,7 @@ class TSGenerator(
 
     override fun getTargetTypes(): TargetTypes = TSTypes
 
-    /**
-     * Return a TS type for the specified action.
-     * If the type has not been specified, return
-     * "Present" which is the base type for Actions.
-     * @param action The action
-     * @return The TS type.
-     */
-    private fun getActionType(action: Action): String {
-        return if (action.type != null) {
-            TSTypes.getTargetType(action.type)
-        } else {
-            "Present"
-        }
-    }
-
-    // Virtual methods.
-    override fun generateDelayBody(action: Action, port: VarRef): String {
-        return "actions.${action.name}.schedule(0, ${ASTUtils.generateVarRef(port)} as ${getActionType(action)});"
-    }
-
-    override fun generateForwardBody(action: Action, port: VarRef): String {
-        return "${ASTUtils.generateVarRef(port)} = ${action.name} as ${getActionType(action)};"
-    }
-
-    override fun generateDelayGeneric(): String {
-        return "T extends Present"
-    }
-
     override fun getTarget(): Target {
         return Target.TS
     }
-
-    override fun generateAfterDelaysWithVariableWidth() = false
 }

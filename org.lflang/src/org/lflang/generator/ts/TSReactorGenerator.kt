@@ -8,11 +8,11 @@ import java.util.*
 /**
  * Reactor generator for TypeScript target.
  *
- *  @author{Matt Weber <matt.weber@berkeley.edu>}
- *  @author{Edward A. Lee <eal@berkeley.edu>}
- *  @author{Marten Lohstroh <marten@berkeley.edu>}
- *  @author {Christian Menard <christian.menard@tu-dresden.de>}
- *  @author {Hokeun Kim <hokeunkim@berkeley.edu>}
+ *  @author Matt Weber
+ *  @author Edward A. Lee
+ *  @author Marten Lohstroh
+ *  @author Christian Menard
+ *  @author Hokeun Kim
  */
 class TSReactorGenerator(
     private val tsGenerator: TSGenerator,
@@ -68,7 +68,7 @@ class TSReactorGenerator(
         |// ************* Instance $fullName of class ${defn.reactorClass.name}
         |let __app;
         |if (!__noStart) {
-        |    __app = new $fullName(__timeout, __keepAlive, __fast, __federationID, $mainReactorParams);
+        |    __app = new $fullName(__timeout, __keepAlive, __fast, __federationID, $mainReactorParams () => true, () => process.exit(1));
         |}
         """.trimMargin()
     }
@@ -115,9 +115,8 @@ ${"             |"..preamble.code.toText()}
                 isFederate = true
                 for (attrParam in attribute.attrParms) {
                     if (attrParam.name == "network_message_actions") {
-                        val params = attrParam.value.split(",")
-                        if (!params.all { it[0] == '"' && it[it.length - 1] == '"'}) throw IllegalArgumentException()
-                        networkMessageActions = attrParam.value.split(",").map { it.substring(1, it.length-1) }.filter { it.isNotEmpty() }
+                        if (attrParam.value[0] != '"' || attrParam.value[attrParam.value.length - 1] != '"') throw IllegalArgumentException("Expected attrParam.value to be wrapped in double quotes")
+                        networkMessageActions = attrParam.value.substring(1, attrParam.value.length - 1).split(",").filter { it.isNotEmpty() }
                     }
                 }
             }

@@ -91,7 +91,7 @@ import de.cau.cs.kieler.klighd.syntheses.DiagramSyntheses;
 /**
  * Extension class that provides shapes and figures for the Lingua France diagram synthesis.
  * 
- * @author{Alexander Schulz-Rosengarten <als@informatik.uni-kiel.de>}
+ * @author Alexander Schulz-Rosengarten
  */
 @ViewSynthesisShared
 public class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
@@ -446,7 +446,7 @@ public class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
             if (hasDeadlineCode) {
                 KText contentContainerText = _kContainerRenderingExtensions.addText(contentContainer, 
                         _utilityExtensions.trimCode(reaction.getDefinition().getDeadline().getCode()));
-                associateWith(contentContainerText, reaction.deadline);
+                associateWith(contentContainerText, reaction.declaredDeadline);
                 _kRenderingExtensions.setForeground(contentContainerText, Colors.BROWN);
                 _kRenderingExtensions.setFontSize(contentContainerText, 6);
                 _kRenderingExtensions.setFontName(contentContainerText, KlighdConstants.DEFAULT_MONOSPACE_FONT_NAME);

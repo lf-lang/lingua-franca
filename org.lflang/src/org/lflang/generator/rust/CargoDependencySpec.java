@@ -57,33 +57,6 @@ public class CargoDependencySpec {
   private String localPath;
   private final Set<String> features;
 
-  /**
-   * A listing of all field aliases in this class to make translation between this class and String
-   * easier.
-   */
-  private enum CargoDependencyType {
-    VERSION("version"),
-    GIT_REPO("git"),
-    REV("rev"),
-    GIT_TAG("tag"),
-    LOCAL_PATH("path"),
-    FEATURES("features");
-
-    /** Alias used in toString method. */
-    private final String alias;
-
-    /** Private constructor for Cmake build types. */
-    CargoDependencyType(String alias) {
-      this.alias = alias;
-    }
-
-    /** Return the alias. */
-    @Override
-    public String toString() {
-      return this.alias;
-    }
-  }
-
   CargoDependencySpec(
       String version,
       String gitRepo,
@@ -260,46 +233,36 @@ public class CargoDependencySpec {
     } else {
       Element e = LfFactory.eINSTANCE.createElement();
       KeyValuePairs kvp = LfFactory.eINSTANCE.createKeyValuePairs();
-      for (CargoDependencyType t : CargoDependencyType.values()) {
+      addKvp(kvp, "version", spec.version);
+      addKvp(kvp, "git", spec.gitRepo);
+      addKvp(kvp, "rev", spec.rev);
+      addKvp(kvp, "tag", spec.gitTag);
+      addKvp(kvp, "path", spec.localPath);
+      if (spec.features != null && !spec.features.isEmpty()) {
+        Element subE = LfFactory.eINSTANCE.createElement();
+        Array arr = LfFactory.eINSTANCE.createArray();
+        for (String f : spec.features) {
+          arr.getElements().add(ASTUtils.toElement(f));
+        }
+        subE.setArray(arr);
         KeyValuePair pair = LfFactory.eINSTANCE.createKeyValuePair();
-        pair.setName(t.toString());
-        switch (t) {
-        case VERSION -> {
-          if (spec.version == null) continue;
-          pair.setValue(ASTUtils.toElement(spec.version));
-        }
-        case GIT_REPO -> {
-          if (spec.gitRepo == null) continue;
-          pair.setValue(ASTUtils.toElement(spec.gitRepo));
-        }
-        case REV -> {
-          if (spec.rev == null) continue;
-          pair.setValue(ASTUtils.toElement(spec.rev));
-        }
-        case GIT_TAG -> {
-          if (spec.gitTag == null) continue;
-          pair.setValue(ASTUtils.toElement(spec.gitTag));
-        }
-        case LOCAL_PATH -> {
-          if (spec.localPath == null) continue;
-          pair.setValue(ASTUtils.toElement(spec.localPath));
-        }
-        case FEATURES -> {
-          if (spec.features == null || spec.features.isEmpty()) continue;
-          Element subE = LfFactory.eINSTANCE.createElement();
-          Array arr = LfFactory.eINSTANCE.createArray();
-          for (String f : spec.features) {
-            arr.getElements().add(ASTUtils.toElement(f));
-          }
-          subE.setArray(arr);
-          pair.setValue(subE);
-        }
-        }
+        pair.setName("features");
+        pair.setValue(subE);
         kvp.getPairs().add(pair);
       }
       e.setKeyvalue(kvp);
       return e;
     }
+  }
+
+  private static void addKvp(KeyValuePairs pairs, String name, String value) {
+    if (value == null) {
+      return;
+    }
+    KeyValuePair kvp = LfFactory.eINSTANCE.createKeyValuePair();
+    kvp.setName(name);
+    kvp.setValue(ASTUtils.toElement(value));
+    pairs.getPairs().add(kvp);
   }
 
   /** The property type for the */

@@ -12,9 +12,9 @@ import static org.lflang.util.StringUtil.addDoubleQuotes;
 /**
  * Generates C code to support tracing.
  *
- * @author {Edward A. Lee <eal@berkeley.edu>}
- * @author {Soroush Bateni <soroush@utdallas.edu>}
- * @author {Hou Seng Wong <housengw@berkeley.edu>}
+ * @author Edward A. Lee
+ * @author Soroush Bateni
+ * @author Hou Seng Wong
  */
 public class CTracingGenerator {
     /**

@@ -16,7 +16,7 @@ import de.cau.cs.kieler.klighd.KlighdDataManager;
 /**
  * Registration of all diagram synthesis related classes in Klighd.
  * 
- * @author{Alexander Schulz-Rosengarten <als@informatik.uni-kiel.de>}
+ * @author Alexander Schulz-Rosengarten
  */
 public class SynthesisRegistration implements IKlighdStartupHook {
     
