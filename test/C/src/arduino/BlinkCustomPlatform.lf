@@ -9,7 +9,7 @@ target CCpp {
     platform: {
         name: "arduino",
         baud-rate: 9600,
-        board: "mega_2560"
+        board: "arduino:mbed_nano:nano33ble"
     }
 }
 

@@ -159,6 +159,7 @@ public abstract class TestBase {
 
         /* Missing dependency messages */
         public static final String MISSING_DOCKER = "Executable 'docker' not found or 'docker' daemon thread not running";
+        public static final String MISSING_ARDUINO_CLI = "Executable 'arduino-cli' not found";
     }
 
     /** Constructor for test classes that test a single target. */
@@ -496,7 +497,9 @@ public abstract class TestBase {
         }
         try {
             for (ProcessBuilder pb : pbList) {
+                System.out.println(pb.command());
                 var p = pb.start();
+                
                 var stdout = test.recordStdOut(p);
                 var stderr = test.recordStdErr(p);
 
@@ -587,6 +590,47 @@ public abstract class TestBase {
     }
 
     /**
+     * Returns true if arduino-cli exists, false otherwise.
+     */
+    private boolean checkArduinoCLIExists() {
+        LFCommand checkCommand = LFCommand.get("arduino-cli", List.of("version"));
+        return checkCommand.run() == 0;
+    }
+    
+    /**
+     * Return a ProcessBuilder used to test Arduino in a non-federated, unthreaded environment.
+     * See the following for references on arduino-cli:
+     * https://arduino.github.io/arduino-cli/
+     *
+     * @param test The test to get the execution command for.
+     */
+    private List<ProcessBuilder> getArduinoExecCommand(LFTest test) {
+        if (!checkArduinoCLIExists()) {
+            System.out.println(Message.MISSING_ARDUINO_CLI);
+            return List.of(new ProcessBuilder("exit", "1"));
+        }
+        var srcGenPath = test.getFileConfig().getSrcGenPath();
+        try {
+            //Write to a temporary file to execute since ProcessBuilder does not like spaces and double quotes in its arguments.
+            File testScript = File.createTempFile("arduinotest", null);
+            testScript.deleteOnExit();
+            if (!testScript.setExecutable(true)) {
+                throw new IOException("Failed to make test script executable");
+            }
+            FileWriter fileWriter = new FileWriter(testScript.getAbsoluteFile(), true);
+            BufferedWriter bufferedWriter = new BufferedWriter(fileWriter);
+            bufferedWriter.write("arduino-cli compile -b arduino:avr:leonardo --build-property " +
+            "compiler.c.extra_flags=\"-DLF_UNTHREADED -DPLATFORM_ARDUINO -DINITIAL_EVENT_QUEUE_SIZE=10 -DINITIAL_REACT_QUEUE_SIZE=10\" " +
+            "--build-property compiler.cpp.extra_flags=\"-DLF_UNTHREADED -DPLATFORM_ARDUINO -DINITIAL_EVENT_QUEUE_SIZE=10 -DINITIAL_REACT_QUEUE_SIZE=10\" "
+            + srcGenPath.toString());
+            bufferedWriter.close();
+            return List.of(new ProcessBuilder(testScript.getAbsolutePath()));
+        } catch (IOException e) {
+            return List.of(new ProcessBuilder("exit", "1"));
+        }
+    }
+
+    /**
      * Returns true if docker exists, false otherwise.
      */
     private boolean checkDockerExists() {
@@ -658,6 +702,8 @@ public abstract class TestBase {
             return getNonfederatedDockerExecCommand(test);
         } else if (relativePathName.equalsIgnoreCase(TestCategory.DOCKER_FEDERATED.getPath())) {
             return getFederatedDockerExecCommand(test);
+        } else if (relativePathName.equalsIgnoreCase(TestCategory.ARDUINO.getPath())) {
+            return getArduinoExecCommand(test);
         } else {
             LFCommand command = generatorResult.getCommand();
             if (command == null) {
