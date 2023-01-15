@@ -40,12 +40,10 @@ public class PythonDelayBodyGenerator extends CDelayBodyGenerator {
                 "// Need to lock the mutex first.",
                 "lf_mutex_lock(&mutex);",
                 "#endif",
-                "lf_token_t* t = create_token(sizeof(PyObject*));",
+                "lf_token_t* t = _lf_new_token((token_type_t*)"+action.getName()+", self->_lf_"+ref+"->value, 1);",
                 "#if NUMBER_OF_WORKERS > 0",
                 "lf_mutex_unlock(&mutex);",
                 "#endif",
-                "t->value = self->_lf_"+ref+"->value;",
-                "t->length = 1; // Length is 1",
                 "",
                 "// Pass the token along",
                 "lf_schedule_token("+action.getName()+", 0, t);"
