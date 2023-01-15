@@ -43,6 +43,7 @@ import org.lflang.generator.GeneratorUtils;
 import org.lflang.generator.IntegratedBuilder;
 import org.lflang.generator.LFGenerator;
 import org.lflang.generator.LFGeneratorContext;
+import org.lflang.generator.LFGeneratorContext.BuildParm;
 import org.lflang.generator.MixedRadixInt;
 import org.lflang.generator.PortInstance;
 import org.lflang.generator.ReactorInstance;
@@ -125,6 +126,7 @@ public class FedGenerator {
 
     public boolean doGenerate(Resource resource, LFGeneratorContext context) throws IOException {
         if (!federatedExecutionIsSupported(resource)) return true;
+        cleanIfNeeded(context);
 
         // In a federated execution, we need keepalive to be true,
         // otherwise a federate could exit simply because it hasn't received
@@ -167,6 +169,21 @@ public class FedGenerator {
 
         context.finish(Status.COMPILED, codeMapMap);
         return false; // FIXME why false?
+    }
+
+    /**
+     * Check if a clean was requested from the standalone compiler and perform
+     * the clean step.
+     * @param context
+     */
+    private void cleanIfNeeded(LFGeneratorContext context) {
+        if (context.getArgs().containsKey(BuildParm.CLEAN.getKey())) {
+            try {
+                fileConfig.doClean();
+            } catch (IOException e) {
+                System.err.println("WARNING: IO Error during clean");
+            }
+        }
     }
 
     /**
