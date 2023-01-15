@@ -147,7 +147,7 @@ public class TestRegistry {
         DOCKER(true),
         DOCKER_FEDERATED(true, "docker" + File.separator + "federated"),
         SERIALIZATION(false),
-        ARDUINO(false, TestLevel.BUILD),
+        ARDUINO(false),
         TARGET(false);
         
         /**
