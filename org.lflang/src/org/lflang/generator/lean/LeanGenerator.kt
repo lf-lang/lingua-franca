@@ -55,11 +55,12 @@ class LeanGenerator(
     }
 
     private fun genState(stateVar: StateVar): String {
-        val default = LeanTypes.getTargetInitializer(stateVar.init, stateVar.type, true)
-        val defaultStr = default?.let { " := $it" } ?: ""
+        val default = stateVar.init?.let {
+            " := ${LeanTypes.getTargetInitializer(it, stateVar.type, true)}"
+        } ?: ""
 
         val type = stateVar.type.code?.let { ASTUtils.toOriginalText(it) } ?: LeanTypes.getTargetType(stateVar.type)
-        return "${stateVar.name} : ${type}$defaultStr"
+        return "${stateVar.name} : ${type}$default"
     }
 
     private fun genTimer(timer: Timer): String {
