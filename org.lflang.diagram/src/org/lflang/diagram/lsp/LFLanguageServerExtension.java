@@ -80,6 +80,7 @@ class LFLanguageServerExtension implements ILanguageServerExtension {
      */
     @JsonNotification("generator/partialBuild")
     public void partialBuild(String uri) {
+        System.out.println("building on " + uri);
         if (client == null) return;
         buildWithProgress(client, uri, false);
     }
@@ -139,12 +140,11 @@ class LFLanguageServerExtension implements ILanguageServerExtension {
         } finally {
             progress.end(result == null ? "An internal error occurred." : result.getUserMessage());
         }
-        // System.out.println("heheheheheeh");
-        // System.out.println(result.getCodeMaps());
         
-        buildResult = result;
-        buildToken += 1;
-        buildPath = Paths.get(uri.substring(5)); // remove "file:"
+        // buildResult = result;
+        // buildToken += 1;
+        // buildPath = Paths.get(uri.substring(5)); // remove "file:"
+        CppLanguageServer.addBuild(Paths.get(uri.substring(5)), result);
         return result;
     }
 }
