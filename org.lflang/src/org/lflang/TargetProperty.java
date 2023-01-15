@@ -33,8 +33,9 @@ import java.util.Optional;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
+import javax.lang.model.type.PrimitiveType;
+
 import org.eclipse.xtext.util.RuntimeIOException;
-import org.lflang.TargetConfig.Board;
 import org.lflang.TargetConfig.DockerOptions;
 import org.lflang.TargetConfig.PlatformOptions;
 import org.lflang.TargetConfig.TracingOptions;
@@ -327,15 +328,13 @@ public enum TargetProperty {
                                 config.platformOptions.baudRate = ASTUtils.toInteger(entry.getValue());
                                 break;
                             case BOARD:
-                                Board b = (Board) UnionType.BOARD_UNION
-                                    .forName(ASTUtils.elementToSingleString(entry.getValue()));
-                                if(b == null){
-                                    String s = "Unidentified Board Type, LF supports the following board types: " + Arrays.asList(Board.values()).toString();
-                                    err.reportError(s);
-                                    throw new AssertionError(s);
-                                }
-
-                                config.platformOptions.board = b;
+                                config.platformOptions.board = ASTUtils.elementToSingleString(entry.getValue());
+                                break;
+                            case FLASH:
+                                config.platformOptions.flash = ASTUtils.toBoolean(entry.getValue());
+                                break;
+                            case PORT:
+                                config.platformOptions.port = ASTUtils.elementToSingleString(entry.getValue());
                                 break;
                             default:
                                 break;
@@ -851,7 +850,6 @@ public enum TargetProperty {
         SCHEDULER_UNION(Arrays.asList(SchedulerOption.values()), SchedulerOption.getDefault()),
         LOGGING_UNION(Arrays.asList(LogLevel.values()), LogLevel.INFO),
         PLATFORM_UNION(Arrays.asList(Platform.values()), Platform.AUTO),
-        BOARD_UNION(Arrays.asList(Board.values()), Board.NONE),
         CLOCK_SYNC_UNION(Arrays.asList(ClockSyncMode.values()),
                 ClockSyncMode.INIT),
         DOCKER_UNION(Arrays.asList(PrimitiveType.BOOLEAN, DictionaryType.DOCKER_DICT),
@@ -1327,7 +1325,9 @@ public enum TargetProperty {
     public enum PlatformOption implements DictionaryElement {
         NAME("name", PrimitiveType.STRING),
         BAUDRATE("baud-rate", PrimitiveType.NON_NEGATIVE_INTEGER),
-        BOARD("board", PrimitiveType.STRING);
+        BOARD("board", PrimitiveType.STRING),
+        FLASH("flash", PrimitiveType.BOOLEAN),
+        PORT("port", PrimitiveType.STRING);
         
         public final PrimitiveType type;
         
