@@ -246,11 +246,23 @@ public class CExtensionUtils {
         federate.targetConfig.compileDefinitions.put("FEDERATED_"+federate.targetConfig.coordination.toString().toUpperCase(), "");
         federate.targetConfig.compileDefinitions.put("NUMBER_OF_FEDERATES", String.valueOf(numOfFederates));
         federate.targetConfig.compileDefinitions.put("EXECUTABLE_PREAMBLE", "");
-        federate.targetConfig.compileDefinitions.put("WORKERS_NEEDED_FOR_FEDERATE", String.valueOf(federate.networkMessageActions.size()));
+        federate.targetConfig.compileDefinitions.put("WORKERS_NEEDED_FOR_FEDERATE", String.valueOf(minThreadsToHandleInputPorts(federate)));
 
         handleAdvanceMessageInterval(federate);
 
         initializeClockSynchronization(federate, federationRTIProperties);
+    }
+
+    /**
+     * The number of threads needs to be at least one larger than the input ports
+     * to allow the federate to wait on all input ports while allowing an additional
+     * worker thread to process incoming messages.
+     * @return The minimum number of threads needed.
+     */
+    public static int minThreadsToHandleInputPorts(FederateInstance federate) {
+        int nthreads = 1;
+        nthreads = Math.max(nthreads, federate.networkMessageActions.size() + 1);
+        return nthreads;
     }
 
     private static void handleAdvanceMessageInterval(FederateInstance federate) {
@@ -332,11 +344,7 @@ public class CExtensionUtils {
 
 
     /**
-     * Generate a file to be included by CMake
-     *
-     * @param numOfFederates
-     * @param fileConfig
-     * @param federate
+     * Generate a file to be included by CMake.
      */
     public static void generateCMakeInclude(
         FederateInstance federate,
