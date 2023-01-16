@@ -95,7 +95,7 @@ public class FormattingUtils {
                 return Target.fromDecl(targetDecl);
             }
         }
-        throw new RuntimeException("Unable to determine target.");
+        throw new IllegalArgumentException("Unable to determine target based on given EObject.");
     }
 
     /**
