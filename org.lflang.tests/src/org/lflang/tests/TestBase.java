@@ -354,10 +354,10 @@ public abstract class TestBase {
      * @param tests The tests to inspect the results of.
      */
     private static void checkAndReportFailures(Set<LFTest> tests) {
-        var passed = tests.stream().filter(it -> it.hasPassed());
+        var passed = tests.stream().filter(it -> it.hasPassed()).collect(Collectors.toList());
         var s = new StringBuffer();
         s.append(THIN_LINE);
-        s.append("Passing: " + passed.count() + "/" + tests.size());
+        s.append("Passing: " + passed.size() + "/" + tests.size());
         s.append(THIN_LINE);
         passed.forEach(test -> s.append("Passed: ").append(test).append("\n"));
         s.append(THIN_LINE);
