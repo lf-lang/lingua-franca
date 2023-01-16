@@ -357,7 +357,7 @@ public abstract class TestBase {
         var passed = tests.stream().filter(it -> it.hasPassed()).collect(Collectors.toList());
         var s = new StringBuffer();
         s.append(THIN_LINE);
-        s.append("Passing: " + passed.size() + "/" + tests.size());
+        s.append("Passing: " + passed.size() + "/" + tests.size() + "\n");
         s.append(THIN_LINE);
         passed.forEach(test -> s.append("Passed: ").append(test).append("\n"));
         s.append(THIN_LINE);
