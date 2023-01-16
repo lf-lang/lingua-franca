@@ -13,7 +13,6 @@ import org.eclipse.emf.ecore.EObject;
 
 import org.lflang.ASTUtils;
 import org.lflang.Target;
-import org.lflang.generator.ReactionInstance.Runtime;
 import org.lflang.lf.Model;
 import org.lflang.lf.TargetDecl;
 
@@ -67,7 +66,7 @@ public class FormattingUtils {
      */
     public static String render(EObject object, int lineLength, Target target, boolean codeMapTags) {
         MalleableString ms = ToLf.instance.doSwitch(object);
-        String singleLineCommentPrefix = target == Target.Python ? "#" : "//";
+        String singleLineCommentPrefix = target.getSingleLineCommentPrefix();
         ms.findBestRepresentation(
             () -> ms.render(INDENTATION, singleLineCommentPrefix, codeMapTags, null),
             r -> r.levelsOfCommentDisplacement() * BADNESS_PER_LEVEL_OF_COMMENT_DISPLACEMENT
@@ -245,7 +244,7 @@ public class FormattingUtils {
         if (comment.stream().allMatch(String::isBlank)) return true;
         String wrapped = FormattingUtils.lineWrapComments(comment, width, singleLineCommentPrefix);
         if (keepCommentsOnSameLine && wrapped.lines().count() == 1 && !wrapped.startsWith("/**")) {
-            int cumsum = 0;
+            int sum = 0;
             for (int j = 0; j < components.size(); j++) {
                 String current = components.get(j);
                 if (j >= i && current.contains("\n")) {
@@ -253,14 +252,14 @@ public class FormattingUtils {
                         "\n",
                         " ".repeat(Math.max(
                             2,
-                            startColumn - cumsum - components.get(j).indexOf("\n")
+                            startColumn - sum - components.get(j).indexOf("\n")
                         )) + wrapped + "\n"
                     ));
                     return true;
                 } else if (current.contains("\n")) {
-                    cumsum = current.length() - current.lastIndexOf("\n") - 1;
+                    sum = current.length() - current.lastIndexOf("\n") - 1;
                 } else {
-                    cumsum += current.length();
+                    sum += current.length();
                 }
             }
         }

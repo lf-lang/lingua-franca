@@ -499,6 +499,13 @@ public enum Target {
     }
 
     /**
+     * Return a string that demarcates the beginning of a single-line comment.
+     */
+    public String getSingleLineCommentPrefix() {
+        return this.equals(Target.Python) ? "#" : "//";
+    }
+
+    /**
      * Return true if the keepalive option is set automatically
      * for this target if physical actions are detected in the
      * program (and keepalive was not explicitly unset by the user).
