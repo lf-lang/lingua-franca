@@ -32,7 +32,6 @@ import org.lflang.ErrorReporter;
 import org.lflang.TargetConfig;
 import org.lflang.federated.generator.FedFileConfig;
 import org.lflang.federated.generator.FederateInstance;
-import org.lflang.federated.OldFedFileConfig;
 import org.lflang.generator.c.CCompiler;
 
 /**
@@ -67,14 +66,7 @@ public class FedCLauncher extends FedLauncher {
     @Override
     protected
     String compileCommandForFederate(FederateInstance federate) {
-        OldFedFileConfig fedFileConfig = null;
         TargetConfig localTargetConfig = targetConfig;
-        try {
-            fedFileConfig = new OldFedFileConfig(fileConfig, federate.name);
-        } catch (IOException e) {
-            errorReporter.reportError("Failed to create file config for federate "+federate.name);
-            return "";
-        }
 
         String commandToReturn = "";
         // FIXME: Hack to add platform support only for linux systems.
@@ -83,7 +75,7 @@ public class FedCLauncher extends FedLauncher {
         if (!localTargetConfig.compileAdditionalSources.contains(linuxPlatformSupport)) {
             localTargetConfig.compileAdditionalSources.add(linuxPlatformSupport);
         }
-        CCompiler cCompiler= new CCompiler(localTargetConfig, fedFileConfig, errorReporter, false);
+        CCompiler cCompiler= new CCompiler(localTargetConfig, fileConfig, errorReporter, false);
         commandToReturn = String.join(" ",
                 cCompiler.compileCCommand(
                         fileConfig.name+"_"+federate.name,
