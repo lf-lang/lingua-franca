@@ -42,7 +42,6 @@ import org.lflang.FileConfig;
 import org.lflang.LFRuntimeModule;
 import org.lflang.LFStandaloneSetup;
 import org.lflang.Target;
-import org.lflang.federated.generator.FedFileConfig;
 import org.lflang.generator.DockerGeneratorBase;
 import org.lflang.generator.GeneratorResult;
 import org.lflang.generator.LFGenerator;
@@ -419,8 +418,11 @@ public abstract class TestBase {
         }
 
         // Update the test by applying the configuration. E.g., to carry out an AST transformation.
-        if (configurator != null && !configurator.configure(test)) {
-            throw new TestError("Test configuration unsuccessful.", Result.CONFIG_FAIL);
+        if (configurator != null) {
+            if (!configurator.configure(test)) {
+                throw new TestError("Test configuration unsuccessful.", Result.CONFIG_FAIL);
+            }
+            context.loadTargetConfig(); // Reload in case target properties have changed.
         }
     }
 
