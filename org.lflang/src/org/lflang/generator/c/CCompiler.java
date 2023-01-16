@@ -178,6 +178,17 @@ public class CCompiler {
                 System.out.println("SUCCESS: Compiling generated code for " + fileConfig.name + " finished with no errors.");
             }
 
+            if (targetConfig.platformOptions.platform == Platform.ZEPHYR && targetConfig.platformOptions.flash) {
+                System.out.println("Invoking flash command for Zephyr");
+                LFCommand flash = buildWestFlashCommand();
+                int flashRet = flash.run();
+                if (flashRet != 0) {
+                    errorReporter.reportError("West flash command failed with error code " + flashRet);
+                } else {
+                    System.out.println("SUCCESS: Flashed application with west");
+                }
+            }
+
         }
         return cMakeReturnCode == 0 && makeReturnCode == 0;
     }
@@ -273,6 +284,33 @@ public class CCompiler {
             );
         }
         return command;
+    }
+
+    /**
+     * Return a flash/emulate command using west.
+     * If board is null (defaults to qemu_cortex_m3) or qemu_*
+     * Return a flash command which runs the target as an emulation
+     * If ordinary target, return `west flash`
+     */
+    public LFCommand buildWestFlashCommand() {
+        // Set the build directory to be "build"
+        Path buildPath = fileConfig.getSrcGenPath().resolve("build");
+        String board = targetConfig.platformOptions.board;
+        LFCommand cmd;
+        if (board == null || board.startsWith("qemu")) {
+            cmd = commandFactory.createCommand(
+                "west", List.of("build", "-t", "run"), buildPath);
+        } else {
+            cmd = commandFactory.createCommand(
+                "west", List.of("flash"), buildPath);
+        }
+        if (cmd == null) {
+            errorReporter.reportError(
+                "Could not create west flash command."
+            );
+        }
+
+        return cmd;
     }
 
     /**

@@ -5,7 +5,7 @@
 target C {
     timeout: 1 sec,
     coordination-options: {
-        advance-message-interval: 50 usec
+        advance-message-interval: 500 usec
     }
 }
 
