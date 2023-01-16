@@ -444,15 +444,10 @@ public enum TargetProperty {
                                 config.platformOptions.baudRate = ASTUtils.toInteger(entry.getValue());
                                 break;
                             case BOARD:
-                                Board b = (Board) UnionType.BOARD_UNION
-                                    .forName(ASTUtils.elementToSingleString(entry.getValue()));
-                                if(b == null){
-                                    String s = "Unidentified Board Type, LF supports the following board types: " + Arrays.asList(Board.values()).toString();
-                                    err.reportError(s);
-                                    throw new AssertionError(s);
-                                }
-
-                                config.platformOptions.board = b;
+                                config.platformOptions.board = ASTUtils.elementToSingleString(entry.getValue());
+                                break;
+                            case FLASH:
+                                config.platformOptions.flash = ASTUtils.toBoolean(entry.getValue());
                                 break;
                             default:
                                 break;
@@ -1642,7 +1637,8 @@ public enum TargetProperty {
     public enum PlatformOption implements DictionaryElement {
         NAME("name", PrimitiveType.STRING),
         BAUDRATE("baud-rate", PrimitiveType.NON_NEGATIVE_INTEGER),
-        BOARD("board", PrimitiveType.STRING);
+        BOARD("board", PrimitiveType.STRING),
+        FLASH("flash", PrimitiveType.BOOLEAN);
 
         public final PrimitiveType type;
 
@@ -1728,6 +1724,7 @@ public enum TargetProperty {
         NRF52("Nrf52"),
         LINUX("Linux"),
         MAC("Darwin"),
+        ZEPHYR("Zephyr"),
         WINDOWS("Windows");
 
         String cMakeName;
