@@ -34,6 +34,7 @@ import org.eclipse.xtext.nodemodel.util.NodeModelUtils;
 import org.eclipse.xtext.resource.XtextResource;
 
 import org.lflang.lf.Action;
+import org.lflang.lf.AttrParm;
 import org.lflang.lf.Attribute;
 import org.lflang.lf.Input;
 import org.lflang.lf.Instantiation;
@@ -159,7 +160,7 @@ public class AttributeUtils {
     public static String getAttributeParameter(Attribute attribute, String parameterName) {
         return attribute.getAttrParms().stream()
             .filter(param -> Objects.equals(param.getName(), parameterName))
-            .map(param -> param.getValue())
+            .map(AttrParm::getValue)
             .findFirst()
             .orElse(null);
     }
@@ -193,10 +194,9 @@ public class AttributeUtils {
      * Return the language attribute on a reaction, or null if none is defined.
      */
     public static Target findReactionLanguageAttribute(Reaction reaction) {
-        for (var attribute : getAttributes(reaction)) {
-            if (attribute.getAttrName().equalsIgnoreCase("language")) {
-                return Target.valueOf(StringUtil.removeQuotes(attribute.getAttrParms().get(0).getValue()));
-            }
+        var attr = findAttributeByName(reaction, "language");
+        if (attr != null) {
+            return Target.valueOf(StringUtil.removeQuotes(attr.getAttrParms().get(0).getValue()));
         }
         return null;
     }
@@ -205,17 +205,10 @@ public class AttributeUtils {
      * Return true if the reaction is unordered.
      */
     public static boolean isUnordered(Reaction reaction) {
-        for (var attribute : getAttributes(reaction)) {
-            if (
-                attribute.getAttrName().equalsIgnoreCase("_fed_recv") ||
-                attribute.getAttrName().equalsIgnoreCase("_fed_send") ||
-                attribute.getAttrName().equalsIgnoreCase("_fed_inp_ctrl") ||
-                attribute.getAttrName().equalsIgnoreCase("_fed_out_ctrl")
-            ) {
-                return true;
-            }
-        }
-        return false;
+        return findAttributeByName(reaction, "_fed_recv") != null ||
+            findAttributeByName(reaction, "_fed_send") != null ||
+            findAttributeByName(reaction, "_fed_inp_ctrl") != null ||
+            findAttributeByName(reaction, "_fed_out_ctrl") != null;
     }
 
     /**
