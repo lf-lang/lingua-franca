@@ -85,8 +85,7 @@ public class FormattingUtils {
     }
 
     /**
-     * Infer the target language of the object. It is fine for this to be wrong
-     * as long as it is right about whether the target is Python.
+     * Infer the target language of the object.
      */
     private static Target inferTarget(EObject object) {
         if (object instanceof Model model) {
