@@ -7,7 +7,7 @@ import java.nio.file.Path
 
 /** A C++ code generator for creating the required files for defining a ROS2 package. */
 class CppRos2PackageGenerator(generator: CppGenerator, private val nodeName: String) {
-    private val fileConfig = generator.context.fileConfig
+    private val fileConfig = generator.fileConfig
     private val targetConfig = generator.targetConfig
     val reactorCppSuffix = targetConfig.runtimeVersion ?: "default"
     val reactorCppName = "reactor-cpp-$reactorCppSuffix"

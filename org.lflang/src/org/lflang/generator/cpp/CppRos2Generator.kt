@@ -7,8 +7,8 @@ import java.nio.file.Path
 /** C++ platform generator for the ROS2 platform.*/
 class CppRos2Generator(generator: CppGenerator) : CppPlatformGenerator(generator) {
 
-    override val srcGenPath: Path = generator.context.fileConfig.srcGenPath.resolve("src")
-    private val packagePath: Path = generator.context.fileConfig.srcGenPath
+    override val srcGenPath: Path = generator.fileConfig.srcGenPath.resolve("src")
+    private val packagePath: Path = generator.fileConfig.srcGenPath
     private val nodeGenerator = CppRos2NodeGenerator(mainReactor, targetConfig, fileConfig);
     private val packageGenerator = CppRos2PackageGenerator(generator, nodeGenerator.nodeName)
 
