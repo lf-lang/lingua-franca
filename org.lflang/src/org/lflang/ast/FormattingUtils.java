@@ -13,6 +13,7 @@ import org.eclipse.emf.ecore.EObject;
 
 import org.lflang.ASTUtils;
 import org.lflang.Target;
+import org.lflang.generator.ReactionInstance.Runtime;
 import org.lflang.lf.Model;
 import org.lflang.lf.TargetDecl;
 
@@ -95,7 +96,7 @@ public class FormattingUtils {
                 return Target.fromDecl(targetDecl);
             }
         }
-        return Target.C;
+        throw new RuntimeException("Unable to determine target.");
     }
 
     /**
