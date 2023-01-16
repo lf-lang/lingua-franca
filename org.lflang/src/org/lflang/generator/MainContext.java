@@ -37,6 +37,8 @@ public class MainContext implements LFGeneratorContext {
     /** Whether the requested build is required to be complete. */
     private final Mode mode;
 
+    private final TargetConfig targetConfig;
+
     /** The result of the code generation process. */
     private GeneratorResult result = null;
     private final Properties args;
@@ -93,6 +95,12 @@ public class MainContext implements LFGeneratorContext {
         }
 
         this.errorReporter = constructErrorReporter.apply(this.fileConfig);
+
+        this.targetConfig = GeneratorUtils.getTargetConfig(
+            args, GeneratorUtils.findTarget(fileConfig.resource), errorReporter
+        );
+
+
     }
 
     @Override
@@ -135,9 +143,7 @@ public class MainContext implements LFGeneratorContext {
 
     @Override
     public TargetConfig getTargetConfig() {
-        return GeneratorUtils.getTargetConfig(
-            args, GeneratorUtils.findTarget(fileConfig.resource), errorReporter
-        );
+        return this.targetConfig;
     }
 
     @Override
