@@ -32,7 +32,6 @@ import org.lflang.ErrorReporter;
 import org.lflang.TargetConfig;
 import org.lflang.federated.generator.FedFileConfig;
 import org.lflang.federated.generator.FederateInstance;
-import org.lflang.federated.OldFedFileConfig;
 import org.lflang.generator.c.CCompiler;
 
 /**
