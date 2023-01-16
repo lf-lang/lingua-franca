@@ -153,6 +153,7 @@ public class LFGenerator extends AbstractGenerator {
     @Override
     public void doGenerate(Resource resource, IFileSystemAccess2 fsa,
             IGeneratorContext context) {
+        System.out.println("In LFGenerator::doGenerate: " + resource.getURI().toString());
         final LFGeneratorContext lfContext;
         if (context instanceof LFGeneratorContext) {
             lfContext = (LFGeneratorContext)context;

@@ -261,6 +261,7 @@ public class FedGenerator {
         Map<Path, CodeMap> codeMapMap = new ConcurrentHashMap<>();
         Averager averager = new Averager(federates.size());
         for (int i = 0; i < federates.size(); i++) {
+            System.out.println("In FedGenerator::compileFederates[" + i + "]: " + context.getFileConfig().resource.getURI().toString());
             FederateInstance fed = federates.get(i);
             final int id = i;
             compileThreadPool.execute(() -> {
@@ -293,7 +294,7 @@ public class FedGenerator {
                         return subConfig;
                     }
                 };
-
+                System.out.println("In FedGenerator::lambda: " + context.getFileConfig().resource.getURI().toString());
                 inj.getInstance(LFGenerator.class).doGenerate(res, fsa, subContext);
                 codeMapMap.putAll(subContext.getResult().getCodeMaps());
                 // FIXME
