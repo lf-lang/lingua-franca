@@ -423,8 +423,10 @@ public class PythonGenerator extends CGenerator {
             IntegratedBuilder.VALIDATED_PERCENT_PROGRESS,
             cGeneratedPercentProgress
         ));
+        System.out.println("In PythonGenerator::doGenerate (after super.doGenerate): " + resource.getURI().toString());
 
         if (errorsOccurred()) {
+            System.out.println("In PythonGenerator::doGenerate (errors occurred): " + resource.getURI().toString());
             context.unsuccessfulFinish();
             return;
         }
@@ -433,20 +435,17 @@ public class PythonGenerator extends CGenerator {
         var lfModuleName = fileConfig.name;
         // Don't generate code if there is no main reactor
         if (this.main != null) {
+            System.out.println("In PythonGenerator::doGenerate (main != null): " + resource.getURI().toString());
             try {
                 Map<Path, CodeMap> codeMapsForFederate = generatePythonFiles(lfModuleName, generatePythonModuleName(lfModuleName), generatePythonFileName(lfModuleName));
                 codeMaps.putAll(codeMapsForFederate);
                 copyTargetFiles();
-                if (!targetConfig.noCompile) {
-                    // If there are no federates, compile and install the generated code
-                    new PythonValidator(fileConfig, errorReporter, codeMaps, protoNames).doValidate(context);
-                    if (!errorsOccurred()
-                        && !Objects.equal(context.getMode(), LFGeneratorContext.Mode.LSP_MEDIUM)) {
-                    }
-                } else {
+                new PythonValidator(fileConfig, errorReporter, codeMaps, protoNames).doValidate(context);
+                if (targetConfig.noCompile) {
                     System.out.println(PythonInfoGenerator.generateSetupInfo(fileConfig));
                 }
             } catch (Exception e) {
+                System.out.println("In PythonGenerator::doGenerate (exception e being sneaky-thrown): " + resource.getURI().toString());
                 //noinspection ConstantConditions
                 throw Exceptions.sneakyThrow(e);
             }
