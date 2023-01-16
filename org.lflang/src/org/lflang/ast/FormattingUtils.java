@@ -67,6 +67,7 @@ public class FormattingUtils {
      */
     public static String render(EObject object, int lineLength, Target target, boolean codeMapTags) {
         MalleableString ms = ToLf.instance.doSwitch(object);
+        String singleLineCommentPrefix = target.
         String singleLineCommentPrefix = target == Target.Python ? "#" : "//";
         ms.findBestRepresentation(
             () -> ms.render(INDENTATION, singleLineCommentPrefix, codeMapTags, null),
