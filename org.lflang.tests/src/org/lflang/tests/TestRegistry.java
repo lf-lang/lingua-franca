@@ -293,12 +293,15 @@ public class TestRegistry {
             int missing = all.size() - own.size();
             if (missing > 0) {
                 all.stream().filter(test -> !own.contains(test))
-                        .forEach(test -> s.append("Missing: ").append(test.toString()).append("\n"));
+                        .forEach(test -> s.append("Missing: ").append(test).append("\n"));
             }
         } else {
             s.append("\n").append(TestBase.THIN_LINE);
             s.append("Covered: ").append(own.size()).append("/").append(own.size()).append("\n");
             s.append(TestBase.THIN_LINE);
+            Set<LFTest> all = allTargets.get(category);
+            all.stream().filter(test -> test.hasPassed())
+               .forEach(test -> s.append("Passed: ").append(test).append("\n"));
         }
         
         return s.toString();
