@@ -141,11 +141,15 @@ public abstract class Validator {
         long mostRecentDateModified = codeMaps.keySet().stream()
             .map(it -> it.toFile().lastModified()).reduce(0L, Math::max);
         for (Path generatedFile : codeMaps.keySet()) {
-            if (generatedFile.toFile().lastModified() > mostRecentDateModified - FILE_AGE_THRESHOLD_MILLIS) {
+            final long age =  mostRecentDateModified - generatedFile.toFile().lastModified();
+            if (age < FILE_AGE_THRESHOLD_MILLIS) {
+                System.out.println("" + generatedFile + " is only " + age + " milliseconds older than the other generated files. Validating...");
                 final Pair<ValidationStrategy, LFCommand> p = getValidationStrategy(generatedFile);
                 if (p.first == null || p.second == null) continue;
                 commands.add(p);
                 if (p.first.isFullBatch()) break;
+            } else {
+                System.out.println("Skipping " + generatedFile + " because it likely has not been updated since the last validator pass.");
             }
         }
         return commands;
