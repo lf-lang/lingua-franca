@@ -299,14 +299,10 @@ public class TestRegistry {
             s.append("\n").append(TestBase.THIN_LINE);
             s.append("Covered: ").append(own.size()).append("/").append(own.size()).append("\n");
             s.append(TestBase.THIN_LINE);
-            Set<LFTest> all = allTargets.get(category);
-            all.stream().filter(test -> test.hasPassed())
-               .forEach(test -> s.append("Passed: ").append(test).append("\n"));
         }
-        
         return s.toString();
-    }    
-    
+    }
+
     /**
      * FileVisitor implementation that maintains a stack to map found tests to
      * the appropriate category and excludes directories that are listed as 
