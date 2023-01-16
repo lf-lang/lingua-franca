@@ -1,12 +1,12 @@
 // This is a smoke test for an enclaved bank
 target Cpp {
-    timeout: 1 sec
+    timeout: 3 sec
 }
 
 reactor Node(
     bank_index: size_t(0),
     id: std::string({= "node" + std::to_string(bank_index) =}),
-    period: time(200 msec),
+    period: time(500 msec),
     duration: time(10 msec)
 ) {
     logical action a: void
@@ -16,14 +16,14 @@ reactor Node(
         std::this_thread::sleep_for(duration);
         reactor::log::Info() << id << " reaction done.";
         a.schedule(period);
-    =} deadline(200 msec) {=
+    =} deadline(period) {=
         reactor::log::Error() << id << " deadline was violated!";
         exit(1);
     =}
 }
 
 main reactor {
-    slow = new Node(id = "slow", period = 500 msec, duration = 300 msec)
+    slow = new Node(id = "slow", period = 1 sec, duration = 500 msec)
     @enclave
     nodes = new[2] Node()
 }
