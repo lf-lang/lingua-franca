@@ -6,6 +6,9 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import org.lflang.federated.generator.FedDockerGenerator;
+import org.lflang.generator.c.CDockerGenerator;
+import org.lflang.generator.python.PythonDockerGenerator;
+import org.lflang.generator.ts.TSDockerGenerator;
 import org.lflang.util.FileUtil;
 
 /**
@@ -71,11 +74,10 @@ public abstract class DockerGeneratorBase {
      *         using the generated docker file.
      */
     public String getUsageInstructions() {
-        var fileConfig = context.getFileConfig();
         return String.join("\n",
             "#####################################",
             "To build:",
-            "    pushd " + dockerComposeFilePath.getParent() + "&& docker compose build",
+            "    pushd " + dockerComposeFilePath.getParent() + " && docker compose build",
             "Then, to launch:",
             "    docker compose up",
             "To return to the current working directory:",
@@ -85,24 +87,26 @@ public abstract class DockerGeneratorBase {
     }
 
     /**
-     * Override in FedGenerator
-     * @param services
+     *
      * @param networkName
      * @return
      */
-    protected CodeBuilder generateDockerComposeFile(List<DockerData> services, String networkName) {
-        var contents = new CodeBuilder();
-        contents.pr(String.join("\n",
-            "version: \"3.9\"",
-            "services:",
-            services.stream().map(
-                (data -> data.getServiceDescription(this instanceof FedDockerGenerator))
-            ).collect(Collectors.joining("")),
+    protected String generateDockerNetwork(String networkName) {
+        return String.join("\n",
             "networks:",
             "    lingua-franca:",
             "        name: "+networkName
-        ));
-        return contents;
+        );
+    }
+
+    protected String generateDockerServices(List<DockerData> services) {
+        return String.join("\n",
+                                "version: \"3.9\"",
+                                "services:",
+                                services.stream().map(
+                                    (data -> data.getServiceDescription(this instanceof FedDockerGenerator))
+                                ).collect(Collectors.joining("\n"))
+        );
     }
 
     /**
@@ -114,9 +118,20 @@ public abstract class DockerGeneratorBase {
         List<DockerData> services,
         String networkName
     ) throws IOException {
-        var contents = this.generateDockerComposeFile(services, networkName);
-        FileUtil.writeToFile(contents.toString(), dockerComposeFilePath);
+        var contents = String.join("\n",
+                                   this.generateDockerServices(services),
+                                   this.generateDockerNetwork(networkName));
+        FileUtil.writeToFile(contents, dockerComposeFilePath);
         System.out.println(getUsageInstructions());
     }
 
+    public static DockerGeneratorBase dockerGeneratorFactory(LFGeneratorContext context) {
+        var target = context.getTargetConfig().target;
+        return switch (target) {
+            case C, CCPP -> new CDockerGenerator(context);
+            case TS -> new TSDockerGenerator(context);
+            case Python -> new PythonDockerGenerator(context);
+            case CPP, Rust -> throw new IllegalArgumentException("No Docker support for " + target + " yet.");
+        };
+    }
 }

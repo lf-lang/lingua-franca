@@ -74,10 +74,10 @@ public class DockerData {
         svc.append(tab + (inFederation? this.getComposeServiceName() : "main" ) +":\n");
         svc.append(tab + tab + "build:\n");
         svc.append(tab.repeat(3) + "context: " + (inFederation? this.getDockerContext() : "." ) +"\n");
-        svc.append(tab.repeat(3) + "dockerfile: " + this.getFilePath()+"\n"); // FIXME make this a relative path for better readability
+        svc.append(tab.repeat(3) + "dockerfile: " + this.getFilePath()); // FIXME make this a relative path for better readability
 
         if (inFederation) {
-            svc.append(tab+tab+"command: -i 1\n");
+            svc.append("\n"+tab+tab+"command: -i 1");
         }
         return svc.toString();
     }

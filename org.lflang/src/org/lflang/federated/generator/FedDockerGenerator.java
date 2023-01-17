@@ -69,19 +69,17 @@ public class FedDockerGenerator extends DockerGeneratorBase {
     /**
      * Override in FedGenerator
      * @param services
-     * @param networkName
+     *
      * @return
      */
     @Override
-    protected CodeBuilder generateDockerComposeFile(List<DockerData> services, String networkName) {
-        var contents = super.generateDockerComposeFile(services, networkName);
-        contents.pr(String.join("\n",
-                                "rti:"),
-                    "image: lflang/rti:rti",
-                    "hostname: " + this.rtiHost,
-                    "command: -i 1 -n " + services.size());
-        // FIXME: indentation will be wrong
-        return contents;
+    protected String generateDockerServices(List<DockerData> services) {
+        return String.join("\n",
+                    super.generateDockerServices(services),
+                                "    rti:",
+                    "        image: lflang/rti:rti",
+                    "        hostname: " + this.rtiHost,
+                    "        command: -i 1 -n " + services.size());
     }
 
     /**
