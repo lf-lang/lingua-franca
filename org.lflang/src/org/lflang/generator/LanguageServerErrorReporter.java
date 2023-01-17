@@ -100,6 +100,8 @@ public class LanguageServerErrorReporter implements ErrorReporter {
 
     @Override
     public boolean getErrorsOccurred() {
+        System.out.println("DEBUG: These are the errors that have occurred:");
+        diagnostics.values().forEach(System.out::println);
         return diagnostics.values().stream().anyMatch(
             it -> it.stream().anyMatch(diagnostic -> diagnostic.getSeverity() == DiagnosticSeverity.Error)
         );

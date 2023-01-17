@@ -260,6 +260,7 @@ public class FedGenerator {
         System.out.println("******** Using "+numOfCompileThreads+" threads to compile the program.");
         Map<Path, CodeMap> codeMapMap = new ConcurrentHashMap<>();
         Averager averager = new Averager(federates.size());
+        final var threadSafeErrorReporter = new SynchronizedErrorReporter(errorReporter);
         for (int i = 0; i < federates.size(); i++) {
             System.out.println("In FedGenerator::compileFederates[" + i + "]: " + context.getFileConfig().resource.getURI().toString());
             FederateInstance fed = federates.get(i);
@@ -269,7 +270,7 @@ public class FedGenerator {
                     fileConfig.getSrcPath().resolve(fed.name + ".lf").toAbsolutePath().toString()
                 ), true);
                 FileConfig subFileConfig = LFGenerator.createFileConfig(res, fileConfig.getSrcGenPath(), false);
-                ErrorReporter subContextErrorReporter = new LineAdjustingErrorReporter(errorReporter, lf2lfCodeMapMap);
+                ErrorReporter subContextErrorReporter = new LineAdjustingErrorReporter(threadSafeErrorReporter, lf2lfCodeMapMap);
                 TargetConfig subConfig = GeneratorUtils.getTargetConfig(
                     new Properties(), GeneratorUtils.findTarget(subFileConfig.resource), subContextErrorReporter
                 );
