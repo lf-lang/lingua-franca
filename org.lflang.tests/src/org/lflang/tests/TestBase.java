@@ -531,7 +531,7 @@ public abstract class TestBase {
                     if (p.exitValue() != 0) {
                         String message = "Exit code: " + p.exitValue();
                         if (p.exitValue() == 139) {
-                            // The java ProcessBuiler and Process interface does not allow us to reliably retrieve stderr and stdout
+                            // The java ProcessBuilder and Process interface does not allow us to reliably retrieve stderr and stdout
                             // from a process that segfaults. We can only print a message indicating that the putput is incomplete.
                             message += System.lineSeparator() +
                             "This exit code typically indicates a segfault. In this case, the execution output is likely missing or incomplete.";
@@ -543,6 +543,7 @@ public abstract class TestBase {
         } catch (TestError e) {
             throw  e;
         } catch (Throwable e) {
+            e.printStackTrace();
             throw new TestError("Exception during test execution.", Result.TEST_EXCEPTION, e);
         }
     }
@@ -611,10 +612,9 @@ public abstract class TestBase {
         }
         var srcGenPath = test.getFileConfig().getSrcGenPath();
         var dockerComposeFile = FileUtil.globFilesEndsWith(srcGenPath, "docker-compose.yml").get(0);
-        var dockerComposeCommand = "docker compose";
-        return List.of(new ProcessBuilder(dockerComposeCommand, "-f", dockerComposeFile.toString(), "rm", "-f"),
-                       new ProcessBuilder(dockerComposeCommand, "-f", dockerComposeFile.toString(), "up", "--build"),
-                       new ProcessBuilder(dockerComposeCommand, "-f", dockerComposeFile.toString(), "down", "--rmi", "local"));
+        return List.of(new ProcessBuilder("docker", "compose", "-f", dockerComposeFile.toString(), "rm", "-f"),
+                       new ProcessBuilder("docker", "compose", "-f", dockerComposeFile.toString(), "up", "--build"),
+                       new ProcessBuilder("docker", "compose", "-f", dockerComposeFile.toString(), "down", "--rmi", "local"));
     }
 
     /**
