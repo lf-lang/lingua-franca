@@ -165,7 +165,9 @@ public class FedGenerator {
             ));
         }
 
-        Map<Path, CodeMap> codeMapMap = compileFederates(context, lf2lfCodeMapMap, (fcMap) -> {});
+        Map<Path, CodeMap> codeMapMap = compileFederates(context, lf2lfCodeMapMap, (fcMap) -> {
+            fcMap.forEach((k, v) -> System.out.println(v.name));
+        });
 
         context.finish(Status.COMPILED, codeMapMap);
         return false; // FIXME why false?
@@ -239,7 +241,7 @@ public class FedGenerator {
     private Map<Path, CodeMap> compileFederates(
             LFGeneratorContext context,
             Map<Path, CodeMap> lf2lfCodeMapMap,
-            Consumer<Map<FederateInstance, FileConfig>> finalize) {
+            Consumer<Map<FederateInstance, FileConfig>> finalizer) {
 
         // FIXME: Use the appropriate resource set instead of always using standalone
         Injector inj = new LFStandaloneSetup()
@@ -259,6 +261,7 @@ public class FedGenerator {
         var compileThreadPool = Executors.newFixedThreadPool(numOfCompileThreads);
         System.out.println("******** Using "+numOfCompileThreads+" threads to compile the program.");
         Map<Path, CodeMap> codeMapMap = new ConcurrentHashMap<>();
+        Map<FederateInstance, FileConfig> fileConfigMap = new ConcurrentHashMap<>();
         Averager averager = new Averager(federates.size());
         final var threadSafeErrorReporter = new SynchronizedErrorReporter(errorReporter);
         for (int i = 0; i < federates.size(); i++) {
@@ -270,8 +273,13 @@ public class FedGenerator {
                 ), true);
                 FileConfig subFileConfig = LFGenerator.createFileConfig(res, fileConfig.getSrcGenPath(), false);
                 ErrorReporter subContextErrorReporter = new LineAdjustingErrorReporter(threadSafeErrorReporter, lf2lfCodeMapMap);
+
+                var props = new Properties();
+                props.put("no-compile", "true");
+                props.put("docker", "false");
+
                 TargetConfig subConfig = GeneratorUtils.getTargetConfig(
-                    new Properties(), GeneratorUtils.findTarget(subFileConfig.resource), subContextErrorReporter
+                    props, GeneratorUtils.findTarget(subFileConfig.resource), subContextErrorReporter
                 );
                 SubContext subContext = new SubContext(context, IntegratedBuilder.VALIDATED_PERCENT_PROGRESS, 100) {
                     @Override
@@ -297,12 +305,9 @@ public class FedGenerator {
 
                 inj.getInstance(LFGenerator.class).doGenerate(res, fsa, subContext);
                 codeMapMap.putAll(subContext.getResult().getCodeMaps());
-                // FIXME
-                //subContext.getFileConfig()
-                //finalize.accept();
+                fileConfigMap.put(fed, subFileConfig);
             });
         }
-
         // Initiate an orderly shutdown in which previously submitted tasks are
         // executed, but no new tasks will be accepted.
         compileThreadPool.shutdown();
@@ -312,6 +317,8 @@ public class FedGenerator {
             compileThreadPool.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
         } catch (Exception e) {
             Exceptions.sneakyThrow(e);
+        } finally {
+            finalizer.accept(fileConfigMap);
         }
         return codeMapMap;
     }

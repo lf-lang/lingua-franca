@@ -2,6 +2,7 @@ package org.lflang.generator.ts
 
 import org.lflang.generator.DockerGeneratorBase
 import org.lflang.FileConfig
+import org.lflang.generator.DockerData
 import org.lflang.generator.LFGeneratorContext
 
 /**

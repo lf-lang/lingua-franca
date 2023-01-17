@@ -34,6 +34,7 @@ import org.lflang.TimeValue
 import org.lflang.ast.AfterDelayTransformation
 
 import org.lflang.generator.CodeMap
+import org.lflang.generator.DockerData
 import org.lflang.generator.GeneratorBase
 import org.lflang.generator.GeneratorResult
 import org.lflang.generator.GeneratorUtils
@@ -132,7 +133,9 @@ class TSGenerator(
         val codeMaps = HashMap<Path, CodeMap>()
         generateCode(codeMaps, resource.model.preambles)
         if (targetConfig.dockerOptions != null) {
-                TSDockerGenerator(context).writeDockerFiles()
+            val dockerGenerator = TSDockerGenerator(context)
+            val dockerData = dockerGenerator.generateDockerData();
+            dockerGenerator.writeDockerComposeFile(listOf(dockerData), "lf")
         }
         // For small programs, everything up until this point is virtually instantaneous. This is the point where cancellation,
         // progress reporting, and IDE responsiveness become real considerations.

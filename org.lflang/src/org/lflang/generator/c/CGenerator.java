@@ -53,6 +53,7 @@ import org.eclipse.xtext.xbase.lib.StringExtensions;
 
 import org.lflang.ASTUtils;
 import org.lflang.ErrorReporter;
+import org.lflang.generator.DockerData;
 import org.lflang.FileConfig;
 import org.lflang.Target;
 import org.lflang.TargetConfig;
@@ -572,7 +573,10 @@ public class CGenerator extends GeneratorBase {
             // Create docker file.
             if (targetConfig.dockerOptions != null && mainDef != null) {
                 try {
-                    getDockerGenerator(context).writeDockerFiles();
+                    var dockerGenerator = getDockerGenerator(context);
+                    var dockerData = dockerGenerator.generateDockerData();
+                    dockerData.writeDockerFile();
+                    dockerGenerator.writeDockerComposeFile(List.of(dockerData), "lf");
                 } catch (IOException e) {
                     throw new RuntimeException("Error while writing Docker files", e);
                 }
@@ -614,7 +618,7 @@ public class CGenerator extends GeneratorBase {
         // If this code generator is directly compiling the code, compile it now so that we
         // clean it up after, removing the #line directives after errors have been reported.
         if (
-            !targetConfig.noCompile
+            !targetConfig.noCompile && targetConfig.dockerOptions == null
                 && IterableExtensions.isNullOrEmpty(targetConfig.buildCommands)
                 // This code is unreachable in LSP_FAST mode, so that check is omitted.
                 && context.getMode() != LFGeneratorContext.Mode.LSP_MEDIUM
@@ -1979,6 +1983,11 @@ public class CGenerator extends GeneratorBase {
         return types;
     }
 
+    /**
+     *
+     * @param context
+     * @return
+     */
     protected DockerGeneratorBase getDockerGenerator(LFGeneratorContext context) {
         return new CDockerGenerator(context);
     }

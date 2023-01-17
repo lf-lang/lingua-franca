@@ -2,8 +2,10 @@ package org.lflang.generator;
 
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.List;
+import java.util.stream.Collectors;
 
-import org.lflang.federated.generator.FedFileConfig;
+import org.lflang.federated.generator.FedDockerGenerator;
 import org.lflang.util.FileUtil;
 
 /**
@@ -29,7 +31,7 @@ import org.lflang.util.FileUtil;
  * @author Hou Seng Wong
  * @author Marten Lohstroh
  */
-abstract public class DockerGeneratorBase {
+public abstract class DockerGeneratorBase {
 
     /**
      * Configuration for interactions with the filesystem.
@@ -38,75 +40,7 @@ abstract public class DockerGeneratorBase {
 
      protected final Path dockerComposeFilePath;
 
-    protected abstract DockerData generateDockerData();
-
-    /**
-     *
-     */
-    protected class DockerData {
-        /**
-         * The absolute path to the docker file.
-         */
-        private Path filePath;
-        /**
-         * The content of the docker file to be generated.
-         */
-        private String fileContent;
-        /**
-         * The name of the docker compose service for the LF module.
-         */
-        private String composeServiceName;
-        /**
-         * The build context of the docker container.
-         */
-        private String buildContext;
-
-        public DockerData(
-            Path dockerFilePath,
-            String dockerFileContent,
-            String dockerBuildContext
-        ) {
-            if (dockerFilePath == null || dockerFileContent == null ||
-                    dockerBuildContext == null) {
-                throw new RuntimeException("Missing fields in DockerData instance");
-            }
-            if (!dockerFilePath.toFile().isAbsolute()) {
-                throw new RuntimeException("Non-absolute docker file path in DockerData instance");
-            }
-            if (!dockerFilePath.toString().endsWith(".Dockerfile")) {
-                throw new RuntimeException(
-                    "Docker file path does not end with \".Dockerfile\" in DockerData instance");
-            }
-            filePath = dockerFilePath;
-            fileContent = dockerFileContent;
-            composeServiceName = filePath.getFileName().toString().replace(".Dockerfile", "").toLowerCase();
-            buildContext = dockerBuildContext;
-        }
-
-        public Path getFilePath() { return filePath; }
-        public String getFileContent() { return fileContent; }
-        public String getComposeServiceName() { return composeServiceName; }
-        public String getBuildContext() { return buildContext; }
-
-
-        /**
-         * Return a service description for the "services" section of the docker-compose.yml file.
-         */
-        public String getServiceDescription(boolean inFederation) {
-            var tab = " ".repeat(4);
-            StringBuilder svc = new StringBuilder();
-            svc.append(tab + this.getComposeServiceName()+":\n");
-            svc.append(tab + tab + "build:\n");
-            svc.append(tab.repeat(3) + "context: " + this.getBuildContext()+"\n");
-            svc.append(tab.repeat(3) + "dockerfile: " + this.getFilePath()+"\n");
-
-            if (inFederation) {
-                svc.append(tab+tab+"command: -i 1\n");
-            }
-            return svc.toString();
-        }
-    }
-
+    public abstract DockerData generateDockerData();
 
     /**
      * The constructor for the base docker file generation class.
@@ -114,102 +48,75 @@ abstract public class DockerGeneratorBase {
      */
     public DockerGeneratorBase(LFGeneratorContext context) {
         this.context = context;
-        var fileConfig = context.getFileConfig();
-        // FIXME: in FedFileConfig we should probably just have an override of getSrcGenPath instead.
-        if (fileConfig instanceof FedFileConfig) {
-            this.dockerComposeFilePath = ((FedFileConfig)fileConfig).getSrcGenPath().resolve("docker-compose.yml");
-        } else {
-            this.dockerComposeFilePath = fileConfig.getSrcGenPath().resolve("docker-compose.yml");
-        }
+        this.dockerComposeFilePath = context.getFileConfig().getSrcGenPath().resolve("docker-compose.yml");
     }
 
-    /**
-     * Write the docker files generated for the federates added using `addFederate` so far.
-     */
-    public void writeDockerFiles() throws IOException {
-        var dockerData = generateDockerData();
-        writeDockerFile(dockerData);
-        writeDockerComposeFile(dockerData.getServiceDescription(false), "lf");
-        System.out.println(getDockerBuildCommandMsg(dockerData));
-        System.out.println(getDockerComposeUpMsg());
+    //
+//    /**
+//     * Write the docker files generated for the federates added using `addFederate` so far.
+//     */
+//    public void writeDockerFiles() throws IOException {
+//        var dockerData = generateDockerData();
+//        writeDockerComposeFile(dockerData.getServiceDescription(false), "lf");
+//        System.out.println(getDockerBuildCommandMsg(dockerData));
+//        System.out.println(getDockerComposeUpMsg());
+//
+//    }
 
-    }
-
-    /**
-     * Writes the docker file given the docker data.
-     *
-     * @param dockerData The docker data as specified in the DockerData class.
-     */
-    protected void writeDockerFile(DockerData dockerData) throws IOException {
-        var dockerFilePath = dockerData.getFilePath();
-        if (dockerFilePath.toFile().exists()) {
-            dockerFilePath.toFile().delete();
-        }
-        FileUtil.writeToFile(dockerData.getFileContent(), dockerFilePath);
-    }
-
-    /**
-     * Get the command for docker compose depending on the OS.
-     */
-    public static String getDockerComposeCommand() {
-        String OS = System.getProperty("os.name").toLowerCase();
-        return (OS.contains("nux")) ? "docker-compose" : "docker compose";
-    }
 
     /**
      * Get the command to build the docker images using the compose file.
-     * @param dockerData The docker data as specified in the DockerData class.
+     *
      * @return The build command printed to the user as to how to build a docker image
      *         using the generated docker file.
      */
-    private String getDockerBuildCommandMsg(
-        DockerData dockerData
-    ) {
+    public String getUsageInstructions() {
+        var fileConfig = context.getFileConfig();
         return String.join("\n",
-            "Dockerfile for "+dockerData.getComposeServiceName()+" written to "+dockerData.getFilePath(),
             "#####################################",
-            "To build the docker image, go to "+dockerComposeFilePath.getParent()+" and run:",
-            "",
-            "    "+getDockerComposeCommand()+" build "+dockerData.getComposeServiceName(),
-            "",
+            "To build:",
+            "    pushd " + dockerComposeFilePath.getParent() + "&& docker compose build",
+            "Then, to launch:",
+            "    docker compose up",
+            "To return to the current working directory:",
+            "    popd",
             "#####################################"
         );
     }
 
     /**
-     * Get the command to launch all containers using the compose file.
+     * Override in FedGenerator
+     * @param services
+     * @param networkName
+     * @return
      */
-    private String getDockerComposeUpMsg() {
-        return String.join("\n",
-            "#####################################",
-            "To launch the docker container(s), go to "+dockerComposeFilePath.getParent()+" and run:",
-            "",
-            "    "+getDockerComposeCommand()+" up",
-            "",
-            "#####################################"
-        );
-    }
-
-    /**
-     * Write the docker-compose.yml file.
-     * @param services Section that lists all the services.
-     * @param networkName The name of the network to which docker will connect the containers.
-     */
-    protected void writeDockerComposeFile(
-        String services,
-        String networkName
-    ) throws IOException {
-
+    protected CodeBuilder generateDockerComposeFile(List<DockerData> services, String networkName) {
         var contents = new CodeBuilder();
         contents.pr(String.join("\n",
             "version: \"3.9\"",
             "services:",
-            services,
+            services.stream().map(
+                (data -> data.getServiceDescription(this instanceof FedDockerGenerator))
+            ).collect(Collectors.joining("")),
             "networks:",
             "    lingua-franca:",
             "        name: "+networkName
         ));
+        return contents;
+    }
+
+    /**
+     * Write the docker-compose.yml file.
+     * @param services A list of all the services.
+     * @param networkName The name of the network to which docker will connect the containers.
+     */
+    public void writeDockerComposeFile(
+        List<DockerData> services,
+        String networkName
+    ) throws IOException {
+        var contents = this.generateDockerComposeFile(services, networkName);
         FileUtil.writeToFile(contents.toString(), dockerComposeFilePath);
+        System.out.println(getUsageInstructions());
     }
 
 }

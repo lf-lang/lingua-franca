@@ -562,7 +562,7 @@ public abstract class TestBase {
      * @param dockerComposeFilePath The path to the docker compose file.
      */
     private String getDockerRunScript(List<Path> dockerFiles, Path dockerComposeFilePath) {
-        var dockerComposeCommand = DockerGeneratorBase.getDockerComposeCommand();
+        var dockerComposeCommand = "docker compose";
         StringBuilder shCode = new StringBuilder();
         shCode.append("#!/bin/bash\n");
         shCode.append("pids=\"\"\n");
@@ -611,7 +611,7 @@ public abstract class TestBase {
         }
         var srcGenPath = test.getFileConfig().getSrcGenPath();
         var dockerComposeFile = FileUtil.globFilesEndsWith(srcGenPath, "docker-compose.yml").get(0);
-        var dockerComposeCommand = DockerGeneratorBase.getDockerComposeCommand();
+        var dockerComposeCommand = "docker compose";
         return List.of(new ProcessBuilder(dockerComposeCommand, "-f", dockerComposeFile.toString(), "rm", "-f"),
                        new ProcessBuilder(dockerComposeCommand, "-f", dockerComposeFile.toString(), "up", "--build"),
                        new ProcessBuilder(dockerComposeCommand, "-f", dockerComposeFile.toString(), "down", "--rmi", "local"));

@@ -5,6 +5,7 @@ import java.util.stream.Collectors;
 import org.eclipse.xtext.xbase.lib.IterableExtensions;
 
 import org.lflang.Target;
+import org.lflang.generator.DockerData;
 import org.lflang.generator.DockerGeneratorBase;
 import org.lflang.generator.LFGeneratorContext;
 import org.lflang.util.StringUtil;
@@ -33,14 +34,12 @@ public class CDockerGenerator extends DockerGeneratorBase {
      * @return docker data as specified in the DockerData class
      */
     @Override
-    protected DockerData generateDockerData() {
-
+    public DockerData generateDockerData() {
         var fileConfig = context.getFileConfig();
         var lfModuleName = fileConfig.name;
         var dockerFilePath = fileConfig.getSrcGenPath().resolve(lfModuleName + ".Dockerfile");
         var dockerFileContent = generateDockerFileContent();
-        var dockerBuildContext = "."; // FIXME: if federated, use federateName
-        return new DockerData(dockerFilePath, dockerFileContent,dockerBuildContext);
+        return new DockerData(dockerFilePath, dockerFileContent, lfModuleName);
     }
 
     /**
