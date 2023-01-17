@@ -117,7 +117,7 @@ public class LineAdjustingErrorReporter implements ErrorReporter {
                 );
             }
         }
-        if (ret == null) return reportError(message);
+        if (ret == null) return severity == DiagnosticSeverity.Error ? reportError(message) : reportWarning(message);
         return ret;
     }
 
