@@ -105,7 +105,7 @@ ${"             |"..preamble.code.toText()}
     private fun getNetworkMessagActions(reactor: Reactor): List<String> {
         val attribute = AttributeUtils.findAttributeByName(reactor, "_fed_config")
         val actionsStr = AttributeUtils.getAttributeParameter(attribute, AttributeSpec.NETWORK_MESSAGE_ACTIONS)
-        return actionsStr.split(",").filter { it.isNotEmpty() }
+        return actionsStr?.split(",")?.filter { it.isNotEmpty()} ?: emptyList()
     }
 
     fun generateReactor(reactor: Reactor): String {
