@@ -240,15 +240,8 @@ public class AttributeSpec {
         ATTRIBUTE_SPECS_BY_NAME.put("language", new AttributeSpec(
             List.of(new AttrParamSpec(AttributeSpec.VALUE_ATTR, AttrParamType.LANGUAGE, false))
         ));
-        // @_fed_recv
-        ATTRIBUTE_SPECS_BY_NAME.put("_fed_recv", new AttributeSpec(null));
-        // @_fed_send
-        ATTRIBUTE_SPECS_BY_NAME.put("_fed_send", new AttributeSpec(null));
-        // @_fed_inp_ctrl
-        ATTRIBUTE_SPECS_BY_NAME.put("_fed_inp_ctrl", new AttributeSpec(null));
-        // @_fed_out_ctrl
-        ATTRIBUTE_SPECS_BY_NAME.put("_fed_out_ctrl", new AttributeSpec(null));
-        // @_fed_config
+        // @unordered
+        ATTRIBUTE_SPECS_BY_NAME.put("unordered", new AttributeSpec(null));
         ATTRIBUTE_SPECS_BY_NAME.put("_fed_config", new AttributeSpec(
                 List.of(new AttrParamSpec(AttributeSpec.NETWORK_MESSAGE_ACTIONS,
                 AttrParamType.STRING, false))));

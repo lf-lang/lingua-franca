@@ -205,10 +205,7 @@ public class AttributeUtils {
      * Return true if the reaction is unordered.
      */
     public static boolean isUnordered(Reaction reaction) {
-        return findAttributeByName(reaction, "_fed_recv") != null ||
-            findAttributeByName(reaction, "_fed_send") != null ||
-            findAttributeByName(reaction, "_fed_inp_ctrl") != null ||
-            findAttributeByName(reaction, "_fed_out_ctrl") != null;
+        return findAttributeByName(reaction, "unordered") != null;
     }
 
     /**
