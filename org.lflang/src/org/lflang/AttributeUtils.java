@@ -161,6 +161,7 @@ public class AttributeUtils {
         return attribute.getAttrParms().stream()
             .filter(param -> Objects.equals(param.getName(), parameterName))
             .map(AttrParm::getValue)
+            .map(StringUtil::removeQuotes)
             .findFirst()
             .orElse(null);
     }
@@ -191,24 +192,30 @@ public class AttributeUtils {
     }
 
     /**
-     * Return the language attribute on a reaction, or null if none is defined.
+     * Return true if the reaction is unordered.
+     *
+     * Currently, this is only used for synthesized reactions in the context of
+     * federated execution.
      */
-    public static Target findReactionLanguageAttribute(Reaction reaction) {
-        var attr = findAttributeByName(reaction, "language");
-        if (attr != null) {
-            return Target.valueOf(StringUtil.removeQuotes(attr.getAttrParms().get(0).getValue()));
-        }
-        return null;
+    public static boolean isUnordered(Reaction reaction) {
+        return findAttributeByName(reaction, "_unordered") != null;
     }
 
     /**
-     * Return true if the reaction is unordered.
+     * Return true if the reactor is marked to be a federate.
      */
-    public static boolean isUnordered(Reaction reaction) {
-        return findAttributeByName(reaction, "_fed_recv") != null ||
-            findAttributeByName(reaction, "_fed_send") != null ||
-            findAttributeByName(reaction, "_fed_inp_ctrl") != null ||
-            findAttributeByName(reaction, "_fed_out_ctrl") != null;
+    public static boolean isFederate(Reactor reactor) {
+        return findAttributeByName(reactor, "_fed_config") != null;
+    }
+
+    /**
+     * Return true if the reaction is marked to have a C code body.
+     *
+     * Currently, this is only used for synthesized reactions in the context of
+     * federated execution in Python.
+     */
+    public static boolean hasCBody(Reaction reaction) {
+        return findAttributeByName(reaction, "_c_body") != null;
     }
 
     /**

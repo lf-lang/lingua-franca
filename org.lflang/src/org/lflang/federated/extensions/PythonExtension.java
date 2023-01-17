@@ -33,6 +33,7 @@ import java.nio.file.Path;
 import java.util.LinkedHashMap;
 import java.util.List;
 
+import org.lflang.ASTUtils;
 import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
 import org.lflang.InferredType;
@@ -55,6 +56,7 @@ import org.lflang.generator.python.PyUtil;
 import org.lflang.generator.python.PythonDockerGenerator;
 import org.lflang.generator.python.PythonInfoGenerator;
 import org.lflang.lf.Action;
+import org.lflang.lf.Reaction;
 import org.lflang.lf.VarRef;
 
 /**
@@ -216,7 +218,7 @@ public class PythonExtension extends CExtension {
     }
 
     @Override
-    public Target getNetworkReactionTarget() {
-        return Target.C;
+    public void annotateReaction(Reaction reaction) {
+        ASTUtils.addReactionAttribute(reaction, "_c_body");
     }
 }

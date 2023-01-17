@@ -932,23 +932,6 @@ public class ASTUtils {
     }
 
     /**
-     * Set the reaction's @language attribute to Target.
-     */
-    public static void setReactionLanguageAttribute(Reaction reaction, Target target) {
-        if (target == null) return;
-        // Set the reaction language
-
-        AttrParm attrParam = ASTUtils.factory.createAttrParm();
-        attrParam.setValue(StringUtil.addDoubleQuotes(target.getDisplayName()));
-
-        Attribute attr = ASTUtils.factory.createAttribute();
-        attr.setAttrName("language");
-        attr.getAttrParms().add(attrParam);
-
-        reaction.getAttributes().add(attr);
-    }
-
-    /**
      * If the initializer contains exactly one expression,
      * return it. Otherwise, return null.
      */
@@ -1805,5 +1788,11 @@ public class ASTUtils {
         }
         // A connection was not found with the instantiation.
         return -1;
+    }
+
+    public static void addReactionAttribute(Reaction reaction, String name) {
+        var fedAttr = factory.createAttribute();
+        fedAttr.setAttrName(name);
+        reaction.getAttributes().add(fedAttr);
     }
 }

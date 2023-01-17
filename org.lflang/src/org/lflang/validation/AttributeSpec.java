@@ -25,7 +25,6 @@
 
 package org.lflang.validation;
 
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -33,7 +32,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import org.lflang.Target;
 import org.lflang.ASTUtils;
 import org.lflang.lf.AttrParm;
 import org.lflang.lf.Attribute;
@@ -51,8 +49,6 @@ public class AttributeSpec {
 
     public static final String VALUE_ATTR = "value";
     public static final String NETWORK_MESSAGE_ACTIONS = "network_message_actions";
-
-
     public static final String EACH_ATTR = "each";
 
     /** A map from a string to a supported AttributeSpec */
@@ -158,58 +154,38 @@ public class AttributeSpec {
         // Currently, only String, Int, Boolean, Float, and target language are supported.
         public void check(LFValidator validator, AttrParm parm) {
             switch (type) {
-            case STRING:
+            case STRING -> {
                 if (!StringUtil.hasQuotes(parm.getValue())) {
                     validator.error("Incorrect type: \"" + parm.getName() + "\""
                             + " should have type String.",
                         Literals.ATTRIBUTE__ATTR_NAME);
                 }
-                break;
-            case INT:
+            }
+            case INT -> {
                 if (!ASTUtils.isInteger(parm.getValue())) {
                     validator.error(
-                        "Incorrect type: \"" + parm.getName() + "\"" + " should have type Int.",
+                        "Incorrect type: \"" + parm.getName() + "\""
+                            + " should have type Int.",
                         Literals.ATTRIBUTE__ATTR_NAME);
                 }
-                break;
-            case BOOLEAN:
+            }
+            case BOOLEAN -> {
                 if (!ASTUtils.isBoolean(parm.getValue())) {
                     validator.error(
-                        "Incorrect type: \"" + parm.getName() + "\"" + " should have type Boolean.",
+                        "Incorrect type: \"" + parm.getName() + "\""
+                            + " should have type Boolean.",
                         Literals.ATTRIBUTE__ATTR_NAME);
                 }
-                break;
-            case FLOAT:
+            }
+            case FLOAT -> {
                 if (!ASTUtils.isFloat(parm.getValue())) {
                     validator.error(
                         "Incorrect type: \"" + parm.getName() + "\""
                             + " should have type Float.",
                         Literals.ATTRIBUTE__ATTR_NAME);
                 }
-                break;
-            case LANGUAGE:
-                if (parm.getValue() == null) {
-                    validator.error("Incorrect type: \"" + parm.getName() + "\"" + " should have a value.",
-                                    Literals.ATTRIBUTE__ATTR_NAME);
-                } else if (
-                    !Arrays.stream(Target.values())
-                           .map(Target::getDisplayName)
-                           .map(it -> "\"" + it + "\"")
-                           .toList()
-                           .contains(parm.getValue())
-                ) {
-                    validator.error(
-                        """
-                        Incorrect language: value should be a supported language (%s).
-                        """.formatted(
-                            Arrays.stream(Target.values())
-                                  .map(Target::getDisplayName)
-                                  .collect(Collectors.joining(", "))
-                        ),
-                        Literals.ATTRIBUTE__ATTR_PARMS
-                    );
-                }
-                break;
+            }
+            default -> throw new IllegalArgumentException("unexpected type");
             }
         }
     }
@@ -222,7 +198,6 @@ public class AttributeSpec {
         INT,
         BOOLEAN,
         FLOAT,
-        LANGUAGE, // FIXME: Rename it to be more specific to the use case
     }
 
     /*
@@ -236,22 +211,6 @@ public class AttributeSpec {
         ));
         // @sparse
         ATTRIBUTE_SPECS_BY_NAME.put("sparse", new AttributeSpec(null));
-        // @language(lang)
-        ATTRIBUTE_SPECS_BY_NAME.put("language", new AttributeSpec(
-            List.of(new AttrParamSpec(AttributeSpec.VALUE_ATTR, AttrParamType.LANGUAGE, false))
-        ));
-        // @_fed_recv
-        ATTRIBUTE_SPECS_BY_NAME.put("_fed_recv", new AttributeSpec(null));
-        // @_fed_send
-        ATTRIBUTE_SPECS_BY_NAME.put("_fed_send", new AttributeSpec(null));
-        // @_fed_inp_ctrl
-        ATTRIBUTE_SPECS_BY_NAME.put("_fed_inp_ctrl", new AttributeSpec(null));
-        // @_fed_out_ctrl
-        ATTRIBUTE_SPECS_BY_NAME.put("_fed_out_ctrl", new AttributeSpec(null));
-        // @_fed_config
-        ATTRIBUTE_SPECS_BY_NAME.put("_fed_config", new AttributeSpec(
-                List.of(new AttrParamSpec(AttributeSpec.NETWORK_MESSAGE_ACTIONS,
-                AttrParamType.STRING, false))));
         // @icon("value")
         ATTRIBUTE_SPECS_BY_NAME.put("icon", new AttributeSpec(
             List.of(new AttrParamSpec(VALUE_ATTR, AttrParamType.STRING, false))
@@ -260,5 +219,12 @@ public class AttributeSpec {
         ATTRIBUTE_SPECS_BY_NAME.put("enclave", new AttributeSpec(
             List.of(new AttrParamSpec(EACH_ATTR, AttrParamType.BOOLEAN, true))
         ));
+
+        // attributes that are used internally only by the federated code generation
+        ATTRIBUTE_SPECS_BY_NAME.put("_unordered", new AttributeSpec(null));
+        ATTRIBUTE_SPECS_BY_NAME.put("_fed_config", new AttributeSpec(
+            List.of(new AttrParamSpec(AttributeSpec.NETWORK_MESSAGE_ACTIONS,
+                                      AttrParamType.STRING, false))));
+        ATTRIBUTE_SPECS_BY_NAME.put("_c_body", new AttributeSpec(null));
     }
 }

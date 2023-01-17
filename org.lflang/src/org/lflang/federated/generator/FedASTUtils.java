@@ -156,11 +156,6 @@ public class FedASTUtils {
                 connection.getDefinition().getDelay()
                     == null // Connections that have delays don't need control reactions
         ) {
-
-            // The ID of the receiving port (rightPort) is the position
-            // of the networkAction (see below) in this list.
-            int receivingPortID = connection.dstFederate.networkMessageActions.size();
-
             // Add the network output control reaction to the parent
             FedASTUtils.addNetworkOutputControlReaction(connection);
 
@@ -268,11 +263,9 @@ public class FedASTUtils {
         // these reactions to appear only in the federate whose bank ID matches.
         setReactionBankIndex(networkReceiverReaction, connection.getDstBank());
 
-        ASTUtils.setReactionLanguageAttribute(
-            networkReceiverReaction,
-            FedTargetExtensionFactory.getExtension(connection.dstFederate.target)
-                                     .getNetworkReactionTarget()
-        );
+        // FIXME: do not create a new extension every time it is used
+        FedTargetExtensionFactory.getExtension(connection.srcFederate.target)
+                                 .annotateReaction(networkReceiverReaction);
 
         // The connection is 'physical' if it uses the ~> notation.
         if (connection.getDefinition().isPhysical()) {
@@ -285,11 +278,6 @@ public class FedASTUtils {
                 connection.dstFederate.inboundP2PConnections.add(connection.srcFederate);
             }
         }
-
-        // Record this action in the right federate.
-        // The ID of the receiving port (rightPort) is the position
-        // of the action in this list.
-        int receivingPortID = connection.dstFederate.networkMessageActions.size();
 
         // Establish references to the involved ports.
         sourceRef.setContainer(connection.getSourcePortInstance().getParent().getDefinition());
@@ -321,7 +309,7 @@ public class FedASTUtils {
             ));
 
 
-        addFedAttr(networkReceiverReaction, "_fed_recv");
+        ASTUtils.addReactionAttribute(networkReceiverReaction, "_unordered");
 
         // Add the receiver reaction to the parent
         parent.getReactions().add(networkReceiverReaction);
@@ -368,11 +356,9 @@ public class FedASTUtils {
         // these reactions to appear only in the federate whose bank ID matches.
         setReactionBankIndex(reaction, connection.getDstBank());
 
-        ASTUtils.setReactionLanguageAttribute(
-            reaction,
-            FedTargetExtensionFactory.getExtension(connection.dstFederate.target)
-                                     .getNetworkReactionTarget()
-        );
+        // FIXME: do not create a new extension every time it is used
+        FedTargetExtensionFactory.getExtension(connection.srcFederate.target)
+                                 .annotateReaction(reaction);
 
         // Create a new action that will be used to trigger the
         // input control reactions.
@@ -419,7 +405,7 @@ public class FedASTUtils {
                         )
                 );
 
-        addFedAttr(reaction, "_fed_inp_ctrl");
+        ASTUtils.addReactionAttribute(reaction, "_unordered");
 
         // Insert the reaction
         top.getReactions().add(reaction);
@@ -435,12 +421,6 @@ public class FedASTUtils {
         // Add necessary dependencies to reaction to ensure that it executes correctly
         // relative to other network input control reactions in the federate.
         addRelativeDependency(connection, reaction, errorReporter);
-    }
-
-    private static void addFedAttr(Reaction reaction, String name) {
-        var fedAttr = ASTUtils.factory.createAttribute();
-        fedAttr.setAttrName(name);
-        reaction.getAttributes().add(fedAttr);
     }
 
     /**
@@ -739,19 +719,14 @@ public class FedASTUtils {
         VarRef destRef = factory.createVarRef();
         Reactor parent = (Reactor) connection.getDefinition().eContainer();
         Reaction networkSenderReaction = factory.createReaction();
-        ASTUtils.setReactionLanguageAttribute(
-            networkSenderReaction,
-            FedTargetExtensionFactory.getExtension(connection.srcFederate.target)
-                                     .getNetworkReactionTarget()
-        );
+
+        // FIXME: do not create a new extension every time it is used
+        FedTargetExtensionFactory.getExtension(connection.srcFederate.target)
+                                 .annotateReaction(networkSenderReaction);
 
         // If the sender or receiver is in a bank of reactors, then we want
         // these reactions to appear only in the federate whose bank ID matches.
         setReactionBankIndex(networkSenderReaction, connection.getSrcBank());
-
-        // These reactions do not require any dependency relationship
-        // to other reactions in the container.
-        // generator.makeUnordered(networkSenderReaction); FIXME
 
         // The connection is 'physical' if it uses the ~> notation.
         if (connection.getDefinition().isPhysical()) {
@@ -764,12 +739,6 @@ public class FedASTUtils {
                 connection.srcFederate.outboundP2PConnections.add(connection.dstFederate);
             }
         }
-
-        // Record this action in the right federate.
-        // The ID of the receiving port (rightPort) is the position
-        // of the action in this list.
-        int receivingPortID = connection.dstFederate.networkMessageActions.size();
-
 
         // Establish references to the involved ports.
         sourceRef.setContainer(connection.getSourcePortInstance().getParent().getDefinition());
@@ -791,7 +760,7 @@ public class FedASTUtils {
                                    errorReporter
                                ));
 
-        addFedAttr(networkSenderReaction, "_fed_send");
+        ASTUtils.addReactionAttribute(networkSenderReaction, "_unordered");
 
         // Add the sending reaction to the parent.
         parent.getReactions().add(networkSenderReaction);
@@ -827,11 +796,9 @@ public class FedASTUtils {
         // these reactions to appear only in the federate whose bank ID matches.
         setReactionBankIndex(reaction, connection.getSrcBank());
 
-        ASTUtils.setReactionLanguageAttribute(
-            reaction,
-            FedTargetExtensionFactory.getExtension(connection.srcFederate.target)
-                                     .getNetworkReactionTarget()
-        );
+        // FIXME: do not create a new extension every time it is used
+        FedTargetExtensionFactory.getExtension(connection.srcFederate.target)
+                                 .annotateReaction(reaction);
 
         // We use an action at the top-level to manually
         // trigger output control reactions. That action is created once
@@ -881,7 +848,7 @@ public class FedASTUtils {
             FedTargetExtensionFactory.getExtension(connection.srcFederate.target)
                                      .generateNetworkOutputControlReactionBody(newPortRef, connection));
 
-        addFedAttr(reaction, "_fed_out_ctrl");
+        ASTUtils.addReactionAttribute(reaction, "_unordered");
 
 
         // Insert the newly generated reaction after the generated sender and
