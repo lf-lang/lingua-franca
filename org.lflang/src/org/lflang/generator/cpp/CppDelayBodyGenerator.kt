@@ -1,6 +1,5 @@
 package org.lflang.generator.cpp
 
-import org.lflang.Target
 import org.lflang.generator.DelayBodyGenerator
 import org.lflang.lf.Action
 import org.lflang.lf.VarRef
@@ -43,6 +42,4 @@ object CppDelayBodyGenerator : DelayBodyGenerator {
     override fun generateDelayGeneric() = "T"
 
     override fun generateAfterDelaysWithVariableWidth() = false
-    override fun getDelayTarget(): Target = Target.CPP
-
 }

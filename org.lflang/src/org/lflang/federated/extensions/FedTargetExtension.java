@@ -18,6 +18,7 @@ import org.lflang.federated.generator.FederateInstance;
 import org.lflang.federated.serialization.SupportedSerializers;
 import org.lflang.generator.LFGeneratorContext;
 import org.lflang.lf.Action;
+import org.lflang.lf.Reaction;
 import org.lflang.lf.VarRef;
 
 public interface FedTargetExtension {
@@ -105,12 +106,8 @@ public interface FedTargetExtension {
         FedConnectionInstance connection
     );
 
-    /**
-     * Return the target language used in the body of network reactions.
-     */
-    default Target getNetworkReactionTarget() {
-        return null;
-    }
+    /** Optionally apply additional annotations to the reaction. */
+    default void annotateReaction(Reaction reaction) {}
 
     /**
      * Return the type for the raw network buffer in the target language (e.g., `uint_8` in C). This would be the type of the 

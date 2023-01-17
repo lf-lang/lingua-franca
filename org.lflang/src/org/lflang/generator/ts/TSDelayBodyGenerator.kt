@@ -35,5 +35,4 @@ object TSDelayBodyGenerator : DelayBodyGenerator {
     }
 
     override fun generateAfterDelaysWithVariableWidth() = false
-    override fun getDelayTarget(): Target = Target.TS
 }
