@@ -437,13 +437,8 @@ public class PythonGenerator extends CGenerator {
                 Map<Path, CodeMap> codeMapsForFederate = generatePythonFiles(lfModuleName, generatePythonModuleName(lfModuleName), generatePythonFileName(lfModuleName));
                 codeMaps.putAll(codeMapsForFederate);
                 copyTargetFiles();
-                if (!targetConfig.noCompile) {
-                    // If there are no federates, compile and install the generated code
-                    new PythonValidator(fileConfig, errorReporter, codeMaps, protoNames).doValidate(context);
-                    if (!errorsOccurred()
-                        && !Objects.equal(context.getMode(), LFGeneratorContext.Mode.LSP_MEDIUM)) {
-                    }
-                } else {
+                new PythonValidator(fileConfig, errorReporter, codeMaps, protoNames).doValidate(context);
+                if (targetConfig.noCompile) {
                     System.out.println(PythonInfoGenerator.generateSetupInfo(fileConfig));
                 }
             } catch (Exception e) {
