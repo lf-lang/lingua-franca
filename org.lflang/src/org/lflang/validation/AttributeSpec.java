@@ -240,11 +240,7 @@ public class AttributeSpec {
         ATTRIBUTE_SPECS_BY_NAME.put("language", new AttributeSpec(
             List.of(new AttrParamSpec(AttributeSpec.VALUE_ATTR, AttrParamType.LANGUAGE, false))
         ));
-        // @unordered
-        ATTRIBUTE_SPECS_BY_NAME.put("_unordered", new AttributeSpec(null));
-        ATTRIBUTE_SPECS_BY_NAME.put("_fed_config", new AttributeSpec(
-                List.of(new AttrParamSpec(AttributeSpec.NETWORK_MESSAGE_ACTIONS,
-                AttrParamType.STRING, false))));
+
         // @icon("value")
         ATTRIBUTE_SPECS_BY_NAME.put("icon", new AttributeSpec(
             List.of(new AttrParamSpec(VALUE_ATTR, AttrParamType.STRING, false))
@@ -253,5 +249,11 @@ public class AttributeSpec {
         ATTRIBUTE_SPECS_BY_NAME.put("enclave", new AttributeSpec(
             List.of(new AttrParamSpec(EACH_ATTR, AttrParamType.BOOLEAN, true))
         ));
+
+        // attributes that are used internally only by the federated code generation
+        ATTRIBUTE_SPECS_BY_NAME.put("_unordered", new AttributeSpec(null));
+        ATTRIBUTE_SPECS_BY_NAME.put("_fed_config", new AttributeSpec(
+            List.of(new AttrParamSpec(AttributeSpec.NETWORK_MESSAGE_ACTIONS,
+                                      AttrParamType.STRING, false))));
     }
 }
