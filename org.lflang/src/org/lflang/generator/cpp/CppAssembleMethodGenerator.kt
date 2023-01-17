@@ -203,7 +203,7 @@ class CppAssembleMethodGenerator(private val reactor: Reactor) {
      * The body of this method will declare all triggers, dependencies and antidependencies to the runtime.
      */
     fun generateDefinition() = with(PrependOperator) {
-        val indexedConnections = reactor.connections.withIndex()
+        val indexedConnections = reactor.connections.filter { it.delay == null }.withIndex()
         """
             |${reactor.templateLine}
             |void ${reactor.templateName}::assemble() {
