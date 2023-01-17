@@ -156,11 +156,6 @@ public class FedASTUtils {
                 connection.getDefinition().getDelay()
                     == null // Connections that have delays don't need control reactions
         ) {
-
-            // The ID of the receiving port (rightPort) is the position
-            // of the networkAction (see below) in this list.
-            int receivingPortID = connection.dstFederate.networkMessageActions.size();
-
             // Add the network output control reaction to the parent
             FedASTUtils.addNetworkOutputControlReaction(connection);
 
@@ -285,11 +280,6 @@ public class FedASTUtils {
                 connection.dstFederate.inboundP2PConnections.add(connection.srcFederate);
             }
         }
-
-        // Record this action in the right federate.
-        // The ID of the receiving port (rightPort) is the position
-        // of the action in this list.
-        int receivingPortID = connection.dstFederate.networkMessageActions.size();
 
         // Establish references to the involved ports.
         sourceRef.setContainer(connection.getSourcePortInstance().getParent().getDefinition());
@@ -749,10 +739,6 @@ public class FedASTUtils {
         // these reactions to appear only in the federate whose bank ID matches.
         setReactionBankIndex(networkSenderReaction, connection.getSrcBank());
 
-        // These reactions do not require any dependency relationship
-        // to other reactions in the container.
-        // generator.makeUnordered(networkSenderReaction); FIXME
-
         // The connection is 'physical' if it uses the ~> notation.
         if (connection.getDefinition().isPhysical()) {
             connection.srcFederate.outboundP2PConnections.add(connection.dstFederate);
@@ -764,12 +750,6 @@ public class FedASTUtils {
                 connection.srcFederate.outboundP2PConnections.add(connection.dstFederate);
             }
         }
-
-        // Record this action in the right federate.
-        // The ID of the receiving port (rightPort) is the position
-        // of the action in this list.
-        int receivingPortID = connection.dstFederate.networkMessageActions.size();
-
 
         // Establish references to the involved ports.
         sourceRef.setContainer(connection.getSourcePortInstance().getParent().getDefinition());
