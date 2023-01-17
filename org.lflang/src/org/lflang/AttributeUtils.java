@@ -158,7 +158,7 @@ public class AttributeUtils {
      * Returns null if no such parameter is found.
      */
     public static String getAttributeParameter(Attribute attribute, String parameterName) {
-        return attribute.getAttrParms().stream()
+        return (attribute == null) ? null : attribute.getAttrParms().stream()
             .filter(param -> Objects.equals(param.getName(), parameterName))
             .map(AttrParm::getValue)
             .map(StringUtil::removeQuotes)
