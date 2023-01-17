@@ -241,7 +241,7 @@ public class AttributeSpec {
             List.of(new AttrParamSpec(AttributeSpec.VALUE_ATTR, AttrParamType.LANGUAGE, false))
         ));
         // @unordered
-        ATTRIBUTE_SPECS_BY_NAME.put("unordered", new AttributeSpec(null));
+        ATTRIBUTE_SPECS_BY_NAME.put("_unordered", new AttributeSpec(null));
         ATTRIBUTE_SPECS_BY_NAME.put("_fed_config", new AttributeSpec(
                 List.of(new AttrParamSpec(AttributeSpec.NETWORK_MESSAGE_ACTIONS,
                 AttrParamType.STRING, false))));

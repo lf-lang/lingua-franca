@@ -321,7 +321,7 @@ public class FedASTUtils {
             ));
 
 
-        addFedAttr(networkReceiverReaction, "unordered");
+        addFedAttr(networkReceiverReaction, "_unordered");
 
         // Add the receiver reaction to the parent
         parent.getReactions().add(networkReceiverReaction);
@@ -419,7 +419,7 @@ public class FedASTUtils {
                         )
                 );
 
-        addFedAttr(reaction, "unordered");
+        addFedAttr(reaction, "_unordered");
 
         // Insert the reaction
         top.getReactions().add(reaction);
@@ -791,7 +791,7 @@ public class FedASTUtils {
                                    errorReporter
                                ));
 
-        addFedAttr(networkSenderReaction, "unordered");
+        addFedAttr(networkSenderReaction, "_unordered");
 
         // Add the sending reaction to the parent.
         parent.getReactions().add(networkSenderReaction);
@@ -881,7 +881,7 @@ public class FedASTUtils {
             FedTargetExtensionFactory.getExtension(connection.srcFederate.target)
                                      .generateNetworkOutputControlReactionBody(newPortRef, connection));
 
-        addFedAttr(reaction, "unordered");
+        addFedAttr(reaction, "_unordered");
 
 
         // Insert the newly generated reaction after the generated sender and
