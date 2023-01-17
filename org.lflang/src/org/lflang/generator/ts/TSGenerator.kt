@@ -139,7 +139,7 @@ class TSGenerator(
         }
         // For small programs, everything up until this point is virtually instantaneous. This is the point where cancellation,
         // progress reporting, and IDE responsiveness become real considerations.
-        if (targetConfig.noCompile || targetConfig.dockerOptions != null) {
+        if (context.mode != LFGeneratorContext.Mode.LSP_MEDIUM && (targetConfig.noCompile || targetConfig.dockerOptions != null)) {
             context.finish(GeneratorResult.GENERATED_NO_EXECUTABLE.apply(context, null))
         } else {
             context.reportProgress(
