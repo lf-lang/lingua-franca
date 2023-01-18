@@ -524,6 +524,7 @@ public abstract class TestBase {
         shCode.append("        exit 1\n");
         shCode.append("    fi\n");
         shCode.append("done\n");
+        System.out.println("**************Using Script:\n" +shCode.toString()); // FIXME: debugging...
         return shCode.toString();
     }
 
