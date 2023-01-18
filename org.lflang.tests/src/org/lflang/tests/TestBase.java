@@ -487,57 +487,52 @@ public abstract class TestBase {
      * an error code.
      */
     private void execute(LFTest test) throws TestError {
-        final List<ProcessBuilder> pbList = getExecCommand(test);
-        if (pbList.isEmpty()) {
-            return;
-        }
+        final var pb = getExecCommand(test);
         try {
-            for (ProcessBuilder pb : pbList) {
-                var p = pb.start();
-                var stdout = test.recordStdOut(p);
-                var stderr = test.recordStdErr(p);
+            var p = pb.start();
+            var stdout = test.recordStdOut(p);
+            var stderr = test.recordStdErr(p);
 
-                var stdoutException = new AtomicReference<Throwable>(null);
-                var stderrException = new AtomicReference<Throwable>(null);
+            var stdoutException = new AtomicReference<Throwable>(null);
+            var stderrException = new AtomicReference<Throwable>(null);
 
-                stdout.setUncaughtExceptionHandler((thread, throwable) -> stdoutException.set(throwable));
-                stderr.setUncaughtExceptionHandler((thread, throwable) -> stderrException.set(throwable));
+            stdout.setUncaughtExceptionHandler((thread, throwable) -> stdoutException.set(throwable));
+            stderr.setUncaughtExceptionHandler((thread, throwable) -> stderrException.set(throwable));
 
-                stderr.start();
-                stdout.start();
+            stderr.start();
+            stdout.start();
 
-                if (!p.waitFor(MAX_EXECUTION_TIME_SECONDS, TimeUnit.SECONDS)) {
-                    stdout.interrupt();
-                    stderr.interrupt();
-                    p.destroyForcibly();
-                    throw new TestError(Result.TEST_TIMEOUT);
-                } else {
-                    if (stdoutException.get() != null || stderrException.get() != null) {
-                        StringBuffer sb = new StringBuffer();
-                        if (stdoutException.get() != null) {
-                            sb.append("Error during stdout handling:" + System.lineSeparator());
-                            sb.append(stackTraceToString(stdoutException.get()));
-                        }
-                        if (stderrException.get() != null) {
-                            sb.append("Error during stderr handling:" + System.lineSeparator());
-                            sb.append(stackTraceToString(stderrException.get()));
-                        }
-                        throw new TestError(sb.toString(), Result.TEST_EXCEPTION);
+            if (!p.waitFor(MAX_EXECUTION_TIME_SECONDS, TimeUnit.SECONDS)) {
+                stdout.interrupt();
+                stderr.interrupt();
+                p.destroyForcibly();
+                throw new TestError(Result.TEST_TIMEOUT);
+            } else {
+                if (stdoutException.get() != null || stderrException.get() != null) {
+                    StringBuffer sb = new StringBuffer();
+                    if (stdoutException.get() != null) {
+                        sb.append("Error during stdout handling:" + System.lineSeparator());
+                        sb.append(stackTraceToString(stdoutException.get()));
                     }
-                    if (p.exitValue() != 0) {
-                        String message = "Exit code: " + p.exitValue();
-                        if (p.exitValue() == 139) {
-                            // The java ProcessBuilder and Process interface does not allow us to reliably retrieve stderr and stdout
-                            // from a process that segfaults. We can only print a message indicating that the putput is incomplete.
-                            message += System.lineSeparator() +
+                    if (stderrException.get() != null) {
+                        sb.append("Error during stderr handling:" + System.lineSeparator());
+                        sb.append(stackTraceToString(stderrException.get()));
+                    }
+                    throw new TestError(sb.toString(), Result.TEST_EXCEPTION);
+                }
+                if (p.exitValue() != 0) {
+                    String message = "Exit code: " + p.exitValue();
+                    if (p.exitValue() == 139) {
+                        // The java ProcessBuilder and Process interface does not allow us to reliably retrieve stderr and stdout
+                        // from a process that segfaults. We can only print a message indicating that the putput is incomplete.
+                        message += System.lineSeparator() +
                             "This exit code typically indicates a segfault. In this case, the execution output is likely missing or incomplete.";
-                        }
-                        throw new TestError(message, Result.TEST_FAIL);
                     }
+                    throw new TestError(message, Result.TEST_FAIL);
                 }
             }
         } catch (TestError e) {
-            throw  e;
+            throw e;
         } catch (Throwable e) {
             e.printStackTrace();
             throw new TestError("Exception during test execution.", Result.TEST_EXCEPTION, e);
@@ -622,22 +617,21 @@ public abstract class TestBase {
     }
 
     /**
-     * Return a list of ProcessBuilders used to test the docker execution.
+     * Return a ProcessBuilder used to test the docker execution.
      * @param test The test to get the execution command for.
      */
-    private List<ProcessBuilder> getDockerExecCommand(LFTest test) throws TestError {
+    private ProcessBuilder getDockerExecCommand(LFTest test) throws TestError {
         checkDockerExists();
         var srcGenPath = test.getFileConfig().getSrcGenPath();
         var dockerComposeFile = FileUtil.globFilesEndsWith(srcGenPath, "docker-compose.yml").get(0);
-        return List.of(new ProcessBuilder(getDockerRunScript().toString(), dockerComposeFile.toString()));
+        return new ProcessBuilder(getDockerRunScript().toString(), dockerComposeFile.toString());
     }
 
     /**
-     * Return a list of preconfigured ProcessBuilder(s) for the command(s)
-     * that should be used to execute the test program.
+     * Return a preconfigured ProcessBuilder for executing the test program.
      * @param test The test to get the execution command for.
      */
-    private List<ProcessBuilder> getExecCommand(LFTest test) throws TestError {
+    private ProcessBuilder getExecCommand(LFTest test) throws TestError {
 
         var srcBasePath = test.getFileConfig().srcPkgPath.resolve("src");
         var relativePathName = srcBasePath.relativize(test.getFileConfig().srcPath).toString();
@@ -651,9 +645,7 @@ public abstract class TestBase {
             if (command == null) {
                 throw new TestError("File: " + test.getFileConfig().getExecutable(), Result.NO_EXEC_FAIL);
             }
-            return command == null ? List.of() : List.of(
-                new ProcessBuilder(command.command()).directory(command.directory())
-            );
+            return new ProcessBuilder(command.command()).directory(command.directory());
         }
     }
 
