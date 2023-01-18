@@ -12,7 +12,6 @@ import java.lang.reflect.InvocationTargetException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.io.File;
-import java.io.FileWriter;
 import java.io.BufferedWriter;
 import java.util.Arrays;
 import java.util.Collections;
@@ -576,7 +575,7 @@ public abstract class TestBase {
     /**
      * Path to a bash script containing DOCKER_RUN_SCRIPT.
      */
-    private static Path dockeRunScript = null;
+    private static Path dockerRunScript = null;
 
     /**
      * Return the path to a bash script containing DOCKER_RUN_SCRIPT.
@@ -584,8 +583,8 @@ public abstract class TestBase {
      * If the script does not yet exist, it is created.
      */
     private Path getDockerRunScript() throws TestError {
-        if (dockeRunScript != null) {
-            return dockeRunScript;
+        if (dockerRunScript != null) {
+            return dockerRunScript;
         }
 
         try {
@@ -596,12 +595,12 @@ public abstract class TestBase {
             try (BufferedWriter writer = Files.newBufferedWriter(path)) {
                 writer.write(DOCKER_RUN_SCRIPT);
             }
-            dockeRunScript = path;
+            dockerRunScript = path;
         } catch (IOException e) {
             throw new TestError("IO Error during test preparation.", Result.TEST_EXCEPTION, e);
         }
 
-        return dockeRunScript;
+        return dockerRunScript;
     }
 
     /**
