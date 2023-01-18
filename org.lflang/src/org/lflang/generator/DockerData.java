@@ -17,6 +17,7 @@ public class DockerData {
      * The content of the docker file to be generated.
      */
     private String fileContent;
+
     /**
      * The name of the docker compose service for the LF module.
      */
