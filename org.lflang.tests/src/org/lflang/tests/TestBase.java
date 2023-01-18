@@ -623,7 +623,7 @@ public abstract class TestBase {
             return List.of(new ProcessBuilder("exit", "1"));
         }
         var srcGenPath = test.getFileConfig().getSrcGenPath();
-        List<Path> dockerFiles = FileUtil.globFilesEndsWith(srcGenPath, ".Dockerfile");
+        List<Path> dockerFiles = FileUtil.globFilesEndsWith(srcGenPath, "Dockerfile");
         try {
             File testScript = File.createTempFile("dockertest", null);
             testScript.deleteOnExit();
