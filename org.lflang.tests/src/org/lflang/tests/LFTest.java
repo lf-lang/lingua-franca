@@ -152,7 +152,7 @@ public class LFTest implements Comparable<LFTest> {
         }
         if (e.getException() != null) {
             issues.append(System.lineSeparator());
-            issues.append(TestBase.stackTraceToString(e));
+            issues.append(TestBase.stackTraceToString(e.getException()));
         }
     }
 

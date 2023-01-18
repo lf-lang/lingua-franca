@@ -473,7 +473,6 @@ public abstract class TestBase {
         try {
             generator.doGenerate(test.getFileConfig().resource, fileAccess, test.getContext());
         } catch (Throwable e) {
-            e.printStackTrace();
             throw new TestError("Code generation unsuccessful.", Result.CODE_GEN_FAIL, e);
         }
         if (generator.errorsOccurred()) {
