@@ -27,22 +27,11 @@ package org.lflang.generator.ts
 
 import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.util.CancelIndicator
-
 import org.lflang.Target
 import org.lflang.TimeValue
-
 import org.lflang.ast.AfterDelayTransformation
-
-import org.lflang.generator.CodeMap
-import org.lflang.generator.DockerData
-import org.lflang.generator.GeneratorBase
-import org.lflang.generator.GeneratorResult
-import org.lflang.generator.GeneratorUtils
+import org.lflang.generator.*
 import org.lflang.generator.GeneratorUtils.canGenerate
-import org.lflang.generator.IntegratedBuilder
-import org.lflang.generator.LFGeneratorContext
-import org.lflang.generator.SubContext
-import org.lflang.generator.TargetTypes
 import org.lflang.lf.Preamble
 import org.lflang.model
 import org.lflang.scoping.LFGlobalScopeProvider
@@ -51,7 +40,6 @@ import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.StandardCopyOption
 import java.util.*
-import kotlin.collections.HashMap
 
 private const val NO_NPM_MESSAGE = "The TypeScript target requires npm >= 6.14.4. " +
         "For installation instructions, see: https://www.npmjs.com/get-npm. \n" +
@@ -133,10 +121,9 @@ class TSGenerator(
         val codeMaps = HashMap<Path, CodeMap>()
         generateCode(codeMaps, resource.model.preambles)
         if (targetConfig.dockerOptions != null) {
-            val dockerGenerator = TSDockerGenerator(context)
-            val dockerData = dockerGenerator.generateDockerData()
+            val dockerData = TSDockerGenerator(context).generateDockerData();
             dockerData.writeDockerFile()
-            dockerGenerator.writeDockerComposeFile(listOf(dockerData), "lf")
+            DockerComposeGenerator(context).writeDockerComposeFile(listOf(dockerData), "lf")
         }
         // For small programs, everything up until this point is virtually instantaneous. This is the point where cancellation,
         // progress reporting, and IDE responsiveness become real considerations.

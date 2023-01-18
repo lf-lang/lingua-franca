@@ -1,13 +1,12 @@
 package org.lflang.federated.generator;
 
-import java.io.IOException;
 import java.util.List;
 
 import org.lflang.generator.DockerData;
-import org.lflang.generator.DockerGeneratorBase;
+import org.lflang.generator.DockerGenerator;
 import org.lflang.generator.LFGeneratorContext;
 
-public class FedDockerGenerator extends DockerGeneratorBase {
+public class FedDockerGenerator extends DockerGenerator {
 
     /**
      * A docker file will be generated for each lingua franca module.
@@ -50,20 +49,5 @@ public class FedDockerGenerator extends DockerGeneratorBase {
         return null;
     }
 
-    /**
-     * Override in FedGenerator
-     * @param services
-     *
-     * @return
-     */
-    @Override
-    protected String generateDockerServices(List<DockerData> services) {
-        return String.join("\n",
-                    super.generateDockerServices(services),
-                                "    rti:",
-                    "        image: lflang/rti:rti",
-                    "        hostname: " + this.rtiHost,
-                    "        command: -i 1 -n " + services.size(),
-                    "        container_name: " + context.getFileConfig().name + "-" + "rti");
-    }
+
 }

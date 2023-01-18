@@ -42,7 +42,6 @@ import org.lflang.FileConfig;
 import org.lflang.LFRuntimeModule;
 import org.lflang.LFStandaloneSetup;
 import org.lflang.Target;
-import org.lflang.generator.DockerGeneratorBase;
 import org.lflang.generator.GeneratorResult;
 import org.lflang.generator.LFGenerator;
 import org.lflang.generator.LFGeneratorContext;

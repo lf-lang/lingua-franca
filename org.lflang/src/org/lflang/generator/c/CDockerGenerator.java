@@ -5,8 +5,7 @@ import java.util.stream.Collectors;
 import org.eclipse.xtext.xbase.lib.IterableExtensions;
 
 import org.lflang.Target;
-import org.lflang.generator.DockerData;
-import org.lflang.generator.DockerGeneratorBase;
+import org.lflang.generator.DockerGenerator;
 import org.lflang.generator.LFGeneratorContext;
 import org.lflang.util.StringUtil;
 
@@ -15,7 +14,7 @@ import org.lflang.util.StringUtil;
  *
  * @author Hou Seng Wong
  */
-public class CDockerGenerator extends DockerGeneratorBase {
+public class CDockerGenerator extends DockerGenerator {
     private static final String DEFAULT_BASE_IMAGE = "alpine:latest";
 
     /**

@@ -45,8 +45,6 @@ import org.lflang.TargetProperty;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.generator.CodeMap;
 
-import org.lflang.generator.DockerGeneratorBase;
-import org.lflang.generator.DelayBodyGenerator;
 import org.lflang.generator.GeneratorResult;
 import org.lflang.generator.IntegratedBuilder;
 import org.lflang.generator.LFGeneratorContext;
@@ -64,12 +62,9 @@ import org.lflang.lf.Port;
 import org.lflang.lf.Reaction;
 import org.lflang.lf.Reactor;
 import org.lflang.lf.ReactorDecl;
-import org.lflang.lf.VarRef;
 import org.lflang.util.FileUtil;
 import org.lflang.util.LFCommand;
 import org.lflang.util.StringUtil;
-
-import com.google.common.base.Objects;
 
 
 /**
