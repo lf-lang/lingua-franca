@@ -27,24 +27,11 @@ public class CDockerGenerator extends DockerGeneratorBase {
         super(context);
     }
 
-    /**
-     * Translate data from the code generator to docker data as
-     * specified in the DockerData class.
-     *
-     * @return docker data as specified in the DockerData class
-     */
-    @Override
-    public DockerData generateDockerData() {
-        var fileConfig = context.getFileConfig();
-        var lfModuleName = fileConfig.name;
-        var dockerFilePath = fileConfig.getSrcGenPath().resolve(lfModuleName + ".Dockerfile");
-        var dockerFileContent = generateDockerFileContent();
-        return new DockerData(dockerFilePath, dockerFileContent, lfModuleName);
-    }
 
     /**
      * Generate the contents of the docker file.
      */
+    @Override
     protected String generateDockerFileContent() {
         var lfModuleName = context.getFileConfig().name;
         var config = context.getTargetConfig();

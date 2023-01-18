@@ -87,7 +87,7 @@ class TSConstructorGenerator(
     // Generate code for registering outputControlReactionTrigger
     fun generateNetworkOutputControlActionRegistrations(networkOutputControlReactionTrigger: String): String {
         return if (networkOutputControlReactionTrigger != "") {
-            "this.registerNetworkOutputControlReactionTrigger(this.outputControlReactionTrigger);"
+            "this.registerOutputControlReactionTrigger(this.outputControlReactionTrigger);"
         } else ""
     }
 

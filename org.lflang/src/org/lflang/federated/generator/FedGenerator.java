@@ -176,7 +176,7 @@ public class FedGenerator {
                 // Inherit Docker properties from main context
                 subContext.getTargetConfig().dockerOptions = context.getTargetConfig().dockerOptions;
                 var dockerGenerator = dockerGeneratorFactory(subContext);
-                var dockerData = dockerGenerator.generateDockerData();
+                var dockerData = dockerGenerator.generateDockerData(fileConfig);
                 try {
                     dockerData.writeDockerFile();
                 } catch (IOException e) {
@@ -299,7 +299,9 @@ public class FedGenerator {
                 ErrorReporter subContextErrorReporter = new LineAdjustingErrorReporter(threadSafeErrorReporter, lf2lfCodeMapMap);
 
                 var props = new Properties();
-                props.put("no-compile", "true");
+                if (targetConfig.dockerOptions != null && !targetConfig.target.preBuildDocker()) {
+                    props.put("no-compile", "true");
+                }
                 props.put("docker", "false");
 
                 TargetConfig subConfig = GeneratorUtils.getTargetConfig(
