@@ -622,28 +622,10 @@ public abstract class TestBase {
     }
 
     /**
-     * Return a list of ProcessBuilders used to test the docker option under non-federated execution.
-     * See the following for references on the instructions called:
-     * docker build: https://docs.docker.com/engine/reference/commandline/build/
-     * docker run: https://docs.docker.com/engine/reference/run/
-     * docker image: https://docs.docker.com/engine/reference/commandline/image/
-     *
+     * Return a list of ProcessBuilders used to test the docker execution.
      * @param test The test to get the execution command for.
      */
-    private List<ProcessBuilder> getNonfederatedDockerExecCommand(LFTest test) throws TestError {
-        checkDockerExists();
-        var srcGenPath = test.getFileConfig().getSrcGenPath();
-        var dockerComposeFile = FileUtil.globFilesEndsWith(srcGenPath, "docker-compose.yml").get(0);
-        return List.of(new ProcessBuilder("docker", "compose", "-f", dockerComposeFile.toString(), "rm", "-f"),
-                       new ProcessBuilder("docker", "compose", "-f", dockerComposeFile.toString(), "up", "--build"),
-                       new ProcessBuilder("docker", "compose", "-f", dockerComposeFile.toString(), "down", "--rmi", "local"));
-    }
-
-    /**
-     * Return a list of ProcessBuilders used to test the docker option under federated execution.
-     * @param test The test to get the execution command for.
-     */
-    private List<ProcessBuilder> getFederatedDockerExecCommand(LFTest test) throws TestError {
+    private List<ProcessBuilder> getDockerExecCommand(LFTest test) throws TestError {
         checkDockerExists();
         var srcGenPath = test.getFileConfig().getSrcGenPath();
         var dockerComposeFile = FileUtil.globFilesEndsWith(srcGenPath, "docker-compose.yml").get(0);
@@ -661,10 +643,9 @@ public abstract class TestBase {
         var relativePathName = srcBasePath.relativize(test.getFileConfig().srcPath).toString();
 
         // special case to test docker file generation
-        if (relativePathName.equalsIgnoreCase(TestCategory.DOCKER.getPath())) {
-            return getNonfederatedDockerExecCommand(test);
-        } else if (relativePathName.equalsIgnoreCase(TestCategory.DOCKER_FEDERATED.getPath())) {
-            return getFederatedDockerExecCommand(test);
+        if (relativePathName.equalsIgnoreCase(TestCategory.DOCKER.getPath()) ||
+            relativePathName.equalsIgnoreCase(TestCategory.DOCKER_FEDERATED.getPath())) {
+            return getDockerExecCommand(test);
         } else {
             LFCommand command = test.getFileConfig().getCommand();
             if (command == null) {
