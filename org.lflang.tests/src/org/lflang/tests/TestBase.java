@@ -610,6 +610,9 @@ public abstract class TestBase {
         if (LFCommand.get("docker", List.of()) == null) {
             throw new TestError("Executable 'docker' not found" , Result.NO_EXEC_FAIL);
         }
+        if (LFCommand.get("docker-compose", List.of()) == null) {
+            throw new TestError("Executable 'docker-compose' not found" , Result.NO_EXEC_FAIL);
+        }
     }
 
     /**
