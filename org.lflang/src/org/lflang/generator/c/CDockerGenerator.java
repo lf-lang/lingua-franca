@@ -38,7 +38,10 @@ public class CDockerGenerator extends DockerGenerator {
                                  generateDefaultCompileCommand() :
                                  StringUtil.joinObjects(config.buildCommands, " ");
         var compiler = config.target == Target.CCPP ? "g++" : "gcc";
-        var baseImage = config.dockerOptions.from == null ? DEFAULT_BASE_IMAGE : config.dockerOptions.from;
+        var baseImage = DEFAULT_BASE_IMAGE;
+        if (config.dockerOptions != null && config.dockerOptions.from != null) {
+            baseImage = config.dockerOptions.from;
+        }
         return String.join("\n",
             "# For instructions, see: https://www.lf-lang.org/docs/handbook/containerized-execution",
             "FROM "+baseImage+" AS builder",
