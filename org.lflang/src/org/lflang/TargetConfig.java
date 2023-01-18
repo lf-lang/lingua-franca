@@ -233,6 +233,11 @@ public class TargetConfig {
     public boolean auth = false;
 
     /**
+     * Indicate whether sst is used for security.
+     */
+    public boolean sst = false;
+
+    /**
      * Indicate whether the runtime should use multithreaded execution.
      */
     public boolean threading = true;

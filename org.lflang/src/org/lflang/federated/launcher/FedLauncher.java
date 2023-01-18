@@ -322,6 +322,9 @@ class FedLauncher {
         if (targetConfig.auth) {
             commands.add("                        -a \\");
         }
+        if (targetConfig.sst) {
+            commands.add("                        -sst \\");
+        }
         commands.addAll(List.of(
             "                        -n "+federates.size()+" \\",
             "                        -c "+targetConfig.clockSync.toString()+" \\"
