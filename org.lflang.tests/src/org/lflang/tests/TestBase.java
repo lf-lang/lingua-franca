@@ -157,9 +157,6 @@ public abstract class TestBase {
         public static final String DESC_SCHED_SWAPPING = "Running with non-default runtime scheduler ";
         public static final String DESC_ROS2 = "Running tests using ROS2.";
         public static final String DESC_MODAL = "Run modal reactor tests.";
-
-        /* Missing dependency messages */
-        public static final String MISSING_DOCKER = "Executable 'docker' not found or 'docker' daemon thread not running";
     }
 
     /** Constructor for test classes that test a single target. */
@@ -590,8 +587,11 @@ public abstract class TestBase {
      * Throws TestError if docker does not exist. Does nothing otherwise.
      */
     private void checkDockerExists() throws TestError {
-        if (LFCommand.get("docker", List.of("info")) == null) {
-            throw new TestError(Message.MISSING_DOCKER, Result.NO_EXEC_FAIL);
+        if (LFCommand.get("docker", List.of()) == null) {
+            throw new TestError("Executable 'docker' not found" , Result.NO_EXEC_FAIL);
+        }
+        if (LFCommand.get("docker-compose", List.of()) == null) {
+            throw new TestError("Executable 'docker-compose' not found" , Result.NO_EXEC_FAIL);
         }
     }
 
