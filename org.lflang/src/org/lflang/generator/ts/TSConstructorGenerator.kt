@@ -84,17 +84,11 @@ class TSConstructorGenerator(
         } else ""
     }
 
-    // Generate code for registering Fed IDs that are connected to
-    // this federate via ports in the TypeScript's FederatedApp.
-    // These Fed IDs are used to let the RTI know about the connections
-    // between federates during the initialization with the RTI.
-    fun generateNetworkControlActionRegistrations(networkOutputControlReactionTrigger: String): String {
-        val connectionInstantiations= LinkedList<String>()
-        if (networkOutputControlReactionTrigger !== "") {
-            connectionInstantiations.add(
-                "this.registerNetworkOutputControlReactionTrigger(this.outputControlReactionTrigger);")
-        }
-        return connectionInstantiations.joinToString("\n")
+    // Generate code for registering outputControlReactionTrigger
+    fun generateNetworkOutputControlActionRegistrations(networkOutputControlReactionTrigger: String): String {
+        return if (networkOutputControlReactionTrigger != "") {
+            "this.registerNetworkOutputControlReactionTrigger(this.outputControlReactionTrigger);"
+        } else ""
     }
 
     fun generateConstructor(
@@ -127,7 +121,7 @@ class TSConstructorGenerator(
             ${" |    "..ports.generateInstantiations()}
             ${" |    "..connections.generateInstantiations()}
             ${" |    "..if (reactor.isMain && isFederate) generateFederatePortActionRegistrations(networkMessageActions) else ""}
-            ${" |    "..if (reactor.isMain && isFederate) generateNetworkControlActionRegistrations(networkOutputControlReactionTrigger) else ""}
+            ${" |    "..if (reactor.isMain && isFederate) generateNetworkOutputControlActionRegistrations(networkOutputControlReactionTrigger) else ""}
             ${" |    "..reactions.generateAllReactions()}
                 |}
             """.trimMargin()

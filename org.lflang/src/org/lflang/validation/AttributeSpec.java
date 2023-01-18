@@ -227,7 +227,9 @@ public class AttributeSpec {
         ATTRIBUTE_SPECS_BY_NAME.put("_unordered", new AttributeSpec(null));
         ATTRIBUTE_SPECS_BY_NAME.put("_fed_config", new AttributeSpec(
             List.of(new AttrParamSpec(AttributeSpec.NETWORK_MESSAGE_ACTIONS,
-                                      AttrParamType.STRING, false))));
+                                      AttrParamType.STRING, false),
+                    new AttrParamSpec(AttributeSpec.NETWORK_OUTPUT_CONTROL_REACTION_TRIGGER,
+                                    AttrParamType.STRING, false))));
         ATTRIBUTE_SPECS_BY_NAME.put("_c_body", new AttributeSpec(null));
     }
 }

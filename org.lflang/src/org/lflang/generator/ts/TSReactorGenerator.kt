@@ -108,6 +108,12 @@ ${"             |"..preamble.code.toText()}
         return actionsStr?.split(",")?.filter { it.isNotEmpty()} ?: emptyList()
     }
 
+    private fun getNetworkOutputControlReactionTrigger(reactor: Reactor): String{
+        val attribute = AttributeUtils.findAttributeByName(reactor, "_fed_config")
+        val actionsStr = AttributeUtils.getAttributeParameter(attribute, AttributeSpec.NETWORK_OUTPUT_CONTROL_REACTION_TRIGGER)
+        return actionsStr?: ""
+    }
+
     fun generateReactor(reactor: Reactor): String {
         var reactorName = reactor.name
         if (!reactor.typeParms.isEmpty()) {
@@ -117,6 +123,7 @@ ${"             |"..preamble.code.toText()}
 
         val isFederate = AttributeUtils.isFederate(reactor)
         val networkMessageActions = getNetworkMessagActions(reactor)
+        val networkOutputControlReactionTrigger = getNetworkOutputControlReactionTrigger(reactor)
 
         // NOTE: type parameters that are referenced in ports or actions must extend
         // Present in order for the program to type check.
