@@ -134,12 +134,14 @@ class TSGenerator(
         generateCode(codeMaps, resource.model.preambles)
         if (targetConfig.dockerOptions != null) {
             val dockerGenerator = TSDockerGenerator(context)
-            val dockerData = dockerGenerator.generateDockerData();
+            val dockerData = dockerGenerator.generateDockerData()
+            dockerData.writeDockerFile()
             dockerGenerator.writeDockerComposeFile(listOf(dockerData), "lf")
         }
         // For small programs, everything up until this point is virtually instantaneous. This is the point where cancellation,
         // progress reporting, and IDE responsiveness become real considerations.
-        if (context.mode != LFGeneratorContext.Mode.LSP_MEDIUM && (targetConfig.noCompile || targetConfig.dockerOptions != null)) {
+
+        if (context.mode != LFGeneratorContext.Mode.LSP_MEDIUM && targetConfig.noCompile) {
             context.finish(GeneratorResult.GENERATED_NO_EXECUTABLE.apply(context, null))
         } else {
             context.reportProgress(

@@ -38,10 +38,6 @@ public class DockerData {
         if (!dockerFilePath.toFile().isAbsolute()) {
             throw new RuntimeException("Non-absolute docker file path in DockerData instance");
         }
-        if (!dockerFilePath.toString().endsWith(".Dockerfile")) {
-            throw new RuntimeException(
-                "Docker file path does not end with \".Dockerfile\" in DockerData instance");
-        }
         filePath = dockerFilePath;
         fileContent = dockerFileContent;
         composeServiceName = filePath.getFileName().toString().replace(".Dockerfile", "").toLowerCase();

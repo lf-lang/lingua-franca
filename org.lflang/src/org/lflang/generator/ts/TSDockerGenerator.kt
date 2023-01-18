@@ -19,10 +19,9 @@ class TSDockerGenerator(context: LFGeneratorContext) : DockerGeneratorBase(conte
      * @return docker data as specified in the DockerData class
      */
     override fun generateDockerData() : DockerData {
-        val tsFileName = "${context.fileConfig.name}.ts"
-        val dockerFilePath = context.fileConfig.srcGenPath.resolve("$tsFileName.Dockerfile")
-        val dockerFileContent = generateDockerFileContent(tsFileName)
-        val dockerBuildContext = "."
+        val dockerFilePath = context.fileConfig.srcGenPath.resolve("Dockerfile")
+        val dockerFileContent = generateDockerFileContent("${context.fileConfig.name}")
+        val dockerBuildContext = context.fileConfig.name
         return DockerData(dockerFilePath, dockerFileContent, dockerBuildContext)
     }
 
