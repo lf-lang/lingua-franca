@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import org.lflang.FileConfig;
+import org.lflang.federated.generator.FedDockerGenerator;
 import org.lflang.generator.c.CDockerGenerator;
 import org.lflang.generator.python.PythonDockerGenerator;
 import org.lflang.generator.ts.TSDockerGenerator;
@@ -122,7 +123,7 @@ public abstract class DockerGeneratorBase {
                                 "version: \"3.9\"",
                                 "services:",
                                 services.stream().map(
-                                    (data -> data.getServiceDescription())
+                                    (data -> data.getServiceDescription(this instanceof FedDockerGenerator))
                                 ).collect(Collectors.joining("\n"))
         );
     }

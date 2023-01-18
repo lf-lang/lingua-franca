@@ -72,13 +72,15 @@ public class DockerData {
     /**
      * Return a service description for the "services" section of the docker-compose.yml file.
      */
-    public String getServiceDescription() {
+    public String getServiceDescription(boolean forFederate) {
         var tab = " ".repeat(4);
         StringBuilder svc = new StringBuilder();
         svc.append(tab + serviceName +":\n");
         svc.append(tab + tab + "build:\n");
         svc.append(tab.repeat(3) + "context: " + this.getDockerContext());
-        svc.append("\n"+tab+tab+"command: -i 1");
+        if (forFederate) {
+            svc.append("\n"+tab+tab+"command: -i 1");
+        }
         svc.append("\n"+tab+tab+"container_name: " + containerName);
         return svc.toString();
     }
