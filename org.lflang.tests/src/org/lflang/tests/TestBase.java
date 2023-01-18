@@ -587,11 +587,12 @@ public abstract class TestBase {
     }
 
     /**
-     * Returns true if docker exists, false otherwise.
+     * Throws TestError if docker does not exist. Does nothing otherwise.
      */
-    private boolean checkDockerExists() {
-        LFCommand checkCommand = LFCommand.get("docker", List.of("info"));
-        return checkCommand.run() == 0;
+    private void checkDockerExists() throws TestError {
+        if (LFCommand.get("docker", List.of("info")) == null) {
+            throw new TestError(Message.MISSING_DOCKER, Result.NO_EXEC_FAIL);
+        }
     }
 
     /**
@@ -603,11 +604,8 @@ public abstract class TestBase {
      *
      * @param test The test to get the execution command for.
      */
-    private List<ProcessBuilder> getNonfederatedDockerExecCommand(LFTest test) {
-        if (!checkDockerExists()) {
-            System.out.println(Message.MISSING_DOCKER);
-            return List.of(new ProcessBuilder("exit", "1"));
-        }
+    private List<ProcessBuilder> getNonfederatedDockerExecCommand(LFTest test) throws TestError {
+        checkDockerExists();
         var srcGenPath = test.getFileConfig().getSrcGenPath();
         var dockerComposeFile = FileUtil.globFilesEndsWith(srcGenPath, "docker-compose.yml").get(0);
         return List.of(new ProcessBuilder("docker", "compose", "-f", dockerComposeFile.toString(), "rm", "-f"),
@@ -619,11 +617,8 @@ public abstract class TestBase {
      * Return a list of ProcessBuilders used to test the docker option under federated execution.
      * @param test The test to get the execution command for.
      */
-    private List<ProcessBuilder> getFederatedDockerExecCommand(LFTest test) {
-        if (!checkDockerExists()) {
-            System.out.println(Message.MISSING_DOCKER);
-            return List.of(new ProcessBuilder("exit", "1"));
-        }
+    private List<ProcessBuilder> getFederatedDockerExecCommand(LFTest test) throws TestError {
+        checkDockerExists();
         var srcGenPath = test.getFileConfig().getSrcGenPath();
         List<Path> dockerFiles = FileUtil.globFilesEndsWith(srcGenPath, ".Dockerfile");
         try {
