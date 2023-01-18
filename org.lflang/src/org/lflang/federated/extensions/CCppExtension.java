@@ -14,8 +14,4 @@ public class CCppExtension extends CExtension {
         return Target.CCPP;
     }
 
-    @Override
-    protected DockerGeneratorBase newDockerGeneratorInstance(FederateInstance federate) {
-        return new CDockerGenerator(true, true, federate.targetConfig);
-    }
 }

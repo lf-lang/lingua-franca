@@ -9,6 +9,8 @@ import java.io.Reader;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
+import org.eclipse.xtext.util.RuntimeIOException;
+
 import org.lflang.FileConfig;
 import org.lflang.Target;
 import org.lflang.generator.LFGeneratorContext;
@@ -16,28 +18,22 @@ import org.lflang.generator.LFGeneratorContext;
 /**
  * Information about an indexed Lingua Franca test program.
  * 
- * @author Marten Lohstroh <marten@berkeley.edu>
+ * @author Marten Lohstroh
  *
  */
 public class LFTest implements Comparable<LFTest> {
 
     /** The path to the test. */
-    public final Path srcFile;
+    private final Path srcPath;
 
     /** The name of the test. */
-    public final String name;
+    private final String name;
 
     /** The result of the test. */
-    public Result result = Result.UNKNOWN;
-    
-    /** The exit code of the test. **/
-    public String exitValue = "?";
-
-    /** Object used to determine where the code generator puts files. */
-    public FileConfig fileConfig;
+    private Result result = Result.UNKNOWN;
 
     /** Context provided to the code generators */
-    public LFGeneratorContext context;
+    private LFGeneratorContext context;
 
     /** Path of the test program relative to the package root. */
     private final Path relativePath;
@@ -46,13 +42,13 @@ public class LFTest implements Comparable<LFTest> {
     private final ByteArrayOutputStream compilationLog = new ByteArrayOutputStream();
 
     /** Specialized object for capturing output streams while executing the test. */
-    public final ExecutionLogger execLog = new ExecutionLogger();
+    private final ExecutionLogger execLog = new ExecutionLogger();
 
     /** String builder for collecting issues encountered during test execution. */
-    public final StringBuilder issues = new StringBuilder();
+    private final StringBuilder issues = new StringBuilder();
 
     /** The target of the test program. */
-    public final Target target;
+    private final Target target;
 
     /**
      * Create a new test.
@@ -62,15 +58,26 @@ public class LFTest implements Comparable<LFTest> {
      */
     public LFTest(Target target, Path srcFile) {
         this.target = target;
-        this.srcFile = srcFile;
+        this.srcPath = srcFile;
         this.name = FileConfig.findPackageRoot(srcFile, s -> {}).relativize(srcFile).toString();
         this.relativePath = Paths.get(name);
+    }
+
+    /** Copy constructor */
+    public LFTest(LFTest test) {
+        this(test.target, test.srcPath);
     }
 
     /** Stream object for capturing standard and error output. */
     public OutputStream getOutputStream() {
         return compilationLog;
     }
+
+    public FileConfig getFileConfig() { return context.getFileConfig(); }
+
+    public LFGeneratorContext getContext() { return context; }
+
+    public Path getSrcPath() { return srcPath; }
 
     /**
      * Comparison implementation to allow for tests to be sorted (e.g., when added to a
@@ -117,38 +124,58 @@ public class LFTest implements Comparable<LFTest> {
         return result != Result.TEST_PASS;
     }
 
+    public boolean hasPassed() {
+        return result == Result.TEST_PASS;
+    }
+
     /**
      * Compile a string that contains all collected errors and return it.
      * @return A string that contains all collected errors.
      */
-    public String reportErrors() {
+    public void reportErrors() {
         if (this.hasFailed()) {
-            StringBuilder sb = new StringBuilder(System.lineSeparator());
-            sb.append("+---------------------------------------------------------------------------+").append(System.lineSeparator());
-            sb.append("Failed: ").append(this.name).append(System.lineSeparator());
-            sb.append("-----------------------------------------------------------------------------").append(System.lineSeparator());
-            sb.append("Reason: ").append(this.result.message).append(" Exit code: ").append(this.exitValue).append(System.lineSeparator());
-            appendIfNotEmpty("Reported issues", this.issues.toString(), sb);
-            appendIfNotEmpty("Compilation output", this.compilationLog.toString(), sb);
-            appendIfNotEmpty("Execution output", this.execLog.toString(), sb);
-            sb.append("+---------------------------------------------------------------------------+\n");
-        return sb.toString();
-        } else {
-            return "";
+            System.out.println("+---------------------------------------------------------------------------+");
+            System.out.println("Failed: " + this);
+            System.out.println("-----------------------------------------------------------------------------");
+            System.out.println("Reason: " + this.result.message);
+            printIfNotEmpty("Reported issues", this.issues.toString());
+            printIfNotEmpty("Compilation output", this.compilationLog.toString());
+            printIfNotEmpty("Execution output", this.execLog.toString());
+            System.out.println("+---------------------------------------------------------------------------+");
         }
     }
 
+    public void handleTestError(TestError e) {
+        result = e.getResult();
+        if (e.getMessage() != null) {
+            issues.append(e.getMessage());
+        }
+        if (e.getException() != null) {
+            issues.append(System.lineSeparator());
+            issues.append(TestBase.stackTraceToString(e));
+        }
+    }
+
+    public void markPassed() {
+        result = Result.TEST_PASS;
+        // clear the execution log to free memory
+        execLog.clear();
+    }
+
+    void configure(LFGeneratorContext context) {
+        this.context = context;
+    }
+
     /**
-     * Append the given header and message to the log, but only if the message is not empty.
+     * Print the message to the system output, but only if the message is not empty.
      *
-     * @param header Header for the message to append to the log.
-     * @param message The log message to add.
-     * @param log The log so far.
+     * @param header Header for the message to be printed.
+     * @param message The log message to print.
      */
-    private static void appendIfNotEmpty(String header, String message, StringBuilder log) {
+    private static void printIfNotEmpty(String header, String message) {
         if (!message.isEmpty()) {
-            log.append(header).append(":").append(System.lineSeparator());
-            log.append(message).append(System.lineSeparator());
+            System.out.println(header + ":");
+            System.out.println(message);
         }
     }
 
@@ -187,7 +214,7 @@ public class LFTest implements Comparable<LFTest> {
      * recording output streams up until the moment that a test is interrupted
      * upon timing out.
      *
-     * @author Marten Lohstroh <marten@berkeley.edu>
+     * @author Marten Lohstroh
      *
      */
     public static final class ExecutionLogger {
@@ -196,7 +223,7 @@ public class LFTest implements Comparable<LFTest> {
          * String buffer used to record the standard output and error
          * streams from the input process.
          */
-        final StringBuffer buffer = new StringBuffer();
+        StringBuffer buffer = new StringBuffer();
 
         /**
          * Return a thread responsible for recording the standard output stream
@@ -223,7 +250,7 @@ public class LFTest implements Comparable<LFTest> {
          * @param inputStream The stream to read from.
          */
         private Thread recordStream(StringBuffer builder, InputStream inputStream) {
-            Thread t = new Thread(() -> {
+            return new Thread(() -> {
                 try (Reader reader = new InputStreamReader(inputStream)) {
                     int len;
                     char[] buf = new char[1024];
@@ -231,16 +258,36 @@ public class LFTest implements Comparable<LFTest> {
                         builder.append(buf, 0, len);
                     }
                 } catch (IOException e) {
-                    throw new RuntimeException("While reading from a stream, an I/O exception occurred:\n" + e);
+                    throw new RuntimeIOException(e);
                 }
+
             });
-            t.start();
-            return t;
         }
 
         @Override
         public String toString() {
             return buffer.toString();
         }
+
+        public void clear() {
+            buffer = null;
+        }
+    }
+
+
+    /**
+     * Return a thread responsible for recording the standard output stream of the given process.
+     * A separate thread is used so that the activity can be preempted.
+     */
+    public Thread recordStdOut(Process process) {
+        return execLog.recordStdOut(process);
+    }
+
+    /**
+     * Return a thread responsible for recording the error stream of the given process.
+     * A separate thread is used so that the activity can be preempted.
+     */
+    public Thread recordStdErr(Process process) {
+        return execLog.recordStdErr(process);
     }
 }

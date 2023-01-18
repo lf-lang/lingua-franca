@@ -34,8 +34,8 @@ import org.lflang.federated.generator.FederateInstance;
  * Utility class that can be used to create a launcher for federated LF programs
  * that are written in TypeScript.
  * 
- * @author Soroush Bateni <soroush@utdallas.edu>
- * @author Hokeun Kim <hokeunkim@berkeley.edu>
+ * @author Soroush Bateni
+ * @author Hokeun Kim
  */
 public class FedTSLauncher extends FedLauncher {
 
@@ -65,6 +65,6 @@ public class FedTSLauncher extends FedLauncher {
     protected
     String executeCommandForLocalFederate(FedFileConfig fileConfig, FederateInstance federate) {
         String jsFilename = federate.name + ".js";
-        return "node "+fileConfig.getFedSrcGenPath().resolve(federate.name).resolve("dist").resolve(jsFilename)+" -i $FEDERATION_ID";
+        return "node "+fileConfig.getSrcGenPath().resolve(federate.name).resolve("dist").resolve(jsFilename)+" -i $FEDERATION_ID";
     }
 }

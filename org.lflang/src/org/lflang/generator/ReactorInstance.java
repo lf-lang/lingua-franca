@@ -81,8 +81,8 @@ import org.lflang.lf.WidthSpec;
  * {@link #hasCycles()} will return true and {@link #getCycles()} will
  * return the ports and reaction instances involved in the cycles.
  *
- * @author{Marten Lohstroh <marten@berkeley.edu>}
- * @author{Edward A. Lee <eal@berkeley.edu>}
+ * @author Marten Lohstroh
+ * @author Edward A. Lee
  */
 public class ReactorInstance extends NamedInstance<Instantiation> {
 
@@ -181,6 +181,22 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
         if (cachedReactionLoopGraph == null) {
             cachedReactionLoopGraph = new ReactionInstanceGraph(this);
         }
+        return cachedReactionLoopGraph;
+    }
+
+    /**
+     * This function assigns/propagates deadlines through the Reaction Instance Graph.
+     * It performs Kahn`s algorithm in reverse, starting from the leaf nodes and
+     * propagates deadlines upstream. To reduce cost, it should only be invoked when
+     * there are user-specified deadlines in the program.
+     * @return
+     */
+    public ReactionInstanceGraph assignDeadlines() {
+        if (depth != 0) return root().assignDeadlines();
+        if (cachedReactionLoopGraph == null) {
+            cachedReactionLoopGraph = new ReactionInstanceGraph(this);
+        }
+        cachedReactionLoopGraph.rebuildAndAssignDeadlines();
         return cachedReactionLoopGraph;
     }
     
@@ -1119,4 +1135,17 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
      * Cached reaction graph containing reactions that form a causality loop.
      */
     private ReactionInstanceGraph cachedReactionLoopGraph = null;
+    
+    /**
+     * Return true if this is a generated delay reactor that originates from
+     * an "after" delay on a connection.
+     * 
+     * @return True if this is a generated delay, false otherwise.
+     */
+    public boolean isGeneratedDelay() {
+        if (this.definition.getReactorClass().getName().contains(DelayBodyGenerator.GEN_DELAY_CLASS_NAME)) {
+            return true;
+        }
+        return false;
+    }
 }

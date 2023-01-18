@@ -29,7 +29,9 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.eclipse.core.resources.IMarker;
@@ -47,18 +49,17 @@ import org.lflang.Target;
 import org.lflang.TargetConfig;
 import org.lflang.TimeUnit;
 import org.lflang.TimeValue;
+import org.lflang.ast.AstTransformation;
 import org.lflang.graph.InstantiationGraph;
-import org.lflang.lf.Action;
 import org.lflang.lf.Connection;
 import org.lflang.lf.Expression;
 import org.lflang.lf.Instantiation;
 import org.lflang.lf.LfFactory;
 import org.lflang.lf.Mode;
-import org.lflang.lf.Model;
+
 import org.lflang.lf.Reaction;
 import org.lflang.lf.Reactor;
 import org.lflang.lf.Time;
-import org.lflang.lf.VarRef;
 import org.lflang.validation.AbstractLFValidator;
 
 import com.google.common.base.Objects;
@@ -68,27 +69,16 @@ import com.google.common.collect.Iterables;
  * Generator base class for specifying core functionality
  * that all code generators should have.
  *
- * @author {Edward A. Lee <eal@berkeley.edu>}
- * @author {Marten Lohstroh <marten@berkeley.edu>}
- * @author {Christian Menard <christian.menard@tu-dresden.de}
- * @author {Matt Weber <matt.weber@berkeley.edu>}
- * @author {Soroush Bateni <soroush@berkeley.edu>}
+ * @author Edward A. Lee
+ * @author Marten Lohstroh
+ * @author Christian Menard
+ * @author Matt Weber
+ * @author Soroush Bateni
  */
 public abstract class GeneratorBase extends AbstractLFValidator {
 
     ////////////////////////////////////////////
     //// Public fields.
-
-    /**
-     * Constant that specifies how to name generated delay reactors.
-     */
-    public static String GEN_DELAY_CLASS_NAME = "_lf_GenDelay";
-
-    /**
-     * Return the Target language in which delay reactors are implemented in.
-     * @return
-     */
-    public Target getDelayTarget() { return getTarget(); }
 
     /**
      * The main (top-level) reactor instance.
@@ -104,14 +94,11 @@ public abstract class GeneratorBase extends AbstractLFValidator {
     /**
      * The current target configuration.
      */
-    protected TargetConfig targetConfig = new TargetConfig();
+    protected final TargetConfig targetConfig;
 
     public TargetConfig getTargetConfig() { return this.targetConfig;}
 
-    /**
-     * The current file configuration.
-     */
-    protected FileConfig fileConfig;
+    public final LFGeneratorContext context;
 
     /**
      * A factory for compiler commands.
@@ -119,11 +106,6 @@ public abstract class GeneratorBase extends AbstractLFValidator {
     protected GeneratorCommandFactory commandFactory;
 
     public GeneratorCommandFactory getCommandFactory() { return commandFactory; }
-
-    /**
-     * Collection of generated delay classes.
-     */
-    private final LinkedHashSet<Reactor> delayClasses = new LinkedHashSet<>();
 
     /**
      * Definition of the main (top-level) reactor.
@@ -144,7 +126,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
     /**
      * The set of resources referenced reactor classes reside in.
      */
-    protected Set<LFResource> resources = new LinkedHashSet<>();
+    protected Set<LFResource> resources = new LinkedHashSet<>(); // FIXME: Why do we need this?
 
     /**
      * Graph that tracks dependencies between instantiations.
@@ -171,45 +153,51 @@ public abstract class GeneratorBase extends AbstractLFValidator {
     protected Set<Reaction> unorderedReactions = null;
 
     /**
-     * Indicates whether or not the current Lingua Franca program
+     * Map from reactions to bank indices
+     */
+    protected Map<Reaction,Integer> reactionBankIndices = null;
+
+    /**
+     * Indicates whether the current Lingua Franca program
      * contains model reactors.
      */
     public boolean hasModalReactors = false;
+
+    /**
+     * Indicates whether the program has any deadlines and thus
+     * needs to propagate deadlines through the reaction instance graph
+     */
+    public boolean hasDeadlines = false;
 
     // //////////////////////////////////////////
     // // Private fields.
 
     /**
+     * A list ot AST transformations to apply before code generation
+     */
+    private List<AstTransformation> astTransformations = new ArrayList();
+
+    /**
      * Create a new GeneratorBase object.
      */
-    public GeneratorBase(FileConfig fileConfig, ErrorReporter errorReporter) {
-        this.fileConfig = fileConfig;
-        this.errorReporter = errorReporter;
-        this.commandFactory = new GeneratorCommandFactory(errorReporter, fileConfig);
+    public GeneratorBase(LFGeneratorContext context) {
+        this.context = context;
+        this.targetConfig = context.getTargetConfig();
+        this.errorReporter = context.getErrorReporter();
+        this.commandFactory = new GeneratorCommandFactory(errorReporter, context.getFileConfig());
+    }
+
+    /**
+     * Register an AST transformation to be applied to the AST.
+     *
+     * The transformations will be applied in the order that they are registered in.
+     */
+    protected void registerTransformation(AstTransformation transformation) {
+        astTransformations.add(transformation);
     }
 
     // //////////////////////////////////////////
     // // Code generation functions to override for a concrete code generator.
-
-    /**
-     * Store the given reactor in the collection of generated delay classes
-     * and insert it in the AST under the top-level reactor's node.
-     */
-    public void addDelayClass(Reactor generatedDelay) {
-        // Record this class, so it can be reused.
-        delayClasses.add(generatedDelay);
-        // And hook it into the AST.
-        EObject node = IteratorExtensions.findFirst(fileConfig.resource.getAllContents(), Model.class::isInstance);
-        ((Model) node).getReactors().add(generatedDelay);
-    }
-
-    /**
-     * Return the generated delay reactor that corresponds to the given class
-     * name if it had been created already, `null` otherwise.
-     */
-    public Reactor findDelayClass(String className) {
-        return IterableExtensions.findFirst(delayClasses, it -> it.getName().equals(className));
-    }
 
     /**
      * If there is a main or federated reactor, then create a synthetic Instantiation
@@ -217,7 +205,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
      */
     private void createMainInstantiation() {
         // Find the main reactor and create an AST node for its instantiation.
-        Iterable<EObject> nodes = IteratorExtensions.toIterable(fileConfig.resource.getAllContents());
+        Iterable<EObject> nodes = IteratorExtensions.toIterable(context.getFileConfig().resource.getAllContents());
         for (Reactor reactor : Iterables.filter(nodes, Reactor.class)) {
             if (reactor.isMain()) {
                 // Creating a definition for the main reactor because there isn't one.
@@ -238,14 +226,12 @@ public abstract class GeneratorBase extends AbstractLFValidator {
      * generation, then a subsequent call to errorsOccurred() will return true.
      * @param resource The resource containing the source code.
      * @param context Context relating to invocation of the code generator.
-     * In stand alone mode, this object is also used to relay CLI arguments.
+     * In standalone mode, this object is also used to relay CLI arguments.
      */
     public void doGenerate(Resource resource, LFGeneratorContext context) {
 
-        GeneratorUtils.setTargetConfig(
-            context, GeneratorUtils.findTarget(fileConfig.resource), targetConfig, errorReporter
-        );
-
+        // FIXME: the signature can be reduced to only take context.
+        // The constructor also need not take a file config because this is tied to the context as well.
         cleanIfNeeded(context);
 
         printInfo(context.getMode());
@@ -256,13 +242,13 @@ public abstract class GeneratorBase extends AbstractLFValidator {
             ((EclipseErrorReporter) errorReporter).clearMarkers();
         }
 
-        ASTUtils.setMainName(fileConfig.resource, fileConfig.name);
+        ASTUtils.setMainName(context.getFileConfig().resource, context.getFileConfig().name);
 
         createMainInstantiation();
 
         // Check if there are any conflicting main reactors elsewhere in the package.
         if (Objects.equal(context.getMode(), LFGeneratorContext.Mode.STANDALONE) && mainDef != null) {
-            for (String conflict : new MainConflictChecker(fileConfig).conflicts) {
+            for (String conflict : new MainConflictChecker(context.getFileConfig()).conflicts) {
                 errorReporter.reportError(this.mainDef.getReactorClass(), "Conflicting main reactor in " + conflict);
             }
         }
@@ -276,18 +262,18 @@ public abstract class GeneratorBase extends AbstractLFValidator {
         // Process target files. Copy each of them into the src-gen dir.
         // FIXME: Should we do this here? This doesn't make sense for federates the way it is
         // done here.
-        copyUserFiles(this.targetConfig, this.fileConfig);
+        copyUserFiles(this.targetConfig, context.getFileConfig());
 
         // Collect reactors and create an instantiation graph.
         // These are needed to figure out which resources we need
         // to validate, which happens in setResources().
         setReactorsAndInstantiationGraph(context.getMode());
 
-        GeneratorUtils.validate(context, fileConfig, instantiationGraph, errorReporter);
+        GeneratorUtils.validate(context, context.getFileConfig(), instantiationGraph, errorReporter);
         List<Resource> allResources = GeneratorUtils.getResources(reactors);
         resources.addAll(allResources.stream()  // FIXME: This filter reproduces the behavior of the method it replaces. But why must it be so complicated? Why are we worried about weird corner cases like this?
-            .filter(it -> !Objects.equal(it, fileConfig.resource) || mainDef != null && it == mainDef.getReactorClass().eResource())
-            .map(it -> GeneratorUtils.getLFResource(it, fileConfig.getSrcGenBasePath(), context, errorReporter))
+            .filter(it -> !Objects.equal(it, context.getFileConfig().resource) || mainDef != null && it == mainDef.getReactorClass().eResource())
+            .map(it -> GeneratorUtils.getLFResource(it, context.getFileConfig().getSrcGenBasePath(), context, errorReporter))
             .toList()
         );
         GeneratorUtils.accommodatePhysicalActionsIfPresent(
@@ -299,9 +285,9 @@ public abstract class GeneratorBase extends AbstractLFValidator {
         // FIXME: Should the GeneratorBase pull in `files` from imported
         // resources?
 
-        // Reroute connections that have delays associated with them via
-        // generated delay reactors.
-        transformDelays();
+        for (AstTransformation transformation : astTransformations) {
+            transformation.applyTransformation(reactors);
+        }
 
         // Transform connections that reside in mutually exclusive modes and are otherwise conflicting
         // This should be done before creating the instantiation graph
@@ -324,7 +310,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
     protected void cleanIfNeeded(LFGeneratorContext context) {
         if (context.getArgs().containsKey("clean")) {
             try {
-                fileConfig.doClean();
+                context.getFileConfig().doClean();
             } catch (IOException e) {
                 System.err.println("WARNING: IO Error during clean");
             }
@@ -341,7 +327,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
      */
     protected void setReactorsAndInstantiationGraph(LFGeneratorContext.Mode mode) {
         // Build the instantiation graph .
-        instantiationGraph = new InstantiationGraph(fileConfig.resource, false);
+        instantiationGraph = new InstantiationGraph(context.getFileConfig().resource, false);
 
         // Topologically sort the reactors such that all of a reactor's instantiation dependencies occur earlier in
         // the sorted list of reactors. This helps the code generator output code in the correct order.
@@ -352,21 +338,12 @@ public abstract class GeneratorBase extends AbstractLFValidator {
         // If there is no main reactor or if all reactors in the file need to be validated, then make sure the reactors
         // list includes even reactors that are not instantiated anywhere.
         if (mainDef == null || Objects.equal(mode, LFGeneratorContext.Mode.LSP_MEDIUM)) {
-            Iterable<EObject> nodes = IteratorExtensions.toIterable(fileConfig.resource.getAllContents());
+            Iterable<EObject> nodes = IteratorExtensions.toIterable(context.getFileConfig().resource.getAllContents());
             for (Reactor r : IterableExtensions.filter(nodes, Reactor.class)) {
                 if (!reactors.contains(r)) {
                     reactors.add(r);
                 }
             }
-        }
-    }
-
-    /**
-     * For each involved resource, replace connections with delays with generated delay reactors.
-     */
-    private void transformDelays() {
-        for (LFResource r : resources) {
-            ASTUtils.insertGeneratedDelays(r.eResource, this);
         }
     }
 
@@ -395,26 +372,54 @@ public abstract class GeneratorBase extends AbstractLFValidator {
     public abstract TargetTypes getTargetTypes();
 
     /**
-     * Generate code for the body of a reaction that takes an input and
-     * schedules an action with the value of that input.
-     * @param action the action to schedule
-     * @param port the port to read from
+     * Mark the reaction unordered. An unordered reaction is one that does not
+     * have any dependency on other reactions in the containing reactor, and
+     * where no other reaction in the containing reactor depends on it. There
+     * is currently no way in the syntax of LF to make a reaction unordered,
+     * deliberately, because it can introduce unexpected nondeterminacy.
+     * However, certain automatically generated reactions are known to be safe
+     * to be unordered because they do not interact with the state of the
+     * containing reactor. To make a reaction unordered, when the Reaction
+     * instance is created, add that instance to this set.
+     * @param reaction The reaction to make unordered.
      */
-    public abstract String generateDelayBody(Action action, VarRef port);
+    public void makeUnordered(Reaction reaction) {
+        if (unorderedReactions == null) {
+            unorderedReactions = new LinkedHashSet<>();
+        }
+        unorderedReactions.add(reaction);
+    }
 
     /**
-     * Generate code for the body of a reaction that is triggered by the
-     * given action and writes its value to the given port.
-     * @param action the action that triggers the reaction
-     * @param port the port to write to
+     * Mark the specified reaction to belong to only the specified
+     * bank index. This is needed because reactions cannot declare
+     * a specific bank index as an effect or trigger. Reactions that
+     * send messages between federates, including absent messages,
+     * need to be specific to a bank member.
+     * @param reaction The reaction.
+     * @param bankIndex The bank index, or -1 if there is no bank.
      */
-    public abstract String generateForwardBody(Action action, VarRef port);
+    public void setReactionBankIndex(Reaction reaction, int bankIndex) {
+        if (bankIndex < 0) {
+            return;
+        }
+        if (reactionBankIndices == null) {
+            reactionBankIndices = new LinkedHashMap<>();
+        }
+        reactionBankIndices.put(reaction, bankIndex);
+    }
 
     /**
-     * Generate code for the generic type to be used in the class definition
-     * of a generated delay reactor.
+     * Return the reaction bank index.
+     * @see #setReactionBankIndex(Reaction reaction, int bankIndex)
+     * @param reaction The reaction.
+     * @return The reaction bank index, if one has been set, and -1 otherwise.
      */
-    public abstract String generateDelayGeneric();
+    public int getReactionBankIndex(Reaction reaction) {
+        if (reactionBankIndices == null) return -1;
+        if (reactionBankIndices.get(reaction) == null) return -1;
+        return reactionBankIndices.get(reaction);
+    }
 
     /**
      * Given a representation of time that may possibly include units, return
@@ -567,7 +572,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
         String[] lines = stderr.split("\\r?\\n");
         StringBuilder message = new StringBuilder();
         Integer lineNumber = null;
-        Path path = fileConfig.srcFile;
+        Path path = context.getFileConfig().srcFile;
         // In case errors occur within an imported file, record the original path.
         Path originalPath = path;
 
@@ -657,23 +662,15 @@ public abstract class GeneratorBase extends AbstractLFValidator {
      * what mode the generator is in, and where the generated sources are to be put.
      */
     public void printInfo(LFGeneratorContext.Mode mode) {
-        System.out.println("Generating code for: " + fileConfig.resource.getURI().toString());
+        System.out.println("Generating code for: " + context.getFileConfig().resource.getURI().toString());
         System.out.println("******** mode: " + mode);
-        System.out.println("******** generated sources: " + fileConfig.getSrcGenPath());
+        System.out.println("******** generated sources: " + context.getFileConfig().getSrcGenPath());
     }
 
     /**
-     * Indicates whether delay banks generated from after delays should have a variable length width.
-     *
-     * If this is true, any delay reactors that are inserted for after delays on multiport connections
-     * will have an unspecified variable length width. The code generator is then responsible for inferring the
-     * correct width of the delay bank, which is only possible if the precise connection width is known at compile time.
-     *
-     * If this is false, the width specification of the generated bank will list all the ports listed on the right
-     * side of the connection. This gives the code generator the information needed to infer the correct width at
-     * runtime.
+     * Get the buffer type used for network messages
      */
-    public boolean generateAfterDelaysWithVariableWidth() { return true; }
+    public String getNetworkBufferType() { return ""; }
 
     /**
      * Return the Targets enum for the current target
@@ -712,7 +709,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
      * Get textual representation of a value in the target language.
      *
      * If the value evaluates to 0, it is interpreted as a time.
-     * 
+     *
      * @param expr A time AST node
      * @return A time string in the target language
      */

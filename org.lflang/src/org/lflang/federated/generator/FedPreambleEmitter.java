@@ -33,7 +33,7 @@ public class FedPreambleEmitter {
             %s
             =}
             """.formatted(
-                p.getVisibility() == null ? "":p.getVisibility() + " ",
+                p.getVisibility() == null ? "" : p.getVisibility() + " ",
                 toText(p.getCode())
             ));
         }

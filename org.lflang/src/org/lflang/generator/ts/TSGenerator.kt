@@ -27,12 +27,13 @@ package org.lflang.generator.ts
 
 import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.util.CancelIndicator
-import org.lflang.ASTUtils
-import org.lflang.ErrorReporter
+
 import org.lflang.Target
 import org.lflang.TimeValue
+
+import org.lflang.ast.AfterDelayTransformation
+
 import org.lflang.generator.CodeMap
-import org.lflang.generator.ExpressionGenerator
 import org.lflang.generator.GeneratorBase
 import org.lflang.generator.GeneratorResult
 import org.lflang.generator.GeneratorUtils
@@ -41,16 +42,7 @@ import org.lflang.generator.IntegratedBuilder
 import org.lflang.generator.LFGeneratorContext
 import org.lflang.generator.SubContext
 import org.lflang.generator.TargetTypes
-import org.lflang.graph.InstantiationGraph
-import org.lflang.inferredType
-import org.lflang.lf.Action
-import org.lflang.lf.Expression
-import org.lflang.lf.Instantiation
-import org.lflang.lf.Parameter
 import org.lflang.lf.Preamble
-import org.lflang.lf.StateVar
-import org.lflang.lf.Type
-import org.lflang.lf.VarRef
 import org.lflang.model
 import org.lflang.scoping.LFGlobalScopeProvider
 import org.lflang.util.FileUtil
@@ -67,20 +59,22 @@ private const val NO_NPM_MESSAGE = "The TypeScript target requires npm >= 6.14.4
 /**
  * Generator for TypeScript target.
  *
- *  @author{Matt Weber <matt.weber@berkeley.edu>}
- *  @author{Edward A. Lee <eal@berkeley.edu>}
- *  @author{Marten Lohstroh <marten@berkeley.edu>}
- *  @author {Christian Menard <christian.menard@tu-dresden.de>}
- *  @author {Hokeun Kim <hokeunkim@berkeley.edu>}
+ *  @author Matt Weber
+ *  @author Edward A. Lee
+ *  @author Marten Lohstroh
+ *  @author Christian Menard
+ *  @author Hokeun Kim
  */
 class TSGenerator(
-    private val tsFileConfig: TSFileConfig,
-    errorReporter: ErrorReporter,
+    private val context: LFGeneratorContext,
     private val scopeProvider: LFGlobalScopeProvider
-) : GeneratorBase(tsFileConfig, errorReporter) {
+) : GeneratorBase(context) {
+
+
+    val fileConfig: TSFileConfig = context.fileConfig as TSFileConfig
 
     companion object {
-        /** Path to the Cpp lib directory (relative to class path)  */
+        /** Path to the TS lib directory (relative to class path)  */
         const val LIB_PATH = "/lib/ts"
 
         /**
@@ -88,18 +82,6 @@ class TSGenerator(
          * source package root if they cannot be found in the source directory.
          */
         val CONFIG_FILES = arrayOf("package.json", "tsconfig.json", "babel.config.js", ".eslintrc.json")
-
-        /**
-         * Files to be copied from the reactor-ts submodule into the generated
-         * source directory.
-         */
-        val RUNTIME_FILES = arrayOf("action.ts", "bank.ts", "cli.ts", "command-line-args.d.ts",
-            "command-line-usage.d.ts", "component.ts", "event.ts", "federation.ts", "internal.ts",
-            "reaction.ts", "reactor.ts", "microtime.d.ts", "multiport.ts", "nanotimer.d.ts", "port.ts",
-            "state.ts", "strings.ts", "time.ts", "trigger.ts", "types.ts", "ulog.d.ts", "util.ts")
-
-        private val VG =
-            ExpressionGenerator(::timeInTargetLanguage) { param -> "this.${param.name}.get()" }
 
         fun timeInTargetLanguage(value: TimeValue): String {
             return if (value.unit != null) {
@@ -124,22 +106,6 @@ class TSGenerator(
         targetConfig.compilerFlags.add("-O2")
     }
 
-    // Wrappers to expose GeneratorBase methods.
-
-    fun getTargetValueW(expr: Expression): String = VG.getTargetValue(expr, false)
-    fun getTargetTypeW(p: Parameter): String = TSTypes.getTargetType(p.inferredType)
-    fun getTargetTypeW(state: StateVar): String = TSTypes.getTargetType(state)
-    fun getTargetTypeW(t: Type): String = TSTypes.getTargetType(t)
-
-    fun getInitializerListW(state: StateVar): List<String> = VG.getInitializerList(state)
-    fun getInitializerListW(param: Parameter): List<String> = VG.getInitializerList(param)
-    fun getInitializerListW(param: Parameter, i: Instantiation): List<String> =
-        VG.getInitializerList(param, i)
-
-    fun getInstantiationGraph(): InstantiationGraph? {
-        return this.instantiationGraph;
-    }
-
     /** Generate TypeScript code from the Lingua Franca model contained by the
      *  specified resource. This is the main entry point for code
      *  generation.
@@ -147,6 +113,9 @@ class TSGenerator(
      *  @param context The context of this build.
      */
     override fun doGenerate(resource: Resource, context: LFGeneratorContext) {
+        // Register the after delay transformation to be applied by GeneratorBase.
+        registerTransformation(AfterDelayTransformation(TSDelayBodyGenerator, targetTypes, resource))
+
         super.doGenerate(resource, context)
 
         instantiationGraph
@@ -157,27 +126,26 @@ class TSGenerator(
         // createMainReactorInstance()
 
         clean(context)
-        copyRuntime()
         copyConfigFiles()
+        updatePackageConfig(context)
 
         val codeMaps = HashMap<Path, CodeMap>()
-        val dockerGenerator = TSDockerGenerator(false)
-        generateCode(codeMaps, dockerGenerator, resource.model.preambles)
+        generateCode(codeMaps, resource.model.preambles)
         if (targetConfig.dockerOptions != null) {
-            dockerGenerator.writeDockerFiles(tsFileConfig.tsDockerComposeFilePath())
+                TSDockerGenerator(context).writeDockerFiles()
         }
         // For small programs, everything up until this point is virtually instantaneous. This is the point where cancellation,
         // progress reporting, and IDE responsiveness become real considerations.
         if (targetConfig.noCompile) {
-            context.finish(GeneratorResult.GENERATED_NO_EXECUTABLE.apply(null))
+            context.finish(GeneratorResult.GENERATED_NO_EXECUTABLE.apply(context, null))
         } else {
             context.reportProgress(
                 "Code generation complete. Collecting dependencies...", IntegratedBuilder.GENERATED_PERCENT_PROGRESS
             )
-            if (shouldCollectDependencies(context)) collectDependencies(resource, context)
+            if (shouldCollectDependencies(context)) collectDependencies(resource, context, fileConfig.srcGenPkgPath, false)
             if (errorsOccurred()) {
-                context.unsuccessfulFinish();
-                return;
+                context.unsuccessfulFinish()
+                return
             }
             if (targetConfig.protoFiles.size != 0) {
                 protoc()
@@ -187,10 +155,10 @@ class TSGenerator(
             val parsingContext = SubContext(context, COLLECTED_DEPENDENCIES_PERCENT_PROGRESS, 100)
             if (
                 !context.cancelIndicator.isCanceled
-                && passesChecks(TSValidator(tsFileConfig, errorReporter, codeMaps), parsingContext)
+                && passesChecks(TSValidator(fileConfig, errorReporter, codeMaps), parsingContext)
             ) {
                 if (context.mode == LFGeneratorContext.Mode.LSP_MEDIUM) {
-                    context.finish(GeneratorResult.GENERATED_NO_EXECUTABLE.apply(codeMaps))
+                    context.finish(GeneratorResult.GENERATED_NO_EXECUTABLE.apply(context, codeMaps))
                 } else {
                     compile(resource, parsingContext)
                     concludeCompilation(context, codeMaps)
@@ -202,6 +170,41 @@ class TSGenerator(
     }
 
     /**
+     * Prefix the given path with a scheme if missing.
+     */
+    private fun formatRuntimePath(path: String): String {
+        return if (path.startsWith("file:") || path.startsWith("git:") || path.startsWith("git+")) {
+            path
+        } else {
+            "file:/$path"
+        }
+    }
+
+    /**
+     * Update package.json according to given build parameters.
+     */
+    private fun updatePackageConfig(context: LFGeneratorContext) {
+        var rtPath = LFGeneratorContext.BuildParm.EXTERNAL_RUNTIME_PATH.getValue(context)
+        val rtVersion = LFGeneratorContext.BuildParm.RUNTIME_VERSION.getValue(context)
+        val sb = StringBuffer("");
+        val manifest = fileConfig.srcGenPath.resolve("package.json");
+        val rtRegex = Regex("(\"@lf-lang/reactor-ts\")(.+)")
+        if (rtPath != null) rtPath = formatRuntimePath(rtPath)
+        // FIXME: do better CLI arg validation upstream
+        // https://github.com/lf-lang/lingua-franca/issues/1429
+        manifest.toFile().forEachLine {
+            var line = it.replace("\"LinguaFrancaDefault\"", "\"${fileConfig.name}\"");
+            if (rtPath != null) {
+                line = line.replace(rtRegex, "$1: \"$rtPath\",")
+            } else if (rtVersion != null) {
+                line = line.replace(rtRegex, "$1: \"git://github.com/lf-lang/reactor-ts.git#$rtVersion\",")
+            }
+            sb.appendLine(line)
+        }
+        manifest.toFile().writeText(sb.toString());
+    }
+
+    /**
      * Clean up the src-gen directory as needed to prepare for code generation.
      */
     private fun clean(context: LFGeneratorContext) {
@@ -209,18 +212,6 @@ class TSGenerator(
         if (context.mode != LFGeneratorContext.Mode.LSP_MEDIUM) FileUtil.deleteDirectory(
             fileConfig.srcGenPath
         )
-    }
-
-    /**
-     * Copy the TypeScript runtime so that it is accessible to the generated code.
-     */
-    private fun copyRuntime() {
-        for (runtimeFile in RUNTIME_FILES) {
-            FileUtil.copyFileFromClassPath(
-                "$LIB_PATH/reactor-ts/src/core/$runtimeFile",
-                tsFileConfig.tsCoreGenPath().resolve(runtimeFile)
-            )
-        }
     }
 
     /**
@@ -250,12 +241,11 @@ class TSGenerator(
      */
     private fun generateCode(
         codeMaps: MutableMap<Path, CodeMap>,
-        dockerGenerator: TSDockerGenerator,
         preambles: List<Preamble>
     ) {
-        var tsFileName = fileConfig.name
+        val tsFileName = fileConfig.name
 
-        val tsFilePath = tsFileConfig.tsSrcGenPath().resolve("$tsFileName.ts")
+        val tsFilePath = fileConfig.srcGenPath.resolve("src").resolve("$tsFileName.ts")
 
         val tsCode = StringBuilder()
 
@@ -263,13 +253,13 @@ class TSGenerator(
             targetConfig.protoFiles, preambles)
         tsCode.append(preambleGenerator.generatePreamble())
 
-        val parameterGenerator = TSParameterPreambleGenerator(this, fileConfig, targetConfig, reactors)
+        val parameterGenerator = TSParameterPreambleGenerator(fileConfig, targetConfig, reactors)
         val (mainParameters, parameterCode) = parameterGenerator.generateParameters()
         tsCode.append(parameterCode)
 
         val reactorGenerator = TSReactorGenerator(this, errorReporter, targetConfig)
         for (reactor in reactors) {
-            tsCode.append(reactorGenerator.generateReactorClasses(reactor))
+            tsCode.append(reactorGenerator.generateReactor(reactor))
         }
 
         tsCode.append(reactorGenerator.generateMainReactorInstanceAndStart(this.mainDef, mainParameters))
@@ -278,9 +268,6 @@ class TSGenerator(
         codeMaps[tsFilePath] = codeMap
         FileUtil.writeToFile(codeMap.generatedCode, tsFilePath)
 
-        if (targetConfig.dockerOptions != null) {
-            dockerGenerator.addFile(dockerGenerator.fromData(tsFileName, tsFileConfig))
-        }
     }
 
     private fun compile(resource: Resource, parsingContext: LFGeneratorContext) {
@@ -306,17 +293,14 @@ class TSGenerator(
      * @param resource The Lingua Franca source file at
      * which to report any errors
      * @param context The context of this build.
+     * @param path The directory for which to get dependencies.
+     * @param production Whether to get production dependencies only.
      */
-    private fun collectDependencies(resource: Resource, context: LFGeneratorContext) {
+    private fun collectDependencies(resource: Resource, context: LFGeneratorContext, path: Path, production: Boolean) {
 
         Files.createDirectories(fileConfig.srcGenPkgPath) // may throw
 
-        val pnpmInstall = commandFactory.createCommand(
-            "pnpm",
-            listOf("install"),
-            fileConfig.srcGenPkgPath,
-            false // only produce a warning if command is not found
-        )
+        val pnpmInstall = commandFactory.createCommand("pnpm", if (production) listOf("install", "--prod") else listOf("install"), path, false)
 
         // Attempt to use pnpm, but fall back on npm if it is not available.
         if (pnpmInstall != null) {
@@ -327,11 +311,12 @@ class TSGenerator(
                     GeneratorUtils.findTarget(resource),
                     "ERROR: pnpm install command failed" + if (errors.isBlank()) "." else ":\n$errors")
             }
+            installProtoBufsIfNeeded(true, path, context.cancelIndicator)
         } else {
             errorReporter.reportWarning(
                 "Falling back on npm. To prevent an accumulation of replicated dependencies, " +
                         "it is highly recommended to install pnpm globally (npm install -g pnpm).")
-            val npmInstall = commandFactory.createCommand("npm", listOf("install"), fileConfig.srcGenPkgPath)
+            val npmInstall = commandFactory.createCommand("npm", if (production) listOf("install", "--production") else listOf("install"), path)
 
             if (npmInstall == null) {
                 errorReporter.reportError(NO_NPM_MESSAGE)
@@ -347,6 +332,17 @@ class TSGenerator(
                         "\nFor installation instructions, see: https://www.npmjs.com/get-npm")
                 return
             }
+            installProtoBufsIfNeeded(false, path, context.cancelIndicator)
+        }
+    }
+
+    private fun installProtoBufsIfNeeded(pnpmIsAvailable: Boolean, cwd: Path, cancelIndicator: CancelIndicator) {
+        if (targetConfig.protoFiles.size != 0) {
+            commandFactory.createCommand(
+                if (pnpmIsAvailable) "pnpm" else "npm",
+                listOf("install", "google-protobuf"),
+                cwd, true
+            ).run(cancelIndicator)
         }
     }
 
@@ -359,17 +355,17 @@ class TSGenerator(
 
         // FIXME: Check whether protoc is installed and provides hints how to install if it cannot be found.
         val protocArgs = LinkedList<String>()
-        val tsOutPath = tsFileConfig.srcPath.relativize(tsFileConfig.tsSrcGenPath())
+        val tsOutPath = fileConfig.srcPath.relativize(context.fileConfig.srcGenPath).resolve("src")
 
         protocArgs.addAll(
             listOf(
-                "--plugin=protoc-gen-ts=" + tsFileConfig.srcGenPkgPath.resolve("node_modules").resolve(".bin").resolve("protoc-gen-ts"),
+                "--plugin=protoc-gen-ts=" + fileConfig.srcGenPkgPath.resolve("node_modules").resolve(".bin").resolve("protoc-gen-ts"),
                 "--js_out=import_style=commonjs,binary:$tsOutPath",
                 "--ts_out=$tsOutPath"
             )
         )
         protocArgs.addAll(targetConfig.protoFiles)
-        val protoc = commandFactory.createCommand("protoc", protocArgs, tsFileConfig.srcPath)
+        val protoc = commandFactory.createCommand("protoc", protocArgs, fileConfig.srcPath)
 
         if (protoc == null) {
             errorReporter.reportError("Processing .proto files requires libprotoc >= 3.6.1.")
@@ -432,10 +428,7 @@ class TSGenerator(
         if (errorReporter.errorsOccurred) {
             context.unsuccessfulFinish()
         } else {
-            context.finish(
-                GeneratorResult.Status.COMPILED, fileConfig.name + ".js",
-                fileConfig.srcGenPkgPath.resolve("dist"), fileConfig, codeMaps, "node"
-            )
+            context.finish(GeneratorResult.Status.COMPILED, codeMaps)
         }
     }
 
@@ -445,37 +438,7 @@ class TSGenerator(
 
     override fun getTargetTypes(): TargetTypes = TSTypes
 
-    /**
-     * Return a TS type for the specified action.
-     * If the type has not been specified, return
-     * "Present" which is the base type for Actions.
-     * @param action The action
-     * @return The TS type.
-     */
-    private fun getActionType(action: Action): String {
-        return if (action.type != null) {
-            TSTypes.getTargetType(action.type)
-        } else {
-            "Present"
-        }
-    }
-
-    // Virtual methods.
-    override fun generateDelayBody(action: Action, port: VarRef): String {
-        return "actions.${action.name}.schedule(0, ${ASTUtils.generateVarRef(port)} as ${getActionType(action)});"
-    }
-
-    override fun generateForwardBody(action: Action, port: VarRef): String {
-        return "${ASTUtils.generateVarRef(port)} = ${action.name} as ${getActionType(action)};"
-    }
-
-    override fun generateDelayGeneric(): String {
-        return "T extends Present"
-    }
-
     override fun getTarget(): Target {
         return Target.TS
     }
-
-    override fun generateAfterDelaysWithVariableWidth() = false
 }

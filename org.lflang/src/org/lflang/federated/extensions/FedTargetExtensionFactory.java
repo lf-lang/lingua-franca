@@ -12,10 +12,8 @@ public class FedTargetExtensionFactory {
         switch (Target.fromDecl(target)) {
         case C: return new CExtension();
         case CCPP: return new CCppExtension();
-        case CPP: return new CppExtension();
         case Python: return new PythonExtension();
         case TS: return new TSExtension();
-        case Rust: return new RustExtension();
         default: throw new RuntimeException("Target not supported");
         }
     }

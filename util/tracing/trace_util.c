@@ -29,7 +29,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * Standalone program to convert a Lingua Franca trace file to a comma-separated values
  * text file.
  */
-#define LINGUA_FRANCA_TRACE
+#define LF_TRACE
 #include "reactor.h"
 #include "trace.h"
 #include "trace_util.h"

@@ -28,11 +28,18 @@ package org.lflang.generator.rust
 import org.lflang.*
 import org.lflang.TargetProperty.BuildType
 import org.lflang.generator.*
-import org.lflang.generator.cpp.toCppCode
+import org.lflang.inBlock
+import org.lflang.indexInContainer
+import org.lflang.inferredType
+import org.lflang.isBank
+import org.lflang.isInput
+import org.lflang.isLogical
+import org.lflang.isMultiport
 import org.lflang.lf.*
 import org.lflang.lf.Timer
 import java.nio.file.Path
 import java.util.*
+import kotlin.text.capitalize
 
 private typealias Ident = String
 const val PARALLEL_RT_FEATURE = "parallel-runtime"
@@ -142,7 +149,7 @@ class ReactorNames(
      * Name of the "user struct", which contains state
      * variables as fields, and which the user manipulates in reactions.
      */
-    val structName: Ident = lfName.capitalize().escapeRustIdent()
+    val structName: Ident = lfName.replaceFirstChar { it.uppercase() }.escapeRustIdent()
 
     // Names of other implementation-detailistic structs.
 
@@ -182,12 +189,18 @@ data class ChildPortReference(
     override val lfName: Ident,
     override val isInput: Boolean,
     override val dataType: TargetCode,
-    override val isMultiport: Boolean
+    val widthSpecMultiport: TargetCode?,
+    val widthSpecChild: TargetCode?,
 ) : PortLike() {
+    override val isMultiport: Boolean
+        get() = widthSpecMultiport != null
+    override val isContainedInBank: Boolean get() = widthSpecChild != null
     val rustFieldOnChildName: String = lfName.escapeRustIdent()
 
     /** Sync with [NestedReactorInstance.rustLocalName]. */
     val rustChildName: TargetCode = childLfName.escapeRustIdent()
+
+    val widthParamName: TargetCode = (rustFieldName + "__width").escapeRustIdent()
 }
 
 /**
@@ -344,7 +357,10 @@ sealed class PortLike : ReactorComponent() {
     abstract val isInput: Boolean
 
     abstract val dataType: TargetCode
+    val isGeneratedAsMultiport: Boolean
+        get() = isMultiport || isContainedInBank
     abstract val isMultiport: Boolean
+    abstract val isContainedInBank: Boolean
 }
 
 /**
@@ -359,6 +375,7 @@ data class PortData(
     val widthSpec: TargetCode?,
 ) : PortLike() {
     override val isMultiport: Boolean get() = widthSpec != null
+    override val isContainedInBank = false
 
     companion object {
         fun from(port: Port) =
@@ -366,7 +383,7 @@ data class PortData(
                 lfName = port.name,
                 isInput = port.isInput,
                 dataType = RustTypes.getTargetType(port.type),
-                widthSpec = port.widthSpec?.toCppCode()
+                widthSpec = port.widthSpec?.toRustExpr()
             )
     }
 }
@@ -412,7 +429,7 @@ object RustModelBuilder {
     /**
      * Given the input to the generator, produce the model classes.
      */
-    fun makeGenerationInfo(targetConfig: TargetConfig, fileConfig: RustFileConfig, reactors: List<Reactor>, errorReporter: ErrorReporter): GenerationInfo {
+    fun makeGenerationInfo(targetConfig: TargetConfig, reactors: List<Reactor>, errorReporter: ErrorReporter): GenerationInfo {
         val reactorsInfos = makeReactorInfos(reactors)
         // todo how do we pick the main reactor? it seems like super.doGenerate sets that field...
         val mainReactor = reactorsInfos.lastOrNull { it.isMain } ?: reactorsInfos.last()
@@ -420,7 +437,7 @@ object RustModelBuilder {
 
         val dependencies = targetConfig.rust.cargoDependencies.toMutableMap()
         dependencies.compute(RustEmitterBase.runtimeCrateFullName) { _, spec ->
-            computeDefaultRuntimeConfiguration(spec, targetConfig, fileConfig, errorReporter)
+            computeDefaultRuntimeConfiguration(spec, targetConfig, errorReporter)
         }
 
         return GenerationInfo(
@@ -448,10 +465,22 @@ object RustModelBuilder {
     private fun computeDefaultRuntimeConfiguration(
         userSpec: CargoDependencySpec?,
         targetConfig: TargetConfig,
-        fileConfig: RustFileConfig,
         errorReporter: ErrorReporter
     ): CargoDependencySpec {
-        val defaultRuntimePath = fileConfig.srcGenBasePath.resolve(RustGenerator.runtimeName).toString()
+        fun CargoDependencySpec.useDefaultRuntimePath() {
+            this.localPath = System.getenv("LOCAL_RUST_REACTOR_RT")?.also {
+                // Print info to reduce surprise. If the env var is not set,
+                // the runtime will be fetched from the internet by Cargo. If
+                // the value is incorrect, Cargo will crash.
+                errorReporter.reportInfo("Using the Rust runtime from environment variable LOCAL_RUST_REACTOR_RT=$it")
+            }
+
+            if (localPath == null) {
+                this.gitRepo = RustEmitterBase.runtimeGitUrl
+                this.rev = LanguageRuntimeVersions.rustRuntimeVersion
+            }
+        }
+
         if (userSpec == null) {
             // default configuration for the runtime crate
 
@@ -465,27 +494,25 @@ object RustModelBuilder {
 
             if (targetConfig.externalRuntimePath != null) {
                 spec.localPath = targetConfig.externalRuntimePath
-            } else if (userRtVersion != null){
+            } else if (userRtVersion != null) {
                 spec.gitRepo = RustEmitterBase.runtimeGitUrl
                 spec.rev = userRtVersion
             } else {
-                spec.localPath = defaultRuntimePath
+                spec.useDefaultRuntimePath()
             }
 
             return spec
         } else {
-            if (userSpec.localPath == null && userSpec.gitRepo == null) {
-                // default the location
-                userSpec.localPath = defaultRuntimePath
-            }
-
-            // override location
             if (targetConfig.externalRuntimePath != null) {
                 userSpec.localPath = targetConfig.externalRuntimePath
             }
 
+            if (userSpec.localPath == null && userSpec.gitRepo == null) {
+                userSpec.useDefaultRuntimePath()
+            }
+
             // enable parallel feature if asked
-            if (targetConfig.threading && PARALLEL_RT_FEATURE !in userSpec.features) {
+            if (targetConfig.threading) {
                 userSpec.features += PARALLEL_RT_FEATURE
             }
 
@@ -528,7 +555,8 @@ object RustModelBuilder {
                                 lfName = variable.name,
                                 isInput = variable is Input,
                                 dataType = container.reactor.instantiateType(formalType, it.container.typeParms),
-                                isMultiport = variable.isMultiport
+                                widthSpecMultiport = variable.widthSpec?.toRustExpr(),
+                                widthSpecChild = container.widthSpec?.toRustExpr(),
                             )
                         } else {
                             components[variable.name] ?: throw UnsupportedGeneratorFeatureException(
@@ -547,7 +575,7 @@ object RustModelBuilder {
                     body = n.code.toText(),
                     isStartup = n.triggers.any { it is BuiltinTriggerRef && it.type == BuiltinTrigger.STARTUP },
                     isShutdown = n.triggers.any { it is BuiltinTriggerRef && it.type == BuiltinTrigger.SHUTDOWN },
-                    debugLabel = AttributeUtils.label(n),
+                    debugLabel = AttributeUtils.getLabel(n),
                     loc = n.locationInfo().let {
                         // remove code block
                         it.copy(lfText = it.lfText.replace(TARGET_BLOCK_R, "{= ... =}"))
@@ -577,7 +605,7 @@ object RustModelBuilder {
                     StateVarInfo(
                         lfName = it.name,
                         type = RustTypes.getTargetType(it.type, it.init),
-                        init = RustTypes.getTargetInitializer(it.init, it.type, it.braces.isNotEmpty())
+                        init = RustTypes.getTargetInitializer(it.init, it.type)
                     )
                 },
                 nestedInstances = reactor.instantiations.map { it.toModel() },
@@ -586,7 +614,7 @@ object RustModelBuilder {
                     CtorParamInfo(
                         lfName = it.name,
                         type = RustTypes.getTargetType(it.type, it.init),
-                        defaultValue = RustTypes.getTargetInitializer(it.init, it.type, it.braces.isNotEmpty()),
+                        defaultValue = RustTypes.getTargetInitializer(it.init, it.type),
                         documentation = null, // todo
                         isTime = it.inferredType.isTime,
                         isList = it.inferredType.isList,
@@ -601,9 +629,9 @@ object RustModelBuilder {
         val byName = parameters.associateBy { it.lhs.name }
         val args = reactor.parameters.associate { ithParam ->
             // use provided argument
-            val value = byName[ithParam.name]?.let { RustTypes.getTargetInitializer(it.rhs, ithParam.type, it.isInitWithBraces) }
+            val value = byName[ithParam.name]?.let { RustTypes.getTargetInitializer(it.rhs, ithParam.type) }
                 ?: if (ithParam.name == "bank_index" && this.isBank) "bank_index" else null // special value
-                ?: ithParam?.let { RustTypes.getTargetInitializer(it.init, it.type, it.isInitWithBraces) }
+                ?: ithParam?.let { RustTypes.getTargetInitializer(it.init, it.type) }
                 ?: throw InvalidLfSourceException(
                     "Cannot find value of parameter ${ithParam.name}",
                     this
@@ -694,6 +722,7 @@ private val TypeParm.identifier: String
 val BuildType.cargoProfileName: String
     get() = when (this) {
         BuildType.DEBUG             -> "debug"
+        BuildType.TEST              -> "test"
         BuildType.RELEASE           -> "release"
         BuildType.REL_WITH_DEB_INFO -> "release-with-debug-info"
         BuildType.MIN_SIZE_REL      -> "release-with-min-size"

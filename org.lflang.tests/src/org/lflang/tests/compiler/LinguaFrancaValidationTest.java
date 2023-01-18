@@ -64,11 +64,11 @@ import com.google.inject.Inject;
 /**
  * Collection of unit tests to ensure validation is done correctly.
  * 
- * @author{Edward A. Lee <eal@berkeley.edu>}
- * @author{Marten Lohstroh <marten@berkeley.edu>}
- * @author{Matt Weber <matt.weber@berkeley.edu>}
- * @author(Christian Menard <christian.menard@tu-dresden.de>}
- * @author{Alexander Schulz-Rosengarten <als@informatik.uni-kiel.de>}
+ * @author Edward A. Lee
+ * @author Marten Lohstroh
+ * @author Matt Weber
+ * @author Christian Menard
+ * @author Alexander Schulz-Rosengarten
  */
 public class LinguaFrancaValidationTest {
     @Inject 
@@ -966,7 +966,7 @@ public class LinguaFrancaValidationTest {
             "    =}",
             "}");
         validator.assertError(parseWithoutError(testCase), LfPackage.eINSTANCE.getTimer(),
-            null, "Parameter is not of time type.");
+            null, "Referenced parameter is not of time type.");
     }
     
     /**
@@ -994,7 +994,7 @@ public class LinguaFrancaValidationTest {
             "    =}",
             "}");
         validator.assertError(parseWithoutError(testCase), LfPackage.eINSTANCE.getTimer(),
-            null, "Invalid time literal.");
+            null, "Invalid time value.");
     }  
     
 
@@ -1218,7 +1218,7 @@ public class LinguaFrancaValidationTest {
 //             ) {
 //                 state offset:time(42);       // ERROR: units missing
 //                 state w:time(x);             // ERROR: parameter is not a time
-//                 state foo:time("bla");       // ERROR: assigned value not a time
+//                 state foo:time("bla");       // ERROR: assigned value not a time;
 //                 timer tick(1);               // ERROR: not a time
 //             }
 //         """
@@ -1233,33 +1233,33 @@ public class LinguaFrancaValidationTest {
             "            q:time(1 msec, 2 msec),  // ERROR: not a list",
             "            y:int(t)           // ERROR: init using parameter",
             ") {",
-            "    state offset:time(42);     // ERROR: units missing",
+            "    state offset:time(45);     // ERROR: units missing",
             "    state w:time(x);           // ERROR: parameter is not a time",
             "    state foo:time(\"bla\");   // ERROR: assigned value not a time",
             "    timer tick(1);             // ERROR: not a time",
             "}");
         Model model = parseWithoutError(testCase);
 
-        
-		validator.assertError(model, LfPackage.eINSTANCE.getParameter(), null,
+
+        validator.assertError(model, LfPackage.eINSTANCE.getParameter(), null,
             "Type declaration missing.");
+        validator.assertError(model, LfPackage.eINSTANCE.getParameter(), null,
+            "Parameter must have a default value.");
         validator.assertError(model, LfPackage.eINSTANCE.getParameter(), null,
             "Missing time unit.");
         validator.assertError(model, LfPackage.eINSTANCE.getParameter(), null,
-            "Invalid time literal.");
+            "Invalid time value.");
         validator.assertError(model, LfPackage.eINSTANCE.getParameter(), null,
-            "Time parameter cannot be initialized using a list.");   
+            "Expected exactly one time value.");
         validator.assertError(model, LfPackage.eINSTANCE.getParameter(), null,
             "Parameter cannot be initialized using parameter.");
         validator.assertError(model, LfPackage.eINSTANCE.getStateVar(), null,
-                              "Missing time unit.");
+            "Missing time unit.");
         validator.assertError(model, LfPackage.eINSTANCE.getStateVar(), null,
-            "Parameter is not of time type.");
+            "Referenced parameter is not of time type.");
         validator.assertError(model, LfPackage.eINSTANCE.getStateVar(), null,
-                              "Invalid time literal.");
-        validator.assertError(model, LfPackage.eINSTANCE.getParameter(), null,
-            "Uninitialized parameter.");
-       	validator.assertError(model, LfPackage.eINSTANCE.getTimer(), null,
+            "Invalid time value.");
+        validator.assertError(model, LfPackage.eINSTANCE.getTimer(), null,
             "Missing time unit.");
     }  
     
@@ -1547,6 +1547,15 @@ public class LinguaFrancaValidationTest {
             List.of("[1 msec]", "[0]", PrimitiveType.STRING),
             List.of("[foo, {bar: baz}]", "[1]", PrimitiveType.STRING),
             List.of("{bar: baz}", "", UnionType.STRING_OR_STRING_ARRAY)
+        ),
+        UnionType.PLATFORM_STRING_OR_DICTIONARY, List.of(
+            List.of("[bar, baz]", "", UnionType.PLATFORM_STRING_OR_DICTIONARY),
+            List.of("{name: [1, 2, 3]}", ".name", PrimitiveType.STRING),
+            List.of("{name: {bar: baz}}", ".name", PrimitiveType.STRING),
+            List.of("{board: [1, 2, 3]}", ".board", PrimitiveType.STRING),
+            List.of("{board: {bar: baz}}", ".board", PrimitiveType.STRING),
+            List.of("{baud-rate: [1, 2, 3]}", ".baud-rate", PrimitiveType.NON_NEGATIVE_INTEGER),
+            List.of("{baud-rate: {bar: baz}}", ".baud-rate", PrimitiveType.NON_NEGATIVE_INTEGER)
         ),
         UnionType.FILE_OR_FILE_ARRAY, List.of(
             List.of("[1 msec]", "[0]", PrimitiveType.FILE),
@@ -2434,9 +2443,10 @@ public class LinguaFrancaValidationTest {
             }
         """;
         validator.assertError(parseWithoutError(testCase), LfPackage.eINSTANCE.getMode(), null,
-                "This reactor contains state variables that are not reset upon mode entry. "
-                + "The instatiated reactor (or any inner reactor) neither marks its state variables for automatic reset nor defines a reset reaction. "
-                + "It is usafe to instatiate this reactor inside a mode.");
+                "This reactor contains state variables that are not reset upon mode entry: "
+                + "s in R"
+                + ".\nThe state variables are neither marked for automatic reset nor have a dedicated reset reaction. "
+                + "It is usafe to instatiate this reactor inside a mode entered with reset.");
     }
 
     @Test

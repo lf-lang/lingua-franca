@@ -1,15 +1,18 @@
 package org.lflang.generator.cpp
 
 import org.lflang.generator.PrependOperator
+import org.lflang.joinWithLn
 import org.lflang.toUnixString
 import java.nio.file.Path
 
 /** A C++ code generator for creating the required files for defining a ROS2 package. */
 class CppRos2PackageGenerator(generator: CppGenerator, private val nodeName: String) {
-    private val fileConfig = generator.cppFileConfig
+    private val fileConfig = generator.fileConfig
     private val targetConfig = generator.targetConfig
     val reactorCppSuffix = targetConfig.runtimeVersion ?: "default"
     val reactorCppName = "reactor-cpp-$reactorCppSuffix"
+    private val dependencies =
+        listOf("rclcpp", "rclcpp_components", reactorCppName) + (targetConfig.ros2Dependencies ?: listOf<String>())
 
     @Suppress("PrivatePropertyName") // allows us to use capital S as variable name below
     private val S = '$' // a little trick to escape the dollar sign with $S
@@ -28,10 +31,7 @@ class CppRos2PackageGenerator(generator: CppGenerator, private val nodeName: Str
             |  <buildtool_depend>ament_cmake</buildtool_depend>
             |  <buildtool_depend>ament_cmake_auto</buildtool_depend>
             |  
-            |  <depend>rclcpp</depend>
-            |  <depend>rclcpp_components</depend>
-            |  <depend>std_msgs</depend>
-            |  <depend>$reactorCppName</depend>
+        ${" |"..dependencies.joinWithLn { "<depend>$it</depend>" }}
             |
             |  <test_depend>ament_lint_auto</test_depend>
             |  <test_depend>ament_lint_common</test_depend>
@@ -50,12 +50,13 @@ class CppRos2PackageGenerator(generator: CppGenerator, private val nodeName: Str
         val includeFiles = targetConfig.cmakeIncludes?.map { fileConfig.srcPath.resolve(it).toUnixString() }
 
         return with(PrependOperator) {
-            """
-                |cmake_minimum_required(VERSION 3.5)
+            with(CppGenerator) {
+                """
+                |cmake_minimum_required(VERSION $MINIMUM_CMAKE_VERSION)
                 |project(${fileConfig.name} VERSION 0.0.0 LANGUAGES CXX)
                 |
-                |# require C++ 17
-                |set(CMAKE_CXX_STANDARD 17 CACHE STRING "The C++ standard is cached for visibility in external tools." FORCE)
+                |# require C++ $CPP_VERSION
+                |set(CMAKE_CXX_STANDARD $CPP_VERSION CACHE STRING "The C++ standard is cached for visibility in external tools." FORCE)
                 |set(CMAKE_CXX_STANDARD_REQUIRED ON)
                 |set(CMAKE_CXX_EXTENSIONS OFF)
                 |
@@ -72,9 +73,9 @@ class CppRos2PackageGenerator(generator: CppGenerator, private val nodeName: Str
                 |
                 |ament_auto_add_library($S{LF_MAIN_TARGET} SHARED
                 |    src/$nodeName.cc
-            ${" |    "..sources.joinToString("\n") { "src/$it" }}
+            ${" |    "..sources.joinWithLn { "src/$it" }}
                 |)
-                |ament_target_dependencies($S{LF_MAIN_TARGET} rclcpp std_msgs)
+                |ament_target_dependencies($S{LF_MAIN_TARGET} ${dependencies.joinToString(" ")})
                 |target_include_directories($S{LF_MAIN_TARGET} PUBLIC
                 |    "$S{LF_SRC_PKG_PATH}/src"
                 |    "$S{PROJECT_SOURCE_DIR}/src/"
@@ -95,8 +96,9 @@ class CppRos2PackageGenerator(generator: CppGenerator, private val nodeName: Str
                 |
                 |ament_auto_package()
                 |
-            ${" |"..(includeFiles?.joinToString("\n") { "include(\"$it\")" } ?: "")}
+            ${" |"..(includeFiles?.joinWithLn { "include(\"$it\")" } ?: "")}
             """.trimMargin()
+            }
         }
     }
 

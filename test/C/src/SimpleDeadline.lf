@@ -34,7 +34,7 @@ main reactor SimpleDeadline {
 
     reaction(start) -> d.x {=
         instant_t sleep_time_ns = 20000000;
-        lf_nanosleep(sleep_time_ns);
+        lf_sleep(sleep_time_ns);
         lf_set(d.x, 42);
     =}
 }

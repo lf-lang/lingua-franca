@@ -30,12 +30,10 @@ reactor Destination {
 
     reaction(in) {=
         int sum = 0;
-        for (size_t i = 0; i < in.size(); i++) {
-            if (in[i].is_present()) {
-                const auto& a = *in[i].get();
-                for (int j = 0; j < a.size(); j++) {
-                    sum += a[j];
-                }
+        for (auto i : in.present_indices_unsorted()) {
+            const auto& a = *in[i].get();
+            for (int j = 0; j < a.size(); j++) {
+                sum += a[j];
             }
         }
         std::cout << "Sum of received: " << sum << '\n';

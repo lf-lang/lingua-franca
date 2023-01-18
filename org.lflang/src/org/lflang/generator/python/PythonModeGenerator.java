@@ -10,12 +10,11 @@ import org.lflang.lf.LfFactory;
 import org.lflang.lf.Mode;
 import org.lflang.lf.Reaction;
 import org.lflang.lf.Reactor;
-import org.lflang.lf.TriggerRef;
 
 /**
  * Helper class to handle modes in Python programs.
  *
- * @author{Soroush Bateni <soroush@utdallas.edu>}
+ * @author Soroush Bateni
  *
  */
 public class PythonModeGenerator {
@@ -53,7 +52,7 @@ public class PythonModeGenerator {
             code.pr("# Reset the following state variables to their initial value.");
             for (var state: reactor.getStateVars()) {
                 if (state.isReset()) {
-                    code.pr("self."+state.getName()+" = "+PythonStateGenerator.generatePythonInitializer(state));
+                    code.pr("self."+state.getName()+" = "+ PythonStateGenerator.generatePythonInitializer(state));
                 }
             }
             reactionBody.setBody(code.toString());
@@ -77,7 +76,7 @@ public class PythonModeGenerator {
                 code.pr("# Reset the following state variables to their initial value.");
                 for (var state: mode.getStateVars()) {
                     if (state.isReset()) {
-                        code.pr("self."+state.getName()+" = "+PythonStateGenerator.generatePythonInitializer(state));
+                        code.pr("self."+state.getName()+" = "+ PythonStateGenerator.generatePythonInitializer(state));
                     }
                 }
                 reactionBody.setBody(code.toString());

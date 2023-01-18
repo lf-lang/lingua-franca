@@ -1,16 +1,16 @@
 /*************
  * Copyright (c) 2021, The University of California at Berkeley.
- * 
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
- * 
+ *
  * 1. Redistributions of source code must retain the above copyright notice,
  * this list of conditions and the following disclaimer.
- * 
+ *
  * 2. Redistributions in binary form must reproduce the above copyright notice,
  * this list of conditions and the following disclaimer in the documentation
  * and/or other materials provided with the distribution.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
  * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -38,7 +38,6 @@ import java.util.List;
 import org.lflang.ASTUtils;
 import org.lflang.ErrorReporter;
 import org.lflang.InferredType;
-import org.lflang.Target;
 import org.lflang.TargetProperty;
 import org.lflang.TargetProperty.CoordinationType;
 import org.lflang.TimeValue;
@@ -48,13 +47,11 @@ import org.lflang.federated.generator.FedFileConfig;
 import org.lflang.federated.generator.FederateInstance;
 import org.lflang.federated.serialization.FedROS2CPPSerialization;
 import org.lflang.generator.CodeBuilder;
-import org.lflang.generator.DockerGeneratorBase;
 import org.lflang.generator.GeneratorBase;
 import org.lflang.generator.GeneratorUtils;
 import org.lflang.generator.LFGeneratorContext;
 import org.lflang.generator.ReactionInstance;
 import org.lflang.generator.ReactorInstance;
-import org.lflang.generator.c.CDockerGenerator;
 import org.lflang.generator.c.CGenerator;
 import org.lflang.generator.c.CTypes;
 import org.lflang.generator.c.CUtil;
@@ -67,12 +64,12 @@ import org.lflang.util.FileUtil;
 /**
  * An extension class to the CGenerator that enables certain federated
  * functionalities. Currently, this class offers the following features:
- * 
+ *
  * - Allocating and initializing C structures for federated communication -
  * Creating status field for network input ports that help the receiver logic in
  * federate.c communicate the status of a network input port with network input
  * control reactions.
- * 
+ *
  * @author {Soroush Bateni <soroush@berkeley.edu>}
  * @author {Hou Seng Wong <housengw@berkeley.edu>}
  * @author {Billy Bao <billybao@berkeley.edu>}
@@ -97,15 +94,6 @@ public class CExtension implements FedTargetExtension {
             return;
         }
 
-
-        if (!federate.targetConfig.useCmake) {
-            errorReporter.reportError(
-                "Only CMake is supported for generating federated programs. " +
-                    "Use `cmake: true` in the target properties. Exiting code generation."
-            );
-            return;
-        }
-
         CExtensionUtils.handleCompileDefinitions(federate, numOfFederates, federationRTIProperties);
 
         generateCMakeInclude(federate, fileConfig);
@@ -114,7 +102,7 @@ public class CExtension implements FedTargetExtension {
         federate.targetConfig.setByUser.add(TargetProperty.FILES);
         FileUtil.copyDirectoryFromClassPath(
             "/lib/c/reactor-c/core/federated",
-            fileConfig.getFedSrcPath().resolve("include" + File.separator + "federated"),
+            fileConfig.getSrcPath().resolve("include" + File.separator + "federated"),
             true
         );
 
@@ -149,27 +137,24 @@ public class CExtension implements FedTargetExtension {
      */
     private void generateDockerFile(FederateInstance federate, FedFileConfig fileConfig, LinkedHashMap<String, Object> federationRTIProperties) {
         // Docker related paths
-        CDockerGenerator dockerGenerator = (CDockerGenerator)newDockerGeneratorInstance(federate);
-
-        // Create docker file.
-        if (federate.targetConfig.dockerOptions != null) {
-            dockerGenerator.addFile(
-                dockerGenerator.fromData(fileConfig.name, federate.name, fileConfig));
-        }
-
-        if (federate.targetConfig.dockerOptions != null) {
-            dockerGenerator.setHost(federationRTIProperties.get("host"));
-            try {
-                dockerGenerator.writeDockerFiles(
-                    fileConfig.getFedSrcGenPath().resolve("docker-compose.yml"));
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-        }
-    }
-
-    protected DockerGeneratorBase newDockerGeneratorInstance(FederateInstance federate) {
-        return new CDockerGenerator(true, false, federate.targetConfig);
+// FIXME
+//        CDockerGenerator dockerGenerator = (CDockerGenerator)newDockerGeneratorInstance(federate);
+//
+//        // Create docker file.
+//        if (federate.targetConfig.dockerOptions != null) {
+//            dockerGenerator.add(
+//                dockerGenerator.fromData(fileConfig.name, federate.name, fileConfig));
+//        }
+//
+//        if (federate.targetConfig.dockerOptions != null) {
+//            dockerGenerator.setHost(federationRTIProperties.get("host"));
+//            try {
+//                dockerGenerator.writeDockerFiles(
+//                    fileConfig.getFedSrcGenPath().resolve("docker-compose.yml"));
+//            } catch (IOException e) {
+//                throw new RuntimeException(e);
+//            }
+//        }
     }
 
     /**
@@ -545,7 +530,8 @@ public class CExtension implements FedTargetExtension {
         // Put the C preamble in a `include/_federate.name + _preamble.c` file
         String cPreamble = makePreamble(federate, fileConfig, federationRTIProperties, errorReporter);
         String relPath = "include" + File.separator + "_" + federate.name + "_preamble.c";
-        Path fedPreamblePath = fileConfig.getFedSrcPath().resolve(relPath);
+        Path fedPreamblePath = fileConfig.getSrcPath().resolve(relPath);
+        Files.createDirectories(fedPreamblePath.getParent());
         try (var writer = Files.newBufferedWriter(fedPreamblePath)) {
             writer.write(cPreamble);
         }

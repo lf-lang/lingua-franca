@@ -5,7 +5,7 @@ import java.util.List;
 import org.lflang.ASTUtils;
 import org.lflang.federated.generator.FederateInstance;
 import org.lflang.generator.CodeBuilder;
-import org.lflang.generator.GeneratorBase;
+import org.lflang.generator.DelayBodyGenerator;
 import org.lflang.generator.ParameterInstance;
 import org.lflang.generator.ReactorInstance;
 import org.lflang.lf.Reaction;
@@ -151,7 +151,7 @@ public class PythonReactorGenerator {
         code.pr("_bank_index = "+PyUtil.bankIndex(instance)+",");
         for (ParameterInstance param : instance.parameters) {
             if (!param.getName().equals("bank_index")) {
-                code.pr("_"+param.getName()+"="+PythonParameterGenerator.generatePythonInitializer(param)+",");
+                code.pr("_"+param.getName()+"="+ PythonParameterGenerator.generatePythonInitializer(param)+",");
             }
         }
         code.unindent();

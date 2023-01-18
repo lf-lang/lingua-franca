@@ -39,13 +39,12 @@ import org.lflang.TargetConfig;
 import org.lflang.TargetProperty.ClockSyncMode;
 import org.lflang.federated.generator.FedFileConfig;
 import org.lflang.federated.generator.FederateInstance;
-import org.lflang.federated.OldFedFileConfig;
 
 /**
  * Utility class that can be used to create a launcher for federated LF programs.
  * 
- * @author Edward A. Lee <eal@berkeley.edu>
- * @author Soroush Bateni <soroush@utdallas.edu>
+ * @author Edward A. Lee
+ * @author Soroush Bateni
  */
 public class FedLauncher {
 
@@ -122,28 +121,25 @@ public class FedLauncher {
      * Enable means to always start the service at startup, whereas
      * start means to just start it this once.
      * 
-     * On MacOS, open System Preferences from the Apple menu and 
+     * On macOS, open System Preferences from the Apple menu and
      * click on the "Sharing" preference panel. Select the checkbox
      * next to "Remote Login" to enable it.
      * 
      * In addition, every host must have OpenSSL installed, with at least
      * version 1.1.1a.  You can check the version with
-     * 
+     *
      *     openssl version
-     * 
-     * @param coreFiles The files from the core directory that must be
-     *  copied to the remote machines.
+     *
      * @param federates A list of federate instances in the federation
      * @param federationRTIProperties Contains relevant properties of the RTI.
-     *  Can have values for 'host', 'dir', and 'user' 
-     * 
+     *  Can have values for 'host', 'dir', and 'user'
      */
     public void createLauncher(
         List<FederateInstance> federates,
         LinkedHashMap<String, Object> federationRTIProperties
     ) throws IOException {
         // NOTE: It might be good to use screen when invoking the RTI
-        // or federates remotely so you can detach and the process keeps running.
+        // or federates remotely, so you can detach and the process keeps running.
         // However, I was unable to get it working properly.
         // What this means is that the shell that invokes the launcher
         // needs to remain live for the duration of the federation.
@@ -161,8 +157,7 @@ public class FedLauncher {
         Object host = federationRTIProperties.get("host");
         Object target = host;
 
-        Object path = federationRTIProperties.get("dir");
-        if (path == null) path = "LinguaFrancaRemote";
+        Path path = Path.of(federationRTIProperties.get("dir") == null ? "LinguaFrancaRemote" : federationRTIProperties.get("dir").toString());
 
         Object user = federationRTIProperties.get("user");
         if (user != null) {
@@ -205,13 +200,12 @@ public class FedLauncher {
         int federateIndex = 0;
         for (FederateInstance federate : federates) {
             if (federate.isRemote) {
-                OldFedFileConfig fedFileConfig = new OldFedFileConfig(fileConfig, federate.name);
-                Path fedRelSrcGenPath = fedFileConfig.getSrcGenBasePath().relativize(fedFileConfig.getSrcGenPath());
+                Path fedRelSrcGenPath = fileConfig.getOutPath().relativize(fileConfig.getSrcGenPath()).resolve(federate.name);
                 if(distCode.length() == 0) distCode.append(distHeader + "\n");
-                String logFileName = String.format("log/%s_%s.log", fedFileConfig.name, federate.name);
+                String logFileName = String.format("log/%s_%s.log", fileConfig.name, federate.name);
                 String compileCommand = compileCommandForFederate(federate);
                 // FIXME: Should $FEDERATION_ID be used to ensure unique directories, executables, on the remote host?
-                distCode.append(getDistCode(path, federate, fedRelSrcGenPath, logFileName, fedFileConfig, compileCommand) + "\n");
+                distCode.append(getDistCode(path, federate, fedRelSrcGenPath, logFileName, fileConfig.getSrcGenPath(), compileCommand) + "\n");
                 String executeCommand = executeCommandForRemoteFederate(federate);
                 shCode.append(getFedRemoteLaunchCode(federate, path, logFileName, executeCommand, federateIndex++) + "\n");
             } else {
@@ -332,6 +326,9 @@ public class FedLauncher {
         } else {
             commands.add("RTI -i ${FEDERATION_ID} \\");
         }
+        if (targetConfig.auth) {
+            commands.add("                        -a \\");
+        }
         commands.addAll(List.of(
             "                        -n "+federates.size()+" \\",
             "                        -c "+targetConfig.clockSync.toString()+" \\"
@@ -401,29 +398,47 @@ public class FedLauncher {
     }
 
     private String getDistCode(
-            Object path, 
+            Path remoteBase,
             FederateInstance federate, 
-            Path fedRelSrcGenPath, 
+            Path remoteRelSrcGenPath,
             String logFileName,
-            OldFedFileConfig fedFileConfig,
+            Path localAbsSrcGenPath,
             String compileCommand) {
-        return String.join("\n", 
-            "echo \"Making directory "+path+" and subdirectories src-gen, bin, and log on host "+getUserHost(federate.user, federate.host)+"\"",
-            "# The >> syntax appends stdout to a file. The 2>&1 appends stderr to the same file.",
-            "ssh "+getUserHost(federate.user, federate.host)+" '\\",
-            "    mkdir -p "+path+"/src-gen/"+fedRelSrcGenPath+"/core "+path+"/bin "+path+"/log; \\",
-            "    echo \"--------------\" >> "+path+"/"+logFileName+"; \\",
-            "    date >> "+path+"/"+logFileName+";",
-            "'",
-            "pushd "+fedFileConfig.getSrcGenPath()+" > /dev/null",
-            "echo \"Copying source files to host "+getUserHost(federate.user, federate.host)+"\"",
-            "scp -r * "+getUserHost(federate.user, federate.host)+":"+path+"/src-gen/"+fedRelSrcGenPath,
-            "popd > /dev/null",
-            "echo \"Compiling on host "+getUserHost(federate.user, federate.host)+" using: "+compileCommand+"\"",
-            "ssh "+getUserHost(federate.user, federate.host)+" 'cd "+path+"; \\",
-            "    echo \"In "+path+" compiling with: "+compileCommand+"\" >> "+logFileName+" 2>&1; \\",
-            "    # Capture the output in the log file and stdout. \\",
-            "    "+compileCommand+" 2>&1 | tee -a "+logFileName+";' "
+        return String.join("\n",
+                           "echo \"Making directory " + remoteBase
+                               + " and subdirectories src-gen, bin, and log on host "
+                               + getUserHost(federate.user, federate.host)
+                               + "\"",
+                           "# The >> syntax appends stdout to a file. The 2>&1 appends stderr to the same file.",
+                           "ssh " + getUserHost(federate.user, federate.host)
+                               + " '\\",
+                           "    mkdir -p " + remoteBase.resolve(remoteRelSrcGenPath).resolve("core")
+                               + " " + remoteBase.resolve("bin") + " "
+                               + remoteBase + "/log; \\",
+                           "    echo \"--------------\" >> " + remoteBase + "/"
+                               + logFileName + "; \\",
+                           "    date >> " + remoteBase + "/" + logFileName + ";",
+                           "'",
+                           "pushd " + localAbsSrcGenPath
+                               + " > /dev/null",
+                           "echo \"Copying source files to host "
+                               + getUserHost(federate.user, federate.host)
+                               + "\"",
+                           "scp -r * "
+                               + getUserHost(federate.user, federate.host) + ":"
+                               + remoteBase.resolve(remoteRelSrcGenPath),
+                           "popd > /dev/null",
+                           "echo \"Compiling on host "
+                               + getUserHost(federate.user, federate.host)
+                               + " using: " + compileCommand + "\"",
+                           "ssh " + getUserHost(federate.user, federate.host)
+                               + " 'cd " + remoteBase + "; \\",
+                           "    echo \"In " + remoteBase + " compiling with: "
+                               + compileCommand + "\" >> " + logFileName
+                               + " 2>&1; \\",
+                           "    # Capture the output in the log file and stdout. \\",
+                           "    " + compileCommand + " 2>&1 | tee -a "
+                               + logFileName + ";' "
         );
     }
 

@@ -24,13 +24,15 @@
 
 package org.lflang.generator.cpp
 
+import org.lflang.FileConfig
 import org.lflang.TargetConfig
 import org.lflang.generator.PrependOperator
+import org.lflang.joinWithLn
 import org.lflang.toUnixString
 import java.nio.file.Path
 
 /** Code generator for producing a cmake script for compiling all generated C++ sources */
-class CppStandaloneCmakeGenerator(private val targetConfig: TargetConfig, private val fileConfig: CppFileConfig) {
+class CppStandaloneCmakeGenerator(private val targetConfig: TargetConfig, private val fileConfig: FileConfig) {
 
     companion object {
         /** Return the name of the variable that gives the includes of the given target. */
@@ -42,17 +44,37 @@ class CppStandaloneCmakeGenerator(private val targetConfig: TargetConfig, privat
     private val S = '$' // a little trick to escape the dollar sign with $S
 
     fun generateRootCmake(projectName: String): String {
-        return """
-            |cmake_minimum_required(VERSION 3.5)
+        return with(CppGenerator) {
+            """
+            |cmake_minimum_required(VERSION $MINIMUM_CMAKE_VERSION)
             |project($projectName VERSION 0.0.0 LANGUAGES CXX)
             |
-            |# require C++ 17
-            |set(CMAKE_CXX_STANDARD 17 CACHE STRING "The C++ standard is cached for visibility in external tools." FORCE)
+            |# The Test build type is the Debug type plus coverage generation
+            |if(CMAKE_BUILD_TYPE STREQUAL "Test")
+            |  set(CMAKE_BUILD_TYPE "Debug")
+            |
+            |  if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+            |    find_program(LCOV_BIN lcov)
+            |    if(LCOV_BIN MATCHES "lcov$S")
+            |      set(CMAKE_CXX_FLAGS "$S{CMAKE_CXX_FLAGS} --coverage -fprofile-arcs -ftest-coverage")
+            |    else()
+            |      message("Not producing code coverage information since lcov was not found")
+            |    endif()
+            |  else()
+            |    message("Not producing code coverage information since the selected compiler is no gcc")
+            |  endif()
+            |endif()
+            |
+            |# require C++ $CPP_VERSION
+            |set(CMAKE_CXX_STANDARD $CPP_VERSION CACHE STRING "The C++ standard is cached for visibility in external tools." FORCE)
             |set(CMAKE_CXX_STANDARD_REQUIRED ON)
             |set(CMAKE_CXX_EXTENSIONS OFF)
             |
             |# don't automatically build and install all targets
             |set(CMAKE_SKIP_INSTALL_ALL_DEPENDENCY true)
+            |
+            |# do not print install messages
+            |set(CMAKE_INSTALL_MESSAGE NEVER)
             |
             |include($S{CMAKE_ROOT}/Modules/ExternalProject.cmake)
             |include(GNUInstallDirs)
@@ -93,6 +115,7 @@ class CppStandaloneCmakeGenerator(private val targetConfig: TargetConfig, privat
             |  endif()
             |endforeach()
         """.trimMargin()
+        }
     }
 
     fun generateSubdirCmake(): String {
@@ -114,8 +137,8 @@ class CppStandaloneCmakeGenerator(private val targetConfig: TargetConfig, privat
 
         val reactorCppTarget = when {
             targetConfig.externalRuntimePath != null -> "reactor-cpp"
-            targetConfig.runtimeVersion != null -> "reactor-cpp-${targetConfig.runtimeVersion}"
-            else -> "reactor-cpp-default"
+            targetConfig.runtimeVersion != null      -> "reactor-cpp-${targetConfig.runtimeVersion}"
+            else                                     -> "reactor-cpp-default"
         }
 
         return with(PrependOperator) {
@@ -128,7 +151,7 @@ class CppStandaloneCmakeGenerator(private val targetConfig: TargetConfig, privat
                 |set(LF_MAIN_TARGET ${fileConfig.name})
                 |
                 |add_executable($S{LF_MAIN_TARGET}
-            ${" |    "..sources.joinToString("\n") { it.toUnixString() }}
+            ${" |    "..sources.joinWithLn { it.toUnixString() }}
                 |)
                 |target_include_directories($S{LF_MAIN_TARGET} PUBLIC
                 |    "$S{LF_SRC_PKG_PATH}/src"
@@ -156,7 +179,7 @@ class CppStandaloneCmakeGenerator(private val targetConfig: TargetConfig, privat
                 |set(${includesVarName(fileConfig.name)} $S{TARGET_INCLUDE_DIRECTORIES} CACHE STRING "Directories included in the main target." FORCE)
                 |set($compilerIdName $S{CMAKE_CXX_COMPILER_ID} CACHE STRING "The name of the C++ compiler." FORCE)
                 |
-            ${" |"..(includeFiles?.joinToString("\n") { "include(\"$it\")" } ?: "")}
+            ${" |"..(includeFiles?.joinWithLn { "include(\"$it\")" } ?: "")}
             """.trimMargin()
         }
     }

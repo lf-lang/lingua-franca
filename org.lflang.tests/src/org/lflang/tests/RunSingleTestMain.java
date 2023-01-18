@@ -31,7 +31,6 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.lflang.Target;
-import org.lflang.tests.TestBase.TestLevel;
 import org.lflang.tests.runtime.CCppTest;
 import org.lflang.tests.runtime.CTest;
 import org.lflang.tests.runtime.CppTest;
@@ -70,9 +69,8 @@ public class RunSingleTestMain {
 
         LFTest testCase = new LFTest(target, path.toAbsolutePath());
 
-        TestBase.runSingleTestAndPrintResults(testCase, testClass, TestLevel.EXECUTION);
+        TestBase.runSingleTestAndPrintResults(testCase, testClass, TestBase.pathToLevel(path));
     }
-
 
     private static Class<? extends TestBase> getTestInstance(Target target) {
         switch (target) {

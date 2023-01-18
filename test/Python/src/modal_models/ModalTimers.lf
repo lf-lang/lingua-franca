@@ -16,7 +16,7 @@ reactor Modal {
     initial mode One {
         timer T1(0, 750 msec)
         reaction(T1) -> timer1 {=
-            print(f"T1: at tag ({lf.time.logical_elapsed()}, {get_microstep()})")
+            print(f"T1: at tag ({lf.time.logical_elapsed()}, {lf.tag().microstep})")
             timer1.set(1)
         =}
 
@@ -30,7 +30,7 @@ reactor Modal {
     mode Two {
         timer T2(0, 750 msec)
         reaction(T2) -> timer2 {=
-            print(f"T2: at tag ({lf.time.logical_elapsed()}, {get_microstep()})")
+            print(f"T2: at tag ({lf.time.logical_elapsed()}, {lf.tag().microstep})")
             timer2.set(1)
         =}
 

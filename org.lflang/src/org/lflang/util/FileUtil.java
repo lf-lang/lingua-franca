@@ -104,6 +104,59 @@ public class FileUtil {
     public static String toUnixString(Path path) {
         return path.toString().replace('\\', '/');
     }
+    
+    /**
+     * Parse the string as file location and return it as URI.
+     * Supports URIs, plain file paths, and paths relative to a model.
+     * 
+     * @param path the file location as string.
+     * @param resource the model resource this file should be resolved relatively. May be null.
+     * @return the (Java) URI or null if no file can be located.
+     */
+    public static java.net.URI locateFile(String path, Resource resource) {
+        // Check if path is URL
+        try {
+            var uri = new java.net.URI(path);
+            if(uri.getScheme() != null) { // check if path was meant to be a URI
+                return uri;
+            }
+        } catch (Exception e) {
+            // nothing
+        }
+        // Check if path exists as it is
+        File file = new File(path);
+        if (file.exists()) {
+            try {
+                return file.toURI();
+            } catch (Exception e) {
+                // nothing
+            }
+        }
+        // Check if path is relative to LF file
+        if (resource != null) {
+            URI eURI = resource.getURI();
+            if (eURI != null) {
+                java.net.URI sourceURI = null;
+                try {
+                    if (eURI.isFile()) {
+                        sourceURI = new java.net.URI(eURI.toString());
+                        sourceURI = new java.net.URI(sourceURI.getScheme(), null,
+                                sourceURI.getPath().substring(0, sourceURI.getPath().lastIndexOf("/")), null);
+                    } else if (eURI.isPlatformResource()) {
+                        IResource iFile = ResourcesPlugin.getWorkspace().getRoot().findMember(eURI.toPlatformString(true));
+                        sourceURI = iFile != null ? iFile.getRawLocation().toFile().getParentFile().toURI() : null; 
+                    }
+                    if (sourceURI != null) {
+                        return sourceURI.resolve(path.toString());
+                    }
+                } catch (Exception e) {
+                    // nothing
+                }
+            }
+        }
+        // fail
+        return null;
+    }
 
     /**
      * Recursively copies the contents of the given 'src'
@@ -196,12 +249,17 @@ public class FileUtil {
      */
     private static void copyInputStream(InputStream source, Path destination, boolean skipIfUnchanged) throws IOException {
         Files.createDirectories(destination.getParent());
+
+        // Read the stream once and keep a copy of all bytes. This is required as a stream cannot be read twice.
+        final var bytes = source.readAllBytes();
+        // abort if the destination file does not change
         if(skipIfUnchanged && Files.isRegularFile(destination)) {
-            if (Arrays.equals(source.readAllBytes(), Files.readAllBytes(destination))) {
+            if (Arrays.equals(bytes, Files.readAllBytes(destination))) {
                 return;
             }
         }
-        Files.copy(source, destination, StandardCopyOption.REPLACE_EXISTING);
+
+        Files.write(destination, bytes);
     }
 
     /**
@@ -287,7 +345,7 @@ public class FileUtil {
     }
 
     /**
-     * Copy a directory from ta jar to a destination path in the filesystem.
+     * Copy a directory from a jar to a destination path in the filesystem.
      *
      * This method should only be used in standalone mode (lfc).
      *
@@ -322,19 +380,6 @@ public class FileUtil {
                     }
                 }
             }
-        }
-    }
-
-    /**
-     * Copy a list of files from a given source directory to a given destination directory.
-     * @param srcDir The directory to copy files from.
-     * @param dstDir The directory to copy files to.
-     * @param files The list of files to copy.
-     * @throws IOException If any of the given files cannot be copied.
-     */
-    public static void copyFilesFromClassPath(String srcDir, Path dstDir, List<String> files) throws IOException {
-        for (String file : files) {
-            copyFileFromClassPath(srcDir + '/' + file, dstDir.resolve(file));
         }
     }
 
@@ -438,6 +483,10 @@ public class FileUtil {
      */
     public static void writeToFile(CharSequence text, Path path) throws IOException {
         writeToFile(text.toString(), path, false);
+    }
+
+    public static void createDirectoryIfDoesNotExist(File dir) {
+        if (!dir.exists()) dir.mkdirs();
     }
 
     /**

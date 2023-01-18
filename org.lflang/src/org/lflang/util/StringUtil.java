@@ -73,11 +73,21 @@ public final class StringUtil {
         if (str.length() < 2) {
             return str;
         }
-        if (str.startsWith("\"") && str.endsWith("\"")
-            || str.startsWith("'") && str.endsWith("'")) {
+        if (hasQuotes(str)) {
             return str.substring(1, str.length() - 1);
         }
         return str;
+    }
+
+    /**
+     * Return true if the given string is surrounded by single or double
+     * quotes,
+     */
+    public static boolean hasQuotes(String str) {
+        if (str == null) {
+            return false;
+        }
+        return str.startsWith("\"") && str.endsWith("\"") || str.startsWith("'") && str.endsWith("'");
     }
 
     /**
@@ -153,5 +163,10 @@ public final class StringUtil {
 
     public static <T> String joinObjects(List<T> things, String delimiter) {
         return things.stream().map(T::toString).collect(Collectors.joining(delimiter));
+    }
+
+    /** Normalize end-of-line sequences to the Linux style. */
+    public static String normalizeEol(String s) {
+        return s.replaceAll("(\\r\\n?)|\\n", "\n");
     }
 }

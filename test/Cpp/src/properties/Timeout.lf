@@ -10,12 +10,17 @@ main reactor {
     reaction(t) {=
         triggered = true;
         if (get_elapsed_logical_time() != 1s) {
-            std::cout << "ERROR: triggered reaction at " << get_elapsed_logical_time() << '\n';
+            std::cout << "ERROR: triggered reaction at an unexpected tag";
             exit(1);
         }
     =}
 
     reaction(shutdown) {=
+        if (get_elapsed_logical_time() != 1s || get_microstep() != 0) {
+            std::cout << "ERROR: shutdown invoked at an unexpected tag";
+            exit(2);
+        }
+
         if (triggered) {
             std::cout << "SUCCESS!\n";
         } else {

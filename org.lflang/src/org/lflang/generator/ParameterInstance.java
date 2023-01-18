@@ -42,8 +42,8 @@ import org.lflang.lf.Parameter;
  * assignment in the instantiation that this parameter instance is a result of.
  * If it is overridden, the parameter gets initialized using the value looked up
  * in the instantiation hierarchy.
- * @author{Marten Lohstroh <marten@berkeley.edu>}
- * @author{Edward A. Lee <eal@berkeley.edu>}
+ * @author Marten Lohstroh
+ * @author Edward A. Lee
  */
 public class ParameterInstance extends NamedInstance<Parameter> {
         

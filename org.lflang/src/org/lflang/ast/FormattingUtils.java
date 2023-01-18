@@ -18,8 +18,8 @@ import org.lflang.lf.TargetDecl;
 
 /**
  * Utility functions that determine the specific behavior of the LF formatter.
- * @author {Peter Donovan <peterdonovan@berkeley.edu>}
- * @author {Billy Bao <billybao@berkeley.edu>}
+ * @author Peter Donovan
+ * @author Billy Bao
  */
 public class FormattingUtils {
     /**
@@ -66,7 +66,7 @@ public class FormattingUtils {
      */
     public static String render(EObject object, int lineLength, Target target, boolean codeMapTags) {
         MalleableString ms = ToLf.instance.doSwitch(object);
-        String singleLineCommentPrefix = target == Target.Python ? "#" : "//";
+        String singleLineCommentPrefix = target.getSingleLineCommentPrefix();
         ms.findBestRepresentation(
             () -> ms.render(INDENTATION, singleLineCommentPrefix, codeMapTags, null),
             r -> r.levelsOfCommentDisplacement() * BADNESS_PER_LEVEL_OF_COMMENT_DISPLACEMENT
@@ -85,8 +85,7 @@ public class FormattingUtils {
     }
 
     /**
-     * Infer the target language of the object. It is fine for this to be wrong
-     * as long as it is right about whether the target is Python.
+     * Infer the target language of the object.
      */
     private static Target inferTarget(EObject object) {
         if (object instanceof Model model) {
@@ -95,7 +94,7 @@ public class FormattingUtils {
                 return Target.fromDecl(targetDecl);
             }
         }
-        return Target.C;
+        throw new IllegalArgumentException("Unable to determine target based on given EObject.");
     }
 
     /**
@@ -244,7 +243,7 @@ public class FormattingUtils {
         if (comment.stream().allMatch(String::isBlank)) return true;
         String wrapped = FormattingUtils.lineWrapComments(comment, width, singleLineCommentPrefix);
         if (keepCommentsOnSameLine && wrapped.lines().count() == 1 && !wrapped.startsWith("/**")) {
-            int cumsum = 0;
+            int sum = 0;
             for (int j = 0; j < components.size(); j++) {
                 String current = components.get(j);
                 if (j >= i && current.contains("\n")) {
@@ -252,14 +251,14 @@ public class FormattingUtils {
                         "\n",
                         " ".repeat(Math.max(
                             2,
-                            startColumn - cumsum - components.get(j).indexOf("\n")
+                            startColumn - sum - components.get(j).indexOf("\n")
                         )) + wrapped + "\n"
                     ));
                     return true;
                 } else if (current.contains("\n")) {
-                    cumsum = current.length() - current.lastIndexOf("\n") - 1;
+                    sum = current.length() - current.lastIndexOf("\n") - 1;
                 } else {
-                    cumsum += current.length();
+                    sum += current.length();
                 }
             }
         }
@@ -270,10 +269,5 @@ public class FormattingUtils {
             }
         }
         return false;
-    }
-
-    /** Normalize end-of-line sequences to the Linux style. */
-    static String normalizeEol(String s) {
-        return s.replaceAll("(\\r\\n?)|\\n", "\n");
     }
 }

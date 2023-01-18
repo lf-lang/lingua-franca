@@ -26,7 +26,6 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 package org.lflang.federated.generator;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -37,7 +36,6 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.eclipse.emf.ecore.EObject;
-import org.eclipse.xtext.xbase.lib.IterableExtensions;
 
 import org.lflang.ASTUtils;
 import org.lflang.ErrorReporter;
@@ -75,12 +73,13 @@ import com.google.common.base.Objects;
 
 /** 
  * Instance of a federate, or marker that no federation has been defined
- * (if isSingleton() returns true). Every top-level reactor (contained
+ * (if isSingleton() returns true) FIXME: this comment makes no sense.
+ * Every top-level reactor (contained
  * directly by the main reactor) is a federate, so there will be one
  * instance of this class for each top-level reactor.
  * 
- * @author Edward A. Lee <eal@berkeley.edu>
- * @author Soroush Bateni <soroush@berkeley.edu>
+ * @author Edward A. Lee
+ * @author Soroush Bateni
  */
 public class FederateInstance {
 
@@ -106,7 +105,7 @@ public class FederateInstance {
         this.target =  GeneratorUtils.findTarget(
             ASTUtils.toDefinition(instantiation.getReactorClass()).eResource()
         );
-
+        this.targetConfig = new TargetConfig(target); // FIXME: this is actually set in FedTargetEmitter. Why?
         if (instantiation != null) {
             this.name = instantiation.getName();
             // If the instantiation is in a bank, then we have to append
@@ -189,7 +188,7 @@ public class FederateInstance {
 
     /**
      * The name of this federate instance. This will be the instantiation
-     * name, poassibly appended with "__n", where n is the bank position of
+     * name, possibly appended with "__n", where n is the bank position of
      * this instance if the instantiation is of a bank of reactors.
      */
     public String name = "Unnamed";
@@ -257,7 +256,7 @@ public class FederateInstance {
     /**
      * Parsed target config of the federate.
      */
-    public TargetConfig targetConfig = new TargetConfig();
+    public TargetConfig targetConfig;
 
     /**
      * Keep a unique list of enabled serializers
@@ -336,6 +335,7 @@ public class FederateInstance {
         // Check if param is referenced in this federate's instantiation
         returnValue = instantiation.getParameters().stream().anyMatch(
             assignment -> assignment.getRhs()
+                                    .getExprs()
                                     .stream()
                                     .filter(
                                         it -> it instanceof ParameterReference
@@ -513,7 +513,7 @@ public class FederateInstance {
         // Construct the set of excluded reactions for this federate.
         // If a reaction is a network reaction that belongs to this federate, we
         // don't need to perform this analysis.
-        Iterable<Reaction> reactions = IterableExtensions.filter(ASTUtils.allReactions(federatedReactor), it -> !networkReactions.contains(it));
+        Iterable<Reaction> reactions = ASTUtils.allReactions(federatedReactor).stream().filter(it -> !networkReactions.contains(it)).collect(Collectors.toList());
         for (Reaction react : reactions) {
             // Create a collection of all the VarRefs (i.e., triggers, sources, and effects) in the react
             // signature that are ports that reference federates.
@@ -602,7 +602,8 @@ public class FederateInstance {
     
     @Override
     public String toString() {
-        return "Federate " + id + ": " + instantiation.getName();
+        return "Federate " + id + ": "
+            + ((instantiation != null) ? instantiation.getName() : "no name");
     }
 
     /////////////////////////////////////////////

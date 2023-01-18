@@ -5,7 +5,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 
 import org.lflang.ErrorReporter;
@@ -46,21 +45,21 @@ public class FedEmitter {
         int numOfFederates
     ) throws IOException {
         String fedName = federate.name;
-        Files.createDirectories(fileConfig.getFedSrcPath());
+        Files.createDirectories(fileConfig.getSrcPath());
         System.out.println("##### Generating code for federate " + fedName
                                + " in directory "
-                               + fileConfig.getFedSrcPath());
+                               + fileConfig.getSrcPath());
 
-        Path lfFilePath = fileConfig.getFedSrcPath().resolve(
+        Path lfFilePath = fileConfig.getSrcPath().resolve(
             fedName + ".lf");
 
         String federateCode = String.join(
             "\n",
-            (new FedTargetEmitter()).generateTarget(context, numOfFederates, federate, fileConfig, errorReporter, federationRTIProperties),
-            (new FedImportEmitter()).generateImports(federate, fileConfig),
-            (new FedPreambleEmitter()).generatePreamble(federate, fileConfig, federationRTIProperties, errorReporter),
-            (new FedReactorEmitter()).generateReactorDefinitions(federate),
-            (new FedMainEmitter()).generateMainReactor(
+            new FedTargetEmitter().generateTarget(context, numOfFederates, federate, fileConfig, errorReporter, federationRTIProperties),
+            new FedImportEmitter().generateImports(federate, fileConfig),
+            new FedPreambleEmitter().generatePreamble(federate, fileConfig, federationRTIProperties, errorReporter),
+            new FedReactorEmitter().generateReactorDefinitions(federate),
+            new FedMainEmitter().generateMainReactor(
                 federate,
                 originalMainReactor,
                 errorReporter

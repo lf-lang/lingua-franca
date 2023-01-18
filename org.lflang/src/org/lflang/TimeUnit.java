@@ -34,7 +34,7 @@ import java.util.stream.Collectors;
 /**
  * A unit of time for a {@link TimeValue}.
  *
- * @author Marten Lohstroh <marten@berkeley.edu>
+ * @author Marten Lohstroh
  * @author Clément Fournier, TU Dresden, INSA Rennes
  */
 public enum TimeUnit {

@@ -38,7 +38,7 @@ import org.lflang.lf.TargetDecl;
  * as input an enum but do not have cases for all members of the enum are also
  * reported by Xtend with a warning message.
  * 
- * @author Marten Lohstroh <marten@berkeley.edu>
+ * @author Marten Lohstroh
  */
 public enum Target {
     C("C", true, Arrays.asList(
@@ -402,10 +402,10 @@ public enum Target {
 
 
     /**
-     * Private constructor for targets without pakcageName and classNamePrefix.
+     * Private constructor for targets without packageName and classNamePrefix.
      */
     Target(String displayName, boolean requiresTypes, Collection<String> keywords) {
-        this(displayName, requiresTypes, "N/A", "N/A", keywords);
+        this(displayName, requiresTypes, "N/A", "N/A", keywords); // FIXME: prefix
     }
 
 
@@ -496,6 +496,13 @@ public enum Target {
             return true;
         }
         return false;
+    }
+
+    /**
+     * Return a string that demarcates the beginning of a single-line comment.
+     */
+    public String getSingleLineCommentPrefix() {
+        return this.equals(Target.Python) ? "#" : "//";
     }
 
     /**

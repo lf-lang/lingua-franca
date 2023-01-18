@@ -117,7 +117,7 @@ public class TSExtension implements FedTargetExtension {
                               .collect(Collectors.joining(",")),
             federate.id,
             minOutputDelay == null ? "undefined"
-                                   : "%s".formatted(TSExtensionsKt.timeInTargetLanguage(minOutputDelay)),
+                                   : "%s".formatted(TSExtensionsKt.toTsTime(minOutputDelay)),
             federate.networkMessageActions
                 .stream()
                 .map(Variable::getName)

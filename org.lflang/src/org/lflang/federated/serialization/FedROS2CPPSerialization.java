@@ -33,7 +33,7 @@ import org.lflang.generator.GeneratorBase;
 /**
  * Enables support for ROS 2 serialization in C/C++ code.
  * 
- * @author Soroush Bateni <soroush@utdallas.edu>
+ * @author Soroush Bateni
  *
  */
 public class FedROS2CPPSerialization implements FedSerialization {

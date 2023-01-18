@@ -10,9 +10,8 @@ import org.lflang.ASTUtils;
 import org.lflang.AttributeUtils;
 import org.lflang.ErrorReporter;
 import org.lflang.Target;
-import org.lflang.ast.FormattingUtils;
-import org.lflang.ast.MalleableString;
-import org.lflang.ast.ToLf;
+
+import org.lflang.generator.c.CReactionGenerator;
 import org.lflang.lf.ReactorDecl;
 import org.lflang.lf.Reaction;
 import org.lflang.lf.Reactor;
@@ -26,11 +25,9 @@ import org.lflang.lf.Port;
 import org.lflang.lf.Input;
 import org.lflang.lf.Output;
 import org.lflang.generator.c.CCoreFilesUtils;
-import org.lflang.generator.c.CReactionGenerator;
 import org.lflang.generator.c.CTypes;
 import org.lflang.generator.c.CUtil;
 import org.lflang.generator.CodeBuilder;
-import org.lflang.generator.GeneratorBase;
 import org.lflang.generator.ReactionInstance;
 import org.lflang.generator.ReactorInstance;
 import org.lflang.lf.Mode;
@@ -172,7 +169,7 @@ public class PythonReactionGenerator {
                 cInit, reaction.getDeadline().getCode(),
                 generateCPythonDeadlineCaller(decl, reactionIndex, pyObjects)
             ));
-        }        
+        }
         code.pr(
             "#include " + StringUtil.addDoubleQuotes(
                 CCoreFilesUtils.getCTargetSetUndefHeader()));
@@ -371,47 +368,8 @@ public class PythonReactionGenerator {
     }
 
     /**
-     * Generate code for the body of a reaction that takes an input and
-     * schedules an action with the value of that input.
-     * @param action The action to schedule
-     * @param port The port to read from
-     */
-    public static String generateCDelayBody(Action action, VarRef port, boolean isTokenType) {
-        String ref = ASTUtils.generateVarRef(port);
-        // Note that the action.type set by the base class is actually
-        // the port type.
-        if (isTokenType) {
-            return String.join("\n",
-                "if ("+ref+"->is_present) {",
-                "    // Put the whole token on the event queue, not just the payload.",
-                "    // This way, the length and element_size are transported.",
-                "    lf_schedule_token("+action.getName()+", 0, "+ref+"->token);",
-                "}"
-            );
-        } else {
-            return String.join("\n",
-                "// Create a token.",
-                "#if NUMBER_OF_WORKERS > 0",
-                "// Need to lock the mutex first.",
-                "lf_mutex_lock(&mutex);",
-                "#endif",
-                "lf_token_t* t = create_token(sizeof(PyObject*));",
-                "#if NUMBER_OF_WORKERS > 0",
-                "lf_mutex_unlock(&mutex);",
-                "#endif",
-                "t->value = self->_lf_"+ref+"->value;",
-                "t->length = 1; // Length is 1",
-                "",
-                "// Pass the token along",
-                "lf_schedule_token("+action.getName()+", 0, t);"
-            );
-        }
-    }
-
-    /**
      * Generate Python code to link cpython functions to python functions for each reaction.
      * @param instance The reactor instance.
-     * @param reactions The reactions of this instance.
      * @param mainDef The definition of the main reactor
      */
     public static String generateCPythonReactionLinkers(
@@ -576,7 +534,7 @@ public class PythonReactionGenerator {
     public static String generateCPythonDeadlineFunctionName(int reactionIndex) {
         return "_lf_py_deadline_function_"+reactionIndex;
     }
-    
+
     /** Return the function name of the STP violation handler function inside the self struct in the .c file.
      *  @param reactionIndex The reaction index.
      *  @return The function name for the reaction.
