@@ -299,7 +299,7 @@ public class FedGenerator {
                 ErrorReporter subContextErrorReporter = new LineAdjustingErrorReporter(threadSafeErrorReporter, lf2lfCodeMapMap);
 
                 var props = new Properties();
-                if (targetConfig.dockerOptions != null && !targetConfig.target.preBuildDocker()) {
+                if (targetConfig.dockerOptions != null && targetConfig.target.buildsUsingDocker()) {
                     props.put("no-compile", "true");
                 }
                 props.put("docker", "false");

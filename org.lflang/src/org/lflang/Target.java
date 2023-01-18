@@ -492,14 +492,13 @@ public enum Target {
     }
 
     /**
-     * Return true if this target should be built locally, false
-     * if building is done using `docker compose build`.
+     * Return true if this code for this target should be built using Docker if Docker is used.
      * @return
      */
-    public boolean preBuildDocker() {
+    public boolean buildsUsingDocker() {
         return switch (this) {
-            case TS -> true;
-            case C, CCPP, CPP, Python, Rust -> false;
+            case TS -> false;
+            case C, CCPP, CPP, Python, Rust -> true;
         };
     }
 
