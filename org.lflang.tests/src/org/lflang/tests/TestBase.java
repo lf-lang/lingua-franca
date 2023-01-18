@@ -9,6 +9,7 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.io.File;
 import java.io.FileWriter;
@@ -552,25 +553,20 @@ public abstract class TestBase {
         return sw.toString();
     }
 
-    /**
-     * Return the content of the bash script used for testing docker option in federated execution.
-     * @param dockerFiles A list of paths to docker files.
-     * @param dockerComposeFilePath The path to the docker compose file.
-     */
-    private String getDockerRunScript(List<Path> dockerFiles, Path dockerComposeFilePath) {
-        return """
+    /** Bash script that is used to execute docker tests. */
+    static private String DOCKER_RUN_SCRIPT = """
             #!/bin/bash
-            
+
             # exit when any command fails
             set -e
-            
+
             docker compose -f "$1" rm -f
             docker compose -f "$1" up --build | tee docker_log.txt
             docker compose -f "$1" down --rmi local
-            
+
             errors=`grep -E "exited with code [1-9]" docker_log.txt | cat`
             rm docker_log.txt
-            
+
             if [[ $errors ]]; then
                 echo "===================================================================="
                 echo "ERROR: One or multiple containers exited with a non-zero exit code."
@@ -578,9 +574,39 @@ public abstract class TestBase {
                 echo $errors
                 exit 1
             fi
-             
+
             exit 0
             """;
+
+    /**
+     * Path to a bash script containing DOCKER_RUN_SCRIPT.
+     */
+    private static Path dockeRunScript = null;
+
+    /**
+     * Return the path to a bash script containing DOCKER_RUN_SCRIPT.
+     *
+     * If the script does not yet exist, it is created.
+     */
+    private Path getDockerRunScript() throws TestError {
+        if (dockeRunScript != null) {
+            return dockeRunScript;
+        }
+
+        try {
+            var file = File.createTempFile("run_docker_test", "sh");
+            file.deleteOnExit();
+            file.setExecutable(true);
+            var path = file.toPath();
+            try (BufferedWriter writer = Files.newBufferedWriter(path)) {
+                writer.write(DOCKER_RUN_SCRIPT);
+            }
+            dockeRunScript = path;
+        } catch (IOException e) {
+            throw new TestError("IO Error during test preparation.", Result.TEST_EXCEPTION, e);
+        }
+
+        return dockeRunScript;
     }
 
     /**
@@ -620,23 +646,8 @@ public abstract class TestBase {
     private List<ProcessBuilder> getFederatedDockerExecCommand(LFTest test) throws TestError {
         checkDockerExists();
         var srcGenPath = test.getFileConfig().getSrcGenPath();
-        List<Path> dockerFiles = FileUtil.globFilesEndsWith(srcGenPath, ".Dockerfile");
-        try {
-            File testScript = File.createTempFile("dockertest", null);
-            testScript.deleteOnExit();
-            if (!testScript.setExecutable(true)) {
-                throw new IOException("Failed to make test script executable");
-            }
-            FileWriter fileWriter = new FileWriter(testScript.getAbsoluteFile(), true);
-            BufferedWriter bufferedWriter = new BufferedWriter(fileWriter);
-            var dockerComposeFile = FileUtil.globFilesEndsWith(srcGenPath, "docker-compose.yml").get(0);
-            bufferedWriter.write(getDockerRunScript(dockerFiles, dockerComposeFile));
-            bufferedWriter.close();
-            return List.of(new ProcessBuilder(testScript.getAbsolutePath()));
-            return List.of(new ProcessBuilder(testScript.getAbsolutePath(), dockerComposeFile.toString()));
-        } catch (IOException e) {
-            return List.of(new ProcessBuilder("exit", "1"));
-        }
+        var dockerComposeFile = FileUtil.globFilesEndsWith(srcGenPath, "docker-compose.yml").get(0);
+        return List.of(new ProcessBuilder(getDockerRunScript().toString(), dockerComposeFile.toString()));
     }
 
     /**
@@ -644,7 +655,6 @@ public abstract class TestBase {
      * that should be used to execute the test program.
      * @param test The test to get the execution command for.
      */
-
     private List<ProcessBuilder> getExecCommand(LFTest test) throws TestError {
 
         var srcBasePath = test.getFileConfig().srcPkgPath.resolve("src");
