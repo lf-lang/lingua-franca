@@ -562,19 +562,15 @@ public abstract class TestBase {
      * @param dockerComposeFilePath The path to the docker compose file.
      */
     private String getDockerRunScript(List<Path> dockerFiles, Path dockerComposeFilePath) {
-        var dockerComposeCommand = "docker compose";
         StringBuilder shCode = new StringBuilder();
         shCode.append("#!/bin/bash\n");
         shCode.append("pids=\"\"\n");
-        shCode.append(String.format("%s run -f %s --rm -T rti &\n",
-            dockerComposeCommand, dockerComposeFilePath));
+        shCode.append("cd " + dockerComposeFilePath.getParent());
+        shCode.append(String.format("docker compose run --rm rti &\n", dockerComposeFilePath));
         shCode.append("pids+=\"$!\"\nsleep 3\n");
         for (Path dockerFile : dockerFiles) {
-            var composeServiceName = dockerFile.getFileName().toString().replace(".Dockerfile", "");
-            shCode.append(String.format("%s run -f %s --rm -T %s &\n",
-                dockerComposeCommand,
-                dockerComposeFilePath,
-                composeServiceName));
+            var composeServiceName = dockerFile.getParent().getFileName();
+            shCode.append(String.format("docker compose run --rm %s &\n", composeServiceName));
             shCode.append("pids+=\" $!\"\n");
         }
         shCode.append("for p in $pids; do\n");
