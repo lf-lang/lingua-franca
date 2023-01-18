@@ -558,29 +558,29 @@ public abstract class TestBase {
      * @param dockerComposeFilePath The path to the docker compose file.
      */
     private String getDockerRunScript(List<Path> dockerFiles, Path dockerComposeFilePath) {
-        var dockerComposeCommand = "docker compose";
-        StringBuilder shCode = new StringBuilder();
-        shCode.append("#!/bin/bash\n");
-        shCode.append("pids=\"\"\n");
-        shCode.append(String.format("%s run -f %s --rm -T rti &\n",
-            dockerComposeCommand, dockerComposeFilePath));
-        shCode.append("pids+=\"$!\"\nsleep 3\n");
-        for (Path dockerFile : dockerFiles) {
-            var composeServiceName = dockerFile.getFileName().toString().replace(".Dockerfile", "");
-            shCode.append(String.format("%s run -f %s --rm -T %s &\n",
-                dockerComposeCommand,
-                dockerComposeFilePath,
-                composeServiceName));
-            shCode.append("pids+=\" $!\"\n");
-        }
-        shCode.append("for p in $pids; do\n");
-        shCode.append("    if wait $p; then\n");
-        shCode.append("        :\n");
-        shCode.append("    else\n");
-        shCode.append("        exit 1\n");
-        shCode.append("    fi\n");
-        shCode.append("done\n");
-        return shCode.toString();
+        return """
+            #!/bin/bash
+            
+            # exit when any command fails
+            set -e
+            
+            docker compose -f "$1" rm -f
+            docker compose -f "$1" up --build | tee docker_log.txt
+            docker compose -f "$1" down --rmi local
+            
+            errors=`grep -E "exited with code [1-9]" docker_log.txt | cat`
+            rm docker_log.txt
+            
+            if [[ $errors ]]; then
+                echo "===================================================================="
+                echo "ERROR: One or multiple containers exited with a non-zero exit code."
+                echo "       See the log above for details. The following containers failed:"
+                echo $errors
+                exit 1
+            fi
+             
+            exit 0
+            """;
     }
 
     /**
@@ -633,6 +633,7 @@ public abstract class TestBase {
             bufferedWriter.write(getDockerRunScript(dockerFiles, dockerComposeFile));
             bufferedWriter.close();
             return List.of(new ProcessBuilder(testScript.getAbsolutePath()));
+            return List.of(new ProcessBuilder(testScript.getAbsolutePath(), dockerComposeFile.toString()));
         } catch (IOException e) {
             return List.of(new ProcessBuilder("exit", "1"));
         }
