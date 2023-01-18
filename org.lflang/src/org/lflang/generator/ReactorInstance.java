@@ -721,6 +721,24 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
     }
 
     /**
+     * Create all the watchdog instances of this reactor instance.
+     */
+    // FIXME: modif4watchdogs
+    protected void createWatchdogInstances() {
+        List<Watchdog> watchdogs = ASTUtils.allWatchdogs(reactorDefinition);
+        if (watchdogs != null) {
+            for (Watchdog watchdog : watchdogs) {
+                // Create the watchdog instance.
+                var watchdogInstance = new WatchdogInstance(watchdog, this);
+
+                // Add the watchdog instance to the list of watchdogs for this
+                // reactor.
+                this.watchdogs.add(watchdogInstance);
+            }
+        }
+    }
+
+    /**
      * Returns the built-in trigger or create a new one if none exists.
      */
     protected TriggerInstance<? extends Variable> getOrCreateBuiltinTrigger(BuiltinTriggerRef trigger) {
@@ -834,6 +852,10 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
             // Note that this can only happen _after_ the children, 
             // port, action, and timer instances have been created.
             createReactionInstances();
+
+            // Create the reaction instances in this reactor instance.
+            // FIXME: modif4watchdogs
+            createWatchdogInstances();
             
             // Instantiate modes for this reactor instance
             // This must come after the child elements (reactions, etc) of this reactor

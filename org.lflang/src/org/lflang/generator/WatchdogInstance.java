@@ -18,20 +18,21 @@ public class WatchdogInstance {
 	 * Create a new watchdog instance associated with the given reaction
 	 * instance.
 	 */
-	public WatchdogInstance(Watchdog definition, ReactionInstance reaction) {
+	public WatchdogInstance(Watchdog definition, ReactorInstance reactor) {
         if (definition.getTimeout() != null) {
-            this.timeout = reaction.parent.getTimeValue(definition.getTimeout());
+            // WATCHDOG QUESTION
+            // How does this .getTimeValue work? Where is expression coming from 
+            // versus other time parameters?
+            this.timeout = reactor.getTimeValue(definition.getTimeout());
         } else {
             this.timeout = TimeValue.ZERO;
         }
 
-        if (definition.getCode() != null) {
-            this.watchdogHandler = definition.getCode();
-        } else {
-            this.watchdogHandler = new CodeBuilder();
-        }
-
         this.name = definition.getName();
+    }
+
+    public String getName() {
+        return this.name;
     }
 
     //////////////////////////////////////////////////////
@@ -46,10 +47,10 @@ public class WatchdogInstance {
      */
     public final TimeValue timeout;
 
-    /** 
-     * The code body for the function that is executed upon calling the watchdog.
+    /**
+     * The watchdog name.
      */
-    public final CodeBuilder watchdogHandler;
+    public final String name;
 
     //////////////////////////////////////////////////////
     //// Public methods.

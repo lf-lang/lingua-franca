@@ -197,7 +197,6 @@ public class CReactionGenerator {
                         );
                     } else if (variable instanceof Watchdog) {
                         //FIXME: modif4watchdogs
-                        // How does it know if instance of watchdog?
                         reactionInitialization.pr(generateWatchdogVariablesInReaction(
                             effect,
                             decl,
@@ -745,6 +744,9 @@ public class CReactionGenerator {
         var startupReactions = new LinkedHashSet<Integer>();
         var shutdownReactions = new LinkedHashSet<Integer>();
         var resetReactions = new LinkedHashSet<Integer>();
+        // WATCHDOG QUESTION: Why need to grab all reactions from reactor only to check
+        // if it exists in currentFederate? Maybe real question is what is difference between
+        // currentfederate and reactor?
         for (Reaction reaction : ASTUtils.allReactions(reactor)) {
             if (currentFederate.contains(reaction)) {
                 // Create the reaction_t struct.
@@ -814,7 +816,6 @@ public class CReactionGenerator {
                     "self->_lf__reaction_"+reactionCount+".function = "+ CReactionGenerator.generateReactionFunctionName(decl, reactionCount)+";",
                     "self->_lf__reaction_"+reactionCount+".self = self;",
                     "self->_lf__reaction_"+reactionCount+".deadline_violation_handler = "+deadlineFunctionPointer+";",
-                    "self->_lf__reaction_"+reactionCount+".watchdog_handler = "+watchdogFunctionPointer+";",
                     "self->_lf__reaction_"+reactionCount+".STP_handler = "+STPFunctionPointer+";",
                     "self->_lf__reaction_"+reactionCount+".name = "+addDoubleQuotes("?")+";",
                     (reaction.eContainer() instanceof Mode ?

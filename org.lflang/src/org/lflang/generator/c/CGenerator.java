@@ -1213,6 +1213,8 @@ public class CGenerator extends GeneratorBase {
         generateAuxiliaryStructs(reactor);
         generateSelfStruct(reactor, constructorCode);
         generateMethods(reactor);
+        // FIXME: modif4watchdogs
+        generateWatchdogs(reactor, currentFederate);
         generateReactions(reactor, currentFederate);
         generateConstructor(reactor, currentFederate, constructorCode);
 
@@ -1581,6 +1583,42 @@ public class CGenerator extends GeneratorBase {
             types,
             isFederatedAndDecentralized(),
             getTarget().requiresTypes
+        ));
+    }
+
+    // FIXME: modif4watchdogs
+     /** Generate watchdog functions definition for a reactor.
+     *  These functions have a single argument that is a void* pointing to
+     *  a struct that contains parameters, state variables, inputs (triggering or not),
+     *  actions (triggering or produced), and outputs.
+     *  @param decl The reactor.
+     *  @param federate The federate, or null if this is not
+     *   federated or not the main reactor and reactions should be
+     *   unconditionally generated.
+     */
+    public void generateWatchdogs(ReactorDecl decl, FederateInstance federate) {
+        // WATCHDOG QUESTION: A similar question is asked somewhere else for a 
+        // different function - Do we need to check if this federate contains the
+        // watchdog? This is done in the code generation for reactions.
+        var reactor = ASTUtils.toDefinition(decl);
+        for (Watchdog watchdog : ASTUtils.allWatchdogs(reactor)) {
+            if (federate == null || federate.contains(watchdog)) {
+                generateWatchdog(watchdog, decl);
+            }
+        }
+    }
+
+    /** Generate a watchdog function definition for a reactor.
+     *  This function will have a single argument that is a void* pointing to
+     *  a struct that contains parameters, state variables, inputs (triggering or not),
+     *  actions (triggering or produced), and outputs.
+     *  @param watchdog The watchdog.
+     *  @param decl The reactor.
+     */
+    protected void generateWatchdog(Watchdog watchdog, ReactorDecl decl) {
+        code.pr(CWatchdogGenerator.generateWatchdog(
+            watchdog,
+            decl
         ));
     }
 
@@ -2077,6 +2115,8 @@ public class CGenerator extends GeneratorBase {
      * specified reactor instance.
      * @param instance The reactor instance.
      */
+    // WATCHDOG QUESTION: Why do we wait to set the deadline instead of defining
+    // it in the constructor of the reactor?
     private void generateSetDeadline(ReactorInstance instance) {
         for (ReactionInstance reaction : instance.reactions) {
             if (currentFederate.contains(reaction.getDefinition())) {

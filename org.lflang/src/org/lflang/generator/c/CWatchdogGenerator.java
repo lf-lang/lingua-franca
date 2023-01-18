@@ -1,5 +1,6 @@
 package org.lflang.generator.c;
 
+import org.lflang.ASTUtils;
 import org.lflang.federated.FederateInstance;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.lf.ReactorDecl;
@@ -102,27 +103,75 @@ public class CWatchdogGenerator {
     }
 
     /**
-     * Generate a constructor for the specified reactor in the specified federate.
-     * @param reactor The parsed reactor data structure.
-     * @param federate A federate name, or null to unconditionally generate.
-     * @param constructorCode Lines of code previously generated that need to
-     *  go into the constructor.
+     * Generate watchdog definition in parent struct.
      */
-    //FIXME: this is just the old constructor meant for reactors
-    public static String generateWatchdogConstructor(
-        ReactorDecl reactor,
-        FederateInstance federate,
-        String constructorCode
+    public static void generateWatchdogStruct(
+        FederateInstance currentFederate,
+        CodeBuilder body,
+        ReactorDecl decl,
+        CodeBuilder constructorCode
     ) {
-        var structType = CUtil.selfType(reactor);
+        var reactor = ASTUtils.toDefinition(decl);
+
+        // WATCHDOG QUESTION 1: I followed similar format to 
+        // `CReactionGenerator.generateReactionAndTriggerStructs`
+        // but am not sure why we need to check if watchdog exists in the 
+        // current federate.
+        for (Watchdog watchdog : ASTUtils.allWatchdogs(reactor)) {
+            if (currentFederate.contains(watchdog)) {
+
+                String watchdogName = watchdog.getName();
+                // Create pointer to the watchdog_t struct
+                // WATCHDOG QUESTION 2: Why need to put object at beginning of 
+                // `.pr` func call?
+                
+                // WATCHDOG QUESTION 3: Is the space for this struct automatically allocated
+                // through `_lf_new_reactor`? `_lf__startup_reaction` is also a pointer in self struct
+                // but does not seem to have a separate allocation call.
+                body.pr(watchdog, "watchdog_t* _lf_watchdog_"+watchdogName+";");
+
+                // WATCHDOG QUESTION 4: Not sure if this is correct, may need to use 
+                // 'getTargetTime' instead. watchdog timeout is listed as "Expression"
+                // in the grammar, so I'm not sure if it is reading the timeout as 
+                // a Time class or TimeValue class.
+                var min_expiration = GeneratorBase.timeInTargetLanguage(watchdog.getTimeout());
+
+                // watchdog function name
+                var watchdogFunctionName = generateWatchdogFunctionName(watchdog, decl);
+                // Set values of watchdog_t struct in the reactor's constructor
+                // WATCHDOG QUESTION 5: should I be defining these in the constructor of the reactor?
+                constructorCode.pr(watchdog, String.join("\n",
+                    "self->_lf_watchdog_"+watchdogName+".self = self;",
+                    "self->_lf_watchdog_"+watchdogName+".expiration = NEVER;",
+                    "self->_lf_watchdog_"+watchdogName+".min_expiration = "+min_expiration+";",
+                    "self->_lf_watchdog_"+watchdogName+".watchdog_function = "+watchdogFunctionName+";"
+                ));
+
+                // WATCHDOG QUESTION 6: should I be initializing mutex in this constructor?
+            }
+        }
+    }
+
+    /** Generate a watchdog function definition for a reactor.
+     *  This function will have a single argument that is a void* pointing to
+     *  a struct that contains parameters, state variables, inputs (triggering or not),
+     *  actions (triggering or produced), and outputs.
+     *  @param watchdog The watchdog.
+     *  @param decl The reactor.
+     */
+    public static String generateWatchdog(
+        Watchdog watchdog,
+        ReactorDecl decl
+    ) {
         var code = new CodeBuilder();
-        code.pr(structType+"* new_"+reactor.getName()+"() {");
-        code.indent();
-        code.pr(structType+"* self = ("+structType+"*)_lf_new_reactor(sizeof("+structType+"));");
-        code.pr(constructorCode);
-        code.pr("return self;");
-        code.unindent();
-        code.pr("}");
+
+        // WATCHDOG QUESTION: Do I need this header? What it for?
+        code.pr(
+            "#include " + StringUtil.addDoubleQuotes(
+                CCoreFilesUtils.getCTargetSetHeader()));
+
+        code.pr(generateWatchdogFunction(watchdog, decl));
+
         return code.toString();
     }
 
