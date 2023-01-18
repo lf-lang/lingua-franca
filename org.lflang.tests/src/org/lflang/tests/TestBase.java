@@ -9,6 +9,7 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.io.File;
 import java.io.FileWriter;
@@ -157,9 +158,6 @@ public abstract class TestBase {
         public static final String DESC_SCHED_SWAPPING = "Running with non-default runtime scheduler ";
         public static final String DESC_ROS2 = "Running tests using ROS2.";
         public static final String DESC_MODAL = "Run modal reactor tests.";
-
-        /* Missing dependency messages */
-        public static final String MISSING_DOCKER = "Executable 'docker' not found or 'docker' daemon thread not running";
     }
 
     /** Constructor for test classes that test a single target. */
@@ -489,57 +487,52 @@ public abstract class TestBase {
      * an error code.
      */
     private void execute(LFTest test) throws TestError {
-        final List<ProcessBuilder> pbList = getExecCommand(test);
-        if (pbList.isEmpty()) {
-            return;
-        }
+        final var pb = getExecCommand(test);
         try {
-            for (ProcessBuilder pb : pbList) {
-                var p = pb.start();
-                var stdout = test.recordStdOut(p);
-                var stderr = test.recordStdErr(p);
+            var p = pb.start();
+            var stdout = test.recordStdOut(p);
+            var stderr = test.recordStdErr(p);
 
-                var stdoutException = new AtomicReference<Throwable>(null);
-                var stderrException = new AtomicReference<Throwable>(null);
+            var stdoutException = new AtomicReference<Throwable>(null);
+            var stderrException = new AtomicReference<Throwable>(null);
 
-                stdout.setUncaughtExceptionHandler((thread, throwable) -> stdoutException.set(throwable));
-                stderr.setUncaughtExceptionHandler((thread, throwable) -> stderrException.set(throwable));
+            stdout.setUncaughtExceptionHandler((thread, throwable) -> stdoutException.set(throwable));
+            stderr.setUncaughtExceptionHandler((thread, throwable) -> stderrException.set(throwable));
 
-                stderr.start();
-                stdout.start();
+            stderr.start();
+            stdout.start();
 
-                if (!p.waitFor(MAX_EXECUTION_TIME_SECONDS, TimeUnit.SECONDS)) {
-                    stdout.interrupt();
-                    stderr.interrupt();
-                    p.destroyForcibly();
-                    throw new TestError(Result.TEST_TIMEOUT);
-                } else {
-                    if (stdoutException.get() != null || stderrException.get() != null) {
-                        StringBuffer sb = new StringBuffer();
-                        if (stdoutException.get() != null) {
-                            sb.append("Error during stdout handling:" + System.lineSeparator());
-                            sb.append(stackTraceToString(stdoutException.get()));
-                        }
-                        if (stderrException.get() != null) {
-                            sb.append("Error during stderr handling:" + System.lineSeparator());
-                            sb.append(stackTraceToString(stderrException.get()));
-                        }
-                        throw new TestError(sb.toString(), Result.TEST_EXCEPTION);
+            if (!p.waitFor(MAX_EXECUTION_TIME_SECONDS, TimeUnit.SECONDS)) {
+                stdout.interrupt();
+                stderr.interrupt();
+                p.destroyForcibly();
+                throw new TestError(Result.TEST_TIMEOUT);
+            } else {
+                if (stdoutException.get() != null || stderrException.get() != null) {
+                    StringBuffer sb = new StringBuffer();
+                    if (stdoutException.get() != null) {
+                        sb.append("Error during stdout handling:" + System.lineSeparator());
+                        sb.append(stackTraceToString(stdoutException.get()));
                     }
-                    if (p.exitValue() != 0) {
-                        String message = "Exit code: " + p.exitValue();
-                        if (p.exitValue() == 139) {
-                            // The java ProcessBuilder and Process interface does not allow us to reliably retrieve stderr and stdout
-                            // from a process that segfaults. We can only print a message indicating that the putput is incomplete.
-                            message += System.lineSeparator() +
+                    if (stderrException.get() != null) {
+                        sb.append("Error during stderr handling:" + System.lineSeparator());
+                        sb.append(stackTraceToString(stderrException.get()));
+                    }
+                    throw new TestError(sb.toString(), Result.TEST_EXCEPTION);
+                }
+                if (p.exitValue() != 0) {
+                    String message = "Exit code: " + p.exitValue();
+                    if (p.exitValue() == 139) {
+                        // The java ProcessBuilder and Process interface does not allow us to reliably retrieve stderr and stdout
+                        // from a process that segfaults. We can only print a message indicating that the putput is incomplete.
+                        message += System.lineSeparator() +
                             "This exit code typically indicates a segfault. In this case, the execution output is likely missing or incomplete.";
-                        }
-                        throw new TestError(message, Result.TEST_FAIL);
                     }
+                    throw new TestError(message, Result.TEST_FAIL);
                 }
             }
         } catch (TestError e) {
-            throw  e;
+            throw e;
         } catch (Throwable e) {
             e.printStackTrace();
             throw new TestError("Exception during test execution.", Result.TEST_EXCEPTION, e);
@@ -555,118 +548,101 @@ public abstract class TestBase {
         return sw.toString();
     }
 
-    /**
-     * Return the content of the bash script used for testing docker option in federated execution.
-     * @param dockerFiles A list of paths to docker files.
-     * @param dockerComposeFilePath The path to the docker compose file.
-     */
-    private String getDockerRunScript(List<Path> dockerFiles, Path dockerComposeFilePath) {
-        var dockerComposeCommand = "docker compose";
-        StringBuilder shCode = new StringBuilder();
-        shCode.append("#!/bin/bash\n");
-        shCode.append("pids=\"\"\n");
-        shCode.append(String.format("%s run -f %s --rm -T rti &\n",
-            dockerComposeCommand, dockerComposeFilePath));
-        shCode.append("pids+=\"$!\"\nsleep 3\n");
-        for (Path dockerFile : dockerFiles) {
-            var composeServiceName = dockerFile.getFileName().toString().replace(".Dockerfile", "");
-            shCode.append(String.format("%s run -f %s --rm -T %s &\n",
-                dockerComposeCommand,
-                dockerComposeFilePath,
-                composeServiceName));
-            shCode.append("pids+=\" $!\"\n");
-        }
-        shCode.append("for p in $pids; do\n");
-        shCode.append("    if wait $p; then\n");
-        shCode.append("        :\n");
-        shCode.append("    else\n");
-        shCode.append("        exit 1\n");
-        shCode.append("    fi\n");
-        shCode.append("done\n");
-        return shCode.toString();
-    }
+    /** Bash script that is used to execute docker tests. */
+    static private String DOCKER_RUN_SCRIPT = """
+            #!/bin/bash
+
+            # exit when any command fails
+            set -e
+
+            docker compose -f "$1" rm -f
+            docker compose -f "$1" up --build | tee docker_log.txt
+            docker compose -f "$1" down --rmi local
+
+            errors=`grep -E "exited with code [1-9]" docker_log.txt | cat`
+            rm docker_log.txt
+
+            if [[ $errors ]]; then
+                echo "===================================================================="
+                echo "ERROR: One or multiple containers exited with a non-zero exit code."
+                echo "       See the log above for details. The following containers failed:"
+                echo $errors
+                exit 1
+            fi
+
+            exit 0
+            """;
 
     /**
-     * Returns true if docker exists, false otherwise.
+     * Path to a bash script containing DOCKER_RUN_SCRIPT.
      */
-    private boolean checkDockerExists() {
-        LFCommand checkCommand = LFCommand.get("docker", List.of("info"));
-        return checkCommand.run() == 0;
-    }
+    private static Path dockeRunScript = null;
 
     /**
-     * Return a list of ProcessBuilders used to test the docker option under non-federated execution.
-     * See the following for references on the instructions called:
-     * docker build: https://docs.docker.com/engine/reference/commandline/build/
-     * docker run: https://docs.docker.com/engine/reference/run/
-     * docker image: https://docs.docker.com/engine/reference/commandline/image/
+     * Return the path to a bash script containing DOCKER_RUN_SCRIPT.
      *
+     * If the script does not yet exist, it is created.
+     */
+    private Path getDockerRunScript() throws TestError {
+        if (dockeRunScript != null) {
+            return dockeRunScript;
+        }
+
+        try {
+            var file = File.createTempFile("run_docker_test", "sh");
+            file.deleteOnExit();
+            file.setExecutable(true);
+            var path = file.toPath();
+            try (BufferedWriter writer = Files.newBufferedWriter(path)) {
+                writer.write(DOCKER_RUN_SCRIPT);
+            }
+            dockeRunScript = path;
+        } catch (IOException e) {
+            throw new TestError("IO Error during test preparation.", Result.TEST_EXCEPTION, e);
+        }
+
+        return dockeRunScript;
+    }
+
+    /**
+     * Throws TestError if docker does not exist. Does nothing otherwise.
+     */
+    private void checkDockerExists() throws TestError {
+        if (LFCommand.get("docker", List.of()) == null) {
+            throw new TestError("Executable 'docker' not found" , Result.NO_EXEC_FAIL);
+        }
+    }
+
+    /**
+     * Return a ProcessBuilder used to test the docker execution.
      * @param test The test to get the execution command for.
      */
-    private List<ProcessBuilder> getNonfederatedDockerExecCommand(LFTest test) {
-        if (!checkDockerExists()) {
-            System.out.println(Message.MISSING_DOCKER);
-            return List.of(new ProcessBuilder("exit", "1"));
-        }
+    private ProcessBuilder getDockerExecCommand(LFTest test) throws TestError {
+        checkDockerExists();
         var srcGenPath = test.getFileConfig().getSrcGenPath();
         var dockerComposeFile = FileUtil.globFilesEndsWith(srcGenPath, "docker-compose.yml").get(0);
-        return List.of(new ProcessBuilder("docker", "compose", "-f", dockerComposeFile.toString(), "rm", "-f"),
-                       new ProcessBuilder("docker", "compose", "-f", dockerComposeFile.toString(), "up", "--build"),
-                       new ProcessBuilder("docker", "compose", "-f", dockerComposeFile.toString(), "down", "--rmi", "local"));
+        return new ProcessBuilder(getDockerRunScript().toString(), dockerComposeFile.toString());
     }
 
     /**
-     * Return a list of ProcessBuilders used to test the docker option under federated execution.
+     * Return a preconfigured ProcessBuilder for executing the test program.
      * @param test The test to get the execution command for.
      */
-    private List<ProcessBuilder> getFederatedDockerExecCommand(LFTest test) {
-        if (!checkDockerExists()) {
-            System.out.println(Message.MISSING_DOCKER);
-            return List.of(new ProcessBuilder("exit", "1"));
-        }
-        var srcGenPath = test.getFileConfig().getSrcGenPath();
-        List<Path> dockerFiles = FileUtil.globFilesEndsWith(srcGenPath, ".Dockerfile");
-        try {
-            File testScript = File.createTempFile("dockertest", null);
-            testScript.deleteOnExit();
-            if (!testScript.setExecutable(true)) {
-                throw new IOException("Failed to make test script executable");
-            }
-            FileWriter fileWriter = new FileWriter(testScript.getAbsoluteFile(), true);
-            BufferedWriter bufferedWriter = new BufferedWriter(fileWriter);
-            var dockerComposeFile = FileUtil.globFilesEndsWith(srcGenPath, "docker-compose.yml").get(0);
-            bufferedWriter.write(getDockerRunScript(dockerFiles, dockerComposeFile));
-            bufferedWriter.close();
-            return List.of(new ProcessBuilder(testScript.getAbsolutePath()));
-        } catch (IOException e) {
-            return List.of(new ProcessBuilder("exit", "1"));
-        }
-    }
-
-    /**
-     * Return a list of preconfigured ProcessBuilder(s) for the command(s)
-     * that should be used to execute the test program.
-     * @param test The test to get the execution command for.
-     */
-
-    private List<ProcessBuilder> getExecCommand(LFTest test) throws TestError {
+    private ProcessBuilder getExecCommand(LFTest test) throws TestError {
 
         var srcBasePath = test.getFileConfig().srcPkgPath.resolve("src");
         var relativePathName = srcBasePath.relativize(test.getFileConfig().srcPath).toString();
 
         // special case to test docker file generation
-        if (relativePathName.equalsIgnoreCase(TestCategory.DOCKER.getPath())) {
-            return getNonfederatedDockerExecCommand(test);
-        } else if (relativePathName.equalsIgnoreCase(TestCategory.DOCKER_FEDERATED.getPath())) {
-            return getFederatedDockerExecCommand(test);
+        if (relativePathName.equalsIgnoreCase(TestCategory.DOCKER.getPath()) ||
+            relativePathName.equalsIgnoreCase(TestCategory.DOCKER_FEDERATED.getPath())) {
+            return getDockerExecCommand(test);
         } else {
             LFCommand command = test.getFileConfig().getCommand();
             if (command == null) {
                 throw new TestError("File: " + test.getFileConfig().getExecutable(), Result.NO_EXEC_FAIL);
             }
-            return command == null ? List.of() : List.of(
-                new ProcessBuilder(command.command()).directory(command.directory())
-            );
+            return new ProcessBuilder(command.command()).directory(command.directory());
         }
     }
 
