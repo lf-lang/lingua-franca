@@ -26,11 +26,20 @@ public class DockerData {
      */
     private String dockerContext;
 
+    private final String containerName;
+
+    private final String serviceName;
+
     public DockerData(
+        String serviceName,
+        String containerName,
         Path dockerFilePath,
         String dockerFileContent,
         String dockerContext
     ) {
+        this.serviceName = serviceName;
+        this.containerName = containerName;
+
         if (dockerFilePath == null || dockerFileContent == null ||
             dockerContext == null) {
             throw new RuntimeException("Missing fields in DockerData instance");
@@ -40,7 +49,6 @@ public class DockerData {
         }
         filePath = dockerFilePath;
         fileContent = dockerFileContent;
-        composeServiceName = filePath.getFileName().toString().replace(".Dockerfile", "").toLowerCase();
         this.dockerContext = dockerContext;
     }
 
@@ -64,17 +72,14 @@ public class DockerData {
     /**
      * Return a service description for the "services" section of the docker-compose.yml file.
      */
-    public String getServiceDescription(boolean inFederation) {
+    public String getServiceDescription() {
         var tab = " ".repeat(4);
         StringBuilder svc = new StringBuilder();
-        svc.append(tab + (inFederation? this.getComposeServiceName() : "main" ) +":\n");
+        svc.append(tab + serviceName +":\n");
         svc.append(tab + tab + "build:\n");
-        svc.append(tab.repeat(3) + "context: " + (inFederation? this.getDockerContext() : "." ) +"\n");
-        svc.append(tab.repeat(3) + "dockerfile: " + this.getFilePath()); // FIXME make this a relative path for better readability
-
-        if (inFederation) {
-            svc.append("\n"+tab+tab+"command: -i 1");
-        }
+        svc.append(tab.repeat(3) + "context: " + this.getDockerContext());
+        svc.append("\n"+tab+tab+"command: -i 1");
+        svc.append("\n"+tab+tab+"container_name: " + containerName);
         return svc.toString();
     }
 }

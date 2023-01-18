@@ -5,7 +5,7 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import org.lflang.federated.generator.FedDockerGenerator;
+import org.lflang.FileConfig;
 import org.lflang.generator.c.CDockerGenerator;
 import org.lflang.generator.python.PythonDockerGenerator;
 import org.lflang.generator.ts.TSDockerGenerator;
@@ -43,7 +43,38 @@ public abstract class DockerGeneratorBase {
 
      protected final Path dockerComposeFilePath;
 
-    public abstract DockerData generateDockerData();
+     protected abstract String generateDockerFileContent();
+
+    /**
+     * Produce a DockerData object. If the returned object is to be used in a federated context,
+     * pass in the file configuration of the federated generator, null otherwise.
+     * @param fileConfig Optional argument to point to a federated file configuration
+     * @return docker data created based on the context in this instance
+     */
+    public DockerData generateDockerData(FileConfig fileConfig) {
+        var dockerFilePath = context.getFileConfig().getSrcGenPath().resolve("Dockerfile");
+        var dockerFileContent = generateDockerFileContent();
+
+        String buildContext;
+        String serviceName;
+        String containerName;
+
+        if (fileConfig == null) {
+            serviceName = "main";
+            buildContext = ".";
+            containerName = context.getFileConfig().name;
+        } else {
+            serviceName = context.getFileConfig().name;
+            buildContext = serviceName;
+            containerName = fileConfig.name + "-" + serviceName;
+        }
+
+        return new DockerData(serviceName, containerName, dockerFilePath, dockerFileContent, buildContext);
+    }
+
+    public DockerData generateDockerData() {
+        return generateDockerData(null);
+    }
 
     /**
      * The constructor for the base docker file generation class.
@@ -53,19 +84,6 @@ public abstract class DockerGeneratorBase {
         this.context = context;
         this.dockerComposeFilePath = context.getFileConfig().getSrcGenPath().resolve("docker-compose.yml");
     }
-
-    //
-//    /**
-//     * Write the docker files generated for the federates added using `addFederate` so far.
-//     */
-//    public void writeDockerFiles() throws IOException {
-//        var dockerData = generateDockerData();
-//        writeDockerComposeFile(dockerData.getServiceDescription(false), "lf");
-//        System.out.println(getDockerBuildCommandMsg(dockerData));
-//        System.out.println(getDockerComposeUpMsg());
-//
-//    }
-
 
     /**
      * Get the command to build the docker images using the compose file.
@@ -104,7 +122,7 @@ public abstract class DockerGeneratorBase {
                                 "version: \"3.9\"",
                                 "services:",
                                 services.stream().map(
-                                    (data -> data.getServiceDescription(this instanceof FedDockerGenerator))
+                                    (data -> data.getServiceDescription())
                                 ).collect(Collectors.joining("\n"))
         );
     }

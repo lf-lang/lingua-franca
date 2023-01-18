@@ -486,16 +486,21 @@ public enum Target {
      * on constants).
      */
     public boolean supportsParameterizedWidths() {
-        switch (this) {
-        case C:
-        case CCPP:
-        case CPP:
-        case Python:
-        case Rust:
-        case TS:
-            return true;
-        }
-        return false;
+        return switch (this) {
+            case C, CCPP, CPP, Python, Rust, TS -> true;
+        };
+    }
+
+    /**
+     * Return true if this target should be built locally, false
+     * if building is done using `docker compose build`.
+     * @return
+     */
+    public boolean preBuildDocker() {
+        return switch (this) {
+            case TS -> true;
+            case C, CCPP, CPP, Python, Rust -> false;
+        };
     }
 
     /**

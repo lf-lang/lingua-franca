@@ -3,11 +3,8 @@ package org.lflang.federated.generator;
 import java.io.IOException;
 import java.util.List;
 
-import org.lflang.FileConfig;
-import org.lflang.generator.CodeBuilder;
 import org.lflang.generator.DockerData;
 import org.lflang.generator.DockerGeneratorBase;
-import org.lflang.generator.LFGenerator;
 import org.lflang.generator.LFGeneratorContext;
 
 public class FedDockerGenerator extends DockerGeneratorBase {
@@ -19,12 +16,10 @@ public class FedDockerGenerator extends DockerGeneratorBase {
      */
     protected List<DockerData> dockerDataList;
 
-
     /**
      * The host on which to run the rti.
      */
     private String rtiHost;
-
 
     /**
      * The constructor for the base docker file generation class.
@@ -46,25 +41,14 @@ public class FedDockerGenerator extends DockerGeneratorBase {
 
 
     @Override
-    public DockerData generateDockerData() {
+    protected String generateDockerFileContent() {
         return null;
     }
 
-//    /**
-//     * Write the docker files generated for the federates added using `addFederate` so far.
-//     */
-//    @Override
-//    public void writeDockerFiles() throws IOException {
-//        var svcs = new StringBuilder();
-//        for (DockerData dockerData : dockerDataList) {
-//            writeDockerFile(dockerData);
-//            svcs.append(dockerData.getServiceDescription(true));
-//            //System.out.println(getDockerBuildCommandMsg(dockerData));
-//        }
-//        // FIXME: figure out what to print
-//        //System.out.println(getDockerComposeUpMsg());
-//        writeDockerComposeFile(svcs.toString(), "lf");
-//    }
+    @Override
+    public DockerData generateDockerData() {
+        return null;
+    }
 
     /**
      * Override in FedGenerator
@@ -79,27 +63,7 @@ public class FedDockerGenerator extends DockerGeneratorBase {
                                 "    rti:",
                     "        image: lflang/rti:rti",
                     "        hostname: " + this.rtiHost,
-                    "        command: -i 1 -n " + services.size());
+                    "        command: -i 1 -n " + services.size(),
+                    "        container_name: " + context.getFileConfig().name + "-" + "rti");
     }
-
-    /**
-     * Append the RTI to the "services" section of the docker-compose.yml file
-     * and write the docker-compose.yml file.
-     * @param services Section that lists all the services.
-     * @param networkName The name of the network to which docker will connect the containers.
-     * @throws IOException
-     */
-//    @Override
-//    protected void writeDockerComposeFile(
-//        String services,
-//        String networkName
-//    ) throws IOException {
-//        var sb = new StringBuilder(services);
-//        var tab = " ".repeat(4);
-//        sb.append(tab).append("rti:\n");
-//        sb.append(tab.repeat(2)).append("image: lflang/rti:rti\n");
-//        sb.append(tab.repeat(2)).append("hostname: ").append(this.rtiHost).append("\n");
-//        sb.append(tab.repeat(2)).append("command: -i 1 -n ").append(dockerDataList.size()).append("\n");
-//        super.writeDockerComposeFile(sb.toString(), networkName);
-//    }
 }
