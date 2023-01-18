@@ -444,13 +444,18 @@ public class TargetConfig {
         public String board = null;
 
         /**
+         * The string value used to determine the port on which to flash the compiled program (i.e. /dev/cu.usbmodem21301)
+         */
+        public String port = "";
+
+        /**
          * The baud rate used as a parameter to certain embedded platforms. 9600 is a standard rate amongst systems like Arduino, so it's the default value.
          */
         public int baudRate = 9600;
 
-/**
- * Should LFC invoke external tools to flash the resulting binary onto the target board
- */
+        /**
+         * Should LFC invoke external tools to flash the resulting binary onto the target board
+         */
         public boolean flash = false;
     }   
 

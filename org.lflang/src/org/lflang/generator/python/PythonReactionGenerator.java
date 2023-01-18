@@ -384,9 +384,8 @@ public class PythonReactionGenerator {
         code.pr(nameOfSelfStruct+"->_lf_name = \""+instance.uniqueID()+"_lf\";");
 
         for (ReactionInstance reaction : instance.reactions) {
-            // Reactions marked with a `@language(C)` attribute are generated in C
-            var reactionLanguageAttr = AttributeUtils.findReactionLanguageAttribute(reaction.getDefinition());
-            if (reactionLanguageAttr != null && reactionLanguageAttr.equals(Target.C))  continue;
+            // Reactions marked with a `@_c_body` attribute are generated in C
+            if (AttributeUtils.hasCBody(reaction.getDefinition())) continue;
             // Create a PyObject for each reaction
             code.pr(generateCPythonReactionLinker(instance, reaction, nameOfSelfStruct));
         }
@@ -484,9 +483,8 @@ public class PythonReactionGenerator {
      * @param reaction The reaction of reactor
      */
     public static String generatePythonReaction(Reactor reactor, Reaction reaction, int reactionIndex) {
-        // Reactions marked with a `@language(C)` attribute are generated in C
-        var reactionLanguageAttr = AttributeUtils.findReactionLanguageAttribute(reaction);
-        if (reactionLanguageAttr != null && reactionLanguageAttr.equals(Target.C))  return "";
+        // Reactions marked with a `@_c_body` attribute are generated in C
+        if (AttributeUtils.hasCBody(reaction))  return "";
 
         CodeBuilder code = new CodeBuilder();
         List<String> reactionParameters = new ArrayList<>(); // Will contain parameters for the function (e.g., Foo(x,y,z,...)

@@ -84,7 +84,7 @@ public abstract class TestBase {
     private static final PrintStream err = System.err;
 
     /** Execution timeout enforced for all tests. */
-    private static final long MAX_EXECUTION_TIME_SECONDS = 300;
+    private static final long MAX_EXECUTION_TIME_SECONDS = 180;
 
     /** Content separator used in test output, 78 characters wide. */
     public static final String THIN_LINE =
@@ -531,7 +531,7 @@ public abstract class TestBase {
                     if (p.exitValue() != 0) {
                         String message = "Exit code: " + p.exitValue();
                         if (p.exitValue() == 139) {
-                            // The java ProcessBuiler and Process interface does not allow us to reliably retrieve stderr and stdout
+                            // The java ProcessBuilder and Process interface does not allow us to reliably retrieve stderr and stdout
                             // from a process that segfaults. We can only print a message indicating that the putput is incomplete.
                             message += System.lineSeparator() +
                             "This exit code typically indicates a segfault. In this case, the execution output is likely missing or incomplete.";
@@ -543,6 +543,7 @@ public abstract class TestBase {
         } catch (TestError e) {
             throw  e;
         } catch (Throwable e) {
+            e.printStackTrace();
             throw new TestError("Exception during test execution.", Result.TEST_EXCEPTION, e);
         }
     }
@@ -562,7 +563,7 @@ public abstract class TestBase {
      * @param dockerComposeFilePath The path to the docker compose file.
      */
     private String getDockerRunScript(List<Path> dockerFiles, Path dockerComposeFilePath) {
-        var dockerComposeCommand = DockerGeneratorBase.getDockerComposeCommand();
+        var dockerComposeCommand = "docker compose";
         StringBuilder shCode = new StringBuilder();
         shCode.append("#!/bin/bash\n");
         shCode.append("pids=\"\"\n");
@@ -611,10 +612,9 @@ public abstract class TestBase {
         }
         var srcGenPath = test.getFileConfig().getSrcGenPath();
         var dockerComposeFile = FileUtil.globFilesEndsWith(srcGenPath, "docker-compose.yml").get(0);
-        var dockerComposeCommand = DockerGeneratorBase.getDockerComposeCommand();
-        return List.of(new ProcessBuilder(dockerComposeCommand, "-f", dockerComposeFile.toString(), "rm", "-f"),
-                       new ProcessBuilder(dockerComposeCommand, "-f", dockerComposeFile.toString(), "up", "--build"),
-                       new ProcessBuilder(dockerComposeCommand, "-f", dockerComposeFile.toString(), "down", "--rmi", "local"));
+        return List.of(new ProcessBuilder("docker", "compose", "-f", dockerComposeFile.toString(), "rm", "-f"),
+                       new ProcessBuilder("docker", "compose", "-f", dockerComposeFile.toString(), "up", "--build"),
+                       new ProcessBuilder("docker", "compose", "-f", dockerComposeFile.toString(), "down", "--rmi", "local"));
     }
 
     /**

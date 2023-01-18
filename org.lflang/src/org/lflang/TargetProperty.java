@@ -412,12 +412,37 @@ public enum TargetProperty {
 
     /**
      * Directive to specify the platform for cross code generation. This is either a string of the platform
-     * or a dictionary of options that includes the string name.
+     * or a dictionary of options that includes the string name. 
      */
     PLATFORM("platform", UnionType.PLATFORM_STRING_OR_DICTIONARY, Target.ALL,
             (config) -> {
-                // FIXME: add code to turn platform config into AST node
-                return null;
+                Element e = LfFactory.eINSTANCE.createElement();
+                KeyValuePairs kvp = LfFactory.eINSTANCE.createKeyValuePairs();
+                for (PlatformOption opt : PlatformOption.values()) {
+                    KeyValuePair pair = LfFactory.eINSTANCE.createKeyValuePair();
+                    pair.setName(opt.toString());
+                    switch (opt) {
+                        case NAME:
+                            pair.setValue(ASTUtils.toElement(config.platformOptions.platform.toString()));
+                            break;
+                        case BAUDRATE:
+                            pair.setValue(ASTUtils.toElement(config.platformOptions.baudRate));
+                            break;
+                        case BOARD:
+                            pair.setValue(ASTUtils.toElement(config.platformOptions.board));
+                            break;
+                        case FLASH:
+                            pair.setValue(ASTUtils.toElement(config.platformOptions.flash));
+                            break;
+                        case PORT:
+                            pair.setValue(ASTUtils.toElement(config.platformOptions.port));
+                            break;
+                    }
+                    kvp.getPairs().add(pair);
+                }
+                e.setKeyvalue(kvp);
+                if (kvp.getPairs().isEmpty()) return null;
+                return e;
             },
             (config, value, err) -> {
                 if (value.getLiteral() != null) {
@@ -433,7 +458,7 @@ public enum TargetProperty {
                             case NAME:
                                 Platform p = (Platform) UnionType.PLATFORM_UNION
                                     .forName(ASTUtils.elementToSingleString(entry.getValue()));
-                                if(p == null){
+                                if(p == null) {
                                     String s = "Unidentified Platform Type, LF supports the following platform types: " + Arrays.asList(Platform.values()).toString();
                                     err.reportError(s);
                                     throw new AssertionError(s);
@@ -448,6 +473,9 @@ public enum TargetProperty {
                                 break;
                             case FLASH:
                                 config.platformOptions.flash = ASTUtils.toBoolean(entry.getValue());
+                                break;
+                            case PORT:
+                                config.platformOptions.port = ASTUtils.elementToSingleString(entry.getValue());
                                 break;
                             default:
                                 break;
@@ -1638,7 +1666,8 @@ public enum TargetProperty {
         NAME("name", PrimitiveType.STRING),
         BAUDRATE("baud-rate", PrimitiveType.NON_NEGATIVE_INTEGER),
         BOARD("board", PrimitiveType.STRING),
-        FLASH("flash", PrimitiveType.BOOLEAN);
+        FLASH("flash", PrimitiveType.BOOLEAN),
+        PORT("port", PrimitiveType.STRING);
 
         public final PrimitiveType type;
 
@@ -1720,7 +1749,7 @@ public enum TargetProperty {
      */
     public enum Platform {
         AUTO,
-        ARDUINO("Arduino"),
+        ARDUINO,
         NRF52("Nrf52"),
         LINUX("Linux"),
         MAC("Darwin"),

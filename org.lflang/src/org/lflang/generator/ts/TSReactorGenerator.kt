@@ -3,6 +3,7 @@ package org.lflang.generator.ts
 import org.lflang.*
 import org.lflang.generator.PrependOperator
 import org.lflang.lf.*
+import org.lflang.validation.AttributeSpec
 import java.util.*
 
 /**
@@ -78,7 +79,7 @@ class TSReactorGenerator(
      *  @param instance A reactor instance.
      */
     private fun generateRuntimeStart(defn: Instantiation): String {
-        val isFederate = defn.reactor.attributes.stream().anyMatch { it.attrName == "_fed_config" }
+        val isFederate = AttributeUtils.isFederate(defn.reactor)
         return with(PrependOperator) {
                 """
             |// ************* Starting Runtime for ${defn.name} + of class ${defn.reactorClass.name}.
@@ -101,6 +102,12 @@ ${"             |"..preamble.code.toText()}
             }.trimMargin()
         }
 
+    private fun getNetworkMessagActions(reactor: Reactor): List<String> {
+        val attribute = AttributeUtils.findAttributeByName(reactor, "_fed_config")
+        val actionsStr = AttributeUtils.getAttributeParameter(attribute, AttributeSpec.NETWORK_MESSAGE_ACTIONS)
+        return actionsStr?.split(",")?.filter { it.isNotEmpty()} ?: emptyList()
+    }
+
     fun generateReactor(reactor: Reactor): String {
         var reactorName = reactor.name
         if (!reactor.typeParms.isEmpty()) {
@@ -108,24 +115,8 @@ ${"             |"..preamble.code.toText()}
                 reactor.typeParms.joinToString(", ", "<", ">") { it.toText() }
         }
 
-        var isFederate = false
-        var networkMessageActions = listOf<String>()
-        var networkOutputControlReactionTrigger: String = ""
-        for (attribute in reactor.attributes) {
-            if (attribute.attrName == "_fed_config") {
-                isFederate = true
-                for (attrParam in attribute.attrParms) {
-                    if (attrParam.name == "network_message_actions") {
-                        if (attrParam.value[0] != '"' || attrParam.value[attrParam.value.length - 1] != '"') throw IllegalArgumentException("Expected attrParam.value to be wrapped in double quotes")
-                        networkMessageActions = attrParam.value.substring(1, attrParam.value.length - 1).split(",").filter { it.isNotEmpty() }
-                    }
-                    if (attrParam.name == "network_output_control_reaction_trigger") {
-                        if (attrParam.value[0] != '"' || attrParam.value[attrParam.value.length - 1] != '"') throw IllegalArgumentException("Expected attrParam.value to be wrapped in double quotes")
-                        networkOutputControlReactionTrigger = attrParam.value.substring(1, attrParam.value.length - 1).split(",").filter { it.isNotEmpty() }
-                    }
-                }
-            }
-        }
+        val isFederate = AttributeUtils.isFederate(reactor)
+        val networkMessageActions = getNetworkMessagActions(reactor)
 
         // NOTE: type parameters that are referenced in ports or actions must extend
         // Present in order for the program to type check.

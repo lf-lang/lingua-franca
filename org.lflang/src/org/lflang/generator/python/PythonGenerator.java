@@ -437,13 +437,8 @@ public class PythonGenerator extends CGenerator {
                 Map<Path, CodeMap> codeMapsForFederate = generatePythonFiles(lfModuleName, generatePythonModuleName(lfModuleName), generatePythonFileName(lfModuleName));
                 codeMaps.putAll(codeMapsForFederate);
                 copyTargetFiles();
-                if (!targetConfig.noCompile) {
-                    // If there are no federates, compile and install the generated code
-                    new PythonValidator(fileConfig, errorReporter, codeMaps, protoNames).doValidate(context);
-                    if (!errorsOccurred()
-                        && !Objects.equal(context.getMode(), LFGeneratorContext.Mode.LSP_MEDIUM)) {
-                    }
-                } else {
+                new PythonValidator(fileConfig, errorReporter, codeMaps, protoNames).doValidate(context);
+                if (targetConfig.noCompile) {
                     System.out.println(PythonInfoGenerator.generateSetupInfo(fileConfig));
                 }
             } catch (Exception e) {
@@ -478,10 +473,8 @@ public class PythonGenerator extends CGenerator {
     protected void generateReaction(Reaction reaction, ReactorDecl decl, int reactionIndex) {
         Reactor reactor = ASTUtils.toDefinition(decl);
 
-
-        // Reactions marked with a `@language(C)` attribute are generated in C
-        var reactionLanguageAttr = AttributeUtils.findReactionLanguageAttribute(reaction);
-        if (reactionLanguageAttr != null && reactionLanguageAttr.equals(Target.C)) {
+        // Reactions marked with a `@_c_body` attribute are generated in C
+        if (AttributeUtils.hasCBody(reaction)) {
             super.generateReaction(reaction, decl, reactionIndex);
             return;
         }

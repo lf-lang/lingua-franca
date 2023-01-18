@@ -78,7 +78,7 @@ public class TestRegistry {
      * test file that has a directory in its path that matches an entry in this
      * array will not be discovered.
      */
-    public static final String[] IGNORED_DIRECTORIES = {"failing", "knownfailed", "failed"};
+    public static final String[] IGNORED_DIRECTORIES = {"failing", "knownfailed", "failed", "fed-gen"};
     
     /**
      * Path to the root of the repository.

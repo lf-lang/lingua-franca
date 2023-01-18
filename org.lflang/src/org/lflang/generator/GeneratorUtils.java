@@ -26,6 +26,7 @@ import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
 import org.lflang.Target;
 import org.lflang.TargetConfig;
+import org.lflang.TargetConfig.DockerOptions;
 import org.lflang.TargetProperty.BuildType;
 import org.lflang.TargetProperty.LogLevel;
 import org.lflang.TargetProperty.UnionType;
@@ -85,6 +86,15 @@ public class GeneratorUtils {
         }
         if (args.containsKey("no-compile")) {
             targetConfig.noCompile = true;
+        }
+        if (args.containsKey("docker")) {
+            var arg = args.getProperty("docker");
+            if (Boolean.parseBoolean(arg)) {
+                targetConfig.dockerOptions = new DockerOptions();
+            } else {
+                targetConfig.dockerOptions = null;
+            }
+            // FIXME: this is pretty ad-hoc and does not account for more complex overrides yet.
         }
         if (args.containsKey("build-type")) {
             targetConfig.cmakeBuildType = (BuildType) UnionType.BUILD_TYPE_UNION.forName(args.getProperty("build-type"));

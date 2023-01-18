@@ -2294,28 +2294,6 @@ public class LinguaFrancaValidationTest {
     }
 
     @Test
-    public void testLanguageAttribute() throws Exception {
-        String testCase = """
-                target Python;
-                main reactor {
-                    @language(value = "C")
-                    reaction(startup) {= =}
-                }
-            """;
-        validator.assertNoIssues(parseWithoutError(testCase));
-
-        testCase = """
-                target Python;
-                main reactor {
-                    @language(value = "Foo")
-                    reaction(startup) {= =}
-                }
-            """;
-        validator.assertError(parseWithoutError(testCase), LfPackage.eINSTANCE.getAttribute(), null,
-                               "Incorrect language: value should be a supported language");
-    }
-
-    @Test
     public void testInitialMode() throws Exception {
         String testCase = """
             target C;

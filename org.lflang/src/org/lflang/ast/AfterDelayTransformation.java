@@ -276,9 +276,6 @@ public class AfterDelayTransformation implements AstTransformation {
         Reaction r1 = factory.createReaction();
         Reaction r2 = factory.createReaction();
 
-        ASTUtils.setReactionLanguageAttribute(r1, generator.getDelayTarget());
-        ASTUtils.setReactionLanguageAttribute(r2, generator.getDelayTarget());
-
         delayParameter.setName("delay");
         delayParameter.setType(factory.createType());
         delayParameter.getType().setId("time");
@@ -335,6 +332,8 @@ public class AfterDelayTransformation implements AstTransformation {
         r2.getEffects().add(outRef);
         r2.setCode(factory.createCode());
         r2.getCode().setBody(generator.generateForwardBody(action, outRef));
+
+        generator.finalizeReactions(r1, r2);
 
         // Add the reactions to the newly created reactor class.
         // These need to go in the opposite order in case
