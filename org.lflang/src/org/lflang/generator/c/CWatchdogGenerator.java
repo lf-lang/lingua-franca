@@ -113,7 +113,7 @@ public class CWatchdogGenerator {
     ) {
         var reactor = ASTUtils.toDefinition(decl);
 
-        // WATCHDOG QUESTION 1: I followed similar format to 
+        // WATCHDOG QUESTION 1: I followed similar structure to 
         // `CReactionGenerator.generateReactionAndTriggerStructs`
         // but am not sure why we need to check if watchdog exists in the 
         // current federate.

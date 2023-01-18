@@ -1369,6 +1369,14 @@ public class CGenerator extends GeneratorBase {
             isFederatedAndDecentralized()
         );
 
+        // Generate the fields needed for each watchdog.
+        CWatchdogGenerator.generateWatchdogStruct(
+            currentFederate,
+            body,
+            decl,
+            constructorCode
+        );
+
         // Next, generate fields for modes
         CModesGenerator.generateDeclarations(reactor, body, constructorCode);
 
