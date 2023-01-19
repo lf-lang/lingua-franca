@@ -171,6 +171,7 @@ public class FedGenerator {
         }
 
         Map<Path, CodeMap> codeMapMap = compileFederates(context, lf2lfCodeMapMap, (subContexts) -> {
+            if (context.getTargetConfig().dockerOptions == null) return;
             final List<DockerData> services = new ArrayList();
             // 1. create a Dockerfile for each federate
             subContexts.forEach((subContext) -> {
@@ -187,7 +188,8 @@ public class FedGenerator {
             });
             // 2. create a docker-compose.yml for the federation
             try {
-                (new FedDockerComposeGenerator(context, "localhost")).writeDockerComposeFile(services, "lf"); // FIXME: what should networkName be?
+                // FIXME: use the appropriate address for rtiHost
+                (new FedDockerComposeGenerator(context, "localhost")).writeDockerComposeFile(services);
             } catch (IOException e) {
                 Exceptions.sneakyThrow(e);
             }

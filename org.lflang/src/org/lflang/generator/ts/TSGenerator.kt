@@ -123,7 +123,7 @@ class TSGenerator(
         if (targetConfig.dockerOptions != null) {
             val dockerData = TSDockerGenerator(context).generateDockerData();
             dockerData.writeDockerFile()
-            DockerComposeGenerator(context).writeDockerComposeFile(listOf(dockerData), "lf")
+            DockerComposeGenerator(context).writeDockerComposeFile(listOf(dockerData))
         }
         // For small programs, everything up until this point is virtually instantaneous. This is the point where cancellation,
         // progress reporting, and IDE responsiveness become real considerations.

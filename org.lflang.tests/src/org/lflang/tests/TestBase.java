@@ -553,7 +553,7 @@ public abstract class TestBase {
 
             # exit when any command fails
             set -e
-
+            
             docker compose -f "$1" rm -f
             docker compose -f "$1" up --build | tee docker_log.txt
             docker compose -f "$1" down --rmi local
