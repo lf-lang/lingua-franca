@@ -31,7 +31,7 @@ public class FedDockerComposeGenerator extends DockerComposeGenerator {
         return String.join("\n",
             super.generateDockerServices(services),
             "    rti:",
-            "        image: lflang/rti:rti",
+            "        image: cmnrd/rti:rti",
             "        hostname: " + this.rtiHost,
             "        command: -i 1 -n " + services.size(),
             "        container_name: " + containerName + "-" + "rti");
