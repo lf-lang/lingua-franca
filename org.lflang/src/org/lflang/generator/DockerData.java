@@ -21,11 +21,11 @@ public class DockerData {
     /**
      * The build context of the docker container.
      */
-    private String dockerContext;
+    public final String dockerContext;
 
-    private final String containerName;
+    public final String containerName;
 
-    private final String serviceName;
+    public final String serviceName;
 
     public DockerData(
         String serviceName,
@@ -63,21 +63,5 @@ public class DockerData {
         }
         FileUtil.writeToFile(this.getFileContent(), dockerFilePath);
         System.out.println("Dockerfile written to " + this.getFilePath());
-    }
-
-    /**
-     * Return a service description for the "services" section of the docker-compose.yml file.
-     */
-    public String getServiceDescription(boolean forFederate) {
-        var tab = " ".repeat(4);
-        StringBuilder svc = new StringBuilder();
-        svc.append(tab + serviceName +":\n");
-        svc.append(tab + tab + "build:\n");
-        svc.append(tab.repeat(3) + "context: " + this.getDockerContext());
-        if (forFederate) {
-            svc.append("\n"+tab+tab+"command: -i 1");
-        }
-        svc.append("\n"+tab+tab+"container_name: " + containerName);
-        return svc.toString();
     }
 }

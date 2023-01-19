@@ -1,5 +1,6 @@
 package org.lflang.generator;
 
+
 import java.util.List;
 
 public class FedDockerComposeGenerator extends DockerComposeGenerator {
@@ -41,7 +42,11 @@ public class FedDockerComposeGenerator extends DockerComposeGenerator {
      * Turn given docker data into a string usable in a federated docker compose file.
      */
     @Override
-    protected String toString(DockerData data) {
-        return data.getServiceDescription(true);
+    protected String getServiceDescription(DockerData data) {
+        var svc = new StringBuilder(super.getServiceDescription(data));
+        svc.append("\n        command: -i 1");
+        svc.append("\n        depends_on:");
+        svc.append("\n            - rti");
+        return svc.toString();
     }
 }

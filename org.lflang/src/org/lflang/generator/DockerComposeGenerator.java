@@ -33,7 +33,7 @@ public class DockerComposeGenerator {
             "version: \"3.9\"",
             "services:",
             services.stream().map(
-                data -> toString(data)
+                data -> getServiceDescription(data)
             ).collect(Collectors.joining("\n"))
         );
     }
@@ -60,8 +60,14 @@ public class DockerComposeGenerator {
     /**
      * Turn given docker data into a string.
      */
-    protected String toString(DockerData data) {
-        return data.getServiceDescription(false);
+    protected String getServiceDescription(DockerData data) {
+        var tab = " ".repeat(4);
+        StringBuilder svc = new StringBuilder();
+        svc.append(tab + data.serviceName +":\n");
+        svc.append(tab + tab + "build:\n");
+        svc.append(tab.repeat(3) + "context: " + data.dockerContext);
+        svc.append("\n"+tab+tab+"container_name: " + data.containerName);
+        return svc.toString();
     }
 
     /**
