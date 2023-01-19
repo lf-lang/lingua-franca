@@ -555,17 +555,24 @@ public abstract class TestBase {
             set -e
             
             docker compose -f "$1" rm -f
-            docker compose -f "$1" up --build --remove-orphans --force-recreate | tee docker_log.txt
+            docker compose -f "$1" build
+            docker compose -f "$1" up rti | tee docker_rti_log.txt &
+            sleep 3
+            docker compose -f "$1" up rti | tee docker_log.txt
             docker compose -f "$1" down --rmi local
 
             errors=`grep -E "exited with code [1-9]" docker_log.txt | cat`
+            rti_errors=`grep -E "exited with code [1-9]" docker_rti_log.txt | cat`
+            
             rm docker_log.txt
+            rm docker_rti_log.txt
 
-            if [[ $errors ]]; then
+            if [[ $errors ]] || [[ $rti_errors; then
                 echo "===================================================================="
                 echo "ERROR: One or multiple containers exited with a non-zero exit code."
                 echo "       See the log above for details. The following containers failed:"
                 echo $errors
+                echo $rti_errors
                 exit 1
             fi
 
