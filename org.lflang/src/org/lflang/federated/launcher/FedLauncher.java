@@ -327,6 +327,8 @@ class FedLauncher {
         targetConfig.sst is the client's config.
         1. Set c_server.config as default. However, we need to match federate numbers(federates.size())
         with session key number.
+        2. The c_server.config should be brought to src-gen.
+        3. Maybe need to implement c_server.config generator?
         */
         if (!targetConfig.sst.isEmpty()) {
             // commands.add("                        -sst "+targetConfig.sst.+" \\");
@@ -459,6 +461,7 @@ class FedLauncher {
     }
 
     private String getFedLocalLaunchCode(FederateInstance federate, String executeCommand, int federateIndex) {
+        //FIXME: Need to add sst_path too?
         return String.format(String.join("\n", 
             "echo \"#### Launching the federate %s.\"",
             "%s &",
