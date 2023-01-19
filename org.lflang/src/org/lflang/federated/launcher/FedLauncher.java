@@ -322,8 +322,16 @@ class FedLauncher {
         if (targetConfig.auth) {
             commands.add("                        -a \\");
         }
-        if (targetConfig.sst) {
+        /*
+        FIXME: Need to get input of sst configuration file. We need server config. 
+        targetConfig.sst is the client's config.
+        1. Set c_server.config as default. However, we need to match federate numbers(federates.size())
+        with session key number.
+        */
+        if (!targetConfig.sst.isEmpty()) {
+            // commands.add("                        -sst "+targetConfig.sst.+" \\");
             commands.add("                        -sst \\");
+
         }
         commands.addAll(List.of(
             "                        -n "+federates.size()+" \\",

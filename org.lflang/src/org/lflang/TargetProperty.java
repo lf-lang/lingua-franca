@@ -67,12 +67,21 @@ public enum TargetProperty {
             }),
 
     /**
-     * Directive to allow including OpenSSL libraries and use SST for authentication and authorization.
+     * Path of configuration file of SST. It allows including OpenSSL libraries 
+     * and use SST for authentication and authorization.
      */
     SST("sst", PrimitiveType.BOOLEAN,
             Arrays.asList(Target.C, Target.CCPP), (config, value, err) -> {
                 config.auth = ASTUtils.toBoolean(value);
             }),
+            SST("sst", UnionType.FILE_OR_FILE_ARRAY,
+            Arrays.asList(Target.C, Target.CCPP), (config, value, err) -> {
+                config.sst = ASTUtils.elementToListOfStrings(value);
+            },
+            (config, value, err) -> {
+                config.sst.addAll(ASTUtils.elementToListOfStrings(value));
+            }),
+
 
     /**
      * Directive to let the generator use the custom build command.

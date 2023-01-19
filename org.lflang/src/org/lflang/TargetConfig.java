@@ -233,9 +233,9 @@ public class TargetConfig {
     public boolean auth = false;
 
     /**
-     * Indicate whether sst is used for security.
+     * Pass the path of the sst configuration file.
      */
-    public boolean sst = false;
+    public List<String> sst = new ArrayList<>();
 
     /**
      * Indicate whether the runtime should use multithreaded execution.

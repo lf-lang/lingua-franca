@@ -433,10 +433,6 @@ public class CGenerator extends GeneratorBase {
                 // The federates are authenticated before joining federation.
                 targetConfig.compileDefinitions.put("FEDERATED_AUTHENTICATED", "");
             }
-            if(targetConfig.sst) {
-                // The RTI and federates apply security using SST.
-                targetConfig.compileDefinitions.put("FEDERATED_SST", "");
-            }
             if (targetConfig.coordination == CoordinationType.CENTRALIZED) {
                 // The coordination is centralized.
                 targetConfig.compileDefinitions.put("FEDERATED_CENTRALIZED", "");

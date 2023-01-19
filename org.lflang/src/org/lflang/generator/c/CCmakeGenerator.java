@@ -224,7 +224,7 @@ public class CCmakeGenerator {
         cMakeCode.pr("target_include_directories(${LF_MAIN_TARGET} PUBLIC include/core/modal_models)");
         cMakeCode.pr("target_include_directories(${LF_MAIN_TARGET} PUBLIC include/core/utils)");
 
-        if(targetConfig.auth || targetConfig.sst) {
+        if(targetConfig.auth || !targetConfig.sst.isEmpty()) {
             // If security is requested, add the auth option or sst option.
             var osName = System.getProperty("os.name").toLowerCase();
             // if platform target was set, use given platform instead
