@@ -21,6 +21,7 @@ import org.lflang.generator.LFGeneratorContext;
 import org.lflang.generator.ReactorInstance;
 import org.lflang.generator.ts.TSExtensionsKt;
 import org.lflang.lf.Action;
+import org.lflang.lf.Expression;
 import org.lflang.lf.Output;
 import org.lflang.lf.VarRef;
 import org.lflang.lf.Variable;
@@ -49,14 +50,20 @@ public class TSExtension implements FedTargetExtension {
     public String generateNetworkSenderBody(VarRef sendingPort, VarRef receivingPort, FedConnectionInstance connection, InferredType type, CoordinationType coordinationType, ErrorReporter errorReporter) {
         return"""
         if (%1$s.%2$s !== undefined) {
-            this.util.sendRTITimedMessage(%1$s.%2$s, %3$s, %4$s);
+            this.util.sendRTITimedMessage(%1$s.%2$s, %3$s, %4$s, %5$s);
         }
         """.formatted(
             sendingPort.getContainer().getName(),
             sendingPort.getVariable().getName(),
             connection.getDstFederate().id,
-            connection.getDstFederate().networkMessageActions.size()
+            connection.getDstFederate().networkMessageActions.size(),
+            getNetworkDelayLiteral(connection.getDefinition().getDelay())
         );
+    }
+
+    private String getNetworkDelayLiteral(Expression e) {
+        var cLiteral = CExtensionUtils.getNetworkDelayLiteral(e);
+        return cLiteral.equals("NEVER") ? "0" : cLiteral;
     }
 
     @Override
