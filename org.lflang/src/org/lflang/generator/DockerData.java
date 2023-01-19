@@ -17,10 +17,7 @@ public class DockerData {
      * The content of the docker file to be generated.
      */
     private String fileContent;
-    /**
-     * The name of the docker compose service for the LF module.
-     */
-    private String composeServiceName;
+
     /**
      * The build context of the docker container.
      */
@@ -54,7 +51,6 @@ public class DockerData {
 
     public Path getFilePath() { return filePath; }
     public String getFileContent() { return fileContent; }
-    public String getComposeServiceName() { return composeServiceName; }
     public String getDockerContext() { return dockerContext; }
 
     /**
@@ -66,7 +62,7 @@ public class DockerData {
             dockerFilePath.toFile().delete();
         }
         FileUtil.writeToFile(this.getFileContent(), dockerFilePath);
-        System.out.println("Dockerfile for "+this.getComposeServiceName()+" written to "+this.getFilePath());
+        System.out.println("Dockerfile written to " + this.getFilePath());
     }
 
     /**

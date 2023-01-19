@@ -1,6 +1,6 @@
 package org.lflang.federated.generator;
 
-import static org.lflang.generator.DockerGeneratorBase.dockerGeneratorFactory;
+import static org.lflang.generator.DockerGenerator.dockerGeneratorFactory;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -42,6 +42,7 @@ import org.lflang.federated.launcher.FedLauncher;
 import org.lflang.federated.launcher.FedLauncherFactory;
 import org.lflang.generator.CodeMap;
 import org.lflang.generator.DockerData;
+import org.lflang.generator.FedDockerComposeGenerator;
 import org.lflang.generator.GeneratorResult.Status;
 import org.lflang.generator.GeneratorUtils;
 import org.lflang.generator.IntegratedBuilder;
@@ -185,9 +186,8 @@ public class FedGenerator {
                 services.add(dockerData);
             });
             // 2. create a docker-compose.yml for the federation
-            var dockerGenerator = new FedDockerGenerator(context, "localhost"); // FIXME: what should rtiHost be?
             try {
-                dockerGenerator.writeDockerComposeFile(services, "lf"); // FIXME: what should networkName be?
+                (new FedDockerComposeGenerator(context, "localhost")).writeDockerComposeFile(services, "lf"); // FIXME: what should networkName be?
             } catch (IOException e) {
                 Exceptions.sneakyThrow(e);
             }

@@ -1,9 +1,6 @@
 package org.lflang.generator.ts
 
-import org.lflang.generator.DockerGeneratorBase
-import org.lflang.FileConfig
-import org.lflang.federated.generator.FedFileConfig
-import org.lflang.generator.DockerData
+import org.lflang.generator.DockerGenerator
 import org.lflang.generator.LFGeneratorContext
 
 /**
@@ -11,7 +8,7 @@ import org.lflang.generator.LFGeneratorContext
  *
  * @author Hou Seng Wong
  */
-class TSDockerGenerator(context: LFGeneratorContext) : DockerGeneratorBase(context) {
+class TSDockerGenerator(context: LFGeneratorContext) : DockerGenerator(context) {
 
 //    /**
 //     * Translate data from the code generator to docker data as

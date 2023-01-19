@@ -52,13 +52,11 @@ import org.eclipse.xtext.xbase.lib.IterableExtensions;
 import org.eclipse.xtext.xbase.lib.StringExtensions;
 
 import org.lflang.ASTUtils;
-import org.lflang.ErrorReporter;
-import org.lflang.generator.DockerData;
+import org.lflang.generator.DockerComposeGenerator;
 import org.lflang.FileConfig;
 import org.lflang.Target;
 import org.lflang.TargetConfig;
 import org.lflang.TargetProperty;
-import org.lflang.TargetProperty.CoordinationType;
 import org.lflang.TargetProperty.Platform;
 
 import org.lflang.federated.extensions.CExtensionUtils;
@@ -67,7 +65,7 @@ import org.lflang.ast.AfterDelayTransformation;
 
 import org.lflang.generator.ActionInstance;
 import org.lflang.generator.CodeBuilder;
-import org.lflang.generator.DockerGeneratorBase;
+import org.lflang.generator.DockerGenerator;
 import org.lflang.generator.GeneratorBase;
 import org.lflang.generator.GeneratorResult;
 import org.lflang.generator.GeneratorUtils;
@@ -96,7 +94,6 @@ import org.lflang.lf.Reaction;
 import org.lflang.lf.Reactor;
 import org.lflang.lf.ReactorDecl;
 import org.lflang.lf.StateVar;
-import org.lflang.lf.VarRef;
 import org.lflang.lf.Variable;
 import org.lflang.util.FileUtil;
 
@@ -573,10 +570,9 @@ public class CGenerator extends GeneratorBase {
             // Create docker file.
             if (targetConfig.dockerOptions != null && mainDef != null) {
                 try {
-                    var dockerGenerator = getDockerGenerator(context);
-                    var dockerData = dockerGenerator.generateDockerData();
+                    var dockerData = getDockerGenerator(context).generateDockerData();
                     dockerData.writeDockerFile();
-                    dockerGenerator.writeDockerComposeFile(List.of(dockerData), "lf");
+                    (new DockerComposeGenerator(context)).writeDockerComposeFile(List.of(dockerData), "lf");
                 } catch (IOException e) {
                     throw new RuntimeException("Error while writing Docker files", e);
                 }
@@ -1988,7 +1984,7 @@ public class CGenerator extends GeneratorBase {
      * @param context
      * @return
      */
-    protected DockerGeneratorBase getDockerGenerator(LFGeneratorContext context) {
+    protected DockerGenerator getDockerGenerator(LFGeneratorContext context) {
         return new CDockerGenerator(context);
     }
 
