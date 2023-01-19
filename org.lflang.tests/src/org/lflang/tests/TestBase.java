@@ -555,7 +555,7 @@ public abstract class TestBase {
             set -e
             
             docker compose -f "$1" rm -f
-            docker compose -f "$1" up --build | tee docker_log.txt
+            docker compose -f "$1" up --build --remove-orphans --force-recreate | tee docker_log.txt
             docker compose -f "$1" down --rmi local
 
             errors=`grep -E "exited with code [1-9]" docker_log.txt | cat`
