@@ -23,7 +23,7 @@ public class DockerComposeGenerator {
     protected String generateDockerNetwork(String networkName) {
         return String.join("\n",
             "networks:",
-            "    lingua-franca:",
+            "    default:",
             "        name: "+networkName
         );
     }
@@ -62,6 +62,14 @@ public class DockerComposeGenerator {
      */
     protected String toString(DockerData data) {
         return data.getServiceDescription(false);
+    }
+
+    /**
+     * Write the docker-compose.yml file with a default network called "lf".
+     * @param services A list of all the services.
+     */
+    public void writeDockerComposeFile(List<DockerData> services) throws IOException {
+        writeDockerComposeFile(services, "lf");
     }
 
     /**

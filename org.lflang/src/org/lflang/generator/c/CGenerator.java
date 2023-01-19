@@ -572,7 +572,7 @@ public class CGenerator extends GeneratorBase {
                 try {
                     var dockerData = getDockerGenerator(context).generateDockerData();
                     dockerData.writeDockerFile();
-                    (new DockerComposeGenerator(context)).writeDockerComposeFile(List.of(dockerData), "lf");
+                    (new DockerComposeGenerator(context)).writeDockerComposeFile(List.of(dockerData));
                 } catch (IOException e) {
                     throw new RuntimeException("Error while writing Docker files", e);
                 }
