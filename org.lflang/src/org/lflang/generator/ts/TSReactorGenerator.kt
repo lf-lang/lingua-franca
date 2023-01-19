@@ -108,10 +108,15 @@ ${"             |"..preamble.code.toText()}
         return actionsStr?.split(",")?.filter { it.isNotEmpty()} ?: emptyList()
     }
 
-    private fun getNetworkOutputControlReactionTrigger(reactor: Reactor): String{
+    private fun getIsNetworkOutputControlReactionTriggerExist(reactor: Reactor): Boolean{
         val attribute = AttributeUtils.findAttributeByName(reactor, "_fed_config")
         val actionsStr = AttributeUtils.getAttributeParameter(attribute, AttributeSpec.NETWORK_OUTPUT_CONTROL_REACTION_TRIGGER)
-        return actionsStr?: ""
+        
+        if (actionsStr != "") {
+            return true;
+        } else {
+            return false;
+        }
     }
 
     fun generateReactor(reactor: Reactor): String {
@@ -123,7 +128,7 @@ ${"             |"..preamble.code.toText()}
 
         val isFederate = AttributeUtils.isFederate(reactor)
         val networkMessageActions = getNetworkMessagActions(reactor)
-        val networkOutputControlReactionTrigger = getNetworkOutputControlReactionTrigger(reactor)
+        val isNetworkOutputControlReactionTriggerExist = getIsNetworkOutputControlReactionTriggerExist(reactor)
 
         // NOTE: type parameters that are referenced in ports or actions must extend
         // Present in order for the program to type check.
@@ -158,7 +163,7 @@ ${"             |"..preamble.code.toText()}
             ${" |    "..actionGenerator.generateClassProperties()}
             ${" |    "..portGenerator.generateClassProperties()}
             ${" |    "..constructorGenerator.generateConstructor(targetConfig, instanceGenerator, timerGenerator, parameterGenerator,
-                stateGenerator, actionGenerator, portGenerator, isFederate, networkMessageActions, networkOutputControlReactionTrigger)}
+                stateGenerator, actionGenerator, portGenerator, isFederate, networkMessageActions, isNetworkOutputControlReactionTriggerExist)}
                 |}
                 |// =============== END reactor class ${reactor.name}
                 |

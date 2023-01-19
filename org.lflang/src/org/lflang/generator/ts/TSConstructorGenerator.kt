@@ -85,8 +85,8 @@ class TSConstructorGenerator(
     }
 
     // Generate code for registering outputControlReactionTrigger
-    fun generateNetworkOutputControlActionRegistrations(networkOutputControlReactionTrigger: String): String {
-        return if (networkOutputControlReactionTrigger != "") {
+    fun generateNetworkOutputControlActionRegistrations(isNetworkOutputControlReactionTriggerExist: Boolean): String {
+        return if (isNetworkOutputControlReactionTriggerExist) {
             "this.registerOutputControlReactionTrigger(this.outputControlReactionTrigger);"
         } else ""
     }
@@ -101,7 +101,7 @@ class TSConstructorGenerator(
         ports: TSPortGenerator,
         isFederate: Boolean,
         networkMessageActions: List<String>,
-        networkOutputControlReactionTrigger: String
+        isNetworkOutputControlReactionTriggerExist: Boolean
     ): String {
         val connections = TSConnectionGenerator(reactor.connections, errorReporter)
         val reactions = TSReactionGenerator(errorReporter, reactor)
@@ -121,7 +121,7 @@ class TSConstructorGenerator(
             ${" |    "..ports.generateInstantiations()}
             ${" |    "..connections.generateInstantiations()}
             ${" |    "..if (reactor.isMain && isFederate) generateFederatePortActionRegistrations(networkMessageActions) else ""}
-            ${" |    "..if (reactor.isMain && isFederate) generateNetworkOutputControlActionRegistrations(networkOutputControlReactionTrigger) else ""}
+            ${" |    "..if (reactor.isMain && isFederate) generateNetworkOutputControlActionRegistrations(isNetworkOutputControlReactionTriggerExist) else ""}
             ${" |    "..reactions.generateAllReactions()}
                 |}
             """.trimMargin()
