@@ -4,7 +4,7 @@ import java.util.List;
 import java.util.ArrayList;
 import org.lflang.ASTUtils;
 import org.lflang.Target;
-import org.lflang.federated.FederateInstance;
+import org.lflang.federated.generator.FederateInstance;
 import org.lflang.generator.ActionInstance;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.generator.GeneratorBase;
@@ -30,17 +30,13 @@ public class CActionGenerator {
      * For each action of the specified reactor instance, generate initialization code
      * for the offset and period fields.
      * @param instance The reactor.
-     * @param currentFederate The federate we are
      */
     public static String generateInitializers(
-        ReactorInstance instance,
-        FederateInstance currentFederate
+        ReactorInstance instance
     ) {
         List<String> code = new ArrayList<>();
         for (ActionInstance action : instance.actions) {
-            if (currentFederate.contains(action.getDefinition()) &&
-                !action.isShutdown()
-            ) {
+            if (!action.isShutdown()) {
                 var triggerStructName = CUtil.reactorRef(action.getParent()) + "->_lf__" + action.getName();
                 var minDelay = action.getMinDelay();
                 var minSpacing = action.getMinSpacing();
@@ -98,24 +94,20 @@ public class CActionGenerator {
      *
      * @param reactor The reactor to generate declarations for
      * @param decl The reactor's declaration
-     * @param currentFederate The federate that is being generated
      * @param body The content of the self struct
      * @param constructorCode The constructor code of the reactor
      */
     public static void generateDeclarations(
         Reactor reactor,
         ReactorDecl decl,
-        FederateInstance currentFederate,
         CodeBuilder body,
         CodeBuilder constructorCode
     ) {
         for (Action action : ASTUtils.allActions(reactor)) {
-            if (currentFederate.contains(action)) {
-                var actionName = action.getName();
-                body.pr(action, CGenerator.variableStructType(action, decl)+" _lf_"+actionName+";");
-                // Initialize the trigger pointer in the action.
-                constructorCode.pr(action, "self->_lf_"+actionName+".trigger = &self->_lf__"+actionName+";");
-            }
+            var actionName = action.getName();
+            body.pr(action, CGenerator.variableStructType(action, decl)+" _lf_"+actionName+";");
+            // Initialize the trigger pointer in the action.
+            constructorCode.pr(action, "self->_lf_"+actionName+".trigger = &self->_lf__"+actionName+";");
         }
     }
 

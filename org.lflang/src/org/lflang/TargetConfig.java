@@ -29,6 +29,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
 import org.lflang.TargetProperty.BuildType;
@@ -38,6 +39,7 @@ import org.lflang.TargetProperty.LogLevel;
 import org.lflang.TargetProperty.Platform;
 import org.lflang.TargetProperty.SchedulerOption;
 import org.lflang.generator.rust.RustTargetConfig;
+import org.lflang.lf.TargetDecl;
 
 /**
  * A class for keeping the current target configuration.
@@ -47,6 +49,12 @@ import org.lflang.generator.rust.RustTargetConfig;
  * @author Marten Lohstroh
  */
 public class TargetConfig {
+
+    public final Target target;
+
+    public TargetConfig(TargetDecl target) {
+        this.target = Target.fromDecl(target);
+    }
 
     /**
      * Keep track of every target property that is explicitly set by the user.
@@ -268,7 +276,10 @@ public class TargetConfig {
     public boolean exportToYaml = false;
 
     /** Rust-specific configuration. */
-    public final RustTargetConfig rust = new RustTargetConfig();
+    public final RustTargetConfig rust = new RustTargetConfig(); // FIXME: https://issue.lf-lang.org/1558
+
+    /** Path to a C file used by the Python target to setup federated execution. */
+    public String fedSetupPreamble = null; // FIXME: https://issue.lf-lang.org/1558
 
     /**
      * Settings related to clock synchronization.
@@ -341,6 +352,18 @@ public class TargetConfig {
          * The base image and tag from which to build the Docker image. The default is "alpine:latest".
          */
         public String from = "alpine:latest";
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) {
+                return true;
+            }
+            if (o == null || getClass() != o.getClass()) {
+                return false;
+            }
+            DockerOptions that = (DockerOptions) o;
+            return from.equals(that.from);
+        }
     }
 
     /**
@@ -421,13 +444,18 @@ public class TargetConfig {
         public String board = null;
 
         /**
+         * The string value used to determine the port on which to flash the compiled program (i.e. /dev/cu.usbmodem21301)
+         */
+        public String port = "";
+
+        /**
          * The baud rate used as a parameter to certain embedded platforms. 9600 is a standard rate amongst systems like Arduino, so it's the default value.
          */
         public int baudRate = 9600;
 
-/**
- * Should LFC invoke external tools to flash the resulting binary onto the target board
- */
+        /**
+         * Should LFC invoke external tools to flash the resulting binary onto the target board
+         */
         public boolean flash = false;
     }   
 
@@ -440,5 +468,17 @@ public class TargetConfig {
          * This defaults to the name of the .lf file.
          */
         public String traceFileName = null;
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) {
+                return true;
+            }
+            if (o == null || getClass() != o.getClass()) {
+                return false;
+            }
+            TracingOptions that = (TracingOptions) o;
+            return Objects.equals(traceFileName, that.traceFileName); // traceFileName may be null
+        }
     }
 }

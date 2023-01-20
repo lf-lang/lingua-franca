@@ -1,6 +1,7 @@
 package org.lflang.generator;
 
 import org.lflang.lf.Action;
+import org.lflang.lf.Reaction;
 import org.lflang.lf.VarRef;
 
 public interface DelayBodyGenerator {
@@ -53,4 +54,6 @@ public interface DelayBodyGenerator {
      */
     boolean generateAfterDelaysWithVariableWidth();
 
+    /** Used to optionally apply additional transformations to the generated reactions */
+    default void finalizeReactions(Reaction delayReaction, Reaction forwardReaction) { }
 }

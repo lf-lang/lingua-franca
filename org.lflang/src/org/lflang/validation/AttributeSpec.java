@@ -40,7 +40,6 @@ import org.lflang.util.StringUtil;
 
 /**
  * Specification of the structure of an attribute annotation.
- * 
  * @author Clément Fournier
  * @author Shaokai Lin
  */
@@ -49,7 +48,7 @@ public class AttributeSpec {
     private final Map<String, AttrParamSpec> paramSpecByName;
 
     public static final String VALUE_ATTR = "value";
-
+    public static final String NETWORK_MESSAGE_ACTIONS = "network_message_actions";
     public static final String EACH_ATTR = "each";
 
     /** A map from a string to a supported AttributeSpec */
@@ -110,7 +109,7 @@ public class AttributeSpec {
      * these names are known, and whether the named parameters
      * conform to the param spec (whether the param has the
      * right type, etc.).
-     * 
+     *
      * @param validator The current validator in use.
      * @param attr The attribute being checked.
      * @return A set of named attribute parameters the user provides.
@@ -127,7 +126,7 @@ public class AttributeSpec {
                     validator.error("Missing name for attribute parameter.", Literals.ATTRIBUTE__ATTR_NAME);
                     continue;
                 }
-    
+
                 AttrParamSpec parmSpec = paramSpecByName.get(parm.getName());
                 if (parmSpec == null) {
                     validator.error("\"" + parm.getName() + "\"" + " is an unknown attribute parameter.",
@@ -144,7 +143,7 @@ public class AttributeSpec {
 
     /**
      * The specification of the attribute parameter.
-     * 
+     *
      * @param name The name of the attribute parameter
      * @param type The type of the parameter
      * @param isOptional True if the parameter is optional.
@@ -152,37 +151,41 @@ public class AttributeSpec {
     record AttrParamSpec(String name, AttrParamType type, boolean isOptional) {
 
         // Check if a parameter has the right type.
-        // Currently only String, Int, Boolean, and Float are supported.
+        // Currently, only String, Int, Boolean, Float, and target language are supported.
         public void check(LFValidator validator, AttrParm parm) {
             switch (type) {
-            case STRING:
+            case STRING -> {
                 if (!StringUtil.hasQuotes(parm.getValue())) {
                     validator.error("Incorrect type: \"" + parm.getName() + "\""
                             + " should have type String.",
                         Literals.ATTRIBUTE__ATTR_NAME);
                 }
-                break;
-            case INT:
+            }
+            case INT -> {
                 if (!ASTUtils.isInteger(parm.getValue())) {
                     validator.error(
-                        "Incorrect type: \"" + parm.getName() + "\"" + " should have type Int.",
+                        "Incorrect type: \"" + parm.getName() + "\""
+                            + " should have type Int.",
                         Literals.ATTRIBUTE__ATTR_NAME);
                 }
-                break;
-            case BOOLEAN:
+            }
+            case BOOLEAN -> {
                 if (!ASTUtils.isBoolean(parm.getValue())) {
                     validator.error(
-                        "Incorrect type: \"" + parm.getName() + "\"" + " should have type Boolean.",
+                        "Incorrect type: \"" + parm.getName() + "\""
+                            + " should have type Boolean.",
                         Literals.ATTRIBUTE__ATTR_NAME);
                 }
-                break;
-            case FLOAT:
+            }
+            case FLOAT -> {
                 if (!ASTUtils.isFloat(parm.getValue())) {
                     validator.error(
-                        "Incorrect type: \"" + parm.getName() + "\"" + " should have type Float.",
+                        "Incorrect type: \"" + parm.getName() + "\""
+                            + " should have type Float.",
                         Literals.ATTRIBUTE__ATTR_NAME);
                 }
-                break;
+            }
+            default -> throw new IllegalArgumentException("unexpected type");
             }
         }
     }
@@ -194,7 +197,7 @@ public class AttributeSpec {
         STRING,
         INT,
         BOOLEAN,
-        FLOAT
+        FLOAT,
     }
 
     /*
@@ -216,5 +219,12 @@ public class AttributeSpec {
         ATTRIBUTE_SPECS_BY_NAME.put("enclave", new AttributeSpec(
             List.of(new AttrParamSpec(EACH_ATTR, AttrParamType.BOOLEAN, true))
         ));
+
+        // attributes that are used internally only by the federated code generation
+        ATTRIBUTE_SPECS_BY_NAME.put("_unordered", new AttributeSpec(null));
+        ATTRIBUTE_SPECS_BY_NAME.put("_fed_config", new AttributeSpec(
+            List.of(new AttrParamSpec(AttributeSpec.NETWORK_MESSAGE_ACTIONS,
+                                      AttrParamType.STRING, false))));
+        ATTRIBUTE_SPECS_BY_NAME.put("_c_body", new AttributeSpec(null));
     }
 }

@@ -2,9 +2,11 @@ package org.lflang.generator.python;
 
 
 import org.lflang.ASTUtils;
+import org.lflang.federated.generator.FedASTUtils;
 import org.lflang.generator.c.CDelayBodyGenerator;
 import org.lflang.generator.c.CUtil;
 import org.lflang.lf.Action;
+import org.lflang.lf.Reaction;
 import org.lflang.lf.VarRef;
 
 public class PythonDelayBodyGenerator extends CDelayBodyGenerator {
@@ -71,4 +73,9 @@ public class PythonDelayBodyGenerator extends CDelayBodyGenerator {
         }
     }
 
+    @Override
+    public void finalizeReactions(Reaction delayReaction, Reaction forwardReaction) {
+        ASTUtils.addReactionAttribute(delayReaction, "_c_body");
+        ASTUtils.addReactionAttribute(forwardReaction, "_c_body");
+    }
 }

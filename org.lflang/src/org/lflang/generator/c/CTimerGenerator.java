@@ -63,7 +63,7 @@ public class CTimerGenerator {
                     if (_lf_timer_triggers[i] != NULL) {
                         _lf_initialize_timer(_lf_timer_triggers[i]);
                     }
-                }""".indent(4) :
+                }""".indent(4).stripTrailing() :
             "",
             "}"
         );
