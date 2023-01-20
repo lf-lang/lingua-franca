@@ -178,10 +178,8 @@ class CppReactionGenerator(
 
         val variables = r.getAllReferencedVariablesForContainer(container)
         val instantiations = variables.map {
-            if (it.isEffectOf(r))
-                "decltype($reactorClass::${it.variable.name})& ${it.variable.name};"
-            else
-                "const ${it.cppType}& ${it.variable.name};"
+            val type = "decltype($reactorClass::${it.variable.name})& ${it.variable.name};"
+            if (it.isEffectOf(r)) type else "const $type"
         }
         val initializers = variables.map { "${it.variable.name}(reactor->${it.variable.name})" }
 

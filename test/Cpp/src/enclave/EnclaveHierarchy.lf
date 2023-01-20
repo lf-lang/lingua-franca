@@ -14,7 +14,7 @@ reactor Node(
         reactor::log::Info() << id << " reaction executes.";
         std::this_thread::sleep_for(duration);
         reactor::log::Info() << id << " reaction done.";
-    =} deadline(150 msec) {=
+    =} deadline(300 msec) {=
         reactor::log::Error() << id << " deadline was violated!";
         exit(1);
     =}

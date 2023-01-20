@@ -418,12 +418,17 @@ public class TargetConfig {
         /**
          * The base board we target when building LF on Arduino/Embedded Boards. For OS development and generic embedded systems, this value is unused.
          */
-        public Board board = Board.UNO;
+        public String board = null;
 
         /**
          * The baud rate used as a parameter to certain embedded platforms. 9600 is a standard rate amongst systems like Arduino, so it's the default value.
          */
         public int baudRate = 9600;
+
+/**
+ * Should LFC invoke external tools to flash the resulting binary onto the target board
+ */
+        public boolean flash = false;
     }   
 
     /**
