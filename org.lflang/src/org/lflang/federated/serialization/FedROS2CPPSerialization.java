@@ -145,14 +145,14 @@ public class FedROS2CPPSerialization implements FedSerialization {
         
         deserializerCode.append(
                 "auto message = std::make_unique<rcl_serialized_message_t>( rcl_serialized_message_t{\n"
-                + "    .buffer = (uint8_t*)"+varName+".token->value,\n"
-                + "    .buffer_length = "+varName+".token->length,\n"
-                + "    .buffer_capacity = "+varName+".token->length,\n"
+                + "    .buffer = (uint8_t*)"+varName+".tmplt.token->value,\n"
+                + "    .buffer_length = "+varName+".tmplt.token->length,\n"
+                + "    .buffer_capacity = "+varName+".tmplt.token->length,\n"
                 + "    .allocator = rcl_get_default_allocator()\n"
                 + "});\n"
         );
         deserializerCode.append("auto msg = std::make_unique<rclcpp::SerializedMessage>(std::move(*message.get()));\n");
-        deserializerCode.append(varName+".token->value = NULL; // Manually move the data\n");
+        deserializerCode.append(varName+".tmplt.token->value = NULL; // Manually move the data\n");
         // Use the port type verbatim here, which can result
         // in compile error if it is not a valid ROS type
         deserializerCode.append("using MessageT = "+targetType+";\n");
