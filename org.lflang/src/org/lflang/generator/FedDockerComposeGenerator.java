@@ -28,22 +28,25 @@ public class FedDockerComposeGenerator extends DockerComposeGenerator {
 
     @Override
     protected String generateDockerServices(List<DockerData> services) {
-        return String.join("\n",
-            super.generateDockerServices(services),
-            "    rti:",
-            "        image: lflang/rti:rti",
-            "        hostname: " + this.rtiHost,
-            "        command: -i 1 -n " + services.size(),
-            "        container_name: " + containerName + "-" + "rti");
+        return """
+            %s\
+                rti:
+                    image: "lflang/rti:rti"
+                    hostname: "%s"
+                    command: "-i 1 -n %s"
+                    container_name: "%s-rti"
+            """.formatted(super.generateDockerServices(services),
+                this.rtiHost, services.size(), containerName);
     }
 
     @Override
     protected String getServiceDescription(DockerData data) {
-        var svc = new StringBuilder(super.getServiceDescription(data));
-        svc.append("\n        command: -i 1");
-        svc.append("\n        depends_on:");
-        svc.append("\n            - rti");
-        return svc.toString();
+        return """
+            %s\
+                    command: "-i 1"
+                    depends_on:
+                        - rti
+            """.formatted(super.getServiceDescription(data));
     }
 
     @Override

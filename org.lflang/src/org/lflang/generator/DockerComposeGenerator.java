@@ -29,11 +29,11 @@ public class DockerComposeGenerator {
      * @param networkName Name of the default network
      */
     protected String generateDockerNetwork(String networkName) {
-        return String.join("\n",
-            "networks:",
-            "    default:",
-            "        name: "+networkName
-        );
+        return """
+            networks:
+                default:
+                    name: "%s"
+            """.formatted(networkName);
     }
 
     /**
@@ -41,42 +41,39 @@ public class DockerComposeGenerator {
      * @param services A list of docker data representing the services to render
      */
     protected String generateDockerServices(List<DockerData> services) {
-        return String.join("\n",
-            "version: \"3.9\"",
-            "services:",
-            services.stream().map(
+        return """
+            version: "3.9" 
+            services:
+            %s
+            """.formatted(services.stream().map(
                 data -> getServiceDescription(data)
-            ).collect(Collectors.joining("\n"))
-        );
+            ).collect(Collectors.joining("\n")));
     }
 
     /**
      * Return the command to build and run using the docker-compose configuration.
      */
     public String getUsageInstructions() {
-        return String.join("\n",
-            "#####################################",
-            "To build:",
-            "    pushd " + path.getParent() + " && docker compose build",
-            "Then, to launch:",
-            "    docker compose up",
-            "To return to the current working directory:",
-            "    popd",
-            "#####################################"
-        );
+        return """
+            #####################################
+            To build and run:
+                pushd %s && docker compose up --build
+            To return to the current working directory afterwards:
+                popd
+            #####################################
+            """.formatted(path.getParent());
     }
 
     /**
      * Turn given docker data into a string.
      */
     protected String getServiceDescription(DockerData data) {
-        var tab = " ".repeat(4);
-        StringBuilder svc = new StringBuilder();
-        svc.append(tab + getServiceName(data) +":\n");
-        svc.append(tab + tab + "build:\n");
-        svc.append(tab.repeat(3) + "context: " + getBuildContext(data));
-        svc.append("\n"+tab+tab+"container_name: " + getContainerName(data));
-        return svc.toString();
+        return """
+                %s:
+                    build:
+                        context: "%s"
+                    container_name: "%s"
+            """.formatted(getServiceName(data), getBuildContext(data), getContainerName(data));
     }
 
     /**
