@@ -6,62 +6,48 @@ import java.nio.file.Path;
 import org.lflang.util.FileUtil;
 
 /**
+ * Build configuration of a docker service.
  *
+ * @author Marten Lohstroh
  */
 public class DockerData {
     /**
      * The absolute path to the docker file.
      */
-    private Path filePath;
+    private final Path dockerFilePath;
+
     /**
      * The content of the docker file to be generated.
      */
-    private String fileContent;
+    private final String dockerFileContent;
 
     /**
-     * The build context of the docker container.
+     * The name of the service.
      */
-    public final String dockerContext;
-
-    public final String containerName;
-
     public final String serviceName;
 
     public DockerData(
         String serviceName,
-        String containerName,
         Path dockerFilePath,
-        String dockerFileContent,
-        String dockerContext
+        String dockerFileContent
     ) {
-        this.serviceName = serviceName;
-        this.containerName = containerName;
 
-        if (dockerFilePath == null || dockerFileContent == null ||
-            dockerContext == null) {
-            throw new RuntimeException("Missing fields in DockerData instance");
-        }
         if (!dockerFilePath.toFile().isAbsolute()) {
-            throw new RuntimeException("Non-absolute docker file path in DockerData instance");
+            throw new RuntimeException("Cannot use relative docker file path in DockerData instance");
         }
-        filePath = dockerFilePath;
-        fileContent = dockerFileContent;
-        this.dockerContext = dockerContext;
+        this.serviceName = serviceName;
+        this.dockerFilePath = dockerFilePath;
+        this.dockerFileContent = dockerFileContent;
     }
-
-    public Path getFilePath() { return filePath; }
-    public String getFileContent() { return fileContent; }
-    public String getDockerContext() { return dockerContext; }
 
     /**
      * Write a docker file based on this data.
      */
     public void writeDockerFile() throws IOException {
-        var dockerFilePath = this.getFilePath();
         if (dockerFilePath.toFile().exists()) {
             dockerFilePath.toFile().delete();
         }
-        FileUtil.writeToFile(this.getFileContent(), dockerFilePath);
-        System.out.println("Dockerfile written to " + this.getFilePath());
+        FileUtil.writeToFile(dockerFileContent, dockerFilePath);
+        System.out.println("Dockerfile written to " + dockerFilePath);
     }
 }

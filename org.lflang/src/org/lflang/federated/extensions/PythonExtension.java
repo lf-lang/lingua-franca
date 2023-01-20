@@ -49,7 +49,7 @@ import org.lflang.lf.VarRef;
  * An extension class to the PythonGenerator that enables certain federated
  * functionalities.
  *
- * @author Soroush Bateni {soroush@utdallas.edu}
+ * @author Soroush Bateni
  */
 public class PythonExtension extends CExtension {
 

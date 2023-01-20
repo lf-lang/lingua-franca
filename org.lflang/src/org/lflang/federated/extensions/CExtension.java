@@ -115,9 +115,6 @@ public class CExtension implements FedTargetExtension {
         // If the program is federated, then ensure that threading is enabled.
         federate.targetConfig.threading = true;
         federate.targetConfig.setByUser.add(TargetProperty.THREADING);
-        // FIXME: handle user files in the main .lf file
-
-        generateDockerFile(federate, fileConfig, federationRTIProperties);
 
         // Include the fed setup file for this federate in the target property
         String relPath = "include" + File.separator + "_" + federate.name + "_preamble.c";
@@ -130,31 +127,6 @@ public class CExtension implements FedTargetExtension {
      */
     protected void generateCMakeInclude(FederateInstance federate, FedFileConfig fileConfig) throws IOException {
         CExtensionUtils.generateCMakeInclude(federate, fileConfig);
-    }
-
-    /**
-     * Generate a docker file.
-     */
-    private void generateDockerFile(FederateInstance federate, FedFileConfig fileConfig, LinkedHashMap<String, Object> federationRTIProperties) {
-        // Docker related paths
-// FIXME
-//        CDockerGenerator dockerGenerator = (CDockerGenerator)newDockerGeneratorInstance(federate);
-//
-//        // Create docker file.
-//        if (federate.targetConfig.dockerOptions != null) {
-//            dockerGenerator.add(
-//                dockerGenerator.fromData(fileConfig.name, federate.name, fileConfig));
-//        }
-//
-//        if (federate.targetConfig.dockerOptions != null) {
-//            dockerGenerator.setHost(federationRTIProperties.get("host"));
-//            try {
-//                dockerGenerator.writeDockerFiles(
-//                    fileConfig.getFedSrcGenPath().resolve("docker-compose.yml"));
-//            } catch (IOException e) {
-//                throw new RuntimeException(e);
-//            }
-//        }
     }
 
     /**

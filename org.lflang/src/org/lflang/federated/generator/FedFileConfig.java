@@ -53,22 +53,6 @@ public class FedFileConfig extends FileConfig {
         super(fileConfig.resource, fileConfig.getSrcGenBasePath(), fileConfig.useHierarchicalBin);
     }
 
-
-    //    @Override
-//    public LFCommand getCommand() {
-//        // FIXME: what should this point to? The launcher script?
-//        return null;
-//    }
-//
-//    @Override
-//    public Path getExecutable() {
-//        // FIXME: what should this point to? The launcher script?
-//        return null;
-//    }
-
-    // FIXME: it seems that the "fed" methods below should just be overrides in
-    //  the other class of the normal ones.
-
     /**
      * Return the path to the root of a LF project generated on the basis of a
      * federated LF program currently under compilation.

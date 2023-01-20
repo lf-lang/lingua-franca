@@ -74,8 +74,8 @@ import com.google.common.collect.Iterators;
  * A helper class for AST transformations needed for federated
  * execution.
  *
- * @author Soroush Bateni {soroush@utdallas.edu}
- * @author Edward A. Lee {eal@berkeley.edu}
+ * @author Soroush Bateni
+ * @author Edward A. Lee
  */
 public class FedASTUtils {
 

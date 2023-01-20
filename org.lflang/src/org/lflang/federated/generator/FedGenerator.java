@@ -178,7 +178,7 @@ public class FedGenerator {
                 // Inherit Docker properties from main context
                 subContext.getTargetConfig().dockerOptions = context.getTargetConfig().dockerOptions;
                 var dockerGenerator = dockerGeneratorFactory(subContext);
-                var dockerData = dockerGenerator.generateDockerData(fileConfig);
+                var dockerData = dockerGenerator.generateDockerData();
                 try {
                     dockerData.writeDockerFile();
                 } catch (IOException e) {
@@ -188,7 +188,9 @@ public class FedGenerator {
             });
             // 2. create a docker-compose.yml for the federation
             try {
-                // FIXME: use the appropriate address for rtiHost
+                // FIXME: https://issue.lf-lang.org/1559
+                // It appears that the rtiHost information should come from federationRTIproperties,
+                // which is a kludge and not in scope here.
                 (new FedDockerComposeGenerator(context, "localhost")).writeDockerComposeFile(services);
             } catch (IOException e) {
                 Exceptions.sneakyThrow(e);

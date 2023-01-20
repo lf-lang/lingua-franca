@@ -33,7 +33,7 @@ public class FedTargetEmitter {
             errorReporter
         );
         // FIXME: Should we merge some properties with the main .lf file if the federate is imported?
-        // Maybe only if their targets match?
+        // https://issue.lf-lang.org/1560
         var fedReactorClass = federate.instantiation.getReactorClass();
         if (!fedReactorClass.eResource().equals(fileConfig.resource)) {
             // Merge some target properties of the main .lf file.

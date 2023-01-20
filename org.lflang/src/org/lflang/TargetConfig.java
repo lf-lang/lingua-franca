@@ -276,10 +276,10 @@ public class TargetConfig {
     public boolean exportToYaml = false;
 
     /** Rust-specific configuration. */
-    public final RustTargetConfig rust = new RustTargetConfig();
+    public final RustTargetConfig rust = new RustTargetConfig(); // FIXME: https://issue.lf-lang.org/1558
 
     /** Path to a C file used by the Python target to setup federated execution. */
-    public String fedSetupPreamble = null;
+    public String fedSetupPreamble = null; // FIXME: https://issue.lf-lang.org/1558
 
     /**
      * Settings related to clock synchronization.

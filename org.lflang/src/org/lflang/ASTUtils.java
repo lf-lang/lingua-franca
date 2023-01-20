@@ -216,7 +216,9 @@ public class ASTUtils {
         return null;
     }
 
-
+    /**
+     * Return the main reactor in the given resource if there is one, null otherwise.
+     */
     public static Reactor findMainReactor(Resource resource) {
         return IteratorExtensions.findFirst(
                 Iterators.filter(resource.getAllContents(), Reactor.class),

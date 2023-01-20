@@ -15,7 +15,7 @@ import org.lflang.lf.Model;
 /**
  * Helper class to generate import statements for a federate.
  *
- * @author Soroush Bateni (soroush@berkeley.edu)
+ * @author Soroush Bateni
  */
 public class FedImportEmitter {
 

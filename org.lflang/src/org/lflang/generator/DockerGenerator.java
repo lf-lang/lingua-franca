@@ -1,6 +1,5 @@
 package org.lflang.generator;
 
-import org.lflang.FileConfig;
 import org.lflang.generator.c.CDockerGenerator;
 import org.lflang.generator.python.PythonDockerGenerator;
 import org.lflang.generator.ts.TSDockerGenerator;
@@ -29,44 +28,23 @@ public abstract class DockerGenerator {
     }
 
     /**
-     * Produce a DockerData object.
-     * @return
+     * Generate the contents of a Dockerfile.
      */
      protected abstract String generateDockerFileContent();
 
     /**
      * Produce a DockerData object.
-     *
      * If the returned object is to be used in a federated context,
      * pass in the file configuration of the federated generator, null otherwise.
-     * @param fileConfig Optional argument to point to a federated file configuration
      * @return docker data created based on the context in this instance
      */
-    public DockerData generateDockerData(FileConfig fileConfig) {
+    public DockerData generateDockerData() {
+        var name = context.getFileConfig().name;
         var dockerFilePath = context.getFileConfig().getSrcGenPath().resolve("Dockerfile");
         var dockerFileContent = generateDockerFileContent();
 
-        String buildContext;
-        String serviceName;
-        String containerName;
-
-        if (fileConfig == null) {
-            serviceName = "main";
-            buildContext = ".";
-            containerName = context.getFileConfig().name;
-        } else {
-            serviceName = context.getFileConfig().name;
-            buildContext = serviceName;
-            containerName = fileConfig.name + "-" + serviceName;
-        }
-
-        return new DockerData(serviceName, containerName, dockerFilePath, dockerFileContent, buildContext);
+        return new DockerData(name, dockerFilePath, dockerFileContent);
     }
-
-    public DockerData generateDockerData() {
-        return generateDockerData(null);
-    }
-
 
     public static DockerGenerator dockerGeneratorFactory(LFGeneratorContext context) {
         var target = context.getTargetConfig().target;

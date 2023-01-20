@@ -4,10 +4,14 @@ import org.lflang.Target;
 import org.lflang.lf.TargetDecl;
 
 /**
- * FIXME
+ * Class for instantiating target extensions.
+ * @author Soroush Bateni
  */
 public class FedTargetExtensionFactory {
 
+    /**
+     * Given a target, return the appropriate extension.
+     */
     public static FedTargetExtension getExtension(TargetDecl target) {
         switch (Target.fromDecl(target)) {
         case CCPP:

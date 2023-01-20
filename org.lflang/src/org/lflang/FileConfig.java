@@ -294,17 +294,26 @@ public abstract class FileConfig {
         return p.getParent();
     }
 
+    /**
+     * Return an LFCommand instance that can be used to execute the program under compilation.
+     */
     public LFCommand getCommand() {
-        String cmd = GeneratorUtils.isHostWindows() ? getExecutable().toString()
-                                                    :
-                     srcPkgPath.relativize(getExecutable()).toString();
+        String cmd = GeneratorUtils.isHostWindows() ?
+            getExecutable().toString() :
+            srcPkgPath.relativize(getExecutable()).toString();
         return LFCommand.get(cmd, List.of(), true, srcPkgPath);
     }
 
+    /**
+     * Return the extension used for binaries on the platform on which compilation takes place.
+     */
     protected String getExecutableExtension() {
         return (GeneratorUtils.isHostWindows() ? ".exe" : "");
     }
 
+    /**
+     * Return a path to an executable version of the program under compilation.
+     */
     public Path getExecutable() {
         return binPath.resolve(name + getExecutableExtension());
     }

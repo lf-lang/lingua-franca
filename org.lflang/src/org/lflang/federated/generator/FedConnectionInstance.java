@@ -8,44 +8,31 @@ import org.lflang.lf.Connection;
 
 /**
  * Class representing a federated connection.
+ *
+ * This is an undocumented class written by a previous contributor who is no longer active.
+ * It merely serves as a record, presumably to make it easier to pass around information
+ * around.
+ *
+ * @author Soroush Bateni
  */
 public class FedConnectionInstance {
 
-    /**
-     * FIXME
-     */
     SendRange srcRange;
-    /**
-     * FIXME
-     */
+
     RuntimeRange<PortInstance> dstRange;
-    /**
-     * FIXME
-     */
+
     int srcChannel;
-    /**
-     * FIXME
-     */
+
     int srcBank;
-    /**
-     * FIXME
-     */
+
     int dstChannel;
-    /**
-     * FIXME
-     */
+
     int dstBank;
-    /**
-     * FIXME
-     */
+
     FederateInstance srcFederate;
-    /**
-     * FIXME
-     */
+
     FederateInstance dstFederate;
-    /**
-     * FIXME
-     */
+
     SupportedSerializers serializer;
 
     public FedConnectionInstance(
