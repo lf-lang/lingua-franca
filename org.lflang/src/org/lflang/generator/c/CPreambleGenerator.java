@@ -84,24 +84,6 @@ public class CPreambleGenerator {
             code.pr("#define MICROSECOND_TIME");
             code.pr("#define BIT_32");
         }
-//        if (isFederated) {
-//            code.pr("#define NUMBER_OF_FEDERATES " + numFederates);
-//            code.pr(generateFederatedDefineDirective(coordinationType));
-//            if (advanceMessageInterval != null) {
-//                code.pr("#define ADVANCE_MESSAGE_INTERVAL " +
-//                    GeneratorBase.timeInTargetLanguage(advanceMessageInterval));
-//            }
-//        }
-// FIXME: the code below comes from master
-//        if (isFederated) {
-//            code.pr("#define NUMBER_OF_FEDERATES " + numFederates);
-//            code.pr(generateFederatedDefineDirective(coordinationType));
-//            if (advanceMessageInterval != null) {
-//                code.pr("#define ADVANCE_MESSAGE_INTERVAL " +
-//                            GeneratorBase.timeInTargetLanguage(advanceMessageInterval));
-//            }
-//        }
-
 
         if (tracing != null) {
             targetConfig.compileDefinitions.put("LF_TRACE", tracing.traceFileName);

@@ -405,31 +405,6 @@ public class CGenerator extends GeneratorBase {
         );
     }
 
-//    public CGenerator(LFGeneratorContext context) {
-//        this(context, false, new CTypes(context.getErrorReporter()));
-//    }
-
-//    /**
-//     * Set C-specific default target configurations if needed.
-//     */
-//    public void setCSpecificDefaults() {
-//        if (isFederated) {
-//            // Add compile definitions for federated execution
-//            targetConfig.compileDefinitions.put("FEDERATED", "");
-//            if(targetConfig.auth) {
-//                // The federates are authenticated before joining federation.
-//                targetConfig.compileDefinitions.put("FEDERATED_AUTHENTICATED", "");
-//            }
-//            if (targetConfig.coordination == CoordinationType.CENTRALIZED) {
-//                // The coordination is centralized.
-//                targetConfig.compileDefinitions.put("FEDERATED_CENTRALIZED", "");
-//            } else if (targetConfig.coordination == CoordinationType.DECENTRALIZED) {
-//                // The coordination is decentralized
-//                targetConfig.compileDefinitions.put("FEDERATED_DECENTRALIZED", "");
-//            }
-//        }
-//    }
-
     /**
      * Look for physical actions in all resources.
      * If found, set threads to be at least one to allow asynchronous schedule calls.

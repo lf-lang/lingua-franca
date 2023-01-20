@@ -10,22 +10,6 @@ import org.lflang.generator.LFGeneratorContext
  */
 class TSDockerGenerator(context: LFGeneratorContext) : DockerGenerator(context) {
 
-//    /**
-//     * Translate data from the code generator to docker data as
-//     * specified in the DockerData class.
-//     *
-//     * @return docker data as specified in the DockerData class
-//     */
-//    override fun generateDockerData(containerName: String) : DockerData {
-//        val dockerFilePath = context.fileConfig.srcGenPath.resolve("Dockerfile")
-//        val dockerFileContent = generateDockerFileContent("${context.fileConfig.name}")
-//        val buildContext = if (context.fileConfig is FedFileConfig) context.fileConfig.name else "."
-//        val serviceName = if (context.fileConfig is FedFileConfig) context.fileConfig.name else "main"
-//
-//        return DockerData(serviceName, containerName, dockerFilePath, dockerFileContent, buildContext)
-//    }
-
-
     /**
     * Returns the content of the docker file for [tsFileName].
     */
