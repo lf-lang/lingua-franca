@@ -42,7 +42,7 @@ import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
 import org.lflang.InferredType;
 import org.lflang.TargetConfig;
-import org.lflang.federated.FederateInstance;
+
 import org.lflang.generator.ActionInstance;
 import org.lflang.generator.GeneratorCommandFactory;
 import org.lflang.generator.LFGeneratorContext;
@@ -139,6 +139,18 @@ public class CUtil {
      */
     public static String channelIndexName(PortInstance port) {
         return port.uniqueID() + "_c";
+    }
+
+    /**
+     * Return the name of the reactor. A '_main` is appended to the name if the
+     * reactor is main (to allow for instantiations that have the same name as
+     * the main reactor or the .lf file).
+     */
+    public static String getName(ReactorDecl reactor) {
+        if (reactor instanceof Reactor r && r.isMain()) {
+            return reactor.getName() + "_main";
+        }
+        return reactor.getName();
     }
 
     /**
@@ -503,6 +515,9 @@ public class CUtil {
      * @return The type of a self struct for the specified reactor class.
      */
     public static String selfType(ReactorDecl reactor) {
+        if (reactor instanceof Reactor r && r.isMain()) {
+            return reactor.getName().toLowerCase() + "_main_self_t";
+        }
         return reactor.getName().toLowerCase() + "_self_t";
     }
 
@@ -856,22 +871,6 @@ public class CUtil {
         // This is a hacky way to do this. It is now considered to be a bug (#657)
         String targetType = types.getVariableDeclaration(type, "", false);
         return type.isVariableSizeList || targetType.trim().endsWith("*");
-    }
-
-    /**
-     * The number of threads needs to be at least one larger than the input ports
-     * to allow the federate to wait on all input ports while allowing an additional
-     * worker thread to process incoming messages.
-     *
-     * @param federates
-     * @return The minimum number of threads needed.
-     */
-    public static int minThreadsToHandleInputPorts(List<FederateInstance> federates) {
-        int nthreads = 1;
-        for (FederateInstance federate : federates) {
-            nthreads = Math.max(nthreads, federate.networkMessageActions.size() + 1);
-        }
-        return nthreads;
     }
 
     public static String generateWidthVariable(String var) {

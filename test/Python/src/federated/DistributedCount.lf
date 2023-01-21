@@ -7,7 +7,6 @@
  */
 target Python {
     timeout: 5 sec,
-    logging: DEBUG,
     coordination: centralized
 }
 

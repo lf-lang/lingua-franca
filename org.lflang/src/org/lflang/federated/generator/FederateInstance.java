@@ -1,6 +1,5 @@
-/** Instance of a federate specification. */
-
-/*************
+/** Instance of a federate specification.
+ *
 Copyright (c) 2020, The University of California at Berkeley.
 
 Redistribution and use in source and binary forms, with or without modification,
@@ -24,9 +23,10 @@ STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
 THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ***************/
 
-package org.lflang.federated;
+package org.lflang.federated.generator;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -35,12 +35,15 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import org.eclipse.xtext.xbase.lib.IterableExtensions;
+import org.eclipse.emf.ecore.EObject;
+
 import org.lflang.ASTUtils;
 import org.lflang.ErrorReporter;
+import org.lflang.TargetConfig;
 import org.lflang.TimeValue;
+import org.lflang.federated.serialization.SupportedSerializers;
 import org.lflang.generator.ActionInstance;
-import org.lflang.generator.GeneratorBase;
+import org.lflang.generator.GeneratorUtils;
 import org.lflang.generator.PortInstance;
 import org.lflang.generator.ReactionInstance;
 import org.lflang.generator.ReactorInstance;
@@ -48,11 +51,18 @@ import org.lflang.generator.TriggerInstance;
 import org.lflang.lf.Action;
 import org.lflang.lf.ActionOrigin;
 import org.lflang.lf.Expression;
+import org.lflang.lf.Import;
+import org.lflang.lf.ImportedReactor;
 import org.lflang.lf.Input;
 import org.lflang.lf.Instantiation;
 import org.lflang.lf.Output;
+import org.lflang.lf.Parameter;
+import org.lflang.lf.ParameterReference;
 import org.lflang.lf.Reaction;
 import org.lflang.lf.Reactor;
+import org.lflang.lf.ReactorDecl;
+import org.lflang.lf.StateVar;
+import org.lflang.lf.TargetDecl;
 import org.lflang.lf.Timer;
 import org.lflang.lf.TriggerRef;
 import org.lflang.lf.VarRef;
@@ -63,11 +73,13 @@ import com.google.common.base.Objects;
 
 /** 
  * Instance of a federate, or marker that no federation has been defined
- * (if isSingleton() returns true). Every top-level reactor (contained
+ * (if isSingleton() returns true) FIXME: this comment makes no sense.
+ * Every top-level reactor (contained
  * directly by the main reactor) is a federate, so there will be one
  * instance of this class for each top-level reactor.
  * 
  * @author Edward A. Lee
+ * @author Soroush Bateni
  */
 public class FederateInstance {
 
@@ -79,24 +91,21 @@ public class FederateInstance {
      *  or null if no federation has been defined.
      * @param id The federate ID.
      * @param bankIndex If instantiation.widthSpec !== null, this gives the bank position.
-     * @param generator The generator
      * @param errorReporter The error reporter
-     * 
-     * FIXME: Do we really need to pass the complete generator here? It is only used 
-     *  to determine the number of federates.
      */
     public FederateInstance(
             Instantiation instantiation, 
             int id, 
-            int bankIndex, 
-            GeneratorBase generator, 
+            int bankIndex,
             ErrorReporter errorReporter) {
         this.instantiation = instantiation;
         this.id = id;
-        this.generator = generator;
         this.bankIndex = bankIndex;
         this.errorReporter = errorReporter;
-                
+        this.target =  GeneratorUtils.findTarget(
+            ASTUtils.toDefinition(instantiation.getReactorClass()).eResource()
+        );
+        this.targetConfig = new TargetConfig(target); // FIXME: this is actually set in FedTargetEmitter. Why?
         if (instantiation != null) {
             this.name = instantiation.getName();
             // If the instantiation is in a bank, then we have to append
@@ -125,16 +134,25 @@ public class FederateInstance {
      * The host, if specified using the 'at' keyword.
      */
     public String host = "localhost";
-    
+
+
     /**
      * The instantiation of the top-level reactor, or null if there is no federation.
      */
     public Instantiation instantiation;
+    public Instantiation getInstantiation() {
+        return instantiation;
+    }
+
+    /**
+     * A list of individual connections between federates
+     */
+    public Set<FedConnectionInstance> connections = new HashSet<>();
     
     /**
      * Map from the federates that this federate receives messages from
      * to the delays on connections from that federate. The delay set
-     * may may include null, meaning that there is a connection
+     * may include null, meaning that there is a connection
      * from the federate instance that has no delay.
      */
     public Map<FederateInstance, Set<Expression>> dependsOn = new LinkedHashMap<>();
@@ -166,10 +184,11 @@ public class FederateInstance {
      * The integer ID of this federate.
      */
     public int id = 0;
-    
+
+
     /**
      * The name of this federate instance. This will be the instantiation
-     * name, poassibly appended with "__n", where n is the bank position of
+     * name, possibly appended with "__n", where n is the bank position of
      * this instance if the instantiation is of a bank of reactors.
      */
     public String name = "Unnamed";
@@ -228,57 +247,146 @@ public class FederateInstance {
      * reactions) that belong to this federate instance.
      */
     public List<Reaction> networkReactions = new ArrayList<>();
-    
-    /**
-     * List of triggers of network reactions that belong to remote federates.
-     * These might need to be removed before code generation to avoid unnecessary compile
-     * errors, since they might reference structures that are not present in
-     * the current federate. Even though it is impossible for a trigger that is on a remote
-     * federate to trigger a reaction on this federate, these triggers need to be here
-     * to ensure that dependency analysis between reactions is done correctly.
-     * Without these triggers, the reaction precedence graph is broken and
-     * dependencies not properly represented.
-     */
-    public List<VarRef> remoteNetworkReactionTriggers = new ArrayList<>();
 
-    /////////////////////////////////////////////
-    //// Public Methods
+    /**
+     * Target of the federate.
+     */
+    public TargetDecl target;
+
+    /**
+     * Parsed target config of the federate.
+     */
+    public TargetConfig targetConfig;
+
+    /**
+     * Keep a unique list of enabled serializers
+     */
+    public HashSet<SupportedSerializers> enabledSerializers = new HashSet<>();
+
+    /**
+     * Return true if the specified EObject should be included in the code
+     * generated for this federate.
+     *
+     * @param object An {@code EObject}
+     * @return True if this federate contains the EObject.
+     */
+    public boolean contains(EObject object) {
+        if (object instanceof Action) {
+            return contains((Action)object);
+        } else if (object instanceof Reaction) {
+            return contains((Reaction)object);
+        } else if (object instanceof Timer) {
+            return contains((Timer)object);
+        } else if (object instanceof ReactorDecl) {
+            return contains(this.instantiation, (ReactorDecl)object);
+        } else if (object instanceof Import) {
+            return contains((Import)object);
+        } else if (object instanceof Parameter) {
+            return contains((Parameter)object);
+        } else if (object instanceof StateVar) {
+            return true; // FIXME: Should we disallow state vars at the top level?
+        }
+        throw new UnsupportedOperationException("EObject class "+object.eClass().getName()+" not supported.");
+    }
+
+    /**
+     * Return true if the specified reactor belongs to this federate.
+     * @param instantiation The instantiation to look inside
+     * @param reactor The reactor declaration to find
+     */
+    private boolean contains(
+        Instantiation instantiation,
+        ReactorDecl reactor
+    ) {
+        if (instantiation.getReactorClass().equals(ASTUtils.toDefinition(reactor))) {
+            return true;
+        }
+
+        boolean instantiationsCheck = false;
+        // For a federate, we don't need to look inside imported reactors.
+        if (instantiation.getReactorClass() instanceof Reactor reactorDef) {
+            for (Instantiation child : reactorDef.getInstantiations()) {
+                instantiationsCheck |= contains(child, reactor);
+            }
+        }
+
+        return instantiationsCheck;
+    }
+
+    /**
+     * Return true if the specified import should be included in the code generated for this federate.
+     * @param imp The import
+     */
+    private boolean contains(Import imp) {
+        for (ImportedReactor reactor : imp.getReactorClasses()) {
+            if (contains(reactor)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Return true if the specified parameter should be included in the code generated for this federate.
+     * @param param The parameter
+     */
+    private boolean contains(Parameter param) {
+        boolean returnValue = false;
+        // Check if param is referenced in this federate's instantiation
+        returnValue = instantiation.getParameters().stream().anyMatch(
+            assignment -> assignment.getRhs()
+                                    .getExprs()
+                                    .stream()
+                                    .filter(
+                                        it -> it instanceof ParameterReference
+                                    )
+                                    .map(it -> ((ParameterReference) it).getParameter())
+                                    .toList()
+                                    .contains(param)
+        );
+        // If there are any user-defined top-level reactions, they could access
+        // the parameters, so we need to include the parameter.
+        var topLevelUserDefinedReactions = ((Reactor) instantiation.eContainer())
+            .getReactions().stream().filter(
+                r -> !networkReactions.contains(r) && contains(r)
+            ).collect(Collectors.toCollection(ArrayList::new));
+        returnValue |= !topLevelUserDefinedReactions.isEmpty();
+        return returnValue;
+    }
 
     /**
      * Return true if the specified action should be included in the code generated
-     * for the federate. This means that either the action is used as a trigger,
+     * for this federate. This means that either the action is used as a trigger,
      * a source, or an effect in a top-level reaction that belongs to this federate.
      * This returns true if the program is not federated.
-     * 
+     *
      * @param action The action
-     * @return True if this federate contains the action in the specified reactor
+     * @return True if this federate contains the action.
      */
-    public boolean contains(Action action) {
+    private boolean contains(Action action) {
         Reactor reactor  = ASTUtils.getEnclosingReactor(action);
-        if (!reactor.isFederated() || isSingleton()) return true;
-        
+
         // If the action is used as a trigger, a source, or an effect for a top-level reaction
         // that belongs to this federate, then generate it.
         for (Reaction react : ASTUtils.allReactions(reactor)) {
             if (contains(react)) {
                 // Look in triggers
                 for (TriggerRef trigger : convertToEmptyListIfNull(react.getTriggers())) {
-                    if (trigger instanceof VarRef) {
-                        VarRef triggerAsVarRef = (VarRef) trigger;
-                        if (Objects.equal(triggerAsVarRef.getVariable(), (Variable) action)) {
+                    if (trigger instanceof VarRef triggerAsVarRef) {
+                        if (Objects.equal(triggerAsVarRef.getVariable(), action)) {
                             return true;
                         }
                     }
                 }
                 // Look in sources
                 for (VarRef source : convertToEmptyListIfNull(react.getSources())) {
-                    if (Objects.equal(source.getVariable(), (Variable) action)) {
+                    if (Objects.equal(source.getVariable(), action)) {
                         return true;
                     }
                 }
                 // Look in effects
                 for (VarRef effect : convertToEmptyListIfNull(react.getEffects())) {
-                    if (Objects.equal(effect.getVariable(), (Variable) action)) {
+                    if (Objects.equal(effect.getVariable(), action)) {
                         return true;
                     }
                 }
@@ -301,18 +409,18 @@ public class FederateInstance {
      *
      * @param reaction The reaction.
      */
-    public boolean contains(Reaction reaction) {
+    private boolean contains(Reaction reaction) {
         Reactor reactor  = ASTUtils.getEnclosingReactor(reaction);
-        if (!reactor.isFederated() || this.isSingleton()) return true;
-        
+
+        assert reactor != null;
         if (!reactor.getReactions().contains(reaction)) return false;
         
         if (networkReactions.contains(reaction)) {
             // Reaction is a network reaction that belongs to this federate
             return true;
         }
-        
-        int reactionBankIndex = generator.getReactionBankIndex(reaction);
+
+        int reactionBankIndex = FedASTUtils.getReactionBankIndex(reaction);
         if (reactionBankIndex >= 0 && this.bankIndex >= 0 && reactionBankIndex != this.bankIndex) {
             return false;
         }
@@ -327,7 +435,36 @@ public class FederateInstance {
        
         return !excludeReactions.contains(reaction);
     }
-    
+
+    /**
+     * Return true if the specified timer should be included in the code generated
+     * for the federate. This means that the timer is used as a trigger
+     * in a top-level reaction that belongs to this federate.
+     * This also returns true if the program is not federated.
+     *
+     * @return True if this federate contains the action in the specified reactor
+     */
+    private boolean contains(Timer timer) {
+        Reactor reactor  = ASTUtils.getEnclosingReactor(timer);
+
+        // If the action is used as a trigger, a source, or an effect for a top-level reaction
+        // that belongs to this federate, then generate it.
+        for (Reaction r : ASTUtils.allReactions(reactor)) {
+            if (contains(r)) {
+                // Look in triggers
+                for (TriggerRef trigger : convertToEmptyListIfNull(r.getTriggers())) {
+                    if (trigger instanceof VarRef triggerAsVarRef) {
+                        if (Objects.equal(triggerAsVarRef.getVariable(), timer)) {
+                            return true;
+                        }
+                    }
+                }
+            }
+        }
+
+        return false;
+    }
+
     /** 
      * Return true if the specified reactor instance or any parent
      * reactor instance is contained by this federate.
@@ -343,9 +480,6 @@ public class FederateInstance {
      * @return True if this federate contains the reactor instance
      */
     public boolean contains(ReactorInstance instance) {
-        if (isSingleton()) {
-            return instance != null;
-        }
         if (instance.getParent() == null) {
             return true; // Top-level reactor
         }
@@ -358,52 +492,6 @@ public class FederateInstance {
             i = i.getParent();
         }
         return false;
-    }
-    
-    /**
-     * Return true if the specified timer should be included in the code generated
-     * for the federate. This means that the timer is used as a trigger
-     * in a top-level reaction that belongs to this federate.
-     * This also returns true if the program is not federated.
-     * 
-     * @param timer The timer
-     * @return True if this federate contains the action in the specified reactor
-     */
-    public boolean contains(Timer timer) {
-        Reactor reactor  = ASTUtils.getEnclosingReactor(timer);
-        if (!reactor.isFederated() || this.isSingleton()) return true;
-        
-        // If the action is used as a trigger, a source, or an effect for a top-level reaction
-        // that belongs to this federate, then generate it.
-        for (Reaction r : ASTUtils.allReactions(reactor)) {
-            if (contains(r)) {
-                // Look in triggers
-                for (TriggerRef trigger : convertToEmptyListIfNull(r.getTriggers())) {
-                    if (trigger instanceof VarRef) {
-                        VarRef triggerAsVarRef = (VarRef) trigger;
-                        if (Objects.equal(triggerAsVarRef.getVariable(), (Variable) timer)) {
-                            return true;
-                        }
-                    }
-                }
-            }
-        }
-        
-        return false;        
-    }
-    
-    /**
-     * Return the total number of runtime instances of the specified reactor
-     * instance in this federate. This is zero if the reactor is not in the
-     * federate at all, and otherwise is the product of the bank widths of
-     * all the parent containers of the instance, except that if the depth
-     * one parent is bank, its width is ignored (only one bank member can be
-     * in any federate).
-     */
-    public int numRuntimeInstances(ReactorInstance reactor) {
-        if (!contains(reactor)) return 0;
-        int depth = this.isSingleton() ? 0 : 1;
-        return reactor.getTotalWidth(depth);
     }
 
     /**
@@ -420,31 +508,31 @@ public class FederateInstance {
             throw new IllegalStateException("The index for excluded reactions at the top level is already built.");
         }
 
-        excludeReactions = new LinkedHashSet<Reaction>();
+        excludeReactions = new LinkedHashSet<>();
 
         // Construct the set of excluded reactions for this federate.
         // If a reaction is a network reaction that belongs to this federate, we
         // don't need to perform this analysis.
-        Iterable<Reaction> reactions = IterableExtensions.filter(ASTUtils.allReactions(federatedReactor), it -> { return !networkReactions.contains(it); });
+        Iterable<Reaction> reactions = ASTUtils.allReactions(federatedReactor).stream().filter(it -> !networkReactions.contains(it)).collect(Collectors.toList());
         for (Reaction react : reactions) {
-            // Create a collection of all the VarRefs (i.e., triggers, sources, and effects) in the react 
+            // Create a collection of all the VarRefs (i.e., triggers, sources, and effects) in the react
             // signature that are ports that reference federates.
             // We then later check that all these VarRefs reference this federate. If not, we will add this
             // react to the list of reactions that have to be excluded (note that mixing VarRefs from
             // different federates is not allowed).
-            List<VarRef> allVarRefsReferencingFederates = new ArrayList<VarRef>();
+            List<VarRef> allVarRefsReferencingFederates = new ArrayList<>();
             // Add all the triggers that are outputs
             Stream<VarRef> triggersAsVarRef = react.getTriggers().stream().filter(it -> it instanceof VarRef).map(it -> (VarRef) it);
             allVarRefsReferencingFederates.addAll(
-                triggersAsVarRef.filter(it -> it.getVariable() instanceof Output).collect(Collectors.toList())
+                triggersAsVarRef.filter(it -> it.getVariable() instanceof Output).toList()
             );
             // Add all the sources that are outputs
             allVarRefsReferencingFederates.addAll(
-                react.getSources().stream().filter(it -> it.getVariable() instanceof Output).collect(Collectors.toList())
+                react.getSources().stream().filter(it -> it.getVariable() instanceof Output).toList()
             );
             // Add all the effects that are inputs
             allVarRefsReferencingFederates.addAll(
-                react.getEffects().stream().filter(it -> it.getVariable() instanceof Input).collect(Collectors.toList())
+                react.getEffects().stream().filter(it -> it.getVariable() instanceof Input).toList()
             );
             inFederate = containsAllVarRefs(allVarRefsReferencingFederates);
             if (!inFederate) {
@@ -455,10 +543,10 @@ public class FederateInstance {
     
     /**
      * Return true if all members of 'varRefs' belong to this federate.
-     * 
-     * As a convenience measure, if some members of 'varRefs' are from 
+     *
+     * As a convenience measure, if some members of 'varRefs' are from
      * different federates, also report an error.
-     * 
+     *
      * @param varRefs A collection of VarRefs
      */
     private boolean containsAllVarRefs(Iterable<VarRef> varRefs) {
@@ -469,22 +557,15 @@ public class FederateInstance {
                 referencesFederate = true;
             } else {
                 if (referencesFederate) {
-                    errorReporter.reportError(varRef, "Mixed triggers and effects from" +
-                        " different federates. This is not permitted");
+                    errorReporter.reportError(varRef,
+                                              "Mixed triggers and effects from"
+                                                  +
+                                                  " different federates. This is not permitted");
                 }
                 inFederate = false;
             }
         }
         return inFederate;
-    }
-    
-    /** 
-     * Return true if this is singleton, meaning either that no federation
-     * has been defined or that there is only one federate.
-     * @return True if no federation has been defined or there is only one federate.
-     */
-    public boolean isSingleton() {
-        return ((instantiation == null) || (generator.federates.size() <= 1));
     }
      
     /**
@@ -507,6 +588,17 @@ public class FederateInstance {
         }
         return physicalActionToOutputMinDelay;
     }
+
+    /**
+     * Return a list of federates that are upstream of this federate and have a
+     * zero-delay (direct) connection to this federate.
+     */
+    public List<FederateInstance> getZeroDelayImmediateUpstreamFederates() {
+        return this.dependsOn.entrySet()
+                                 .stream()
+                                 .filter(e -> e.getValue().contains(null))
+                                 .map(Map.Entry::getKey).toList();
+    }
     
     @Override
     public String toString() {
@@ -521,18 +613,6 @@ public class FederateInstance {
      * Cached result of analysis of which reactions to exclude from main.
      */
     private Set<Reaction> excludeReactions = null;
-    
-    /**
-     * The generator using this.
-     */
-    private GeneratorBase generator = null;
-    
-    /**
-     * Returns the generator that is using this federate instance
-     */
-    public GeneratorBase getGenerator() {
-        return this.generator;
-    }
     
     /**
      * An error reporter
@@ -550,8 +630,7 @@ public class FederateInstance {
     public TimeValue findNearestPhysicalActionTrigger(ReactionInstance reaction) {
         TimeValue minDelay = TimeValue.MAX_VALUE;
         for (TriggerInstance<? extends Variable> trigger : reaction.triggers) {
-            if (trigger.getDefinition() instanceof Action) {
-                Action action = (Action) trigger.getDefinition();
+            if (trigger.getDefinition() instanceof Action action) {
                 ActionInstance actionInstance = (ActionInstance) trigger;
                 if (action.getOrigin() == ActionOrigin.PHYSICAL) {
                     if (actionInstance.getMinDelay().isEarlierThan(minDelay)) {
@@ -585,17 +664,8 @@ public class FederateInstance {
         return minDelay;
     }
     
-    /**
-     * Remove triggers in this federate's network reactions that are defined in remote federates.
-     */
-    public void removeRemoteFederateConnectionPorts() {
-        for (Reaction reaction : this.networkReactions) {
-          reaction.getTriggers().removeAll(this.remoteNetworkReactionTriggers);
-        }
-    }
-    
     // TODO: Put this function into a utils file instead
-    private <T extends Object> List<T> convertToEmptyListIfNull(List<T> list) {
+    private <T> List<T> convertToEmptyListIfNull(List<T> list) {
         return list == null ? new ArrayList<>() : list;
     }
 }

@@ -63,6 +63,7 @@ import org.lflang.Target;
 import org.lflang.TargetProperty;
 import org.lflang.TimeValue;
 import org.lflang.federated.serialization.SupportedSerializers;
+import org.lflang.federated.validation.FedValidator;
 import org.lflang.generator.NamedInstance;
 import org.lflang.lf.Action;
 import org.lflang.lf.ActionOrigin;
@@ -941,6 +942,10 @@ public class LFValidator extends BaseLFValidator {
                 );
             }
         }
+
+        if (reactor.isFederated()) {
+            FedValidator.validateFederatedReactor(reactor, this.errorReporter);
+        }
     }
 
     /**
@@ -1498,7 +1503,7 @@ public class LFValidator extends BaseLFValidator {
      * Generate an error message for an AST node.
      */
     @Override
-    protected void error(java.lang.String message, 
+    protected void error(java.lang.String message,
         org.eclipse.emf.ecore.EStructuralFeature feature) {
         super.error(message, feature);
     }

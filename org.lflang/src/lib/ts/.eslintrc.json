@@ -10,6 +10,7 @@
   ],
   "rules": {
     "prefer-const": "warn",
+    "ban-types": "warn",
     "@typescript-eslint/no-inferrable-types": "warn"
   }
 }

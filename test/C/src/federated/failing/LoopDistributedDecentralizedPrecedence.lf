@@ -1,6 +1,6 @@
 /**
- * This tests that the precedence order of reaction invocation is kept
- * when a feedback loop is present in decentralized coordination.
+ * This tests that the precedence order of reaction invocation is kept when a
+ * feedback loop is present in decentralized coordination.
  *
  * @author Edward A. Lee
  * @author Soroush Bateni
@@ -11,40 +11,44 @@ target C {
     timeout: 4900 msec
 }
 
-reactor Looper(incr:int(1), delay:time(0 msec), stp_offset:time(0)) {
-    input in:int;
-    output out:int;
-    state count:int(0);
-    state received_count:int(0);
-    timer t(0, 1 sec);
+reactor Looper(incr: int(1), delay: time(0 msec), stp_offset: time(0)) {
+    input in: int
+    output out: int
+    state count: int(0)
+    state received_count: int(0)
+    timer t(0, 1 sec)
+
     reaction(t) -> out {=
         lf_set(out, self->count);
         self->count += self->incr;
     =}
+
     reaction(in) {=
         instant_t time_lag = lf_time_physical() - lf_time_logical();
         char time_buffer[28]; // 28 bytes is enough for the largest 64 bit number: 9,223,372,036,854,775,807
         lf_readable_time(time_buffer, time_lag);
         lf_print("Received %d. Logical time is behind physical time by %s.", in->value, time_buffer);
         self->received_count = self->count;
-    =} STP (stp_offset) {=
+    =} STP(stp_offset) {=
         instant_t time_lag = lf_time_physical() - lf_time_logical();
         char time_buffer[28]; // 28 bytes is enough for the largest 64 bit number: 9,223,372,036,854,775,807
         lf_readable_time(time_buffer, time_lag);
         lf_print("STP offset was violated. Received %d. Logical time is behind physical time by %s.", in->value, time_buffer);
         self->received_count = self->count;
-    =} deadline (10 msec) {=
+    =} deadline(10 msec) {=
         instant_t time_lag = lf_time_physical() - lf_time_logical();
         char time_buffer[28]; // 28 bytes is enough for the largest 64 bit number: 9,223,372,036,854,775,807
         lf_readable_time(time_buffer, time_lag);
         lf_print("Deadline miss. Received %d. Logical time is behind physical time by %s.", in->value, time_buffer);
         self->received_count = self->count;
     =}
+
     reaction(t) {=
         if (self->received_count != self->count) {
             lf_print_error_and_exit("reaction(t) was invoked before reaction(in). Precedence order was not kept.");
         }
     =}
+
     reaction(shutdown) {=
         lf_print("******* Shutdown invoked.");
         if (self->count != 5 * self->incr) {
@@ -52,9 +56,10 @@ reactor Looper(incr:int(1), delay:time(0 msec), stp_offset:time(0)) {
         }
     =}
 }
-federated reactor (delay:time(0)) {
-    left = new Looper(stp_offset = 5 msec);
-    right = new Looper(incr = -1, stp_offset = 5 msec);
-    left.out -> right.in;
-    right.out -> left.in;
+
+federated reactor(delay: time(0)) {
+    left = new Looper(stp_offset = 5 msec)
+    right = new Looper(incr = -1, stp_offset = 5 msec)
+    left.out -> right.in
+    right.out -> left.in
 }

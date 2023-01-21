@@ -11,15 +11,15 @@ are permitted provided that the following conditions are met:
    this list of conditions and the following disclaimer in the documentation
    and/or other materials provided with the distribution.
 
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
-ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED 
-WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE 
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
 DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR
-ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES 
-(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; 
-LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON 
-ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT 
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS 
+ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
+ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
@@ -34,6 +34,7 @@ import org.eclipse.xtext.nodemodel.util.NodeModelUtils;
 import org.eclipse.xtext.resource.XtextResource;
 
 import org.lflang.lf.Action;
+import org.lflang.lf.AttrParm;
 import org.lflang.lf.Attribute;
 import org.lflang.lf.Input;
 import org.lflang.lf.Instantiation;
@@ -47,7 +48,7 @@ import org.lflang.util.StringUtil;
 
 /**
  * A helper class for processing attributes in the AST.
- * 
+ *
  * @author Shaokai Lin
  * @author Clément Fournier
  * @author Alexander Schulz-Rosengarten
@@ -157,9 +158,10 @@ public class AttributeUtils {
      * Returns null if no such parameter is found.
      */
     public static String getAttributeParameter(Attribute attribute, String parameterName) {
-        return attribute.getAttrParms().stream()
+        return (attribute == null) ? null : attribute.getAttrParms().stream()
             .filter(param -> Objects.equals(param.getName(), parameterName))
-            .map(param -> param.getValue())
+            .map(AttrParm::getValue)
+            .map(StringUtil::removeQuotes)
             .findFirst()
             .orElse(null);
     }
@@ -187,6 +189,33 @@ public class AttributeUtils {
      */
     public static boolean isSparse(EObject node) {
         return findAttributeByName(node, "sparse") != null;
+    }
+
+    /**
+     * Return true if the reaction is unordered.
+     *
+     * Currently, this is only used for synthesized reactions in the context of
+     * federated execution.
+     */
+    public static boolean isUnordered(Reaction reaction) {
+        return findAttributeByName(reaction, "_unordered") != null;
+    }
+
+    /**
+     * Return true if the reactor is marked to be a federate.
+     */
+    public static boolean isFederate(Reactor reactor) {
+        return findAttributeByName(reactor, "_fed_config") != null;
+    }
+
+    /**
+     * Return true if the reaction is marked to have a C code body.
+     *
+     * Currently, this is only used for synthesized reactions in the context of
+     * federated execution in Python.
+     */
+    public static boolean hasCBody(Reaction reaction) {
+        return findAttributeByName(reaction, "_c_body") != null;
     }
 
     /**
