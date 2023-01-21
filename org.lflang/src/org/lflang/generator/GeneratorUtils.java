@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Properties;
 
 import org.eclipse.core.resources.IResource;
 import org.eclipse.core.resources.ResourcesPlugin;
@@ -25,6 +26,7 @@ import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
 import org.lflang.Target;
 import org.lflang.TargetConfig;
+import org.lflang.TargetConfig.DockerOptions;
 import org.lflang.TargetProperty.BuildType;
 import org.lflang.TargetProperty.LogLevel;
 import org.lflang.TargetProperty.UnionType;
@@ -69,63 +71,72 @@ public class GeneratorUtils {
     /**
      * Set the appropriate target properties based on the target properties of
      * the main .lf file and the given command-line arguments, if applicable.
-     * @param context The generator invocation context.
-     * @param target The target configuration that appears in an LF source file.
-     * @param targetConfig The target config to be updated.
+     * @param args The commandline arguments to process.
+     * @param target The target properties AST node.
      * @param errorReporter The error reporter to which errors should be sent.
      */
-    public static void setTargetConfig(
-        LFGeneratorContext context,
+    public static TargetConfig getTargetConfig(
+        Properties args,
         TargetDecl target,
-        TargetConfig targetConfig,
         ErrorReporter errorReporter
     ) {
+        final TargetConfig targetConfig = new TargetConfig(target); // FIXME: why not just do all of this in the constructor?
         if (target.getConfig() != null) {
             List<KeyValuePair> pairs = target.getConfig().getPairs();
             TargetProperty.set(targetConfig, pairs != null ? pairs : List.of(), errorReporter);
         }
-        if (context.getArgs().containsKey(BuildParm.NO_COMPILE.getKey())) {
+        if (args.containsKey(BuildParm.NO_COMPILE.getKey())) {
             targetConfig.noCompile = true;
         }
-        if (context.getArgs().containsKey(BuildParm.BUILD_TYPE.getKey())) {
-            targetConfig.cmakeBuildType = (BuildType) UnionType.BUILD_TYPE_UNION.forName(context.getArgs().getProperty(BuildParm.BUILD_TYPE.getKey()));
+        if (args.containsKey("docker")) {
+            var arg = args.getProperty("docker");
+            if (Boolean.parseBoolean(arg)) {
+                targetConfig.dockerOptions = new DockerOptions();
+            } else {
+                targetConfig.dockerOptions = null;
+            }
+            // FIXME: this is pretty ad-hoc and does not account for more complex overrides yet.
         }
-        if (context.getArgs().containsKey(BuildParm.LOGGING.getKey())) {
-            targetConfig.logLevel = LogLevel.valueOf(context.getArgs().getProperty(BuildParm.LOGGING.getKey()).toUpperCase());
+        if (args.containsKey(BuildParm.BUILD_TYPE.getKey())) {
+            targetConfig.cmakeBuildType = (BuildType) UnionType.BUILD_TYPE_UNION.forName(args.getProperty(BuildParm.BUILD_TYPE.getKey()));
         }
-        if (context.getArgs().containsKey(BuildParm.WORKERS.getKey())) {
-            targetConfig.workers = Integer.parseInt(context.getArgs().getProperty(BuildParm.WORKERS.getKey()));
+        if (args.containsKey(BuildParm.LOGGING.getKey())) {
+            targetConfig.logLevel = LogLevel.valueOf(args.getProperty(BuildParm.LOGGING.getKey()).toUpperCase());
         }
-        if (context.getArgs().containsKey(BuildParm.THREADING.getKey())) {
-            targetConfig.threading = Boolean.parseBoolean(context.getArgs().getProperty(BuildParm.THREADING.getKey()));
+        if (args.containsKey(BuildParm.WORKERS.getKey())) {
+            targetConfig.workers = Integer.parseInt(args.getProperty(BuildParm.WORKERS.getKey()));
         }
-        if (context.getArgs().containsKey(BuildParm.TARGET_COMPILER.getKey())) {
-            targetConfig.compiler = context.getArgs().getProperty(BuildParm.TARGET_COMPILER.getKey());
+        if (args.containsKey(BuildParm.THREADING.getKey())) {
+            targetConfig.threading = Boolean.parseBoolean(args.getProperty(BuildParm.THREADING.getKey()));
         }
-        if (context.getArgs().containsKey(BuildParm.SCHEDULER.getKey())) {
+        if (args.containsKey(BuildParm.TARGET_COMPILER.getKey())) {
+            targetConfig.compiler = args.getProperty(BuildParm.TARGET_COMPILER.getKey());
+        }
+        if (args.containsKey(BuildParm.SCHEDULER.getKey())) {
             targetConfig.schedulerType = SchedulerOption.valueOf(
-                context.getArgs().getProperty(BuildParm.SCHEDULER.getKey())
+                args.getProperty(BuildParm.SCHEDULER.getKey())
             );
             targetConfig.setByUser.add(TargetProperty.SCHEDULER);
         }
-        if (context.getArgs().containsKey("target-flags")) {
+        if (args.containsKey("target-flags")) {
             targetConfig.compilerFlags.clear();
-            if (!context.getArgs().getProperty("target-flags").isEmpty()) {
+            if (!args.getProperty("target-flags").isEmpty()) {
                 targetConfig.compilerFlags.addAll(List.of(
-                    context.getArgs().getProperty("target-flags").split(" ")
+                    args.getProperty("target-flags").split(" ")
                 ));
             }
         }
-        if (context.getArgs().containsKey(BuildParm.RUNTIME_VERSION.getKey())) {
-            targetConfig.runtimeVersion = context.getArgs().getProperty(BuildParm.RUNTIME_VERSION.getKey());
+        if (args.containsKey(BuildParm.RUNTIME_VERSION.getKey())) {
+            targetConfig.runtimeVersion = args.getProperty(BuildParm.RUNTIME_VERSION.getKey());
         }
-        if (context.getArgs().containsKey(BuildParm.EXTERNAL_RUNTIME_PATH.getKey())) {
-            targetConfig.externalRuntimePath = context.getArgs().getProperty(BuildParm.EXTERNAL_RUNTIME_PATH.getKey());
+        if (args.containsKey(BuildParm.EXTERNAL_RUNTIME_PATH.getKey())) {
+            targetConfig.externalRuntimePath = args.getProperty(BuildParm.EXTERNAL_RUNTIME_PATH.getKey());
         }
-        if (context.getArgs().containsKey(TargetProperty.KEEPALIVE.description)) {
+        if (args.containsKey(TargetProperty.KEEPALIVE.description)) {
             targetConfig.keepalive = Boolean.parseBoolean(
-                context.getArgs().getProperty(TargetProperty.KEEPALIVE.description));
+                args.getProperty(TargetProperty.KEEPALIVE.description));
         }
+        return targetConfig;
     }
 
     /**
@@ -307,20 +318,15 @@ public class GeneratorUtils {
         LFGeneratorContext context,
         ErrorReporter errorReporter
     ) {
-        TargetDecl target = GeneratorUtils.findTarget(resource);
+        var target = ASTUtils.targetDecl(resource);
         KeyValuePairs config = target.getConfig();
-        var targetConfig = new TargetConfig();
+        var targetConfig = new TargetConfig(target);
         if (config != null) {
             List<KeyValuePair> pairs = config.getPairs();
             TargetProperty.set(targetConfig, pairs != null ? pairs : List.of(), errorReporter);
         }
-        try {
-            FileConfig fc = new FileConfig(resource, srcGenBasePath, context.useHierarchicalBin());
-            return new LFResource(resource, fc, targetConfig);
-        } catch (IOException e) {
-            throw new RuntimeException("Failed to instantiate an imported resource because an I/O error "
-                                           + "occurred.");
-        }
+        FileConfig fc = LFGenerator.createFileConfig(resource, srcGenBasePath, context.getFileConfig().useHierarchicalBin);
+        return new LFResource(resource, fc, targetConfig);
     }
 
     /**

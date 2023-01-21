@@ -29,7 +29,7 @@ package org.lflang.ui.contentassist;
  * See https://www.eclipse.org/Xtext/documentation/310_eclipse_support.html#content-assist
  * on how to customize the content assistant.
  *   
- * @author{Alexander Schulz-Rosengarten <als@informatik.uni-kiel.de>}
+ * @author Alexander Schulz-Rosengarten
  */
 public class LFProposalProvider extends AbstractLFProposalProvider {
 }

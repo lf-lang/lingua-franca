@@ -78,6 +78,8 @@ configurations {
 task getSubmoduleVersions(type: Exec) {
     description('Run a Git command to get the current status of submodules')
     workingDir project.rootDir
+   // This will make gradle execute git submodule status every time updateRustRuntime is called
+    outputs.upToDateWhen { false }
 
     def command = "git submodule status"
     if (System.getProperty('os.name').toLowerCase(Locale.ROOT).contains('windows')) {
@@ -106,6 +108,8 @@ task updateRustRuntime {
     description('Record the VCS revisions of the language runtimes into a properties file available at runtime.')
 
     dependsOn getSubmoduleVersions
+    // If the output of the git submodule status did not change (the getSubmoduleVersions task), then this task is considered up to date.
+    inputs.files(getSubmoduleVersions.outputs)
     ext.outputFile = file("$project.projectDir/src/lib/rs/runtime-version.properties")
     outputs.file(outputFile)
 

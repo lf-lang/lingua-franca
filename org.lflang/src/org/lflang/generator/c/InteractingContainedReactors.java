@@ -7,7 +7,7 @@ import java.util.List;
 import java.util.Set;
 
 import org.lflang.ASTUtils;
-import org.lflang.federated.FederateInstance;
+import org.lflang.federated.generator.FederateInstance;
 import org.lflang.lf.Input;
 import org.lflang.lf.Instantiation;
 import org.lflang.lf.Output;
@@ -20,9 +20,9 @@ import org.lflang.lf.VarRef;
 /**
  * Helper class to handle code generation of contained reactors.
  *
- * @author {Edward A. Lee <eal@berkeley.edu>}
- * @author {Soroush Bateni <soroush@utdallas.edu>}
- * @author {Hou Seng Wong <housengw@berkeley.edu>}
+ * @author Edward A. Lee
+ * @author Soroush Bateni
+ * @author Hou Seng Wong
  */
 
 public class InteractingContainedReactors {
@@ -51,47 +51,45 @@ public class InteractingContainedReactors {
      * Scan the reactions of the specified reactor and record which ports are
      * referenced by reactions and which reactions are triggered by such ports.
      */
-    public InteractingContainedReactors(Reactor reactor, FederateInstance federate) {
+    public InteractingContainedReactors(Reactor reactor) {
         var reactionCount = 0;
         for (Reaction reaction : ASTUtils.allReactions(reactor)) {
-            if (federate == null || federate.contains(reaction)) {
-                // First, handle reactions that produce data sent to inputs
-                // of contained reactors.
-                for (VarRef effect : ASTUtils.convertToEmptyListIfNull(reaction.getEffects())) {
-                    // If an effect is an input, then it must be an input
+            // First, handle reactions that produce data sent to inputs
+            // of contained reactors.
+            for (VarRef effect : ASTUtils.convertToEmptyListIfNull(reaction.getEffects())) {
+                // If an effect is an input, then it must be an input
+                // of a contained reactor.
+                if (effect.getVariable() instanceof Input) {
+                    // This reaction is not triggered by the port, so
+                    // we do not add it to the list returned by the following.
+                    addPort(effect.getContainer(), (Input) effect.getVariable());
+                }
+            }
+            // Second, handle reactions that are triggered by outputs
+            // of contained reactors.
+            for (TriggerRef trigger : ASTUtils.convertToEmptyListIfNull(reaction.getTriggers())) {
+                if (trigger instanceof VarRef triggerAsVarRef) {
+                    // If an trigger is an output, then it must be an output
                     // of a contained reactor.
-                    if (effect.getVariable() instanceof Input) {
-                        // This reaction is not triggered by the port, so
-                        // we do not add it to the list returned by the following.
-                        addPort(effect.getContainer(), (Input) effect.getVariable());
-                    }
-                }
-                // Second, handle reactions that are triggered by outputs
-                // of contained reactors.
-                for (TriggerRef trigger : ASTUtils.convertToEmptyListIfNull(reaction.getTriggers())) {
-                    if (trigger instanceof VarRef triggerAsVarRef) {
-                        // If an trigger is an output, then it must be an output
-                        // of a contained reactor.
-                        if (triggerAsVarRef.getVariable() instanceof Output) {
-                            var list = addPort(triggerAsVarRef.getContainer(), (Output) triggerAsVarRef.getVariable());
-                            list.add(reactionCount);
-                        }
-                    }
-                }
-                // Third, handle reading (but not triggered by)
-                // outputs of contained reactors.
-                for (VarRef source : ASTUtils.convertToEmptyListIfNull(reaction.getSources())) {
-                    if (source.getVariable() instanceof Output) {
-                        // If an source is an output, then it must be an output
-                        // of a contained reactor.
-                        // This reaction is not triggered by the port, so
-                        // we do not add it to the list returned by the following.
-                        addPort(source.getContainer(), (Output) source.getVariable());
+                    if (triggerAsVarRef.getVariable() instanceof Output) {
+                        var list = addPort(triggerAsVarRef.getContainer(), (Output) triggerAsVarRef.getVariable());
+                        list.add(reactionCount);
                     }
                 }
             }
-            // Increment the reaction count even if not in the federate for consistency.
-            reactionCount++;
+            // Third, handle reading (but not triggered by)
+            // outputs of contained reactors.
+            for (VarRef source : ASTUtils.convertToEmptyListIfNull(reaction.getSources())) {
+                if (source.getVariable() instanceof Output) {
+                    // If an source is an output, then it must be an output
+                    // of a contained reactor.
+                    // This reaction is not triggered by the port, so
+                    // we do not add it to the list returned by the following.
+                    addPort(source.getContainer(), (Output) source.getVariable());
+                }
+            }
+        // Increment the reaction count even if not in the federate for consistency.
+        reactionCount++;
         }
     }
 

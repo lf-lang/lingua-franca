@@ -32,8 +32,8 @@ import org.lflang.lf.Timer;
 /**
  * Instance of a timer.
  * 
- * @author{Marten Lohstroh <marten@berkeley.edu>}
- * @author{Edward A. Lee <eal@berkeley.edu>}
+ * @author Marten Lohstroh
+ * @author Edward A. Lee
  */
 public class TimerInstance extends TriggerInstance<Timer> {
 

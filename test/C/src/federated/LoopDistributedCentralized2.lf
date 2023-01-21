@@ -1,0 +1,77 @@
+/**
+ * This tests a feedback loop with physical actions and centralized
+ * coordination.
+ *
+ * @author Edward A. Lee
+ */
+target C {
+    flags: "-Wall",
+    coordination: centralized,
+    coordination-options: {
+        advance-message-interval: 100 msec
+    },
+    timeout: 4 sec
+}
+
+reactor Looper(incr: int(1), delay: time(0 msec)) {
+    input in: int
+    output out: int
+    physical action a(delay)
+    state count: int(0)
+
+    timer t(0, 1 sec)
+
+    reaction(t) -> out {=
+        lf_set(out, self->count);
+        self->count += self->incr;
+    =}
+
+    reaction(in) {=
+        instant_t time_lag = lf_time_physical() - lf_time_logical();
+        char time_buffer[28]; // 28 bytes is enough for the largest 64 bit number: 9,223,372,036,854,775,807
+        lf_comma_separated_time(time_buffer, time_lag);
+        lf_print("Received %d. Logical time is behind physical time by %s nsec.", in->value, time_buffer);
+    =}
+
+    reaction(shutdown) {=
+        lf_print("******* Shutdown invoked.");
+        if (self->count != 5 * self->incr) {
+            lf_print_error_and_exit("Failed to receive all five expected inputs.");
+        }
+    =}
+}
+
+reactor Looper2(incr: int(1), delay: time(0 msec)) {
+    input in: int
+    output out: int
+    physical action a(delay)
+    state count: int(0)
+
+    timer t(0, 1 sec)
+
+    reaction(in) {=
+        instant_t time_lag = lf_time_physical() - lf_time_logical();
+        char time_buffer[28]; // 28 bytes is enough for the largest 64 bit number: 9,223,372,036,854,775,807
+        lf_comma_separated_time(time_buffer, time_lag);
+        lf_print("Received %d. Logical time is behind physical time by %s nsec.", in->value, time_buffer);
+    =}
+
+    reaction(t) -> out {=
+        lf_set(out, self->count);
+        self->count += self->incr;
+    =}
+
+    reaction(shutdown) {=
+        lf_print("******* Shutdown invoked.");
+        if (self->count != 5 * self->incr) {
+            lf_print_error_and_exit("Failed to receive all five expected inputs.");
+        }
+    =}
+}
+
+federated reactor(delay: time(0)) {
+    left = new Looper()
+    right = new Looper2(incr = -1)
+    left.out -> right.in
+    right.out -> left.in
+}

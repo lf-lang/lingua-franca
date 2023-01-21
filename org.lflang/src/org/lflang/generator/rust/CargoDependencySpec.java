@@ -28,6 +28,7 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.lflang.ASTUtils;
@@ -37,6 +38,8 @@ import org.lflang.generator.InvalidLfSourceException;
 import org.lflang.lf.Array;
 import org.lflang.lf.Element;
 import org.lflang.lf.KeyValuePair;
+import org.lflang.lf.KeyValuePairs;
+import org.lflang.lf.LfFactory;
 import org.lflang.util.StringUtil;
 import org.lflang.validation.LFValidator;
 
@@ -70,6 +73,23 @@ public class CargoDependencySpec {
     if (features != null) {
       this.features.addAll(features);
     }
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+    CargoDependencySpec that = (CargoDependencySpec) o;
+    return Objects.equals(version, that.version)
+        && Objects.equals(gitRepo, that.gitRepo)
+        && Objects.equals(rev, that.rev)
+        && Objects.equals(gitTag, that.gitTag)
+        && Objects.equals(localPath, that.localPath)
+        && Objects.equals(features, that.features);
   }
 
   /** The version. May be null. */
@@ -116,7 +136,7 @@ public class CargoDependencySpec {
     }
   }
 
-  /** Returns the set of features that are enabled on the crate. May not be null. */
+  /** Returns the list of features that are enabled on the crate. May be null. */
   public Set<String> getFeatures() {
     return features;
   }
@@ -182,23 +202,14 @@ public class CargoDependencySpec {
               pair.getValue(), "Expected string literal for key '" + name + "'");
         }
         switch (name) {
-          case "version":
-            version = literal;
-            break;
-          case "git":
-            gitRepo = literal;
-            break;
-          case "rev":
-            rev = literal;
-            break;
-          case "tag":
-            tag = literal;
-            break;
-          case "path":
-            localPath = literal;
-            break;
-          default:
-            throw new InvalidLfSourceException(pair, "Unknown key: '" + name + "'");
+        case "version" -> version = literal;
+        case "git" -> gitRepo = literal;
+        case "rev" -> rev = literal;
+        case "tag" -> tag = literal;
+        case "path" -> localPath = literal;
+        default -> throw new InvalidLfSourceException(pair,
+                                                      "Unknown key: '" + name
+                                                          + "'");
         }
       }
       if (isRuntimeCrate || version != null || localPath != null || gitRepo != null) {
@@ -209,6 +220,49 @@ public class CargoDependencySpec {
       }
     }
     throw new InvalidLfSourceException(element, "Expected string or dictionary");
+  }
+
+  /** Extracts an AST representation of a CargoDependencySpec. */
+  public static Element extractSpec(CargoDependencySpec spec) {
+    if (spec.gitRepo == null
+        && spec.rev == null
+        && spec.gitTag == null
+        && spec.localPath == null
+        && spec.features == null) {
+      return ASTUtils.toElement(spec.version);
+    } else {
+      Element e = LfFactory.eINSTANCE.createElement();
+      KeyValuePairs kvp = LfFactory.eINSTANCE.createKeyValuePairs();
+      addKvp(kvp, "version", spec.version);
+      addKvp(kvp, "git", spec.gitRepo);
+      addKvp(kvp, "rev", spec.rev);
+      addKvp(kvp, "tag", spec.gitTag);
+      addKvp(kvp, "path", spec.localPath);
+      if (spec.features != null && !spec.features.isEmpty()) {
+        Element subE = LfFactory.eINSTANCE.createElement();
+        Array arr = LfFactory.eINSTANCE.createArray();
+        for (String f : spec.features) {
+          arr.getElements().add(ASTUtils.toElement(f));
+        }
+        subE.setArray(arr);
+        KeyValuePair pair = LfFactory.eINSTANCE.createKeyValuePair();
+        pair.setName("features");
+        pair.setValue(subE);
+        kvp.getPairs().add(pair);
+      }
+      e.setKeyvalue(kvp);
+      return e;
+    }
+  }
+
+  private static void addKvp(KeyValuePairs pairs, String name, String value) {
+    if (value == null) {
+      return;
+    }
+    KeyValuePair kvp = LfFactory.eINSTANCE.createKeyValuePair();
+    kvp.setName(name);
+    kvp.setValue(ASTUtils.toElement(value));
+    pairs.getPairs().add(kvp);
   }
 
   /** The property type for the */

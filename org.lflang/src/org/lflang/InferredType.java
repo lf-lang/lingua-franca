@@ -46,7 +46,7 @@ import org.lflang.lf.Type;
  * translated to target code using the code generators or be converted to a general
  * textual representation using toText().
  *
- * @author Christian Menard <christian.menard@tu-dresden.de>
+ * @author Christian Menard
  */
 public class InferredType {
 

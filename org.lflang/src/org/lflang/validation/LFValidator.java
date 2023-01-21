@@ -63,6 +63,7 @@ import org.lflang.Target;
 import org.lflang.TargetProperty;
 import org.lflang.TimeValue;
 import org.lflang.federated.serialization.SupportedSerializers;
+import org.lflang.federated.validation.FedValidator;
 import org.lflang.generator.NamedInstance;
 import org.lflang.lf.Action;
 import org.lflang.lf.ActionOrigin;
@@ -121,12 +122,12 @@ import com.google.inject.Inject;
  *
  * Also see: https://www.eclipse.org/Xtext/documentation/303_runtime_concepts.html#validation
  *
- * @author{Edward A. Lee <eal@berkeley.edu>}
- * @author{Marten Lohstroh <marten@berkeley.edu>}
- * @author{Matt Weber <matt.weber@berkeley.edu>}
- * @author{Christian Menard <christian.menard@tu-dresden.de>}
- * @author{Hou Seng Wong <stevenhouseng@gmail.com>}
- * @author{Clément Fournier <clement.fournier76@gmail.com>}
+ * @author Edward A. Lee
+ * @author Marten Lohstroh
+ * @author Matt Weber
+ * @author Christian Menard
+ * @author Hou Seng Wong
+ * @author Clément Fournier
  */
 public class LFValidator extends BaseLFValidator {
 
@@ -941,6 +942,10 @@ public class LFValidator extends BaseLFValidator {
                 );
             }
         }
+
+        if (reactor.isFederated()) {
+            FedValidator.validateFederatedReactor(reactor, this.errorReporter);
+        }
     }
 
     /**
@@ -1498,7 +1503,7 @@ public class LFValidator extends BaseLFValidator {
      * Generate an error message for an AST node.
      */
     @Override
-    protected void error(java.lang.String message, 
+    protected void error(java.lang.String message,
         org.eclipse.emf.ecore.EStructuralFeature feature) {
         super.error(message, feature);
     }

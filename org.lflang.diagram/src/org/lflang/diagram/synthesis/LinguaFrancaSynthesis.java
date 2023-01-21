@@ -136,7 +136,7 @@ import de.cau.cs.kieler.klighd.util.KlighdProperties;
 /**
  * Diagram synthesis for Lingua Franca programs.
  * 
- * @author{Alexander Schulz-Rosengarten <als@informatik.uni-kiel.de>}
+ * @author Alexander Schulz-Rosengarten
  */
 @ViewSynthesisShared
 public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
@@ -278,7 +278,7 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
                 List<KNode> reactorNodes = new ArrayList<>();
                 for (Reactor reactor : model.getReactors()) {
                     if (reactor == main) continue;
-                    ReactorInstance reactorInstance = new ReactorInstance(reactor, new SynthesisErrorReporter(), new HashSet<>());
+                    ReactorInstance reactorInstance = new ReactorInstance(reactor, new SynthesisErrorReporter());
                     reactorNodes.addAll(createReactorNode(reactorInstance, main == null, 
                             HashBasedTable.<ReactorInstance, PortInstance, KPort>create(), 
                             HashBasedTable.<ReactorInstance, PortInstance, KPort>create(), 

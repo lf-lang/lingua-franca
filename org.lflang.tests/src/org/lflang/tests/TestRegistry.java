@@ -37,7 +37,7 @@ import org.lflang.tests.TestBase.TestLevel;
 /**
  * A registry to retrieve tests from, organized by target and category.
  * 
- * @author Marten Lohstroh <marten@berkeley.edu>
+ * @author Marten Lohstroh
  */
 public class TestRegistry {
     
@@ -78,7 +78,7 @@ public class TestRegistry {
      * test file that has a directory in its path that matches an entry in this
      * array will not be discovered.
      */
-    public static final String[] IGNORED_DIRECTORIES = {"failing", "knownfailed", "failed"};
+    public static final String[] IGNORED_DIRECTORIES = {"failing", "knownfailed", "failed", "fed-gen"};
     
     /**
      * Path to the root of the repository.
@@ -125,11 +125,13 @@ public class TestRegistry {
      * - C/Threaded.lf (maps to COMMON)
      * - C/threaded/federated/foo.lf (maps to FEDERATED)
      * 
-     * @author Marten Lohstroh <marten@berkeley.edu>
+     * @author Marten Lohstroh
      */
     public enum TestCategory {
         /** Tests about concurrent execution. */
         CONCURRENT(true),
+        /** Test about enclaves */
+        ENCLAVE(false),
         /** Generic tests, ie, tests that all targets are supposed to implement. */
         GENERIC(true),
         /** Tests about generics, not to confuse with {@link #GENERIC}. */
@@ -148,8 +150,9 @@ public class TestRegistry {
         DOCKER_FEDERATED(true, "docker" + File.separator + "federated"),
         SERIALIZATION(false),
         ARDUINO(false, TestLevel.BUILD),
+        ZEPHYR(false, TestLevel.BUILD),
         TARGET(false);
-        
+
         /**
          * Whether or not we should compare coverage against other targets.
          */
@@ -290,17 +293,16 @@ public class TestRegistry {
             int missing = all.size() - own.size();
             if (missing > 0) {
                 all.stream().filter(test -> !own.contains(test))
-                        .forEach(test -> s.append("Missing: ").append(test.toString()).append("\n"));
+                        .forEach(test -> s.append("Missing: ").append(test).append("\n"));
             }
         } else {
             s.append("\n").append(TestBase.THIN_LINE);
             s.append("Covered: ").append(own.size()).append("/").append(own.size()).append("\n");
             s.append(TestBase.THIN_LINE);
         }
-        
         return s.toString();
-    }    
-    
+    }
+
     /**
      * FileVisitor implementation that maintains a stack to map found tests to
      * the appropriate category and excludes directories that are listed as 
@@ -314,7 +316,7 @@ public class TestRegistry {
      * is TestCategory.COMMON, meaning that test files in the top-level test
      * directory for a given target will be mapped to that category.
      * 
-     * @author Marten Lohstroh <marten@berkeley.edu>
+     * @author Marten Lohstroh
      */
     public static class TestDirVisitor extends SimpleFileVisitor<Path> {
 

@@ -1,0 +1,41 @@
+// This is a smoke test for nested enclaves
+target Cpp {
+    timeout: 3 sec
+}
+
+reactor Node(
+    id: std::string("node"),
+    period: time(100 msec),
+    duration: time(50 msec)
+) {
+    timer t(0, period)
+
+    reaction(t) {=
+        reactor::log::Info() << id << " reaction executes.";
+        std::this_thread::sleep_for(duration);
+        reactor::log::Info() << id << " reaction done.";
+    =} deadline(300 msec) {=
+        reactor::log::Error() << id << " deadline was violated!";
+        exit(1);
+    =}
+}
+
+reactor MiddleNode {
+    @enclave
+    inner = new Node(id = "inner", period = 1 sec, duration = 400 msec)
+
+    middle = new Node(id = "middle", period = 200 msec, duration = 70 msec)
+}
+
+reactor OuterNode {
+    @enclave
+    middle = new MiddleNode()
+
+    outer = new Node(id = "outer", period = 500 msec, duration = 200 msec)
+}
+
+main reactor {
+    outer = new OuterNode()
+    @enclave
+    node = new Node(id = "node", period = 2 sec, duration = 500 msec)
+}

@@ -29,7 +29,7 @@ import org.lflang.tests.lsp.ErrorInserter.AlteredTest;
 /**
  * Test the code generator features that are required by the language server.
  *
- * @author Peter Donovan <peterdonovan@berkeley.edu>
+ * @author Peter Donovan
  */
 class LspTests {
 
@@ -101,8 +101,8 @@ class LspTests {
                         System.out.println(" but the expected error could not be found.");
                         System.out.printf(
                             "%s failed. Content of altered version of %s:%n%s%n",
-                            alteredTest.getPath().getFileName(),
-                            alteredTest.getPath().getFileName(),
+                            alteredTest.getSrcFile(),
+                            alteredTest.getSrcFile(),
                             TestBase.THIN_LINE
                         );
                         System.out.println(alteredTest + "\n" + TestBase.THIN_LINE);
@@ -138,7 +138,7 @@ class LspTests {
             client.clearDiagnostics();
             if (alterer != null) {
                 try (AlteredTest altered = alterer.alterTest(test.getSrcPath())) {
-                    runTest(altered.getPath());
+                    runTest(altered.getSrcFile());
                     Assertions.assertTrue(requirementGetter.apply(altered).test(client.getReceivedDiagnostics()));
                 }
             } else {
@@ -193,7 +193,7 @@ class LspTests {
      * @param requiredText A keyword that a list of diagnostics should be searched for.
      * @return The predicate, "X includes {@code requiredText}."
      */
-    private static Predicate<List<Diagnostic>> diagnosticsIncludeText(String requiredText) {
+    private static Predicate<List<Diagnostic>> diagnosticsIncludeText(@SuppressWarnings("SameParameterValue") String requiredText) {
         return diagnostics -> diagnostics.stream().anyMatch(
             d -> d.getMessage().toLowerCase().contains(requiredText)
         );
@@ -201,15 +201,20 @@ class LspTests {
 
     /**
      * Run the given test.
-     * @param test An integration test.
+     * @param test The test b
      */
     private void runTest(Path test) {
         MockReportProgress reportProgress = new MockReportProgress();
-        builder.run(
-            URI.createFileURI(test.toString()),
-            false, reportProgress,
-            () -> false
-        );
+        try {
+            builder.run(
+                URI.createFileURI(test.toString()),
+                false, reportProgress,
+                () -> false
+            );
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw e;
+        }
         Assertions.assertFalse(reportProgress.failed());
     }
 }

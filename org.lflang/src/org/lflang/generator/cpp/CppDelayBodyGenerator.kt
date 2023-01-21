@@ -42,5 +42,4 @@ object CppDelayBodyGenerator : DelayBodyGenerator {
     override fun generateDelayGeneric() = "T"
 
     override fun generateAfterDelaysWithVariableWidth() = false
-
 }
