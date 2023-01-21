@@ -363,7 +363,7 @@ public class CExtension implements FedTargetExtension {
                 // NOTE: Transporting token types this way is likely to only work if the sender and receiver
                 // both have the same endianness. Otherwise, you have to use protobufs or some other serialization scheme.
                 result.pr("size_t message_length = "+ sendRef +"->token->length * "+ sendRef
-                              +"->token->element_size;");
+                              +"->token->type->element_size;");
                 result.pr(sendingFunction +"("+ commonArgs +", (unsigned char*) "+ sendRef
                               +"->value);");
             } else {
