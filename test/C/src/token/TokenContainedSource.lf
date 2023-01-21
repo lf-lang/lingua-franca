@@ -6,11 +6,12 @@
 target C {
     timeout: 2 ms
 }
+
 import TokenSource from "lib/Token.lf"
 
 main reactor(scale: int(1)) {
-    state count:int(0)
-    state input_received:bool(false)
+    state count: int(0)
+    state input_received: bool(false)
 
     s = new TokenSource()
 
@@ -33,6 +34,7 @@ main reactor(scale: int(1)) {
             exit(1);
         }
     =}
+
     reaction(shutdown) {=
         if (!self->input_received) {
             lf_print_error_and_exit("TokenPrint: No result received!");

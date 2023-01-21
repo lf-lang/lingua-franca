@@ -1,5 +1,5 @@
-// This tests delaying an array type.
-// The array length has to be agreed upon by all reactors.
+// This tests delaying an array type. The array length has to be agreed upon by
+// all reactors.
 target C {
     build-type: RelWithDebInfo
 }
@@ -9,13 +9,9 @@ reactor DelayPointer(delay: time(100 msec)) {
     output out: int[]
     logical action a: int[]
 
-    reaction(in) -> a {=
-        lf_schedule_token(a, self->delay, in->token);
-    =}
+    reaction(in) -> a {= lf_schedule_token(a, self->delay, in->token); =}
 
-    reaction(a) -> out {= 
-        lf_set_token(out, a->token);
-    =}
+    reaction(a) -> out {= lf_set_token(out, a->token); =}
 }
 
 reactor Source {

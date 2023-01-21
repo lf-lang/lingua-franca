@@ -6,6 +6,7 @@
 target C {
     timeout: 2 ms
 }
+
 import TokenSource, TokenPrint from "lib/Token.lf"
 
 main reactor {

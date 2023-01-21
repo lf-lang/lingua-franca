@@ -1,14 +1,14 @@
 // Source produces a dynamically allocated array, which it passes to Print.
-// Reference counting ensures that the array is freed.
-// The array size here must be known to all reactors.
+// Reference counting ensures that the array is freed. The array size here must
+// be known to all reactors.
 target C {
     timeout: 1 sec,
     fast: true
 }
 
-reactor Source(size:int(3)) {
+reactor Source(size: int(3)) {
     output out: int[]
-    state count:int(0)
+    state count: int(0)
     timer t(0, 1 sec)
 
     reaction(t) -> out {=
@@ -25,9 +25,10 @@ reactor Source(size:int(3)) {
     =}
 }
 
-reactor Print(scale: int(1), size:int(3)) {  // The scale parameter is just for testing.
+// The scale parameter is just for testing.
+reactor Print(scale: int(1), size: int(3)) {
     input in: int[]
-    state count:int(0)
+    state count: int(0)
 
     reaction(in) {=
         bool failed = false; // For testing.

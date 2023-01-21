@@ -5,11 +5,14 @@
 target C {
     timeout: 2 ms
 }
+
 import TokenPrint from "lib/Token.lf"
 
 main reactor {
-    state count:int(0)
+    state count: int(0)
     timer t(0, 1 ms)
+
+    p = new TokenPrint()
 
     reaction(startup) -> p.in {=
         lf_set_destructor(p.in, int_array_destructor);
@@ -23,6 +26,4 @@ main reactor {
         }
         lf_set(p.in, array);
     =}
-
-    p = new TokenPrint()
 }

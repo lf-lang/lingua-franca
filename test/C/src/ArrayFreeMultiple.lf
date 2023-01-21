@@ -12,7 +12,7 @@ import Print from "ArrayPrint.lf"
 
 reactor Source {
     output out: int[]
-    state c:int(0)
+    state c: int(0)
     timer t(0, 1 sec)
 
     reaction(t) -> out {=

@@ -1,15 +1,15 @@
 /**
- * Test of token scaled by a scale factor with a mutable input.
- * The total memory allocated in this test should be the same as
- * in TokenSourcePrint.lf.
+ * Test of token scaled by a scale factor with a mutable input. The total memory
+ * allocated in this test should be the same as in TokenSourcePrint.lf.
  * @author Hou Seng (Steven) Wong (housengw@berkeley.edu)
  * @author Edward A. Lee (eal@berkeley.edu)
  */
- target C {
+target C {
     logging: DEBUG,
-    build-type: RelWithDebInfo, // Release with debug info
+    build-type: RelWithDebInfo,  // Release with debug info
     timeout: 2 ms
 }
+
 import TokenSource, TokenPrint, TokenScale from "lib/Token.lf"
 
 main reactor {
