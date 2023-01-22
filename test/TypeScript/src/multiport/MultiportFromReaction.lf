@@ -35,7 +35,7 @@ main reactor MultiportFromReaction(width: number(4)) {
 
     reaction(t) -> b.inp {=
         for (let i = 0; i < b.inp.length; i++) {
-            console.log("Before SET, b.inp[" + i + "] !== undefined has value " + b.inp[i] !== undefined);
+            console.log("Before set, b.inp[" + i + "] !== undefined has value " + b.inp[i] !== undefined);
             b.inp[i] = s++;
             console.log("AFTER set, b.inp[" + i + "] !== undefined has value " + b.inp[i] !== undefined);
             console.log("AFTER set, b.inp[" + i + "] has value " + b.inp[i]);
