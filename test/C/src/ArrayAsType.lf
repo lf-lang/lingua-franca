@@ -9,7 +9,7 @@ reactor Source {
         out->value[0] = 0;
         out->value[1] = 1;
         out->value[2] = 2;
-        SET_PRESENT(out);
+        lf_set_present(out);
     =}
 }
 

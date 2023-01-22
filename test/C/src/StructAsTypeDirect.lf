@@ -13,7 +13,7 @@ reactor Source {
     reaction(startup) -> out {=
         out->value.name = "Earth";
         out->value.value = 42;
-        SET_PRESENT(out);
+        lf_set_present(out);
     =}
 }
 
