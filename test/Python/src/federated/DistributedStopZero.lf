@@ -1,5 +1,5 @@
 /**
- * Test for request_stop() in federated execution with centralized coordination
+ * Test for lf_request_stop() in federated execution with centralized coordination
  * at tag (0,0).
  *
  * @author Soroush Bateni
@@ -29,7 +29,7 @@ reactor Sender {
             print("Requesting stop at ({}, {}).".format(
                      lf.time.logical_elapsed(),
                      lf.tag().microstep))
-            request_stop()
+            lf_request_stop()
     =}
 
     reaction(shutdown) {=
@@ -63,7 +63,7 @@ reactor Receiver {
             print("Requesting stop at ({}, {}).".format(
                      tag.time,
                      tag.microstep))
-            request_stop()
+            lf_request_stop()
     =}
 
     reaction(shutdown) {=
