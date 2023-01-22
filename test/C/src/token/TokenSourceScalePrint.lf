@@ -5,8 +5,6 @@
  * @author Edward A. Lee (eal@berkeley.edu)
  */
 target C {
-    logging: DEBUG,
-    build-type: RelWithDebInfo,  // Release with debug info
     timeout: 2 ms
 }
 
