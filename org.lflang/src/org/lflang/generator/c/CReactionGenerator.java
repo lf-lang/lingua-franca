@@ -569,7 +569,7 @@ public class CReactionGenerator {
                 inputName+"->value = NULL;", // Prevent payload from being freed.
                 "if ("+inputName+"->is_present) {",
                 "    "+inputName+"->length = "+inputName+"->token->length;",
-                "    "+inputName+"->token = lf_writable_copy((token_template_t*)self->_lf_"+inputName+");",
+                "    "+inputName+"->token = lf_writable_copy((lf_port_base_t*)self->_lf_"+inputName+");",
                 "    "+inputName+"->value = ("+types.getTargetType(inputType)+")"+inputName+"->token->value;",
                 "} else {",
                 "    "+inputName+"->length = 0;",
@@ -592,7 +592,7 @@ public class CReactionGenerator {
                 "    if ("+inputName+"[i]->is_present) {",
                 "        "+inputName+"[i]->length = "+inputName+"[i]->token->length;",
                 "        token_template_t* _lf_input = (token_template_t*)self->_lf_"+inputName+"[i];",
-                "        "+inputName+"[i]->token = lf_writable_copy(_lf_input);",
+                "        "+inputName+"[i]->token = lf_writable_copy((lf_port_base_t*)_lf_input);",
                 "        "+inputName+"[i]->value = ("+types.getTargetType(inputType)+")"+inputName+"[i]->token->value;",
                 "    } else {",
                 "        "+inputName+"[i]->length = 0;",
