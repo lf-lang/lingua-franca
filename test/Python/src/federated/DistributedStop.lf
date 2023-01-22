@@ -1,5 +1,5 @@
 /**
- * Test for request_stop() in federated execution with centralized coordination.
+ * Test for lf_request_stop() in federated execution with centralized coordination.
  *
  * @author Soroush Bateni
  */
@@ -21,16 +21,16 @@ reactor Sender {
         if lf_tag().microstep == 0:
             # Instead of having a separate reaction
             # for 'act' like Stop.lf, we trigger the
-            # same reaction to test request_stop() being
+            # same reaction to test lf_request_stop() being
             # called multiple times
             act.schedule(0)
         if lf.time.logical_elapsed() == USEC(1):
-            # Call request_stop() both at (1 usec, 0) and
+            # Call lf_request_stop() both at (1 usec, 0) and
             # (1 usec, 1)
             print("Requesting stop at ({}, {}).".format(
                      lf.time.logical_elapsed(),
                      lf_tag().microstep))
-            request_stop()
+            lf_request_stop()
 
         _1usec1 = Tag(time=USEC(1) + get_start_time(), microstep=1)
         if lf.tag_compare(lf_tag(), _1usec1) == 0:
@@ -74,7 +74,7 @@ reactor Receiver(
             print("Requesting stop at ({}, {}).".format(
                      lf.time.logical_elapsed(),
                      lf_tag().microstep))
-            request_stop()
+            lf_request_stop()
             # The receiver should receive a message at tag
             # (1 usec, 1) and trigger this reaction
             self.reaction_invoked_correctly = True

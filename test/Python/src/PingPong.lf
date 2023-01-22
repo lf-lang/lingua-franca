@@ -39,7 +39,7 @@ reactor Ping(count(10)) {
         if self.pingsLeft > 0:
             serve.schedule(0)
         else:
-            request_stop()
+            lf_request_stop()
     =}
 }
 

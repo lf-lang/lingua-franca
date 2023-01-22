@@ -52,7 +52,7 @@ reactor STPReceiver(take_a_break_after(10), break_interval(400 msec), stp_offset
         # time step.
         if current_tag.time != self.last_time_updated_stp :
             print(f"Raising the STP offset by {MSEC(10)}.")
-            set_stp_offset(MSEC(10))
+            lf_set_stp_offset(MSEC(10))
             self.last_time_updated_stp = current_tag.time
     =}
 
