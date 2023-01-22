@@ -36,7 +36,7 @@ main reactor MultiportFromReaction {
 
     reaction(t) -> b._in {=
         for (idx, port) in enumerate(b._in):
-            print("Before SET, b.in[{:d}].is_present has value {:d}".format(idx, port.is_present))
+            print("Before set, b.in[{:d}].is_present has value {:d}".format(idx, port.is_present))
             port.set(self.s)
             self.s += 1
             print("AFTER set, b.in[{:d}].is_present has value {:d}".format(idx, port.is_present))
