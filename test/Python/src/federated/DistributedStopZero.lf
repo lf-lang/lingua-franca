@@ -1,6 +1,6 @@
 /**
- * Test for lf_request_stop() in federated execution with centralized coordination
- * at tag (0,0).
+ * Test for lf_request_stop() in federated execution with centralized
+ * coordination at tag (0,0).
  *
  * @author Soroush Bateni
  */
