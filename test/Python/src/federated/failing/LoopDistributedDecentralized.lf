@@ -17,7 +17,7 @@ preamble {=
     // Thread to trigger an action once every second.
     void* ping(void* actionref) {
         while(!stop) {
-            info_print("Scheduling action.");
+            lf_print("Scheduling action.");
             schedule(actionref, 0);
             sleep(1);
         }
@@ -34,12 +34,12 @@ reactor Looper(incr(1), delay(0 msec), stp_offset(0)) {
     reaction(startup) -> a {=
         // Start the thread that listens for Enter or Return.
         lf_thread_t thread_id;
-        info_print("Starting thread.");
+        lf_print("Starting thread.");
         lf_thread_create(&thread_id, &ping, a);
     =}
 
     reaction(a) -> out {=
-        info_print("Setting out.");
+        lf_print("Setting out.");
         SET(out, self->count);
         self->count += self->incr;
     =}
@@ -48,21 +48,21 @@ reactor Looper(incr(1), delay(0 msec), stp_offset(0)) {
         instant_t time_lag = lf.time.physical() - lf.time.logical();
         char time_buffer[28]; // 28 bytes is enough for the largest 64 bit number: 9,223,372,036,854,775,807
         lf_comma_separated_time(time_buffer, time_lag);
-        info_print("Received %d. Logical time is behind physical time by %s nsec.", in_->value, time_buffer);
+        lf_print("Received %d. Logical time is behind physical time by %s nsec.", in_->value, time_buffer);
     =} STP(stp_offset) {=
         instant_t time_lag = lf.time.physical() - lf.time.logical();
         char time_buffer[28]; // 28 bytes is enough for the largest 64 bit number: 9,223,372,036,854,775,807
         lf_comma_separated_time(time_buffer, time_lag);
-        info_print("STP offset was violated. Received %d. Logical time is behind physical time by %s nsec.", in_->value, time_buffer);
+        lf_print("STP offset was violated. Received %d. Logical time is behind physical time by %s nsec.", in_->value, time_buffer);
     =} deadline(10 msec) {=
         instant_t time_lag = lf.time.physical() - lf.time.logical();
         char time_buffer[28]; // 28 bytes is enough for the largest 64 bit number: 9,223,372,036,854,775,807
         lf_comma_separated_time(time_buffer, time_lag);
-        info_print("Deadline miss. Received %d. Logical time is behind physical time by %s nsec.", in_->value, time_buffer);
+        lf_print("Deadline miss. Received %d. Logical time is behind physical time by %s nsec.", in_->value, time_buffer);
     =}
 
     reaction(shutdown) {=
-        info_print("******* Shutdown invoked.");
+        lf_print("******* Shutdown invoked.");
         // Stop the thread that is scheduling actions.
         stop = true;
         if (self->count != 5 * self->incr) {

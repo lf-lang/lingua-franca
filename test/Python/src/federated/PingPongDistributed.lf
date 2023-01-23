@@ -37,7 +37,7 @@ reactor Ping(count(10)) {
         if self.pingsLeft > 0:
             serve.schedule(0)
         else:
-            request_stop()
+            lf_request_stop()
     =}
 }
 
@@ -53,7 +53,7 @@ reactor Pong(expected(10)) {
         print("At logical time {}, Pong received {}.\n".format(lf.time.logical_elapsed(), receive.value))
         send.set(receive.value)
         if self.count == self.expected:
-            request_stop()
+            lf_request_stop()
     =}
 
     reaction(shutdown) {=
