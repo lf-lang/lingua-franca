@@ -233,7 +233,7 @@ public class TargetConfig {
     public boolean auth = false;
 
     /**
-     * Pass the path of the sst configuration file.
+     * The path of the SST configuration file.
      */
     public List<String> sst = new ArrayList<>();
 

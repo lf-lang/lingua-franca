@@ -68,7 +68,7 @@ public enum TargetProperty {
 
     /**
      * Path of configuration file of SST. It allows including OpenSSL libraries 
-     * and use SST for authentication and authorization.
+     * and using SST for authentication and authorization.
      */
     SST("sst", UnionType.FILE_OR_FILE_ARRAY,
             Arrays.asList(Target.C, Target.CCPP), (config, value, err) -> {
