@@ -144,10 +144,9 @@ public class Lfc extends CliBase {
 
     @Option(
         names = {"-t", "--threading"},
-        arity = "0",
         description = "Specify whether the runtime should use multi-threading"
                     + " (true/false).")
-    private boolean threading;
+    private String threading;
 
     @Option(
         names = {"-w", "--workers"},
