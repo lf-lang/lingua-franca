@@ -605,7 +605,6 @@ public class CGenerator extends GeneratorBase {
                 }
             } else {
                 try {
-                    Files.deleteIfExists(fileConfig.getSrcGenPath().resolve("src/lib/util.c"));
                     FileUtil.relativeIncludeHelper(fileConfig.getSrcGenPath().resolve("src/"));
                     FileUtil.arduinoDeleteHelper(fileConfig.getSrcGenPath().resolve("src/"));
                 } catch (IOException e) {
