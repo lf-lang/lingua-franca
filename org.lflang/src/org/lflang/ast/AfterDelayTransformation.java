@@ -333,6 +333,8 @@ public class AfterDelayTransformation implements AstTransformation {
         r2.setCode(factory.createCode());
         r2.getCode().setBody(generator.generateForwardBody(action, outRef));
 
+        generator.finalizeReactions(r1, r2);
+
         // Add the reactions to the newly created reactor class.
         // These need to go in the opposite order in case
         // a new input arrives at the same time the delayed

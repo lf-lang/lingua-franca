@@ -42,18 +42,18 @@ class CppFileConfig(resource: Resource, srcGenBasePath: Path, useHierarchicalBin
     @Throws(IOException::class)
     override fun doClean() {
         super.doClean()
-        cppBuildDirectories.forEach { FileUtil.deleteDirectory(it) }
+        this.cppBuildDirectories.forEach { FileUtil.deleteDirectory(it) }
     }
 
     val cppBuildDirectories = listOf<Path>(
-        outPath.resolve("build"),
-        outPath.resolve("lib"),
-        outPath.resolve("include"),
-        outPath.resolve("share")
+        this.outPath.resolve("build"),
+        this.outPath.resolve("lib"),
+        this.outPath.resolve("include"),
+        this.outPath.resolve("share")
     )
 
     /** Relative path to the directory where all source files for this resource should be generated in. */
-    private fun getGenDir(r: Resource): Path = getDirectory(r).resolve(r.name)
+    private fun getGenDir(r: Resource): Path = this.getDirectory(r).resolve(r.name)
 
     /** Path to the preamble header file corresponding to this resource */
     fun getPreambleHeaderPath(r: Resource): Path = getGenDir(r).resolve("_lf_preamble.hh")
@@ -71,5 +71,5 @@ class CppFileConfig(resource: Resource, srcGenBasePath: Path, useHierarchicalBin
     fun getReactorSourcePath(r: Reactor): Path = getGenDir(r.eResource()).resolve("${r.name}.cc")
 
     /** Path to the build directory containing CMake-generated files */
-    val buildPath: Path get() = outPath.resolve("build")
+    val buildPath: Path get() = this.outPath.resolve("build")
 }

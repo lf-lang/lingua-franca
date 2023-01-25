@@ -10,22 +10,9 @@ target C {
     coordination-options: {
         advance-message-interval: 100 msec
     },
-    timeout: 5 sec
+    timeout: 4 sec,
+    logging: DEBUG
 }
-
-preamble {=
-    #include <unistd.h> // Defines sleep()
-    bool stop = false;
-    // Thread to trigger an action once every second.
-    void* ping(void* actionref) {
-        while(!stop) {
-            lf_print("Scheduling action.");
-            lf_schedule(actionref, 0);
-            sleep(1);
-        }
-        return NULL;
-    }
-=}
 
 reactor Looper(incr: int(1), delay: time(0 msec)) {
     input in: int
@@ -33,14 +20,9 @@ reactor Looper(incr: int(1), delay: time(0 msec)) {
     physical action a(delay)
     state count: int(0)
 
-    reaction(startup) -> a {=
-        // Start the thread that listens for Enter or Return.
-        lf_thread_t thread_id;
-        lf_print("Starting thread.");
-        lf_thread_create(&thread_id, &ping, a);
-    =}
+    timer t(0, 1 sec)
 
-    reaction(a) -> out {=
+    reaction(t) -> out {=
         lf_set(out, self->count);
         self->count += self->incr;
     =}
@@ -54,8 +36,6 @@ reactor Looper(incr: int(1), delay: time(0 msec)) {
 
     reaction(shutdown) {=
         lf_print("******* Shutdown invoked.");
-        // Stop the thread that is scheduling actions.
-        stop = true;
         if (self->count != 5 * self->incr) {
             lf_print_error_and_exit("Failed to receive all five expected inputs.");
         }

@@ -1,23 +1,22 @@
 /**
- * This tests a feedback loop with physical actions and
- * centralized coordination.
+ * This tests a feedback loop with physical actions and centralized
+ * coordination.
  *
  * @author Edward A. Lee
  */
-
-// reason for failing: current tag struct not supported in the python target
-
+# reason for failing: current tag struct not supported in the python target
 target Python {
     coordination: centralized,
     timeout: 5 sec
 }
+
 preamble {=
     #include <unistd.h> // Defines sleep()
     stop = False
     # Thread to trigger an action once every second.
     void* ping(void* actionref) {
         while(!stop) {
-            info_print("Scheduling action.");
+            lf_print("Scheduling action.");
             schedule(actionref, 0);
             sleep(1);
         }
@@ -26,19 +25,21 @@ preamble {=
 =}
 
 reactor Looper(incr(1), delay(0 msec)) {
-    input in_;
-    input in2;
-    output out;
-    output out2;
-    physical action a(delay);
-    state count(0);
-    timer t(0, 1 sec);
+    input in_
+    input in2
+    output out
+    output out2
+    physical action a(delay)
+    state count(0)
+    timer t(0, 1 sec)
+
     reaction(startup) -> a {=
         # Start the thread that listens for Enter or Return.
         lf_thread_t thread_id;
-        info_print("Starting thread.");
+        lf_print("Starting thread.");
         lf_thread_create(&thread_id, &ping, a);
     =}
+
     reaction(a) -> out, out2 {=
         if (self->count%2 == 0) {
             SET(out, self->count);
@@ -47,25 +48,29 @@ reactor Looper(incr(1), delay(0 msec)) {
         }
         self->count += self->incr;
     =}
-    reaction(in) {=
-        info_print("Received %d at logical time (%lld, %d).",
+
+    reaction(in_) {=
+        lf_print("Received %d at logical time (%lld, %d).",
             in->value,
             current_tag.time - start_time, current_tag.microstep
         );
     =}
+
     reaction(in2) {=
-        info_print("Received %d on in2 at logical time (%lld, %d).",
+        lf_print("Received %d on in2 at logical time (%lld, %d).",
             in2->value,
             current_tag.time - start_time, current_tag.microstep
         );
     =}
+
     reaction(t) {=
-        info_print("Timer triggered at logical time (%lld, %d).",
+        lf_print("Timer triggered at logical time (%lld, %d).",
             current_tag.time - start_time, current_tag.microstep
         );
     =}
+
     reaction(shutdown) {=
-        info_print("******* Shutdown invoked.");
+        lf_print("******* Shutdown invoked.");
         // Stop the thread that is scheduling actions.
         stop = true;
         if (self->count != 5 * self->incr) {
@@ -73,11 +78,12 @@ reactor Looper(incr(1), delay(0 msec)) {
         }
     =}
 }
-federated reactor (delay:time(0)) {
-    left = new Looper();
-    right = new Looper(incr = -1);
-    left.out -> right.in;
-    right.out -> left.in;
-    right.out2 -> left.in2;
-    left.out2 -> right.in2;
+
+federated reactor(delay(0)) {
+    left = new Looper()
+    right = new Looper(incr = -1)
+    left.out -> right.in_
+    right.out -> left.in_
+    right.out2 -> left.in2
+    left.out2 -> right.in2
 }

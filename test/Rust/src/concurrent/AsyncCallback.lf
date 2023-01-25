@@ -1,0 +1,60 @@
+// Test asynchronous callbacks that trigger a physical action.
+target Rust {
+    timeout: 1000 ms,
+    cargo-features: ["cli"]
+}
+
+main reactor AsyncCallback(period: time(10 msec)) {
+    preamble {= use std::thread; =}
+
+    timer t(0, period)
+    state thread: Option<thread::JoinHandle<unit>>
+    state expected_time: time(period)
+    state period: time(period)
+    state toggle: bool(false)
+
+    physical action act
+    state i: u32(0)
+
+    reaction(t) -> act {=
+        let act = act.clone();
+        let period = self.period;
+        if let Some(old_thread) = self.thread.take() {
+            old_thread.join().ok();
+        }
+        // start new thread
+        let new_thread = ctx.spawn_physical_thread(move |ctx| {
+            // Simulate time passing before a callback occurs
+            thread::sleep(period);
+            // Schedule twice. If the action is not physical, these should
+            // get consolidated into a single action triggering. If it is,
+            // then they cause two separate triggerings with close but not
+            // equal time stamps.
+            ctx.schedule_physical(&act, Asap).ok();
+            ctx.schedule_physical(&act, Asap).ok();
+        });
+
+        self.thread.replace(new_thread);
+    =}
+
+    reaction(act) {=
+        let elapsed_time = ctx.get_elapsed_logical_time();
+        let i = self.i;
+        println!("Asynchronous callback {}: Assigned logical time greater than start time by {} ms",
+                 i, elapsed_time.as_millis());
+        assert!(elapsed_time > self.expected_time,"ERROR: Expected logical time to be larger than {} ms", self.expected_time.as_millis());
+
+        self.i += 1;
+        if self.toggle {
+            self.expected_time += self.period;
+        }
+        self.toggle = !self.toggle;
+    =}
+
+    reaction(shutdown) {=
+        if let Some(thread) = self.thread.take() {
+            thread.join().ok();
+        }
+        println!("success");
+    =}
+}

@@ -1,5 +1,5 @@
 /**
- * Check that request_stop() doesn't cause any issues at the shutdown tag.
+ * Check that lf_request_stop() doesn't cause any issues at the shutdown tag.
  *
  * Original bug discovered by Steven Wong <housengw@berkeley.edu>
  *
@@ -16,7 +16,7 @@ reactor A {
 
     reaction(in_) {= print("Got it") =}
 
-    reaction(shutdown) {= request_stop() =}
+    reaction(shutdown) {= lf_request_stop() =}
 }
 
 reactor B {
@@ -25,7 +25,7 @@ reactor B {
 
     reaction(t) -> out {= out.set(1) =}
 
-    reaction(shutdown) {= request_stop() =}
+    reaction(shutdown) {= lf_request_stop() =}
 }
 
 federated reactor {

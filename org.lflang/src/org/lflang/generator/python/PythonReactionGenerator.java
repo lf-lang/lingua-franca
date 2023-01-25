@@ -4,10 +4,13 @@ import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
+
 import org.lflang.ASTUtils;
+import org.lflang.AttributeUtils;
 import org.lflang.ErrorReporter;
 import org.lflang.Target;
-import org.lflang.generator.DelayBodyGenerator;
+
 import org.lflang.generator.c.CReactionGenerator;
 import org.lflang.lf.ReactorDecl;
 import org.lflang.lf.Reaction;
@@ -124,7 +127,6 @@ public class PythonReactionGenerator {
      * @param mainDef The main reactor.
      * @param errorReporter An error reporter.
      * @param types A helper class for type-related stuff.
-     * @param isFederatedAndDecentralized True if program is federated and coordination type is decentralized.
      */
     public static String generateCReaction(
         Reaction reaction,
@@ -132,8 +134,7 @@ public class PythonReactionGenerator {
         int reactionIndex,
         Instantiation mainDef,
         ErrorReporter errorReporter,
-        CTypes types,
-        boolean isFederatedAndDecentralized
+        CTypes types
     ) {
         // Contains the actual comma separated list of inputs to the reaction of type generic_port_instance_struct.
         // Each input must be cast to (PyObject *) (aka their descriptors for Py_BuildValue are "O")
@@ -143,7 +144,6 @@ public class PythonReactionGenerator {
         String cInit = CReactionGenerator.generateInitializationForReaction(
                                                 "", reaction, decl, reactionIndex,
                                                 types, errorReporter, mainDef,
-                                                isFederatedAndDecentralized,
                                                 Target.Python.requiresTypes);
         code.pr(
             "#include " + StringUtil.addDoubleQuotes(
@@ -380,17 +380,12 @@ public class PythonReactionGenerator {
         Reactor reactor = ASTUtils.toDefinition(instance.getDefinition().getReactorClass());
         CodeBuilder code = new CodeBuilder();
 
-        // Delay reactors and top-level reactions used in the top-level reactor(s) in federated execution are generated in C
-        if (reactor.getName().contains(DelayBodyGenerator.GEN_DELAY_CLASS_NAME) ||
-                instance.getDefinition().getReactorClass() == (mainDef != null ? mainDef.getReactorClass() : null) &&
-                reactor.isFederated()) {
-            return "";
-        }
-
         // Initialize the name field to the unique name of the instance
         code.pr(nameOfSelfStruct+"->_lf_name = \""+instance.uniqueID()+"_lf\";");
 
         for (ReactionInstance reaction : instance.reactions) {
+            // Reactions marked with a `@_c_body` attribute are generated in C
+            if (AttributeUtils.hasCBody(reaction.getDefinition())) continue;
             // Create a PyObject for each reaction
             code.pr(generateCPythonReactionLinker(instance, reaction, nameOfSelfStruct));
         }
@@ -488,6 +483,9 @@ public class PythonReactionGenerator {
      * @param reaction The reaction of reactor
      */
     public static String generatePythonReaction(Reactor reactor, Reaction reaction, int reactionIndex) {
+        // Reactions marked with a `@_c_body` attribute are generated in C
+        if (AttributeUtils.hasCBody(reaction))  return "";
+
         CodeBuilder code = new CodeBuilder();
         List<String> reactionParameters = new ArrayList<>(); // Will contain parameters for the function (e.g., Foo(x,y,z,...)
         CodeBuilder inits = new CodeBuilder(); // Will contain initialization code for some parameters

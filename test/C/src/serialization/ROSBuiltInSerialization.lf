@@ -64,5 +64,5 @@ federated reactor {
     sender = new Sender()
     receiver = new Receiver()
 
-    sender.out -> receiver.in serializer "ros2"
+    sender.out -> receiver.in after 100 msec serializer "ros2"
 }
