@@ -146,10 +146,11 @@ public class TestRegistry {
         DOCKER_FEDERATED(true, "docker" + File.separator + "federated"),
         SERIALIZATION(false),
         ARDUINO(false),
+        ZEPHYR(false, TestLevel.BUILD),
         TARGET(false);
 
         /**
-         * Whether or not we should compare coverage against other targets.
+         * Whether we should compare coverage against other targets.
          */
         public final boolean isCommon;
         public final String path;
