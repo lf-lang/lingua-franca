@@ -63,26 +63,22 @@ public class Lfc extends CliBase {
 
     @Option(
         names = "--build-type",
-        descriptionKey = "build_type",
         description = "The build type to use.")
     private String buildType;
 
     @Option(
         names = {"-c", "--clean"},
         arity = "0",
-        descriptionKey = "clean",
         description = "Clean before building.")
     private boolean clean;
 
     @Option(
         names = "--target-compiler",
-        descriptionKey = "target_compiler",
         description = "Target compiler to invoke.")
     private String targetCompiler;
 
     @Option(
         names = "--external-runtime-path",
-        descriptionKey = "external_runtime_path",
         description = "Specify an external runtime library to be used by the"
                     + " compiled binary.")
     private String externalRuntimePath;
@@ -90,60 +86,52 @@ public class Lfc extends CliBase {
     @Option(
         names = {"-f", "--federated"},
         arity = "0",
-        descriptionKey = "federated",
         description = "Treat main reactor as federated.")
     private boolean federated;
 
     @Option(
         names = "--logging",
-        descriptionKey = "logging",
         description = "The logging level to use by the generated binary")
     private String logging;
 
     @Option(
         names = {"-l", "--lint"},
         arity = "0",
-        descriptionKey = "lint",
         description = "Enable or disable linting of generated code.")
     private boolean lint;
 
     @Option(
         names = {"-n", "--no-compile"},
         arity = "0",
-        descriptionKey = "no_compile",
         description = "Do not invoke target compiler.")
     private boolean noCompile;
 
     @Option(
         names = {"-q", "--quiet"},
         arity = "0",
-        descriptionKey = "quiet",
         description = 
             "Suppress output of the target compiler and other commands")
     private boolean quiet;
 
     @Option(
         names = {"-r", "--rti"},
-        descriptionKey = "rti",
         description = "Specify the location of the RTI.")
     private String rti;
 
     @Option(
         names = "--runtime-version",
-        descriptionKey = "runtime_version",
         description = "Specify the version of the runtime library used for"
                     + " compiling LF programs.")
     private String runtimeVersion;
 
     @Option(
         names = {"-s", "--scheduler"},
-        defaultValue = "",
-        fallbackValue = "",
         description = "Specify the runtime scheduler (if supported).")
     private String scheduler;
 
     @Option(
         names = {"-t", "--threading"},
+        paramLabel = "<true/false>",
         description = "Specify whether the runtime should use multi-threading"
                     + " (true/false).")
     private String threading;

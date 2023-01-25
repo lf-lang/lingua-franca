@@ -60,7 +60,6 @@ public abstract class CliBase implements Runnable {
     @Parameters(
         arity = "1..",
         paramLabel = "FILES",
-        descriptionKey = "files",
         description = "Paths of the files to run the formatter on.")
     protected List<Path> files;
 
@@ -68,7 +67,6 @@ public abstract class CliBase implements Runnable {
         names = {"-o", "--output-path"},
         defaultValue = "",
         fallbackValue = "",
-        descriptionKey = "output_path",
         description = "Specify the root output directory.")
 
     private Path outputPath;
