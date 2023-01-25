@@ -5,7 +5,7 @@
  * the PWM pins are identified with a "~" sign, like ~3, ~5, ~6, ~9, ~10 and
  * ~11.
  */
-target CCpp {
+target C {
     platform: "Arduino"
 }
 

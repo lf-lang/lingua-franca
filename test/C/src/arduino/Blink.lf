@@ -3,7 +3,7 @@
  * off an LED on the Arduino Board with a 50% duty cycle switching every
  * half-second.
  */
-target CCpp {
+target C {
     platform: "Arduino"
 }
 

@@ -5,14 +5,14 @@
  * center pin of a potentiometer to pin A0, and the outside pins to +5V and
  * ground.
  */
-target CCpp {
+target C {
     platform: "Arduino"
 }
 
 main reactor ReadAnalogVoltage {
     logical action a
 
-    reaction(startup) -> a {= schedule(a, 0); =}
+    reaction(startup) -> a {= lf_schedule(a, 0); =}
 
     reaction(a) -> a {=
         int sensorValue = analogRead(A0);
@@ -20,6 +20,6 @@ main reactor ReadAnalogVoltage {
         float voltage = sensorValue * (5.0 / 1023.0);
         // print out the value you read:
         Serial.println(voltage);
-        schedule(a, 0);
+        lf_schedule(a, 0);
     =}
 }

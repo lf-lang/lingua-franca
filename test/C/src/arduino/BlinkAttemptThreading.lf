@@ -4,7 +4,7 @@
  * half-second. Note: if we try to enable threading, the system will give us a
  * warning and default back to no threading.
  */
-target CCpp {
+target C {
     platform: "Arduino",
     threading: true
 }

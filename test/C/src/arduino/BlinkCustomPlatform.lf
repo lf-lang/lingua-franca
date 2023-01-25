@@ -5,7 +5,7 @@
  *
  * This tests the overloading capabilities of the platform argument.
  */
-target CCpp {
+target C {
     platform: {
         name: "arduino",
         baud-rate: 9600,

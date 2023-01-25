@@ -4,7 +4,7 @@
  * Serial Plotter menu). Attach the center pin of a potentiometer to pin A0, and
  * the outside pins to +5V and ground.
  */
-target CCpp {
+target C {
     platform: "Arduino"
 }
 

@@ -2,7 +2,7 @@
  * This example reads a digital input on pin 2, prints the result to the Serial
  * Monitor
  */
-target CCpp {
+target C {
     platform: "Arduino"
 }
 
