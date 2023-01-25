@@ -10,22 +10,9 @@ function test_with_links() {
     mkdir -p foo/bar/baz
     ln -s ../bin/${1} foo/link-foo 
     ln -s ../link-foo foo/bar/link-bar
-    ln -s ../link-bar foo/bar/baz/link-baz
-    foo/bar/baz/link-baz --help
+    ln -s ../link-bar foo/bar/baz/link-${1}
+    foo/bar/baz/link-${1} --help
 }
-
-# Test the build-lfc executable and its flags.
-bin/build-lfc
-bin/build-lfc --help
-bin/build-lfc -h
-bin/build-lfc --run --help
-bin/build-lfc -r --help
-bin/build-lfc --run test/C/src/Minimal.lf
-bin/build-lfc -c -o -s
-bin/build-lfc --clean --offline --stacktrace
-
-# Ensure that build-lfc is robust to symbolic links.
-test_with_links "build-lfc"
 
 bin/lfc test/C/src/Minimal.lf
 
@@ -63,7 +50,7 @@ bin/lfc --output-path . test/C/src/Minimal.lf
 #    --runtime-version <arg>         Specify the version of the runtime
 #                                    library used for compiling LF
 #                                    programs.
-bin/lfc --runtime-version 46a618c01e494b7b476707c30dd6067ad66759d6 test/Cpp/src/Minimal.lf
+bin/lfc --runtime-version 82e07c3f7a9c31fa92c1bb0fe2eb66064e031dbb test/Cpp/src/Minimal.lf
 
 # -w,--workers                       Specify the default number of worker threads.
 bin/lfc -w 2 test/C/src/Minimal.lf

@@ -116,6 +116,9 @@ fun String.joinLines(): String = replace(nlPattern, " ")
 fun unreachable(message: String? = null): Nothing =
     throw AssertionError("Unreachable branch" + message?.let { ": $it" }.orEmpty())
 
+/** Turn the first char into uppercase. The stdlib capitalize is deprecated. */
+fun String.capitalize(): String = replaceFirstChar { it.uppercaseChar() }
+
 /** Returns true if this string is an alphanumeric identifier. */
 val String.isIdentifier get() = matches(IDENT_REGEX)
 
@@ -157,6 +160,16 @@ fun <T> Iterable<T>.joinWithCommasLn(
     trailing: Boolean = true,
     transform: (T) -> CharSequence = { it.toString() }
 ): String = joinWithCommas(prefix, postfix, skipLines = true, trailing, transform)
+
+/**
+ * Join the elements of [this] sequence with newlines. The
+ * [prefix] and [postfix] are added even if this iterable is empty.
+ */
+fun <T> Iterable<T>.joinWithLn(
+    prefix: CharSequence = "",
+    postfix: CharSequence = "",
+    transform: (T) -> CharSequence
+): String = joinToString(separator = "\n", prefix = prefix, postfix = postfix, transform = transform)
 
 /**
  * Join this list with commas, surrounding it with angled brackets (`<...>`).

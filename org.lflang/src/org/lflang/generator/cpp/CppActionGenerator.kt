@@ -26,12 +26,12 @@ package org.lflang.generator.cpp
 
 import org.lflang.ErrorReporter
 import org.lflang.generator.PrependOperator
+import org.lflang.generator.orZero
 import org.lflang.inferredType
 import org.lflang.isLogical
 import org.lflang.lf.Action
-import org.lflang.lf.LfPackage
-import org.lflang.lf.Reactor
 import org.lflang.lf.BuiltinTrigger
+import org.lflang.lf.Reactor
 
 /** A C++ code generator for actions */
 class CppActionGenerator(private val reactor: Reactor, private val errorReporter: ErrorReporter) {
@@ -60,7 +60,7 @@ class CppActionGenerator(private val reactor: Reactor, private val errorReporter
                 "minSpacing and spacing violation policies are not yet supported for logical actions in reactor-ccp!"
             )
         } else {
-            val time = action.minDelay?.toTime() ?: "reactor::Duration::zero()"
+            val time = action.minDelay.orZero().toCppTime()
             """, ${action.name}{"${action.name}", this, $time}"""
         }
     }
@@ -83,8 +83,8 @@ class CppActionGenerator(private val reactor: Reactor, private val errorReporter
             " |"..reactor.actions.joinToString("\n", "// actions\n", "\n") { generateDeclaration(it) }
         }
             |// default actions
-            |reactor::StartupAction $startupName {"$startupName", this};
-            |reactor::ShutdownAction $shutdownName {"$shutdownName", this};
+            |reactor::StartupTrigger $startupName {"$startupName", this};
+            |reactor::ShutdownTrigger $shutdownName {"$shutdownName", this};
         """.trimMargin()
     }
 

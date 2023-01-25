@@ -54,7 +54,7 @@ import org.lflang.lf.STP;
  * NOTE: the validator used on imported files uses the same instance! Hence, this class should not contain any info
  * specific to any particular resource that is involved in the compilation.
  *
- * @author Marten Lohstroh <marten@berkeley.edu>
+ * @author Marten Lohstroh
  */
 public class ModelInfo {
 
@@ -195,6 +195,8 @@ public class ModelInfo {
      * Given a parameter that is used in a deadline specification, recursively
      * track down its definition and check whether it is overflowing. Also
      * detect and report overrides that are overflowing.
+     * @return true if there exists a parameter corresponding to a value that
+     * does not fit in the available bits.
      */
     private boolean detectOverflow(Set<Instantiation> visited, Parameter current) {
         var overflow = false;
@@ -215,14 +217,15 @@ public class ModelInfo {
                 // Find assignments that override the current parameter.
                 for (var assignment : instantiation.getParameters()) {
                     if (assignment.getLhs().equals(current)) {
-                        Expression expr = assignment.getRhs().get(0);
+                        if (assignment.getRhs().getExprs().isEmpty()) continue;  // This error should be caught elsewhere.
+                        Expression expr = ASTUtils.asSingleExpr(assignment.getRhs());
                         if (expr instanceof ParameterReference) {
                             // Check for overflow in the referenced parameter.
                             overflow = detectOverflow(visited, ((ParameterReference)expr).getParameter()) || overflow;
                         } else {
                             // The right-hand side of the assignment is a 
                             // constant; check whether it is too large.
-                            if (isTooLarge(ASTUtils.getLiteralTimeValue(assignment.getRhs().get(0)))) {
+                            if (isTooLarge(ASTUtils.getLiteralTimeValue(expr))) {
                                 this.overflowingAssignments.add(assignment);
                                 overflow = true;
                             }

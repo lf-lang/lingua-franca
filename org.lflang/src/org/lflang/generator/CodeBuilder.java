@@ -4,10 +4,9 @@ import java.nio.file.Path;
 import java.io.IOException;
 
 import org.eclipse.emf.common.CommonPlugin;
-import org.eclipse.emf.common.util.URI;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils;
-import org.lflang.federated.FederateInstance;
+import org.lflang.federated.generator.FederateInstance;
 import org.lflang.generator.c.CUtil;
 import org.lflang.lf.Code;
 import org.lflang.util.FileUtil;
@@ -18,17 +17,17 @@ import static org.lflang.util.StringUtil.joinObjects;
  * Helper class for printing code with indentation.
  * This class is backed by a StringBuilder and is used to accumulate
  * code to be printed to a file. Its main function is to handle indentation.
- * 
+ *
  * @author Edward A. Lee
  * @author Peter Donovan
  */
 public class CodeBuilder {
-    
+
     /**
      * Construct a new empty code emitter.
      */
     public CodeBuilder() {}
-    
+
     /**
      * Construct a new code emitter with the text and indentation
      * of the specified code emitter.
@@ -38,7 +37,7 @@ public class CodeBuilder {
         indentation = model.indentation;
         code.append(model);
     }
-    
+
     /////////////////////////////////////////////
     ///// Public methods.
 
@@ -56,7 +55,7 @@ public class CodeBuilder {
     public void indent() {
         indentation += "    ";
     }
-    
+
     /**
      * Insert the specified text at the specified position.
      * @param position The position.
@@ -65,14 +64,14 @@ public class CodeBuilder {
     public void insert(int position, String text) {
         code.insert(position, text);
     }
-    
+
     /**
      * Return the length of the code in characters.
      */
     public int length() {
         return code.length();
     }
-    
+
     /**
      * Add a new line.
      */
@@ -97,7 +96,7 @@ public class CodeBuilder {
      */
     public void pr(CharSequence text) {
         for (String line : (Iterable<? extends String>) () -> text.toString().lines().iterator()) {
-            code.append(indentation).append(line).append(System.lineSeparator());
+            code.append(indentation).append(line).append("\n");
         }
     }
 
@@ -115,7 +114,7 @@ public class CodeBuilder {
             pr(line);
         }
     }
-    
+
     /** Print the #line compiler directive with the line number of
      *  the specified object.
      *  @param eObject The node.
@@ -132,9 +131,8 @@ public class CodeBuilder {
                 offset += 1;
             }
             // Extract the filename from eResource, an astonishingly difficult thing to do.
-            URI resolvedURI = CommonPlugin.resolve(eObject.eResource().getURI());
-            // pr(output, "#line " + (node.getStartLine() + offset) + ' "' + FileConfig.toFileURI(fileConfig.srcFile) + '"')
-            pr("#line " + (node.getStartLine() + offset) + " \"" + resolvedURI + "\"");
+            String filePath = CommonPlugin.resolve(eObject.eResource().getURI()).path();
+            pr("#line " + (node.getStartLine() + offset) + " \"" + filePath + "\"");
         }
     }
 
@@ -145,7 +143,7 @@ public class CodeBuilder {
     public void prComment(String comment) {
         pr("// " + comment);
     }
-    
+
     /**
      * Remove all lines that start with the specified prefix
      * and return a new CodeBuilder with the result.
@@ -154,9 +152,9 @@ public class CodeBuilder {
     public CodeBuilder removeLines(String prefix) {
         String separator = "\n";
         String[] lines = toString().split(separator);
-        
+
         CodeBuilder builder = new CodeBuilder();
-        
+
         for(String line : lines) {
             String trimmedLine = line.trim();
             if(!trimmedLine.startsWith(prefix)) {
@@ -185,35 +183,24 @@ public class CodeBuilder {
      * starts a scoped block by printing an opening curly brace.
      * This also adds a declaration of a pointer to the self
      * struct of the reactor or bank member.
-     * 
+     *
      * This block is intended to be nested, where each block is
      * put within a similar block for the reactor's parent.
      * This ensures that all (possibly nested) bank index variables
      * are defined within the block.
-     * 
+     *
      * This must be followed by an {@link #endScopedBlock()}.
      *
      * @param reactor The reactor instance.
-     * @param restrict For federated execution only, if this is true, then
-     *  skip iterations where the topmost bank member is not in the federate.
      */
     public void startScopedBlock(
-        ReactorInstance reactor, 
-        FederateInstance federate,
-        boolean isFederated,
-        boolean restrict
+        ReactorInstance reactor
     ) {
         if (reactor != null && reactor.isBank()) {
             var index = CUtil.bankIndexName(reactor);
-            if (reactor.depth == 1 && isFederated && restrict) {
-                // Special case: A bank of federates. Instantiate only the current federate.
-                startScopedBlock();
-                pr("int "+index+" = "+federate.bankIndex+";");
-            } else {
-                pr("// Reactor is a bank. Iterate over bank members.");
-                pr("for (int "+index+" = 0; "+index+" < "+reactor.width+"; "+index+"++) {");
-                indent();
-            }
+            pr("// Reactor is a bank. Iterate over bank members.");
+            pr("for (int "+index+" = 0; "+index+" < "+reactor.width+"; "+index+"++) {");
+            indent();
         } else {
             startScopedBlock();
         }
@@ -252,23 +239,21 @@ public class CodeBuilder {
      * @param count The variable name to use for the counter, or
      *  null to not provide a counter.
      */
-    public void startScopedBankChannelIteration(
-        PortInstance port, FederateInstance currentFederate,
-        String count, boolean isFederated
-    ) {
+    public void startScopedBankChannelIteration(PortInstance port,
+                                                String count) {
         if (count != null) {
             startScopedBlock();
             pr("int "+count+" = 0;");
         }
-        startScopedBlock(port.parent, currentFederate, isFederated, true);
+        startScopedBlock(port.parent);
         startChannelIteration(port);
     }
 
     /**
      * Start a scoped block that iterates over the specified range of port channels.
-     * 
+     *
      * This must be followed by a call to
-     * {@link #endScopedRangeBlock(RuntimeRange, boolean)}.
+     * {@link #endScopedRangeBlock(RuntimeRange)}.
      *
      * This block should NOT be nested, where each block is
      * put within a similar block for the reactor's parent.
@@ -288,21 +273,15 @@ public class CodeBuilder {
      * @param nested If true, then the runtimeIndex variable will be set
      *  to the bank index of the port's parent's parent rather than the
      *  port's parent.
-     * @param restrict For federated execution (only), if this argument
-     *  is true, then the iteration will skip over bank members that
-     *  are not in the current federate.
      */
     public void startScopedRangeBlock(
-        FederateInstance currentFederate,
-        RuntimeRange<PortInstance> range, 
+        RuntimeRange<PortInstance> range,
         String runtimeIndex,
         String bankIndex,
         String channelIndex,
-        boolean nested,
-        boolean isFederated,
-        boolean restrict
+        boolean nested
     ) {
-        
+
         pr("// Iterate over range "+range.toString()+".");
         var ri = (runtimeIndex == null)? "runtime_index" : runtimeIndex;
         var ci = (channelIndex == null)? CUtil.channelIndexName(range.instance) : channelIndex;
@@ -313,7 +292,7 @@ public class CodeBuilder {
 
         startScopedBlock();
         if (range.width > 1) {
-            pr(String.join("\n", 
+            pr(String.join("\n",
                 "int range_start[] =  { "+joinObjects(rangeMR.getDigits(), ", ")+" };",
                 "int range_radixes[] = { "+joinObjects(rangeMR.getRadixes(), ", ")+" };",
                 "int permutation[] = { "+joinObjects(range.permutation(), ", ")+" };",
@@ -326,42 +305,24 @@ public class CodeBuilder {
                 "for (int range_count = "+range.start+"; range_count < "+range.start+" + "+range.width+"; range_count++) {"
             ));
             indent();
-            pr(String.join("\n", 
+            pr(String.join("\n",
                 "int "+ri+" = mixed_radix_parent(&range_mr, "+nestedLevel+"); // Runtime index.",
+                "SUPPRESS_UNUSED_WARNING("+ri+");",
                 "int "+ci+" = range_mr.digits[0]; // Channel index.",
-                "int "+bi+" = "+(sizeMR <= 1 ? "0" : "range_mr.digits[1]")+"; // Bank index."
+                "SUPPRESS_UNUSED_WARNING("+ci+");",
+                "int "+bi+" = "+(sizeMR <= 1 ? "0" : "range_mr.digits[1]")+"; // Bank index.",
+                "SUPPRESS_UNUSED_WARNING("+bi+");"
             ));
-            if (isFederated) {
-                if (restrict) {
-                    // In case we have a bank of federates. Need that iteration
-                    // only cover the one federate. The last digit of the mixed-radix
-                    // number is the bank index (or 0 if this is not a bank of federates).
-                    pr("if (range_mr.digits[range_mr.size - 1] == "+currentFederate.bankIndex+") {");
-                    indent();
-                } else {
-                    startScopedBlock();
-                }
-            }
+
         } else {
             var ciValue = rangeMR.getDigits().get(0);
             var riValue = rangeMR.get(nestedLevel);
             var biValue = (sizeMR > 1)? rangeMR.getDigits().get(1) : 0;
-            if (isFederated) {
-                if (restrict) {
-                    // Special case. Have a bank of federates. Need that iteration
-                    // only cover the one federate. The last digit of the mixed-radix
-                    // number identifies the bank member (or is 0 if not within a bank).
-                    pr("if ("+rangeMR.get(sizeMR - 1)+" == "+currentFederate.bankIndex+") {");
-                    indent();
-                } else {
-                    startScopedBlock();
-                }
-            }
-            pr(String.join("\n", 
-                "int "+ri+" = "+riValue+"; // Runtime index.",
-                "int "+ci+" = "+ciValue+"; // Channel index.",
-                "int "+bi+" = "+biValue+"; // Bank index.",
-                "int range_count = 0;"
+            pr(String.join("\n",
+                "int "+ri+" = "+riValue+"; SUPPRESS_UNUSED_WARNING("+ri+"); // Runtime index.",
+                "int "+ci+" = "+ciValue+"; SUPPRESS_UNUSED_WARNING("+ci+"); // Channel index.",
+                "int "+bi+" = "+biValue+"; SUPPRESS_UNUSED_WARNING("+bi+"); // Bank index.",
+                "int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);"
             ));
         }
     }
@@ -371,55 +332,45 @@ public class CodeBuilder {
      * The destination range can be wider than the source range, in which case the
      * source range is reused until the destination range is filled.
      * The following integer variables will be defined within the scoped block:
-     * 
+     *
      * * src_channel: The channel index for the source.
      * * src_bank: The bank index of the source port's parent.
      * * src_runtime: The runtime index of the source port's parent or
      *   the parent's parent (if the source is an input).
-     * 
+     *
      * * dst_channel: The channel index for the destination.
      * * dst_bank: The bank index of the destination port's parent.
      * * dst_runtime: The runtime index of the destination port's parent or
      *   the parent's parent (if destination is an output).
-     * 
+     *
      * For convenience, the above variable names are defined in the private
      * class variables sc, sb, sr, and dc, db, dr.
-     *  
+     *
      * This block should NOT be nested, where each block is
      * put within a similar block for the reactor's parent.
      * Within the created block, every use of
      * {@link CUtil#reactorRef(ReactorInstance, String)}
      * and related functions must provide the above variable names.
-     * 
+     *
      * This must be followed by a call to
-     * {@link #endScopedRangeBlock(SendRange, RuntimeRange, boolean)}.
+     * {@link #endScopedRangeBlock(SendRange, RuntimeRange)}.
      *
      * @param srcRange The send range.
      * @param dstRange The destination range.
      */
     public void startScopedRangeBlock(
-        FederateInstance currentFederate,
-        SendRange srcRange, 
-        RuntimeRange<PortInstance> dstRange,
-        boolean isFederated
+        SendRange srcRange,
+        RuntimeRange<PortInstance> dstRange
     ) {
         var srcRangeMR = srcRange.startMR();
         var srcSizeMR = srcRangeMR.getRadixes().size();
         var srcNestedLevel = (srcRange.instance.isInput()) ? 2 : 1;
         var dstNested = dstRange.instance.isOutput();
-        
+
         pr("// Iterate over ranges "+srcRange+" and "+dstRange+".");
-        
-        if (isFederated && srcRange.width == 1) {
-            // Skip this whole block if the src is not in the federate.
-            pr("if ("+srcRangeMR.get(srcRangeMR.numDigits() - 1)+" == "+currentFederate.bankIndex+") {");
-            indent();
-        } else {
-            startScopedBlock();
-        }
-        
+        startScopedBlock();
         if (srcRange.width > 1) {
-            pr(String.join("\n", 
+            pr(String.join("\n",
                 "int src_start[] =  { "+joinObjects(srcRangeMR.getDigits(), ", ")+" };",
                 "int src_value[] =  { "+joinObjects(srcRangeMR.getDigits(), ", ")+" }; // Will be incremented.",
                 "int src_radixes[] = { "+joinObjects(srcRangeMR.getRadixes(), ", ")+" };",
@@ -435,31 +386,27 @@ public class CodeBuilder {
             var ciValue = srcRangeMR.getDigits().get(0);
             var biValue = (srcSizeMR > 1)? srcRangeMR.getDigits().get(1) : 0;
             var riValue = srcRangeMR.get(srcNestedLevel);
-            pr(String.join("\n", 
+            pr(String.join("\n",
                 "int "+sr+" = "+riValue+"; // Runtime index.",
+                "SUPPRESS_UNUSED_WARNING("+sr+");",
                 "int "+sc+" = "+ciValue+"; // Channel index.",
-                "int "+sb+" = "+biValue+"; // Bank index."
+                "SUPPRESS_UNUSED_WARNING("+sc+");",
+                "int "+sb+" = "+biValue+"; // Bank index.",
+                "SUPPRESS_UNUSED_WARNING("+sb+");"
             ));
         }
-        
-        startScopedRangeBlock(currentFederate, dstRange, dr, db, dc, dstNested, isFederated, true);
+
+        startScopedRangeBlock(dstRange, dr, db, dc, dstNested);
 
         if (srcRange.width > 1) {
-            pr(String.join("\n", 
+            pr(String.join("\n",
                 "int "+sr+" = mixed_radix_parent(&src_range_mr, "+srcNestedLevel+"); // Runtime index.",
+                "SUPPRESS_UNUSED_WARNING("+sr+");",
                 "int "+sc+" = src_range_mr.digits[0]; // Channel index.",
-                "int "+sb+" = "+(srcSizeMR <= 1 ? "0" : "src_range_mr.digits[1]")+"; // Bank index."
+                "SUPPRESS_UNUSED_WARNING("+sc+");",
+                "int "+sb+" = "+(srcSizeMR <= 1 ? "0" : "src_range_mr.digits[1]")+"; // Bank index.",
+                "SUPPRESS_UNUSED_WARNING("+sb+");"
             ));
-        }
-        
-        // The above startScopedRangeBlock() call will skip any iteration where the destination
-        // is a bank member is not in the federation. Here, we skip any iteration where the
-        // source is a bank member not in the federation.
-        if (isFederated && srcRange.width > 1) {
-            // The last digit of the mixed radix
-            // number identifies the bank (or is 0 if no bank).
-            pr("if (src_range_mr.digits[src_range_mr.size - 1] == "+currentFederate.bankIndex+") {");
-            indent();
         }
     }
 
@@ -508,13 +455,8 @@ public class CodeBuilder {
      * @param range The send range.
      */
     public void endScopedRangeBlock(
-        RuntimeRange<PortInstance> range,
-        boolean isFederated
+        RuntimeRange<PortInstance> range
     ) {
-        if (isFederated) {
-            // Terminate the if statement or block (if not restrict).
-            endScopedBlock();
-        }
         if (range.width > 1) {
             pr("mixed_radix_incr(&range_mr);");
             endScopedBlock(); // Terminate for loop.
@@ -529,21 +471,11 @@ public class CodeBuilder {
      * @param dstRange The destination range.
      */
     public void endScopedRangeBlock(
-        SendRange srcRange, 
-        RuntimeRange<PortInstance> dstRange,
-        boolean isFederated
+        SendRange srcRange,
+        RuntimeRange<PortInstance> dstRange
     ) {
-        // Do not use endScopedRangeBlock because we need things nested.
-        if (isFederated) {
-            if (srcRange.width > 1) {
-                // Terminate the if statement.
-                endScopedBlock();
-            }
-            // Terminate the if statement or block (if not restrict).
-            endScopedBlock();
-        }
         if (srcRange.width > 1) {
-            pr(String.join("\n", 
+            pr(String.join("\n",
                 "mixed_radix_incr(&src_range_mr);",
                 "if (mixed_radix_to_int(&src_range_mr) >= "+srcRange.start+" + "+srcRange.width+") {",
                 "    // Start over with the source.",
@@ -570,7 +502,7 @@ public class CodeBuilder {
         return code.toString();
     }
 
-    /** 
+    /**
      * Reduce the indentation by one level for generated code/
      */
     public void unindent() {
@@ -592,7 +524,7 @@ public class CodeBuilder {
 
     /** Place to store the code. */
     private final StringBuilder code = new StringBuilder();
-    
+
     /** Current indentation. */
     private String indentation = "";
 }

@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.List;
 import java.util.function.Consumer;
 
 import org.eclipse.core.resources.IProject;
@@ -13,15 +14,19 @@ import org.eclipse.emf.common.util.URI;
 import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.xtext.generator.IFileSystemAccess2;
 
+
+import org.lflang.federated.generator.FedFileConfig;
+import org.lflang.generator.GeneratorUtils;
 import org.lflang.util.FileUtil;
+import org.lflang.util.LFCommand;
 
 /**
  * Base class that governs the interactions between code generators and the file system.
  *  
- * @author Marten Lohstroh <marten@berkeley.edu>
+ * @author Marten Lohstroh
  *
  */
-public class FileConfig {
+public abstract class FileConfig {
 
     // Public static fields.
     
@@ -72,7 +77,7 @@ public class FileConfig {
      * IFile representing the Lingua Franca program.
      * This is the XText view of the file, which is distinct
      * from the Eclipse eCore view of the file and the OS view of the file.
-     *
+     * <p>
      * This is null if running outside an Eclipse IDE.
      */
     public final IResource iResource;
@@ -86,7 +91,7 @@ public class FileConfig {
     /**
      * The directory in which the source .lf file was found.
      */
-    public final Path srcPath;
+    public final Path srcPath; // FIXME: rename this to srcDir?
 
     /**
      * Indicate whether the bin directory should be hierarchical.
@@ -110,14 +115,13 @@ public class FileConfig {
      */
     protected Path srcGenPath;
 
-
     // private fields
 
     /**
      * The parent of the directory designated for placing generated sources into (`./src-gen` by default). Additional
      * directories (such as `bin` or `build`) should be created as siblings of the directory for generated sources,
      * which means that such directories should be created relative to the path assigned to this class variable.
-     *
+     * <p>
      * The generated source directory is specified in the IDE (Project Properties->LF->Compiler->Output Folder). When
      * invoking the standalone compiler, the output path is specified directly using the `-o` or `--output-path` option.
      */
@@ -164,7 +168,7 @@ public class FileConfig {
      * The parent of the directory designated for placing generated sources into (`./src-gen` by default). Additional
      * directories (such as `bin` or `build`) should be created as siblings of the directory for generated sources,
      * which means that such directories should be created relative to the path assigned to this class variable.
-     *
+     * <p>
      * The generated source directory is specified in the IDE (Project Properties->LF->Compiler->Output Folder). When
      * invoking the standalone compiler, the output path is specified directly using the `-o` or `--output-path` option.
      */
@@ -240,7 +244,7 @@ public class FileConfig {
 
     /**
      * Clean any artifacts produced by the code generator and target compilers.
-     * 
+     * <p>
      * The base implementation deletes the bin and src-gen directories. If the
      * target code generator creates additional files or directories, the
      * corresponding generator should override this method.
@@ -255,10 +259,10 @@ public class FileConfig {
     private static Path getPkgPath(Resource resource) throws IOException {
         if (resource.getURI().isPlatform()) {
             // We are in the RCA.
-            File srcFile = FileUtil.toPath(resource).toFile();
+            Path srcFile = FileUtil.toPath(resource);
             for (IProject r : ResourcesPlugin.getWorkspace().getRoot().getProjects()) {
                 Path p = Paths.get(r.getLocation().toFile().getAbsolutePath());
-                Path f = Paths.get(srcFile.getAbsolutePath());
+                Path f = srcFile.toAbsolutePath();
                 if (f.startsWith(p)) {
                     return p;
                 }
@@ -284,10 +288,33 @@ public class FileConfig {
             if (p == null) {
                 printWarning.accept("File '" + input.getFileName() + "' is not located in an 'src' directory.");
                 printWarning.accept("Adopting the current working directory as the package root.");
-                return Paths.get(".").toAbsolutePath();
+                return Paths.get(".").toAbsolutePath(); // todo #1478 replace with Io::getWd
             }
         } while (!p.toFile().getName().equals("src"));
         return p.getParent();
     }
 
+    /**
+     * Return an LFCommand instance that can be used to execute the program under compilation.
+     */
+    public LFCommand getCommand() {
+        String cmd = GeneratorUtils.isHostWindows() ?
+            getExecutable().toString() :
+            srcPkgPath.relativize(getExecutable()).toString();
+        return LFCommand.get(cmd, List.of(), true, srcPkgPath);
+    }
+
+    /**
+     * Return the extension used for binaries on the platform on which compilation takes place.
+     */
+    protected String getExecutableExtension() {
+        return (GeneratorUtils.isHostWindows() ? ".exe" : "");
+    }
+
+    /**
+     * Return a path to an executable version of the program under compilation.
+     */
+    public Path getExecutable() {
+        return binPath.resolve(name + getExecutableExtension());
+    }
 }

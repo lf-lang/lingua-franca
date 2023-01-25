@@ -4,9 +4,15 @@ on:
   workflow_call:
     inputs:
       compiler-ref:
+        description: >
+          Git revision of the LF repo to use. Provided only if this workflow
+          is being run from the reactor-rs repository.
         required: false
         type: string
       runtime-ref:
+        description: >
+          Git revision of the reactor runtime repo to use. Provided
+          only if this workflow is being run from the reactor-rs repository.
         required: false
         type: string
 
@@ -15,7 +21,7 @@ jobs:
     strategy:
       matrix:
         platform: [ubuntu-latest, macos-latest, windows-latest]
-        rust: [nightly]
+        rust: [stable]
     runs-on: ${{ matrix.platform }}
     steps:
       - name: Check out lingua-franca repository
@@ -24,20 +30,41 @@ jobs:
           repository: lf-lang/lingua-franca
           submodules: true
           ref: ${{ inputs.compiler-ref }}
+          fetch-depth: 0
       - name: Prepare build environment
         uses: ./.github/actions/prepare-build-env
+      - name: Check out specific ref of reactor-rs
+        uses: actions/checkout@v3
+        with:
+          repository: lf-lang/reactor-rs
+          path: org.lflang/src/lib/rs/reactor-rs
+          ref: ${{ inputs.runtime-ref }}
+        if: inputs.runtime-ref
+      - name: Update runtime ref if we use a custom runtime version
+        run: ./gradlew updateRustRuntime
+        if: inputs.runtime-ref
       - name: Setup Rust
+        id: rustup
         uses: ATiltedTree/setup-rust@v1
         with:
           rust-version: ${{ matrix.rust }}
           components: clippy
-      - name: Set rust runtime version
-        run: |
-            echo ${{ inputs.runtime-ref }} > org.lflang/src/org/lflang/generator/rust/rust-runtime-version.txt
-        if: ${{ inputs.runtime-ref }}  
+        continue-on-error: true
+      - name: Delete rustup cache
+        run: rm -r ~/.rustup
+        if: ${{ steps.rustup.outcome }} != "success"
+      - name: Setup Rust (again)
+        if: ${{ steps.rustup.outcome }} != "success"
+        uses: ATiltedTree/setup-rust@v1
+        with:
+          rust-version: ${{ matrix.rust }}
+          components: clippy
+      - name: Check runtime-version.properties is up-to-date
+        # The following task compares the checked out submodule
+        # version to the version used at runtime by LF.
+        run: ./gradlew checkRuntimeVersionFileUpToDate
       - name: Run Rust tests
-        run: |
-          ./gradlew test --tests org.lflang.tests.runtime.RustTest.*
+        run: ./gradlew test --tests org.lflang.tests.runtime.RustTest.*
       - name: Report to CodeCov
         uses: codecov/codecov-action@v2.1.0
         with:

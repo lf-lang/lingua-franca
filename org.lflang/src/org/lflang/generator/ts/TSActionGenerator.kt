@@ -1,23 +1,17 @@
 package org.lflang.generator.ts
 
-import org.lflang.federated.FederateInstance
+import org.lflang.generator.getTargetTimeExpr
 import org.lflang.lf.Action
-import org.lflang.lf.Expression
 import org.lflang.lf.ParameterReference
-import org.lflang.lf.Type
 import java.util.*
 
 /**
  * Generator for actions in TypeScript target.
  */
-class TSActionGenerator (
-    // TODO(hokeun): Remove dependency on TSGenerator.
-    private val tsGenerator: TSGenerator,
+class TSActionGenerator(
     private val actions: List<Action>,
-    private val federate: FederateInstance
+    private val networkMessageActions: List<String>
 ) {
-    private fun Expression.getTargetValue(): String = tsGenerator.getTargetValueW(this)
-    private fun Type.getTargetType(): String = tsGenerator.getTargetTypeW(this)
 
     fun generateClassProperties(): String {
         val stateClassProperties = LinkedList<String>()
@@ -27,13 +21,13 @@ class TSActionGenerator (
             // duplicate action if we included the one generated
             // by LF.
             if (action.name != "shutdown") {
-                stateClassProperties.add("${action.name}: __Action<${getActionType(action)}>;")
+                stateClassProperties.add("${action.name}: __Action<${action.tsActionType}>;")
             }
         }
         return stateClassProperties.joinToString("\n")
     }
 
-    fun generateInstantiations(networkMessageActions: List<Action>): String {
+    fun generateInstantiations(): String {
         val actionInstantiations = LinkedList<String>()
         for (action in actions) {
             // Shutdown actions are handled internally by the
@@ -45,18 +39,18 @@ class TSActionGenerator (
                 if (action.minDelay != null) {
                     // Actions in the TypeScript target are constructed
                     // with an optional minDelay argument which defaults to 0.
-                    if (action.minDelay is ParameterReference) {
-                        actionArgs+= ", " + (action.minDelay as ParameterReference).parameter.name
+                    actionArgs += if (action.minDelay is ParameterReference) {
+                        ", " + (action.minDelay as ParameterReference).parameter.name
                     } else {
-                        actionArgs+= ", " + action.minDelay.getTargetValue()
+                        ", " + action.minDelay.toTsTime()
                     }
                 }
-                if (action in networkMessageActions){
+                if (action.name in networkMessageActions) {
                     actionInstantiations.add(
-                        "this.${action.name} = new __FederatePortAction<${getActionType(action)}>($actionArgs);")
+                        "this.${action.name} = new __FederatePortAction<${action.tsActionType}>($actionArgs);")
                 } else {
                     actionInstantiations.add(
-                        "this.${action.name} = new __Action<${getActionType(action)}>($actionArgs);")    
+                        "this.${action.name} = new __Action<${action.tsActionType}>($actionArgs);")
                 }
             }
         }

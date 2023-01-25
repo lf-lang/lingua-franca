@@ -39,7 +39,7 @@ import org.lflang.diagram.synthesis.util.NamedInstanceUtil;
 /**
  * Action that expands all reactor nodes that are included in a cycle.
  * 
- * @author{Alexander Schulz-Rosengarten <als@informatik.uni-kiel.de>}
+ * @author Alexander Schulz-Rosengarten
  */
 public class ShowCycleAction extends AbstractAction {
     

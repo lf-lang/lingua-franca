@@ -1,0 +1,35 @@
+// This test checks for one of the issues arised in the solution of EECS149 Lab
+// Chapter 7. In this case, a reactor has two output ports, the first one of
+// which is dangling. The generated code should not have any segmentation
+// faults.
+target C {
+    timeout: 1 sec,
+    fast: true
+}
+
+reactor C {
+    output x: int
+    output z: int
+    timer t(0, 100 msec)
+
+    reaction(t) -> x, z {=
+        lf_set(x, 42);
+        lf_set(z, 44);
+    =}
+}
+
+main reactor {
+    c = new C()
+    state triggered: bool(true)
+
+    reaction(c.z) {=
+        lf_print("c.z = %d", c.z->value);
+        self->triggered = true;
+    =}
+
+    reaction(shutdown) {=
+        if (!self->triggered) {
+            lf_print_error_and_exit("Reaction never triggered.\n");
+        }
+    =}
+}

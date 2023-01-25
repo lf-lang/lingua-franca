@@ -8,7 +8,7 @@
 
     <groupId>org.lflang</groupId>
     <artifactId>lf</artifactId>
-    <version>0.3.0</version>
+    <version>0.3.1-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <name>Lingua Franca</name>
@@ -22,7 +22,6 @@
 
         <!-- Eclipse specific components -->
         <!-- Important: Any version specified for these plugins must be available via the update sites listed in the target platform definition. If not, the Epoch build will fail! You can find the target platform definition in org.lflang.targetplatform/org.lflang.targetplatform.target. Changes to the target platform should also be transferred to the oomph setup (oomph/LinguaFranca.setup). -->
-        <runtimeVersion>3.25.0</runtimeVersion> <!-- This version reflects the actual Eclipse release (e.g. 3.25 -> 2022-06) -->
         <xtextVersion>2.27.0</xtextVersion>
         <lsp4jVersion>0.14.0</lsp4jVersion> <!-- This plugin is provided by Xtext -->
         <mwe2LaunchVersion>2.13.0</mwe2LaunchVersion> <!-- This plugin is provided by Eclipse, not Xtext -->
@@ -61,18 +60,6 @@
                 <module>org.lflang.updatesite</module>
                 <module>org.lflang.product</module>
                 <module>org.lflang.rca</module>
-                <module>org.lflang.targetplatform</module>
-            </modules>
-        </profile>
-        <profile>
-            <id>lds</id>
-
-            <modules>
-                <module>org.lflang</module>
-                <module>org.lflang.ide</module>
-                <module>org.lflang.diagram</module>
-
-                <module>org.lflang.lds</module>
                 <module>org.lflang.targetplatform</module>
             </modules>
         </profile>
@@ -260,6 +247,11 @@
                             <os>macosx</os>
                             <ws>cocoa</ws>
                             <arch>x86_64</arch>
+                        </environment>
+                        <environment>
+                            <os>macosx</os>
+                            <ws>cocoa</ws>
+                            <arch>aarch64</arch>
                         </environment>
                     </environments>
                 </configuration>

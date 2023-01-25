@@ -1,0 +1,28 @@
+// Tests that physical actions can be scheduled like logical actions within the
+// body of reactions.
+target Rust
+
+main reactor {
+    physical action act: u32
+
+    state count: u32
+
+    reaction(startup) -> act {=
+        ctx.schedule(act, Asap);
+        ctx.schedule(act, after!(20 ms));
+    =}
+
+    reaction(act) {=
+        println!("---- Invocation at {}", ctx.get_tag());
+        self.count += 1;
+
+        // If the physical time is used then it is unlikely to be
+        // exactly TO + 20 ms.
+        assert_ne!(ctx.get_elapsed_logical_time(), delay!(20 ms));
+    =}
+
+    reaction(shutdown) {=
+        assert_eq!(self.count, 2);
+        println!("success");
+    =}
+}

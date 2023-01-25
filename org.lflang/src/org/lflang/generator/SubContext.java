@@ -1,24 +1,29 @@
 package org.lflang.generator;
 
+import java.io.File;
 import java.util.Properties;
 
 import org.eclipse.xtext.util.CancelIndicator;
 
 import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
+import org.lflang.TargetConfig;
 
 /**
  * A {@code SubContext} is the context of a process within a build process. For example,
  * compilation of generated code may optionally be given a {@code SubContext} because
  * compilation is part of a complete build.
  *
- * @author Peter Donovan <peterdonovan@berkeley.edu>
+ * @author Peter Donovan
  */
 public class SubContext implements LFGeneratorContext {
 
     private final LFGeneratorContext containingContext;
     private final int startPercentProgress;
     private final int endPercentProgress;
+    private GeneratorResult result = null;
+
+    protected ErrorReporter errorReporter;
 
     /**
      * Initializes the context within {@code containingContext} of the process that extends from
@@ -51,25 +56,28 @@ public class SubContext implements LFGeneratorContext {
     }
 
     @Override
-    public boolean useHierarchicalBin() {
-        return containingContext.useHierarchicalBin();
-    }
-
-    @Override
-    public ErrorReporter constructErrorReporter(FileConfig fileConfig) {
-        throw new UnsupportedOperationException(
-            "Nested contexts should use the error reporters constructed by their containing contexts."
-        );
+    public ErrorReporter getErrorReporter() {
+        return containingContext.getErrorReporter();
     }
 
     @Override
     public void finish(GeneratorResult result) {
-        // Do nothing. A build process is not finished until the outermost containing context is finished.
+        this.result = result;
     }
 
     @Override
     public GeneratorResult getResult() {
-        throw new UnsupportedOperationException("Only the outermost context can have a final result.");
+        return result;
+    }
+
+    @Override
+    public FileConfig getFileConfig() {
+        return containingContext.getFileConfig();
+    }
+
+    @Override
+    public TargetConfig getTargetConfig() {
+        return containingContext.getTargetConfig();
     }
 
     @Override

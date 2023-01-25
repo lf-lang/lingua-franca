@@ -27,18 +27,16 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 package org.lflang.generator;
 
-import org.lflang.ASTUtils;
 import org.lflang.TimeValue;
 import org.lflang.lf.Deadline;
-import org.lflang.lf.Parameter;
 
 /**
  * Instance of a deadline. Upon creation the actual delay is converted into
  * a proper time value. If a parameter is referenced, it is looked up in the
  * given (grand)parent reactor instance.
  * 
- * @author{Marten Lohstroh <marten@berkeley.edu>}
- * @author{Edward A. Lee <eal@berkeley.edu>}
+ * @author Marten Lohstroh
+ * @author Edward A. Lee
  */
 public class DeadlineInstance {
 		

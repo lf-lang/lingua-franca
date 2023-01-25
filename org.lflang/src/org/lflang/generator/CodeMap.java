@@ -10,6 +10,7 @@ import java.util.HashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.eclipse.emf.common.util.URI;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.xtext.nodemodel.INode;
@@ -145,7 +146,8 @@ public class CodeMap {
             Position lfStart = Position.fromOneBased(
                 oneBasedLfLineAndColumn.getLine(), oneBasedLfLineAndColumn.getColumn()
             );
-            final Path lfPath = Path.of(bestEffortGetEResource(astNode).getURI().path());
+            final URI uri = bestEffortGetEResource(astNode).getURI();
+            final Path lfPath = Path.of(uri.isFile() ? uri.toFileString() : uri.path());
             if (verbatim) lfStart = lfStart.plus(node.getText().substring(0, indexOf(node.getText(), representation)));
             return new Correspondence(
                 lfPath,
@@ -243,9 +245,6 @@ public class CodeMap {
      * Returns the set of all paths to Lingua Franca files
      * that are known to contain code that corresponds to
      * code in the generated file represented by this.
-     * @return the set of all paths to Lingua Franca files
-     * that are known to contain code that corresponds to
-     * code in the generated file represented by this
      */
     public Set<Path> lfSourcePaths() {
         return map.keySet();

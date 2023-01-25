@@ -1,8 +1,9 @@
 package org.lflang.generator.ts
 
 import org.lflang.ErrorReporter
-import org.lflang.federated.FederateInstance
+import org.lflang.generator.getTargetInitializer
 import org.lflang.isBank
+import org.lflang.joinWithLn
 import org.lflang.lf.Instantiation
 import org.lflang.lf.Parameter
 import org.lflang.lf.Reactor
@@ -15,58 +16,37 @@ import java.util.*
 /**
  * Generator for child reactor instantiations in TypeScript target.
  */
-class TSInstanceGenerator (
-    // TODO(hokeun): Remove dependency on TSGenerator.
-    private val tsGenerator: TSGenerator,
+class TSInstanceGenerator(
     private val errorReporter: ErrorReporter,
-    private val tsReactorGenerator: TSReactorGenerator,
-    reactor: Reactor,
-    federate: FederateInstance
+    reactor: Reactor
 ) {
     private val childReactors: List<Instantiation>
 
     init {
         // Next handle child reactors instantiations.
-        // If the app isn't federated, instantiate all
-        // the child reactors. If the app is federated
-        if (!reactor.isFederated) {
-            childReactors = reactor.instantiations
-        } else {
-            childReactors = LinkedList<Instantiation>()
-            childReactors.add(federate.instantiation)
-        }
-    }
-
-    private fun getInitializerList(param: Parameter, i: Instantiation): List<String> =
-        tsGenerator.getInitializerListW(param, i)
-
-    private fun getTargetInitializer(param: Parameter, i: Instantiation): String {
-        return tsReactorGenerator.getTargetInitializerHelper(param, getInitializerList(param, i))
+        // instantiate all the child reactors.
+        childReactors = reactor.instantiations
     }
 
     private fun getTypeParams(typeParms: List<TypeParm>): String =
-        if (typeParms.isEmpty()) {""} else {
-            typeParms.joinToString(", ", "<", ">") { it.toText() }}
+        if (typeParms.isEmpty()) ""
+        else typeParms.joinToString(", ", "<", ">") { it.toText() }
 
     private fun getReactorParameterList(parameters: List<Parameter>): String =
-        if (parameters.isEmpty()) { "[__Reactor]" } else {
-            parameters.joinToString(", ", "[__Reactor, ", "]") { it.getTargetType() }}
+        parameters.joinToString(", ", "[__Reactor, ", "]") { TSTypes.getTargetType(it) }
 
 
-    fun generateClassProperties(): String {
-        val childReactorClassProperties = LinkedList<String>()
-        for (childReactor in childReactors) {
+    fun generateClassProperties(): String =
+        childReactors.joinWithLn { childReactor ->
             if (childReactor.isBank) {
-                childReactorClassProperties.add("${childReactor.name}: " +
+                "${childReactor.name}: " +
                         "__Bank<${childReactor.reactorClass.name}${getTypeParams(childReactor.typeParms)}, " +
-                        "${getReactorParameterList(childReactor.reactor.parameters)}>")
+                        "${getReactorParameterList(childReactor.reactor.parameters)}>"
             } else {
-                childReactorClassProperties.add("${childReactor.name}: " +
-                        "${childReactor.reactorClass.name}${getTypeParams(childReactor.typeParms)}")
+                "${childReactor.name}: " +
+                        "${childReactor.reactorClass.name}${getTypeParams(childReactor.typeParms)}"
             }
         }
-        return childReactorClassProperties.joinToString("\n")
-    }
 
     fun generateInstantiations(): String {
         val childReactorInstantiations = LinkedList<String>()
@@ -75,7 +55,7 @@ class TSInstanceGenerator (
             childReactorArguments.add("this")
 
             for (parameter in childReactor.reactorClass.toDefinition().parameters) {
-                childReactorArguments.add(getTargetInitializer(parameter, childReactor))
+                childReactorArguments.add(TSTypes.getTargetInitializer(parameter, childReactor))
             }
             if (childReactor.isBank) {
                 childReactorInstantiations.add(

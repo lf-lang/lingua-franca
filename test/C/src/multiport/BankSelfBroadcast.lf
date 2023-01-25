@@ -1,21 +1,19 @@
 /**
- * Test a bank of reactors that broadcast a single output
- * back to a multiport input of the same reactors in the bank
- * so that each reactor in the bank receives the output
- * produced by itself and each other reactor.
+ * Test a bank of reactors that broadcast a single output back to a multiport
+ * input of the same reactors in the bank so that each reactor in the bank
+ * receives the output produced by itself and each other reactor.
  *
  * @author Edward A. Lee
  */
-target C;
-reactor A (
-    bank_index:int(0)
-) {
-    input[4] in:int;
-    output out:int;
-    state received:bool(false);
-    reaction(startup) -> out {=
-        lf_set(out, self->bank_index);
-    =}
+target C
+
+reactor A(bank_index: int(0)) {
+    input[4] in: int
+    output out: int
+    state received: bool(false)
+
+    reaction(startup) -> out {= lf_set(out, self->bank_index); =}
+
     reaction(in) {=
         for (int i = 0; i < in_width; i++) {
             if (in[i]->is_present) {
@@ -36,13 +34,15 @@ reactor A (
             }
         }
     =}
+
     reaction(shutdown) {=
         if (!self->received) {
             lf_print_error_and_exit("No inputs received.");
         }
     =}
 }
+
 main reactor {
-    a  = new[4] A();
-    (a.out)+ -> a.in;
+    a = new[4] A()
+    (a.out)+ -> a.in
 }

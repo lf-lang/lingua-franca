@@ -145,6 +145,13 @@ fun EObject.toText(): String = ASTUtils.toText(this)
 
 fun Time.toTimeValue(): TimeValue = ASTUtils.toTimeValue(this)
 
+fun TimeValue.toTimeNode(): Time =
+    LfFactory.eINSTANCE.createTime().also {
+        it.unit = this.unit.canonicalName
+        it.interval = this.magnitude.toInt()
+    }
+
+
 /**
  * Translate the given type into its textual representation, but
  * do not append any array specifications.
@@ -220,7 +227,7 @@ val Port.inferredType: InferredType get() = ASTUtils.getInferredType(this)
  * @receiver The state variable to be checked.
  * @return True if the variable was initialized, false otherwise.
  */
-val StateVar.isInitialized: Boolean get() = (this.parens.size == 2 || this.braces.size == 2)
+val StateVar.isInitialized: Boolean get() = init != null
 
 /**
  * Given the width specification of port or instantiation
@@ -258,7 +265,7 @@ val Resource.model: Model get() = this.allContents.asSequence().filterIsInstance
  * If the reaction is annotated with a label, then the label is returned. Otherwise, a reaction name
  * is generated based on its priority.
  */
-val Reaction.label get(): String = AttributeUtils.label(this) ?: "reaction_$priority"
+val Reaction.label get(): String = AttributeUtils.getLabel(this) ?: "reaction_$priority"
 
 /** Get the priority of a receiving reaction */
 val Reaction.priority
@@ -300,8 +307,6 @@ val Reaction.containingReactor get() = this.eContainer() as Reactor
 /** Returns true if this is an input port (not an output port). */
 val Port.isInput get() = this is Input
 
-val Assignment.isInitWithBraces get() = braces.isNotEmpty()
-val Parameter.isInitWithBraces get() = braces.isNotEmpty()
 
 /**
  * Produce the text of the given node in the source LF file.

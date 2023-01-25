@@ -33,8 +33,8 @@ import org.lflang.util.CollectionUtil;
 /**
  * Directed graph that maps nodes to its upstream and downstream neighbors.
  *
- * @author Marten Lohstroh {@literal <marten@berkeley.edu>}
- * @author Clément Fournier {@literal <clement.fournier@mailbox.tu-dresden.de>}
+ * @author Marten Lohstroh
+ * @author Clément Fournier
  */
 public class DirectedGraph<T> implements Graph<T> {
 
@@ -284,5 +284,41 @@ public class DirectedGraph<T> implements Graph<T> {
     @Override
     public String toString() {
         return nodes().stream().map(Objects::toString).collect(Collectors.joining(", ", "{", "}"));
+    }
+
+    /**
+     * Return the DOT (GraphViz) representation of the graph.
+     */
+    @Override
+    public String toDOT() {
+        StringBuilder dotRepresentation = new StringBuilder();
+        StringBuilder edges = new StringBuilder();
+
+        // Start the digraph with a left-write rank
+        dotRepresentation.append("digraph {\n");
+        dotRepresentation.append("    rankdir=LF;\n");
+
+        Set<T> nodes = nodes();
+        for (T node: nodes) {
+            // Draw the node
+            dotRepresentation.append("    node_" + (node.toString().hashCode() & 0xfffffff)
+            + " [label=\""+ node.toString() +"\"]\n");
+
+            // Draw the edges
+            Set<T> downstreamNodes = getDownstreamAdjacentNodes(node);
+            for (T downstreamNode: downstreamNodes) {
+                edges.append("    node_" + (node.toString().hashCode() & 0xfffffff)
+                                 + " -> node_" + (downstreamNode.toString().hashCode() & 0xfffffff) + "\n");
+            }
+        }
+
+        // Add the edges to the definition of the graph at the bottom
+        dotRepresentation.append(edges);
+
+        // Close the digraph
+        dotRepresentation.append("}\n");
+
+        // Return the DOT representation
+        return dotRepresentation.toString();
     }
 }

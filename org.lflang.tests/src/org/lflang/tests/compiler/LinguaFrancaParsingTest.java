@@ -1,5 +1,3 @@
-/* Parsing unit tests. */
-
 /*************
 Copyright (c) 2019, The University of California at Berkeley.
 
@@ -26,43 +24,35 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ***************/
 package org.lflang.tests.compiler;
 
-import com.google.inject.Inject;
 import org.eclipse.xtext.testing.InjectWith;
 import org.eclipse.xtext.testing.extensions.InjectionExtension;
 import org.eclipse.xtext.testing.util.ParseHelper;
-
-import org.lflang.lf.LfPackage;
-import org.lflang.lf.Model;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+
+import org.lflang.lf.Model;
 import org.lflang.tests.LFInjectorProvider;
 
-@ExtendWith(InjectionExtension.class)
-@InjectWith(LFInjectorProvider.class)
+import com.google.inject.Inject;
 
 /**
  * Test harness for ensuring that grammar captures
  * all corner cases.
  */
+@ExtendWith(InjectionExtension.class)
+@InjectWith(LFInjectorProvider.class)
 class LinguaFrancaParsingTest {
     @Inject
     ParseHelper<Model> parser;
 
     @Test
     public void checkForTarget() throws Exception {
-// Java 17:
-//         String testCase = """
-//             targett C;
-//             reactor Foo {
-//             }
-//         """
-// Java 11:
-        String testCase = String.join(System.getProperty("line.separator"),
-            "targett C;",
-            "reactor Foo {",
-            "}"
-        );
+        String testCase = """
+            targett C;
+            reactor Foo {
+            }
+        """;
         Model result = parser.parse(testCase);
         Assertions.assertNotNull(result);
         Assertions.assertFalse(result.eResource().getErrors().isEmpty(), "Failed to catch misspelled target keyword.");
@@ -99,6 +89,18 @@ class LinguaFrancaParsingTest {
                     @ohio timer t;
                     @ohio input q: int;
                     @ohio output q2: int;
+                }
+            """;
+        parseWithoutError(testCase);
+    }
+
+    @Test
+    public void testTokenizeEmptyWidth() throws Exception {
+        String testCase = """
+                target C;
+                main reactor {
+                    state foo: int[];
+                    state foo: int[   ]; //spaces are allowed
                 }
             """;
         parseWithoutError(testCase);

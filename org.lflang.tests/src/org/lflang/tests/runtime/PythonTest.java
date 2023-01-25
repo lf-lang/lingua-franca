@@ -24,6 +24,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ***************/
 package org.lflang.tests.runtime;
 
+import java.util.Properties;
+
 import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
@@ -39,12 +41,21 @@ import org.lflang.tests.RuntimeTest;
  * This is typically done by right-clicking on the name of the test method and
  * then clicking "Run".
  *
- * @author Marten Lohstroh {@literal <marten@berkeley.edu>}
+ * @author Marten Lohstroh
  */
 public class PythonTest extends RuntimeTest {
 
     public PythonTest() {
         super(Target.Python);
+    }
+
+    @Override
+    protected void addExtraLfcArgs(Properties args) {
+        super.addExtraLfcArgs(args);
+        if (System.getProperty("os.name").startsWith("Windows")) {
+            // Use the RelWithDebInfo build type on Windows as the Debug/Test build type produces linker Errors in CI
+            args.setProperty("build-type", "RelWithDebInfo");
+        }
     }
 
     @Override
@@ -59,7 +70,7 @@ public class PythonTest extends RuntimeTest {
 
     @Override
     protected boolean supportsDockerOption() {
-        return true;
+        return false; // FIXME: https://issues.lf-lang.org/1564
     }
 
     @Test

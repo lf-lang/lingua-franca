@@ -15,7 +15,7 @@ import com.google.inject.Inject;
 /**
  * Custom error message provider that intercepts syntax errors.
  * 
- * @author Marten Lohstroh <marten@berkeley.edu>
+ * @author Marten Lohstroh
  */
 public class LFSyntaxErrorMessageProvider extends SyntaxErrorMessageProvider {
     

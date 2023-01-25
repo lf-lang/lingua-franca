@@ -12,10 +12,10 @@ import org.lflang.lf.ReactorDecl;
 /**
  * Collection of functions to generate C code to declare methods.
  *
- * @author {Edward A. Lee <eal@berkeley.edu>}
+ * @author Edward A. Lee
  */
 public class CMethodGenerator {
-    
+
     /**
      * Generate macro definitions for methods.
      * @param reactor The reactor.
@@ -45,7 +45,7 @@ public class CMethodGenerator {
         }
     }
 
-    /** 
+    /**
      * Generate a method function definition for a reactor.
      * This function will have a first argument that is a void* pointing to
      * the self struct, followed by any arguments given in its definition.
@@ -60,24 +60,23 @@ public class CMethodGenerator {
     ) {
         var code = new CodeBuilder();
         var body = ASTUtils.toText(method.getCode());
-                
+
         code.prSourceLineNumber(method);
         code.prComment("Implementation of method "+method.getName()+"()");
         code.pr(generateMethodSignature(method, decl, types) + " {");
         code.indent();
-        
+
         // Define the "self" struct.
         String structType = CUtil.selfType(decl);
         // A null structType means there are no inputs, state,
         // or anything else. No need to declare it.
         if (structType != null) {
              code.pr(String.join("\n",
-                 "#pragma GCC diagnostic push",
-                 "#pragma GCC diagnostic ignored \"-Wunused-variable\"",
                  structType+"* self = ("+structType+"*)instance_args;"
+                         + " SUPPRESS_UNUSED_WARNING(self);"
              ));
         }
-        
+
         code.prSourceLineNumber(method.getCode());
         code.pr(body);
         code.unindent();
@@ -85,7 +84,7 @@ public class CMethodGenerator {
         return code.toString();
     }
 
-    /** 
+    /**
      * Generate method functions definition for a reactor.
      * These functions have a first argument that is a void* pointing to
      * the self struct.
@@ -137,8 +136,8 @@ public class CMethodGenerator {
     private static String methodFunctionName(ReactorDecl reactor, Method method) {
         return reactor.getName().toLowerCase() + "_method_" + method.getName();
     }
-    
-    /** 
+
+    /**
      * Generate a method function signature for a reactor.
      * This function will have a first argument that is a void* pointing to
      * the self struct, followed by any arguments given in its definition.
@@ -152,7 +151,7 @@ public class CMethodGenerator {
         CTypes types
     ) {
         var functionName = methodFunctionName(decl, method);
-        
+
         StringBuilder result = new StringBuilder();
         if (method.getReturn() != null) {
             result.append(types.getTargetType(InferredType.fromAST(method.getReturn())));
