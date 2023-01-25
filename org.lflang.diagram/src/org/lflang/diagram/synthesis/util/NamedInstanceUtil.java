@@ -46,12 +46,12 @@ public class NamedInstanceUtil {
     }
 
     /**
-     * Returns the linked NamedInstance for ther given KGraphElement.
+     * Returns the linked NamedInstance for the given KGraphElement.
      */
-    public static <T extends NamedInstance<?>> T getLinkedInstance(KGraphElement elem) {
-        NamedInstance<?> instance = elem.getProperty(LINKED_INSTANCE);
+    public static NamedInstance<?> getLinkedInstance(KGraphElement elem) {
+        var instance = elem.getProperty(LINKED_INSTANCE);
         if (instance != null) {
-            return (T) instance;
+            return instance;
         }
         return null;
     }

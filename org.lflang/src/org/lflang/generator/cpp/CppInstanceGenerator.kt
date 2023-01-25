@@ -25,15 +25,23 @@
 package org.lflang.generator.cpp
 
 import org.lflang.*
+import org.lflang.generator.PrependOperator
 import org.lflang.lf.Instantiation
 import org.lflang.lf.Reactor
+import org.lflang.validation.AttributeSpec
 
-/** A code genarator for reactor instances */
+/** A code generator for reactor instances */
 class CppInstanceGenerator(
     private val reactor: Reactor,
     private val fileConfig: CppFileConfig,
     private val errorReporter: ErrorReporter
 ) {
+    private val Instantiation.isEnclave: Boolean get() = AttributeUtils.isEnclave(this)
+
+    private val Instantiation.hasEachParameter: Boolean
+        get() = AttributeUtils.getBooleanAttributeParameter(
+            AttributeUtils.getEnclaveAttribute(this), AttributeSpec.EACH_ATTR
+        ) ?: false
 
     val Instantiation.cppType: String
         get() {
@@ -44,10 +52,15 @@ class CppInstanceGenerator(
         }
 
     private fun generateDeclaration(inst: Instantiation): String = with(inst) {
-        return if (isBank)
-            "std::vector<std::unique_ptr<$cppType>> $name;"
-        else
-            "std::unique_ptr<$cppType> $name;"
+        val instance = if (isBank) "std::vector<std::unique_ptr<$cppType>>" else "std::unique_ptr<$cppType>"
+        if (isEnclave) {
+            val env = if (hasEachParameter) "std::vector<std::unique_ptr<reactor::Environment>>" else "reactor::Environment"
+            return """
+                $env __lf_env_$name;
+                $instance $name;
+            """.trimIndent()
+        }
+        return "$instance $name;"
     }
 
     private fun Instantiation.getParameterStruct(): String {
@@ -78,29 +91,43 @@ class CppInstanceGenerator(
         // by iterating over the reactor parameters we make sure that the parameters are assigned in declaration order
         return reactor.parameters.mapNotNull {
             if (it.name in assignments) ".${it.name} = ${assignments[it.name]}" else null
-        }.joinToString(", ", "${cppType}::Parameters{", "}")
+        }.joinToString(", ", "$cppType::Parameters{", "}")
     }
 
-    private fun generateInitializer(inst: Instantiation): String {
-        assert(!inst.isBank)
-        return """, ${inst.name}(std::make_unique<${inst.cppType}>("${inst.name}", this, ${inst.getParameterStruct()}))"""
+    private fun generateInitializer(inst: Instantiation): String? = with(inst) {
+        when {
+            !isBank && !isEnclave                    -> """, $name(std::make_unique<$cppType>("$name", this, ${getParameterStruct()}))"""
+            !isBank && isEnclave                     -> """
+                    , __lf_env_$name(this->fqn() + ".$name", this->environment())
+                    , $name(std::make_unique<$cppType>("$name", &__lf_env_$name, ${getParameterStruct()}))
+                """.trimIndent()
+
+            isBank && isEnclave && !hasEachParameter -> """, __lf_env_$name(this->fqn() + ".$name", this->environment())"""
+            else                                     -> null
+        }
     }
 
     private fun generateConstructorInitializer(inst: Instantiation): String {
         with(inst) {
             assert(isBank)
-            val emplaceLine =
-                "$name.emplace_back(std::make_unique<$cppType>(__lf_inst_name, this, ${inst.getParameterStruct()}));"
+            val containerRef = when {
+                hasEachParameter -> "__lf_env_$name[__lf_idx].get()"
+                isEnclave        -> "&__lf_env_$name"
+                else             -> "this"
+            }
 
             val width = inst.widthSpec.toCppCode()
-            return """
-                // initialize instance $name
-                $name.reserve($width);
-                for (size_t __lf_idx = 0; __lf_idx < $width; __lf_idx++) {
-                  std::string __lf_inst_name = "${name}_" + std::to_string(__lf_idx);
-                  $emplaceLine
-                }
-            """.trimIndent()
+            return with(PrependOperator) {
+                """
+                |// initialize instance $name
+                |$name.reserve($width);
+                |for (size_t __lf_idx = 0; __lf_idx < $width; __lf_idx++) {
+                |  std::string __lf_inst_name = "${name}_" + std::to_string(__lf_idx);
+             ${"|  "..if (hasEachParameter) """__lf_env_$name.emplace_back(std::make_unique<reactor::Environment>(this->fqn() + "." + __lf_inst_name, this->environment()));""" else ""}
+                |  $name.emplace_back(std::make_unique<$cppType>(__lf_inst_name, $containerRef, ${inst.getParameterStruct()}));
+                |}
+            """.trimMargin()
+            }
         }
     }
 
@@ -123,6 +150,6 @@ class CppInstanceGenerator(
 
     /** Generate constructor initializers for all reactor instantiations */
     fun generateInitializers(): String =
-        reactor.instantiations.filterNot { it.isBank }
-            .joinToString(prefix = "//reactor instances\n", separator = "\n") { generateInitializer(it) }
+        reactor.instantiations.mapNotNull { generateInitializer(it) }
+            .joinToString(prefix = "//reactor instances\n", separator = "\n")
 }

@@ -1,5 +1,6 @@
 package org.lflang.cli;
 
+
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
@@ -18,6 +19,7 @@ import org.eclipse.xtext.util.CancelIndicator;
 
 import org.lflang.ASTUtils;
 import org.lflang.FileConfig;
+
 import org.lflang.generator.LFGeneratorContext;
 import org.lflang.generator.LFGeneratorContext.BuildParm;
 import org.lflang.generator.MainContext;
@@ -205,8 +207,8 @@ public class Lfc extends CliBase {
             exitIfCollectedErrors();
 
             LFGeneratorContext context = new MainContext(
-                LFGeneratorContext.Mode.STANDALONE,
-                CancelIndicator.NullImpl, (m, p) -> {}, properties, false,
+                LFGeneratorContext.Mode.STANDALONE, CancelIndicator.NullImpl,
+                (m, p) -> {}, properties, resource, this.fileAccess,
                 fileConfig -> errorReporter
             );
 

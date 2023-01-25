@@ -1,23 +1,23 @@
 /**
- * This tests a feedback loop with physical actions and
- * decentralized coordination.
+ * This tests a feedback loop with physical actions and decentralized
+ * coordination.
  *
  * @author Edward A. Lee
  */
-
-// reason for failing: lf_comma_separated_time() not supported in the python target
-
+# reason for failing: lf_comma_separated_time() not supported in the python
+# target
 target Python {
     coordination: decentralized,
     timeout: 5 sec
 }
+
 preamble {=
     #include <unistd.h> // Defines sleep()
     bool stop = false;
     // Thread to trigger an action once every second.
     void* ping(void* actionref) {
         while(!stop) {
-            info_print("Scheduling action.");
+            lf_print("Scheduling action.");
             schedule(actionref, 0);
             sleep(1);
         }
@@ -25,40 +25,44 @@ preamble {=
     }
 =}
 
-reactor Looper(incr:int(1), delay:time(0 msec), stp_offset:time(0)) {
-    input in:int;
-    output out:int;
-    physical action a(stp_offset);
-    state count:int(0);
+reactor Looper(incr(1), delay(0 msec), stp_offset(0)) {
+    input in_
+    output out
+    physical action a(stp_offset)
+    state count(0)
+
     reaction(startup) -> a {=
         // Start the thread that listens for Enter or Return.
         lf_thread_t thread_id;
-        info_print("Starting thread.");
+        lf_print("Starting thread.");
         lf_thread_create(&thread_id, &ping, a);
     =}
+
     reaction(a) -> out {=
-        info_print("Setting out.");
+        lf_print("Setting out.");
         SET(out, self->count);
         self->count += self->incr;
     =}
-    reaction(in) {=
+
+    reaction(in_) {=
         instant_t time_lag = lf.time.physical() - lf.time.logical();
         char time_buffer[28]; // 28 bytes is enough for the largest 64 bit number: 9,223,372,036,854,775,807
         lf_comma_separated_time(time_buffer, time_lag);
-        info_print("Received %d. Logical time is behind physical time by %s nsec.", in->value, time_buffer);
-    =} STP (stp_offset) {=
+        lf_print("Received %d. Logical time is behind physical time by %s nsec.", in_->value, time_buffer);
+    =} STP(stp_offset) {=
         instant_t time_lag = lf.time.physical() - lf.time.logical();
         char time_buffer[28]; // 28 bytes is enough for the largest 64 bit number: 9,223,372,036,854,775,807
         lf_comma_separated_time(time_buffer, time_lag);
-        info_print("STP offset was violated. Received %d. Logical time is behind physical time by %s nsec.", in->value, time_buffer);
-    =} deadline (10 msec) {=
+        lf_print("STP offset was violated. Received %d. Logical time is behind physical time by %s nsec.", in_->value, time_buffer);
+    =} deadline(10 msec) {=
         instant_t time_lag = lf.time.physical() - lf.time.logical();
         char time_buffer[28]; // 28 bytes is enough for the largest 64 bit number: 9,223,372,036,854,775,807
         lf_comma_separated_time(time_buffer, time_lag);
-        info_print("Deadline miss. Received %d. Logical time is behind physical time by %s nsec.", in->value, time_buffer);
+        lf_print("Deadline miss. Received %d. Logical time is behind physical time by %s nsec.", in_->value, time_buffer);
     =}
+
     reaction(shutdown) {=
-        info_print("******* Shutdown invoked.");
+        lf_print("******* Shutdown invoked.");
         // Stop the thread that is scheduling actions.
         stop = true;
         if (self->count != 5 * self->incr) {
@@ -66,9 +70,10 @@ reactor Looper(incr:int(1), delay:time(0 msec), stp_offset:time(0)) {
         }
     =}
 }
-federated reactor LoopDistributedDecentralized(delay:time(0)) {
-    left = new Looper(stp_offset = 900 usec);
-    right = new Looper(incr = -1, stp_offset = 2400 usec);
-    left.out -> right.in;
-    right.out -> left.in;
+
+federated reactor LoopDistributedDecentralized(delay(0)) {
+    left = new Looper(stp_offset = 900 usec)
+    right = new Looper(incr = -1, stp_offset = 2400 usec)
+    left.out -> right.in_
+    right.out -> left.in_
 }

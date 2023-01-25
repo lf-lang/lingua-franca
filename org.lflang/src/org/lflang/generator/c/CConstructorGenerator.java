@@ -1,6 +1,6 @@
 package org.lflang.generator.c;
 
-import org.lflang.federated.FederateInstance;
+import org.lflang.federated.generator.FederateInstance;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.lf.ReactorDecl;
 
@@ -12,13 +12,11 @@ public class CConstructorGenerator {
     /**
      * Generate a constructor for the specified reactor in the specified federate.
      * @param reactor The parsed reactor data structure.
-     * @param federate A federate name, or null to unconditionally generate.
      * @param constructorCode Lines of code previously generated that need to
      *  go into the constructor.
      */
     public static String generateConstructor(
         ReactorDecl reactor,
-        FederateInstance federate,
         String constructorCode
     ) {
         var structType = CUtil.selfType(reactor);

@@ -5,7 +5,7 @@
 target C {
     timeout: 1 sec,
     coordination-options: {
-        advance-message-interval: 50 usec
+        advance-message-interval: 500 usec
     }
 }
 
@@ -38,7 +38,7 @@ reactor WithPhysicalAction {
         lf_thread_create(&self->thread_id, &take_time, act);
     =}
 
-    reaction(act) -> out {= SET(out, act->value); =}
+    reaction(act) -> out {= lf_set(out, act->value); =}
 }
 
 federated reactor {
