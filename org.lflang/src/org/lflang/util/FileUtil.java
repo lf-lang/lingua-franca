@@ -411,9 +411,9 @@ public class FileUtil {
         for (Path path : allPaths) {
             String toCheck = path.toString().toLowerCase();
             if (toCheck.contains("cmake") || toCheck.contains("semaphore")
-            || path.endsWith("lib/util.c") || (toCheck.contains("core/platform/") && !toCheck.contains("lf_arduino"))) {
+            || (toCheck.contains("core/platform/") && !toCheck.contains("lf_arduino"))) {
                 Files.delete(path);
-            } 
+            }
         }
     }
 
@@ -458,8 +458,8 @@ public class FileUtil {
         Map<String, Path> fileStringToFilePath = new HashMap<String, Path>();
         for (Path path : allPaths) {
             String fileName = path.getFileName().toString();
-            if(path.getFileName().toString().contains("CMakeLists.txt")) continue;
-            if(fileStringToFilePath.put(fileName, path) != null) {
+            if (path.getFileName().toString().contains("CMakeLists.txt")) continue;
+            if (fileStringToFilePath.put(fileName, path) != null) {
                 throw new IOException("Directory has different files with the same name. Cannot Relativize.");
             }
         }
