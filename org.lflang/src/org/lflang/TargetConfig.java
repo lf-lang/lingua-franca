@@ -386,7 +386,7 @@ public class TargetConfig {
         /**
          * The string value used to determine the port on which to flash the compiled program (i.e. /dev/cu.usbmodem21301)
          */
-        public String port = "";
+        public String port = null;
 
         /**
          * The baud rate used as a parameter to certain embedded platforms. 9600 is a standard rate amongst systems like Arduino, so it's the default value.
