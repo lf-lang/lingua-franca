@@ -12,7 +12,6 @@ import java.net.URLConnection;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
@@ -283,12 +282,7 @@ public class FileUtil {
 
         // Copy the file.
         if (sourceStream == null) {
-            throw new IOException(
-                "A required target resource could not be found: " + source + "\n" +
-                    "Perhaps a git submodule is missing or not up to date.\n" +
-                    "See https://github.com/icyphy/lingua-franca/wiki/downloading-and-building#clone-the-lingua-franca-repository.\n"
-                    +
-                    "Also try to refresh and clean the project explorer if working from eclipse.");
+            throw new TargetResourceNotFoundException(source);
         } else {
             try (sourceStream) {
                 copyInputStream(sourceStream, destination, skipIfUnchanged);
@@ -326,17 +320,15 @@ public class FileUtil {
     public static void copyDirectoryFromClassPath(final String source, final Path destination, final boolean skipIfUnchanged) throws IOException {
         final URL resource = FileConfig.class.getResource(source);
         if (resource == null) {
-            throw new IOException(
-                "A required target resource could not be found: " + source + "\n" +
-                    "Perhaps a git submodule is missing or not up to date.\n" +
-                    "See https://github.com/icyphy/lingua-franca/wiki/downloading-and-building#clone-the-lingua-franca-repository.\n"
-                    +
-                    "Also try to refresh and clean the project explorer if working from eclipse.");
+            throw new TargetResourceNotFoundException(source);
         }
 
         final URLConnection connection = resource.openConnection();
         if (connection instanceof JarURLConnection) {
-            copyDirectoryFromJar((JarURLConnection) connection, destination, skipIfUnchanged);
+            boolean copiedFiles = copyDirectoryFromJar((JarURLConnection) connection, destination, skipIfUnchanged);
+            if (!copiedFiles) {
+                throw new TargetResourceNotFoundException(source);
+            }
         } else {
             try {
                 Path dir = Paths.get(FileLocator.toFileURL(resource).toURI());
@@ -359,12 +351,14 @@ public class FileUtil {
      * @param connection a URLConnection to the source directory within the jar
      * @param destination The file system path that the source directory is copied to.
      * @param skipIfUnchanged If true, don't overwrite the file if its content would not be changed
+     * @return true if any files were copied
      * @throws IOException If the given source cannot be copied.
      */
-    private static void copyDirectoryFromJar(JarURLConnection connection, final Path destination, final boolean skipIfUnchanged) throws IOException {
+    private static boolean copyDirectoryFromJar(JarURLConnection connection, final Path destination, final boolean skipIfUnchanged) throws IOException {
         final JarFile jar = connection.getJarFile();
         final String connectionEntryName = connection.getEntryName();
 
+        boolean copiedFiles = false;
         // Iterate all entries in the jar file.
         for (Enumeration<JarEntry> e = jar.entries(); e.hasMoreElements(); ) {
             final JarEntry entry = e.nextElement();
@@ -381,10 +375,12 @@ public class FileUtil {
                     InputStream is = jar.getInputStream(entry);
                     try (is) {
                         copyInputStream(is, currentFile, skipIfUnchanged);
+                        copiedFiles = true;
                     }
                 }
             }
         }
+        return copiedFiles;
     }
 
     /**
