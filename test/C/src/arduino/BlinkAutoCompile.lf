@@ -3,7 +3,8 @@
  * off an LED on the Arduino Board with a 50% duty cycle switching every
  * half-second.
  *
- * This tests the overloading capabilities of the platform argument as well as autocompilation given a board name.
+ * This tests the overloading capabilities of the platform argument as well as
+ * autocompilation given a board name.
  */
 target C {
     platform: {
