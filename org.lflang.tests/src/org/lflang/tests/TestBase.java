@@ -582,7 +582,7 @@ public abstract class TestBase {
      */
     private boolean checkArduinoCLIExists() {
         LFCommand checkCommand = LFCommand.get("arduino-cli", List.of("version"));
-        return checkCommand.run() == 0;
+        return checkCommand != null && checkCommand.run() == 0;
     }
     
     /**
