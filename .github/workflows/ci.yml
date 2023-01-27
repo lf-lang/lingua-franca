@@ -60,7 +60,7 @@ jobs:
 
   # Run the C integration tests.
   c-tests:
-    uses: lf-lang/lingua-franca/.github/workflows/c-tests.yml@master
+    uses: lf-lang/lingua-franca/.github/workflows/c-tests.yml@ci-no-rti-image
     needs: cancel
   
   # Run the C Zephyr integration tests.
@@ -94,7 +94,7 @@ jobs:
 
   # Run the Python integration tests.
   py-tests:
-    uses: lf-lang/lingua-franca/.github/workflows/py-tests.yml@master
+    uses: lf-lang/lingua-franca/.github/workflows/py-tests.yml@ci-no-rti-image
     needs: cancel
 
   # Run the Rust integration tests.

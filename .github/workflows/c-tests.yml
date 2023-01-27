@@ -60,9 +60,6 @@ jobs:
           cd arduino-1.8.19/
           sudo ./install.sh
         if: ${{ runner.os == 'Linux' }}
-      - name: Build RTI docker image
-        uses: ./.github/actions/build-rti-docker
-        if: ${{ runner.os == 'Linux' }}
       - name: Perform tests for C target with default scheduler
         run: |
           ./gradlew test --tests org.lflang.tests.runtime.CTest.*
