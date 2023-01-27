@@ -48,11 +48,14 @@ import org.lflang.generator.LFGenerator;
 import org.lflang.generator.LFGeneratorContext;
 import org.lflang.generator.LFGeneratorContext.BuildParm;
 import org.lflang.generator.MainContext;
+import org.lflang.generator.GeneratorCommandFactory;
 import org.lflang.tests.Configurators.Configurator;
 import org.lflang.tests.LFTest.Result;
 import org.lflang.tests.TestRegistry.TestCategory;
 import org.lflang.util.FileUtil;
 import org.lflang.util.LFCommand;
+import org.lflang.util.ArduinoUtil;
+
 
 import com.google.inject.Inject;
 import com.google.inject.Injector;
@@ -471,7 +474,6 @@ public abstract class TestBase {
         if (test.getFileConfig().resource == null) {
             return GeneratorResult.NOTHING;
         }
-
         try {
             generator.doGenerate(test.getFileConfig().resource, fileAccess, test.getContext());
         } catch (Throwable e) {
@@ -578,47 +580,6 @@ public abstract class TestBase {
             """;
 
     /**
-     * Returns true if arduino-cli exists, false otherwise.
-     */
-    private boolean checkArduinoCLIExists() {
-        LFCommand checkCommand = LFCommand.get("arduino-cli", List.of("version"));
-        return checkCommand != null && checkCommand.run() == 0;
-    }
-    
-    /**
-     * Return a ProcessBuilder used to test Arduino in a non-federated, unthreaded environment.
-     * See the following for references on arduino-cli:
-     * https://arduino.github.io/arduino-cli/
-     *
-     * @param test The test to get the execution command for.
-     */
-    private ProcessBuilder getArduinoExecCommand(LFTest test) {
-        if (!checkArduinoCLIExists()) {
-            System.out.println(Message.MISSING_ARDUINO_CLI);
-            return new ProcessBuilder("exit", "1");
-        }
-        var srcGenPath = test.getFileConfig().getSrcGenPath();
-        try {
-            // Write to a temporary file to execute since ProcessBuilder does not like spaces and double quotes in its arguments.
-            File testScript = File.createTempFile("arduinotest", null);
-            testScript.deleteOnExit();
-            if (!testScript.setExecutable(true)) {
-                throw new IOException("Failed to make test script executable");
-            }
-            var fileWriter = new FileWriter(testScript.getAbsoluteFile(), true);
-            BufferedWriter bufferedWriter = new BufferedWriter(fileWriter);
-            bufferedWriter.write("arduino-cli compile -b arduino:avr:leonardo --build-property " +
-            "compiler.c.extra_flags=\"-DLF_UNTHREADED -DPLATFORM_ARDUINO -DINITIAL_EVENT_QUEUE_SIZE=10 -DINITIAL_REACT_QUEUE_SIZE=10\" " +
-            "--build-property compiler.cpp.extra_flags=\"-DLF_UNTHREADED -DPLATFORM_ARDUINO -DINITIAL_EVENT_QUEUE_SIZE=10 -DINITIAL_REACT_QUEUE_SIZE=10\" "
-            + srcGenPath.toString());
-            bufferedWriter.close();
-            return new ProcessBuilder(testScript.getAbsolutePath());
-        } catch (IOException e) {
-            return new ProcessBuilder("exit", "1");
-        }
-    }
-
-    /**
      * Path to a bash script containing DOCKER_RUN_SCRIPT.
      */
     private static Path dockerRunScript = null;
@@ -685,8 +646,6 @@ public abstract class TestBase {
         if (relativePathName.equalsIgnoreCase(TestCategory.DOCKER.getPath()) ||
             relativePathName.equalsIgnoreCase(TestCategory.DOCKER_FEDERATED.getPath())) {
             return getDockerExecCommand(test);
-        } else if (relativePathName.equalsIgnoreCase(TestCategory.ARDUINO.getPath())) {
-            return getArduinoExecCommand(test);
         } else {
             LFCommand command = test.getFileConfig().getCommand();
             if (command == null) {
@@ -719,6 +678,12 @@ public abstract class TestBase {
                 validate(test);
                 if (level.compareTo(TestLevel.CODE_GEN) >= 0) {
                     generateCode(test);
+                    var srcBasePath = test.getFileConfig().srcPkgPath.resolve("src");
+                    var relativePathName = srcBasePath.relativize(test.getFileConfig().srcPath).toString();
+                    if (relativePathName.equalsIgnoreCase(TestCategory.ARDUINO.getPath())) {
+                        ArduinoUtil arduinoUtil = new ArduinoUtil(test.getContext(), new GeneratorCommandFactory(test.getContext().getErrorReporter(), test.getFileConfig()), test.getContext().getErrorReporter());
+                        arduinoUtil.buildArduino(test.getFileConfig(), test.getContext().getTargetConfig());
+                    } 
                 }
                 if (level == TestLevel.EXECUTION) {
                     execute(test);
