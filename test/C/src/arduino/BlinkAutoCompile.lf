@@ -3,16 +3,16 @@
  * off an LED on the Arduino Board with a 50% duty cycle switching every
  * half-second.
  *
- * This tests the overloading capabilities of the platform argument.
+ * This tests the overloading capabilities of the platform argument as well as autocompilation given a board name.
  */
 target C {
     platform: {
         name: "arduino",
-        baud-rate: 9600
+        board: "arduino:avr:leonardo"
     }
 }
 
-main reactor BlinkCustomPlatform {
+main reactor BlinkAutoCompile {
     timer t1(0, 1 sec)
     timer t2(500 msec, 1 sec)
 
