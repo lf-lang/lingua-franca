@@ -2003,7 +2003,7 @@ public class CGenerator extends GeneratorBase {
 
         if (targetConfig.platformOptions.platform == Platform.ARDUINO && !targetConfig.noCompile
             && targetConfig.platformOptions.board == null) {
-            System.out.println("To enable compilation for the Arduino platform, you must specify the fully-qualified board name (FQBN) in the target property. For example, platform: {name: arduino, board: arduino:avr:leonardo}. Entering "no-compile" mode and generating target code only.);
+            System.out.println("To enable compilation for the Arduino platform, you must specify the fully-qualified board name (FQBN) in the target property. For example, platform: {name: arduino, board: arduino:avr:leonardo}. Entering \"no-compile\" mode and generating target code only.");
             targetConfig.noCompile = true;
         }
         if (targetConfig.threading) {  // FIXME: This logic is duplicated in CMake
