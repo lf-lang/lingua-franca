@@ -215,7 +215,8 @@ class TSGenerator(
             val configFileDest = fileConfig.srcGenPath.resolve(configFile)
             val configFileInSrc = fileConfig.srcPath.resolve(configFile)
             if (configFileInSrc.toFile().exists()) {
-                println("Copying '" + configFile + "' from " + fileConfig.srcPath)
+                println("Copying $configFileInSrc to $configFileDest")
+                Files.createDirectories(configFileDest.parent)
                 Files.copy(configFileInSrc, configFileDest, StandardCopyOption.REPLACE_EXISTING)
             } else {
                 println(

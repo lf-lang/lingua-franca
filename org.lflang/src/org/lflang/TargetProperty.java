@@ -35,7 +35,6 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import org.eclipse.xtext.util.RuntimeIOException;
-import org.lflang.TargetConfig.Board;
 import org.lflang.TargetConfig.DockerOptions;
 import org.lflang.TargetConfig.PlatformOptions;
 import org.lflang.TargetConfig.TracingOptions;
@@ -1189,7 +1188,6 @@ public enum TargetProperty {
         SCHEDULER_UNION(Arrays.asList(SchedulerOption.values()), SchedulerOption.getDefault()),
         LOGGING_UNION(Arrays.asList(LogLevel.values()), LogLevel.INFO),
         PLATFORM_UNION(Arrays.asList(Platform.values()), Platform.AUTO),
-        BOARD_UNION(Arrays.asList(Board.values()), Board.NONE),
         CLOCK_SYNC_UNION(Arrays.asList(ClockSyncMode.values()),
                 ClockSyncMode.INIT),
         DOCKER_UNION(Arrays.asList(PrimitiveType.BOOLEAN, DictionaryType.DOCKER_DICT),
