@@ -60,7 +60,7 @@ jobs:
 
   # Run the C integration tests.
   c-tests:
-    uses: lf-lang/lingua-franca/.github/workflows/c-tests.yml@ci-no-rti-image
+    uses: lf-lang/lingua-franca/.github/workflows/c-tests.yml@arduino-cli-support
     needs: cancel
   
   # Run the C Zephyr integration tests.
@@ -70,7 +70,7 @@ jobs:
 
   # Run the CCpp integration tests.
   ccpp-tests:
-    uses: lf-lang/lingua-franca/.github/workflows/c-tests.yml@master
+    uses: lf-lang/lingua-franca/.github/workflows/c-tests.yml@arduino-cli-support
     with:
       use-cpp: true
     needs: cancel
