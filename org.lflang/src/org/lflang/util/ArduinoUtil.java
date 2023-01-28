@@ -27,7 +27,7 @@ public class ArduinoUtil {
     }
 
     /**
-     * Returns true if arduino-cli exists, false otherwise.
+     * Return true if arduino-cli exists, false otherwise.
      */
     private boolean checkArduinoCLIExists() {
         LFCommand checkCommand = LFCommand.get("arduino-cli", List.of("version"));
