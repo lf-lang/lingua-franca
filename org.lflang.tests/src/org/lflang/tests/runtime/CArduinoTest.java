@@ -11,9 +11,9 @@ import org.lflang.tests.RuntimeTest;
 import org.lflang.tests.TestRegistry.TestCategory;
 
 /**
- * Collection of Zephyr tests for the C target.
+ * Collection of Arduino tests for the C target.
  *
- * @author Erling Rennemo Jellum <erling.r.jellum@ntnu.no>
+ * @author Anirudh Rengarajan <arengarajan@berkeley.edu>
  */
 public class CArduinoTest extends RuntimeTest {
 
