@@ -41,9 +41,10 @@ public class CCppTest extends TestBase {
      */
     private static boolean isExcludedFromCCpp(TestCategory category) {
         boolean excluded = category == TestCategory.SERIALIZATION;
-        excluded |= isWindows() && (category == TestCategory.DOCKER_FEDERATED || category == TestCategory.ARDUINO) ;
+        excluded |= isWindows() && (category == TestCategory.DOCKER_FEDERATED);
         excluded |= isMac() && (category == TestCategory.DOCKER_FEDERATED || category == TestCategory.DOCKER);
         excluded |= category == TestCategory.ZEPHYR;
+        excluded |= category == TestCategory.ARDUINO;
         return !excluded;
     }
 }

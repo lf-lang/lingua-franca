@@ -90,15 +90,17 @@ public class Configurators {
 
         // CONCURRENT, FEDERATED, DOCKER_FEDERATED, DOCKER
         // are not compatible with single-threaded execution.
+        // ARDUINO and ZEPHYR have their own test suites, so we don't need to rerun.
         boolean excluded = category == TestCategory.CONCURRENT
             || category == TestCategory.SERIALIZATION
             || category == TestCategory.FEDERATED
             || category == TestCategory.DOCKER_FEDERATED
             || category == TestCategory.DOCKER
+            || category == TestCategory.ARDUINO
             || category == TestCategory.ZEPHYR;
 
-        // SERIALIZATION, TARGET, and ARDUINO tests are excluded on Windows.
-        excluded |= TestBase.isWindows() && (category == TestCategory.TARGET || category == TestCategory.ARDUINO);
+        // SERIALIZATION and TARGET tests are excluded on Windows.
+        excluded |= TestBase.isWindows() && (category == TestCategory.TARGET);
         return !excluded;
     }
 }
