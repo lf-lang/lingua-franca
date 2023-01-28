@@ -118,6 +118,9 @@ public class ArduinoUtil {
             } else {
                 errorReporter.reportError("Need to provide a port on which to automatically flash.");
             }
+        } else {
+            System.out.println("********");
+            System.out.println("To flash your program, run the following command to see information about the board you plugged in:\n\n\tarduino-cli board list\n\nGrab the FQBN and PORT from the command and run the following command in the generated sources directory:\n\n\tarduino-cli upload -b <FQBN> -p <PORT>\n");
         }
     }
 }
