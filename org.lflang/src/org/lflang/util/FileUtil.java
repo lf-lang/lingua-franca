@@ -16,9 +16,13 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.Enumeration;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -378,6 +382,102 @@ public class FileUtil {
         }
         return copiedFiles;
     }
+
+    /**
+     * Delete unused Files from Arduino-CLI based compilation.
+     *
+     * Arduino-CLI (the build system) uses lazy compilation (i.e. compiles every file recursively from 
+     * a source directory). This does the work of CMake by explicitly deleting files that 
+     * shouldn't get compiled by the CLI. Generally, we delete all CMake artifacts and multithreaded
+     * support files (including semaphores and thread folders)
+     *
+     * @param dir The folder to search for folders and files to delete. 
+     * @throws IOException If the given folder and unneeded files cannot be deleted.
+     */
+    public static void arduinoDeleteHelper(Path dir) throws IOException {
+        deleteDirectory(dir.resolve("core/federated")); // TODO: Add Federated Support to Arduino
+        deleteDirectory(dir.resolve("include/core/federated")); // TODO: Add Federated Support to Arduino
+        
+        deleteDirectory(dir.resolve("core/threaded")); // No Threaded Support for Arduino
+        deleteDirectory(dir.resolve("include/core/threaded")); // No Threaded Support for Arduino
+
+        List<Path> allPaths = Files.walk(dir)
+                    .sorted(Comparator.reverseOrder())
+                    .collect(Collectors.toList());
+        for (Path path : allPaths) {
+            String toCheck = path.toString().toLowerCase();
+            if (toCheck.contains("cmake") || toCheck.contains("semaphore")
+            || (toCheck.contains("core/platform/") && !toCheck.contains("lf_arduino"))) {
+                Files.delete(path);
+            }
+        }
+    }
+
+    /**
+     * Helper function for getting the string representation of the relative path 
+     * to take to get from one file (currPath) to get to the other (fileName).
+     *
+     * Generally, this is useful for converting includes to have relative pathing when 
+     * you lack access to adding additional include paths when compiling.
+     * 
+     * @param fileName File to search for.
+     * @param currPath The current path to the file whose include statements we are modifying.
+     * @param fileStringToFilePath Mapping of File Names to their paths.
+     */
+    private static String fileNameMatchConverter(String fileName, Path currPath, Map<String, Path> fileStringToFilePath) 
+        throws NullPointerException {
+        // First get the child file
+        int lastPath = fileName.lastIndexOf(File.separator);
+        if (lastPath != -1){
+            fileName = fileName.substring(lastPath+1);
+        }
+        Path p = fileStringToFilePath.get(fileName);
+        if(p == null) {
+            return "#include \"" + fileName + "\"";
+        }
+        String relativePath = currPath.getParent().relativize(p).toString();
+        return "#include \"" + relativePath + "\"";
+    }
+
+    /**
+     * Convert all includes recursively inside files within a specified folder to relative links
+     *
+     * @param dir The folder to search for includes to change. 
+     * @throws IOException If the given set of files cannot be relativized.
+     */
+    public static void relativeIncludeHelper(Path dir) throws IOException {
+        System.out.println("Relativizing all includes in " + dir.toString());
+        List<Path> allPaths = Files.walk(dir)
+            .filter(Files::isRegularFile)
+            .sorted(Comparator.reverseOrder())
+            .collect(Collectors.toList());
+        Map<String, Path> fileStringToFilePath = new HashMap<String, Path>();
+        for (Path path : allPaths) {
+            String fileName = path.getFileName().toString();
+            if (path.getFileName().toString().contains("CMakeLists.txt")) continue;
+            if (fileStringToFilePath.put(fileName, path) != null) {
+                throw new IOException("Directory has different files with the same name. Cannot Relativize.");
+            }
+        }
+        Pattern regexExpression = Pattern.compile("#include\s+[\"]([^\"]+)*[\"]");
+        for (Path path : allPaths) {
+            String fileName = path.getFileName().toString();
+            String fileContents = Files.readString(path);
+            Matcher matcher = regexExpression.matcher(fileContents);
+            int lastIndex = 0;
+            StringBuilder output = new StringBuilder();
+            while (matcher.find()) {
+                output.append(fileContents, lastIndex, matcher.start())
+                    .append(fileNameMatchConverter(matcher.group(1), path, fileStringToFilePath));
+                lastIndex = matcher.end();
+            }
+            if (lastIndex < fileContents.length()) {
+                output.append(fileContents, lastIndex, fileContents.length());
+            }
+            writeToFile(output.toString(), path);
+        }
+    }
+
 
     /**
      * Recursively delete a directory if it exists.

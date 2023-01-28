@@ -36,7 +36,9 @@ import static org.lflang.ASTUtils.toDefinition;
 import static org.lflang.ASTUtils.toText;
 import static org.lflang.util.StringUtil.addDoubleQuotes;
 
+import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -95,7 +97,9 @@ import org.lflang.lf.Reactor;
 import org.lflang.lf.ReactorDecl;
 import org.lflang.lf.StateVar;
 import org.lflang.lf.Variable;
+import org.lflang.util.ArduinoUtil;
 import org.lflang.util.FileUtil;
+import org.lflang.util.LFCommand;
 
 import com.google.common.base.Objects;
 import com.google.common.collect.Iterables;
@@ -319,6 +323,7 @@ import com.google.common.collect.Iterables;
  * @author Soroush Bateni
  * @author Alexander Schulz-Rosengarten
  * @author Hou Seng Wong
+ * @author Anirudh Rengarajan
  */
 @SuppressWarnings("StaticPseudoFunctionalStyleMethod")
 public class CGenerator extends GeneratorBase {
@@ -476,46 +481,23 @@ public class CGenerator extends GeneratorBase {
         generateCodeFor(lfModuleName);
 
         // Derive target filename from the .lf filename.
-        var cFilename = CCompiler.getTargetFileName(lfModuleName, this.CCppMode);
+        var cFilename = CCompiler.getTargetFileName(lfModuleName, this.CCppMode, targetConfig);
         var targetFile = fileConfig.getSrcGenPath() + File.separator + cFilename;
 
         try {
 
+                String srcPrefix = targetConfig.platformOptions.platform == Platform.ARDUINO ? "src/" : "";
+
                 // Copy the core lib
                 FileUtil.copyDirectoryFromClassPath(
                     "/lib/c/reactor-c/core",
-                    fileConfig.getSrcGenPath().resolve("core"),
+                    fileConfig.getSrcGenPath().resolve(srcPrefix + "core"),
                     true
                 );
                 // Copy the C target files
                 copyTargetFiles();
 
-            // If we are running an Arduino Target, need to copy over the Arduino-CMake files.
-            if (targetConfig.platformOptions.platform == Platform.ARDUINO) {
-                FileUtil.copyDirectoryFromClassPath(
-                    "/lib/platform/arduino/Arduino-CMake-Toolchain/Arduino",
-                    fileConfig.getSrcGenPath().resolve("toolchain/Arduino"),
-                    false
-                );
-                FileUtil.copyDirectoryFromClassPath(
-                    "/lib/platform/arduino/Arduino-CMake-Toolchain/Platform",
-                    fileConfig.getSrcGenPath().resolve("toolchain/Platform"),
-                    false
-                );
-                FileUtil.copyFileFromClassPath(
-                    "/lib/platform/arduino/Arduino-CMake-Toolchain/Arduino-toolchain.cmake",
-                    fileConfig.getSrcGenPath().resolve("toolchain/Arduino-toolchain.cmake"),
-                    true
-                );
-                StringBuilder s = new StringBuilder();
-                s.append("set(ARDUINO_BOARD \"");
-                s.append("\")");
-                FileUtil.writeToFile(s.toString(), fileConfig.getSrcGenPath().resolve("toolchain/BoardOptions.cmake"));
-            }
-
-
-                // If Zephyr target then copy default config and board files 
-                //  for Zephyr support
+                // For the Zephyr target, copy default config and board files.
                 if (targetConfig.platformOptions.platform == Platform.ZEPHYR) {
                     FileUtil.copyDirectoryFromClassPath(
                         "/lib/platform/zephyr/boards",
@@ -553,27 +535,54 @@ public class CGenerator extends GeneratorBase {
                 }
             }
 
-            var cmakeFile = fileConfig.getSrcGenPath() + File.separator + "CMakeLists.txt";
-            var cmakeCode = cmakeGenerator.generateCMakeCode(
-                List.of(cFilename),
-                lfModuleName,
-                errorReporter,
-                CCppMode,
-                mainDef != null,
-                cMakeExtras,
-                targetConfig
-            );
-            try {
-                cmakeCode.writeToFile(cmakeFile);
-            } catch (IOException e) {
-                //noinspection ThrowableNotThrown,ResultOfMethodCallIgnored
-                Exceptions.sneakyThrow(e);
+            // If cmake is requested, generate the CMakeLists.txt
+            if (targetConfig.platformOptions.platform != Platform.ARDUINO) {
+                var cmakeFile = fileConfig.getSrcGenPath() + File.separator + "CMakeLists.txt";
+                var cmakeCode = cmakeGenerator.generateCMakeCode(
+                    List.of(cFilename),
+                    lfModuleName,
+                    errorReporter,
+                    CCppMode,
+                    mainDef != null,
+                    cMakeExtras,
+                    targetConfig
+                );
+                try {
+                    cmakeCode.writeToFile(cmakeFile);
+                } catch (IOException e) {
+                    //noinspection ThrowableNotThrown,ResultOfMethodCallIgnored
+                    Exceptions.sneakyThrow(e);
+                }
+            } else {
+                try {
+                    FileUtil.arduinoDeleteHelper(fileConfig.getSrcGenPath().resolve("src/"));
+                    FileUtil.relativeIncludeHelper(fileConfig.getSrcGenPath().resolve("src/"));
+                } catch (IOException e) {
+                    //noinspection ThrowableNotThrown,ResultOfMethodCallIgnored
+                    Exceptions.sneakyThrow(e);
+                }
+
+                if (!targetConfig.noCompile) {
+                    ArduinoUtil arduinoUtil = new ArduinoUtil(context, commandFactory, errorReporter);
+                    arduinoUtil.buildArduino(fileConfig, targetConfig);
+                    context.finish(
+                        GeneratorResult.Status.COMPILED, null
+                    );
+                } else {
+                    System.out.println("********");
+                    System.out.println("To compile your program, run the following command to see information about the board you plugged in:\n\n\tarduino-cli board list\n\nGrab the FQBN and PORT from the command and run the following command in the generated sources directory:\n\n\tarduino-cli compile -b <FQBN> --build-property compiler.c.extra_flags='-DLF_UNTHREADED -DPLATFORM_ARDUINO -DINITIAL_EVENT_QUEUE_SIZE=10 -DINITIAL_REACT_QUEUE_SIZE=10' --build-property compiler.cpp.extra_flags='-DLF_UNTHREADED -DPLATFORM_ARDUINO -DINITIAL_EVENT_QUEUE_SIZE=10 -DINITIAL_REACT_QUEUE_SIZE=10' .\n\nTo flash/upload your generated sketch to the board, run the following command in the generated sources directory:\n\n\tarduino-cli upload -b <FQBN> -p <PORT>\n");
+                    // System.out.println("For a list of all boards installed on your computer, you can use the following command:\n\n\tarduino-cli board listall\n");
+                    context.finish(
+                        GeneratorResult.GENERATED_NO_EXECUTABLE.apply(context, null)
+                    );
+                }
+                GeneratorUtils.refreshProject(resource, context.getMode());
+                return;
             }
 
         // Dump the additional compile definitions to a file to keep the generated project
         // self-contained. In this way, third-party build tools like PlatformIO, west, arduino-cli can
         // take over and do the rest of compilation.
-
         try {
             String compileDefs = targetConfig.compileDefinitions.keySet().stream()
                                                                 .map(key -> key + "=" + targetConfig.compileDefinitions.get(key))
@@ -610,6 +619,7 @@ public class CGenerator extends GeneratorBase {
             //     100 * federateCount / federates.size()
             // ); // FIXME: Move to FedGenerator
             // Create the compiler to be used later
+        
             var cCompiler = new CCompiler(targetConfig, threadFileConfig, errorReporter, CppMode);
             try {
                 if (!cCompiler.runCCompiler(generator, context)) {
@@ -627,6 +637,7 @@ public class CGenerator extends GeneratorBase {
             } catch (IOException e) {
                 Exceptions.sneakyThrow(e);
             }
+        
         }
 
         // If a build directive has been given, invoke it now.
@@ -737,7 +748,7 @@ public class CGenerator extends GeneratorBase {
             // is set to decentralized) or, if there are
             // downstream federates, will notify the RTI
             // that the specified logical time is complete.
-            if (CCppMode) code.pr("extern \"C\"");
+            if (CCppMode || targetConfig.platformOptions.platform == Platform.ARDUINO) code.pr("extern \"C\"");
             code.pr(String.join("\n",
                 "void logical_tag_complete(tag_t tag_to_send) {",
                 CExtensionUtils.surroundWithIfFederatedCentralized(
@@ -999,14 +1010,17 @@ public class CGenerator extends GeneratorBase {
      * Copy target-specific header file to the src-gen directory.
      */
     protected void copyTargetFiles() throws IOException {
+
+        String srcPrefix = targetConfig.platformOptions.platform == Platform.ARDUINO ? "src/" : "";
+
         FileUtil.copyDirectoryFromClassPath(
             "/lib/c/reactor-c/include",
-            fileConfig.getSrcGenPath().resolve("include"),
+            fileConfig.getSrcGenPath().resolve(srcPrefix + "include"),
             false
         );
         FileUtil.copyDirectoryFromClassPath(
             "/lib/c/reactor-c/lib",
-            fileConfig.getSrcGenPath().resolve("lib"),
+            fileConfig.getSrcGenPath().resolve(srcPrefix + "lib"),
             false
         );
     }
@@ -1397,6 +1411,7 @@ public class CGenerator extends GeneratorBase {
      *  @param reactionIndex The position of the reaction within the reactor.
      */
     protected void generateReaction(Reaction reaction, ReactorDecl decl, int reactionIndex) {
+       
         code.pr(CReactionGenerator.generateReaction(
             reaction,
             decl,
@@ -1404,6 +1419,7 @@ public class CGenerator extends GeneratorBase {
             mainDef,
             errorReporter,
             types,
+            targetConfig,
             getTarget().requiresTypes
         ));
     }
@@ -1978,12 +1994,17 @@ public class CGenerator extends GeneratorBase {
             targetConfig.compileDefinitions.put("MODAL_REACTORS", "TRUE");
         }
         if (targetConfig.threading && targetConfig.platformOptions.platform == Platform.ARDUINO) {
-
             //Add error message when user attempts to set threading=true for Arduino
             if (targetConfig.setByUser.contains(TargetProperty.THREADING)) {
-                errorReporter.reportWarning("Threading is incompatible on Arduino. Setting threading to false.");
+                System.out.println("Threading is incompatible on Arduino. Setting threading to false.");
             }
             targetConfig.threading = false;
+        }
+
+        if (targetConfig.platformOptions.platform == Platform.ARDUINO && !targetConfig.noCompile
+            && targetConfig.platformOptions.board == null) {
+            System.out.println("To enable compilation for the Arduino platform, you must specify the fully-qualified board name (FQBN) in the target property. For example, platform: {name: arduino, board: arduino:avr:leonardo}. Entering \"no-compile\" mode and generating target code only.");
+            targetConfig.noCompile = true;
         }
         if (targetConfig.threading) {  // FIXME: This logic is duplicated in CMake
             pickScheduler();

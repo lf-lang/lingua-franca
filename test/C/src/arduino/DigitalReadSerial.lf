@@ -2,8 +2,11 @@
  * This example reads a digital input on pin 2, prints the result to the Serial
  * Monitor
  */
-target CCpp {
-    platform: "Arduino"
+target C {
+    platform: {
+        name: "arduino",
+        board: "arduino:avr:leonardo"
+    }
 }
 
 main reactor DigitalReadSerial {

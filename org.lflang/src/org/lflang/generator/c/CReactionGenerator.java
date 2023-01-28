@@ -13,8 +13,9 @@ import java.util.Set;
 import org.lflang.ASTUtils;
 import org.lflang.ErrorReporter;
 import org.lflang.InferredType;
+import org.lflang.TargetConfig;
+import org.lflang.TargetProperty.Platform;
 import org.lflang.federated.extensions.CExtensionUtils;
-import org.lflang.federated.generator.FederateInstance;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.lf.Action;
 import org.lflang.lf.ActionOrigin;
@@ -1063,6 +1064,7 @@ public class CReactionGenerator {
         Instantiation mainDef,
         ErrorReporter errorReporter,
         CTypes types,
+        TargetConfig targetConfig,
         boolean requiresType
     ) {
         var code = new CodeBuilder();
@@ -1071,15 +1073,17 @@ public class CReactionGenerator {
                         body, reaction, decl, reactionIndex,
                         types, errorReporter, mainDef,
                         requiresType);
+        
+        String srcPrefix = targetConfig.platformOptions.platform == Platform.ARDUINO ? "src/" : ""; 
         code.pr(
             "#include " + StringUtil.addDoubleQuotes(
-                CCoreFilesUtils.getCTargetSetHeader()));
+                srcPrefix + CCoreFilesUtils.getCTargetSetHeader()));
+        
         CMethodGenerator.generateMacrosForMethods(ASTUtils.toDefinition(decl), code);
         code.pr(generateFunction(
             generateReactionFunctionHeader(decl, reactionIndex),
             init, reaction.getCode()
         ));
-
         // Now generate code for the late function, if there is one
         // Note that this function can only be defined on reactions
         // in federates that have inputs from a logical connection.
@@ -1098,7 +1102,7 @@ public class CReactionGenerator {
         CMethodGenerator.generateMacroUndefsForMethods(ASTUtils.toDefinition(decl), code);
         code.pr(
             "#include " + StringUtil.addDoubleQuotes(
-                CCoreFilesUtils.getCTargetSetUndefHeader()));
+                srcPrefix + CCoreFilesUtils.getCTargetSetUndefHeader()));
         return code.toString();
     }
 

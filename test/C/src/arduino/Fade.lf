@@ -5,8 +5,11 @@
  * the PWM pins are identified with a "~" sign, like ~3, ~5, ~6, ~9, ~10 and
  * ~11.
  */
-target CCpp {
-    platform: "Arduino"
+target C {
+    platform: {
+        name: "arduino",
+        board: "arduino:avr:leonardo"
+    }
 }
 
 main reactor Fade {

@@ -6,7 +6,6 @@ import static java.nio.file.FileVisitResult.SKIP_SUBTREE;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.FileVisitResult;
-import java.nio.file.FileVisitor;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -20,10 +19,8 @@ import java.util.Set;
 import java.util.Stack;
 import java.util.TreeSet;
 
-import org.eclipse.emf.common.util.EList;
 import org.eclipse.emf.common.util.URI;
 import org.eclipse.emf.ecore.resource.Resource;
-import org.eclipse.emf.ecore.resource.Resource.Diagnostic;
 import org.eclipse.emf.ecore.resource.ResourceSet;
 import org.eclipse.xtext.xbase.lib.IteratorExtensions;
 
@@ -31,7 +28,6 @@ import org.lflang.LFResourceProvider;
 import org.lflang.LFStandaloneSetup;
 import org.lflang.Target;
 import org.lflang.lf.Reactor;
-import org.lflang.tests.LFTest.Result;
 import org.lflang.tests.TestBase.TestLevel;
 
 /**
@@ -154,7 +150,7 @@ public class TestRegistry {
         TARGET(false);
 
         /**
-         * Whether or not we should compare coverage against other targets.
+         * Whether we should compare coverage against other targets.
          */
         public final boolean isCommon;
         public final String path;
