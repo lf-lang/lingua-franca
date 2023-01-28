@@ -14,6 +14,16 @@ import org.lflang.generator.LFGeneratorContext;
 
 import org.eclipse.xtext.xbase.lib.Exceptions;
 
+/**
+ * Utilities for Building using Arduino CLI.
+ *
+ * We take in a Generator Context, Command Factory, and Error Reporter and 
+ * make subsequent calls to arduino-cli given a FileConfig and TargetConfig.
+ * 
+ * This should be used immediately after CodeGen to compile if the user provides
+ * a board type within their LF file. If the user also provides a port with flash enabled,
+ * we will also attempt to upload the compiled sketch directly to the board.
+ */
 public class ArduinoUtil {
 
     private LFGeneratorContext context;
@@ -34,6 +44,13 @@ public class ArduinoUtil {
         return checkCommand != null && checkCommand.run() == 0;
     }
 
+    /**
+     * Generate an LF style command for Arduino compilation based on FQBN
+     * @param fileConfig
+     * @param targetConfig
+     * @return LFCommand to compile an Arduino program given an FQBN.
+     * @throws IOException
+     */
     private LFCommand arduinoCompileCommand(FileConfig fileConfig, TargetConfig targetConfig) throws IOException {
         if (!checkArduinoCLIExists()) {
             throw new IOException("Must have arduino-cli installed to auto-compile.");
@@ -63,6 +80,11 @@ public class ArduinoUtil {
         }
     }
 
+    /**
+     * Compiles (and possibly auto-flashes) an Arduino program once code generation is completed.
+     * @param fileConfig
+     * @param targetConfig
+     */
     public void buildArduino(FileConfig fileConfig, TargetConfig targetConfig) {
         System.out.println("Retrieving Arduino Compile Script");
         try {
