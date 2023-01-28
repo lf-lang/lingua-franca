@@ -678,12 +678,6 @@ public abstract class TestBase {
                 validate(test);
                 if (level.compareTo(TestLevel.CODE_GEN) >= 0) {
                     generateCode(test);
-                    var srcBasePath = test.getFileConfig().srcPkgPath.resolve("src");
-                    var relativePathName = srcBasePath.relativize(test.getFileConfig().srcPath).toString();
-                    if (relativePathName.equalsIgnoreCase(TestCategory.ARDUINO.getPath())) {
-                        ArduinoUtil arduinoUtil = new ArduinoUtil(test.getContext(), new GeneratorCommandFactory(test.getContext().getErrorReporter(), test.getFileConfig()), test.getContext().getErrorReporter());
-                        arduinoUtil.buildArduino(test.getFileConfig(), test.getContext().getTargetConfig());
-                    } 
                 }
                 if (level == TestLevel.EXECUTION) {
                     execute(test);

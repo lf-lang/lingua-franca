@@ -4,7 +4,10 @@
  * half-second.
  */
 target C {
-    platform: "Arduino"
+    platform: {
+        name: "arduino",
+        board: "arduino:avr:leonardo"
+    }
 }
 
 main reactor Blink {

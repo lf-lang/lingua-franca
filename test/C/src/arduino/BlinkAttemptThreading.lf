@@ -5,7 +5,10 @@
  * warning and default back to no threading.
  */
 target C {
-    platform: "Arduino",
+    platform: {
+        name: "arduino",
+        board: "arduino:avr:leonardo"
+    },
     threading: true
 }
 

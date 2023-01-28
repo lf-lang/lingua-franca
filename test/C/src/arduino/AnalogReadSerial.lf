@@ -5,7 +5,10 @@
  * the outside pins to +5V and ground.
  */
 target C {
-    platform: "Arduino"
+    platform: {
+        name: "arduino",
+        board: "arduino:avr:leonardo"
+    }
 }
 
 main reactor AnalogReadSerial {

@@ -6,7 +6,10 @@
  * ground.
  */
 target C {
-    platform: "Arduino"
+    platform: {
+        name: "arduino",
+        board: "arduino:avr:leonardo"
+    }
 }
 
 main reactor ReadAnalogVoltage {
