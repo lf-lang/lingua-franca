@@ -322,9 +322,8 @@ public class CReactionGenerator {
         return isTokenType ?
                 String.join("\n",
                     DISABLE_REACTION_INITIALIZATION_MARKER,
-                    "self->_lf_"+outputName+".value = ("+targetType+")self->_lf__"+actionName+".token->value;",
-                    "self->_lf_"+outputName+".token = (lf_token_t*)self->_lf__"+actionName+".token;",
-                    "((lf_token_t*)self->_lf__"+actionName+".token)->ref_count++;",
+                    "self->_lf_"+outputName+".value = ("+targetType+")self->_lf__"+actionName+".tmplt.token->value;",
+                    "_lf_replace_template_token((token_template_t*)&self->_lf_"+outputName+", (lf_token_t*)self->_lf__"+actionName+".tmplt.token);",
                     "self->_lf_"+outputName+".is_present = true;"
                 ) :
                 "lf_set("+outputName+", "+actionName+"->value);";
@@ -486,7 +485,7 @@ public class CReactionGenerator {
         // If the action has a type, create variables for accessing the value.
         InferredType type = ASTUtils.getInferredType(action);
         // Pointer to the lf_token_t sent as the payload in the trigger.
-        String tokenPointer = "(self->_lf__"+action.getName()+".token)";
+        String tokenPointer = "(self->_lf__"+action.getName()+".tmplt.token)";
         CodeBuilder builder = new CodeBuilder();
 
         builder.pr(
@@ -496,7 +495,7 @@ public class CReactionGenerator {
             "// Set the fields of the action struct to match the current trigger.",
             action.getName()+"->is_present = (bool)self->_lf__"+action.getName()+".status;",
             action.getName()+"->has_value = ("+tokenPointer+" != NULL && "+tokenPointer+"->value != NULL);",
-            action.getName()+"->token = "+tokenPointer+";")
+            "_lf_replace_template_token((token_template_t*)"+action.getName()+", "+tokenPointer+");")
         );
         // Set the value field only if there is a type.
         if (!type.isUndefined()) {
@@ -536,7 +535,7 @@ public class CReactionGenerator {
         // If the input has not been declared mutable, then this is a pointer
         // to the upstream output. Otherwise, it is a copy of the upstream output,
         // which nevertheless points to the same token and value (hence, as done
-        // below, we have to use writable_copy()). There are 8 cases,
+        // below, we have to use lf_writable_copy()). There are 8 cases,
         // depending on whether the input is mutable, whether it is a multiport,
         // and whether it is a token type.
         // Easy case first.
@@ -568,18 +567,10 @@ public class CReactionGenerator {
                 "// Mutable input, so copy the input struct into a temporary variable.",
                 structType+" _lf_tmp_"+inputName+" = *(self->_lf_"+inputName+");",
                 structType+"* "+inputName+" = &_lf_tmp_"+inputName+";",
+                inputName+"->value = NULL;", // Prevent payload from being freed.
                 "if ("+inputName+"->is_present) {",
                 "    "+inputName+"->length = "+inputName+"->token->length;",
-                "    lf_token_t* _lf_input_token = "+inputName+"->token;",
-                "    "+inputName+"->token = writable_copy(_lf_input_token);",
-                "    if ("+inputName+"->token != _lf_input_token) {",
-                "        // A copy of the input token has been made.",
-                "        // This needs to be reference counted.",
-                "        "+inputName+"->token->ref_count = 1;",
-                "        // Repurpose the next_free pointer on the token to add to the list.",
-                "        "+inputName+"->token->next_free = _lf_more_tokens_with_ref_count;",
-                "        _lf_more_tokens_with_ref_count = "+inputName+"->token;",
-                "    }",
+                "    "+inputName+"->token = lf_writable_copy((lf_port_base_t*)self->_lf_"+inputName+");",
                 "    "+inputName+"->value = ("+types.getTargetType(inputType)+")"+inputName+"->token->value;",
                 "} else {",
                 "    "+inputName+"->length = 0;",
@@ -601,16 +592,8 @@ public class CReactionGenerator {
                 "    // If necessary, copy the tokens.",
                 "    if ("+inputName+"[i]->is_present) {",
                 "        "+inputName+"[i]->length = "+inputName+"[i]->token->length;",
-                "        lf_token_t* _lf_input_token = "+inputName+"[i]->token;",
-                "        "+inputName+"[i]->token = writable_copy(_lf_input_token);",
-                "        if ("+inputName+"[i]->token != _lf_input_token) {",
-                "            // A copy of the input token has been made.",
-                "            // This needs to be reference counted.",
-                "            "+inputName+"[i]->token->ref_count = 1;",
-                "            // Repurpose the next_free pointer on the token to add to the list.",
-                "            "+inputName+"[i]->token->next_free = _lf_more_tokens_with_ref_count;",
-                "            _lf_more_tokens_with_ref_count = "+inputName+"[i]->token;",
-                "        }",
+                "        token_template_t* _lf_input = (token_template_t*)self->_lf_"+inputName+"[i];",
+                "        "+inputName+"[i]->token = lf_writable_copy((lf_port_base_t*)_lf_input);",
                 "        "+inputName+"[i]->value = ("+types.getTargetType(inputType)+")"+inputName+"[i]->token->value;",
                 "    } else {",
                 "        "+inputName+"[i]->length = 0;",
@@ -791,10 +774,7 @@ public class CReactionGenerator {
         // Start with the timers.
         for (Timer timer : ASTUtils.allTimers(reactor)) {
             createTriggerT(body, timer, triggerMap, constructorCode, types);
-            // Since the self struct is allocated using calloc, there is no need to set:
-            // self->_lf__"+timer.name+".is_physical = false;
-            // self->_lf__"+timer.name+".drop = false;
-            // self->_lf__"+timer.name+".element_size = 0;
+            // Since the self struct is allocated using calloc, there is no need to set falsy fields.
             constructorCode.pr("self->_lf__"+timer.getName()+".is_timer = true;");
             constructorCode.pr(CExtensionUtils.surroundWithIfFederatedDecentralized(
                 "self->_lf__"+timer.getName()+".intended_tag = (tag_t) { .time = NEVER, .microstep = 0u};"));
@@ -822,19 +802,23 @@ public class CReactionGenerator {
             var elementSize = "0";
             // If the action type is 'void', we need to avoid generating the code
             // 'sizeof(void)', which some compilers reject.
-            var rootType = action.getType() != null ? CUtil.rootType(types.getTargetType(action)) : null;
+            var rootType = action.getType() != null ? CUtil.rootType(types.getTargetType(action))
+                : null;
             if (rootType != null && !rootType.equals("void")) {
-                elementSize = "sizeof("+rootType+")";
+                elementSize = "sizeof(" + rootType + ")";
             }
 
             // Since the self struct is allocated using calloc, there is no need to set:
             // self->_lf__"+action.getName()+".is_timer = false;
             constructorCode.pr(String.join("\n",
-                "self->_lf__"+action.getName()+".is_physical = "+isPhysical+";",
-                                           !(action.getPolicy() == null || action.getPolicy().isEmpty()) ?
-                                           "self->_lf__"+action.getName()+".policy = "+action.getPolicy()+";" :
-                                           "",
-                "self->_lf__"+action.getName()+".element_size = "+elementSize+";"
+                "self->_lf__" + action.getName() + ".is_physical = " + isPhysical + ";",
+                (!(action.getPolicy() == null || action.getPolicy().isEmpty()) ?
+                    "self->_lf__" + action.getName() + ".policy = " + action.getPolicy() + ";" :
+                    ""),
+                // Need to set the element_size in the trigger_t and the action struct.
+                "self->_lf__" + action.getName() + ".tmplt.type.element_size = " + elementSize
+                    + ";",
+                "self->_lf_" + action.getName() + ".type.element_size = " + elementSize + ";"
             ));
         }
 
@@ -890,16 +874,12 @@ public class CReactionGenerator {
         }
         if (variable instanceof Input) {
             var rootType = CUtil.rootType(types.getTargetType((Input) variable));
-            // Since the self struct is allocated using calloc, there is no need to set:
-            // self->_lf__"+input.name+".is_timer = false;
-            // self->_lf__"+input.name+".offset = 0LL;
-            // self->_lf__"+input.name+".period = 0LL;
-            // self->_lf__"+input.name+".is_physical = false;
-            // self->_lf__"+input.name+".drop = false;
+            // Since the self struct is allocated using calloc, there is no need to set falsy fields.
             // If the input type is 'void', we need to avoid generating the code
             // 'sizeof(void)', which some compilers reject.
             var size = (rootType.equals("void")) ? "0" : "sizeof("+rootType+")";
-            constructorCode.pr("self->_lf__"+varName+".element_size = "+size+";");
+
+            constructorCode.pr("self->_lf__"+varName+".tmplt.type.element_size = "+size+";");
             body.pr(
                 CExtensionUtils.surroundWithIfFederated(
                     CExtensionUtils.createPortStatusFieldForInput((Input) variable)

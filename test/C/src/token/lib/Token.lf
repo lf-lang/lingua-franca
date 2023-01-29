@@ -1,0 +1,103 @@
+/**
+ * Basic library of reactors for testing token types.
+ * @author Hou Seng (Steven) Wong (housengw@berkeley.edu)
+ * @author Edward A. Lee (eal@berkeley.edu)
+ */
+target C {
+    files: ["../include/array.h"]
+}
+
+preamble {=
+    #include "array.h"
+=}
+
+/**
+ * @brief Produce a sequence of arrays of length 3 with increasing values.
+ * Values are produced at intervals of 1 ms. The first arrray has value [0, 1,
+ * 2], the second has value [3, 4, 5], etc. The output token will have a
+ * destructor and copy constructor associated with it so that its memory can be
+ * managed automatically by the C runtime.
+ */
+reactor TokenSource {
+    output out: int_array_t*
+    state count: int(0)
+    timer t(0, 1 ms)
+
+    reaction(startup) -> out {=
+        lf_set_destructor(out, int_array_destructor);
+        lf_set_copy_constructor(out, int_array_copy_constructor);
+    =}
+
+    reaction(t) -> out {=
+        int_array_t* array =  int_array_constructor(3);
+        for (size_t i = 0; i < array->length; i++) {
+            array->data[i] = self->count++;
+        }
+        lf_set(out, array);
+    =}
+}
+
+/**
+ * @brief Print input array values and test for expected value. The expected
+ * value is a scaled version of the sequence of values produced by the
+ * TokenSource, where the scaling factor is given by the scale parameter.
+ */
+reactor TokenPrint(scale: int(1)) {
+    input in: int_array_t*
+    state count: int(0)
+    state input_received: bool(false)
+
+    reaction(in) {=
+        self->input_received = true;
+        bool failed = false; // For testing.
+        printf("TokenPrint received: [");
+        for (int i = 0; i < in->value->length; i++) {
+            if (i > 0) printf(", ");
+            printf("%d", in->value->data[i]);
+            // For testing, check whether values match expectation.
+            if (in->value->data[i] != self->scale * self->count) {
+                failed = true;
+            }
+            self->count++;
+        }
+        printf("]\n");
+        if (failed) {
+            printf("ERROR: Value received by Print does not match expectation!\n");
+            exit(1);
+        }
+    =}
+
+    reaction(shutdown) {=
+        if (!self->input_received) {
+            lf_print_error_and_exit("TokenPrint: No input received!");
+        }
+    =}
+}
+
+/**
+ * @brief Multiply an input array by the scale factor given as a parameter. The
+ * input is declared mutable so, if possible, the input token will be modified
+ * rather than allocating a new token.
+ */
+reactor TokenScale(scale: int(2)) {
+    mutable input in: int_array_t*
+    output out: int_array_t*
+
+    reaction(in) -> out {=
+        for (int i = 0; i < in->value->length; i++) {
+            in->value->data[i] *= self->scale;
+        }
+        lf_set_token(out, in->token);
+    =}
+}
+
+/** @brief Delay a token using a logical action. The delay is 1 ms. */
+reactor TokenDelay {
+    input in: int_array_t*
+    output out: int_array_t*
+    logical action a: int_array_t*
+
+    reaction(a) -> out {= lf_set_token(out, a->token); =}
+
+    reaction(in) -> a {= lf_schedule_token(a, MSEC(1), in->token); =}
+}
