@@ -44,11 +44,17 @@ public class CMainFunctionGenerator {
                 - Logging
             */
             return String.join("\n",
+            "\nvoid _lf_arduino_print_message_function(const char* format, va_list args) {",
+                "\tchar buf[128];",
+                "\tvsnprintf(buf, 128, format, args);",
+                "\tSerial.print(buf);",
+            "}\n",
             "// Arduino setup() and loop() functions",
             "void setup() {",
-                "Serial.begin(" + targetConfig.platformOptions.baudRate + ");",
-                "lf_reactor_c_main(0, NULL);",
-            "}",
+                "\tSerial.begin(" + targetConfig.platformOptions.baudRate + ");",
+                "\tlf_register_print_function(&_lf_arduino_print_message_function, LOG_LEVEL);",
+                "\tlf_reactor_c_main(0, NULL);",
+            "}\n",
             "void loop() {}"
             );
         } else if (targetConfig.platformOptions.platform == Platform.ZEPHYR) {

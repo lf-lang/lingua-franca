@@ -63,9 +63,14 @@ jobs:
     uses: lf-lang/lingua-franca/.github/workflows/c-tests.yml@master
     needs: cancel
   
+  # Run the C Arduino integration tests.
+  c-arduino-tests:
+    uses: lf-lang/lingua-franca/.github/workflows/c-arduino-tests.yml@master
+    needs: cancel
+  
   # Run the C Zephyr integration tests.
   c-zephyr-tests:
-    uses: lf-lang/lingua-franca/.github/workflows/c-zephyr-tests.yml@c-zephyr-support
+    uses: lf-lang/lingua-franca/.github/workflows/c-zephyr-tests.yml@master
     needs: cancel
 
   # Run the CCpp integration tests.
@@ -94,7 +99,7 @@ jobs:
 
   # Run the Python integration tests.
   py-tests:
-    uses: lf-lang/lingua-franca/.github/workflows/py-tests.yml@master
+    uses: lf-lang/lingua-franca/.github/workflows/py-tests.yml@ci-no-rti-image
     needs: cancel
 
   # Run the Rust integration tests.

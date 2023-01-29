@@ -9,7 +9,7 @@ preamble {=
 reactor A {
     input o
 
-    reaction(o) {= request_stop() =}
+    reaction(o) {= lf_request_stop() =}
 }
 
 reactor B {
