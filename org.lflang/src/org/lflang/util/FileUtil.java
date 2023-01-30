@@ -440,9 +440,12 @@ public class FileUtil {
     }
 
     /**
-     * Return true if the given path points to a C file, false otherwise.
+     * Return true if the given path does not have the substring "test" in it and points to a
+     * .c or .h file that, false otherwise.
      */
-    public static boolean isCFile(Path path) {
+    private static boolean isReactorCLibFile(Path path) {
+        if (path.toString().contains("test"))
+            return false;
         String fileName = path.getFileName().toString();
         return fileName.endsWith(".c") || fileName.endsWith(".h");
     }
@@ -457,7 +460,7 @@ public class FileUtil {
         System.out.println("Relativizing all includes in " + dir.toString());
         List<Path> allPaths = Files.walk(dir)
             .filter(Files::isRegularFile)
-            .filter(FileUtil::isCFile)
+            .filter(FileUtil::isReactorCLibFile)
             .sorted(Comparator.reverseOrder())
             .collect(Collectors.toList());
         Map<String, Path> fileStringToFilePath = new HashMap<String, Path>();
