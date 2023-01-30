@@ -46,7 +46,7 @@ reactor Receiver(take_a_break_after(10), break_interval(550 msec)) {
     reaction(startup) {= self.base_logical_time = lf.time.logical() =}
 
     reaction(in_) {=
-        current_tag = lf_tag()
+        current_tag = lf.tag()
         print("At tag ({}, {}) received {}".format(
                current_tag.time - self.base_logical_time,
                current_tag.microstep,

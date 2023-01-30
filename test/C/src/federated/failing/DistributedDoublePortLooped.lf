@@ -1,9 +1,7 @@
 /**
- * Test the case for when two upstream federates
- * send messages to a downstream federate on two
- * different ports. One message should carry a
- * microstep delay relative to the other
- * message.
+ * Test the case for when two upstream federates send messages to a downstream
+ * federate on two different ports. One message should carry a microstep delay
+ * relative to the other message.
  *
  * @author Soroush Bateni
  */
@@ -11,58 +9,51 @@ target C {
     timeout: 900 msec,
     logging: LOG,
     coordination: centralized
-};
+}
 
 reactor Foo {
-    timer t(0, 700 usec);
-    output out:int;
-    reaction(t) -> out {=
-        lf_set(out, 0);
-    =}
+    timer t(0, 700 usec)
+    output out: int
+
+    reaction(t) -> out {= lf_set(out, 0); =}
 }
 
 reactor Count {
-    state count:int(1);
-    input in1:int;
-    input in2:int;
-    input in3:int
-    output out1:int;
-    output out2:int;
-    timer t(0, 1 msec);
-    reaction(in1) -> out1 {=
+    state count: int(1)
+    input in1: int
+    input in2: int
+    input in3: int
+    output out1: int
+    output out2: int
+    timer t(0, 1 msec)
 
-    =}
-    // in2 is not connected to anything.
-    // Consequently, the control reaction
-    // for in2 waits forever.
-    reaction(in2,t) -> out2 {=
-        lf_set(out2, self->count++);
-    =}
-    reaction(in3) {=
+    reaction(in1) -> out1 {=  =}
 
-    =}
+    // in2 is not connected to anything. Consequently, the control reaction for
+    // in2 waits forever.
+    reaction(in2, t) -> out2 {= lf_set(out2, self->count++); =}
+
+    reaction(in3) {=  =}
 }
 
 reactor CountMicrostep {
-    state count:int(1);
-    output out:int;
-    logical action act:int;
-    timer t(0, 1 msec);
-    reaction(t) -> act {=
-        lf_schedule_int(act, 0, self->count++);
-    =}
+    state count: int(1)
+    output out: int
+    logical action act: int
+    timer t(0, 1 msec)
 
-    reaction(act) -> out {=
-        lf_set(out, act->value);
-    =}
+    reaction(t) -> act {= lf_schedule_int(act, 0, self->count++); =}
+
+    reaction(act) -> out {= lf_set(out, act->value); =}
 }
 
 reactor Print {
-    input in1:int;
-    input in2:int;
-    input in3:int;
-    output out:int;
-    timer t(0,2 msec);
+    input in1: int
+    input in2: int
+    input in3: int
+    output out: int
+    timer t(0, 2 msec)
+
     reaction(in1, in2, in3, t) -> out {=
         interval_t elapsed_time = lf_time_logical_elapsed();
         lf_print("At tag (%lld, %u), received in = %d and in2 = %d.", elapsed_time, lf_tag().microstep, in1->value, in2->value);
@@ -74,13 +65,13 @@ reactor Print {
 }
 
 federated reactor {
-    f = new Foo();
-    c = new Count();
-    f.out -> c.in1;
-    cm = new CountMicrostep();
-    p = new Print();
+    f = new Foo()
+    c = new Count()
+    f.out -> c.in1
+    cm = new CountMicrostep()
+    p = new Print()
     c.out1 -> p.in2
-    c.out2 -> p.in3;    // Indicating a 'logical' connection.
-    cm.out -> p.in1;
-    p.out -> c.in3;
+    c.out2 -> p.in3  // Indicating a 'logical' connection.
+    cm.out -> p.in1
+    p.out -> c.in3
 }

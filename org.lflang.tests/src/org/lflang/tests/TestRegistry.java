@@ -6,7 +6,6 @@ import static java.nio.file.FileVisitResult.SKIP_SUBTREE;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.FileVisitResult;
-import java.nio.file.FileVisitor;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -20,10 +19,8 @@ import java.util.Set;
 import java.util.Stack;
 import java.util.TreeSet;
 
-import org.eclipse.emf.common.util.EList;
 import org.eclipse.emf.common.util.URI;
 import org.eclipse.emf.ecore.resource.Resource;
-import org.eclipse.emf.ecore.resource.Resource.Diagnostic;
 import org.eclipse.emf.ecore.resource.ResourceSet;
 import org.eclipse.xtext.xbase.lib.IteratorExtensions;
 
@@ -31,7 +28,6 @@ import org.lflang.LFResourceProvider;
 import org.lflang.LFStandaloneSetup;
 import org.lflang.Target;
 import org.lflang.lf.Reactor;
-import org.lflang.tests.LFTest.Result;
 import org.lflang.tests.TestBase.TestLevel;
 
 /**
@@ -78,7 +74,7 @@ public class TestRegistry {
      * test file that has a directory in its path that matches an entry in this
      * array will not be discovered.
      */
-    public static final String[] IGNORED_DIRECTORIES = {"failing", "knownfailed", "failed"};
+    public static final String[] IGNORED_DIRECTORIES = {"failing", "knownfailed", "failed", "fed-gen"};
     
     /**
      * Path to the root of the repository.
@@ -154,7 +150,7 @@ public class TestRegistry {
         TARGET(false);
 
         /**
-         * Whether or not we should compare coverage against other targets.
+         * Whether we should compare coverage against other targets.
          */
         public final boolean isCommon;
         public final String path;
@@ -293,17 +289,16 @@ public class TestRegistry {
             int missing = all.size() - own.size();
             if (missing > 0) {
                 all.stream().filter(test -> !own.contains(test))
-                        .forEach(test -> s.append("Missing: ").append(test.toString()).append("\n"));
+                        .forEach(test -> s.append("Missing: ").append(test).append("\n"));
             }
         } else {
             s.append("\n").append(TestBase.THIN_LINE);
             s.append("Covered: ").append(own.size()).append("/").append(own.size()).append("\n");
             s.append(TestBase.THIN_LINE);
         }
-        
         return s.toString();
-    }    
-    
+    }
+
     /**
      * FileVisitor implementation that maintains a stack to map found tests to
      * the appropriate category and excludes directories that are listed as 

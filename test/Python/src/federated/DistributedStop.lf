@@ -1,5 +1,6 @@
 /**
- * Test for request_stop() in federated execution with centralized coordination.
+ * Test for lf_request_stop() in federated execution with centralized
+ * coordination.
  *
  * @author Soroush Bateni
  */
@@ -14,48 +15,49 @@ reactor Sender {
     state reaction_invoked_correctly(False)
 
     reaction(t, act) -> out, act {=
+        tag = lf.tag()
         print("Sending 42 at ({}, {}).".format(
                      lf.time.logical_elapsed(),
-                     lf_tag().microstep))
+                     lf.tag().microstep))
         out.set(42)
-        if lf_tag().microstep == 0:
+        if lf.tag().microstep == 0:
             # Instead of having a separate reaction
             # for 'act' like Stop.lf, we trigger the
-            # same reaction to test request_stop() being
+            # same reaction to test lf_request_stop() being
             # called multiple times
             act.schedule(0)
-        if lf.time.logical_elapsed() == USEC(1):
-            # Call request_stop() both at (1 usec, 0) and
+        if tag.time == USEC(1):
+            # Call lf_request_stop() both at (1 usec, 0) and
             # (1 usec, 1)
             print("Requesting stop at ({}, {}).".format(
                      lf.time.logical_elapsed(),
-                     lf_tag().microstep))
-            request_stop()
+                     lf.tag().microstep))
+            lf_request_stop()
 
         _1usec1 = Tag(time=USEC(1) + get_start_time(), microstep=1)
-        if lf.tag_compare(lf_tag(), _1usec1) == 0:
+        if lf.tag_compare(lf.tag(), _1usec1) == 0:
             # The reaction was invoked at (1 usec, 1) as expected
             self.reaction_invoked_correctly = True
-        elif lf.tag_compare(lf_tag(), _1usec1) > 0:
+        elif lf.tag_compare(lf.tag(), _1usec1) > 0:
             # The reaction should not have been invoked at tags larger than (1 usec, 1)
             sys.stderr.write("ERROR: Invoked reaction(t, act) at tag bigger than shutdown.\n")
             sys.exit(1)
     =}
 
     reaction(shutdown) {=
-        if lf.time.logical_elapsed() != USEC(1) or lf_tag().microstep != 1:
+        if lf.time.logical_elapsed() != USEC(1) or lf.tag().microstep != 1:
             sys.stderr.write("ERROR: Sender failed to stop the federation in time. Stopping at ({}, {}).\n".format(
                      lf.time.logical_elapsed(),
-                     lf_tag().microstep))
+                     lf.tag().microstep))
             sys.exit(1)
         elif not self.reaction_invoked_correctly:
             sys.stderr.write("ERROR: Sender reaction(t, act) was not invoked at (1 usec, 1). Stopping at ({}, {}).\n".format(
                      lf.time.logical_elapsed(),
-                     lf_tag().microstep))
+                     lf.tag().microstep))
             sys.exit(1)
         print("SUCCESS: Successfully stopped the federation at ({}, {}).".format(
                      lf.time.logical_elapsed(),
-                     lf_tag().microstep))
+                     lf.tag().microstep))
     =}
 }
 
@@ -66,21 +68,22 @@ reactor Receiver(
     state reaction_invoked_correctly(False)
 
     reaction(in_) {=
+        tag = lf.tag()
         print("Received {} at ({}, {}).".format(
                      in_.value,
                      lf.time.logical_elapsed(),
-                     lf_tag().microstep))
+                     lf.tag().microstep))
         if lf.time.logical_elapsed() == USEC(1):
             print("Requesting stop at ({}, {}).".format(
                      lf.time.logical_elapsed(),
-                     lf_tag().microstep))
-            request_stop()
+                     lf.tag().microstep))
+            lf_request_stop()
             # The receiver should receive a message at tag
             # (1 usec, 1) and trigger this reaction
             self.reaction_invoked_correctly = True
 
         _1usec1 = Tag(time=USEC(1) + get_start_time(), microstep=1)
-        if lf.tag_compare(lf_tag(), _1usec1) > 0:
+        if lf.tag_compare(lf.tag(), _1usec1) > 0:
             self.reaction_invoked_correctly = False
     =}
 
@@ -88,19 +91,19 @@ reactor Receiver(
         # Sender should have requested stop earlier than the receiver.
         # Therefore, the shutdown events must occur at (1000, 0) on the
         # receiver.
-        if lf.time.logical_elapsed() != USEC(1) or lf_tag().microstep != 1:
+        if lf.time.logical_elapsed() != USEC(1) or lf.tag().microstep != 1:
             sys.stderr.write("Error: Receiver failed to stop the federation at the right time. Stopping at ({}, {}).\n".format(
                      lf.time.logical_elapsed(),
-                     lf_tag().microstep))
+                     lf.tag().microstep))
             sys.exit(1)
         elif not self.reaction_invoked_correctly:
             sys.stderr.write("Error: Receiver reaction(in) was not invoked the correct number of times. Stopping at ({}, {}).\n".format(
                      lf.time.logical_elapsed(),
-                     lf_tag().microstep))
+                     lf.tag().microstep))
             sys.exit(1)
         print("SUCCESS: Successfully stopped the federation at ({}, {}).".format(
                      lf.time.logical_elapsed(),
-                     lf_tag().microstep))
+                     lf.tag().microstep))
     =}
 }
 

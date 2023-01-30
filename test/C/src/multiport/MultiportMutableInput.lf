@@ -18,10 +18,9 @@ reactor Print(scale: int(1)) {  // The scale parameter is just for testing.
     reaction(in) {=
         int expected = 42;
         for(int j = 0; j < 2; j++) {
-            printf("Received on channel %d: %d", j, in[j]->value);
+            lf_print("Received on channel %d: %d", j, in[j]->value);
             if (in[j]->value != expected) {
-                printf("ERROR: Expected %d!\n", expected);
-                exit(1);
+                lf_print_error_and_exit("ERROR: Expected %d!\n", expected);
             }
             expected *=2;
         }
