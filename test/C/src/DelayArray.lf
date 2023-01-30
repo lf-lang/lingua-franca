@@ -1,15 +1,15 @@
-// This tests delaying an array type.
-target C
+// This tests delaying an array type. The array length has to be agreed upon by
+// all reactors.
+target C {
+    build-type: RelWithDebInfo
+}
 
 reactor DelayPointer(delay: time(100 msec)) {
-    mutable input in: int[]
+    input in: int[]
     output out: int[]
     logical action a: int[]
 
-    reaction(in) -> a {=
-        // mutable input guarantees *in will not be freed.
-        lf_schedule_token(a, self->delay, in->token);
-    =}
+    reaction(in) -> a {= lf_schedule_token(a, self->delay, in->token); =}
 
     reaction(a) -> out {= lf_set_token(out, a->token); =}
 }
@@ -19,12 +19,14 @@ reactor Source {
 
     reaction(startup) -> out {=
         // Dynamically allocate an output array of length 3.
-        SET_NEW_ARRAY(out, 3);
-
-        // Above allocates the array, which then must be populated.
-        out->value[0] = 0;
-        out->value[1] = 1;
-        out->value[2] = 2;
+        // Note that the receiving reactors need to know that the length is 3.
+        // A better design is given at:
+        // https://www.lf-lang.org/docs/handbook/target-language-details?target=c#dynamically-allocated-data
+        int* array =  (int*)malloc(3 * sizeof(int));
+        for (size_t i = 0; i < 3; i++) {
+            array[i] = i;
+        }
+        lf_set(out, array);
     =}
 }
 
@@ -35,7 +37,7 @@ reactor Print(scale: int(1)) {  // The scale parameter is just for testing.
         int count = 0;       // For testing.
         bool failed = false; // For testing.
         printf("Received: [");
-        for (int i = 0; i < in->length; i++) {
+        for (int i = 0; i < 3; i++) {
             if (i > 0) printf(", ");
             printf("%d", in->value[i]);
             // For testing, check whether values match expectation.

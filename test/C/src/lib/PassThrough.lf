@@ -5,5 +5,5 @@ reactor PassThrough {
     input in: int
     output out: int
 
-    reaction(in) -> out {= SET(out, in->value); =}
+    reaction(in) -> out {= lf_set(out, in->value); =}
 }
