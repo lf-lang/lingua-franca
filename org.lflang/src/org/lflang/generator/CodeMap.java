@@ -241,6 +241,10 @@ public class CodeMap {
         return generatedCode;
     }
 
+    public Map<Path, NavigableMap<Range, Range>> getCodeMap() {
+        return map;
+    }
+
     /**
      * Returns the set of all paths to Lingua Franca files
      * that are known to contain code that corresponds to

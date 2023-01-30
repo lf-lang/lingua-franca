@@ -19,6 +19,7 @@ dependencies {
         exclude group: 'org.eclipse.platform', module: 'org.eclipse.swt.*'
         exclude group: 'org.eclipse.platform', module: 'org.eclipse.swt'
     }
+    implementation 'com.fasterxml.jackson.core:jackson-databind:2.8.9'
 }
 
 apply plugin: 'application'

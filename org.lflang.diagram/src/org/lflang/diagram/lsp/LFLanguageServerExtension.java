@@ -1,6 +1,7 @@
 package org.lflang.diagram.lsp;
 
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 import java.util.ArrayList;
@@ -36,6 +37,9 @@ class LFLanguageServerExtension implements ILanguageServerExtension {
 
     /** The access point for reading documents, communicating with the language client, etc. */
     private LanguageClient client;
+    private static GeneratorResult buildResult = null;
+    private static int buildToken = 0;
+    private static Path buildPath = null;
 
     @Override
     public void initialize(ILanguageServerAccess access) {
@@ -77,6 +81,7 @@ class LFLanguageServerExtension implements ILanguageServerExtension {
      */
     @JsonNotification("generator/partialBuild")
     public void partialBuild(String uri) {
+        System.out.println("building on " + uri);
         if (client == null) return;
         buildWithProgress(client, uri, false);
     }
@@ -99,6 +104,18 @@ class LFLanguageServerExtension implements ILanguageServerExtension {
             ret.addAll(cmd.command());
             return ret.toArray(new String[0]);
         });
+    }
+
+    public static GeneratorResult getGeneratorResult() {
+        return buildResult;
+    }
+
+    public static int getBuildToken() {
+        return buildToken;
+    }
+
+    public static Path getBuildPath() {
+        return buildPath;
     }
 
     /**
@@ -125,6 +142,11 @@ class LFLanguageServerExtension implements ILanguageServerExtension {
         } finally {
             progress.end(result == null ? "An internal error occurred." : result.getUserMessage());
         }
+        
+        // buildResult = result;
+        // buildToken += 1;
+        // buildPath = Paths.get(uri.substring(5)); // remove "file:"
+        CppLanguageServer.addBuild(Paths.get(uri.substring(5)), result);
         return result;
     }
 }
