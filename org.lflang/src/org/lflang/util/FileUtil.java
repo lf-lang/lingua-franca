@@ -440,6 +440,13 @@ public class FileUtil {
     }
 
     /**
+     * Return true if the given file name belongs to a C file, false otherwise.
+     */
+    public static boolean isCFile(String fileName) {
+        return fileName.endsWith(".c") || fileName.endsWith(".h");
+    }
+
+    /**
      * Convert all includes recursively inside files within a specified folder to relative links
      *
      * @param dir The folder to search for includes to change. 
@@ -455,13 +462,18 @@ public class FileUtil {
         for (Path path : allPaths) {
             String fileName = path.getFileName().toString();
             if (path.getFileName().toString().contains("CMakeLists.txt")) continue;
-            if (fileStringToFilePath.put(fileName, path) != null) {
-                throw new IOException("Directory has different files with the same name. Cannot Relativize.");
+            if (isCFile(fileName)) {
+                if (fileStringToFilePath.put(fileName, path) != null) {
+                    throw new IOException("Directory has different files with the same name. Cannot Relativize.");
+                }
             }
         }
         Pattern regexExpression = Pattern.compile("#include\s+[\"]([^\"]+)*[\"]");
         for (Path path : allPaths) {
             String fileName = path.getFileName().toString();
+            if (isCFile(fileName)) {
+                continue;
+            }
             String fileContents = Files.readString(path);
             Matcher matcher = regexExpression.matcher(fileContents);
             int lastIndex = 0;
@@ -477,7 +489,6 @@ public class FileUtil {
             writeToFile(output.toString(), path);
         }
     }
-
 
     /**
      * Recursively delete a directory if it exists.
