@@ -440,9 +440,10 @@ public class FileUtil {
     }
 
     /**
-     * Return true if the given file name belongs to a C file, false otherwise.
+     * Return true if the given path points to a C file, false otherwise.
      */
-    public static boolean isCFile(String fileName) {
+    public static boolean isCFile(Path path) {
+        String fileName = path.getFileName().toString();
         return fileName.endsWith(".c") || fileName.endsWith(".h");
     }
 
@@ -456,24 +457,20 @@ public class FileUtil {
         System.out.println("Relativizing all includes in " + dir.toString());
         List<Path> allPaths = Files.walk(dir)
             .filter(Files::isRegularFile)
+            .filter(FileUtil::isCFile)
             .sorted(Comparator.reverseOrder())
             .collect(Collectors.toList());
         Map<String, Path> fileStringToFilePath = new HashMap<String, Path>();
         for (Path path : allPaths) {
             String fileName = path.getFileName().toString();
             if (path.getFileName().toString().contains("CMakeLists.txt")) continue;
-            if (isCFile(fileName)) {
-                if (fileStringToFilePath.put(fileName, path) != null) {
-                    throw new IOException("Directory has different files with the same name. Cannot Relativize.");
-                }
+            if (fileStringToFilePath.put(fileName, path) != null) {
+                throw new IOException("Directory has different files with the same name. Cannot Relativize.");
             }
         }
         Pattern regexExpression = Pattern.compile("#include\s+[\"]([^\"]+)*[\"]");
         for (Path path : allPaths) {
             String fileName = path.getFileName().toString();
-            if (isCFile(fileName)) {
-                continue;
-            }
             String fileContents = Files.readString(path);
             Matcher matcher = regexExpression.matcher(fileContents);
             int lastIndex = 0;
