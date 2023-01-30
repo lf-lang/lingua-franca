@@ -8,7 +8,7 @@
 target C {
     platform: {
         name: "arduino",
-        board: "arduino:avr:leonardo"
+        board: "arduino:avr:mega"
     }
 }
 
