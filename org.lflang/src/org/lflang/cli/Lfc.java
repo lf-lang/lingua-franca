@@ -141,7 +141,7 @@ public class Lfc extends CliBase {
     @Option(
         names = {"-w", "--workers"},
         description = "Specify the default number of worker threads.")
-    private String workers;
+    private int workers;
 
     /**
      * Main function of the stand-alone compiler.

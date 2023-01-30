@@ -182,14 +182,14 @@ public abstract class CliBase implements Runnable {
             // generator as a property.
             if (passOnParams.contains(optionName)) {
                 String value = "";
-                // Boolean option.
-                if (option.getValue() instanceof Boolean) {
+                // Boolean or Integer option.
+                if (option.getValue() instanceof Boolean ||
+                        option.getValue() instanceof Integer) {
                     value = String.valueOf(option.getValue());
                 // String option.
                 } else if (option.getValue() instanceof String) {
                     value = option.getValue();
                 }
-                System.out.println("Property " + optionName + " set.");
                 props.setProperty(optionName, value);
             }
         }
