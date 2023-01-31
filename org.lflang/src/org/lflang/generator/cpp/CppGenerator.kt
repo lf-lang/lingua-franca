@@ -45,15 +45,16 @@ import java.nio.file.Path
 
 @Suppress("unused")
 class CppGenerator(
-    val cppFileConfig: CppFileConfig,
-    errorReporter: ErrorReporter,
+    val context: LFGeneratorContext,
     private val scopeProvider: LFGlobalScopeProvider
 ) :
-    GeneratorBase(cppFileConfig, errorReporter) {
+    GeneratorBase(context) {
 
     // keep a list of all source files we generate
     val cppSources = mutableListOf<Path>()
     val codeMaps = mutableMapOf<Path, CodeMap>()
+
+    val fileConfig: CppFileConfig = context.fileConfig as CppFileConfig
 
     companion object {
         /** Path to the Cpp lib directory (relative to class path)  */
@@ -69,7 +70,7 @@ class CppGenerator(
 
         if (!canGenerate(errorsOccurred(), mainDef, errorReporter, context)) return
 
-        // create a platform specifi generator
+        // create a platform-specific generator
         val platformGenerator: CppPlatformGenerator =
             if (targetConfig.ros2) CppRos2Generator(this) else CppStandaloneGenerator(this)
 
@@ -81,15 +82,15 @@ class CppGenerator(
 
         if (targetConfig.noCompile || errorsOccurred()) {
             println("Exiting before invoking target compiler.")
-            context.finish(GeneratorResult.GENERATED_NO_EXECUTABLE.apply(codeMaps))
+            context.finish(GeneratorResult.GENERATED_NO_EXECUTABLE.apply(context, codeMaps))
         } else if (context.mode == Mode.LSP_MEDIUM) {
             context.reportProgress(
                 "Code generation complete. Validating generated code...", IntegratedBuilder.GENERATED_PERCENT_PROGRESS
             )
 
             if (platformGenerator.doCompile(context)) {
-                CppValidator(cppFileConfig, errorReporter, codeMaps).doValidate(context)
-                context.finish(GeneratorResult.GENERATED_NO_EXECUTABLE.apply(codeMaps))
+                CppValidator(fileConfig, errorReporter, codeMaps).doValidate(context)
+                context.finish(GeneratorResult.GENERATED_NO_EXECUTABLE.apply(context, codeMaps))
             } else {
                 context.unsuccessfulFinish()
             }
@@ -98,7 +99,7 @@ class CppGenerator(
                 "Code generation complete. Compiling...", IntegratedBuilder.GENERATED_PERCENT_PROGRESS
             )
             if (platformGenerator.doCompile(context)) {
-                context.finish(GeneratorResult.Status.COMPILED, fileConfig.name, fileConfig, codeMaps)
+                context.finish(GeneratorResult.Status.COMPILED, codeMaps)
             } else {
                 context.unsuccessfulFinish()
             }
@@ -149,9 +150,9 @@ class CppGenerator(
 
         // generate header and source files for all reactors
         for (r in reactors) {
-            val generator = CppReactorGenerator(r, cppFileConfig, errorReporter)
-            val headerFile = cppFileConfig.getReactorHeaderPath(r)
-            val sourceFile = if (r.isGeneric) cppFileConfig.getReactorHeaderImplPath(r) else cppFileConfig.getReactorSourcePath(r)
+            val generator = CppReactorGenerator(r, fileConfig, errorReporter)
+            val headerFile = fileConfig.getReactorHeaderPath(r)
+            val sourceFile = if (r.isGeneric) fileConfig.getReactorHeaderImplPath(r) else fileConfig.getReactorSourcePath(r)
             val reactorCodeMap = CodeMap.fromGeneratedCode(generator.generateSource())
             if (!r.isGeneric)
                 cppSources.add(sourceFile)
@@ -165,9 +166,9 @@ class CppGenerator(
 
         // generate file level preambles for all resources
         for (r in resources) {
-            val generator = CppPreambleGenerator(r.eResource, cppFileConfig, scopeProvider)
-            val sourceFile = cppFileConfig.getPreambleSourcePath(r.eResource)
-            val headerFile = cppFileConfig.getPreambleHeaderPath(r.eResource)
+            val generator = CppPreambleGenerator(r.eResource, fileConfig, scopeProvider)
+            val sourceFile = fileConfig.getPreambleSourcePath(r.eResource)
+            val headerFile = fileConfig.getPreambleHeaderPath(r.eResource)
             val preambleCodeMap = CodeMap.fromGeneratedCode(generator.generateSource())
             cppSources.add(sourceFile)
             codeMaps[srcGenPath.resolve(sourceFile)] = preambleCodeMap

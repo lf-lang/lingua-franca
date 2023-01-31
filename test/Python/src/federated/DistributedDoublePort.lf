@@ -33,8 +33,8 @@ reactor Print {
     input in2
 
     reaction(in_, in2) {=
-        elapsed_time = lf.time.logical_elapsed()
-        print("At tag ({}, {}), received in_ = {} and in2 = {}.".format(elapsed_time, lf_tag().microstep, in_.value, in2.value))
+        current_tag = lf.tag()
+        print("At tag ({}, {}), received in_ = {} and in2 = {}.".format(current_tag.time, current_tag.microstep, in_.value, in2.value))
         if in_.is_present and in2.is_present:
             self.sys.stderr.write("ERROR: invalid logical simultaneity.")
             self.sys.exit(1)

@@ -1,0 +1,11 @@
+target C {
+    threading: false,
+    platform: {
+        name: Zephyr,
+        board: qemu_cortex_m3
+    }
+}
+
+main reactor {
+    reaction(startup) {= printf("Hello World!\n"); =}
+}

@@ -26,7 +26,7 @@ reactor Platform(start(0), expected_start(0), stp_offset_param(0)) {
         self.expected += 1
     =} STP(stp_offset_param) {=
         print("Received {} late.".format(in_.value))
-        current_tag = lf_tag()
+        current_tag = lf.tag()
         self.expected += 1
         self.sys.stderr.write("STP offset was violated by ({}, {}).".format(current_tag.time - in_.intended_tag.time, current_tag.microstep - in_.intended_tag.microstep))
     =}

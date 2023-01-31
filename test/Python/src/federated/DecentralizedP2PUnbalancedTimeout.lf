@@ -36,7 +36,7 @@ reactor Destination {
 
     reaction(x) {=
         print("Received {}".format(x.value))
-        current_tag = lf_tag()
+        current_tag = lf.tag()
         if x.value != self.s:
             error_msg = "At tag ({}, {}) expected {} and got {}.".format(current_tag.time - self.startup_logical_time, current_tag.microstep, self.s, x.value)
             self.sys.stderr.write(error_msg)

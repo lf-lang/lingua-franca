@@ -1,36 +1,46 @@
 // Source produces a dynamically allocated array, which it passes to Print.
-// Reference counting ensures that the array is freed.
-target C
+// Reference counting ensures that the array is freed. The array size here must
+// be known to all reactors.
+target C {
+    timeout: 1 sec,
+    fast: true
+}
 
-reactor Source {
+reactor Source(size: int(3)) {
     output out: int[]
+    state count: int(0)
+    timer t(0, 1 sec)
 
-    reaction(startup) -> out {=
+    reaction(t) -> out {=
         // Dynamically allocate an output array of length 3.
+        // Note that the receiving reactors need to know that the length is 3.
+        // A better design is given at:
+        // https://www.lf-lang.org/docs/handbook/target-language-details?target=c#dynamically-allocated-data
         SET_NEW_ARRAY(out, 3);
 
         // Above allocates the array, which then must be populated.
-        out->value[0] = 0;
-        out->value[1] = 1;
-        out->value[2] = 2;
+        out->value[0] = self->count++;
+        out->value[1] = self->count++;
+        out->value[2] = self->count++;
     =}
 }
 
-reactor Print(scale: int(1)) {  // The scale parameter is just for testing.
+// The scale parameter is just for testing.
+reactor Print(scale: int(1), size: int(3)) {
     input in: int[]
+    state count: int(0)
 
     reaction(in) {=
-        int count = 0;       // For testing.
         bool failed = false; // For testing.
         printf("Received: [");
-        for (int i = 0; i < in->length; i++) {
+        for (int i = 0; i < self->size; i++) {
             if (i > 0) printf(", ");
             printf("%d", in->value[i]);
             // For testing, check whether values match expectation.
-            if (in->value[i] != self->scale * count) {
+            if (in->value[i] != self->scale * self->count) {
                 failed = true;
             }
-            count++;         // For testing.
+            self->count++;         // For testing.
         }
         printf("]\n");
         if (failed) {
