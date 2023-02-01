@@ -29,11 +29,13 @@ class CppConnectionGenerator(private val reactor: Reactor) {
             else                     -> null
         }
 
-    private fun delayedConnectionName(ref: VarRef) =
-        when (ref.container) {
-            null -> "connection_" + ref.variable.name
-            else -> "connection_" + ref.container.name + "_" + ref.variable.name
-        }
+    companion object {
+        fun delayedConnectionName(ref: VarRef) =
+            when (ref.container) {
+                null -> "connection_" + ref.variable.name
+                else -> "connection_" + ref.container.name + "_" + ref.variable.name
+            }
+    }
 
     private fun generateDelayedConnectionDeclaration(connection: Connection): String  {
         if (connection.leftPorts.size != 1) {
@@ -44,7 +46,7 @@ class CppConnectionGenerator(private val reactor: Reactor) {
         val dataType = leftPort.inferredType.cppType
         val name = delayedConnectionName(leftRef)
 
-        return "reactor::Connection<$dataType> $name;"
+        return "reactor::DelayedConnection<$dataType> $name;"
     }
 
     private fun generateDelayedConnectionInitilizer(connection: Connection): String  {
@@ -55,10 +57,9 @@ class CppConnectionGenerator(private val reactor: Reactor) {
             TODO("After delays on multiports are not yet supported")
         }
         val leftRef = connection.leftPorts.first()
-        val rightRef = connection.leftPorts.first()
         val delay = connection.delay.toCppTime()
         val name = delayedConnectionName(leftRef)
 
-        return """, $name{"$name}", this, $delay, &(${leftRef.name}), &(${rightRef.name})}"""
+        return """, $name{"$name}", this, $delay}"""
     }
 }

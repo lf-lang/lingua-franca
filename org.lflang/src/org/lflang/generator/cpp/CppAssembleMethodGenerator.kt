@@ -143,19 +143,27 @@ class CppAssembleMethodGenerator(private val reactor: Reactor) {
         }
     }
 
-    private fun declareConnection(c: Connection, idx: Int): String {
-        return if (c.hasMultipleConnections) {
+    private fun declareConnection(c: Connection, idx: Int): String =
+        if (c.hasMultipleConnections) {
             declareMultiportConnection(c, idx)
         } else {
             val leftPort = c.leftPorts[0]
             val rightPort = c.rightPorts[0]
+            val connectionName = CppConnectionGenerator.delayedConnectionName(leftPort)
 
-            """
+            if (c.delay == null)
+                """
                     // connection $idx
                     ${leftPort.name}.bind_to(&${rightPort.name});
                 """.trimIndent()
+            else
+                """
+                    // connection $idx
+                    $connectionName.bind_upstream_port(&${leftPort.name});
+                    $connectionName.bind_downstream_port(&${rightPort.name});
+                """.trimIndent()
+
         }
-    }
 
     private val VarRef.isMultiport get() = (variable as? Port)?.isMultiport == true
     private val VarRef.isInBank get() = container?.isBank == true
