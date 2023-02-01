@@ -139,7 +139,7 @@ TargetDecl:
 Initializer:
       parens?='(' (exprs+=Expression (','  exprs+=Expression)* (trailingComma?=',')?)? ')'
     | braces?='{' (exprs+=Expression (','  exprs+=Expression)* (trailingComma?=',')?)? '}'
-//    | assign?='=' exprs+=Expression // todo later
+    | assign?='=' exprs+=Expression
 ;
 
 
@@ -285,14 +285,15 @@ VarRefOrModeTransition returns VarRef:
 
 Assignment:
     lhs=[Parameter]
-    (equals='=')? rhs=AssignmentInitializer
+    rhs=AssignmentInitializer
 ;
 
-// TODO Only allow = based parameter assignment
 AssignmentInitializer returns Initializer:
-      exprs+=Expression
-    | parens?='(' (exprs+=Expression (','  exprs+=Expression)* (trailingComma?=',')?)? ')'
-    | braces?='{' (exprs+=Expression (','  exprs+=Expression)* (trailingComma?=',')?)? '}'
+      assign?='=' exprs+=Expression
+    // these syntaxes are legacy and now deprecated
+    // todo remove in future version.
+    | '='? parens?='(' (exprs+=Expression (','  exprs+=Expression)* (trailingComma?=',')?)? ')'
+    | '='? braces?='{' (exprs+=Expression (','  exprs+=Expression)* (trailingComma?=',')?)? '}'
 ;
 
 
