@@ -1,5 +1,6 @@
 package org.lflang.generator.cpp
 
+import org.lflang.generator.cpp.CppConnectionGenerator.Companion.name
 import org.lflang.inferredType
 import org.lflang.joinLn
 import org.lflang.joinWithLn
@@ -18,10 +19,10 @@ class CppConnectionGenerator(private val reactor: Reactor) {
         reactor.connections.mapNotNull { generateConstructorInitializer(it) }.joinLn()
 
     private fun generateDecleration(connection: Connection): String? =
-       when {
-           connection.delay != null -> generateDelayedConnectionDeclaration(connection)
-           else                     -> null
-       }
+        when {
+            connection.delay != null -> generateDelayedConnectionDeclaration(connection)
+            else                     -> null
+        }
 
     private fun generateConstructorInitializer(connection: Connection): String? =
         when {
@@ -30,35 +31,38 @@ class CppConnectionGenerator(private val reactor: Reactor) {
         }
 
     companion object {
-        fun delayedConnectionName(ref: VarRef) =
-            when (ref.container) {
-                null -> "connection_" + ref.variable.name
-                else -> "connection_" + ref.container.name + "_" + ref.variable.name
-            }
+        val Connection.name: String
+            get() =
+                "connection_" + leftPorts.joinToString("__") {
+                    if (it.container == null) {
+                        it.variable.name
+                    } else {
+                        it.container.name + "_" + it.variable.name
+                    }
+                }
     }
 
-    private fun generateDelayedConnectionDeclaration(connection: Connection): String  {
+
+    private fun generateDelayedConnectionDeclaration(connection: Connection): String {
         if (connection.leftPorts.size != 1) {
             TODO("After delays on multiports are not yet supported")
         }
         val leftRef = connection.leftPorts.first()
         val leftPort = leftRef.variable as Port
         val dataType = leftPort.inferredType.cppType
-        val name = delayedConnectionName(leftRef)
 
-        return "reactor::DelayedConnection<$dataType> $name;"
+        return "reactor::DelayedConnection<$dataType> ${connection.name};"
     }
 
-    private fun generateDelayedConnectionInitilizer(connection: Connection): String  {
+    private fun generateDelayedConnectionInitilizer(connection: Connection): String {
         if (connection.leftPorts.size != 1) {
             TODO("After delays on multiports are not yet supported")
         }
         if (connection.rightPorts.size != 1) {
             TODO("After delays on multiports are not yet supported")
         }
-        val leftRef = connection.leftPorts.first()
         val delay = connection.delay.toCppTime()
-        val name = delayedConnectionName(leftRef)
+        val name = connection.name
 
         return """, $name{"$name}", this, $delay}"""
     }

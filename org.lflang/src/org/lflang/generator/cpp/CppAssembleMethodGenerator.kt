@@ -149,19 +149,19 @@ class CppAssembleMethodGenerator(private val reactor: Reactor) {
         } else {
             val leftPort = c.leftPorts[0]
             val rightPort = c.rightPorts[0]
-            val connectionName = CppConnectionGenerator.delayedConnectionName(leftPort)
 
             if (c.delay == null)
                 """
                     // connection $idx
                     ${leftPort.name}.bind_to(&${rightPort.name});
                 """.trimIndent()
-            else
+            else with(CppConnectionGenerator) {
                 """
                     // connection $idx
-                    $connectionName.bind_upstream_port(&${leftPort.name});
-                    $connectionName.bind_downstream_port(&${rightPort.name});
+                    ${c.name}.bind_upstream_port(&${leftPort.name});
+                    ${c.name}.bind_downstream_port(&${rightPort.name});
                 """.trimIndent()
+            }
 
         }
 
