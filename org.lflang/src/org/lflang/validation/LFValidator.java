@@ -172,6 +172,10 @@ public class LFValidator extends BaseLFValidator {
         if (init.isBraces() && target != Target.CPP) {
             error("Brace initializers are only supported for the C++ target", Literals.INITIALIZER__BRACES);
         }
+        if (init.isParens() && target.mandatesEqualsInitializers()) {
+            warning("This syntax is deprecated in the " + target
+                + " target, use an equal sign instead of parentheses for assignment (run the formatter to fix this automatically).", Literals.INITIALIZER__PARENS);
+        }
     }
 
     @Check(CheckType.FAST)
