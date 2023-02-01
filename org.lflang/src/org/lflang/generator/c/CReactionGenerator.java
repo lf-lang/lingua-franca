@@ -34,6 +34,8 @@ import org.lflang.lf.TriggerRef;
 import org.lflang.lf.VarRef;
 import org.lflang.lf.Variable;
 import org.lflang.util.StringUtil;
+// FIXME: modif4watchdogs
+import org.lflang.lf.Watchdog;
 
 public class CReactionGenerator {
     protected static String DISABLE_REACTION_INITIALIZATION_MARKER
@@ -708,7 +710,7 @@ public class CReactionGenerator {
             errorReporter.reportError(watchdog, "Watchdog is required to have a type: " + watchdogName);
             return "";
         } else {
-            return "watchdog_t* "+watchdogName+" = &self->_lf_watchdog_"+watchdogName+";";
+            return "watchdog_t* "+watchdogName+" = &(self->_lf_watchdog_"+watchdogName+");";
         }
     }
 

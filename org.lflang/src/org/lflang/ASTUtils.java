@@ -90,6 +90,8 @@ import org.lflang.lf.Type;
 import org.lflang.lf.TypeParm;
 import org.lflang.lf.VarRef;
 import org.lflang.lf.Variable;
+//FIXME: modif4watchdogs
+import org.lflang.lf.Watchdog;
 import org.lflang.lf.WidthSpec;
 import org.lflang.lf.WidthTerm;
 import org.lflang.util.StringUtil;
@@ -131,7 +133,7 @@ public class ASTUtils {
             featurePackage.getReactor_Reactions(),      featurePackage.getMode_Reactions(),
             featurePackage.getReactor_StateVars(),      featurePackage.getMode_StateVars(),
             featurePackage.getReactor_Timers(),         featurePackage.getMode_Timers(),
-            featurePackage.getReactor_Watchdogs()
+            featurePackage.getReactor_Watchdogs(),      featurePackage.getMode_Watchdogs()
             );
 
 

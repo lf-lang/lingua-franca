@@ -80,6 +80,8 @@ import org.lflang.generator.ParameterInstance;
 import org.lflang.generator.PortInstance;
 import org.lflang.generator.ReactionInstance;
 import org.lflang.generator.ReactorInstance;
+// FIXME: modif4watchdogs
+import org.lflang.generator.WatchdogInstance;
 import org.lflang.generator.SubContext;
 import org.lflang.generator.TargetTypes;
 import org.lflang.generator.TimerInstance;
@@ -101,6 +103,8 @@ import org.lflang.lf.StateVar;
 import org.lflang.lf.VarRef;
 import org.lflang.lf.Variable;
 import org.lflang.util.FileUtil;
+// FIXME: modif4watchdogs
+import org.lflang.lf.Watchdog;
 
 import com.google.common.base.Objects;
 import com.google.common.collect.Iterables;
@@ -376,6 +380,8 @@ public class CGenerator extends GeneratorBase {
     private int resetReactionCount = 0;
     private int modalReactorCount = 0;
     private int modalStateResetCount = 0;
+    // FIXME: modif4watchdogs
+    private int watchdogCount = 0;
 
     // Indicate whether the generator is in Cpp mode or not
     private final boolean CCppMode;
@@ -748,7 +754,9 @@ public class CGenerator extends GeneratorBase {
                 "int _lf_tokens_with_ref_count_count = 0;",
                 "SUPPRESS_UNUSED_WARNING(_lf_tokens_with_ref_count_count);",
                 "int bank_index;",
-                "SUPPRESS_UNUSED_WARNING(bank_index);"
+                "SUPPRESS_UNUSED_WARNING(bank_index);",
+                "int _lf_watchdog_number_count = 0;",
+                "SUPPRESS_UNUSED_WARNING(_lf_watchdog_number_count);"
             ));
             // Add counters for modal initialization
             initializeTriggerObjects.pr(CModesGenerator.generateModalInitalizationCounters(hasModalReactors));
@@ -772,6 +780,10 @@ public class CGenerator extends GeneratorBase {
 
             // If there are reset reactions, create a table of triggers.
             code.pr(CReactionGenerator.generateBuiltinTriggersTable(resetReactionCount, "reset"));
+
+            //FIXME: modif4watchdogs
+            // If there are watchdogs, create a table of triggers.
+            code.pr(CWatchdogGenerator.generateBuiltinTriggersTable(watchdogCount, "watchdog"));
 
             // If there are modes, create a table of mode state to be checked for transitions.
             code.pr(CModesGenerator.generateModeStatesTable(
@@ -842,7 +854,8 @@ public class CGenerator extends GeneratorBase {
 
             //FIXME:modif4watchdogs
             // Generate function to initialize mutexes for all reactors with watchdogs.
-            code.pr(CReactionGenerator.generateLfInitializeWatchdogMutexes());
+            // needs to be implemented still
+            code.pr(CWatchdogGenerator.generateLfInitializeWatchdogMutexes(watchdogCount));
 
             // Generate a function that will either do nothing
             // (if there is only one federate or the coordination
@@ -1370,6 +1383,7 @@ public class CGenerator extends GeneratorBase {
         );
 
         // Generate the fields needed for each watchdog.
+        // FIXME: modif4watchdogs
         CWatchdogGenerator.generateWatchdogStruct(
             currentFederate,
             body,
@@ -1539,18 +1553,6 @@ public class CGenerator extends GeneratorBase {
         // Do nothing
     }
 
-    /**
-     * Generate watchdog functions definition for a reactor.
-     * @param decl The reactor
-     * @param federate The federate, or null if this is not 
-     * federated or not the main reactor and watchdogs should be
-     * unconditionally generated.
-     */
-    //FIXME: modif4watchdogs
-    public void generateWatchdogFunctions(ReactorDecl decl, FederateInstance federate) {
-        
-    }
-
     /** Generate reaction functions definition for a reactor.
      *  These functions have a single argument that is a void* pointing to
      *  a struct that contains parameters, state variables, inputs (triggering or not),
@@ -1676,6 +1678,25 @@ public class CGenerator extends GeneratorBase {
         }
     }
 
+    // FIXME: modif4watchdogs
+    private void recordWatchdogs(ReactorInstance instance) {
+        var foundOne = false;
+        var temp = new CodeBuilder();
+        var reactorRef = CUtil.reactorRef(instance);
+
+        for (WatchdogInstance watchdog : instance.watchdogs) {
+            if (currentFederate.contains(watchdog.getDefinition())) {
+                temp.pr("_lf_watchdogs[_lf_watchdog_number_count++] = &"+reactorRef+"->_lf_watchdog_"+watchdog.getName()+";");
+                temp.pr(reactorRef+"->_lf_watchdog_"+watchdog.getName()+".min_expiration = "+GeneratorBase.timeInTargetLanguage(watchdog.getTimeout())+";");
+                temp.pr(reactorRef+"->_lf_watchdog_"+watchdog.getName()+".thread_id;");
+                watchdogCount += currentFederate.numRuntimeInstances(reactor);
+                foundOne = true;
+            }
+        }
+        if (foundOne) {
+            initializeTriggerObjects.pr(temp.toString());
+        }
+    }
 
 
     /**
@@ -1968,6 +1989,8 @@ public class CGenerator extends GeneratorBase {
         initializeOutputMultiports(instance);
         initializeInputMultiports(instance);
         recordBuiltinTriggers(instance);
+        // FIXME: modif4watchdogs
+        recordWatchdogs(instance);
 
         // Next, initialize the "self" struct with state variables.
         // These values may be expressions that refer to the parameter values defined above.

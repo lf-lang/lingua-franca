@@ -4,7 +4,15 @@ import org.lflang.ASTUtils;
 import org.lflang.federated.FederateInstance;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.lf.ReactorDecl;
-import org.lflang.lf.CReactionGenerator;
+import org.lflang.lf.Reactor;
+import org.lflang.lf.VarRef;
+import org.lflang.lf.Variable;
+import org.lflang.lf.Mode;
+import org.lflang.lf.ModeTransition;
+import org.lflang.lf.Watchdog;
+import org.lflang.generator.GeneratorBase;
+import org.lflang.generator.c.CReactionGenerator;
+import java.util.List;
 
 /**
  * Generates necessary C code for watchdogs.
@@ -140,10 +148,12 @@ public class CWatchdogGenerator {
                 var watchdogFunctionName = generateWatchdogFunctionName(watchdog, decl);
                 // Set values of watchdog_t struct in the reactor's constructor
                 // WATCHDOG QUESTION 5: should I be defining these in the constructor of the reactor?
+                //FIXME: update parameters
                 constructorCode.pr(watchdog, String.join("\n",
-                    "self->_lf_watchdog_"+watchdogName+".self = self;",
+                    "self->_lf_watchdog_"+watchdogName+".base = &(self->base);",
                     "self->_lf_watchdog_"+watchdogName+".expiration = NEVER;",
-                    "self->_lf_watchdog_"+watchdogName+".min_expiration = "+min_expiration+";",
+                    "self->_lf_watchdog_"+watchdogName+".thread_active = false;",
+                    // "self->_lf_watchdog_"+watchdogName+".min_expiration = "+min_expiration+";",
                     "self->_lf_watchdog_"+watchdogName+".watchdog_function = "+watchdogFunctionName+";"
                 ));
 
@@ -165,25 +175,40 @@ public class CWatchdogGenerator {
     ) {
         var code = new CodeBuilder();
 
-        // WATCHDOG QUESTION: Do I need this header? What it for?
-        code.pr(
-            "#include " + StringUtil.addDoubleQuotes(
-                CCoreFilesUtils.getCTargetSetHeader()));
-
         code.pr(generateWatchdogFunction(watchdog, decl));
 
         return code.toString();
+    }
+
+    public static String generateBuiltinTriggersTable(int count, String name) {
+        return String.join("\n", List.of(
+            "// Array of pointers to "+name+" triggers.",
+            (count > 0 ?
+            "watchdog_t* _lf_"+name+"s["+count+"]" :
+            "int _lf_"+name+"_number = "+count+";"
+        )));
     }
 
      /**
      * Generate _lf_initialize_watchdog_mutexes function.
      */
     //FIXME: finish implementing
-    public static String generateLfInitializeWatchdogMutexes(List<Reactor> reactors) {
-        // need to find way to assign get watchdog from AST
-        // need to assign watchdog to correct reaction
+    public static String generateLfInitializeWatchdogMutexes(int watchdogCount) {
         var s = new StringBuilder();
-        s.append("void _lf_initialize_watchdog_mutexes() {\n");
-        
+        s.append("void _lf_initialize_watchdog_mutexes() {");
+        if (watchdogCount > 0) {
+            s.append("\n");
+            s.append(String.join("\n",
+                "    for (int i = 0; i < _lf_watchdog_numer; i++) {",
+                "       self_base_t* current_base = _lf_watchdogs[i]->base;",
+                "        if (&(current_base->watchdog_mutex) == NULL) {",
+                "            lf_mutex_init(&(current_base->watchdog_mutex));",
+                "        }",
+                "    }"
+            ));
+        }
+        s.append("\n");
+        s.append("}\n");
+        return s.toString();
     }
 }

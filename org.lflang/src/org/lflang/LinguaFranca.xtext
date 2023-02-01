@@ -278,14 +278,14 @@ TypedVariable:
 ;
 
 Variable:
-    TypedVariable | Timer | Mode;
+    TypedVariable | Timer | Mode | Watchdog;
 
 VarRef:
     variable=[Variable] | container=[Instantiation] '.' variable=[Variable]
     | interleaved?='interleaved' '(' (variable=[Variable] | container=[Instantiation] '.' variable=[Variable]) ')'
 ;
 VarRefOrModeTransition returns VarRef:
-    VarRef | Watchdog | transition=ModeTransition '(' variable=[Mode] ')';
+    VarRef | transition=ModeTransition '(' variable=[Mode] ')';
 
 Assignment:
     (lhs=[Parameter] (

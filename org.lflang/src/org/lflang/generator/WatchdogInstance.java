@@ -28,29 +28,41 @@ public class WatchdogInstance {
             this.timeout = TimeValue.ZERO;
         }
 
-        this.name = definition.getName();
+        this.name = definition.getName().toString();
+        this.definition = definition;
+        this.reactor = reactor;
     }
 
     public String getName() {
         return this.name;
     }
 
+    public Watchdog getDefinition() {
+        return this.definition;
+    }
+
+    public TimeValue getTimeout() {
+        return this.timeout;
+    }
+
+    public ReactorInstance getReactor() {
+        return this.reactor;
+    }
+
     //////////////////////////////////////////////////////
     //// Public fields.
 
-    /**
-     * The timeout, L, associated with this deadline. The physical timer gets set 
-     * to expire at physical time, P, equal to the current logical time, t, plus the timeout.
-     * 
-     * In other words, the watchdog condition is met iff P < t + L while the watchdog has not 
-     * been stopped or reset.
-     */
+
     public final TimeValue timeout;
 
     /**
      * The watchdog name.
      */
     public final String name;
+
+    public final Watchdog definition;
+
+    public final ReactorInstance reactor;
 
     //////////////////////////////////////////////////////
     //// Public methods.
