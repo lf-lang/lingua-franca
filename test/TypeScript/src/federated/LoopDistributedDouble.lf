@@ -13,13 +13,13 @@ target TypeScript {
     }
 }
 
-reactor Looper(incr: number(1), delay: time(0 msec)) {
+reactor Looper(incr: number = 1, delay: time = 0 msec) {
     input inp: number
     input inp2: number
     output out: number
     output out2: number
     physical action a(delay)
-    state count: number(0)
+    state count: number = 0
     timer t(0, 1 sec)
 
     preamble {=
@@ -71,7 +71,7 @@ reactor Looper(incr: number(1), delay: time(0 msec)) {
     =}
 }
 
-federated reactor(delay: time(0)) {
+federated reactor(delay: time = 0) {
     left = new Looper()
     right = new Looper(incr = -1)
     left.out -> right.inp
