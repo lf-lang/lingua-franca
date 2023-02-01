@@ -162,7 +162,6 @@ class CppAssembleMethodGenerator(private val reactor: Reactor) {
                     ${c.name}.bind_downstream_port(&${rightPort.name});
                 """.trimIndent()
             }
-
         }
 
     private val VarRef.isMultiport get() = (variable as? Port)?.isMultiport == true
@@ -211,7 +210,7 @@ class CppAssembleMethodGenerator(private val reactor: Reactor) {
      * The body of this method will declare all triggers, dependencies and antidependencies to the runtime.
      */
     fun generateDefinition() = with(PrependOperator) {
-        val indexedConnections = reactor.connections.filter { it.delay == null }.withIndex()
+        val indexedConnections = reactor.connections.withIndex()
         """
             |${reactor.templateLine}
             |void ${reactor.templateName}::assemble() {

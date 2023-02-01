@@ -64,6 +64,6 @@ class CppConnectionGenerator(private val reactor: Reactor) {
         val delay = connection.delay.toCppTime()
         val name = connection.name
 
-        return """, $name{"$name}", this, $delay}"""
+        return """, $name{"$name", this, $delay}"""
     }
 }
