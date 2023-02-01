@@ -502,6 +502,10 @@ public enum Target {
         };
     }
 
+    public boolean mandatesEqualsInitializers() {
+        return this != CPP;
+    }
+
     /**
      * Return a string that demarcates the beginning of a single-line comment.
      */

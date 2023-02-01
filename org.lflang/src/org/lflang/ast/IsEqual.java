@@ -415,7 +415,6 @@ public class IsEqual extends LfSwitch<Boolean> {
     public Boolean caseAssignment(Assignment object) {
         return new ComparisonMachine<>(object, Assignment.class)
             .equivalent(Assignment::getLhs)
-            .equalAsObjects(Assignment::getEquals)
             .equivalent(Assignment::getRhs)
             .conclusion;
     }

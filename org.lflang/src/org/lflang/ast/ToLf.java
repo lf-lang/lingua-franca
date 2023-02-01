@@ -819,9 +819,6 @@ public class ToLf extends LfSwitch<MalleableString> {
     // ));
     Builder msb = new Builder();
     msb.append(object.getLhs().getName());
-    if (object.getEquals() != null) {
-      msb.append(" = ");
-    }
     msb.append(initializer(object.getRhs(), false));
     return msb.get();
   }
@@ -831,21 +828,29 @@ public class ToLf extends LfSwitch<MalleableString> {
     return initializer(object, false);
   }
 
+  private boolean shouldOutputAsAssignment(Initializer init) {
+    return init.isAssign()
+        || init.getExprs().size() == 1 && ASTUtils.getTarget(init).mandatesEqualsInitializers();
+  }
+
   private MalleableString initializer(Initializer init, boolean nothingIfEmpty) {
     if (init == null) {
       return MalleableString.anyOf("");
+    }
+    if (shouldOutputAsAssignment(init)) {
+      Expression expr = ASTUtils.asSingleExpr(init);
+      Objects.requireNonNull(expr);
+      return new Builder().append(" = ").append(doSwitch(expr)).get();
     }
     String prefix;
     String suffix;
     if (init.isBraces()) {
       prefix = "{";
       suffix = "}";
-    } else if (init.isParens()) {
+    } else {
+      assert init.isParens();
       prefix = "(";
       suffix = ")";
-    } else {
-      // unparenthesized parameter assignment.
-      prefix = suffix = "";
     }
     return list(", ", prefix, suffix, nothingIfEmpty, false, init.getExprs());
   }
