@@ -234,7 +234,10 @@ public class Lff extends CliBase {
     }
 
     exitIfCollectedErrors();
-    issueCollector.getAllIssues().forEach(reporter::printIssue);
+    // Only errors are printed. Warnings are not helpful for LFF
+    // and since they don't prevent the file from being formatted,
+    // the position of the issue may be wrong in the formatted file.
+    // issueCollector.getAllIssues().forEach(reporter::printIssue);
     if (verbose) {
       String msg = "Formatted " + io.getWd().relativize(file);
       if (file != outputPath) msg += " -> " + io.getWd().relativize(outputPath);
