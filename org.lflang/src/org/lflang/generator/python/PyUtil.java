@@ -39,8 +39,8 @@ import org.lflang.ASTUtils;
  * This class inherits from CUtil but overrides a few methods to
  * codify the coding conventions for the Python target code generator.
  * I.e., it defines how some variables are named and referenced.
- * @author{Edward A. Lee <eal@berkeley.edu>}
- * @author{Soroush Bateni <soroush@utdallas.edu>}
+ * @author Edward A. Lee
+ * @author Soroush Bateni
  */
 public class PyUtil extends CUtil {
 

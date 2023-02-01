@@ -21,7 +21,7 @@ preamble {=
     void* take_time(void* a) {
         while (_counter < 15) {
             instant_t sleep_time = MSEC(10);
-            lf_nanosleep(sleep_time);
+            lf_sleep(sleep_time);
             callback(a);
         }
         return NULL;
@@ -38,7 +38,7 @@ reactor WithPhysicalAction {
         lf_thread_create(&self->thread_id, &take_time, act);
     =}
 
-    reaction(act) -> out {= SET(out, act->value); =}
+    reaction(act) -> out {= lf_set(out, act->value); =}
 }
 
 federated reactor {

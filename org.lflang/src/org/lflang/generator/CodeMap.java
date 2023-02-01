@@ -245,9 +245,6 @@ public class CodeMap {
      * Returns the set of all paths to Lingua Franca files
      * that are known to contain code that corresponds to
      * code in the generated file represented by this.
-     * @return the set of all paths to Lingua Franca files
-     * that are known to contain code that corresponds to
-     * code in the generated file represented by this
      */
     public Set<Path> lfSourcePaths() {
         return map.keySet();

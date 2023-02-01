@@ -11,7 +11,7 @@ reactor PhysicalPlant {
     state previous_sensor_time: time(0)
 
     reaction(t) -> sensor {=
-        SET(sensor, 42);
+        lf_set(sensor, 42);
         self->previous_sensor_time = self->last_sensor_time;
         self->last_sensor_time = lf_time_physical();
     =}
@@ -37,10 +37,10 @@ reactor Controller {
 
     reaction(sensor) -> control, request_for_planning {=
         if (!self->first) {
-            SET(control, self->latest_control);
+            lf_set(control, self->latest_control);
         }
         self->first = false;
-        SET(request_for_planning, sensor->value);
+        lf_set(request_for_planning, sensor->value);
     =}
 }
 
@@ -49,8 +49,8 @@ reactor Planner {
     output response: double
 
     reaction(request) -> response {=
-        lf_nanosleep(MSEC(10));
-        SET(response, request->value);
+        lf_sleep(MSEC(10));
+        lf_set(response, request->value);
     =}
 }
 

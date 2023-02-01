@@ -11,19 +11,15 @@ import static org.lflang.util.StringUtil.joinObjects;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
-import java.util.Map;
 import java.util.stream.Collectors;
 
 import org.lflang.ASTUtils;
 import org.lflang.AttributeUtils;
 import org.lflang.TargetConfig;
-import org.lflang.TargetProperty.CoordinationType;
+
 import org.lflang.TargetProperty.LogLevel;
-import org.lflang.federated.CGeneratorExtension;
-import org.lflang.federated.FederateInstance;
+import org.lflang.federated.extensions.CExtensionUtils;
 import org.lflang.generator.CodeBuilder;
-import org.lflang.generator.GeneratorBase;
-import org.lflang.generator.ParameterInstance;
 import org.lflang.generator.PortInstance;
 import org.lflang.generator.ReactionInstance;
 import org.lflang.generator.ReactorInstance;
@@ -35,28 +31,22 @@ import com.google.common.collect.Iterables;
 /**
  * Generate code for the "_lf_initialize_trigger_objects" function
  *
- * @author {Edward A. Lee <eal@berkeley.edu>}
- * @author {Soroush Bateni <soroush@utdallas.edu>}
- * @author {Hou Seng Wong <housengw@berkeley.edu>}
+ * @author Edward A. Lee
+ * @author Soroush Bateni
+ * @author Hou Seng Wong
  */
 public class CTriggerObjectsGenerator {
     /**
      * Generate the _lf_initialize_trigger_objects function for 'federate'.
      */
     public static String generateInitializeTriggerObjects(
-        FederateInstance federate,
         ReactorInstance main,
         TargetConfig targetConfig,
         CodeBuilder initializeTriggerObjects,
         CodeBuilder startTimeStep,
         CTypes types,
         String lfModuleName,
-        LinkedHashMap<String, Object> federationRTIProperties,
-        int startTimeStepTokens,
-        int startTimeStepIsPresentCount,
-        boolean isFederated,
-        boolean isFederatedAndDecentralized,
-        boolean clockSyncIsOn
+        int startTimeStepIsPresentCount
     ) {
         var code = new CodeBuilder();
         code.pr("void _lf_initialize_trigger_objects() {");
@@ -72,10 +62,6 @@ public class CTriggerObjectsGenerator {
             var traceFileName = lfModuleName;
             if (targetConfig.tracing.traceFileName != null) {
                 traceFileName = targetConfig.tracing.traceFileName;
-                // Since all federates would have the same name, we need to append the federate name.
-                if (isFederated) {
-                    traceFileName += "_" + federate.name;
-                }
             }
             code.pr(String.join("\n",
                 "// Initialize tracing",
@@ -83,15 +69,6 @@ public class CTriggerObjectsGenerator {
             )); // .lft is for Lingua Franca trace
         }
 
-        // Create the table used to decrement reference counts between time steps.
-        if (startTimeStepTokens > 0) {
-            // Allocate the initial (before mutations) array of pointers to tokens.
-            code.pr(String.join("\n",
-                "_lf_tokens_with_ref_count_size = "+startTimeStepTokens+";",
-                "_lf_tokens_with_ref_count = (token_present_t*)calloc("+startTimeStepTokens+", sizeof(token_present_t));",
-                "if (_lf_tokens_with_ref_count == NULL) lf_print_error_and_exit(" + addDoubleQuotes("Out of memory!") + ");"
-            ));
-        }
         // Create the table to initialize is_present fields to false between time steps.
         if (startTimeStepIsPresentCount > 0) {
             // Allocate the initial (before mutations) array of pointers to _is_present fields.
@@ -106,40 +83,43 @@ public class CTriggerObjectsGenerator {
             ));
         }
 
-        // Allocate the memory for triggers used in federated execution
-        code.pr(CGeneratorExtension.allocateTriggersForFederate(federate, startTimeStepIsPresentCount, isFederated, isFederatedAndDecentralized));
+        // Create the table to initialize intended tag fields to 0 between time
+        // steps.
+        if (startTimeStepIsPresentCount > 0) {
+            // Allocate the initial (before mutations) array of pointers to
+            // intended_tag fields.
+            // There is a 1-1 map between structs containing is_present and
+            // intended_tag fields,
+            // thus, we reuse startTimeStepIsPresentCount as the counter.
+            code.pr(String.join("\n",
+                                CExtensionUtils.surroundWithIfFederatedDecentralized("""
+                                // Create the array that will contain pointers to intended_tag fields to reset on each step.
+                                _lf_intended_tag_fields_size = %s;
+                                _lf_intended_tag_fields = (tag_t**)malloc(_lf_intended_tag_fields_size * sizeof(tag_t*));
+                                """.formatted(startTimeStepIsPresentCount)
+                                )
+            ));
+        }
+
 
         code.pr(initializeTriggerObjects.toString());
-        // Assign appropriate pointers to the triggers
-        // FIXME: For python target, almost surely in the wrong place.
-        code.pr(CGeneratorExtension.initializeTriggerForControlReactions(main, main, federate));
-
-        var reactionsInFederate = Iterables.filter(
-            main.reactions,
-            r -> federate.contains(r.getDefinition())
-        );
 
         code.pr(deferredInitialize(
-            federate,
             main,
-            reactionsInFederate,
+            main.reactions,
             targetConfig,
-            types,
-            isFederated
+            types
         ));
         code.pr(deferredInitializeNonNested(
-            federate,
             main,
             main,
-            reactionsInFederate,
-            isFederated
+            main.reactions,
+            types
         ));
         // Next, for every input port, populate its "self" struct
         // fields with pointers to the output port that sends it data.
         code.pr(deferredConnectInputsToOutputs(
-            federate,
-            main,
-            isFederated
+            main
         ));
         // Put the code here to set up the tables that drive resetting is_present and
         // decrementing reference counts between time steps. This code has to appear
@@ -147,20 +127,22 @@ public class CTriggerObjectsGenerator {
         // between inputs and outputs.
         code.pr(startTimeStep.toString());
         code.pr(setReactionPriorities(
-            federate,
-            main,
-            isFederated
-        ));
-        code.pr(initializeFederate(
-            federate, main, targetConfig,
-            federationRTIProperties,
-            isFederated,
-            clockSyncIsOn
+            main
         ));
         code.pr(generateSchedulerInitializer(
             main,
             targetConfig
         ));
+
+        code.pr("""
+        #ifdef EXECUTABLE_PREAMBLE
+        _lf_executable_preamble();
+        #endif
+        """);
+
+        // Initialize triggers for federated execution.
+        code.pr(CExtensionUtils.surroundWithIfFederated("initialize_triggers_for_federate();"));
+
         code.unindent();
         code.pr("}\n");
         return code.toString();
@@ -197,212 +179,133 @@ public class CTriggerObjectsGenerator {
     }
 
     /**
-     * If the number of federates is greater than one, then generate the code
-     * that initializes global variables that describe the federate.
-     * @param federate The federate instance.
-     */
-    private static String initializeFederate(
-        FederateInstance federate,
-        ReactorInstance main,
-        TargetConfig targetConfig,
-        Map<String, Object> federationRTIProperties,
-        boolean isFederated,
-        boolean clockSyncIsOn
-    ) {
-        var code = new CodeBuilder();
-        if (!isFederated) {
-            return "";
-        }
-        code.pr("// ***** Start initializing the federated execution. */");
-        code.pr(String.join("\n",
-            "// Initialize the socket mutex",
-            "lf_mutex_init(&outbound_socket_mutex);",
-            "lf_cond_init(&port_status_changed);"
-        ));
-
-        if (isFederated && targetConfig.coordination == CoordinationType.DECENTRALIZED) {
-            var reactorInstance = main.getChildReactorInstance(federate.instantiation);
-            for (ParameterInstance param : reactorInstance.parameters) {
-                if (param.getName().equalsIgnoreCase("STP_offset") && param.type.isTime) {
-                    var stp = ASTUtils.getLiteralTimeValue(param.getInitialValue().get(0));
-                    if (stp != null) {
-                        code.pr("lf_set_stp_offset("+GeneratorBase.timeInTargetLanguage(stp)+");");
-                    }
-                }
-            }
-        }
-
-        // Set indicator variables that specify whether the federate has
-        // upstream logical connections.
-        if (federate.dependsOn.size() > 0) {
-            code.pr("_fed.has_upstream  = true;");
-        }
-        if (federate.sendsTo.size() > 0) {
-            code.pr("_fed.has_downstream = true;");
-        }
-        // Set global variable identifying the federate.
-        code.pr("_lf_my_fed_id = "+federate.id+";");
-
-        // We keep separate record for incoming and outgoing p2p connections to allow incoming traffic to be processed in a separate
-        // thread without requiring a mutex lock.
-        var numberOfInboundConnections = federate.inboundP2PConnections.size();
-        var numberOfOutboundConnections  = federate.outboundP2PConnections.size();
-
-        code.pr(String.join("\n",
-            "_fed.number_of_inbound_p2p_connections = "+numberOfInboundConnections+";",
-            "_fed.number_of_outbound_p2p_connections = "+numberOfOutboundConnections+";"
-        ));
-        if (numberOfInboundConnections > 0) {
-            code.pr(String.join("\n",
-                "// Initialize the array of socket for incoming connections to -1.",
-                "for (int i = 0; i < NUMBER_OF_FEDERATES; i++) {",
-                "    _fed.sockets_for_inbound_p2p_connections[i] = -1;",
-                "}"
-            ));
-        }
-        if (numberOfOutboundConnections > 0) {
-            code.pr(String.join("\n",
-                "// Initialize the array of socket for outgoing connections to -1.",
-                "for (int i = 0; i < NUMBER_OF_FEDERATES; i++) {",
-                "    _fed.sockets_for_outbound_p2p_connections[i] = -1;",
-                "}"
-            ));
-        }
-
-        // If a test clock offset has been specified, insert code to set it here.
-        if (targetConfig.clockSyncOptions.testOffset != null) {
-            code.pr("lf_set_physical_clock_offset((1 + "+federate.id+") * "+targetConfig.clockSyncOptions.testOffset.toNanoSeconds()+"LL);");
-        }
-
-        code.pr(String.join("\n",
-            "// Connect to the RTI. This sets _fed.socket_TCP_RTI and _lf_rti_socket_UDP.",
-            "connect_to_rti("+addDoubleQuotes(federationRTIProperties.get("host").toString())+", "+federationRTIProperties.get("port")+");"
-        ));
-
-        // Disable clock synchronization for the federate if it resides on the same host as the RTI,
-        // unless that is overridden with the clock-sync-options target property.
-        if (clockSyncIsOn) {
-            code.pr("synchronize_initial_physical_clock_with_rti(_fed.socket_TCP_RTI);");
-        }
-
-        if (numberOfInboundConnections > 0) {
-            code.pr(String.join("\n",
-                "// Create a socket server to listen to other federates.",
-                "// If a port is specified by the user, that will be used",
-                "// as the only possibility for the server. If not, the port",
-                "// will start from STARTING_PORT. The function will",
-                "// keep incrementing the port until the number of tries reaches PORT_RANGE_LIMIT.",
-                "create_server("+federate.port+");",
-                "// Connect to remote federates for each physical connection.",
-                "// This is done in a separate thread because this thread will call",
-                "// connect_to_federate for each outbound physical connection at the same",
-                "// time that the new thread is listening for such connections for inbound",
-                "// physical connections. The thread will live until all connections",
-                "// have been established.",
-                "lf_thread_create(&_fed.inbound_p2p_handling_thread_id, handle_p2p_connections_from_federates, NULL);"
-            ));
-        }
-
-        for (FederateInstance remoteFederate : federate.outboundP2PConnections) {
-            code.pr("connect_to_federate("+remoteFederate.id+");");
-        }
-        return code.toString();
-    }
-
-    /**
      * * Set the reaction priorities based on dependency analysis.
      *
-     * @param currentFederate The federate to generate code for.
      * @param reactor The reactor on which to do this.
-     * @param isFederated True if program is federated, false otherwise.
      */
     private static String setReactionPriorities(
-        FederateInstance currentFederate,
-        ReactorInstance reactor,
-        boolean isFederated
+        ReactorInstance reactor
     ) {
         var code = new CodeBuilder();
-        setReactionPriorities(currentFederate, reactor, code, isFederated);
+        setReactionPriorities(reactor, code);
         return code.toString();
     }
 
     /**
      * * Set the reaction priorities based on dependency analysis.
      *
-     * @param currentFederate The federate to generate code for.
      * @param reactor The reactor on which to do this.
      * @param builder Where to write the code.
-     * @param isFederated True if program is federated, false otherwise.
      */
     private static boolean setReactionPriorities(
-        FederateInstance currentFederate,
         ReactorInstance reactor,
-        CodeBuilder builder,
-        boolean isFederated
+        CodeBuilder builder
     ) {
         var foundOne = false;
         // Force calculation of levels if it has not been done.
-        reactor.assignLevels();
+        // FIXME: Comment out this as I think it is redundant.
+        //  If it is NOT redundant then deadline propagation is not correct
+        // reactor.assignLevels();
 
-        // If any reaction has multiple levels, then we need to create
-        // an array with the levels here, before entering the iteration over banks.
+        // We handle four different scenarios
+        //  1) A reactionInstance has 1 level and 1 deadline
+        //  2) A reactionInstance has 1 level but multiple deadlines
+        //  3) A reaction instance has multiple levels but all have the same deadline
+        //  4) Multiple deadlines and levels
+
         var prolog = new CodeBuilder();
         var epilog = new CodeBuilder();
+
         for (ReactionInstance r : reactor.reactions) {
-            if (currentFederate.contains(r.getDefinition())) {
-                var levels = r.getLevels();
-                if (levels.size() != 1) {
-                    if (prolog.length() == 0) {
-                        prolog.startScopedBlock();
-                        epilog.endScopedBlock();
-                    }
-                    // Cannot use the above set of levels because it is a set, not a list.
-                    prolog.pr("int "+r.uniqueID()+"_levels[] = { "+joinObjects(r.getLevelsList(), ", ")+" };");
+            var levelSet = r.getLevels();
+            var deadlineSet = r.getInferredDeadlines();
+
+            if (levelSet.size() > 1 || deadlineSet.size() > 1) {
+                // Scenario 2-4
+                if (prolog.length() == 0) {
+                    prolog.startScopedBlock();
+                    epilog.endScopedBlock();
                 }
             }
+            if (deadlineSet.size() > 1) {
+                // Scenario (2) or (4)
+                var deadlines = r.getInferredDeadlinesList().stream()
+                                 .map(elt -> ("0x" + Long.toString(elt.toNanoSeconds(), 16) + "LL"))
+                                 .collect(Collectors.toList());
+
+                prolog.pr("interval_t "+r.uniqueID()+"_inferred_deadlines[] = { "+joinObjects(deadlines, ", ")+" };");
+            }
+
+            if (levelSet.size() > 1) {
+                // Scenario (3) or (4)
+                // Cannot use the above set of levels because it is a set, not a list.
+                prolog.pr("int "+r.uniqueID()+"_levels[] = { "+joinObjects(r.getLevelsList(), ", ")+" };");
+            }
         }
+
 
         var temp = new CodeBuilder();
         temp.pr("// Set reaction priorities for " + reactor);
-        temp.startScopedBlock(reactor, currentFederate, isFederated, true);
+        temp.startScopedBlock(reactor);
         for (ReactionInstance r : reactor.reactions) {
-            if (currentFederate.contains(r.getDefinition())) {
-                foundOne = true;
-                // The most common case is that all runtime instances of the
-                // reaction have the same level, so deal with that case
-                // specially.
-                var levels = r.getLevels();
-                if (levels.size() == 1) {
-                    var level = -1;
-                    for (Integer l : levels) {
-                        level = l;
-                    }
-                    // xtend doesn't support bitwise operators...
-                    var indexValue = r.deadline.toNanoSeconds() << 16 | level;
-                    var reactionIndex = "0x" + Long.toString(indexValue, 16) + "LL";
+            //if (currentFederate.contains(r.getDefinition())) {
+            foundOne = true;
+            var levelSet = r.getLevels();
+            var deadlineSet = r.getInferredDeadlines();
 
-                    temp.pr(String.join("\n",
-                        CUtil.reactionRef(r)+".chain_id = "+r.chainID+";",
-                        "// index is the OR of level "+level+" and ",
-                        "// deadline "+r.deadline.toNanoSeconds()+" shifted left 16 bits.",
-                        CUtil.reactionRef(r)+".index = "+reactionIndex+";"
-                    ));
-                } else {
-                    var reactionDeadline = "0x" + Long.toString(r.deadline.toNanoSeconds(), 16) + "LL";
+            // Get the head of the associated lists. To avoid duplication in
+            //  several of the following cases
+            var level = r.getLevelsList().get(0);
+            var inferredDeadline = r.getInferredDeadlinesList().get(0);
+            var runtimeIdx =CUtil.runtimeIndex(r.getParent());
 
-                    temp.pr(String.join("\n",
-                        CUtil.reactionRef(r)+".chain_id = "+r.chainID+";",
-                        "// index is the OR of levels["+CUtil.runtimeIndex(r.getParent())+"] and ",
-                        "// deadline "+r.deadline.toNanoSeconds()+" shifted left 16 bits.",
-                        CUtil.reactionRef(r)+".index = ("+reactionDeadline+" << 16) | "+r.uniqueID()+"_levels["+CUtil.runtimeIndex(r.getParent())+"];"
-                    ));
-                }
+            if (levelSet.size() == 1 && deadlineSet.size() == 1) {
+                // Scenario (1)
+
+                var indexValue = inferredDeadline.toNanoSeconds() << 16 | level;
+
+                var reactionIndex = "0x" + Long.toUnsignedString(indexValue, 16) + "LL";
+
+                temp.pr(String.join("\n",
+                    CUtil.reactionRef(r)+".chain_id = "+r.chainID+";",
+                    "// index is the OR of level "+level+" and ",
+                    "// deadline "+ inferredDeadline.toNanoSeconds()+" shifted left 16 bits.",
+                    CUtil.reactionRef(r)+".index = "+reactionIndex+";"
+                ));
+            } else if (levelSet.size() == 1 && deadlineSet.size() > 1) {
+                // Scenario 2
+                temp.pr(String.join("\n",
+                    CUtil.reactionRef(r)+".chain_id = "+r.chainID+";",
+                    "// index is the OR of levels["+runtimeIdx+"] and ",
+                    "// deadlines["+runtimeIdx+"] shifted left 16 bits.",
+                    CUtil.reactionRef(r)+".index = ("+r.uniqueID()+"_inferred_deadlines["+runtimeIdx+"] << 16) | " +
+                        level+";"
+                ));
+
+            } else if (levelSet.size() > 1 && deadlineSet.size() == 1) {
+                // Scenarion (3)
+                temp.pr(String.join("\n",
+                    CUtil.reactionRef(r)+".chain_id = "+r.chainID+";",
+                    "// index is the OR of levels["+runtimeIdx+"] and ",
+                    "// deadlines["+runtimeIdx+"] shifted left 16 bits.",
+                    CUtil.reactionRef(r)+".index = ("+inferredDeadline.toNanoSeconds()+" << 16) | " +
+                        r.uniqueID()+"_levels["+runtimeIdx+"];"
+                ));
+
+            } else if (levelSet.size() > 1 && deadlineSet.size() > 1) {
+                // Scenario (4)
+                temp.pr(String.join("\n",
+                    CUtil.reactionRef(r)+".chain_id = "+r.chainID+";",
+                    "// index is the OR of levels["+runtimeIdx+"] and ",
+                    "// deadlines["+runtimeIdx+"] shifted left 16 bits.",
+                    CUtil.reactionRef(r)+".index = ("+r.uniqueID()+"_inferred_deadlines["+runtimeIdx+"] << 16) | " +
+                        r.uniqueID()+"_levels["+runtimeIdx+"];"
+                ));
             }
+
         }
         for (ReactorInstance child : reactor.children) {
-            if (currentFederate.contains(child)) {
-                foundOne = setReactionPriorities(currentFederate, child, temp, isFederated) || foundOne;
-            }
+            foundOne = setReactionPriorities(child, temp) || foundOne;
         }
         temp.endScopedBlock();
 
@@ -422,9 +325,7 @@ public class CTriggerObjectsGenerator {
      * @param instance The reactor instance.
      */
     private static String deferredConnectInputsToOutputs(
-        FederateInstance currentFederate,
-        ReactorInstance instance,
-        boolean isFederated
+        ReactorInstance instance
     ) {
         var code = new CodeBuilder();
         code.pr("// Connect inputs and outputs for reactor "+instance.getFullName()+".");
@@ -432,17 +333,17 @@ public class CTriggerObjectsGenerator {
         for (PortInstance input : instance.inputs) {
             if (!input.getDependsOnReactions().isEmpty()) {
                 // Input is written to by reactions in the parent of the port's parent.
-                code.pr(connectPortToEventualDestinations(currentFederate, input, isFederated));
+                code.pr(connectPortToEventualDestinations(input));
             }
         }
         for (PortInstance output : instance.outputs) {
             if (!output.getDependsOnReactions().isEmpty()) {
                 // Output is written to by reactions in the port's parent.
-                code.pr(connectPortToEventualDestinations(currentFederate, output, isFederated));
+                code.pr(connectPortToEventualDestinations(output));
             }
         }
         for (ReactorInstance child: instance.children) {
-            code.pr(deferredConnectInputsToOutputs(currentFederate, child, isFederated));
+            code.pr(deferredConnectInputsToOutputs(child));
         }
         return code.toString();
     }
@@ -457,11 +358,8 @@ public class CTriggerObjectsGenerator {
      * @param src A port that is written to by reactions.
      */
     private static String connectPortToEventualDestinations(
-        FederateInstance currentFederate,
-        PortInstance src,
-        boolean isFederated
+        PortInstance src
     ) {
-        if (!currentFederate.contains(src.getParent())) return "";
         var code = new CodeBuilder();
         for (SendRange srcRange: src.eventualDestinations()) {
             for (RuntimeRange<PortInstance> dstRange : srcRange.destinations) {
@@ -472,27 +370,25 @@ public class CTriggerObjectsGenerator {
                 // by the currentFederate because an AST transformation removes connections
                 // between ports of distinct federates. So the following check is not
                 // really necessary.
-                if (currentFederate.contains(dst.getParent())) {
-                    var mod = (dst.isMultiport() || (src.isInput() && src.isMultiport()))? "" : "&";
-                    code.pr("// Connect "+srcRange+" to port "+dstRange);
-                    code.startScopedRangeBlock(currentFederate, srcRange, dstRange, isFederated);
-                    if (src.isInput()) {
-                        // Source port is written to by reaction in port's parent's parent
-                        // and ultimate destination is further downstream.
-                        code.pr(CUtil.portRef(dst, dr, db, dc)+" = ("+destStructType+"*)"+mod+CUtil.portRefNested(src, sr, sb, sc)+";");
-                    } else if (dst.isOutput()) {
-                        // An output port of a contained reactor is triggering a reaction.
-                        code.pr(CUtil.portRefNested(dst, dr, db, dc)+" = ("+destStructType+"*)&"+CUtil.portRef(src, sr, sb, sc)+";");
-                    } else {
-                        // An output port is triggering an input port.
-                        code.pr(CUtil.portRef(dst, dr, db, dc)+" = ("+destStructType+"*)&"+CUtil.portRef(src, sr, sb, sc)+";");
-                        if (AttributeUtils.isSparse(dst.getDefinition())) {
-                            code.pr(CUtil.portRef(dst, dr, db, dc)+"->sparse_record = "+CUtil.portRefName(dst, dr, db, dc)+"__sparse;");
-                            code.pr(CUtil.portRef(dst, dr, db, dc)+"->destination_channel = "+dc+";");
-                        }
+                var mod = (dst.isMultiport() || (src.isInput() && src.isMultiport()))? "" : "&";
+                code.pr("// Connect "+srcRange+" to port "+dstRange);
+                code.startScopedRangeBlock(srcRange, dstRange);
+                if (src.isInput()) {
+                    // Source port is written to by reaction in port's parent's parent
+                    // and ultimate destination is further downstream.
+                    code.pr(CUtil.portRef(dst, dr, db, dc)+" = ("+destStructType+"*)"+mod+CUtil.portRefNested(src, sr, sb, sc)+";");
+                } else if (dst.isOutput()) {
+                    // An output port of a contained reactor is triggering a reaction.
+                    code.pr(CUtil.portRefNested(dst, dr, db, dc)+" = ("+destStructType+"*)&"+CUtil.portRef(src, sr, sb, sc)+";");
+                } else {
+                    // An output port is triggering an input port.
+                    code.pr(CUtil.portRef(dst, dr, db, dc)+" = ("+destStructType+"*)&"+CUtil.portRef(src, sr, sb, sc)+";");
+                    if (AttributeUtils.isSparse(dst.getDefinition())) {
+                        code.pr(CUtil.portRef(dst, dr, db, dc)+"->sparse_record = "+CUtil.portRefName(dst, dr, db, dc)+"__sparse;");
+                        code.pr(CUtil.portRef(dst, dr, db, dc)+"->destination_channel = "+dc+";");
                     }
-                    code.endScopedRangeBlock(srcRange, dstRange, isFederated);
                 }
+                code.endScopedRangeBlock(srcRange, dstRange);
             }
         }
         return code.toString();
@@ -507,28 +403,10 @@ public class CTriggerObjectsGenerator {
      * @param r The reactor.
      */
     private static String deferredOptimizeForSingleDominatingReaction(
-        FederateInstance currentFederate,
-        ReactorInstance r,
-        boolean isFederated
+        ReactorInstance r
     ) {
         var code = new CodeBuilder();
         for (ReactionInstance reaction : r.reactions) {
-            if (currentFederate.contains(reaction.getDefinition())
-                && currentFederate.contains(reaction.getParent())
-            ) {
-
-                // For federated systems, the above test may not be enough if there is a bank
-                // of federates.  Calculate the divisor needed to compute the federate bank
-                // index from the instance index of the reaction.
-                var divisor = 1;
-                if (isFederated) {
-                    var parent = reaction.getParent();
-                    while (parent.getDepth() > 1) {
-                        divisor *= parent.getWidth();
-                        parent = parent.getParent();
-                    }
-                }
-
                 // The following code attempts to gather into a loop assignments of successive
                 // bank members relations between reactions to avoid large chunks of inline code
                 // when a large bank sends to a large bank or when a large bank receives from
@@ -545,7 +423,7 @@ public class CTriggerObjectsGenerator {
                             if (runtime.dominating != previousRuntime.dominating) {
                                 // End of streak of same dominating reaction runtime instance.
                                 code.pr(printOptimizeForSingleDominatingReaction(
-                                    currentFederate, previousRuntime, start, end, domStart, same, divisor, isFederated
+                                    previousRuntime, start, end, domStart, same
                                 ));
                                 same = false;
                                 start = runtime.id;
@@ -561,7 +439,7 @@ public class CTriggerObjectsGenerator {
                             if (runtime.dominating.id != previousRuntime.dominating.id + 1) {
                                 // End of a streak of contiguous runtimes.
                                 printOptimizeForSingleDominatingReaction(
-                                    currentFederate, previousRuntime, start, end, domStart, same, divisor, isFederated
+                                    previousRuntime, start, end, domStart, same
                                 );
                                 same = false;
                                 start = runtime.id;
@@ -570,7 +448,7 @@ public class CTriggerObjectsGenerator {
                         } else {
                             // Different dominating reaction.
                             printOptimizeForSingleDominatingReaction(
-                                currentFederate, previousRuntime, start, end, domStart, same, divisor, isFederated
+                                previousRuntime, start, end, domStart, same
                             );
                             same = false;
                             start = runtime.id;
@@ -583,10 +461,9 @@ public class CTriggerObjectsGenerator {
                 }
                 if (end > start) {
                     printOptimizeForSingleDominatingReaction(
-                        currentFederate, previousRuntime, start, end, domStart, same, divisor, isFederated
+                        previousRuntime, start, end, domStart, same
                     );
                 }
-            }
         }
         return code.toString();
     }
@@ -595,35 +472,13 @@ public class CTriggerObjectsGenerator {
      * Print statement that sets the last_enabling_reaction field of a reaction.
      */
     private static String printOptimizeForSingleDominatingReaction(
-        FederateInstance currentFederate,
         ReactionInstance.Runtime runtime,
         int start,
         int end,
         int domStart,
-        boolean same,
-        int divisor,
-        boolean isFederated
+        boolean same
     ) {
         var code = new CodeBuilder();
-        var domDivisor = 1;
-        if (isFederated && runtime.dominating != null) {
-            var domReaction = runtime.dominating.getReaction();
-            // No need to do anything if the dominating reaction is not in the federate.
-            // Note that this test is imperfect because the current federate may be a
-            // bank member.
-            if (!currentFederate.contains(domReaction.getDefinition())
-                    || !currentFederate.contains(domReaction.getParent())) {
-                return "";
-            }
-            // To really know whether the dominating reaction is in the federate,
-            // we need to calculate a divisor for its runtime index.
-            var parent = runtime.dominating.getReaction().getParent();
-            while (parent.getDepth() > 1) {
-                domDivisor *= parent.getWidth();
-                parent = parent.getParent();
-            }
-        }
-
         var dominatingRef = "NULL";
 
         if (end > start + 1) {
@@ -640,32 +495,19 @@ public class CTriggerObjectsGenerator {
                 "// "+runtime.getReaction().getFullName()+" dominating upstream reaction.",
                 "int j = "+domStart+";",
                 "for (int i = "+start+"; i < "+end+"; i++) {",
-                (isFederated ?
-                "    if (i / "+divisor+" != "+currentFederate.bankIndex+") continue; // Reaction is not in the federate." :
-                ""),
-                (runtime.dominating != null ?
-                "    if (j / "+domDivisor+" != "+currentFederate.bankIndex+") continue; // Dominating reaction is not in the federate." :
-                ""),
                 "    "+reactionRef+".last_enabling_reaction = "+dominatingRef+";",
                 "}"
             ));
            code.endScopedBlock();
         } else if (end == start + 1) {
             var reactionRef = CUtil.reactionRef(runtime.getReaction(), "" + start);
-            if (runtime.dominating != null
-                && (domDivisor == 1 || domStart/domDivisor == currentFederate.bankIndex)
-            ) {
+            if (runtime.dominating != null) {
                 dominatingRef =  "&(" + CUtil.reactionRef(runtime.dominating.getReaction(), "" + domStart) + ")";
             }
-            if (!isFederated
-                || (start/divisor == currentFederate.bankIndex)
-                && (runtime.dominating == null || domStart/domDivisor == currentFederate.bankIndex)
-            ) {
-                code.pr(String.join("\n",
-                    "// "+runtime.getReaction().getFullName()+" dominating upstream reaction.",
-                    reactionRef+".last_enabling_reaction = "+dominatingRef+";"
-                ));
-            }
+            code.pr(String.join("\n",
+                "// "+runtime.getReaction().getFullName()+" dominating upstream reaction.",
+                reactionRef+".last_enabling_reaction = "+dominatingRef+";"
+            ));
         }
         return code.toString();
     }
@@ -677,9 +519,7 @@ public class CTriggerObjectsGenerator {
      * @param reactions The reactions.
      */
     private static String deferredFillTriggerTable(
-        FederateInstance currentFederate,
-        Iterable<ReactionInstance> reactions,
-        boolean isFederated
+        Iterable<ReactionInstance> reactions
     ) {
         var code = new CodeBuilder();
         for (ReactionInstance reaction : reactions) {
@@ -702,31 +542,25 @@ public class CTriggerObjectsGenerator {
                 // We generate the code to fill the triggers array first in a temporary code buffer,
                 // so that we can simultaneously calculate the size of the total array.
                 for (SendRange srcRange : port.eventualDestinations()) {
-                    var srcNested = (port.isInput())? true : false;
-                    code.startScopedRangeBlock(currentFederate, srcRange, sr, sb, sc, srcNested, isFederated, true);
+                    var srcNested = port.isInput();
+                    code.startScopedRangeBlock(srcRange, sr, sb, sc, srcNested);
 
                     var triggerArray = CUtil.reactionRef(reaction, sr)+".triggers[triggers_index["+sr+"]++]";
                     // Skip ports whose parent is not in the federation.
                     // This can happen with reactions in the top-level that have
                     // as an effect a port in a bank.
-                    if (currentFederate.contains(port.getParent())) {
-                        code.pr(String.join("\n",
-                            "// Reaction "+reaction.index+" of "+name+" triggers "+srcRange.destinations.size()+" downstream reactions",
-                            "// through port "+port.getFullName()+".",
-                            CUtil.reactionRef(reaction, sr)+".triggered_sizes[triggers_index["+sr+"]] = "+srcRange.destinations.size()+";",
-                            "// For reaction "+reaction.index+" of "+name+", allocate an",
-                            "// array of trigger pointers for downstream reactions through port "+port.getFullName(),
-                            "trigger_t** trigger_array = (trigger_t**)_lf_allocate(",
-                            "        "+srcRange.destinations.size()+", sizeof(trigger_t*),",
-                            "        &"+reactorSelfStruct+"->base.allocations); ",
-                            triggerArray+" = trigger_array;"
-                        ));
-                    } else {
-                        // Port is not in the federate or has no destinations.
-                        // Set the triggered_width fields to 0.
-                        code.pr(CUtil.reactionRef(reaction, sr)+".triggered_sizes["+sc+"] = 0;");
-                    }
-                    code.endScopedRangeBlock(srcRange, isFederated);
+                    code.pr(String.join("\n",
+                        "// Reaction "+reaction.index+" of "+name+" triggers "+srcRange.destinations.size()+" downstream reactions",
+                        "// through port "+port.getFullName()+".",
+                        CUtil.reactionRef(reaction, sr)+".triggered_sizes[triggers_index["+sr+"]] = "+srcRange.destinations.size()+";",
+                        "// For reaction "+reaction.index+" of "+name+", allocate an",
+                        "// array of trigger pointers for downstream reactions through port "+port.getFullName(),
+                        "trigger_t** trigger_array = (trigger_t**)_lf_allocate(",
+                        "        "+srcRange.destinations.size()+", sizeof(trigger_t*),",
+                        "        &"+reactorSelfStruct+"->base.allocations); ",
+                        triggerArray+" = trigger_array;"
+                    ));
+                    code.endScopedRangeBlock(srcRange);
                 }
             }
             var cumulativePortWidth = 0;
@@ -736,56 +570,52 @@ public class CTriggerObjectsGenerator {
 
                 code.pr("for (int i = 0; i < "+reaction.getParent().getTotalWidth()+"; i++) triggers_index[i] = "+cumulativePortWidth+";");
                 for (SendRange srcRange : port.eventualDestinations()) {
-                    if (currentFederate.contains(port.getParent())) {
-                        var srcNested = srcRange.instance.isInput();
-                        var multicastCount = 0;
-                        for (RuntimeRange<PortInstance> dstRange : srcRange.destinations) {
-                            var dst = dstRange.instance;
+                    var srcNested = srcRange.instance.isInput();
+                    var multicastCount = 0;
+                    for (RuntimeRange<PortInstance> dstRange : srcRange.destinations) {
+                        var dst = dstRange.instance;
 
-                            code.startScopedRangeBlock(currentFederate, srcRange, dstRange, isFederated);
+                        code.startScopedRangeBlock(srcRange, dstRange);
 
-                            // If the source is nested, need to take into account the parent's bank index
-                            // when indexing into the triggers array.
-                            var triggerArray = "";
-                            if (srcNested && port.getParent().getWidth() > 1 && !(isFederated && port.getParent().getDepth() == 1)) {
-                                triggerArray = CUtil.reactionRef(reaction, sr)+".triggers[triggers_index["+sr+"] + "+sc+" + src_range_mr.digits[1] * src_range_mr.radixes[0]]";
-                            } else {
-                                triggerArray = CUtil.reactionRef(reaction, sr)+".triggers[triggers_index["+sr+"] + "+sc+"]";
+                        // If the source is nested, need to take into account the parent's bank index
+                        // when indexing into the triggers array.
+                        var triggerArray = "";
+                        if (srcNested && port.getParent().getWidth() > 1) {
+                            triggerArray = CUtil.reactionRef(reaction, sr)+".triggers[triggers_index["+sr+"] + "+sc+" + src_range_mr.digits[1] * src_range_mr.radixes[0]]";
+                        } else {
+                            triggerArray = CUtil.reactionRef(reaction, sr)+".triggers[triggers_index["+sr+"] + "+sc+"]";
+                        }
+
+                        if (dst.isOutput()) {
+                            // Include this destination port only if it has at least one
+                            // reaction in the federation.
+                            var belongs = false;
+                            for (ReactionInstance destinationReaction : dst.getDependentReactions()) {
+                                belongs = true;
                             }
-
-                            if (dst.isOutput()) {
-                                // Include this destination port only if it has at least one
-                                // reaction in the federation.
-                                var belongs = false;
-                                for (ReactionInstance destinationReaction : dst.getDependentReactions()) {
-                                    if (currentFederate.contains(destinationReaction.getParent())) {
-                                        belongs = true;
-                                    }
-                                }
-                                if (belongs) {
-                                    code.pr(String.join("\n",
-                                        "// Port "+port.getFullName()+" has reactions in its parent's parent.",
-                                        "// Point to the trigger struct for those reactions.",
-                                        triggerArray+"["+multicastCount+"] = &"+CUtil.triggerRefNested(dst, dr, db)+";"
-                                    ));
-                                } else {
-                                    // Put in a NULL pointer.
-                                    code.pr(String.join("\n",
-                                        "// Port "+port.getFullName()+" has reactions in its parent's parent.",
-                                        "// But those are not in the federation.",
-                                        triggerArray+"["+multicastCount+"] = NULL;"
-                                    ));
-                                }
-                            } else {
-                                // Destination is an input port.
+                            if (belongs) {
                                 code.pr(String.join("\n",
-                                    "// Point to destination port "+dst.getFullName()+"'s trigger struct.",
-                                    triggerArray+"["+multicastCount+"] = &"+CUtil.triggerRef(dst, dr)+";"
+                                    "// Port "+port.getFullName()+" has reactions in its parent's parent.",
+                                    "// Point to the trigger struct for those reactions.",
+                                    triggerArray+"["+multicastCount+"] = &"+CUtil.triggerRefNested(dst, dr, db)+";"
+                                ));
+                            } else {
+                                // Put in a NULL pointer.
+                                code.pr(String.join("\n",
+                                    "// Port "+port.getFullName()+" has reactions in its parent's parent.",
+                                    "// But those are not in the federation.",
+                                    triggerArray+"["+multicastCount+"] = NULL;"
                                 ));
                             }
-                            code.endScopedRangeBlock(srcRange, dstRange, isFederated);
-                            multicastCount++;
+                        } else {
+                            // Destination is an input port.
+                            code.pr(String.join("\n",
+                                "// Point to destination port "+dst.getFullName()+"'s trigger struct.",
+                                triggerArray+"["+multicastCount+"] = &"+CUtil.triggerRef(dst, dr)+";"
+                            ));
                         }
+                        code.endScopedRangeBlock(srcRange, dstRange);
+                        multicastCount++;
                     }
                 }
                 // If the port is an input of a contained reactor, then we have to take
@@ -806,18 +636,16 @@ public class CTriggerObjectsGenerator {
      * from one or more of the specified reactions, set the num_destinations
      * field of the corresponding port structs on the self struct of
      * the reaction's parent reactor equal to the total number of
-     * destination reactors. This is used to initialize reference
-     * counts in dynamically allocated tokens sent to other reactors.
+     * destination reactors.
+     * If the port has a token type, this also initializes it with a token.
      * @param reactions The reactions.
+     * @param types The C types.
      */
     private static String deferredInputNumDestinations(
-        FederateInstance currentFederate,
         Iterable<ReactionInstance> reactions,
-        boolean isFederated
+        CTypes types
     ) {
-        // Reference counts are decremented by each destination reactor
-        // at the conclusion of a time step. Hence, the initial reference
-        // count should equal the number of destination _reactors_, not the
+        // We need the number of destination _reactors_, not the
         // number of destination ports nor the number of destination reactions.
         // One of the destination reactors may be the container of this
         // instance because it may have a reaction to an output of this instance.
@@ -830,14 +658,35 @@ public class CTriggerObjectsGenerator {
                 if (port.isInput() && !portsHandled.contains(port)) {
                     // Port is an input of a contained reactor that gets data from a reaction of this reactor.
                     portsHandled.add(port);
-                    code.pr("// For reference counting, set num_destinations for port "+port.getParent().getName()+"."+port.getName()+".");
+                    code.pr("// Set number of destination reactors for port "+port.getParent().getName()+"."+port.getName()+".");
                     // The input port may itself have multiple destinations.
                     for (SendRange sendingRange : port.eventualDestinations()) {
-                        code.startScopedRangeBlock(currentFederate, sendingRange, sr, sb, sc, sendingRange.instance.isInput(), isFederated, true);
+                        code.startScopedRangeBlock(sendingRange, sr, sb, sc, sendingRange.instance.isInput());
                         // Syntax is slightly different for a multiport output vs. single port.
                         var connector = (port.isMultiport())? "->" : ".";
                         code.pr(CUtil.portRefNested(port, sr, sb, sc)+connector+"num_destinations = "+sendingRange.getNumberOfDestinationReactors()+";");
-                        code.endScopedRangeBlock(sendingRange, isFederated);
+
+                        // Initialize token types.
+                        var type = ASTUtils.getInferredType(port.getDefinition());
+                        if (CUtil.isTokenType(type, types)) {
+                            // Create the template token that goes in the port struct.
+                            var rootType = CUtil.rootType(types.getTargetType(type));
+                            // If the rootType is 'void', we need to avoid generating the code
+                            // 'sizeof(void)', which some compilers reject.
+                            var size = (rootType.equals("void")) ? "0" : "sizeof("+rootType+")";
+                            // If the port is a multiport, then the portRefNested is itself a pointer
+                            // so we want its value, not its address.
+                            var indirection = (port.isMultiport())? "" : "&";
+                            code.startChannelIteration(port);
+                            code.pr(String.join("\n",
+                                    "_lf_initialize_template((token_template_t*)",
+                                    "        "+indirection+"("+CUtil.portRefNested(port, sr, sb, sc)+"),",
+                                             size+");"
+                            ));
+                            code.endChannelIteration(port);
+                        }
+                        
+                        code.endScopedRangeBlock(sendingRange);
                     }
                 }
             }
@@ -854,9 +703,7 @@ public class CTriggerObjectsGenerator {
      * @param reactor The reactor instance.
      */
     private static String deferredOutputNumDestinations(
-        FederateInstance currentFederate,
-        ReactorInstance reactor,
-        boolean isFederated
+        ReactorInstance reactor
     ) {
         // Reference counts are decremented by each destination reactor
         // at the conclusion of a time step. Hence, the initial reference
@@ -868,9 +715,9 @@ public class CTriggerObjectsGenerator {
         for (PortInstance output : reactor.outputs) {
             for (SendRange sendingRange : output.eventualDestinations()) {
                 code.pr("// For reference counting, set num_destinations for port " + output.getFullName() + ".");
-                code.startScopedRangeBlock(currentFederate, sendingRange, sr, sb, sc, sendingRange.instance.isInput(), isFederated, true);
+                code.startScopedRangeBlock(sendingRange, sr, sb, sc, sendingRange.instance.isInput());
                 code.pr(CUtil.portRef(output, sr, sb, sc)+".num_destinations = "+sendingRange.getNumberOfDestinationReactors()+";");
-                code.endScopedRangeBlock(sendingRange, isFederated);
+                code.endScopedRangeBlock(sendingRange);
             }
         }
         return code.toString();
@@ -883,15 +730,15 @@ public class CTriggerObjectsGenerator {
      * so each function it calls must handle its own iteration
      * over all runtime instance.
      * @param reactor The container.
-     * @param currentFederate The federate (used to determine whether a
-     *  reaction belongs to the federate).
+     * @param main The top-level reactor.
+     * @param reactions The list of reactions to consider.
+     * @param types The C types.
      */
     private static String deferredInitializeNonNested(
-        FederateInstance currentFederate,
         ReactorInstance reactor,
         ReactorInstance main,
         Iterable<ReactionInstance> reactions,
-        boolean isFederated
+        CTypes types
     ) {
         var code = new CodeBuilder();
         code.pr("// **** Start non-nested deferred initialize for "+reactor.getFullName());
@@ -899,9 +746,8 @@ public class CTriggerObjectsGenerator {
         // This needs to be outside the above scoped block because it performs
         // its own iteration over ranges.
         code.pr(deferredInputNumDestinations(
-            currentFederate,
             reactions,
-            isFederated
+            types
         ));
 
         // Second batch of initializes cannot be within a for loop
@@ -909,31 +755,22 @@ public class CTriggerObjectsGenerator {
         // ranges which may span bank members.
         if (reactor != main) {
             code.pr(deferredOutputNumDestinations(
-                currentFederate,
-                reactor,
-                isFederated
+                reactor
             ));
         }
         code.pr(deferredFillTriggerTable(
-            currentFederate,
-            reactions,
-            isFederated
+            reactions
         ));
         code.pr(deferredOptimizeForSingleDominatingReaction(
-            currentFederate,
-            reactor,
-            isFederated
+            reactor
         ));
         for (ReactorInstance child: reactor.children) {
-            if (currentFederate.contains(child)) {
-                code.pr(deferredInitializeNonNested(
-                    currentFederate,
-                    child,
-                    main,
-                    child.reactions,
-                    isFederated
-                ));
-            }
+            code.pr(deferredInitializeNonNested(
+                child,
+                main,
+                child.reactions,
+                types
+            ));
         }
         code.pr("// **** End of non-nested deferred initialize for "+reactor.getFullName());
         return code.toString();
@@ -941,10 +778,10 @@ public class CTriggerObjectsGenerator {
 
     /**
      * For each output of the specified reactor that has a token type
-     * (type* or type[]), create a default token and put it on the self struct.
+     * (type* or type[]), create a template token and put it on the self struct.
      * @param reactor The reactor.
      */
-    private static String deferredCreateDefaultTokens(
+    private static String deferredCreateTemplateTokens(
         ReactorInstance reactor,
         CTypes types
     ) {
@@ -960,7 +797,11 @@ public class CTriggerObjectsGenerator {
                 // 'sizeof(void)', which some compilers reject.
                 var size = (rootType.equals("void")) ? "0" : "sizeof("+rootType+")";
                 code.startChannelIteration(output);
-                code.pr(CUtil.portRef(output)+".token = _lf_create_token("+size+");");
+                code.pr(String.join("\n",
+                        "_lf_initialize_template((token_template_t*)",
+                        "        &("+CUtil.portRef(output)+"),",
+                                 size+");"
+                ));
                 code.endChannelIteration(output);
             }
         }
@@ -977,10 +818,8 @@ public class CTriggerObjectsGenerator {
      * @param reaction The reaction instance.
      */
     private static String deferredReactionOutputs(
-        FederateInstance currentFederate,
         ReactionInstance reaction,
-        TargetConfig targetConfig,
-        boolean isFederated
+        TargetConfig targetConfig
     ) {
         var code = new CodeBuilder();
         // val selfRef = CUtil.reactorRef(reaction.getParent());
@@ -1016,7 +855,7 @@ public class CTriggerObjectsGenerator {
             if (effect.isInput()) {
                 init.pr("// Reaction writes to an input of a contained reactor.");
                 bankWidth = effect.getParent().getWidth();
-                init.startScopedBlock(effect.getParent(), currentFederate, isFederated, true);
+                init.startScopedBlock(effect.getParent());
                 portRef = CUtil.portRefNestedName(effect);
             } else {
                 init.startScopedBlock();
@@ -1079,20 +918,16 @@ public class CTriggerObjectsGenerator {
      * @param reactions A list of reactions.
      */
     private static String deferredReactionMemory(
-        FederateInstance currentFederate,
         Iterable<ReactionInstance> reactions,
-        TargetConfig targetConfig,
-        boolean isFederated
+        TargetConfig targetConfig
     ) {
         var code = new CodeBuilder();
         // For each reaction instance, allocate the arrays that will be used to
         // trigger downstream reactions.
         for (ReactionInstance reaction : reactions) {
             code.pr(deferredReactionOutputs(
-                currentFederate,
                 reaction,
-                targetConfig,
-                isFederated
+                targetConfig
             ));
             var reactorSelfStruct = CUtil.reactorRef(reaction.getParent());
 
@@ -1107,7 +942,7 @@ public class CTriggerObjectsGenerator {
                         "// Allocate memory to store pointers to the multiport output "+trigger.getName()+" ",
                         "// of a contained reactor "+trigger.getParent().getFullName()
                     ));
-                    code.startScopedBlock(trigger.getParent(), currentFederate, isFederated, true);
+                    code.startScopedBlock(trigger.getParent());
 
                     var width = trigger.getWidth();
                     var portStructType = CGenerator.variableStructType(trigger);
@@ -1136,9 +971,7 @@ public class CTriggerObjectsGenerator {
      * @param reactor The reactor.
      */
     private static String deferredAllocationForEffectsOnInputs(
-        FederateInstance currentFederate,
-        ReactorInstance reactor,
-        boolean isFederated
+        ReactorInstance reactor
     ) {
         var code = new CodeBuilder();
         // Keep track of ports already handled. There may be more than one reaction
@@ -1151,11 +984,10 @@ public class CTriggerObjectsGenerator {
                 if (effect.getParent().getDepth() > reactor.getDepth() // port of a contained reactor.
                     && effect.isMultiport()
                     && !portsHandled.contains(effect)
-                    && currentFederate.contains(effect.getParent())
                 ) {
                     code.pr("// A reaction writes to a multiport of a child. Allocate memory.");
                     portsHandled.add(effect);
-                    code.startScopedBlock(effect.getParent(), currentFederate, isFederated, true);
+                    code.startScopedBlock(effect.getParent());
                     var portStructType = CGenerator.variableStructType(effect);
                     var effectRef = CUtil.portRefNestedName(effect);
                     code.pr(String.join("\n",
@@ -1183,25 +1015,18 @@ public class CTriggerObjectsGenerator {
      * all reactor runtime instances have been created.
      * This function creates nested loops over nested banks.
      * @param reactor The container.
-     * @param currentFederate The federate (used to determine whether a
-     *  reaction belongs to the federate).
      */
     private static String deferredInitialize(
-        FederateInstance currentFederate,
         ReactorInstance reactor,
         Iterable<ReactionInstance> reactions,
         TargetConfig targetConfig,
-        CTypes types,
-        boolean isFederated
+        CTypes types
     ) {
-        if (!currentFederate.contains(reactor)) {
-            return "";
-        }
         var code = new CodeBuilder();
         code.pr("// **** Start deferred initialize for "+reactor.getFullName());
         // First batch of initializations is within a for loop iterating
         // over bank members for the reactor's parent.
-        code.startScopedBlock(reactor, currentFederate, isFederated, true);
+        code.startScopedBlock(reactor);
 
         // If the child has a multiport that is an effect of some reaction in its container,
         // then we have to generate code to allocate memory for arrays pointing to
@@ -1209,34 +1034,26 @@ public class CTriggerObjectsGenerator {
         // bank width because a reaction cannot specify which bank members it writes
         // to so we have to assume it can write to any.
         code.pr(deferredAllocationForEffectsOnInputs(
-            currentFederate,
-            reactor,
-            isFederated
+            reactor
         ));
         code.pr(deferredReactionMemory(
-            currentFederate,
             reactions,
-            targetConfig,
-            isFederated
+            targetConfig
         ));
 
         // For outputs that are not primitive types (of form type* or type[]),
         // create a default token on the self struct.
-        code.pr(deferredCreateDefaultTokens(
+        code.pr(deferredCreateTemplateTokens(
             reactor,
             types
         ));
         for (ReactorInstance child: reactor.children) {
-            if (currentFederate.contains(child)) {
-                code.pr(deferredInitialize(
-                    currentFederate,
-                    child,
-                    child.reactions,
-                    targetConfig,
-                    types,
-                    isFederated)
-                );
-            }
+            code.pr(deferredInitialize(
+                child,
+                child.reactions,
+                targetConfig,
+                types)
+            );
         }
         code.endScopedBlock();
         code.pr("// **** End of deferred initialize for "+reactor.getFullName());

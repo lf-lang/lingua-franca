@@ -14,9 +14,9 @@ import org.lflang.lf.Preamble;
  * Generates user-defined preambles and #define and #include directives
  * for the Python target.
  *
- * @author {Edward A. Lee <eal@berkeley.edu>}
- * @author {Soroush Bateni <soroush@utdallas.edu>}
- * @author {Hou Seng Wong <housengw@berkeley.edu>}
+ * @author Edward A. Lee
+ * @author Soroush Bateni
+ * @author Hou Seng Wong
  */
 public class PythonPreambleGenerator {
     /**
@@ -35,17 +35,13 @@ public class PythonPreambleGenerator {
 
     public static String generateCDefineDirectives(
         TargetConfig targetConfig,
-        int numFederates,
-        boolean isFederated,
         Path srcGenPath,
-        boolean clockSyncIsOn,
         boolean hasModalReactors
     ) {
         // TODO: Delete all of this. It is not used.
         CodeBuilder code = new CodeBuilder();
         code.pr(CPreambleGenerator.generateDefineDirectives(
-            targetConfig, numFederates, isFederated,
-            srcGenPath, clockSyncIsOn, hasModalReactors)
+            targetConfig, srcGenPath, hasModalReactors)
         );
         return code.toString();
     }
@@ -53,11 +49,10 @@ public class PythonPreambleGenerator {
     public static String generateCIncludeStatements(
         TargetConfig targetConfig,
         boolean CCppMode,
-        boolean isFederated,
         boolean hasModalReactors
     ) {
         CodeBuilder code = new CodeBuilder();
-        code.pr(CPreambleGenerator.generateIncludeStatements(targetConfig, CCppMode, isFederated));
+        code.pr(CPreambleGenerator.generateIncludeStatements(targetConfig, CCppMode));
         code.pr("#include \"pythontarget.h\"");
         if (hasModalReactors) {
             code.pr("#include \"modal_models/definitions.h\"");

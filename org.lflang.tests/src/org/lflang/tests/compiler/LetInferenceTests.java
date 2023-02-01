@@ -25,7 +25,8 @@ package org.lflang.tests.compiler;/* Parsing unit tests. */
  SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  ***************/
 
-import java.nio.file.Path;
+import static org.lflang.ASTUtils.toDefinition;
+
 import javax.inject.Inject;
 
 import org.eclipse.emf.common.util.TreeIterator;
@@ -39,18 +40,19 @@ import org.junit.jupiter.api.extension.ExtendWith;
 
 import org.lflang.ASTUtils;
 import org.lflang.DefaultErrorReporter;
-import org.lflang.FileConfig;
 import org.lflang.TimeUnit;
 import org.lflang.TimeValue;
+import org.lflang.ast.AfterDelayTransformation;
 import org.lflang.generator.ReactionInstance;
 import org.lflang.generator.ReactorInstance;
-import org.lflang.generator.c.CGenerator;
+import org.lflang.generator.c.CDelayBodyGenerator;
+import org.lflang.generator.c.CTypes;
 import org.lflang.lf.Instantiation;
 import org.lflang.lf.LfFactory;
+
 import org.lflang.lf.Model;
 import org.lflang.lf.Reactor;
 import org.lflang.tests.LFInjectorProvider;
-import static org.lflang.ASTUtils.*;
 
 @ExtendWith(InjectionExtension.class)
 @InjectWith(LFInjectorProvider.class)
@@ -58,10 +60,10 @@ import static org.lflang.ASTUtils.*;
 /**
  * Test for getting minimum delay in reactions.
  * Checking the actions and port's delay,then get the minimum reaction delay.
- * @author{Wonseo Choi <wonsuh1202@hanyang.ac.kr>}
- * @author{Yunsang Cho <snsc7878@hanyang.ac.kr>}
- * @author{Marten Lohstroh <marten@berkeley.edu>}
- * @author{Hokeun Kim <hokeunkim@berkeley.edu>}
+ * @author Wonseo Choi
+ * @author Yunsang Cho
+ * @author Marten Lohstroh
+ * @author Hokeun Kim
  */
 class LetInferenceTest  {
 
@@ -99,7 +101,11 @@ class LetInferenceTest  {
         ));
 
         Assertions.assertNotNull(model);
-        ASTUtils.insertGeneratedDelays(model.eResource(), new CGenerator(new FileConfig(model.eResource(), Path.of("./a/"), true), new DefaultErrorReporter()));
+        final var ctypes = new CTypes(new DefaultErrorReporter());
+        final var resource = model.eResource();
+        final var transformation = new AfterDelayTransformation(new CDelayBodyGenerator(ctypes), ctypes, resource);
+        transformation.applyTransformation(ASTUtils.getAllReactors(resource));
+
         Assertions.assertTrue(model.eResource().getErrors().isEmpty(),
                               "Encountered unexpected error while parsing: " +
                                   model.eResource().getErrors());

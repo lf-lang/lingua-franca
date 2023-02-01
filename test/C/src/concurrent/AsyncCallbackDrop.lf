@@ -3,6 +3,7 @@
 // will not work with the unthreaded C target because that target does not
 // implement any mutex protecting the event queue.
 target C {
+    keepalive: true,  // To silence warning.
     timeout: 2 sec
 }
 
@@ -20,7 +21,7 @@ main reactor {
         // Simulate time passing before a callback occurs.
         void* take_time(void* a) {
             instant_t sleep_time = 100000000;
-            lf_nanosleep(sleep_time);
+            lf_sleep(sleep_time);
             callback(a);
             return NULL;
         }

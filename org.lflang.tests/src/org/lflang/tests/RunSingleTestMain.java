@@ -31,7 +31,6 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.lflang.Target;
-import org.lflang.tests.TestBase.TestLevel;
 import org.lflang.tests.runtime.CCppTest;
 import org.lflang.tests.runtime.CTest;
 import org.lflang.tests.runtime.CppTest;

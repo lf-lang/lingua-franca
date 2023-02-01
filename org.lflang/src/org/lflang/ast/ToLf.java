@@ -31,6 +31,7 @@ import org.lflang.lf.AttrParm;
 import org.lflang.lf.Attribute;
 import org.lflang.lf.BuiltinTriggerRef;
 import org.lflang.lf.Code;
+import org.lflang.lf.CodeExpr;
 import org.lflang.lf.Connection;
 import org.lflang.lf.Deadline;
 import org.lflang.lf.Element;
@@ -40,6 +41,7 @@ import org.lflang.lf.IPV4Host;
 import org.lflang.lf.IPV6Host;
 import org.lflang.lf.Import;
 import org.lflang.lf.ImportedReactor;
+import org.lflang.lf.Initializer;
 import org.lflang.lf.Input;
 import org.lflang.lf.Instantiation;
 import org.lflang.lf.KeyValuePair;
@@ -102,6 +104,7 @@ public class ToLf extends LfSwitch<MalleableString> {
   @Override
   public MalleableString doSwitch(EObject eObject) {
     ICompositeNode node = NodeModelUtils.findActualNodeFor(eObject);
+    if (node == null) return super.doSwitch(eObject);
     var ancestorComments = getAncestorComments(node);
     Predicate<INode> doesNotBelongToAncestor = n -> !ancestorComments.contains(n);
     List<String> followingComments =
@@ -121,9 +124,10 @@ public class ToLf extends LfSwitch<MalleableString> {
     allComments.addAll(followingComments);
     if (allComments.stream().anyMatch(s -> KEEP_FORMAT_COMMENT.matcher(s).matches())) {
       return MalleableString.anyOf(StringUtil.trimCodeBlock(node.getText(), 0))
-          .addComments(followingComments.stream());
+          .addComments(followingComments.stream())
+          .setSourceEObject(eObject);
     }
-    return super.doSwitch(eObject).addComments(allComments.stream());
+    return super.doSwitch(eObject).addComments(allComments.stream()).setSourceEObject(eObject);
   }
 
   /** Return all comments contained by ancestors of {@code node} that belong to said ancestors. */
@@ -198,6 +202,11 @@ public class ToLf extends LfSwitch<MalleableString> {
   }
 
   @Override
+  public MalleableString caseCodeExpr(CodeExpr object) {
+    return caseCode(object.getCode());
+  }
+
+  @Override
   public MalleableString caseCode(Code code) {
     String content =
         ToText.instance
@@ -267,7 +276,12 @@ public class ToLf extends LfSwitch<MalleableString> {
   @Override
   public MalleableString caseTime(Time t) {
     // (interval=INT unit=TimeUnit)
-    return MalleableString.anyOf(ASTUtils.toTimeValue(t).toString());
+    final var interval = Integer.toString(t.getInterval());
+    if (t.getUnit() == null) {
+      return MalleableString.anyOf(interval);
+    }
+
+    return MalleableString.anyOf(interval + " " + t.getUnit());
   }
 
   @Override
@@ -457,13 +471,13 @@ public class ToLf extends LfSwitch<MalleableString> {
     // ) ';'?
     Builder msb = new Builder();
     addAttributes(msb, object::getAttributes);
-    if (object.isReset()) msb.append("reset ");
+    if (object.isReset()) {
+      msb.append("reset ");
+    }
     msb.append("state ").append(object.getName());
     msb.append(typeAnnotationFor(object.getType()));
-    if (!object.getParens().isEmpty()) msb.append(list(true, object.getInit()));
-    if (!object.getBraces().isEmpty()) {
-      msb.append(list(", ", "{", "}", true, false, object.getInit()));
-    }
+    msb.append(initializer(object.getInit(), true));
+
     return msb.get();
   }
 
@@ -672,6 +686,7 @@ public class ToLf extends LfSwitch<MalleableString> {
     // (parameters+=Assignment (',' parameters+=Assignment)*)?
     // ')' ('at' host=Host)? ';'?;
     Builder msb = new Builder();
+    addAttributes(msb, object::getAttributes);
     msb.append(object.getName()).append(" = new");
     if (object.getWidthSpec() != null) msb.append(doSwitch(object.getWidthSpec()));
     msb.append(" ").append(object.getReactorClass().getName());
@@ -804,19 +819,37 @@ public class ToLf extends LfSwitch<MalleableString> {
     // ));
     Builder msb = new Builder();
     msb.append(object.getLhs().getName());
-    if (object.getEquals() != null) msb.append(" = ");
-    String prefix = "";
-    String suffix = "";
-    if (!object.getParens().isEmpty()) {
-      prefix = "(";
-      suffix = ")";
-    } else if (!object.getBraces().isEmpty()) {
-      prefix = "{";
-      suffix = "}";
+    if (object.getEquals() != null) {
+      msb.append(" = ");
     }
-    msb.append(list(", ", prefix, suffix, false, prefix.isBlank(), object.getRhs()));
+    msb.append(initializer(object.getRhs(), false));
     return msb.get();
   }
+
+  @Override
+  public MalleableString caseInitializer(Initializer object) {
+    return initializer(object, false);
+  }
+
+  private MalleableString initializer(Initializer init, boolean nothingIfEmpty) {
+    if (init == null) {
+      return MalleableString.anyOf("");
+    }
+    String prefix;
+    String suffix;
+    if (init.isBraces()) {
+      prefix = "{";
+      suffix = "}";
+    } else if (init.isParens()) {
+      prefix = "(";
+      suffix = ")";
+    } else {
+      // unparenthesized parameter assignment.
+      prefix = suffix = "";
+    }
+    return list(", ", prefix, suffix, nothingIfEmpty, false, init.getExprs());
+  }
+
 
   @Override
   public MalleableString caseParameter(Parameter object) {
@@ -829,14 +862,7 @@ public class ToLf extends LfSwitch<MalleableString> {
     return builder
         .append(object.getName())
         .append(typeAnnotationFor(object.getType()))
-        .append(
-            list(
-                ", ",
-                object.getBraces().isEmpty() ? "(" : "{",
-                object.getBraces().isEmpty() ? ")" : "}",
-                true,
-                false,
-                object.getInit()))
+        .append(initializer(object.getInit(), true))
         .get();
   }
 
@@ -997,29 +1023,40 @@ public class ToLf extends LfSwitch<MalleableString> {
     var sorted =
         statementListList.stream()
             .flatMap(List::stream)
-            .sorted(Comparator.comparing(object -> NodeModelUtils.getNode(object).getStartLine()))
+            .sequential()
+            .sorted(
+                Comparator.comparing(
+                    object -> {
+                      INode node = NodeModelUtils.getNode(object);
+                      return node == null ? 0 : node.getStartLine();
+                    }))
             .toList();
     if (sorted.isEmpty()) return MalleableString.anyOf("");
     var ret = new Builder();
     var first = true;
     for (var object : sorted) {
       if (!first) {
-        INode node = NodeModelUtils.getNode(object);
-        StringBuilder leadingText = new StringBuilder();
-        if (!forceWhitespace) {
-          for (INode n : node.getAsTreeIterable()) {
-            if (n instanceof ICompositeNode) continue;
-            if (!ASTUtils.isComment(n) && !n.getText().isBlank()) break;
-            leadingText.append(n.getText());
-          }
-        }
-        boolean hasLeadingBlankLines =
-            leadingText.toString().lines().skip(1).filter(String::isBlank).count() > 1;
-        ret.append("\n".repeat(forceWhitespace || hasLeadingBlankLines ? 2 : 1));
+        ret.append("\n".repeat(shouldAddWhitespaceBefore(object, forceWhitespace) ? 2 : 1));
       }
       ret.append(doSwitch(object));
       first = false;
     }
     return ret.append("\n").get().indent();
+  }
+
+  private static boolean shouldAddWhitespaceBefore(EObject object, boolean forceWhitespace) {
+    INode node = NodeModelUtils.getNode(object);
+    if (node == null) return true;
+    StringBuilder leadingText = new StringBuilder();
+    if (!forceWhitespace) {
+      for (INode n : node.getAsTreeIterable()) {
+        if (n instanceof ICompositeNode) continue;
+        if (!ASTUtils.isComment(n) && !n.getText().isBlank()) break;
+        leadingText.append(n.getText());
+      }
+    }
+    boolean hasLeadingBlankLines =
+        leadingText.toString().lines().skip(1).filter(String::isBlank).count() > 1;
+    return forceWhitespace || hasLeadingBlankLines;
   }
 }

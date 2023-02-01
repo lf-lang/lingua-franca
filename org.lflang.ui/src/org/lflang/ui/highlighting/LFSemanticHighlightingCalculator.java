@@ -36,7 +36,7 @@ import com.google.inject.Inject;
 /**
  * Syntax highlighting adjustments for LF.
  *  
- * @author{Alexander Schulz-Rosengarten <als@informatik.uni-kiel.de>}
+ * @author Alexander Schulz-Rosengarten
  */
 public class LFSemanticHighlightingCalculator implements ISemanticHighlightingCalculator {
     

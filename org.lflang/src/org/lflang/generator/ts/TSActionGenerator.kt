@@ -1,6 +1,5 @@
 package org.lflang.generator.ts
 
-import org.lflang.federated.FederateInstance
 import org.lflang.generator.getTargetTimeExpr
 import org.lflang.lf.Action
 import org.lflang.lf.ParameterReference
@@ -11,7 +10,7 @@ import java.util.*
  */
 class TSActionGenerator(
     private val actions: List<Action>,
-    private val federate: FederateInstance
+    private val networkMessageActions: List<String>
 ) {
 
     fun generateClassProperties(): String {
@@ -28,7 +27,7 @@ class TSActionGenerator(
         return stateClassProperties.joinToString("\n")
     }
 
-    fun generateInstantiations(networkMessageActions: List<Action>): String {
+    fun generateInstantiations(): String {
         val actionInstantiations = LinkedList<String>()
         for (action in actions) {
             // Shutdown actions are handled internally by the
@@ -46,7 +45,7 @@ class TSActionGenerator(
                         ", " + action.minDelay.toTsTime()
                     }
                 }
-                if (action in networkMessageActions){
+                if (action.name in networkMessageActions) {
                     actionInstantiations.add(
                         "this.${action.name} = new __FederatePortAction<${action.tsActionType}>($actionArgs);")
                 } else {

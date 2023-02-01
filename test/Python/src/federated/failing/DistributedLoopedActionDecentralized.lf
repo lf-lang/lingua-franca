@@ -1,46 +1,41 @@
 /**
- * Test a sender-receiver network system that
- * relies on microsteps being taken into account.
- * The purpose of this test is to check whether the functionalities
- * pertinent to dynamic STP offset adjustments are present and
+ * Test a sender-receiver network system that relies on microsteps being taken
+ * into account. The purpose of this test is to check whether the
+ * functionalities pertinent to dynamic STP offset adjustments are present and
  * functioning to a degree.
  *
- * This version of the test does not use a centralized
- * coordinator to advance tag. Therefore,
- * the receiver will rely on an STP offset (initially
- * zero) to wait long enough for messages to arrive
- * before advancing its tag. In this test,
- * the STP offset is initially zero and gradually
- * raised every time an STP violation is perceived until
- * no STP violation is observed. Therefore, the exact
- * outcome of the test will depend on actual runtime
- * timing.
- *
+ * This version of the test does not use a centralized coordinator to advance
+ * tag. Therefore, the receiver will rely on an STP offset (initially zero) to
+ * wait long enough for messages to arrive before advancing its tag. In this
+ * test, the STP offset is initially zero and gradually raised every time an STP
+ * violation is perceived until no STP violation is observed. Therefore, the
+ * exact outcome of the test will depend on actual runtime timing.
  *
  * @author Soroush Bateni
  */
-
-// reason for failing: in_.intended_tag are not supported in python target
-
+# reason for failing: in_.intended_tag are not supported in python target
 target Python {
     timeout: 1 sec,
     coordination: decentralized
-};
-
+}
 
 import Sender from "../lib/LoopedActionSender.lf"
 import Receiver from "DistributedLoopedAction.lf"
 
-reactor STPReceiver(take_a_break_after(10), break_interval(400 msec), stp_offset(0)) {
-    input inp;
-    state last_time_updated_stp(0);
-    receiver = new Receiver(take_a_break_after = 10, break_interval = 400 msec);
-    timer t (0, 1 msec); // Force advancement of logical time
+reactor STPReceiver(
+    take_a_break_after(10),
+    break_interval(400 msec),
+    stp_offset(0)
+) {
+    input inp
+    state last_time_updated_stp(0)
+    receiver = new Receiver(take_a_break_after = 10, break_interval = 400 msec)
+    timer t(0, 1 msec)  # Force advancement of logical time
 
-    reaction (inp) -> receiver.in_ {=
+    reaction(inp) -> receiver.in_ {=
         print(f"Received {inp.value}.")
         receiver.in_.set(inp.value)
-    =} STP (stp_offset) {=
+    =} STP(stp_offset) {=
         print(f"Received {inp.value} late.")
         current_tag = lf.tag()
         print(f"STP violation of "
@@ -52,19 +47,21 @@ reactor STPReceiver(take_a_break_after(10), break_interval(400 msec), stp_offset
         # time step.
         if current_tag.time != self.last_time_updated_stp :
             print(f"Raising the STP offset by {MSEC(10)}.")
-            set_stp_offset(MSEC(10))
+            lf_set_stp_offset(MSEC(10))
             self.last_time_updated_stp = current_tag.time
     =}
 
-    reaction (t) {=
+    reaction(t) {=
         # Do nothing
     =}
 }
 
-
 federated reactor DistributedLoopedActionDecentralized {
-    sender = new Sender(take_a_break_after = 10, break_interval = 400 msec);
-    stpReceiver = new STPReceiver(take_a_break_after = 10, break_interval = 400 msec);
+    sender = new Sender(take_a_break_after = 10, break_interval = 400 msec)
+    stpReceiver = new STPReceiver(
+        take_a_break_after = 10,
+        break_interval = 400 msec
+    )
 
-    sender.out -> stpReceiver.inp;
+    sender.out -> stpReceiver.inp
 }

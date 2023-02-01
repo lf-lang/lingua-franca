@@ -74,7 +74,7 @@ import com.google.inject.Injector;
 /**
  * Action handler for invoking compilation.
  * 
- * @author{Alexander Schulz-Rosengarten <als@informatik.uni-kiel.de>}
+ * @author Alexander Schulz-Rosengarten
  */
 class CompileActionHandler extends AbstractHandler {
 

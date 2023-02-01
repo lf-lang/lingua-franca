@@ -11,7 +11,7 @@ import org.eclipse.xtext.util.CancelIndicator;
 /**
  * The Lingua Franca language and diagram server.
  *
- * @author Peter Donovan <peterdonovan@berkeley.edu>
+ * @author Peter Donovan
  */
 public class LFLanguageServer extends KGraphLanguageServerExtension {
     @Override

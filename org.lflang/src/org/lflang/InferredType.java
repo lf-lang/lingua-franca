@@ -26,6 +26,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 package org.lflang;
 
 import java.util.function.Function;
+
 import org.eclipse.emf.ecore.EObject;
 
 import org.lflang.lf.Type;
@@ -45,7 +46,7 @@ import org.lflang.lf.Type;
  * translated to target code using the code generators or be converted to a general
  * textual representation using toText().
  *
- * @author Christian Menard <christian.menard@tu-dresden.de>
+ * @author Christian Menard
  */
 public class InferredType {
 
@@ -188,5 +189,19 @@ public class InferredType {
      */
     public static InferredType timeList() {
         return timeList(null);
+    }
+
+    /**
+     * Returns the component type, if this is a first-class
+     * list type. Eg returns {@code time} for the type {@code time[]}.
+     * If this is not a first-class list type, returns null.
+     *
+     * <p>Todo this does not return int for int[], we need to
+     *  make the parser production left-recursive. OTOH only
+     *  time and time[] are first class in our framework so
+     *  this doesn't contradict the contract of this method.
+     */
+    public InferredType getComponentType() {
+        return isTime && isList ? time() : null;
     }
 }

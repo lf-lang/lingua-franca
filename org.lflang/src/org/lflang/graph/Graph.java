@@ -76,4 +76,8 @@ public interface Graph<T> {
 
     /** Return the number of directed edges in this graph. */
     int edgeCount();
+
+
+    /** Return the DOT (GraphViz) representation of the graph. */
+    String toDOT();
 }
