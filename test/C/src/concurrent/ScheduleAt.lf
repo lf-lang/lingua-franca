@@ -62,7 +62,7 @@ reactor Scheduler {
         900 msec
     )
     // Size = 9
-    state action_hit_list_index: int(0)
+    state action_hit_list_index: int = 0
 
     reaction(startup) -> act {=
         for (int i=0; i < 16; i++) {
