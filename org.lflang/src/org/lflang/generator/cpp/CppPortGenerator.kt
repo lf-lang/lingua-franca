@@ -25,14 +25,32 @@
 package org.lflang.generator.cpp
 
 import org.lflang.inferredType
+import org.lflang.isBank
 import org.lflang.isMultiport
 import org.lflang.joinWithLn
-import org.lflang.lf.Input
-import org.lflang.lf.Output
-import org.lflang.lf.Port
-import org.lflang.lf.Reactor
+import org.lflang.lf.*
 
 class CppPortGenerator(private val reactor: Reactor) {
+
+    companion object {
+        private val VarRef.isMultiport get() = (variable as? Port)?.isMultiport == true
+        private val VarRef.isInBank get() = container?.isBank == true
+
+        /**
+         * Return the C++ type of a port reference.
+         *
+         * We cannot easily infer this type directly, because it might be used within a generic reactor but the reference is
+         * likely used outside of it. Instead of implementing complex logic for finding the actual type, we return a decltype
+         * statement and let the C++ compiler do the job.
+         */
+        val VarRef.dataType: String
+            get() = when {
+                isInBank && isMultiport  -> "std::remove_reference<decltype(${container.name}[0]->${variable.name}[0])>::type::value_type"
+                isInBank && !isMultiport -> "std::remove_reference<decltype(${container.name}[0]->${variable.name})>::type::value_type"
+                !isInBank && isMultiport -> "std::remove_reference<decltype($name[0])>::type::value_type"
+                else                     -> "std::remove_reference<decltype($name)>::type::value_type"
+            }
+    }
 
     private fun generateDeclaration(port: Port): String = with(port) {
         return if (isMultiport) {

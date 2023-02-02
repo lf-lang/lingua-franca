@@ -1,9 +1,12 @@
 package org.lflang.generator.cpp
 
 import org.lflang.*
+import org.lflang.generator.cpp.CppConnectionGenerator.Companion.cppType
+import org.lflang.generator.cpp.CppPortGenerator.Companion.dataType
 import org.lflang.lf.Connection
 import org.lflang.lf.Port
 import org.lflang.lf.Reactor
+import org.lflang.lf.VarRef
 
 class CppConnectionGenerator(private val reactor: Reactor) {
 
@@ -20,12 +23,10 @@ class CppConnectionGenerator(private val reactor: Reactor) {
 
         val Connection.cppType: String
             get() {
-                val leftPort = leftPorts.first().variable as Port
-                val dataType = leftPort.inferredType.cppType
-
+                val leftPort = leftPorts.first()
                 return when {
-                    isPhysical    -> "reactor::PhysicalConnection<$dataType>"
-                    delay != null -> "reactor::DelayedConnection<$dataType>"
+                    isPhysical    -> "reactor::PhysicalConnection<${leftPort.dataType}>"
+                    delay != null -> "reactor::DelayedConnection<${leftPort.dataType}>"
                     else          -> throw IllegalArgumentException("Connection is neither physical nor delayed")
                 }
             }

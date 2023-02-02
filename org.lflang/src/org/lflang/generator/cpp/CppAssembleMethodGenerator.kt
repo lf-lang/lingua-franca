@@ -28,6 +28,7 @@ import org.lflang.*
 import org.lflang.generator.PrependOperator
 import org.lflang.generator.cpp.CppConnectionGenerator.Companion.name
 import org.lflang.generator.cpp.CppConnectionGenerator.Companion.requiresConnectionClass
+import org.lflang.generator.cpp.CppPortGenerator.Companion.dataType
 import org.lflang.lf.Action
 import org.lflang.lf.Connection
 import org.lflang.lf.ParameterReference
@@ -162,9 +163,6 @@ class CppAssembleMethodGenerator(private val reactor: Reactor) {
                 """.trimIndent()
         }
 
-    private val VarRef.isMultiport get() = (variable as? Port)?.isMultiport == true
-    private val VarRef.isInBank get() = container?.isBank == true
-
     /**
      * Return the C++ type of a port.
      *
@@ -172,12 +170,7 @@ class CppAssembleMethodGenerator(private val reactor: Reactor) {
      * complex logic for finding the actual type, we return a decltype statement and let the C++ compiler do the job.
      */
     private val VarRef.portType: String
-        get() = when {
-            isInBank && isMultiport  -> "reactor::Port<std::remove_reference<decltype(${container.name}[0]->${variable.name}[0])>::type::value_type>*"
-            isInBank && !isMultiport -> "reactor::Port<std::remove_reference<decltype(${container.name}[0]->${variable.name})>::type::value_type>*"
-            !isInBank && isMultiport -> "reactor::Port<std::remove_reference<decltype($name[0])>::type::value_type>*"
-            else                     -> "reactor::Port<std::remove_reference<decltype($name)>::type::value_type>*"
-        }
+        get() = "reactor::Port<${dataType}>*"
 
     private fun declareMultiportConnection(c: Connection, idx: Int): String {
         // It should be safe to assume that all ports have the same type. Thus we just pick the
