@@ -71,14 +71,15 @@ val TimeUnit?.cppUnit
 /**
  * Returns a C++ variable initializer.
  */
-fun CppTypes.getCppInitializer(init: Initializer?, inferredType: InferredType): String {
-    return if (init == null) {
+fun CppTypes.getCppInitializer(init: Initializer?, inferredType: InferredType): String =
+    if (init == null) {
         "/*uninitialized*/"
+    } else if (init.isAssign) {
+        val e = init.exprs.single()
+        " = " + getTargetExpr(e, inferredType)
     } else {
-        assert(init.isBraces || init.isParens)
         val (prefix, postfix) = if (init.isBraces) Pair("{", "}") else Pair("(", ")")
         init.exprs.joinToString(", ", prefix, postfix) {
             getTargetExpr(it, inferredType.componentType)
         }
     }
-}
