@@ -24,11 +24,9 @@
 
 package org.lflang.generator.cpp
 
+import org.lflang.*
 import org.lflang.generator.PrependOperator
-import org.lflang.hasMultipleConnections
-import org.lflang.isBank
-import org.lflang.isMultiport
-import org.lflang.joinWithLn
+import org.lflang.generator.cpp.CppConnectionGenerator.Companion.name
 import org.lflang.lf.Action
 import org.lflang.lf.Connection
 import org.lflang.lf.ParameterReference
@@ -186,18 +184,42 @@ class CppAssembleMethodGenerator(private val reactor: Reactor) {
         // first left port to determine the type of the entire connection
         val portType = c.leftPorts[0].portType
 
+        // TODO this does not work with generics
+        val leftPort = c.leftPorts[0].variable as Port
+        val dataType = leftPort.inferredType.cppType
+
         // Generate code which adds all left hand ports and all right hand ports to a vector each. If we are handling multiports
         // within a bank, then we normally iterate over all banks in an outer loop and over all ports in an inner loop. However,
         // if the connection is a cross connection, than we change the order on the right side and iterate over ports before banks.
         return with(PrependOperator) {
-            """
-                |// connection $idx
-                |std::vector<$portType> __lf_left_ports_$idx;
-            ${" |"..c.leftPorts.joinWithLn { addAllPortsToVector(it, "__lf_left_ports_$idx") }}
-                |std::vector<$portType> __lf_right_ports_$idx;
-            ${" |"..c.rightPorts.joinWithLn { addAllPortsToVector(it, "__lf_right_ports_$idx") }}
-                |lfutil::bind_multiple_ports(__lf_left_ports_$idx, __lf_right_ports_$idx, ${c.isIterated});
-            """.trimMargin()
+            if (c.delay == null) {
+                """
+                    |// connection $idx
+                    |std::vector<$portType> __lf_left_ports_$idx;
+                ${" |"..c.leftPorts.joinWithLn { addAllPortsToVector(it, "__lf_left_ports_$idx") }}
+                    |std::vector<$portType> __lf_right_ports_$idx;
+                ${" |"..c.rightPorts.joinWithLn { addAllPortsToVector(it, "__lf_right_ports_$idx") }}
+                    |lfutil::bind_multiple_ports(__lf_left_ports_$idx, __lf_right_ports_$idx, ${c.isIterated});
+                """.trimMargin()
+            } else {
+                """
+                    |// connection $idx
+                    |std::vector<$portType> __lf_left_ports_$idx;
+                ${" |"..c.leftPorts.joinWithLn { addAllPortsToVector(it, "__lf_left_ports_$idx") }}
+                    |${c.name}.reserve(__lf_left_ports_$idx.size());
+                    |for(size_t __lf_idx{0}; __lf_idx < __lf_left_ports_$idx.size(); __lf_idx++) {
+                    |  ${c.name}.emplace_back("${c.name}" + std::to_string(__lf_idx), this, ${c.delay.toCppTime()});
+                    |  ${c.name}.back().bind_upstream_port(__lf_left_ports_$idx[__lf_idx]);
+                    |}
+                    |std::vector<reactor::Connection<$dataType>*> __lf_connection_pointers_$idx;
+                    |for (auto& connection : ${c.name}) {
+                    |  __lf_connection_pointers_$idx.push_back(&connection);
+                    |}
+                    |std::vector<$portType> __lf_right_ports_$idx;
+                ${" |"..c.rightPorts.joinWithLn { addAllPortsToVector(it, "__lf_right_ports_$idx") }}
+                    |lfutil::bind_multiple_connections_with_ports(__lf_connection_pointers_$idx, __lf_right_ports_$idx, ${c.isIterated});
+                """.trimMargin()
+            }
         }
     }
 

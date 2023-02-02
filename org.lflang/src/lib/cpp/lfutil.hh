@@ -101,4 +101,42 @@ void bind_multiple_ports(
   }
 }
 
+template<class T>
+void bind_multiple_connections_with_ports(
+    std::vector<reactor::Connection<T>*>& connections,
+    std::vector<reactor::Port<T>*>& ports,
+    bool repeat_left) {
+
+  if (repeat_left) {
+    size_t l_size = connections.size();
+    size_t r_size = ports.size();
+    // divide and round up
+    size_t repetitions = r_size / l_size + (r_size % l_size != 0);
+    // repeat repetitions-1 times
+    connections.reserve(repetitions * l_size);
+    for (size_t i = 1; i < repetitions; i++) {
+      std::copy_n(connections.begin(), l_size, std::back_inserter(connections));
+    }
+  }
+
+  auto left_it = connections.begin();
+  auto right_it = ports.begin();
+
+  if (connections.size() < ports.size()) {
+    reactor::log::Warn() << "There are more right ports than left ports. "
+                         << "Not all ports will be connected!";
+  } else if (connections.size() > ports.size()) {
+    reactor::log::Warn() << "There are more left ports than right ports. "
+                         << "Not all ports will be connected!";
+  }
+
+  while (left_it != connections.end() && right_it != ports.end()) {
+    auto left = *left_it;
+    auto right = *right_it;
+    left->bind_downstream_port(right);
+    left_it++;
+    right_it++;
+  }
+}
+
 }
