@@ -53,7 +53,7 @@ class CppParameterGenerator(private val reactor: Reactor) {
                 """
                     using $typeAlias = $targetType;
                     const $typeAlias $name${
-                    if (init == null) "" else " = " + typeAlias + CppTypes.getCppInitializer(
+                    if (init == null) "" else CppTypes.getCppInitializer(
                         init,
                         inferredType
                     )
