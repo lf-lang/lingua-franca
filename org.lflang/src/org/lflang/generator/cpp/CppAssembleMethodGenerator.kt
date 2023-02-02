@@ -27,6 +27,7 @@ package org.lflang.generator.cpp
 import org.lflang.*
 import org.lflang.generator.PrependOperator
 import org.lflang.generator.cpp.CppConnectionGenerator.Companion.name
+import org.lflang.generator.cpp.CppConnectionGenerator.Companion.requiresConnectionClass
 import org.lflang.lf.Action
 import org.lflang.lf.Connection
 import org.lflang.lf.ParameterReference
@@ -148,18 +149,17 @@ class CppAssembleMethodGenerator(private val reactor: Reactor) {
             val leftPort = c.leftPorts[0]
             val rightPort = c.rightPorts[0]
 
-            if (c.delay == null)
-                """
-                    // connection $idx
-                    ${leftPort.name}.bind_to(&${rightPort.name});
-                """.trimIndent()
-            else with(CppConnectionGenerator) {
+            if (c.requiresConnectionClass)
                 """
                     // connection $idx
                     ${c.name}.bind_upstream_port(&${leftPort.name});
                     ${c.name}.bind_downstream_port(&${rightPort.name});
                 """.trimIndent()
-            }
+            else
+                """
+                    // connection $idx
+                    ${leftPort.name}.bind_to(&${rightPort.name});
+                """.trimIndent()
         }
 
     private val VarRef.isMultiport get() = (variable as? Port)?.isMultiport == true

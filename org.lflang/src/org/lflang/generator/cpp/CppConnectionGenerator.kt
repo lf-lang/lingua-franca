@@ -17,6 +17,20 @@ class CppConnectionGenerator(private val reactor: Reactor) {
                         it.container.name + "_" + it.variable.name
                     }
                 }
+
+        val Connection.cppType: String
+            get() {
+                val leftPort = leftPorts.first().variable as Port
+                val dataType = leftPort.inferredType.cppType
+
+                return when {
+                    isPhysical    -> "reactor::PhysicalConnection<$dataType>"
+                    delay != null -> "reactor::DelayedConnection<$dataType>"
+                    else          -> throw IllegalArgumentException("Connection is neither physical nor delayed")
+                }
+            }
+
+        val Connection.requiresConnectionClass: Boolean get() = isPhysical || delay != null
     }
 
     fun generateDeclarations() =
@@ -27,33 +41,18 @@ class CppConnectionGenerator(private val reactor: Reactor) {
         reactor.connections.mapNotNull { generateConstructorInitializer(it) }.joinLn()
 
     private fun generateDecleration(connection: Connection): String? =
-        when {
-            connection.delay != null -> generateDelayedConnectionDeclaration(connection)
-            else                     -> null
-        }
+        if (connection.requiresConnectionClass) {
+            if (connection.hasMultipleConnections) {
+                "std::vector<${connection.cppType}> ${connection.name};"
+            } else {
+                "${connection.cppType} ${connection.name};"
+            }
+        } else null
 
     private fun generateConstructorInitializer(connection: Connection): String? =
-        if (connection.delay != null && !connection.hasMultipleConnections)
-            generateDelayedConnectionInitilizer(connection)
-        else null
-
-    private fun generateDelayedConnectionDeclaration(connection: Connection): String {
-        val leftRef = connection.leftPorts.first()
-        val leftPort = leftRef.variable as Port
-        val dataType = leftPort.inferredType.cppType
-
-        return if (connection.hasMultipleConnections) {
-            "std::vector<reactor::DelayedConnection<$dataType>> ${connection.name};"
-        } else {
-            "reactor::DelayedConnection<$dataType> ${connection.name};"
-        }
-    }
-
-    private fun generateDelayedConnectionInitilizer(connection: Connection): String {
-        assert(!connection.hasMultipleConnections)
-        val delay = connection.delay.toCppTime()
-        val name = connection.name
-
-        return """, $name{"$name", this, $delay}"""
-    }
+        if (connection.requiresConnectionClass && !connection.hasMultipleConnections) {
+            val delay = connection.delay.toCppTime()
+            val name = connection.name
+            """, $name{"$name", this, $delay}"""
+        } else null
 }
