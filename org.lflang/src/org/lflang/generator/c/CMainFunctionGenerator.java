@@ -52,7 +52,7 @@ public class CMainFunctionGenerator {
             "// Arduino setup() and loop() functions",
             "void setup() {",
                 "\tSerial.begin(" + targetConfig.platformOptions.baudRate + ");",
-                "\tlf_register_print_function(&_lf_arduino_print_message_function, LOG_LEVEL);",
+                "\tlf_register_print_function(&_lf_arduino_print_message_function, 0);",
                 "\tlf_reactor_c_main(0, NULL);",
             "}\n",
             "void loop() {}"
