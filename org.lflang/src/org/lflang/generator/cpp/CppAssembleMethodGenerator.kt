@@ -192,7 +192,7 @@ class CppAssembleMethodGenerator(private val reactor: Reactor) {
         // within a bank, then we normally iterate over all banks in an outer loop and over all ports in an inner loop. However,
         // if the connection is a cross connection, than we change the order on the right side and iterate over ports before banks.
         return with(PrependOperator) {
-            if (c.delay == null) {
+            if (!c.requiresConnectionClass) {
                 """
                     |// connection $idx
                     |std::vector<$portType> __lf_left_ports_$idx;
