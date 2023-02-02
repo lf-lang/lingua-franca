@@ -171,10 +171,21 @@ public class LFValidator extends BaseLFValidator {
     public void checkInitializer(Initializer init) {
         if (init.isBraces() && target != Target.CPP) {
             error("Brace initializers are only supported for the C++ target", Literals.INITIALIZER__BRACES);
-        }
-        if (init.isParens() && target.mandatesEqualsInitializers()) {
-            warning("This syntax is deprecated in the " + target
-                + " target, use an equal sign instead of parentheses for assignment (run the formatter to fix this automatically).", Literals.INITIALIZER__PARENS);
+        } else if (init.isParens() && target.mandatesEqualsInitializers()) {
+            var message = "This syntax is deprecated in the " + target
+                + " target, use an equal sign instead of parentheses for assignment.";
+            if (init.getExprs().size() == 1) {
+                message += " (run the formatter to fix this automatically)";
+            }
+            warning(message, Literals.INITIALIZER__PARENS);
+        } else if (!init.isAssign() && init.eContainer() instanceof Assignment) {
+            var feature = init.isBraces() ? Literals.INITIALIZER__BRACES
+                : Literals.INITIALIZER__PARENS;
+            var message = "This syntax is deprecated, do not use parentheses or braces but an equal sign.";
+            if (init.getExprs().size() == 1) {
+                message += " (run the formatter to fix this automatically)";
+            }
+            warning(message, feature);
         }
     }
 

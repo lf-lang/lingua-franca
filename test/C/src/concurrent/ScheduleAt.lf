@@ -12,7 +12,7 @@ target C {
 reactor Scheduler {
     logical action act
     // List of microsteps. Size = 16
-    state microstep_delay_list: uint32_t[](
+    state microstep_delay_list: uint32_t[] = {={
         0,
         1,
         1,
@@ -29,7 +29,7 @@ reactor Scheduler {
         4,
         4,
         5
-    )
+    }=}
     state times: int[](
         0,
         0,
@@ -49,7 +49,7 @@ reactor Scheduler {
         900 msec
     )
     // Size = 9
-    state action_hit_list_microstep: int[](1, 2, 0, 1, 0, 2, 3, 4, 5)
+    state action_hit_list_microstep: int[] = {={1, 2, 0, 1, 0, 2, 3, 4, 5}=}
     state action_hit_list_times: int[](
         0,
         0,
