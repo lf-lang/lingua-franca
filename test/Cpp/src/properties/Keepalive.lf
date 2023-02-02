@@ -11,7 +11,7 @@ main reactor {
     state thread: std::thread
 
     physical action a
-    state success: bool{false}
+    state success: bool = false
 
     reaction(startup) -> a {=
         // start new thread

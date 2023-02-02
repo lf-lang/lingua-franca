@@ -4,7 +4,7 @@ target Cpp
 
 reactor Source(sequence: int[]{0, 1, 2}) {
     output out: size_t
-    state count: size_t{0}
+    state count: size_t = 0
     logical action next: void
 
     reaction(startup, next) -> out, next {=
@@ -18,7 +18,7 @@ reactor Source(sequence: int[]{0, 1, 2}) {
 
 reactor Print {
     input in: size_t
-    state count: size_t{1}
+    state count: size_t = 1
 
     reaction(in) {=
         std::cout << "Received: " << *in.get() << '\n';
