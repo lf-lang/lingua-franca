@@ -6,7 +6,7 @@
 target C {
     platform: {
         name: "arduino",
-        board: "arduino:mbed_nano:nano33ble"
+        board: "arduino:mbed:nano33ble"
     }
 }
 
