@@ -56,7 +56,7 @@ main reactor CliParserGenericArguments(
     long_double_value: {= long_double =} = 4.2,
     float_value: float = 10.5,
     string_value: string = "This is a testvalue",
-    custom_class_value: {= CustomClass =} = "Peter"
+    custom_class_value: {= CustomClass =}("Peter")
 ) {
     reaction(startup) {= std::cout << "Hello World!\n"; =}
 }

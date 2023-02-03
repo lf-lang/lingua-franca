@@ -17,8 +17,7 @@ reactor Source {
 }
 
 reactor MovingAverageImpl {
-    // fixme inaccessible ({=[0.0 ; 4]=});
-    state delay_line: f64[4](0.0, 0.0, 0.0, 0.0)
+    state delay_line: {=[f64 ; 4]=} = {= [ 0.0 ; 4 ] =}
     state index: usize = 0
     input in_: f64
     output out: f64

@@ -8,6 +8,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Properties;
+import java.util.Set;
 
 import org.eclipse.core.resources.IResource;
 import org.eclipse.core.resources.ResourcesPlugin;
@@ -15,6 +16,7 @@ import org.eclipse.core.runtime.CoreException;
 import org.eclipse.emf.common.util.URI;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.emf.ecore.resource.Resource;
+import org.eclipse.xtext.diagnostics.Severity;
 import org.eclipse.xtext.generator.IGeneratorContext;
 import org.eclipse.xtext.resource.XtextResource;
 import org.eclipse.xtext.validation.CheckMode;
@@ -238,20 +240,21 @@ public class GeneratorUtils {
         // and yet it used to only report errors in the files doing the importing.
         IResourceValidator validator = ((XtextResource) fileConfig.resource).getResourceServiceProvider()
                                                                             .getResourceValidator();
-        HashSet<Resource> bad = new HashSet<>();
-        HashSet<Resource> visited = new HashSet<>();
+        Set<Resource> bad = new HashSet<>();
+        Set<Resource> visited = new HashSet<>();
         // The graph must be traversed in topological order so that errors will propagate through arbitrarily many
         // levels.
         for (Reactor reactor : instantiationGraph.nodesInTopologicalOrder()) {
             Resource resource = reactor.eResource();
-            if (visited.contains(resource)) continue;
-            visited.add(resource);
+            if (!visited.add(resource)) {
+                continue;
+            }
             List<Issue> issues = validator.validate(resource, CheckMode.ALL, context.getCancelIndicator());
-            if (
-                bad.contains(resource) || issues.size() > 0
-            ) {
+            // warnings and such are not reported on included files.
+            issues.removeIf(it -> it.getSeverity() != Severity.ERROR);
+            if (bad.contains(resource) || !issues.isEmpty()) {
                 // Report the error on this resource.
-                Path path = null;
+                Path path;
                 try {
                     path = FileUtil.toPath(resource);
                 } catch (IOException e) {
