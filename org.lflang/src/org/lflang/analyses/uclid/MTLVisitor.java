@@ -224,10 +224,10 @@ public class MTLVisitor extends MTLParserBaseVisitor<String> {
         this.horizon = currentHorizon;
         String timePredicate = generateTimePredicate(ctx.timeInterval, lowerBoundNanoSec,
                                                     upperBoundNanoSec, "j" + QFIdx, prefixIdx);        
-        return "!(" + "finite_exists " + "(" + "j" + QFIdx + " : integer) in indices :: "
+        return "(" + "finite_forall " + "(" + "j" + QFIdx + " : integer) in indices :: "
                 + "j" + QFIdx + " >= " + prefixIdx + " && " + "j" + QFIdx + " <= " + end
                 + " && " + "!" + "isNULL" + "(" + "j" + QFIdx + ")"
-                + " && " + "!" + "(" + visitPrimary(ctx.formula, ("j"+QFIdx), QFIdx+1, prefixIdx, currentHorizon) + ")"
+                + " && " + "(" + visitPrimary(ctx.formula, ("j"+QFIdx), QFIdx+1, prefixIdx, currentHorizon) + ")"
                 + " && " + "(" + "\n" 
                 + "// Time Predicate\n"
                 + timePredicate + "\n"
