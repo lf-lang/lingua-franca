@@ -176,6 +176,11 @@ public class CBaseAstVisitor<T> extends AbstractAstVisitor<T> implements CAstVis
 	}
 
 	@Override
+	public T visitScheduleActionIntNode(CAst.ScheduleActionIntNode node) {
+		return visitAstNodeDynamic(node);
+	}
+
+	@Override
 	public T visitStateVarNode(CAst.StateVarNode node) {
 		return null;
 	}
@@ -330,6 +335,11 @@ public class CBaseAstVisitor<T> extends AbstractAstVisitor<T> implements CAstVis
 	@Override
 	public T visitScheduleActionNode(CAst.ScheduleActionNode node, List<CAst.AstNode> nodeList) {
 		return visitScheduleActionNode(node);
+	}
+
+	@Override
+	public T visitScheduleActionIntNode(CAst.ScheduleActionIntNode node, List<CAst.AstNode> nodeList) {
+		return visitScheduleActionIntNode(node);
 	}
 
 	@Override

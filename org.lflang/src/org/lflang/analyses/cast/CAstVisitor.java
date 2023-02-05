@@ -35,6 +35,7 @@ public interface CAstVisitor<T> extends AstVisitor<T> {
 
 	T visitSetPortNode(CAst.SetPortNode node);
 	T visitScheduleActionNode(CAst.ScheduleActionNode node);
+	T visitScheduleActionIntNode(CAst.ScheduleActionIntNode node);
 	T visitStateVarNode(CAst.StateVarNode node);
 	T visitTriggerValueNode(CAst.TriggerValueNode node);
 	T visitTriggerIsPresentNode(CAst.TriggerIsPresentNode node);
@@ -70,6 +71,7 @@ public interface CAstVisitor<T> extends AstVisitor<T> {
 
 	T visitSetPortNode(CAst.SetPortNode node, List<CAst.AstNode> nodeList);
 	T visitScheduleActionNode(CAst.ScheduleActionNode node, List<CAst.AstNode> nodeList);
+	T visitScheduleActionIntNode(CAst.ScheduleActionIntNode node, List<CAst.AstNode> nodeList);
 	T visitStateVarNode(CAst.StateVarNode node, List<CAst.AstNode> nodeList);
 	T visitTriggerValueNode(CAst.TriggerValueNode node, List<CAst.AstNode> nodeList);
 	T visitTriggerIsPresentNode(CAst.TriggerIsPresentNode node, List<CAst.AstNode> nodeList);

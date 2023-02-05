@@ -444,10 +444,10 @@ public class MTLVisitor extends MTLParserBaseVisitor<String> {
             timePredicate += ") && (";
             if (rangeCtx.RBRACKET() != null) {
                 timePredicate += "pi1(g(" + prefixIdx + "))" + " <= "
-                    + "(" + "pi1(g(" + prevPrefixIdx + "))" + " + " + lowerBoundNanoSec + ")";
+                    + "(" + "pi1(g(" + prevPrefixIdx + "))" + " + " + upperBoundNanoSec + ")";
             } else {
                 timePredicate += "pi1(g(" + prefixIdx + "))" + " < "
-                    + "(" + "pi1(g(" + prevPrefixIdx + "))" + " + " + lowerBoundNanoSec + ")";
+                    + "(" + "pi1(g(" + prevPrefixIdx + "))" + " + " + upperBoundNanoSec + ")";
             }
             timePredicate += ")";
         }

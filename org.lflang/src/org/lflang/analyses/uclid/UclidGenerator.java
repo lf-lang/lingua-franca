@@ -465,7 +465,7 @@ public class UclidGenerator extends GeneratorBase {
         code.pr(String.join("\n",
             "// Define step and event types.",
             "type step_t = integer;",
-            "type event_t = { rxn_t, tag_t, state_t, trigger_t, sched_t };",
+            "type event_t = { rxn_t, tag_t, state_t, trigger_t, sched_t, payload_t };",
             "",
             "// Create a bounded trace with length " + String.valueOf(this.CT)
         ));
@@ -522,11 +522,19 @@ public class UclidGenerator extends GeneratorBase {
             // Initialize a dummy variable just to make the code compile.
             initialActionsScheduled = "false";
         }
+        String initialActionsScheduledPayload = "";
+        if (this.actionInstances.size() > 0) {
+            initialActionsScheduledPayload = "0, ".repeat(this.actionInstances.size());
+            initialActionsScheduledPayload = initialActionsScheduledPayload.substring(0, initialActionsScheduledPayload.length()-2);
+        } else {
+            // Initialize a dummy variable just to make the code compile.
+            initialActionsScheduledPayload = "0";
+        }
         code.pr("// Helper macro that returns an element based on index.");
         code.pr("define get(tr : trace_t, i : step_t) : event_t =");
         code.pr("if (i >= START || i <= END_TRACE) then tr[i] else");
         code.pr("{ " + initialReactions + ", inf(), { " + initialStates + " }, { " + initialTriggerPresence
-            + " }, {" + initialActionsScheduled + "} };");
+            + " }, {" + initialActionsScheduled + " }, {" + initialActionsScheduledPayload + "} };");
 
         // Define an event getter from the trace.
         code.pr(String.join("\n", 
@@ -539,6 +547,7 @@ public class UclidGenerator extends GeneratorBase {
             "define s        (i : step_t) : state_t      = elem(i)._3;",
             "define t        (i : step_t) : trigger_t    = elem(i)._4;",
             "define d        (i : step_t) : sched_t      = elem(i)._5;",
+            "define pl       (i : step_t) : payload_t    = elem(i)._6;",
             "define isNULL   (i : step_t) : boolean      = rxn(i) == " + initialReactions + ";"
         ));
     }
@@ -632,10 +641,10 @@ public class UclidGenerator extends GeneratorBase {
         }
 
         // A boolean tuple indicating whether actions are scheduled by reactions
-        // at the instant when reactions are triggered.
+        // at the instant when they are triggered.
         code.pr(String.join("\n",
             "// A boolean tuple indicating whether actions are scheduled by reactions",
-            "// at the instant when reactions are triggered."
+            "// at the instant when they are triggered."
         ));
         code.pr("type sched_t = {");
         code.indent();
@@ -657,6 +666,34 @@ public class UclidGenerator extends GeneratorBase {
         for (var i = 0; i < this.actionInstances.size(); i++) {
             code.pr("define " + this.actionInstances.get(i).getFullNameWithJoiner("_")
                 + "_scheduled" + "(d : sched_t) : boolean = d._" + (i+1) + ";");
+        }
+
+        // A integer tuple indicating the integer payloads scheduled by reactions
+        // at the instant when they are triggered.
+        code.pr(String.join("\n",
+            "// A integer tuple indicating the integer payloads scheduled by reactions",
+            "// at the instant when they are triggered."
+        ));
+        code.pr("type payload_t = {");
+        code.indent();
+        if (this.actionInstances.size() > 0) {
+            for (var i = 0 ; i < this.actionInstances.size(); i++) {
+                code.pr("integer" + ((i == this.actionInstances.size() - 1) ? "" : ",")
+                    + "\t// " + this.actionInstances.get(i));
+            }
+        } else {
+            code.pr(String.join("\n", 
+                "// There are no actions.",
+                "// Insert a dummy integer to make the model compile.",
+                "integer"
+            ));            
+        }
+        code.unindent();
+        code.pr("};");
+        code.pr("// Projection macros for scheduled payloads");
+        for (var i = 0; i < this.actionInstances.size(); i++) {
+            code.pr("define " + this.actionInstances.get(i).getFullNameWithJoiner("_")
+                + "_scheduled_payload" + "(payload : payload_t) : integer = payload._" + (i+1) + ";");
         }
     }
 
@@ -838,6 +875,7 @@ public class UclidGenerator extends GeneratorBase {
                         "    && " + reaction.getFullNameWithJoiner("_") + "(rxn(j))",
                         "    && g(i) == tag_schedule(g(j), " + action.getMinDelay().toNanoSeconds() + ")",
                         "    && " + action.getFullNameWithJoiner("_") + "_scheduled" + "(d(j))",
+                        "    && " + action.getFullNameWithJoiner("_") + "(s(i))" + " == " + action.getFullNameWithJoiner("_") + "_scheduled_payload" + "(pl(j))",
                         "))"
                     );
                 }
@@ -1148,6 +1186,13 @@ public class UclidGenerator extends GeneratorBase {
                     instance = reaction.getReaction().getParent().actions.stream()
                                 .filter(s -> s.getName().equals(name)).findFirst().get();
                     unusedActions.remove(instance);
+                } else if (stmt instanceof CAst.ScheduleActionIntNode) {
+                    CAst.ScheduleActionIntNode n = (CAst.ScheduleActionIntNode)stmt;
+                    String name = ((CAst.VariableNode)n.children.get(0)).name;
+                    instance = reaction.getReaction().getParent().actions.stream()
+                                .filter(s -> s.getName().equals(name)).findFirst().get();
+                    unusedStates.remove(instance);
+                    unusedActions.remove(instance);
                 } else continue;
                 // Create a new entry in the list if there isn't one yet.
                 if (defaultBehaviorConditions.get(instance) == null) {
@@ -1165,8 +1210,7 @@ public class UclidGenerator extends GeneratorBase {
                 "axiom(finite_forall (i : integer) in indices :: (i > START && i <= END) ==> (",
                 "    (" + reaction.getReaction().getFullNameWithJoiner("_") + "(rxn(i))" + ")",
                 "        ==> " + "(" + "(" + axiom + ")",
-                "&& " + "( " + "true",
-                "// By default, the value of the variables used in this reaction stay the same."
+                "&& " + "( " + "true"
             ));
             for (NamedInstance key : defaultBehaviorConditions.keySet()) {
                 CAst.AstNode disjunction = AstUtils.takeDisjunction(defaultBehaviorConditions.get(key));
@@ -1186,7 +1230,7 @@ public class UclidGenerator extends GeneratorBase {
                 } catch (Exception e) {
                     Exceptions.sneakyThrow(e);
                 }
-
+                code.pr("// Unused state variables and ports are reset by default.");
                 code.pr("&& " + "(" + "(" + resetCondition + ")" + " ==> " + "(");
                 if (key instanceof StateVariableInstance) {
                     StateVariableInstance n = (StateVariableInstance)key;
@@ -1219,7 +1263,7 @@ public class UclidGenerator extends GeneratorBase {
 
             // For state variables and ports that are NOT used in this reaction,
             // their values stay the same by default.
-            code.pr("// Unused state variables and ports are reset by default.");
+            code.pr("// By default, the value of the variables used in this reaction stay the same.");
             if (this.logicalTimeBased) {
                 // If all other reactions that can modify the SAME state variable
                 // are not triggered, then the state variable stay the same.

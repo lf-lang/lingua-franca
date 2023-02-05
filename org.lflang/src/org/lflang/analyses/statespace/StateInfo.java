@@ -16,6 +16,7 @@ public class StateInfo {
     public HashMap<String, String>  variables   = new HashMap<>();
     public HashMap<String, String>  triggers    = new HashMap<>();
     public HashMap<String, String>  scheduled   = new HashMap<>();
+    public HashMap<String, String>  payloads    = new HashMap<>();
 
     public void display() {
         System.out.println("reactions: " + reactions);
@@ -23,5 +24,6 @@ public class StateInfo {
         System.out.println("variables: " + variables);
         System.out.println("triggers: " + triggers);
         System.out.println("scheduled: " + scheduled);
+        System.out.println("payloads: " + payloads);
     }
 }

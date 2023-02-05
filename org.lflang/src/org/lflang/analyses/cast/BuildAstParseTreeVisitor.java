@@ -189,7 +189,7 @@ public class BuildAstParseTreeVisitor extends CBaseVisitor<CAst.AstNode> {
      * OpaqueNode, IfBlockNode,
      * AdditionNode, SubtractionNode, MultiplicationNode, DivisionNode,
      * EqualNode, NotEqualNode, LessThanNode, GreaterThanNode, LessEqualNode, GreaterEqualNode,
-     * SetPortNode, ScheduleNode.
+     * SetPortNode, ScheduleActionNode.
      * 
      * @param ctx
      * @return
@@ -315,16 +315,30 @@ public class BuildAstParseTreeVisitor extends CBaseVisitor<CAst.AstNode> {
                 return node;
             } else if (varNode.name.equals("lf_schedule")) {
                 // return a set port node.
-                if (params.size() != 2
-                    && params.size() != 3) {
+                if (params.size() != 2) {
                     System.out.println(String.join(" ", 
                         "Warning (line " + ctx.getStart().getLine() + "):",
-                        "lf_schedule must have 2 or 3 arguments. Detected " + ctx.argumentExpressionList().size(),
+                        "lf_schedule must have two arguments. Detected " + ctx.argumentExpressionList().size(),
                         "Marking the function call as opaque."
                     ));
                     return new CAst.OpaqueNode();
                 }
                 CAst.ScheduleActionNode node = new CAst.ScheduleActionNode();
+                for (AssignmentExpressionContext param : params) {
+                    node.children.add(visitAssignmentExpression(param));
+                }
+                return node;
+            } else if (varNode.name.equals("lf_schedule_int")) {
+                // return a set port node.
+                if (params.size() != 3) {
+                    System.out.println(String.join(" ", 
+                        "Warning (line " + ctx.getStart().getLine() + "):",
+                        "lf_schedule_int must have three arguments. Detected " + ctx.argumentExpressionList().size(),
+                        "Marking the function call as opaque."
+                    ));
+                    return new CAst.OpaqueNode();
+                }
+                CAst.ScheduleActionIntNode node = new CAst.ScheduleActionIntNode();
                 for (AssignmentExpressionContext param : params) {
                     node.children.add(visitAssignmentExpression(param));
                 }

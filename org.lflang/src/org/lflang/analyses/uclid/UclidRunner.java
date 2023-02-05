@@ -116,6 +116,13 @@ public class UclidRunner {
             info.scheduled.put(generator.actionInstances.get(i).getFullName(), scheduled[i]);
         }
 
+        // Scheduled payloads
+        m.find();
+        String[] payloads = m.group(1).strip().split("\\s+");
+        for (int i = 0; i < generator.actionInstances.size(); i++) {
+            info.payloads.put(generator.actionInstances.get(i).getFullName(), payloads[i]);
+        }
+
         return info;
     }
 

@@ -169,14 +169,32 @@ public class CToUclidVisitor extends CBaseAstVisitor<String> {
         String name = ((VariableNode)node.children.get(0)).name;
         NamedInstance instance = getInstanceByName(name);
         ActionInstance action = (ActionInstance)instance;
-        String additionalDelay = visit(node.children.get(1)); // FIXME: Suppport this.
+        String additionalDelay = visit(node.children.get(1));
         String str = "\n(" 
             + "(finite_exists (" + this.qv2 + " : integer) in indices :: (" + this.qv2 + " > " + this.qv + " && " + this.qv2 + " <= END_TRACE) && ("
             + "\n    " + action.getFullNameWithJoiner("_") + "_is_present" + "(" + "t" + "(" + this.qv2 + ")" + ")"
-            + "\n    " + "&& " + "tag_same" + "(" + "g(" + this.qv2 + ")" + ", " + "tag_schedule" + "(" + "g" + "(" + this.qv + ")" + ", " + action.getMinDelay().toNanoSeconds() + ")" + ")"
+            + "\n    " + "&& " + "tag_same" + "(" + "g(" + this.qv2 + ")" + ", " + "tag_schedule" + "(" + "g" + "(" + this.qv + ")" + ", " + "(" + action.getMinDelay().toNanoSeconds() + "+" + additionalDelay + ")" + ")" + ")"
             + "\n    " + "&& " + action.getFullNameWithJoiner("_") + "(" + "s" + "(" + this.qv2 + ")" + ")" + " == " + "0"
             + "\n)) // Closes finite_exists"
             + "\n&& " + action.getFullNameWithJoiner("_") + "_scheduled" + "(" + "d" + "(" + this.qv + ")" + ")"
+            + "\n)";
+        return str;
+    }
+
+    @Override
+    public String visitScheduleActionIntNode(ScheduleActionIntNode node) {
+        String name = ((VariableNode)node.children.get(0)).name;
+        NamedInstance instance = getInstanceByName(name);
+        ActionInstance action = (ActionInstance)instance;
+        String additionalDelay = visit(node.children.get(1));
+        String intValue = visit(node.children.get(2));
+        String str = "\n(" 
+            + "(finite_exists (" + this.qv2 + " : integer) in indices :: (" + this.qv2 + " > " + this.qv + " && " + this.qv2 + " <= END_TRACE) && ("
+            + "\n    " + action.getFullNameWithJoiner("_") + "_is_present" + "(" + "t" + "(" + this.qv2 + ")" + ")"
+            + "\n    " + "&& " + "tag_same" + "(" + "g(" + this.qv2 + ")" + ", " + "tag_schedule" + "(" + "g" + "(" + this.qv + ")" + ", " + "(" + action.getMinDelay().toNanoSeconds() + "+" + additionalDelay + ")" + ")" + ")"
+            + "\n)) // Closes finite_exists"
+            + "\n&& " + action.getFullNameWithJoiner("_") + "_scheduled" + "(" + "d" + "(" + this.qv + ")" + ")"
+            + "\n&& " + action.getFullNameWithJoiner("_") + "_scheduled_payload" + "(" + "pl" + "(" + this.qv + ")" + ")" + " == " + intValue
             + "\n)";
         return str;
     }

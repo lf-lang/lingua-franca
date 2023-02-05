@@ -287,9 +287,7 @@ public class CAst {
     }
 
     /**
-     * action; // self struct variable access is a postfixExpression.
-     * value; // Could be literal, variable, or pointer.
-     * additionalDelay;
+     * AST node for a `lf_schedule(action, additional_delay)` call.
      */
     public static class ScheduleActionNode extends AstNodeDynamic implements Visitable {
         @Override public <T> T accept(AstVisitor<? extends T> visitor) {
@@ -297,6 +295,18 @@ public class CAst {
         }
         @Override public <T> T accept(AstVisitor<? extends T> visitor, List<AstNode> nodeList) {
             return ((CAstVisitor<? extends T>)visitor).visitScheduleActionNode(this, nodeList);
+        }
+    }
+
+    /**
+     * AST node for a `lf_schedule_int(action, additional_delay, integer)` call.
+     */
+    public static class ScheduleActionIntNode extends AstNodeDynamic implements Visitable {
+        @Override public <T> T accept(AstVisitor<? extends T> visitor) {
+            return ((CAstVisitor<? extends T>)visitor).visitScheduleActionIntNode(this);
+        }
+        @Override public <T> T accept(AstVisitor<? extends T> visitor, List<AstNode> nodeList) {
+            return ((CAstVisitor<? extends T>)visitor).visitScheduleActionIntNode(this, nodeList);
         }
     }
 

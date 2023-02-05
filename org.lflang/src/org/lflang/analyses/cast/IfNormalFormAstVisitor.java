@@ -57,6 +57,12 @@ public class IfNormalFormAstVisitor extends CBaseAstVisitor<Void> {
 	}
 
     @Override
+	public Void visitScheduleActionIntNode(CAst.ScheduleActionIntNode node, List<CAst.AstNode> conditions) {
+		this.INF.children.add(generateIfBlock(node, conditions));
+        return null;
+	}
+
+    @Override
     public Void visitIfBlockNode(CAst.IfBlockNode node, List<CAst.AstNode> conditions) {
         List<CAst.AstNode> leftConditions = new ArrayList<>(conditions);
         leftConditions.add(node.left);
