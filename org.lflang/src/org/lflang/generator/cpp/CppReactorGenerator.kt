@@ -112,7 +112,6 @@ class CppReactorGenerator(private val reactor: Reactor, fileConfig: CppFileConfi
         ${" |  "..instances.generateDeclarations()}
         ${" |  "..timers.generateDeclarations()}
         ${" |  "..actions.generateDeclarations()}
-        ${" |  "..connections.generateDeclarations()}
         ${" |  "..reactions.generateReactionViews()}
         ${" |  "..reactions.generateDeclarations()}
             |
@@ -122,6 +121,9 @@ class CppReactorGenerator(private val reactor: Reactor, fileConfig: CppFileConfi
         ${" |  "..outerConstructorSignature(false)};
             |
             |  void assemble() override;
+            | 
+            | private:
+        ${" |  "..connections.generateDeclarations()}
             |};
             |
         ${" |"..if (reactor.isGeneric) """#include "$implHeaderFile"""" else ""}
