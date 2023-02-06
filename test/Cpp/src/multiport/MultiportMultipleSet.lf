@@ -12,7 +12,7 @@ reactor Producer {
     reaction(t) -> out {=
         for (int i{odd ? 1 : 0}; i < 10; i += 2) {
             for (int j{0}; j < 10; j++) {
-                out[i].set(j);   
+                out[i].set(j);
             }
         }
 
