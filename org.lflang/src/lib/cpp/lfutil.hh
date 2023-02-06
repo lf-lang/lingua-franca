@@ -70,13 +70,13 @@ void bind_multiple_ports(
     bool repeat_left) {
 
   if (repeat_left) {
-    size_t l_size = left_ports.size();
-    size_t r_size = right_ports.size();
+    auto l_size = left_ports.size();
+    auto r_size = right_ports.size();
     // divide and round up
-    size_t repetitions = r_size / l_size + (r_size % l_size != 0);
+    auto repetitions = r_size / l_size + (r_size % l_size != 0);
     // repeat repetitions-1 times
     left_ports.reserve(repetitions * l_size);
-    for (size_t i = 1; i < repetitions; i++) {
+    for (std::size_t i{1}; i < repetitions; i++) {
       std::copy_n(left_ports.begin(), l_size, std::back_inserter(left_ports));
     }
   }
@@ -108,13 +108,13 @@ void bind_multiple_connections_with_ports(
     bool repeat_left) {
 
   if (repeat_left) {
-    size_t l_size = connections.size();
-    size_t r_size = ports.size();
+    auto l_size = connections.size();
+    auto r_size = ports.size();
     // divide and round up
-    size_t repetitions = r_size / l_size + (r_size % l_size != 0);
+    auto repetitions = r_size / l_size + (r_size % l_size != 0);
     // repeat repetitions-1 times
     connections.reserve(repetitions * l_size);
-    for (size_t i = 1; i < repetitions; i++) {
+    for (std::size_t i{1}; i < repetitions; i++) {
       std::copy_n(connections.begin(), l_size, std::back_inserter(connections));
     }
   }
