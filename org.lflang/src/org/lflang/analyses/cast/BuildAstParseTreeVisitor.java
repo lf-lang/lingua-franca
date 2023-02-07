@@ -442,11 +442,11 @@ public class BuildAstParseTreeVisitor extends CBaseVisitor<CAst.AstNode> {
     public CAst.AstNode visitMultiplicativeExpression(MultiplicativeExpressionContext ctx) {
         if (ctx.castExpression().size() > 1) {
             CAst.AstNodeBinary node;
-            if (ctx.Star() != null) {
+            if (ctx.Star().size() > 0) {
                 node = new CAst.MultiplicationNode();
-            } else if (ctx.Div() != null) {
+            } else if (ctx.Div().size() > 0) {
                 node = new CAst.DivisionNode();
-            } else if (ctx.Mod() != null) {
+            } else if (ctx.Mod().size() > 0) {
                 System.out.println(String.join(" ", 
                     "Warning (line " + ctx.getStart().getLine() + "):",
                     "Mod expression '%' is currently unsupported.",
@@ -467,9 +467,9 @@ public class BuildAstParseTreeVisitor extends CBaseVisitor<CAst.AstNode> {
     public CAst.AstNode visitAdditiveExpression(AdditiveExpressionContext ctx) {
         if (ctx.multiplicativeExpression().size() > 1) {
             CAst.AstNodeBinary node;
-            if (ctx.Plus() != null) {
+            if (ctx.Plus().size() > 0) {
                 node = new CAst.AdditionNode();
-            } else if (ctx.Minus() != null) {
+            } else if (ctx.Minus().size() > 0) {
                 node = new CAst.SubtractionNode();
             } else {
                 node = new CAst.AstNodeBinary();
@@ -498,13 +498,13 @@ public class BuildAstParseTreeVisitor extends CBaseVisitor<CAst.AstNode> {
     public CAst.AstNode visitRelationalExpression(RelationalExpressionContext ctx) {
         if (ctx.shiftExpression().size() > 1) {
             CAst.AstNodeBinary node;
-            if (ctx.Less() != null) {
+            if (ctx.Less().size() > 0) {
                 node = new CAst.LessThanNode();
-            } else if (ctx.LessEqual() != null) {
+            } else if (ctx.LessEqual().size() > 0) {
                 node = new CAst.LessEqualNode();
-            } else if (ctx.Greater() != null) { 
+            } else if (ctx.Greater().size() > 0) { 
                 node = new CAst.GreaterThanNode();
-            } else if (ctx.GreaterEqual() != null) {
+            } else if (ctx.GreaterEqual().size() > 0) {
                 node = new CAst.GreaterEqualNode();
             } else {
                 node = new CAst.AstNodeBinary();

@@ -718,13 +718,26 @@ public class UclidGenerator extends GeneratorBase {
             code.indent();
             // Get happen-before relation between two reactions.
             code.pr("|| (tag_same(e1._2, e2._2) && ( false");
-            // Iterate over every pair of reactions.
+            // Iterate over reactions based on upstream/downstream relations.
             for (var upstreamRuntime : this.reactionInstances) {
                 var downstreamReactions = upstreamRuntime.getReaction().dependentReactions();
                 for (var downstream : downstreamReactions) {
+                    // If the downstream reaction and the upstream
+                    // reaction are in the same reactor, skip, since
+                    // they will be accounted for in the for loop below.
+                    if (downstream.getParent().equals(upstreamRuntime.getReaction().getParent())) continue;
                     for (var downstreamRuntime : downstream.getRuntimeInstances()) {
                         code.pr("|| (" + upstreamRuntime.getReaction().getFullNameWithJoiner("_") + "(e1._1)"
                             + " && " + downstreamRuntime.getReaction().getFullNameWithJoiner("_") + "(e2._1)" + ")");
+                    }
+                }
+            }
+            // Iterate over reactions based on priorities.
+            for (var reactor : this.reactorInstances) {
+                for (int i = 0; i < reactor.reactions.size(); i++) {
+                    for (int j = i+1; j < reactor.reactions.size(); j++) {
+                        code.pr("|| (" + reactor.reactions.get(i).getFullNameWithJoiner("_") + "(e1._1)"
+                            + " && " + reactor.reactions.get(j).getFullNameWithJoiner("_") + "(e2._1)" + ")");
                     }
                 }
             }
