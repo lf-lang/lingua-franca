@@ -14,6 +14,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.regex.Matcher;
@@ -70,17 +71,43 @@ public class UclidRunner {
     public StateInfo parseStateInfo(String smtStr) {
         StateInfo info = new StateInfo();
 
-        // Remove the outer tuple layer.
-        Pattern p = Pattern.compile("^\\(_tuple_\\d+((.|\\n)*)\\)$");
+        // Check for any let bindings.
+        Pattern p = Pattern.compile("\\(let \\(\\((a!\\d+) \\(_tuple_\\d+ ((.)+?)\\)\\)\\)(\\\\n|\\s)+\\(_tuple_\\d+ ((.|\\n)+)\\)");
+        HashMap<String, String> symbolTable = new HashMap<>();
         Matcher m = p.matcher(smtStr.strip());
-        m.find();
-        String itemized = m.group(1).strip();
+        String itemized = "";
+        if (m.find()) {
+            // FIXME: Handle multiple let bindings.
+            String symbol = m.group(1).strip();
+            String value  = m.group(2).strip();
+            symbolTable.put(symbol, value);
+            itemized = m.group(5).strip();
+        }
+        else {
+            // Remove the outer tuple layer.
+            p = Pattern.compile("\\(_tuple_\\d+((.|\\n)*)\\)");
+            m = p.matcher(smtStr.strip());
+            m.find();
+            itemized = m.group(1).strip();
+        }
+
+        // Process each sub-tuple by matching (_tuple_n ...)
+        // or matching a!n, where n is an integer.
+        p = Pattern.compile("(a!\\d+)|\\(_tuple_\\d+((\\s|\\\\n|\\d|\\(- \\d+\\)|true|false)+)\\)");
+        m = p.matcher(itemized);
 
         // Reactions
-        p = Pattern.compile("\\(_tuple_\\d+([^\\)]+)\\)");
-        m = p.matcher(itemized);
         m.find();
-        String[] reactions = m.group(1).strip().split("\\s+");
+        String reactionsStr = "";
+        // Found a let binding.
+        if (m.group(1) != null) {
+            reactionsStr = symbolTable.get(m.group(1)).strip();
+        }
+        // The rest falls into group 2.
+        else {
+            reactionsStr = m.group(2).strip();
+        }
+        String[] reactions = reactionsStr.split("\\s+");
         // Iterating over generator lists avoids accounting for
         // the single dummy Uclid variable inserted earlier.
         for (int i = 0; i < generator.reactionInstances.size(); i++) {
@@ -90,35 +117,72 @@ public class UclidRunner {
 
         // Time tag
         m.find();
-        String[] tag = m.group(1).strip().split("\\s+");
+        String tagStr = "";
+        // Found a let binding.
+        if (m.group(1) != null)
+            tagStr = symbolTable.get(m.group(1)).strip();
+        // The rest falls into group 2.
+        else tagStr = m.group(2).strip();
+        String[] tag = tagStr.split("\\s+");
         info.tag = new Tag(
             Long.parseLong(tag[0]),
             Long.parseLong(tag[1]), false);
 
         // Variables
+        // Currently all integers.
+        // Negative numbers could appear.
         m.find();
-        String[] variables = m.group(1).strip().split("\\s+");
+        String variablesStr = "";
+        // Found a let binding.
+        if (m.group(1) != null)
+            variablesStr = symbolTable.get(m.group(1)).strip();
+        // The rest falls into group 2.
+        else variablesStr = m.group(2).strip();
+        String[] variables = variablesStr.replaceAll("\\(-\\s(.*?)\\)", "-$1")
+                            .split("\\s+");
         for (int i = 0; i < generator.namedInstances.size(); i++) {
             info.variables.put(generator.namedInstances.get(i).getFullName(), variables[i]);
         }
 
         // Triggers
         m.find();
-        String[] triggers = m.group(1).strip().split("\\s+");
+        String triggersStr = "";
+        // Found a let binding.
+        if (m.group(1) != null)
+            triggersStr = symbolTable.get(m.group(1)).strip();
+        // The rest falls into group 2.
+        else triggersStr = m.group(2).strip();
+        String[] triggers = triggersStr.split("\\s+");
         for (int i = 0; i < generator.triggerInstances.size(); i++) {
             info.triggers.put(generator.triggerInstances.get(i).getFullName(), triggers[i]);
         }
 
         // Actions scheduled
         m.find();
-        String[] scheduled = m.group(1).strip().split("\\s+");
+        String scheduledStr = "";
+        // Found a let binding.
+        if (m.group(1) != null)
+            scheduledStr = symbolTable.get(m.group(1)).strip();
+        // The rest falls into group 2.
+        else scheduledStr = m.group(2).strip();
+        String[] scheduled = scheduledStr.split("\\s+");
         for (int i = 0; i < generator.actionInstances.size(); i++) {
             info.scheduled.put(generator.actionInstances.get(i).getFullName(), scheduled[i]);
         }
 
         // Scheduled payloads
+        // Currently all integers.
+        // Negative numbers could appear.
         m.find();
-        String[] payloads = m.group(1).strip().split("\\s+");
+        String payloadsStr = "";
+        // Found a let binding.
+        if (m.group(1) != null)
+            payloadsStr = symbolTable.get(m.group(1)).strip();
+        // The rest falls into group 2.
+        else payloadsStr = m.group(2).strip();
+        String[] payloads = payloadsStr
+                            .replaceAll("\\(-\\s(.*?)\\)", "-$1")
+                            .split("\\s+");
         for (int i = 0; i < generator.actionInstances.size(); i++) {
             info.payloads.put(generator.actionInstances.get(i).getFullName(), payloads[i]);
         }

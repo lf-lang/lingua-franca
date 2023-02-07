@@ -763,9 +763,11 @@ public class UclidGenerator extends GeneratorBase {
             ""
         ));
 
-        // For logical time-based semantics, there is no need for this since each logical instant
-        // will only happen once in the trace.
+        //// Axioms for the event-based semantics
         if (!this.logicalTimeBased) {
+            code.pr("//// Axioms for the event-based semantics");
+
+            // the same event can only trigger once in a logical instant
             code.pr(String.join("\n",
                 "// the same event can only trigger once in a logical instant",
                 "axiom(finite_forall (i : integer) in indices :: (i >= START && i <= END) ==> (finite_forall (j : integer) in indices ::",
@@ -773,6 +775,23 @@ public class UclidGenerator extends GeneratorBase {
                 "        ==> !tag_same(g(i), g(j)))));",
                 ""
             ));
+
+            // Only one reaction gets triggered at a time.
+            ArrayList<String> reactionsStatus = new ArrayList<>();
+            for (int i = 0; i < this.reactionInstances.size(); i++)
+                reactionsStatus.add("false");
+            code.pr(String.join("\n",
+                "// Only one reaction gets triggered at a time.",
+                "axiom(finite_forall (i : integer) in indices :: (i >= START && i <= END) ==> (",
+                "    isNULL(i)"));
+            code.indent();
+            for (int i = 0; i < this.reactionInstances.size(); i++) {
+                String[] li = reactionsStatus.toArray(String[]::new);
+                li[i] = "true";
+                code.pr("|| rxn(i) == " + "{" + String.join(", ", li) + "}");
+            }
+            code.unindent();
+            code.pr("));");
         }
     }
 
