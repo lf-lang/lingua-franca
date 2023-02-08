@@ -280,7 +280,7 @@ TypedVariable:
 ;
 
 Variable:
-    TypedVariable | Timer | Mode | Watchdog;
+    TypedVariable | Timer | Mode;
 
 VarRef:
     variable=[Variable] | container=[Instantiation] '.' variable=[Variable]

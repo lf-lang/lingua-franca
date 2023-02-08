@@ -71,7 +71,6 @@ import org.lflang.generator.DockerGenerator;
 import org.lflang.generator.GeneratorBase;
 import org.lflang.generator.GeneratorResult;
 import org.lflang.generator.GeneratorUtils;
-
 import org.lflang.generator.DelayBodyGenerator;
 
 import org.lflang.generator.LFGeneratorContext;
