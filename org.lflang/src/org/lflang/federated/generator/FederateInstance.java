@@ -467,22 +467,22 @@ public class FederateInstance {
     
     //FIXME:modif4watchdogs
 
-    public boolean contains(Watchdog watchdog) {
-        Reactor reactor = ASTUtils.getEnclosingReactor(watchdog);
-        if (!reactor.isFederated() || this.isSingleton()) {
-            return true;
-        }
+    // public boolean contains(Watchdog watchdog) {
+    //     Reactor reactor = ASTUtils.getEnclosingReactor(watchdog);
+    //     if (!reactor.isFederated() || this.isSingleton()) {
+    //         return true;
+    //     }
 
-        if (!reactor.getWatchdogs().contains(watchdog)) {
-            return false;
-        }
+    //     if (!reactor.getWatchdogs().contains(watchdog)) {
+    //         return false;
+    //     }
 
-        if (networkReactions.contains(watchdog)) {
-            return true;
-        }
+    //     if (networkReactions.contains(watchdog)) {
+    //         return true;
+    //     }
 
-        return false;
-    }
+    //     return false;
+    // }
 
     /** 
      * Return true if the specified reactor instance or any parent

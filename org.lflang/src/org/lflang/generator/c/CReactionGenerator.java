@@ -202,9 +202,7 @@ public class CReactionGenerator {
                         //FIXME: modif4watchdogs
                         reactionInitialization.pr(generateWatchdogVariablesInReaction(
                             effect,
-                            decl,
-                            errorReporter,
-                            requiresTypes
+                            decl
                         ));
                     } else {
                         errorReporter.reportError(
@@ -684,18 +682,11 @@ public class CReactionGenerator {
     // Fine to have watchdog be in reactor self struct?
     public static String generateWatchdogVariablesInReaction(
         VarRef effect,
-        ReactorDecl decl,
-        ErrorReporter errorReporter,
-        boolean requiresTypes
+        ReactorDecl decl
     ) {
         Watchdog watchdog = (Watchdog) effect.getVariable();
         String watchdogName = watchdog.getName();
-        if (watchdog.getType() == null && requiresTypes) {
-            errorReporter.reportError(watchdog, "Watchdog is required to have a type: " + watchdogName);
-            return "";
-        } else {
-            return "watchdog_t* "+watchdogName+" = &(self->_lf_watchdog_"+watchdogName+");";
-        }
+        return "watchdog_t* "+watchdogName+" = &(self->_lf_watchdog_"+watchdogName+");";
     }
 
     /**

@@ -42,7 +42,7 @@ public class WatchdogInstance {
     }
 
     public TimeValue getTimeout() {
-        return this.timeout;
+        return (TimeValue) this.timeout;
     }
 
     public ReactorInstance getReactor() {

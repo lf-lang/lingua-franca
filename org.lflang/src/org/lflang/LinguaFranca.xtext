@@ -91,7 +91,7 @@ Reactor:
         | (connections+=Connection)
         | (reactions+=Reaction)
         | (modes+=Mode)
-          (watchdogs+=Watchdog)
+        | (watchdogs+=Watchdog)
     )* '}';
 
 
@@ -177,7 +177,8 @@ Mode:
         (actions+=Action) |
         (instantiations+=Instantiation) |
         (connections+=Connection) |
-        (reactions+=Reaction)
+        (reactions+=Reaction) |
+        (watchdogs+=Watchdog)
     )* '}';
 
 // Action that has either a physical or logical origin.
@@ -216,7 +217,7 @@ Deadline:
     'deadline' '(' delay=Expression ')' code=Code;
 
 Watchdog:
-    'watchdog' name=Expression '(' timeout=Expression ')' 
+    'watchdog' name=ID '(' timeout=Expression ')' 
     ('->' effects+=VarRefOrModeTransition (',' effects+=VarRefOrModeTransition)*)?
     code=Code;
     
@@ -280,7 +281,7 @@ TypedVariable:
 ;
 
 Variable:
-    TypedVariable | Timer | Mode;
+    TypedVariable | Timer | Mode | Watchdog;
 
 VarRef:
     variable=[Variable] | container=[Instantiation] '.' variable=[Variable]

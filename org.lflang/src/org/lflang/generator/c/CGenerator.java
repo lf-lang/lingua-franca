@@ -1072,7 +1072,7 @@ public class CGenerator extends GeneratorBase {
         generateMethods(reactor);
 
         // FIXME: modif4watchdogs
-        generateWatchdogs(reactor, currentFederate);
+        generateWatchdogs(reactor);
         generateReactions(reactor);
         generateConstructor(reactor, constructorCode);
 
@@ -1226,7 +1226,6 @@ public class CGenerator extends GeneratorBase {
         // Generate the fields needed for each watchdog.
         // FIXME: modif4watchdogs
         CWatchdogGenerator.generateWatchdogStruct(
-            currentFederate,
             body,
             decl,
             constructorCode
@@ -1445,15 +1444,13 @@ public class CGenerator extends GeneratorBase {
      *   federated or not the main reactor and reactions should be
      *   unconditionally generated.
      */
-    public void generateWatchdogs(ReactorDecl decl, FederateInstance federate) {
+    public void generateWatchdogs(ReactorDecl decl) {
         // WATCHDOG QUESTION: A similar question is asked somewhere else for a 
         // different function - Do we need to check if this federate contains the
         // watchdog? This is done in the code generation for reactions.
         var reactor = ASTUtils.toDefinition(decl);
         for (Watchdog watchdog : ASTUtils.allWatchdogs(reactor)) {
-            if (federate == null || federate.contains(watchdog)) {
-                generateWatchdog(watchdog, decl);
-            }
+            generateWatchdog(watchdog, decl);
         }
     }
 
@@ -1522,13 +1519,11 @@ public class CGenerator extends GeneratorBase {
         var reactorRef = CUtil.reactorRef(instance);
 
         for (WatchdogInstance watchdog : instance.watchdogs) {
-            if (currentFederate.contains(watchdog.getDefinition())) {
-                temp.pr("_lf_watchdogs[_lf_watchdog_number_count++] = &"+reactorRef+"->_lf_watchdog_"+watchdog.getName()+";");
-                temp.pr(reactorRef+"->_lf_watchdog_"+watchdog.getName()+".min_expiration = "+GeneratorBase.timeInTargetLanguage(watchdog.getTimeout())+";");
-                temp.pr(reactorRef+"->_lf_watchdog_"+watchdog.getName()+".thread_id;");
-                watchdogCount += currentFederate.numRuntimeInstances(reactor);
-                foundOne = true;
-            }
+            temp.pr("_lf_watchdogs[_lf_watchdog_number_count++] = &"+reactorRef+"->_lf_watchdog_"+watchdog.getName()+";");
+            temp.pr(reactorRef+"->_lf_watchdog_"+watchdog.getName()+".min_expiration = "+GeneratorBase.timeInTargetLanguage(watchdog.getTimeout())+";");
+            temp.pr(reactorRef+"->_lf_watchdog_"+watchdog.getName()+".thread_id;");
+            watchdogCount += 1;
+            foundOne = true;
         }
         if (foundOne) {
             initializeTriggerObjects.pr(temp.toString());

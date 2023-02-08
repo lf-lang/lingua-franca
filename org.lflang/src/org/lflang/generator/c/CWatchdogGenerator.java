@@ -1,7 +1,6 @@
 package org.lflang.generator.c;
 
 import org.lflang.ASTUtils;
-import org.lflang.federated.FederateInstance;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.lf.Reactor;
 import org.lflang.lf.ReactorDecl;
@@ -15,7 +14,6 @@ import org.lflang.lf.Watchdog;
 import org.lflang.generator.GeneratorBase;
 import org.lflang.generator.c.CReactionGenerator;
 import java.util.List;
-import org.lflang.lf.CReactionGenerator;
 import org.lflang.lf.Watchdog;
 
 /**
@@ -118,7 +116,6 @@ public class CWatchdogGenerator {
      * Generate watchdog definition in parent struct.
      */
     public static void generateWatchdogStruct(
-        FederateInstance currentFederate,
         CodeBuilder body,
         ReactorDecl decl,
         CodeBuilder constructorCode
@@ -130,39 +127,37 @@ public class CWatchdogGenerator {
         // but am not sure why we need to check if watchdog exists in the 
         // current federate.
         for (Watchdog watchdog : ASTUtils.allWatchdogs(reactor)) {
-            if (currentFederate.contains(watchdog)) {
+            String watchdogName = watchdog.getName();
+            // Create pointer to the watchdog_t struct
+            // WATCHDOG QUESTION 2: Why need to put object at beginning of 
+            // `.pr` func call?
+            
+            // WATCHDOG QUESTION 3: Is the space for this struct automatically allocated
+            // through `_lf_new_reactor`? `_lf__startup_reaction` is also a pointer in self struct
+            // but does not seem to have a separate allocation call.
+            body.pr(watchdog, "watchdog_t* _lf_watchdog_"+watchdogName+";");
 
-                String watchdogName = watchdog.getName();
-                // Create pointer to the watchdog_t struct
-                // WATCHDOG QUESTION 2: Why need to put object at beginning of 
-                // `.pr` func call?
-                
-                // WATCHDOG QUESTION 3: Is the space for this struct automatically allocated
-                // through `_lf_new_reactor`? `_lf__startup_reaction` is also a pointer in self struct
-                // but does not seem to have a separate allocation call.
-                body.pr(watchdog, "watchdog_t* _lf_watchdog_"+watchdogName+";");
+            // WATCHDOG QUESTION 4: Not sure if this is correct, may need to use 
+            // 'getTargetTime' instead. watchdog timeout is listed as "Expression"
+            // in the grammar, so I'm not sure if it is reading the timeout as 
+            // a Time class or TimeValue class.
+            // var min_expiration = GeneratorBase.timeInTargetLanguage(watchdog.getTimeout());
 
-                // WATCHDOG QUESTION 4: Not sure if this is correct, may need to use 
-                // 'getTargetTime' instead. watchdog timeout is listed as "Expression"
-                // in the grammar, so I'm not sure if it is reading the timeout as 
-                // a Time class or TimeValue class.
-                var min_expiration = GeneratorBase.timeInTargetLanguage(watchdog.getTimeout());
+            // watchdog function name
+            var watchdogFunctionName = generateWatchdogFunctionName(watchdog, decl);
+            // Set values of watchdog_t struct in the reactor's constructor
+            // WATCHDOG QUESTION 5: should I be defining these in the constructor of the reactor?
+            //FIXME: update parameters
+            constructorCode.pr(watchdog, String.join("\n",
+                "self->_lf_watchdog_"+watchdogName+".base = &(self->base);",
+                "self->_lf_watchdog_"+watchdogName+".expiration = NEVER;",
+                "self->_lf_watchdog_"+watchdogName+".thread_active = false;",
+                // "self->_lf_watchdog_"+watchdogName+".min_expiration = "+min_expiration+";",
+                "self->_lf_watchdog_"+watchdogName+".watchdog_function = "+watchdogFunctionName+";"
+            ));
 
-                // watchdog function name
-                var watchdogFunctionName = generateWatchdogFunctionName(watchdog, decl);
-                // Set values of watchdog_t struct in the reactor's constructor
-                // WATCHDOG QUESTION 5: should I be defining these in the constructor of the reactor?
-                //FIXME: update parameters
-                constructorCode.pr(watchdog, String.join("\n",
-                    "self->_lf_watchdog_"+watchdogName+".base = &(self->base);",
-                    "self->_lf_watchdog_"+watchdogName+".expiration = NEVER;",
-                    "self->_lf_watchdog_"+watchdogName+".thread_active = false;",
-                    // "self->_lf_watchdog_"+watchdogName+".min_expiration = "+min_expiration+";",
-                    "self->_lf_watchdog_"+watchdogName+".watchdog_function = "+watchdogFunctionName+";"
-                ));
-
-                // WATCHDOG QUESTION 6: should I be initializing mutex in this constructor?
-            }
+            // WATCHDOG QUESTION 6: should I be initializing mutex in this constructor?
+        
         }
     }
 
