@@ -100,6 +100,7 @@ import org.lflang.lf.ReactorDecl;
 import org.lflang.lf.StateVar;
 import org.lflang.lf.VarRef;
 import org.lflang.lf.Variable;
+import org.lflang.lf.Watchdog;
 import org.lflang.util.FileUtil;
 
 import com.google.common.base.Objects;

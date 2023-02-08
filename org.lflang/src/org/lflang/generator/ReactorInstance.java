@@ -57,6 +57,7 @@ import org.lflang.lf.ReactorDecl;
 import org.lflang.lf.Timer;
 import org.lflang.lf.VarRef;
 import org.lflang.lf.Variable;
+import org.lflang.lf.Watchdog;
 import org.lflang.lf.WidthSpec;
 
 

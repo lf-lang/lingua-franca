@@ -3,8 +3,10 @@ package org.lflang.generator.c;
 import org.lflang.ASTUtils;
 import org.lflang.federated.FederateInstance;
 import org.lflang.generator.CodeBuilder;
+import org.lflang.lf.Reactor;
 import org.lflang.lf.ReactorDecl;
 import org.lflang.lf.CReactionGenerator;
+import org.lflang.lf.Watchdog;
 
 /**
  * Generates necessary C code for watchdogs.

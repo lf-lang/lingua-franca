@@ -33,6 +33,7 @@ import org.lflang.lf.Timer;
 import org.lflang.lf.TriggerRef;
 import org.lflang.lf.VarRef;
 import org.lflang.lf.Variable;
+import org.lflang.lf.Watchdog;
 import org.lflang.util.StringUtil;
 
 public class CReactionGenerator {

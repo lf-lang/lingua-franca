@@ -90,6 +90,7 @@ import org.lflang.lf.Type;
 import org.lflang.lf.TypeParm;
 import org.lflang.lf.VarRef;
 import org.lflang.lf.Variable;
+import org.lflang.lf.Watchdog;
 import org.lflang.lf.WidthSpec;
 import org.lflang.lf.WidthTerm;
 import org.lflang.util.StringUtil;
