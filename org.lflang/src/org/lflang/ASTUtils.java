@@ -90,6 +90,7 @@ import org.lflang.lf.Timer;
 import org.lflang.lf.Type;
 import org.lflang.lf.VarRef;
 import org.lflang.lf.Variable;
+
 //FIXME: modif4watchdogs
 import org.lflang.lf.Watchdog;
 import org.lflang.lf.WidthSpec;
