@@ -30,9 +30,7 @@ jobs:
           ref: ${{ inputs.runtime-ref }}
         if: ${{ inputs.runtime-ref }}
       - name: Setup ROS2
-        uses: ros-tooling/setup-ros@v0.4
-        with:
-          required-ros-distributions: rolling
+        uses: ./.github/actions/setup-ros2
       - name: Run C++ tests;
         run: |
           source /opt/ros/*/setup.bash

@@ -99,7 +99,7 @@ jobs:
 
   # Run the Python integration tests.
   py-tests:
-    uses: lf-lang/lingua-franca/.github/workflows/py-tests.yml@ci-no-rti-image
+    uses: lf-lang/lingua-franca/.github/workflows/py-tests.yml@master
     needs: cancel
 
   # Run the Rust integration tests.
