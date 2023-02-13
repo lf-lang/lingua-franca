@@ -61,6 +61,8 @@ import org.lflang.lf.VarRef;
 import org.lflang.lf.Variable;
 import org.lflang.lf.WidthSpec;
 import org.lflang.lf.WidthTerm;
+//FIXME: modif4watchdogs
+import org.lflang.lf.Watchdog;
 import org.lflang.lf.util.LfSwitch;
 
 /**
@@ -397,7 +399,8 @@ public class IsEqual extends LfSwitch<Boolean> {
 
     @Override
     public Boolean caseVariable(Variable object) {
-        throw thereIsAMoreSpecificCase(Variable.class, TypedVariable.class, Timer.class, Mode.class);
+        //FIXME: modif4watchdogs
+        throw thereIsAMoreSpecificCase(Variable.class, TypedVariable.class, Timer.class, Mode.class, Watchdog.class);
     }
 
     @Override

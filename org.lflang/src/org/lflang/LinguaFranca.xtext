@@ -217,7 +217,7 @@ Deadline:
     'deadline' '(' delay=Expression ')' code=Code;
 
 Watchdog:
-    'watchdog' name=ID '(' timeout=Expression ')' 
+    'watchdog ' name=ID '(' timeout=Expression ')' 
     ('->' effects+=VarRefOrModeTransition (',' effects+=VarRefOrModeTransition)*)?
     code=Code;
     
@@ -456,7 +456,7 @@ SignedFloat:
 // Just escaping with \ is not a good idea because then every \ has to be escaped \\.
 // Perhaps the string EQUALS_BRACE could become '=}'?
 Code:
-    //{Code} '{=' (tokens+=Token)* '=}'
+    // {Code} '{=' (tokens+=Token)* '=}'
     {Code} '{=' body=Body '=}'
 ;
 
@@ -503,7 +503,7 @@ Token:
     'mutable' | 'input' | 'output' | 'timer' | 'action' | 'reaction' | 
     'startup' | 'shutdown' | 'after' | 'deadline' | 'mutation' | 'preamble' |
     'new' | 'federated' | 'at' | 'as' | 'from' | 'widthof' | 'const' | 'method' |
-    'interleaved' | 'mode' | 'initial' | 'reset' | 'history' | 'watchdog'
+    'interleaved' | 'mode' | 'initial' | 'reset' | 'history' | 'watchdog' |
     // Other terminals
     NEGINT | TRUE | FALSE |
     // Action origins

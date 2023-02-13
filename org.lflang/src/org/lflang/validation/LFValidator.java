@@ -113,6 +113,8 @@ import org.lflang.lf.Variable;
 import org.lflang.lf.Visibility;
 import org.lflang.lf.WidthSpec;
 import org.lflang.lf.WidthTerm;
+//FIXME: modif4watchdogs
+import org.lflang.lf.Watchdog;
 import org.lflang.util.FileUtil;
 
 import com.google.inject.Inject;
