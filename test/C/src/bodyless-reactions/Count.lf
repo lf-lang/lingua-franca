@@ -1,0 +1,16 @@
+target C {
+    cmake-include: [
+        "../../c/count.cmake"
+    ],
+    files: [
+        "../../c/count.c"
+    ]
+}
+
+reactor Count {
+    timer t(1 sec)
+
+    reaction add(t)
+
+    reaction done(t)
+}
