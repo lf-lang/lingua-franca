@@ -27,7 +27,7 @@ jobs:
 
   # Build the tools used for processing execution traces
   build-tracing-tools:
-    uses: lf-lang/lingua-franca/.github/workflows/build-tracing-tools.yml@fix-tracing-tools
+    uses: lf-lang/lingua-franca/.github/workflows/build-tracing-tools.yml@fix-tracing-util
     needs: cancel
 
   # Check that automatic code formatting works.
