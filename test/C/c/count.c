@@ -1,6 +1,4 @@
 #include "../include/count.h"
-#include "../include/api/api.h"
-#include "../include/core/reactor.h"
 
 void increment(count_self_t* self) {
     self->count++;
