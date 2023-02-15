@@ -1,5 +1,6 @@
 package org.lflang.generator.c;
 
+import java.io.IOException;
 import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -14,14 +15,20 @@ import org.lflang.lf.TriggerRef;
 import org.lflang.lf.TypedVariable;
 import org.lflang.lf.VarRef;
 import org.lflang.lf.Variable;
+import org.lflang.util.FileUtil;
 
 public class CReactorHeaderFileGenerator {
-    public static String generateHeaderFile(CTypes types, Reactor r) {
+
+    public static void doGenerate(CTypes types, Reactor r, CFileConfig fileConfig) throws IOException {
+        String contents = generateHeaderFile(types, r);
+        FileUtil.writeToFile(contents, fileConfig.getIncludePath().resolve(r.getName() + ".h"));
+    }
+    private static String generateHeaderFile(CTypes types, Reactor r) {
         CodeBuilder builder = new CodeBuilder();
         appendPoundIncludes(builder);
         appendSelfStruct(builder, types, r);
         for (Reaction reaction : r.getReactions()) {
-            appendSignature(builder, types, reaction);
+            appendSignature(builder, types, reaction, r);
         }
         return builder.getCode();
     }
@@ -32,27 +39,31 @@ public class CReactorHeaderFileGenerator {
         """);
     }
 
-    private static String selfStructName(Reactor r) {
-        return r.getName() + "_self_t";
+    public static String selfStructName(String name) {
+        return name + "_self_t";
     }
 
     private static void appendSelfStruct(CodeBuilder builder, CTypes types, Reactor r) {
-        builder.pr("typedef struct " + selfStructName(r) + "{");
+        builder.pr("typedef struct " + selfStructName(r.getName()) + "{");
         for (StateVar s : r.getStateVars()) {
             builder.pr(types.getTargetType(s.getType()) + " " + s.getName() + ";");
         }
-        builder.pr("}");
+        builder.pr("} " + selfStructName(r.getName()) + ";");
     }
 
-    private static void appendSignature(CodeBuilder builder, CTypes types, Reaction r) {
-        builder.pr("void " + r.getName() + "(" + reactionParameters(types, r) + ");");
+    private static void appendSignature(CodeBuilder builder, CTypes types, Reaction r, Reactor reactor) {
+        builder.pr("void " + r.getName() + "(" + reactionParameters(types, r, reactor) + ");");
     }
 
-    private static String reactionParameters(CTypes types, Reaction r) {
-        return inputVarRefStream(r)
-            .map((varRef) -> (TypedVariable) varRef.getVariable() )
-            .map((tv) -> types.getVariableDeclaration(InferredType.fromAST(tv.getType()), tv.getName(), false))
+    private static String reactionParameters(CTypes types, Reaction r, Reactor reactor) {
+        return Stream.concat(Stream.of(selfStructName(reactor.getName()) + "* self"), inputTypedVariableStream(r)
+            .map((tv) -> types.getVariableDeclaration(InferredType.fromAST(tv.getType()), tv.getName(), false)))
             .collect(Collectors.joining(", "));
+    }
+
+    private static Stream<TypedVariable> inputTypedVariableStream(Reaction r) {
+        return inputVarRefStream(r).map(it -> it.getVariable() instanceof TypedVariable tv ? tv : null)
+            .filter(Objects::nonNull);
     }
 
     private static Stream<VarRef> inputVarRefStream(Reaction reaction) {

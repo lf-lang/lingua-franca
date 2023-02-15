@@ -3,14 +3,20 @@ target C {
         "../../c/count.cmake"
     ],
     files: [
-        "../../c/count.c"
+        "../../c"
     ]
 }
 
-reactor Count {
-    timer t(1 sec)
+main reactor Count {
+    timer t(0, 1 msec)
 
-    reaction add(t)
+    state count: int
 
-    reaction done(t)
+    reaction increment(t)
+
+    reaction check_done(t)
+
+    reaction(shutdown) {=
+        printf("%s", "shutting down\n");
+    =}
 }
