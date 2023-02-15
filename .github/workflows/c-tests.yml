@@ -47,7 +47,7 @@ jobs:
           brew link openssl --force
         if: ${{ runner.os == 'macOS' }}
       - name: Build tracing tools
-        run: cd util/tracing && make 
+        uses: ./.github/actions/build-tracing-tools
         if: ${{ runner.os == 'macOS' || runner.os == 'Linux' }}
       - name: Install RTI
         uses: ./.github/actions/install-rti
