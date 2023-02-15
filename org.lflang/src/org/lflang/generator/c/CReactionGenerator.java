@@ -1049,7 +1049,7 @@ public class CReactionGenerator {
         boolean requiresType
     ) {
         var code = new CodeBuilder();
-        var body = ASTUtils.toText(reaction.getCode());
+        var body = ASTUtils.toText(getCode(reaction, decl));
         String init = generateInitializationForReaction(
                         body, reaction, decl, reactionIndex,
                         types, errorReporter, mainDef,
@@ -1063,7 +1063,7 @@ public class CReactionGenerator {
         CMethodGenerator.generateMacrosForMethods(ASTUtils.toDefinition(decl), code);
         code.pr(generateFunction(
             generateReactionFunctionHeader(decl, reactionIndex),
-            init, reaction.getCode()
+            init, getCode(reaction, decl)
         ));
         // Now generate code for the late function, if there is one
         // Note that this function can only be defined on reactions
@@ -1087,10 +1087,10 @@ public class CReactionGenerator {
         return code.toString();
     }
 
-    private static Code getCode(Reaction r) {
+    private static Code getCode(Reaction r, ReactorDecl container) {
         if (r.getCode() != null) return r.getCode();
         Code ret = LfFactory.eINSTANCE.createCode();
-        ret.setBody(r.getName() + "( self + sizeof(lf_base_t) );");
+        ret.setBody(r.getName() + "( (" + CReactorHeaderFileGenerator.selfStructName(container.getName()) + "*) (((char*) self) + sizeof(self_base_t)) );");
         return ret;
     }
 

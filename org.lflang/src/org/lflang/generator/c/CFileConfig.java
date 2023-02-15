@@ -11,9 +11,12 @@ public class CFileConfig extends FileConfig {
     public CFileConfig(Resource resource, Path srcGenBasePath, boolean useHierarchicalBin) throws IOException {
         super(resource, srcGenBasePath, useHierarchicalBin);
     }
+
+    public Path getIncludePath() {
+        return getOutPath().resolve("include");
+    }
+
+    public String getRuntimeIncludePath() {
+        return "/lib/c/reactor-c/include";
+    }
 }
-
-
-
-
-

@@ -457,6 +457,7 @@ public class CGenerator extends GeneratorBase {
 
         FileUtil.createDirectoryIfDoesNotExist(fileConfig.getSrcGenPath().toFile());
         FileUtil.createDirectoryIfDoesNotExist(fileConfig.binPath.toFile());
+        FileUtil.createDirectoryIfDoesNotExist(fileConfig.getIncludePath().toFile());
         handleProtoFiles();
 
         var lfModuleName = fileConfig.name;
@@ -498,6 +499,8 @@ public class CGenerator extends GeneratorBase {
                         true
                     );
                 }
+
+                generateHeaders();
 
                 // Write the generated code
                 code.writeToFile(targetFile);
@@ -601,7 +604,7 @@ public class CGenerator extends GeneratorBase {
             //     100 * federateCount / federates.size()
             // ); // FIXME: Move to FedGenerator
             // Create the compiler to be used later
-        
+
             var cCompiler = new CCompiler(targetConfig, threadFileConfig, errorReporter, CppMode);
             try {
                 if (!cCompiler.runCCompiler(generator, context)) {
@@ -619,7 +622,7 @@ public class CGenerator extends GeneratorBase {
             } catch (IOException e) {
                 Exceptions.sneakyThrow(e);
             }
-        
+
         }
 
         // If a build directive has been given, invoke it now.
@@ -939,6 +942,18 @@ public class CGenerator extends GeneratorBase {
         }
     }
 
+    private void generateHeaders() throws IOException {
+        FileUtil.copyDirectoryFromClassPath(
+            fileConfig.getRuntimeIncludePath(),
+            fileConfig.getIncludePath(),
+            false
+        );
+        for (Reactor r : reactors) {
+            CReactorHeaderFileGenerator.doGenerate(types, r, fileConfig);
+        }
+        FileUtil.copyDirectory(fileConfig.getIncludePath(), fileConfig.getSrcGenPath().resolve("include"), false);
+    }
+
     /**
      * Generate code for the children of 'reactor' that belong to 'federate'.
      * Duplicates are avoided.
@@ -991,11 +1006,6 @@ public class CGenerator extends GeneratorBase {
         String srcPrefix = targetConfig.platformOptions.platform == Platform.ARDUINO ? "src/" : "";
 
         FileUtil.copyDirectoryFromClassPath(
-            "/lib/c/reactor-c/include",
-            fileConfig.getSrcGenPath().resolve(srcPrefix + "include"),
-            false
-        );
-        FileUtil.copyDirectoryFromClassPath(
             "/lib/c/reactor-c/lib",
             fileConfig.getSrcGenPath().resolve(srcPrefix + "lib"),
             false
@@ -1038,6 +1048,7 @@ public class CGenerator extends GeneratorBase {
         // Some of the following methods create lines of code that need to
         // go into the constructor.  Collect those lines of code here:
         var constructorCode = new CodeBuilder();
+        generateIncludes(reactor);
         generateAuxiliaryStructs(reactor);
         generateSelfStruct(reactor, constructorCode);
         generateMethods(reactor);
@@ -1081,6 +1092,10 @@ public class CGenerator extends GeneratorBase {
             reactor,
             constructorCode.toString()
         ));
+    }
+
+    protected void generateIncludes(ReactorDecl decl) {
+        code.pr("#include \"" + decl.getName() + ".h\"");
     }
 
     /**
@@ -1381,7 +1396,7 @@ public class CGenerator extends GeneratorBase {
      *  @param reactionIndex The position of the reaction within the reactor.
      */
     protected void generateReaction(Reaction reaction, ReactorDecl decl, int reactionIndex) {
-       
+
         code.pr(CReactionGenerator.generateReaction(
             reaction,
             decl,

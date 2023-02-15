@@ -1,9 +1,15 @@
-#include "../include/count.h"
+#include <stdio.h>
+#include "../include/Count.h"
 
-void increment(count_self_t* self) {
+void increment(Count_self_t* self) {
+    printf("in increment, count=%d\n", self->count);
     self->count++;
 }
 
-void done(count_self_t* self) {
-    if (self->count > 10) lf_request_stop();
+void check_done(Count_self_t* self) {
+    printf("in done, count=%d\n", self->count);
+    if (self->count > 10) {
+        printf("%s", "requesting stop\n");
+        lf_request_stop();
+    }
 }
