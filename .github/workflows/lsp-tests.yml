@@ -41,7 +41,7 @@ jobs:
       - name: Install pnpm
         run: npm i -g pnpm
       - name: Cache .pnpm-store
-        uses: actions/cache@v2
+        uses: actions/cache@v3.2.5
         with:
           path: ~/.pnpm-store
           key: ${{ runner.os }}-node${{ matrix.node-version }}-${{ hashFiles('org.lflang/src/lib/ts/package.json') }}
