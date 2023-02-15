@@ -516,9 +516,9 @@ public class CUtil {
      */
     public static String selfType(ReactorDecl reactor) {
         if (reactor instanceof Reactor r && r.isMain()) {
-            return reactor.getName().toLowerCase() + "_main_self_t";
+            return "_" + reactor.getName().toLowerCase() + "_main_self_t";
         }
-        return reactor.getName().toLowerCase() + "_self_t";
+        return "_" + reactor.getName().toLowerCase() + "_self_t";
     }
 
     /** Construct a unique type for the "self" struct of the class of the given reactor. */
