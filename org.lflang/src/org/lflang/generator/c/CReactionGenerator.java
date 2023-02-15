@@ -23,6 +23,7 @@ import org.lflang.lf.BuiltinTriggerRef;
 import org.lflang.lf.Code;
 import org.lflang.lf.Input;
 import org.lflang.lf.Instantiation;
+import org.lflang.lf.LfFactory;
 import org.lflang.lf.Mode;
 import org.lflang.lf.ModeTransition;
 import org.lflang.lf.Output;
@@ -1053,12 +1054,12 @@ public class CReactionGenerator {
                         body, reaction, decl, reactionIndex,
                         types, errorReporter, mainDef,
                         requiresType);
-        
-        String srcPrefix = targetConfig.platformOptions.platform == Platform.ARDUINO ? "src/" : ""; 
+
+        String srcPrefix = targetConfig.platformOptions.platform == Platform.ARDUINO ? "src/" : "";
         code.pr(
             "#include " + StringUtil.addDoubleQuotes(
                 srcPrefix + CCoreFilesUtils.getCTargetSetHeader()));
-        
+
         CMethodGenerator.generateMacrosForMethods(ASTUtils.toDefinition(decl), code);
         code.pr(generateFunction(
             generateReactionFunctionHeader(decl, reactionIndex),
@@ -1084,6 +1085,13 @@ public class CReactionGenerator {
             "#include " + StringUtil.addDoubleQuotes(
                 srcPrefix + CCoreFilesUtils.getCTargetSetUndefHeader()));
         return code.toString();
+    }
+
+    private static Code getCode(Reaction r) {
+        if (r.getCode() != null) return r.getCode();
+        Code ret = LfFactory.eINSTANCE.createCode();
+        ret.setBody(r.getName() + "( self + sizeof(lf_base_t) );");
+        return ret;
     }
 
     public static String generateFunction(String header, String init, Code code) {
