@@ -363,6 +363,10 @@ public class ASTUtils {
         return ASTUtils.collectElements(definition, featurePackage.getReactor_Inputs());
     }
 
+    public static List<Port> allPorts(Reactor definition) {
+        return Stream.concat(ASTUtils.allInputs(definition).stream(), ASTUtils.allOutputs(definition).stream()).toList();
+    }
+
     /**
      * Given a reactor class, return a list of all its instantiations,
      * which includes instantiations of base classes that it extends.

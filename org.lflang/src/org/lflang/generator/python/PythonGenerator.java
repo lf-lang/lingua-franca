@@ -358,24 +358,23 @@ public class PythonGenerator extends CGenerator {
      */
     @Override
     public void generateAuxiliaryStructs(
-        ReactorDecl decl
+        CodeBuilder builder, Reactor r
     ) {
-        Reactor reactor = ASTUtils.toDefinition(decl);
         // First, handle inputs.
-        for (Input input : ASTUtils.allInputs(reactor)) {
-            generateAuxiliaryStructsForPort(decl, input);
+        for (Input input : ASTUtils.allInputs(r)) {
+            generateAuxiliaryStructsForPort(builder, r, input);
         }
         // Next, handle outputs.
-        for (Output output : ASTUtils.allOutputs(reactor)) {
-            generateAuxiliaryStructsForPort(decl, output);
+        for (Output output : ASTUtils.allOutputs(r)) {
+            generateAuxiliaryStructsForPort(builder, r, output);
         }
         // Finally, handle actions.
-        for (Action action : ASTUtils.allActions(reactor)) {
-            generateAuxiliaryStructsForAction(decl, action);
+        for (Action action : ASTUtils.allActions(r)) {
+            generateAuxiliaryStructsForAction(builder, r, action);
         }
     }
 
-    private void generateAuxiliaryStructsForPort(ReactorDecl decl,
+    private void generateAuxiliaryStructsForPort(CodeBuilder builder, ReactorDecl decl,
                                                  Port port) {
         boolean isTokenType = CUtil.isTokenType(ASTUtils.getInferredType(port), types);
         code.pr(port,
@@ -383,7 +382,7 @@ public class PythonGenerator extends CGenerator {
                                                          genericPortType));
     }
 
-    private void generateAuxiliaryStructsForAction(ReactorDecl decl,
+    private void generateAuxiliaryStructsForAction(CodeBuilder builder, ReactorDecl decl,
                                                    Action action) {
         code.pr(action, PythonActionGenerator.generateAliasTypeDef(decl, action, genericActionType));
     }

@@ -1,0 +1,26 @@
+target C {
+    cmake-include: [
+        "../../c/sendreceive.cmake"
+    ],
+    files: [
+        "../../c"
+    ]
+}
+
+reactor Print {
+    output out: int
+
+    reaction send(startup) -> out
+}
+
+reactor Check(expected: int(42)) {  // expected parameter is for testing.
+    input in: int
+
+    reaction receive(in)
+}
+
+main reactor {
+    s = new Print()
+    p = new Check()
+    s.out -> p.in
+}
