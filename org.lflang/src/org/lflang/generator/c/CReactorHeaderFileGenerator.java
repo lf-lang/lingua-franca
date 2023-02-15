@@ -7,9 +7,11 @@ import java.util.stream.Stream;
 
 import org.lflang.InferredType;
 import org.lflang.generator.CodeBuilder;
+import org.lflang.lf.Parameter;
 import org.lflang.lf.Port;
 import org.lflang.lf.Reaction;
 import org.lflang.lf.Reactor;
+import org.lflang.lf.ReactorDecl;
 import org.lflang.lf.StateVar;
 import org.lflang.lf.TriggerRef;
 import org.lflang.lf.TypedVariable;
@@ -19,14 +21,19 @@ import org.lflang.util.FileUtil;
 
 public class CReactorHeaderFileGenerator {
 
-    public static void doGenerate(CTypes types, Reactor r, CFileConfig fileConfig) throws IOException {
-        String contents = generateHeaderFile(types, r);
+    public interface GenerateAuxiliaryStructs {
+        void generate(CodeBuilder b, Reactor r);
+    }
+
+    public static void doGenerate(CTypes types, Reactor r, CFileConfig fileConfig, GenerateAuxiliaryStructs generator) throws IOException {
+        String contents = generateHeaderFile(types, r, generator);
         FileUtil.writeToFile(contents, fileConfig.getIncludePath().resolve(r.getName() + ".h"));
     }
-    private static String generateHeaderFile(CTypes types, Reactor r) {
+    private static String generateHeaderFile(CTypes types, Reactor r, GenerateAuxiliaryStructs generator) {
         CodeBuilder builder = new CodeBuilder();
         appendPoundIncludes(builder);
         appendSelfStruct(builder, types, r);
+        generator.generate(builder, r);
         for (Reaction reaction : r.getReactions()) {
             appendSignature(builder, types, reaction, r);
         }
@@ -34,8 +41,9 @@ public class CReactorHeaderFileGenerator {
     }
     private static void appendPoundIncludes(CodeBuilder builder) {
         builder.pr("""
-            #include "../include/api/api.h"
-            #include "../include/core/reactor.h"
+        #include "../include/api/api.h"
+        #include "../include/api/set.h"
+        #include "../include/core/reactor.h"
         """);
     }
 
@@ -45,6 +53,9 @@ public class CReactorHeaderFileGenerator {
 
     private static void appendSelfStruct(CodeBuilder builder, CTypes types, Reactor r) {
         builder.pr("typedef struct " + selfStructName(r.getName()) + "{");
+        for (Parameter p : r.getParameters()) {
+            builder.pr(types.getTargetType(p.getType()) + " " + p.getName() + ";");
+        }
         for (StateVar s : r.getStateVars()) {
             builder.pr(types.getTargetType(s.getType()) + " " + s.getName() + ";");
         }
@@ -56,13 +67,23 @@ public class CReactorHeaderFileGenerator {
     }
 
     private static String reactionParameters(CTypes types, Reaction r, Reactor reactor) {
-        return Stream.concat(Stream.of(selfStructName(reactor.getName()) + "* self"), inputTypedVariableStream(r)
-            .map((tv) -> types.getVariableDeclaration(InferredType.fromAST(tv.getType()), tv.getName(), false)))
+        return Stream.concat(Stream.of(selfStructName(reactor.getName()) + "* self"), ioTypedVariableStream(r)
+            .map((tv) -> reactor.getName().toLowerCase() + "_" + tv.getName() + "_t* " + tv.getName()))
             .collect(Collectors.joining(", "));
     }
 
-    private static Stream<TypedVariable> inputTypedVariableStream(Reaction r) {
-        return inputVarRefStream(r).map(it -> it.getVariable() instanceof TypedVariable tv ? tv : null)
+    public static String reactionArguments(CTypes types, Reaction r, Reactor reactor) {
+        return Stream.concat(Stream.of(getApiSelfStruct(reactor)), ioTypedVariableStream(r)
+                .map(TypedVariable::getName))
+            .collect(Collectors.joining(", "));
+    }
+
+    private static String getApiSelfStruct(Reactor reactor) {
+        return "(" + CReactorHeaderFileGenerator.selfStructName(reactor.getName()) + "*) (((char*) self) + sizeof(self_base_t))";
+    }
+
+    private static Stream<TypedVariable> ioTypedVariableStream(Reaction r) {
+        return varRefStream(r).map(it -> it.getVariable() instanceof TypedVariable tv ? tv : null)
             .filter(Objects::nonNull);
     }
 

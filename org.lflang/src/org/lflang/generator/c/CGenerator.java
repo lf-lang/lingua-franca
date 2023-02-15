@@ -27,6 +27,7 @@ package org.lflang.generator.c;
 import static org.lflang.ASTUtils.allActions;
 import static org.lflang.ASTUtils.allInputs;
 import static org.lflang.ASTUtils.allOutputs;
+import static org.lflang.ASTUtils.allPorts;
 import static org.lflang.ASTUtils.allReactions;
 import static org.lflang.ASTUtils.allStateVars;
 import static org.lflang.ASTUtils.convertToEmptyListIfNull;
@@ -949,7 +950,7 @@ public class CGenerator extends GeneratorBase {
             false
         );
         for (Reactor r : reactors) {
-            CReactorHeaderFileGenerator.doGenerate(types, r, fileConfig);
+            CReactorHeaderFileGenerator.doGenerate(types, r, fileConfig, this::generateAuxiliaryStructs);
         }
         FileUtil.copyDirectory(fileConfig.getIncludePath(), fileConfig.getSrcGenPath().resolve("include"), false);
     }
@@ -1049,7 +1050,6 @@ public class CGenerator extends GeneratorBase {
         // go into the constructor.  Collect those lines of code here:
         var constructorCode = new CodeBuilder();
         generateIncludes(reactor);
-        generateAuxiliaryStructs(reactor);
         generateSelfStruct(reactor, constructorCode);
         generateMethods(reactor);
         generateReactions(reactor);
@@ -1101,10 +1101,8 @@ public class CGenerator extends GeneratorBase {
     /**
      * Generate the struct type definitions for inputs, outputs, and
      * actions of the specified reactor.
-     * @param decl The parsed reactor data structure.
      */
-    protected void generateAuxiliaryStructs(ReactorDecl decl) {
-        var reactor = ASTUtils.toDefinition(decl);
+    protected void generateAuxiliaryStructs(CodeBuilder builder, Reactor r) {
         // In the case where there are incoming
         // p2p logical connections in decentralized
         // federated execution, there will be an
@@ -1122,35 +1120,22 @@ public class CGenerator extends GeneratorBase {
             #endif
             """.formatted(types.getTargetTagType(), types.getTargetTimeType())
         );
-        // First, handle inputs.
-        for (Input input : allInputs(reactor)) {
-            code.pr(CPortGenerator.generateAuxiliaryStruct(
-                decl,
-                input,
+        for (Port p : allPorts(r)) {
+            builder.pr(CPortGenerator.generateAuxiliaryStruct(
+                r,
+                p,
                 getTarget(),
                 errorReporter,
                 types,
                 federatedExtension
             ));
         }
-        // Next, handle outputs.
-        for (Output output : allOutputs(reactor)) {
-            code.pr(CPortGenerator.generateAuxiliaryStruct(
-                decl,
-                output,
-                getTarget(),
-                errorReporter,
-                types,
-                federatedExtension
-            ));
-        }
-        // Finally, handle actions.
         // The very first item on this struct needs to be
         // a trigger_t* because the struct will be cast to (trigger_t*)
         // by the lf_schedule() functions to get to the trigger.
-        for (Action action : allActions(reactor)) {
-            code.pr(CActionGenerator.generateAuxiliaryStruct(
-                decl,
+        for (Action action : allActions(r)) {
+            builder.pr(CActionGenerator.generateAuxiliaryStruct(
+                r,
                 action,
                 getTarget(),
                 types,
