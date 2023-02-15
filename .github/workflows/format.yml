@@ -5,10 +5,7 @@ on:
 
 jobs:
   run:
-    strategy:
-      matrix:
-        platform: [ubuntu-latest, macos-latest, windows-latest]
-    runs-on: ${{ matrix.platform }}
+    runs-on: ubuntu-latest
     steps:
       - name: Check out lingua-franca repository
         uses: actions/checkout@v3
