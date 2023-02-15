@@ -40,12 +40,6 @@ class CppParameterGenerator(private val reactor: Reactor) {
         val Parameter.typeAlias get(): String = "__lf_${name}_t"
     }
 
-    /** Generate all constructor initializers for parameters */
-    fun generateInitializers() =
-        reactor.parameters.joinWithLn(prefix = "// parameters\n") {
-            ", ${it.name}(parameters.${it.name})"
-        }
-
     /** Generate all parameter declarations as used in the parameter struct */
     fun generateParameterStructDeclarations() =
         reactor.parameters.joinToString("\n", postfix = "\n") {
@@ -55,7 +49,8 @@ class CppParameterGenerator(private val reactor: Reactor) {
                     const $typeAlias $name${
                     if (init == null) "" else CppTypes.getCppInitializer(
                         init,
-                        inferredType
+                        inferredType,
+                        typeAlias = typeAlias
                     )
                 };
                 """.trimIndent()
