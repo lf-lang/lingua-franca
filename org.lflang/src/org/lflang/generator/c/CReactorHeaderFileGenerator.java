@@ -48,7 +48,7 @@ public class CReactorHeaderFileGenerator {
     }
 
     public static String selfStructName(String name) {
-        return name + "_self_t";
+        return name.toLowerCase() + "_self_t";
     }
 
     private static void appendSelfStruct(CodeBuilder builder, CTypes types, Reactor r) {
