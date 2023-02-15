@@ -1,8 +1,8 @@
 name: Build tracing tools
-description: Build tracing tools
+description: Build
 runs:
   using: "composite"
   steps: 
     - run: .github/actions/build-tracing-tools/install.sh
       shell: bash
-      
+
