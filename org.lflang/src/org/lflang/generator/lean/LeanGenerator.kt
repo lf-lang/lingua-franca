@@ -32,11 +32,14 @@ class LeanGenerator(
 
         FileUtil.copyDirectoryFromClassPath(runtimeDir, fileConfig.srcGenPath, false)
 
+        // We need to generate two files:
+        // `Main.lean`: The (only) file to which we emit code and which contains the entry point of the program.
+        // `lakefile.lean`: The configuration file for the project required by Lean's "Lake" package manager.
         val mainFilePath = fileConfig.srcGenPath.resolve( "Main.lean")
         val lakefilePath = fileConfig.srcGenPath.resolve( "lakefile.lean")
 
         val mainFile = genMain(reactors)
-        val lakefile = genLakefile(mainDef.name, "5770b609aeae209cb80ac74655ee8c750c12aabd")
+        val lakefile = genLakefile(mainDef.name)
 
         FileUtil.writeToFile(mainFile, mainFilePath, true)
         FileUtil.writeToFile(lakefile, lakefilePath, true)
@@ -302,7 +305,7 @@ class LeanGenerator(
         }
     }
 
-    private fun genLakefile(exeName: String, std4Commit: String) =
+    private fun genLakefile(exeName: String) =
         """
         |import Lake
         |open Lake DSL
@@ -316,8 +319,6 @@ class LeanGenerator(
         |  root := `Main
         |  exeName := "$exeName"
         |}
-        |
-        |require std from git "https://github.com/leanprover/std4" @ "$std4Commit"
         """.trimMargin()
 
     private fun invokeLeanCompiler(context: LFGeneratorContext, executableName: String, codeMaps: Map<Path, CodeMap>) {

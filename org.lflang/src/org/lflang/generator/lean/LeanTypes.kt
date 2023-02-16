@@ -18,7 +18,7 @@ object LeanTypes : TargetTypes {
 
     override fun getTargetTagType(): String = "Tag"
 
-    override fun getTargetUndefinedType(): String = TODO()
+    override fun getTargetUndefinedType(): String = TODO("Undefined types are not supported by the Lean target.")
 
     override fun getTargetFixedSizeListType(baseType: String, size: Int): String =
         "Array ($baseType)"
