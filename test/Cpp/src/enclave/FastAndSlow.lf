@@ -1,0 +1,37 @@
+// This is a basic test for enclaved execution. The deadlines shiuld never be
+// violated for the test to pass.
+target Cpp {
+    timeout: 3 sec
+}
+
+reactor Slow {
+    timer t(0, 1 sec)
+
+    reaction(t) {=
+        reactor::log::Info() << "Slow reaction starts";
+        std::this_thread::sleep_for(700ms);
+        reactor::log::Info() << "Slow reaction ends";
+    =} deadline(200 msec) {=
+        reactor::log::Error() << "Slow deadline was violated!";
+        exit(1);
+    =}
+}
+
+reactor Fast {
+    timer t(0 msec, 100 msec)
+
+    reaction(t) {=
+        reactor::log::Info() << "Fast reaction executes";
+    =} deadline(
+        200 msec
+    ) {=
+        reactor::log::Error() << "Fast deadline was violated!";
+        exit(2);
+    =}
+}
+
+main reactor {
+    slow = new Slow()
+    @enclave
+    fast = new Fast()
+}

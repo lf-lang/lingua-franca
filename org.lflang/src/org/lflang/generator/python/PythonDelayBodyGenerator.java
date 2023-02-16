@@ -2,9 +2,11 @@ package org.lflang.generator.python;
 
 
 import org.lflang.ASTUtils;
+import org.lflang.federated.generator.FedASTUtils;
 import org.lflang.generator.c.CDelayBodyGenerator;
 import org.lflang.generator.c.CUtil;
 import org.lflang.lf.Action;
+import org.lflang.lf.Reaction;
 import org.lflang.lf.VarRef;
 
 public class PythonDelayBodyGenerator extends CDelayBodyGenerator {
@@ -40,12 +42,10 @@ public class PythonDelayBodyGenerator extends CDelayBodyGenerator {
                 "// Need to lock the mutex first.",
                 "lf_mutex_lock(&mutex);",
                 "#endif",
-                "lf_token_t* t = create_token(sizeof(PyObject*));",
+                "lf_token_t* t = _lf_new_token((token_type_t*)"+action.getName()+", self->_lf_"+ref+"->value, 1);",
                 "#if NUMBER_OF_WORKERS > 0",
                 "lf_mutex_unlock(&mutex);",
                 "#endif",
-                "t->value = self->_lf_"+ref+"->value;",
-                "t->length = 1; // Length is 1",
                 "",
                 "// Pass the token along",
                 "lf_schedule_token("+action.getName()+", 0, t);"
@@ -71,4 +71,9 @@ public class PythonDelayBodyGenerator extends CDelayBodyGenerator {
         }
     }
 
+    @Override
+    public void finalizeReactions(Reaction delayReaction, Reaction forwardReaction) {
+        ASTUtils.addReactionAttribute(delayReaction, "_c_body");
+        ASTUtils.addReactionAttribute(forwardReaction, "_c_body");
+    }
 }

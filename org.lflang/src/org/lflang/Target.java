@@ -403,10 +403,10 @@ public enum Target {
 
 
     /**
-     * Private constructor for targets without pakcageName and classNamePrefix.
+     * Private constructor for targets without packageName and classNamePrefix.
      */
     Target(String displayName, boolean requiresTypes, Collection<String> keywords) {
-        this(displayName, requiresTypes, "N/A", "N/A", keywords);
+        this(displayName, requiresTypes, "N/A", "N/A", keywords); // FIXME: prefix
     }
 
 
@@ -487,16 +487,28 @@ public enum Target {
      * on constants).
      */
     public boolean supportsParameterizedWidths() {
-        switch (this) {
-        case C:
-        case CCPP:
-        case CPP:
-        case Python:
-        case Rust:
-        case TS:
-            return true;
-        }
-        return false;
+        return switch (this) {
+            case C, CCPP, CPP, Python, Rust, TS -> true;
+            case Lean -> false;
+        };
+    }
+
+    /**
+     * Return true if this code for this target should be built using Docker if Docker is used.
+     * @return
+     */
+    public boolean buildsUsingDocker() {
+        return switch (this) {
+            case TS, Lean -> false;
+            case C, CCPP, CPP, Python, Rust -> true;
+        };
+    }
+
+    /**
+     * Return a string that demarcates the beginning of a single-line comment.
+     */
+    public String getSingleLineCommentPrefix() {
+        return this.equals(Target.Python) ? "#" : "//";
     }
 
     /**

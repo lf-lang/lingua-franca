@@ -73,13 +73,13 @@ fun Expression.toCppCode(inferredType: InferredType? = null): String =
  * @param outerContext A flag indicating whether to generate code for the scope of the outer reactor class.
  *                    This should be set to false if called from code generators for the inner class.
  */
-fun Expression.toCppTime(): String =
-    this.toCppCode(inferredType = InferredType.time())
+fun Expression?.toCppTime(): String =
+    this?.toCppCode(inferredType = InferredType.time()) ?: "reactor::Duration::zero()"
 
 /** Get the textual representation of a width in C++ code */
 fun WidthSpec.toCppCode(): String = terms.joinToString(" + ") {
     when {
-        it.parameter != null -> "parameters." + it.parameter.name
+        it.parameter != null -> "__lf_parameters." + it.parameter.name
         it.port != null      -> with(it.port) {
             if (container?.isBank == true) {
                 if ((variable as Port).isMultiport) "(${container.name}.size() * ${container.name}[0]->${variable.name}.size())"

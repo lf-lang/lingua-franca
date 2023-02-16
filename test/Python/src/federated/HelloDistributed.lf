@@ -13,7 +13,7 @@ reactor Source {
     reaction(startup) -> out {=
         print("Sending 'Hello World!' message from source federate.");
         out.set("Hello World!")
-        request_stop()
+        lf_request_stop()
     =}
 }
 

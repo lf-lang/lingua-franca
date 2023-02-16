@@ -13,8 +13,9 @@ import java.util.Set;
 import org.lflang.ASTUtils;
 import org.lflang.ErrorReporter;
 import org.lflang.InferredType;
-import org.lflang.federated.CGeneratorExtension;
-import org.lflang.federated.FederateInstance;
+import org.lflang.TargetConfig;
+import org.lflang.TargetProperty.Platform;
+import org.lflang.federated.extensions.CExtensionUtils;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.lf.Action;
 import org.lflang.lf.ActionOrigin;
@@ -53,7 +54,6 @@ public class CReactionGenerator {
                                                            CTypes types,
                                                            ErrorReporter errorReporter,
                                                            Instantiation mainDef,
-                                                           boolean isFederatedAndDecentralized,
                                                            boolean requiresTypes) {
         Reactor reactor = ASTUtils.toDefinition(decl);
 
@@ -322,9 +322,8 @@ public class CReactionGenerator {
         return isTokenType ?
                 String.join("\n",
                     DISABLE_REACTION_INITIALIZATION_MARKER,
-                    "self->_lf_"+outputName+".value = ("+targetType+")self->_lf__"+actionName+".token->value;",
-                    "self->_lf_"+outputName+".token = (lf_token_t*)self->_lf__"+actionName+".token;",
-                    "((lf_token_t*)self->_lf__"+actionName+".token)->ref_count++;",
+                    "self->_lf_"+outputName+".value = ("+targetType+")self->_lf__"+actionName+".tmplt.token->value;",
+                    "_lf_replace_template_token((token_template_t*)&self->_lf_"+outputName+", (lf_token_t*)self->_lf__"+actionName+".tmplt.token);",
                     "self->_lf_"+outputName+".is_present = true;"
                 ) :
                 "lf_set("+outputName+", "+actionName+"->value);";
@@ -486,7 +485,7 @@ public class CReactionGenerator {
         // If the action has a type, create variables for accessing the value.
         InferredType type = ASTUtils.getInferredType(action);
         // Pointer to the lf_token_t sent as the payload in the trigger.
-        String tokenPointer = "(self->_lf__"+action.getName()+".token)";
+        String tokenPointer = "(self->_lf__"+action.getName()+".tmplt.token)";
         CodeBuilder builder = new CodeBuilder();
 
         builder.pr(
@@ -496,7 +495,7 @@ public class CReactionGenerator {
             "// Set the fields of the action struct to match the current trigger.",
             action.getName()+"->is_present = (bool)self->_lf__"+action.getName()+".status;",
             action.getName()+"->has_value = ("+tokenPointer+" != NULL && "+tokenPointer+"->value != NULL);",
-            action.getName()+"->token = "+tokenPointer+";")
+            "_lf_replace_template_token((token_template_t*)"+action.getName()+", "+tokenPointer+");")
         );
         // Set the value field only if there is a type.
         if (!type.isUndefined()) {
@@ -536,7 +535,7 @@ public class CReactionGenerator {
         // If the input has not been declared mutable, then this is a pointer
         // to the upstream output. Otherwise, it is a copy of the upstream output,
         // which nevertheless points to the same token and value (hence, as done
-        // below, we have to use writable_copy()). There are 8 cases,
+        // below, we have to use lf_writable_copy()). There are 8 cases,
         // depending on whether the input is mutable, whether it is a multiport,
         // and whether it is a token type.
         // Easy case first.
@@ -568,18 +567,10 @@ public class CReactionGenerator {
                 "// Mutable input, so copy the input struct into a temporary variable.",
                 structType+" _lf_tmp_"+inputName+" = *(self->_lf_"+inputName+");",
                 structType+"* "+inputName+" = &_lf_tmp_"+inputName+";",
+                inputName+"->value = NULL;", // Prevent payload from being freed.
                 "if ("+inputName+"->is_present) {",
                 "    "+inputName+"->length = "+inputName+"->token->length;",
-                "    lf_token_t* _lf_input_token = "+inputName+"->token;",
-                "    "+inputName+"->token = writable_copy(_lf_input_token);",
-                "    if ("+inputName+"->token != _lf_input_token) {",
-                "        // A copy of the input token has been made.",
-                "        // This needs to be reference counted.",
-                "        "+inputName+"->token->ref_count = 1;",
-                "        // Repurpose the next_free pointer on the token to add to the list.",
-                "        "+inputName+"->token->next_free = _lf_more_tokens_with_ref_count;",
-                "        _lf_more_tokens_with_ref_count = "+inputName+"->token;",
-                "    }",
+                "    "+inputName+"->token = lf_writable_copy((lf_port_base_t*)self->_lf_"+inputName+");",
                 "    "+inputName+"->value = ("+types.getTargetType(inputType)+")"+inputName+"->token->value;",
                 "} else {",
                 "    "+inputName+"->length = 0;",
@@ -601,16 +592,8 @@ public class CReactionGenerator {
                 "    // If necessary, copy the tokens.",
                 "    if ("+inputName+"[i]->is_present) {",
                 "        "+inputName+"[i]->length = "+inputName+"[i]->token->length;",
-                "        lf_token_t* _lf_input_token = "+inputName+"[i]->token;",
-                "        "+inputName+"[i]->token = writable_copy(_lf_input_token);",
-                "        if ("+inputName+"[i]->token != _lf_input_token) {",
-                "            // A copy of the input token has been made.",
-                "            // This needs to be reference counted.",
-                "            "+inputName+"[i]->token->ref_count = 1;",
-                "            // Repurpose the next_free pointer on the token to add to the list.",
-                "            "+inputName+"[i]->token->next_free = _lf_more_tokens_with_ref_count;",
-                "            _lf_more_tokens_with_ref_count = "+inputName+"[i]->token;",
-                "        }",
+                "        token_template_t* _lf_input = (token_template_t*)self->_lf_"+inputName+"[i];",
+                "        "+inputName+"[i]->token = lf_writable_copy((lf_port_base_t*)_lf_input);",
                 "        "+inputName+"[i]->value = ("+types.getTargetType(inputType)+")"+inputName+"[i]->token->value;",
                 "    } else {",
                 "        "+inputName+"[i]->length = 0;",
@@ -689,13 +672,10 @@ public class CReactionGenerator {
      * @param constructorCode The place to put the constructor code.
      */
     public static void generateReactionAndTriggerStructs(
-        FederateInstance currentFederate,
         CodeBuilder body,
         ReactorDecl decl,
         CodeBuilder constructorCode,
-        CTypes types,
-        boolean isFederated,
-        boolean isFederatedAndDecentralized
+        CTypes types
     ) {
         var reactionCount = 0;
         var reactor = ASTUtils.toDefinition(decl);
@@ -712,82 +692,79 @@ public class CReactionGenerator {
         var shutdownReactions = new LinkedHashSet<Integer>();
         var resetReactions = new LinkedHashSet<Integer>();
         for (Reaction reaction : ASTUtils.allReactions(reactor)) {
-            if (currentFederate.contains(reaction)) {
-                // Create the reaction_t struct.
-                body.pr(reaction, "reaction_t _lf__reaction_"+reactionCount+";");
+            // Create the reaction_t struct.
+            body.pr(reaction, "reaction_t _lf__reaction_"+reactionCount+";");
 
-                // Create the map of triggers to reactions.
-                for (TriggerRef trigger : reaction.getTriggers()) {
-                    // trigger may not be a VarRef (it could be "startup" or "shutdown").
-                    if (trigger instanceof VarRef) {
-                        var triggerAsVarRef = (VarRef) trigger;
-                        var reactionList = triggerMap.get(triggerAsVarRef.getVariable());
-                        if (reactionList == null) {
-                            reactionList = new LinkedList<>();
-                            triggerMap.put(triggerAsVarRef.getVariable(), reactionList);
-                        }
-                        reactionList.add(reactionCount);
-                        if (triggerAsVarRef.getContainer() != null) {
-                            outputsOfContainedReactors.put(triggerAsVarRef.getVariable(), triggerAsVarRef.getContainer());
-                        }
-                    } else if (trigger instanceof BuiltinTriggerRef) {
-                        switch(((BuiltinTriggerRef) trigger).getType()) {
-                            case STARTUP:
-                                startupReactions.add(reactionCount);
-                                break;
-                            case SHUTDOWN:
-                                shutdownReactions.add(reactionCount);
-                                break;
-                            case RESET:
-                                resetReactions.add(reactionCount);
-                                break;
-                        }
+            // Create the map of triggers to reactions.
+            for (TriggerRef trigger : reaction.getTriggers()) {
+                // trigger may not be a VarRef (it could be "startup" or "shutdown").
+                if (trigger instanceof VarRef) {
+                    var triggerAsVarRef = (VarRef) trigger;
+                    var reactionList = triggerMap.get(triggerAsVarRef.getVariable());
+                    if (reactionList == null) {
+                        reactionList = new LinkedList<>();
+                        triggerMap.put(triggerAsVarRef.getVariable(), reactionList);
+                    }
+                    reactionList.add(reactionCount);
+                    if (triggerAsVarRef.getContainer() != null) {
+                        outputsOfContainedReactors.put(triggerAsVarRef.getVariable(), triggerAsVarRef.getContainer());
+                    }
+                } else if (trigger instanceof BuiltinTriggerRef) {
+                    switch(((BuiltinTriggerRef) trigger).getType()) {
+                        case STARTUP:
+                            startupReactions.add(reactionCount);
+                            break;
+                        case SHUTDOWN:
+                            shutdownReactions.add(reactionCount);
+                            break;
+                        case RESET:
+                            resetReactions.add(reactionCount);
+                            break;
                     }
                 }
-                // Create the set of sources read but not triggering.
-                for (VarRef source : reaction.getSources()) {
-                    sourceSet.add(source.getVariable());
-                    if (source.getContainer() != null) {
-                        outputsOfContainedReactors.put(source.getVariable(), source.getContainer());
-                    }
-                }
-
-                var deadlineFunctionPointer = "NULL";
-                if (reaction.getDeadline() != null) {
-                    // The following has to match the name chosen in generateReactions
-                    var deadlineFunctionName = generateDeadlineFunctionName(decl, reactionCount);
-                    deadlineFunctionPointer = "&" + deadlineFunctionName;
-                }
-
-                // Assign the STP handler
-                var STPFunctionPointer = "NULL";
-                if (reaction.getStp() != null) {
-                    // The following has to match the name chosen in generateReactions
-                    var STPFunctionName = generateStpFunctionName(decl, reactionCount);
-                    STPFunctionPointer = "&" + STPFunctionName;
-                }
-
-                // Set the defaults of the reaction_t struct in the constructor.
-                // Since the self struct is allocated using calloc, there is no need to set:
-                // self->_lf__reaction_"+reactionCount+".index = 0;
-                // self->_lf__reaction_"+reactionCount+".chain_id = 0;
-                // self->_lf__reaction_"+reactionCount+".pos = 0;
-                // self->_lf__reaction_"+reactionCount+".status = inactive;
-                // self->_lf__reaction_"+reactionCount+".deadline = 0LL;
-                // self->_lf__reaction_"+reactionCount+".is_STP_violated = false;
-                constructorCode.pr(reaction, String.join("\n",
-                    "self->_lf__reaction_"+reactionCount+".number = "+reactionCount+";",
-                    "self->_lf__reaction_"+reactionCount+".function = "+ CReactionGenerator.generateReactionFunctionName(decl, reactionCount)+";",
-                    "self->_lf__reaction_"+reactionCount+".self = self;",
-                    "self->_lf__reaction_"+reactionCount+".deadline_violation_handler = "+deadlineFunctionPointer+";",
-                    "self->_lf__reaction_"+reactionCount+".STP_handler = "+STPFunctionPointer+";",
-                    "self->_lf__reaction_"+reactionCount+".name = "+addDoubleQuotes("?")+";",
-                    (reaction.eContainer() instanceof Mode ?
-                    "self->_lf__reaction_"+reactionCount+".mode = &self->_lf__modes["+reactor.getModes().indexOf((Mode) reaction.eContainer())+"];" :
-                    "self->_lf__reaction_"+reactionCount+".mode = NULL;")
-                ));
-
             }
+            // Create the set of sources read but not triggering.
+            for (VarRef source : reaction.getSources()) {
+                sourceSet.add(source.getVariable());
+                if (source.getContainer() != null) {
+                    outputsOfContainedReactors.put(source.getVariable(), source.getContainer());
+                }
+            }
+
+            var deadlineFunctionPointer = "NULL";
+            if (reaction.getDeadline() != null) {
+                // The following has to match the name chosen in generateReactions
+                var deadlineFunctionName = generateDeadlineFunctionName(decl, reactionCount);
+                deadlineFunctionPointer = "&" + deadlineFunctionName;
+            }
+
+            // Assign the STP handler
+            var STPFunctionPointer = "NULL";
+            if (reaction.getStp() != null) {
+                // The following has to match the name chosen in generateReactions
+                var STPFunctionName = generateStpFunctionName(decl, reactionCount);
+                STPFunctionPointer = "&" + STPFunctionName;
+            }
+
+            // Set the defaults of the reaction_t struct in the constructor.
+            // Since the self struct is allocated using calloc, there is no need to set:
+            // self->_lf__reaction_"+reactionCount+".index = 0;
+            // self->_lf__reaction_"+reactionCount+".chain_id = 0;
+            // self->_lf__reaction_"+reactionCount+".pos = 0;
+            // self->_lf__reaction_"+reactionCount+".status = inactive;
+            // self->_lf__reaction_"+reactionCount+".deadline = 0LL;
+            // self->_lf__reaction_"+reactionCount+".is_STP_violated = false;
+            constructorCode.pr(reaction, String.join("\n",
+                "self->_lf__reaction_"+reactionCount+".number = "+reactionCount+";",
+                "self->_lf__reaction_"+reactionCount+".function = "+CReactionGenerator.generateReactionFunctionName(decl, reactionCount)+";",
+                "self->_lf__reaction_"+reactionCount+".self = self;",
+                "self->_lf__reaction_"+reactionCount+".deadline_violation_handler = "+deadlineFunctionPointer+";",
+                "self->_lf__reaction_"+reactionCount+".STP_handler = "+STPFunctionPointer+";",
+                "self->_lf__reaction_"+reactionCount+".name = "+addDoubleQuotes("?")+";",
+                (reaction.eContainer() instanceof Mode ?
+                "self->_lf__reaction_"+reactionCount+".mode = &self->_lf__modes["+reactor.getModes().indexOf((Mode) reaction.eContainer())+"];" :
+                "self->_lf__reaction_"+reactionCount+".mode = NULL;")
+            ));
             // Increment the reactionCount even if the reaction is not in the federate
             // so that reaction indices are consistent across federates.
             reactionCount++;
@@ -796,60 +773,58 @@ public class CReactionGenerator {
         // Next, create and initialize the trigger_t objects.
         // Start with the timers.
         for (Timer timer : ASTUtils.allTimers(reactor)) {
-            createTriggerT(body, timer, triggerMap, constructorCode, types, isFederated, isFederatedAndDecentralized);
-            // Since the self struct is allocated using calloc, there is no need to set:
-            // self->_lf__"+timer.name+".is_physical = false;
-            // self->_lf__"+timer.name+".drop = false;
-            // self->_lf__"+timer.name+".element_size = 0;
+            createTriggerT(body, timer, triggerMap, constructorCode, types);
+            // Since the self struct is allocated using calloc, there is no need to set falsy fields.
             constructorCode.pr("self->_lf__"+timer.getName()+".is_timer = true;");
-            if (isFederatedAndDecentralized) {
-                constructorCode.pr("self->_lf__"+timer.getName()+".intended_tag = (tag_t) { .time = NEVER, .microstep = 0u};");
-            }
+            constructorCode.pr(CExtensionUtils.surroundWithIfFederatedDecentralized(
+                "self->_lf__"+timer.getName()+".intended_tag = (tag_t) { .time = NEVER, .microstep = 0u};"));
         }
 
         // Handle builtin triggers.
         if (startupReactions.size() > 0) {
-            generateBuiltinTriggerdReactionsArray(startupReactions, "startup", body, constructorCode, isFederatedAndDecentralized);
+            generateBuiltinTriggeredReactionsArray(startupReactions, "startup", body, constructorCode);
         }
         // Handle shutdown triggers.
         if (shutdownReactions.size() > 0) {
-            generateBuiltinTriggerdReactionsArray(shutdownReactions, "shutdown", body, constructorCode, isFederatedAndDecentralized);
+            generateBuiltinTriggeredReactionsArray(shutdownReactions, "shutdown", body, constructorCode);
         }
         if (resetReactions.size() > 0) {
-            generateBuiltinTriggerdReactionsArray(resetReactions, "reset", body, constructorCode, isFederatedAndDecentralized);
+            generateBuiltinTriggeredReactionsArray(resetReactions, "reset", body, constructorCode);
         }
 
         // Next handle actions.
         for (Action action : ASTUtils.allActions(reactor)) {
-            if (currentFederate.contains(action)) {
-                createTriggerT(body, action, triggerMap, constructorCode, types, isFederated, isFederatedAndDecentralized);
-                var isPhysical = "true";
-                if (action.getOrigin().equals(ActionOrigin.LOGICAL)) {
-                    isPhysical = "false";
-                }
-                var elementSize = "0";
-                // If the action type is 'void', we need to avoid generating the code
-                // 'sizeof(void)', which some compilers reject.
-                var rootType = action.getType() != null ? CUtil.rootType(types.getTargetType(action)) : null;
-                if (rootType != null && !rootType.equals("void")) {
-                    elementSize = "sizeof("+rootType+")";
-                }
-
-                // Since the self struct is allocated using calloc, there is no need to set:
-                // self->_lf__"+action.getName()+".is_timer = false;
-                constructorCode.pr(String.join("\n",
-                    "self->_lf__"+action.getName()+".is_physical = "+isPhysical+";",
-                    (!(action.getPolicy() == null || action.getPolicy().isEmpty()) ?
-                    "self->_lf__"+action.getName()+".policy = "+action.getPolicy()+";" :
-                    ""),
-                    "self->_lf__"+action.getName()+".element_size = "+elementSize+";"
-                ));
+            createTriggerT(body, action, triggerMap, constructorCode, types);
+            var isPhysical = "true";
+            if (action.getOrigin().equals(ActionOrigin.LOGICAL)) {
+                isPhysical = "false";
             }
+            var elementSize = "0";
+            // If the action type is 'void', we need to avoid generating the code
+            // 'sizeof(void)', which some compilers reject.
+            var rootType = action.getType() != null ? CUtil.rootType(types.getTargetType(action))
+                : null;
+            if (rootType != null && !rootType.equals("void")) {
+                elementSize = "sizeof(" + rootType + ")";
+            }
+
+            // Since the self struct is allocated using calloc, there is no need to set:
+            // self->_lf__"+action.getName()+".is_timer = false;
+            constructorCode.pr(String.join("\n",
+                "self->_lf__" + action.getName() + ".is_physical = " + isPhysical + ";",
+                (!(action.getPolicy() == null || action.getPolicy().isEmpty()) ?
+                    "self->_lf__" + action.getName() + ".policy = " + action.getPolicy() + ";" :
+                    ""),
+                // Need to set the element_size in the trigger_t and the action struct.
+                "self->_lf__" + action.getName() + ".tmplt.type.element_size = " + elementSize
+                    + ";",
+                "self->_lf_" + action.getName() + ".type.element_size = " + elementSize + ";"
+            ));
         }
 
         // Next handle inputs.
         for (Input input : ASTUtils.allInputs(reactor)) {
-            createTriggerT(body, input, triggerMap, constructorCode, types, isFederated, isFederatedAndDecentralized);
+            createTriggerT(body, input, triggerMap, constructorCode, types);
         }
     }
 
@@ -868,17 +843,14 @@ public class CReactionGenerator {
         Variable variable,
         LinkedHashMap<Variable, LinkedList<Integer>> triggerMap,
         CodeBuilder constructorCode,
-        CTypes types,
-        boolean isFederated,
-        boolean isFederatedAndDecentralized
+        CTypes types
     ) {
         var varName = variable.getName();
         // variable is a port, a timer, or an action.
         body.pr(variable, "trigger_t _lf__"+varName+";");
         constructorCode.pr(variable, "self->_lf__"+varName+".last = NULL;");
-        if (isFederatedAndDecentralized) {
-            constructorCode.pr(variable, "self->_lf__"+varName+".intended_tag = (tag_t) { .time = NEVER, .microstep = 0u};");
-        }
+        constructorCode.pr(variable, CExtensionUtils.surroundWithIfFederatedDecentralized(
+            "self->_lf__"+varName+".intended_tag = (tag_t) { .time = NEVER, .microstep = 0u};"));
 
         // Generate the reactions triggered table.
         var reactionsTriggered = triggerMap.get(variable);
@@ -896,45 +868,38 @@ public class CReactionGenerator {
                 "self->_lf__"+varName+".number_of_reactions = "+count+";"
             ));
 
-            if (isFederated) {
-                // Set the physical_time_of_arrival
-                constructorCode.pr(variable, "self->_lf__"+varName+".physical_time_of_arrival = NEVER;");
-            }
+            // If federated, set the physical_time_of_arrival
+            constructorCode.pr(variable, CExtensionUtils.surroundWithIfFederated(
+                "self->_lf__"+varName+".physical_time_of_arrival = NEVER;"));
         }
         if (variable instanceof Input) {
             var rootType = CUtil.rootType(types.getTargetType((Input) variable));
-            // Since the self struct is allocated using calloc, there is no need to set:
-            // self->_lf__"+input.name+".is_timer = false;
-            // self->_lf__"+input.name+".offset = 0LL;
-            // self->_lf__"+input.name+".period = 0LL;
-            // self->_lf__"+input.name+".is_physical = false;
-            // self->_lf__"+input.name+".drop = false;
+            // Since the self struct is allocated using calloc, there is no need to set falsy fields.
             // If the input type is 'void', we need to avoid generating the code
             // 'sizeof(void)', which some compilers reject.
             var size = (rootType.equals("void")) ? "0" : "sizeof("+rootType+")";
-            constructorCode.pr("self->_lf__"+varName+".element_size = "+size+";");
-            if (isFederated) {
-                body.pr(
-                    CGeneratorExtension.createPortStatusFieldForInput((Input) variable)
-                );
-            }
+
+            constructorCode.pr("self->_lf__"+varName+".tmplt.type.element_size = "+size+";");
+            body.pr(
+                CExtensionUtils.surroundWithIfFederated(
+                    CExtensionUtils.createPortStatusFieldForInput((Input) variable)
+                )
+            );
         }
     }
 
-    public static void generateBuiltinTriggerdReactionsArray(
+    public static void generateBuiltinTriggeredReactionsArray(
             Set<Integer> reactions,
             String name,
             CodeBuilder body,
-            CodeBuilder constructorCode,
-            boolean isFederatedAndDecentralized
+            CodeBuilder constructorCode
     ) {
         body.pr(String.join("\n",
             "trigger_t _lf__"+name+";",
             "reaction_t* _lf__"+name+"_reactions["+reactions.size()+"];"
         ));
-        if (isFederatedAndDecentralized) {
-            constructorCode.pr("self->_lf__"+name+".intended_tag = (tag_t) { .time = NEVER, .microstep = 0u};");
-        }
+        constructorCode.pr(CExtensionUtils.surroundWithIfFederatedDecentralized(
+            "self->_lf__"+name+".intended_tag = (tag_t) { .time = NEVER, .microstep = 0u};"));
         var i = 0;
         for (Integer reactionIndex : reactions) {
             constructorCode.pr("self->_lf__"+name+"_reactions["+i+++"] = &self->_lf__reaction_"+reactionIndex+";");
@@ -1079,7 +1044,7 @@ public class CReactionGenerator {
         Instantiation mainDef,
         ErrorReporter errorReporter,
         CTypes types,
-        boolean isFederatedAndDecentralized,
+        TargetConfig targetConfig,
         boolean requiresType
     ) {
         var code = new CodeBuilder();
@@ -1087,17 +1052,18 @@ public class CReactionGenerator {
         String init = generateInitializationForReaction(
                         body, reaction, decl, reactionIndex,
                         types, errorReporter, mainDef,
-                        isFederatedAndDecentralized,
                         requiresType);
+        
+        String srcPrefix = targetConfig.platformOptions.platform == Platform.ARDUINO ? "src/" : ""; 
         code.pr(
             "#include " + StringUtil.addDoubleQuotes(
-                CCoreFilesUtils.getCTargetSetHeader()));
+                srcPrefix + CCoreFilesUtils.getCTargetSetHeader()));
+        
         CMethodGenerator.generateMacrosForMethods(ASTUtils.toDefinition(decl), code);
         code.pr(generateFunction(
             generateReactionFunctionHeader(decl, reactionIndex),
             init, reaction.getCode()
         ));
-
         // Now generate code for the late function, if there is one
         // Note that this function can only be defined on reactions
         // in federates that have inputs from a logical connection.
@@ -1116,7 +1082,7 @@ public class CReactionGenerator {
         CMethodGenerator.generateMacroUndefsForMethods(ASTUtils.toDefinition(decl), code);
         code.pr(
             "#include " + StringUtil.addDoubleQuotes(
-                CCoreFilesUtils.getCTargetSetUndefHeader()));
+                srcPrefix + CCoreFilesUtils.getCTargetSetUndefHeader()));
         return code.toString();
     }
 
@@ -1138,7 +1104,7 @@ public class CReactionGenerator {
      * @param reactionIndex The number assigned to this reaction deadline
      */
     public static String generateDeadlineFunctionName(ReactorDecl decl, int reactionIndex) {
-        return decl.getName().toLowerCase() + "_deadline_function" + reactionIndex;
+        return CUtil.getName(decl).toLowerCase() + "_deadline_function" + reactionIndex;
     }
 
     /**
@@ -1149,7 +1115,7 @@ public class CReactionGenerator {
      * @return The function name for the reaction.
      */
     public static String generateReactionFunctionName(ReactorDecl reactor, int reactionIndex) {
-        return reactor.getName().toLowerCase() + "reaction_function_" + reactionIndex;
+        return CUtil.getName(reactor).toLowerCase() + "reaction_function_" + reactionIndex;
     }
 
     /**
@@ -1158,7 +1124,7 @@ public class CReactionGenerator {
      * @param reactionIndex The number assigned to this reaction deadline
      */
     public static String generateStpFunctionName(ReactorDecl decl, int reactionIndex) {
-        return decl.getName().toLowerCase() + "_STP_function" + reactionIndex;
+        return CUtil.getName(decl).toLowerCase() + "_STP_function" + reactionIndex;
     }
 
     /** Return the top level C function header for the deadline function numbered "reactionIndex" in "decl"

@@ -13,11 +13,11 @@ import java.nio.file.Path
 import java.util.*
 
 class LeanGenerator(
-    val fileConfig: LeanFileConfig,
+    val context: LFGeneratorContext,
     errorReporter: ErrorReporter,
     private val scopeProvider: LFGlobalScopeProvider
 ) :
-    GeneratorBase(fileConfig, errorReporter) {
+    GeneratorBase(context) {
 
     companion object {
         /** Path to the Lean runtime library (relative to class path)  */
@@ -30,13 +30,13 @@ class LeanGenerator(
 
         if (!GeneratorUtils.canGenerate(errorsOccurred(), mainDef, errorReporter, context)) return
 
-        FileUtil.copyDirectoryFromClassPath(runtimeDir, fileConfig.srcGenPath, false)
+        FileUtil.copyDirectoryFromClassPath(runtimeDir, context.fileConfig.srcGenPath, false)
 
         // We need to generate two files:
         // `Main.lean`: The (only) file to which we emit code and which contains the entry point of the program.
         // `lakefile.lean`: The configuration file for the project required by Lean's "Lake" package manager.
-        val mainFilePath = fileConfig.srcGenPath.resolve( "Main.lean")
-        val lakefilePath = fileConfig.srcGenPath.resolve( "lakefile.lean")
+        val mainFilePath = context.fileConfig.srcGenPath.resolve( "Main.lean")
+        val lakefilePath = context.fileConfig.srcGenPath.resolve( "lakefile.lean")
 
         val mainFile = genMain(reactors)
         val lakefile = genLakefile(mainDef.name)
@@ -243,7 +243,7 @@ class LeanGenerator(
 
     // BUG: This always returns an empty list.
     private fun genSchedule(): String {
-        main = ReactorInstance(ASTUtils.toDefinition(mainDef.reactorClass), errorReporter, unorderedReactions)
+        main = ReactorInstance(ASTUtils.toDefinition(mainDef.reactorClass), errorReporter)
         return ReactionInstanceGraph(main)
             .nodesInReverseTopologicalOrder()
             .reversed()
@@ -322,18 +322,20 @@ class LeanGenerator(
         """.trimMargin()
 
     private fun invokeLeanCompiler(context: LFGeneratorContext, executableName: String, codeMaps: Map<Path, CodeMap>) {
-        val lakeUpdateCommand = commandFactory.createCommand("lake", listOf("update"), fileConfig.srcGenPath.toAbsolutePath())
+        val lakeUpdateCommand = commandFactory.createCommand("lake", listOf("update"), context.fileConfig.srcGenPath.toAbsolutePath())
         lakeUpdateCommand.run()
 
-        val buildCommand = commandFactory.createCommand("lake", listOf("build"), fileConfig.srcGenPath.toAbsolutePath())
+        val buildCommand = commandFactory.createCommand("lake", listOf("build"), context.fileConfig.srcGenPath.toAbsolutePath())
         val returnCode = buildCommand.run()
 
         if (returnCode == 0) {
             println("SUCCESS (compiling generated Lean code)")
 
-            // TODO: Figure out how to set the binary path via the file config.
-            val binPath = fileConfig.srcGenBasePath.resolve("${mainDef.name}/build/bin")
-            context.finish(GeneratorResult.Status.COMPILED, executableName, binPath, fileConfig, codeMaps, null)
+            // Copies the executable from the directory into which Lake places it, to the proper binary path.
+            val lakeBinPath = context.fileConfig.srcGenBasePath.resolve("${mainDef.name}/build/bin/${mainDef.name}")
+            FileUtil.copyFile(lakeBinPath, context.fileConfig.binPath)
+
+            context.finish(GeneratorResult(GeneratorResult.Status.COMPILED, context, codeMaps))
         } else if (context.cancelIndicator.isCanceled) {
             context.finish(GeneratorResult.CANCELLED)
         } else {

@@ -25,8 +25,6 @@ package org.lflang.generator.cpp
 
 import org.lflang.ErrorReporter
 import org.lflang.generator.PrependOperator
-import org.lflang.generator.cpp.CppParameterGenerator.Companion.targetType
-import org.lflang.generator.cpp.CppParameterGenerator.Companion.typeAlias
 import org.lflang.isGeneric
 import org.lflang.lf.Reactor
 import org.lflang.toText
@@ -58,6 +56,7 @@ class CppReactorGenerator(private val reactor: Reactor, fileConfig: CppFileConfi
     private val ports = CppPortGenerator(reactor)
     private val reactions = CppReactionGenerator(reactor, ports, instances)
     private val assemble = CppAssembleMethodGenerator(reactor)
+    private val connections = CppConnectionGenerator(reactor)
 
     private fun publicPreamble() =
         reactor.preambles.filter { it.isPublic }
@@ -118,9 +117,13 @@ class CppReactorGenerator(private val reactor: Reactor, fileConfig: CppFileConfi
             |
             | public:
         ${" |  "..ports.generateDeclarations()}
-            |  $outerConstructorSignature;
+        ${" |  "..outerConstructorSignature(true)};
+        ${" |  "..outerConstructorSignature(false)};
             |
             |  void assemble() override;
+            | 
+            | private:
+        ${" |  "..connections.generateDeclarations()}
             |};
             |
         ${" |"..if (reactor.isGeneric) """#include "$implHeaderFile"""" else ""}
@@ -139,7 +142,8 @@ class CppReactorGenerator(private val reactor: Reactor, fileConfig: CppFileConfi
         ${" |  "..privatePreamble()}
             |
             |// outer constructor
-        ${" |"..generateOuterConstructorDefinition()}
+        ${" |"..generateOuterConstructorDefinition(true)}
+        ${" |"..generateOuterConstructorDefinition(false)}
             |
             |// inner constructor
         ${" |"..generateInnerConstructorDefinition()}
@@ -157,37 +161,32 @@ class CppReactorGenerator(private val reactor: Reactor, fileConfig: CppFileConfi
         return with(PrependOperator) {
             """
                 |${reactor.templateLine}
-                |${reactor.templateName}::Inner::Inner(::reactor::Reactor* reactor, Parameters&& parameters)
+                |${reactor.templateName}::Inner::Inner(::reactor::Reactor* reactor, Parameters&& __lf_parameters)
                 |  : LFScope(reactor)
-            ${" |  , Parameters(std::forward<Parameters>(parameters))"}
+            ${" |  , Parameters(std::forward<Parameters>(__lf_parameters))"}
             ${" |  "..state.generateInitializers()}
                 |{}
                 """.trimMargin()
         }
     }
 
-    /**
-     * Constructor argument that provides a reference to the next higher level
-     *
-     * For the main reactor, the next higher level is the environment. For all other reactors, it is the containing reactor.
-     */
-    private val environmentOrContainer =
-        if (reactor.isMain) "reactor::Environment* environment" else "reactor::Reactor* container"
-
-    private val outerConstructorSignature: String =
-        "${reactor.name}(const std::string& name, $environmentOrContainer, Parameters&& parameters)"
+    private fun outerConstructorSignature(fromEnvironment: Boolean): String {
+        val containerRef = if (fromEnvironment) "reactor::Environment* __lf_environment" else "reactor::Reactor* __lf_container"
+        return "${reactor.name}(const std::string& name, $containerRef, Parameters&& __lf_parameters)"
+    }
 
     /** Get the constructor definition of the outer reactor class */
-    private fun generateOuterConstructorDefinition(): String {
+    private fun generateOuterConstructorDefinition(fromEnvironment: Boolean): String {
         return with(PrependOperator) {
             """
                 |${reactor.templateLine}
-                |${reactor.templateName}::${outerConstructorSignature}
-                |  : reactor::Reactor(name, ${if (reactor.isMain) "environment" else "container"})
-                |  , __lf_inner(this, std::forward<Parameters>(parameters))
+                |${reactor.templateName}::${outerConstructorSignature(fromEnvironment)}
+                |  : reactor::Reactor(name, ${if (fromEnvironment) "__lf_environment" else "__lf_container"})
+                |  , __lf_inner(this, std::forward<Parameters>(__lf_parameters))
             ${" |  "..instances.generateInitializers()}
             ${" |  "..timers.generateInitializers()}
             ${" |  "..actions.generateInitializers()}
+            ${" |  "..connections.generateInitializers()}
             ${" |  "..reactions.generateReactionViewInitializers()}
                 |{
             ${" |  "..ports.generateConstructorInitializers()}

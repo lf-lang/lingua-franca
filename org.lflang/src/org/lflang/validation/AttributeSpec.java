@@ -40,15 +40,16 @@ import org.lflang.util.StringUtil;
 
 /**
  * Specification of the structure of an attribute annotation.
- * 
  * @author Clément Fournier
  * @author Shaokai Lin
  */
-class AttributeSpec {
+public class AttributeSpec {
 
     private final Map<String, AttrParamSpec> paramSpecByName;
 
     public static final String VALUE_ATTR = "value";
+    public static final String NETWORK_MESSAGE_ACTIONS = "network_message_actions";
+    public static final String EACH_ATTR = "each";
 
     /** A map from a string to a supported AttributeSpec */
     public static final Map<String, AttributeSpec> ATTRIBUTE_SPECS_BY_NAME = new HashMap<>();
@@ -96,7 +97,7 @@ class AttributeSpec {
             Map<String, AttrParamSpec> missingParams = new HashMap<>(paramSpecByName);
             missingParams.keySet().removeAll(seen);
             missingParams.forEach((name, paramSpec) -> {
-                if (!paramSpec.isOptional()) {
+                if (!paramSpec.isOptional) {
                     validator.error("Missing required attribute parameter '" + name + "'.", Literals.ATTRIBUTE__ATTR_PARMS);
                 }
             });
@@ -108,7 +109,7 @@ class AttributeSpec {
      * these names are known, and whether the named parameters
      * conform to the param spec (whether the param has the
      * right type, etc.).
-     * 
+     *
      * @param validator The current validator in use.
      * @param attr The attribute being checked.
      * @return A set of named attribute parameters the user provides.
@@ -125,7 +126,7 @@ class AttributeSpec {
                     validator.error("Missing name for attribute parameter.", Literals.ATTRIBUTE__ATTR_NAME);
                     continue;
                 }
-    
+
                 AttrParamSpec parmSpec = paramSpecByName.get(parm.getName());
                 if (parmSpec == null) {
                     validator.error("\"" + parm.getName() + "\"" + " is an unknown attribute parameter.",
@@ -142,49 +143,49 @@ class AttributeSpec {
 
     /**
      * The specification of the attribute parameter.
-     * 
+     *
      * @param name The name of the attribute parameter
      * @param type The type of the parameter
-     * @param defaultValue If non-null, parameter is optional.
+     * @param isOptional True if the parameter is optional.
      */
-    record AttrParamSpec(String name, AttrParamType type, Object defaultValue) {
-
-        private boolean isOptional() {
-            return defaultValue == null;
-        }
+    record AttrParamSpec(String name, AttrParamType type, boolean isOptional) {
 
         // Check if a parameter has the right type.
-        // Currently only String, Int, Boolean, and Float are supported.
+        // Currently, only String, Int, Boolean, Float, and target language are supported.
         public void check(LFValidator validator, AttrParm parm) {
             switch (type) {
-            case STRING:
+            case STRING -> {
                 if (!StringUtil.hasQuotes(parm.getValue())) {
                     validator.error("Incorrect type: \"" + parm.getName() + "\""
                             + " should have type String.",
                         Literals.ATTRIBUTE__ATTR_NAME);
                 }
-                break;
-            case INT:
+            }
+            case INT -> {
                 if (!ASTUtils.isInteger(parm.getValue())) {
                     validator.error(
-                        "Incorrect type: \"" + parm.getName() + "\"" + " should have type Int.",
+                        "Incorrect type: \"" + parm.getName() + "\""
+                            + " should have type Int.",
                         Literals.ATTRIBUTE__ATTR_NAME);
                 }
-                break;
-            case BOOLEAN:
+            }
+            case BOOLEAN -> {
                 if (!ASTUtils.isBoolean(parm.getValue())) {
                     validator.error(
-                        "Incorrect type: \"" + parm.getName() + "\"" + " should have type Boolean.",
+                        "Incorrect type: \"" + parm.getName() + "\""
+                            + " should have type Boolean.",
                         Literals.ATTRIBUTE__ATTR_NAME);
                 }
-                break;
-            case FLOAT:
+            }
+            case FLOAT -> {
                 if (!ASTUtils.isFloat(parm.getValue())) {
                     validator.error(
-                        "Incorrect type: \"" + parm.getName() + "\"" + " should have type Float.",
+                        "Incorrect type: \"" + parm.getName() + "\""
+                            + " should have type Float.",
                         Literals.ATTRIBUTE__ATTR_NAME);
                 }
-                break;
+            }
+            default -> throw new IllegalArgumentException("unexpected type");
             }
         }
     }
@@ -196,26 +197,37 @@ class AttributeSpec {
         STRING,
         INT,
         BOOLEAN,
-        FLOAT
+        FLOAT,
     }
 
-    /**
+    /*
      * The specs of the known annotations are declared here.
      * Note: If an attribute only has one parameter, the parameter name should be "value."
      */
     static {
         // @label("value")
         ATTRIBUTE_SPECS_BY_NAME.put("label", new AttributeSpec(
-            List.of(new AttrParamSpec(AttributeSpec.VALUE_ATTR, AttrParamType.STRING, null))
+            List.of(new AttrParamSpec(VALUE_ATTR, AttrParamType.STRING, false))
         ));
         // @sparse
         ATTRIBUTE_SPECS_BY_NAME.put("sparse", new AttributeSpec(null));
         // @icon("value")
         ATTRIBUTE_SPECS_BY_NAME.put("icon", new AttributeSpec(
-            List.of(new AttrParamSpec(AttributeSpec.VALUE_ATTR, AttrParamType.STRING, null))
+            List.of(new AttrParamSpec(VALUE_ATTR, AttrParamType.STRING, false))
         ));
         // @io
         // This is used in the Lean-target to mark reactions that can use IO.
         ATTRIBUTE_SPECS_BY_NAME.put("io", new AttributeSpec(null));
+        // @enclave(each=boolean)
+        ATTRIBUTE_SPECS_BY_NAME.put("enclave", new AttributeSpec(
+            List.of(new AttrParamSpec(EACH_ATTR, AttrParamType.BOOLEAN, true))
+        ));
+
+        // attributes that are used internally only by the federated code generation
+        ATTRIBUTE_SPECS_BY_NAME.put("_unordered", new AttributeSpec(null));
+        ATTRIBUTE_SPECS_BY_NAME.put("_fed_config", new AttributeSpec(
+            List.of(new AttrParamSpec(AttributeSpec.NETWORK_MESSAGE_ACTIONS,
+                                      AttrParamType.STRING, false))));
+        ATTRIBUTE_SPECS_BY_NAME.put("_c_body", new AttributeSpec(null));
     }
 }

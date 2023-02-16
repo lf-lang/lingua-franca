@@ -92,7 +92,7 @@ class CppReactionGenerator(
                 allUncontainedSources.map { "const ${it.cppType}& ${it.name}" } +
                 allUncontainedEffects.map { "${it.cppType}& ${it.name}" } +
                 allReferencedContainers.map {
-                    if (it.isBank) "const reactor::Multiport<${getViewClassName(it)}>& ${it.name}"
+                    if (it.isBank) "const std::vector<${getViewClassName(it)}>& ${it.name}"
                     else "${getViewClassName(it)}& ${it.name}"
                 }
 
@@ -178,15 +178,13 @@ class CppReactionGenerator(
 
         val variables = r.getAllReferencedVariablesForContainer(container)
         val instantiations = variables.map {
-            if (it.isEffectOf(r))
-                "decltype($reactorClass::${it.variable.name})& ${it.variable.name};"
-            else
-                "const ${it.cppType}& ${it.variable.name};"
+            val type = "decltype($reactorClass::${it.variable.name})& ${it.variable.name};"
+            if (it.isEffectOf(r)) type else "const $type"
         }
         val initializers = variables.map { "${it.variable.name}(reactor->${it.variable.name})" }
 
         val viewDeclaration =
-            if (container.isBank) "reactor::ModifableMultiport<$viewClass> $viewInstance;"
+            if (container.isBank) "std::vector<$viewClass> $viewInstance;"
             else "$viewClass $viewInstance;"
 
         return with(PrependOperator) {

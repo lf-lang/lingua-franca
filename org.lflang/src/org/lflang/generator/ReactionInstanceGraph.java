@@ -35,8 +35,10 @@ import java.util.List;
 import java.util.Queue;
 import java.util.Set;
 import java.util.Stack;
+import java.util.stream.Collectors;
 
 import org.lflang.generator.ReactionInstance.Runtime;
+import org.lflang.generator.c.CUtil;
 import org.lflang.graph.PrecedenceGraph;
 import org.lflang.lf.Variable;
 
@@ -90,6 +92,10 @@ public class ReactionInstanceGraph extends PrecedenceGraph<ReactionInstance.Runt
     public void rebuild() {
         this.clear();
         addNodesAndEdges(main);
+
+        // FIXME: Use {@link TargetProperty#EXPORT_DEPENDENCY_GRAPH}.
+        // System.out.println(toDOT());
+
         // Assign a level to each reaction. 
         // If there are cycles present in the graph, it will be detected here.
         assignLevels();
@@ -443,5 +449,69 @@ public class ReactionInstanceGraph extends PrecedenceGraph<ReactionInstance.Runt
             }
             numReactionsPerLevel.add(valueToAdd);
         }
+    }
+
+    /**
+     * Return the DOT (GraphViz) representation of the graph.
+     */
+    @Override
+    public String toDOT() {
+        var dotRepresentation = new CodeBuilder();
+        var edges = new StringBuilder();
+
+        // Start the digraph with a left-write rank
+        dotRepresentation.pr(
+        """
+        digraph {
+            rankdir=LF;
+            graph [compound=True, rank=LR, rankdir=LR];
+            node [fontname=Times, shape=rectangle];
+            edge [fontname=Times];
+        """);
+
+        var nodes = nodes();
+        // Group nodes by levels
+        var groupedNodes =
+            nodes.stream()
+                 .collect(
+                     Collectors.groupingBy(it -> it.level)
+                 );
+
+        dotRepresentation.indent();
+        // For each level
+        for (var level : groupedNodes.keySet()) {
+            // Create a subgraph
+            dotRepresentation.pr("subgraph cluster_level_" + level + " {");
+            dotRepresentation.pr("    graph [compound=True, label = \"level " + level + "\"];");
+
+            // Get the nodes at the current level
+            var currentLevelNodes = groupedNodes.get(level);
+            for (var node: currentLevelNodes) {
+                // Draw the node
+                var label = CUtil.getName(node.getReaction().getParent().reactorDeclaration) + "." + node.getReaction().getName();
+                // Need a positive number to name the nodes in GraphViz
+                var labelHashCode = label.hashCode() & 0xfffffff;
+                dotRepresentation.pr("    node_" + labelHashCode  + " [label=\""+ label +"\"];");
+
+                // Draw the edges
+                var downstreamNodes = getDownstreamAdjacentNodes(node);
+                for (var downstreamNode: downstreamNodes) {
+                    var downstreamLabel =  CUtil.getName(downstreamNode.getReaction().getParent().reactorDeclaration) + "." + downstreamNode.getReaction().getName();
+                    edges.append("    node_" + labelHashCode + " -> node_" +
+                                     (downstreamLabel.hashCode() & 0xfffffff) + ";\n"
+                    );
+                }
+            }
+            // Close the subgraph
+            dotRepresentation.pr("}");
+        }
+        dotRepresentation.unindent();
+        // Add the edges to the definition of the graph at the bottom
+        dotRepresentation.pr(edges);
+        // Close the digraph
+        dotRepresentation.pr("}");
+
+        // Return the DOT representation
+        return dotRepresentation.toString();
     }
 }
