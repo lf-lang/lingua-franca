@@ -177,7 +177,6 @@ class CppAssembleMethodGenerator(private val reactor: Reactor) {
         // first left port to determine the type of the entire connection
         val portType = c.leftPorts[0].portType
 
-        // TODO this does not work with generics
         val leftPort = c.leftPorts[0].variable as Port
         val dataType = leftPort.inferredType.cppType
 
