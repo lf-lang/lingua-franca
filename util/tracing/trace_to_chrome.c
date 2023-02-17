@@ -182,7 +182,7 @@ size_t read_and_write_trace() {
                 phase = "E";
                 break;
             default:
-                fprintf(stderr, "WARNING: Unrecognized event type %d: %s", 
+                fprintf(stderr, "WARNING: Unrecognized event type %d: %s\n", 
                         trace[i].event_type, trace_event_names[trace[i].event_type]);
                 pid = PID_FOR_UNKNOWN_EVENT;
                 phase = "i";
