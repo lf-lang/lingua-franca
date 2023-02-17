@@ -1,0 +1,23 @@
+target TypeScript {
+    fast: false,
+    timeout: 3 sec
+}
+
+import Test from "../DelayInt.lf"
+
+reactor Delay<T>(delay: time(0)) {
+    output out: T
+    input inp: T
+    logical action a(delay): T
+
+    reaction(a) -> out {= out = a; =}
+    reaction(inp) -> a {= if (inp != undefined) actions.a.schedule(delay, inp); =}
+}
+
+main reactor {
+    d = new Delay<number>(delay = 100 msec)
+    test = new Test()
+    d.out -> test.x
+
+    reaction(startup) -> d.inp {= d.inp = 42; =}
+}
