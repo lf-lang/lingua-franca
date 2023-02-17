@@ -202,7 +202,7 @@ Reaction:
     ('(' (triggers+=TriggerRef (',' triggers+=TriggerRef)*)? ')')
     (sources+=VarRef (',' sources+=VarRef)*)?
     ('->' effects+=VarRefOrModeTransition (',' effects+=VarRefOrModeTransition)*)?
-    ((code=Code ('named' ID)?) | 'named' ID)(stp=STP)?(deadline=Deadline)?
+    ((('named' ID)? code=Code) | 'named' ID)(stp=STP)?(deadline=Deadline)?
     ;
 
 TriggerRef:
