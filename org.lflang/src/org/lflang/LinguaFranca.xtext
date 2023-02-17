@@ -496,7 +496,7 @@ Token:
     'mutable' | 'input' | 'output' | 'timer' | 'action' | 'reaction' |
     'startup' | 'shutdown' | 'after' | 'deadline' | 'mutation' | 'preamble' |
     'new' | 'federated' | 'at' | 'as' | 'from' | 'widthof' | 'const' | 'method' |
-    'interleaved' | 'mode' | 'initial' | 'reset' | 'history' |
+    'interleaved' | 'mode' | 'initial' | 'reset' | 'history' | 'named' |
     // Other terminals
     NEGINT | TRUE | FALSE |
     // Action origins
