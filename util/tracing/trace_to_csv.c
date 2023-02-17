@@ -125,14 +125,14 @@ size_t read_and_write_trace() {
         if (trace[i].physical_time > latest_time) {
             latest_time = trace[i].physical_time;
         }
-        if (summary_stats[object_instance] == NULL) {
+        if (object_instance >= 0 && summary_stats[object_instance] == NULL) {
             summary_stats[object_instance] = (summary_stats_t*)calloc(1, sizeof(summary_stats_t));
         }
         if (trigger_instance >= 0 && summary_stats[trigger_instance] == NULL) {
             summary_stats[trigger_instance] = (summary_stats_t*)calloc(1, sizeof(summary_stats_t));
         }
         
-        summary_stats_t* stats;
+        summary_stats_t* stats = NULL;
         interval_t exec_time;
         reaction_stats_t* rstats;
         int index;
@@ -244,10 +244,16 @@ size_t read_and_write_trace() {
                     }
                 }
                 break;
+            case federate_NET:
+            case federate_LTC:
+                // FIXME: No summary stats collected?
+                break;
         }
         // Common stats across event types.
-        stats->occurrences++;
-        stats->event_type = trace[i].event_type;
+        if (stats != NULL) {
+            stats->occurrences++;
+            stats->event_type = trace[i].event_type;
+        }
     }
     return trace_length;
 }
