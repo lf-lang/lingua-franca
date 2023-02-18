@@ -107,3 +107,10 @@ jobs:
   serialization-tests:
     uses: lf-lang/lingua-franca/.github/workflows/serialization-tests.yml@master
     needs: cancel
+
+  # Run the Uclid benchmark tests.
+  uclid-verifier-c-tests:
+    uses: lf-lang/lingua-franca/.github/workflows/uclid-verifier-c-tests.yml@master
+    with:
+      target: 'C'
+    needs: cancel
