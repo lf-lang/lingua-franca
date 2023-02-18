@@ -227,6 +227,7 @@ public class LFScopeProviderImpl extends AbstractLFScopeProvider {
                     candidates.addAll(allInputs(reactor));
                     candidates.addAll(allActions(reactor));
                     candidates.addAll(allTimers(reactor));
+                    candidates.addAll(allWatchdogs(reactor));
                     return Scopes.scopeFor(candidates);
                 }
                 case SOURCE:
@@ -239,10 +240,9 @@ public class LFScopeProviderImpl extends AbstractLFScopeProvider {
                     }
                     candidates.addAll(allOutputs(reactor));
                     candidates.addAll(allActions(reactor));
+                    candidates.addAll(allWatchdogs(reactor));
                     return Scopes.scopeFor(candidates);
                 }
-                case WATCHDOG:
-                    return Scopes.scopeFor(allWatchdogs(reactor));
                 case DEADLINE:
                 case CLEFT:
                     return Scopes.scopeFor(allInputs(reactor));
