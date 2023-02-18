@@ -217,7 +217,7 @@ Deadline:
     'deadline' '(' delay=Expression ')' code=Code;
 
 Watchdog:
-    'watchdog ' name=ID '(' timeout=Expression ')' 
+    'watchdog' name=ID '(' timeout=Expression ')'
     ('->' effects+=VarRefOrModeTransition (',' effects+=VarRefOrModeTransition)*)?
     code=Code;
     
