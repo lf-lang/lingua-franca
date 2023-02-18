@@ -253,6 +253,8 @@ size_t read_and_write_trace() {
                 }
                 break;
             case federate_NET:
+            case federate_TAG:
+            case federate_PTAG:
             case federate_LTC:
             case NUM_EVENT_TYPES:
                 break;
