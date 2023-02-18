@@ -131,7 +131,7 @@ jobs:
 
   # Run the Uclid benchmark tests.
   uclid-verifier-c-tests:
-    uses: lf-lang/lingua-franca/.github/workflows/uclid-verifier-c-tests.yml@master
+    uses: ./.github/workflows/uclid-verifier-c-tests.yml
     with:
       target: 'C'
     needs: cancel

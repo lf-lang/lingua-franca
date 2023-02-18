@@ -25,6 +25,7 @@ jobs:
         uses: actions/checkout@v3
         with:
           repository: uclid-org/uclid
+          ref: 4fd5e566c5f87b052f92e9b23723a85e1c4d8c1c
           path: ./uclid
       - name: See where we are
         run: |
