@@ -64,9 +64,9 @@ public class CActionGenerator {
     }
 
     /**
-     * Create a reference token initialized to the payload size.
+     * Create a template token initialized to the payload size.
      * This token is marked to not be freed so that the trigger_t struct
-     * always has a reference token.
+     * always has a template token.
      * At the start of each time step, we need to initialize the is_present field
      * of each action's trigger object to false and free a previously
      * allocated token if appropriate. This code sets up the table that does that.
@@ -81,11 +81,10 @@ public class CActionGenerator {
         String payloadSize
     ) {
         return String.join("\n",
-            selfStruct+"->_lf__"+actionName+".token = _lf_create_token("+payloadSize+");",
-            selfStruct+"->_lf__"+actionName+".status = absent;",
-            "_lf_tokens_with_ref_count[_lf_tokens_with_ref_count_count].token = &"+selfStruct+"->_lf__"+actionName+".token;",
-            "_lf_tokens_with_ref_count[_lf_tokens_with_ref_count_count].status = &"+selfStruct+"->_lf__"+actionName+".status;",
-            "_lf_tokens_with_ref_count[_lf_tokens_with_ref_count_count++].reset_is_present = true;"
+                "_lf_initialize_template((token_template_t*)",
+                "        &("+selfStruct+"->_lf__"+actionName+"),",
+                         payloadSize+");",
+            selfStruct+"->_lf__"+actionName+".status = absent;"
         );
     }
 
@@ -132,13 +131,19 @@ public class CActionGenerator {
         var code = new CodeBuilder();
         code.pr("typedef struct {");
         code.indent();
-        code.pr("trigger_t* trigger;");
-        code.pr(valueDeclaration(action, target, types));
+        // NOTE: The following fields are required to be the first ones so that
+        // pointer to this struct can be cast to a (lf_action_base_t*) or to
+        // (token_template_t*) to access these fields for any port.
+        // IMPORTANT: These must match exactly the fields defined in port.h!!
         code.pr(String.join("\n",
-                    "bool is_present;",
-                    "bool has_value;",
-                    "lf_token_t* token;"
+                "token_type_t type;",  // From token_template_t
+                "lf_token_t* token;",  // From token_template_t
+                "size_t length;",      // From token_template_t
+                "bool is_present;",    // From lf_action_base_t
+                "bool has_value;",     // From lf_action_base_t
+                "trigger_t* trigger;"  // From lf_action_base_t
         ));
+        code.pr(valueDeclaration(action, target, types));
         code.pr(federatedExtension.toString());
         code.unindent();
         code.pr("} " + variableStructType(action, decl) + ";");

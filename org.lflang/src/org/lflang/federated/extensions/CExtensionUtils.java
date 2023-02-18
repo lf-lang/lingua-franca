@@ -94,11 +94,11 @@ public class CExtensionUtils {
             for (Action action : federate.networkMessageActions) {
                 // Find the corresponding ActionInstance.
                 var actionInstance = main.lookupActionInstance(action);
-                triggers.add(CUtil.triggerRef(actionInstance));
+                triggers.add(CUtil.actionRef(actionInstance, null));
             }
             var actionTableCount = 0;
             for (String trigger : triggers) {
-                code.pr("_lf_action_table[" + (actionTableCount++) + "] = &"
+                code.pr("_lf_action_table[" + (actionTableCount++) + "] = (lf_action_base_t*)&"
                             + trigger + "; \\");
             }
         }

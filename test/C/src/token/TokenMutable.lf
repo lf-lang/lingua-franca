@@ -1,0 +1,23 @@
+/**
+ * Test of token scaled by two scale factors with a mutable inputs. The total
+ * memory allocated in this test should be the greater than in
+ * TokenSourcePrint.lf because two destinations have mutable inputs.
+ * @author Edward A. Lee (eal@berkeley.edu)
+ */
+target C {
+    timeout: 2 ms
+}
+
+import TokenSource, TokenPrint, TokenScale from "lib/Token.lf"
+
+main reactor {
+    s = new TokenSource()
+    g2 = new TokenScale(scale = 2)
+    g3 = new TokenScale(scale = 3)
+    p2 = new TokenPrint(scale = 2)
+    p3 = new TokenPrint(scale = 3)
+    s.out -> g2.in
+    s.out -> g3.in
+    g2.out -> p2.in
+    g3.out -> p3.in
+}

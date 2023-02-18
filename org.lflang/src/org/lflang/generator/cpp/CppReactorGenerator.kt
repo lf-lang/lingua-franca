@@ -25,8 +25,6 @@ package org.lflang.generator.cpp
 
 import org.lflang.ErrorReporter
 import org.lflang.generator.PrependOperator
-import org.lflang.generator.cpp.CppParameterGenerator.Companion.targetType
-import org.lflang.generator.cpp.CppParameterGenerator.Companion.typeAlias
 import org.lflang.isGeneric
 import org.lflang.lf.Reactor
 import org.lflang.toText
@@ -58,6 +56,7 @@ class CppReactorGenerator(private val reactor: Reactor, fileConfig: CppFileConfi
     private val ports = CppPortGenerator(reactor)
     private val reactions = CppReactionGenerator(reactor, ports, instances)
     private val assemble = CppAssembleMethodGenerator(reactor)
+    private val connections = CppConnectionGenerator(reactor)
 
     private fun publicPreamble() =
         reactor.preambles.filter { it.isPublic }
@@ -122,6 +121,9 @@ class CppReactorGenerator(private val reactor: Reactor, fileConfig: CppFileConfi
         ${" |  "..outerConstructorSignature(false)};
             |
             |  void assemble() override;
+            | 
+            | private:
+        ${" |  "..connections.generateDeclarations()}
             |};
             |
         ${" |"..if (reactor.isGeneric) """#include "$implHeaderFile"""" else ""}
@@ -184,6 +186,7 @@ class CppReactorGenerator(private val reactor: Reactor, fileConfig: CppFileConfi
             ${" |  "..instances.generateInitializers()}
             ${" |  "..timers.generateInitializers()}
             ${" |  "..actions.generateInitializers()}
+            ${" |  "..connections.generateInitializers()}
             ${" |  "..reactions.generateReactionViewInitializers()}
                 |{
             ${" |  "..ports.generateConstructorInitializers()}

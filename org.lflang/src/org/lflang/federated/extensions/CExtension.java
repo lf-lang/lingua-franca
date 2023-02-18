@@ -363,7 +363,7 @@ public class CExtension implements FedTargetExtension {
                 // NOTE: Transporting token types this way is likely to only work if the sender and receiver
                 // both have the same endianness. Otherwise, you have to use protobufs or some other serialization scheme.
                 result.pr("size_t message_length = "+ sendRef +"->token->length * "+ sendRef
-                              +"->token->element_size;");
+                              +"->token->type->element_size;");
                 result.pr(sendingFunction +"("+ commonArgs +", (unsigned char*) "+ sendRef
                               +"->value);");
             } else {
@@ -529,11 +529,8 @@ public class CExtension implements FedTargetExtension {
         // port. This will only be used if there are federates.
         int numOfNetworkActions = federate.networkMessageActions.size();
         code.pr("""
-        trigger_t* _lf_action_table[%1$s];
-        trigger_t* _lf_action_for_port(int port_id) {
-            if ((port_id < %1$s) && (port_id >= 0)) return _lf_action_table[port_id];
-            else return NULL;
-        }
+        lf_action_base_t* _lf_action_table[%1$s];
+        size_t _lf_action_table_size = %1$s;
         """.formatted(numOfNetworkActions));
 
         code.pr(generateSerializationPreamble(federate, fileConfig));

@@ -19,7 +19,7 @@ jobs:
         run: |
           ./gradlew test --tests org.lflang.tests.compiler.*
       - name: Report to CodeCov
-        uses: codecov/codecov-action@v2.1.0
+        uses: codecov/codecov-action@v3.1.1
         with:
           file: org.lflang.tests/build/reports/xml/jacoco
           fail_ci_if_error: false

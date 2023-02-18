@@ -2,7 +2,10 @@
 // Scale requests a writable copy, which, instead of copying, it just gets
 // ownership of the original array. It modifies it and passes it to Print. It
 // gets freed after Print is done with it.
-target C
+target C {
+    timeout: 3 sec,
+    fast: true
+}
 
 import Print, Source from "ArrayPrint.lf"
 

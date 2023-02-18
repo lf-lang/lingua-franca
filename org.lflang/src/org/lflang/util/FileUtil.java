@@ -440,6 +440,14 @@ public class FileUtil {
     }
 
     /**
+     * Return true if the given path points to a C file, false otherwise.
+     */
+    public static boolean isCFile(Path path) {
+        String fileName = path.getFileName().toString();
+        return fileName.endsWith(".c") || fileName.endsWith(".h");
+    }
+
+    /**
      * Convert all includes recursively inside files within a specified folder to relative links
      *
      * @param dir The folder to search for includes to change. 
@@ -449,6 +457,7 @@ public class FileUtil {
         System.out.println("Relativizing all includes in " + dir.toString());
         List<Path> allPaths = Files.walk(dir)
             .filter(Files::isRegularFile)
+            .filter(FileUtil::isCFile)
             .sorted(Comparator.reverseOrder())
             .collect(Collectors.toList());
         Map<String, Path> fileStringToFilePath = new HashMap<String, Path>();
@@ -477,7 +486,6 @@ public class FileUtil {
             writeToFile(output.toString(), path);
         }
     }
-
 
     /**
      * Recursively delete a directory if it exists.

@@ -11,20 +11,15 @@ import static org.lflang.util.StringUtil.joinObjects;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
-import java.util.Map;
 import java.util.stream.Collectors;
 
 import org.lflang.ASTUtils;
 import org.lflang.AttributeUtils;
 import org.lflang.TargetConfig;
-import org.lflang.TimeValue;
-import org.lflang.TargetProperty.CoordinationType;
+
 import org.lflang.TargetProperty.LogLevel;
 import org.lflang.federated.extensions.CExtensionUtils;
-import org.lflang.federated.generator.FederateInstance;
 import org.lflang.generator.CodeBuilder;
-import org.lflang.generator.GeneratorBase;
-import org.lflang.generator.ParameterInstance;
 import org.lflang.generator.PortInstance;
 import org.lflang.generator.ReactionInstance;
 import org.lflang.generator.ReactorInstance;
@@ -51,9 +46,7 @@ public class CTriggerObjectsGenerator {
         CodeBuilder startTimeStep,
         CTypes types,
         String lfModuleName,
-        int startTimeStepTokens,
-        int startTimeStepIsPresentCount,
-        int startupReactionCount
+        int startTimeStepIsPresentCount
     ) {
         var code = new CodeBuilder();
         code.pr("void _lf_initialize_trigger_objects() {");
@@ -76,15 +69,6 @@ public class CTriggerObjectsGenerator {
             )); // .lft is for Lingua Franca trace
         }
 
-        // Create the table used to decrement reference counts between time steps.
-        if (startTimeStepTokens > 0) {
-            // Allocate the initial (before mutations) array of pointers to tokens.
-            code.pr(String.join("\n",
-                "_lf_tokens_with_ref_count_size = "+startTimeStepTokens+";",
-                "_lf_tokens_with_ref_count = (token_present_t*)calloc("+startTimeStepTokens+", sizeof(token_present_t));",
-                "if (_lf_tokens_with_ref_count == NULL) lf_print_error_and_exit(" + addDoubleQuotes("Out of memory!") + ");"
-            ));
-        }
         // Create the table to initialize is_present fields to false between time steps.
         if (startTimeStepIsPresentCount > 0) {
             // Allocate the initial (before mutations) array of pointers to _is_present fields.
@@ -129,7 +113,8 @@ public class CTriggerObjectsGenerator {
         code.pr(deferredInitializeNonNested(
             main,
             main,
-            main.reactions
+            main.reactions,
+            types
         ));
         // Next, for every input port, populate its "self" struct
         // fields with pointers to the output port that sends it data.
@@ -651,16 +636,16 @@ public class CTriggerObjectsGenerator {
      * from one or more of the specified reactions, set the num_destinations
      * field of the corresponding port structs on the self struct of
      * the reaction's parent reactor equal to the total number of
-     * destination reactors. This is used to initialize reference
-     * counts in dynamically allocated tokens sent to other reactors.
+     * destination reactors.
+     * If the port has a token type, this also initializes it with a token.
      * @param reactions The reactions.
+     * @param types The C types.
      */
     private static String deferredInputNumDestinations(
-        Iterable<ReactionInstance> reactions
+        Iterable<ReactionInstance> reactions,
+        CTypes types
     ) {
-        // Reference counts are decremented by each destination reactor
-        // at the conclusion of a time step. Hence, the initial reference
-        // count should equal the number of destination _reactors_, not the
+        // We need the number of destination _reactors_, not the
         // number of destination ports nor the number of destination reactions.
         // One of the destination reactors may be the container of this
         // instance because it may have a reaction to an output of this instance.
@@ -673,13 +658,34 @@ public class CTriggerObjectsGenerator {
                 if (port.isInput() && !portsHandled.contains(port)) {
                     // Port is an input of a contained reactor that gets data from a reaction of this reactor.
                     portsHandled.add(port);
-                    code.pr("// For reference counting, set num_destinations for port "+port.getParent().getName()+"."+port.getName()+".");
+                    code.pr("// Set number of destination reactors for port "+port.getParent().getName()+"."+port.getName()+".");
                     // The input port may itself have multiple destinations.
                     for (SendRange sendingRange : port.eventualDestinations()) {
                         code.startScopedRangeBlock(sendingRange, sr, sb, sc, sendingRange.instance.isInput());
                         // Syntax is slightly different for a multiport output vs. single port.
                         var connector = (port.isMultiport())? "->" : ".";
                         code.pr(CUtil.portRefNested(port, sr, sb, sc)+connector+"num_destinations = "+sendingRange.getNumberOfDestinationReactors()+";");
+
+                        // Initialize token types.
+                        var type = ASTUtils.getInferredType(port.getDefinition());
+                        if (CUtil.isTokenType(type, types)) {
+                            // Create the template token that goes in the port struct.
+                            var rootType = CUtil.rootType(types.getTargetType(type));
+                            // If the rootType is 'void', we need to avoid generating the code
+                            // 'sizeof(void)', which some compilers reject.
+                            var size = (rootType.equals("void")) ? "0" : "sizeof("+rootType+")";
+                            // If the port is a multiport, then the portRefNested is itself a pointer
+                            // so we want its value, not its address.
+                            var indirection = (port.isMultiport())? "" : "&";
+                            code.startChannelIteration(port);
+                            code.pr(String.join("\n",
+                                    "_lf_initialize_template((token_template_t*)",
+                                    "        "+indirection+"("+CUtil.portRefNested(port, sr, sb, sc)+"),",
+                                             size+");"
+                            ));
+                            code.endChannelIteration(port);
+                        }
+                        
                         code.endScopedRangeBlock(sendingRange);
                     }
                 }
@@ -724,11 +730,15 @@ public class CTriggerObjectsGenerator {
      * so each function it calls must handle its own iteration
      * over all runtime instance.
      * @param reactor The container.
+     * @param main The top-level reactor.
+     * @param reactions The list of reactions to consider.
+     * @param types The C types.
      */
     private static String deferredInitializeNonNested(
         ReactorInstance reactor,
         ReactorInstance main,
-        Iterable<ReactionInstance> reactions
+        Iterable<ReactionInstance> reactions,
+        CTypes types
     ) {
         var code = new CodeBuilder();
         code.pr("// **** Start non-nested deferred initialize for "+reactor.getFullName());
@@ -736,7 +746,8 @@ public class CTriggerObjectsGenerator {
         // This needs to be outside the above scoped block because it performs
         // its own iteration over ranges.
         code.pr(deferredInputNumDestinations(
-            reactions
+            reactions,
+            types
         ));
 
         // Second batch of initializes cannot be within a for loop
@@ -757,7 +768,8 @@ public class CTriggerObjectsGenerator {
             code.pr(deferredInitializeNonNested(
                 child,
                 main,
-                child.reactions
+                child.reactions,
+                types
             ));
         }
         code.pr("// **** End of non-nested deferred initialize for "+reactor.getFullName());
@@ -766,10 +778,10 @@ public class CTriggerObjectsGenerator {
 
     /**
      * For each output of the specified reactor that has a token type
-     * (type* or type[]), create a default token and put it on the self struct.
+     * (type* or type[]), create a template token and put it on the self struct.
      * @param reactor The reactor.
      */
-    private static String deferredCreateDefaultTokens(
+    private static String deferredCreateTemplateTokens(
         ReactorInstance reactor,
         CTypes types
     ) {
@@ -785,7 +797,11 @@ public class CTriggerObjectsGenerator {
                 // 'sizeof(void)', which some compilers reject.
                 var size = (rootType.equals("void")) ? "0" : "sizeof("+rootType+")";
                 code.startChannelIteration(output);
-                code.pr(CUtil.portRef(output)+".token = _lf_create_token("+size+");");
+                code.pr(String.join("\n",
+                        "_lf_initialize_template((token_template_t*)",
+                        "        &("+CUtil.portRef(output)+"),",
+                                 size+");"
+                ));
                 code.endChannelIteration(output);
             }
         }
@@ -1027,7 +1043,7 @@ public class CTriggerObjectsGenerator {
 
         // For outputs that are not primitive types (of form type* or type[]),
         // create a default token on the self struct.
-        code.pr(deferredCreateDefaultTokens(
+        code.pr(deferredCreateTemplateTokens(
             reactor,
             types
         ));
