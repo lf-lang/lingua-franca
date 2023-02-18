@@ -16,7 +16,7 @@ import org.eclipse.lsp4j.services.LanguageClient;
 /**
  * A {@code MockLanguageClient} is a language client that should be used in language server tests.
  *
- * @author Peter Donovan <peterdonovan@berkeley.edu>
+ * @author Peter Donovan
  */
 public class MockLanguageClient implements LanguageClient {
 

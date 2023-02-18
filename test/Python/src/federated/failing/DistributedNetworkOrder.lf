@@ -1,23 +1,22 @@
-/*
- * This is a test for send_timed_message,
- * which is an internal API.
+/**
+ * This is a test for send_timed_message, which is an internal API.
  *
- * This test sends a second message at time 5 msec that has the same intended tag as
- * a message that it had previously sent at time 0 msec. This results in a warning,
- * but the message microstep is incremented and correctly received one microstep later.
+ * This test sends a second message at time 5 msec that has the same intended
+ * tag as a message that it had previously sent at time 0 msec. This results in
+ * a warning, but the message microstep is incremented and correctly received
+ * one microstep later.
  *
  * @author Soroush Bateni
  */
-
-// reason for failing: send_timed_message() is not not supported in python target
-
+# reason for failing: send_timed_message() is not not supported in python target
 target Python {
     timeout: 1 sec
-};
+}
 
 reactor Sender {
-    output out:int;
-    timer t(0, 1 msec);
+    output out
+    timer t(0, 1 msec)
+
     reaction(t) {=
         int payload = 1;
         if (lf.time.logical_elapsed() == 0LL) {
@@ -32,22 +31,22 @@ reactor Sender {
 }
 
 reactor Receiver {
-    input in:int;
-    state success:int(0);
+    input in_
+    state success(0)
 
-    reaction(in) {=
-        tag_t current_tag = lf_tag();
+    reaction(in_) {=
+        tag_t current_tag = lf.tag();
         if (current_tag.time == (start_time + MSEC(10))) {
-            if (current_tag.microstep == 0 && in->value == 1) {
+            if (current_tag.microstep == 0 && in_->value == 1) {
                 self->success++;
-            } else if (current_tag.microstep == 1 && in->value == 2) {
+            } else if (current_tag.microstep == 1 && in_->value == 2) {
                 self->success++;
             }
         }
         printf("Received %d at tag (%lld, %u).\n",
-               in->value,
-               lf.time.logical_elapsed(),
-               lf_tag().microstep);
+               in_->value,
+               current_tag.time,
+               current_tag.microstep);
     =}
 
     reaction(shutdown) {=
@@ -60,8 +59,8 @@ reactor Receiver {
 }
 
 federated reactor DistributedNetworkOrder {
-    sender = new Sender();
-    receiver = new Receiver();
+    sender = new Sender()
+    receiver = new Receiver()
 
-    sender.out -> receiver.in;
+    sender.out -> receiver.in_
 }

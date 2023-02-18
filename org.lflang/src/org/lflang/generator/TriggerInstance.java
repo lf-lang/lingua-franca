@@ -36,9 +36,9 @@ import org.lflang.lf.impl.VariableImpl;
 
 /** Instance of a trigger (port, action, or timer).
  * 
- *  @author{Marten Lohstroh <marten@berkeley.edu>}
- *  @author{Edward A. Lee <eal@berkeley.edu>}
- *  @author{Alexander Schulz-Rosengarten <als@informatik.uni-kiel.de>}
+ *  @author Marten Lohstroh
+ *  @author Edward A. Lee
+ *  @author Alexander Schulz-Rosengarten
  */
 public class TriggerInstance<T extends Variable> extends NamedInstance<T> {
     

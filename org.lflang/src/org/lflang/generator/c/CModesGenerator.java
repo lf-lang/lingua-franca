@@ -12,9 +12,9 @@ import org.lflang.lf.Reactor;
 /**
  * Generates C code to support modal models.
  *
- * @author {Edward A. Lee <eal@berkeley.edu>}
- * @author {Alexander Schulz-Rosengarten <als@informatik.uni-kiel.de>}
- * @author {Hou Seng Wong <housengw@berkeley.edu>}
+ * @author Edward A. Lee
+ * @author Alexander Schulz-Rosengarten
+ * @author Hou Seng Wong
  */
 public class CModesGenerator {
     /**

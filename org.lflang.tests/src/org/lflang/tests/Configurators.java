@@ -30,7 +30,7 @@ import org.lflang.tests.TestRegistry.TestCategory;
  * Configuration procedures for {@link TestBase} methods.
  *
  * @author Clément Fournier
- * @author Marten Lohstroh <marten@berkeley.edu>
+ * @author Marten Lohstroh
  */
 public class Configurators {
 
@@ -57,11 +57,22 @@ public class Configurators {
      * @return True if successful, false otherwise.
      */
     public static boolean disableThreading(LFTest test) {
-        test.context.getArgs().setProperty("threading", "false");
-        test.context.getArgs().setProperty("workers", "1");
+        test.getContext().getArgs().setProperty("threading", "false");
+        test.getContext().getArgs().setProperty("workers", "1");
         return true;
     }
 
+    // TODO: In the future we want to execute to the test with QEMU
+    //  but it requires parsing QEMU output until either:
+    //  1) A timeout
+    //  2) "exit" is printed to stdout. Then look if there is a FATAL ERROR printed somewhere
+    // So it would requre continously parsing the stdout and waiting for exit keyword
+    public static boolean platformZephyrQemuNoFlash(LFTest test) {
+        test.getContext().getArgs().setProperty("threading", "false");
+        // TODO: How can I set platform as a dictionary (platform.board platform.flash etc)
+        // test.getContext().getArgs().setProperty("platform", "Zephyr");
+        return true;
+    }
     /**
      * Make no changes to the configuration.
      *
@@ -79,14 +90,17 @@ public class Configurators {
 
         // CONCURRENT, FEDERATED, DOCKER_FEDERATED, DOCKER
         // are not compatible with single-threaded execution.
+        // ARDUINO and ZEPHYR have their own test suites, so we don't need to rerun.
         boolean excluded = category == TestCategory.CONCURRENT
             || category == TestCategory.SERIALIZATION
             || category == TestCategory.FEDERATED
             || category == TestCategory.DOCKER_FEDERATED
-            || category == TestCategory.DOCKER;
+            || category == TestCategory.DOCKER
+            || category == TestCategory.ARDUINO
+            || category == TestCategory.ZEPHYR;
 
-        // SERIALIZATION, TARGET, and ARDUINO tests are excluded on Windows.
-        excluded |= TestBase.isWindows() && (category == TestCategory.TARGET || category == TestCategory.ARDUINO);
+        // SERIALIZATION and TARGET tests are excluded on Windows.
+        excluded |= TestBase.isWindows() && (category == TestCategory.TARGET);
         return !excluded;
     }
 }

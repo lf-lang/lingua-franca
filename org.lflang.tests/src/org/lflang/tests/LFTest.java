@@ -18,28 +18,22 @@ import org.lflang.generator.LFGeneratorContext;
 /**
  * Information about an indexed Lingua Franca test program.
  * 
- * @author Marten Lohstroh <marten@berkeley.edu>
+ * @author Marten Lohstroh
  *
  */
 public class LFTest implements Comparable<LFTest> {
 
     /** The path to the test. */
-    public final Path srcFile;
+    private final Path srcPath;
 
     /** The name of the test. */
-    public final String name;
+    private final String name;
 
     /** The result of the test. */
-    public Result result = Result.UNKNOWN;
-    
-    /** The exit code of the test. **/
-    public String exitValue = "?";
-
-    /** Object used to determine where the code generator puts files. */
-    public FileConfig fileConfig;
+    private Result result = Result.UNKNOWN;
 
     /** Context provided to the code generators */
-    public LFGeneratorContext context;
+    private LFGeneratorContext context;
 
     /** Path of the test program relative to the package root. */
     private final Path relativePath;
@@ -48,13 +42,13 @@ public class LFTest implements Comparable<LFTest> {
     private final ByteArrayOutputStream compilationLog = new ByteArrayOutputStream();
 
     /** Specialized object for capturing output streams while executing the test. */
-    public final ExecutionLogger execLog = new ExecutionLogger();
+    private final ExecutionLogger execLog = new ExecutionLogger();
 
     /** String builder for collecting issues encountered during test execution. */
-    public final StringBuilder issues = new StringBuilder();
+    private final StringBuilder issues = new StringBuilder();
 
     /** The target of the test program. */
-    public final Target target;
+    private final Target target;
 
     /**
      * Create a new test.
@@ -64,15 +58,26 @@ public class LFTest implements Comparable<LFTest> {
      */
     public LFTest(Target target, Path srcFile) {
         this.target = target;
-        this.srcFile = srcFile;
+        this.srcPath = srcFile;
         this.name = FileConfig.findPackageRoot(srcFile, s -> {}).relativize(srcFile).toString();
         this.relativePath = Paths.get(name);
+    }
+
+    /** Copy constructor */
+    public LFTest(LFTest test) {
+        this(test.target, test.srcPath);
     }
 
     /** Stream object for capturing standard and error output. */
     public OutputStream getOutputStream() {
         return compilationLog;
     }
+
+    public FileConfig getFileConfig() { return context.getFileConfig(); }
+
+    public LFGeneratorContext getContext() { return context; }
+
+    public Path getSrcPath() { return srcPath; }
 
     /**
      * Comparison implementation to allow for tests to be sorted (e.g., when added to a
@@ -119,6 +124,10 @@ public class LFTest implements Comparable<LFTest> {
         return result != Result.TEST_PASS;
     }
 
+    public boolean hasPassed() {
+        return result == Result.TEST_PASS;
+    }
+
     /**
      * Compile a string that contains all collected errors and return it.
      * @return A string that contains all collected errors.
@@ -128,17 +137,33 @@ public class LFTest implements Comparable<LFTest> {
             System.out.println("+---------------------------------------------------------------------------+");
             System.out.println("Failed: " + this);
             System.out.println("-----------------------------------------------------------------------------");
-            System.out.println("Reason: " + this.result.message + " Exit code: " + this.exitValue);
-            if (this.exitValue.equals("139")) {
-                // The java ProcessBuiler and Process interface does not allow us to reliably retrieve stderr and stdout
-                // from a process that segfaults. We can only print a message indicating that the putput is incomplete.
-                System.out.println("This exit code typically indicates a segfault. In this case, the execution output is likely missing or incomplete.");
-            }
+            System.out.println("Reason: " + this.result.message);
             printIfNotEmpty("Reported issues", this.issues.toString());
             printIfNotEmpty("Compilation output", this.compilationLog.toString());
             printIfNotEmpty("Execution output", this.execLog.toString());
             System.out.println("+---------------------------------------------------------------------------+");
         }
+    }
+
+    public void handleTestError(TestError e) {
+        result = e.getResult();
+        if (e.getMessage() != null) {
+            issues.append(e.getMessage());
+        }
+        if (e.getException() != null) {
+            issues.append(System.lineSeparator());
+            issues.append(TestBase.stackTraceToString(e.getException()));
+        }
+    }
+
+    public void markPassed() {
+        result = Result.TEST_PASS;
+        // clear the execution log to free memory
+        execLog.clear();
+    }
+
+    void configure(LFGeneratorContext context) {
+        this.context = context;
     }
 
     /**
@@ -189,7 +214,7 @@ public class LFTest implements Comparable<LFTest> {
      * recording output streams up until the moment that a test is interrupted
      * upon timing out.
      *
-     * @author Marten Lohstroh <marten@berkeley.edu>
+     * @author Marten Lohstroh
      *
      */
     public static final class ExecutionLogger {
@@ -225,7 +250,7 @@ public class LFTest implements Comparable<LFTest> {
          * @param inputStream The stream to read from.
          */
         private Thread recordStream(StringBuffer builder, InputStream inputStream) {
-            Thread t = new Thread(() -> {
+            return new Thread(() -> {
                 try (Reader reader = new InputStreamReader(inputStream)) {
                     int len;
                     char[] buf = new char[1024];
@@ -235,9 +260,8 @@ public class LFTest implements Comparable<LFTest> {
                 } catch (IOException e) {
                     throw new RuntimeIOException(e);
                 }
+
             });
-            t.start();
-            return t;
         }
 
         @Override
@@ -248,5 +272,22 @@ public class LFTest implements Comparable<LFTest> {
         public void clear() {
             buffer = null;
         }
+    }
+
+
+    /**
+     * Return a thread responsible for recording the standard output stream of the given process.
+     * A separate thread is used so that the activity can be preempted.
+     */
+    public Thread recordStdOut(Process process) {
+        return execLog.recordStdOut(process);
+    }
+
+    /**
+     * Return a thread responsible for recording the error stream of the given process.
+     * A separate thread is used so that the activity can be preempted.
+     */
+    public Thread recordStdErr(Process process) {
+        return execLog.recordStdErr(process);
     }
 }

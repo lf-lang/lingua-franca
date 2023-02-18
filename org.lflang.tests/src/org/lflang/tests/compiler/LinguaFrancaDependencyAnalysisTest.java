@@ -52,7 +52,7 @@ import static org.lflang.ASTUtils.*;
 
 /**
  * A collection of tests to ensure dependency analysis is done correctly.
- * @author{Marten Lohstroh <marten@berkeley.edu>}
+ * @author Marten Lohstroh
  */
 class LinguaFrancaDependencyAnalysisTest {
 	@Inject

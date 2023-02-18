@@ -54,14 +54,12 @@ public class UclidRunner {
     UclidGenerator generator;
 
     // Constructor
-    public UclidRunner(
-        UclidGenerator generator,
-        FileConfig fileConfig,
-        ErrorReporter errorReporter
-    ) {
+    public UclidRunner(UclidGenerator generator) {
         this.generator = generator;
         this.commandFactory =
-            new GeneratorCommandFactory(errorReporter, fileConfig);
+            new GeneratorCommandFactory(
+                generator.context.getErrorReporter(),
+                generator.context.getFileConfig());
     }
 
     /**

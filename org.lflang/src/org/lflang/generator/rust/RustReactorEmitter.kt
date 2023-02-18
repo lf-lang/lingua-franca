@@ -28,7 +28,6 @@ import org.lflang.*
 import org.lflang.generator.PrependOperator
 import org.lflang.generator.PrependOperator.rangeTo
 import org.lflang.generator.TargetCode
-import org.lflang.generator.UnsupportedGeneratorFeatureException
 
 
 /**
@@ -46,6 +45,8 @@ object RustReactorEmitter : RustEmitterBase() {
         out += with(reactor) {
             val typeParams = typeParamList.map { it.targetCode }.angle()
             val typeArgs = typeParamList.map { it.lfName }.angle()
+
+            val privateParams = reactor.extraConstructionParams;
 
             with(reactor.names) {
                 with(PrependOperator) {
@@ -86,6 +87,10 @@ ${"             |       "..ctorParams.joinWithCommasLn { "${it.lfName.escapeRust
                 |   }
                 |}
                 |
+                |struct $privateParamStruct {
+${"             |       "..privateParams.joinWithCommasLn { "${it.ident.escapeRustIdent()}: ${it.type}" }}
+                |}
+                |
                 |//------------------------//
                 |
                 |
@@ -99,12 +104,13 @@ ${"             |    "..otherComponents.joinWithCommasLn { it.toStructField() }}
                 |    #[inline]
                 |    fn user_assemble(__assembler: &mut $rsRuntime::assembly::ComponentCreator<Self>,
                 |                     __id: $rsRuntime::ReactorId,
-                |                     __params: $paramStructName$typeArgs) -> $rsRuntime::assembly::AssemblyResult<Self> {
+                |                     __params: $paramStructName$typeArgs,
+                |                     $privateParamsVarName: $privateParamStruct) -> $rsRuntime::assembly::AssemblyResult<Self> {
                 |        let $ctorParamsDeconstructor = __params;
                 |
                 |        let __impl = {
                 |            // declare them all here so that they are visible to the initializers of state vars declared later
-${"             |            "..reactor.stateVars.joinWithLn { "let ${it.lfName} = ${it.init};" }}
+${"             |            "..reactor.stateVars.joinWithLn { "let ${it.lfName}: ${it.type} = ${it.init};" }}
                 |
                 |            $structName {
                 |                __phantom: std::marker::PhantomData,
@@ -174,9 +180,26 @@ ${"             |        "..otherComponents.mapNotNull { it.cleanupAction() }.jo
                 "__ctx.with_child::<$type, _>(\"$lfName\", $params, |mut __ctx, $rustLocalName| {"
         }
 
+        val portRefs = this.portReferences
+        fun NestedReactorInstance.portWidthDecls(): List<TargetCode> =
+            // if we refer to some port of the child as a bank, we need to surface its width here
+            portRefs.filter { it.childLfName == this.lfName && it.isGeneratedAsMultiport }.map {
+                val portWidthExpr = if (it.isMultiport) "${it.childLfName}.${it.rustFieldOnChildName}.len()"
+                else "1" // that's a single port
+
+                // if we're in a bank, the total length is the sum
+                val sumExpr =
+                    if (it.isContainedInBank) "${it.childLfName}.iter().map(|${it.childLfName}| $portWidthExpr).sum()"
+                    else portWidthExpr
+
+                "let ${it.widthParamName} = $sumExpr;"
+            }
+
+
         return buildString {
             for (inst in nestedInstances) {
                 append(inst.childDeclaration()).append("\n")
+                inst.portWidthDecls().joinTo(this, "\n").append("\n")
             }
 
             append(assembleSelf).append("\n")
@@ -200,9 +223,13 @@ ${"             |        "..otherComponents.mapNotNull { it.cleanupAction() }.jo
         val pattern = reactionIds.joinToString(prefix = "[", separator = ", ", postfix = "]")
         val debugLabelArray = debugLabels.joinToString(", ", "[", "]")
 
+        val privateParamsCtor = extraConstructionParams.joinWithCommas(prefix = "$privateParamStruct { ", postfix = " }") {
+            it.ident.escapeRustIdent()
+        }
+
         return """
                 |__ctx.assemble_self(
-                |    |cc, id| Self::user_assemble(cc, id, $ctorParamsDeconstructor),
+                |    |cc, id| Self::user_assemble(cc, id, $ctorParamsDeconstructor, $privateParamsCtor),
                 |    // number of non-synthetic reactions
                 |    ${reactions.size},
                 |    // reaction debug labels
@@ -284,8 +311,8 @@ ${"             |        "..declareChildConnections()}
                     this += "__assembler.declare_triggers($rsRuntime::assembly::TriggerId::SHUTDOWN, ${n.invokerId})?;"
                 this += n.uses.map { trigger -> "__assembler.declare_uses(${n.invokerId}, __self.${trigger.rustFieldName}.get_id())?;" }
                 this += n.effects.filterIsInstance<PortLike>().map { port ->
-                    if (port.isMultiport) {
-                        "__assembler.effects_bank(${n.invokerId}, &__self.${port.rustFieldName})?;"
+                    if (port.isGeneratedAsMultiport) {
+                        "__assembler.effects_multiport(${n.invokerId}, &__self.${port.rustFieldName})?;"
                     } else {
                         "__assembler.effects_port(${n.invokerId}, &__self.${port.rustFieldName})?;"
                     }
@@ -337,7 +364,7 @@ ${"             |        "..declareChildConnections()}
             if (isLogical) "$rsRuntime::LogicalAction<${dataType ?: "()"}>"
             else "$rsRuntime::PhysicalActionRef<${dataType ?: "()"}>"
         is PortLike   -> with(this) {
-            if (isMultiport) "$rsRuntime::PortBank<$dataType>"
+            if (isGeneratedAsMultiport) "$rsRuntime::Multiport<$dataType>"
             else "$rsRuntime::Port<$dataType>"
         }
         is TimerData  -> "$rsRuntime::Timer"
@@ -354,14 +381,14 @@ ${"             |        "..declareChildConnections()}
         is TimerData          -> "__assembler.new_timer(\"$lfName\", $offset, $period)"
         is PortData           -> {
             if (widthSpec != null) {
-                "__assembler.new_port_bank::<$dataType>(\"$lfName\", $portKind, $widthSpec)?"
+                "__assembler.new_multiport::<$dataType>(\"$lfName\", $portKind, $widthSpec)?"
             } else {
                 "__assembler.new_port::<$dataType>(\"$lfName\", $portKind)"
             }
         }
         is ChildPortReference -> {
-            if (isMultiport) {
-                throw UnsupportedGeneratorFeatureException("Multiport references from parent reactor")
+            if (isGeneratedAsMultiport) {
+                "__assembler.new_multiport::<$dataType>(\"$childLfName.$lfName\", $portKind, $privateParamsVarName.$widthParamName)?"
             } else {
                 "__assembler.new_port::<$dataType>(\"$childLfName.$lfName\", $portKind)"
             }
@@ -382,15 +409,9 @@ ${"             |        "..declareChildConnections()}
 
     /** The type of the parameter injected into a reaction for the given dependency. */
     private fun ReactorComponent.toBorrowedType(kind: DepKind): TargetCode =
-        when (this) {
-            is PortLike   -> when {
-                kind == DepKind.Effects && isMultiport -> "$rsRuntime::WritablePortBank<$dataType>" // note: owned
-                kind == DepKind.Effects                -> "$rsRuntime::WritablePort<$dataType>" // note: owned
-                isMultiport                            -> "$rsRuntime::ReadablePortBank<$dataType>" // note: owned
-                else                                   -> "&$rsRuntime::ReadablePort<$dataType>" // note: a reference
-            }
-            is TimerData  -> "&${toType()}"
-            is ActionData -> if (kind == DepKind.Effects) "&mut ${toType()}" else "&${toType()}"
+        when (kind) {
+            DepKind.Effects -> "&mut ${toType()}"
+            else            -> "&${toType()}"
         }
 
     /**
@@ -398,15 +419,9 @@ ${"             |        "..declareChildConnections()}
      * into a reaction. This conceptually just borrows the field.
      */
     private fun ReactorComponent.toBorrow(kind: DepKind): TargetCode =
-        when (this) {
-            is PortLike   -> when {
-                kind == DepKind.Effects && isMultiport -> "$rsRuntime::WritablePortBank::new(&mut self.$rustFieldName)" // note: owned
-                kind == DepKind.Effects                -> "$rsRuntime::WritablePort::new(&mut self.$rustFieldName)" // note: owned
-                isMultiport                            -> "$rsRuntime::ReadablePortBank::new(&self.$rustFieldName)" // note: owned
-                else                                   -> "&$rsRuntime::ReadablePort::new(&self.$rustFieldName)" // note: a reference
-            }
-            is ActionData -> if (kind == DepKind.Effects) "&mut self.$rustFieldName" else "&self.$rustFieldName"
-            is TimerData  -> "&self.$rustFieldName"
+        when (kind) {
+            DepKind.Effects -> "&mut self.$rustFieldName"
+            else            -> "&self.$rustFieldName"
         }
 
     private fun ReactorComponent.isNotInjectedInReaction(depKind: DepKind, n: ReactionInfo): Boolean =
@@ -418,12 +433,9 @@ ${"             |        "..declareChildConnections()}
         // we skip the Trigger one and generate the Effects one.
         depKind != DepKind.Effects && this in n.effects
 
-    private fun ReactorComponent.isInjectedAsMut(depKind: DepKind): Boolean =
-        depKind == DepKind.Effects && (this is PortData || this is ActionData)
-
     /**
      * Whether this component may be unused in a reaction.
-     * Eg. actions on which we have just a trigger dependency
+     * E.g. actions on which we have just a trigger dependency
      * are fine to ignore.
      */
     private fun ReactorComponent.mayBeUnusedInReaction(depKind: DepKind): Boolean =
@@ -436,7 +448,7 @@ ${"             |        "..declareChildConnections()}
             if (isLogical) "ctx.cleanup_logical_action(&mut self.$rustFieldName);"
             else "ctx.cleanup_physical_action(&mut self.$rustFieldName);"
         is PortLike           ->
-            if (isMultiport) "ctx.cleanup_multiport(&mut self.$rustFieldName);"
+            if (isGeneratedAsMultiport) "ctx.cleanup_multiport(&mut self.$rustFieldName);"
             else "ctx.cleanup_port(&mut self.$rustFieldName);"
         else                  -> null
     }
@@ -448,12 +460,7 @@ ${"             |        "..declareChildConnections()}
                 for (comp in comps) {
                     if (comp.isNotInjectedInReaction(kind, this@reactionParams)) continue
 
-                    // we want the user to be able to make
-                    // use of the mut if they want, but they
-                    // don't have to
-                    val mut = if (comp.isInjectedAsMut(kind)) "#[allow(unused_mut)] mut " else ""
-
-                    val param = "$mut${comp.rustRefName}: ${comp.toBorrowedType(kind)}"
+                    val param = "${comp.rustRefName}: ${comp.toBorrowedType(kind)}"
 
                     if (comp.mayBeUnusedInReaction(kind)) {
                         yield("#[allow(unused)] $param")
@@ -477,5 +484,34 @@ ${"             |    "..body}
         }
     }
 
+    /**
+     * A list of parameters that are required for construction
+     * but are of internal use to the generator.
+     * The widths of port banks referred to by a reactor are
+     * saved in here, so that we use the actual runtime value.
+     */
+    private val ReactorInfo.extraConstructionParams: List<PrivateParamSpec>
+        get() {
+            val result = mutableListOf<PrivateParamSpec>()
 
+            for (ref in this.portReferences) {
+                if (ref.isGeneratedAsMultiport) {
+                    result += PrivateParamSpec(
+                        ident = ref.widthParamName,
+                        type = "usize"
+                    )
+                }
+            }
+
+            return result
+        }
+
+    private data class PrivateParamSpec(
+        val ident: String,
+        val type: TargetCode
+    )
+
+    private const val privateParamStruct: String = "PrivateParams"
+
+    private const val privateParamsVarName = "__more_params"
 }

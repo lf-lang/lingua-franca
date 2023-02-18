@@ -6,7 +6,6 @@ import static java.nio.file.FileVisitResult.SKIP_SUBTREE;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.FileVisitResult;
-import java.nio.file.FileVisitor;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -20,10 +19,8 @@ import java.util.Set;
 import java.util.Stack;
 import java.util.TreeSet;
 
-import org.eclipse.emf.common.util.EList;
 import org.eclipse.emf.common.util.URI;
 import org.eclipse.emf.ecore.resource.Resource;
-import org.eclipse.emf.ecore.resource.Resource.Diagnostic;
 import org.eclipse.emf.ecore.resource.ResourceSet;
 import org.eclipse.xtext.xbase.lib.IteratorExtensions;
 
@@ -31,13 +28,12 @@ import org.lflang.LFResourceProvider;
 import org.lflang.LFStandaloneSetup;
 import org.lflang.Target;
 import org.lflang.lf.Reactor;
-import org.lflang.tests.LFTest.Result;
 import org.lflang.tests.TestBase.TestLevel;
 
 /**
  * A registry to retrieve tests from, organized by target and category.
  * 
- * @author Marten Lohstroh <marten@berkeley.edu>
+ * @author Marten Lohstroh
  */
 public class TestRegistry {
     
@@ -78,7 +74,7 @@ public class TestRegistry {
      * test file that has a directory in its path that matches an entry in this
      * array will not be discovered.
      */
-    public static final String[] IGNORED_DIRECTORIES = {"failing", "knownfailed", "failed"};
+    public static final String[] IGNORED_DIRECTORIES = {"failing", "knownfailed", "failed", "fed-gen"};
     
     /**
      * Path to the root of the repository.
@@ -125,11 +121,13 @@ public class TestRegistry {
      * - C/Threaded.lf (maps to COMMON)
      * - C/threaded/federated/foo.lf (maps to FEDERATED)
      * 
-     * @author Marten Lohstroh <marten@berkeley.edu>
+     * @author Marten Lohstroh
      */
     public enum TestCategory {
         /** Tests about concurrent execution. */
         CONCURRENT(true),
+        /** Test about enclaves */
+        ENCLAVE(false),
         /** Generic tests, ie, tests that all targets are supposed to implement. */
         GENERIC(true),
         /** Tests about generics, not to confuse with {@link #GENERIC}. */
@@ -148,10 +146,11 @@ public class TestRegistry {
         DOCKER_FEDERATED(true, "docker" + File.separator + "federated"),
         SERIALIZATION(false),
         ARDUINO(false, TestLevel.BUILD),
+        ZEPHYR(false, TestLevel.BUILD),
         TARGET(false);
-        
+
         /**
-         * Whether or not we should compare coverage against other targets.
+         * Whether we should compare coverage against other targets.
          */
         public final boolean isCommon;
         public final String path;
@@ -254,7 +253,7 @@ public class TestRegistry {
         if (copy) {
             Set<LFTest> copies = new TreeSet<>();
             for (LFTest test : registered.getTests(target, category)) {
-                copies.add(new LFTest(test.target, test.srcFile));
+                copies.add(new LFTest(test));
             }
             return copies;
         } else {
@@ -278,7 +277,7 @@ public class TestRegistry {
         s.append(TestBase.THIN_LINE);
         
         for (LFTest test : ignored) {
-            s.append("No main reactor in: ").append(test.name).append("\n");
+            s.append("No main reactor in: ").append(test).append("\n");
         }
         
         Set<LFTest> own = getRegisteredTests(target, category, false);
@@ -290,17 +289,16 @@ public class TestRegistry {
             int missing = all.size() - own.size();
             if (missing > 0) {
                 all.stream().filter(test -> !own.contains(test))
-                        .forEach(test -> s.append("Missing: ").append(test.toString()).append("\n"));
+                        .forEach(test -> s.append("Missing: ").append(test).append("\n"));
             }
         } else {
             s.append("\n").append(TestBase.THIN_LINE);
             s.append("Covered: ").append(own.size()).append("/").append(own.size()).append("\n");
             s.append(TestBase.THIN_LINE);
         }
-        
         return s.toString();
-    }    
-    
+    }
+
     /**
      * FileVisitor implementation that maintains a stack to map found tests to
      * the appropriate category and excludes directories that are listed as 
@@ -314,7 +312,7 @@ public class TestRegistry {
      * is TestCategory.COMMON, meaning that test files in the top-level test
      * directory for a given target will be mapped to that category.
      * 
-     * @author Marten Lohstroh <marten@berkeley.edu>
+     * @author Marten Lohstroh
      */
     public static class TestDirVisitor extends SimpleFileVisitor<Path> {
 
@@ -386,32 +384,22 @@ public class TestRegistry {
         @Override
         public FileVisitResult visitFile(Path path, BasicFileAttributes attr) {
             if (attr.isRegularFile() && path.toString().endsWith(".lf")) {
-                // Parse the file. If this is unsuccessful, add the test and
-                // report that it didn't compile.
-                Resource r = rs.getResource(
-                        URI.createFileURI(path.toFile().getAbsolutePath()),
-                        true);
+                // Try to parse the file.
+                Resource r = rs.getResource(URI.createFileURI(path.toFile().getAbsolutePath()),true);
                 // FIXME: issue warning if target doesn't match!
                 LFTest test = new LFTest(target, path);
-                EList<Diagnostic> errors = r.getErrors();
-                if (!errors.isEmpty()) {
-                    for (Diagnostic d : errors) {
-                        test.issues.append(d.toString());
-                    }
-                    test.result = Result.PARSE_FAIL;
-                } else {
-                    Iterator<Reactor> reactors =
-                        IteratorExtensions.filter(r.getAllContents(), Reactor.class);
 
-                    if (!IteratorExtensions.exists(reactors,
-                            it -> it.isMain() || it.isFederated())) {
-                        // If the test compiles but doesn't have a main reactor,
-                        // _do not add the file_. We assume it is a library
-                        // file.
-                        ignored.getTests(this.target, this.stack.peek()).add(test);
-                        return CONTINUE;
-                    }
+                Iterator<Reactor> reactors = IteratorExtensions.filter(r.getAllContents(), Reactor.class);
+
+                if (r.getErrors().isEmpty() && !IteratorExtensions.exists(reactors,
+                    it -> it.isMain() || it.isFederated())) {
+                    // If the test compiles but doesn't have a main reactor,
+                    // _do not add the file_. We assume it is a library
+                    // file.
+                    ignored.getTests(this.target, this.stack.peek()).add(test);
+                    return CONTINUE;
                 }
+
                 registered.getTests(this.target, this.stack.peek()).add(test);
             }
             return CONTINUE;

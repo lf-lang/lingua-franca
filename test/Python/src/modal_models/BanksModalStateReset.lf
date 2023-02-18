@@ -45,8 +45,8 @@ main reactor {
     reset2.mode_switch,
     reset2.count0,
     reset2.count1,
-    reset2.count2 ->
-        test.events
+    reset2.count2
+        -> test.events
 
     # Trigger mode change (separately because of #1278)
     reaction(stepper) -> reset1.next {=

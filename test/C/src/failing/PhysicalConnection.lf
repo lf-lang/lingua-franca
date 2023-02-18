@@ -1,0 +1,27 @@
+/** Test physical connections. */
+target C
+
+reactor Source {
+    output out: int
+
+    reaction(startup) -> out {= lf_set(out, 42); =}
+}
+
+reactor Destination {
+    input in: int
+
+    reaction(in) {=
+        interval_t time = lf_time_logical_elapsed();
+        printf("Received %d at logical time %lld.\n", in->value, time);
+        if (time <= 0LL) {
+            fprintf(stderr, "ERROR: Logical time should have been greater than zero.\n");
+            exit(1);
+        }
+    =}
+}
+
+main reactor PhysicalConnection {
+    source = new Source()
+    destination = new Destination()
+    source.out ~> destination.in
+}

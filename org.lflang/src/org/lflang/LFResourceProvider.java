@@ -8,7 +8,7 @@ import com.google.inject.Provider;
 /**
  * Class that provides access to a resource set.
  * 
- * @author Marten Lohstroh <marten@berkeley.edu>
+ * @author Marten Lohstroh
  *
  */
 public class LFResourceProvider {

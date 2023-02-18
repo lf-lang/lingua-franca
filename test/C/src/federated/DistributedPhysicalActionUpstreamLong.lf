@@ -5,7 +5,7 @@
 target C {
     timeout: 1 sec,
     coordination-options: {
-        advance-message-interval: 50 usec
+        advance-message-interval: 500 usec
     }
 }
 
@@ -21,7 +21,7 @@ preamble {=
     void* take_time(void* a) {
         while (_counter < 20) {
             instant_t sleep_time = USEC(50);
-            lf_nanosleep(sleep_time);
+            lf_sleep(sleep_time);
             callback(a);
         }
         return NULL;
@@ -38,7 +38,7 @@ reactor WithPhysicalAction {
         lf_thread_create(&self->thread_id, &take_time, act);
     =}
 
-    reaction(act) -> out {= SET(out, act->value); =}
+    reaction(act) -> out {= lf_set(out, act->value); =}
 }
 
 federated reactor {
@@ -66,7 +66,8 @@ federated reactor {
     passThroughs7.out,
     passThroughs8.out,
     passThroughs9.out,
-    passThroughs10.out ->
+    passThroughs10.out
+        ->
         passThroughs1.in,
         passThroughs2.in,
         passThroughs3.in,

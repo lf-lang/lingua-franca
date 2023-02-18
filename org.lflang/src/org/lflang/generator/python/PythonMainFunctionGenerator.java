@@ -29,7 +29,7 @@ package org.lflang.generator.python;
  * Responsible for creating the main function for
  * the generated Python target programs.
  *
- * @author Soroush Bateni <soroush@utdallas.edu>
+ * @author Soroush Bateni
  *
  */
 public final class PythonMainFunctionGenerator {

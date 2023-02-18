@@ -1,0 +1,36 @@
+// Test that a reaction can react to and send two multiple ports of a contained
+// reactor.
+target Cpp
+
+reactor Contained<T> {
+    output trigger: T
+    input in1: T
+    input in2: T
+
+    reaction(startup) -> trigger {= trigger.set(42); =}
+
+    reaction(in1) {=
+        std::cout << "in1 received " << *in1.get() << '\n';
+        if (*in1.get() != 42) {
+            std::cerr << "FAILED: Expected 42.\n";
+            exit(1);
+        }
+    =}
+
+    reaction(in2) {=
+        std::cout << "in2 received " << *in2.get() << '\n';
+        if (*in2.get() != 42) {
+            std::cerr << "FAILED: Expected 42.\n";
+            exit(1);
+        }
+    =}
+}
+
+main reactor {
+    c = new Contained<int>()
+
+    reaction(c.trigger) -> c.in1, c.in2 {=
+        c.in1.set(c.trigger.get());
+        c.in2.set(c.trigger.get());
+    =}
+}

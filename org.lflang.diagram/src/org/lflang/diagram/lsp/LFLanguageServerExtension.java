@@ -15,6 +15,7 @@ import org.eclipse.xtext.ide.server.ILanguageServerExtension;
 import org.eclipse.xtext.ide.server.ILanguageServerAccess;
 import org.eclipse.xtext.util.CancelIndicator;
 
+import org.lflang.generator.GeneratorResult.Status;
 import org.lflang.generator.IntegratedBuilder;
 import org.lflang.generator.GeneratorResult;
 import org.lflang.LFStandaloneSetup;
@@ -25,7 +26,7 @@ import org.lflang.util.LFCommand;
  * Provide Lingua-Franca-specific extensions to the
  * language server's behavior.
  *
- * @author Peter Donovan <peterdonovan@berkeley.edu>
+ * @author Peter Donovan
  */
 class LFLanguageServerExtension implements ILanguageServerExtension {
 
@@ -90,11 +91,12 @@ class LFLanguageServerExtension implements ILanguageServerExtension {
     @JsonNotification("generator/buildAndRun")
     public CompletableFuture<String[]> buildAndRun(String uri) {
         return new CompletableFuture<String[]>().completeAsync(() -> {
-            LFCommand result = buildWithProgress(client, uri, true).getCommand();
-            if (result == null) return null;
+            var result = buildWithProgress(client, uri, true);
+            if (!result.equals(Status.COMPILED)) return null;
+            LFCommand cmd = result.getContext().getFileConfig().getCommand();
             ArrayList<String> ret = new ArrayList<>();
-            ret.add(result.directory().toString());
-            ret.addAll(result.command());
+            ret.add(cmd.directory().toString());
+            ret.addAll(cmd.command());
             return ret.toArray(new String[0]);
         });
     }

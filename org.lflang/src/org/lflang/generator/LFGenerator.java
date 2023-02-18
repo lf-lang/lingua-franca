@@ -2,7 +2,6 @@ package org.lflang.generator;
 
 import java.io.IOException;
 import java.lang.reflect.Constructor;
-import java.lang.reflect.InvocationTargetException;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Objects;
@@ -22,7 +21,12 @@ import org.lflang.FileConfig;
 import org.lflang.Target;
 import org.lflang.analyses.uclid.UclidGenerator;
 import org.lflang.analyses.uclid.UclidRunner;
+import org.lflang.federated.generator.FedASTUtils;
+import org.lflang.federated.generator.FedFileConfig;
+import org.lflang.federated.generator.FedGenerator;
+import org.lflang.generator.c.CFileConfig;
 import org.lflang.generator.c.CGenerator;
+import org.lflang.generator.python.PyFileConfig;
 import org.lflang.generator.python.PythonGenerator;
 import org.lflang.lf.Attribute;
 import org.lflang.lf.Reactor;
@@ -59,31 +63,41 @@ public class LFGenerator extends AbstractGenerator {
      * @return A FileConfig object in Kotlin if the class can be found.
      * @throws IOException If the file config could not be created properly
      */
-    private FileConfig createFileConfig(final Target target,
-                                        Resource resource,
-                                        IFileSystemAccess2 fsa,
-                                        LFGeneratorContext context) throws IOException {
-        Path srcGenBasePath = FileConfig.getSrcGenRoot(fsa);
+    public static FileConfig createFileConfig(Resource resource, Path srcGenBasePath,
+                                        boolean useHierarchicalBin) {
+
+        final Target target = Target.fromDecl(ASTUtils.targetDecl(resource));
+        assert target != null;
+
         // Since our Eclipse Plugin uses code injection via guice, we need to
         // play a few tricks here so that FileConfig does not appear as an
-        // import. Instead we look the class up at runtime and instantiate it if
+        // import. Instead, we look the class up at runtime and instantiate it if
         // found.
-        switch (target) {
-        case CPP:
-        case Rust:
-        case TS:
-            String className = "org.lflang.generator." + target.packageName + "." + target.classNamePrefix + "FileConfig";
-            try {
-                return (FileConfig) Class.forName(className)
-                                         .getDeclaredConstructor(Resource.class, Path.class, boolean.class)
-                                         .newInstance(resource, srcGenBasePath, context.useHierarchicalBin());
-            } catch (InvocationTargetException e) {
-                throw new RuntimeException("Exception instantiating " + className, e.getTargetException());
-            } catch (ReflectiveOperationException e) {
-                return new FileConfig(resource, srcGenBasePath, context.useHierarchicalBin());
+        try {
+            if (FedASTUtils.findFederatedReactor(resource) != null) {
+                return new FedFileConfig(resource, srcGenBasePath, useHierarchicalBin);
             }
-        default:
-            return new FileConfig(resource, srcGenBasePath, context.useHierarchicalBin());
+            switch (target) {
+            case CCPP:
+            case C: return new CFileConfig(resource, srcGenBasePath, useHierarchicalBin);
+            case Python: return new PyFileConfig(resource, srcGenBasePath, useHierarchicalBin);
+            case CPP:
+            case Rust:
+            case TS:
+                String className = "org.lflang.generator." + target.packageName + "." + target.classNamePrefix + "FileConfig";
+                try {
+                    return (FileConfig) Class.forName(className)
+                                             .getDeclaredConstructor(Resource.class, Path.class, boolean.class)
+                                             .newInstance(resource, srcGenBasePath, useHierarchicalBin);
+                } catch (ReflectiveOperationException e) {
+                    throw new RuntimeException(
+                        "Exception instantiating " + className, e.getCause());
+                }
+            default:
+                throw new RuntimeException("Could not find FileConfig implementation for target " + target);
+            }
+        } catch (IOException e) {
+            throw new RuntimeException("Unable to create FileConfig object for target " + target + ": " + e.getStackTrace());
         }
     }
 
@@ -91,18 +105,18 @@ public class LFGenerator extends AbstractGenerator {
      *  Create a generator object for the given target.
      *  Returns null if the generator could not be created.
      */
-    private GeneratorBase createGenerator(Target target, FileConfig fileConfig, ErrorReporter errorReporter) {
-        switch (target) {
-        case C: return new CGenerator(fileConfig, errorReporter, false);
-        case CCPP: return new CGenerator(fileConfig, errorReporter, true);
-        case Python: return new PythonGenerator(fileConfig, errorReporter);
-        case CPP:
-        case TS:
-        case Rust:
-            return createKotlinBaseGenerator(target, fileConfig, errorReporter);
-        }
-        // If no case matched, then throw a runtime exception.
-        throw new RuntimeException("Unexpected target!");
+    private GeneratorBase createGenerator(LFGeneratorContext context) {
+        final Target target = Target.fromDecl(ASTUtils.targetDecl(context.getFileConfig().resource));
+        assert target != null;
+        return switch (target) {
+            case C -> new CGenerator(context, false);
+            case CCPP -> new CGenerator(context, true);
+            case Python -> new PythonGenerator(context);
+            case CPP, TS, Rust ->
+                createKotlinBaseGenerator(target, context);
+            // If no case matched, then throw a runtime exception.
+            default -> throw new RuntimeException("Unexpected target!");
+        };
     }
 
 
@@ -118,27 +132,21 @@ public class LFGenerator extends AbstractGenerator {
      *
      * @return A Kotlin Generator object if the class can be found
      */
-    private GeneratorBase createKotlinBaseGenerator(Target target, FileConfig fileConfig,
-                                                ErrorReporter errorReporter) {
+    private GeneratorBase createKotlinBaseGenerator(Target target, LFGeneratorContext context) {
         // Since our Eclipse Plugin uses code injection via guice, we need to
         // play a few tricks here so that Kotlin FileConfig and
-        // Kotlin Generator do not appear as an import. Instead we look the
+        // Kotlin Generator do not appear as an import. Instead, we look the
         // class up at runtime and instantiate it if found.
         String classPrefix = "org.lflang.generator." + target.packageName + "." + target.classNamePrefix;
         try {
             Class<?> generatorClass = Class.forName(classPrefix + "Generator");
-            Class<?> fileConfigClass = Class.forName(classPrefix + "FileConfig");
             Constructor<?> ctor = generatorClass
-                .getDeclaredConstructor(fileConfigClass, ErrorReporter.class, LFGlobalScopeProvider.class);
+                .getDeclaredConstructor(LFGeneratorContext.class, LFGlobalScopeProvider.class);
 
-            return (GeneratorBase) ctor.newInstance(fileConfig, errorReporter, scopeProvider);
-
-        } catch (InvocationTargetException e) {
-            throw new RuntimeException("Exception instantiating " + classPrefix + "FileConfig",
-                                       e.getTargetException());
+            return (GeneratorBase) ctor.newInstance(context, scopeProvider);
         } catch (ReflectiveOperationException e) {
             generatorErrorsOccurred = true;
-            errorReporter.reportError(
+            context.getErrorReporter().reportError(
                 "The code generator for the " + target + " target could not be found. "
                     + "This is likely because you built Epoch using "
                     + "Eclipse. The " + target + " code generator is written in Kotlin "
@@ -154,48 +162,56 @@ public class LFGenerator extends AbstractGenerator {
     @Override
     public void doGenerate(Resource resource, IFileSystemAccess2 fsa,
             IGeneratorContext context) {
-        final LFGeneratorContext lfContext = LFGeneratorContext.lfGeneratorContextOf(context, resource);
-        if (lfContext.getMode() == LFGeneratorContext.Mode.LSP_FAST) return;  // The fastest way to generate code is to not generate any code.
-        final Target target = Target.fromDecl(ASTUtils.targetDecl(resource));
-        assert target != null;
-
-        FileConfig fileConfig;
-        try {
-            fileConfig = Objects.requireNonNull(createFileConfig(target, resource, fsa, lfContext));
-        } catch (IOException e) {
-            throw new RuntimeIOException("Error during FileConfig instantiation", e);
+        final LFGeneratorContext lfContext;
+        if (context instanceof LFGeneratorContext) {
+            lfContext = (LFGeneratorContext)context;
+        } else {
+            lfContext = LFGeneratorContext.lfGeneratorContextOf(resource, fsa, context);
         }
-        final ErrorReporter errorReporter = lfContext.constructErrorReporter(fileConfig);
-        final GeneratorBase generator = createGenerator(target, fileConfig, errorReporter);
 
-        // If "-c" or "--clean" is specified, delete any existing generated directories.
-        cleanIfNeeded(lfContext, fileConfig);
+        // The fastest way to generate code is to not generate any code.
+        if (lfContext.getMode() == LFGeneratorContext.Mode.LSP_FAST) return;
 
-        // Check if @property is used. If so, instantiate a UclidGenerator.
-        // The verification model needs to be generated before the target code
-        // since code generation changes LF program (desugar connections, etc.).
-        Reactor main = ASTUtils.getMainReactor(resource);
-        List<Attribute> properties = AttributeUtils.getAttributes(main)
-                                    .stream()
-                                    .filter(attr -> attr.getAttrName().equals("property"))
-                                    .collect(Collectors.toList());
-        if (properties.size() > 0) {
-            UclidGenerator uclidGenerator = new UclidGenerator(fileConfig, errorReporter, properties);
-            // Generate uclid files.
-            uclidGenerator.doGenerate(resource, lfContext);
-            if (uclidGenerator.targetConfig.noVerify == false) {
-                // Invoke the generated uclid files.
-                uclidGenerator.runner.run();
-            } else {
-                System.out.println("\"no-verify\" is set to true. Skip checking the verification model.");
+        if (FedASTUtils.findFederatedReactor(resource) != null) {
+            try {
+                generatorErrorsOccurred = (new FedGenerator(lfContext)).doGenerate(resource, lfContext);
+            } catch (IOException e) {
+                throw new RuntimeIOException("Error during federated code generation", e);
+            }
+
+        } else {
+
+            // If "-c" or "--clean" is specified, delete any existing generated directories.
+            cleanIfNeeded(lfContext);
+
+            // Check if @property is used. If so, instantiate a UclidGenerator.
+            // The verification model needs to be generated before the target code
+            // since code generation changes LF program (desugar connections, etc.).
+            Reactor main = ASTUtils.getMainReactor(resource);
+            List<Attribute> properties = AttributeUtils.getAttributes(main)
+                                        .stream()
+                                        .filter(attr -> attr.getAttrName().equals("property"))
+                                        .collect(Collectors.toList());
+            if (properties.size() > 0) {
+                UclidGenerator uclidGenerator = new UclidGenerator(lfContext, properties);
+                // Generate uclid files.
+                uclidGenerator.doGenerate(resource, lfContext);
+                if (uclidGenerator.targetConfig.noVerify == false) {
+                    // Invoke the generated uclid files.
+                    uclidGenerator.runner.run();
+                } else {
+                    System.out.println("\"no-verify\" is set to true. Skip checking the verification model.");
+                }
+            }
+
+            final GeneratorBase generator = createGenerator(lfContext);
+
+            if (generator != null) {
+                generator.doGenerate(resource, lfContext);
+                generatorErrorsOccurred = generator.errorsOccurred();
             }
         }
-
-        // Generate target code from the LF program.
-        if (generator != null) {
-            generator.doGenerate(resource, lfContext);
-            generatorErrorsOccurred = generator.errorsOccurred();
-        }
+        final ErrorReporter errorReporter = lfContext.getErrorReporter();
         if (errorReporter instanceof LanguageServerErrorReporter) {
             ((LanguageServerErrorReporter) errorReporter).publishDiagnostics();
         }
@@ -210,10 +226,10 @@ public class LFGenerator extends AbstractGenerator {
      * Check if a clean was requested from the standalone compiler and perform
      * the clean step.
      */
-    protected void cleanIfNeeded(LFGeneratorContext context, FileConfig fileConfig) {
+    protected void cleanIfNeeded(LFGeneratorContext context) {
         if (context.getArgs().containsKey("clean")) {
             try {
-                fileConfig.doClean();
+                context.getFileConfig().doClean();
             } catch (IOException e) {
                 System.err.println("WARNING: IO Error during clean");
             }

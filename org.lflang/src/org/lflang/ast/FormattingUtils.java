@@ -3,6 +3,7 @@ package org.lflang.ast;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.function.Function;
 import java.util.function.ToLongFunction;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -11,12 +12,14 @@ import java.util.stream.Stream;
 import org.eclipse.emf.ecore.EObject;
 
 import org.lflang.ASTUtils;
+import org.lflang.Target;
 import org.lflang.lf.Model;
+import org.lflang.lf.TargetDecl;
 
 /**
  * Utility functions that determine the specific behavior of the LF formatter.
- * @author {Peter Donovan <peterdonovan@berkeley.edu>}
- * @author {Billy Bao <billybao@berkeley.edu>}
+ * @author Peter Donovan
+ * @author Billy Bao
  */
 public class FormattingUtils {
     /**
@@ -48,10 +51,24 @@ public class FormattingUtils {
      * {@code lineLength}.
      */
     public static String render(EObject object, int lineLength) {
+        return render(object, lineLength, inferTarget(object), false);
+    }
+
+    /** Return a function that renders AST nodes for the given target. */
+    public static Function<EObject, String> renderer(TargetDecl targetDecl) {
+        return object -> render(object, DEFAULT_LINE_LENGTH, Target.fromDecl(targetDecl), true);
+    }
+
+    /**
+     * Return a String representation of {@code object}, with lines wrapped at
+     * {@code lineLength}, with the assumption that the target language is
+     * {@code target}.
+     */
+    public static String render(EObject object, int lineLength, Target target, boolean codeMapTags) {
         MalleableString ms = ToLf.instance.doSwitch(object);
-        String singleLineCommentPrefix = getSingleLineCommentPrefix(object);
+        String singleLineCommentPrefix = target.getSingleLineCommentPrefix();
         ms.findBestRepresentation(
-            () -> ms.render(INDENTATION, singleLineCommentPrefix),
+            () -> ms.render(INDENTATION, singleLineCommentPrefix, codeMapTags, null),
             r -> r.levelsOfCommentDisplacement() * BADNESS_PER_LEVEL_OF_COMMENT_DISPLACEMENT
                 + countCharactersViolatingLineLength(lineLength).applyAsLong(r.rendering())
                     * BADNESS_PER_CHARACTER_VIOLATING_LINE_LENGTH
@@ -60,7 +77,7 @@ public class FormattingUtils {
             INDENTATION,
             singleLineCommentPrefix
         );
-        var optimizedRendering = ms.render(INDENTATION, singleLineCommentPrefix);
+        var optimizedRendering = ms.render(INDENTATION, singleLineCommentPrefix, codeMapTags, null);
         List<String> comments = optimizedRendering.unplacedComments().toList();
         return comments.stream().allMatch(String::isBlank) ? optimizedRendering.rendering()
             : lineWrapComments(comments, lineLength, singleLineCommentPrefix)
@@ -68,17 +85,16 @@ public class FormattingUtils {
     }
 
     /**
-     * Return the prefix that the formatter should use to mark the start of a
-     * single-line comment.
+     * Infer the target language of the object.
      */
-    private static String getSingleLineCommentPrefix(EObject object) {
+    private static Target inferTarget(EObject object) {
         if (object instanceof Model model) {
             var targetDecl = ASTUtils.targetDecl(model);
-            if (targetDecl != null && targetDecl.getName().toUpperCase().contains("PYTHON")) {
-                return "#";
+            if (targetDecl != null) {
+                return Target.fromDecl(targetDecl);
             }
         }
-        return "//";
+        throw new IllegalArgumentException("Unable to determine target based on given EObject.");
     }
 
     /**
@@ -227,7 +243,7 @@ public class FormattingUtils {
         if (comment.stream().allMatch(String::isBlank)) return true;
         String wrapped = FormattingUtils.lineWrapComments(comment, width, singleLineCommentPrefix);
         if (keepCommentsOnSameLine && wrapped.lines().count() == 1 && !wrapped.startsWith("/**")) {
-            int cumsum = 0;
+            int sum = 0;
             for (int j = 0; j < components.size(); j++) {
                 String current = components.get(j);
                 if (j >= i && current.contains("\n")) {
@@ -235,14 +251,14 @@ public class FormattingUtils {
                         "\n",
                         " ".repeat(Math.max(
                             2,
-                            startColumn - cumsum - components.get(j).indexOf("\n")
+                            startColumn - sum - components.get(j).indexOf("\n")
                         )) + wrapped + "\n"
                     ));
                     return true;
                 } else if (current.contains("\n")) {
-                    cumsum = current.length() - current.lastIndexOf("\n") - 1;
+                    sum = current.length() - current.lastIndexOf("\n") - 1;
                 } else {
-                    cumsum += current.length();
+                    sum += current.length();
                 }
             }
         }

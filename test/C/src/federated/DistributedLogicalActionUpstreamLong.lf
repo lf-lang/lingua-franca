@@ -16,7 +16,7 @@ reactor WithLogicalAction {
     logical action act(0): int
 
     reaction(startup, act) -> act, out {=
-        SET(out, self->counter);
+        lf_set(out, self->counter);
         lf_schedule_int(act, USEC(50), self->counter++);
     =}
 }
@@ -46,7 +46,8 @@ federated reactor {
     passThroughs7.out,
     passThroughs8.out,
     passThroughs9.out,
-    passThroughs10.out ->
+    passThroughs10.out
+        ->
         passThroughs1.in,
         passThroughs2.in,
         passThroughs3.in,

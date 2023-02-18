@@ -170,22 +170,21 @@ public class UclidGenerator extends GeneratorBase {
     protected static final int          CT_MAX_SUPPORTED    = 100;
 
     // Constructor
-    public UclidGenerator(FileConfig fileConfig, ErrorReporter errorReporter, List<Attribute> properties) {
-        super(fileConfig, errorReporter);
+    public UclidGenerator(LFGeneratorContext context, List<Attribute> properties) {
+        super(context);
         this.properties = properties;
-        this.runner = new UclidRunner(this, fileConfig, errorReporter);
+        this.runner = new UclidRunner(this);
     }
 
     ////////////////////////////////////////////////////////////
     //// Public methods
     public void doGenerate(Resource resource, LFGeneratorContext context) {
-        
-        // Inherit parts from super.doGenerate() to instantiate the main instance.
-        GeneratorUtils.setTargetConfig(
-            context, GeneratorUtils.findTarget(fileConfig.resource), targetConfig, errorReporter
-        );
+
+        // FIXME: How much of doGenerate() from GeneratorBase is needed?
         super.printInfo(context.getMode());
-        ASTUtils.setMainName(fileConfig.resource, fileConfig.name);
+        ASTUtils.setMainName(
+            context.getFileConfig().resource,
+            context.getFileConfig().name);
         // FIXME: Perform an analysis on the property and remove unrelevant components.
         super.createMainInstantiation();
         
@@ -1417,31 +1416,19 @@ public class UclidGenerator extends GeneratorBase {
             if (this.main == null) {
                 // Recursively build instances. This is done once because
                 // it is the same for all federates.
-                this.main = new ReactorInstance(toDefinition(mainDef.getReactorClass()), errorReporter,
-                    this.unorderedReactions);
+                this.main = new ReactorInstance(toDefinition(mainDef.getReactorClass()), errorReporter);
                 var reactionInstanceGraph = this.main.assignLevels();
                 if (reactionInstanceGraph.nodeCount() > 0) {
                     errorReporter.reportError("Main reactor has causality cycles. Skipping code generation.");
                     return;
                 }
             }
-            
-            // FIXME: Is this needed?
-            // Force reconstruction of dependence information.
-            if (isFederated) {
-                // Avoid compile errors by removing disconnected network ports.
-                // This must be done after assigning levels.
-                removeRemoteFederateConnectionPorts(main);
-                // There will be AST transformations that invalidate some info
-                // cached in ReactorInstance.
-                this.main.clearCaches(false);
-            }
         }
     }
 
     private void setupDirectories() {
         // Make sure the target directory exists.
-        Path modelGenDir = this.fileConfig.getModelGenPath();
+        Path modelGenDir = context.getFileConfig().getModelGenPath();
         this.outputDir = Paths.get(modelGenDir.toString());
         try {
             Files.createDirectories(outputDir);
@@ -1645,21 +1632,6 @@ public class UclidGenerator extends GeneratorBase {
      
     @Override
     public TargetTypes getTargetTypes() {
-        throw new UnsupportedOperationException("TODO: auto-generated method stub");
-    }   
-
-    @Override
-    public String generateDelayBody(Action action, VarRef port) {
-        throw new UnsupportedOperationException("TODO: auto-generated method stub");
-    }
-
-    @Override
-    public String generateForwardBody(Action action, VarRef port) {
-        throw new UnsupportedOperationException("TODO: auto-generated method stub");
-    }
-
-    @Override
-    public String generateDelayGeneric() {
         throw new UnsupportedOperationException("TODO: auto-generated method stub");
     }
 }

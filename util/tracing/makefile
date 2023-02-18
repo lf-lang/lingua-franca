@@ -3,7 +3,12 @@
 # @author: Edward A. Lee
 
 CC=gcc
-CFLAGS=-I../../org.lflang/src/lib/c/reactor-c/core/ -Wall
+CFLAGS=-I../../org.lflang/src/lib/c/reactor-c/include/core/ \
+		-I../../org.lflang/src/lib/c/reactor-c/include/core/modal_models \
+		-I../../org.lflang/src/lib/c/reactor-c/include/core/platform \
+		-I../../org.lflang/src/lib/c/reactor-c/include/core/utils \
+		-DLF_UNTHREADED=1 \
+		-Wall
 DEPS=
 LIBS=-lcurl
 
