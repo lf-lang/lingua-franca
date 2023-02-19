@@ -16,8 +16,6 @@ jobs:
     steps:
       - name: Check out lingua-franca repository
         uses: actions/checkout@v3
-      - name: Setup upterm session
-        uses: lhotari/action-upterm@v1
       - name: Check out lf-verifer-benchmarks repository
         uses: actions/checkout@v3
         with:
@@ -48,6 +46,8 @@ jobs:
       - name: Test sbt
         run: |
           sbt --version
+      - name: Setup upterm session
+        uses: lhotari/action-upterm@v1
       - name: Install Uclid5
         run: |
           sbt update clean compile
