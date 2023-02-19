@@ -16,6 +16,8 @@ jobs:
     steps:
       - name: Check out lingua-franca repository
         uses: actions/checkout@v3
+      - name: Setup upterm session
+        uses: lhotari/action-upterm@v1
       - name: Check out lf-verifer-benchmarks repository
         uses: actions/checkout@v3
         with:
@@ -48,7 +50,8 @@ jobs:
           sbt --version
       - name: Install Uclid5
         run: |
-          sbt compile universal:packageBin
+          sbt update clean compile
+          sbt universal:packageBin
           cd target/universal/
           unzip uclid-0.9.5.zip
           export PATH="$(pwd)/uclid-0.9.5/bin:$PATH"
