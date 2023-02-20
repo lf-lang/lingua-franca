@@ -184,7 +184,7 @@ public class Lfc extends CliBase {
     /**
      * Invoke the code generator on the given validated file paths.
      */
-    protected void invokeGenerator(
+    private void invokeGenerator(
             List<Path> files, Path root, Properties properties) {
         for (Path path : files) {
             path = toAbsolutePath(path);
