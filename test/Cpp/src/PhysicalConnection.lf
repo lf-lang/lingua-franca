@@ -1,0 +1,38 @@
+/** Test physical connections. */
+target Cpp
+
+reactor Source {
+    output out: int
+
+    reaction(startup) -> out {= out.set(42); =}
+}
+
+reactor Destination {
+    input in: int
+
+    state received: bool(false)
+
+    reaction(in) {=
+        auto time = get_elapsed_logical_time();
+        reactor::log::Info() << "Received " << *in.get() << " at logical time " << time;
+        if (time == reactor::Duration::zero()) {
+            reactor::log::Error() << "Logical time should have been greater than zero.";
+            exit(1);
+        }
+
+        received = true;
+    =}
+
+    reaction(shutdown) {=
+        if (!received) {
+            reactor::log::Error() << "Nothing received.";
+            exit(2);
+        }
+    =}
+}
+
+main reactor {
+    source = new Source()
+    destination = new Destination()
+    source.out ~> destination.in
+}

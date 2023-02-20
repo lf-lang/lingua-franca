@@ -18,4 +18,4 @@ runs:
         echo $(mvn -v)
       shell: bash
     - name: Validate Gradle wrapper
-      uses: gradle/wrapper-validation-action@v1.0.4
+      uses: gradle/wrapper-validation-action@v1.0.5
