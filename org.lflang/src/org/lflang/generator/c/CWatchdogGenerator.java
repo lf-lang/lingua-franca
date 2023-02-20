@@ -135,7 +135,7 @@ public class CWatchdogGenerator {
             // WATCHDOG QUESTION 3: Is the space for this struct automatically allocated
             // through `_lf_new_reactor`? `_lf__startup_reaction` is also a pointer in self struct
             // but does not seem to have a separate allocation call.
-            body.pr(watchdog, "watchdog_t* _lf_watchdog_"+watchdogName+";");
+            body.pr(watchdog, "watchdog_t _lf_watchdog_"+watchdogName+";");
 
             // WATCHDOG QUESTION 4: Not sure if this is correct, may need to use 
             // 'getTargetTime' instead. watchdog timeout is listed as "Expression"
@@ -184,8 +184,9 @@ public class CWatchdogGenerator {
             "// Array of pointers to "+name+" triggers.",
             (count > 0 ?
             "watchdog_t* _lf_"+name+"s["+count+"]" :
+            "watchdog_t* _lf_"+name+"s = NULL") + ";",
             "int _lf_"+name+"_number = "+count+";"
-        )));
+        ));
     }
 
      /**
@@ -198,7 +199,7 @@ public class CWatchdogGenerator {
         if (watchdogCount > 0) {
             s.append("\n");
             s.append(String.join("\n",
-                "    for (int i = 0; i < _lf_watchdog_numer; i++) {",
+                "    for (int i = 0; i < _lf_watchdog_number; i++) {",
                 "       self_base_t* current_base = _lf_watchdogs[i]->base;",
                 "        if (&(current_base->watchdog_mutex) == NULL) {",
                 "            lf_mutex_init(&(current_base->watchdog_mutex));",
