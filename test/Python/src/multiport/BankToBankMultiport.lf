@@ -4,10 +4,10 @@ target Python {
     fast: true
 }
 
-reactor Source(width(1)) {
+reactor Source(width = 1) {
     timer t(0, 200 msec)
     output[width] out
-    state s(0)
+    state s = 0
 
     reaction(t) -> out {=
         for port in out:
@@ -16,8 +16,8 @@ reactor Source(width(1)) {
     =}
 }
 
-reactor Destination(width(1)) {
-    state s(6)
+reactor Destination(width = 1) {
+    state s = 6
     input[width] _in
 
     reaction(_in) {=
@@ -43,7 +43,7 @@ reactor Destination(width(1)) {
     =}
 }
 
-main reactor BankToBankMultiport(bank_width(4)) {
+main reactor BankToBankMultiport(bank_width = 4) {
     a = new[bank_width] Source(width = 4)
     b = new[bank_width] Destination(width = 4)
     a.out -> b._in

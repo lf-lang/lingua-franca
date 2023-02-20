@@ -9,7 +9,7 @@ target Python {
 
 reactor Source {
     output[2] out
-    state count(0)
+    state count = 0
     timer t(0, 200 msec)
 
     reaction(t) -> out {=

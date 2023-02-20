@@ -3,7 +3,7 @@ target Python {
     timeout: 1 sec
 }
 
-main reactor(offset(0), period(500 msec)) {
+main reactor(offset = 0, period = 500 msec) {
     logical action init(offset)
     logical action recur(period)
 

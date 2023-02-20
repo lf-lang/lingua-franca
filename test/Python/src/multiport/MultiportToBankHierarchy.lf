@@ -7,9 +7,9 @@ target Python {
 
 import Source from "MultiportToBank.lf"
 
-reactor Destination(bank_index(0)) {
+reactor Destination(bank_index = 0) {
     input _in
-    state received(false)
+    state received = false
 
     reaction(_in) {=
         print("Destination {:d} received {:d}.\n".format(self.bank_index, _in.value))
