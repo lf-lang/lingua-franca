@@ -394,11 +394,11 @@ public class FileUtil {
      * @param dir The folder to search for folders and files to delete. 
      * @throws IOException If the given folder and unneeded files cannot be deleted.
      */
-    public static void arduinoDeleteHelper(Path dir, Boolean isThreading) throws IOException {
+    public static void arduinoDeleteHelper(Path dir, boolean threadingOn) throws IOException {
         deleteDirectory(dir.resolve("core/federated")); // TODO: Add Federated Support to Arduino
         deleteDirectory(dir.resolve("include/core/federated")); // TODO: Add Federated Support to Arduino
         
-        if (!isThreading) {
+        if (!threadingOn) {
             deleteDirectory(dir.resolve("core/threaded")); // No Threaded Support for Arduino
             deleteDirectory(dir.resolve("include/core/threaded")); // No Threaded Support for Arduino
             deleteDirectory(dir.resolve("core/platform/arduino_mbed")); // No Threaded Support for Arduino
