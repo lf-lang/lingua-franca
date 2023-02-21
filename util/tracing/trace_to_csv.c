@@ -256,6 +256,17 @@ size_t read_and_write_trace() {
             case federate_TAG:
             case federate_PTAG:
             case federate_LTC:
+            case rti_receive_TIMESTAMP:
+            case rti_receive_ADDRESS_QUERY:
+            case rti_receive_ADDRESS_ADVERTISEMENT:
+            case rti_receive_TAGGED_MESSAGE:
+            case rti_receive_RESIGN:
+            case rti_receive_NEXT_EVENT_TAG:
+            case rti_receive_LOGICAL_TAG_COMPLETE:
+            case rti_receive_STOP_REQUEST:
+            case rti_receive_STOP_REQUEST_REPLY:
+            case rti_receive_PORT_ABSENT:
+            case rti_receive_unidentified:
             case NUM_EVENT_TYPES:
                 break;
         }
