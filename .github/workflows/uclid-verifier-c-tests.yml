@@ -64,8 +64,6 @@ jobs:
           unzip uclid-0.9.5.zip
           ./uclid-0.9.5/bin/uclid --help
           echo "$(pwd)/uclid-0.9.5/bin" >> $GITHUB_PATH
-      - name: Setup upterm session
-        uses: lhotari/action-upterm@v1
       - name: Run the test script
         working-directory: lf-verifier-benchmarks/
         run: ./scripts/test-lf-verifier
