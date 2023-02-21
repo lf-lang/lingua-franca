@@ -21,9 +21,7 @@ jobs:
       - name: Prepare build environment
         uses: ./.github/actions/prepare-build-env
       - name: Setup ROS2
-        uses: ros-tooling/setup-ros@v0.4
-        with:
-          required-ros-distributions: rolling
+        uses: ./.github/actions/setup-ros2
       - name: Install Protobuf Ubuntu
         run: |
           sudo apt-get update
@@ -35,7 +33,7 @@ jobs:
           source /opt/ros/*/setup.bash
           ./gradlew test --tests org.lflang.tests.serialization.SerializationTest.*
       - name: Report to CodeCov
-        uses: codecov/codecov-action@v2.1.0
+        uses: codecov/codecov-action@v3.1.1
         with:
           file: org.lflang.tests/build/reports/xml/jacoco
           fail_ci_if_error: false

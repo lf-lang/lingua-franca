@@ -7,8 +7,8 @@ import org.lflang.generator.TimerInstance;
 /**
  * Generates C code to declare and initialize timers.
  *
- * @author {Edward A. Lee <eal@berkeley.edu>}
- * @author {Soroush Bateni <soroush@utdallas.edu>
+ * @author Edward A. Lee
+ * @author {Soroush Bateni
  */
 public class CTimerGenerator {
     /**
@@ -63,7 +63,7 @@ public class CTimerGenerator {
                     if (_lf_timer_triggers[i] != NULL) {
                         _lf_initialize_timer(_lf_timer_triggers[i]);
                     }
-                }""".indent(4) :
+                }""".indent(4).stripTrailing() :
             "",
             "}"
         );

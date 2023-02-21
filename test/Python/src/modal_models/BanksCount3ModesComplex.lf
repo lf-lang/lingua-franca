@@ -68,8 +68,8 @@ main reactor {
         250000000,1,1,1,1,1,1,1,1,0,3,0,3,0,3,0,3,1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0
     ), training = False)
 
-    counters.always, counters.mode1, counters.mode2, counters.never ->
-        test.events
+    counters.always, counters.mode1, counters.mode2, counters.never
+        -> test.events
 
     reaction(stepper) -> counters.next {=  # Trigger
         for i in range(len(counters)):

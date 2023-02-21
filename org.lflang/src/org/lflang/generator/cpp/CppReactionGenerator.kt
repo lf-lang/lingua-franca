@@ -28,7 +28,16 @@ import org.lflang.generator.PrependOperator
 import org.lflang.isBank
 import org.lflang.joinWithLn
 import org.lflang.label
-import org.lflang.lf.*
+import org.lflang.lf.Action
+import org.lflang.lf.BuiltinTrigger
+import org.lflang.lf.BuiltinTriggerRef
+import org.lflang.lf.Instantiation
+import org.lflang.lf.Port
+import org.lflang.lf.Reaction
+import org.lflang.lf.Reactor
+import org.lflang.lf.Timer
+import org.lflang.lf.TriggerRef
+import org.lflang.lf.VarRef
 import org.lflang.priority
 import org.lflang.toText
 
@@ -72,10 +81,10 @@ class CppReactionGenerator(
 
     private val TriggerRef.cppType
         get() = when {
-            this is BuiltinTriggerRef && this.type == BuiltinTrigger.STARTUP  -> "reactor::StartupAction"
-            this is BuiltinTriggerRef && this.type == BuiltinTrigger.SHUTDOWN -> "reactor::ShutdownAction"
-            this is VarRef  -> cppType
-            else            -> AssertionError("Unexpected trigger type")
+            this is BuiltinTriggerRef && this.type == BuiltinTrigger.STARTUP  -> "reactor::StartupTrigger"
+            this is BuiltinTriggerRef && this.type == BuiltinTrigger.SHUTDOWN -> "reactor::ShutdownTrigger"
+            this is VarRef                                                    -> cppType
+            else                                                              -> AssertionError("Unexpected trigger type")
         }
 
     private fun Reaction.getBodyParameters(): List<String> =
@@ -83,7 +92,7 @@ class CppReactionGenerator(
                 allUncontainedSources.map { "const ${it.cppType}& ${it.name}" } +
                 allUncontainedEffects.map { "${it.cppType}& ${it.name}" } +
                 allReferencedContainers.map {
-                    if (it.isBank) "const reactor::Multiport<${getViewClassName(it)}>& ${it.name}"
+                    if (it.isBank) "const std::vector<${getViewClassName(it)}>& ${it.name}"
                     else "${getViewClassName(it)}& ${it.name}"
                 }
 
@@ -169,15 +178,13 @@ class CppReactionGenerator(
 
         val variables = r.getAllReferencedVariablesForContainer(container)
         val instantiations = variables.map {
-            if (it.isEffectOf(r))
-                "decltype($reactorClass::${it.variable.name})& ${it.variable.name};"
-            else
-                "const ${it.cppType}& ${it.variable.name};"
+            val type = "decltype($reactorClass::${it.variable.name})& ${it.variable.name};"
+            if (it.isEffectOf(r)) type else "const $type"
         }
         val initializers = variables.map { "${it.variable.name}(reactor->${it.variable.name})" }
 
         val viewDeclaration =
-            if (container.isBank) "reactor::ModifableMultiport<$viewClass> $viewInstance;"
+            if (container.isBank) "std::vector<$viewClass> $viewInstance;"
             else "$viewClass $viewInstance;"
 
         return with(PrependOperator) {
@@ -219,6 +226,14 @@ class CppReactionGenerator(
         reactor.reactions.joinToString(separator = "\n", prefix = "// reaction views\n", postfix = "\n") {
             generateViewInitializers(it)
         }
+
+    fun generateReactionViewForwardDeclarations(): String {
+        val classNames = reactor.reactions.map { r -> r.allReferencedContainers.map { r.getViewClassName(it) } }.flatten()
+        if (classNames.isEmpty()) {
+            return ""
+        }
+        return classNames.joinWithLn(prefix = "// reaction view forward declarations\n") { "struct $it;" }
+    }
 
     fun generateReactionViewConstructorInitializers() =
         reactor.reactions.joinToString(separator = "\n", prefix = "// reaction views\n", postfix = "\n") {

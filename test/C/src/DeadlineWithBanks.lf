@@ -1,0 +1,63 @@
+/**
+ * This program verifies that reactions inside banks inherit the correct
+ * priority from their downstream reactions. A global variable is used to check
+ * execution order. Threading is disabled
+ */
+target C {
+    threading: false,
+    timeout: 300 msec,
+    build-type: Debug
+}
+
+preamble {= volatile int global_cnt = 0; =}
+
+reactor Bank(bank_index: int(0)) {
+    timer t(0, 100 msec)
+    output out: int
+
+    reaction(t) -> out {=
+        int exp_cnt;
+        switch(self->bank_index) {
+            case 0: {
+                exp_cnt = 3;
+                break;
+            }
+            case 1: {
+                exp_cnt = 1;
+                break;
+            }
+            case 2: {
+                exp_cnt = 0;
+                break;
+            }
+            case 3: {
+                exp_cnt = 2;
+                break;
+            }
+        }
+        if (global_cnt != exp_cnt) {
+            lf_print_error_and_exit("global_cnt=%i expected=%i\n", global_cnt, exp_cnt);
+        }
+        global_cnt++;
+
+        if (self->bank_index==0) {
+            global_cnt=0;
+        }
+    =}
+}
+
+reactor Sink(dead: time(0)) {
+    input in: int
+
+    reaction(in) {=  =} deadline(dead) {=  =}
+}
+
+main reactor {
+    rp = new[4] Bank()
+    s1 = new Sink(dead = 14 msec)
+    s2 = new Sink(dead = 12 msec)
+    s3 = new Sink(dead = 11 msec)
+    s4 = new Sink(dead = 13 msec)
+
+    rp.out -> s1.in, s2.in, s3.in, s4.in
+}

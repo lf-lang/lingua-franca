@@ -24,6 +24,7 @@
 
 package org.lflang.generator.cpp
 
+import org.lflang.FileConfig
 import org.lflang.TargetConfig
 import org.lflang.generator.PrependOperator
 import org.lflang.joinWithLn
@@ -31,7 +32,7 @@ import org.lflang.toUnixString
 import java.nio.file.Path
 
 /** Code generator for producing a cmake script for compiling all generated C++ sources */
-class CppStandaloneCmakeGenerator(private val targetConfig: TargetConfig, private val fileConfig: CppFileConfig) {
+class CppStandaloneCmakeGenerator(private val targetConfig: TargetConfig, private val fileConfig: FileConfig) {
 
     companion object {
         /** Return the name of the variable that gives the includes of the given target. */
@@ -43,8 +44,9 @@ class CppStandaloneCmakeGenerator(private val targetConfig: TargetConfig, privat
     private val S = '$' // a little trick to escape the dollar sign with $S
 
     fun generateRootCmake(projectName: String): String {
-        return """
-            |cmake_minimum_required(VERSION 3.5)
+        return with(CppGenerator) {
+            """
+            |cmake_minimum_required(VERSION $MINIMUM_CMAKE_VERSION)
             |project($projectName VERSION 0.0.0 LANGUAGES CXX)
             |
             |# The Test build type is the Debug type plus coverage generation
@@ -63,13 +65,16 @@ class CppStandaloneCmakeGenerator(private val targetConfig: TargetConfig, privat
             |  endif()
             |endif()
             |
-            |# require C++ 17
-            |set(CMAKE_CXX_STANDARD 17 CACHE STRING "The C++ standard is cached for visibility in external tools." FORCE)
+            |# require C++ $CPP_VERSION
+            |set(CMAKE_CXX_STANDARD $CPP_VERSION CACHE STRING "The C++ standard is cached for visibility in external tools." FORCE)
             |set(CMAKE_CXX_STANDARD_REQUIRED ON)
             |set(CMAKE_CXX_EXTENSIONS OFF)
             |
             |# don't automatically build and install all targets
             |set(CMAKE_SKIP_INSTALL_ALL_DEPENDENCY true)
+            |
+            |# do not print install messages
+            |set(CMAKE_INSTALL_MESSAGE NEVER)
             |
             |include($S{CMAKE_ROOT}/Modules/ExternalProject.cmake)
             |include(GNUInstallDirs)
@@ -110,6 +115,7 @@ class CppStandaloneCmakeGenerator(private val targetConfig: TargetConfig, privat
             |  endif()
             |endforeach()
         """.trimMargin()
+        }
     }
 
     fun generateSubdirCmake(): String {
@@ -131,8 +137,8 @@ class CppStandaloneCmakeGenerator(private val targetConfig: TargetConfig, privat
 
         val reactorCppTarget = when {
             targetConfig.externalRuntimePath != null -> "reactor-cpp"
-            targetConfig.runtimeVersion != null -> "reactor-cpp-${targetConfig.runtimeVersion}"
-            else -> "reactor-cpp-default"
+            targetConfig.runtimeVersion != null      -> "reactor-cpp-${targetConfig.runtimeVersion}"
+            else                                     -> "reactor-cpp-default"
         }
 
         return with(PrependOperator) {

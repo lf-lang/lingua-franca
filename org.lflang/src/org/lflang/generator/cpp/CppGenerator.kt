@@ -29,19 +29,15 @@ package org.lflang.generator.cpp
 import org.eclipse.emf.ecore.resource.Resource
 import org.lflang.ErrorReporter
 import org.lflang.Target
-import org.lflang.TimeUnit
-import org.lflang.TimeValue
 import org.lflang.generator.CodeMap
 import org.lflang.generator.GeneratorBase
 import org.lflang.generator.GeneratorResult
+import org.lflang.generator.GeneratorUtils.canGenerate
 import org.lflang.generator.IntegratedBuilder
 import org.lflang.generator.LFGeneratorContext
 import org.lflang.generator.LFGeneratorContext.Mode
 import org.lflang.generator.TargetTypes
-import org.lflang.generator.GeneratorUtils.canGenerate
 import org.lflang.isGeneric
-import org.lflang.lf.Action
-import org.lflang.lf.VarRef
 import org.lflang.scoping.LFGlobalScopeProvider
 import org.lflang.util.FileUtil
 import java.nio.file.Files
@@ -49,19 +45,24 @@ import java.nio.file.Path
 
 @Suppress("unused")
 class CppGenerator(
-    val cppFileConfig: CppFileConfig,
-    errorReporter: ErrorReporter,
+    val context: LFGeneratorContext,
     private val scopeProvider: LFGlobalScopeProvider
 ) :
-    GeneratorBase(cppFileConfig, errorReporter) {
+    GeneratorBase(context) {
 
     // keep a list of all source files we generate
     val cppSources = mutableListOf<Path>()
     val codeMaps = mutableMapOf<Path, CodeMap>()
 
+    val fileConfig: CppFileConfig = context.fileConfig as CppFileConfig
+
     companion object {
         /** Path to the Cpp lib directory (relative to class path)  */
         const val libDir = "/lib/cpp"
+
+        const val MINIMUM_CMAKE_VERSION = "3.5"
+
+        const val CPP_VERSION = "20"
     }
 
     override fun doGenerate(resource: Resource, context: LFGeneratorContext) {
@@ -69,7 +70,7 @@ class CppGenerator(
 
         if (!canGenerate(errorsOccurred(), mainDef, errorReporter, context)) return
 
-        // create a platform specifi generator
+        // create a platform-specific generator
         val platformGenerator: CppPlatformGenerator =
             if (targetConfig.ros2) CppRos2Generator(this) else CppStandaloneGenerator(this)
 
@@ -81,15 +82,15 @@ class CppGenerator(
 
         if (targetConfig.noCompile || errorsOccurred()) {
             println("Exiting before invoking target compiler.")
-            context.finish(GeneratorResult.GENERATED_NO_EXECUTABLE.apply(codeMaps))
+            context.finish(GeneratorResult.GENERATED_NO_EXECUTABLE.apply(context, codeMaps))
         } else if (context.mode == Mode.LSP_MEDIUM) {
             context.reportProgress(
                 "Code generation complete. Validating generated code...", IntegratedBuilder.GENERATED_PERCENT_PROGRESS
             )
 
             if (platformGenerator.doCompile(context)) {
-                CppValidator(cppFileConfig, errorReporter, codeMaps).doValidate(context)
-                context.finish(GeneratorResult.GENERATED_NO_EXECUTABLE.apply(codeMaps))
+                CppValidator(fileConfig, errorReporter, codeMaps).doValidate(context)
+                context.finish(GeneratorResult.GENERATED_NO_EXECUTABLE.apply(context, codeMaps))
             } else {
                 context.unsuccessfulFinish()
             }
@@ -98,7 +99,7 @@ class CppGenerator(
                 "Code generation complete. Compiling...", IntegratedBuilder.GENERATED_PERCENT_PROGRESS
             )
             if (platformGenerator.doCompile(context)) {
-                context.finish(GeneratorResult.Status.COMPILED, fileConfig.name, fileConfig, codeMaps)
+                context.finish(GeneratorResult.Status.COMPILED, codeMaps)
             } else {
                 context.unsuccessfulFinish()
             }
@@ -125,7 +126,7 @@ class CppGenerator(
     private fun generateFiles(srcGenPath: Path) {
         // copy static library files over to the src-gen directory
         val genIncludeDir = srcGenPath.resolve("__include__")
-        listOf("lfutil.hh", "time_parser.hh", "lf_timeout.hh").forEach {
+        listOf("lfutil.hh", "time_parser.hh").forEach {
             FileUtil.copyFileFromClassPath("$libDir/$it", genIncludeDir.resolve(it), true)
         }
         FileUtil.copyFileFromClassPath(
@@ -149,9 +150,9 @@ class CppGenerator(
 
         // generate header and source files for all reactors
         for (r in reactors) {
-            val generator = CppReactorGenerator(r, cppFileConfig, errorReporter)
-            val headerFile = cppFileConfig.getReactorHeaderPath(r)
-            val sourceFile = if (r.isGeneric) cppFileConfig.getReactorHeaderImplPath(r) else cppFileConfig.getReactorSourcePath(r)
+            val generator = CppReactorGenerator(r, fileConfig, errorReporter)
+            val headerFile = fileConfig.getReactorHeaderPath(r)
+            val sourceFile = if (r.isGeneric) fileConfig.getReactorHeaderImplPath(r) else fileConfig.getReactorSourcePath(r)
             val reactorCodeMap = CodeMap.fromGeneratedCode(generator.generateSource())
             if (!r.isGeneric)
                 cppSources.add(sourceFile)
@@ -165,9 +166,9 @@ class CppGenerator(
 
         // generate file level preambles for all resources
         for (r in resources) {
-            val generator = CppPreambleGenerator(r.eResource, cppFileConfig, scopeProvider)
-            val sourceFile = cppFileConfig.getPreambleSourcePath(r.eResource)
-            val headerFile = cppFileConfig.getPreambleHeaderPath(r.eResource)
+            val generator = CppPreambleGenerator(r.eResource, fileConfig, scopeProvider)
+            val sourceFile = fileConfig.getPreambleSourcePath(r.eResource)
+            val headerFile = fileConfig.getPreambleHeaderPath(r.eResource)
             val preambleCodeMap = CodeMap.fromGeneratedCode(generator.generateSource())
             cppSources.add(sourceFile)
             codeMaps[srcGenPath.resolve(sourceFile)] = preambleCodeMap
@@ -179,77 +180,8 @@ class CppGenerator(
         }
     }
 
-    /**
-     * Generate code for the body of a reaction that takes an input and
-     * schedules an action with the value of that input.
-     * @param action the action to schedule
-     * @param port the port to read from
-     */
-    override fun generateDelayBody(action: Action, port: VarRef): String {
-        // Since we cannot easily decide whether a given type evaluates
-        // to void, we leave this job to the target compiler, by calling
-        // the template function below.
-        return """
-        // delay body for ${action.name}
-        lfutil::after_delay(&${action.name}, &${port.name});
-        """.trimIndent()
-    }
-
-    /**
-     * Generate code for the body of a reaction that is triggered by the
-     * given action and writes its value to the given port.
-     * @param action the action that triggers the reaction
-     * @param port the port to write to
-     */
-    override fun generateForwardBody(action: Action, port: VarRef): String {
-        // Since we cannot easily decide whether a given type evaluates
-        // to void, we leave this job to the target compiler, by calling
-        // the template function below.
-        return """
-        // forward body for ${action.name}
-        lfutil::after_forward(&${action.name}, &${port.name});
-        """.trimIndent()
-    }
-
-    override fun generateDelayGeneric() = "T"
-
-    override fun generateAfterDelaysWithVariableWidth() = false
-
     override fun getTarget() = Target.CPP
 
     override fun getTargetTypes(): TargetTypes = CppTypes
 }
 
-object CppTypes : TargetTypes {
-
-    override fun supportsGenerics() = true
-
-    override fun getTargetTimeType() = "reactor::Duration"
-    override fun getTargetTagType() = "reactor::Tag"
-
-    override fun getTargetFixedSizeListType(baseType: String, size: Int) = "std::array<$baseType, $size>"
-    override fun getTargetVariableSizeListType(baseType: String) = "std::vector<$baseType>"
-
-    override fun getTargetUndefinedType() = "void"
-
-    override fun getTargetTimeExpr(timeValue: TimeValue): String =
-        with(timeValue) {
-            if (magnitude == 0L) "reactor::Duration::zero()"
-            else magnitude.toString() + unit.cppUnit
-        }
-
-}
-
-/** Get a C++ representation of a LF unit. */
-val TimeUnit?.cppUnit
-    get() = when (this) {
-        TimeUnit.NANO   -> "ns"
-        TimeUnit.MICRO  -> "us"
-        TimeUnit.MILLI  -> "ms"
-        TimeUnit.SECOND -> "s"
-        TimeUnit.MINUTE -> "min"
-        TimeUnit.HOUR   -> "h"
-        TimeUnit.DAY    -> "d"
-        TimeUnit.WEEK   -> "d*7"
-        else            -> ""
-    }

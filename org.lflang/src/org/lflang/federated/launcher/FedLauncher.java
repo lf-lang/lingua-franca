@@ -28,28 +28,28 @@ package org.lflang.federated.launcher;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 
 import org.lflang.ErrorReporter;
-import org.lflang.FileConfig;
 import org.lflang.TargetConfig;
 import org.lflang.TargetProperty.ClockSyncMode;
-import org.lflang.federated.FedFileConfig;
-import org.lflang.federated.FederateInstance;
+import org.lflang.federated.generator.FedFileConfig;
+import org.lflang.federated.generator.FederateInstance;
 
 /**
  * Utility class that can be used to create a launcher for federated LF programs.
  * 
- * @author Edward A. Lee <eal@berkeley.edu>
- * @author Soroush Bateni <soroush@utdallas.edu>
+ * @author Edward A. Lee
+ * @author Soroush Bateni
  */
-class FedLauncher {
+public class FedLauncher {
 
     protected TargetConfig targetConfig;
-    protected FileConfig fileConfig;
+    protected FedFileConfig fileConfig;
     protected ErrorReporter errorReporter;
 
     /**
@@ -57,7 +57,7 @@ class FedLauncher {
      * @param fileConfig The current file configuration.
      * @param errorReporter A error reporter for reporting any errors or warnings during the code generation
      */
-    public FedLauncher(TargetConfig targetConfig, FileConfig fileConfig, ErrorReporter errorReporter) {
+    public FedLauncher(TargetConfig targetConfig, FedFileConfig fileConfig, ErrorReporter errorReporter) {
         this.targetConfig = targetConfig;
         this.fileConfig = fileConfig;
         this.errorReporter = errorReporter;
@@ -68,7 +68,7 @@ class FedLauncher {
      * 
      * @param federate The federate to compile.
      */
-    protected String compileCommandForFederate(org.lflang.federated.FederateInstance federate) {
+    protected String compileCommandForFederate(FederateInstance federate) {
         throw new UnsupportedOperationException("Don't know how to compile the federates.");
     }
 
@@ -79,7 +79,7 @@ class FedLauncher {
      * 
      * @param federate The federate to execute.
      */
-    protected String executeCommandForRemoteFederate(org.lflang.federated.FederateInstance federate) {
+    protected String executeCommandForRemoteFederate(FederateInstance federate) {
         throw new UnsupportedOperationException("Don't know how to execute the federates.");
     }
 
@@ -90,8 +90,8 @@ class FedLauncher {
      * 
      * @param federate The federate to execute.
      */
-    protected String executeCommandForLocalFederate(FileConfig fileConfig,
-        org.lflang.federated.FederateInstance federate) {
+    protected String executeCommandForLocalFederate(FedFileConfig fileConfig,
+                                                    FederateInstance federate) {
         throw new UnsupportedOperationException("Don't know how to execute the federates.");
     }
 
@@ -157,8 +157,7 @@ class FedLauncher {
         Object host = federationRTIProperties.get("host");
         Object target = host;
 
-        Object path = federationRTIProperties.get("dir");
-        if (path == null) path = "LinguaFrancaRemote";
+        Path path = Path.of(federationRTIProperties.get("dir") == null ? "LinguaFrancaRemote" : federationRTIProperties.get("dir").toString());
 
         Object user = federationRTIProperties.get("user");
         if (user != null) {
@@ -201,13 +200,12 @@ class FedLauncher {
         int federateIndex = 0;
         for (FederateInstance federate : federates) {
             if (federate.isRemote) {
-                FedFileConfig fedFileConfig = new FedFileConfig(fileConfig, federate.name);
-                Path fedRelSrcGenPath = fedFileConfig.getSrcGenBasePath().relativize(fedFileConfig.getSrcGenPath());
+                Path fedRelSrcGenPath = fileConfig.getOutPath().relativize(fileConfig.getSrcGenPath()).resolve(federate.name);
                 if(distCode.length() == 0) distCode.append(distHeader + "\n");
-                String logFileName = String.format("log/%s_%s.log", fedFileConfig.name, federate.name);
+                String logFileName = String.format("log/%s_%s.log", fileConfig.name, federate.name);
                 String compileCommand = compileCommandForFederate(federate);
                 // FIXME: Should $FEDERATION_ID be used to ensure unique directories, executables, on the remote host?
-                distCode.append(getDistCode(path, federate, fedRelSrcGenPath, logFileName, fedFileConfig, compileCommand) + "\n");
+                distCode.append(getDistCode(path, federate, fedRelSrcGenPath, logFileName, fileConfig.getSrcGenPath(), compileCommand) + "\n");
                 String executeCommand = executeCommandForRemoteFederate(federate);
                 shCode.append(getFedRemoteLaunchCode(federate, path, logFileName, executeCommand, federateIndex++) + "\n");
             } else {
@@ -231,6 +229,15 @@ class FedLauncher {
             "done",
             "echo \"All done.\""
         ) + "\n");
+
+        // Create bin directory for the script.
+        if (!Files.exists(fileConfig.binPath)) {
+            Files.createDirectories(fileConfig.binPath);
+        }
+
+        System.out.println("##### Generating launcher for federation "
+                               + " in directory "
+                               + fileConfig.binPath);
 
         // Write the launcher file.
         // Delete file previously produced, if any.
@@ -319,6 +326,9 @@ class FedLauncher {
         } else {
             commands.add("RTI -i ${FEDERATION_ID} \\");
         }
+        if (targetConfig.auth) {
+            commands.add("                        -a \\");
+        }
         commands.addAll(List.of(
             "                        -n "+federates.size()+" \\",
             "                        -c "+targetConfig.clockSync.toString()+" \\"
@@ -388,29 +398,47 @@ class FedLauncher {
     }
 
     private String getDistCode(
-            Object path, 
+            Path remoteBase,
             FederateInstance federate, 
-            Path fedRelSrcGenPath, 
+            Path remoteRelSrcGenPath,
             String logFileName,
-            FedFileConfig fedFileConfig,
+            Path localAbsSrcGenPath,
             String compileCommand) {
-        return String.join("\n", 
-            "echo \"Making directory "+path+" and subdirectories src-gen, bin, and log on host "+getUserHost(federate.user, federate.host)+"\"",
-            "# The >> syntax appends stdout to a file. The 2>&1 appends stderr to the same file.",
-            "ssh "+getUserHost(federate.user, federate.host)+" '\\",
-            "    mkdir -p "+path+"/src-gen/"+fedRelSrcGenPath+"/core "+path+"/bin "+path+"/log; \\",
-            "    echo \"--------------\" >> "+path+"/"+logFileName+"; \\",
-            "    date >> "+path+"/"+logFileName+";",
-            "'",
-            "pushd "+fedFileConfig.getSrcGenPath()+" > /dev/null",
-            "echo \"Copying source files to host "+getUserHost(federate.user, federate.host)+"\"",
-            "scp -r * "+getUserHost(federate.user, federate.host)+":"+path+"/src-gen/"+fedRelSrcGenPath,
-            "popd > /dev/null",
-            "echo \"Compiling on host "+getUserHost(federate.user, federate.host)+" using: "+compileCommand+"\"",
-            "ssh "+getUserHost(federate.user, federate.host)+" 'cd "+path+"; \\",
-            "    echo \"In "+path+" compiling with: "+compileCommand+"\" >> "+logFileName+" 2>&1; \\",
-            "    # Capture the output in the log file and stdout. \\",
-            "    "+compileCommand+" 2>&1 | tee -a "+logFileName+";' "
+        return String.join("\n",
+                           "echo \"Making directory " + remoteBase
+                               + " and subdirectories src-gen, bin, and log on host "
+                               + getUserHost(federate.user, federate.host)
+                               + "\"",
+                           "# The >> syntax appends stdout to a file. The 2>&1 appends stderr to the same file.",
+                           "ssh " + getUserHost(federate.user, federate.host)
+                               + " '\\",
+                           "    mkdir -p " + remoteBase.resolve(remoteRelSrcGenPath).resolve("core")
+                               + " " + remoteBase.resolve("bin") + " "
+                               + remoteBase + "/log; \\",
+                           "    echo \"--------------\" >> " + remoteBase + "/"
+                               + logFileName + "; \\",
+                           "    date >> " + remoteBase + "/" + logFileName + ";",
+                           "'",
+                           "pushd " + localAbsSrcGenPath
+                               + " > /dev/null",
+                           "echo \"Copying source files to host "
+                               + getUserHost(federate.user, federate.host)
+                               + "\"",
+                           "scp -r * "
+                               + getUserHost(federate.user, federate.host) + ":"
+                               + remoteBase.resolve(remoteRelSrcGenPath),
+                           "popd > /dev/null",
+                           "echo \"Compiling on host "
+                               + getUserHost(federate.user, federate.host)
+                               + " using: " + compileCommand + "\"",
+                           "ssh " + getUserHost(federate.user, federate.host)
+                               + " 'cd " + remoteBase + "; \\",
+                           "    echo \"In " + remoteBase + " compiling with: "
+                               + compileCommand + "\" >> " + logFileName
+                               + " 2>&1; \\",
+                           "    # Capture the output in the log file and stdout. \\",
+                           "    " + compileCommand + " 2>&1 | tee -a "
+                               + logFileName + ";' "
         );
     }
 

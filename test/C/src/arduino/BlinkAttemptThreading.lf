@@ -1,0 +1,24 @@
+/**
+ * This example demonstrates a very simple blink program that will turn on and
+ * off an LED on the Arduino Board with a 50% duty cycle switching every
+ * half-second. Note: if we try to enable threading, the system will give us a
+ * warning and default back to no threading.
+ */
+target C {
+    platform: {
+        name: "arduino",
+        board: "arduino:avr:mega"
+    },
+    threading: true
+}
+
+main reactor BlinkAttemptThreading {
+    timer t1(0, 1 sec)
+    timer t2(500 msec, 1 sec)
+
+    reaction(startup) {= pinMode(LED_BUILTIN, OUTPUT); =}
+
+    reaction(t1) {= digitalWrite(LED_BUILTIN, HIGH); =}
+
+    reaction(t2) {= digitalWrite(LED_BUILTIN, LOW); =}
+}

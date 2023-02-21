@@ -28,15 +28,15 @@
 package org.lflang.federated.launcher;
 
 import org.lflang.ErrorReporter;
-import org.lflang.FileConfig;
 import org.lflang.TargetConfig;
-import org.lflang.federated.FederateInstance;
+import org.lflang.federated.generator.FedFileConfig;
+import org.lflang.federated.generator.FederateInstance;
 
 /**
  * Utility class that can be used to create a launcher for federated LF programs
  * that are written in Python.
  * 
- * @author Soroush Bateni <soroush@utdallas.edu>
+ * @author Soroush Bateni
  *
  */
 public class FedPyLauncher extends FedLauncher {
@@ -48,9 +48,9 @@ public class FedPyLauncher extends FedLauncher {
      * @param errorReporter A error reporter for reporting any errors or warnings during the code generation
      */
     public FedPyLauncher(
-            TargetConfig targetConfig, 
-            FileConfig fileConfig,
-            ErrorReporter errorReporter
+        TargetConfig targetConfig,
+        FedFileConfig fileConfig,
+        ErrorReporter errorReporter
     ) {
         super(targetConfig, fileConfig, errorReporter);
     }
@@ -77,7 +77,7 @@ public class FedPyLauncher extends FedLauncher {
      */
     @Override
     protected
-    String executeCommandForLocalFederate(FileConfig fileConfig, FederateInstance federate) {
-        return "python3 " + fileConfig.getSrcGenPath() + "/" + federate.name + "/" + fileConfig.name+"_"+federate.name+".py -i $FEDERATION_ID";
+    String executeCommandForLocalFederate(FedFileConfig fileConfig, FederateInstance federate) {
+        return "python3 " + fileConfig.getSrcGenPath() + "/" + federate.name + "/" + federate.name+".py -i $FEDERATION_ID";
     }
 }

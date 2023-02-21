@@ -43,7 +43,7 @@ import org.lflang.tests.TestRegistry.TestCategory;
  * like Eclipse and IntelliJ.
  * This is typically done by right-clicking on the name of the test method and
  * then clicking "Run".*
- * @author Marten Lohstroh <marten@berkeley.edu>
+ * @author Marten Lohstroh
  */
 public class CTest extends RuntimeTest {
 
@@ -83,15 +83,6 @@ public class CTest extends RuntimeTest {
     @Override
     public void runMultiportTests() {
         super.runMultiportTests();
-    }
-
-    @Test
-    public void runArduinoTests() {
-        Assumptions.assumeFalse(isWindows(), Message.NO_WINDOWS_SUPPORT);
-        super.runTestsFor(List.of(Target.C),
-                          Message.DESC_ARDUINO,
-                          TestCategory.ARDUINO::equals, Configurators::noChanges,
-                          false);
     }
 
     @Test

@@ -33,7 +33,7 @@ import org.lflang.generator.GeneratorBase;
 /**
  * Enables support for ROS 2 serialization in C/C++ code.
  * 
- * @author Soroush Bateni <soroush@utdallas.edu>
+ * @author Soroush Bateni
  *
  */
 public class FedROS2CPPSerialization implements FedSerialization {
@@ -97,8 +97,8 @@ public class FedROS2CPPSerialization implements FedSerialization {
         // Use the port type verbatim here, which can result
         // in compile error if it is not a valid ROS type
         serializerCode.append("using MessageT = "+originalType+";\n");
-        serializerCode.append("static rclcpp::Serialization<MessageT> serializer;\n");
-        serializerCode.append("serializer.serialize_message(&"+varName+"->value , &"+serializedVarName+");\n");
+        serializerCode.append("static rclcpp::Serialization<MessageT> _lf_serializer;\n");
+        serializerCode.append("_lf_serializer.serialize_message(&"+varName+"->value , &"+serializedVarName+");\n");
         
         return serializerCode;
     }
@@ -116,11 +116,11 @@ public class FedROS2CPPSerialization implements FedSerialization {
         // Use the port type verbatim here, which can result
         // in compile error if it is not a valid ROS type
         serializerCode.append("using MessageT = "+originalType+";\n");
-        serializerCode.append("static rclcpp::Serialization<MessageT> serializer;\n");
+        serializerCode.append("static rclcpp::Serialization<MessageT> _lf_serializer;\n");
         if (isSharedPtrType) {
-            serializerCode.append("serializer.serialize_message("+varName+"->value.get() , &"+serializedVarName+");\n");
+            serializerCode.append("_lf_serializer.serialize_message("+varName+"->value.get() , &"+serializedVarName+");\n");
         } else {
-            serializerCode.append("serializer.serialize_message(&"+varName+"->value , &"+serializedVarName+");\n");
+            serializerCode.append("_lf_serializer.serialize_message(&"+varName+"->value , &"+serializedVarName+");\n");
         }
             
         return serializerCode;
@@ -145,21 +145,21 @@ public class FedROS2CPPSerialization implements FedSerialization {
         
         deserializerCode.append(
                 "auto message = std::make_unique<rcl_serialized_message_t>( rcl_serialized_message_t{\n"
-                + "    .buffer = (uint8_t*)"+varName+".token->value,\n"
-                + "    .buffer_length = "+varName+".token->length,\n"
-                + "    .buffer_capacity = "+varName+".token->length,\n"
+                + "    .buffer = (uint8_t*)"+varName+".tmplt.token->value,\n"
+                + "    .buffer_length = "+varName+".tmplt.token->length,\n"
+                + "    .buffer_capacity = "+varName+".tmplt.token->length,\n"
                 + "    .allocator = rcl_get_default_allocator()\n"
                 + "});\n"
         );
         deserializerCode.append("auto msg = std::make_unique<rclcpp::SerializedMessage>(std::move(*message.get()));\n");
-        deserializerCode.append(varName+".token->value = NULL; // Manually move the data\n");
+        deserializerCode.append(varName+".tmplt.token->value = NULL; // Manually move the data\n");
         // Use the port type verbatim here, which can result
         // in compile error if it is not a valid ROS type
         deserializerCode.append("using MessageT = "+targetType+";\n");
         deserializerCode.append(
                 "MessageT "+deserializedVarName+" = MessageT();\n"
-              + "auto serializer = rclcpp::Serialization<MessageT>();\n"
-              + "serializer.deserialize_message(msg.get(), &"+deserializedVarName+");\n"
+              + "auto _lf_serializer = rclcpp::Serialization<MessageT>();\n"
+              + "_lf_serializer.deserialize_message(msg.get(), &"+deserializedVarName+");\n"
         );
         
         return deserializerCode;

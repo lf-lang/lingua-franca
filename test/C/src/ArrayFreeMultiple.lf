@@ -1,0 +1,47 @@
+// Source produces a dynamically allocated array, which it passes to Free. Free
+// requests a writable copy, which, instead of copying, it just gets ownership
+// of the original array. It then does nothing further with it. This test checks
+// that the memory gets freed automatically even with the mutable input.
+target C {
+    timeout: 5 sec,
+    fast: true
+}
+
+import Scale from "ArrayScale.lf"
+import Print from "ArrayPrint.lf"
+
+reactor Source {
+    output out: int[]
+    state c: int(0)
+    timer t(0, 1 sec)
+
+    reaction(t) -> out {=
+        // Dynamically allocate an output array of length 3.
+        SET_NEW_ARRAY(out, 3);
+
+        // Above allocates the array, which then must be populated.
+        out->value[0] = self->c++;
+        out->value[1] = self->c++;
+        out->value[2] = self->c++;
+    =}
+}
+
+reactor Free(scale: int(2)) {
+    mutable input in: int[]
+
+    reaction(in) {=
+        for(int i = 0; i < in->length; i++) {
+            in->value[i] *= self->scale;
+        }
+    =}
+}
+
+main reactor ArrayFreeMultiple {
+    s = new Source()
+    c = new Free()
+    c2 = new Scale()
+    p = new Print(scale = 2)
+    s.out -> c.in
+    s.out -> c2.in
+    c2.out -> p.in
+}

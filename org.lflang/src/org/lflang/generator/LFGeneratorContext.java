@@ -1,30 +1,33 @@
 package org.lflang.generator;
 
+import java.io.IOException;
 import java.nio.file.Path;
-import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Properties;
 
 import org.eclipse.emf.ecore.resource.Resource;
+import org.eclipse.xtext.generator.IFileSystemAccess2;
 import org.eclipse.xtext.generator.IGeneratorContext;
+import org.eclipse.xtext.util.RuntimeIOException;
 
 import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
-import org.lflang.util.LFCommand;
+import org.lflang.TargetConfig;
 
 /**
  * An {@code LFGeneratorContext} is the context of a Lingua Franca build process.
  * It is the point of communication between a build process and the environment
  * in which it is executed.
  *
- * @author Peter Donovan <peterdonovan@berkeley.edu>
+ * @author Peter Donovan
  */
 public interface LFGeneratorContext extends IGeneratorContext {
 
     /**
      * Enumeration of keys used to parameterize the build process.
      */
-    public enum BuildParm {
+    enum BuildParm {
         BUILD_TYPE("The build type to use"),
         CLEAN("Clean before building."),
         EXTERNAL_RUNTIME_PATH("Specify an external runtime library to be used by the compiled binary."),
@@ -87,17 +90,10 @@ public interface LFGeneratorContext extends IGeneratorContext {
     Properties getArgs();
 
     /**
-     * Return whether the bin directory should be hierarchical.
-     * @return whether the bin directory should be hierarchical
+     * Get the error reporter for this context; construct one if it hasn't been
+     * constructed yet.
      */
-    boolean useHierarchicalBin();
-
-    /**
-     * Construct the appropriate error reporter for {@code fileConfig}.
-     * @param fileConfig The {@code FileConfig} used by a build process.
-     * @return the appropriate error reporter for {@code fileConfig}
-     */
-    ErrorReporter constructErrorReporter(FileConfig fileConfig);
+    ErrorReporter getErrorReporter();
 
     /**
      * Mark the code generation process performed in this
@@ -116,6 +112,10 @@ public interface LFGeneratorContext extends IGeneratorContext {
      */
     GeneratorResult getResult();
 
+    FileConfig getFileConfig();
+
+    TargetConfig getTargetConfig();
+
     /**
      * Report the progress of a build.
      * @param message A message for the LF programmer to read.
@@ -126,50 +126,13 @@ public interface LFGeneratorContext extends IGeneratorContext {
     /**
      * Conclude this build and record the result if necessary.
      * @param status The status of the result.
-     * @param execName The name of the executable produced by this code
-     * generation process, or {@code null} if no executable was produced.
-     * @param binPath The directory containing the executable (if applicable).
-     * @param fileConfig The {@code FileConfig} instance used by the build.
-     * @param codeMaps The generated files and their corresponding code maps.
-     * @param interpreter The interpreter needed to run the executable, if
-     *                    applicable.
-     */
-    default void finish(
-        GeneratorResult.Status status,
-        String execName,
-        Path binPath,
-        FileConfig fileConfig,
-        Map<Path, CodeMap> codeMaps,
-        String interpreter
-    ) {
-        final boolean isWindows = GeneratorUtils.isHostWindows();
-        if (execName != null && binPath != null) {
-            Path executable = binPath.resolve(execName + (isWindows && interpreter == null ? ".exe" : ""));
-            String relativeExecutable = fileConfig.srcPkgPath.relativize(executable).toString();
-            LFCommand command = interpreter != null ?
-                LFCommand.get(interpreter, List.of(relativeExecutable), true, fileConfig.srcPkgPath) :
-                LFCommand.get(isWindows ? executable.toString() : relativeExecutable, List.of(), true, fileConfig.srcPkgPath);
-            finish(new GeneratorResult(status, executable, command, codeMaps));
-        } else {
-            finish(new GeneratorResult(status, null, null, codeMaps));
-        }
-    }
-
-    /**
-     * Conclude this build and record the result if necessary.
-     * @param status The status of the result.
-     * @param execName The name of the executable produced by this code
-     * generation process, or {@code null} if no executable was produced.
-     * @param fileConfig The directory containing the executable (if applicable)
      * @param codeMaps The generated files and their corresponding code maps.
      */
     default void finish(
         GeneratorResult.Status status,
-        String execName,
-        FileConfig fileConfig,
         Map<Path, CodeMap> codeMaps
     ) {
-        finish(status, execName, fileConfig.binPath, fileConfig, codeMaps, null);
+        finish(new GeneratorResult(status, this, codeMaps));
     }
 
     /**
@@ -185,17 +148,20 @@ public interface LFGeneratorContext extends IGeneratorContext {
     /**
      * Return the {@code LFGeneratorContext} that best describes the given {@code context} when
      * building {@code Resource}.
+     * @param resource
+     * @param fsa
      * @param context The context of a Lingua Franca build process.
-     * @param resource The resource being built.
      * @return The {@code LFGeneratorContext} that best describes the given {@code context} when
      * building {@code Resource}.
      */
-    static LFGeneratorContext lfGeneratorContextOf(IGeneratorContext context, Resource resource) {
+    static LFGeneratorContext lfGeneratorContextOf(Resource resource, IFileSystemAccess2 fsa, IGeneratorContext context) {
         if (context instanceof LFGeneratorContext) return (LFGeneratorContext) context;
+
         if (resource.getURI().isPlatform()) return new MainContext(
-            Mode.EPOCH, context.getCancelIndicator(), (m, p) -> {}, new Properties(), false,
-            EclipseErrorReporter::new
+            Mode.EPOCH, context.getCancelIndicator(), (m, p) -> {}, new Properties(),
+            resource, fsa, EclipseErrorReporter::new
         );
-        return new MainContext(Mode.LSP_FAST, context.getCancelIndicator());
+
+        return new MainContext(Mode.LSP_FAST, resource, fsa, context.getCancelIndicator());
     }
 }

@@ -15,7 +15,7 @@ import org.lflang.tests.TestRegistry.TestCategory;
  *
  * NOTE: This test does not inherit any tests because it directly extends TestBase.
  *
- * @author Christian Menard <christian.menard@tu-dresden.de>
+ * @author Christian Menard
  */
 public class CppRos2Test extends TestBase {
 
@@ -30,7 +30,7 @@ public class CppRos2Test extends TestBase {
         Element trueLiteral = LfFactory.eINSTANCE.createElement();
         trueLiteral.setLiteral("true");
         runTestsForTargets(Message.DESC_ROS2, it -> true,
-                           it -> ASTUtils.addTargetProperty(it.fileConfig.resource, "ros2", trueLiteral),
+                           it -> ASTUtils.addTargetProperty(it.getFileConfig().resource, "ros2", trueLiteral),
                            true);
     }
 }

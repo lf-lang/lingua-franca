@@ -41,7 +41,7 @@ import org.lflang.tests.RuntimeTest;
  * This is typically done by right-clicking on the name of the test method and
  * then clicking "Run".
  *
- * @author Marten Lohstroh {@literal <marten@berkeley.edu>}
+ * @author Marten Lohstroh
  */
 public class PythonTest extends RuntimeTest {
 
@@ -70,7 +70,7 @@ public class PythonTest extends RuntimeTest {
 
     @Override
     protected boolean supportsDockerOption() {
-        return true;
+        return false; // FIXME: https://issues.lf-lang.org/1564
     }
 
     @Test

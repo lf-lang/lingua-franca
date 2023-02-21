@@ -1,0 +1,31 @@
+target Cpp {
+    timeout: 0 sec
+}
+
+main reactor {
+    timer t(0, 1 sec)
+
+    state triggered: bool{false}
+
+    reaction(t) {=
+        triggered = true;
+        if (get_elapsed_logical_time() != 0s) {
+            std::cout << "ERROR: triggered reaction at an unexpected tag";
+            exit(1);
+        }
+    =}
+
+    reaction(shutdown) {=
+        if (get_elapsed_logical_time() != 0s || get_microstep() != 0) {
+            std::cout << "ERROR: shutdown invoked at an unexpected tag";
+            exit(2);
+        }
+
+        if (triggered) {
+            std::cout << "SUCCESS!\n";
+        } else {
+            std::cout << "ERROR: reaction was not invoked!\n";
+            exit(2);
+        }
+    =}
+}

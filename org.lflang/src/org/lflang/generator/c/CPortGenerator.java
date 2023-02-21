@@ -17,9 +17,9 @@ import static org.lflang.generator.c.CGenerator.variableStructType;
 /**
  * Generates C code to declare and initialize ports.
  *
- * @author {Edward A. Lee <eal@berkeley.edu>}
- * @author {Soroush Bateni <soroush@utdallas.edu>}
- * @author {Hou Seng Wong <housengw@berkeley.edu>}
+ * @author Edward A. Lee
+ * @author Soroush Bateni
+ * @author Hou Seng Wong
  */
 public class CPortGenerator {
     /**
@@ -64,28 +64,26 @@ public class CPortGenerator {
         code.pr("typedef struct {");
         code.indent();
         // NOTE: The following fields are required to be the first ones so that
-        // pointer to this struct can be cast to a (lf_port_base_t*) to access
-        // these fields for any port.
+        // pointer to this struct can be cast to a (lf_port_base_t*) or to
+        // (token_template_t*) to access these fields for any port.
+        // IMPORTANT: These must match exactly the fields defined in port.h!!
         code.pr(String.join("\n",
-                "bool is_present;",
-                "lf_sparse_io_record_t* sparse_record;",
-                "int destination_channel;"
+                "token_type_t type;",  // From token_template_t
+                "lf_token_t* token;",  // From token_template_t
+                "size_t length;",      // From token_template_t
+                "bool is_present;",    // From lf_port_base_t
+                "lf_sparse_io_record_t* sparse_record;",  // From lf_port_base_t
+                "int destination_channel;",  // From lf_port_base_t
+                "int num_destinations;"      // From lf_port_base_t
         ));
-        code.pr(valueDeclaration(port, target, errorReporter, types));
-        code.pr(String.join("\n",
-                    "int num_destinations;",
-                    "lf_token_t* token;",
-                    "int length;",
-                    "void (*destructor) (void* value);",
-                    "void* (*copy_constructor) (void* value);",
-                    federatedExtension.toString()
-        ));
+        code.pr(valueDeclaration(port, target, errorReporter, types)); // FIXME: Should this still be here?
 
         code.pr(String.join("\n",
             "#if SCHEDULER == LET",
             "self_base_t** destination_reactors;",
             "#endif"
         ));
+        code.pr(federatedExtension.toString());
         code.unindent();
         code.pr("} "+variableStructType(port, decl)+";");
         return code.toString();
@@ -168,36 +166,6 @@ public class CPortGenerator {
                     "// width of -2 indicates that it is not a multiport.",
                     portRefName+"_width = -2;"
                 );
-    }
-
-     /**
-     * Generate code to set up the tables used in _lf_start_time_step for input ports.
-     */
-    public static String initializeStartTimeStepTableForInput(
-        PortInstance input
-    ) {
-        var portRef = CUtil.portRefName(input);
-        return input.isMultiport() ?
-                String.join("\n",
-                    "for (int i = 0; i < "+input.getWidth()+"; i++) {",
-                    "    _lf_tokens_with_ref_count[_lf_tokens_with_ref_count_count].token",
-                    "            = &"+portRef+"[i]->token;",
-                    "    _lf_tokens_with_ref_count[_lf_tokens_with_ref_count_count].status",
-                    "            = (port_status_t*)&"+portRef+"[i]->is_present;",
-                    "    _lf_tokens_with_ref_count[_lf_tokens_with_ref_count_count++].reset_is_present = false;",
-                    "};"
-                ) :
-                initializeStartTimeStepTableForPort(portRef);
-    }
-
-    public static String initializeStartTimeStepTableForPort(
-        String portRef
-    ) {
-        return String.join("\n",
-            "_lf_tokens_with_ref_count[_lf_tokens_with_ref_count_count].token = &"+portRef+"->token;",
-            "_lf_tokens_with_ref_count[_lf_tokens_with_ref_count_count].status = (port_status_t*)&"+portRef+"->is_present;",
-            "_lf_tokens_with_ref_count[_lf_tokens_with_ref_count_count++].reset_is_present = false;"
-        );
     }
 
     /**

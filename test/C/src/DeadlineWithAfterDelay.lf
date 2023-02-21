@@ -1,0 +1,34 @@
+// Test to verify that deadline priority are inherited when using after delays
+target C {
+    timeout: 1 sec,
+    threading: false
+}
+
+preamble {= int global_cnt = 0; =}
+
+reactor Source {
+    output out: int
+    timer t(0 msec, 100 msec)
+
+    reaction(t) -> out {=
+        lf_set(out, 1);
+        global_cnt++;
+    =}
+}
+
+reactor SinkWithDeadline {
+    input in: int
+
+    reaction(in) {=
+        global_cnt--;
+        if (global_cnt != 0) {
+            lf_print_error_and_exit("Deadline reaction was not executed first. cnt=%i", global_cnt);
+        }
+    =} deadline(100 sec) {=  =}
+}
+
+main reactor {
+    a = new Source()
+    b = new SinkWithDeadline()
+    a.out -> b.in after 100 msec  // a.out -> b.in
+}

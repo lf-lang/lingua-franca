@@ -9,11 +9,11 @@ import org.lflang.TargetConfig;
  * during code generation and the supporting structures
  * associated with that resource.
  * 
- * @author Soroush Bateni <soroush@utdallas.edu>
+ * @author Soroush Bateni
  */
 public class LFResource {
     LFResource(Resource resource, FileConfig fileConfig, TargetConfig targetConfig) {
-        this.eResource = resource;
+        this.eResource = resource; // FIXME: this is redundant because fileConfig already has the resource.
         this.fileConfig = fileConfig;
         this.targetConfig = targetConfig;
     }

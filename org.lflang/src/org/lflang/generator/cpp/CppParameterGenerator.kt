@@ -25,7 +25,7 @@
 package org.lflang.generator.cpp
 
 import org.lflang.inferredType
-import org.lflang.isOfTimeType
+import org.lflang.joinWithLn
 import org.lflang.lf.Parameter
 import org.lflang.lf.Reactor
 
@@ -34,40 +34,42 @@ class CppParameterGenerator(private val reactor: Reactor) {
 
     companion object {
 
-        /**
-         * Create a list of initializers for the given parameter
-         *
-         * TODO This is redundant to ExpressionGenerator.getInitializerList
-         */
-        private fun Parameter.getInitializerList() = init.map {
-            if (isOfTimeType) it.toTime()
-            else it.toCppCode()
-        }
-
         /** Type of the parameter in C++ code */
         val Parameter.targetType get(): String = this.inferredType.cppType
 
-        /** Get the default value of the receiver parameter in C++ code */
-        val Parameter.defaultValue: String
-            get() =
-                if (braces?.size == 2) "$targetType{${getInitializerList().joinToString(", ")}}"
-                else "$targetType(${getInitializerList().joinToString(", ")})"
-
-        /** Get a C++ type that is a const reference to the parameter type */
-        val Parameter.constRefType: String
-            get() =
-                "typename std::add_lvalue_reference<typename std::add_const<$targetType>::type>::type"
+        val Parameter.typeAlias get(): String = "__lf_${name}_t"
     }
-
-    /** Generate all parameter declarations */
-    fun generateDeclarations() =
-        reactor.parameters.joinToString("\n", "// parameters\n", "\n") {
-            "typename std::add_const<${it.targetType}>::type ${it.name};"
-        }
 
     /** Generate all constructor initializers for parameters */
     fun generateInitializers() =
-        reactor.parameters.joinToString("\n", "// parameters\n", "\n") {
-            ", ${it.name}(${it.name})"
+        reactor.parameters.joinWithLn(prefix = "// parameters\n") {
+            ", ${it.name}(parameters.${it.name})"
         }
+
+    /** Generate all parameter declarations as used in the parameter struct */
+    fun generateParameterStructDeclarations() =
+        reactor.parameters.joinToString("\n", postfix = "\n") {
+            with(it) {
+                """
+                    using $typeAlias = $targetType;
+                    const $typeAlias $name${
+                    if (init == null) "" else " = " + typeAlias + CppTypes.getCppInitializer(
+                        init,
+                        inferredType
+                    )
+                };
+                """.trimIndent()
+            }
+        }
+
+    /** Generate using declarations for each parameter for use in the inner reactor class.
+     *  This is required for C++ to bring templated parameters into scope.
+     */
+    fun generateUsingDeclarations() = reactor.parameters.joinToString(separator = "") { "using Parameters::${it.name};\n" }
+
+    /** Generate alias declarations for each parameter for use in the outer reactor class.
+     *  This is required for some code bodies (e.g. target code in parameter initializers) to have access to the local parameters.
+     */
+    fun generateOuterAliasDeclarations() =
+        reactor.parameters.joinToString(separator = "") { "const typename Parameters::${it.typeAlias}& ${it.name} = __lf_inner.${it.name};\n" }
 }

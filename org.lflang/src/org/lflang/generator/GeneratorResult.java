@@ -1,24 +1,31 @@
 package org.lflang.generator;
 
+import java.io.File;
 import java.nio.file.Path;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 
+import org.eclipse.xtext.generator.GeneratorContext;
+
+import org.lflang.FileConfig;
+import org.lflang.Target;
+import org.lflang.TargetConfig;
 import org.lflang.util.LFCommand;
 
 /**
  * A {@code GeneratorResult} is the outcome of a code generation task.
  *
- * @author Peter Donovan <peterdonovan@berkeley.edu>
+ * @author Peter Donovan
  */
 public class GeneratorResult {
     public static GeneratorResult NOTHING = incompleteGeneratorResult(Status.NOTHING);
     public static GeneratorResult CANCELLED = incompleteGeneratorResult(Status.CANCELLED);
     public static GeneratorResult FAILED = incompleteGeneratorResult(Status.FAILED);
-    public static Function<Map<Path, CodeMap>, GeneratorResult> GENERATED_NO_EXECUTABLE
-        = codeMaps -> new GeneratorResult(Status.GENERATED, null, null, codeMaps);
+    public static BiFunction<LFGeneratorContext, Map<Path, CodeMap>, GeneratorResult> GENERATED_NO_EXECUTABLE
+        = (context, codeMaps) -> new GeneratorResult(Status.GENERATED, context, codeMaps);
 
     /**
      * A {@code Status} is a level of completion of a code generation task.
@@ -37,12 +44,10 @@ public class GeneratorResult {
          */
         public interface GetUserMessage {
             GetUserMessage COMPLETED = result -> {
-                if (result.executable != null) {
-                    return String.format(
-                        "Code generation complete. The executable is at \"%s\".", result.executable
-                    );
-                }
-                return "Code generation completed.";
+                return String.format(
+                    "Code generation complete. The executable is at \"%s\".",
+                    result.getContext().getFileConfig().getExecutable()
+                );
             };
             String apply(GeneratorResult result);
         }
@@ -57,23 +62,20 @@ public class GeneratorResult {
     }
 
     private final Status status;
-    private final Path executable;
-    private final LFCommand command;
+
+    private final LFGeneratorContext context;
+
     private final Map<Path, CodeMap> codeMaps;
 
     /**
      * Initialize a GeneratorResult.
      * @param status The level of completion of a code generation task.
-     * @param executable The file that stores the final output of the code
-     * generation task. Examples include a fully linked binary or a Python
-     * file that can be passed to the Python interpreter.
-     * @param command A command that runs the executable.
+     * @param context The context within which the result was produced.
      * @param codeMaps A mapping from generated files to their CodeMaps.
      */
-    public GeneratorResult(Status status, Path executable, LFCommand command, Map<Path, CodeMap> codeMaps) {
+    public GeneratorResult(Status status, LFGeneratorContext context, Map<Path, CodeMap> codeMaps) {
         this.status = status != null ? status : Status.NOTHING;
-        this.executable = executable;
-        this.command = command;
+        this.context = context;
         this.codeMaps = codeMaps != null ? codeMaps : Collections.emptyMap();
     }
 
@@ -84,22 +86,12 @@ public class GeneratorResult {
      * with status {@code status}
      */
     private static GeneratorResult incompleteGeneratorResult(Status status) {
-        return new GeneratorResult(status, null, null, Collections.emptyMap());
+        return new GeneratorResult(status, null, Collections.emptyMap());
     }
 
     /** Return the status of {@code this}. */
     public Status getStatus() {
         return status;
-    }
-
-    /** Return the command needed to execute the executable, or {@code null} if none exists. */
-    public LFCommand getCommand() {
-        return command;
-    }
-
-    /** Return the exectuable produced by this build, or {@code null} if none exists. */
-    public Path getExecutable() {
-        return executable;
     }
 
     /**
@@ -121,4 +113,9 @@ public class GeneratorResult {
     public Map<Path, CodeMap> getCodeMaps() {
         return Collections.unmodifiableMap(codeMaps);
     }
+
+    public LFGeneratorContext getContext() {
+        return context;
+    }
+
 }

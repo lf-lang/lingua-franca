@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import org.eclipse.lsp4j.DiagnosticSeverity
 import org.eclipse.xtext.util.CancelIndicator
 import org.lflang.ErrorReporter
+import org.lflang.FileConfig
 import org.lflang.generator.CodeMap
 import org.lflang.generator.DiagnosticReporting
 import org.lflang.generator.HumanReadableReportingStrategy
@@ -25,17 +26,17 @@ private val TSC_LABEL: Pattern = Pattern.compile("((?<=\\s))(~+)")
 /**
  * A validator for generated TypeScript.
  *
- * @author Peter Donovan <peterdonovan@berkeley.edu>
+ * @author Peter Donovan
  */
 @Suppress("ArrayInDataClass")  // Data classes here must not be used in data structures such as hashmaps.
 class TSValidator(
-    private val fileConfig: TSFileConfig,
+    private val fileConfig: FileConfig,
     errorReporter: ErrorReporter,
     codeMaps: Map<Path, CodeMap>
 ): Validator(errorReporter, codeMaps) {
 
     private class TSLinter(
-        private val fileConfig: TSFileConfig,
+        private val fileConfig: FileConfig,
         errorReporter: ErrorReporter,
         codeMaps: Map<Path, CodeMap>
     ): Validator(errorReporter, codeMaps) {

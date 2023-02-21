@@ -5,7 +5,7 @@ import org.lflang.generator.IntegratedBuilder;
 /**
  * Collect progress reports and check that they have the expected properties.
  *
- * @author Peter Donovan <peterdonovan@berkeley.edu>
+ * @author Peter Donovan
  */
 public class MockReportProgress implements IntegratedBuilder.ReportProgress {
     private int previousPercentProgress;
@@ -17,7 +17,7 @@ public class MockReportProgress implements IntegratedBuilder.ReportProgress {
 
     @Override
     public void apply(String message, Integer percentage) {
-        System.out.println(message);
+        System.out.printf("%s [%d -> %d]%n", message, previousPercentProgress, percentage);
         if (percentage == null) return;
         if (percentage < previousPercentProgress || percentage < 0 || percentage > 100) failed = true;
         previousPercentProgress = percentage;

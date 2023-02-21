@@ -29,17 +29,16 @@ import java.io.File;
 import java.io.IOException;
 
 import org.lflang.ErrorReporter;
-import org.lflang.FileConfig;
 import org.lflang.TargetConfig;
-import org.lflang.federated.FedFileConfig;
-import org.lflang.federated.FederateInstance;
+import org.lflang.federated.generator.FedFileConfig;
+import org.lflang.federated.generator.FederateInstance;
 import org.lflang.generator.c.CCompiler;
 
 /**
  * Utility class that can be used to create a launcher for federated LF programs
  * that are written in C.
  *
- * @author Soroush Bateni <soroush@utdallas.edu>
+ * @author Soroush Bateni
  */
 public class FedCLauncher extends FedLauncher {
 
@@ -51,9 +50,9 @@ public class FedCLauncher extends FedLauncher {
      * @param errorReporter A error reporter for reporting any errors or warnings during the code generation
      */
     public FedCLauncher(
-            TargetConfig targetConfig,
-            FileConfig fileConfig,
-            ErrorReporter errorReporter
+        TargetConfig targetConfig,
+        FedFileConfig fileConfig,
+        ErrorReporter errorReporter
     ) {
         super(targetConfig, fileConfig, errorReporter);
     }
@@ -67,14 +66,7 @@ public class FedCLauncher extends FedLauncher {
     @Override
     protected
     String compileCommandForFederate(FederateInstance federate) {
-        FedFileConfig fedFileConfig = null;
         TargetConfig localTargetConfig = targetConfig;
-        try {
-            fedFileConfig = new FedFileConfig(fileConfig, federate.name);
-        } catch (IOException e) {
-            errorReporter.reportError("Failed to create file config for federate "+federate.name);
-            return "";
-        }
 
         String commandToReturn = "";
         // FIXME: Hack to add platform support only for linux systems.
@@ -83,7 +75,7 @@ public class FedCLauncher extends FedLauncher {
         if (!localTargetConfig.compileAdditionalSources.contains(linuxPlatformSupport)) {
             localTargetConfig.compileAdditionalSources.add(linuxPlatformSupport);
         }
-        CCompiler cCompiler= new CCompiler(localTargetConfig, fedFileConfig, errorReporter, false);
+        CCompiler cCompiler= new CCompiler(localTargetConfig, fileConfig, errorReporter, false);
         commandToReturn = String.join(" ",
                 cCompiler.compileCCommand(
                         fileConfig.name+"_"+federate.name,
@@ -106,15 +98,14 @@ public class FedCLauncher extends FedLauncher {
     }
 
     /**
-     * Return the command that will execute a local federate, assuming that the current
-     * directory is the top-level project folder. This is used to create a launcher script
-     * for federates.
+     * Return the command that will execute a local federate.
+     * This is used to create a launcher script for federates.
      *
      * @param federate The federate to execute.
      */
     @Override
     protected
-    String executeCommandForLocalFederate(FileConfig fileConfig, FederateInstance federate) {
-        return fileConfig.binPath.resolve(fileConfig.name)+"_"+federate.name+" -i $FEDERATION_ID";
+    String executeCommandForLocalFederate(FedFileConfig fileConfig, FederateInstance federate) {
+        return fileConfig.getGenPath().resolve("bin/"+federate.name)+" -i $FEDERATION_ID";
     }
 }

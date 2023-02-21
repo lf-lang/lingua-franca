@@ -62,7 +62,7 @@ import static de.cau.cs.kieler.klighd.krendering.extensions.PositionReferenceY.*
 /**
  * Extension class that provides styles and coloring for the Lingua France diagram synthesis.
  * 
- * @author{Alexander Schulz-Rosengarten <als@informatik.uni-kiel.de>}
+ * @author Alexander Schulz-Rosengarten
  */
 @ViewSynthesisShared
 public class LinguaFrancaStyleExtensions extends AbstractSynthesisExtensions {
