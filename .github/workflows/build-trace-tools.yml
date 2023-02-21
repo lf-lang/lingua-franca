@@ -1,0 +1,21 @@
+name: Build the tools for processing execution traces
+
+on:
+  workflow_call:
+
+jobs:
+  run:
+    strategy:
+      matrix:
+        platform: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.platform }}
+    steps:
+      - name: Check out lingua-franca repository
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+          submodules: recursive
+      - name: Run make
+        working-directory: ./util/tracing
+        run: make
+        shell: bash

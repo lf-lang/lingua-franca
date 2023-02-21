@@ -1,0 +1,21 @@
+target Cpp
+
+import Test from "../DelayInt.lf"
+
+reactor Delay<T>(delay: time(0)) {
+    output out: T
+    input in: T
+    logical action a(delay): T
+
+    reaction(a) -> out {= out.set(a.get()); =}
+
+    reaction(in) -> a {= a.schedule(in.get()); =}
+}
+
+main reactor {
+    d = new Delay<int>(delay = 50 msec)
+    test = new Test()
+    d.out -> test.in after 50 msec
+
+    reaction(startup) -> d.in {= d.in.set(42); =}
+}
