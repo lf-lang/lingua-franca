@@ -222,7 +222,8 @@ public class AttributeSpec {
                 new AttrParamSpec("name", AttrParamType.STRING, false),
                 new AttrParamSpec("tactic", AttrParamType.STRING, false),
                 new AttrParamSpec("spec", AttrParamType.STRING, false),
-                new AttrParamSpec("CT", AttrParamType.INT, true)
+                new AttrParamSpec("CT", AttrParamType.INT, true),
+                new AttrParamSpec("expect", AttrParamType.BOOLEAN, true)
             )
         ));
         // @enclave(each=boolean)

@@ -204,15 +204,16 @@ public class UclidRunner {
             command.run();
             
             String output = command.getOutput().toString();
-            boolean failed = output.contains("FAILED");
-            if (failed) {
+            boolean valid = !output.contains("FAILED");
+            if (valid) {
+                System.out.println("Valid!");
+            } else {
                 System.out.println("Not valid!");
                 try {
                     // Read from the JSON counterexample (cex).
                     String cexJSONStr = Files.readString(
                         Paths.get(path.toString() + ".json"),
                         StandardCharsets.UTF_8);
-                    // System.out.println(cexJSONStr);
                     JSONObject cexJSON = new JSONObject(cexJSONStr);
 
                     //// Extract the counterexample trace from JSON.
@@ -244,8 +245,19 @@ public class UclidRunner {
                 } catch (IOException e) {
                     System.out.println("ERROR: Not able to read from " + path.toString());
                 }
-            } else {
-                System.out.println("Valid!");
+            }
+
+            // If "expect" is set, check if the result matches it.
+            // If not, exit with error code 1.
+            String expect = generator.expectations.get(path);
+            if (expect != null) {
+                boolean expectValid = Boolean.parseBoolean(expect);
+                if (expectValid != valid) {
+                    System.out.println(
+                        "ERROR: The expected result does not match the actual result. Expected: "
+                        + expectValid + ", Result: " + valid);
+                    System.exit(1);
+                }
             }
         }
     }

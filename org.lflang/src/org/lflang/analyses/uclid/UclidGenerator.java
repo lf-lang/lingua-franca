@@ -39,6 +39,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
@@ -130,7 +131,8 @@ public class UclidGenerator extends GeneratorBase {
     public List<NamedInstance>          namedInstances;     // Named instances = triggers + state variables
 
     // A list of paths to the uclid files generated
-    public List<Path>                   generatedFiles      = new ArrayList<Path>();
+    public List<Path>                   generatedFiles      = new ArrayList<>();
+    public Map<Path, String>            expectations        = new HashMap<>();
 
     // The directory where the generated files are placed
     public Path                         outputDir;
@@ -156,6 +158,7 @@ public class UclidGenerator extends GeneratorBase {
     protected String                    name;
     protected String                    tactic;
     protected String                    spec; // SMTL
+    protected String                    expect;
 
     /** 
      * The horizon (the total time interval required for evaluating
@@ -222,11 +225,11 @@ public class UclidGenerator extends GeneratorBase {
 
             processMTLSpec();
             
-            Optional<AttrParm> CTattr = prop.getAttrParms().stream()
+            Optional<AttrParm> CTAttr = prop.getAttrParms().stream()
                             .filter(attr -> attr.getName().equals("CT"))
                             .findFirst();
-            if (CTattr.isPresent()) {
-                this.CT = Integer.parseInt(CTattr.get().getValue());
+            if (CTAttr.isPresent()) {
+                this.CT = Integer.parseInt(CTAttr.get().getValue());
             } else {
                 computeCT();
             }
@@ -238,6 +241,12 @@ public class UclidGenerator extends GeneratorBase {
                     + "This property will NOT be checked.");
                 continue;
             }
+
+            Optional<AttrParm> ExpectAttr = prop.getAttrParms().stream()
+                            .filter(attr -> attr.getName().equals("expect"))
+                            .findFirst();
+            if (ExpectAttr.isPresent())
+                this.expect = ExpectAttr.get().getValue();
 
             generateUclidFile();
         }
@@ -258,6 +267,8 @@ public class UclidGenerator extends GeneratorBase {
             generateUclidCode();
             code.writeToFile(filename);
             this.generatedFiles.add(file);
+            if (this.expect != null)
+                this.expectations.put(file, this.expect);
         } catch (IOException e) {
             Exceptions.sneakyThrow(e);
         }
