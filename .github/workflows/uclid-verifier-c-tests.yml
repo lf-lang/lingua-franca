@@ -1,0 +1,76 @@
+name: Uclid5-based Verifier Tests
+
+on:
+  # Trigger this workflow also on workflow_call events.
+  workflow_call:
+
+env:
+  ACTIONS_STEP_DEBUG: TRUE
+  ACTIONS_RUNNER_DEBUG: TRUE
+
+jobs:
+  run:
+    strategy:
+      matrix:
+        platform: [ubuntu-latest]
+    runs-on: ${{ matrix.platform }}
+    steps:
+      - name: Check out lingua-franca repository
+        uses: actions/checkout@v3
+        with:
+          path: lingua-franca
+      - name: Check out lf-verifier-benchmarks repository
+        uses: actions/checkout@v3
+        with:
+          repository: lsk567/lf-verifier-benchmarks
+          ref: master
+          path: lf-verifier-benchmarks
+      - name: Check out Uclid5 repository
+        uses: actions/checkout@v3
+        with:
+          repository: uclid-org/uclid
+          ref: 4fd5e566c5f87b052f92e9b23723a85e1c4d8c1c
+          path: uclid
+      - name: Set up JDK 17
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: 17
+      - name: Install Lingua Franca
+        working-directory: lingua-franca/
+        run: |
+          ./bin/build-lf-cli
+          ./bin/lfc --version
+          echo "$(pwd)/bin" >> $GITHUB_PATH
+      - name: Cache Z3
+        working-directory: uclid/
+        id: cache-z3
+        uses: actions/cache@v3
+        with:
+          path: z3/
+          key: ${{ runner.os }}-z3-${{ hashFiles('get-z3-linux.sh') }}-1
+      - name: Download Z3
+        working-directory: uclid/
+        if: steps.cache-z3.outputs.cache-hit != 'true'
+        run: ./get-z3-linux.sh
+      - name: Add Z3 to Path
+        working-directory: uclid/
+        run: |
+          echo "$(pwd)/z3/bin/" >> $GITHUB_PATH
+          echo "LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$(pwd)/z3/bin/" >> $GITHUB_ENV
+      - name: Print Z3 Version
+        run: z3 --version
+      - name: Install Uclid5
+        working-directory: uclid/
+        run: |
+          sbt update clean compile
+          sbt universal:packageBin
+          cd target/universal/
+          unzip uclid-0.9.5.zip
+          ./uclid-0.9.5/bin/uclid --help
+          echo "$(pwd)/uclid-0.9.5/bin" >> $GITHUB_PATH
+      - name: Setup upterm session
+        uses: lhotari/action-upterm@v1
+      - name: Run the test script
+        working-directory: lf-verifier-benchmarks/
+        run: ./scripts/test-lf-verifier
