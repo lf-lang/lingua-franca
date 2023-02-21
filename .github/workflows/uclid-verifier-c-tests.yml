@@ -42,13 +42,6 @@ jobs:
           ./bin/build-lf-cli
           ./bin/lfc --version
           echo "$(pwd)/bin" >> $GITHUB_PATH
-      - name: Cache Z3
-        working-directory: uclid/
-        id: cache-z3
-        uses: actions/cache@v3
-        with:
-          path: z3/
-          key: ${{ runner.os }}-z3-${{ hashFiles('get-z3-linux.sh') }}-1
       - name: Download Z3
         working-directory: uclid/
         if: steps.cache-z3.outputs.cache-hit != 'true'
