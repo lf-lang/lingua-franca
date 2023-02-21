@@ -29,7 +29,7 @@ import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.util.CancelIndicator
 import org.lflang.Target
 import org.lflang.TimeValue
-import org.lflang.ast.AfterDelayTransformation
+import org.lflang.ast.DelayedConnectionTransformation
 import org.lflang.generator.*
 import org.lflang.generator.GeneratorUtils.canGenerate
 import org.lflang.lf.Preamble
@@ -103,7 +103,7 @@ class TSGenerator(
      */
     override fun doGenerate(resource: Resource, context: LFGeneratorContext) {
         // Register the after delay transformation to be applied by GeneratorBase.
-        registerTransformation(AfterDelayTransformation(TSDelayBodyGenerator, targetTypes, resource))
+        registerTransformation(DelayedConnectionTransformation(TSDelayBodyGenerator, targetTypes, resource, true, false))
 
         super.doGenerate(resource, context)
 
