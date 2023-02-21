@@ -225,13 +225,14 @@ public class MTLVisitor extends MTLParserBaseVisitor<String> {
         String timePredicate = generateTimePredicate(ctx.timeInterval, lowerBoundNanoSec,
                                                     upperBoundNanoSec, "j" + QFIdx, prefixIdx);        
         return "(" + "finite_forall " + "(" + "j" + QFIdx + " : integer) in indices :: "
-                + "j" + QFIdx + " >= " + prefixIdx + " && " + "j" + QFIdx + " <= " + end
+                + "(" + "j" + QFIdx + " >= " + prefixIdx + " && " + "j" + QFIdx + " <= " + end
                 + " && " + "!" + "isNULL" + "(" + "j" + QFIdx + ")"
-                + " && " + "(" + visitPrimary(ctx.formula, ("j"+QFIdx), QFIdx+1, prefixIdx, currentHorizon) + ")"
                 + " && " + "(" + "\n" 
                 + "// Time Predicate\n"
                 + timePredicate + "\n"
-                + "))";
+                + ")" + ")"
+                + " ==> " + "(" + visitPrimary(ctx.formula, ("j"+QFIdx), QFIdx+1, prefixIdx, currentHorizon) + ")"
+                + ")";
     }
 
     public String visitFinally(MTLParser.FinallyContext ctx,
