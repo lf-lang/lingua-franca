@@ -131,5 +131,5 @@ jobs:
 
   # Run the Uclid benchmark tests.
   uclid-verifier-c-tests:
-    uses: .github/workflows/uclid-verifier-c-tests.yml
+    uses: ./.github/workflows/uclid-verifier-c-tests.yml
     needs: cancel
