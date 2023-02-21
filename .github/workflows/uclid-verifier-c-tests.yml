@@ -33,16 +33,8 @@ jobs:
           distribution: 'temurin'
           java-version: '11'
           cache: 'sbt'
-      - name: Test sbt
-        run: |
-          sbt --version
       - name: Setup upterm session
         uses: lhotari/action-upterm@v1
-      - name: See where we are
-        run: |
-          echo "Where am I?"
-          pwd
-          ls
       - name: Install Z3 and Uclid5
         run: |
           cd uclid
@@ -53,6 +45,8 @@ jobs:
           cd target/universal/
           unzip uclid-0.9.5.zip
           export PATH="$(pwd)/uclid-0.9.5/bin:$PATH"
-
-
-      
+          uclid --version
+      - name: Run the test script
+        run: |
+          cd ../lf-verifer-benchmarks
+          ./scripts/test-lf-verifier
