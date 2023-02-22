@@ -577,6 +577,8 @@ public class CExtensionUtils {
             }
             }
         }
+        String relPath = "include" + File.separator + "_" + federate.name + "_preamble.c";
+        code.pr("target_sources(${LF_MAIN_TARGET} PRIVATE " + relPath + ")");
         return code.getCode();
     }
 }
