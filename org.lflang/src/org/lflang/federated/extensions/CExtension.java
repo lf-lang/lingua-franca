@@ -117,7 +117,7 @@ public class CExtension implements FedTargetExtension {
         federate.targetConfig.setByUser.add(TargetProperty.THREADING);
 
         // Include the fed setup file for this federate in the target property
-        String relPath = "include" + File.separator + "_" + federate.name + "_preamble.c";
+        String relPath = "include" + File.separator + "_" + federate.name + "_preamble.h";
         federate.targetConfig.fedSetupPreamble = relPath;
         federate.targetConfig.setByUser.add(TargetProperty.FED_SETUP);
     }
@@ -489,7 +489,7 @@ public class CExtension implements FedTargetExtension {
     }
 
     /**
-     * Add preamble to a separate file `include/_federateName_preamble.c` to set up federated execution.
+     * Add preamble to a separate file `include/_federateName_preamble.h` to set up federated execution.
      * Return an empty string since no code generated needs to go in the source.
      */
     @Override
@@ -499,9 +499,9 @@ public class CExtension implements FedTargetExtension {
         LinkedHashMap<String, Object> federationRTIProperties,
         ErrorReporter errorReporter
     ) throws IOException {
-        // Put the C preamble in a `include/_federate.name + _preamble.c` file
+        // Put the C preamble in a `include/_federate.name + _preamble.h` file
         String cPreamble = makePreamble(federate, fileConfig, federationRTIProperties, errorReporter);
-        String relPath = "include" + File.separator + "_" + federate.name + "_preamble.c";
+        String relPath = "include" + File.separator + "_" + federate.name + "_preamble.h";
         Path fedPreamblePath = fileConfig.getSrcPath().resolve(relPath);
         Files.createDirectories(fedPreamblePath.getParent());
         try (var writer = Files.newBufferedWriter(fedPreamblePath)) {
@@ -538,7 +538,6 @@ public class CExtension implements FedTargetExtension {
         size_t _lf_action_table_size = %1$s;
         """.formatted(numOfNetworkActions));
 
-        //code.pr("#include \"" + federate.name + "_structs.h\"");
         code.pr(generateSerializationPreamble(federate, fileConfig));
 
         code.pr(generateExecutablePreamble(federate, federationRTIProperties, errorReporter));
