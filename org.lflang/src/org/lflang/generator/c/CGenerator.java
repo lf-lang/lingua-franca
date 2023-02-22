@@ -1038,8 +1038,26 @@ public class CGenerator extends GeneratorBase {
         // Some of the following methods create lines of code that need to
         // go into the constructor.  Collect those lines of code here:
         var constructorCode = new CodeBuilder();
-        generateAuxiliaryStructs(reactor);
-        generateSelfStruct(reactor, constructorCode);
+
+        var structCode = new CodeBuilder();
+        String relPathStr = "include" + File.separator + reactor.getName() + "_structs.h";
+        structCode.pr("#ifndef " + reactor.getName().toUpperCase() + "_STRUCTS_H");
+        structCode.pr("#define " + reactor.getName().toUpperCase() + "_STRUCTS_H");
+        Path relPath = fileConfig.getSrcGenPath().resolve(relPathStr);
+        try {
+            Files.createDirectories(relPath.getParent());
+        }catch(Exception e){
+            e.printStackTrace();
+        }
+        generateAuxiliaryStructs(reactor, structCode);
+        generateSelfStruct(reactor, constructorCode, structCode);
+        structCode.pr("#endif");
+        try {
+            structCode.writeToFile(relPath.toString());
+        }catch(Exception e){
+            e.printStackTrace();
+        }
+        code.pr("#include \"" + relPathStr + "\"");
         generateMethods(reactor);
         generateReactions(reactor);
         generateConstructor(reactor, constructorCode);
@@ -1088,7 +1106,7 @@ public class CGenerator extends GeneratorBase {
      * actions of the specified reactor.
      * @param decl The parsed reactor data structure.
      */
-    protected void generateAuxiliaryStructs(ReactorDecl decl) {
+    protected void generateAuxiliaryStructs(ReactorDecl decl, CodeBuilder structCode) {
         var reactor = ASTUtils.toDefinition(decl);
         // In the case where there are incoming
         // p2p logical connections in decentralized
@@ -1109,7 +1127,7 @@ public class CGenerator extends GeneratorBase {
         );
         // First, handle inputs.
         for (Input input : allInputs(reactor)) {
-            code.pr(CPortGenerator.generateAuxiliaryStruct(
+            structCode.pr(CPortGenerator.generateAuxiliaryStruct(
                 decl,
                 input,
                 getTarget(),
@@ -1120,7 +1138,7 @@ public class CGenerator extends GeneratorBase {
         }
         // Next, handle outputs.
         for (Output output : allOutputs(reactor)) {
-            code.pr(CPortGenerator.generateAuxiliaryStruct(
+            structCode.pr(CPortGenerator.generateAuxiliaryStruct(
                 decl,
                 output,
                 getTarget(),
@@ -1134,7 +1152,7 @@ public class CGenerator extends GeneratorBase {
         // a trigger_t* because the struct will be cast to (trigger_t*)
         // by the lf_schedule() functions to get to the trigger.
         for (Action action : allActions(reactor)) {
-            code.pr(CActionGenerator.generateAuxiliaryStruct(
+            structCode.pr(CActionGenerator.generateAuxiliaryStruct(
                 decl,
                 action,
                 getTarget(),
@@ -1151,7 +1169,7 @@ public class CGenerator extends GeneratorBase {
      * @param constructorCode Place to put lines of code that need to
      *  go into the constructor.
      */
-    private void generateSelfStruct(ReactorDecl decl, CodeBuilder constructorCode) {
+    private void generateSelfStruct(ReactorDecl decl, CodeBuilder constructorCode, CodeBuilder structCode) {
         var reactor = toDefinition(decl);
         var selfType = CUtil.selfType(decl);
 
@@ -1197,12 +1215,12 @@ public class CGenerator extends GeneratorBase {
         // The first field has to always be a pointer to the list of
         // of allocated memory that must be freed when the reactor is freed.
         // This means that the struct can be safely cast to self_base_t.
-        code.pr("typedef struct {");
-        code.indent();
-        code.pr("struct self_base_t base;");
-        code.pr(body.toString());
-        code.unindent();
-        code.pr("} " + selfType + ";");
+        structCode.pr("typedef struct {");
+        structCode.indent();
+        structCode.pr("struct self_base_t base;");
+        structCode.pr(body.toString());
+        structCode.unindent();
+        structCode.pr("} " + selfType + ";");
     }
 
     /**
