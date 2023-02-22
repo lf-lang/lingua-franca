@@ -522,7 +522,12 @@ public class CExtension implements FedTargetExtension {
 
         var code = new CodeBuilder();
 
-        code.pr("#include \"../federated/federate.c\"");
+        code.pr("#include \"core/federated/federate.h\"");
+        code.pr("#include \"core/federated/net_common.h\"");
+        code.pr("#include \"core/federated/net_util.h\"");
+        code.pr("#include \"core/threaded/reactor_threaded.h\"");
+        code.pr("#include \"core/utils/util.h\"");
+        code.pr("extern federate_instance_t _fed;");
 
         // Generate function to return a pointer to the action trigger_t
         // that handles incoming network messages destined to the specified
@@ -552,7 +557,7 @@ public class CExtension implements FedTargetExtension {
     }
 
     /**
-     * Create a macro that initializes necessary triggers for federated execution,
+     * Create a function that initializes necessary triggers for federated execution,
      * which are the triggers for control reactions and references to all network
      * actions (which are triggered upon receiving network messages).
      *
@@ -572,12 +577,10 @@ public class CExtension implements FedTargetExtension {
         code.pr(CExtensionUtils.initializeTriggerForControlReactions(main, main, federate));
         federatedReactor.setName(oldFederatedReactorName);
         return """
-        #define initialize_triggers_for_federate() \\
-        do { \\
+        void initialize_triggers_for_federate() {
         %s
-        } \\
-        while (0)
-        """.formatted((code.getCode().isBlank() ? "\\" : code.getCode()).indent(4).stripTrailing());
+        }
+        """.formatted(code.getCode().indent(4).stripTrailing());
     }
 
     /**
@@ -611,7 +614,7 @@ public class CExtension implements FedTargetExtension {
         code.pr(String.join("\n",
                             "// Initialize the socket mutex",
                             "lf_mutex_init(&outbound_socket_mutex);",
-                            "lf_cond_init(&port_status_changed);"
+                            "lf_cond_init(&port_status_changed, &mutex);"
         ));
 
         // Find the STA (A.K.A. the global STP offset) for this federate.
