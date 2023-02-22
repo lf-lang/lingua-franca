@@ -2041,11 +2041,11 @@ public class CGenerator extends GeneratorBase {
         CodeBuilder code = new CodeBuilder();
 
         // preamble for federated execution setup
-        // if (targetConfig.fedSetupPreamble != null) {
-        //     if (targetLanguageIsCpp()) code.pr("extern \"C\" {");
-        //     code.pr("#include \"" + targetConfig.fedSetupPreamble + "\"");
-        //     if (targetLanguageIsCpp()) code.pr("}");
-        // }
+        if (targetConfig.fedSetupPreamble != null) {
+            if (targetLanguageIsCpp()) code.pr("extern \"C\" {");
+            code.pr("#include \"" + targetConfig.fedSetupPreamble + "\"");
+            if (targetLanguageIsCpp()) code.pr("}");
+        }
 
         // user preambles
         if (this.mainDef != null) {
