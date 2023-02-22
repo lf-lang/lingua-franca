@@ -1796,7 +1796,7 @@ public enum TargetProperty {
      */
     public enum SchedulerOption {
         NP(false),         // Non-preemptive
-        adaptive(false, List.of(
+        ADAPTIVE(false, List.of(
             Path.of("scheduler_adaptive.c"),
             Path.of("worker_assignments.h"),
             Path.of("worker_states.h"),
