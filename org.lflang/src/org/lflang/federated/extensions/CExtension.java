@@ -538,6 +538,7 @@ public class CExtension implements FedTargetExtension {
         size_t _lf_action_table_size = %1$s;
         """.formatted(numOfNetworkActions));
 
+        //code.pr("#include \"" + federate.name + "_structs.h\"");
         code.pr(generateSerializationPreamble(federate, fileConfig));
 
         code.pr(generateExecutablePreamble(federate, federationRTIProperties, errorReporter));
@@ -576,11 +577,14 @@ public class CExtension implements FedTargetExtension {
         code.pr(CExtensionUtils.initializeTriggersForNetworkActions(federate, main));
         code.pr(CExtensionUtils.initializeTriggerForControlReactions(main, main, federate));
         federatedReactor.setName(oldFederatedReactorName);
+        
         return """
-        void initialize_triggers_for_federate() {
-        %s
-        }
-        """.formatted(code.getCode().indent(4).stripTrailing());
+            #define initialize_triggers_for_federate() \\
+            do { \\
+            %s
+            } \\
+            while (0)
+            """.formatted((code.getCode().isBlank() ? "\\" : code.getCode()).indent(4).stripTrailing());
     }
 
     /**
