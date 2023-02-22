@@ -358,36 +358,34 @@ public class PythonGenerator extends CGenerator {
      */
     @Override
     public void generateAuxiliaryStructs(
-        ReactorDecl decl, CodeBuilder structCode
+        ReactorDecl decl
     ) {
         Reactor reactor = ASTUtils.toDefinition(decl);
         // First, handle inputs.
         for (Input input : ASTUtils.allInputs(reactor)) {
-            generateAuxiliaryStructsForPort(decl, input, structCode);
+            generateAuxiliaryStructsForPort(decl, input);
         }
         // Next, handle outputs.
         for (Output output : ASTUtils.allOutputs(reactor)) {
-            generateAuxiliaryStructsForPort(decl, output, structCode);
+            generateAuxiliaryStructsForPort(decl, output);
         }
         // Finally, handle actions.
         for (Action action : ASTUtils.allActions(reactor)) {
-            generateAuxiliaryStructsForAction(decl, action, structCode);
+            generateAuxiliaryStructsForAction(decl, action);
         }
     }
 
     private void generateAuxiliaryStructsForPort(ReactorDecl decl,
-                                                 Port port,
-                                                 CodeBuilder structCode) {
+                                                 Port port) {
         boolean isTokenType = CUtil.isTokenType(ASTUtils.getInferredType(port), types);
-        structCode.pr(port,
+        code.pr(port,
                 PythonPortGenerator.generateAliasTypeDef(decl, port, isTokenType,
                                                          genericPortType));
     }
 
     private void generateAuxiliaryStructsForAction(ReactorDecl decl,
-                                                   Action action,
-                                                   CodeBuilder structCode) {
-        structCode.pr(action, PythonActionGenerator.generateAliasTypeDef(decl, action, genericActionType));
+                                                   Action action) {
+        code.pr(action, PythonActionGenerator.generateAliasTypeDef(decl, action, genericActionType));
     }
 
     /**
