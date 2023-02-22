@@ -98,14 +98,6 @@ public class CExtension implements FedTargetExtension {
 
         generateCMakeInclude(federate, fileConfig);
 
-        federate.targetConfig.fileNames.add("include/federated");
-        federate.targetConfig.setByUser.add(TargetProperty.FILES);
-        FileUtil.copyDirectoryFromClassPath(
-            "/lib/c/reactor-c/core/federated",
-            fileConfig.getSrcPath().resolve("include" + File.separator + "federated"),
-            true
-        );
-
         federate.targetConfig.keepalive = true;
         federate.targetConfig.setByUser.add(TargetProperty.KEEPALIVE);
 
