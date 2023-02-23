@@ -64,7 +64,7 @@ public class CReactorHeaderFileGenerator {
     }
 
     private static void appendSignature(CodeBuilder builder, CTypes types, Reaction r, Reactor reactor) {
-        builder.pr("void " + r.getName() + "(" + reactionParameters(types, r, reactor) + ");");
+        if (r.getName() != null) builder.pr("void " + r.getName() + "(" + reactionParameters(types, r, reactor) + ");");
     }
 
     private static String reactionParameters(CTypes types, Reaction r, Reactor reactor) {
