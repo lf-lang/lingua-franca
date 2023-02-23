@@ -41,6 +41,12 @@ import org.lflang.lf.VarRef;
 import org.lflang.lf.WidthSpec;
 import org.lflang.lf.WidthTerm;
 
+/**
+ This class implements AST transformations for delayed connections.
+ There are two types of delayed connections:
+ 1) Connections with `after`-delays
+ 2) Physical connections
+ */
 public class DelayedConnectionTransformation implements AstTransformation {
 
     /**
@@ -209,6 +215,9 @@ public class DelayedConnectionTransformation implements AstTransformation {
      *  is a wide connection, then instantiate a bank of delays where the width
      *  is given by ports involved in the connection. Otherwise, the width will
      *  be  unspecified indicating a variable length.
+     *  @param isPhysical Is this a delay instance using a physical action.
+     *   These are used for implementing Physical Connections. If true
+     *   we will accept zero delay on the connection.
      */
     private static Instantiation getDelayInstance(Reactor delayClass,
         Connection connection, String generic, Boolean defineWidthFromConnection, Boolean isPhysical) {
@@ -258,6 +267,7 @@ public class DelayedConnectionTransformation implements AstTransformation {
      * subsequent calls, or otherwise, it will synthesize a new definition for
      * each new type it hasn't yet created a compatible delay reactor for.
      * @param type The type the delay class must be compatible with.
+     * @param isPhysical Is this delay reactor using a physical action.
      */
     private Reactor getDelayClass(Type type, boolean isPhysical) {
         String className;

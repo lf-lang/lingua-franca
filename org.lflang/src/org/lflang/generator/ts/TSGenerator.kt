@@ -103,7 +103,7 @@ class TSGenerator(
      */
     override fun doGenerate(resource: Resource, context: LFGeneratorContext) {
         // Register the after delay transformation to be applied by GeneratorBase.
-        registerTransformation(DelayedConnectionTransformation(TSDelayBodyGenerator, targetTypes, resource, true, false))
+        registerTransformation(DelayedConnectionTransformation(TSDelayBodyGenerator, targetTypes, resource, true, true))
 
         super.doGenerate(resource, context)
 
