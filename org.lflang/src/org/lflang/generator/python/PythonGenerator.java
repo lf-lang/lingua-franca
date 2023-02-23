@@ -360,15 +360,12 @@ public class PythonGenerator extends CGenerator {
     public void generateAuxiliaryStructs(
         CodeBuilder builder, Reactor r
     ) {
-        // First, handle inputs.
         for (Input input : ASTUtils.allInputs(r)) {
             generateAuxiliaryStructsForPort(builder, r, input);
         }
-        // Next, handle outputs.
         for (Output output : ASTUtils.allOutputs(r)) {
             generateAuxiliaryStructsForPort(builder, r, output);
         }
-        // Finally, handle actions.
         for (Action action : ASTUtils.allActions(r)) {
             generateAuxiliaryStructsForAction(builder, r, action);
         }
@@ -377,14 +374,14 @@ public class PythonGenerator extends CGenerator {
     private void generateAuxiliaryStructsForPort(CodeBuilder builder, ReactorDecl decl,
                                                  Port port) {
         boolean isTokenType = CUtil.isTokenType(ASTUtils.getInferredType(port), types);
-        code.pr(port,
+        builder.pr(port,
                 PythonPortGenerator.generateAliasTypeDef(decl, port, isTokenType,
                                                          genericPortType));
     }
 
     private void generateAuxiliaryStructsForAction(CodeBuilder builder, ReactorDecl decl,
                                                    Action action) {
-        code.pr(action, PythonActionGenerator.generateAliasTypeDef(decl, action, genericActionType));
+        builder.pr(action, PythonActionGenerator.generateAliasTypeDef(decl, action, genericActionType));
     }
 
     /**
