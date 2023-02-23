@@ -910,47 +910,6 @@ public class CTriggerObjectsGenerator {
                 "        &"+reactorSelfStruct+"->base.allocations);"
             ));
         }
-        // If we are doing LET scheduling we need to store pointers from any reactor to 
-        //  immediate downstream LET reactors
-        if (targetConfig.schedulerType == TargetProperty.SchedulerOption.LET) {
-                code.startScopedBlock();
-                // Collect references to downstream LET reactors.
-                var downstreamReactions = reaction.dependentReactions();
-                // Use a set to find unique Reactor instances
-                var downstreamReactors = new LinkedHashSet<ReactorInstance>();
-                // Collect runtime references in List of strings
-                var downstreamReactorRefs = new ArrayList<String>();
-                for (ReactionInstance rreaction : downstreamReactions) {
-                    ReactorInstance reactor = rreaction.getParent();
-                    if(downstreamReactors.add(reactor)) {
-                        if(reactor.hasLetReactions()) {
-                            for (int i = 0; i<reactor.getWidth(); i++) {
-                                downstreamReactorRefs.add(CUtil.reactorRef(reactor, Integer.toString(i)));
-                            }
-                        }
-                    }
-                }
-
-                var n_downstream = downstreamReactorRefs.size();
-                code.pr(CUtil.reactionRef(reaction)+".num_downstream_let_reactors = " + n_downstream + ";");
-                if (n_downstream > 0) {
-                    // First build a List of all the references to the downstream reactors of this
-                    //  LET reaction. If any downstream is a bank, then all the reactors in the bank are added
-                    // FIXME: How can we add only the runtime instances which actually are connected?
-                    code.pr(String.join("\n",
-                        "void* _downstream_let_reactors[] = { (void *)" + joinObjects(downstreamReactorRefs, ", (void *)") + "};",
-                        "// Allocate memory for downstream reactors",
-                        CUtil.reactionRef(reaction)+".downstream_let_reactors = (void**)_lf_allocate(",
-                        "        "+n_downstream+", sizeof(void*),",
-                        "        &"+reactorSelfStruct+"->base.allocations);",
-                        "for (int i=0; i<"+n_downstream+"; i++) {",
-                        "   "+ CUtil.reactionRef(reaction)+".downstream_let_reactors[i] = (void *) _downstream_let_reactors[i];",
-                        "}"
-                    ));
-                }
-                code.endScopedBlock();
-            }
-
         code.pr(String.join("\n",
             init.toString(),
             "// ** End initialization for reaction "+reaction.index+" of "+name
