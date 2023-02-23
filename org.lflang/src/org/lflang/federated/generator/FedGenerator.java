@@ -175,8 +175,9 @@ public class FedGenerator {
             final List<DockerData> services = new ArrayList();
             // 1. create a Dockerfile for each federate
             subContexts.forEach((subContext) -> {
-                // Inherit Docker properties from main context
+                // Inherit certain properties from main context
                 subContext.getTargetConfig().dockerOptions = context.getTargetConfig().dockerOptions;
+                subContext.getTargetConfig().tracing = context.getTargetConfig().tracing;
                 var dockerGenerator = dockerGeneratorFactory(subContext);
                 var dockerData = dockerGenerator.generateDockerData();
                 try {
