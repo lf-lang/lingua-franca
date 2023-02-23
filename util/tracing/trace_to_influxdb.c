@@ -117,6 +117,9 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define MAX_NUM_REACTIONS 64  // Maximum number of reactions reported in summary stats.
 #define MAX_NUM_WORKERS 64
 
+/** File containing the trace binary data. */
+FILE* trace_file = NULL;
+
 /** Struct identifying the influx client. */
 influx_client_t influx_client;
 influx_v2_client_t influx_v2_client;
@@ -259,7 +262,8 @@ int main(int argc, char* argv[]) {
         exit(1);
     }
 
-    open_files(filename, NULL);
+    // Open the trace file.
+    trace_file = open_file(filename, "r");
 
     if (read_header() >= 0) {
         size_t num_records = 0, result;
