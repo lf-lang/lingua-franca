@@ -277,7 +277,7 @@ Variable:
 
 VarRef:
     (variable=[Variable] | container=[Instantiation] '.' variable=[Variable]
-    | interleaved?='interleaved' '(' (variable=[Variable] | container=[Instantiation] '.' variable=[Variable]) ')') ('as' (name=ID))?
+    | interleaved?='interleaved' '(' (variable=[Variable] | container=[Instantiation] '.' variable=[Variable]) ')') ('as' (alias=ID))?
 ;
 VarRefOrModeTransition returns VarRef:
     VarRef | transition=ModeTransition '(' variable=[Mode] ')';
