@@ -1099,7 +1099,9 @@ public class CGenerator extends GeneratorBase {
     }
 
     protected void generateIncludes(ReactorDecl decl) {
+        if (CCppMode) code.pr("extern \"C\" {");
         code.pr("#include \"include/" + decl.getName() + ".h\"");
+        if (CCppMode) code.pr("}");
     }
 
     /**
