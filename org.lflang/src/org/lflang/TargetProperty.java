@@ -580,8 +580,7 @@ public enum TargetProperty {
             }),
 
     /**
-     * Directive to generate a Dockerfile. This is either a boolean,
-     * true or false, or a dictionary of options.
+     * Directive to enable tracing.
      */
     TRACING("tracing", UnionType.TRACING_UNION,
             Arrays.asList(Target.C, Target.CCPP, Target.CPP, Target.Python),
