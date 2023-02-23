@@ -22,6 +22,7 @@ import org.lflang.lf.Action;
 import org.lflang.lf.ActionOrigin;
 import org.lflang.lf.Assignment;
 import org.lflang.lf.Connection;
+import org.lflang.lf.Expression;
 import org.lflang.lf.Initializer;
 import org.lflang.lf.Input;
 import org.lflang.lf.Instantiation;
@@ -40,7 +41,13 @@ import org.lflang.lf.VarRef;
 import org.lflang.lf.WidthSpec;
 import org.lflang.lf.WidthTerm;
 
-public class AfterDelayTransformation implements AstTransformation {
+/**
+ This class implements AST transformations for delayed connections.
+ There are two types of delayed connections:
+ 1) Connections with `after`-delays
+ 2) Physical connections
+ */
+public class DelayedConnectionTransformation implements AstTransformation {
 
     /**
      * The Lingua Franca factory for creating new AST nodes.
@@ -62,15 +69,19 @@ public class AfterDelayTransformation implements AstTransformation {
      */
     private final Resource mainResource;
 
+    private boolean transformAfterDelays = false;
+    private boolean transformPhysicalConnection = false;
     /**
      * Collection of generated delay classes.
      */
     private final LinkedHashSet<Reactor> delayClasses = new LinkedHashSet<>();
 
-    public AfterDelayTransformation(DelayBodyGenerator generator, TargetTypes targetTypes, Resource mainResource) {
+    public DelayedConnectionTransformation(DelayBodyGenerator generator, TargetTypes targetTypes, Resource mainResource, boolean transformAfterDelays, boolean transformPhysicalConnections) {
         this.generator = generator;
         this.targetTypes = targetTypes;
         this.mainResource = mainResource;
+        this.transformAfterDelays = transformAfterDelays;
+        this.transformPhysicalConnection = transformPhysicalConnections;
     }
 
     /**
@@ -96,14 +107,15 @@ public class AfterDelayTransformation implements AstTransformation {
         // Iterate over the connections in the tree.
         for (Reactor container : reactors) {
             for (Connection connection : ASTUtils.allConnections(container)) {
-                if (connection.getDelay() != null) {
+                if ( transformAfterDelays && connection.getDelay() != null ||
+                    transformPhysicalConnection && connection.isPhysical()) {
                     EObject parent = connection.eContainer();
                     // Assume all the types are the same, so just use the first on the right.
                     Type type = ((Port) connection.getRightPorts().get(0).getVariable()).getType();
-                    Reactor delayClass = getDelayClass(type);
+                    Reactor delayClass = getDelayClass(type, connection.isPhysical());
                     String generic = targetTypes.supportsGenerics() ? targetTypes.getTargetType(InferredType.fromAST(type)) : "";
                     Instantiation delayInstance = getDelayInstance(delayClass, connection, generic,
-                        !generator.generateAfterDelaysWithVariableWidth());
+                        !generator.generateAfterDelaysWithVariableWidth(), connection.isPhysical());
 
                     // Stage the new connections for insertion into the tree.
                     List<Connection> connections = ASTUtils.convertToEmptyListIfNull(newConnections.get(parent));
@@ -203,9 +215,12 @@ public class AfterDelayTransformation implements AstTransformation {
      *  is a wide connection, then instantiate a bank of delays where the width
      *  is given by ports involved in the connection. Otherwise, the width will
      *  be  unspecified indicating a variable length.
+     *  @param isPhysical Is this a delay instance using a physical action.
+     *   These are used for implementing Physical Connections. If true
+     *   we will accept zero delay on the connection.
      */
     private static Instantiation getDelayInstance(Reactor delayClass,
-        Connection connection, String generic, Boolean defineWidthFromConnection) {
+        Connection connection, String generic, Boolean defineWidthFromConnection, Boolean isPhysical) {
         Instantiation delayInstance = factory.createInstantiation();
         delayInstance.setReactorClass(delayClass);
         if (!StringExtensions.isNullOrEmpty(generic)) {
@@ -230,12 +245,17 @@ public class AfterDelayTransformation implements AstTransformation {
             }
             delayInstance.setWidthSpec(widthSpec);
         }
-        Assignment assignment = factory.createAssignment();
-        assignment.setLhs(delayClass.getParameters().get(0));
-        Initializer init = factory.createInitializer();
-        init.getExprs().add(Objects.requireNonNull(connection.getDelay(), "null delay"));
-        assignment.setRhs(init);
-        delayInstance.getParameters().add(assignment);
+        // Allow physical connections with no after delay
+        //  they will use the default min_delay of 0.
+        if (!isPhysical || connection.getDelay() != null) {
+            Assignment assignment = factory.createAssignment();
+            assignment.setLhs(delayClass.getParameters().get(0));
+            Initializer init = factory.createInitializer();
+            init.getExprs().add(Objects.requireNonNull(connection.getDelay(), "null delay"));
+            assignment.setRhs(init);
+            delayInstance.getParameters().add(assignment);
+        }
+
         delayInstance.setName("delay");  // This has to be overridden.
         return delayInstance;
     }
@@ -247,8 +267,9 @@ public class AfterDelayTransformation implements AstTransformation {
      * subsequent calls, or otherwise, it will synthesize a new definition for
      * each new type it hasn't yet created a compatible delay reactor for.
      * @param type The type the delay class must be compatible with.
+     * @param isPhysical Is this delay reactor using a physical action.
      */
-    private Reactor getDelayClass(Type type) {
+    private Reactor getDelayClass(Type type, boolean isPhysical) {
         String className;
         if (targetTypes.supportsGenerics()) {
             className = DelayBodyGenerator.GEN_DELAY_CLASS_NAME;
@@ -294,7 +315,11 @@ public class AfterDelayTransformation implements AstTransformation {
         var paramRef = factory.createParameterReference();
         paramRef.setParameter(delayParameter);
         action.setMinDelay(paramRef);
-        action.setOrigin(ActionOrigin.LOGICAL);
+        if (isPhysical) {
+            action.setOrigin(ActionOrigin.PHYSICAL);
+        } else {
+            action.setOrigin(ActionOrigin.LOGICAL);
+        }
 
         if (targetTypes.supportsGenerics()) {
             action.setType(factory.createType());
