@@ -54,10 +54,10 @@ public class CReactorHeaderFileGenerator {
     private static void appendSelfStruct(CodeBuilder builder, CTypes types, Reactor r) {
         builder.pr("typedef struct " + selfStructName(r.getName()) + "{");
         for (Parameter p : r.getParameters()) {
-            builder.pr(types.getTargetType(p.getType()) + " " + p.getName() + ";");
+            builder.pr(types.getTargetType(p) + " " + p.getName() + ";");
         }
         for (StateVar s : r.getStateVars()) {
-            builder.pr(types.getTargetType(s.getType()) + " " + s.getName() + ";");
+            builder.pr(types.getTargetType(s) + " " + s.getName() + ";");
         }
         builder.pr("int end[0]; // placeholder; MSVC does not compile empty structs");
         builder.pr("} " + selfStructName(r.getName()) + ";");
