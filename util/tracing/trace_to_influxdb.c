@@ -152,9 +152,9 @@ size_t read_and_write_trace() {
     // Write each line.
     for (int i = 0; i < trace_length; i++) {
         char* reaction_name = "none";
-        if (trace[i].reaction_number >= 0) {
+        if (trace[i].id_number >= 0) {
             reaction_name = (char*)malloc(4);
-            snprintf(reaction_name, 4, "%d", trace[i].reaction_number);
+            snprintf(reaction_name, 4, "%d", trace[i].id_number);
         }
         // printf("DEBUG: reactor self struct pointer: %p\n", trace[i].pointer);
         int object_instance = -1;

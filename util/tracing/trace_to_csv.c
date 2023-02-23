@@ -95,9 +95,9 @@ size_t read_and_write_trace() {
     // Write each line.
     for (int i = 0; i < trace_length; i++) {
         char* reaction_name = "none";
-        if (trace[i].reaction_number >= 0) {
+        if (trace[i].id_number >= 0) {
             reaction_name = (char*)malloc(4);
-            snprintf(reaction_name, 4, "%d", trace[i].reaction_number);
+            snprintf(reaction_name, 4, "%d", trace[i].id_number);
         }
         // printf("DEBUG: reactor self struct pointer: %p\n", trace[i].pointer);
         int object_instance = -1;
@@ -150,16 +150,16 @@ size_t read_and_write_trace() {
             case reaction_ends:
                 // This code relies on the mutual exclusion of reactions in a reactor
                 // and the ordering of reaction_starts and reaction_ends events.
-                if (trace[i].reaction_number >= MAX_NUM_REACTIONS) {
+                if (trace[i].id_number >= MAX_NUM_REACTIONS) {
                     fprintf(stderr, "WARNING: Too many reactions. Not all will be shown in summary file.\n");
                     continue;
                 }
                 stats = summary_stats[NUM_EVENT_TYPES + object_instance];
                 stats->description = reactor_name;
-                if (trace[i].reaction_number >= stats->num_reactions_seen) {
-                    stats->num_reactions_seen = trace[i].reaction_number + 1;
+                if (trace[i].id_number >= stats->num_reactions_seen) {
+                    stats->num_reactions_seen = trace[i].id_number + 1;
                 }
-                rstats = &stats->reactions[trace[i].reaction_number];
+                rstats = &stats->reactions[trace[i].id_number];
                 if (trace[i].event_type == reaction_starts) {
                     rstats->latest_start_time = trace[i].physical_time;
                 } else {
@@ -415,7 +415,7 @@ int main(int argc, char* argv[]) {
         summary_stats = (summary_stats_t**)calloc(table_size, sizeof(summary_stats_t*));
 
         // Write a header line into the CSV file.
-        fprintf(output_file, "Event, Reactor, Reaction, Worker, Elapsed Logical Time, Microstep, Elapsed Physical Time, Trigger, Extra Delay\n");
+        fprintf(output_file, "Event, Reactor, ID, Worker, Elapsed Logical Time, Microstep, Elapsed Physical Time, Trigger, Extra Delay\n");
         while (read_and_write_trace() != 0) {};
 
         write_summary_file();

@@ -70,9 +70,9 @@ size_t read_and_write_trace() {
     // Write each line.
     for (int i = 0; i < trace_length; i++) {
         char* reaction_name = "\"UNKNOWN\"";
-        if (trace[i].reaction_number >= 0) {
+        if (trace[i].id_number >= 0) {
             reaction_name = (char*)malloc(4);
-            snprintf(reaction_name, 4, "%d", trace[i].reaction_number);
+            snprintf(reaction_name, 4, "%d", trace[i].id_number);
         }
         // printf("DEBUG: Reactor's self struct pointer: %p\n", trace[i].pointer);
         int reactor_index;
@@ -217,13 +217,13 @@ size_t read_and_write_trace() {
             pid = reactor_index + 1;
             reaction_name = (char*)malloc(4);
             char name[13];
-            snprintf(name, 13, "reaction %d", trace[i].reaction_number);
+            snprintf(name, 13, "reaction %d", trace[i].id_number);
 
             // NOTE: If the reactor has more than 1024 timers and actions, then
             // there will be a collision of thread IDs here.
-            thread_id = 1024 + trace[i].reaction_number;
-            if (trace[i].reaction_number > max_reaction_number) {
-                max_reaction_number = trace[i].reaction_number;
+            thread_id = 1024 + trace[i].id_number;
+            if (trace[i].id_number > max_reaction_number) {
+                max_reaction_number = trace[i].id_number;
             }
 
             fprintf(output_file, "{"
