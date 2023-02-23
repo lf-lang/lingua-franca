@@ -789,12 +789,12 @@ public class CReactionGenerator {
                 "self->_lf__reaction_"+reactionCount+".name = "+addDoubleQuotes("?")+";",
                 (reaction.eContainer() instanceof Mode ?
                 "self->_lf__reaction_"+reactionCount+".mode = &self->_lf__modes["+reactor.getModes().indexOf((Mode) reaction.eContainer())+"];" :
-                "self->_lf__reaction_"+reactionCount+".mode = NULL;",
+                "self->_lf__reaction_"+reactionCount+".mode = NULL;"),
                     "#if SCHEDULER == LET",
                     "self->_lf__reaction_"+reactionCount+".let_setup = "+ CReactionGenerator.generateReactionSetupFunctionName(decl, reactionCount)+";",
                     "self->_lf__reaction_"+reactionCount+".let_cleanup = "+ CReactionGenerator.generateReactionCleanupFunctionName(decl, reactionCount)+";",
                     "#endif"
-                )));
+                ));
             // Increment the reactionCount even if the reaction is not in the federate
             // so that reaction indices are consistent across federates.
             reactionCount++;

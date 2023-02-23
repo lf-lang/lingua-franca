@@ -22,8 +22,6 @@ import org.lflang.TargetConfig;
 import org.lflang.TargetProperty;
 import org.lflang.TargetProperty.CoordinationType;
 import org.lflang.TimeValue;
-import org.lflang.federated.CGeneratorExtension;
-import org.lflang.federated.FederateInstance;
 
 import org.lflang.TargetProperty.LogLevel;
 import org.lflang.federated.extensions.CExtensionUtils;

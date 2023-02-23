@@ -60,6 +60,7 @@ import org.lflang.lf.Input;
 import org.lflang.lf.Instantiation;
 import org.lflang.lf.LfFactory;
 import org.lflang.lf.Mode;
+import org.lflang.lf.Action;
 import org.lflang.lf.Model;
 import org.lflang.lf.Output;
 import org.lflang.lf.Parameter;

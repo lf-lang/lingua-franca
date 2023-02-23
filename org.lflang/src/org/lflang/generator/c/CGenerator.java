@@ -1846,13 +1846,12 @@ public class CGenerator extends GeneratorBase {
     private void generateSetLET(ReactorInstance instance) {
         // FIXME: Should we use #ifdefs instead?
         if (targetConfig.schedulerType == TargetProperty.SchedulerOption.LET) {
+            // FIXME: There was a if instance of current federate here. What to do with it?
             for (ReactionInstance reaction : instance.reactions) {
-                if (currentFederate.contains(reaction.getDefinition())) {
                     var selfRef = CUtil.reactorRef(reaction.getParent())+"->_lf__reaction_"+reaction.index;
                     var let = reaction.getLogicalExecutionTime();
                     initializeTriggerObjects.pr(selfRef+".let = "
                             + GeneratorBase.timeInTargetLanguage(reaction.getLogicalExecutionTime())+";");
-                }
             }
         }
     }
