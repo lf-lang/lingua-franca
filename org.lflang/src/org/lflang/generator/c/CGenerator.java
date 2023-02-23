@@ -542,8 +542,11 @@ public class CGenerator extends GeneratorBase {
                 }
             } else {
                 try {
-                    FileUtil.arduinoDeleteHelper(fileConfig.getSrcGenPath().resolve("src/"), targetConfig.threading);
-                    FileUtil.relativeIncludeHelper(fileConfig.getSrcGenPath().resolve("src/"));
+                    Path include = fileConfig.getSrcGenPath().resolve("include/");
+                    Path src = fileConfig.getSrcGenPath().resolve("src/");
+                    FileUtil.arduinoDeleteHelper(src, targetConfig.threading);
+                    FileUtil.relativeIncludeHelper(src, include);
+                    FileUtil.relativeIncludeHelper(include, include);
                 } catch (IOException e) {
                     //noinspection ThrowableNotThrown,ResultOfMethodCallIgnored
                     Exceptions.sneakyThrow(e);
@@ -1096,7 +1099,7 @@ public class CGenerator extends GeneratorBase {
     }
 
     protected void generateIncludes(ReactorDecl decl) {
-        code.pr("#include \"" + decl.getName() + ".h\"");
+        code.pr("#include \"include/" + decl.getName() + ".h\"");
     }
 
     /**

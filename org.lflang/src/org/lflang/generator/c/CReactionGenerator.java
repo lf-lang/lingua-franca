@@ -1055,10 +1055,9 @@ public class CReactionGenerator {
                         types, errorReporter, mainDef,
                         requiresType);
 
-        String srcPrefix = targetConfig.platformOptions.platform == Platform.ARDUINO ? "src/" : "";
         code.pr(
             "#include " + StringUtil.addDoubleQuotes(
-                srcPrefix + CCoreFilesUtils.getCTargetSetHeader()));
+                CCoreFilesUtils.getCTargetSetHeader()));
 
         CMethodGenerator.generateMacrosForMethods(ASTUtils.toDefinition(decl), code);
         code.pr(generateFunction(
@@ -1083,7 +1082,7 @@ public class CReactionGenerator {
         CMethodGenerator.generateMacroUndefsForMethods(ASTUtils.toDefinition(decl), code);
         code.pr(
             "#include " + StringUtil.addDoubleQuotes(
-                srcPrefix + CCoreFilesUtils.getCTargetSetUndefHeader()));
+                CCoreFilesUtils.getCTargetSetUndefHeader()));
         return code.toString();
     }
 

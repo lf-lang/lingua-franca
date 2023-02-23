@@ -36,30 +36,20 @@ public class CPreambleGenerator {
         if (cppMode || targetConfig.platformOptions.platform == Platform.ARDUINO) {
             code.pr("extern \"C\" {");
         }
-        
-        String relPathHeader = "";
-        if (targetConfig.platformOptions.platform == Platform.ARDUINO) {
-            relPathHeader = "src/include/";
-
-            CCoreFilesUtils.getCTargetHeader().forEach(
-                it -> code.pr("#include " + StringUtil.addDoubleQuotes("src/" + it))
-            );
-        } else { 
-            CCoreFilesUtils.getCTargetHeader().forEach(
-                it -> code.pr("#include " + StringUtil.addDoubleQuotes(it))
-            );
-        }
-        code.pr("#include \"" + relPathHeader + "core/reactor.h\"");
-        code.pr("#include \"" + relPathHeader + "core/reactor_common.h\"");
+        CCoreFilesUtils.getCTargetHeader().forEach(
+            it -> code.pr("#include " + StringUtil.addDoubleQuotes(it))
+        );
+        code.pr("#include \"include/core/reactor.h\"");
+        code.pr("#include \"include/core/reactor_common.h\"");
         if (targetConfig.threading) {
-            code.pr("#include \"" + relPathHeader + "core/threaded/scheduler.h\"");
+            code.pr("#include \"include/core/threaded/scheduler.h\"");
         }
 
         if (tracing != null) {
-            code.pr("#include \"" + relPathHeader + "core/trace.h\"");
+            code.pr("#include \"include/core/trace.h\"");
         }
-        code.pr("#include \"" + relPathHeader + "core/mixed_radix.h\"");
-        code.pr("#include \"" + relPathHeader + "core/port.h\"");
+        code.pr("#include \"include/core/mixed_radix.h\"");
+        code.pr("#include \"include/core/port.h\"");
         code.pr("int lf_reactor_c_main(int argc, const char* argv[]);");
         if(targetConfig.fedSetupPreamble != null) {
             code.pr("#include \"" + relPathHeader + "core/federated/federate.h\"");
