@@ -59,6 +59,7 @@ public class CReactorHeaderFileGenerator {
         for (StateVar s : r.getStateVars()) {
             builder.pr(types.getTargetType(s.getType()) + " " + s.getName() + ";");
         }
+        builder.pr("int end[0]; // placeholder; MSVC does not compile empty structs");
         builder.pr("} " + selfStructName(r.getName()) + ";");
     }
 

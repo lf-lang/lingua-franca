@@ -276,8 +276,8 @@ Variable:
     TypedVariable | Timer | Mode;
 
 VarRef:
-    variable=[Variable] | container=[Instantiation] '.' variable=[Variable]
-    | interleaved?='interleaved' '(' (variable=[Variable] | container=[Instantiation] '.' variable=[Variable]) ')'
+    (variable=[Variable] | container=[Instantiation] '.' variable=[Variable]
+    | interleaved?='interleaved' '(' (variable=[Variable] | container=[Instantiation] '.' variable=[Variable]) ')') ('as' (name=ID))?
 ;
 VarRefOrModeTransition returns VarRef:
     VarRef | transition=ModeTransition '(' variable=[Mode] ')';

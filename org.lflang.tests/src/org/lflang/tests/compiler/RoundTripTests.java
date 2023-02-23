@@ -40,6 +40,7 @@ public class RoundTripTests {
 
     private void run(Path file) throws Exception {
         Model originalModel = LfParsingUtil.parse(file);
+        System.out.println(file);
         assertThat(originalModel.eResource().getErrors(), equalTo(emptyList()));
         // TODO: Check that the output is a fixed point
         final int smallLineLength = 20;

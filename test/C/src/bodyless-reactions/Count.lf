@@ -1,10 +1,6 @@
 target C {
-    cmake-include: [
-        "../../c/count.cmake"
-    ],
-    files: [
-        "../../c"
-    ]
+    cmake-include: ["../../c/count.cmake"],
+    files: ["../../c"]
 }
 
 main reactor Count {
@@ -12,11 +8,9 @@ main reactor Count {
 
     state count: int
 
-    reaction increment(t)
+    reaction(t) named increment
 
-    reaction check_done(t)
+    reaction(t) named check_done
 
-    reaction(shutdown) {=
-        printf("%s", "shutting down\n");
-    =}
+    reaction(shutdown) {= printf("%s", "shutting down\n"); =}
 }

@@ -1,22 +1,18 @@
 target C {
-    cmake-include: [
-        "../../c/sendreceive.cmake"
-    ],
-    files: [
-        "../../c"
-    ]
+    cmake-include: ["../../c/sendreceive.cmake"],
+    files: ["../../c"]
 }
 
 reactor Print {
     output out: int
 
-    reaction send(startup) -> out
+    reaction(startup) -> out named send
 }
 
 reactor Check(expected: int(42)) {  // expected parameter is for testing.
     input in: int
 
-    reaction receive(in)
+    reaction(in) named receive
 }
 
 main reactor {
