@@ -631,7 +631,6 @@ public enum TargetProperty {
                 }
             }),
 
-
     /**
      * Directive to let the runtime export its internal dependency graph.
      *
@@ -875,7 +874,7 @@ public enum TargetProperty {
         this.supportedBy = supportedBy;
         this.getter = getter;
         this.setter = setter;
-        this.updater = (config, value, err) -> { /* Ignore the update by default */ };
+        this.updater = setter; // (Re)set by default
     }
 
     /**
