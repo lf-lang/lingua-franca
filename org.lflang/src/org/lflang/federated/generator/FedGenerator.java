@@ -172,7 +172,7 @@ public class FedGenerator {
         }
 
         if (context.getTargetConfig().noCompile) {
-            context.finish(Status.COMPILED, lf2lfCodeMapMap);
+            context.finish(Status.GENERATED, lf2lfCodeMapMap);
             return false;
         }
 
