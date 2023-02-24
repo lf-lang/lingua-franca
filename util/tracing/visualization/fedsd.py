@@ -22,8 +22,10 @@ def prune_event_name(event_name) :
     Returns:
      * pruned event name  
     '''
-
-    if ('RTI receives ' in event_name) :
+    tmp_str = event_name
+    if ('RTI accepts joining federate' in event_name) :
+        tmp_str = "JOIN"
+    elif ('RTI receives ' in event_name) :
         tmp_str = event_name.split('RTI receives ')[1]
         tmp_str = tmp_str.split(' from federate')[0]
     elif ('RTI sends ' in event_name) :
@@ -98,8 +100,9 @@ if __name__ == '__main__':
     # Prune event names
     trace_df['event'] = trace_df['event'].apply(lambda e: prune_event_name(e))
 
-    # Set that these are the RTI information
+    # Set that these are the RTI information, by setting 
     trace_df['rti'] = True
+    # print(trace_df)
 
     # Count the number of actors
     actors_nbr = 1
@@ -123,6 +126,7 @@ if __name__ == '__main__':
             fed_df['inout'] = fed_df['event'].apply(lambda e: 'in' if 'receives' in e else 'out')
             fed_df['event'] = fed_df['event'].apply(lambda e: prune_event_name(e))
             fed_df['rti'] = False
+            # print(fed_df)
             actors_nbr = actors_nbr + 1
 
             # Append into trace_df
@@ -133,7 +137,8 @@ if __name__ == '__main__':
     trace_df = trace_df.reset_index(drop=True)
 
     # FIXME: For now, we need to remove the rows with negative physical time values...
-    # Until the reason behinf such values is investigated
+    # Until the reason behinf such values is investigated. The negative physical
+    # time is when federates are still in the process of joining
     trace_df = trace_df[trace_df['physical_time'] >= 0]
 
     # Add the Y column and initialize it with 0
@@ -145,15 +150,15 @@ if __name__ == '__main__':
     ppt = 0     # Previous physical time
     cpt = 0     # Current physical time
     py = 0      # Previous y
-    min = 10     # Will probably be set manually
-    scale = 1 # Will probably be set manually
+    min = 10    # Will probably be set manually
+    scale = 1   # Will probably be set manually
     for index, row in trace_df.iterrows():
         if (index != 2) :
             cpt = int(row['physical_time'])
             # print('cpt = '+str(cpt)+' and ppt = '+ppt)
             # From the email:
             # Y = T_previous + min + log10(1 + (T - T_previous)*scale)
-            # But i'd rather think it should be:
+            # But rather think it should be:
             py = math.ceil(py + min + (1 + math.log10(cpt - ppt) * scale))
             trace_df.at[index, 'y'] = py
 
@@ -230,5 +235,5 @@ if __name__ == '__main__':
         f.write('</html>\n')
 
 
-    # Write to a csv file
+    # Write to a csv file, just to double check
     trace_df.to_csv('all.csv', index=False)
