@@ -1,10 +1,7 @@
 package org.lflang.generator.c;
 
-import org.lflang.ASTUtils;
-import org.lflang.federated.generator.FederateInstance;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.lf.Reactor;
-import org.lflang.lf.ReactorDecl;
 
 /**
  * Generates C constructor code for a reactor.
@@ -23,7 +20,7 @@ public class CConstructorGenerator {
     ) {
         var structType = CUtil.selfType(reactor);
         var code = new CodeBuilder();
-        code.pr(structType+"* new_"+reactor.getName()+"() {");
+        code.pr(structType+"* new_"+CUtil.getName(reactor)+"() {");
         code.indent();
         code.pr(structType+"* self = ("+structType+"*)_lf_new_reactor(sizeof("+structType+"));");
         code.pr(constructorCode);

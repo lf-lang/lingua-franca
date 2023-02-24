@@ -147,11 +147,12 @@ public class CUtil {
      * reactor is main (to allow for instantiations that have the same name as
      * the main reactor or the .lf file).
      */
-    public static String getName(ReactorDecl reactor) {
-        if (reactor instanceof Reactor r && r.isMain()) {
-            return reactor.getName() + "_main";
+    public static String getName(Reactor reactor) {
+        String name = reactor.getName().toLowerCase() + reactor.hashCode();
+        if (reactor.isMain()) {
+            return name + "_main";
         }
-        return reactor.getName();
+        return name;
     }
 
     /**
@@ -517,9 +518,9 @@ public class CUtil {
      */
     public static String selfType(Reactor reactor) {
         if (reactor.isMain()) {
-            return "_" + reactor.getName().toLowerCase() + "_main_self_t";
+            return "_" + CUtil.getName(reactor) + "_main_self_t";
         }
-        return "_" + reactor.getName().toLowerCase() + "_self_t";
+        return "_" + CUtil.getName(reactor) + "_self_t";
     }
 
     /** Construct a unique type for the "self" struct of the class of the given reactor. */

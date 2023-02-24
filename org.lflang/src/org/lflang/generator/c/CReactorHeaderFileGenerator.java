@@ -5,13 +5,11 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import org.lflang.InferredType;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.lf.Parameter;
 import org.lflang.lf.Port;
 import org.lflang.lf.Reaction;
 import org.lflang.lf.Reactor;
-import org.lflang.lf.ReactorDecl;
 import org.lflang.lf.StateVar;
 import org.lflang.lf.TriggerRef;
 import org.lflang.lf.TypedVariable;
@@ -27,7 +25,7 @@ public class CReactorHeaderFileGenerator {
 
     public static void doGenerate(CTypes types, Reactor r, CFileConfig fileConfig, GenerateAuxiliaryStructs generator) throws IOException {
         String contents = generateHeaderFile(types, r, generator);
-        FileUtil.writeToFile(contents, fileConfig.getIncludePath().resolve(r.getName() + ".h"));
+        FileUtil.writeToFile(contents, fileConfig.getIncludePath().resolve(CUtil.getName(r) + ".h"));
     }
     private static String generateHeaderFile(CTypes types, Reactor r, GenerateAuxiliaryStructs generator) {
         CodeBuilder builder = new CodeBuilder();
@@ -43,7 +41,7 @@ public class CReactorHeaderFileGenerator {
     }
 
     private static void appendIncludeGuard(CodeBuilder builder, Reactor r) {
-        String macro = r.getName().toUpperCase() + "_H";
+        String macro = CUtil.getName(r) + "_H";
         builder.pr("#ifndef " + macro);
         builder.pr("#define " + macro);
     }
@@ -56,7 +54,7 @@ public class CReactorHeaderFileGenerator {
     }
 
     private static String userFacingSelfType(Reactor r) {
-        return r.getName().toLowerCase() + "_self_t";
+        return r.getName().toLowerCase() + r.hashCode() + "_self_t";
     }
 
     private static void appendSelfStruct(CodeBuilder builder, CTypes types, Reactor r) {

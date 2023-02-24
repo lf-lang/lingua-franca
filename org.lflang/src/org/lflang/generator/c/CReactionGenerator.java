@@ -666,17 +666,16 @@ public class CReactionGenerator {
      * specified reactor and a trigger_t struct for each trigger (input, action,
      * timer, or output of a contained reactor).
      * @param body The place to put the code for the self struct.
-     * @param decl The reactor.
+     * @param reactor The reactor.
      * @param constructorCode The place to put the constructor code.
      */
     public static void generateReactionAndTriggerStructs(
         CodeBuilder body,
-        ReactorDecl decl,
+        Reactor reactor,
         CodeBuilder constructorCode,
         CTypes types
     ) {
         var reactionCount = 0;
-        var reactor = ASTUtils.toDefinition(decl);
         // Iterate over reactions and create initialize the reaction_t struct
         // on the self struct. Also, collect a map from triggers to the reactions
         // that are triggered by that trigger. Also, collect a set of sources
@@ -732,7 +731,7 @@ public class CReactionGenerator {
             var deadlineFunctionPointer = "NULL";
             if (reaction.getDeadline() != null) {
                 // The following has to match the name chosen in generateReactions
-                var deadlineFunctionName = generateDeadlineFunctionName(decl, reactionCount);
+                var deadlineFunctionName = generateDeadlineFunctionName(reactor, reactionCount);
                 deadlineFunctionPointer = "&" + deadlineFunctionName;
             }
 
@@ -740,7 +739,7 @@ public class CReactionGenerator {
             var STPFunctionPointer = "NULL";
             if (reaction.getStp() != null) {
                 // The following has to match the name chosen in generateReactions
-                var STPFunctionName = generateStpFunctionName(decl, reactionCount);
+                var STPFunctionName = generateStpFunctionName(reactor, reactionCount);
                 STPFunctionPointer = "&" + STPFunctionName;
             }
 
@@ -754,7 +753,7 @@ public class CReactionGenerator {
             // self->_lf__reaction_"+reactionCount+".is_STP_violated = false;
             constructorCode.pr(reaction, String.join("\n",
                 "self->_lf__reaction_"+reactionCount+".number = "+reactionCount+";",
-                "self->_lf__reaction_"+reactionCount+".function = "+CReactionGenerator.generateReactionFunctionName(decl, reactionCount)+";",
+                "self->_lf__reaction_"+reactionCount+".function = "+CReactionGenerator.generateReactionFunctionName(reactor, reactionCount)+";",
                 "self->_lf__reaction_"+reactionCount+".self = self;",
                 "self->_lf__reaction_"+reactionCount+".deadline_violation_handler = "+deadlineFunctionPointer+";",
                 "self->_lf__reaction_"+reactionCount+".STP_handler = "+STPFunctionPointer+";",
@@ -1032,12 +1031,12 @@ public class CReactionGenerator {
      *  a struct that contains parameters, state variables, inputs (triggering or not),
      *  actions (triggering or produced), and outputs.
      *  @param reaction The reaction.
-     *  @param decl The reactor.
+     *  @param r The reactor.
      *  @param reactionIndex The position of the reaction within the reactor.
      */
     public static String generateReaction(
         Reaction reaction,
-        ReactorDecl decl,
+        Reactor r,
         int reactionIndex,
         Instantiation mainDef,
         ErrorReporter errorReporter,
@@ -1046,9 +1045,9 @@ public class CReactionGenerator {
         boolean requiresType
     ) {
         var code = new CodeBuilder();
-        var body = ASTUtils.toText(getCode(types, reaction, decl));
+        var body = ASTUtils.toText(getCode(types, reaction, r));
         String init = generateInitializationForReaction(
-                        body, reaction, ASTUtils.toDefinition(decl), reactionIndex,
+                        body, reaction, ASTUtils.toDefinition(r), reactionIndex,
                         types, errorReporter, mainDef,
                         requiresType);
 
@@ -1056,27 +1055,27 @@ public class CReactionGenerator {
             "#include " + StringUtil.addDoubleQuotes(
                 CCoreFilesUtils.getCTargetSetHeader()));
 
-        CMethodGenerator.generateMacrosForMethods(ASTUtils.toDefinition(decl), code);
+        CMethodGenerator.generateMacrosForMethods(ASTUtils.toDefinition(r), code);
         code.pr(generateFunction(
-            generateReactionFunctionHeader(decl, reactionIndex),
-            init, getCode(types, reaction, decl)
+            generateReactionFunctionHeader(r, reactionIndex),
+            init, getCode(types, reaction, r)
         ));
         // Now generate code for the late function, if there is one
         // Note that this function can only be defined on reactions
         // in federates that have inputs from a logical connection.
         if (reaction.getStp() != null) {
             code.pr(generateFunction(
-                generateStpFunctionHeader(decl, reactionIndex),
+                generateStpFunctionHeader(r, reactionIndex),
                 init, reaction.getStp().getCode()));
         }
 
         // Now generate code for the deadline violation function, if there is one.
         if (reaction.getDeadline() != null) {
             code.pr(generateFunction(
-                generateDeadlineFunctionHeader(decl, reactionIndex),
+                generateDeadlineFunctionHeader(r, reactionIndex),
                 init, reaction.getDeadline().getCode()));
         }
-        CMethodGenerator.generateMacroUndefsForMethods(ASTUtils.toDefinition(decl), code);
+        CMethodGenerator.generateMacroUndefsForMethods(ASTUtils.toDefinition(r), code);
         code.pr(
             "#include " + StringUtil.addDoubleQuotes(
                 CCoreFilesUtils.getCTargetSetUndefHeader()));
@@ -1104,11 +1103,11 @@ public class CReactionGenerator {
 
     /**
      * Returns the name of the deadline function for reaction.
-     * @param decl The reactor with the deadline
+     * @param r The reactor with the deadline
      * @param reactionIndex The number assigned to this reaction deadline
      */
-    public static String generateDeadlineFunctionName(ReactorDecl decl, int reactionIndex) {
-        return CUtil.getName(decl).toLowerCase() + "_deadline_function" + reactionIndex;
+    public static String generateDeadlineFunctionName(Reactor r, int reactionIndex) {
+        return CUtil.getName(r).toLowerCase() + "_deadline_function" + reactionIndex;
     }
 
     /**
@@ -1118,44 +1117,44 @@ public class CReactionGenerator {
      * @param reactionIndex The reaction index.
      * @return The function name for the reaction.
      */
-    public static String generateReactionFunctionName(ReactorDecl reactor, int reactionIndex) {
+    public static String generateReactionFunctionName(Reactor reactor, int reactionIndex) {
         return CUtil.getName(reactor).toLowerCase() + "reaction_function_" + reactionIndex;
     }
 
     /**
      * Returns the name of the stp function for reaction.
-     * @param decl The reactor with the stp
+     * @param r The reactor with the stp
      * @param reactionIndex The number assigned to this reaction deadline
      */
-    public static String generateStpFunctionName(ReactorDecl decl, int reactionIndex) {
-        return CUtil.getName(decl).toLowerCase() + "_STP_function" + reactionIndex;
+    public static String generateStpFunctionName(Reactor r, int reactionIndex) {
+        return CUtil.getName(r).toLowerCase() + "_STP_function" + reactionIndex;
     }
 
-    /** Return the top level C function header for the deadline function numbered "reactionIndex" in "decl"
-     *  @param decl The reactor declaration
+    /** Return the top level C function header for the deadline function numbered "reactionIndex" in "r"
+     *  @param r The reactor declaration
      *  @param reactionIndex The reaction index.
      *  @return The function name for the deadline function.
      */
-    public static String generateDeadlineFunctionHeader(ReactorDecl decl,
+    public static String generateDeadlineFunctionHeader(Reactor r,
                                                         int reactionIndex) {
-        String functionName = generateDeadlineFunctionName(decl, reactionIndex);
+        String functionName = generateDeadlineFunctionName(r, reactionIndex);
         return generateFunctionHeader(functionName);
     }
 
-    /** Return the top level C function header for the reaction numbered "reactionIndex" in "decl"
-     *  @param decl The reactor declaration
+    /** Return the top level C function header for the reaction numbered "reactionIndex" in "r"
+     *  @param r The reactor declaration
      *  @param reactionIndex The reaction index.
      *  @return The function name for the reaction.
      */
-    public static String generateReactionFunctionHeader(ReactorDecl decl,
+    public static String generateReactionFunctionHeader(Reactor r,
                                                         int reactionIndex) {
-        String functionName = generateReactionFunctionName(decl, reactionIndex);
+        String functionName = generateReactionFunctionName(r, reactionIndex);
         return generateFunctionHeader(functionName);
     }
 
-    public static String generateStpFunctionHeader(ReactorDecl decl,
+    public static String generateStpFunctionHeader(Reactor r,
                                                    int reactionIndex) {
-        String functionName = generateStpFunctionName(decl, reactionIndex);
+        String functionName = generateStpFunctionName(r, reactionIndex);
         return generateFunctionHeader(functionName);
     }
 

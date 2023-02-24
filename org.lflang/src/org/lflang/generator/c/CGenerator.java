@@ -25,8 +25,6 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 package org.lflang.generator.c;
 
 import static org.lflang.ASTUtils.allActions;
-import static org.lflang.ASTUtils.allInputs;
-import static org.lflang.ASTUtils.allOutputs;
 import static org.lflang.ASTUtils.allPorts;
 import static org.lflang.ASTUtils.allReactions;
 import static org.lflang.ASTUtils.allStateVars;
@@ -37,9 +35,7 @@ import static org.lflang.ASTUtils.toDefinition;
 import static org.lflang.ASTUtils.toText;
 import static org.lflang.util.StringUtil.addDoubleQuotes;
 
-import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -90,7 +86,6 @@ import org.lflang.lf.Input;
 import org.lflang.lf.Instantiation;
 import org.lflang.lf.Mode;
 import org.lflang.lf.Model;
-import org.lflang.lf.Output;
 import org.lflang.lf.Port;
 import org.lflang.lf.Preamble;
 import org.lflang.lf.Reaction;
@@ -100,7 +95,6 @@ import org.lflang.lf.StateVar;
 import org.lflang.lf.Variable;
 import org.lflang.util.ArduinoUtil;
 import org.lflang.util.FileUtil;
-import org.lflang.util.LFCommand;
 
 import com.google.common.base.Objects;
 import com.google.common.collect.Iterables;
@@ -1101,7 +1095,7 @@ public class CGenerator extends GeneratorBase {
 
     protected void generateIncludes(ReactorDecl decl) {
         if (CCppMode) code.pr("extern \"C\" {");
-        code.pr("#include \"include/" + ASTUtils.toDefinition(decl).getName() + ".h\"");
+        code.pr("#include \"include/" + CUtil.getName(ASTUtils.toDefinition(decl)) + ".h\"");
         if (CCppMode) code.pr("}");
     }
 
@@ -1193,7 +1187,7 @@ public class CGenerator extends GeneratorBase {
         // Next, generate the fields needed for each reaction.
         CReactionGenerator.generateReactionAndTriggerStructs(
             body,
-            decl,
+            reactor,
             constructorCode,
             types
         );
@@ -1367,13 +1361,13 @@ public class CGenerator extends GeneratorBase {
      *  These functions have a single argument that is a void* pointing to
      *  a struct that contains parameters, state variables, inputs (triggering or not),
      *  actions (triggering or produced), and outputs.
-     *  @param decl The reactor.
+     *  @param r The reactor.
      */
-    public void generateReactions(ReactorDecl decl) {
+    public void generateReactions(Reactor r) {
         var reactionIndex = 0;
-        var reactor = ASTUtils.toDefinition(decl);
+        var reactor = ASTUtils.toDefinition(r);
         for (Reaction reaction : allReactions(reactor)) {
-            generateReaction(reaction, decl, reactionIndex);
+            generateReaction(reaction, r, reactionIndex);
             // Increment reaction index even if the reaction is not in the federate
             // so that across federates, the reaction indices are consistent.
             reactionIndex++;
@@ -1385,14 +1379,14 @@ public class CGenerator extends GeneratorBase {
      *  a struct that contains parameters, state variables, inputs (triggering or not),
      *  actions (triggering or produced), and outputs.
      *  @param reaction The reaction.
-     *  @param decl The reactor.
+     *  @param r The reactor.
      *  @param reactionIndex The position of the reaction within the reactor.
      */
-    protected void generateReaction(Reaction reaction, ReactorDecl decl, int reactionIndex) {
+    protected void generateReaction(Reaction reaction, Reactor r, int reactionIndex) {
 
         code.pr(CReactionGenerator.generateReaction(
             reaction,
-            decl,
+            r,
             reactionIndex,
             mainDef,
             errorReporter,
@@ -1641,7 +1635,7 @@ public class CGenerator extends GeneratorBase {
      * @return The name of the self struct.
      */
     public static String variableStructType(Variable variable, Reactor reactor) {
-        return reactor.getName().toLowerCase()+"_"+variable.getName()+"_t";
+        return CUtil.getName(reactor)+"_"+variable.getName()+"_t";
     }
 
     /**
@@ -1653,7 +1647,7 @@ public class CGenerator extends GeneratorBase {
      * @return The name of the self struct.
      */
     public static String variableStructType(TriggerInstance<?> portOrAction) {
-        return portOrAction.getParent().reactorDefinition.getName().toLowerCase()+"_"+portOrAction.getName()+"_t";
+        return CUtil.getName(portOrAction.getParent().reactorDefinition)+"_"+portOrAction.getName()+"_t";
     }
 
     /**
@@ -1682,7 +1676,7 @@ public class CGenerator extends GeneratorBase {
                 "// ***** Start initializing " + fullName + " of class " + reactorClass.getName());
         // Generate the instance self struct containing parameters, state variables,
         // and outputs (the "self" struct).
-        initializeTriggerObjects.pr(CUtil.reactorRefName(instance)+"["+CUtil.runtimeIndex(instance)+"] = new_"+reactorClass.getName()+"();");
+        initializeTriggerObjects.pr(CUtil.reactorRefName(instance)+"["+CUtil.runtimeIndex(instance)+"] = new_"+CUtil.getName(reactorClass)+"();");
         // Generate code to initialize the "self" struct in the
         // _lf_initialize_trigger_objects function.
         generateTraceTableEntries(instance);

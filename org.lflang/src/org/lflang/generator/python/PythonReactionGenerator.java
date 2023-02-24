@@ -34,46 +34,46 @@ import org.lflang.lf.Mode;
 
 public class PythonReactionGenerator {
     /**
-     * Generate code to call reaction numbered "reactionIndex" in reactor "decl".
-     * @param decl The reactor containing the reaction
+     * Generate code to call reaction numbered "reactionIndex" in reactor "reactor".
+     * @param reactor The reactor containing the reaction
      * @param reactionIndex The index of the reaction
      * @param pyObjects CPython related objects
      */
-    public static String generateCPythonReactionCaller(ReactorDecl decl,
+    public static String generateCPythonReactionCaller(Reactor reactor,
                                                         int reactionIndex,
                                                         List<String> pyObjects,
                                                         String inits) {
         String pythonFunctionName = generatePythonReactionFunctionName(reactionIndex);
         String cpythonFunctionName = generateCPythonReactionFunctionName(reactionIndex);
-        return generateCPythonFunctionCaller(decl.getName(), pythonFunctionName, cpythonFunctionName, pyObjects, inits);
+        return generateCPythonFunctionCaller(CUtil.getName(reactor), pythonFunctionName, cpythonFunctionName, pyObjects, inits);
     }
 
     /**
-     * Generate code to call deadline function numbered "reactionIndex" in reactor "decl".
-     * @param decl The reactor containing the reaction
+     * Generate code to call deadline function numbered "reactionIndex" in reactor "r".
+     * @param r The reactor containing the reaction
      * @param reactionIndex The index of the reaction
      * @param pyObjects CPython related objects
      */
-    public static String generateCPythonDeadlineCaller(ReactorDecl decl,
+    public static String generateCPythonDeadlineCaller(Reactor r,
                                                        int reactionIndex,
                                                        List<String> pyObjects) {
         String pythonFunctionName = generatePythonDeadlineFunctionName(reactionIndex);
         String cpythonFunctionName = generateCPythonDeadlineFunctionName(reactionIndex);
-        return generateCPythonFunctionCaller(decl.getName(), pythonFunctionName, cpythonFunctionName, pyObjects, "");
+        return generateCPythonFunctionCaller(CUtil.getName(r), pythonFunctionName, cpythonFunctionName, pyObjects, "");
     }
 
     /**
-     * Generate code to call deadline function numbered "reactionIndex" in reactor "decl".
-     * @param decl The reactor containing the reaction
+     * Generate code to call deadline function numbered "reactionIndex" in reactor "r".
+     * @param r The reactor containing the reaction
      * @param reactionIndex The index of the reaction
      * @param pyObjects CPython related objects
      */
-    public static String generateCPythonSTPCaller(ReactorDecl decl,
+    public static String generateCPythonSTPCaller(Reactor r,
                                                        int reactionIndex,
                                                        List<String> pyObjects) {
         String pythonFunctionName = generatePythonSTPFunctionName(reactionIndex);
         String cpythonFunctionName = generateCPythonSTPFunctionName(reactionIndex);
-        return generateCPythonFunctionCaller(decl.getName(), pythonFunctionName, cpythonFunctionName, pyObjects, "");
+        return generateCPythonFunctionCaller(CUtil.getName(r), pythonFunctionName, cpythonFunctionName, pyObjects, "");
     }
 
     /**

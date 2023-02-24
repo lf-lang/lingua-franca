@@ -457,16 +457,16 @@ public class PythonGenerator extends CGenerator {
      *  a struct that contains parameters, state variables, inputs (triggering or not),
      *  actions (triggering or produced), and outputs.
      *  @param reaction The reaction.
-     *  @param decl The reactor.
+     *  @param r The reactor.
      *  @param reactionIndex The position of the reaction within the reactor.
      */
     @Override
-    protected void generateReaction(Reaction reaction, ReactorDecl decl, int reactionIndex) {
-        Reactor reactor = ASTUtils.toDefinition(decl);
+    protected void generateReaction(Reaction reaction, Reactor r, int reactionIndex) {
+        Reactor reactor = ASTUtils.toDefinition(r);
 
         // Reactions marked with a `@_c_body` attribute are generated in C
         if (AttributeUtils.hasCBody(reaction)) {
-            super.generateReaction(reaction, decl, reactionIndex);
+            super.generateReaction(reaction, r, reactionIndex);
             return;
         }
         code.pr(PythonReactionGenerator.generateCReaction(reaction, reactor, reactionIndex, mainDef, errorReporter, types));
