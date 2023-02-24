@@ -1465,7 +1465,7 @@ public class LFValidator extends BaseLFValidator {
                         }
                     }
                     if (makesDifference) {
-                        warning("You should specifiy a transition type! "
+                        warning("You should specify a transition type! "
                                 + "Reset and history transitions have different effects on this target mode. "
                                 + "Currently, a reset type is implicitly assumed.",
                                 reaction, Literals.REACTION__EFFECTS, reaction.getEffects().indexOf(effect));

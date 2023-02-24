@@ -13,15 +13,15 @@ are permitted provided that the following conditions are met:
    this list of conditions and the following disclaimer in the documentation
    and/or other materials provided with the distribution.
 
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
-ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED 
-WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE 
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
 DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR
-ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES 
-(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; 
-LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON 
-ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT 
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS 
+ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
+ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ***************/
 package org.lflang.tests.compiler;
@@ -63,7 +63,7 @@ import com.google.inject.Inject;
 
 /**
  * Collection of unit tests to ensure validation is done correctly.
- * 
+ *
  * @author Edward A. Lee
  * @author Marten Lohstroh
  * @author Matt Weber
@@ -71,7 +71,7 @@ import com.google.inject.Inject;
  * @author Alexander Schulz-Rosengarten
  */
 public class LinguaFrancaValidationTest {
-    @Inject 
+    @Inject
     ParseHelper<Model> parser;
 
     @Inject
@@ -99,7 +99,7 @@ public class LinguaFrancaValidationTest {
         Assertions.assertNotNull(model);
         Assertions.assertFalse(model.eResource().getErrors().isEmpty());
         return model;
-    } 
+    }
 
     /**
      * Ensure that duplicate identifiers for actions reported.
@@ -121,15 +121,15 @@ public class LinguaFrancaValidationTest {
         "    logical action bar;",
         "    physical action bar;",
         "}");
-        validator.assertError(parseWithoutError(testCase), 
-                              LfPackage.eINSTANCE.getAction(), 
-                              null, 
+        validator.assertError(parseWithoutError(testCase),
+                              LfPackage.eINSTANCE.getAction(),
+                              null,
                               "Duplicate Variable 'bar' in Reactor 'Foo'");
     }
 
 
     /**
-     * Check that reactors in C++ cannot be named preamble 
+     * Check that reactors in C++ cannot be named preamble
      */
     @Test
     public void disallowReactorCalledPreamble() throws Exception {
@@ -142,11 +142,11 @@ public class LinguaFrancaValidationTest {
 // Java 11:
         Model model_no_errors = parser.parse(String.join(
                 System.getProperty("line.separator"),
-                "target Cpp;", 
+                "target Cpp;",
                 "main reactor {",
                 "}"
         ));
-        
+
 // Java 17:
 //         Model model_error_1 = """
 //             target Cpp;
@@ -156,7 +156,7 @@ public class LinguaFrancaValidationTest {
 // Java 11:
         Model model_error_1 = parser.parse(String.join(
             System.getProperty("line.separator"),
-            "target Cpp;", 
+            "target Cpp;",
             "main reactor Preamble {",
             "}"
         ));
@@ -172,30 +172,30 @@ public class LinguaFrancaValidationTest {
 // Java 11:
         Model model_error_2 = parser.parse(String.join(
             System.getProperty("line.separator"),
-            "target Cpp;", 
+            "target Cpp;",
             "reactor Preamble {",
             "}",
             "main reactor Main {",
             "}"
         ));
-                
+
         Assertions.assertNotNull(model_no_errors);
         Assertions.assertNotNull(model_error_1);
         Assertions.assertNotNull(model_error_2);
-        Assertions.assertTrue(model_no_errors.eResource().getErrors().isEmpty(), 
+        Assertions.assertTrue(model_no_errors.eResource().getErrors().isEmpty(),
             "Encountered unexpected error while parsing: " + model_no_errors.eResource().getErrors());
-            Assertions.assertTrue(model_error_1.eResource().getErrors().isEmpty(), 
+            Assertions.assertTrue(model_error_1.eResource().getErrors().isEmpty(),
             "Encountered unexpected error while parsing: " + model_error_1.eResource().getErrors());
-            Assertions.assertTrue(model_error_2.eResource().getErrors().isEmpty(), 
+            Assertions.assertTrue(model_error_2.eResource().getErrors().isEmpty(),
             "Encountered unexpected error while parsing: " + model_error_2.eResource().getErrors());
 
         validator.assertNoIssues(model_no_errors);
-        validator.assertError(model_error_1, 
-                              LfPackage.eINSTANCE.getReactor(), 
+        validator.assertError(model_error_1,
+                              LfPackage.eINSTANCE.getReactor(),
                               null,
                               "Reactor cannot be named 'Preamble'");
-        validator.assertError(model_error_2, 
-                              LfPackage.eINSTANCE.getReactor(), 
+        validator.assertError(model_error_2,
+                              LfPackage.eINSTANCE.getReactor(),
                               null,
                               "Reactor cannot be named 'Preamble'");
     }
@@ -222,7 +222,7 @@ public class LinguaFrancaValidationTest {
         validator.assertError(parseWithoutError(testCase), LfPackage.eINSTANCE.getInput(), null,
             "Names of objects (inputs, outputs, actions, timers, parameters, state, reactor definitions, and reactor instantiation) may not start with \"__\": __bar");
     }
-    
+
     @Test
     public void disallowMainWithDifferentNameThanFile() throws Exception {
 // Java 17:
@@ -239,7 +239,7 @@ public class LinguaFrancaValidationTest {
         validator.assertError(parseWithoutError(testCase), LfPackage.eINSTANCE.getReactor(), null,
             "Name of main reactor must match the file name (or be omitted)");
     }
-    
+
 
     /**
      * Ensure that "__" is not allowed at the start of an output name.
@@ -283,9 +283,9 @@ public class LinguaFrancaValidationTest {
         "    logical action __bar;",
         "}");
         validator.assertError(parseWithoutError(testCase), LfPackage.eINSTANCE.getAction(), null,
-            "Names of objects (inputs, outputs, actions, timers, parameters, state, reactor definitions, and reactor instantiation) may not start with \"__\": __bar"); 
+            "Names of objects (inputs, outputs, actions, timers, parameters, state, reactor definitions, and reactor instantiation) may not start with \"__\": __bar");
     }
-    
+
     /**
      * Ensure that "__" is not allowed at the start of a timer name.
      */
@@ -305,9 +305,9 @@ public class LinguaFrancaValidationTest {
         "    timer __bar(0);",
         "}");
         validator.assertError(parseWithoutError(testCase), LfPackage.eINSTANCE.getTimer(), null,
-            "Names of objects (inputs, outputs, actions, timers, parameters, state, reactor definitions, and reactor instantiation) may not start with \"__\": __bar"); 
+            "Names of objects (inputs, outputs, actions, timers, parameters, state, reactor definitions, and reactor instantiation) may not start with \"__\": __bar");
     }
-    
+
     /**
      * Ensure that "__" is not allowed at the start of a parameter name.
      */
@@ -327,7 +327,7 @@ public class LinguaFrancaValidationTest {
         validator.assertError(parseWithoutError(testCase), LfPackage.eINSTANCE.getParameter(), null,
             "Names of objects (inputs, outputs, actions, timers, parameters, state, reactor definitions, and reactor instantiation) may not start with \"__\": __bar");
     }
-    
+
     /**
      * Ensure that "__" is not allowed at the start of an state name.
      */
@@ -349,7 +349,7 @@ public class LinguaFrancaValidationTest {
         validator.assertError(parseWithoutError(testCase), LfPackage.eINSTANCE.getStateVar(), null,
             "Names of objects (inputs, outputs, actions, timers, parameters, state, reactor definitions, and reactor instantiation) may not start with \"__\": __bar");
     }
-    
+
     /**
      * Ensure that "__" is not allowed at the start of a reactor definition name.
      */
@@ -369,7 +369,7 @@ public class LinguaFrancaValidationTest {
         validator.assertError(parseWithoutError(testCase), LfPackage.eINSTANCE.getReactor(), null,
             "Names of objects (inputs, outputs, actions, timers, parameters, state, reactor definitions, and reactor instantiation) may not start with \"__\": __Foo");
     }
-    
+
     /**
      * Ensure that "__" is not allowed at the start of a reactor instantiation name.
      */
@@ -395,7 +395,7 @@ public class LinguaFrancaValidationTest {
         validator.assertError(parseWithoutError(testCase), LfPackage.eINSTANCE.getInstantiation(), null,
             "Names of objects (inputs, outputs, actions, timers, parameters, state, reactor definitions, and reactor instantiation) may not start with \"__\": __x");
     }
-    
+
     /**
      * Disallow connection to port that is effect of reaction.
      */
@@ -411,7 +411,7 @@ public class LinguaFrancaValidationTest {
 //                 output out:int;
 //                 x = new Foo();
 //                 x.out -> out;
-//                 reaction(startup) -> out {=                    
+//                 reaction(startup) -> out {=
 //                 =}
 //             }
 //         """
@@ -431,7 +431,7 @@ public class LinguaFrancaValidationTest {
         validator.assertError(parseWithoutError(testCase), LfPackage.eINSTANCE.getConnection(), null,
             "Cannot connect: Port named 'out' is already effect of a reaction.");
     }
-    
+
     /**
      * Disallow connection to port that is effect of reaction.
      */
@@ -450,7 +450,7 @@ public class LinguaFrancaValidationTest {
 //                 y = new Foo();
 //
 //                 y.out -> x.inp;
-//                 reaction(startup) -> x.inp {=                    
+//                 reaction(startup) -> x.inp {=
 //                 =}
 //             }
 //         """
@@ -467,13 +467,13 @@ public class LinguaFrancaValidationTest {
         "   y = new Foo();",
         "",
         "   y.out -> x.inp;",
-        "   reaction(startup) -> x.inp {=",                    
+        "   reaction(startup) -> x.inp {=",
         "   =}",
         "}");
         validator.assertError(parseWithoutError(testCase), LfPackage.eINSTANCE.getConnection(), null,
             "Cannot connect: Port named 'inp' is already effect of a reaction.");
     }
-    
+
     /**
      * Allow connection to the port of a contained reactor if another port with same name is effect of a reaction.
      */
@@ -561,7 +561,7 @@ public class LinguaFrancaValidationTest {
 // Java 17:
 //         String testCase = """
 //             target C;
-                
+
 //             reactor Foo {
 //                 input in:int;
 //             }
@@ -654,8 +654,8 @@ public class LinguaFrancaValidationTest {
         validator.assertError(parseWithoutError(testCase), LfPackage.eINSTANCE.getInstantiation(),
             null, "Instantiation is part of a cycle: Contained");
     }
-    
-    
+
+
     /**
      * Detect cycles in the instantiation graph.
      */
@@ -675,7 +675,7 @@ public class LinguaFrancaValidationTest {
 // Java 11:
         Model model = parseWithoutError(String.join(
             System.getProperty("line.separator"),
-            "target C;", 
+            "target C;",
             "reactor Intermediate {",
             "   x = new Contained();",
             "}",
@@ -689,7 +689,7 @@ public class LinguaFrancaValidationTest {
         validator.assertError(model, LfPackage.eINSTANCE.getInstantiation(),
             null, "Instantiation is part of a cycle: Intermediate, Contained.");
     }
-    
+
     /**
      * Detect causality loop.
      */
@@ -716,7 +716,7 @@ public class LinguaFrancaValidationTest {
 // Java 11:
         Model model = parseWithoutError(String.join(
             System.getProperty("line.separator"),
-            "target C;", 
+            "target C;",
             "",
             "reactor X {",
             "   input x:int;",
@@ -735,9 +735,9 @@ public class LinguaFrancaValidationTest {
         validator.assertError(model, LfPackage.eINSTANCE.getReaction(),
             null, "Reaction triggers involved in cyclic dependency in reactor X: x.");
         validator.assertError(model, LfPackage.eINSTANCE.getReaction(),
-            null, "Reaction effects involved in cyclic dependency in reactor X: y."); 
+            null, "Reaction effects involved in cyclic dependency in reactor X: y.");
     }
-    
+
     /**
      * Let cyclic dependencies be broken by "after" clauses.
      */
@@ -746,14 +746,14 @@ public class LinguaFrancaValidationTest {
 // Java 17:
 //         String testCase = """
 //             target C
-//                         
+//
 //             reactor X {
 //                 input x:int;
 //                 output y:int;
 //                 reaction(x) -> y {=
 //                 =}
 //             }
-//             
+//
 //             main reactor {
 //                 a = new X()
 //                 b = new X()
@@ -790,14 +790,14 @@ public class LinguaFrancaValidationTest {
 // Java 17:
 //         String testCase = """
 //             target C
-//                         
+//
 //             reactor X {
 //                 input x:int;
 //                 output y:int;
 //                 reaction(x) -> y {=
 //                 =}
 //             }
-//             
+//
 //             main reactor {
 //                 a = new X()
 //                 b = new X()
@@ -835,14 +835,14 @@ public class LinguaFrancaValidationTest {
 // Java 17:
 //         String testCase = """
 //             target C
-//                         
+//
 //             reactor X {
 //                 input x:int;
 //                 output y:int;
 //                 reaction(x) -> y {=
 //                 =}
 //             }
-//             
+//
 //             main reactor {
 //                 a = new X()
 //                 b = new X()
@@ -878,14 +878,14 @@ public class LinguaFrancaValidationTest {
 // Java 17:
 //         String testCase = """
 //             target C
-//                         
+//
 //             reactor X {
 //                 input x:int;
 //                 output y:int;
 //                 reaction(x) -> y {=
 //                 =}
 //             }
-//             
+//
 //             main reactor {
 //                 a = new X()
 //                 b = new X()
@@ -913,7 +913,7 @@ public class LinguaFrancaValidationTest {
     }
 
 
-    
+
     /**
      * Report non-zero time value without units.
      */
@@ -939,8 +939,8 @@ public class LinguaFrancaValidationTest {
             "    =}",
             "}");
         validator.assertError(parseWithoutError(testCase), LfPackage.eINSTANCE.getTimer(), null, "Missing time unit.");
-    }    
-    
+    }
+
     /**
      * Report reference to non-time parameter in time argument.
      */
@@ -968,7 +968,7 @@ public class LinguaFrancaValidationTest {
         validator.assertError(parseWithoutError(testCase), LfPackage.eINSTANCE.getTimer(),
             null, "Referenced parameter is not of time type.");
     }
-    
+
     /**
      * Report inappropriate literal in time argument.
      */
@@ -995,8 +995,8 @@ public class LinguaFrancaValidationTest {
             "}");
         validator.assertError(parseWithoutError(testCase), LfPackage.eINSTANCE.getTimer(),
             null, "Invalid time value.");
-    }  
-    
+    }
+
 
     /**
      * Report overflowing deadline.
@@ -1027,9 +1027,9 @@ public class LinguaFrancaValidationTest {
         validator.assertError(parseWithoutError(testCase), LfPackage.eINSTANCE.getDeadline(), null,
             "Deadline exceeds the maximum of " + TimeValue.MAX_LONG_DEADLINE +
             " nanoseconds.");
-    }  
+    }
 
-    
+
     /**
      * Report overflowing parameter.
      */
@@ -1059,9 +1059,9 @@ public class LinguaFrancaValidationTest {
         validator.assertError(parseWithoutError(testCase), LfPackage.eINSTANCE.getParameter(), null,
             "Time value used to specify a deadline exceeds the maximum of " +
             TimeValue.MAX_LONG_DEADLINE + " nanoseconds.");
-    }  
-    
-    
+    }
+
+
     /**
      * Report overflowing assignment.
      */
@@ -1097,7 +1097,7 @@ public class LinguaFrancaValidationTest {
         validator.assertError(parseWithoutError(testCase), LfPackage.eINSTANCE.getAssignment(), null,
             "Time value used to specify a deadline exceeds the maximum of " +
             TimeValue.MAX_LONG_DEADLINE + " nanoseconds.");
-    }  
+    }
 
     /**
      * Report missing trigger.
@@ -1124,9 +1124,9 @@ public class LinguaFrancaValidationTest {
         validator.assertWarning(parseWithoutError(testCase), LfPackage.eINSTANCE.getReaction(), null,
             "Reaction has no trigger.");
     }
-        
+
     /**
-     * Test warnings and errors for the target dependent preamble visibility qualifiers 
+     * Test warnings and errors for the target dependent preamble visibility qualifiers
      */
     @Test
     public void testPreambleVisibility() throws Exception {
@@ -1171,15 +1171,15 @@ public class LinguaFrancaValidationTest {
                     String.format("target %s;", target),
                     "reactor Foo {",
                     "}"));
-                
+
                 validator.assertNoIssues(model_no_preamble);
-                
+
                 if (target == Target.CPP) {
                     if (visibility == Visibility.NONE) {
                         validator.assertError(model_file_scope, LfPackage.eINSTANCE.getPreamble(), null,
                             "Preambles for the C++ target need a visibility qualifier (private or public)!");
                         validator.assertError(model_reactor_scope, LfPackage.eINSTANCE.getPreamble(), null,
-                            "Preambles for the C++ target need a visibility qualifier (private or public)!");  
+                            "Preambles for the C++ target need a visibility qualifier (private or public)!");
                     } else {
                         validator.assertNoIssues(model_file_scope);
                         validator.assertNoIssues(model_reactor_scope);
@@ -1198,8 +1198,8 @@ public class LinguaFrancaValidationTest {
             }
         }
     }
-    
-    
+
+
     /**
      * Tests for state and parameter declarations, including native lists.
      */
@@ -1212,7 +1212,7 @@ public class LinguaFrancaValidationTest {
 //                         b:int,               // ERROR: uninitialized
 //                         t:time(42),          // ERROR: units missing
 //                         x:int(0),
-//                         h:time("bla"),       // ERROR: not a type 
+//                         h:time("bla"),       // ERROR: not a type
 //                         q:time(1 msec, 2 msec),  // ERROR: not a list
 //                         y:int(t)             // ERROR: init using parameter
 //             ) {
@@ -1261,9 +1261,9 @@ public class LinguaFrancaValidationTest {
             "Invalid time value.");
         validator.assertError(model, LfPackage.eINSTANCE.getTimer(), null,
             "Missing time unit.");
-    }  
-    
-    
+    }
+
+
     /**
      * Recognize valid IPV4 addresses, report invalid ones.
      */
@@ -1280,7 +1280,7 @@ public class LinguaFrancaValidationTest {
 //             target C;
 //             reactor Y {}
 //             federated reactor X at foo@%s:4242 {
-//                 y = new Y() at %s:2424; 
+//                 y = new Y() at %s:2424;
 //             }
 //         """.formatted(addr, addr);
 // Java 11:
@@ -1301,7 +1301,7 @@ public class LinguaFrancaValidationTest {
 //             target C;
 //             reactor Y {}
 //             federated reactor X at foo@%s:4242 {
-//                 y = new Y() at %s:2424; 
+//                 y = new Y() at %s:2424;
 //             }
 //         """.formatted(addr, addr);
 // Java 11:
@@ -1322,7 +1322,7 @@ public class LinguaFrancaValidationTest {
 //             target C;
 //             reactor Y {}
 //             federated reactor X at foo@%s:4242 {
-//                 y = new Y() at %s:2424; 
+//                 y = new Y() at %s:2424;
 //             }
 //         """.formatted(addr, addr);
 // Java 11:
@@ -1337,7 +1337,7 @@ public class LinguaFrancaValidationTest {
             validator.assertWarning(model, LfPackage.eINSTANCE.getHost(), null, "Invalid IP address.");
         }
     }
-    
+
     /**
      * Recognize valid IPV6 addresses, report invalid ones.
      */
@@ -1355,14 +1355,14 @@ public class LinguaFrancaValidationTest {
             "::ffff:0.0.0.0", "::ffff:1.2.3.4", "::ffff:10.0.0.1",
             "1:2:3:4:5:6:77:88", "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff",
             "2001:db8:3:4::192.0.2.33", "64:ff9b::192.0.2.33", "0:0:0:0:0:0:10.0.0.1");
-        
+
         List<String> validationError = List.of("1:2:3:4:5:6:7:8:9", "1:2:3:4:5:6::7:8",
             "1:2:3:4:5:6:7:8:", "::1:2:3:4:5:6:7:8", "1:2:3:4:5:6:7:8::",
             "1:2:3:4:5:6:7:88888", "2001:db8:3:4:5::192.0.2.33",
             "fe08::7:8interface", "fe08::7:8interface", "fe08::7:8i");
-            
+
         List<String> parseError = List.of("fe08::7:8%", ":1:2:3:4:5:6:7:8");
-        
+
         // Correct IP addresses.
         for (String addr : correct) {
 // Java 17:
@@ -1370,7 +1370,7 @@ public class LinguaFrancaValidationTest {
 //             target C;
 //             reactor Y {}
 //             federated reactor X at [foo@%s]:4242 {
-//                 y = new Y() at [%s]:2424; 
+//                 y = new Y() at [%s]:2424;
 //             }
 //         """.formatted(addr, addr);
 // Java 11:
@@ -1385,7 +1385,7 @@ public class LinguaFrancaValidationTest {
             validator.assertNoIssues(model);
         }
 
-                
+
         // IP addresses that don't parse.
         for (String addr : parseError) {
 // Java 17:
@@ -1393,7 +1393,7 @@ public class LinguaFrancaValidationTest {
 //             target C;
 //             reactor Y {}
 //             federated reactor X at [foo@%s]:4242 {
-//                 y = new Y() at [%s]:2424; 
+//                 y = new Y() at [%s]:2424;
 //             }
 //         """.formatted(addr, addr);
 // Java 11:
@@ -1414,7 +1414,7 @@ public class LinguaFrancaValidationTest {
 //             target C;
 //             reactor Y {}
 //             federated reactor X at [foo@%s]:4242 {
-//                 y = new Y() at [%s]:2424; 
+//                 y = new Y() at [%s]:2424;
 //             }
 //         """.formatted(addr, addr);
 // Java 11:
@@ -1429,17 +1429,17 @@ public class LinguaFrancaValidationTest {
             validator.assertWarning(model, LfPackage.eINSTANCE.getHost(), null, "Invalid IP address.");
         }
     }
-    
+
     /**
      * Recognize valid host names and fully qualified names, report invalid ones.
      */
     @Test
     public void recognizeHostNames() throws Exception {
-        
+
         List<String> correct = List.of("localhost"); // FIXME: add more
-    
+
         List<String> validationError = List.of("x.y.z"); // FIXME: add more
-        
+
         List<String> parseError = List.of("..xyz"); // FIXME: add more
 
 
@@ -1450,7 +1450,7 @@ public class LinguaFrancaValidationTest {
 //             target C;
 //             reactor Y {}
 //             federated reactor X at foo@%s:4242 {
-//                 y = new Y() at %s:2424; 
+//                 y = new Y() at %s:2424;
 //             }
 //         """.formatted(addr, addr);
 // Java 11:
@@ -1463,7 +1463,7 @@ public class LinguaFrancaValidationTest {
                     "}")
             );
         }
-            
+
         // Names that don't parse.
         for (String addr : parseError) {
 // Java 17:
@@ -1471,7 +1471,7 @@ public class LinguaFrancaValidationTest {
 //             target C;
 //             reactor Y {}
 //             federated reactor X at foo@%s:4242 {
-//                 y = new Y() at %s:2424; 
+//                 y = new Y() at %s:2424;
 //             }
 //         """.formatted(addr, addr);
 // Java 11:
@@ -1484,7 +1484,7 @@ public class LinguaFrancaValidationTest {
                     "}")
             );
         }
-            
+
         // Names that parse but are invalid.
         for (String addr : validationError) {
 // Java 17:
@@ -1492,7 +1492,7 @@ public class LinguaFrancaValidationTest {
 //             target C;
 //             reactor Y {}
 //             federated reactor X at foo@%s:4242 {
-//                 y = new Y() at %s:2424; 
+//                 y = new Y() at %s:2424;
 //             }
 //         """.formatted(addr, addr);
 // Java 11:
@@ -1504,11 +1504,11 @@ public class LinguaFrancaValidationTest {
                     String.format("    y = new Y() at %s:2424; ", addr),
                     "}")
             );
-            validator.assertWarning(model, LfPackage.eINSTANCE.getHost(), null, 
+            validator.assertWarning(model, LfPackage.eINSTANCE.getHost(), null,
                 "Invalid host name or fully qualified domain name.");
         }
     }
-    
+
     /**
      * Maps a type to a list of known good values.
      */
@@ -1533,7 +1533,7 @@ public class LinguaFrancaValidationTest {
     );
 
     /**
-     * Maps a type to a list, each entry of which represents a list with 
+     * Maps a type to a list, each entry of which represents a list with
      * three entries: a known wrong value, the suffix to add to the reported
      * name, and the type that it should be.
      */
@@ -1575,9 +1575,9 @@ public class LinguaFrancaValidationTest {
             List.of("{trace-file-name: [1, 2, 3]}", ".trace-file-name", PrimitiveType.STRING)
         )
     );
-    
+
     /**
-     * Given an array type, return a list of good or bad examples, 
+     * Given an array type, return a list of good or bad examples,
      * depending on the value of the second parameter.
      */
     private List<String> synthesizeExamples(ArrayType type, boolean correct) {
@@ -1592,9 +1592,9 @@ public class LinguaFrancaValidationTest {
         }
         return examples;
     }
-    
+
     /**
-     * Given an union type, return a list of good or bad examples, 
+     * Given an union type, return a list of good or bad examples,
      * depending on the value of the second parameter.
      */
     private List<String> synthesizeExamples(UnionType type, boolean correct) {
@@ -1616,14 +1616,14 @@ public class LinguaFrancaValidationTest {
         }
         return examples;
     }
-    
+
     /**
-     * Given an union type, return a list of good or bad examples, 
+     * Given an union type, return a list of good or bad examples,
      * depending on the value of the second parameter.
      */
     private List<String> synthesizeExamples(DictionaryType type, boolean correct) {
         List<String> examples = new LinkedList<>();
-        // Produce a set of singleton dictionaries. 
+        // Produce a set of singleton dictionaries.
         // If incorrect examples are wanted, garble the key.
         for (DictionaryElement option : type.options) {
             synthesizeExamples(option.getType(), correct).forEach(it -> examples.add("{" + option + (!correct ? "iamwrong: " : ": ") + it + "}"));
@@ -1649,17 +1649,17 @@ public class LinguaFrancaValidationTest {
         }
         return examples;
     }
-    
+
     /**
      * Synthesize a list of values that either conform to the given type or
      * do not, depending on whether the second argument 'correct' is true.
-     * Return an empty set if it is too complicated to generate examples 
+     * Return an empty set if it is too complicated to generate examples
      * (e.g., because the resulting errors are more sophisticated).
-     * 
+     *
      * Not all cases are covered by this function. Currently, the only cases not
      * covered are known bad examples for composite types, which should be added
      * to the compositeTypeToKnownBad map.
-     * 
+     *
      * @param correct True to synthesize correct examples automatically, otherwise
      *  synthesize incorrect examples.
      */
@@ -1684,7 +1684,7 @@ public class LinguaFrancaValidationTest {
         }
         return new LinkedList<>();
     }
-    
+
     /**
      * Create an LF program with the given key and value as a target property,
      * parse it, and return the resulting model.
@@ -1697,7 +1697,7 @@ public class LinguaFrancaValidationTest {
 //             target %s {%s: %s};
 //             reactor Y {}
 //             main reactor {
-//                 y = new Y() 
+//                 y = new Y()
 //             }
 //         """.formatted(target, key, value);
 // Java 11:
@@ -1723,7 +1723,7 @@ public class LinguaFrancaValidationTest {
             System.out.println("====");
             System.out.println("Known good assignments:");
             List<String> knownCorrect = synthesizeExamples(prop.type, true);
-            
+
             for (String it : knownCorrect) {
                 Model model = createModel(prop, it);
                 validator.assertNoErrors(model);
@@ -1733,7 +1733,7 @@ public class LinguaFrancaValidationTest {
                                             null, String.format("Could not find file: '%s'.", StringUtil.removeQuotes(it)));
                 }
             }
-            
+
             // Extra checks for filenames. (This piece of code was commented out in the original xtend file)
             // Temporarily disabled because we need a more sophisticated check that looks for files in different places.
 //            if (prop.type == prop.type == ArrayType.FILE_ARRAY ||
@@ -1746,7 +1746,7 @@ public class LinguaFrancaValidationTest {
 //                        null, '''Could not find file: '«it.withoutQuotes»'.''')
 //                ]
 //            }
-            
+
             System.out.println("Known bad assignments:");
             List<String> knownIncorrect = synthesizeExamples(prop.type, false);
             if (!(knownIncorrect == null || knownIncorrect.isEmpty())) {
@@ -1774,7 +1774,7 @@ public class LinguaFrancaValidationTest {
                             String.format("Target property '%s%s' is required to be %s.", prop.toString(), it.get(1), it.get(2)));
                     }
                 }
-            }    
+            }
             System.out.println("====");
         }
         System.out.println("Done!");
@@ -1793,7 +1793,7 @@ public class LinguaFrancaValidationTest {
         validator.assertError(createModel(prop, "{ dep: {/*empty*/} }"),
             LfPackage.eINSTANCE.getKeyValuePairs(), null, "Must specify one of 'version', 'path', or 'git'"
         );
-        
+
         //                                                vvvvvvvvvvv
         validator.assertError(createModel(prop, "{ dep: { unknown_key: \"\"} }"),
             LfPackage.eINSTANCE.getKeyValuePair(), null, "Unknown key: 'unknown_key'"
@@ -2238,7 +2238,7 @@ public class LinguaFrancaValidationTest {
         );
         // TODO: Uncomment and fix test
         // List<Issue> issues = validator.validate(parseWithoutError(testCase));
-        // Assertions.assertTrue(issues.size() == 1 && 
+        // Assertions.assertTrue(issues.size() == 1 &&
         //     issues.get(0).getMessage().contains("Cannot assign a host to reactor '") &&
         //     issues.get(0).getMessage().contains("' because it is not federated."));
     }
@@ -2424,7 +2424,7 @@ public class LinguaFrancaValidationTest {
                 "This reactor contains state variables that are not reset upon mode entry: "
                 + "s in R"
                 + ".\nThe state variables are neither marked for automatic reset nor have a dedicated reset reaction. "
-                + "It is usafe to instatiate this reactor inside a mode entered with reset.");
+                + "It is unsafe to instantiate this reactor inside a mode entered with reset.");
     }
 
     @Test
@@ -2455,11 +2455,9 @@ public class LinguaFrancaValidationTest {
             }
         """;
         validator.assertWarning(parseWithoutError(testCase), LfPackage.eINSTANCE.getReaction(), null,
-                "You should specifiy a transition type! "
+                "You should specify a transition type! "
                 + "Reset and history transitions have different effects on this target mode. "
                 + "Currently, a reset type is implicitly assumed.");
     }
 
 }
-
-

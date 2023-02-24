@@ -461,12 +461,12 @@ public class PythonGenerator extends CGenerator {
      *  @param reactionIndex The position of the reaction within the reactor.
      */
     @Override
-    protected void generateReaction(Reaction reaction, Reactor r, int reactionIndex) {
+    protected void generateReaction(CodeBuilder src, Reaction reaction, Reactor r, int reactionIndex) {
         Reactor reactor = ASTUtils.toDefinition(r);
 
         // Reactions marked with a `@_c_body` attribute are generated in C
         if (AttributeUtils.hasCBody(reaction)) {
-            super.generateReaction(reaction, r, reactionIndex);
+            super.generateReaction(src, reaction, r, reactionIndex);
             return;
         }
         code.pr(PythonReactionGenerator.generateCReaction(reaction, reactor, reactionIndex, mainDef, errorReporter, types));
@@ -506,7 +506,7 @@ public class PythonGenerator extends CGenerator {
      * @see PythonMethodGenerator
      */
     @Override
-    protected void generateMethods(ReactorDecl reactor) {    }
+    protected void generateMethods(CodeBuilder src, ReactorDecl reactor) {    }
 
     /**
      * Generate C preambles defined by user for a given reactor

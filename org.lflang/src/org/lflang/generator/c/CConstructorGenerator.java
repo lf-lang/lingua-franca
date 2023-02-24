@@ -29,4 +29,8 @@ public class CConstructorGenerator {
         code.pr("}");
         return code.toString();
     }
+
+    public static String generateConstructorPrototype(Reactor reactor) {
+        return CUtil.selfType(reactor)+"* new_"+CUtil.getName(reactor)+"();";
+    }
 }

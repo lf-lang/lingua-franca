@@ -1,6 +1,7 @@
 package org.lflang.generator.c;
 
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -23,9 +24,15 @@ public class CReactorHeaderFileGenerator {
         void generate(CodeBuilder b, Reactor r);
     }
 
+    public static Path outputPath(CFileConfig fileConfig, Reactor r) {
+        return Path.of(Path.of(r.eResource().getURI().toFileString())
+                .getFileName().toString().replaceFirst("[.][^.]+$", ""))
+            .resolve(r.getName() + ".h");
+    }
+
     public static void doGenerate(CTypes types, Reactor r, CFileConfig fileConfig, GenerateAuxiliaryStructs generator) throws IOException {
         String contents = generateHeaderFile(types, r, generator);
-        FileUtil.writeToFile(contents, fileConfig.getIncludePath().resolve(CUtil.getName(r) + ".h"));
+        FileUtil.writeToFile(contents, fileConfig.getIncludePath().resolve(outputPath(fileConfig, r)));
     }
     private static String generateHeaderFile(CTypes types, Reactor r, GenerateAuxiliaryStructs generator) {
         CodeBuilder builder = new CodeBuilder();
@@ -54,7 +61,7 @@ public class CReactorHeaderFileGenerator {
     }
 
     private static String userFacingSelfType(Reactor r) {
-        return r.getName().toLowerCase() + r.hashCode() + "_self_t";
+        return r.getName().toLowerCase() + "_self_t";
     }
 
     private static void appendSelfStruct(CodeBuilder builder, CTypes types, Reactor r) {
