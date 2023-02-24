@@ -73,18 +73,23 @@ extern int object_table_size;
 extern char* top_level;
 
 /**
- * Open the trace file and the output file using the given filename.
- * This leaves the FILE* pointers in the global variables trace_file and output_file.
- * If the extension if "csv", then it also opens a summary_file.
- * The filename argument can include path information.
- * It can include the ".lft" extension or not.
- * The output file will have the same path and name except that the
- * extension will be given by the second argument.
- * The summary_file, if opened, will have the filename with "_summary.csv" appended.
- * @param filename The file name.
- * @param output_file_extension The extension to put on the output file name (e.g. "csv").
+ * @brief Return the root file name from the given path.
+ * Given a path to a file, this function returns a dynamically
+ * allocated string (which you must free) that points to the root
+ * filename without the preceding path and without the file extension.
+ * @param path The path including the full filename. 
+ * @return The root name of the file or NULL for failure.
  */
-void open_files(char* filename, char* output_file_extension);
+char* root_name(const char* path);
+
+/**
+ * @brief Open the specified file for reading or writing.
+ * This function records the file for closing at termination.
+ * @param path The path to the file.
+ * @param mode "r" for reading and "w" for writing.
+ * @return A pointer to the open file or NULL for failure.
+ */
+FILE* open_file(const char* path, const char* mode);
 
 /**
  * Get the description of the object pointed to by the specified pointer.

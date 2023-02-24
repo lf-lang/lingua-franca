@@ -580,8 +580,7 @@ public enum TargetProperty {
             }),
 
     /**
-     * Directive to generate a Dockerfile. This is either a boolean,
-     * true or false, or a dictionary of options.
+     * Directive to enable tracing.
      */
     TRACING("tracing", UnionType.TRACING_UNION,
             Arrays.asList(Target.C, Target.CCPP, Target.CPP, Target.Python),
@@ -631,7 +630,6 @@ public enum TargetProperty {
                     }
                 }
             }),
-
 
     /**
      * Directive to let the runtime export its internal dependency graph.
@@ -876,7 +874,7 @@ public enum TargetProperty {
         this.supportedBy = supportedBy;
         this.getter = getter;
         this.setter = setter;
-        this.updater = (config, value, err) -> { /* Ignore the update by default */ };
+        this.updater = setter; // (Re)set by default
     }
 
     /**

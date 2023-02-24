@@ -117,6 +117,9 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define MAX_NUM_REACTIONS 64  // Maximum number of reactions reported in summary stats.
 #define MAX_NUM_WORKERS 64
 
+/** File containing the trace binary data. */
+FILE* trace_file = NULL;
+
 /** Struct identifying the influx client. */
 influx_client_t influx_client;
 influx_v2_client_t influx_v2_client;
@@ -152,9 +155,9 @@ size_t read_and_write_trace() {
     // Write each line.
     for (int i = 0; i < trace_length; i++) {
         char* reaction_name = "none";
-        if (trace[i].reaction_number >= 0) {
+        if (trace[i].id_number >= 0) {
             reaction_name = (char*)malloc(4);
-            snprintf(reaction_name, 4, "%d", trace[i].reaction_number);
+            snprintf(reaction_name, 4, "%d", trace[i].id_number);
         }
         // printf("DEBUG: reactor self struct pointer: %p\n", trace[i].pointer);
         int object_instance = -1;
@@ -259,7 +262,8 @@ int main(int argc, char* argv[]) {
         exit(1);
     }
 
-    open_files(filename, NULL);
+    // Open the trace file.
+    trace_file = open_file(filename, "r");
 
     if (read_header() >= 0) {
         size_t num_records = 0, result;

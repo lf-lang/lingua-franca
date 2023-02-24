@@ -37,6 +37,15 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define MAX_NUM_REACTIONS 64  // Maximum number of reactions reported in summary stats.
 #define MAX_NUM_WORKERS 64
 
+/** File containing the trace binary data. */
+FILE* trace_file = NULL;
+
+/** File for writing the output data. */
+FILE* output_file = NULL;
+
+/** File for writing summary statistics. */
+FILE* summary_file = NULL;
+
 /** Size of the stats table is object_table_size plus twice MAX_NUM_WORKERS. */
 int table_size;
 
@@ -95,9 +104,9 @@ size_t read_and_write_trace() {
     // Write each line.
     for (int i = 0; i < trace_length; i++) {
         char* reaction_name = "none";
-        if (trace[i].reaction_number >= 0) {
+        if (trace[i].id_number >= 0) {
             reaction_name = (char*)malloc(4);
-            snprintf(reaction_name, 4, "%d", trace[i].reaction_number);
+            snprintf(reaction_name, 4, "%d", trace[i].id_number);
         }
         // printf("DEBUG: reactor self struct pointer: %p\n", trace[i].pointer);
         int object_instance = -1;
@@ -150,16 +159,16 @@ size_t read_and_write_trace() {
             case reaction_ends:
                 // This code relies on the mutual exclusion of reactions in a reactor
                 // and the ordering of reaction_starts and reaction_ends events.
-                if (trace[i].reaction_number >= MAX_NUM_REACTIONS) {
+                if (trace[i].id_number >= MAX_NUM_REACTIONS) {
                     fprintf(stderr, "WARNING: Too many reactions. Not all will be shown in summary file.\n");
                     continue;
                 }
                 stats = summary_stats[NUM_EVENT_TYPES + object_instance];
                 stats->description = reactor_name;
-                if (trace[i].reaction_number >= stats->num_reactions_seen) {
-                    stats->num_reactions_seen = trace[i].reaction_number + 1;
+                if (trace[i].id_number >= stats->num_reactions_seen) {
+                    stats->num_reactions_seen = trace[i].id_number + 1;
                 }
-                rstats = &stats->reactions[trace[i].reaction_number];
+                rstats = &stats->reactions[trace[i].id_number];
                 if (trace[i].event_type == reaction_starts) {
                     rstats->latest_start_time = trace[i].physical_time;
                 } else {
@@ -407,7 +416,23 @@ int main(int argc, char* argv[]) {
         usage();
         exit(0);
     }
-    open_files(argv[1], "csv");
+    // Open the trace file.
+    trace_file = open_file(argv[1], "r");
+
+    // Construct the name of the csv output file and open it.
+    char* root = root_name(argv[1]);
+    char csv_filename[strlen(root) + 5];
+    strcpy(csv_filename, root);
+    strcat(csv_filename, ".csv");
+    output_file = open_file(csv_filename, "w");
+
+    // Construct the name of the summary output file and open it.
+    char summary_filename[strlen(root) + 13];
+    strcpy(summary_filename, root);
+    strcat(summary_filename, "_summary.csv");
+    summary_file = open_file(summary_filename, "w");
+
+    free(root);
 
     if (read_header() >= 0) {
         // Allocate an array for summary statistics.
@@ -415,7 +440,7 @@ int main(int argc, char* argv[]) {
         summary_stats = (summary_stats_t**)calloc(table_size, sizeof(summary_stats_t*));
 
         // Write a header line into the CSV file.
-        fprintf(output_file, "Event, Reactor, Reaction, Worker, Elapsed Logical Time, Microstep, Elapsed Physical Time, Trigger, Extra Delay\n");
+        fprintf(output_file, "Event, Reactor, ID, Worker, Elapsed Logical Time, Microstep, Elapsed Physical Time, Trigger, Extra Delay\n");
         while (read_and_write_trace() != 0) {};
 
         write_summary_file();
