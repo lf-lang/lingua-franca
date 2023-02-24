@@ -66,9 +66,10 @@ public class ArduinoUtil {
                 var fileWriter = new FileWriter(testScript.getAbsoluteFile(), true);
                 BufferedWriter bufferedWriter = new BufferedWriter(fileWriter);
                 String board = targetConfig.platformOptions.board != null ? targetConfig.platformOptions.board : "arduino:avr:leonardo";
+                String isThreaded = targetConfig.platformOptions.board.contains("mbed") ? "-DLF_THREADED" : "-DLF_UNTHREADED";
                 bufferedWriter.write("arduino-cli compile -b " + board + " --build-property " +
-                    "compiler.c.extra_flags=\"-DLF_UNTHREADED -DPLATFORM_ARDUINO -DINITIAL_EVENT_QUEUE_SIZE=10 -DINITIAL_REACT_QUEUE_SIZE=10\" " +
-                    "--build-property compiler.cpp.extra_flags=\"-DLF_UNTHREADED -DPLATFORM_ARDUINO -DINITIAL_EVENT_QUEUE_SIZE=10 -DINITIAL_REACT_QUEUE_SIZE=10\" "
+                    "compiler.c.extra_flags=\"" + isThreaded + " -DPLATFORM_ARDUINO -DINITIAL_EVENT_QUEUE_SIZE=10 -DINITIAL_REACT_QUEUE_SIZE=10\" " +
+                    "--build-property compiler.cpp.extra_flags=\"" + isThreaded + " -DPLATFORM_ARDUINO -DINITIAL_EVENT_QUEUE_SIZE=10 -DINITIAL_REACT_QUEUE_SIZE=10\" "
                     + srcGenPath.toString());
                 bufferedWriter.close();
                 return commandFactory.createCommand(
