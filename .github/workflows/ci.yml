@@ -70,7 +70,7 @@ jobs:
   
   # Run the C Arduino integration tests.
   c-arduino-tests:
-    uses: lf-lang/lingua-franca/.github/workflows/c-arduino-tests.yml@master
+    uses: lf-lang/lingua-franca/.github/workflows/c-arduino-tests.yml@arduino-mbed-support
     needs: cancel
   
   # Run the C Zephyr integration tests.

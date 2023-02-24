@@ -57,5 +57,6 @@ jobs:
           arduino-cli core install arduino:megaavr
           arduino-cli core install arduino:samd
           arduino-cli core install arduino:sam
+          arduino-cli core install arduino:mbed
       - name: Perform Arduino tests for C target with default scheduler
         run: ./gradlew test --tests org.lflang.tests.runtime.CArduinoTest.runArduinoTests

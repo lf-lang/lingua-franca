@@ -611,7 +611,7 @@ public class CExtension implements FedTargetExtension {
         code.pr(String.join("\n",
                             "// Initialize the socket mutex",
                             "lf_mutex_init(&outbound_socket_mutex);",
-                            "lf_cond_init(&port_status_changed);"
+                            "lf_cond_init(&port_status_changed, &mutex);"
         ));
 
         // Find the STA (A.K.A. the global STP offset) for this federate.
