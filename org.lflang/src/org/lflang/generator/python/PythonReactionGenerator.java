@@ -37,7 +37,6 @@ public class PythonReactionGenerator {
      * Generate code to call reaction numbered "reactionIndex" in reactor "decl".
      * @param decl The reactor containing the reaction
      * @param reactionIndex The index of the reaction
-     * @param pyObjectDescriptor CPython related descriptors for each object in "pyObjects".
      * @param pyObjects CPython related objects
      */
     public static String generateCPythonReactionCaller(ReactorDecl decl,
@@ -53,7 +52,6 @@ public class PythonReactionGenerator {
      * Generate code to call deadline function numbered "reactionIndex" in reactor "decl".
      * @param decl The reactor containing the reaction
      * @param reactionIndex The index of the reaction
-     * @param pyObjectDescriptor CPython related descriptors for each object in "pyObjects".
      * @param pyObjects CPython related objects
      */
     public static String generateCPythonDeadlineCaller(ReactorDecl decl,
@@ -68,7 +66,6 @@ public class PythonReactionGenerator {
      * Generate code to call deadline function numbered "reactionIndex" in reactor "decl".
      * @param decl The reactor containing the reaction
      * @param reactionIndex The index of the reaction
-     * @param pyObjectDescriptor CPython related descriptors for each object in "pyObjects".
      * @param pyObjects CPython related objects
      */
     public static String generateCPythonSTPCaller(ReactorDecl decl,
@@ -122,7 +119,7 @@ public class PythonReactionGenerator {
      * Generate the reaction in the .c file, which calls the Python reaction through the CPython interface.
      *
      * @param reaction The reaction to generate Python-specific initialization for.
-     * @param decl The reactor to which <code>reaction<code> belongs to.
+     * @param r The reactor to which <code>reaction<code> belongs to.
      * @param reactionIndex The index number of the reaction in decl.
      * @param mainDef The main reactor.
      * @param errorReporter An error reporter.
@@ -130,7 +127,7 @@ public class PythonReactionGenerator {
      */
     public static String generateCReaction(
         Reaction reaction,
-        ReactorDecl decl,
+        Reactor r,
         int reactionIndex,
         Instantiation mainDef,
         ErrorReporter errorReporter,
@@ -140,34 +137,34 @@ public class PythonReactionGenerator {
         // Each input must be cast to (PyObject *) (aka their descriptors for Py_BuildValue are "O")
         List<String> pyObjects = new ArrayList<>();
         CodeBuilder code = new CodeBuilder();
-        String cPyInit = generateCPythonInitializers(reaction, decl, pyObjects, errorReporter);
+        String cPyInit = generateCPythonInitializers(reaction, r, pyObjects, errorReporter);
         String cInit = CReactionGenerator.generateInitializationForReaction(
-                                                "", reaction, decl, reactionIndex,
+                                                "", reaction, r, reactionIndex,
                                                 types, errorReporter, mainDef,
                                                 Target.Python.requiresTypes);
         code.pr(
             "#include " + StringUtil.addDoubleQuotes(
                 CCoreFilesUtils.getCTargetSetHeader()));
         code.pr(generateFunction(
-                    CReactionGenerator.generateReactionFunctionHeader(decl, reactionIndex),
+                    CReactionGenerator.generateReactionFunctionHeader(r, reactionIndex),
                     cInit, reaction.getCode(),
-                    generateCPythonReactionCaller(decl, reactionIndex, pyObjects, cPyInit)
+                    generateCPythonReactionCaller(r, reactionIndex, pyObjects, cPyInit)
         ));
 
         // Generate code for the STP violation handler, if there is one.
         if (reaction.getStp() != null) {
             code.pr(generateFunction(
-                    CReactionGenerator.generateStpFunctionHeader(decl, reactionIndex),
+                    CReactionGenerator.generateStpFunctionHeader(r, reactionIndex),
                     cInit, reaction.getStp().getCode(),
-                    generateCPythonSTPCaller(decl, reactionIndex, pyObjects)
+                    generateCPythonSTPCaller(r, reactionIndex, pyObjects)
                 ));
         }
         // Generate code for the deadline violation function, if there is one.
         if (reaction.getDeadline() != null) {
             code.pr(generateFunction(
-                CReactionGenerator.generateDeadlineFunctionHeader(decl, reactionIndex),
+                CReactionGenerator.generateDeadlineFunctionHeader(r, reactionIndex),
                 cInit, reaction.getDeadline().getCode(),
-                generateCPythonDeadlineCaller(decl, reactionIndex, pyObjects)
+                generateCPythonDeadlineCaller(r, reactionIndex, pyObjects)
             ));
         }
         code.pr(

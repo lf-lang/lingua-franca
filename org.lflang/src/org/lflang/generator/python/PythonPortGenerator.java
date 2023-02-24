@@ -5,6 +5,7 @@ import org.lflang.lf.Instantiation;
 import org.lflang.lf.Output;
 import org.lflang.lf.Port;
 import org.lflang.lf.Action;
+import org.lflang.lf.Reactor;
 import org.lflang.lf.ReactorDecl;
 import org.lflang.lf.VarRef;
 import java.util.List;
@@ -194,8 +195,8 @@ public class PythonPortGenerator {
         );
     }
 
-    public static String generateAliasTypeDef(ReactorDecl decl, Port port, boolean isTokenType, String genericPortType) {
-        return "typedef "+genericPortType+" "+CGenerator.variableStructType(port, decl)+";";
+    public static String generateAliasTypeDef(Reactor r, Port port, boolean isTokenType, String genericPortType) {
+        return "typedef "+genericPortType+" "+CGenerator.variableStructType(port, r)+";";
     }
 
     private static String generateConvertCPortToPy(String port) {

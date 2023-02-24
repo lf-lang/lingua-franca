@@ -50,7 +50,7 @@ public class CReactionGenerator {
      */
     public static String generateInitializationForReaction(String body,
                                                            Reaction reaction,
-                                                           ReactorDecl decl,
+                                                           Reactor decl,
                                                            int reactionIndex,
                                                            CTypes types,
                                                            ErrorReporter errorReporter,
@@ -355,7 +355,7 @@ public class CReactionGenerator {
             structBuilder = new CodeBuilder();
             structs.put(definition, structBuilder);
         }
-        String inputStructType = CGenerator.variableStructType(input, definition.getReactorClass());
+        String inputStructType = CGenerator.variableStructType(input, ASTUtils.toDefinition(definition.getReactorClass()));
         String defName = definition.getName();
         String defWidth = generateWidthVariable(defName);
         String inputName = input.getName();
@@ -409,22 +409,20 @@ public class CReactionGenerator {
      * @param builder The place into which to write the code.
      * @param structs A map from reactor instantiations to a place to write
      *  struct fields.
-     * @param port The port.
-     * @param decl The reactor or import statement.
      */
     private static void generatePortVariablesInReaction(
         CodeBuilder builder,
         Map<Instantiation,CodeBuilder> structs,
         VarRef port,
-        ReactorDecl decl,
+        Reactor r,
         CTypes types
     ) {
         if (port.getVariable() instanceof Input) {
-            builder.pr(generateInputVariablesInReaction((Input) port.getVariable(), decl, types));
+            builder.pr(generateInputVariablesInReaction((Input) port.getVariable(), r, types));
         } else {
             // port is an output of a contained reactor.
             Output output = (Output) port.getVariable();
-            String portStructType = CGenerator.variableStructType(output, port.getContainer().getReactorClass());
+            String portStructType = CGenerator.variableStructType(output, ASTUtils.toDefinition(port.getContainer().getReactorClass()));
 
             CodeBuilder structBuilder = structs.get(port.getContainer());
             if (structBuilder == null) {
@@ -475,14 +473,13 @@ public class CReactionGenerator {
 
     /** Generate action variables for a reaction.
      *  @param action The action.
-     *  @param decl The reactor.
      */
     private static String generateActionVariablesInReaction(
         Action action,
-        ReactorDecl decl,
+        Reactor r,
         CTypes types
     ) {
-        String structType = CGenerator.variableStructType(action, decl);
+        String structType = CGenerator.variableStructType(action, r);
         // If the action has a type, create variables for accessing the value.
         InferredType type = ASTUtils.getInferredType(action);
         // Pointer to the lf_token_t sent as the payload in the trigger.
@@ -519,14 +516,14 @@ public class CReactionGenerator {
      *  initialize local variables for the specified input port
      *  in a reaction function from the "self" struct.
      *  @param input The input statement from the AST.
-     *  @param decl The reactor.
+     *  @param r The reactor.
      */
     private static String generateInputVariablesInReaction(
         Input input,
-        ReactorDecl decl,
+        Reactor r,
         CTypes types
     ) {
-        String structType = CGenerator.variableStructType(input, decl);
+        String structType = CGenerator.variableStructType(input, r);
         InferredType inputType = ASTUtils.getInferredType(input);
         CodeBuilder builder = new CodeBuilder();
         String inputName = input.getName();
@@ -627,11 +624,11 @@ public class CReactionGenerator {
      * initialize local variables for outputs in a reaction function
      * from the "self" struct.
      * @param effect The effect declared by the reaction. This must refer to an output.
-     * @param decl The reactor containing the reaction or the import statement.
+     * @param r The reactor containing the reaction.
      */
     public static String generateOutputVariablesInReaction(
         VarRef effect,
-        ReactorDecl decl,
+        Reactor r,
         ErrorReporter errorReporter,
         boolean requiresTypes
     ) {
@@ -645,9 +642,9 @@ public class CReactionGenerator {
             // The container of the output may be a contained reactor or
             // the reactor containing the reaction.
             String outputStructType = (effect.getContainer() == null) ?
-                    CGenerator.variableStructType(output, decl)
+                    CGenerator.variableStructType(output, r)
                     :
-                    CGenerator.variableStructType(output, effect.getContainer().getReactorClass());
+                    CGenerator.variableStructType(output, ASTUtils.toDefinition(effect.getContainer().getReactorClass()));
             if (!ASTUtils.isMultiport(output)) {
                 // Output port is not a multiport.
                 return outputStructType+"* "+outputName+" = &self->_lf_"+outputName+";";
@@ -1051,7 +1048,7 @@ public class CReactionGenerator {
         var code = new CodeBuilder();
         var body = ASTUtils.toText(getCode(types, reaction, decl));
         String init = generateInitializationForReaction(
-                        body, reaction, decl, reactionIndex,
+                        body, reaction, ASTUtils.toDefinition(decl), reactionIndex,
                         types, errorReporter, mainDef,
                         requiresType);
 

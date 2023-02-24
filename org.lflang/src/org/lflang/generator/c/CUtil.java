@@ -38,6 +38,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
+import org.lflang.ASTUtils;
 import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
 import org.lflang.InferredType;
@@ -514,8 +515,8 @@ public class CUtil {
      * @param reactor The reactor class.
      * @return The type of a self struct for the specified reactor class.
      */
-    public static String selfType(ReactorDecl reactor) {
-        if (reactor instanceof Reactor r && r.isMain()) {
+    public static String selfType(Reactor reactor) {
+        if (reactor.isMain()) {
             return "_" + reactor.getName().toLowerCase() + "_main_self_t";
         }
         return "_" + reactor.getName().toLowerCase() + "_self_t";
@@ -523,7 +524,7 @@ public class CUtil {
 
     /** Construct a unique type for the "self" struct of the class of the given reactor. */
     public static String selfType(ReactorInstance instance) {
-        return selfType(instance.getDefinition().getReactorClass());
+        return selfType(ASTUtils.toDefinition(instance.getDefinition().getReactorClass()));
     }
 
     /**

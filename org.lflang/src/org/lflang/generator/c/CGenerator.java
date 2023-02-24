@@ -922,13 +922,13 @@ public class CGenerator extends GeneratorBase {
      * - If there are any preambles, add them to the preambles of the reactor.
      */
     private void generateReactorDefinitions() {
-        var generatedReactorDecls = new LinkedHashSet<ReactorDecl>();
+        var generatedReactors = new LinkedHashSet<Reactor>();
         if (this.main != null) {
-            generateReactorChildren(this.main, generatedReactorDecls);
+            generateReactorChildren(this.main, generatedReactors);
         }
 
         if (this.mainDef != null) {
-            generateReactorClass(this.mainDef.getReactorClass());
+            generateReactorClass(ASTUtils.toDefinition(this.mainDef.getReactorClass()));
         }
 
         if (mainDef == null) {
@@ -948,6 +948,7 @@ public class CGenerator extends GeneratorBase {
     }
 
     private void generateHeaders() throws IOException {
+        FileUtil.deleteDirectory(fileConfig.getIncludePath());
         FileUtil.copyDirectoryFromClassPath(
             fileConfig.getRuntimeIncludePath(),
             fileConfig.getIncludePath(),
@@ -973,15 +974,15 @@ public class CGenerator extends GeneratorBase {
      */
     private void generateReactorChildren(
         ReactorInstance reactor,
-        LinkedHashSet<ReactorDecl> generatedReactorDecls
+        LinkedHashSet<Reactor> generatedReactors
     ) {
         for (ReactorInstance r : reactor.children) {
             if (r.reactorDeclaration != null &&
-                  !generatedReactorDecls.contains(r.reactorDeclaration)) {
-                generatedReactorDecls.add(r.reactorDeclaration);
-                generateReactorChildren(r, generatedReactorDecls);
+                  !generatedReactors.contains(r.reactorDefinition)) {
+                generatedReactors.add(r.reactorDefinition);
+                generateReactorChildren(r, generatedReactors);
                 inspectReactorEResource(r.reactorDeclaration);
-                generateReactorClass(r.reactorDeclaration);
+                generateReactorClass(r.reactorDefinition);
             }
         }
     }
@@ -1036,7 +1037,7 @@ public class CGenerator extends GeneratorBase {
      * data to contained reactors that are not in the federate.
      * @param reactor The parsed reactor data structure.
      */
-    private void generateReactorClass(ReactorDecl reactor) {
+    private void generateReactorClass(Reactor reactor) {
         // FIXME: Currently we're not reusing definitions for declarations that point to the same definition.
 
         Reactor defn = ASTUtils.toDefinition(reactor);
@@ -1090,7 +1091,7 @@ public class CGenerator extends GeneratorBase {
      *  go into the constructor.
      */
     protected void generateConstructor(
-        ReactorDecl reactor, CodeBuilder constructorCode
+        Reactor reactor, CodeBuilder constructorCode
     ) {
         code.pr(CConstructorGenerator.generateConstructor(
             reactor,
@@ -1100,7 +1101,7 @@ public class CGenerator extends GeneratorBase {
 
     protected void generateIncludes(ReactorDecl decl) {
         if (CCppMode) code.pr("extern \"C\" {");
-        code.pr("#include \"include/" + decl.getName() + ".h\"");
+        code.pr("#include \"include/" + ASTUtils.toDefinition(decl).getName() + ".h\"");
         if (CCppMode) code.pr("}");
     }
 
@@ -1159,7 +1160,7 @@ public class CGenerator extends GeneratorBase {
      */
     private void generateSelfStruct(ReactorDecl decl, CodeBuilder constructorCode) {
         var reactor = toDefinition(decl);
-        var selfType = CUtil.selfType(decl);
+        var selfType = CUtil.selfType(ASTUtils.toDefinition(decl));
 
         // Construct the typedef for the "self" struct.
         // Create a type name for the self struct.
@@ -1175,7 +1176,7 @@ public class CGenerator extends GeneratorBase {
         body.pr(CStateGenerator.generateDeclarations(reactor, types));
 
         // Next handle actions.
-        CActionGenerator.generateDeclarations(reactor, decl, body, constructorCode);
+        CActionGenerator.generateDeclarations(reactor, body, constructorCode);
 
         // Next handle inputs and outputs.
         CPortGenerator.generateDeclarations(reactor, decl, body, constructorCode);
@@ -1237,6 +1238,7 @@ public class CGenerator extends GeneratorBase {
         var contained = new InteractingContainedReactors(reactor);
         // Next generate the relevant code.
         for (Instantiation containedReactor : contained.containedReactors()) {
+            Reactor containedReactorType = ASTUtils.toDefinition(containedReactor.getReactorClass());
             // First define an _width variable in case it is a bank.
             var array = "";
             var width = -2;
@@ -1264,12 +1266,12 @@ public class CGenerator extends GeneratorBase {
                     // to be malloc'd at initialization.
                     if (!ASTUtils.isMultiport(port)) {
                         // Not a multiport.
-                        body.pr(port, variableStructType(port, containedReactor.getReactorClass())+" "+port.getName()+";");
+                        body.pr(port, variableStructType(port, containedReactorType)+" "+port.getName()+";");
                     } else {
                         // Is a multiport.
                         // Memory will be malloc'd in initialization.
                         body.pr(port, String.join("\n",
-                            variableStructType(port, containedReactor.getReactorClass())+"** "+port.getName()+";",
+                            variableStructType(port, containedReactorType)+"** "+port.getName()+";",
                             "int "+port.getName()+"_width;"
                         ));
                     }
@@ -1279,13 +1281,13 @@ public class CGenerator extends GeneratorBase {
                     // self struct of the container.
                     if (!ASTUtils.isMultiport(port)) {
                         // Not a multiport.
-                        body.pr(port, variableStructType(port, containedReactor.getReactorClass())+"* "+port.getName()+";");
+                        body.pr(port, variableStructType(port, containedReactorType)+"* "+port.getName()+";");
                     } else {
                         // Is a multiport.
                         // Here, we will use an array of pointers.
                         // Memory will be malloc'd in initialization.
                         body.pr(port, String.join("\n",
-                            variableStructType(port, containedReactor.getReactorClass())+"** "+port.getName()+";",
+                            variableStructType(port, containedReactorType)+"** "+port.getName()+";",
                             "int "+port.getName()+"_width;"
                         ));
                     }
@@ -1638,7 +1640,7 @@ public class CGenerator extends GeneratorBase {
      * @param reactor The reactor class.
      * @return The name of the self struct.
      */
-    public static String variableStructType(Variable variable, ReactorDecl reactor) {
+    public static String variableStructType(Variable variable, Reactor reactor) {
         return reactor.getName().toLowerCase()+"_"+variable.getName()+"_t";
     }
 
@@ -1646,12 +1648,12 @@ public class CGenerator extends GeneratorBase {
      * Construct a unique type for the struct of the specified
      * instance (port or action).
      * This is required to be the same as the type name returned by
-     * {@link #variableStructType(Variable, ReactorDecl)}.
+     * {@link #variableStructType(Variable, Reactor)}.
      * @param portOrAction The port or action instance.
      * @return The name of the self struct.
      */
     public static String variableStructType(TriggerInstance<?> portOrAction) {
-        return portOrAction.getParent().reactorDeclaration.getName().toLowerCase()+"_"+portOrAction.getName()+"_t";
+        return portOrAction.getParent().reactorDefinition.getName().toLowerCase()+"_"+portOrAction.getName()+"_t";
     }
 
     /**
@@ -1674,7 +1676,7 @@ public class CGenerator extends GeneratorBase {
      * @param instance A reactor instance.
      */
     public void generateReactorInstance(ReactorInstance instance) {
-        var reactorClass = instance.getDefinition().getReactorClass();
+        var reactorClass = ASTUtils.toDefinition(instance.getDefinition().getReactorClass());
         var fullName = instance.getFullName();
         initializeTriggerObjects.pr(
                 "// ***** Start initializing " + fullName + " of class " + reactorClass.getName());

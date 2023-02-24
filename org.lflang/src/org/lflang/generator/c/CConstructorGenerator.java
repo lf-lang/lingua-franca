@@ -1,7 +1,9 @@
 package org.lflang.generator.c;
 
+import org.lflang.ASTUtils;
 import org.lflang.federated.generator.FederateInstance;
 import org.lflang.generator.CodeBuilder;
+import org.lflang.lf.Reactor;
 import org.lflang.lf.ReactorDecl;
 
 /**
@@ -16,7 +18,7 @@ public class CConstructorGenerator {
      *  go into the constructor.
      */
     public static String generateConstructor(
-        ReactorDecl reactor,
+        Reactor reactor,
         String constructorCode
     ) {
         var structType = CUtil.selfType(reactor);

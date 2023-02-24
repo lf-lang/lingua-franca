@@ -31,13 +31,21 @@ public class CReactorHeaderFileGenerator {
     }
     private static String generateHeaderFile(CTypes types, Reactor r, GenerateAuxiliaryStructs generator) {
         CodeBuilder builder = new CodeBuilder();
+        appendIncludeGuard(builder, r);
         appendPoundIncludes(builder);
         appendSelfStruct(builder, types, r);
         generator.generate(builder, r);
         for (Reaction reaction : r.getReactions()) {
             appendSignature(builder, types, reaction, r);
         }
+        builder.pr("#endif");
         return builder.getCode();
+    }
+
+    private static void appendIncludeGuard(CodeBuilder builder, Reactor r) {
+        String macro = r.getName().toUpperCase() + "_H";
+        builder.pr("#ifndef " + macro);
+        builder.pr("#define " + macro);
     }
     private static void appendPoundIncludes(CodeBuilder builder) {
         builder.pr("""
@@ -47,12 +55,12 @@ public class CReactorHeaderFileGenerator {
         """);
     }
 
-    public static String selfStructName(String name) {
-        return name.toLowerCase() + "_self_t";
+    private static String userFacingSelfType(Reactor r) {
+        return r.getName().toLowerCase() + "_self_t";
     }
 
     private static void appendSelfStruct(CodeBuilder builder, CTypes types, Reactor r) {
-        builder.pr("typedef struct " + selfStructName(r.getName()) + "{");
+        builder.pr("typedef struct " + userFacingSelfType(r) + "{");
         for (Parameter p : r.getParameters()) {
             builder.pr(types.getTargetType(p) + " " + p.getName() + ";");
         }
@@ -60,7 +68,7 @@ public class CReactorHeaderFileGenerator {
             builder.pr(types.getTargetType(s) + " " + s.getName() + ";");
         }
         builder.pr("int end[0]; // placeholder; MSVC does not compile empty structs");
-        builder.pr("} " + selfStructName(r.getName()) + ";");
+        builder.pr("} " + userFacingSelfType(r) + ";");
     }
 
     private static void appendSignature(CodeBuilder builder, CTypes types, Reaction r, Reactor reactor) {
@@ -68,7 +76,7 @@ public class CReactorHeaderFileGenerator {
     }
 
     private static String reactionParameters(CTypes types, Reaction r, Reactor reactor) {
-        return Stream.concat(Stream.of(selfStructName(reactor.getName()) + "* self"), ioTypedVariableStream(r)
+        return Stream.concat(Stream.of(userFacingSelfType(reactor) + "* self"), ioTypedVariableStream(r)
             .map((tv) -> reactor.getName().toLowerCase() + "_" + tv.getName() + "_t* " + tv.getName()))
             .collect(Collectors.joining(", "));
     }
@@ -80,7 +88,7 @@ public class CReactorHeaderFileGenerator {
     }
 
     private static String getApiSelfStruct(Reactor reactor) {
-        return "(" + CReactorHeaderFileGenerator.selfStructName(reactor.getName()) + "*) (((char*) self) + sizeof(self_base_t))";
+        return "(" + userFacingSelfType(reactor) + "*) (((char*) self) + sizeof(self_base_t))";
     }
 
     private static Stream<TypedVariable> ioTypedVariableStream(Reaction r) {

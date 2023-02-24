@@ -67,7 +67,7 @@ public class CMethodGenerator {
         code.indent();
 
         // Define the "self" struct.
-        String structType = CUtil.selfType(decl);
+        String structType = CUtil.selfType(ASTUtils.toDefinition(decl));
         // A null structType means there are no inputs, state,
         // or anything else. No need to declare it.
         if (structType != null) {

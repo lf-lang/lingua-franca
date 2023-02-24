@@ -354,7 +354,7 @@ public class PythonGenerator extends CGenerator {
     /**
      * Generate the aliases for inputs, outputs, and struct type definitions for
      * actions of the specified reactor in the specified federate.
-     * @param decl The parsed reactor data structure.
+     * @param r The parsed reactor data structure.
      */
     @Override
     public void generateAuxiliaryStructs(
@@ -371,17 +371,17 @@ public class PythonGenerator extends CGenerator {
         }
     }
 
-    private void generateAuxiliaryStructsForPort(CodeBuilder builder, ReactorDecl decl,
+    private void generateAuxiliaryStructsForPort(CodeBuilder builder, Reactor r,
                                                  Port port) {
         boolean isTokenType = CUtil.isTokenType(ASTUtils.getInferredType(port), types);
         builder.pr(port,
-                PythonPortGenerator.generateAliasTypeDef(decl, port, isTokenType,
+                PythonPortGenerator.generateAliasTypeDef(r, port, isTokenType,
                                                          genericPortType));
     }
 
-    private void generateAuxiliaryStructsForAction(CodeBuilder builder, ReactorDecl decl,
+    private void generateAuxiliaryStructsForAction(CodeBuilder builder, Reactor r,
                                                    Action action) {
-        builder.pr(action, PythonActionGenerator.generateAliasTypeDef(decl, action, genericActionType));
+        builder.pr(action, PythonActionGenerator.generateAliasTypeDef(r, action, genericActionType));
     }
 
     /**
@@ -469,7 +469,7 @@ public class PythonGenerator extends CGenerator {
             super.generateReaction(reaction, decl, reactionIndex);
             return;
         }
-        code.pr(PythonReactionGenerator.generateCReaction(reaction, decl, reactionIndex, mainDef, errorReporter, types));
+        code.pr(PythonReactionGenerator.generateCReaction(reaction, reactor, reactionIndex, mainDef, errorReporter, types));
     }
 
     /**
