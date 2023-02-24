@@ -43,6 +43,7 @@ import org.lflang.federated.launcher.FedLauncherFactory;
 import org.lflang.generator.CodeMap;
 import org.lflang.generator.DockerData;
 import org.lflang.generator.FedDockerComposeGenerator;
+import org.lflang.generator.GeneratorResult;
 import org.lflang.generator.GeneratorResult.Status;
 import org.lflang.generator.GeneratorUtils;
 import org.lflang.generator.IntegratedBuilder;
@@ -170,6 +171,11 @@ public class FedGenerator {
             ));
         }
 
+        if (context.getTargetConfig().noCompile) {
+            context.finish(Status.COMPILED, lf2lfCodeMapMap);
+            return false;
+        }
+
         Map<Path, CodeMap> codeMapMap = compileFederates(context, lf2lfCodeMapMap, (subContexts) -> {
             if (context.getTargetConfig().dockerOptions == null) return;
             final List<DockerData> services = new ArrayList();
@@ -198,7 +204,7 @@ public class FedGenerator {
         });
 
         context.finish(Status.COMPILED, codeMapMap);
-        return false; // FIXME why false?
+        return false;
     }
 
     /**
