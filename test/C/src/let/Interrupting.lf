@@ -23,6 +23,7 @@ reactor Let {
         self->r1_executing = false;
     =}
 
+    // Interrupting reation
     reaction(t2) {=
         if (self->r1_executing) {
             lf_print_error_and_exit("Interrupting reaction was not stalled");
