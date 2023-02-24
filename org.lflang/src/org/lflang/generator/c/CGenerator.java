@@ -1040,8 +1040,8 @@ public class CGenerator extends GeneratorBase {
         final String headerName = CUtil.getName(reactor) + ".h";
         header.pr("#include \"include/core/reactor.h\"");
         src.pr("#include \"" + headerName + "\"");
-        src.pr("#include \"api.h\"");
-        src.pr("#include \"set.h\"");
+        src.pr("#include \"include/api.h\"");
+        src.pr("#include \"include/set.h\"");
         generateIncludes(reactor);
 
         // Preamble code contains state declarations with static initializers.
