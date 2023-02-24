@@ -124,4 +124,12 @@ public class CTest extends RuntimeTest {
         Assumptions.assumeFalse(isWindows(), Message.NO_WINDOWS_SUPPORT);
         super.runDockerFederatedTests();
     }
+
+    @Test
+    public void runLetTests() {
+        runTestsForTargets(Message.DESC_LET,
+            TestCategory.LET::equals, Configurators::noChanges,
+            false);
+    }
+
 }

@@ -141,6 +141,9 @@ public class TestRegistry {
         /** Tests concerning modal reactors */
         MODAL_MODELS(true),
 
+        /** Tests using the LET scheduler **/
+        LET(true),
+
         // non-shared tests
         DOCKER(true),
         DOCKER_FEDERATED(true, "docker" + File.separator + "federated"),
