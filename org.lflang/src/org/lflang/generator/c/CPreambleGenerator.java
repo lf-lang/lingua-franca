@@ -61,6 +61,10 @@ public class CPreambleGenerator {
         code.pr("#include \"" + relPathHeader + "core/mixed_radix.h\"");
         code.pr("#include \"" + relPathHeader + "core/port.h\"");
         code.pr("int lf_reactor_c_main(int argc, const char* argv[]);");
+        if(targetConfig.fedSetupPreamble != null) {
+            code.pr("#include \"" + relPathHeader + "core/federated/federate.h\"");
+            code.pr("#include \"" + relPathHeader + "core/federated/net_common.h\"");
+        }
         if (cppMode || targetConfig.platformOptions.platform == Platform.ARDUINO) {
             code.pr("}");
         }
