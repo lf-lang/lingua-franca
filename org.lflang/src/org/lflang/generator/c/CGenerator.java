@@ -1051,7 +1051,7 @@ public class CGenerator extends GeneratorBase {
         FileUtil.writeToFile(src.toString(), fileConfig.getSrcGenPath().resolve(CUtil.getName(reactor) + (CCppMode ? ".cpp" : ".c")), true);
     }
 
-    private void generateReactorClassHeaders(Reactor reactor, String headerName, CodeBuilder header, CodeBuilder src) {
+    protected void generateReactorClassHeaders(Reactor reactor, String headerName, CodeBuilder header, CodeBuilder src) {
         if (CCppMode) src.pr("extern \"C\" {");
         header.pr("#include \"include/core/reactor.h\"");
         src.pr("#include \"" + headerName + "\"");

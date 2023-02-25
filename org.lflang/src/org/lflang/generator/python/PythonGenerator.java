@@ -470,7 +470,7 @@ public class PythonGenerator extends CGenerator {
             super.generateReaction(src, reaction, r, reactionIndex);
             return;
         }
-        code.pr(PythonReactionGenerator.generateCReaction(reaction, reactor, reactionIndex, mainDef, errorReporter, types));
+        src.pr(PythonReactionGenerator.generateCReaction(reaction, reactor, reactionIndex, mainDef, errorReporter, types));
     }
 
     /**
@@ -519,6 +519,12 @@ public class PythonGenerator extends CGenerator {
     @Override
     protected void generateUserPreamblesForReactor(Reactor reactor, CodeBuilder src) {
         // Do nothing
+    }
+
+    @Override
+    protected void generateReactorClassHeaders(Reactor reactor, String headerName, CodeBuilder header, CodeBuilder src) {
+        header.pr(PythonPreambleGenerator.generateCIncludeStatements(targetConfig, targetLanguageIsCpp(), hasModalReactors));
+        super.generateReactorClassHeaders(reactor, headerName, header, src);
     }
 
     /**

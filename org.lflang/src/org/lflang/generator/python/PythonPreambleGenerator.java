@@ -55,7 +55,7 @@ public class PythonPreambleGenerator {
         code.pr(CPreambleGenerator.generateIncludeStatements(targetConfig, CCppMode));
         code.pr("#include \"pythontarget.h\"");
         if (hasModalReactors) {
-            code.pr("#include \"modal_models/definitions.h\"");
+            code.pr("#include \"include/modal_models/definitions.h\"");
         }
         return code.toString();
     }
