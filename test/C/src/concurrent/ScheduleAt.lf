@@ -10,6 +10,9 @@ target C {
 }
 
 reactor Scheduler {
+    preamble {=
+        #include "include/core/reactor_common.h"
+    =}
     logical action act
     // List of microsteps. Size = 16
     state microstep_delay_list: uint32_t[](
