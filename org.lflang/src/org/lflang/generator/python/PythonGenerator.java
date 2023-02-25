@@ -55,6 +55,7 @@ import org.lflang.generator.c.CCmakeGenerator;
 import org.lflang.generator.c.CGenerator;
 import org.lflang.generator.c.CUtil;
 import org.lflang.lf.Action;
+import org.lflang.lf.Code;
 import org.lflang.lf.Input;
 import org.lflang.lf.Model;
 import org.lflang.lf.Output;
@@ -516,7 +517,7 @@ public class PythonGenerator extends CGenerator {
      * @param reactor The given reactor
      */
     @Override
-    protected void generateUserPreamblesForReactor(Reactor reactor) {
+    protected void generateUserPreamblesForReactor(Reactor reactor, CodeBuilder src) {
         // Do nothing
     }
 

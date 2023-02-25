@@ -521,7 +521,7 @@ public class CGenerator extends GeneratorBase {
             // If cmake is requested, generate the CMakeLists.txt
             if (targetConfig.platformOptions.platform != Platform.ARDUINO) {
                 var cmakeFile = fileConfig.getSrcGenPath() + File.separator + "CMakeLists.txt";
-                var sources = reactors.stream().map(CUtil::getName).map(it -> it + ".c").collect(Collectors.toList());
+                var sources = reactors.stream().map(CUtil::getName).map(it -> it + (CCppMode ? ".cpp" : ".c")).collect(Collectors.toList());
                 sources.add(cFilename);
                 var cmakeCode = cmakeGenerator.generateCMakeCode(
                     sources,
@@ -1044,14 +1044,15 @@ public class CGenerator extends GeneratorBase {
         header.pr("#ifndef " + guardMacro);
         header.pr("#define " + guardMacro);
         generateReactorClassHeaders(reactor, headerName, header, src);
-        generateUserPreamblesForReactor(reactor);
+        generateUserPreamblesForReactor(reactor, src);
         generateReactorClassBody(reactor, header, src);
         header.pr("#endif // " + guardMacro);
         FileUtil.writeToFile(header.toString(), fileConfig.getSrcGenPath().resolve(headerName), true);
-        FileUtil.writeToFile(src.toString(), fileConfig.getSrcGenPath().resolve(CUtil.getName(reactor) + ".c"), true);
+        FileUtil.writeToFile(src.toString(), fileConfig.getSrcGenPath().resolve(CUtil.getName(reactor) + (CCppMode ? ".cpp" : ".c")), true);
     }
 
     private void generateReactorClassHeaders(Reactor reactor, String headerName, CodeBuilder header, CodeBuilder src) {
+        if (CCppMode) src.pr("extern \"C\" {");
         header.pr("#include \"include/core/reactor.h\"");
         src.pr("#include \"" + headerName + "\"");
         src.pr("#include \"include/api/api.h\"");
@@ -1062,6 +1063,7 @@ public class CGenerator extends GeneratorBase {
             .map(ASTUtils::toDefinition).map(CUtil::getName)
             .map(name -> "#include \"" + name + ".h\"")
             .forEach(header::pr);
+        if (CCppMode) src.pr("}");
     }
 
     private void generateReactorClassBody(Reactor reactor, CodeBuilder header, CodeBuilder src) {
@@ -1086,12 +1088,12 @@ public class CGenerator extends GeneratorBase {
      * Generates preambles defined by user for a given reactor
      * @param reactor The given reactor
      */
-    protected void generateUserPreamblesForReactor(Reactor reactor) {
+    protected void generateUserPreamblesForReactor(Reactor reactor, CodeBuilder src) {
         for (Preamble p : convertToEmptyListIfNull(reactor.getPreambles())) {
-            code.pr("// *********** From the preamble, verbatim:");
-            code.prSourceLineNumber(p.getCode());
-            code.pr(toText(p.getCode()));
-            code.pr("\n// *********** End of preamble.");
+            src.pr("// *********** From the preamble, verbatim:");
+            src.prSourceLineNumber(p.getCode());
+            src.pr(toText(p.getCode()));
+            src.pr("\n// *********** End of preamble.");
         }
     }
 
