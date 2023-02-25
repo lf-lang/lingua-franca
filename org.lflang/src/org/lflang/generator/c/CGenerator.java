@@ -39,8 +39,10 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -1038,24 +1040,39 @@ public class CGenerator extends GeneratorBase {
         CodeBuilder header = new CodeBuilder();
         CodeBuilder src = new CodeBuilder();
         final String headerName = CUtil.getName(reactor) + ".h";
+        var guardMacro = headerName.toUpperCase().replace(".", "_");
+        header.pr("#ifndef " + guardMacro);
+        header.pr("#define " + guardMacro);
+        generateReactorClassHeaders(reactor, headerName, header, src);
+        generateUserPreamblesForReactor(reactor);
+        generateReactorClassBody(reactor, header, src);
+        header.pr("#endif // " + guardMacro);
+        FileUtil.writeToFile(header.toString(), fileConfig.getSrcGenPath().resolve(headerName), true);
+        FileUtil.writeToFile(src.toString(), fileConfig.getSrcGenPath().resolve(CUtil.getName(reactor) + ".c"), true);
+    }
+
+    private void generateReactorClassHeaders(Reactor reactor, String headerName, CodeBuilder header, CodeBuilder src) {
         header.pr("#include \"include/core/reactor.h\"");
         src.pr("#include \"" + headerName + "\"");
-        src.pr("#include \"include/api.h\"");
-        src.pr("#include \"include/set.h\"");
+        src.pr("#include \"include/api/api.h\"");
+        src.pr("#include \"include/api/set.h\"");
         generateIncludes(reactor);
+        new HashSet<>(reactor.getInstantiations()).stream()
+            .map(Instantiation::getReactorClass)
+            .map(ASTUtils::toDefinition).map(CUtil::getName)
+            .map(name -> "#include \"" + name + ".h\"")
+            .forEach(header::pr);
+    }
 
-        // Preamble code contains state declarations with static initializers.
-        generateUserPreamblesForReactor(reactor);
-
+    private void generateReactorClassBody(Reactor reactor, CodeBuilder header, CodeBuilder src) {
         // Some of the following methods create lines of code that need to
         // go into the constructor.  Collect those lines of code here:
         var constructorCode = new CodeBuilder();
+        generateAuxiliaryStructs(header, reactor, false);
         generateSelfStruct(header, reactor, constructorCode);
         generateMethods(src, reactor);
         generateReactions(src, reactor);
         generateConstructor(src, header, reactor, constructorCode);
-        FileUtil.writeToFile(header.toString(), fileConfig.getSrcGenPath().resolve(headerName), true);
-        FileUtil.writeToFile(src.toString(), fileConfig.getSrcGenPath().resolve(CUtil.getName(reactor) + ".c"), true);
     }
 
     /**
@@ -1105,7 +1122,7 @@ public class CGenerator extends GeneratorBase {
      * Generate the struct type definitions for inputs, outputs, and
      * actions of the specified reactor.
      */
-    protected void generateAuxiliaryStructs(CodeBuilder builder, Reactor r) {
+    protected void generateAuxiliaryStructs(CodeBuilder builder, Reactor r, boolean userFacing) {
         // In the case where there are incoming
         // p2p logical connections in decentralized
         // federated execution, there will be an
@@ -1130,7 +1147,8 @@ public class CGenerator extends GeneratorBase {
                 getTarget(),
                 errorReporter,
                 types,
-                federatedExtension
+                federatedExtension,
+                userFacing
             ));
         }
         // The very first item on this struct needs to be
@@ -1142,7 +1160,8 @@ public class CGenerator extends GeneratorBase {
                 action,
                 getTarget(),
                 types,
-                federatedExtension
+                federatedExtension,
+                userFacing
             ));
         }
     }
@@ -1262,12 +1281,12 @@ public class CGenerator extends GeneratorBase {
                     // to be malloc'd at initialization.
                     if (!ASTUtils.isMultiport(port)) {
                         // Not a multiport.
-                        body.pr(port, variableStructType(port, containedReactorType)+" "+port.getName()+";");
+                        body.pr(port, variableStructType(port, containedReactorType, false)+" "+port.getName()+";");
                     } else {
                         // Is a multiport.
                         // Memory will be malloc'd in initialization.
                         body.pr(port, String.join("\n",
-                            variableStructType(port, containedReactorType)+"** "+port.getName()+";",
+                            variableStructType(port, containedReactorType, false)+"** "+port.getName()+";",
                             "int "+port.getName()+"_width;"
                         ));
                     }
@@ -1277,13 +1296,13 @@ public class CGenerator extends GeneratorBase {
                     // self struct of the container.
                     if (!ASTUtils.isMultiport(port)) {
                         // Not a multiport.
-                        body.pr(port, variableStructType(port, containedReactorType)+"* "+port.getName()+";");
+                        body.pr(port, variableStructType(port, containedReactorType, false)+"* "+port.getName()+";");
                     } else {
                         // Is a multiport.
                         // Here, we will use an array of pointers.
                         // Memory will be malloc'd in initialization.
                         body.pr(port, String.join("\n",
-                            variableStructType(port, containedReactorType)+"** "+port.getName()+";",
+                            variableStructType(port, containedReactorType, false)+"** "+port.getName()+";",
                             "int "+port.getName()+"_width;"
                         ));
                     }
@@ -1631,19 +1650,16 @@ public class CGenerator extends GeneratorBase {
      * typed variable (port or action) of the specified reactor class.
      * This is required to be the same as the type name returned by
      * {@link #variableStructType(TriggerInstance)}.
-     * @param variable The variable.
-     * @param reactor The reactor class.
-     * @return The name of the self struct.
      */
-    public static String variableStructType(Variable variable, Reactor reactor) {
-        return CUtil.getName(reactor)+"_"+variable.getName()+"_t";
+    public static String variableStructType(Variable variable, Reactor reactor, boolean userFacing) {
+        return (userFacing ? reactor.getName() : CUtil.getName(reactor)) +"_"+variable.getName()+"_t";
     }
 
     /**
      * Construct a unique type for the struct of the specified
      * instance (port or action).
      * This is required to be the same as the type name returned by
-     * {@link #variableStructType(Variable, Reactor)}.
+     * {@link #variableStructType(Variable, Reactor, boolean)}.
      * @param portOrAction The port or action instance.
      * @return The name of the self struct.
      */

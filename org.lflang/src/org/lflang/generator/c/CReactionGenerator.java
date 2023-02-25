@@ -39,7 +39,7 @@ import org.lflang.util.StringUtil;
 
 public class CReactionGenerator {
     protected static String DISABLE_REACTION_INITIALIZATION_MARKER
-        = "// **** Do not include initialization code in this reaction.";
+        = "// **** Do not include initialization code in this reaction.";  // FIXME: Such markers should not exist
 
     /**
      * Generate necessary initialization code inside the body of the reaction that belongs to reactor decl.
@@ -160,7 +160,7 @@ public class CReactionGenerator {
                     // It is an action, not an output.
                     // If it has already appeared as trigger, do not redefine it.
                     if (!actionsAsTriggers.contains(effect.getVariable())) {
-                        reactionInitialization.pr(CGenerator.variableStructType(variable, decl)+"* "+variable.getName()+" = &self->_lf_"+variable.getName()+";");
+                        reactionInitialization.pr(CGenerator.variableStructType(variable, decl, false)+"* "+variable.getName()+" = &self->_lf_"+variable.getName()+";");
                     }
                 } else if (effect.getVariable() instanceof Mode) {
                     // Mode change effect
@@ -355,7 +355,7 @@ public class CReactionGenerator {
             structBuilder = new CodeBuilder();
             structs.put(definition, structBuilder);
         }
-        String inputStructType = CGenerator.variableStructType(input, ASTUtils.toDefinition(definition.getReactorClass()));
+        String inputStructType = CGenerator.variableStructType(input, ASTUtils.toDefinition(definition.getReactorClass()), false);
         String defName = definition.getName();
         String defWidth = generateWidthVariable(defName);
         String inputName = input.getName();
@@ -422,7 +422,7 @@ public class CReactionGenerator {
         } else {
             // port is an output of a contained reactor.
             Output output = (Output) port.getVariable();
-            String portStructType = CGenerator.variableStructType(output, ASTUtils.toDefinition(port.getContainer().getReactorClass()));
+            String portStructType = CGenerator.variableStructType(output, ASTUtils.toDefinition(port.getContainer().getReactorClass()), false);
 
             CodeBuilder structBuilder = structs.get(port.getContainer());
             if (structBuilder == null) {
@@ -479,7 +479,7 @@ public class CReactionGenerator {
         Reactor r,
         CTypes types
     ) {
-        String structType = CGenerator.variableStructType(action, r);
+        String structType = CGenerator.variableStructType(action, r, false);
         // If the action has a type, create variables for accessing the value.
         InferredType type = ASTUtils.getInferredType(action);
         // Pointer to the lf_token_t sent as the payload in the trigger.
@@ -523,7 +523,7 @@ public class CReactionGenerator {
         Reactor r,
         CTypes types
     ) {
-        String structType = CGenerator.variableStructType(input, r);
+        String structType = CGenerator.variableStructType(input, r, false);
         InferredType inputType = ASTUtils.getInferredType(input);
         CodeBuilder builder = new CodeBuilder();
         String inputName = input.getName();
@@ -642,9 +642,9 @@ public class CReactionGenerator {
             // The container of the output may be a contained reactor or
             // the reactor containing the reaction.
             String outputStructType = (effect.getContainer() == null) ?
-                    CGenerator.variableStructType(output, r)
+                    CGenerator.variableStructType(output, r, false)
                     :
-                    CGenerator.variableStructType(output, ASTUtils.toDefinition(effect.getContainer().getReactorClass()));
+                    CGenerator.variableStructType(output, ASTUtils.toDefinition(effect.getContainer().getReactorClass()), false);
             if (!ASTUtils.isMultiport(output)) {
                 // Output port is not a multiport.
                 return outputStructType+"* "+outputName+" = &self->_lf_"+outputName+";";

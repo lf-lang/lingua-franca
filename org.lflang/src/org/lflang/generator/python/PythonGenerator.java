@@ -358,7 +358,7 @@ public class PythonGenerator extends CGenerator {
      */
     @Override
     public void generateAuxiliaryStructs(
-        CodeBuilder builder, Reactor r
+        CodeBuilder builder, Reactor r, boolean userFacing
     ) {
         for (Input input : ASTUtils.allInputs(r)) {
             generateAuxiliaryStructsForPort(builder, r, input);

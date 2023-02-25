@@ -8,6 +8,6 @@ public class PythonActionGenerator {
     public static String generateAliasTypeDef(Reactor r, Action action,
                                               String genericActionType) {
 
-        return "typedef "+genericActionType+" "+CGenerator.variableStructType(action, r)+";";
+        return "typedef "+genericActionType+" "+CGenerator.variableStructType(action, r, false)+";";
     }
 }

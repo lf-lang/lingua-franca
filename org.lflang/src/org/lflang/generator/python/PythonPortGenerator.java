@@ -196,7 +196,7 @@ public class PythonPortGenerator {
     }
 
     public static String generateAliasTypeDef(Reactor r, Port port, boolean isTokenType, String genericPortType) {
-        return "typedef "+genericPortType+" "+CGenerator.variableStructType(port, r)+";";
+        return "typedef "+genericPortType+" "+CGenerator.variableStructType(port, r, false)+";";
     }
 
     private static String generateConvertCPortToPy(String port) {

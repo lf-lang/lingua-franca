@@ -21,7 +21,7 @@ import org.lflang.util.FileUtil;
 public class CReactorHeaderFileGenerator {
 
     public interface GenerateAuxiliaryStructs {
-        void generate(CodeBuilder b, Reactor r);
+        void generate(CodeBuilder b, Reactor r, boolean userFacing);
     }
 
     public static Path outputPath(CFileConfig fileConfig, Reactor r) {
@@ -39,7 +39,7 @@ public class CReactorHeaderFileGenerator {
         appendIncludeGuard(builder, r);
         appendPoundIncludes(builder);
         appendSelfStruct(builder, types, r);
-        generator.generate(builder, r);
+        generator.generate(builder, r, true);
         for (Reaction reaction : r.getReactions()) {
             appendSignature(builder, types, reaction, r);
         }

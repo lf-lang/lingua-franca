@@ -58,7 +58,8 @@ public class CPortGenerator {
         Target target,
         ErrorReporter errorReporter,
         CTypes types,
-        CodeBuilder federatedExtension
+        CodeBuilder federatedExtension,
+        boolean userFacing
     ) {
         var code = new CodeBuilder();
         code.pr("typedef struct {");
@@ -79,7 +80,7 @@ public class CPortGenerator {
         code.pr(valueDeclaration(port, target, errorReporter, types));
         code.pr(federatedExtension.toString());
         code.unindent();
-        code.pr("} "+variableStructType(port, decl)+";");
+        code.pr("} "+variableStructType(port, decl, userFacing)+";");
         return code.toString();
     }
 
@@ -210,21 +211,21 @@ public class CPortGenerator {
             if (ASTUtils.isMultiport(input)) {
                 body.pr(input, String.join("\n",
                     "// Multiport input array will be malloc'd later.",
-                    variableStructType(input, reactor)+"** _lf_"+inputName+";",
+                    variableStructType(input, reactor, false)+"** _lf_"+inputName+";",
                     "int _lf_"+inputName+"_width;",
                     "// Default input (in case it does not get connected)",
-                    variableStructType(input, reactor)+" _lf_default__"+inputName+";",
+                    variableStructType(input, reactor, false)+" _lf_default__"+inputName+";",
                     "// Struct to support efficiently reading sparse inputs.",
                     "lf_sparse_io_record_t* _lf_"+inputName+"__sparse;"
                 ));
             } else {
                 // input is not a multiport.
                 body.pr(input, String.join("\n",
-                    variableStructType(input, reactor)+"* _lf_"+inputName+";",
+                    variableStructType(input, reactor, false)+"* _lf_"+inputName+";",
                     "// width of -2 indicates that it is not a multiport.",
                     "int _lf_"+inputName+"_width;",
                     "// Default input (in case it does not get connected)",
-                    variableStructType(input, reactor)+" _lf_default__"+inputName+";"
+                    variableStructType(input, reactor, false)+" _lf_default__"+inputName+";"
                 ));
 
                 constructorCode.pr(input, String.join("\n",
@@ -256,7 +257,7 @@ public class CPortGenerator {
             if (ASTUtils.isMultiport(output)) {
                 body.pr(output, String.join("\n",
                     "// Array of output ports.",
-                    variableStructType(output, reactor)+"* _lf_"+outputName+";",
+                    variableStructType(output, reactor, false)+"* _lf_"+outputName+";",
                     "int _lf_"+outputName+"_width;",
                     "// An array of pointers to the individual ports. Useful",
                     "// for the lf_set macros to work out-of-the-box for",
@@ -264,11 +265,11 @@ public class CPortGenerator {
                     "// value can be accessed via a -> operator (e.g.,foo[i]->value).",
                     "// So we have to handle multiports specially here a construct that",
                     "// array of pointers.",
-                    variableStructType(output, reactor)+"** _lf_"+outputName+"_pointers;"
+                    variableStructType(output, reactor, false)+"** _lf_"+outputName+"_pointers;"
                 ));
             } else {
                 body.pr(output, String.join("\n",
-                    variableStructType(output, reactor)+" _lf_"+outputName+";",
+                    variableStructType(output, reactor, false)+" _lf_"+outputName+";",
                     "int _lf_"+outputName+"_width;"
                 ));
             }
