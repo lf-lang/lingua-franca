@@ -1,4 +1,4 @@
-name: C++ tests
+name: ROS2 C++ tests
 
 on:
   workflow_call:
