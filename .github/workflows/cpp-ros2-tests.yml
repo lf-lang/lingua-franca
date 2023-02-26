@@ -1,4 +1,4 @@
-name: C++ tests
+name: ROS2 C++ tests
 
 on:
   workflow_call:
@@ -14,7 +14,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check out lingual-franca repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           repository: lf-lang/lingua-franca
           submodules: true
@@ -23,7 +23,7 @@ jobs:
       - name: Prepare build environment
         uses: ./.github/actions/prepare-build-env
       - name: Check out specific ref of reactor-cpp
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           repository: lf-lang/reactor-cpp
           path: org.lflang/src/lib/cpp/reactor-cpp
@@ -36,7 +36,7 @@ jobs:
           source /opt/ros/*/setup.bash
           ./gradlew test --tests org.lflang.tests.runtime.CppRos2Test.*
       - name: Report to CodeCov
-        uses: codecov/codecov-action@v2.1.0
+        uses: codecov/codecov-action@v3.1.1
         with:
           file: org.lflang.tests/build/reports/xml/jacoco
           fail_ci_if_error: false
