@@ -538,7 +538,7 @@ public class CGenerator extends GeneratorBase {
                 }
             } else {
                 try {
-                    FileUtil.arduinoDeleteHelper(fileConfig.getSrcGenPath().resolve("src/"));
+                    FileUtil.arduinoDeleteHelper(fileConfig.getSrcGenPath().resolve("src/"), targetConfig.threading);
                     FileUtil.relativeIncludeHelper(fileConfig.getSrcGenPath().resolve("src/"));
                 } catch (IOException e) {
                     //noinspection ThrowableNotThrown,ResultOfMethodCallIgnored
@@ -1914,11 +1914,10 @@ public class CGenerator extends GeneratorBase {
             // So that each separate compile knows about modal reactors, do this:
             targetConfig.compileDefinitions.put("MODAL_REACTORS", "TRUE");
         }
-        if (targetConfig.threading && targetConfig.platformOptions.platform == Platform.ARDUINO) {
-            //Add error message when user attempts to set threading=true for Arduino
-            if (targetConfig.setByUser.contains(TargetProperty.THREADING)) {
-                System.out.println("Threading is incompatible on Arduino. Setting threading to false.");
-            }
+        if (targetConfig.threading && targetConfig.platformOptions.platform == Platform.ARDUINO 
+            && (targetConfig.platformOptions.board == null || !targetConfig.platformOptions.board.contains("mbed"))) {
+            //non-MBED boards should not use threading
+            System.out.println("Threading is incompatible on your current Arduino flavor. Setting threading to false.");
             targetConfig.threading = false;
         }
 
