@@ -1,8 +1,24 @@
+'''
+Define arrows:
+    (x1, y1) ==> (x2, y2), when unique result (this arrow will be tilted)
+    (x1, y1) --> (x2, y2), when a possible result (could be not tilted)?
+If not arrow, then triangle with text 
+
+In the dataframe, each arrow will be marked as:
+    - 'a': draw a non-dashed arrow
+    - 'd': draw dashed arrow
+    - 't': draw the triangle only
+    - 'm': marked, not to be drawn
+    - 'p': pending
+'''
+
+
 #!/usr/bin/env python3
 import argparse         # For arguments parsing
 import pandas as pd     # For csv manipulation
 from os.path import exists
 import math
+import fedsd_helper as fhlp
 
 # Define the arguments to pass in the command line
 parser = argparse.ArgumentParser(description='Set of the csv trace files to render.')
@@ -12,100 +28,81 @@ parser.add_argument('-f','--federates', nargs='+', action='append',
                     help='List of the federates csv trace files.')
 
 
-def prune_event_name(event_name) :
+''' Clock synchronization error '''
+clock_sync_error = 0
+
+''' Bound on the network latency '''
+network_latency = 150000 # That is 100us
+
+
+def load_and_process_csv_file(csv_file, rti) :
     '''
-    Prunes the event name, so that to get nice to render string on top of 
-    the arrows.
+    Loads and processes the csv entries, based on the type of the actor (if RTI
+    or federate).
 
     Args:
-     * event_name: String with the event name
+     * csv_file: String file name
+     * rti: Bool True if it the RTI, False otherwise
     Returns:
-     * pruned event name  
+     * The processed dataframe.
     '''
-    tmp_str = event_name
-    if ('RTI accepts joining federate' in event_name) :
-        tmp_str = "JOIN"
-    elif ('RTI receives ' in event_name) :
-        tmp_str = event_name.split('RTI receives ')[1]
-        tmp_str = tmp_str.split(' from federate')[0]
-    elif ('RTI sends ' in event_name) :
-        tmp_str = event_name.split('RTI sends ')[1]
-        tmp_str = tmp_str.split(' to federate')[0]
-    elif ('Federate receives ' in event_name) :
-        tmp_str = event_name.split('Federate receives ')[1]
-        tmp_str = tmp_str.split(' from RTI')[0]
-    elif ('Federate sends ' in event_name) :
-        tmp_str = event_name.split('Federate sends ')[1]
-        tmp_str = tmp_str.split(' to RTI')[0]
-
-    return tmp_str
-
-
-def svg_string_draw_line(x1, y1, x2, y2):
-    '''
-    Constructs the svg html string to draw a line from (x1, y1) to (x2, y2)
-    '''
-    str_line = '\t<line x1="'+str(x1)+'" y1="'+str(y1)+'" x2="'+str(x2)+'" y2="'+str(y2)+'" stroke="black" stroke-width="2" />\n'
-    return str_line
-
-
-def svg_string_draw_arrow(x1, y1, x2, y2):
-    '''
-    Constructs the svg html string to draw a line from (x1, y1) to (x2, y2)
-    '''
-    str_line1 = svg_string_draw_line(x1, y1, x2, y2)
-    str_line2 = ''
-    if (x1 > x2) :
-        str_line2 = '\t<path d="M'+str(x2)+' '+str(y2)+' L'+str(x2+10)+' '+str(y2+5)+' L'+str(x2+10)+' '+str(y2-5)+' Z" />\n'
-    else :
-        str_line2 = '\t<path d="M'+str(x2)+' '+str(y2)+' L'+str(x2-10)+' '+str(y2+5)+' L'+str(x2-10)+' '+str(y2-5)+' Z" />\n'
+    # Load RTI tracepoints, rename the columns and clean non useful data
+    df = pd.read_csv(csv_file)
+    print
+    if (rti == True):
+        df.columns = ['event', 'r', 'partner_id', 'w', 'logical_time', 'm', 'physical_time', 't', 'ed']
+        # Set that these are the RTI information
+        df['self_id'] = -1
+        # df['partner_id'] = int(df['partner_id'])
+    else:
+        df.columns = ['event', 'r', 'self_id', 'w', 'logical_time', 'm', 'physical_time', 't', 'ed']
+        # Set that these are the RTI information
+        # FIXME: Here, we assume that the coordination in centralized. 
+        # To be updated for the decentralized case...
+        df['partner_id'] = -1
+        # df['self_id'] = int(df['partner_id'])
     
-    return str_line1 + str_line2
+    # Remove non-needed information
+    df = df.drop(columns=['r', 'w', 'm', 't', 'ed'])
 
-def svg_string_comment(string):
-    '''
-    Constructs the svg html string to write a comment into an svg file
-    '''
-    str_line = '\n\t<!-- ' + string + ' -->\n'
-    return str_line
+    # Remove all the lines that do not contain communication information
+    # which boils up to having 'RTI' in the 'event' column
+    df = df[df['event'].str.contains('RTI') == True]
+    df = df.astype({'self_id': 'int', 'partner_id': 'int'})
 
+    # Add an inout column to set the arrow direction
+    df['inout'] = df['event'].apply(lambda e: 'in' if 'receives' in e else 'out')
 
-
+    # Prune event names
+    df['event'] = df['event'].apply(lambda e: fhlp.prune_event_name[e])
+    # print(df)
+    return df
 
 
 if __name__ == '__main__':
     args = parser.parse_args()
 
-    # Check if the files exist
+    # Check if the RTI trace file exists
     if (not exists(args.rti)):
         print('Error: No RTI csv tarce file!')
+        # FIXME: Exit?
         exit(0)
+    
+    # The RTI and each of the federates have a fixed x coordinate. They will be
+    # saved in a dict
+    x_coor = {}
+    actors = []
+    padding = 50
+    spacing = 200       # Spacing between actors
     
     ############################################################################
     #### RTI trace processing
     ############################################################################
-
-    # Load RTI tracepoints, rename the columns and clean non useful data
-    trace_df = pd.read_csv(args.rti)
-    trace_df.columns = ['event', 'r', 'fed_id', 'w', 'logical_time', 'm', 'physical_time', 't', 'ed']
-    trace_df = trace_df.drop(columns=['r', 'w', 'm', 't', 'ed'])
-
-    # Remove all the lines that do not contain communication information
-    # which boils up to having 'RTI' in the 'event' column
-    trace_df = trace_df[trace_df['event'].str.contains('RTI') == True]
-
-    # Add an inout column to set the arrow direction
-    trace_df['inout'] = trace_df['event'].apply(lambda e: 'in' if 'receives' in e else 'out')
-
-    # Prune event names
-    trace_df['event'] = trace_df['event'].apply(lambda e: prune_event_name(e))
-
-    # Set that these are the RTI information, by setting 
-    trace_df['rti'] = True
-    # print(trace_df)
-
-    # Count the number of actors
-    actors_nbr = 1
+    trace_df = load_and_process_csv_file(args.rti, True)
+    x_coor[-1] = padding
+    actors.append(-1)
+    # Temporary use
+    trace_df['x1'] = x_coor[-1]
 
     ############################################################################
     #### Federates trace processing
@@ -113,25 +110,22 @@ if __name__ == '__main__':
     # Loop over the given list of federates trace files 
     if (args.federates) :
         for fed_trace in args.federates[0]:
-            print(fed_trace)
             if (not exists(fed_trace)):
                 print('Warning: Trace file ' + fed_trace + ' does not exist! Will resume though')
                 continue
-
-            # Proceed as done with the RTI
-            fed_df = pd.read_csv(fed_trace)
-            fed_df.columns = ['event', 'r', 'fed_id', 'w', 'logical_time', 'm', 'physical_time', 't', 'ed']
-            fed_df = fed_df.drop(columns=['r', 'w', 'm', 't', 'ed'])
-            fed_df = fed_df[fed_df['event'].str.contains('RTI') == True]
-            fed_df['inout'] = fed_df['event'].apply(lambda e: 'in' if 'receives' in e else 'out')
-            fed_df['event'] = fed_df['event'].apply(lambda e: prune_event_name(e))
-            fed_df['rti'] = False
-            # print(fed_df)
-            actors_nbr = actors_nbr + 1
-
-            # Append into trace_df
-            trace_df = trace_df.append(fed_df, sort=False, ignore_index=True)
-
+            fed_df = load_and_process_csv_file(fed_trace, False)
+            if (not fed_df.empty):
+                # Get the federate id number
+                fed_id = fed_df.iloc[-1]['self_id']
+                # Add to the list of sequence diagram actors 
+                actors.append(fed_id)
+                # Derive the x coordinate of the actor
+                x_coor[fed_id] = padding + (spacing * (len(actors)-1))
+                fed_df['x1'] = x_coor[fed_id]
+                # Append into trace_df
+                trace_df = trace_df.append(fed_df, sort=False, ignore_index=True)
+                fed_df = fed_df[0:0]
+    
     # Sort all traces by physical time and then reset the index
     trace_df = trace_df.sort_values(by=['physical_time'])
     trace_df = trace_df.reset_index(drop=True)
@@ -141,53 +135,128 @@ if __name__ == '__main__':
     # time is when federates are still in the process of joining
     trace_df = trace_df[trace_df['physical_time'] >= 0]
 
-    # Add the Y column and initialize it with 0
-    trace_df['y'] = 50 # Or set a small shift
+    # Add the Y column and initialize it with the padding value 
+    trace_df['y1'] = math.ceil(padding * 3 / 2) # Or set a small shift
 
     ############################################################################
-    #### Process the traces in order to create the 'Y' coordinates
+    #### Compute the 'y1' coordinates
     ############################################################################
     ppt = 0     # Previous physical time
     cpt = 0     # Current physical time
     py = 0      # Previous y
     min = 10    # Will probably be set manually
     scale = 1   # Will probably be set manually
+    first_pass = True
     for index, row in trace_df.iterrows():
-        if (index != 2) :
+        if (not first_pass) :
             cpt = int(row['physical_time'])
             # print('cpt = '+str(cpt)+' and ppt = '+ppt)
             # From the email:
             # Y = T_previous + min + log10(1 + (T - T_previous)*scale)
             # But rather think it should be:
             py = math.ceil(py + min + (1 + math.log10(cpt - ppt) * scale))
-            trace_df.at[index, 'y'] = py
+            trace_df.at[index, 'y1'] = py
 
         ppt = int(row['physical_time'])
-        py = trace_df.at[index, 'y']
+        py = trace_df.at[index, 'y1']
+        first_pass = False
 
     ############################################################################
-    #### Compute the 'X' coordinates
+    #### Derive arrows that match sided communications
     ############################################################################
-    spacing = 200       # Spacing between actors
-    padding = 50
-    svg_width = padding + (actors_nbr - 1) * spacing + padding
-    svg_height = padding + int(trace_df.iloc[-1]['y'])
-    x_rti = 50
-    x_fed = []
-    for i in range(0, actors_nbr-1) :
-        x_fed.append(padding + (spacing * (i+1)))
+    # Intialize all rows as pending to be matched
+    trace_df['arrow'] = 'p'
+    trace_df['x2'] = -1
+    trace_df['y2'] = -1
 
-    # Write all the x coordinates
-    trace_df['x'] = trace_df[['rti','fed_id']].apply(lambda x: x_rti if x['rti'] == True else x_fed[int(x['fed_id'])], axis=1)
+    match = {}
+    # Iterate and check possible sides
+    for index, row in trace_df.iterrows():
+        if ('p' in row['arrow']) :
+            physical_time = row['physical_time']
+            self_id = int(row['self_id'])
+            partner_id = int(row['partner_id'])
+            event = row['event']
 
-    #
-    # FIXME: Should add processing to match the communications...
-    # Currently, everything is duplicated!!!
-    #
+            # Depending on the direction, compute the possible time interval
+            # and choose the row 
+            if ('out' in row['inout']):
+                # Compute the possible timestamps interval at the receiver side
+                physical_time_start = physical_time - clock_sync_error
+                physical_time_end = physical_time + clock_sync_error + network_latency
+                
+                # Match with 'in' tracepoints
+                matching_df = trace_df[\
+                    (trace_df['physical_time'] >= physical_time_start) & \
+                    (trace_df['physical_time'] <= physical_time_end) & \
+                    (trace_df['inout'] == 'in') & \
+                    (trace_df['self_id'] == partner_id) & \
+                    (trace_df['partner_id'] == self_id) & \
+                    (trace_df['arrow'] == 'p')
+                ]
+
+                if (matching_df.empty) :
+                    # If no matching receiver, than set the arrow to 't',
+                    # meaning that only a triangle will be rendered
+                    trace_df.loc[index, 'arrow'] = 't'
+                else:
+                    # If there is one or more matching rows, then consider 
+                    # the first one, since it is an out -> in arrow, and  
+                    # since it is the closet in time
+                    # FIXME: What other possible choices to consider?
+                    matching_index = matching_df.index[0]
+                    matching_row = matching_df.loc[matching_index]
+                    # Mark it, so not to consider it anymore
+                    trace_df.at[matching_index, 'arrow'] = 'm'
+                    trace_df.at[index, 'x2'] = matching_row['x1']
+                    trace_df.at[index, 'y2'] = matching_row['y1']
+                    if (len(matching_df.index) == 1) :
+                        trace_df.at[index, 'arrow'] = 'a'
+                    else :
+                        trace_df.at[index, 'arrow'] = 'd'
+            else: # 'in' in row['inout']
+                # Compute the possible timestamps interval at the receiver side
+                physical_time_start = physical_time - network_latency - clock_sync_error
+                physical_time_end = physical_time + clock_sync_error 
+                
+                # Match with 'out' tracepoints
+                matching_df = trace_df[\
+                    (trace_df['physical_time'] >= physical_time_start) & \
+                    (trace_df['physical_time'] <= physical_time_end) & \
+                    (trace_df['inout'] == 'out') & \
+                    (trace_df['self_id'] == partner_id) & \
+                    (trace_df['partner_id'] == self_id) & \
+                    (trace_df['arrow'] == 'p')
+                ]
+
+                if (matching_df.empty) :
+                    # If no matching receiver, than set the arrow to 't',
+                    # meaning that only a triangle will be rendered
+                    trace_df.loc[index, 'arrow'] = 't'
+                else : 
+                    # If there is one or more matching rows, then consider 
+                    # the first one, since it is an out -> in arrow, and  
+                    # since it is the closet in time
+                    # FIXME: What other possible choices to consider?
+                    matching_index = matching_df.index[-1]
+                    matching_row = matching_df.loc[matching_index]
+                    # Mark it, so not to consider it anymore
+                    trace_df.at[matching_index, 'arrow'] = 'm'
+                    trace_df.at[index, 'x2'] = trace_df.at[index, 'x1'] 
+                    trace_df.at[index, 'y2'] = trace_df.at[index, 'y1'] 
+                    trace_df.at[index, 'x1'] = matching_row['x1']
+                    trace_df.at[index, 'y1'] = matching_row['y1']
+                    if (len(matching_df.index) == 1) :
+                        trace_df.at[index, 'arrow'] = 'a'
+                    else :
+                        trace_df.at[index, 'arrow'] = 'd'
 
     ############################################################################
     #### Write to svg file
     ############################################################################
+    svg_width = padding + (len(actors) - 1) * spacing + padding + 200
+    svg_height = padding + trace_df.iloc[-1]['y1']
+
     with open('trace_svg.html', 'w', encoding='utf-8') as f:
         # Print header
         f.write('<!DOCTYPE html>\n')
@@ -197,43 +266,40 @@ if __name__ == '__main__':
         f.write('<svg width="'+str(svg_width)+'" height="'+str(svg_height)+'">\n')
         
         # Print the circles and the names
-        # RTI
-        f.write(svg_string_comment('RTI Actor and line'))
-        f.write(svg_string_draw_line(x_rti, math.ceil(padding/2), x_rti, svg_height))
-        f.write('\t<circle cx="'+str(x_rti)+'" cy="'+str(math.ceil(padding/2))+'" r="20" stroke="black" stroke-width="2" fill="black"/>\n')
-        f.write('\t<text x="'+str(x_rti-15)+'" y="'+str(math.ceil(padding/2)+5)+'" fill="red">RTI</text>\n')
-        # Federates
-        for i in range(0, actors_nbr-1):
-            f.write(svg_string_comment('Federate '+str(i)+' Actor and line'))
-            f.write(svg_string_draw_line(x_fed[i], math.ceil(padding/2), x_fed[i], svg_height))
-            f.write('\t<circle cx="'+str(x_fed[i])+'" cy="'+str(math.ceil(padding/2))+'" r="20" stroke="black" stroke-width="2" fill="white"/>\n')
-            f.write('\t<text x="'+str(x_fed[i]-5)+'" y="'+str(math.ceil(padding/2)+5)+'" fill="red">'+str(i)+'</text>\n')
+        for key in x_coor:
+            if (key == -1):
+                f.write(fhlp.svg_string_comment('RTI Actor and line'))
+                title = 'RTI'
+                center = 15
+            else:
+                f.write(fhlp.svg_string_comment('Federate '+str(key)+' Actor and line'))
+                title = str(key)
+                center = 5
+            f.write(fhlp.svg_string_draw_line(x_coor[key], math.ceil(padding/2), x_coor[key], svg_height, False))
+            f.write('\t<circle cx="'+str(x_coor[key])+'" cy="'+str(math.ceil(padding/2))+'" r="20" stroke="black" stroke-width="2" fill="white"/>\n')
+            f.write('\t<text x="'+str(x_coor[key]-center)+'" y="'+str(math.ceil(padding/2)+5)+'" fill="black">'+title+'</text>\n')
 
         # Now, we need to iterate over the traces to draw the lines
-        #
-        # FIXME: Here, we draw every single message, w/o checking the connection
-        # and the arrival time. This can be done as pre-processing.
-        # This means that most arrows are duplicated :-/
-        #
-        f.write(svg_string_comment('Draw interactions'))
+        f.write(fhlp.svg_string_comment('Draw interactions'))
         for index, row in trace_df.iterrows():
-            if (row['rti'] == True):
-                if ('out' in row['inout']): # RTI -> Federate
-                    f.write(svg_string_draw_arrow(x_rti, int(row['y']), x_fed[int(row['fed_id'])], int(row['y'])))
-                else: # Federate -> RTI
-                    f.write(svg_string_draw_arrow(x_fed[int(row['fed_id'])], int(row['y']), x_rti, int(row['y'])))
-            else:
-                if ('out' in row['inout']): # Federate -> RTI
-                    f.write(svg_string_draw_arrow(x_fed[int(row['fed_id'])], int(row['y']), x_rti, int(row['y'])))
-                else: # RTI -> Federate
-                    f.write(svg_string_draw_arrow(x_rti, int(row['y']), x_fed[int(row['fed_id'])], int(row['y'])))
+            # FIXME: Whose physical and logical time? 
+            label = row['event'] + ' @PT=' + str(row['physical_time']) + ' @LT=' + str(row['logical_time'])
+            if (row['arrow'] == 'a'): 
+                f.write(fhlp.svg_string_draw_arrow(row['x1'], row['y1'], row['x2'], row['y2'], label, False))
+            elif (row['arrow'] == 'd'): 
+                f.write(fhlp.svg_string_draw_arrow(row['x1'], row['y1'], row['x2'], row['y2'], label, True))
+            elif (row['arrow'] == 't'):
+                if (row['inout'] == 'in'):
+                    x1 = row['x1'] - 1
+                else :
+                    x1 = row['x1'] + 1
+                f.write(fhlp.svg_string_draw_triangle(x1, row['x1'], row['y1']))
 
-        f.write('</svg>\n\n')
+        f.write('\n</svg>\n\n')
 
         # Print footer
         f.write('</body>\n')
         f.write('</html>\n')
-
 
     # Write to a csv file, just to double check
     trace_df.to_csv('all.csv', index=False)
