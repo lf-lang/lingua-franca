@@ -1,8 +1,10 @@
 # Changelog
  
-## [v0.3.0](https://github.com/lingua-franca/lingua-franca/tree/v0.3.0) (2022-07-22)
+## [v0.3.0](https://github.com/lf-lang/lingua-franca/tree/v0.3.0) (2022-07-22)
 
-**Highlights**\n\nThis release adds broader support for methods (C and Python), syntax for annotations similar those in [Java](https://en.wikipedia.org/wiki/Java_annotation), an adaptive scheduler in the C runtime, and a new `platform` target property to furnish support for specialized execution platforms.
+**Highlights**
+
+This release adds broader support for methods (C and Python), syntax for annotations similar those in [Java](https://en.wikipedia.org/wiki/Java_annotation), an adaptive scheduler in the C runtime, and a new `platform` target property to furnish support for specialized execution platforms.
 
 [Full Changelog](https://github.com/lingua-franca/lingua-franca/compare/v0.2.1...v0.3.0)
 
