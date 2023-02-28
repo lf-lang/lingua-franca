@@ -5,11 +5,11 @@ Define arrows:
 If not arrow, then triangle with text 
 
 In the dataframe, each arrow will be marked as:
-    - 'a': draw a non-dashed arrow
-    - 'd': draw dashed arrow
-    - 't': draw the triangle only
-    - 'm': marked, not to be drawn
-    - 'p': pending
+    - 'arrow': draw a non-dashed arrow
+    - 'dashedarrow': draw dashed arrow
+    - 'dot': draw the triangle only
+    - 'marked': marked, not to be drawn
+    - 'pending': pending
 '''
 
 
@@ -29,10 +29,12 @@ parser.add_argument('-f','--federates', nargs='+', action='append',
 
 
 ''' Clock synchronization error '''
+''' FIXME: There should be a value for each communicating pair '''
 clock_sync_error = 0
 
 ''' Bound on the network latency '''
-network_latency = 150000 # That is 100us
+''' FIXME: There should be a value for each communicating pair '''
+network_latency = 250000 # That is 100us
 
 
 def load_and_process_csv_file(csv_file, rti) :
@@ -75,7 +77,6 @@ def load_and_process_csv_file(csv_file, rti) :
 
     # Prune event names
     df['event'] = df['event'].apply(lambda e: fhlp.prune_event_name[e])
-    # print(df)
     return df
 
 
@@ -165,14 +166,23 @@ if __name__ == '__main__':
     #### Derive arrows that match sided communications
     ############################################################################
     # Intialize all rows as pending to be matched
-    trace_df['arrow'] = 'p'
+    trace_df['arrow'] = 'pending'
     trace_df['x2'] = -1
     trace_df['y2'] = -1
 
-    match = {}
+    # Because pandas library prevents writing the dataframe when iterating, but 
+    # the row at the cueent index, the turnaround is to save the indexes to be
+    # modified and then check within the iterations
+    indexes_to_mark = []
     # Iterate and check possible sides
     for index, row in trace_df.iterrows():
-        if ('p' in row['arrow']) :
+        # Check is the index is to be marked with 'marked'
+        if (index in indexes_to_mark):
+            trace_df.at[index, 'arrow'] = 'marked'
+            continue
+        
+        # If not, and if it is a pending tracepoint, proceed to look for a match
+        if (row['arrow'] == 'pending') :
             physical_time = row['physical_time']
             self_id = int(row['self_id'])
             partner_id = int(row['partner_id'])
@@ -192,13 +202,13 @@ if __name__ == '__main__':
                     (trace_df['inout'] == 'in') & \
                     (trace_df['self_id'] == partner_id) & \
                     (trace_df['partner_id'] == self_id) & \
-                    (trace_df['arrow'] == 'p')
+                    (trace_df['arrow'] == 'pending')
                 ]
 
                 if (matching_df.empty) :
-                    # If no matching receiver, than set the arrow to 't',
+                    # If no matching receiver, than set the arrow to 'dot',
                     # meaning that only a triangle will be rendered
-                    trace_df.loc[index, 'arrow'] = 't'
+                    trace_df.loc[index, 'arrow'] = 'dot'
                 else:
                     # If there is one or more matching rows, then consider 
                     # the first one, since it is an out -> in arrow, and  
@@ -207,13 +217,14 @@ if __name__ == '__main__':
                     matching_index = matching_df.index[0]
                     matching_row = matching_df.loc[matching_index]
                     # Mark it, so not to consider it anymore
-                    trace_df.at[matching_index, 'arrow'] = 'm'
+                    # trace_df.at[matching_index, 'arrow'] = 'marked'
+                    indexes_to_mark.append(matching_index)
                     trace_df.at[index, 'x2'] = matching_row['x1']
                     trace_df.at[index, 'y2'] = matching_row['y1']
                     if (len(matching_df.index) == 1) :
-                        trace_df.at[index, 'arrow'] = 'a'
+                        trace_df.at[index, 'arrow'] = 'arrow'
                     else :
-                        trace_df.at[index, 'arrow'] = 'd'
+                        trace_df.at[index, 'arrow'] = 'dashedarrow'
             else: # 'in' in row['inout']
                 # Compute the possible timestamps interval at the receiver side
                 physical_time_start = physical_time - network_latency - clock_sync_error
@@ -226,13 +237,13 @@ if __name__ == '__main__':
                     (trace_df['inout'] == 'out') & \
                     (trace_df['self_id'] == partner_id) & \
                     (trace_df['partner_id'] == self_id) & \
-                    (trace_df['arrow'] == 'p')
+                    (trace_df['arrow'] == 'pending')
                 ]
 
                 if (matching_df.empty) :
-                    # If no matching receiver, than set the arrow to 't',
+                    # If no matching receiver, than set the arrow to 'dot',
                     # meaning that only a triangle will be rendered
-                    trace_df.loc[index, 'arrow'] = 't'
+                    trace_df.loc[index, 'arrow'] = 'dot'
                 else : 
                     # If there is one or more matching rows, then consider 
                     # the first one, since it is an out -> in arrow, and  
@@ -241,15 +252,16 @@ if __name__ == '__main__':
                     matching_index = matching_df.index[-1]
                     matching_row = matching_df.loc[matching_index]
                     # Mark it, so not to consider it anymore
-                    trace_df.at[matching_index, 'arrow'] = 'm'
+                    # trace_df.at[matching_index, 'arrow'] = 'marked'
+                    indexes_to_mark.append(matching_index)
                     trace_df.at[index, 'x2'] = trace_df.at[index, 'x1'] 
                     trace_df.at[index, 'y2'] = trace_df.at[index, 'y1'] 
                     trace_df.at[index, 'x1'] = matching_row['x1']
                     trace_df.at[index, 'y1'] = matching_row['y1']
                     if (len(matching_df.index) == 1) :
-                        trace_df.at[index, 'arrow'] = 'a'
+                        trace_df.at[index, 'arrow'] = 'arrow'
                     else :
-                        trace_df.at[index, 'arrow'] = 'd'
+                        trace_df.at[index, 'arrow'] = 'dashedarrow'
 
     ############################################################################
     #### Write to svg file
@@ -284,15 +296,15 @@ if __name__ == '__main__':
         for index, row in trace_df.iterrows():
             # FIXME: Whose physical and logical time? 
             label = row['event'] + ' @PT=' + str(row['physical_time']) + ' @LT=' + str(row['logical_time'])
-            if (row['arrow'] == 'a'): 
+            if (row['arrow'] == 'arrow'): 
                 f.write(fhlp.svg_string_draw_arrow(row['x1'], row['y1'], row['x2'], row['y2'], label, False))
-            elif (row['arrow'] == 'd'): 
+            elif (row['arrow'] == 'dashedarrow'): 
                 f.write(fhlp.svg_string_draw_arrow(row['x1'], row['y1'], row['x2'], row['y2'], label, True))
-            elif (row['arrow'] == 't'):
+            elif (row['arrow'] == 'dot'):
                 if (row['inout'] == 'in'):
-                    label = "(in)" + label
+                    label = "(in) from " + str(row['partner_id']) + ' ' + label
                 else :
-                    label = "(out)" + label
+                    label = "(out) to " + str(row['partner_id']) + ' ' + label
                 f.write(fhlp.svg_string_draw_dot(row['x1'], row['y1'], label))
 
         f.write('\n</svg>\n\n')
@@ -302,4 +314,4 @@ if __name__ == '__main__':
         f.write('</html>\n')
 
     # Write to a csv file, just to double check
-    trace_df.to_csv('all.csv', index=False)
+    trace_df.to_csv('all.csv', index=True)
