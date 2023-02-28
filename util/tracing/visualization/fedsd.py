@@ -290,10 +290,10 @@ if __name__ == '__main__':
                 f.write(fhlp.svg_string_draw_arrow(row['x1'], row['y1'], row['x2'], row['y2'], label, True))
             elif (row['arrow'] == 't'):
                 if (row['inout'] == 'in'):
-                    x1 = row['x1'] - 1
+                    label = "(in)" + label
                 else :
-                    x1 = row['x1'] + 1
-                f.write(fhlp.svg_string_draw_triangle(x1, row['x1'], row['y1']))
+                    label = "(out)" + label
+                f.write(fhlp.svg_string_draw_dot(row['x1'], row['y1'], label))
 
         f.write('\n</svg>\n\n')
 

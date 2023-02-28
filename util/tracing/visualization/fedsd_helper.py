@@ -95,9 +95,15 @@ def svg_string_draw_label(x1, y1, x2, y2, label) :
     '''
     # FIXME: Need further improvement, based of the position of the arrows
     # FIXME: Rotation value is not that accurate. 
-    rotation = math.ceil(math.atan((x2-x1)/(y2-y1)))
+    if (x2 < x1) :
+        rotation = - math.ceil(math.atan((x2-x1)/(y2-y1)) * 180 / 3.14) - 90
+        str_line = '\t<text transform="translate('+str(x2+5)+', '+str(y2-5)+') rotate('+str(rotation)+')" font-size="smaller">'+label+'</text>\n'
+    else :
+        rotation = - math.ceil(math.atan((x1-x2)/(y1-y2)) * 180 / 3.14) + 90
+        x = math.ceil((x2 + x1) / 2)
+        y = math.ceil((y1 + y2) / 2) - 5
+        str_line = '\t<text transform="translate('+str(x)+', '+str(y)+') rotate('+str(rotation)+')" font-size="smaller" text-anchor="middle">'+label+'</text>\n'
     #print('rot = '+str(rotation)+' x1='+str(x1)+' y1='+str(y1)+' x2='+str(x2)+' y2='+str(y2))
-    str_line = '\t<text transform="translate('+str(x2+5)+', '+str(y2-5)+') rotate('+str(rotation)+')" font-size="smaller">'+label+'</text>\n'
     return str_line
 
 
@@ -132,4 +138,21 @@ def svg_string_comment(comment):
      * String: the svg string of the comment
     '''
     str_line = '\n\t<!-- ' + comment + ' -->\n'
+    return str_line
+
+
+def svg_string_draw_dot(x, y, label) :
+    '''
+    Constructs the svg html string to draw the arrow end
+
+    Args:
+     * x: Int X coordinate of the dot
+     * y: Int Y coordinate of the dot
+     * label: String 
+    Returns:
+     * String: the svg string of the triangle
+    '''
+    str_line = ''
+    str_line = '\t<circle cx="'+str(x)+'" cy="'+str(y)+'" r="5" stroke="black" stroke-width="1" fill="black"/>\n'
+    str_line = str_line + '\t<text x="'+str(x+5)+'", y="'+str(y+2)+'" fill="blue" font-size="smaller">'+label+'</text>\n'
     return str_line
