@@ -170,27 +170,18 @@ if __name__ == '__main__':
     trace_df['x2'] = -1
     trace_df['y2'] = -1
 
-    # Because pandas library prevents writing the dataframe when iterating, but 
-    # the row at the cueent index, the turnaround is to save the indexes to be
-    # modified and then check within the iterations
-    indexes_to_mark = []
     # Iterate and check possible sides
-    for index, row in trace_df.iterrows():
-        # Check is the index is to be marked with 'marked'
-        if (index in indexes_to_mark):
-            trace_df.at[index, 'arrow'] = 'marked'
-            continue
-        
-        # If not, and if it is a pending tracepoint, proceed to look for a match
-        if (row['arrow'] == 'pending') :
-            physical_time = row['physical_time']
-            self_id = int(row['self_id'])
-            partner_id = int(row['partner_id'])
-            event = row['event']
+    for index in trace_df.index:
+        # If the tracepoint is pending, proceed to look for a match
+        if (trace_df.at[index,'arrow'] == 'pending') :
+            physical_time = trace_df.at[index,'physical_time']
+            self_id = int(trace_df.at[index,'self_id'])
+            partner_id = int(trace_df.at[index,'partner_id'])
+            event =  trace_df.at[index,'event']
 
             # Depending on the direction, compute the possible time interval
             # and choose the row 
-            if ('out' in row['inout']):
+            if ('out' in trace_df.at[index,'inout']):
                 # Compute the possible timestamps interval at the receiver side
                 physical_time_start = physical_time - clock_sync_error
                 physical_time_end = physical_time + clock_sync_error + network_latency
@@ -217,15 +208,14 @@ if __name__ == '__main__':
                     matching_index = matching_df.index[0]
                     matching_row = matching_df.loc[matching_index]
                     # Mark it, so not to consider it anymore
-                    # trace_df.at[matching_index, 'arrow'] = 'marked'
-                    indexes_to_mark.append(matching_index)
+                    trace_df.at[matching_index, 'arrow'] = 'marked'
                     trace_df.at[index, 'x2'] = matching_row['x1']
                     trace_df.at[index, 'y2'] = matching_row['y1']
                     if (len(matching_df.index) == 1) :
                         trace_df.at[index, 'arrow'] = 'arrow'
                     else :
                         trace_df.at[index, 'arrow'] = 'dashedarrow'
-            else: # 'in' in row['inout']
+            else: # 'in' in trace_df.at[index,'inout']
                 # Compute the possible timestamps interval at the receiver side
                 physical_time_start = physical_time - network_latency - clock_sync_error
                 physical_time_end = physical_time + clock_sync_error 
@@ -252,8 +242,7 @@ if __name__ == '__main__':
                     matching_index = matching_df.index[-1]
                     matching_row = matching_df.loc[matching_index]
                     # Mark it, so not to consider it anymore
-                    # trace_df.at[matching_index, 'arrow'] = 'marked'
-                    indexes_to_mark.append(matching_index)
+                    trace_df.at[matching_index, 'arrow'] = 'marked'
                     trace_df.at[index, 'x2'] = trace_df.at[index, 'x1'] 
                     trace_df.at[index, 'y2'] = trace_df.at[index, 'y1'] 
                     trace_df.at[index, 'x1'] = matching_row['x1']
