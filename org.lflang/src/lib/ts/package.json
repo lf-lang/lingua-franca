@@ -2,11 +2,11 @@
     "name": "LinguaFrancaDefault",
     "type": "commonjs",
     "dependencies": {
-        "@lf-lang/reactor-ts": "^0.3.2"
+        "@lf-lang/reactor-ts": "^0.3.2",
+        "@babel/cli": "^7.21.0",
+        "@babel/core": "^7.4.3"
     },
     "devDependencies": {
-        "@types/command-line-args": "^5.2.0",
-        "@types/command-line-usage": "^5.0.2",
         "@types/google-protobuf": "^3.7.4",
         "@typescript-eslint/eslint-plugin": "5.33.0",
         "@typescript-eslint/parser": "^5.8.1",
