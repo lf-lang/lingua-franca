@@ -37,4 +37,4 @@ cp bin/lff.ps1 "${outname}/bin/lff.ps1"
 # zip/tar everything - the files will be put into the build_upload directory
 mkdir -p build_upload
 zip --symlinks -r "build_upload/${outname}.zip" "${outname}"
-tar cvf "build_upload/${outname}.tar.gz" "${outname}"
+tar zcvf "build_upload/${outname}.tar.gz" "${outname}"
