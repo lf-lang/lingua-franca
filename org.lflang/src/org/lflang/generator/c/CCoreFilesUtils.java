@@ -6,19 +6,13 @@ import java.util.List;
  * core library for each reactor given conditions listed
  * as arguments of each function.
  *
- * @author Hou Seng Wong <housengw@berkeley.edu>
+ * @author Hou Seng Wong
  */
 public class CCoreFilesUtils {
 
     public static List<String> getCTargetSrc() {
         return List.of(
             "lib/schedule.c"
-        );
-    }
-
-    public static List<String> getArduinoTargetHeaders() {
-        return List.of(
-            "Arduino.h"
         );
     }
 

@@ -13,7 +13,7 @@ import org.lflang.toText
 /**
  * The following definition provide extension that are useful for TypeScript target.
  *
- *  @author {Hokeun Kim <hokeunkim@berkeley.edu>}
+ *  @author Hokeun Kim
  */
 fun WidthSpec.toTSCode(): String = terms.joinToString(" + ") {
     when {

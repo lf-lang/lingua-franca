@@ -35,7 +35,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.eclipse.emf.ecore.util.EcoreUtil;
+
 import org.lflang.ASTUtils;
+import org.lflang.AttributeUtils;
 import org.lflang.ErrorReporter;
 import org.lflang.TimeValue;
 import org.lflang.generator.TriggerInstance.BuiltinTriggerVariable;
@@ -46,6 +49,7 @@ import org.lflang.lf.Connection;
 import org.lflang.lf.Expression;
 import org.lflang.lf.Input;
 import org.lflang.lf.Instantiation;
+import org.lflang.lf.LfFactory;
 import org.lflang.lf.Mode;
 import org.lflang.lf.Output;
 import org.lflang.lf.Parameter;
@@ -77,8 +81,8 @@ import org.lflang.lf.WidthSpec;
  * {@link #hasCycles()} will return true and {@link #getCycles()} will
  * return the ports and reaction instances involved in the cycles.
  *
- * @author{Marten Lohstroh <marten@berkeley.edu>}
- * @author{Edward A. Lee <eal@berkeley.edu>}
+ * @author Marten Lohstroh
+ * @author Edward A. Lee
  */
 public class ReactorInstance extends NamedInstance<Instantiation> {
 
@@ -88,7 +92,7 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
      * @param reporter The error reporter.
      */
     public ReactorInstance(Reactor reactor, ErrorReporter reporter) {
-        this(ASTUtils.createInstantiation(reactor), null, reporter, -1, null);
+        this(ASTUtils.createInstantiation(reactor), null, reporter, -1);
     }
 
     /**
@@ -99,17 +103,7 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
      * @param desiredDepth The depth to which to go, or -1 to construct the full hierarchy.
      */
     public ReactorInstance(Reactor reactor, ErrorReporter reporter, int desiredDepth) {
-        this(ASTUtils.createInstantiation(reactor), null, reporter, desiredDepth, null);
-    }
-
-    /**
-     * Create a new instantiation hierarchy that starts with the given reactor.
-     * @param reactor The top-level reactor.
-     * @param reporter The error reporter.
-     * @param unorderedReactions A list of reactions that should be treated as unordered.
-     */
-    public ReactorInstance(Reactor reactor, ErrorReporter reporter, Set<Reaction> unorderedReactions) {
-        this(ASTUtils.createInstantiation(reactor), null, reporter, -1, unorderedReactions);
+        this(ASTUtils.createInstantiation(reactor), null, reporter, desiredDepth);
     }
 
     /**
@@ -121,7 +115,7 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
      * @param reporter The error reporter.
      */
     public ReactorInstance(Reactor reactor, ReactorInstance parent, ErrorReporter reporter) {
-        this(ASTUtils.createInstantiation(reactor), parent, reporter, -1, null);
+        this(ASTUtils.createInstantiation(reactor), parent, reporter, -1);
     }
 
     //////////////////////////////////////////////////////
@@ -187,6 +181,22 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
         if (cachedReactionLoopGraph == null) {
             cachedReactionLoopGraph = new ReactionInstanceGraph(this);
         }
+        return cachedReactionLoopGraph;
+    }
+
+    /**
+     * This function assigns/propagates deadlines through the Reaction Instance Graph.
+     * It performs Kahn`s algorithm in reverse, starting from the leaf nodes and
+     * propagates deadlines upstream. To reduce cost, it should only be invoked when
+     * there are user-specified deadlines in the program.
+     * @return
+     */
+    public ReactionInstanceGraph assignDeadlines() {
+        if (depth != 0) return root().assignDeadlines();
+        if (cachedReactionLoopGraph == null) {
+            cachedReactionLoopGraph = new ReactionInstanceGraph(this);
+        }
+        cachedReactionLoopGraph.rebuildAndAssignDeadlines();
         return cachedReactionLoopGraph;
     }
     
@@ -296,6 +306,20 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
     @Override
     public String getName() {
         return this.definition.getName();
+    }
+
+    /**
+     * @see NamedInstance#uniqueID()
+     *
+     * Append `_main` to the name of the main reactor to allow instantiations
+     * within that reactor to have the same name.
+     */
+    @Override
+    public String uniqueID() {
+       if (this.isMainOrFederated()) {
+          return super.uniqueID() + "_main";
+       }
+       return super.uniqueID();
     }
 
     /**
@@ -705,6 +729,9 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
 
             // Check for startup and shutdown triggers.
             for (Reaction reaction : reactions) {
+                if (AttributeUtils.isUnordered(reaction)) {
+                    unorderedReactions.add(reaction);
+                }
                 // Create the reaction instance.
                 var reactionInstance = new ReactionInstance(reaction, this,
                     unorderedReactions.contains(reaction), count++);
@@ -737,23 +764,16 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
      * @param parent The parent, or null for the main rector.
      * @param reporter An error reporter.
      * @param desiredDepth The depth to which to expand the hierarchy.
-     * @param unorderedReactions A list of reactions that should be treated as unordered.
-     *  It can be passed as null.
      */
     private ReactorInstance(
             Instantiation definition, 
             ReactorInstance parent,
             ErrorReporter reporter,
-            int desiredDepth,
-            Set<Reaction> unorderedReactions) {
+            int desiredDepth) {
         super(definition, parent);
         this.reporter = reporter;
         this.reactorDeclaration = definition.getReactorClass();
         this.reactorDefinition = ASTUtils.toDefinition(reactorDeclaration);
-        
-        if (unorderedReactions != null) {
-            this.unorderedReactions = unorderedReactions;
-        }
         
         // check for recursive instantiation
         var currentParent = parent;
@@ -807,8 +827,7 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
                     child, 
                     this, 
                     reporter, 
-                    desiredDepth,
-                    this.unorderedReactions
+                    desiredDepth
                 );
                 this.children.add(childInstance);
             }
@@ -1124,7 +1143,7 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
      * @return True if this is a generated delay, false otherwise.
      */
     public boolean isGeneratedDelay() {
-        if (this.definition.getReactorClass().getName().contains(GeneratorBase.GEN_DELAY_CLASS_NAME)) {
+        if (this.definition.getReactorClass().getName().contains(DelayBodyGenerator.GEN_DELAY_CLASS_NAME)) {
             return true;
         }
         return false;

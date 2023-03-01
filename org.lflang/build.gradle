@@ -91,6 +91,81 @@ configurations {
     }
 }
 
+task getSubmoduleVersions(type: Exec) {
+    description('Run a Git command to get the current status of submodules')
+    workingDir project.rootDir
+   // This will make gradle execute git submodule status every time updateRustRuntime is called
+    outputs.upToDateWhen { false }
+
+    def command = "git submodule status"
+    if (System.getProperty('os.name').toLowerCase(Locale.ROOT).contains('windows')) {
+        commandLine 'cmd', '/c', command
+    } else {
+        commandLine 'sh', '-c', command
+    }
+    standardOutput = new ByteArrayOutputStream()
+
+    ext.outputFile = file("$project.buildDir/submodule-status.properties")
+    outputs.file(outputFile)
+
+    doLast {
+        def matcher = standardOutput.toString() =~ ~"(?m)^[-+ ]?([0-9a-f]+) org.lflang/src/lib/\\w+/reactor-([-a-zA-Z]+)"
+        def properties = new StringBuilder()
+        while (matcher.find()) {
+            def rev = matcher.group(1)
+            def language = matcher.group(2)
+            properties << "$language = $rev\n"
+        }
+        outputFile.text = properties
+    }
+}
+
+task updateRustRuntime {
+    description('Record the VCS revisions of the language runtimes into a properties file available at runtime.')
+
+    dependsOn getSubmoduleVersions
+    // If the output of the git submodule status did not change (the getSubmoduleVersions task), then this task is considered up to date.
+    inputs.files(getSubmoduleVersions.outputs)
+    ext.outputFile = file("$project.projectDir/src/lib/rs/runtime-version.properties")
+    outputs.file(outputFile)
+
+    doLast {
+        def upToDateProps = new Properties()
+        getSubmoduleVersions.outputFile.withReader { r -> upToDateProps.load(r) }
+        outputFile.text = "rs = " + upToDateProps.get("rs") + "\n"
+    }
+}
+// add the generated file as an output
+sourceSets.main.output.dir tasks.updateRustRuntime.outputFile, builtBy: updateRustRuntime
+tasks.processResources.dependsOn(updateRustRuntime)
+
+task checkRuntimeVersionFileUpToDate {
+    description('Check that the runtime version recorded in the built Jar for LFC matches the version of the checked out submodule')
+    dependsOn getSubmoduleVersions
+    inputs.file updateRustRuntime.outputFile
+
+    doLast {
+        def rtProps = new Properties()
+        updateRustRuntime.outputFile.withReader { r -> rtProps.load(r) }
+        def upToDateProps = new Properties()
+        getSubmoduleVersions.outputFile.withReader { r -> upToDateProps.load(r) }
+
+        upToDateProps.each { language, rev ->
+            def actualLanguage = rtProps.get(language)
+            if (actualLanguage == null)
+                return
+            if (actualLanguage != rev) {
+                logger.error("Runtime for $language is not checked out at correct revision:\n" +
+                        "expected: $rev\n" +
+                        "actual:   $actualLanguage\n" +
+                        "You may need to call `./gradlew updateRustRuntime`.")
+            } else {
+                logger.info("Success: Runtime for $language is checked out at expected revision $rev")
+            }
+        }
+    }
+}
+
 apply plugin: 'application'
 apply plugin: 'com.github.johnrengelman.shadow'
 

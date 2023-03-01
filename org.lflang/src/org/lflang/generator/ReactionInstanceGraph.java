@@ -30,8 +30,10 @@ import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.lflang.generator.ReactionInstance.Runtime;
+import org.lflang.generator.c.CUtil;
 import org.lflang.graph.PrecedenceGraph;
 import org.lflang.lf.Variable;
 
@@ -51,8 +53,8 @@ import org.lflang.lf.Variable;
  * cycles, in which case, the resulting graph is a graph of runtime reaction
  * instances that form cycles.
  * 
- * @author{Marten Lohstroh <marten@berkeley.edu>}
- * @author{Edward A. Lee <eal@berkeley.edu>}
+ * @author Marten Lohstroh
+ * @author Edward A. Lee
  */
 public class ReactionInstanceGraph extends PrecedenceGraph<ReactionInstance.Runtime> {
     
@@ -83,6 +85,10 @@ public class ReactionInstanceGraph extends PrecedenceGraph<ReactionInstance.Runt
     public void rebuild() {
         this.clear();
         addNodesAndEdges(main);
+
+        // FIXME: Use {@link TargetProperty#EXPORT_DEPENDENCY_GRAPH}.
+        // System.out.println(toDOT());
+
         // Assign a level to each reaction. 
         // If there are cycles present in the graph, it will be detected here.
         assignLevels();
@@ -92,6 +98,16 @@ public class ReactionInstanceGraph extends PrecedenceGraph<ReactionInstance.Runt
             // Do not throw an exception so that cycle visualization can proceed.
             // throw new InvalidSourceException("Reactions form a cycle!");
         }
+    }
+    /**
+     * This function rebuilds the graph and propagates and assigns deadlines
+     * to all reactions.
+     */
+    public void rebuildAndAssignDeadlines() {
+        this.clear();
+        addNodesAndEdges(main);
+        assignInferredDeadlines();
+        this.clear();
     }
     
     /*
@@ -298,7 +314,46 @@ public class ReactionInstanceGraph extends PrecedenceGraph<ReactionInstance.Runt
             adjustNumReactionsPerLevel(origin.level, 1);
         }
     }
-    
+   
+    /**
+     * This function assigns inferred deadlines to all the reactions in the graph.
+     * It is modeled after `assignLevels` but it starts at the leaf nodes and uses
+     * Kahns algorithm to build a reverse topologically sorted graph
+     * 
+     */
+    private void assignInferredDeadlines() {
+        List<ReactionInstance.Runtime> start = new ArrayList<>(leafNodes());
+        
+        // All leaf nodes have deadline initialized to their declared deadline or MAX_VALUE
+        while (!start.isEmpty()) {
+            Runtime origin = start.remove(0);
+            Set<Runtime> toRemove = new LinkedHashSet<>();
+            Set<Runtime> upstreamAdjacentNodes = getUpstreamAdjacentNodes(origin);
+
+            // Visit effect nodes.
+            for (Runtime upstream : upstreamAdjacentNodes) {
+                // Stage edge between origin and upstream for removal.
+                toRemove.add(upstream);
+                
+                // Update deadline of upstream node if origins deadline is earlier.
+                if (origin.deadline.isEarlierThan(upstream.deadline)) {
+                    upstream.deadline = origin.deadline;
+                }
+            }
+            // Remove visited edges.
+            for (Runtime upstream : toRemove) {
+                removeEdge(origin, upstream);
+                // If the upstream node has no more outgoing edges,
+                // then move it in the start set.
+                if (getDownstreamAdjacentNodes(upstream).size() == 0) {
+                    start.add(upstream);
+                }
+            }
+            
+            // Remove visited origin.
+            removeNode(origin);
+        }
+    }
     
     /**
      * Adjust {@link #numReactionsPerLevel} at index <code>level<code> by
@@ -317,5 +372,69 @@ public class ReactionInstanceGraph extends PrecedenceGraph<ReactionInstance.Runt
             }
             numReactionsPerLevel.add(valueToAdd);
         }
+    }
+
+    /**
+     * Return the DOT (GraphViz) representation of the graph.
+     */
+    @Override
+    public String toDOT() {
+        var dotRepresentation = new CodeBuilder();
+        var edges = new StringBuilder();
+
+        // Start the digraph with a left-write rank
+        dotRepresentation.pr(
+        """
+        digraph {
+            rankdir=LF;
+            graph [compound=True, rank=LR, rankdir=LR];
+            node [fontname=Times, shape=rectangle];
+            edge [fontname=Times];
+        """);
+
+        var nodes = nodes();
+        // Group nodes by levels
+        var groupedNodes =
+            nodes.stream()
+                 .collect(
+                     Collectors.groupingBy(it -> it.level)
+                 );
+
+        dotRepresentation.indent();
+        // For each level
+        for (var level : groupedNodes.keySet()) {
+            // Create a subgraph
+            dotRepresentation.pr("subgraph cluster_level_" + level + " {");
+            dotRepresentation.pr("    graph [compound=True, label = \"level " + level + "\"];");
+
+            // Get the nodes at the current level
+            var currentLevelNodes = groupedNodes.get(level);
+            for (var node: currentLevelNodes) {
+                // Draw the node
+                var label = CUtil.getName(node.getReaction().getParent().reactorDeclaration) + "." + node.getReaction().getName();
+                // Need a positive number to name the nodes in GraphViz
+                var labelHashCode = label.hashCode() & 0xfffffff;
+                dotRepresentation.pr("    node_" + labelHashCode  + " [label=\""+ label +"\"];");
+
+                // Draw the edges
+                var downstreamNodes = getDownstreamAdjacentNodes(node);
+                for (var downstreamNode: downstreamNodes) {
+                    var downstreamLabel =  CUtil.getName(downstreamNode.getReaction().getParent().reactorDeclaration) + "." + downstreamNode.getReaction().getName();
+                    edges.append("    node_" + labelHashCode + " -> node_" +
+                                     (downstreamLabel.hashCode() & 0xfffffff) + ";\n"
+                    );
+                }
+            }
+            // Close the subgraph
+            dotRepresentation.pr("}");
+        }
+        dotRepresentation.unindent();
+        // Add the edges to the definition of the graph at the bottom
+        dotRepresentation.pr(edges);
+        // Close the digraph
+        dotRepresentation.pr("}");
+
+        // Return the DOT representation
+        return dotRepresentation.toString();
     }
 }

@@ -24,8 +24,8 @@ reactor Scale(scale: int(2)) {
 
 main reactor ArrayScale {
     s = new Source()
-    c = new Scale(scale(2))
-    p = new Print(scale(2))
+    c = new Scale(scale = 2)
+    p = new Print(scale = 2)
     s.out -> c.in
     c.out -> p.in
 }

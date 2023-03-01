@@ -91,8 +91,7 @@ public class PythonPortGenerator {
         // Create the local variable whose name matches the input.getName().
         // If the input has not been declared mutable, then this is a pointer
         // to the upstream output. Otherwise, it is a copy of the upstream output,
-        // which nevertheless points to the same token and value (hence, as done
-        // below, we have to use writable_copy()). There are 8 cases,
+        // which nevertheless points to the same token and value. There are 8 cases,
         // depending on whether the input is mutable, whether it is a multiport,
         // and whether it is a token type.
         // Easy case first.

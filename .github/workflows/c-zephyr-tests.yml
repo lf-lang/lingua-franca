@@ -1,0 +1,60 @@
+name: C Zephyr tests
+
+on:
+  workflow_call:
+    inputs:
+      compiler-ref:
+        required: false
+        type: string
+      runtime-ref:
+        required: false
+        type: string
+      use-cpp:
+        required: false
+        type: boolean
+        default: false
+      scheduler:
+        required: false
+        type: string
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    container:
+      image: zephyrprojectrtos/zephyr-build:latest
+      options: -u root --entrypoint /bin/sh 
+    steps:
+      - name: Install Java 17, Maven and set JAVA_HOME
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y openjdk-17-jdk
+          sudo apt-get install -y maven
+          echo "JAVA_HOME_17_X64=/usr/lib/jvm/java-17-openjdk-amd64" >> $GITHUB_ENV
+      - name: Initialize zephyr
+        run: |
+          west init /workdir/zephyrproject --mr v3.2.0
+          cd /workdir/zephyrproject
+          west update
+          echo "ZEPHYR_BASE=/workdir/zephyrproject/zephyr" >> $GITHUB_ENV
+          echo "ZEPHYR_SDK_INSTALL_DIR=/opt/toolchains/zephyr-sdk-0.15.2/" >> $GITHUB_ENV
+      - name: Check out lingua-franca repository
+        uses: actions/checkout@v3
+        with:
+          repository: lf-lang/lingua-franca
+          submodules: true
+          ref: ${{ inputs.compiler-ref }}
+          fetch-depth: 0
+      - name: Prepare build environment
+        uses: ./.github/actions/prepare-build-env
+      - name: Check out specific ref of reactor-c
+        uses: actions/checkout@v3
+        with:
+          repository: lf-lang/reactor-c
+          path: org.lflang/src/lib/c/reactor-c
+          ref: ${{ inputs.runtime-ref }}
+        if: ${{ inputs.runtime-ref }}
+      - name: Try to get around git safe issues
+        run: chown root:root .
+
+      - name: Perform Zephyr tests for C target with default scheduler
+        run: ./gradlew test --tests org.lflang.tests.runtime.CZephyrTest.runZephyrTests

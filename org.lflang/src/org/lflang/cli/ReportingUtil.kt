@@ -255,15 +255,15 @@ class ReportingBackend constructor(
         val severity = issue.severity
         val filePath = issue.file?.normalize()
 
-        val header = severity.name.toLowerCase(Locale.ROOT)
+        val header = severity.name.lowercase(Locale.ROOT)
 
         var fullMessage: String = this.header + colors.severityColors(header, severity) + colors.bold(": " + issue.message) + System.lineSeparator()
         val snippet: String? = filePath?.let { formatIssue(issue, filePath) }
 
         if (snippet == null) {
-            val displayPath: String = filePath?.let { io.wd.relativize(it) }?.toString() ?: "(unknown file)"
-            fullMessage += " --> " + displayPath + ":" + issue.line + ":" + issue.column
-            fullMessage += " - " + issue.message
+            filePath?.let { io.wd.relativize(it) }?.let {
+                fullMessage += " --> " + it + ":" + issue.line + ":" + issue.column + " - "
+            }
         } else {
             fullMessage += snippet
         }

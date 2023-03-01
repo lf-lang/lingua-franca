@@ -10,9 +10,9 @@ import org.lflang.generator.Position;
 /**
  * Interface for reporting errors.
  *
- * @author Edward A. Lee <eal@berkeley.edu>
- * @author Marten Lohstroh <marten@berkeley.edu>
- * @author Christian Menard <christian.menard@tu-dresden.de>
+ * @author Edward A. Lee
+ * @author Marten Lohstroh
+ * @author Christian Menard
  */
 public interface ErrorReporter {
 

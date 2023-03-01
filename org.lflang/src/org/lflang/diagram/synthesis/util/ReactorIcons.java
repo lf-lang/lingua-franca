@@ -42,7 +42,7 @@ import de.cau.cs.kieler.klighd.krendering.extensions.KRenderingExtensions;
 /**
  * Utility class to handle icons for reactors in Lingua Franca diagrams.
  * 
- * @author{Alexander Schulz-Rosengarten <als@informatik.uni-kiel.de>}
+ * @author Alexander Schulz-Rosengarten
  */
 @ViewSynthesisShared
 public class ReactorIcons extends AbstractSynthesisExtensions {

@@ -1,0 +1,32 @@
+/**
+ * This example shows how to fade an LED on pin 9 using the analogWrite()
+ * function. The analogWrite() function uses PWM, so if you want to change the
+ * pin you're using, be sure to use another PWM capable pin. On most Arduino,
+ * the PWM pins are identified with a "~" sign, like ~3, ~5, ~6, ~9, ~10 and
+ * ~11.
+ */
+target C {
+    platform: {
+        name: "arduino",
+        board: "arduino:avr:mega"
+    }
+}
+
+main reactor Fade {
+    timer t1(0, 30 msec)
+    state led: int(9)
+    state brightness: int(9)
+    state fadeAmount: int(5)
+
+    reaction(startup) {= pinMode(self->led, OUTPUT); =}
+
+    reaction(t1) {=
+        analogWrite(self->led, self->brightness);
+        // change the brightness for next time through the loop:
+        self->brightness += self->fadeAmount;
+        // reverse the direction of the fading at the ends of the fade:
+        if (self->brightness <= 0 || self->brightness >= 255) {
+            self->fadeAmount = -self->fadeAmount;
+        }
+    =}
+}

@@ -1,23 +1,21 @@
-/*
- * This is a test for send_timed_message,
- * which is an internal API.
- * This version of the test uses the
- * decentralized coordination.
+/**
+ * This is a test for send_timed_message, which is an internal API. This version
+ * of the test uses the decentralized coordination.
  *
- * FIXME: Because this test sends messages with intended tag
- *  out of order, it will fail.
+ * FIXME: Because this test sends messages with intended tag out of order, it
+ * will fail.
  *
  * @author Soroush Bateni
  */
-
 target C {
     timeout: 1 sec,
     coordination: decentralized
-};
+}
 
 reactor Sender {
-    output out:int;
-    timer t(0, 1 msec);
+    output out: int
+    timer t(0, 1 msec)
+
     reaction(t) {=
         int payload = 1;
         if (lf_time_logical_elapsed() == 0LL) {
@@ -32,8 +30,8 @@ reactor Sender {
 }
 
 reactor Receiver {
-    input in:int;
-    state success:int(0);
+    input in: int
+    state success: int(0)
 
     reaction(in) {=
         tag_t current_tag = lf_tag();
@@ -62,8 +60,8 @@ reactor Receiver {
 }
 
 federated reactor {
-    sender = new Sender();
-    receiver = new Receiver();
+    sender = new Sender()
+    receiver = new Receiver()
 
-    sender.out -> receiver.in;
+    sender.out -> receiver.in
 }

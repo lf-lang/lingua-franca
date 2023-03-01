@@ -50,13 +50,13 @@ class CppReactorGenerator(private val reactor: Reactor, fileConfig: CppFileConfi
     private val parameters = CppParameterGenerator(reactor)
     private val state = CppStateGenerator(reactor)
     private val methods = CppMethodGenerator(reactor)
-    private val instances = CppInstanceGenerator(reactor, fileConfig)
+    private val instances = CppInstanceGenerator(reactor, fileConfig, errorReporter)
     private val timers = CppTimerGenerator(reactor)
     private val actions = CppActionGenerator(reactor, errorReporter)
     private val ports = CppPortGenerator(reactor)
     private val reactions = CppReactionGenerator(reactor, ports, instances)
-    private val constructor = CppConstructorGenerator(reactor, parameters, state, instances, timers, actions, ports, reactions)
     private val assemble = CppAssembleMethodGenerator(reactor)
+    private val connections = CppConnectionGenerator(reactor)
 
     private fun publicPreamble() =
         reactor.preambles.filter { it.isPublic }
@@ -86,31 +86,44 @@ class CppReactorGenerator(private val reactor: Reactor, fileConfig: CppFileConfi
             |
             |${reactor.templateLine}
             |class ${reactor.name}: public reactor::Reactor {
-            | private:
-        ${" |  "..instances.generateDeclarations()}
-        ${" |  "..timers.generateDeclarations()}
-        ${" |  "..actions.generateDeclarations()}
-        ${" |  "..reactions.generateReactionViews()}
-        ${" |  "..reactions.generateDeclarations()}
+            |public:
+            |  struct Parameters {
+        ${" |    "..parameters.generateParameterStructDeclarations()}
+            |  };
             |
-            |  class Inner: public lfutil::LFScope {
-        ${" |    "..parameters.generateDeclarations()}
+            | private:
+        ${" |  "..reactions.generateReactionViewForwardDeclarations()}
+            |
+            |  class Inner: public lfutil::LFScope, public Parameters {
+        ${" |    "..parameters.generateUsingDeclarations()}
         ${" |    "..state.generateDeclarations()}
         ${" |    "..methods.generateDeclarations()}
-        ${" |    "..constructor.generateInnerDeclaration()}
         ${" |    "..reactions.generateBodyDeclarations()}
         ${" |    "..reactions.generateDeadlineHandlerDeclarations()}
+            |
+            |    Inner(reactor::Reactor* reactor, Parameters&& parameters);
             |
             |   friend ${reactor.name};
             |  };
             |
             |  Inner __lf_inner;
             |
+        ${" |  "..parameters.generateOuterAliasDeclarations()}
+        ${" |  "..instances.generateDeclarations()}
+        ${" |  "..timers.generateDeclarations()}
+        ${" |  "..actions.generateDeclarations()}
+        ${" |  "..reactions.generateReactionViews()}
+        ${" |  "..reactions.generateDeclarations()}
+            |
             | public:
         ${" |  "..ports.generateDeclarations()}
-        ${" |  "..constructor.generateOuterDeclaration()}
+        ${" |  "..outerConstructorSignature(true)};
+        ${" |  "..outerConstructorSignature(false)};
             |
             |  void assemble() override;
+            | 
+            | private:
+        ${" |  "..connections.generateDeclarations()}
             |};
             |
         ${" |"..if (reactor.isGeneric) """#include "$implHeaderFile"""" else ""}
@@ -129,10 +142,11 @@ class CppReactorGenerator(private val reactor: Reactor, fileConfig: CppFileConfi
         ${" |  "..privatePreamble()}
             |
             |// outer constructor
-        ${" |"..constructor.generateOuterDefinition()}
+        ${" |"..generateOuterConstructorDefinition(true)}
+        ${" |"..generateOuterConstructorDefinition(false)}
             |
             |// inner constructor
-        ${" |"..constructor.generateInnerDefinition()}
+        ${" |"..generateInnerConstructorDefinition()}
             |
         ${" |"..assemble.generateDefinition()}
             |
@@ -141,6 +155,46 @@ class CppReactorGenerator(private val reactor: Reactor, fileConfig: CppFileConfi
         ${" |"..reactions.generateBodyDefinitions()}
         ${" |"..reactions.generateDeadlineHandlerDefinitions()}
         """.trimMargin()
+    }
+
+    private fun generateInnerConstructorDefinition(): String {
+        return with(PrependOperator) {
+            """
+                |${reactor.templateLine}
+                |${reactor.templateName}::Inner::Inner(::reactor::Reactor* reactor, Parameters&& __lf_parameters)
+                |  : LFScope(reactor)
+            ${" |  , Parameters(std::forward<Parameters>(__lf_parameters))"}
+            ${" |  "..state.generateInitializers()}
+                |{}
+                """.trimMargin()
+        }
+    }
+
+    private fun outerConstructorSignature(fromEnvironment: Boolean): String {
+        val containerRef = if (fromEnvironment) "reactor::Environment* __lf_environment" else "reactor::Reactor* __lf_container"
+        return "${reactor.name}(const std::string& name, $containerRef, Parameters&& __lf_parameters)"
+    }
+
+    /** Get the constructor definition of the outer reactor class */
+    private fun generateOuterConstructorDefinition(fromEnvironment: Boolean): String {
+        return with(PrependOperator) {
+            """
+                |${reactor.templateLine}
+                |${reactor.templateName}::${outerConstructorSignature(fromEnvironment)}
+                |  : reactor::Reactor(name, ${if (fromEnvironment) "__lf_environment" else "__lf_container"})
+                |  , __lf_inner(this, std::forward<Parameters>(__lf_parameters))
+            ${" |  "..instances.generateInitializers()}
+            ${" |  "..timers.generateInitializers()}
+            ${" |  "..actions.generateInitializers()}
+            ${" |  "..connections.generateInitializers()}
+            ${" |  "..reactions.generateReactionViewInitializers()}
+                |{
+            ${" |  "..ports.generateConstructorInitializers()}
+            ${" |  "..instances.generateConstructorInitializers()}
+            ${" |  "..reactions.generateReactionViewConstructorInitializers()}
+                |}
+            """.trimMargin()
+        }
     }
 }
 

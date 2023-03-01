@@ -4,7 +4,7 @@ import java.util.List;
 import java.util.ArrayList;
 import org.lflang.ASTUtils;
 import org.lflang.Target;
-import org.lflang.federated.FederateInstance;
+import org.lflang.federated.generator.FederateInstance;
 import org.lflang.generator.ActionInstance;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.generator.GeneratorBase;
@@ -16,31 +16,27 @@ import static org.lflang.generator.c.CGenerator.variableStructType;
 /**
  * Generates code for actions (logical or physical) for the C and CCpp target.
  *
- * @author{Edward A. Lee <eal@berkeley.edu>}
- * @author{Marten Lohstroh <marten@berkeley.edu>}
- * @author{Mehrdad Niknami <mniknami@berkeley.edu>}
- * @author{Christian Menard <christian.menard@tu-dresden.de>}
- * @author{Matt Weber <matt.weber@berkeley.edu>}
- * @author{Soroush Bateni <soroush@utdallas.edu>
- * @author{Alexander Schulz-Rosengarten <als@informatik.uni-kiel.de>}
- * @author{Hou Seng Wong <housengw@berkeley.edu>}
+ * @author Edward A. Lee
+ * @author Marten Lohstroh
+ * @author Mehrdad Niknami
+ * @author Christian Menard
+ * @author Matt Weber
+ * @author {Soroush Bateni
+ * @author Alexander Schulz-Rosengarten
+ * @author Hou Seng Wong
  */
 public class CActionGenerator {
     /**
      * For each action of the specified reactor instance, generate initialization code
      * for the offset and period fields.
      * @param instance The reactor.
-     * @param currentFederate The federate we are
      */
     public static String generateInitializers(
-        ReactorInstance instance,
-        FederateInstance currentFederate
+        ReactorInstance instance
     ) {
         List<String> code = new ArrayList<>();
         for (ActionInstance action : instance.actions) {
-            if (currentFederate.contains(action.getDefinition()) &&
-                !action.isShutdown()
-            ) {
+            if (!action.isShutdown()) {
                 var triggerStructName = CUtil.reactorRef(action.getParent()) + "->_lf__" + action.getName();
                 var minDelay = action.getMinDelay();
                 var minSpacing = action.getMinSpacing();
@@ -68,9 +64,9 @@ public class CActionGenerator {
     }
 
     /**
-     * Create a reference token initialized to the payload size.
+     * Create a template token initialized to the payload size.
      * This token is marked to not be freed so that the trigger_t struct
-     * always has a reference token.
+     * always has a template token.
      * At the start of each time step, we need to initialize the is_present field
      * of each action's trigger object to false and free a previously
      * allocated token if appropriate. This code sets up the table that does that.
@@ -85,11 +81,10 @@ public class CActionGenerator {
         String payloadSize
     ) {
         return String.join("\n",
-            selfStruct+"->_lf__"+actionName+".token = _lf_create_token("+payloadSize+");",
-            selfStruct+"->_lf__"+actionName+".status = absent;",
-            "_lf_tokens_with_ref_count[_lf_tokens_with_ref_count_count].token = &"+selfStruct+"->_lf__"+actionName+".token;",
-            "_lf_tokens_with_ref_count[_lf_tokens_with_ref_count_count].status = &"+selfStruct+"->_lf__"+actionName+".status;",
-            "_lf_tokens_with_ref_count[_lf_tokens_with_ref_count_count++].reset_is_present = true;"
+                "_lf_initialize_template((token_template_t*)",
+                "        &("+selfStruct+"->_lf__"+actionName+"),",
+                         payloadSize+");",
+            selfStruct+"->_lf__"+actionName+".status = absent;"
         );
     }
 
@@ -98,24 +93,20 @@ public class CActionGenerator {
      *
      * @param reactor The reactor to generate declarations for
      * @param decl The reactor's declaration
-     * @param currentFederate The federate that is being generated
      * @param body The content of the self struct
      * @param constructorCode The constructor code of the reactor
      */
     public static void generateDeclarations(
         Reactor reactor,
         ReactorDecl decl,
-        FederateInstance currentFederate,
         CodeBuilder body,
         CodeBuilder constructorCode
     ) {
         for (Action action : ASTUtils.allActions(reactor)) {
-            if (currentFederate.contains(action)) {
-                var actionName = action.getName();
-                body.pr(action, CGenerator.variableStructType(action, decl)+" _lf_"+actionName+";");
-                // Initialize the trigger pointer in the action.
-                constructorCode.pr(action, "self->_lf_"+actionName+".trigger = &self->_lf__"+actionName+";");
-            }
+            var actionName = action.getName();
+            body.pr(action, CGenerator.variableStructType(action, decl)+" _lf_"+actionName+";");
+            // Initialize the trigger pointer in the action.
+            constructorCode.pr(action, "self->_lf_"+actionName+".trigger = &self->_lf__"+actionName+";");
         }
     }
 
@@ -140,13 +131,19 @@ public class CActionGenerator {
         var code = new CodeBuilder();
         code.pr("typedef struct {");
         code.indent();
-        code.pr("trigger_t* trigger;");
-        code.pr(valueDeclaration(action, target, types));
+        // NOTE: The following fields are required to be the first ones so that
+        // pointer to this struct can be cast to a (lf_action_base_t*) or to
+        // (token_template_t*) to access these fields for any port.
+        // IMPORTANT: These must match exactly the fields defined in port.h!!
         code.pr(String.join("\n",
-                    "bool is_present;",
-                    "bool has_value;",
-                    "lf_token_t* token;"
+                "token_type_t type;",  // From token_template_t
+                "lf_token_t* token;",  // From token_template_t
+                "size_t length;",      // From token_template_t
+                "bool is_present;",    // From lf_action_base_t
+                "bool has_value;",     // From lf_action_base_t
+                "trigger_t* trigger;"  // From lf_action_base_t
         ));
+        code.pr(valueDeclaration(action, target, types));
         code.pr(federatedExtension.toString());
         code.unindent();
         code.pr("} " + variableStructType(action, decl) + ";");

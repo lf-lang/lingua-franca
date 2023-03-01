@@ -35,8 +35,8 @@ import org.lflang.lf.Deadline;
  * a proper time value. If a parameter is referenced, it is looked up in the
  * given (grand)parent reactor instance.
  * 
- * @author{Marten Lohstroh <marten@berkeley.edu>}
- * @author{Edward A. Lee <eal@berkeley.edu>}
+ * @author Marten Lohstroh
+ * @author Edward A. Lee
  */
 public class DeadlineInstance {
 		

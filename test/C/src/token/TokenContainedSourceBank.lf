@@ -1,0 +1,47 @@
+/**
+ * Basic test of token type passed from a bank of contained sources to a
+ * reaction.
+ * @author Hou Seng (Steven) Wong (housengw@berkeley.edu)
+ * @author Edward A. Lee (eal@berkeley.edu)
+ */
+target C {
+    timeout: 2 ms
+}
+
+import TokenSource from "lib/Token.lf"
+
+main reactor(scale: int(1)) {
+    state count: int(0)
+    state input_received: bool(false)
+
+    s = new[2] TokenSource()
+
+    reaction(s.out) {=
+        self->input_received = true;
+        bool failed = false; // For testing.
+        for (int j = 0; j < s_width; j++) {
+            printf("Received from %d: [", j);
+            if (j > 0) self->count -= s[j].out->value->length;
+            for (int i = 0; i < s[j].out->value->length; i++) {
+                if (i > 0) printf(", ");
+                printf("%d", s[j].out->value->data[i]);
+                // For testing, check whether values match expectation.
+                if (s[j].out->value->data[i] != self->scale * self->count) {
+                    failed = true;
+                }
+                self->count++;
+            }
+            printf("]\n");
+        }
+        if (failed) {
+            printf("ERROR: Value received does not match expectation!\n");
+            exit(1);
+        }
+    =}
+
+    reaction(shutdown) {=
+        if (!self->input_received) {
+            lf_print_error_and_exit("TokenPrint: No result received!");
+        }
+    =}
+}

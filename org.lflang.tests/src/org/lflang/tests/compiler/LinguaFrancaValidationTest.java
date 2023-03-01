@@ -45,6 +45,7 @@ import org.lflang.TargetProperty.ArrayType;
 import org.lflang.TargetProperty.DictionaryElement;
 import org.lflang.TargetProperty.DictionaryType;
 import org.lflang.TargetProperty.PrimitiveType;
+import org.lflang.TargetProperty.StringDictionaryType;
 import org.lflang.TargetProperty.TargetPropertyType;
 import org.lflang.TargetProperty.UnionType;
 import org.lflang.TimeValue;
@@ -63,11 +64,11 @@ import com.google.inject.Inject;
 /**
  * Collection of unit tests to ensure validation is done correctly.
  * 
- * @author{Edward A. Lee <eal@berkeley.edu>}
- * @author{Marten Lohstroh <marten@berkeley.edu>}
- * @author{Matt Weber <matt.weber@berkeley.edu>}
- * @author(Christian Menard <christian.menard@tu-dresden.de>}
- * @author{Alexander Schulz-Rosengarten <als@informatik.uni-kiel.de>}
+ * @author Edward A. Lee
+ * @author Marten Lohstroh
+ * @author Matt Weber
+ * @author Christian Menard
+ * @author Alexander Schulz-Rosengarten
  */
 public class LinguaFrancaValidationTest {
     @Inject 
@@ -965,7 +966,7 @@ public class LinguaFrancaValidationTest {
             "    =}",
             "}");
         validator.assertError(parseWithoutError(testCase), LfPackage.eINSTANCE.getTimer(),
-            null, "Parameter is not of time type.");
+            null, "Referenced parameter is not of time type.");
     }
     
     /**
@@ -993,7 +994,7 @@ public class LinguaFrancaValidationTest {
             "    =}",
             "}");
         validator.assertError(parseWithoutError(testCase), LfPackage.eINSTANCE.getTimer(),
-            null, "Invalid time literal.");
+            null, "Invalid time value.");
     }  
     
 
@@ -1217,7 +1218,7 @@ public class LinguaFrancaValidationTest {
 //             ) {
 //                 state offset:time(42);       // ERROR: units missing
 //                 state w:time(x);             // ERROR: parameter is not a time
-//                 state foo:time("bla");       // ERROR: assigned value not a time
+//                 state foo:time("bla");       // ERROR: assigned value not a time;
 //                 timer tick(1);               // ERROR: not a time
 //             }
 //         """
@@ -1232,33 +1233,33 @@ public class LinguaFrancaValidationTest {
             "            q:time(1 msec, 2 msec),  // ERROR: not a list",
             "            y:int(t)           // ERROR: init using parameter",
             ") {",
-            "    state offset:time(42);     // ERROR: units missing",
+            "    state offset:time(45);     // ERROR: units missing",
             "    state w:time(x);           // ERROR: parameter is not a time",
             "    state foo:time(\"bla\");   // ERROR: assigned value not a time",
             "    timer tick(1);             // ERROR: not a time",
             "}");
         Model model = parseWithoutError(testCase);
 
-        
-		validator.assertError(model, LfPackage.eINSTANCE.getParameter(), null,
+
+        validator.assertError(model, LfPackage.eINSTANCE.getParameter(), null,
             "Type declaration missing.");
+        validator.assertError(model, LfPackage.eINSTANCE.getParameter(), null,
+            "Parameter must have a default value.");
         validator.assertError(model, LfPackage.eINSTANCE.getParameter(), null,
             "Missing time unit.");
         validator.assertError(model, LfPackage.eINSTANCE.getParameter(), null,
-            "Invalid time literal.");
+            "Invalid time value.");
         validator.assertError(model, LfPackage.eINSTANCE.getParameter(), null,
-            "Time parameter cannot be initialized using a list.");   
+            "Expected exactly one time value.");
         validator.assertError(model, LfPackage.eINSTANCE.getParameter(), null,
             "Parameter cannot be initialized using parameter.");
         validator.assertError(model, LfPackage.eINSTANCE.getStateVar(), null,
-                              "Missing time unit.");
+            "Missing time unit.");
         validator.assertError(model, LfPackage.eINSTANCE.getStateVar(), null,
-            "Parameter is not of time type.");
+            "Referenced parameter is not of time type.");
         validator.assertError(model, LfPackage.eINSTANCE.getStateVar(), null,
-                              "Invalid time literal.");
-        validator.assertError(model, LfPackage.eINSTANCE.getParameter(), null,
-            "Uninitialized parameter.");
-       	validator.assertError(model, LfPackage.eINSTANCE.getTimer(), null,
+            "Invalid time value.");
+        validator.assertError(model, LfPackage.eINSTANCE.getTimer(), null,
             "Missing time unit.");
     }  
     
@@ -1629,6 +1630,25 @@ public class LinguaFrancaValidationTest {
         }
         return examples;
     }
+
+    private List<String> synthesizeExamples(StringDictionaryType type, boolean correct) {
+        List<String> examples = new LinkedList<>();
+        // Produce a set of singleton dictionaries.
+        // If incorrect examples are wanted, use non-strings for values.
+        List<String> goodStrs = synthesizeExamples(PrimitiveType.STRING, true);
+        List<String> badStrs = synthesizeExamples(PrimitiveType.STRING, false);
+        List<String> goodIDs = List.of("foo", "Bar", "__ab0_9fC", "f1o_O2B_a3r");
+        if (correct) {
+            for (String gs : goodStrs) {
+                goodIDs.forEach(it -> examples.add("{" + it + ": " + gs + "}"));
+            }
+        } else {
+            for (String bs : badStrs) {
+                goodIDs.forEach(it -> examples.add("{" + it + ": " + bs + "}"));
+            }
+        }
+        return examples;
+    }
     
     /**
      * Synthesize a list of values that either conform to the given type or
@@ -1656,6 +1676,8 @@ public class LinguaFrancaValidationTest {
                 return synthesizeExamples((ArrayType) type, correct);
             } else if (type instanceof DictionaryType) {
                 return synthesizeExamples((DictionaryType) type, correct);
+            } else if (type instanceof StringDictionaryType) {
+                return synthesizeExamples((StringDictionaryType) type, correct);
             } else {
                 Assertions.fail("Encountered an unknown type: " + type);
             }
@@ -1729,9 +1751,15 @@ public class LinguaFrancaValidationTest {
             List<String> knownIncorrect = synthesizeExamples(prop.type, false);
             if (!(knownIncorrect == null || knownIncorrect.isEmpty())) {
                 for (String it : knownIncorrect) {
-                    validator.assertError(createModel(prop, it), 
-                        LfPackage.eINSTANCE.getKeyValuePair(), null, 
-                        String.format("Target property '%s' is required to be %s.", prop.toString(), prop.type));
+                    if (prop.type instanceof StringDictionaryType) {
+                        validator.assertError(createModel(prop, it),
+                                              LfPackage.eINSTANCE.getKeyValuePair(), null,
+                                              String.format("Target property '%s.", prop), "' is required to be a string.");
+                    } else {
+                        validator.assertError(createModel(prop, it),
+                                              LfPackage.eINSTANCE.getKeyValuePair(), null,
+                                              String.format("Target property '%s' is required to be %s.", prop.toString(), prop.type));
+                    }
                 }
             } else {
                 // No type was synthesized. It must be a composite type.
