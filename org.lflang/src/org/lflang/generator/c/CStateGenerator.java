@@ -3,6 +3,7 @@ package org.lflang.generator.c;
 import java.util.LinkedList;
 
 import org.lflang.ASTUtils;
+import org.lflang.InferredType;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.generator.GeneratorBase;
 import org.lflang.generator.ModeInstance;
@@ -126,17 +127,7 @@ public class CStateGenerator {
      * references are replaced with accesses to the self struct of the parent.
      */
     private static String getInitializerExpr(StateVar state, ReactorInstance parent) {
-        var list = new LinkedList<String>();
-        for (Expression expr : state.getInit().getExprs()) {
-            if (expr instanceof ParameterReference) {
-                final var param = ((ParameterReference)expr).getParameter();
-                list.add(CUtil.reactorRef(parent) + "->" + param.getName());
-            } else {
-                list.add(GeneratorBase.getTargetTime(expr));
-            }
-        }
-        return list.size() == 1 ?
-               list.get(0) :
-               "{" + String.join(", ", list) + "}";
+        var ctypes = CTypes.generateParametersIn(parent);
+        return ctypes.getTargetInitializer(state.getInit(), state.getType());
     }
 }

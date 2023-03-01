@@ -1,7 +1,10 @@
 package org.lflang.generator.c;
 
+import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
+
+import org.lflang.InferredType;
 import org.lflang.generator.ParameterInstance;
 import org.lflang.ASTUtils;
 import org.lflang.generator.CodeBuilder;
@@ -11,6 +14,7 @@ import org.lflang.lf.Expression;
 import org.lflang.lf.Parameter;
 import org.lflang.lf.ParameterReference;
 import org.lflang.lf.Reactor;
+import org.lflang.lf.Type;
 
 /**
  * Generates C code to declare and initialize parameters.
@@ -36,35 +40,27 @@ public class CParameterGenerator {
         // In case there is more than one assignment to this parameter, we need to
         // find the last one.
         Assignment lastAssignment = null;
-        for (Assignment assignment: p.getParent().getDefinition().getParameters()) {
+        for (Assignment assignment : p.getParent().getDefinition().getParameters()) {
             if (assignment.getLhs() == p.getDefinition()) {
                 lastAssignment = assignment;
             }
         }
-        List<String> list = new LinkedList<>();
+        Type paramType = p.getDefinition().getType();
+        // Assume that parameter refs belongs to the parent's parent.
+        // This should have been checked by the validator.
+        CTypes ctypes = CTypes.generateParametersIn(p.getParent().getParent());
+        List<String> list = new ArrayList<>();
         if (lastAssignment != null) {
             // The parameter has an assignment.
             // Right hand side can be a list. Collect the entries.
-            for (Expression expr: lastAssignment.getRhs().getExprs()) {
-                if (expr instanceof ParameterReference) {
-                    // The parameter is being assigned a parameter value.
-                    // Assume that parameter belongs to the parent's parent.
-                    // This should have been checked by the validator.
-                    final var param = ((ParameterReference) expr).getParameter();
-                    list.add(CUtil.reactorRef(p.getParent().getParent()) + "->" + param.getName());
-                } else {
-                    list.add(GeneratorBase.getTargetTime(expr));
-                }
+            for (Expression expr : lastAssignment.getRhs().getExprs()) {
+                list.add(ctypes.getTargetExpr(expr, InferredType.fromAST(paramType)));
             }
         } else {
             // there was no assignment in the instantiation. So just use the
             // parameter's initial value.
             for (Expression expr : p.getParent().initialParameterValue(p.getDefinition())) {
-                if (ASTUtils.isOfTimeType(p.getDefinition())) {
-                    list.add(GeneratorBase.getTargetTime(expr));
-                } else {
-                    list.add(GeneratorBase.getTargetTime(expr));
-                }
+                list.add(CTypes.getInstance().getTargetExpr(expr, ASTUtils.getInferredType(p.getDefinition())));
             }
         }
         if (list.size() == 1) {

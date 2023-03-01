@@ -8,6 +8,7 @@ import java.util.stream.Collectors;
 import com.google.common.base.Objects;
 
 import org.lflang.ASTUtils;
+import org.lflang.InferredType;
 import org.lflang.generator.GeneratorBase;
 import org.lflang.generator.ParameterInstance;
 import org.lflang.lf.Expression;
@@ -126,7 +127,7 @@ public class PythonParameterGenerator {
                     final var param = ((ParameterReference) expr).getParameter();
                     list.add(PyUtil.reactorRef(p.getParent().getParent()) + "." + param.getName());
                 } else {
-                    list.add(GeneratorBase.getTargetTime(expr));
+                    list.add(PythonTypes.getInstance().getTargetExpr(expr, InferredType.time()));
                 }
             }
         } else {
