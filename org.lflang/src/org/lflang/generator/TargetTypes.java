@@ -8,6 +8,7 @@ import org.lflang.ASTUtils;
 import org.lflang.InferredType;
 import org.lflang.TimeValue;
 import org.lflang.lf.Action;
+import org.lflang.lf.BracedListExpression;
 import org.lflang.lf.CodeExpr;
 import org.lflang.lf.Expression;
 import org.lflang.lf.Initializer;
@@ -66,6 +67,12 @@ public interface TargetTypes {
 
     default String getTargetParamRef(ParameterReference expr, InferredType typeOrNull) {
         return escapeIdentifier(expr.getParameter().getName());
+    }
+
+    /** Translate the braced list expression into target language syntax. */
+    default String getTargetBracedListExpr(BracedListExpression expr, InferredType typeOrNull) {
+        return expr.getItems().stream().map(e -> getTargetExpr(e, typeOrNull.getComponentType()))
+            .collect(Collectors.joining(",", "{", "}"));
     }
 
     /**

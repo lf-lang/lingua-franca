@@ -293,7 +293,8 @@ AssignmentInitializer returns Initializer:
     // these syntaxes are legacy and now deprecated
     // todo remove in future version.
     | '='? parens?='(' (exprs+=Expression (','  exprs+=Expression)* (trailingComma?=',')?)? ')'
-    | '='? braces?='{' (exprs+=Expression (','  exprs+=Expression)* (trailingComma?=',')?)? '}'
+    // note: the previous syntax `= { expr* }` is now parsed as a BracedListExpression
+    | braces?='{' (exprs+=Expression (','  exprs+=Expression)* (trailingComma?=',')?)? '}'
 ;
 
 
@@ -311,6 +312,13 @@ Expression:
     | Time
     | ParameterReference
     | {CodeExpr} code=Code
+    | BracedListExpression
+;
+
+// A list of expressions within braces.
+// In C/C++, this is an array initializer, struct initializer, or std::initializer_list.
+BracedListExpression:
+    '{' ( items+=Expression (',' items+=Expression)* )? ','? '}'
 ;
 
 ParameterReference:

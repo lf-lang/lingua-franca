@@ -486,9 +486,7 @@ public enum Target {
      * on constants).
      */
     public boolean supportsParameterizedWidths() {
-        return switch (this) {
-            case C, CCPP, CPP, Python, Rust, TS -> true;
-        };
+        return true;
     }
 
     /**
@@ -502,8 +500,18 @@ public enum Target {
         };
     }
 
+    /**
+     * Whether the target requires using an equal sign to assign a defaul value to a parameter,
+     * or initialize a state variable. All targets mandate an equal sign when passing
+     * arguments to a reactor constructor call, regardless of this method.
+     */
     public boolean mandatesEqualsInitializers() {
         return this != CPP;
+    }
+
+    /** Allow expressions of the form {@code {a, b, c}}. */
+    public boolean allowsBracedListExpressions() {
+        return this == C || this == CCPP || this == CPP;
     }
 
     /**

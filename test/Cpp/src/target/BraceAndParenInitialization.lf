@@ -28,6 +28,6 @@ reactor Foo(
 main reactor {
     foo = new Foo(
         param_list_3 = {= std::vector(3, 5) =},
-        param_list_4 = {= {3, 5} =}
+        param_list_4 = {3, 5}
     )
 }

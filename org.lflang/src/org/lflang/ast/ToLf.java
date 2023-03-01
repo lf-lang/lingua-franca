@@ -21,6 +21,7 @@ import org.eclipse.xtext.nodemodel.INode;
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils;
 import org.eclipse.xtext.xbase.lib.StringExtensions;
 import org.lflang.ASTUtils;
+import org.lflang.Target;
 import org.lflang.ast.MalleableString.Builder;
 import org.lflang.ast.MalleableString.Joiner;
 import org.lflang.lf.Action;
@@ -29,6 +30,7 @@ import org.lflang.lf.ArraySpec;
 import org.lflang.lf.Assignment;
 import org.lflang.lf.AttrParm;
 import org.lflang.lf.Attribute;
+import org.lflang.lf.BracedListExpression;
 import org.lflang.lf.BuiltinTriggerRef;
 import org.lflang.lf.Code;
 import org.lflang.lf.CodeExpr;
@@ -46,6 +48,7 @@ import org.lflang.lf.Input;
 import org.lflang.lf.Instantiation;
 import org.lflang.lf.KeyValuePair;
 import org.lflang.lf.KeyValuePairs;
+import org.lflang.lf.LfFactory;
 import org.lflang.lf.Literal;
 import org.lflang.lf.Method;
 import org.lflang.lf.MethodArgument;
@@ -757,12 +760,24 @@ public class ToLf extends LfSwitch<MalleableString> {
   @Override
   public MalleableString caseKeyValuePairs(KeyValuePairs object) {
     // {KeyValuePairs} '{' (pairs+=KeyValuePair (',' (pairs+=KeyValuePair))* ','?)? '}'
-    if (object.getPairs().isEmpty()) return MalleableString.anyOf("");
+    if (object.getPairs().isEmpty()) {
+      return MalleableString.anyOf("");
+    }
     return new Builder()
         .append("{\n")
         .append(list(",\n", "", "\n", true, true, object.getPairs()).indent())
         .append("}")
         .get();
+  }
+
+  @Override
+  public MalleableString caseBracedListExpression(BracedListExpression object) {
+    if (object.getItems().isEmpty()) {
+      return MalleableString.anyOf("{}");
+    }
+    // Note that this strips the trailing comma. There is no way
+    // to implement trailing commas with the current set of list() methods AFAIU.
+    return list(", ", "{ ", " }", false, false, object.getItems());
   }
 
   @Override
@@ -841,6 +856,13 @@ public class ToLf extends LfSwitch<MalleableString> {
       Expression expr = ASTUtils.asSingleExpr(init);
       Objects.requireNonNull(expr);
       return new Builder().append(" = ").append(doSwitch(expr)).get();
+    }
+    if (ASTUtils.getTarget(init) == Target.C) {
+      // This turns C array initializers into a braced expression.
+      // C++ variants are not converted.
+      BracedListExpression list = LfFactory.eINSTANCE.createBracedListExpression();
+      list.getItems().addAll(init.getExprs());
+      return new Builder().append(" = ").append(doSwitch(list)).get();
     }
     String prefix;
     String suffix;
