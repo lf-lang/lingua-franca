@@ -42,7 +42,7 @@ import org.lflang.ASTUtils;
 import org.lflang.DefaultErrorReporter;
 import org.lflang.TimeUnit;
 import org.lflang.TimeValue;
-import org.lflang.ast.AfterDelayTransformation;
+import org.lflang.ast.DelayedConnectionTransformation;
 import org.lflang.generator.ReactionInstance;
 import org.lflang.generator.ReactorInstance;
 import org.lflang.generator.c.CDelayBodyGenerator;
@@ -103,7 +103,7 @@ class LetInferenceTest  {
         Assertions.assertNotNull(model);
         final var ctypes = new CTypes(new DefaultErrorReporter());
         final var resource = model.eResource();
-        final var transformation = new AfterDelayTransformation(new CDelayBodyGenerator(ctypes), ctypes, resource);
+        final var transformation = new DelayedConnectionTransformation(new CDelayBodyGenerator(ctypes), ctypes, resource, true, true);
         transformation.applyTransformation(ASTUtils.getAllReactors(resource));
 
         Assertions.assertTrue(model.eResource().getErrors().isEmpty(),

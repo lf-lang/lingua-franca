@@ -28,7 +28,6 @@ import org.eclipse.emf.ecore.resource.Resource
 import org.lflang.ErrorReporter
 import org.lflang.Target
 import org.lflang.TargetProperty.BuildType
-import org.lflang.ast.AfterDelayTransformation
 import org.lflang.generator.GeneratorUtils.canGenerate
 import org.lflang.generator.CodeMap
 import org.lflang.generator.GeneratorBase
