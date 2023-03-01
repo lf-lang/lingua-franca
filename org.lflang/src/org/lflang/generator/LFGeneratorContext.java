@@ -157,9 +157,7 @@ public interface LFGeneratorContext extends IGeneratorContext {
     static LFGeneratorContext lfGeneratorContextOf(Resource resource, IFileSystemAccess2 fsa, IGeneratorContext context) {
         if (context instanceof LFGeneratorContext) return (LFGeneratorContext) context;
 
-        if (resource.getURI().isPlatform()) return new MainContext(
-            Mode.EPOCH, context.getCancelIndicator(), resource, fsa, EclipseErrorReporter::new
-        );
+        if (resource.getURI().isPlatform()) return new MainContext(Mode.EPOCH, resource, fsa, context.getCancelIndicator());
 
         return new MainContext(Mode.LSP_FAST, resource, fsa, context.getCancelIndicator());
     }
