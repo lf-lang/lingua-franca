@@ -1,7 +1,6 @@
 {
     "compilerOptions": {
         "allowJs": true,
-        "noEmit": true,
         "target": "esnext",
         "types": ["node", "@lf-lang/reactor-ts", "ulog", "microtime", "command-line-args", "command-line-usage"],
         "esModuleInterop": true,

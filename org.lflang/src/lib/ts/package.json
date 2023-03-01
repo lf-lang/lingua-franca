@@ -1,10 +1,8 @@
 {
     "name": "LinguaFrancaDefault",
-    "type": "commonjs",
+    "type": "module",
     "dependencies": {
         "@lf-lang/reactor-ts": "^0.3.2",
-        "@babel/cli": "^7.21.0",
-        "@babel/core": "^7.4.3",
         "command-line-args": "^5.1.1",
         "command-line-usage": "^6.1.3"
     },
@@ -12,6 +10,8 @@
         "@types/command-line-args": "^5.2.0",
         "@types/command-line-usage": "^5.0.2",
         "@types/google-protobuf": "^3.7.4",
+        "@types/microtime": "^2.1.0",
+        "@types/node": "^18.14.2",
         "@typescript-eslint/eslint-plugin": "5.33.0",
         "@typescript-eslint/parser": "^5.8.1",
         "eslint": "^8.5.0",
@@ -21,6 +21,6 @@
     },
     "scripts": {
         "check-types": "tsc",
-        "build": "npx rimraf dist && npx babel src --out-dir dist --extensions .ts,.js"
+        "build": "npx rimraf dist && npx tsc --outDir dist"
     }
 }
