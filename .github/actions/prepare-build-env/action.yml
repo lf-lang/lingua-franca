@@ -14,8 +14,6 @@ runs:
         echo $(which java)
         cat gradle.properties
         echo $JAVA_HOME
-        echo $(which mvn)
-        echo $(mvn -v)
       shell: bash
     - name: Validate Gradle wrapper
       uses: gradle/wrapper-validation-action@v1.0.5

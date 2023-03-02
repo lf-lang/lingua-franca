@@ -27,7 +27,6 @@ package org.lflang.diagram.synthesis.util;
 //import org.eclipse.swt.graphics.ImageData;
 //import org.eclipse.swt.graphics.ImageLoader;
 import org.eclipse.xtext.xbase.lib.Extension;
-
 import org.lflang.AttributeUtils;
 import org.lflang.diagram.synthesis.AbstractSynthesisExtensions;
 import org.lflang.lf.ReactorDecl;

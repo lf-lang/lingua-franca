@@ -20,9 +20,9 @@ jobs:
   cancel:
     uses: lf-lang/lingua-franca/.github/workflows/cancel.yml@master
 
-  # Test the Gradle and Maven build.
+  # Test the Gradle build.
   build:
-    uses: lf-lang/lingua-franca/.github/workflows/build.yml@master
+    uses: lf-lang/lingua-franca/.github/workflows/build.yml@epoch-migration
     needs: cancel
 
   # Build the tools used for processing execution traces
@@ -51,11 +51,6 @@ jobs:
     uses: lf-lang/benchmarks-lingua-franca/.github/workflows/benchmark-tests.yml@main
     with:
       target: 'C'
-    needs: cancel
-
-  # Run tests for Eclipse.
-  eclipse-tests:
-    uses: lf-lang/lingua-franca/.github/workflows/eclipse-tests.yml@master
     needs: cancel
 
   # Run language server tests.
