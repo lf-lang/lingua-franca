@@ -128,6 +128,11 @@ public abstract class CliBase implements Runnable {
         io.callSystemExit(exitCode);
     }
 
+    /**
+     * The entrypoint of Picocli applications - the first method called when 
+     * CliBase, which implements the Runnable interface, is instantiated.
+     * Lfc and Lff have their own specific implementations for this method.
+     */ 
     public abstract void run();
 
     protected static Injector getInjector(String toolName, Io io) {
