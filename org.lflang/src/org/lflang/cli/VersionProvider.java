@@ -6,7 +6,11 @@ import picocli.CommandLine.Spec;
 
 import org.lflang.LocalStrings;
 
-
+/*
+ * Dynamically provides version information to the Lingua Franca CLI.
+ *
+ * @author Atharva Patil
+ */
 class VersionProvider implements IVersionProvider {
     @Spec CommandSpec spec;
 
