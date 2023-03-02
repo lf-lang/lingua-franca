@@ -98,8 +98,6 @@ public class Lff extends CliBase {
     public void run() {
         List<Path> paths = getInputPaths();
         final Path outputRoot = getOutputRoot();
-        // Hard code the props based on the options we want.
-        Properties properties = this.filterPassOnProps();
 
         try {
             // Format all files defined by the list of paths.

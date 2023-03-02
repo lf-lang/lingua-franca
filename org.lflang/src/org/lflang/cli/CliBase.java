@@ -8,14 +8,11 @@ import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Properties;
-import java.util.Set;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Model.CommandSpec;
-import picocli.CommandLine.Model.OptionSpec;
 import picocli.CommandLine.Option;
 import picocli.CommandLine.Parameters;
 import picocli.CommandLine.ParseResult;
@@ -151,54 +148,6 @@ public abstract class CliBase implements Runnable {
      */
     protected Path toAbsolutePath(Path other) {
         return io.getWd().resolve(other).toAbsolutePath();
-    }
-
-    /**
-     * Filter the command-line arguments needed by the code generator, and
-     * return them as properties.
-     *
-     * @return Properties for the code generator.
-     */
-    protected Properties filterPassOnProps() {
-        // Parameters corresponding to the options that need to be passed on to
-        // the generator as properties.
-        final Set<String> passOnParams = Stream.of(
-            BuildParm.BUILD_TYPE,
-            BuildParm.CLEAN,
-            BuildParm.TARGET_COMPILER,
-            BuildParm.EXTERNAL_RUNTIME_PATH,
-            BuildParm.LOGGING,
-            BuildParm.LINT,
-            BuildParm.NO_COMPILE,
-            BuildParm.QUIET,
-            BuildParm.RTI,
-            BuildParm.RUNTIME_VERSION,
-            BuildParm.SCHEDULER,
-            BuildParm.THREADING,
-            BuildParm.WORKERS)
-        .map(param -> param.getKey())
-        .collect(Collectors.toUnmodifiableSet());
-
-        Properties props = new Properties();
-
-        for (OptionSpec option : spec.options()) {
-            String optionName = option.longestName();
-            // Check whether this option needs to be passed on to the code
-            // generator as a property.
-            if (passOnParams.contains(optionName)) {
-                String value = "";
-                // Boolean or Integer option.
-                if (option.getValue() instanceof Boolean ||
-                        option.getValue() instanceof Integer) {
-                    value = String.valueOf(option.getValue());
-                // String option.
-                } else if (option.getValue() instanceof String) {
-                    value = option.getValue();
-                }
-                props.setProperty(optionName, value);
-            }
-        }
-        return props;
     }
 
     /**
