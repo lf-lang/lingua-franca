@@ -85,7 +85,7 @@ public class Lfc extends CliBase {
         names = "--external-runtime-path",
         description = "Specify an external runtime library to be used by the"
                     + " compiled binary.")
-    private String externalRuntimePath;
+    private Path externalRuntimePath;
 
     @Option(
         names = {"-f", "--federated"},
@@ -279,6 +279,9 @@ public class Lfc extends CliBase {
                 // String option.
                 } else if (option.getValue() instanceof String) {
                     value = option.getValue();
+                // Path option.
+                } else if (option.getValue() instanceof Path) {
+                    value = option.getValue().toString();
                 }
                 props.setProperty(optionName, value);
             }
