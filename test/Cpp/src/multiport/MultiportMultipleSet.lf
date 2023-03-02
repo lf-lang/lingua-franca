@@ -1,0 +1,60 @@
+target Cpp {
+    timeout: 1 s
+}
+
+reactor Producer {
+    timer t(0, 100 ms)
+
+    output[10] out: int
+
+    state odd: bool(true)
+
+    reaction(t) -> out {=
+        for (int i{odd ? 1 : 0}; i < 10; i += 2) {
+            for (int j{0}; j < 10; j++) {
+                out[i].set(j);
+            }
+        }
+
+        odd = !odd;
+    =}
+}
+
+reactor Consumer {
+    state odd: bool(true)
+    input[10] in: int
+
+    reaction(in) {=
+        int count = 0;
+        int last = -1;
+
+        for (int i : in.present_indices_unsorted()) {
+            count++;
+            if (odd && i%2 == 0) {
+                reactor::log::Error() << "Expected values only on odd ports, but received one on port " << i;
+                exit(1);
+            }
+            if (!odd && i%2 == 1) {
+                reactor::log::Error() << "Expected values only on even ports, but received one on port " << i;
+                exit(2);
+            }
+            if (9 != *in[i].get()) {
+                reactor::log::Error() << "Expected 9 but got " << *in[i].get();
+                exit(3);
+            }
+        }
+        if (count != 5) {
+            reactor::log::Error() << "Expected count to be 5, but got  " << count;
+            exit(4);
+        }
+
+        odd = !odd;
+    =}
+}
+
+main reactor {
+    c = new Consumer()
+    p = new Producer()
+
+    p.out -> c.in
+}
