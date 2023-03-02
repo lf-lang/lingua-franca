@@ -63,7 +63,7 @@ import org.lflang.TargetProperty.Platform;
 
 import org.lflang.federated.extensions.CExtensionUtils;
 
-import org.lflang.ast.AfterDelayTransformation;
+import org.lflang.ast.DelayedConnectionTransformation;
 
 import org.lflang.generator.ActionInstance;
 import org.lflang.generator.CodeBuilder;
@@ -388,8 +388,9 @@ public class CGenerator extends GeneratorBase {
         this.types = types;
         this.cmakeGenerator = cmakeGenerator;
 
-        // Register the after delay transformation to be applied by GeneratorBase.
-        registerTransformation(new AfterDelayTransformation(delayBodyGenerator, types, fileConfig.resource));
+        // Register the delayed connection transformation to be applied by GeneratorBase.
+        // transform both after delays and physical connections
+        registerTransformation(new DelayedConnectionTransformation(delayBodyGenerator, types, fileConfig.resource, true, true));
     }
 
     public CGenerator(LFGeneratorContext context, boolean ccppMode) {

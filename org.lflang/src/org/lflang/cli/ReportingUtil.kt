@@ -261,9 +261,9 @@ class ReportingBackend constructor(
         val snippet: String? = filePath?.let { formatIssue(issue, filePath) }
 
         if (snippet == null) {
-            val displayPath: String = filePath?.let { io.wd.relativize(it) }?.toString() ?: "(unknown file)"
-            fullMessage += " --> " + displayPath + ":" + issue.line + ":" + issue.column
-            fullMessage += " - " + issue.message
+            filePath?.let { io.wd.relativize(it) }?.let {
+                fullMessage += " --> " + it + ":" + issue.line + ":" + issue.column + " - "
+            }
         } else {
             fullMessage += snippet
         }
