@@ -5,7 +5,9 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import org.lflang.InferredType;
+import org.lflang.generator.ReactorInstance;
 import org.lflang.generator.c.CTypes;
+import org.lflang.generator.c.CUtil;
 import org.lflang.lf.ParameterReference;
 
 public class PythonTypes extends CTypes {
@@ -61,5 +63,14 @@ public class PythonTypes extends CTypes {
 
     public static PythonTypes getInstance() {
         return INSTANCE;
+    }
+
+    public static PythonTypes generateParametersIn(ReactorInstance instance) {
+        return new PythonTypes() {
+            @Override
+            public String getTargetParamRef(ParameterReference expr, InferredType typeOrNull) {
+                return CUtil.reactorRef(instance) + "." + expr.getParameter().getName();
+            }
+        };
     }
 }

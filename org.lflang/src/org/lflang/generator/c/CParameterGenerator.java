@@ -3,6 +3,7 @@ package org.lflang.generator.c;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import org.lflang.InferredType;
 import org.lflang.generator.ParameterInstance;
@@ -36,37 +37,14 @@ public class CParameterGenerator {
             return CUtil.bankIndex(p.getParent());
         }
 
-        // Handle overrides in the intantiation.
-        // In case there is more than one assignment to this parameter, we need to
-        // find the last one.
-        Assignment lastAssignment = null;
-        for (Assignment assignment : p.getParent().getDefinition().getParameters()) {
-            if (assignment.getLhs() == p.getDefinition()) {
-                lastAssignment = assignment;
-            }
-        }
-        Type paramType = p.getDefinition().getType();
-        // Assume that parameter refs belongs to the parent's parent.
-        // This should have been checked by the validator.
         CTypes ctypes = CTypes.generateParametersIn(p.getParent().getParent());
-        List<String> list = new ArrayList<>();
-        if (lastAssignment != null) {
-            // The parameter has an assignment.
-            // Right hand side can be a list. Collect the entries.
-            for (Expression expr : lastAssignment.getRhs().getExprs()) {
-                list.add(ctypes.getTargetExpr(expr, InferredType.fromAST(paramType)));
-            }
+        List<Expression> values = p.getInitialValue();
+        InferredType paramType = ASTUtils.getInferredType(p.getDefinition());
+        if (values.size() == 1) {
+            return ctypes.getTargetExpr(values.get(0), paramType);
         } else {
-            // there was no assignment in the instantiation. So just use the
-            // parameter's initial value.
-            for (Expression expr : p.getParent().initialParameterValue(p.getDefinition())) {
-                list.add(CTypes.getInstance().getTargetExpr(expr, ASTUtils.getInferredType(p.getDefinition())));
-            }
-        }
-        if (list.size() == 1) {
-            return list.get(0);
-        } else {
-            return "{" + String.join(", ", list) + "}";
+            return values.stream().map(it -> ctypes.getTargetExpr(it, paramType.getComponentType()))
+                .collect(Collectors.joining(", ", "{ ", "}"));
         }
     }
 

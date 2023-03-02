@@ -96,8 +96,7 @@ public class PythonParameterGenerator {
      * @return Initialization code
      */
     private static String generatePythonInitializer(Parameter p) {
-        List<String> values = p.getInit().getExprs().stream().map(PyUtil::getPythonTargetValue).toList();
-        return values.size() > 1 ? "(" + String.join(", ", values) + ")" : values.get(0);
+        return PythonTypes.getInstance().getTargetInitializer(p.getInit(), p.getType());
     }
 
     /**
@@ -114,44 +113,15 @@ public class PythonParameterGenerator {
         // Handle overrides in the instantiation.
         // In case there is more than one assignment to this parameter, we need to
         // find the last one.
-        Assignment lastAssignment = getLastAssignment(p);
-        List<String> list = new LinkedList<>();
-        if (lastAssignment != null) {
-            // The parameter has an assignment.
-            // Right hand side can be a list. Collect the entries.
-            for (Expression expr : lastAssignment.getRhs().getExprs()) {
-                if (expr instanceof ParameterReference) {
-                    // The parameter is being assigned a parameter value.
-                    // Assume that parameter belongs to the parent's parent.
-                    // This should have been checked by the validator.
-                    final var param = ((ParameterReference) expr).getParameter();
-                    list.add(PyUtil.reactorRef(p.getParent().getParent()) + "." + param.getName());
-                } else {
-                    list.add(PythonTypes.getInstance().getTargetExpr(expr, InferredType.time()));
-                }
-            }
+        PythonTypes pyTypes = PythonTypes.generateParametersIn(p.getParent().getParent());
+        List<Expression> values = p.getInitialValue();
+        InferredType paramType = ASTUtils.getInferredType(p.getDefinition());
+        if (values.size() == 1) {
+            return pyTypes.getTargetExpr(values.get(0), paramType);
         } else {
-            for (Expression expr : p.getParent().initialParameterValue(p.getDefinition())) {
-                list.add(PyUtil.getPythonTargetValue(expr));
-            }
+            return values.stream().map(it -> pyTypes.getTargetExpr(it, paramType.getComponentType()))
+                .collect(Collectors.joining(", ", "( ", ")"));
         }
-        return list.size() > 1 ? "(" + String.join(", ", list) + ")" : list.get(0);
     }
 
-    /**
-     * Returns the last assignment to "p" if there is one,
-     * or null if there is no assignment to "p"
-     *
-     * @param p The parameter instance to create initializer for
-     * @return The last assignment of the parameter instance
-     */
-    private static Assignment getLastAssignment(ParameterInstance p) {
-        Assignment lastAssignment = null;
-        for (Assignment assignment : p.getParent().getDefinition().getParameters()) {
-            if (Objects.equal(assignment.getLhs(), p.getDefinition())) {
-                lastAssignment = assignment;
-            }
-        }
-        return lastAssignment;
-    }
 }
