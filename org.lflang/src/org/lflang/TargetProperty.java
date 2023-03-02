@@ -35,7 +35,6 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import org.eclipse.xtext.util.RuntimeIOException;
-import org.lflang.TargetConfig.Board;
 import org.lflang.TargetConfig.DockerOptions;
 import org.lflang.TargetConfig.PlatformOptions;
 import org.lflang.TargetConfig.TracingOptions;
@@ -633,7 +632,6 @@ public enum TargetProperty {
                 }
             }),
 
-
     /**
      * Directive to let the runtime export its internal dependency graph.
      *
@@ -877,7 +875,7 @@ public enum TargetProperty {
         this.supportedBy = supportedBy;
         this.getter = getter;
         this.setter = setter;
-        this.updater = (config, value, err) -> { /* Ignore the update by default */ };
+        this.updater = setter; // (Re)set by default
     }
 
     /**
@@ -1189,7 +1187,6 @@ public enum TargetProperty {
         SCHEDULER_UNION(Arrays.asList(SchedulerOption.values()), SchedulerOption.getDefault()),
         LOGGING_UNION(Arrays.asList(LogLevel.values()), LogLevel.INFO),
         PLATFORM_UNION(Arrays.asList(Platform.values()), Platform.AUTO),
-        BOARD_UNION(Arrays.asList(Board.values()), Board.NONE),
         CLOCK_SYNC_UNION(Arrays.asList(ClockSyncMode.values()),
                 ClockSyncMode.INIT),
         DOCKER_UNION(Arrays.asList(PrimitiveType.BOOLEAN, DictionaryType.DOCKER_DICT),
@@ -1786,7 +1783,7 @@ public enum TargetProperty {
      */
     public enum SchedulerOption {
         NP(false),         // Non-preemptive
-        adaptive(false, List.of(
+        ADAPTIVE(false, List.of(
             Path.of("scheduler_adaptive.c"),
             Path.of("worker_assignments.h"),
             Path.of("worker_states.h"),

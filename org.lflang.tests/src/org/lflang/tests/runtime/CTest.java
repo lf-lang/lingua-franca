@@ -86,15 +86,6 @@ public class CTest extends RuntimeTest {
     }
 
     @Test
-    public void runArduinoTests() {
-        Assumptions.assumeFalse(isWindows(), Message.NO_WINDOWS_SUPPORT);
-        super.runTestsFor(List.of(Target.C),
-                          Message.DESC_ARDUINO,
-                          TestCategory.ARDUINO::equals, Configurators::noChanges,
-                          false);
-    }
-
-    @Test
     @Override
     public void runWithThreadingOff() {
         super.runWithThreadingOff();

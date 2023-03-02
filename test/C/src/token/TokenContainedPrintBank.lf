@@ -1,0 +1,36 @@
+/**
+ * Basic test of token type passed from a reaction to a bank of contained
+ * destinations.
+ * @author Edward A. Lee (eal@berkeley.edu)
+ */
+target C {
+    timeout: 2 ms
+}
+
+import TokenPrint from "lib/Token.lf"
+
+main reactor {
+    state count: int(0)
+    timer t(0, 1 ms)
+    p = new[2] TokenPrint()
+
+    reaction(startup) -> p.in {=
+        for (int j = 0; j < p_width; j++) {
+            lf_set_destructor(p[j].in, int_array_destructor);
+            lf_set_copy_constructor(p[j].in, int_array_copy_constructor);
+        }
+    =}
+
+    reaction(t) -> p.in {=
+        int_array_t* array =  int_array_constructor(3);
+        for (size_t i = 0; i < array->length; i++) {
+            array->data[i] = self->count++;
+        }
+        // Sending the array to more than one destination, so we need
+        // to wrap it in a token.
+        lf_token_t* token = lf_new_token(p[0].in, array, 1);
+        for (int j = 0; j < p_width; j++) {
+            lf_set_token(p[j].in, token);
+        }
+    =}
+}

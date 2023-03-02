@@ -316,11 +316,6 @@ public class CCmakeGenerator {
         cMakeCode.pr(installCode);
         cMakeCode.newLine();
 
-        if (targetConfig.platformOptions.platform == Platform.ARDUINO) {
-            cMakeCode.pr("target_link_arduino_libraries ( ${LF_MAIN_TARGET} AUTO_PUBLIC)");
-            cMakeCode.pr("target_enable_arduino_upload(${LF_MAIN_TARGET})");
-        }
-
         // Add the include file
         for (String includeFile : targetConfig.cmakeIncludesWithoutPath) {
             cMakeCode.pr("include(\""+includeFile+"\")");
@@ -376,6 +371,9 @@ public class CCmakeGenerator {
         var code = new CodeBuilder();
         code.pr("add_subdirectory(core)");
         code.pr("target_link_libraries(core PUBLIC zephyr_interface)");
+        // FIXME: Linking the reactor-c corelib with the zephyr kernel lib
+        //  resolves linker issues but I am not yet sure if it is safe
+        code.pr("target_link_libraries(core PRIVATE kernel)");
         code.newLine();
 
         if (hasMain) {

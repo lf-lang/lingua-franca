@@ -1,0 +1,62 @@
+name: C Arduino tests
+
+on:
+  workflow_call:
+    inputs:
+      compiler-ref:
+        required: false
+        type: string
+      runtime-ref:
+        required: false
+        type: string
+      use-cpp:
+        required: false
+        type: boolean
+        default: false
+      scheduler:
+        required: false
+        type: string
+
+jobs:
+  run:
+    strategy:
+      matrix:
+        platform: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.platform }}
+    steps:
+      - name: Check out lingua-franca repository
+        uses: actions/checkout@v3
+        with:
+          repository: lf-lang/lingua-franca
+          submodules: true
+          ref: ${{ inputs.compiler-ref }}
+          fetch-depth: 0
+      - name: Prepare build environment
+        uses: ./.github/actions/prepare-build-env
+      - name: Check out specific ref of reactor-c
+        uses: actions/checkout@v3
+        with:
+          repository: lf-lang/reactor-c
+          path: org.lflang/src/lib/c/reactor-c
+          ref: ${{ inputs.runtime-ref }}
+        if: ${{ inputs.runtime-ref }}
+      - name: Install dependencies OS X
+        run: |
+          brew install coreutils
+          brew install openssl
+          brew link openssl --force
+        if: ${{ runner.os == 'macOS' }}
+      - name: Install RTI
+        uses: ./.github/actions/install-rti
+        if: ${{ runner.os == 'macOS' || runner.os == 'Linux' }}
+      - name: Install Arduino CLI
+        uses: arduino/setup-arduino-cli@v1
+      - name: Install Arduino Core Libraries
+        run: |
+          arduino-cli core install arduino:avr
+          arduino-cli core install arduino:megaavr
+          arduino-cli core install arduino:samd
+          arduino-cli core install arduino:sam
+          arduino-cli core install arduino:mbed
+      - name: Perform Arduino tests for C target with default scheduler
+        run: ./gradlew test --tests org.lflang.tests.runtime.CArduinoTest.runArduinoTests

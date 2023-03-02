@@ -1,16 +1,10 @@
 package org.lflang.generator.c;
 
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.List;
 
 import org.lflang.TargetConfig;
-import org.lflang.TargetConfig.ClockSyncOptions;
 import org.lflang.TargetProperty.Platform;
-import org.lflang.TargetProperty.ClockSyncMode;
-import org.lflang.TargetProperty.CoordinationType;
 import org.lflang.generator.CodeBuilder;
-import org.lflang.generator.GeneratorBase;
 import org.lflang.util.StringUtil;
 
 import static org.lflang.util.StringUtil.addDoubleQuotes;
@@ -29,6 +23,7 @@ import static org.lflang.util.StringUtil.addDoubleQuotes;
  * @author Alexander Schulz-Rosengarten
  * @author Hou Seng Wong
  * @author Peter Donovan
+ * @author Anirudh Rengarajan
  */
 public class CPreambleGenerator {
     /** Add necessary source files specific to the target language.  */
@@ -38,29 +33,39 @@ public class CPreambleGenerator {
     ) {
         var tracing = targetConfig.tracing;
         CodeBuilder code = new CodeBuilder();
-        if (cppMode) {
+        if (cppMode || targetConfig.platformOptions.platform == Platform.ARDUINO) {
             code.pr("extern \"C\" {");
         }
+        
+        String relPathHeader = "";
         if (targetConfig.platformOptions.platform == Platform.ARDUINO) {
-            CCoreFilesUtils.getArduinoTargetHeaders().forEach(
+            relPathHeader = "src/include/";
+
+            CCoreFilesUtils.getCTargetHeader().forEach(
+                it -> code.pr("#include " + StringUtil.addDoubleQuotes("src/" + it))
+            );
+        } else { 
+            CCoreFilesUtils.getCTargetHeader().forEach(
                 it -> code.pr("#include " + StringUtil.addDoubleQuotes(it))
             );
         }
-        CCoreFilesUtils.getCTargetHeader().forEach(
-            it -> code.pr("#include " + StringUtil.addDoubleQuotes(it))
-        );
-        code.pr("#include \"core/reactor.h\"");
-        code.pr("#include \"core/reactor_common.h\"");
+        code.pr("#include \"" + relPathHeader + "core/reactor.h\"");
+        code.pr("#include \"" + relPathHeader + "core/reactor_common.h\"");
         if (targetConfig.threading) {
-            code.pr("#include \"core/threaded/scheduler.h\"");
+            code.pr("#include \"" + relPathHeader + "core/threaded/scheduler.h\"");
         }
+
         if (tracing != null) {
-            code.pr("#include \"core/trace.h\"");
+            code.pr("#include \"" + relPathHeader + "core/trace.h\"");
         }
-        code.pr("#include \"core/mixed_radix.h\"");
-        code.pr("#include \"core/port.h\"");
+        code.pr("#include \"" + relPathHeader + "core/mixed_radix.h\"");
+        code.pr("#include \"" + relPathHeader + "core/port.h\"");
         code.pr("int lf_reactor_c_main(int argc, const char* argv[]);");
-        if (cppMode) {
+        if(targetConfig.fedSetupPreamble != null) {
+            code.pr("#include \"" + relPathHeader + "core/federated/federate.h\"");
+            code.pr("#include \"" + relPathHeader + "core/federated/net_common.h\"");
+        }
+        if (cppMode || targetConfig.platformOptions.platform == Platform.ARDUINO) {
             code.pr("}");
         }
         return code.toString();
@@ -78,12 +83,6 @@ public class CPreambleGenerator {
         // TODO: Get rid of all of these
         code.pr("#define LOG_LEVEL " + logLevel);
         code.pr("#define TARGET_FILES_DIRECTORY " + addDoubleQuotes(srcGenPath.toString()));
-
-
-        if (targetConfig.platformOptions.platform == Platform.ARDUINO) {
-            code.pr("#define MICROSECOND_TIME");
-            code.pr("#define BIT_32");
-        }
 
         if (tracing != null) {
             targetConfig.compileDefinitions.put("LF_TRACE", tracing.traceFileName);

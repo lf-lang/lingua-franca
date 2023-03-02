@@ -43,9 +43,9 @@ jobs:
         id: find
         run: |
           export tag=$(./latest-release.sh)
-          echo "::set-output name=ref::${tag}"
+          echo  "{ref}={${tag}}" >> $GITHUB_OUTPUT
           shopt -s extglob
           export ver="${tag##v}"
-          echo "::set-output name=ver::${ver}"
+          echo  "{ver}={${ver}}" >> $GITHUB_OUTPUT
           echo "Latest release tag: ${tag}"
           echo "Without a leading 'v': ${ver}"

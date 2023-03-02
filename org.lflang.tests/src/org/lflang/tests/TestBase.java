@@ -3,6 +3,7 @@ package org.lflang.tests;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.io.PrintWriter;
@@ -47,11 +48,14 @@ import org.lflang.generator.LFGenerator;
 import org.lflang.generator.LFGeneratorContext;
 import org.lflang.generator.LFGeneratorContext.BuildParm;
 import org.lflang.generator.MainContext;
+import org.lflang.generator.GeneratorCommandFactory;
 import org.lflang.tests.Configurators.Configurator;
 import org.lflang.tests.LFTest.Result;
 import org.lflang.tests.TestRegistry.TestCategory;
 import org.lflang.util.FileUtil;
 import org.lflang.util.LFCommand;
+import org.lflang.util.ArduinoUtil;
+
 
 import com.google.inject.Inject;
 import com.google.inject.Injector;
@@ -157,6 +161,10 @@ public abstract class TestBase {
         public static final String DESC_SCHED_SWAPPING = "Running with non-default runtime scheduler ";
         public static final String DESC_ROS2 = "Running tests using ROS2.";
         public static final String DESC_MODAL = "Run modal reactor tests.";
+
+        /* Missing dependency messages */
+        public static final String MISSING_DOCKER = "Executable 'docker' not found or 'docker' daemon thread not running";
+        public static final String MISSING_ARDUINO_CLI = "Executable 'arduino-cli' not found";
     }
 
     /** Constructor for test classes that test a single target. */
@@ -466,7 +474,6 @@ public abstract class TestBase {
         if (test.getFileConfig().resource == null) {
             return GeneratorResult.NOTHING;
         }
-
         try {
             generator.doGenerate(test.getFileConfig().resource, fileAccess, test.getContext());
         } catch (Throwable e) {

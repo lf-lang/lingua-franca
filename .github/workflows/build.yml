@@ -31,12 +31,6 @@ jobs:
         run: .github/scripts/package-cli.sh
         shell: bash
         if: ${{ inputs.nightly != true }}
-      - name: Check Maven/Java configuration
-        run: mvn -version
-        shell: bash
-      - name: Build and package epoch
-        run: mvn package || mvn -U package
-        shell: bash
       - name: Deploy nightly release
         uses: marvinpinto/action-automatic-releases@latest
         with:
@@ -45,7 +39,5 @@ jobs:
           prerelease: true
           title: "Lingua Franca Nightly"
           files: |
-            org.lflang.rca/target/products/*.tar.gz
-            org.lflang.rca/target/products/*.zip
             build_upload/*
         if: ${{ inputs.nightly == true }}

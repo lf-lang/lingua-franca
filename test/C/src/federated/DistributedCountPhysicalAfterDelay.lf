@@ -16,13 +16,15 @@ reactor Print {
 
     reaction(in) {=
         interval_t elapsed_time = lf_time_logical_elapsed();
-        printf("At time %ld, received %d.\n", elapsed_time, in->value);
+        printf("At time " PRINTF_TIME ", received %d.\n", elapsed_time, in->value);
         if (in->value != self->c) {
             fprintf(stderr, "ERROR: Expected to receive %d.\n", self->c);
             exit(1);
         }
         if (!(elapsed_time > MSEC(600))) {
-            fprintf(stderr, "ERROR: Expected received time to be strictly greater than %ld.\n", MSEC(600));
+            fprintf(stderr, "ERROR: Expected received time to be strictly greater than "
+                PRINTF_TIME ".\n", MSEC(600)
+            );
             exit(3);
         }
         self->c++;

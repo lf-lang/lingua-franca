@@ -12,14 +12,17 @@ import java.net.URLConnection;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.Enumeration;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -279,12 +282,7 @@ public class FileUtil {
 
         // Copy the file.
         if (sourceStream == null) {
-            throw new IOException(
-                "A required target resource could not be found: " + source + "\n" +
-                    "Perhaps a git submodule is missing or not up to date.\n" +
-                    "See https://github.com/icyphy/lingua-franca/wiki/downloading-and-building#clone-the-lingua-franca-repository.\n"
-                    +
-                    "Also try to refresh and clean the project explorer if working from eclipse.");
+            throw new TargetResourceNotFoundException(source);
         } else {
             try (sourceStream) {
                 copyInputStream(sourceStream, destination, skipIfUnchanged);
@@ -322,17 +320,15 @@ public class FileUtil {
     public static void copyDirectoryFromClassPath(final String source, final Path destination, final boolean skipIfUnchanged) throws IOException {
         final URL resource = FileConfig.class.getResource(source);
         if (resource == null) {
-            throw new IOException(
-                "A required target resource could not be found: " + source + "\n" +
-                    "Perhaps a git submodule is missing or not up to date.\n" +
-                    "See https://github.com/icyphy/lingua-franca/wiki/downloading-and-building#clone-the-lingua-franca-repository.\n"
-                    +
-                    "Also try to refresh and clean the project explorer if working from eclipse.");
+            throw new TargetResourceNotFoundException(source);
         }
 
         final URLConnection connection = resource.openConnection();
         if (connection instanceof JarURLConnection) {
-            copyDirectoryFromJar((JarURLConnection) connection, destination, skipIfUnchanged);
+            boolean copiedFiles = copyDirectoryFromJar((JarURLConnection) connection, destination, skipIfUnchanged);
+            if (!copiedFiles) {
+                throw new TargetResourceNotFoundException(source);
+            }
         } else {
             try {
                 Path dir = Paths.get(FileLocator.toFileURL(resource).toURI());
@@ -355,12 +351,14 @@ public class FileUtil {
      * @param connection a URLConnection to the source directory within the jar
      * @param destination The file system path that the source directory is copied to.
      * @param skipIfUnchanged If true, don't overwrite the file if its content would not be changed
+     * @return true if any files were copied
      * @throws IOException If the given source cannot be copied.
      */
-    private static void copyDirectoryFromJar(JarURLConnection connection, final Path destination, final boolean skipIfUnchanged) throws IOException {
+    private static boolean copyDirectoryFromJar(JarURLConnection connection, final Path destination, final boolean skipIfUnchanged) throws IOException {
         final JarFile jar = connection.getJarFile();
         final String connectionEntryName = connection.getEntryName();
 
+        boolean copiedFiles = false;
         // Iterate all entries in the jar file.
         for (Enumeration<JarEntry> e = jar.entries(); e.hasMoreElements(); ) {
             final JarEntry entry = e.nextElement();
@@ -377,9 +375,117 @@ public class FileUtil {
                     InputStream is = jar.getInputStream(entry);
                     try (is) {
                         copyInputStream(is, currentFile, skipIfUnchanged);
+                        copiedFiles = true;
                     }
                 }
             }
+        }
+        return copiedFiles;
+    }
+
+    /**
+     * Delete unused Files from Arduino-CLI based compilation.
+     *
+     * Arduino-CLI (the build system) uses lazy compilation (i.e. compiles every file recursively from 
+     * a source directory). This does the work of CMake by explicitly deleting files that 
+     * shouldn't get compiled by the CLI. Generally, we delete all CMake artifacts and multithreaded
+     * support files (including semaphores and thread folders)
+     *
+     * @param dir The folder to search for folders and files to delete. 
+     * @throws IOException If the given folder and unneeded files cannot be deleted.
+     */
+    public static void arduinoDeleteHelper(Path dir, boolean threadingOn) throws IOException {
+        deleteDirectory(dir.resolve("core/federated")); // TODO: Add Federated Support to Arduino
+        deleteDirectory(dir.resolve("include/core/federated")); // TODO: Add Federated Support to Arduino
+        
+        if (!threadingOn) {
+            deleteDirectory(dir.resolve("core/threaded")); // No Threaded Support for Arduino
+            deleteDirectory(dir.resolve("include/core/threaded")); // No Threaded Support for Arduino
+            deleteDirectory(dir.resolve("core/platform/arduino_mbed")); // No Threaded Support for Arduino
+        } 
+
+        List<Path> allPaths = Files.walk(dir)
+                    .sorted(Comparator.reverseOrder())
+                    .collect(Collectors.toList());
+        for (Path path : allPaths) {
+            String toCheck = path.toString().toLowerCase();
+            if (toCheck.contains("cmake")) {
+                Files.delete(path);
+            }
+        }
+    }
+
+    /**
+     * Helper function for getting the string representation of the relative path 
+     * to take to get from one file (currPath) to get to the other (fileName).
+     *
+     * Generally, this is useful for converting includes to have relative pathing when 
+     * you lack access to adding additional include paths when compiling.
+     * 
+     * @param fileName File to search for.
+     * @param currPath The current path to the file whose include statements we are modifying.
+     * @param fileStringToFilePath Mapping of File Names to their paths.
+     */
+    private static String fileNameMatchConverter(String fileName, Path currPath, Map<String, Path> fileStringToFilePath) 
+        throws NullPointerException {
+        // First get the child file
+        int lastPath = fileName.lastIndexOf(File.separator);
+        if (lastPath != -1){
+            fileName = fileName.substring(lastPath+1);
+        }
+        Path p = fileStringToFilePath.get(fileName);
+        if(p == null) {
+            return "#include \"" + fileName + "\"";
+        }
+        String relativePath = currPath.getParent().relativize(p).toString();
+        return "#include \"" + relativePath + "\"";
+    }
+
+    /**
+     * Return true if the given path points to a C file, false otherwise.
+     */
+    public static boolean isCFile(Path path) {
+        String fileName = path.getFileName().toString();
+        return fileName.endsWith(".c") || fileName.endsWith(".cpp") || fileName.endsWith(".h");
+    }
+
+    /**
+     * Convert all includes recursively inside files within a specified folder to relative links
+     *
+     * @param dir The folder to search for includes to change. 
+     * @throws IOException If the given set of files cannot be relativized.
+     */
+    public static void relativeIncludeHelper(Path dir) throws IOException {
+        System.out.println("Relativizing all includes in " + dir.toString());
+        List<Path> allPaths = Files.walk(dir)
+            .filter(Files::isRegularFile)
+            .filter(FileUtil::isCFile)
+            .sorted(Comparator.reverseOrder())
+            .collect(Collectors.toList());
+        Map<String, Path> fileStringToFilePath = new HashMap<String, Path>();
+        for (Path path : allPaths) {
+            String fileName = path.getFileName().toString();
+            if (path.getFileName().toString().contains("CMakeLists.txt")) continue;
+            if (fileStringToFilePath.put(fileName, path) != null) {
+                throw new IOException("Directory has different files with the same name. Cannot Relativize.");
+            }
+        }
+        Pattern regexExpression = Pattern.compile("#include\s+[\"]([^\"]+)*[\"]");
+        for (Path path : allPaths) {
+            String fileName = path.getFileName().toString();
+            String fileContents = Files.readString(path);
+            Matcher matcher = regexExpression.matcher(fileContents);
+            int lastIndex = 0;
+            StringBuilder output = new StringBuilder();
+            while (matcher.find()) {
+                output.append(fileContents, lastIndex, matcher.start())
+                    .append(fileNameMatchConverter(matcher.group(1), path, fileStringToFilePath));
+                lastIndex = matcher.end();
+            }
+            if (lastIndex < fileContents.length()) {
+                output.append(fileContents, lastIndex, fileContents.length());
+            }
+            writeToFile(output.toString(), path);
         }
     }
 
