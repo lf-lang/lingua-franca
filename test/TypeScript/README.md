@@ -9,6 +9,11 @@ To run the tests with an alternative runtime, use the `-Druntime` flag to specif
 ```
 ./gradlew test --tests org.lflang.tests.runtime.TypeScriptTest.* -Druntime="~/lf-lang/reactor-ts"
 ```
+- To point to a branch of a remote repository, use:
+```
+-Druntime="git://github.com/lf-lang/reactor-ts.git#branch-name
+```
+
 - Note that `lfc` can be pointed to an alternative runtime as well, using the `external-runtime-path` switch:
 ```
 lfc test/TypeScript/src/Minimal.lf --external-runtime-path ~/lf-lang/reactor-ts

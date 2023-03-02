@@ -38,6 +38,14 @@ cd $LF
 ./gradlew test --tests org.lflang.tests.runtime.CTest.runConcurrentTests
 ```
 
+### LSP tests
+
+LSP tests run target language tools to lint and find errors in target code such as reaction bodies.
+They work by inserting errors into files in this directory, running LFC on them in LSP mode, and
+verifying that errors are reported correctly. When a test fails, an error message is printed that
+explains why; such an error message will include the string "the expected error could not be found."
+The contents of the altered LF file (including the inserted error) are printed, with an arrow `->`
+marking the line on which an error message should have been reported.
 
 ### See also
 

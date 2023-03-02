@@ -4,27 +4,34 @@ import org.eclipse.xtext.xtext.generator.*
 import org.eclipse.xtext.xtext.generator.model.project.*
 
 var rootPath = ".."
+var coreProject = "org.lflang"
 
 Workflow {
-
     component = XtextGenerator {
         configuration = {
             project = StandardProjectConfig {
-                baseName = "org.lflang"
+                baseName = coreProject
                 rootPath = rootPath
+                runtime = {
+                    enabled = true
+                    name = coreProject // generate core project
+                }
+                genericIde = {
+                    enabled = true
+                    name = coreProject // add into the core project
+                }
                 runtimeTest = {
                     enabled = true
+                    name = "org.lflang.tests" // generate into separate test project
                 }
+                // Only generate Eclipse infrastructure for the Epoch build (separate repository).
+                createEclipseMetaData = false
                 eclipsePlugin = {
-                    enabled = true
-                }
-                eclipsePluginTest = {
-                    enabled = true
-                }
-                web = {
                     enabled = false
                 }
-                createEclipseMetaData = true
+                eclipsePluginTest = {
+                    enabled = false
+                }
             }
             code = {
                 encoding = "UTF-8"
@@ -33,6 +40,10 @@ Workflow {
                 preferXtendStubs = false
             }
         }
+        /*
+         * IMPORTANT: Any changes to this configuration must be synchronized with 
+         * the GenerateLinguaFrancaEpoch.mwe2 file in the Epoch repository!
+         */
         language = StandardLanguage {
             name = "org.lflang.LinguaFranca"
             fileExtensions = "lf"
@@ -56,11 +67,11 @@ Workflow {
             generator = {
                 generateXtendMain = false
             }
-            projectWizard = {
-                generate = false
-            }
             formatter = {
                 generateStub = true
+            }
+            projectWizard = {
+                generate = false
             }
         }
     }
