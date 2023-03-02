@@ -63,7 +63,7 @@ import org.lflang.TargetProperty.Platform;
 
 import org.lflang.federated.extensions.CExtensionUtils;
 
-import org.lflang.ast.AfterDelayTransformation;
+import org.lflang.ast.DelayedConnectionTransformation;
 
 import org.lflang.generator.ActionInstance;
 import org.lflang.generator.CodeBuilder;
@@ -378,8 +378,9 @@ public class CGenerator extends GeneratorBase {
         this.types = types;
         this.cmakeGenerator = cmakeGenerator;
 
-        // Register the after delay transformation to be applied by GeneratorBase.
-        registerTransformation(new AfterDelayTransformation(delayBodyGenerator, types, fileConfig.resource));
+        // Register the delayed connection transformation to be applied by GeneratorBase.
+        // transform both after delays and physical connections
+        registerTransformation(new DelayedConnectionTransformation(delayBodyGenerator, types, fileConfig.resource, true, true));
     }
 
     public CGenerator(LFGeneratorContext context, boolean ccppMode) {
@@ -537,7 +538,7 @@ public class CGenerator extends GeneratorBase {
                 }
             } else {
                 try {
-                    FileUtil.arduinoDeleteHelper(fileConfig.getSrcGenPath().resolve("src/"));
+                    FileUtil.arduinoDeleteHelper(fileConfig.getSrcGenPath().resolve("src/"), targetConfig.threading);
                     FileUtil.relativeIncludeHelper(fileConfig.getSrcGenPath().resolve("src/"));
                 } catch (IOException e) {
                     //noinspection ThrowableNotThrown,ResultOfMethodCallIgnored
@@ -1913,11 +1914,10 @@ public class CGenerator extends GeneratorBase {
             // So that each separate compile knows about modal reactors, do this:
             targetConfig.compileDefinitions.put("MODAL_REACTORS", "TRUE");
         }
-        if (targetConfig.threading && targetConfig.platformOptions.platform == Platform.ARDUINO) {
-            //Add error message when user attempts to set threading=true for Arduino
-            if (targetConfig.setByUser.contains(TargetProperty.THREADING)) {
-                System.out.println("Threading is incompatible on Arduino. Setting threading to false.");
-            }
+        if (targetConfig.threading && targetConfig.platformOptions.platform == Platform.ARDUINO 
+            && (targetConfig.platformOptions.board == null || !targetConfig.platformOptions.board.contains("mbed"))) {
+            //non-MBED boards should not use threading
+            System.out.println("Threading is incompatible on your current Arduino flavor. Setting threading to false.");
             targetConfig.threading = false;
         }
 
