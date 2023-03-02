@@ -2,16 +2,19 @@
 // requests a writable copy, which, instead of copying, it just gets ownership
 // of the original array. It then does nothing further with it. This test checks
 // that the memory gets freed automatically even with the mutable input.
-target C
+target C {
+    timeout: 1 sec,
+    fast: true
+}
 
 import Source, Print from "ArrayPrint.lf"
 import Scale from "ArrayScale.lf"
 
-reactor Free(scale: int(2)) {
+reactor Free(scale: int(2), size: int(3)) {
     mutable input in: int[]
 
     reaction(in) {=
-        for(int i = 0; i < in->length; i++) {
+        for(int i = 0; i < self->size; i++) {
             in->value[i] *= self->scale;
         }
     =}

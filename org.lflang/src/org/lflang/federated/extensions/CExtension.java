@@ -98,14 +98,6 @@ public class CExtension implements FedTargetExtension {
 
         generateCMakeInclude(federate, fileConfig);
 
-        federate.targetConfig.fileNames.add("include/federated");
-        federate.targetConfig.setByUser.add(TargetProperty.FILES);
-        FileUtil.copyDirectoryFromClassPath(
-            "/lib/c/reactor-c/core/federated",
-            fileConfig.getSrcPath().resolve("include" + File.separator + "federated"),
-            true
-        );
-
         federate.targetConfig.keepalive = true;
         federate.targetConfig.setByUser.add(TargetProperty.KEEPALIVE);
 
@@ -117,7 +109,7 @@ public class CExtension implements FedTargetExtension {
         federate.targetConfig.setByUser.add(TargetProperty.THREADING);
 
         // Include the fed setup file for this federate in the target property
-        String relPath = "include" + File.separator + "_" + federate.name + "_preamble.c";
+        String relPath = "include" + File.separator + "_" + federate.name + "_preamble.h";
         federate.targetConfig.fedSetupPreamble = relPath;
         federate.targetConfig.setByUser.add(TargetProperty.FED_SETUP);
     }
@@ -363,7 +355,7 @@ public class CExtension implements FedTargetExtension {
                 // NOTE: Transporting token types this way is likely to only work if the sender and receiver
                 // both have the same endianness. Otherwise, you have to use protobufs or some other serialization scheme.
                 result.pr("size_t message_length = "+ sendRef +"->token->length * "+ sendRef
-                              +"->token->element_size;");
+                              +"->token->type->element_size;");
                 result.pr(sendingFunction +"("+ commonArgs +", (unsigned char*) "+ sendRef
                               +"->value);");
             } else {
@@ -489,7 +481,7 @@ public class CExtension implements FedTargetExtension {
     }
 
     /**
-     * Add preamble to a separate file `include/_federateName_preamble.c` to set up federated execution.
+     * Add preamble to a separate file `include/_federateName_preamble.h` to set up federated execution.
      * Return an empty string since no code generated needs to go in the source.
      */
     @Override
@@ -499,9 +491,9 @@ public class CExtension implements FedTargetExtension {
         LinkedHashMap<String, Object> federationRTIProperties,
         ErrorReporter errorReporter
     ) throws IOException {
-        // Put the C preamble in a `include/_federate.name + _preamble.c` file
+        // Put the C preamble in a `include/_federate.name + _preamble.h` file
         String cPreamble = makePreamble(federate, fileConfig, federationRTIProperties, errorReporter);
-        String relPath = "include" + File.separator + "_" + federate.name + "_preamble.c";
+        String relPath = "include" + File.separator + "_" + federate.name + "_preamble.h";
         Path fedPreamblePath = fileConfig.getSrcPath().resolve(relPath);
         Files.createDirectories(fedPreamblePath.getParent());
         try (var writer = Files.newBufferedWriter(fedPreamblePath)) {
@@ -522,18 +514,20 @@ public class CExtension implements FedTargetExtension {
 
         var code = new CodeBuilder();
 
-        code.pr("#include \"../federated/federate.c\"");
+        code.pr("#include \"core/federated/federate.h\"");
+        code.pr("#include \"core/federated/net_common.h\"");
+        code.pr("#include \"core/federated/net_util.h\"");
+        code.pr("#include \"core/threaded/reactor_threaded.h\"");
+        code.pr("#include \"core/utils/util.h\"");
+        code.pr("extern federate_instance_t _fed;");
 
         // Generate function to return a pointer to the action trigger_t
         // that handles incoming network messages destined to the specified
         // port. This will only be used if there are federates.
         int numOfNetworkActions = federate.networkMessageActions.size();
         code.pr("""
-        trigger_t* _lf_action_table[%1$s];
-        trigger_t* _lf_action_for_port(int port_id) {
-            if ((port_id < %1$s) && (port_id >= 0)) return _lf_action_table[port_id];
-            else return NULL;
-        }
+        lf_action_base_t* _lf_action_table[%1$s];
+        size_t _lf_action_table_size = %1$s;
         """.formatted(numOfNetworkActions));
 
         code.pr(generateSerializationPreamble(federate, fileConfig));
@@ -555,7 +549,7 @@ public class CExtension implements FedTargetExtension {
     }
 
     /**
-     * Create a macro that initializes necessary triggers for federated execution,
+     * Create a function that initializes necessary triggers for federated execution,
      * which are the triggers for control reactions and references to all network
      * actions (which are triggered upon receiving network messages).
      *
@@ -574,13 +568,14 @@ public class CExtension implements FedTargetExtension {
         code.pr(CExtensionUtils.initializeTriggersForNetworkActions(federate, main));
         code.pr(CExtensionUtils.initializeTriggerForControlReactions(main, main, federate));
         federatedReactor.setName(oldFederatedReactorName);
+        
         return """
-        #define initialize_triggers_for_federate() \\
-        do { \\
-        %s
-        } \\
-        while (0)
-        """.formatted((code.getCode().isBlank() ? "\\" : code.getCode()).indent(4).stripTrailing());
+            #define initialize_triggers_for_federate() \\
+            do { \\
+            %s
+            } \\
+            while (0)
+            """.formatted((code.getCode().isBlank() ? "\\" : code.getCode()).indent(4).stripTrailing());
     }
 
     /**
@@ -614,7 +609,7 @@ public class CExtension implements FedTargetExtension {
         code.pr(String.join("\n",
                             "// Initialize the socket mutex",
                             "lf_mutex_init(&outbound_socket_mutex);",
-                            "lf_cond_init(&port_status_changed);"
+                            "lf_cond_init(&port_status_changed, &mutex);"
         ));
 
         // Find the STA (A.K.A. the global STP offset) for this federate.

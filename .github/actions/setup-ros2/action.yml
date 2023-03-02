@@ -1,0 +1,14 @@
+name: Install ROS2 rolling (Linux only)
+description: Install ROS2 rolling (Linux only)
+runs:
+  using: "composite"
+  steps:
+   - if: runner.os == 'Linux'
+     shell: bash
+     # azure ubuntu repo can be flaky so add an alternate source
+     # see https://github.com/ros-tooling/setup-ros/issues/80 and https://github.com/ros2/rmw_cyclonedds/pull/134
+     run: sed -e 's/azure.archive.ubuntu.com/us.archive.ubuntu.com/g' -e t -e d /etc/apt/sources.list | sudo tee /etc/apt/sources.list.d/nonazure.list
+   - name: Setup ROS2
+     uses: lhstrh/setup-ros@master
+     with:
+       required-ros-distributions: rolling

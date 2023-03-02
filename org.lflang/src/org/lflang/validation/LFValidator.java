@@ -1227,31 +1227,26 @@ public class LFValidator extends BaseLFValidator {
     
     @Check(CheckType.FAST)
     public void checkReactorIconAttribute(Reactor reactor) {
-        var attrs = AttributeUtils.getAttributes(reactor);
-        var iconAttr = attrs.stream()
-                    .filter(it -> it.getAttrName().equalsIgnoreCase("icon"))
-                    .findFirst()
-                    .orElse(null);
-        if (iconAttr != null) {
-            var path = iconAttr.getAttrParms().get(0).getValue();
-            
+        var path = AttributeUtils.getIconPath(reactor);
+        if (path != null) {
+            var param = AttributeUtils.findAttributeByName(reactor, "icon").getAttrParms().get(0);
             // Check file extension
             var validExtensions = Set.of("bmp", "png", "gif", "ico", "jpeg");
             var extensionStrart = path.lastIndexOf(".");
             var extension = extensionStrart != -1 ? path.substring(extensionStrart + 1) : "";
             if (!validExtensions.contains(extension.toLowerCase())) {
                 warning("File extension '" + extension + "' is not supported. Provide any of: " + String.join(", ", validExtensions),
-                        iconAttr.getAttrParms().get(0), Literals.ATTR_PARM__VALUE);
+                        param, Literals.ATTR_PARM__VALUE);
                 return;
             }
             
             // Check file location
             var iconLocation = FileUtil.locateFile(path, reactor.eResource());
             if (iconLocation == null) {
-                warning("Cannot locate icon file.", iconAttr.getAttrParms().get(0), Literals.ATTR_PARM__VALUE);
+                warning("Cannot locate icon file.", param, Literals.ATTR_PARM__VALUE);
             }
             if (("file".equals(iconLocation.getScheme()) || iconLocation.getScheme() == null) && !(new File(iconLocation.getPath()).exists())) {
-                warning("Icon does not exist.", iconAttr.getAttrParms().get(0), Literals.ATTR_PARM__VALUE);
+                warning("Icon does not exist.", param, Literals.ATTR_PARM__VALUE);
             }
         }
     }
