@@ -37,8 +37,7 @@ import com.google.inject.Inject;
     name = "lfc",
     // Enable usageHelp (--help) and versionHelp (--version) options.
     mixinStandardHelpOptions = true,
-    // TODO: Import version from StringsBundle.properties. 
-    version = "lfc 0.3.1-SNAPSHOT")
+    versionProvider = VersionProvider.class)
 public class Lfc extends CliBase {
     /**
      * Injected code generator.
