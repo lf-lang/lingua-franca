@@ -23,7 +23,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ***************/
 
 /** 
- * Transpiler from an MTL specification to a Uclid axiom.
+ * (EXPERIMENTAL) Transpiler from an MTL specification to a Uclid axiom.
  * 
  * @author{Shaokai Lin <shaokai@berkeley.edu>}
  */

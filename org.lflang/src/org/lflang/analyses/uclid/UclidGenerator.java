@@ -23,7 +23,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ***************/
 
 /** 
- * Generator for Uclid models.
+ * (EXPERIMENTAL) Generator for Uclid5 models.
  * 
  * @author{Shaokai Lin <shaokai@berkeley.edu>}
  */
@@ -269,37 +269,6 @@ public class UclidGenerator extends GeneratorBase {
             this.generatedFiles.add(file);
             if (this.expect != null)
                 this.expectations.put(file, this.expect);
-        } catch (IOException e) {
-            Exceptions.sneakyThrow(e);
-        }
-    }
-
-    /**
-     * Generate the Uclid model.
-     */
-    protected void generateRunnerScript() {
-        try {  
-            // Generate main.ucl and print to file
-            var script = new CodeBuilder();
-            String filename = this.outputDir
-                                .resolve("run.sh").toString();
-            script.pr(String.join("\n", 
-                "#!/bin/bash",
-                "set -e # Terminate on error",
-                "",
-                "echo '*** Setting up smt directory'",
-                "rm -rf ./smt/ && mkdir -p smt",
-                "",
-                "echo '*** Generating SMT files from UCLID5'",
-                "time uclid -g \"smt/output\" $1",
-                "",
-                "echo '*** Append (get-model) to each file'",
-                "ls smt | xargs -I {} bash -c 'echo \"(get-model)\" >> smt/{}'",
-                "",
-                "echo '*** Running Z3'",
-                "ls smt | xargs -I {} bash -c 'z3 parallel.enable=true -T:300 -v:1 ./smt/{}'"
-            ));
-            script.writeToFile(filename);
         } catch (IOException e) {
             Exceptions.sneakyThrow(e);
         }

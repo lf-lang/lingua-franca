@@ -60,14 +60,6 @@ public class CToUclidVisitor extends CBaseAstVisitor<String> {
     @Override
     public String visitAssignmentNode(AssignmentNode node) {
         String lhs = visit(node.left);
-        // String lhs = "";
-        // if (node.left instanceof StateVarNode) {
-        //     NamedInstance instance = getInstanceByName(((StateVarNode)node.left).name);
-        //     lhs = instance.getFullNameWithJoiner("_") + "(" + "s" + "(" + this.qv + ")" + ")";
-        //     // this.unchangedStates.remove(instance); // Remove instance from the unchanged list.
-        // } else {
-        //     System.out.println("Unreachable!"); // FIXME: Throw exception.
-        // }
         String rhs = visit(node.right);
         return "(" + lhs + " == " + rhs + ")";
     }
@@ -278,12 +270,6 @@ public class CToUclidVisitor extends CBaseAstVisitor<String> {
     //// Private functions
 
     private NamedInstance getInstanceByName(String name) {
-        
-        // For some reason, the following one liner doesn't work:
-        //
-        // return this.instances.stream().filter(i -> i.getDefinition()
-        //     .getName().equals(name)).findFirst().get();
-
         for (NamedInstance i : this.instances) {
             if (i instanceof ActionInstance) {
                 if (((ActionInstance)i).getDefinition().getName().equals(name)) {

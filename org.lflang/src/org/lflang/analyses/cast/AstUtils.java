@@ -5,8 +5,6 @@ import java.util.List;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.misc.Interval;
 
-import org.eclipse.xtext.xbase.lib.Exceptions;
-
 public class AstUtils {
     
     public static CAst.AstNode takeConjunction(List<CAst.AstNode> conditions) {

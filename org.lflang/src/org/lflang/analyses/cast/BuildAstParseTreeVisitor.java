@@ -12,15 +12,10 @@ public class BuildAstParseTreeVisitor extends CBaseVisitor<CAst.AstNode> {
     @Override
     public CAst.AstNode visitBlockItemList(BlockItemListContext ctx) {
         CAst.StatementSequenceNode stmtSeq = new CAst.StatementSequenceNode();
-        
         // Populate the children.
         for (BlockItemContext blockItem : ctx.blockItem()) {
-            // System.out.println(blockItem);
             stmtSeq.children.add(visit(blockItem));
         }
-
-        // System.out.println(stmtSeq.children);
-
         return stmtSeq;
     }
 
