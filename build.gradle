@@ -40,8 +40,8 @@ subprojects {
         implementation platform("org.eclipse.xtext:xtext-dev-bom:${xtextVersion}")
         // https://mvnrepository.com/artifact/com.google.inject/guice
         implementation group: 'com.google.inject', name: 'guice', version: guiceVersion
-        // https://mvnrepository.com/artifact/commons-cli/commons-cli
-        implementation group: 'commons-cli', name: 'commons-cli', version: commonsCliVersion
+        // https://picocli.info/
+        implementation group: 'info.picocli', name: 'picocli', version: picocliVersion
     }
     dependencies {
         implementation group: 'org.jetbrains.kotlin', name: 'kotlin-stdlib', version: kotlinVersion
