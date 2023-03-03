@@ -8,15 +8,25 @@ import org.lflang.LocalStrings;
 
 /*
  * Dynamically provides version information to the Lingua Franca CLI.
+ * Picocli will instantiate this class and invoke it to collect version
+ * information.
  *
  * @author Atharva Patil
  */
 class VersionProvider implements IVersionProvider {
+    /* 
+     * Here, picocli will inject the CommandSpec (full command hierarchy) of the
+     * command that uses this version provider. This allows this version 
+     * provider to be reused among multiple commands.
+     */ 
     @Spec CommandSpec spec;
 
+    // Method invoked by picocli to get the version info.
     public String[] getVersion() {
         return new String[] {
-            spec.qualifiedName()  + " " + LocalStrings.VERSION
+            // "lfc", "lff", etc.
+            spec.qualifiedName()
+                + " " + LocalStrings.VERSION
         };
     }
 }
