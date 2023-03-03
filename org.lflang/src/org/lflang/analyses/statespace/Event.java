@@ -24,7 +24,13 @@ public class Event implements Comparable<Event> {
     
     @Override
     public int compareTo(Event e) {
-        return this.tag.compareTo(e.tag);
+        // Compare tags first.
+        int ret = this.tag.compareTo(e.tag);
+        // If tags match, compare trigger names.
+        if (ret == 0)
+            ret = this.trigger.getFullName()
+                              .compareTo(e.trigger.getFullName());
+        return ret;
     }
 
     /**
