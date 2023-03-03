@@ -1122,9 +1122,6 @@ public class CGenerator extends GeneratorBase {
 
     protected void generateIncludes(Reactor r) {
         code.pr("#include \"" + CUtil.getName(r) + ".h\"");
-        if (CCppMode) code.pr("extern \"C\" {");
-        code.pr("#include \"include/" + CReactorHeaderFileGenerator.outputPath(fileConfig, r) + "\"");
-        if (CCppMode) code.pr("}");
     }
 
     /**
