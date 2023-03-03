@@ -59,7 +59,6 @@ import org.lflang.lf.Action;
 import org.lflang.lf.Output;
 import org.lflang.lf.Port;
 import org.lflang.lf.VarRef;
-import org.lflang.util.FileUtil;
 
 /**
  * An extension class to the CGenerator that enables certain federated
@@ -499,8 +498,15 @@ public class CExtension implements FedTargetExtension {
         try (var writer = Files.newBufferedWriter(fedPreamblePath)) {
             writer.write(cPreamble);
         }
+        var includes = new CodeBuilder();
+        includes.pr("#include \"core/federated/federate.h\"");
+        includes.pr("#include \"core/federated/net_common.h\"");
+        includes.pr("#include \"core/federated/net_util.h\"");
+        includes.pr("#include \"core/threaded/reactor_threaded.h\"");
+        includes.pr("#include \"core/utils/util.h\"");
+        includes.pr("extern federate_instance_t _fed;");
 
-        return "";
+        return includes.toString();
     }
 
     /**
@@ -514,12 +520,12 @@ public class CExtension implements FedTargetExtension {
 
         var code = new CodeBuilder();
 
-        code.pr("#include \"core/federated/federate.h\"");
-        code.pr("#include \"core/federated/net_common.h\"");
-        code.pr("#include \"core/federated/net_util.h\"");
-        code.pr("#include \"core/threaded/reactor_threaded.h\"");
-        code.pr("#include \"core/utils/util.h\"");
-        code.pr("extern federate_instance_t _fed;");
+//        code.pr("#include \"core/federated/federate.h\"");
+//        code.pr("#include \"core/federated/net_common.h\"");
+//        code.pr("#include \"core/federated/net_util.h\"");
+//        code.pr("#include \"core/threaded/reactor_threaded.h\"");
+//        code.pr("#include \"core/utils/util.h\"");
+//        code.pr("extern federate_instance_t _fed;");
 
         // Generate function to return a pointer to the action trigger_t
         // that handles incoming network messages destined to the specified
@@ -568,7 +574,7 @@ public class CExtension implements FedTargetExtension {
         code.pr(CExtensionUtils.initializeTriggersForNetworkActions(federate, main));
         code.pr(CExtensionUtils.initializeTriggerForControlReactions(main, main, federate));
         federatedReactor.setName(oldFederatedReactorName);
-        
+
         return """
             #define initialize_triggers_for_federate() \\
             do { \\

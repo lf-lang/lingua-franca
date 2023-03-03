@@ -689,6 +689,12 @@ public class CGenerator extends GeneratorBase {
             generateSelfStructs(main);
             generateReactorInstance(main);
 
+            if (targetConfig.fedSetupPreamble != null) {
+                if (targetLanguageIsCpp()) code.pr("extern \"C\" {");
+                code.pr("#include \"" + targetConfig.fedSetupPreamble + "\"");
+                if (targetLanguageIsCpp()) code.pr("}");
+            }
+
             // If there are timers, create a table of timers to be initialized.
             code.pr(CTimerGenerator.generateDeclarations(timerCount));
 
@@ -2047,13 +2053,6 @@ public class CGenerator extends GeneratorBase {
         CodeBuilder code = new CodeBuilder();
         code.pr("#ifndef TOP_LEVEL_PREAMBLE_H");
         code.pr("#define TOP_LEVEL_PREAMBLE_H");
-
-        // preamble for federated execution setup
-        if (targetConfig.fedSetupPreamble != null) {
-            if (targetLanguageIsCpp()) code.pr("extern \"C\" {");
-            code.pr("#include \"" + targetConfig.fedSetupPreamble + "\"");
-            if (targetLanguageIsCpp()) code.pr("}");
-        }
 
         // user preambles
         if (this.mainDef != null) {

@@ -305,13 +305,7 @@ public class PythonGenerator extends CGenerator {
         for (Model m : models) {
             pythonPreamble.pr(PythonPreambleGenerator.generatePythonPreambles(m.getPreambles()));
         }
-
-        // C preamble for federated execution setup
-        String ret = "";
-        if (targetConfig.fedSetupPreamble != null) {
-            ret = "#include \"" + targetConfig.fedSetupPreamble + "\"";
-        }
-        return ret;
+        return "";
     }
 
     @Override
