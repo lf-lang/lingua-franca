@@ -946,7 +946,7 @@ public class CGenerator extends GeneratorBase {
     }
 
     private void generateHeaders() throws IOException {
-        FileUtil.deleteDirectory(fileConfig.getIncludePath());
+        // Cannot delete existing header files directory because this would create a race condition in fed-gen
         FileUtil.copyDirectoryFromClassPath(
             fileConfig.getRuntimeIncludePath(),
             fileConfig.getIncludePath(),
