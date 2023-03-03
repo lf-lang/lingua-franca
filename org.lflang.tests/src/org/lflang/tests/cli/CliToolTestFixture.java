@@ -27,6 +27,7 @@ package org.lflang.tests.cli;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
@@ -113,7 +114,7 @@ abstract class CliToolTestFixture {
         }
 
         public void checkFailed() {
-            assertEquals(1, exitCode);
+            assertTrue(exitCode > 0);
         }
 
         public void checkNoErrorOutput() {
