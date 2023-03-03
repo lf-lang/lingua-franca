@@ -182,10 +182,12 @@ public class CWatchdogGenerator {
     public static String generateBuiltinTriggersTable(int count, String name) {
         return String.join("\n", List.of(
             "// Array of pointers to "+name+" triggers.",
+            "#ifdef LF_THREADED",
             (count > 0 ?
-            "watchdog_t* _lf_"+name+"s["+count+"]" :
-            "watchdog_t* _lf_"+name+"s = NULL") + ";",
-            "int _lf_"+name+"_number = "+count+";"
+            "   watchdog_t* _lf_"+name+"s["+count+"]" :
+            "   watchdog_t* _lf_"+name+"s = NULL") + ";",
+            "   int _lf_"+name+"_number = "+count+";",
+            "#endif"
         ));
     }
 

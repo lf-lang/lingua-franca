@@ -1518,11 +1518,10 @@ public class CGenerator extends GeneratorBase {
         var foundOne = false;
         var temp = new CodeBuilder();
         var reactorRef = CUtil.reactorRef(instance);
-
         for (WatchdogInstance watchdog : instance.watchdogs) {
-            temp.pr("_lf_watchdogs[_lf_watchdog_number_count++] = &"+reactorRef+"->_lf_watchdog_"+watchdog.getName()+";");
-            temp.pr(reactorRef+"->_lf_watchdog_"+watchdog.getName()+".min_expiration = "+GeneratorBase.timeInTargetLanguage(watchdog.getTimeout())+";");
-            temp.pr(reactorRef+"->_lf_watchdog_"+watchdog.getName()+".thread_id;");
+            temp.pr("   _lf_watchdogs[_lf_watchdog_number_count++] = &"+reactorRef+"->_lf_watchdog_"+watchdog.getName()+";");
+            temp.pr("   " + reactorRef+"->_lf_watchdog_"+watchdog.getName()+".min_expiration = "+GeneratorBase.timeInTargetLanguage(watchdog.getTimeout())+";");
+            temp.pr("   " + reactorRef+"->_lf_watchdog_"+watchdog.getName()+".thread_id;");
             watchdogCount += 1;
             foundOne = true;
         }
