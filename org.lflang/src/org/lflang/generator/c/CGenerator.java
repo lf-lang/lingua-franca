@@ -1043,7 +1043,7 @@ public class CGenerator extends GeneratorBase {
         header.pr("#ifndef " + guardMacro);
         header.pr("#define " + guardMacro);
         generateReactorClassHeaders(reactor, headerName, header, src);
-        src.pr(generateTopLevelPreambles());
+        header.pr(generateTopLevelPreambles());
         generateUserPreamblesForReactor(reactor, src);
         generateReactorClassBody(reactor, header, src);
         header.pr("#endif // " + guardMacro);
@@ -1053,18 +1053,24 @@ public class CGenerator extends GeneratorBase {
     }
 
     protected void generateReactorClassHeaders(Reactor reactor, String headerName, CodeBuilder header, CodeBuilder src) {
-        if (CCppMode) src.pr("extern \"C\" {");
+        if (CCppMode) {
+            src.pr("extern \"C\" {");
+            header.pr("extern \"C\" {");
+        }
         header.pr("#include \"include/core/reactor.h\"");
-        src.pr("#include \"" + headerName + "\"");
         src.pr("#include \"include/api/api.h\"");
         src.pr("#include \"include/api/set.h\"");
         generateIncludes(reactor);
+        if (CCppMode) {
+            src.pr("}");
+            header.pr("}");
+        }
+        src.pr("#include \"" + headerName + "\"");
         new HashSet<>(reactor.getInstantiations()).stream()
             .map(Instantiation::getReactorClass)
             .map(ASTUtils::toDefinition).map(CUtil::getName)
             .map(name -> "#include \"" + name + ".h\"")
             .forEach(header::pr);
-        if (CCppMode) src.pr("}");
     }
 
     private void generateReactorClassBody(Reactor reactor, CodeBuilder header, CodeBuilder src) {
@@ -1115,8 +1121,8 @@ public class CGenerator extends GeneratorBase {
     }
 
     protected void generateIncludes(Reactor r) {
-        if (CCppMode) code.pr("extern \"C\" {");
         code.pr("#include \"" + CUtil.getName(r) + ".h\"");
+        if (CCppMode) code.pr("extern \"C\" {");
         code.pr("#include \"include/" + CReactorHeaderFileGenerator.outputPath(fileConfig, r) + "\"");
         if (CCppMode) code.pr("}");
     }
@@ -2042,6 +2048,8 @@ public class CGenerator extends GeneratorBase {
      */
     protected String generateTopLevelPreambles() {
         CodeBuilder code = new CodeBuilder();
+        code.pr("#ifndef TOP_LEVEL_PREAMBLE_H");
+        code.pr("#define TOP_LEVEL_PREAMBLE_H");
 
         // preamble for federated execution setup
         if (targetConfig.fedSetupPreamble != null) {
@@ -2057,6 +2065,7 @@ public class CGenerator extends GeneratorBase {
                 code.pr(toText(p.getCode()));
             }
         }
+        code.pr("#endif");
         return code.toString();
     }
 
