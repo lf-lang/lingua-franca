@@ -34,7 +34,7 @@ clock_sync_error = 0
 
 ''' Bound on the network latency '''
 ''' FIXME: There should be a value for each communicating pair '''
-network_latency = 250000 # That is 100us
+network_latency = 100000000 # That is 100us
 
 
 def load_and_process_csv_file(csv_file, rti) :
@@ -52,12 +52,12 @@ def load_and_process_csv_file(csv_file, rti) :
     df = pd.read_csv(csv_file)
     print
     if (rti == True):
-        df.columns = ['event', 'r', 'partner_id', 'w', 'logical_time', 'm', 'physical_time', 't', 'ed']
+        df.columns = ['event', 'r', 'partner_id', 'w', 'logical_time', 'microstep', 'physical_time', 't', 'ed']
         # Set that these are the RTI information
         df['self_id'] = -1
         # df['partner_id'] = int(df['partner_id'])
     else:
-        df.columns = ['event', 'r', 'self_id', 'w', 'logical_time', 'm', 'physical_time', 't', 'ed']
+        df.columns = ['event', 'r', 'self_id', 'w', 'logical_time', 'microstep', 'physical_time', 't', 'ed']
         # Set that these are the RTI information
         # FIXME: Here, we assume that the coordination in centralized. 
         # To be updated for the decentralized case...
@@ -65,7 +65,7 @@ def load_and_process_csv_file(csv_file, rti) :
         # df['self_id'] = int(df['partner_id'])
     
     # Remove non-needed information
-    df = df.drop(columns=['r', 'w', 'm', 't', 'ed'])
+    df = df.drop(columns=['r', 'w', 't', 'ed'])
 
     # Remove all the lines that do not contain communication information
     # which boils up to having 'RTI' in the 'event' column
@@ -178,79 +178,63 @@ if __name__ == '__main__':
             self_id = int(trace_df.at[index,'self_id'])
             partner_id = int(trace_df.at[index,'partner_id'])
             event =  trace_df.at[index,'event']
+            logical_time = trace_df.at[index, 'logical_time']
+            microstep = trace_df.at[index, 'microstep']
+            inout = trace_df.at[index, 'inout']
+
 
             # Depending on the direction, compute the possible time interval
             # and choose the row 
-            if ('out' in trace_df.at[index,'inout']):
+            if (inout == 'out'):
                 # Compute the possible timestamps interval at the receiver side
                 physical_time_start = physical_time - clock_sync_error
                 physical_time_end = physical_time + clock_sync_error + network_latency
-                
-                # Match with 'in' tracepoints
-                matching_df = trace_df[\
-                    (trace_df['physical_time'] >= physical_time_start) & \
-                    (trace_df['physical_time'] <= physical_time_end) & \
-                    (trace_df['inout'] == 'in') & \
-                    (trace_df['self_id'] == partner_id) & \
-                    (trace_df['partner_id'] == self_id) & \
-                    (trace_df['arrow'] == 'pending')
-                ]
-
-                if (matching_df.empty) :
-                    # If no matching receiver, than set the arrow to 'dot',
-                    # meaning that only a triangle will be rendered
-                    trace_df.loc[index, 'arrow'] = 'dot'
-                else:
-                    # If there is one or more matching rows, then consider 
-                    # the first one, since it is an out -> in arrow, and  
-                    # since it is the closet in time
-                    # FIXME: What other possible choices to consider?
-                    matching_index = matching_df.index[0]
-                    matching_row = matching_df.loc[matching_index]
-                    # Mark it, so not to consider it anymore
-                    trace_df.at[matching_index, 'arrow'] = 'marked'
-                    trace_df.at[index, 'x2'] = matching_row['x1']
-                    trace_df.at[index, 'y2'] = matching_row['y1']
-                    if (len(matching_df.index) == 1) :
-                        trace_df.at[index, 'arrow'] = 'arrow'
-                    else :
-                        trace_df.at[index, 'arrow'] = 'dashedarrow'
-            else: # 'in' in trace_df.at[index,'inout']
-                # Compute the possible timestamps interval at the receiver side
+            else:
                 physical_time_start = physical_time - network_latency - clock_sync_error
                 physical_time_end = physical_time + clock_sync_error 
-                
-                # Match with 'out' tracepoints
-                matching_df = trace_df[\
-                    (trace_df['physical_time'] >= physical_time_start) & \
-                    (trace_df['physical_time'] <= physical_time_end) & \
-                    (trace_df['inout'] == 'out') & \
-                    (trace_df['self_id'] == partner_id) & \
-                    (trace_df['partner_id'] == self_id) & \
-                    (trace_df['arrow'] == 'pending')
-                ]
 
-                if (matching_df.empty) :
-                    # If no matching receiver, than set the arrow to 'dot',
-                    # meaning that only a triangle will be rendered
-                    trace_df.loc[index, 'arrow'] = 'dot'
-                else : 
-                    # If there is one or more matching rows, then consider 
-                    # the first one, since it is an out -> in arrow, and  
-                    # since it is the closet in time
-                    # FIXME: What other possible choices to consider?
+            # Match tracepoints
+            matching_df = trace_df[\
+                (trace_df['physical_time'] >= physical_time_start) & \
+                (trace_df['physical_time'] <= physical_time_end) & \
+                (trace_df['inout'] != inout) & \
+                (trace_df['self_id'] == partner_id) & \
+                (trace_df['partner_id'] == self_id) & \
+                (trace_df['arrow'] == 'pending') & \
+                (trace_df['event'] == event) & \
+                (trace_df['logical_time'] == logical_time) & \
+                (trace_df['microstep'] == microstep) \
+            ]
+
+            if (matching_df.empty) :
+                # If no matching receiver, than set the arrow to 'dot',
+                # meaning that only a dot will be rendered
+                trace_df.loc[index, 'arrow'] = 'dot'
+            else:
+                # If there is one or more matching rows, then consider 
+                # the first one, since it is an out -> in arrow, and  
+                # since it is the closet in time
+                # FIXME: What other possible choices to consider?
+                if (inout == 'out'):
+                    matching_index = matching_df.index[0]
+                    matching_row = matching_df.loc[matching_index]
+                    trace_df.at[index, 'x2'] = matching_row['x1']
+                    trace_df.at[index, 'y2'] = matching_row['y1']
+                else:
                     matching_index = matching_df.index[-1]
                     matching_row = matching_df.loc[matching_index]
-                    # Mark it, so not to consider it anymore
-                    trace_df.at[matching_index, 'arrow'] = 'marked'
                     trace_df.at[index, 'x2'] = trace_df.at[index, 'x1'] 
                     trace_df.at[index, 'y2'] = trace_df.at[index, 'y1'] 
                     trace_df.at[index, 'x1'] = matching_row['x1']
                     trace_df.at[index, 'y1'] = matching_row['y1']
-                    if (len(matching_df.index) == 1) :
-                        trace_df.at[index, 'arrow'] = 'arrow'
-                    else :
-                        trace_df.at[index, 'arrow'] = 'dashedarrow'
+
+                # Mark it, so not to consider it anymore
+                trace_df.at[matching_index, 'arrow'] = 'marked'
+
+                if (len(matching_df.index) == 1) :
+                    trace_df.at[index, 'arrow'] = 'arrow'
+                else :
+                    trace_df.at[index, 'arrow'] = 'dashedarrow'
 
     ############################################################################
     #### Write to svg file
