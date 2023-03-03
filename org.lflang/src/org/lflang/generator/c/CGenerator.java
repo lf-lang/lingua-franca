@@ -658,7 +658,6 @@ public class CGenerator extends GeneratorBase {
     ) throws IOException {
         startTimeStepIsPresentCount = 0;
         code.pr(generateDirectives());
-        code.pr(generateTopLevelPreambles());
         code.pr(new CMainFunctionGenerator(targetConfig).generateCode());
         // Generate code for each reactor.
         generateReactorDefinitions();
@@ -1044,6 +1043,7 @@ public class CGenerator extends GeneratorBase {
         header.pr("#ifndef " + guardMacro);
         header.pr("#define " + guardMacro);
         generateReactorClassHeaders(reactor, headerName, header, src);
+        src.pr(generateTopLevelPreambles());
         generateUserPreamblesForReactor(reactor, src);
         generateReactorClassBody(reactor, header, src);
         header.pr("#endif // " + guardMacro);
