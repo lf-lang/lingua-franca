@@ -58,6 +58,7 @@ import org.eclipse.xtext.xbase.lib.StringExtensions;
 import org.lflang.ast.ToText;
 import org.lflang.generator.CodeMap;
 import org.lflang.generator.InvalidSourceException;
+import org.lflang.generator.ReactorInstance;
 import org.lflang.lf.Action;
 import org.lflang.lf.Assignment;
 import org.lflang.lf.AttrParm;
@@ -445,6 +446,15 @@ public class ASTUtils {
      */
     public static List<Mode> allModes(Reactor definition) {
         return ASTUtils.collectElements(definition, featurePackage.getReactor_Modes());
+    }
+
+    public static List<Reactor> recursiveChildren(ReactorInstance r) {
+        List<Reactor> ret = new ArrayList<>();
+        ret.add(r.reactorDefinition);
+        for (var child: r.children) {
+            ret.addAll(recursiveChildren(child));
+        }
+        return ret;
     }
 
     /**

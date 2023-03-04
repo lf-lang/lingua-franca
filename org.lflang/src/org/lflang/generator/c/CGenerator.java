@@ -521,7 +521,9 @@ public class CGenerator extends GeneratorBase {
             // If cmake is requested, generate the CMakeLists.txt
             if (targetConfig.platformOptions.platform != Platform.ARDUINO) {
                 var cmakeFile = fileConfig.getSrcGenPath() + File.separator + "CMakeLists.txt";
-                var sources = reactors.stream().map(CUtil::getName).map(it -> it + (CCppMode ? ".cpp" : ".c")).collect(Collectors.toList());
+                var sources = new HashSet<>(ASTUtils.recursiveChildren(main)).stream()
+                    .map(CUtil::getName).map(it -> it + (CCppMode ? ".cpp" : ".c"))
+                    .collect(Collectors.toList());
                 sources.add(cFilename);
                 var cmakeCode = cmakeGenerator.generateCMakeCode(
                     sources,
