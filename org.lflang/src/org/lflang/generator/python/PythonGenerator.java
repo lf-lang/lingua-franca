@@ -35,6 +35,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import org.eclipse.emf.ecore.EObject;
 import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.xtext.xbase.lib.Exceptions;
 
@@ -289,7 +290,7 @@ public class PythonGenerator extends CGenerator {
      * execution setup preamble specified in the target config.
      */
     @Override
-    protected String generateTopLevelPreambles() {
+    protected String generateTopLevelPreambles(EObject ignored) {
         // user preambles
         Set<Model> models = new LinkedHashSet<>();
         for (Reactor r : ASTUtils.convertToEmptyListIfNull(reactors)) {

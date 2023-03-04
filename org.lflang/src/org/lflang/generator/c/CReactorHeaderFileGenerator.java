@@ -3,8 +3,11 @@ package org.lflang.generator.c;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Objects;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+
+import org.eclipse.emf.ecore.EObject;
 
 import org.lflang.generator.CodeBuilder;
 import org.lflang.lf.Parameter;
@@ -30,13 +33,14 @@ public class CReactorHeaderFileGenerator {
             .resolve(r.getName() + ".h");
     }
 
-    public static void doGenerate(CTypes types, Reactor r, CFileConfig fileConfig, GenerateAuxiliaryStructs generator) throws IOException {
-        String contents = generateHeaderFile(types, r, generator);
+    public static void doGenerate(CTypes types, Reactor r, CFileConfig fileConfig, GenerateAuxiliaryStructs generator, Function<EObject, String> topLevelPreamble) throws IOException {
+        String contents = generateHeaderFile(types, r, generator, topLevelPreamble.apply(r));
         FileUtil.writeToFile(contents, fileConfig.getIncludePath().resolve(outputPath(fileConfig, r)));
     }
-    private static String generateHeaderFile(CTypes types, Reactor r, GenerateAuxiliaryStructs generator) {
+    private static String generateHeaderFile(CTypes types, Reactor r, GenerateAuxiliaryStructs generator, String topLevelPreamble) {
         CodeBuilder builder = new CodeBuilder();
         appendIncludeGuard(builder, r);
+        builder.pr(topLevelPreamble);
         appendPoundIncludes(builder);
         appendSelfStruct(builder, types, r);
         generator.generate(builder, r, true);

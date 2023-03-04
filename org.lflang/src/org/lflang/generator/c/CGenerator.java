@@ -47,6 +47,7 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import org.eclipse.emf.ecore.EObject;
 import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.xtext.xbase.lib.Exceptions;
 import org.eclipse.xtext.xbase.lib.IterableExtensions;
@@ -843,11 +844,6 @@ public class CGenerator extends GeneratorBase {
             if (lfResource != null) {
                 copyUserFiles(lfResource.getTargetConfig(), lfResource.getFileConfig());
             }
-            // Extract the contents of the imported file for the preambles
-            var contents = toDefinition(reactor).eResource().getContents();
-            var model = (Model) contents.get(0);
-            // Add the preambles from the imported .lf file
-            toDefinition(reactor).getPreambles().addAll(model.getPreambles());
         }
     }
 
@@ -960,7 +956,7 @@ public class CGenerator extends GeneratorBase {
             false
         );
         for (Reactor r : reactors) {
-            CReactorHeaderFileGenerator.doGenerate(types, r, fileConfig, this::generateAuxiliaryStructs);
+            CReactorHeaderFileGenerator.doGenerate(types, r, fileConfig, this::generateAuxiliaryStructs, this::generateTopLevelPreambles);
         }
         FileUtil.copyDirectory(fileConfig.getIncludePath(), fileConfig.getSrcGenPath().resolve("include"), false);
     }
@@ -1051,7 +1047,7 @@ public class CGenerator extends GeneratorBase {
         header.pr("#ifndef " + guardMacro);
         header.pr("#define " + guardMacro);
         generateReactorClassHeaders(reactor, headerName, header, src);
-        header.pr(generateTopLevelPreambles());
+        header.pr(generateTopLevelPreambles(reactor));
         generateUserPreamblesForReactor(reactor, src);
         generateReactorClassBody(reactor, header, src);
         header.pr("#endif // " + guardMacro);
@@ -2056,17 +2052,15 @@ public class CGenerator extends GeneratorBase {
     /**
      * Generate top-level preamble code.
      */
-    protected String generateTopLevelPreambles() {
+    protected String generateTopLevelPreambles(EObject reactor) {
         CodeBuilder code = new CodeBuilder();
         code.pr("#ifndef TOP_LEVEL_PREAMBLE_H");
         code.pr("#define TOP_LEVEL_PREAMBLE_H");
 
         // user preambles
-        if (this.mainDef != null) {
-            var mainModel = (Model) toDefinition(mainDef.getReactorClass()).eContainer();
-            for (Preamble p : mainModel.getPreambles()) {
-                code.pr(toText(p.getCode()));
-            }
+        var mainModel = (Model) reactor.eContainer();
+        for (Preamble p : mainModel.getPreambles()) {
+            code.pr(toText(p.getCode()));
         }
         code.pr("#endif");
         return code.toString();
