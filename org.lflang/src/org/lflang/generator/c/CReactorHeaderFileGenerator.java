@@ -88,7 +88,7 @@ public class CReactorHeaderFileGenerator {
 
     public static String reactionArguments(CTypes types, Reaction r, Reactor reactor) {
         return Stream.concat(Stream.of(getApiSelfStruct(reactor)), ioTypedVariableStream(r)
-                .map(TypedVariable::getName))
+                .map(it -> String.format("((%s*) %s)", CGenerator.variableStructType(it, reactor, true), it.getName())))
             .collect(Collectors.joining(", "));
     }
 

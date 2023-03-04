@@ -1,5 +1,5 @@
 #include <stdio.h>
-#include "../include/Count.h"
+#include "../include/Count/Count.h"
 
 void increment(count_self_t* self) {
     printf("in increment, count=%d\n", self->count);

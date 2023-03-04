@@ -1073,6 +1073,7 @@ public class CGenerator extends GeneratorBase {
             src.pr("}");
             header.pr("}");
         }
+        src.pr("#include \"include/" + CReactorHeaderFileGenerator.outputPath(fileConfig, reactor) + "\"");
         src.pr("#include \"" + headerName + "\"");
         Stream.concat(
             reactor.getInstantiations().stream(),
@@ -1670,7 +1671,7 @@ public class CGenerator extends GeneratorBase {
      * {@link #variableStructType(TriggerInstance)}.
      */
     public static String variableStructType(Variable variable, Reactor reactor, boolean userFacing) {
-        return (userFacing ? reactor.getName() : CUtil.getName(reactor)) +"_"+variable.getName()+"_t";
+        return (userFacing ? reactor.getName().toLowerCase() : CUtil.getName(reactor)) +"_"+variable.getName()+"_t";
     }
 
     /**

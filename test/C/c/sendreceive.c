@@ -1,5 +1,5 @@
-#include "../include/Print.h"
-#include "../include/Check.h"
+#include "../include/IntPrint/Print.h"
+#include "../include/IntPrint/Check.h"
 #include "../include/api/set.h"
 
 void send(print_self_t* self, print_out_t* out) {
