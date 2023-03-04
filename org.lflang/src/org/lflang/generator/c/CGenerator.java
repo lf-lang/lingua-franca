@@ -1072,7 +1072,11 @@ public class CGenerator extends GeneratorBase {
             header.pr("}");
         }
         src.pr("#include \"" + headerName + "\"");
-        new HashSet<>(reactor.getInstantiations()).stream()
+        Stream.concat(
+            reactor.getInstantiations().stream(),
+            reactor.getModes().stream().flatMap(it -> it.getInstantiations().stream())
+        )
+            .collect(Collectors.toSet()).stream()
             .map(Instantiation::getReactorClass)
             .map(ASTUtils::toDefinition).map(CUtil::getName)
             .map(name -> "#include \"" + name + ".h\"")
