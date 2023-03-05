@@ -85,16 +85,15 @@ if __name__ == '__main__':
 
     # Check if the RTI trace file exists
     if (not exists(args.rti)):
-        print('Error: No RTI csv tarce file!')
-        # FIXME: Exit?
-        exit(0)
+        print('Error: No RTI csv trace file! Specify with -r argument.')
+        exit(1)
     
     # The RTI and each of the federates have a fixed x coordinate. They will be
     # saved in a dict
     x_coor = {}
     actors = []
     padding = 50
-    spacing = 200       # Spacing between actors
+    spacing = 200       # Spacing between federates
     
     ############################################################################
     #### RTI trace processing
@@ -145,7 +144,7 @@ if __name__ == '__main__':
     ppt = 0     # Previous physical time
     cpt = 0     # Current physical time
     py = 0      # Previous y
-    min = 10    # Will probably be set manually
+    min = 10    # Minimum spacing between events when time has not advanced.
     scale = 1   # Will probably be set manually
     first_pass = True
     for index, row in trace_df.iterrows():
