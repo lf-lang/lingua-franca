@@ -26,7 +26,7 @@ reactor Count {
 reactor Print {
     input inp: number
     state c: number(0)
-    state compareTime: time(200 msec);
+    state compareTime: time(200 msec)
 
     reaction(inp) {=
         let elapsedTime = util.getElapsedLogicalTime();
