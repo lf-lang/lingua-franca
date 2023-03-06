@@ -36,10 +36,10 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 /** Macro to use when access to trace file fails. */
 #define _LF_TRACE_FAILURE(trace_file) \
     do { \
-        fprintf(stderr, "WARNING: Access to trace file failed.\n"); \
+        fprintf(stderr, "ERROR: Access to trace file failed.\n"); \
         fclose(trace_file); \
         trace_file = NULL; \
-        return -1; \
+        exit(1); \
     } while(0)
 
 /** Buffer for reading object descriptions. Size limit is BUFFER_SIZE bytes. */
