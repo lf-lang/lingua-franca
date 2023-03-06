@@ -404,6 +404,7 @@ int main(int argc, char* argv[]) {
     }
     // Open the trace file.
     trace_file = open_file(argv[1], "r");
+    if (trace_file == NULL) exit(1);
 
     // Construct the name of the csv output file and open it.
     char* root = root_name(argv[1]);
@@ -411,12 +412,14 @@ int main(int argc, char* argv[]) {
     strcpy(csv_filename, root);
     strcat(csv_filename, ".csv");
     output_file = open_file(csv_filename, "w");
+    if (output_file == NULL) exit(1);
 
     // Construct the name of the summary output file and open it.
     char summary_filename[strlen(root) + 13];
     strcpy(summary_filename, root);
     strcat(summary_filename, "_summary.csv");
     summary_file = open_file(summary_filename, "w");
+    if (summary_file == NULL) exit(1);
 
     free(root);
 
