@@ -55,25 +55,24 @@ def load_and_process_csv_file(csv_file, rti) :
         df.columns = ['event', 'r', 'partner_id', 'w', 'logical_time', 'microstep', 'physical_time', 't', 'ed']
         # Set that these are the RTI information
         df['self_id'] = -1
-        # df['partner_id'] = int(df['partner_id'])
+        # Remove non-needed information
+        df = df.drop(columns=['r', 'w', 't', 'ed'])
     else:
-        df.columns = ['event', 'r', 'self_id', 'w', 'logical_time', 'microstep', 'physical_time', 't', 'ed']
+        df.columns = ['event', 'r', 'self_id', 'partner_id', 'logical_time', 'microstep', 'physical_time', 't', 'ed']
         # Set that these are the RTI information
         # FIXME: Here, we assume that the coordination in centralized. 
         # To be updated for the decentralized case...
         df['partner_id'] = -1
-        # df['self_id'] = int(df['partner_id'])
-    
-    # Remove non-needed information
-    df = df.drop(columns=['r', 'w', 't', 'ed'])
+        # Remove non-needed information
+        df = df.drop(columns=['r', 't', 'ed'])
 
     # Remove all the lines that do not contain communication information
     # which boils up to having 'RTI' in the 'event' column
-    df = df[df['event'].str.contains('RTI') == True]
+    df = df[df['event'].str.contains('Sending|Receiving') == True]
     df = df.astype({'self_id': 'int', 'partner_id': 'int'})
 
     # Add an inout column to set the arrow direction
-    df['inout'] = df['event'].apply(lambda e: 'in' if 'receives' in e else 'out')
+    df['inout'] = df['event'].apply(lambda e: 'in' if 'Receiving' in e else 'out')
 
     # Prune event names
     df['event'] = df['event'].apply(lambda e: fhlp.prune_event_name[e])
