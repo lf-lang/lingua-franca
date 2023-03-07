@@ -125,6 +125,30 @@ def svg_string_draw_arrow(x1, y1, x2, y2, label, dashed):
     str_line3 = svg_string_draw_label(x1, y1, x2, y2, label)
     return str_line1 + str_line2 + str_line3
 
+def svg_string_draw_side_label(x, y, label, anchor="start") :
+    '''
+    Put a label to the right of the x, y point,
+    unless x is small, in which case put it to the left.
+
+    Args:
+     * x: Int X coordinate of the source point
+     * y: Int Y coordinate of the source point
+     * label: Label to put by the point.
+     * anchor: One of "start", "middle", or "end" to specify the text-anchor.
+    Returns:
+     * String: the svg string of the text
+    '''
+    offset = 5
+    if (anchor == 'end'):
+        offset = -5
+    elif (anchor == 'middle'):
+        offset = 0
+    str_line = '\t<text text-anchor="'+anchor+'"' \
+    +' fill="green"' \
+    +' font-size="smaller"' \
+    +' transform="translate('+str(x+offset)+', '+str(y+5)+')" font-size="smaller">'+label+'</text>\n'
+
+    return str_line
 
 def svg_string_comment(comment):
     '''
@@ -141,16 +165,16 @@ def svg_string_comment(comment):
 
 def svg_string_draw_dot(x, y, label) :
     '''
-    Constructs the svg html string to draw the arrow end
+    Constructs the svg html string to draw at a dot.
 
     Args:
      * x: Int X coordinate of the dot
      * y: Int Y coordinate of the dot
-     * label: String 
+     * label1: String to draw 
     Returns:
      * String: the svg string of the triangle
     '''
     str_line = ''
-    str_line = '\t<circle cx="'+str(x)+'" cy="'+str(y)+'" r="5" stroke="black" stroke-width="1" fill="black"/>\n'
-    str_line = str_line + '\t<text x="'+str(x+5)+'", y="'+str(y+2)+'" fill="blue" font-size="smaller">'+label+'</text>\n'
+    str_line = '\t<circle cx="'+str(x)+'" cy="'+str(y)+'" r="3" stroke="black" stroke-width="1" fill="black"/>\n'
+    str_line = str_line + '\t<text x="'+str(x+5)+'", y="'+str(y+5)+'" fill="blue" font-size="smaller">'+label+'</text>\n'
     return str_line

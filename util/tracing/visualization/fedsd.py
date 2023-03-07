@@ -52,19 +52,19 @@ def load_and_process_csv_file(csv_file, rti) :
     df = pd.read_csv(csv_file)
     print
     if (rti == True):
-        df.columns = ['event', 'r', 'partner_id', 'w', 'logical_time', 'microstep', 'physical_time', 't', 'ed']
+        df.columns = ['event', 'reactor', 'rti_id', 'partner_id', 'logical_time', 'microstep', 'physical_time', 't', 'ed']
         # Set that these are the RTI information
         df['self_id'] = -1
         # Remove non-needed information
-        df = df.drop(columns=['r', 'w', 't', 'ed'])
+        df = df.drop(columns=['reactor', 't', 'ed'])
     else:
-        df.columns = ['event', 'r', 'self_id', 'partner_id', 'logical_time', 'microstep', 'physical_time', 't', 'ed']
+        df.columns = ['event', 'reactor', 'self_id', 'partner_id', 'logical_time', 'microstep', 'physical_time', 't', 'ed']
         # Set that these are the RTI information
         # FIXME: Here, we assume that the coordination in centralized. 
         # To be updated for the decentralized case...
         df['partner_id'] = -1
         # Remove non-needed information
-        df = df.drop(columns=['r', 't', 'ed'])
+        df = df.drop(columns=['reactor', 't', 'ed'])
 
     # Remove all the lines that do not contain communication information
     # which boils up to having 'RTI' in the 'event' column
@@ -184,7 +184,7 @@ if __name__ == '__main__':
             # Depending on the direction, compute the possible time interval
             # and choose the row 
             if (inout == 'out'):
-                # Compute the possible timestamps interval at the receiver side
+                # Compute the possible physical time interval at the receiver side
                 physical_time_start = physical_time - clock_sync_error
                 physical_time_end = physical_time + clock_sync_error + network_latency
             else:
@@ -265,18 +265,30 @@ if __name__ == '__main__':
         # Now, we need to iterate over the traces to draw the lines
         f.write(fhlp.svg_string_comment('Draw interactions'))
         for index, row in trace_df.iterrows():
-            # FIXME: Whose physical and logical time? 
-            label = row['event'] + ' @PT=' + str(row['physical_time']) + ' @LT=' + str(row['logical_time'])
+            # For time labels, display them on the left for the RTI, right for everthing else.
+            anchor = 'start'
+            if (row['self_id'] < 0):
+                anchor = 'end'
+
+            # formatted physical time.
+            # FIXME: Using microseconds is hardwired here.
+            physical_time = f'{int(row["physical_time"]/1000):,}'
+
+            label = row['event'] + ' @LT=' + str(row['logical_time'])
             if (row['arrow'] == 'arrow'): 
                 f.write(fhlp.svg_string_draw_arrow(row['x1'], row['y1'], row['x2'], row['y2'], label, False))
+                f.write(fhlp.svg_string_draw_side_label(row['x1'], row['y1'], physical_time, anchor))
             elif (row['arrow'] == 'dashedarrow'): 
                 f.write(fhlp.svg_string_draw_arrow(row['x1'], row['y1'], row['x2'], row['y2'], label, True))
+                f.write(fhlp.svg_string_draw_side_label(row['x1'], row['y1'], physical_time, anchor))
             elif (row['arrow'] == 'dot'):
                 if (row['inout'] == 'in'):
                     label = "(in) from " + str(row['partner_id']) + ' ' + label
                 else :
                     label = "(out) to " + str(row['partner_id']) + ' ' + label
-                f.write(fhlp.svg_string_draw_dot(row['x1'], row['y1'], label))
+                f.write(fhlp.svg_string_draw_dot(row['x1'], row['y1'], physical_time + ': ' + label))
+            elif (row['arrow'] == 'marked'):
+                f.write(fhlp.svg_string_draw_side_label(row['x1'], row['y1'], physical_time, anchor))
 
         f.write('\n</svg>\n\n')
 
