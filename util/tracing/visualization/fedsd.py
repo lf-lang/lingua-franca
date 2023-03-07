@@ -52,9 +52,9 @@ def load_and_process_csv_file(csv_file, rti) :
     df = pd.read_csv(csv_file)
     print
     if (rti == True):
-        df.columns = ['event', 'reactor', 'rti_id', 'partner_id', 'logical_time', 'microstep', 'physical_time', 't', 'ed']
+        df.columns = ['event', 'reactor', 'self_id', 'partner_id', 'logical_time', 'microstep', 'physical_time', 't', 'ed']
         # Set that these are the RTI information
-        df['self_id'] = -1
+        # df['self_id'] = -1
         # Remove non-needed information
         df = df.drop(columns=['reactor', 't', 'ed'])
     else:
@@ -62,7 +62,7 @@ def load_and_process_csv_file(csv_file, rti) :
         # Set that these are the RTI information
         # FIXME: Here, we assume that the coordination in centralized. 
         # To be updated for the decentralized case...
-        df['partner_id'] = -1
+        # df['partner_id'] = -1
         # Remove non-needed information
         df = df.drop(columns=['reactor', 't', 'ed'])
 
@@ -98,7 +98,7 @@ if __name__ == '__main__':
     #### RTI trace processing
     ############################################################################
     trace_df = load_and_process_csv_file(args.rti, True)
-    x_coor[-1] = padding
+    x_coor[-1] = padding * 5
     actors.append(-1)
     # Temporary use
     trace_df['x1'] = x_coor[-1]
@@ -119,7 +119,7 @@ if __name__ == '__main__':
                 # Add to the list of sequence diagram actors 
                 actors.append(fed_id)
                 # Derive the x coordinate of the actor
-                x_coor[fed_id] = padding + (spacing * (len(actors)-1))
+                x_coor[fed_id] = (padding * 5) + (spacing * (len(actors)-1))
                 fed_df['x1'] = x_coor[fed_id]
                 # Append into trace_df
                 trace_df = trace_df.append(fed_df, sort=False, ignore_index=True)
@@ -146,17 +146,19 @@ if __name__ == '__main__':
     min = 10    # Minimum spacing between events when time has not advanced.
     scale = 1   # Will probably be set manually
     first_pass = True
+    print(trace_df)
     for index, row in trace_df.iterrows():
         if (not first_pass) :
-            cpt = int(row['physical_time'])
-            # print('cpt = '+str(cpt)+' and ppt = '+ppt)
+            cpt = row['physical_time']
+            print('cpt = '+str(cpt)+' and ppt = '+str(ppt))
             # From the email:
             # Y = T_previous + min + log10(1 + (T - T_previous)*scale)
             # But rather think it should be:
-            py = math.ceil(py + min + (1 + math.log10(cpt - ppt) * scale))
+            if (cpt != ppt) :
+                py = math.ceil(py + min + (1 + math.log10(cpt - ppt) * scale))
             trace_df.at[index, 'y1'] = py
 
-        ppt = int(row['physical_time'])
+        ppt = row['physical_time']
         py = trace_df.at[index, 'y1']
         first_pass = False
 
@@ -173,8 +175,8 @@ if __name__ == '__main__':
         # If the tracepoint is pending, proceed to look for a match
         if (trace_df.at[index,'arrow'] == 'pending') :
             physical_time = trace_df.at[index,'physical_time']
-            self_id = int(trace_df.at[index,'self_id'])
-            partner_id = int(trace_df.at[index,'partner_id'])
+            self_id = trace_df.at[index,'self_id']
+            partner_id = trace_df.at[index,'partner_id']
             event =  trace_df.at[index,'event']
             logical_time = trace_df.at[index, 'logical_time']
             microstep = trace_df.at[index, 'microstep']
