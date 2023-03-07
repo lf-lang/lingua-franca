@@ -78,9 +78,13 @@ size_t read_and_write_trace(FILE* trace_file, FILE* output_file) {
     // Write each line.
     for (int i = 0; i < trace_length; i++) {
         char* reaction_name = "\"UNKNOWN\"";
-        if (trace[i].id_number >= 0) {
+
+        // Ignore federated trace events.
+        if (trace[i].event_type > federated) continue;
+
+        if (trace[i].dst_id >= 0) {
             reaction_name = (char*)malloc(4);
-            snprintf(reaction_name, 4, "%d", trace[i].id_number);
+            snprintf(reaction_name, 4, "%d", trace[i].dst_id);
         }
         // printf("DEBUG: Reactor's self struct pointer: %p\n", trace[i].pointer);
         int reactor_index;
@@ -121,7 +125,7 @@ size_t read_and_write_trace(FILE* trace_file, FILE* output_file) {
         }
 
         // Default thread id is the worker number.
-        int thread_id = trace[i].worker;
+        int thread_id = trace[i].src_id;
 
         char* args;
         asprintf(&args, "{"
@@ -214,8 +218,8 @@ size_t read_and_write_trace(FILE* trace_file, FILE* output_file) {
         );
         free(args);
 
-        if (trace[i].worker > max_thread_id) {
-            max_thread_id = trace[i].worker;
+        if (trace[i].src_id > max_thread_id) {
+            max_thread_id = trace[i].src_id;
         }
         // If the event is reaction_starts and physical_time_only is not set,
         // then also generate an instantaneous
@@ -225,13 +229,13 @@ size_t read_and_write_trace(FILE* trace_file, FILE* output_file) {
             pid = reactor_index + 1;
             reaction_name = (char*)malloc(4);
             char name[13];
-            snprintf(name, 13, "reaction %d", trace[i].id_number);
+            snprintf(name, 13, "reaction %d", trace[i].dst_id);
 
             // NOTE: If the reactor has more than 1024 timers and actions, then
             // there will be a collision of thread IDs here.
-            thread_id = 1024 + trace[i].id_number;
-            if (trace[i].id_number > max_reaction_number) {
-                max_reaction_number = trace[i].id_number;
+            thread_id = 1024 + trace[i].dst_id;
+            if (trace[i].dst_id > max_reaction_number) {
+                max_reaction_number = trace[i].dst_id;
             }
 
             fprintf(output_file, "{"

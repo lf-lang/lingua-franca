@@ -154,10 +154,14 @@ size_t read_and_write_trace() {
     if (trace_length == 0) return 0;
     // Write each line.
     for (int i = 0; i < trace_length; i++) {
+
+        // Ignore federated traces.
+        if (trace[i].event_type > federated) continue;
+
         char* reaction_name = "none";
-        if (trace[i].id_number >= 0) {
+        if (trace[i].dst_id >= 0) {
             reaction_name = (char*)malloc(4);
-            snprintf(reaction_name, 4, "%d", trace[i].id_number);
+            snprintf(reaction_name, 4, "%d", trace[i].dst_id);
         }
         // printf("DEBUG: reactor self struct pointer: %p\n", trace[i].pointer);
         int object_instance = -1;
@@ -179,7 +183,7 @@ size_t read_and_write_trace() {
             INFLUX_MEAS(trace_event_names[trace[i].event_type]),
             INFLUX_TAG("Reactor", reactor_name),
             INFLUX_TAG("Reaction", reaction_name),
-            INFLUX_F_INT("Worker", trace[i].worker),
+            INFLUX_F_INT("Worker", trace[i].src_id),
             INFLUX_F_INT("Logical Time", trace[i].logical_time),
             INFLUX_F_INT("Microstep", trace[i].microstep),
             INFLUX_F_STR("Trigger Name", trigger_name),
