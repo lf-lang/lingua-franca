@@ -2006,9 +2006,10 @@ public class CGenerator extends GeneratorBase {
      */
     protected String generateTopLevelPreambles(EObject reactor) {
         CodeBuilder builder = new CodeBuilder();
-        builder.pr("#ifndef TOP_LEVEL_PREAMBLE_H");
-        builder.pr("#define TOP_LEVEL_PREAMBLE_H");
         var mainModel = (Model) reactor.eContainer();
+        var guard = "TOP_LEVEL_PREAMBLE_" + mainModel.hashCode() + "_H";
+        builder.pr("#ifndef " + guard);
+        builder.pr("#define " + guard);
         for (Preamble p : mainModel.getPreambles()) {
             builder.pr(toText(p.getCode()));
         }
