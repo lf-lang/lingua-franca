@@ -21,7 +21,7 @@ typedef struct int_array_t {
  * @param length The length.
  * @return A pointer to the array struct. 
  */
-int_array_t* int_array_constructor(size_t length) {
+static inline int_array_t* int_array_constructor(size_t length) {
     int_array_t* result = (int_array_t*) malloc(sizeof(int_array_t));
     result->data = (int*) calloc(length, sizeof(int));
     result->length = length;
@@ -36,7 +36,7 @@ int_array_t* int_array_constructor(size_t length) {
  * @param array The array to copy.
  * @return void* 
  */
-void* int_array_copy_constructor(void* array) {
+static inline void* int_array_copy_constructor(void* array) {
     int_array_t* source = (int_array_t*) array;
     int_array_t* copy = (int_array_t*) malloc(sizeof(int_array_t));
     copy->data = (int*) calloc(source->length, sizeof(int));
@@ -54,7 +54,7 @@ void* int_array_copy_constructor(void* array) {
  * when their reference count decrements to zero.
  * @param array The array to free.
  */
-void int_array_destructor(void* array) {
+static inline void int_array_destructor(void* array) {
     free(((int_array_t*) array)->data);
     free(array);
 }
