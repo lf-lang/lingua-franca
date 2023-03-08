@@ -15,5 +15,7 @@ runs:
         cat gradle.properties
         echo $JAVA_HOME
       shell: bash
+    - name: Gradle Cache
+      uses: burrunan/gradle-cache-action@v1
     - name: Validate Gradle wrapper
       uses: gradle/wrapper-validation-action@v1.0.5
