@@ -22,4 +22,5 @@ runs:
       shell: bash
     - name: Gradle Cache
       uses: burrunan/gradle-cache-action@v1
-      build-root-directory: ${{ inputs.lf-dir }}
+      with:
+        build-root-directory: ${{ inputs.lf-dir }}
