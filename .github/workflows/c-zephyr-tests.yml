@@ -30,8 +30,6 @@ jobs:
           sudo apt-get install -y openjdk-17-jdk
           sudo apt-get install -y maven
           echo "JAVA_HOME_17_X64=/usr/lib/jvm/java-17-openjdk-amd64" >> $GITHUB_ENV
-      - name: Get around Git safe issues
-        run: git config --global --add safe.directory '*'
       - name: Initialize zephyr
         run: |
           west init /workdir/zephyrproject --mr v3.2.0
@@ -46,8 +44,12 @@ jobs:
           submodules: true
           ref: ${{ inputs.compiler-ref }}
           fetch-depth: 0
+      - name: Get around Git safe issues
+        run: git config --global --add safe.directory '*'
       - name: Prepare build environment
         uses: ./.github/actions/prepare-build-env
+        needs: Get around Git safe issues
+        
       - name: Check out specific ref of reactor-c
         uses: actions/checkout@v3
         with:
