@@ -37,34 +37,20 @@ clock_sync_error = 0
 network_latency = 100000000 # That is 100us
 
 
-def load_and_process_csv_file(csv_file, rti) :
+def load_and_process_csv_file(csv_file) :
     '''
     Loads and processes the csv entries, based on the type of the actor (if RTI
     or federate).
 
     Args:
      * csv_file: String file name
-     * rti: Bool True if it the RTI, False otherwise
     Returns:
      * The processed dataframe.
     '''
-    # Load RTI tracepoints, rename the columns and clean non useful data
+    # Load tracepoints, rename the columns and clean non useful data
     df = pd.read_csv(csv_file)
-    print
-    if (rti == True):
-        df.columns = ['event', 'reactor', 'self_id', 'partner_id', 'logical_time', 'microstep', 'physical_time', 't', 'ed']
-        # Set that these are the RTI information
-        # df['self_id'] = -1
-        # Remove non-needed information
-        df = df.drop(columns=['reactor', 't', 'ed'])
-    else:
-        df.columns = ['event', 'reactor', 'self_id', 'partner_id', 'logical_time', 'microstep', 'physical_time', 't', 'ed']
-        # Set that these are the RTI information
-        # FIXME: Here, we assume that the coordination in centralized. 
-        # To be updated for the decentralized case...
-        # df['partner_id'] = -1
-        # Remove non-needed information
-        df = df.drop(columns=['reactor', 't', 'ed'])
+    df.columns = ['event', 'reactor', 'self_id', 'partner_id', 'logical_time', 'microstep', 'physical_time', 't', 'ed']
+    df = df.drop(columns=['reactor', 't', 'ed'])
 
     # Remove all the lines that do not contain communication information
     # which boils up to having 'RTI' in the 'event' column
@@ -97,7 +83,7 @@ if __name__ == '__main__':
     ############################################################################
     #### RTI trace processing
     ############################################################################
-    trace_df = load_and_process_csv_file(args.rti, True)
+    trace_df = load_and_process_csv_file(args.rti)
     x_coor[-1] = padding * 2
     actors.append(-1)
     # Temporary use
@@ -112,7 +98,7 @@ if __name__ == '__main__':
             if (not exists(fed_trace)):
                 print('Warning: Trace file ' + fed_trace + ' does not exist! Will resume though')
                 continue
-            fed_df = load_and_process_csv_file(fed_trace, False)
+            fed_df = load_and_process_csv_file(fed_trace)
             if (not fed_df.empty):
                 # Get the federate id number
                 fed_id = fed_df.iloc[-1]['self_id']
@@ -132,7 +118,7 @@ if __name__ == '__main__':
     # FIXME: For now, we need to remove the rows with negative physical time values...
     # Until the reason behinf such values is investigated. The negative physical
     # time is when federates are still in the process of joining
-    trace_df = trace_df[trace_df['physical_time'] >= 0]
+    # trace_df = trace_df[trace_df['physical_time'] >= 0]
 
     # Add the Y column and initialize it with the padding value 
     trace_df['y1'] = math.ceil(padding * 3 / 2) # Or set a small shift
@@ -275,7 +261,10 @@ if __name__ == '__main__':
             # FIXME: Using microseconds is hardwired here.
             physical_time = f'{int(row["physical_time"]/1000):,}'
 
-            label = row['event'] + ' @LT=' + str(row['logical_time'])
+            if (row['logical_time'] == -1678240241788173894) :
+                label = row['event'] + ' @LT=+oo'
+            else:
+                label = row['event'] + ' @LT=' + str(row['logical_time'])
             if (row['arrow'] == 'arrow'): 
                 f.write(fhlp.svg_string_draw_arrow(row['x1'], row['y1'], row['x2'], row['y2'], label, False))
                 f.write(fhlp.svg_string_draw_side_label(row['x1'], row['y1'], physical_time, anchor))

@@ -16,6 +16,8 @@ prune_event_name = {
     "Sending JOIN": "JOIN",
     "Sending REJECT": "REJECT",
     "Sending RESIGN": "RESIGN",
+    "Sending PORT_ABS": "PORT_ABS",
+    "Sending CLOSE_REQ": "CLOSE_REQ",
     "Receiving ACK": "ACK",
     "Receiving TIMESTAMP": "TIMESTAMP",
     "Receiving NET": "NET",
@@ -29,7 +31,10 @@ prune_event_name = {
     "Receiving REJECT": "REJECT",
     "Receiving RESIGN": "RESIGN",
     "Receiving PORT_ABS": "PORT_ABS",
-    "Receiving UNIDENTIFIED": "UNIDENTIFIED"
+    "Receiving UNIDENTIFIED": "UNIDENTIFIED",
+    "Receiving CLOSE_REQ": "CLOSE_REQ",
+    "Receiving UNIDENTIFIED": "UNIDENTIFIED",
+    "Receiving TAGGED_MSG": "TAGGED_MSG"
 }
 
 prune_event_name.setdefault(" ", "UNIDENTIFIED")
