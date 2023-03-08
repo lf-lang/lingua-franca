@@ -22,7 +22,7 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: zephyrprojectrtos/zephyr-build:latest
-      options: -u root --entrypoint /bin/sh 
+      options: --entrypoint /bin/sh 
     steps:
       - name: Install Java 17, Maven and set JAVA_HOME
         run: |
@@ -44,12 +44,8 @@ jobs:
           submodules: true
           ref: ${{ inputs.compiler-ref }}
           fetch-depth: 0
-      - name: Get around Git safe issues
-        run: git config --global --add safe.directory '*'
       - name: Prepare build environment
         uses: ./.github/actions/prepare-build-env
-        needs: Get around Git safe issues
-        
       - name: Check out specific ref of reactor-c
         uses: actions/checkout@v3
         with:
@@ -57,6 +53,5 @@ jobs:
           path: org.lflang/src/lib/c/reactor-c
           ref: ${{ inputs.runtime-ref }}
         if: ${{ inputs.runtime-ref }}
-
       - name: Perform Zephyr tests for C target with default scheduler
         run: ./gradlew test --tests org.lflang.tests.runtime.CZephyrTest.runZephyrTests
