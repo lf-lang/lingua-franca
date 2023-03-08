@@ -1,7 +1,3 @@
-/**
- * Stand-alone version of the Lingua Franca compiler (lfc).
- */
-
 package org.lflang.cli;
 
 
@@ -10,11 +6,15 @@ import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Properties;
+import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
-import org.apache.commons.cli.CommandLine;
-import org.apache.commons.cli.Option;
-import org.apache.commons.cli.Options;
+import picocli.CommandLine;
+import picocli.CommandLine.Command;
+import picocli.CommandLine.Model.OptionSpec;
+import picocli.CommandLine.Option;
+import picocli.CommandLine.Parameters;
 import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.xtext.generator.GeneratorDelegate;
 import org.eclipse.xtext.generator.JavaIoFileSystemAccess;
@@ -34,7 +34,13 @@ import com.google.inject.Inject;
  *
  * @author Marten Lohstroh
  * @author Christian Menard
+ * @author Atharva Patil
  */
+@Command(
+    name = "lfc",
+    // Enable usageHelp (--help) and versionHelp (--version) options.
+    mixinStandardHelpOptions = true,
+    versionProvider = VersionProvider.class)
 public class Lfc extends CliBase {
     /**
      * Injected code generator.
@@ -54,83 +60,90 @@ public class Lfc extends CliBase {
 
     /**
      * Supported CLI options.
-     * <p>
-     * Stores an Apache Commons CLI Option for each entry, sets it to be
-     * if required if so specified, and stores whether or not to pass the
-     * option to the code generator.
      *
      * @author Marten Lohstroh
+     * @author Atharva Patil
      */
-    enum CLIOption {
 
-        BUILD_TYPE(BuildParm.BUILD_TYPE, null, true, false,  true),
-        CLEAN(BuildParm.CLEAN, "c", false, false, true),
-        TARGET_COMPILER(BuildParm.TARGET_COMPILER, null, true, false, true),
-        EXTERNAL_RUNTIME_PATH(BuildParm.EXTERNAL_RUNTIME_PATH, null, true, false, true),
-        FEDERATED(BuildParm.FEDERATED, "f", false, false, false),
-        LOGGING(BuildParm.LOGGING, null, true, false, true),
-        LINT(BuildParm.LINT, "l",false, false,  true),
-        NO_COMPILE(BuildParm.NO_COMPILE, "n", false, false, true),
-        OUTPUT_PATH(BuildParm.OUTPUT_PATH, "o", true, false, false),
-        QUIET(BuildParm.QUIET, "q", false, false,  true),
-        RTI(BuildParm.RTI, "r", true, false, true),
-        RUNTIME_VERSION(BuildParm.RUNTIME_VERSION, null, true, false, true),
-        SCHEDULER(BuildParm.SCHEDULER, "s", true, false, true),
-        THREADING(BuildParm.THREADING, "t", true, false, true),
-        WORKERS(BuildParm.WORKERS, "w", true, false, true);
+    @Option(
+        names = "--build-type",
+        description = "The build type to use.")
+    private String buildType;
 
-        /**
-         * The corresponding Apache CLI Option object.
-         */
-        public final Option option;
+    @Option(
+        names = {"-c", "--clean"},
+        arity = "0",
+        description = "Clean before building.")
+    private boolean clean;
 
-        /**
-         * Whether to pass this option to the code generator.
-         */
-        public final boolean passOn;
+    @Option(
+        names = "--target-compiler",
+        description = "Target compiler to invoke.")
+    private String targetCompiler;
 
-        /**
-         * Construct a new CLIOption.
-         *
-         * @param parameter   The build parameter that this CLI parameter corresponds to.
-         * @param shorthand   The single-character switch to use for this option. E.g.:
-         *                    "-c" for "--clean".
-         * @param hasArg      Whether this option has an argument. E.g.:
-         *                    "--foo bar" where "bar" is the argument value.
-         * @param isReq       Whether this option is required. If it is
-         *                    required but not specified a menu is shown.
-         * @param passOn      Whether to pass this option as a property
-         *                    to the code generator.
-         */
-        CLIOption(BuildParm parameter, String shorthand, boolean hasArg, boolean isReq, boolean passOn) {
-            this.option = new Option(shorthand, parameter.getKey(), hasArg, parameter.description);
-            option.setRequired(isReq);
-            this.passOn = passOn;
-        }
+    @Option(
+        names = "--external-runtime-path",
+        description = "Specify an external runtime library to be used by the"
+                    + " compiled binary.")
+    private Path externalRuntimePath;
 
-        /**
-         * Create an Apache Commons CLI Options object and add all the options.
-         *
-         * @return Options object that includes all the options in this enum.
-         */
-        public static Options getOptions() {
-            Options opts = new Options();
-            Arrays.asList(CLIOption.values()).forEach(o -> opts.addOption(o.option));
-            return opts;
-        }
+    @Option(
+        names = {"-f", "--federated"},
+        arity = "0",
+        description = "Treat main reactor as federated.")
+    private boolean federated;
 
-        /**
-         * Return a list of options that are to be passed on to the code
-         * generator.
-         *
-         * @return List of options that must be passed on to the code gen stage.
-         */
-        public static List<Option> getPassedOptions() {
-            return Arrays.stream(CLIOption.values())
-                .filter(opt -> opt.passOn).map(opt -> opt.option)
-                .collect(Collectors.toList());
-        }
-    }
+    @Option(
+        names = "--logging",
+        description = "The logging level to use by the generated binary")
+    private String logging;
+
+    @Option(
+        names = {"-l", "--lint"},
+        arity = "0",
+        description = "Enable or disable linting of generated code.")
+    private boolean lint;
+
+    @Option(
+        names = {"-n", "--no-compile"},
+        arity = "0",
+        description = "Do not invoke target compiler.")
+    private boolean noCompile;
+
+    @Option(
+        names = {"-q", "--quiet"},
+        arity = "0",
+        description = 
+            "Suppress output of the target compiler and other commands")
+    private boolean quiet;
+
+    @Option(
+        names = {"-r", "--rti"},
+        description = "Specify the location of the RTI.")
+    private String rti;
+
+    @Option(
+        names = "--runtime-version",
+        description = "Specify the version of the runtime library used for"
+                    + " compiling LF programs.")
+    private String runtimeVersion;
+
+    @Option(
+        names = {"-s", "--scheduler"},
+        description = "Specify the runtime scheduler (if supported).")
+    private String scheduler;
+
+    @Option(
+        names = {"-t", "--threading"},
+        paramLabel = "<true/false>",
+        description = "Specify whether the runtime should use multi-threading"
+                    + " (true/false).")
+    private String threading;
+
+    @Option(
+        names = {"-w", "--workers"},
+        description = "Specify the default number of worker threads.")
+    private int workers;
 
     /**
      * Main function of the stand-alone compiler.
@@ -152,35 +165,29 @@ public class Lfc extends CliBase {
         cliMain("lfc", Lfc.class, io, args);
     }
 
-    @Override
-    protected Options getOptions() {
-        return CLIOption.getOptions();
-    }
-
     /**
      * Load the resource, validate it, and, invoke the code generator.
      */
     @Override
-    protected void runTool(CommandLine cmd, List<Path> files) {
-        Properties properties = this.filterProps(cmd, CLIOption.getPassedOptions());
-        String pathOption = CLIOption.OUTPUT_PATH.option.getOpt();
-        Path root = null;
-        if (cmd.hasOption(pathOption)) {
-            root = io.getWd().resolve(cmd.getOptionValue(pathOption)).normalize();
-            if (!Files.exists(root)) { // FIXME: Create it instead?
-                reporter.printFatalErrorAndExit("Output location '" + root + "' does not exist.");
-            }
-            if (!Files.isDirectory(root)) {
-                reporter.printFatalErrorAndExit(
-                    "Output location '" + root + "' is not a directory.");
-            }
-        }
+    public void run() {
+        List<Path> paths = getInputPaths();
+        final Path outputRoot = getOutputRoot();
+        // Hard code the props based on the options we want.
+        Properties properties = this.filterPassOnProps();
 
-        for (Path path : files) {
-            if (!Files.exists(path)) {
-                reporter.printFatalErrorAndExit(path + ": No such file or directory");
-            }
+        try {
+            // Invoke the generator on all input file paths.
+            invokeGenerator(paths, outputRoot, properties);
+        } catch (RuntimeException e) {
+            reporter.printFatalErrorAndExit("An unexpected error occurred:", e);
         }
+    }
+
+    /**
+     * Invoke the code generator on the given validated file paths.
+     */
+    private void invokeGenerator(
+            List<Path> files, Path root, Properties properties) {
         for (Path path : files) {
             path = toAbsolutePath(path);
             String outputPath = getActualOutputPath(root, path).toString();
@@ -188,21 +195,23 @@ public class Lfc extends CliBase {
 
             final Resource resource = getResource(path);
             if (resource == null) {
-                reporter.printFatalErrorAndExit(
-                    path + " is not an LF file. Use the .lf file extension to denote LF files.");
-            }
-            else if (cmd.hasOption(CLIOption.FEDERATED.option.getOpt())) {
+                reporter.printFatalErrorAndExit(path 
+                    + " is not an LF file. Use the .lf file extension to"
+                    + " denote LF files.");
+            } else if (federated) {
                 if (!ASTUtils.makeFederated(resource)) {
-                    reporter.printError("Unable to change main reactor to federated reactor.");
+                    reporter.printError(
+                        "Unable to change main reactor to federated reactor.");
                 }
             }
-            validateResource(resource);
 
+            validateResource(resource);
             exitIfCollectedErrors();
 
             LFGeneratorContext context = new MainContext(
                 LFGeneratorContext.Mode.STANDALONE, CancelIndicator.NullImpl,
-                (m, p) -> {}, properties, resource, this.fileAccess, fileConfig -> errorReporter
+                (m, p) -> {}, properties, resource, this.fileAccess,
+                fileConfig -> errorReporter
             );
 
             try {
@@ -212,7 +221,7 @@ public class Lfc extends CliBase {
             }
 
             exitIfCollectedErrors();
-            // print all other issues (not errors)
+            // Print all other issues (not errors).
             issueCollector.getAllIssues().forEach(reporter::printIssue);
 
             this.io.getOut().println("Code generation finished.");
@@ -223,10 +232,60 @@ public class Lfc extends CliBase {
         if (root != null) {
             return root.resolve("src-gen");
         } else {
-            Path pkgRoot = FileConfig.findPackageRoot(path, reporter::printWarning);
+            Path pkgRoot = FileConfig.findPackageRoot(
+                path, reporter::printWarning);
             return pkgRoot.resolve("src-gen");
         }
     }
 
+    /**
+     * Filter the command-line arguments needed by the code generator, and
+     * return them as properties.
+     *
+     * @return Properties for the code generator.
+     */
+    protected Properties filterPassOnProps() {
+        // Parameters corresponding to the options that need to be passed on to
+        // the generator as properties.
+        final Set<String> passOnParams = Stream.of(
+            BuildParm.BUILD_TYPE,
+            BuildParm.CLEAN,
+            BuildParm.TARGET_COMPILER,
+            BuildParm.EXTERNAL_RUNTIME_PATH,
+            BuildParm.LOGGING,
+            BuildParm.LINT,
+            BuildParm.NO_COMPILE,
+            BuildParm.QUIET,
+            BuildParm.RTI,
+            BuildParm.RUNTIME_VERSION,
+            BuildParm.SCHEDULER,
+            BuildParm.THREADING,
+            BuildParm.WORKERS)
+        .map(param -> param.getKey())
+        .collect(Collectors.toUnmodifiableSet());
 
+        Properties props = new Properties();
+
+        for (OptionSpec option : spec.options()) {
+            String optionName = option.longestName();
+            // Check whether this option needs to be passed on to the code
+            // generator as a property.
+            if (passOnParams.contains(optionName)) {
+                String value = "";
+                // Boolean or Integer option.
+                if (option.getValue() instanceof Boolean ||
+                        option.getValue() instanceof Integer) {
+                    value = String.valueOf(option.getValue());
+                // String option.
+                } else if (option.getValue() instanceof String) {
+                    value = option.getValue();
+                // Path option.
+                } else if (option.getValue() instanceof Path) {
+                    value = option.getValue().toString();
+                }
+                props.setProperty(optionName, value);
+            }
+        }
+        return props;
+    }
 }

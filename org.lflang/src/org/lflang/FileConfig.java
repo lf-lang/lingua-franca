@@ -22,21 +22,21 @@ import org.lflang.util.LFCommand;
 
 /**
  * Base class that governs the interactions between code generators and the file system.
- *  
+ *
  * @author Marten Lohstroh
  *
  */
 public abstract class FileConfig {
 
     // Public static fields.
-    
+
     public static final String DEFAULT_SRC_DIR = "src";
-    
+
     /**
      * Default name of the directory to store binaries in.
      */
     public static final String DEFAULT_BIN_DIR = "bin";
-    
+
     /**
      * Default name of the directory to store generated sources in.
      */
@@ -156,7 +156,7 @@ public abstract class FileConfig {
 
         this.iResource = FileUtil.getIResource(resource);
     }
-    
+
     /**
      * Get the directory a resource is located in relative to the root package
      */
@@ -218,11 +218,11 @@ public abstract class FileConfig {
         }
         return FileUtil.toPath(srcGenURI);
     }
-    
+
     /**
      * Given a path that denotes the full path to a source file (not including the
      * file itself), return the relative path from the root of the 'src'
-     * directory, or, if there is no 'src' directory, the relative path 
+     * directory, or, if there is no 'src' directory, the relative path
      * from the root of the package.
      * @param srcPath The path to the source.
      * @return the relative path from the root of the 'src'
@@ -232,7 +232,7 @@ public abstract class FileConfig {
     protected Path getSubPkgPath(Path srcPath) {
         Path relSrcPath = srcPkgPath.relativize(srcPath);
         if (relSrcPath.startsWith(DEFAULT_SRC_DIR)) {
-            int segments = relSrcPath.getNameCount(); 
+            int segments = relSrcPath.getNameCount();
             if (segments == 1) {
                 return Paths.get("");
             } else {
@@ -248,7 +248,7 @@ public abstract class FileConfig {
      * The base implementation deletes the bin and src-gen directories. If the
      * target code generator creates additional files or directories, the
      * corresponding generator should override this method.
-     * 
+     *
      * @throws IOException If an I/O error occurs.
      */
     public void doClean() throws IOException {

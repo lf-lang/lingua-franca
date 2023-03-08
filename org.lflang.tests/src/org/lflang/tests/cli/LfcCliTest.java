@@ -62,7 +62,7 @@ public class LfcCliTest {
             .verify(result -> {
                 result.checkOk();
                 result.checkNoErrorOutput();
-                result.checkStdOut(containsString("usage: lfc"));
+                result.checkStdOut(containsString("Usage: lfc"));
             });
     }
 
@@ -81,8 +81,7 @@ public class LfcCliTest {
     public void testWrongCliArg() {
         lfcTester.run("--notanargument", "File.lf")
             .verify(result -> {
-                result.checkStdErr(containsString("Unrecognized option: --notanargument"));
-                result.checkStdErr(containsString("fatal error"));
+                result.checkStdErr(containsString("Unknown option: '--notanargument'"));
                 result.checkFailed();
             });
     }
