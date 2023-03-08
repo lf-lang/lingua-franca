@@ -58,10 +58,16 @@ public class CReactorHeaderFileGenerator {
     }
     private static void appendPoundIncludes(CodeBuilder builder) {
         builder.pr("""
-        #include "../include/api/api.h"
-        #include "../include/api/set.h"
-        #include "../include/core/reactor.h"
-        """);
+            #ifdef __cplusplus
+            extern "C" {
+            #endif
+            #include "../include/api/api.h"
+            #include "../include/api/set.h"
+            #include "../include/core/reactor.h"  
+            #ifdef __cplusplus
+            }
+            #endif
+            """);
     }
 
     private static String userFacingSelfType(Reactor r) {
