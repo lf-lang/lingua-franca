@@ -38,6 +38,7 @@ import java.util.List;
 import org.lflang.ASTUtils;
 import org.lflang.ErrorReporter;
 import org.lflang.InferredType;
+import org.lflang.Target;
 import org.lflang.TargetProperty;
 import org.lflang.TargetProperty.CoordinationType;
 import org.lflang.TimeValue;
@@ -498,12 +499,14 @@ public class CExtension implements FedTargetExtension {
             writer.write(cPreamble);
         }
         var includes = new CodeBuilder();
-        includes.pr("#include \"core/federated/federate.h\"");
-        includes.pr("#include \"core/federated/net_common.h\"");
-        includes.pr("#include \"core/federated/net_util.h\"");
-        includes.pr("#include \"core/threaded/reactor_threaded.h\"");
-        includes.pr("#include \"core/utils/util.h\"");
-        includes.pr("extern federate_instance_t _fed;");
+        if (federate.targetConfig.target == Target.C) {
+            includes.pr("#include \"core/federated/federate.h\"");
+            includes.pr("#include \"core/federated/net_common.h\"");
+            includes.pr("#include \"core/federated/net_util.h\"");
+            includes.pr("#include \"core/threaded/reactor_threaded.h\"");
+            includes.pr("#include \"core/utils/util.h\"");
+            includes.pr("extern federate_instance_t _fed;");
+        }
 
         return includes.toString();
     }
