@@ -22,7 +22,7 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: zephyrprojectrtos/zephyr-build:latest
-      options: -u root --entrypoint /bin/sh 
+      options: --entrypoint /bin/sh 
     steps:
       - name: Install Java 17, Maven and set JAVA_HOME
         run: |
@@ -53,8 +53,6 @@ jobs:
           path: org.lflang/src/lib/c/reactor-c
           ref: ${{ inputs.runtime-ref }}
         if: ${{ inputs.runtime-ref }}
-      - name: Try to get around git safe issues
-        run: chown root:root .
 
       - name: Perform Zephyr tests for C target with default scheduler
         run: ./gradlew test --tests org.lflang.tests.runtime.CZephyrTest.runZephyrTests
