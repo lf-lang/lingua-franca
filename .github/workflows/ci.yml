@@ -70,7 +70,7 @@ jobs:
   
   # Run the C Zephyr integration tests.
   c-zephyr-tests:
-    uses: lf-lang/lingua-franca/.github/workflows/c-zephyr-tests.yml@gradle-cache
+    uses: lf-lang/lingua-franca/.github/workflows/c-zephyr-tests.yml@master
     needs: cancel
 
   # Run the CCpp integration tests.
