@@ -1974,58 +1974,10 @@ public class CGenerator extends GeneratorBase {
         pickCompilePlatform();
     }
 
-
-//    // Perform set up that does not generate code
-//    protected void setUpFederateSpecificParameters(FederateInstance federate, CodeBuilder commonCode) {
-//        currentFederate = federate;
-//        if (isFederated) {
-//            // Reset the cmake-includes and files, to be repopulated for each federate individually.
-//            // This is done to enable support for separately
-//            // adding cmake-includes/files for different federates to prevent linking and mixing
-//            // all federates' supporting libraries/files together.
-//            targetConfig.cmakeIncludes.clear();
-//            targetConfig.cmakeIncludesWithoutPath.clear();
-//            targetConfig.fileNames.clear();
-//            targetConfig.filesNamesWithoutPath.clear();
-//
-//            // Re-apply the cmake-include target property of the main .lf file.
-//            var target = GeneratorUtils.findTarget(mainDef.getReactorClass().eResource());
-//            if (target.getConfig() != null) {
-//                // Update the cmake-include
-//                TargetProperty.updateOne(
-//                    this.targetConfig,
-//                    TargetProperty.CMAKE_INCLUDE,
-//                    convertToEmptyListIfNull(target.getConfig().getPairs()),
-//                    errorReporter
-//                );
-//                // Update the files
-//                TargetProperty.updateOne(
-//                    this.targetConfig,
-//                    TargetProperty.FILES,
-//                    convertToEmptyListIfNull(target.getConfig().getPairs()),
-//                    errorReporter
-//                );
-//            }
-//            // Clear out previously generated code.
-//            code = new CodeBuilder(commonCode);
-//            initializeTriggerObjects = new CodeBuilder();
-//            // Enable clock synchronization if the federate
-//            // is not local and clock-sync is enabled
-//            initializeClockSynchronization();
-//            startTimeStep = new CodeBuilder();
-//        }
-//    }
-
     protected void handleProtoFiles() {
         // Handle .proto files.
         for (String file : targetConfig.protoFiles) {
             this.processProtoFile(file);
-            var dotIndex = file.lastIndexOf(".");
-            var rootFilename = file;
-            if (dotIndex > 0) {
-                rootFilename = file.substring(0, dotIndex);
-            }
-            code.pr("#include " + addDoubleQuotes(rootFilename + ".pb-c.h"));
         }
     }
 
@@ -2053,17 +2005,24 @@ public class CGenerator extends GeneratorBase {
      * Generate top-level preamble code.
      */
     protected String generateTopLevelPreambles(EObject reactor) {
-        CodeBuilder code = new CodeBuilder();
-        code.pr("#ifndef TOP_LEVEL_PREAMBLE_H");
-        code.pr("#define TOP_LEVEL_PREAMBLE_H");
-
-        // user preambles
+        CodeBuilder builder = new CodeBuilder();
+        builder.pr("#ifndef TOP_LEVEL_PREAMBLE_H");
+        builder.pr("#define TOP_LEVEL_PREAMBLE_H");
         var mainModel = (Model) reactor.eContainer();
         for (Preamble p : mainModel.getPreambles()) {
-            code.pr(toText(p.getCode()));
+            builder.pr(toText(p.getCode()));
         }
-        code.pr("#endif");
-        return code.toString();
+        for (String file : targetConfig.protoFiles) {
+            var dotIndex = file.lastIndexOf(".");
+            var rootFilename = file;
+            if (dotIndex > 0) {
+                rootFilename = file.substring(0, dotIndex);
+            }
+            code.pr("#include " + addDoubleQuotes(rootFilename + ".pb-c.h"));
+            builder.pr("#include " + addDoubleQuotes(rootFilename + ".pb-c.h"));
+        }
+        builder.pr("#endif");
+        return builder.toString();
     }
 
     protected boolean targetLanguageIsCpp() {
