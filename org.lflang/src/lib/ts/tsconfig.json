@@ -2,6 +2,7 @@
     "compilerOptions": {
         "allowJs": true,
         "target": "esnext",
+        "module": "CommonJS",
         "types": ["node", "@lf-lang/reactor-ts", "ulog", "microtime", "command-line-args", "command-line-usage"],
         "typeRoots": ["./node_modules/@types/", "./node_modules/@lf-lang/reactor-ts/src/core/@types/"],
         "esModuleInterop": true,

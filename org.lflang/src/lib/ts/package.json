@@ -1,6 +1,6 @@
 {
     "name": "LinguaFrancaDefault",
-    "type": "module",
+    "type": "commonjs",
     "dependencies": {
         "@lf-lang/reactor-ts": "^0.3.2",
         "command-line-args": "^5.1.1",
