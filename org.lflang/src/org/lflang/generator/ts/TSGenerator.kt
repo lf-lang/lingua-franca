@@ -145,14 +145,16 @@ class TSGenerator(
                 println("No .proto files have been imported. Skipping protocol buffer compilation.")
             }
             val parsingContext = SubContext(context, COLLECTED_DEPENDENCIES_PERCENT_PROGRESS, 100)
-            if (
-                !context.cancelIndicator.isCanceled
-                && passesChecks(TSValidator(fileConfig, errorReporter, codeMaps), parsingContext)
-            ) {
+            val validator = TSValidator(fileConfig, errorReporter, codeMaps)
+            if (!context.cancelIndicator.isCanceled) {
                 if (context.mode == LFGeneratorContext.Mode.LSP_MEDIUM) {
+                    if (!passesChecks(validator, parsingContext)) {
+                        context.unsuccessfulFinish();
+                        return;
+                    }
                     context.finish(GeneratorResult.GENERATED_NO_EXECUTABLE.apply(context, codeMaps))
                 } else {
-                    compile(resource, parsingContext)
+                    compile(validator, resource, parsingContext)
                     concludeCompilation(context, codeMaps)
                 }
             } else {
@@ -263,13 +265,13 @@ class TSGenerator(
 
     }
 
-    private fun compile(resource: Resource, parsingContext: LFGeneratorContext) {
+    private fun compile(validator: TSValidator, resource: Resource, parsingContext: LFGeneratorContext) {
 
         GeneratorUtils.refreshProject(resource, parsingContext.mode)
 
         if (parsingContext.cancelIndicator.isCanceled) return
         parsingContext.reportProgress("Transpiling to JavaScript...", 70)
-        transpile(parsingContext.cancelIndicator)
+        transpile(validator, parsingContext.cancelIndicator)
 
         if (parsingContext.cancelIndicator.isCanceled) return
     }
@@ -397,19 +399,19 @@ class TSGenerator(
     /**
      * Transpile TypeScript to JavaScript.
      */
-    private fun transpile(cancelIndicator: CancelIndicator) {
+    private fun transpile(validator: TSValidator, cancelIndicator: CancelIndicator) {
         println("Compiling")
-        val babel = commandFactory.createCommand("npm", listOf("run", "build"), fileConfig.srcGenPkgPath)
+        val tsc = commandFactory.createCommand("npm", listOf("run", "build"), fileConfig.srcGenPkgPath)
 
-        if (babel == null) {
+        if (tsc == null) {
             errorReporter.reportError(NO_NPM_MESSAGE)
             return
         }
 
-        if (babel.run(cancelIndicator) == 0) {
+        if (validator.run(tsc, cancelIndicator) == 0) {
             println("SUCCESS (compiling generated TypeScript code)")
         } else {
-            errorReporter.reportError("Compiler failed with the following errors:\n${babel.errors}")
+            errorReporter.reportError("Compiler failed with the following errors:\n${tsc.errors}")
         }
     }
 
