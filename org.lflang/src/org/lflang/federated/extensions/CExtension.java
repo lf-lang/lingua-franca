@@ -108,7 +108,7 @@ public class CExtension implements FedTargetExtension {
         federate.targetConfig.setByUser.add(TargetProperty.THREADING);
 
         // Include the fed setup file for this federate in the target property
-        String relPath = "include" + File.separator + "_" + federate.name + "_preamble.h";
+        String relPath = getPreamblePath(federate);
         federate.targetConfig.fedSetupPreamble = relPath;
         federate.targetConfig.setByUser.add(TargetProperty.FED_SETUP);
     }
@@ -480,7 +480,7 @@ public class CExtension implements FedTargetExtension {
     }
 
     /**
-     * Add preamble to a separate file `include/_federateName_preamble.h` to set up federated execution.
+     * Add preamble to a separate file to set up federated execution.
      * Return an empty string since no code generated needs to go in the source.
      */
     @Override
@@ -490,9 +490,8 @@ public class CExtension implements FedTargetExtension {
         LinkedHashMap<String, Object> federationRTIProperties,
         ErrorReporter errorReporter
     ) throws IOException {
-        // Put the C preamble in a `include/_federate.name + _preamble.h` file
         String cPreamble = makePreamble(federate, fileConfig, federationRTIProperties, errorReporter);
-        String relPath = "include" + File.separator + "_" + federate.name + "_preamble.h";
+        String relPath = getPreamblePath(federate);
         Path fedPreamblePath = fileConfig.getSrcPath().resolve(relPath);
         Files.createDirectories(fedPreamblePath.getParent());
         try (var writer = Files.newBufferedWriter(fedPreamblePath)) {
@@ -520,12 +519,12 @@ public class CExtension implements FedTargetExtension {
 
         var code = new CodeBuilder();
 
-//        code.pr("#include \"core/federated/federate.h\"");
-//        code.pr("#include \"core/federated/net_common.h\"");
-//        code.pr("#include \"core/federated/net_util.h\"");
-//        code.pr("#include \"core/threaded/reactor_threaded.h\"");
-//        code.pr("#include \"core/utils/util.h\"");
-//        code.pr("extern federate_instance_t _fed;");
+        code.pr("#include \"core/federated/federate.h\"");
+        code.pr("#include \"core/federated/net_common.h\"");
+        code.pr("#include \"core/federated/net_util.h\"");
+        code.pr("#include \"core/threaded/reactor_threaded.h\"");
+        code.pr("#include \"core/utils/util.h\"");
+        code.pr("extern federate_instance_t _fed;");
 
         // Generate function to return a pointer to the action trigger_t
         // that handles incoming network messages destined to the specified
@@ -760,5 +759,7 @@ public class CExtension implements FedTargetExtension {
         }
         return code.getCode();
     }
-
+    private String getPreamblePath(FederateInstance f) {
+        return "include" + File.separator + "_" + f.name + "_preamble.h";
+    }
 }
