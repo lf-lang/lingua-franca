@@ -11,6 +11,7 @@ target C {
 
 import PassThrough from "../lib/PassThrough.lf"
 import TestCount from "../lib/TestCount.lf"
+
 preamble {=
     extern int _counter;
     void callback(void *a);

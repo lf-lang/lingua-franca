@@ -12,6 +12,7 @@ target C {
     },
     timeout: 5 sec
 }
+
 preamble {=
     #include <unistd.h> // Defines sleep()
     extern bool stop;
