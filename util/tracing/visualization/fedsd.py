@@ -98,7 +98,7 @@ if __name__ == '__main__':
     #### RTI trace processing
     ############################################################################
     trace_df = load_and_process_csv_file(args.rti, True)
-    x_coor[-1] = padding * 5
+    x_coor[-1] = padding * 2
     actors.append(-1)
     # Temporary use
     trace_df['x1'] = x_coor[-1]
@@ -119,7 +119,7 @@ if __name__ == '__main__':
                 # Add to the list of sequence diagram actors 
                 actors.append(fed_id)
                 # Derive the x coordinate of the actor
-                x_coor[fed_id] = (padding * 5) + (spacing * (len(actors)-1))
+                x_coor[fed_id] = (padding * 2) + (spacing * (len(actors)-1))
                 fed_df['x1'] = x_coor[fed_id]
                 # Append into trace_df
                 trace_df = trace_df.append(fed_df, sort=False, ignore_index=True)
@@ -146,11 +146,10 @@ if __name__ == '__main__':
     min = 10    # Minimum spacing between events when time has not advanced.
     scale = 1   # Will probably be set manually
     first_pass = True
-    print(trace_df)
     for index, row in trace_df.iterrows():
         if (not first_pass) :
             cpt = row['physical_time']
-            print('cpt = '+str(cpt)+' and ppt = '+str(ppt))
+            # print('cpt = '+str(cpt)+' and ppt = '+str(ppt))
             # From the email:
             # Y = T_previous + min + log10(1 + (T - T_previous)*scale)
             # But rather think it should be:
@@ -239,7 +238,7 @@ if __name__ == '__main__':
     ############################################################################
     #### Write to svg file
     ############################################################################
-    svg_width = padding + (len(actors) - 1) * spacing + padding + 200
+    svg_width = padding * 2 + (len(actors) - 1) * spacing + padding * 2 + 200
     svg_height = padding + trace_df.iloc[-1]['y1']
 
     with open('trace_svg.html', 'w', encoding='utf-8') as f:
