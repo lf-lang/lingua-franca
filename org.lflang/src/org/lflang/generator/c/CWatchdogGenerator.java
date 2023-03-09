@@ -153,7 +153,7 @@ public class CWatchdogGenerator {
                 "self->_lf_watchdog_"+watchdogName+".expiration = NEVER;",
                 "self->_lf_watchdog_"+watchdogName+".thread_active = false;",
                 // "self->_lf_watchdog_"+watchdogName+".min_expiration = "+min_expiration+";",
-                "self->_lf_watchdog_"+watchdogName+".watchdog_function = "+watchdogFunctionName+";"
+                "self->_lf_watchdog_"+watchdogName+".watchdog_function = &("+watchdogFunctionName+");"
             ));
 
             // WATCHDOG QUESTION 6: should I be initializing mutex in this constructor?
