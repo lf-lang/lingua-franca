@@ -57,21 +57,16 @@ class CppInstanceGenerator(
     }
 
     private fun Instantiation.generateWrapper(): String = """
-            |class $enclaveWrapperClassName : public reactor::Reactor {
-            | private:
+            |struct $enclaveWrapperClassName {
             |  ${if (!hasEachParameter) "inline static " else ""}std::unique_ptr<reactor::Environment> __lf_env{nullptr};
             |  std::unique_ptr<$reactorType> __lf_instance{nullptr};
             |  
-            | public:
-            |  EnclaveWrapper_$name(const std::string& name, reactor::Reactor* container, $reactorType::Parameters&& params)
-            |    : Reactor("enclave_wrapper_" + name, container) {
+            |  $enclaveWrapperClassName(const std::string& name, reactor::Reactor* container, $reactorType::Parameters&& params) {
             |    if (__lf_env == nullptr) {
             |      __lf_env = std::make_unique<reactor::Environment>(container->fqn() + name, container->environment());
             |    }
             |    __lf_instance = std::make_unique<$reactorType>(name, __lf_env.get(), std::forward<$reactorType::Parameters>(params));
             |  }
-            |  
-            |  void assemble() override {}
             |};
         """.trimMargin()
 
