@@ -26,9 +26,15 @@ jobs:
         run: |
           brew install coreutils
         if: ${{ runner.os == 'macOS' }}
+      - name: Clone reactor-ts
+        uses: actions/checkout@v3
+        with:
+          repository: lf-lang/reactor-ts
+          path: ./reactor-ts
+          ref: master
       - name: Perform TypeScript tests
         run: |
-          ./gradlew test --tests org.lflang.tests.runtime.TypeScriptTest.*
+          ./gradlew test --tests org.lflang.tests.runtime.TypeScriptTest.* -Druntime="./reactor-ts"
       - name: Report to CodeCov
         uses: codecov/codecov-action@v3.1.1
         with:
