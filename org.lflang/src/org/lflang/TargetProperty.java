@@ -255,7 +255,7 @@ public enum TargetProperty {
      * compiled binary.
      */
     EXTERNAL_RUNTIME_PATH("external-runtime-path", PrimitiveType.STRING,
-            List.of(Target.CPP),
+            List.of(Target.CPP, Target.TS),
             (config) -> ASTUtils.toElement(config.externalRuntimePath),
             (config, value, err) -> {
                 config.externalRuntimePath = ASTUtils.elementToSingleString(value);
@@ -411,7 +411,7 @@ public enum TargetProperty {
 
     /**
      * Directive to specify the platform for cross code generation. This is either a string of the platform
-     * or a dictionary of options that includes the string name. 
+     * or a dictionary of options that includes the string name.
      */
     PLATFORM("platform", UnionType.PLATFORM_STRING_OR_DICTIONARY, Target.ALL,
             (config) -> {

@@ -113,7 +113,7 @@ public class Lfc extends CliBase {
     @Option(
         names = {"-q", "--quiet"},
         arity = "0",
-        description = 
+        description =
             "Suppress output of the target compiler and other commands")
     private boolean quiet;
 
@@ -195,7 +195,7 @@ public class Lfc extends CliBase {
 
             final Resource resource = getResource(path);
             if (resource == null) {
-                reporter.printFatalErrorAndExit(path 
+                reporter.printFatalErrorAndExit(path
                     + " is not an LF file. Use the .lf file extension to"
                     + " denote LF files.");
             } else if (federated) {
@@ -261,27 +261,26 @@ public class Lfc extends CliBase {
             BuildParm.SCHEDULER,
             BuildParm.THREADING,
             BuildParm.WORKERS)
-        .map(param -> param.getKey())
+        .map(BuildParm::getKey)
         .collect(Collectors.toUnmodifiableSet());
 
         Properties props = new Properties();
 
         for (OptionSpec option : spec.options()) {
             String optionName = option.longestName();
+            if (optionName.startsWith("--")) optionName = optionName.substring(2);
             // Check whether this option needs to be passed on to the code
             // generator as a property.
-            if (passOnParams.contains(optionName)) {
+            Object valueObject = option.getValue();
+            if (passOnParams.contains(optionName) && valueObject != null) {
                 String value = "";
-                // Boolean or Integer option.
-                if (option.getValue() instanceof Boolean ||
-                        option.getValue() instanceof Integer) {
-                    value = String.valueOf(option.getValue());
-                // String option.
-                } else if (option.getValue() instanceof String) {
-                    value = option.getValue();
-                // Path option.
-                } else if (option.getValue() instanceof Path) {
-                    value = option.getValue().toString();
+                if (valueObject instanceof Boolean ||
+                        valueObject instanceof Integer) {
+                    value = String.valueOf(valueObject);
+                } else if (valueObject instanceof String s) {
+                    value = s;
+                } else if (valueObject instanceof Path) {
+                    value = valueObject.toString();
                 }
                 props.setProperty(optionName, value);
             }

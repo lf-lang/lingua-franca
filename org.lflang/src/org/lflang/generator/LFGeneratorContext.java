@@ -1,15 +1,12 @@
 package org.lflang.generator;
 
-import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Properties;
 
 import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.xtext.generator.IFileSystemAccess2;
 import org.eclipse.xtext.generator.IGeneratorContext;
-import org.eclipse.xtext.util.RuntimeIOException;
 
 import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
@@ -79,7 +76,7 @@ public interface LFGeneratorContext extends IGeneratorContext {
     }
 
     /**
-     * Return the mode of operation, which indicates how the compiler has been invoked 
+     * Return the mode of operation, which indicates how the compiler has been invoked
      * (e.g., from within Epoch, from the command line, or via a Language Server).
      */
     Mode getMode();
