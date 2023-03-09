@@ -53,6 +53,44 @@ else
     fatal_error "Unable to determine absolute path to $0."
 fi
 
-# FIXME: Check that python3 is in the path.
+# Get the lft files
+lft_files_list=$@
 
-python3 "${base}/util/tracing/visualization/fedsd.py" "$@"
+# Initialize variables
+csv_files_list=''
+extension='.csv'
+rti_file=''
+
+# Iterate over the lft file list to:
+#  - First, transform into csv
+#  - Second, construct the csv fiel name
+#  - Then construct the csv file list
+# The csv file list does include the rti, it is put in a separate variable
+for each_lft_file in $lft_files_list
+    do
+        # Tranform to csv
+        trace_to_csv $each_lft_file
+        # Get the file name
+        csv=${each_lft_file%.*}
+        if [ $csv == 'rti' ]
+        then 
+            # Set the rti csv file 
+            rti_file='rti.csv'
+        else
+            # Construct the csv file name and add it to the list
+            csv_files_list="$csv$extension $csv_files_list"
+        fi
+    done
+
+echo $lft_files_list
+echo $rti_file
+echo $csv_files_list
+
+# FIXME: Check that python3 is in the path.
+if [ $rti_file == '' ]
+then
+    # FIXME: Support the case where no rti file is given
+    python3 "${base}/util/tracing/visualization/fedsd.py" "-f" $csv_files_list
+else 
+    python3 "${base}/util/tracing/visualization/fedsd.py" "-r" "$rti_file" "-f" $csv_files_list
+fi
