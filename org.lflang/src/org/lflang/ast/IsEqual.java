@@ -490,7 +490,6 @@ public class IsEqual extends LfSwitch<Boolean> {
             .conclusion;
     }
 
-    //FIXME: modif4watchdogs
     @Override
     public Boolean caseWatchdog(Watchdog object) {
         return new ComparisonMachine<>(object, Watchdog.class)
