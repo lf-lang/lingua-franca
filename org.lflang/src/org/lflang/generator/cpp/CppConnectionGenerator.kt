@@ -2,6 +2,8 @@ package org.lflang.generator.cpp
 
 import org.lflang.*
 import org.lflang.generator.cpp.CppConnectionGenerator.Companion.cppType
+import org.lflang.generator.cpp.CppConnectionGenerator.Companion.isEnclaveConnection
+import org.lflang.generator.cpp.CppInstanceGenerator.Companion.isEnclave
 import org.lflang.generator.cpp.CppPortGenerator.Companion.dataType
 import org.lflang.lf.Connection
 import org.lflang.lf.Port
@@ -25,13 +27,33 @@ class CppConnectionGenerator(private val reactor: Reactor) {
             get() {
                 val leftPort = leftPorts.first()
                 return when {
-                    isPhysical    -> "reactor::PhysicalConnection<${leftPort.dataType}>"
-                    delay != null -> "reactor::DelayedConnection<${leftPort.dataType}>"
-                    else          -> throw IllegalArgumentException("Connection is neither physical nor delayed")
+                    isEnclaveConnection && !isPhysical && delay == null -> "reactor::EnclaveConnection<${leftPort.dataType}>"
+                    isPhysical                                          -> "reactor::PhysicalConnection<${leftPort.dataType}>"
+                    delay != null                                       -> "reactor::DelayedConnection<${leftPort.dataType}>"
+                    else                                                -> throw IllegalArgumentException("Unsupported connection type")
                 }
             }
 
-        val Connection.requiresConnectionClass: Boolean get() = isPhysical || delay != null
+        val Connection.isEnclaveConnection: Boolean
+            get() {
+                if (leftPorts.size == 1 && rightPorts.size == 1) {
+                    val leftIsEnclave = leftPorts[0].container?.isEnclave == true
+                    val rightIsEnclave = rightPorts[0].container?.isEnclave == true
+                    return when {
+                        leftIsEnclave && rightIsEnclave   -> true
+                        !leftIsEnclave && !rightIsEnclave -> false
+                        else                              -> TODO("Connections between enclaves and normal reactors are not supported")
+                    }
+                }
+                for (port in leftPorts + rightPorts) {
+                    if (port.container?.isEnclave == true) {
+                        TODO("Enclaves can only be used in simple connections")
+                    }
+                }
+                return false
+            }
+
+        val Connection.requiresConnectionClass: Boolean get() = isPhysical || delay != null || isEnclaveConnection;
     }
 
     fun generateDeclarations() =
@@ -52,8 +74,11 @@ class CppConnectionGenerator(private val reactor: Reactor) {
 
     private fun generateConstructorInitializer(connection: Connection): String? =
         if (connection.requiresConnectionClass && !connection.hasMultipleConnections) {
-            val delay = connection.delay.toCppTime()
             val name = connection.name
-            """, $name{"$name", this, $delay}"""
+            val delay = connection.delay?.toCppTime()
+            if (connection.isEnclaveConnection)
+                """, $name{"$name", ${connection.rightPorts[0].container.name}->__lf_env.get()}"""
+            else
+                """, $name{"$name", this, $delay}"""
         } else null
 }
