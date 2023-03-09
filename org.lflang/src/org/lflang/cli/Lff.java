@@ -3,17 +3,25 @@ package org.lflang.cli;
 import java.io.IOException;
 import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.FileVisitResult;
+import java.nio.file.FileVisitor;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Properties;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
+import picocli.CommandLine;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
+import picocli.CommandLine.Parameters;
 import org.eclipse.emf.ecore.resource.Resource;
 
 import org.lflang.ast.FormattingUtils;
+import org.lflang.LocalStrings;
 import org.lflang.util.FileUtil;
 
 /**
@@ -58,6 +66,10 @@ public class Lff extends CliBase {
         names = {"-v", "--verbose"},
         description = "Print more details on files affected.")
     private boolean verbose = false;
+
+    public Lff() {
+        super("lff");
+    }
 
     /**
      * Main function of the formatter.
