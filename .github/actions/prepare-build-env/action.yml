@@ -26,4 +26,4 @@ runs:
         path: |
           ${{ inputs.lf-dir }}.gradle/caches
           ${{ inputs.lf-dir }}.gradle/wrapper
-        key: gradle-${{ hashFiles('${{ inputs.lf-dir }}gradle/wrapper/gradle-wrapper.properties') }}
+        key: gradle-${{ runner.os }}-${{ hashFiles('${{ inputs.lf-dir }}gradle/wrapper/gradle-wrapper.properties') }}
