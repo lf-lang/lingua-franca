@@ -38,7 +38,8 @@ prune_event_name = {
     # "Receiving ADDRESS_QUERY": "ADDRESS_QUERY",
     # "Receiving ADDRESS_ADVERTISEMENT": "ADDRESS_ADVERTISEMENT",
     "Receiving MSG": "MSG",
-    "Receiving P2P_MSG": "P2P_MSG"
+    "Receiving P2P_MSG": "P2P_MSG",
+    "Scheduler advancing time ends": "AdvLT"
 }
 
 prune_event_name.setdefault(" ", "UNIDENTIFIED")
@@ -218,3 +219,18 @@ def svg_string_draw_dot_with_time(x, y, time, label) :
     str_line = '\t<circle cx="'+str(x)+'" cy="'+str(y)+'" r="3" stroke="black" stroke-width="1" fill="black"/>\n'
     str_line = str_line + '\t<text x="'+str(x+5)+'", y="'+str(y+5)+'"> <tspan class="time">'+time+':</tspan> <tspan fill="blue">'+label+'</tspan></text>\n'
     return str_line
+
+def svg_string_draw_adv(x, y, label) :
+    '''
+    Constructs the svg html string to draw at a dash, meaning that logical time is advancing there.
+
+    Args:
+     * x: Int X coordinate of the dash
+     * y: Int Y coordinate of the dash
+     * label: String to draw 
+    Returns:
+     * String: the svg string of the triangle
+    '''
+    str_line1 = svg_string_draw_line(x-5, y, x+5, y, "ADV")
+    str_line2 = svg_string_draw_side_label(x, y, label)
+    return str_line1 + str_line2

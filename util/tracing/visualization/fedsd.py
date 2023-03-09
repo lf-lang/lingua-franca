@@ -4,12 +4,12 @@ Define arrows:
     (x1, y1) --> (x2, y2), when a possible result (could be not tilted)?
 If not arrow, then triangle with text 
 
-In the dataframe, each arrow will be marked as:
+In the dataframe, each row will be marked with one op these values:
     - 'arrow': draw a non-dashed arrow
-    - 'dashedarrow': draw dashed arrow
-    - 'dot': draw the triangle only
+    - 'dot': draw a dot only
     - 'marked': marked, not to be drawn
     - 'pending': pending
+    - 'adv': for reporting logical time advancing, draw a simple dash
 '''
 
 # Styles to determine appearance:
@@ -25,6 +25,7 @@ css_style = ' <style> \
     .PTAG { stroke: #06d6a0; fill: #06d6a0} \
     .TAG { stroke: #08a578; fill: #08a578} \
     .TIMESTAMP { stroke: grey; fill: grey } \
+    .ADV {stroke-linecap="round" ; stroke: "red" ; fill: "red"} \
     \
     text { \
         font-size: smaller; \
@@ -75,7 +76,7 @@ def load_and_process_csv_file(csv_file) :
 
     # Remove all the lines that do not contain communication information
     # which boils up to having 'RTI' in the 'event' column
-    df = df[df['event'].str.contains('Sending|Receiving') == True]
+    df = df[df['event'].str.contains('Sending|Receiving|Scheduler advancing time ends') == True]
     df = df.astype({'self_id': 'int', 'partner_id': 'int'})
 
     # Add an inout column to set the arrow direction
@@ -184,7 +185,10 @@ if __name__ == '__main__':
     for index in trace_df.index:
         # If the tracepoint is pending, proceed to look for a match
         if (trace_df.at[index,'arrow'] == 'pending') :
-            physical_time = trace_df.at[index,'physical_time']
+            # Look for a match only if it is not about advancing time
+            if (trace_df.at[index,'event'] == 'AdvLT') :
+                trace_df.at[index,'arrow'] = 'adv'
+                continue
             self_id = trace_df.at[index,'self_id']
             partner_id = trace_df.at[index,'partner_id']
             event =  trace_df.at[index,'event']
@@ -294,6 +298,9 @@ if __name__ == '__main__':
 
             elif (row['arrow'] == 'marked'):
                 f.write(fhlp.svg_string_draw_side_label(row['x1'], row['y1'], physical_time, anchor))
+
+            elif (row['arrow'] == 'adv'):
+                f.write(fhlp.svg_string_draw_adv(row['x1'], row['y1'], label))
 
         f.write('\n</svg>\n\n')
 
