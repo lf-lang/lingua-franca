@@ -56,6 +56,12 @@ fi
 # Get the lft files
 lft_files_list=$@
 
+if [ -z "$lft_files_list" ]
+then
+    echo "Usage: fedsd [lft files]"
+    exit 1
+fi
+
 # Initialize variables
 csv_files_list=''
 extension='.csv'
