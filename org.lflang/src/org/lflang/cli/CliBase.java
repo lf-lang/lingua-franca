@@ -65,8 +65,19 @@ public abstract class CliBase implements Runnable {
         defaultValue = "",
         fallbackValue = "",
         description = "Specify the root output directory.")
-
     private Path outputPath;
+
+    // TODO: make json, json_file and files mutually exclusive.
+    @Option(
+        names="--json",
+        description="JSON object to read CLI options from.")
+    private String json;
+
+    @Option(
+        names="--json-file",
+        description="JSON file to read CLI options from.")
+    private Path jsonFile;
+
     /**
      * Used to collect all errors that happen during validation/generation.
      */
@@ -121,15 +132,30 @@ public abstract class CliBase implements Runnable {
         CommandLine cmd = new CommandLine(main)
             .setOut(new PrintWriter(io.getOut()))
             .setErr(new PrintWriter(io.getErr()));
-        int exitCode = cmd.execute(args);
+        int exitCode = cmd.execute("--version");
+        exitCode = cmd.execute(args);
         io.callSystemExit(exitCode);
     }
+
+    /**
+     * TODO
+     *
+     * if json:
+     *      process json and call cmd.execute
+     *
+     * if files:
+     *      cmd.execute
+     *
+     * why? so the in-built validation will be handled by picocli.
+     */
 
     /**
      * The entrypoint of Picocli applications - the first method called when 
      * CliBase, which implements the Runnable interface, is instantiated.
      * Lfc and Lff have their own specific implementations for this method.
      */ 
+
+    // TODO: Make this runMain.
     public abstract void run();
 
     protected static Injector getInjector(String toolName, Io io) {

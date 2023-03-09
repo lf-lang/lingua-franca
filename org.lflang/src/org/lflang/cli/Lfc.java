@@ -170,6 +170,10 @@ public class Lfc extends CliBase {
      */
     @Override
     public void run() {
+        // Check for json.
+
+        // unpack json.
+
         List<Path> paths = getInputPaths();
         final Path outputRoot = getOutputRoot();
         // Hard code the props based on the options we want.
