@@ -391,6 +391,7 @@ public class ToLf extends LfSwitch<MalleableString> {
     //     | (outputs+=Output)
     //     | (timers+=Timer)
     //     | (actions+=Action)
+    //     | (watchdogs+=Watchdog)
     //     | (instantiations+=Instantiation)
     //     | (connections+=Connection)
     //     | (reactions+=Reaction)
@@ -408,6 +409,7 @@ public class ToLf extends LfSwitch<MalleableString> {
                 object.getOutputs(),
                 object.getTimers(),
                 object.getActions(),
+                object.getWatchdogs(),
                 object.getInstantiations(),
                 object.getConnections(),
                 object.getStateVars()),
