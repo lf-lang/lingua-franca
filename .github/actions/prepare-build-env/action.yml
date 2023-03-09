@@ -21,6 +21,6 @@ runs:
         path: |
           ~/.gradle/caches
           ~/.gradle/wrapper
-        key: ${{ runner.os }}-gradle-${{ hashFiles('**/gradle-wrapper.properties') }}
+        key: gradle-${{ runner.os }}-${{ hashFiles('**/gradle-wrapper.properties') }}
         # restore-keys: |
         #   ${{ runner.os }}-gradle-
