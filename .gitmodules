@@ -9,4 +9,4 @@
 	url = https://github.com/lf-lang/reactor-cpp.git
 [submodule "org.lflang/src/lib/rs/reactor-rs"]
 	path = org.lflang/src/lib/rs/reactor-rs
-	url = https://github.com/lf-lang/reactor-rs
+	url = https://github.com/lf-lang/reactor-rs.git
