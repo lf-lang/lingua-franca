@@ -2,9 +2,9 @@ name: Prepare build environment (Linux only)
 description: Set up Java, Maven, Gradle, etc.
 inputs:
   lf-dir:
-    description: 'Absolute path to lingua-franca checkout (ending with a slash)'
+    description: 'Relative path to lingua-franca checkout (ending with a slash)'
     required: false
-    default: '~/'
+    default: ''
 runs:
   using: "composite"
   steps:
@@ -19,12 +19,12 @@ runs:
         echo $(which java)
         cat gradle.properties
         echo $JAVA_HOME
-        echo "gradle-hash=$(cat ${{ inputs.lf-dir }}gradle/wrapper/gradle-wrapper.properties | grep "distributionSha256Sum" | cut -d'=' -f2)" >> $GITHUB_ENV
+        echo "gradle-hash=$(cat ${{ github.workspace }}/${{ inputs.lf-dir }}gradle/wrapper/gradle-wrapper.properties | grep "distributionSha256Sum" | cut -d'=' -f2)" >> $GITHUB_ENV
       shell: bash
     - name: Cache
       uses: actions/cache@v3
       with:
         path: |
-          ${{ inputs.lf-dir }}.gradle/caches
-          ${{ inputs.lf-dir }}.gradle/wrapper
+          ~/.gradle/caches
+          ~/.gradle/wrapper
         key: Gradle-${{ runner.os }}-${{ env.gradle-hash }}
