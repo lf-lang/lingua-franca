@@ -12,6 +12,26 @@ In the dataframe, each arrow will be marked as:
     - 'pending': pending
 '''
 
+# Styles to determine appearance:
+css_style = ' <style> \
+    line { \
+        stroke: black; \
+        stroke-width: 2; \
+    } \
+    .ABS {stroke: #d9dd1f; fill: #d9dd1f; } \
+    .LTC { stroke: #073b4c; fill: #073b4c;} \
+    .MSG { stroke: #ef476f; fill: #ef476f} \
+    .NET { stroke: #118ab2; fill: #118ab2} \
+    .PTAG { stroke: #06d6a0; fill: #06d6a0} \
+    .TAG { stroke: #08a578; fill: #08a578} \
+    .TIMESTAMP { stroke: grey; fill: grey } \
+    \
+    text { \
+        font-size: smaller; \
+    } \
+    text.time {fill: #074936; } \
+</style> \
+'
 
 #!/usr/bin/env python3
 import argparse         # For arguments parsing
@@ -94,6 +114,7 @@ if __name__ == '__main__':
     ############################################################################
     # Loop over the given list of federates trace files 
     if (args.federates) :
+        print('***************'+str(args.federates[0]))
         for fed_trace in args.federates[0]:
             if (not exists(fed_trace)):
                 print('Warning: Trace file ' + fed_trace + ' does not exist! Will resume though')
@@ -104,6 +125,7 @@ if __name__ == '__main__':
                 fed_id = fed_df.iloc[-1]['self_id']
                 # Add to the list of sequence diagram actors 
                 actors.append(fed_id)
+                print('***************'+str(fed_id)+": "+str(actors))
                 # Derive the x coordinate of the actor
                 x_coor[fed_id] = (padding * 2) + (spacing * (len(actors)-1))
                 fed_df['x1'] = x_coor[fed_id]
@@ -129,7 +151,7 @@ if __name__ == '__main__':
     ppt = 0     # Previous physical time
     cpt = 0     # Current physical time
     py = 0      # Previous y
-    min = 10    # Minimum spacing between events when time has not advanced.
+    min = 15    # Minimum spacing between events when time has not advanced.
     scale = 1   # Will probably be set manually
     first_pass = True
     for index, row in trace_df.iterrows():
@@ -234,6 +256,8 @@ if __name__ == '__main__':
         f.write('<body>\n\n')
         
         f.write('<svg width="'+str(svg_width)+'" height="'+str(svg_height)+'">\n')
+
+        f.write(css_style)
         
         # Print the circles and the names
         for key in x_coor:
@@ -262,21 +286,29 @@ if __name__ == '__main__':
             physical_time = f'{int(row["physical_time"]/1000):,}'
 
             if (row['logical_time'] == -1678240241788173894) :
-                label = row['event'] + ' @LT=+oo'
+                # FIXME: This isn't right.  NEVER == -9223372036854775808.
+                label = row['event'] + '(NEVER)'
             else:
-                label = row['event'] + ' @LT=' + str(row['logical_time'])
+                label = row['event'] + '(' + f'{int(row["logical_time"]):,}' + ', ' + str(row['microstep']) + ')'
+            
             if (row['arrow'] == 'arrow'): 
-                f.write(fhlp.svg_string_draw_arrow(row['x1'], row['y1'], row['x2'], row['y2'], label, False))
+                f.write(fhlp.svg_string_draw_arrow(row['x1'], row['y1'], row['x2'], row['y2'], label, False, row['event']))
                 f.write(fhlp.svg_string_draw_side_label(row['x1'], row['y1'], physical_time, anchor))
             elif (row['arrow'] == 'dashedarrow'): 
-                f.write(fhlp.svg_string_draw_arrow(row['x1'], row['y1'], row['x2'], row['y2'], label, True))
+                f.write(fhlp.svg_string_draw_arrow(row['x1'], row['y1'], row['x2'], row['y2'], label, True, row['event']))
                 f.write(fhlp.svg_string_draw_side_label(row['x1'], row['y1'], physical_time, anchor))
             elif (row['arrow'] == 'dot'):
                 if (row['inout'] == 'in'):
                     label = "(in) from " + str(row['partner_id']) + ' ' + label
                 else :
                     label = "(out) to " + str(row['partner_id']) + ' ' + label
-                f.write(fhlp.svg_string_draw_dot(row['x1'], row['y1'], physical_time + ': ' + label))
+                
+                if (anchor == 'end'):
+                    f.write(fhlp.svg_string_draw_side_label(row['x1'], row['y1'], physical_time, anchor))
+                    f.write(fhlp.svg_string_draw_dot(row['x1'], row['y1'], label))
+                else:
+                    f.write(fhlp.svg_string_draw_dot_with_time(row['x1'], row['y1'], physical_time, label))
+
             elif (row['arrow'] == 'marked'):
                 f.write(fhlp.svg_string_draw_side_label(row['x1'], row['y1'], physical_time, anchor))
 

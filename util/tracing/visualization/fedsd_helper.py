@@ -16,10 +16,10 @@ prune_event_name = {
     "Sending JOIN": "JOIN",
     "Sending REJECT": "REJECT",
     "Sending RESIGN": "RESIGN",
-    "Sending PORT_ABS": "PORT_ABS",
+    "Sending ABS": "ABS",
     "Sending CLOSE_REQ": "CLOSE_REQ",
-    "Sending TAGGED_MSG": "TAGGED_MSG",
-    "Sending P2P_TAGGED_MSG": "P2P_TAGGED_MSG",
+    "Sending MSG": "MSG",
+    "Sending P2P_MSG": "P2P_MSG",
     "Receiving ACK": "ACK",
     "Receiving TIMESTAMP": "TIMESTAMP",
     "Receiving NET": "NET",
@@ -32,13 +32,13 @@ prune_event_name = {
     "Receiving STOP_GRN": "STOP_GRN",
     "Receiving REJECT": "REJECT",
     "Receiving RESIGN": "RESIGN",
-    "Receiving PORT_ABS": "PORT_ABS",
+    "Receiving ABS": "ABS",
     "Receiving CLOSE_REQ": "CLOSE_REQ",
     "Receiving UNIDENTIFIED": "UNIDENTIFIED",
     # "Receiving ADDRESS_QUERY": "ADDRESS_QUERY",
     # "Receiving ADDRESS_ADVERTISEMENT": "ADDRESS_ADVERTISEMENT",
-    "Receiving TAGGED_MSG": "TAGGED_MSG",
-    "Receiving P2P_TAGGED_MSG": "P2P_TAGGED_MSG"
+    "Receiving MSG": "MSG",
+    "Receiving P2P_MSG": "P2P_MSG"
 }
 
 prune_event_name.setdefault(" ", "UNIDENTIFIED")
@@ -47,7 +47,7 @@ prune_event_name.setdefault(" ", "UNIDENTIFIED")
 ### Routines to write to csv file
 ################################################################################
 
-def svg_string_draw_line(x1, y1, x2, y2, dashed):
+def svg_string_draw_line(x1, y1, x2, y2, dashed, type=''):
     '''
     Constructs the svg html string to draw a line from (x1, y1) to (x2, y2). The 
     line can be continous or dashed.
@@ -59,31 +59,50 @@ def svg_string_draw_line(x1, y1, x2, y2, dashed):
      * y2: Int Y coordinate of the sink point
      * dashed: Bool True if the line is dashed, continous otherwise
     Returns:
-     * String: the svg string of the line
+     * String: the svg string of the line©
     '''
-    str_line = '\t<line x1="'+str(x1)+'" y1="'+str(y1)+'" x2="'+str(x2)+'" y2="'+str(y2)+'" stroke="black" stroke-width="2"'
+    str_line = '\t<line x1="'+str(x1)+'" y1="'+str(y1)+'" x2="'+str(x2)+'" y2="'+str(y2)+'"'
+    if (type):
+            str_line = str_line + ' class="' + type + '"'
+
     if (dashed):
-        str_line = str_line + ' stroke-dasharray="10,10" '
+        str_line = str_line + ' stroke-dasharray="10,10"'
+ 
     str_line = str_line +  '/>\n'
     return str_line
 
 
-def svg_string_draw_arrow_head(x1, x2, y2) :
+def svg_string_draw_arrow_head(x1, y1, x2, y2, type='') :
     '''
     Constructs the svg html string to draw the arrow end
 
     Args:
      * x1: Int X coordinate of the source point
+     * y1: Int Y coordinate of the source point
      * x2: Int X coordinate of the sink point
      * y2: Int Y coordinate of the sink point
+     * type: The type (for styling)
     Returns:
      * String: the svg string of the triangle
     '''
+
+    rotation = - math.ceil(math.atan((x2-x1)/(y2-y1)) * 180 / 3.14) - 90
+    style = ''
+    if (type):
+        style = ' class="'+type+'"'
+    
     str_line = ''
     if (x1 > x2) :
-        str_line = '\t<path d="M'+str(x2)+' '+str(y2)+' L'+str(x2+10)+' '+str(y2+5)+' L'+str(x2+10)+' '+str(y2-5)+' Z" />\n'
+        str_line = '\t<path d="M'+str(x2)+' '+str(y2)+' L'+str(x2+10)+' '+str(y2+5)+' L'+str(x2+10)+' '+str(y2-5)+' Z"' \
+             + ' transform="rotate('+str(rotation)+')" transform-origin="'+str(x2)+' '+str(y2)+'"' \
+             + style \
+             + '/>\n'
     else :
-        str_line = '\t<path d="M'+str(x2)+' '+str(y2)+' L'+str(x2-10)+' '+str(y2+5)+' L'+str(x2-10)+' '+str(y2-5)+' Z" />\n'
+        str_line = '\t<path d="M'+str(x2)+' '+str(y2)+' L'+str(x2-10)+' '+str(y2+5)+' L'+str(x2-10)+' '+str(y2-5)+' Z"' \
+             + ' transform="rotate('+str( 180 + rotation)+')" transform-origin="'+str(x2)+' '+str(y2)+'"' \
+             + style \
+             + '/>\n'
+
     return str_line
 
 
@@ -103,18 +122,18 @@ def svg_string_draw_label(x1, y1, x2, y2, label) :
     # FIXME: Need further improvement, based of the position of the arrows
     # FIXME: Rotation value is not that accurate. 
     if (x2 < x1) :
+        # Left-going arrow.
         rotation = - math.ceil(math.atan((x2-x1)/(y2-y1)) * 180 / 3.14) - 90
-        str_line = '\t<text transform="translate('+str(x2+5)+', '+str(y2-5)+') rotate('+str(rotation)+')" font-size="smaller">'+label+'</text>\n'
+        str_line = '\t<text text-anchor="end" transform="translate('+str(x1-10)+', '+str(y1-5)+') rotate('+str(rotation)+')">'+label+'</text>\n'
     else :
+        # Right-going arrow.
         rotation = - math.ceil(math.atan((x1-x2)/(y1-y2)) * 180 / 3.14) + 90
-        x = math.ceil((x2 + x1) / 2)
-        y = math.ceil((y1 + y2) / 2) - 5
-        str_line = '\t<text transform="translate('+str(x)+', '+str(y)+') rotate('+str(rotation)+')" font-size="smaller" text-anchor="middle">'+label+'</text>\n'
+        str_line = '\t<text transform="translate('+str(x1+10)+', '+str(y1-5)+') rotate('+str(rotation)+')" text-anchor="start">'+label+'</text>\n'
     #print('rot = '+str(rotation)+' x1='+str(x1)+' y1='+str(y1)+' x2='+str(x2)+' y2='+str(y2))
     return str_line
 
 
-def svg_string_draw_arrow(x1, y1, x2, y2, label, dashed):
+def svg_string_draw_arrow(x1, y1, x2, y2, label, dashed, type=''):
     '''
     Constructs the svg html string to draw the arrow from (x1, y1) to (x2, y2). 
     The arrow end is constructed, together with the label
@@ -129,8 +148,8 @@ def svg_string_draw_arrow(x1, y1, x2, y2, label, dashed):
     Returns:
      * String: the svg string of the arrow
     '''
-    str_line1 = svg_string_draw_line(x1, y1, x2, y2, dashed)
-    str_line2 = svg_string_draw_arrow_head(x1, x2, y2)
+    str_line1 = svg_string_draw_line(x1, y1, x2, y2, dashed, type)
+    str_line2 = svg_string_draw_arrow_head(x1, y1, x2, y2, type)
     str_line3 = svg_string_draw_label(x1, y1, x2, y2, label)
     return str_line1 + str_line2 + str_line3
 
@@ -153,9 +172,8 @@ def svg_string_draw_side_label(x, y, label, anchor="start") :
     elif (anchor == 'middle'):
         offset = 0
     str_line = '\t<text text-anchor="'+anchor+'"' \
-    +' fill="green"' \
-    +' font-size="smaller"' \
-    +' transform="translate('+str(x+offset)+', '+str(y+5)+')" font-size="smaller">'+label+'</text>\n'
+    +' class="time"' \
+    +' transform="translate('+str(x+offset)+', '+str(y+5)+')">'+label+'</text>\n'
 
     return str_line
 
@@ -179,11 +197,28 @@ def svg_string_draw_dot(x, y, label) :
     Args:
      * x: Int X coordinate of the dot
      * y: Int Y coordinate of the dot
-     * label1: String to draw 
+     * label: String to draw 
     Returns:
      * String: the svg string of the triangle
     '''
     str_line = ''
     str_line = '\t<circle cx="'+str(x)+'" cy="'+str(y)+'" r="3" stroke="black" stroke-width="1" fill="black"/>\n'
-    str_line = str_line + '\t<text x="'+str(x+5)+'", y="'+str(y+5)+'" fill="blue" font-size="smaller">'+label+'</text>\n'
+    str_line = str_line + '\t<text x="'+str(x+5)+'", y="'+str(y+5)+'" fill="blue">'+label+'</text>\n'
+    return str_line
+
+def svg_string_draw_dot_with_time(x, y, time, label) :
+    '''
+    Constructs the svg html string to draw at a dot with a prefixed physical time.
+
+    Args:
+     * x: Int X coordinate of the dot
+     * y: Int Y coordinate of the dot
+     * time: The time
+     * label: String to draw 
+    Returns:
+     * String: the svg string of the triangle
+    '''
+    str_line = ''
+    str_line = '\t<circle cx="'+str(x)+'" cy="'+str(y)+'" r="3" stroke="black" stroke-width="1" fill="black"/>\n'
+    str_line = str_line + '\t<text x="'+str(x+5)+'", y="'+str(y+5)+'"> <tspan class="time">'+time+':</tspan> <tspan fill="blue">'+label+'</tspan></text>\n'
     return str_line
