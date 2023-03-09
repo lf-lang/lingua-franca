@@ -36,7 +36,6 @@ import org.lflang.lf.VarRef;
 import org.lflang.lf.Variable;
 import org.lflang.lf.Watchdog;
 import org.lflang.util.StringUtil;
-// FIXME: modif4watchdogs
 import org.lflang.lf.Watchdog;
 
 public class CReactionGenerator {
@@ -199,7 +198,6 @@ public class CReactionGenerator {
                             (Input) variable
                         );
                     } else if (variable instanceof Watchdog) {
-                        //FIXME: modif4watchdogs
                         reactionInitialization.pr(generateWatchdogVariablesInReaction(
                             effect,
                             decl
@@ -678,7 +676,6 @@ public class CReactionGenerator {
      * @param effect The effect declared by the reaction. This must refer to a watchdog.
      * @param decl The reactor containing the reaction or the import statement.
      */
-    //FIXME: modif4watchdogs
     // Fine to have watchdog be in reactor self struct?
     public static String generateWatchdogVariablesInReaction(
         VarRef effect,
@@ -1185,7 +1182,6 @@ public class CReactionGenerator {
         return generateFunctionHeader(functionName);
     }
 
-    //FIXME: modif4watchdogs (changed from private to public to access in CWatchdogGenerator)
     public static String generateFunctionHeader(String functionName) {
         return "void " + functionName + "(void* instance_args)";
     }

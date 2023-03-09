@@ -63,7 +63,6 @@ import org.lflang.lf.VarRef;
 import org.lflang.lf.Variable;
 import org.lflang.lf.Watchdog;
 import org.lflang.lf.WidthSpec;
-//FIXME: modif4watchdogs
 import org.lflang.lf.Watchdog;
 
 
@@ -148,7 +147,6 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
     public final List<ReactionInstance> reactions = new ArrayList<>();
 
     /** List of watchdog instances for this reactor instance. */
-    //FIXME: modif4watchdogs
     public final List<WatchdogInstance> watchdogs = new ArrayList<>();
 
     /** The timer instances belonging to this reactor instance. */
@@ -753,7 +751,6 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
     /**
      * Create all the watchdog instances of this reactor instance.
      */
-    // FIXME: modif4watchdogs
     protected void createWatchdogInstances() {
         List<Watchdog> watchdogs = ASTUtils.allWatchdogs(reactorDefinition);
         if (watchdogs != null) {
@@ -876,7 +873,6 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
             createReactionInstances();
 
             // Create the reaction instances in this reactor instance.
-            // FIXME: modif4watchdogs
             createWatchdogInstances();
             
             // Instantiate modes for this reactor instance

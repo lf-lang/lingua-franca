@@ -656,7 +656,6 @@ public class ToLf extends LfSwitch<MalleableString> {
     return handler(object, "deadline", Deadline::getDelay, Deadline::getCode);
   }
 
-  //FIXME: modif4watchdogs
   @Override
   public MalleableString caseWatchdog(Watchdog object) {
     // 'watchdog' name=ID '(' timeout=Expression ')'

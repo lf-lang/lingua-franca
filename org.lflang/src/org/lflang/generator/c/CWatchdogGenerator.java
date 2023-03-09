@@ -21,7 +21,7 @@ import org.lflang.lf.Watchdog;
  *
  * @author{Benjamin Asch <benjamintasch@berkeley.edu>}
  */
-//FIXME: modif4watchdogs
+
 public class CWatchdogGenerator {
 
     /**

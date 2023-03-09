@@ -10,8 +10,6 @@ import org.lflang.lf.Watchdog;
  * 
  * @author{Benjamin Asch <benjamintasch@berkeley.edu>}
  */
-//FIXME: modif4watchdogs
-//FIXME: functions in constructor not defined
 public class WatchdogInstance {
 		
 	/**

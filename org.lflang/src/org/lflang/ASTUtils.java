@@ -91,7 +91,6 @@ import org.lflang.lf.Type;
 import org.lflang.lf.VarRef;
 import org.lflang.lf.Variable;
 
-//FIXME: modif4watchdogs
 import org.lflang.lf.Watchdog;
 import org.lflang.lf.WidthSpec;
 import org.lflang.lf.WidthTerm;
@@ -125,8 +124,6 @@ public class ASTUtils {
     /**
      * A mapping from Reactor features to corresponding Mode features for collecting contained elements.
      */
-    //FIXME: modif4watchdogs
-    // added 'featurePackage.getReactor_Watchdogs'
     private static final Map<EStructuralFeature, EStructuralFeature> reactorModeFeatureMap = Map.of(
             featurePackage.getReactor_Actions(),        featurePackage.getMode_Actions(),
             featurePackage.getReactor_Connections(),    featurePackage.getMode_Connections(),
@@ -423,7 +420,6 @@ public class ASTUtils {
      * @param definition Reactor class definition
      * @return List<Watchdog>
      */
-    // FIXME: modif4watchdogs
     public static List<Watchdog> allWatchdogs(Reactor definition) {
         return ASTUtils.collectElements(definition, featurePackage.getReactor_Watchdogs());
     }
@@ -1074,13 +1070,6 @@ public class ASTUtils {
     public static InferredType getInferredType(Port p) {
         return getInferredType(p.getType(), null);
     }
-
-    //FIXME: modif4watchdogs
-    // public static InferredType getInferredType(Watchdog w) {
-    //     return getInferredType(w.getType(), null);
-    // }
-
-
 
     /**
      * If the given string can be recognized as a floating-point number that has a leading decimal point,

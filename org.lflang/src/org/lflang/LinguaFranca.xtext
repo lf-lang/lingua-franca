@@ -87,11 +87,11 @@ Reactor:
         | (outputs+=Output)
         | (timers+=Timer)
         | (actions+=Action)
+        | (watchdogs+=Watchdog)
         | (instantiations+=Instantiation)
         | (connections+=Connection)
         | (reactions+=Reaction)
         | (modes+=Mode)
-        | (watchdogs+=Watchdog)
     )* '}';
 
 

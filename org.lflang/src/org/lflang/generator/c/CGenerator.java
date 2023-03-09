@@ -80,7 +80,6 @@ import org.lflang.generator.PortInstance;
 import org.lflang.generator.ReactionInstance;
 import org.lflang.generator.ReactorInstance;
 
-// FIXME: modif4watchdogs
 import org.lflang.generator.WatchdogInstance;
 import org.lflang.generator.SubContext;
 
@@ -105,7 +104,6 @@ import org.lflang.util.ArduinoUtil;
 import org.lflang.lf.Watchdog;
 import org.lflang.util.FileUtil;
 
-// FIXME: modif4watchdogs
 import org.lflang.lf.Watchdog;
 import org.lflang.util.LFCommand;
 
@@ -365,7 +363,6 @@ public class CGenerator extends GeneratorBase {
     private int resetReactionCount = 0;
     private int modalReactorCount = 0;
     private int modalStateResetCount = 0;
-    // FIXME: modif4watchdogs
     private int watchdogCount = 0;
 
     // Indicate whether the generator is in Cpp mode or not
@@ -709,7 +706,6 @@ public class CGenerator extends GeneratorBase {
             // If there are reset reactions, create a table of triggers.
             code.pr(CReactionGenerator.generateBuiltinTriggersTable(resetReactionCount, "reset"));
 
-            //FIXME: modif4watchdogs
             // If there are watchdogs, create a table of triggers.
             code.pr(CWatchdogGenerator.generateBuiltinTriggersTable(watchdogCount, "watchdog"));
 
@@ -737,7 +733,6 @@ public class CGenerator extends GeneratorBase {
             // Generate function to schedule timers for all reactors.
             code.pr(CTimerGenerator.generateLfInitializeTimer(timerCount));
 
-            //FIXME:modif4watchdogs
             // Generate function to initialize mutexes for all reactors with watchdogs.
             // needs to be implemented still
             code.pr(CWatchdogGenerator.generateLfInitializeWatchdogMutexes(watchdogCount));
@@ -827,7 +822,6 @@ public class CGenerator extends GeneratorBase {
         return false;
     }
 
-    //FIXME: modif4watchdogs
     private boolean hasWatchdogs(Reactor reactor) {
         if (ASTUtils.allWatchdogs(reactor) != null) {
             return true;
@@ -1072,7 +1066,6 @@ public class CGenerator extends GeneratorBase {
         generateSelfStruct(reactor, constructorCode);
         generateMethods(reactor);
 
-        // FIXME: modif4watchdogs
         generateWatchdogs(reactor);
         generateReactions(reactor);
         generateConstructor(reactor, constructorCode);
@@ -1225,7 +1218,6 @@ public class CGenerator extends GeneratorBase {
         );
 
         // Generate the fields needed for each watchdog.
-        // FIXME: modif4watchdogs
         CWatchdogGenerator.generateWatchdogStruct(
             body,
             decl,
@@ -1435,7 +1427,6 @@ public class CGenerator extends GeneratorBase {
         ));
     }
 
-    // FIXME: modif4watchdogs
      /** Generate watchdog functions definition for a reactor.
      *  These functions have a single argument that is a void* pointing to
      *  a struct that contains parameters, state variables, inputs (triggering or not),
@@ -1513,7 +1504,6 @@ public class CGenerator extends GeneratorBase {
         }
     }
 
-    // FIXME: modif4watchdogs
     private void recordWatchdogs(ReactorInstance instance) {
         var foundOne = false;
         var temp = new CodeBuilder();
@@ -1774,7 +1764,6 @@ public class CGenerator extends GeneratorBase {
         initializeOutputMultiports(instance);
         initializeInputMultiports(instance);
         recordBuiltinTriggers(instance);
-        // FIXME: modif4watchdogs
         recordWatchdogs(instance);
 
         // Next, initialize the "self" struct with state variables.
