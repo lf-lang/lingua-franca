@@ -1,5 +1,10 @@
 name: Prepare build environment (Linux only)
 description: Set up Java, Maven, Gradle, etc.
+inputs:
+  lf-dir:
+    description: 'Relative path from $GITHUB_WORKSPACE to lingua-franca checkout'
+    required: false
+    default: ''
 runs:
   using: "composite"
   steps:
@@ -15,5 +20,7 @@ runs:
         cat gradle.properties
         echo $JAVA_HOME
       shell: bash
-    - name: Validate Gradle wrapper
-      uses: gradle/wrapper-validation-action@v1.0.5
+    - name: Gradle Cache
+      uses: burrunan/gradle-cache-action@v1
+      with:
+        build-root-directory: ${{ inputs.lf-dir }}
