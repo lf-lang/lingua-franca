@@ -394,6 +394,7 @@ public class IsEqual extends LfSwitch<Boolean> {
 
     @Override
     public Boolean caseTypedVariable(TypedVariable object) {
+        //FIXME: modif4watchdogs
         throw thereIsAMoreSpecificCase(TypedVariable.class, Port.class, Action.class);
     }
 
@@ -487,6 +488,17 @@ public class IsEqual extends LfSwitch<Boolean> {
         return new ComparisonMachine<>(object, ArraySpec.class)
             .equalAsObjects(ArraySpec::isOfVariableLength)
             .equalAsObjects(ArraySpec::getLength)
+            .conclusion;
+    }
+
+    //FIXME: modif4watchdogs
+    @Override
+    public Boolean caseWatchdog(Watchdog object) {
+        return new ComparisonMachine<>(object, Watchdog.class)
+            .equalAsObjects(Watchdog::getName)
+            .equivalent(Watchdog::getTimeout)
+            .listsEquivalent(Watchdog::getEffects)
+            .equivalent(Watchdog::getCode)
             .conclusion;
     }
 

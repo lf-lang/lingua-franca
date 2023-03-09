@@ -9,7 +9,7 @@ reactor Watcher {
         printf("Deadline missed! Lag: %lld (too late by %lld nsecs)\n", p, p-500000);
     =}
 
-    reaction(x) -> d, poodle {=
+    reaction(x) -> poodle, d {=
         lf_watchdog_start(poodle, 0);
         printf("Normal reaction.\n");
     =} 

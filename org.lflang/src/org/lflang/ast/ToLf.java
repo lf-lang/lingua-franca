@@ -73,6 +73,7 @@ import org.lflang.lf.TypedVariable;
 import org.lflang.lf.VarRef;
 import org.lflang.lf.Variable;
 import org.lflang.lf.Visibility;
+import org.lflang.lf.Watchdog;
 import org.lflang.lf.WidthSpec;
 import org.lflang.lf.WidthTerm;
 import org.lflang.lf.util.LfSwitch;
@@ -651,6 +652,41 @@ public class ToLf extends LfSwitch<MalleableString> {
   public MalleableString caseDeadline(Deadline object) {
     // 'deadline' '(' delay=Expression ')' code=Code
     return handler(object, "deadline", Deadline::getDelay, Deadline::getCode);
+  }
+
+  //FIXME: modif4watchdogs
+  @Override
+  public MalleableString caseWatchdog(Watchdog object) {
+    // 'watchdog' name=ID '(' timeout=Expression ')'
+    // ('->' effects+=VarRefOrModeTransition (',' effects+=VarRefOrModeTransition)*)?
+    // code=Code;
+
+    Builder msb = new Builder();
+    msb.append("watchdog ");
+    msb.append(object.getName());
+    msb.append(list(true, object.getTimeout()));
+
+    if (!object.getEffects().isEmpty()) {
+      List<Mode> allModes = ASTUtils.allModes(ASTUtils.getEnclosingReactor(object));
+      msb.append(" -> ", " ->\n")
+          .append(
+              object.getEffects().stream()
+                  .map(
+                      varRef ->
+                          (allModes.stream()
+                                  .anyMatch(
+                                      m -> m.getName().equals(varRef.getVariable().getName())))
+                              ? new Builder()
+                                  .append(varRef.getTransition())
+                                  .append("(")
+                                  .append(doSwitch(varRef))
+                                  .append(")")
+                                  .get()
+                              : doSwitch(varRef))
+                  .collect(new Joiner(", ")));
+    }
+    msb.append(" ").append(doSwitch(object.getCode()));
+    return msb.get();
   }
 
   @Override

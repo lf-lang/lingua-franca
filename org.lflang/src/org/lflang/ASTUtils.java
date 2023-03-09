@@ -1075,6 +1075,11 @@ public class ASTUtils {
         return getInferredType(p.getType(), null);
     }
 
+    //FIXME: modif4watchdogs
+    // public static InferredType getInferredType(Watchdog w) {
+    //     return getInferredType(w.getType(), null);
+    // }
+
 
 
     /**
