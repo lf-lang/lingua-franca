@@ -1,10 +1,5 @@
 name: Prepare build environment (Linux only)
 description: Set up Java, Maven, Gradle, etc.
-inputs:
-  lf-dir:
-    description: 'Relative path from $GITHUB_WORKSPACE to lingua-franca checkout'
-    required: false
-    default: ''
 runs:
   using: "composite"
   steps:
@@ -20,7 +15,12 @@ runs:
         cat gradle.properties
         echo $JAVA_HOME
       shell: bash
-    - name: Gradle Cache
-      uses: burrunan/gradle-cache-action@v1
+    - name: Cache
+      uses: actions/cache@v3
       with:
-        build-root-directory: ${{ inputs.lf-dir }}
+        path: |
+          ~/.gradle/caches
+          ~/.gradle/wrapper
+        key: gradle-${{ runner.os }}-${{ hashFiles('**/gradle-wrapper.properties') }}
+        # restore-keys: |
+        #   ${{ runner.os }}-gradle-
