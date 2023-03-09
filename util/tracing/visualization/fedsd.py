@@ -37,6 +37,7 @@ css_style = ' <style> \
 import argparse         # For arguments parsing
 import pandas as pd     # For csv manipulation
 from os.path import exists
+from pathlib import Path
 import math
 import fedsd_helper as fhlp
 
@@ -97,6 +98,7 @@ if __name__ == '__main__':
     # saved in a dict
     x_coor = {}
     actors = []
+    actors_names = {}
     padding = 50
     spacing = 200       # Spacing between federates
     
@@ -106,6 +108,7 @@ if __name__ == '__main__':
     trace_df = load_and_process_csv_file(args.rti)
     x_coor[-1] = padding * 2
     actors.append(-1)
+    actors_names[-1] = "RTI"
     # Temporary use
     trace_df['x1'] = x_coor[-1]
 
@@ -122,8 +125,10 @@ if __name__ == '__main__':
             if (not fed_df.empty):
                 # Get the federate id number
                 fed_id = fed_df.iloc[-1]['self_id']
-                # Add to the list of sequence diagram actors 
+                # Add to the list of sequence diagram actors and add the name
                 actors.append(fed_id)
+                actors_names[fed_id] = Path(fed_trace).stem
+                print(actors_names)
                 # Derive the x coordinate of the actor
                 x_coor[fed_id] = (padding * 2) + (spacing * (len(actors)-1))
                 fed_df['x1'] = x_coor[fed_id]
@@ -243,13 +248,12 @@ if __name__ == '__main__':
         
         # Print the circles and the names
         for key in x_coor:
+            title = actors_names[key]
             if (key == -1):
                 f.write(fhlp.svg_string_comment('RTI Actor and line'))
-                title = 'RTI'
                 center = 15
             else:
-                f.write(fhlp.svg_string_comment('Federate '+str(key)+' Actor and line'))
-                title = str(key)
+                f.write(fhlp.svg_string_comment('Federate '+str(key)+': ' + title + ' Actor and line'))
                 center = 5
             f.write(fhlp.svg_string_draw_line(x_coor[key], math.ceil(padding/2), x_coor[key], svg_height, False))
             f.write('\t<circle cx="'+str(x_coor[key])+'" cy="'+str(math.ceil(padding/2))+'" r="20" stroke="black" stroke-width="2" fill="white"/>\n')
