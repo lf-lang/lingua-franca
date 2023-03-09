@@ -114,7 +114,6 @@ if __name__ == '__main__':
     ############################################################################
     # Loop over the given list of federates trace files 
     if (args.federates) :
-        print('***************'+str(args.federates[0]))
         for fed_trace in args.federates[0]:
             if (not exists(fed_trace)):
                 print('Warning: Trace file ' + fed_trace + ' does not exist! Will resume though')
@@ -125,7 +124,6 @@ if __name__ == '__main__':
                 fed_id = fed_df.iloc[-1]['self_id']
                 # Add to the list of sequence diagram actors 
                 actors.append(fed_id)
-                print('***************'+str(fed_id)+": "+str(actors))
                 # Derive the x coordinate of the actor
                 x_coor[fed_id] = (padding * 2) + (spacing * (len(actors)-1))
                 fed_df['x1'] = x_coor[fed_id]
@@ -189,21 +187,8 @@ if __name__ == '__main__':
             microstep = trace_df.at[index, 'microstep']
             inout = trace_df.at[index, 'inout']
 
-
-            # Depending on the direction, compute the possible time interval
-            # and choose the row 
-            if (inout == 'out'):
-                # Compute the possible physical time interval at the receiver side
-                physical_time_start = physical_time - clock_sync_error
-                physical_time_end = physical_time + clock_sync_error + network_latency
-            else:
-                physical_time_start = physical_time - network_latency - clock_sync_error
-                physical_time_end = physical_time + clock_sync_error 
-
             # Match tracepoints
             matching_df = trace_df[\
-                (trace_df['physical_time'] >= physical_time_start) & \
-                (trace_df['physical_time'] <= physical_time_end) & \
                 (trace_df['inout'] != inout) & \
                 (trace_df['self_id'] == partner_id) & \
                 (trace_df['partner_id'] == self_id) & \
@@ -238,10 +223,7 @@ if __name__ == '__main__':
                 # Mark it, so not to consider it anymore
                 trace_df.at[matching_index, 'arrow'] = 'marked'
 
-                if (len(matching_df.index) == 1) :
-                    trace_df.at[index, 'arrow'] = 'arrow'
-                else :
-                    trace_df.at[index, 'arrow'] = 'dashedarrow'
+                trace_df.at[index, 'arrow'] = 'arrow'
 
     ############################################################################
     #### Write to svg file
@@ -292,10 +274,7 @@ if __name__ == '__main__':
                 label = row['event'] + '(' + f'{int(row["logical_time"]):,}' + ', ' + str(row['microstep']) + ')'
             
             if (row['arrow'] == 'arrow'): 
-                f.write(fhlp.svg_string_draw_arrow(row['x1'], row['y1'], row['x2'], row['y2'], label, False, row['event']))
-                f.write(fhlp.svg_string_draw_side_label(row['x1'], row['y1'], physical_time, anchor))
-            elif (row['arrow'] == 'dashedarrow'): 
-                f.write(fhlp.svg_string_draw_arrow(row['x1'], row['y1'], row['x2'], row['y2'], label, True, row['event']))
+                f.write(fhlp.svg_string_draw_arrow(row['x1'], row['y1'], row['x2'], row['y2'], label, row['event']))
                 f.write(fhlp.svg_string_draw_side_label(row['x1'], row['y1'], physical_time, anchor))
             elif (row['arrow'] == 'dot'):
                 if (row['inout'] == 'in'):

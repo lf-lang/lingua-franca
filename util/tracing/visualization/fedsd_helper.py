@@ -47,26 +47,22 @@ prune_event_name.setdefault(" ", "UNIDENTIFIED")
 ### Routines to write to csv file
 ################################################################################
 
-def svg_string_draw_line(x1, y1, x2, y2, dashed, type=''):
+def svg_string_draw_line(x1, y1, x2, y2, type=''):
     '''
-    Constructs the svg html string to draw a line from (x1, y1) to (x2, y2). The 
-    line can be continous or dashed.
+    Constructs the svg html string to draw a line from (x1, y1) to (x2, y2).
 
     Args:
      * x1: Int X coordinate of the source point
      * y1: Int Y coordinate of the source point
      * x2: Int X coordinate of the sink point
      * y2: Int Y coordinate of the sink point
-     * dashed: Bool True if the line is dashed, continous otherwise
+     * type: The type of the message (for styling)
     Returns:
      * String: the svg string of the line©
     '''
     str_line = '\t<line x1="'+str(x1)+'" y1="'+str(y1)+'" x2="'+str(x2)+'" y2="'+str(y2)+'"'
     if (type):
             str_line = str_line + ' class="' + type + '"'
-
-    if (dashed):
-        str_line = str_line + ' stroke-dasharray="10,10"'
  
     str_line = str_line +  '/>\n'
     return str_line
@@ -115,7 +111,7 @@ def svg_string_draw_label(x1, y1, x2, y2, label) :
      * y1: Int Y coordinate of the source point
      * x2: Int X coordinate of the sink point
      * y2: Int Y coordinate of the sink point
-     * label: Bool True if the line is dashed, continous otherwise
+     * label: The label to draw
     Returns:
      * String: the svg string of the text
     '''
@@ -133,7 +129,7 @@ def svg_string_draw_label(x1, y1, x2, y2, label) :
     return str_line
 
 
-def svg_string_draw_arrow(x1, y1, x2, y2, label, dashed, type=''):
+def svg_string_draw_arrow(x1, y1, x2, y2, label, type=''):
     '''
     Constructs the svg html string to draw the arrow from (x1, y1) to (x2, y2). 
     The arrow end is constructed, together with the label
@@ -144,11 +140,11 @@ def svg_string_draw_arrow(x1, y1, x2, y2, label, dashed, type=''):
      * x2: Int X coordinate of the sink point
      * y2: Int Y coordinate of the sink point
      * label: String Label to draw on top of the arrow
-     * dashed: Bool True if the line is dashed, continous otherwise
+     * type: The type of the message
     Returns:
      * String: the svg string of the arrow
     '''
-    str_line1 = svg_string_draw_line(x1, y1, x2, y2, dashed, type)
+    str_line1 = svg_string_draw_line(x1, y1, x2, y2, type)
     str_line2 = svg_string_draw_arrow_head(x1, y1, x2, y2, type)
     str_line3 = svg_string_draw_label(x1, y1, x2, y2, label)
     return str_line1 + str_line2 + str_line3
