@@ -20,7 +20,13 @@ runs:
         cat gradle.properties
         echo $JAVA_HOME
       shell: bash
-    - name: Gradle Cache
-      uses: burrunan/gradle-cache-action@v1
+    - name: Cache
+      uses: actions/cache@v3
       with:
-        build-root-directory: ${{ inputs.lf-dir }}
+        path: |
+          ~/.gradle/caches
+          ~/.gradle/wrapper
+        key: gradle-${{ runner.os }}-${{ hashFiles('**/gradle-wrapper.properties') }}
+        # restore-keys: |
+        #   ${{ runner.os }}-gradle-
+        
