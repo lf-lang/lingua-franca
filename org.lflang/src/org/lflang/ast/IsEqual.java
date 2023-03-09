@@ -400,7 +400,6 @@ public class IsEqual extends LfSwitch<Boolean> {
 
     @Override
     public Boolean caseVariable(Variable object) {
-        //FIXME: modif4watchdogs
         throw thereIsAMoreSpecificCase(Variable.class, TypedVariable.class, Timer.class, Mode.class, Watchdog.class);
     }
 
