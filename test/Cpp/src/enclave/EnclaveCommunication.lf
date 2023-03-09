@@ -1,0 +1,29 @@
+target Cpp {
+    timeout: 1s,
+    workers: 1
+}
+
+reactor Src {
+    timer t(0, 100ms)
+    output out: int
+    state counter: int(0);
+    reaction(t) -> out {=
+        out.set(counter++);
+    =}
+}
+
+reactor Sink {
+    input in: int
+    reaction(in) {=
+        reactor::log::Info() << "Received " << *in.get();
+    =}
+}
+
+main reactor {
+    @enclave
+    src = new Src()
+    @enclave
+    sink = new Sink()
+
+    src.out -> sink.in
+}
