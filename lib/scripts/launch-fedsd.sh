@@ -65,7 +65,7 @@ fi
 # Initialize variables
 csv_files_list=''
 extension='.csv'
-rti_file=''
+rti_csv_file=''
 
 # Iterate over the lft file list to:
 #  - First, transform into csv
@@ -81,22 +81,23 @@ for each_lft_file in $lft_files_list
         if [ $csv == 'rti' ]
         then 
             # Set the rti csv file 
-            rti_file='rti.csv'
+            rti_csv_file='rti.csv'
         else
             # Construct the csv file name and add it to the list
             csv_files_list="$csv$extension $csv_files_list"
         fi
     done
 
-echo $lft_files_list
-echo $rti_file
-echo $csv_files_list
+# echo $lft_files_list
+# echo $rti_csv_file
+# echo $csv_files_list
 
 # FIXME: Check that python3 is in the path.
-if [ $rti_file == '' ]
+if [ $rti_csv_file == '' ]
 then
     # FIXME: Support the case where no rti file is given
     python3 "${base}/util/tracing/visualization/fedsd.py" "-f" $csv_files_list
 else 
-    python3 "${base}/util/tracing/visualization/fedsd.py" "-r" "$rti_file" "-f" $csv_files_list
+    echo Building the communication diagram for the following trace files: $lft_files_list in trace_svg.html
+    python3 "${base}/util/tracing/visualization/fedsd.py" "-r" "$rti_csv_file" "-f" $csv_files_list
 fi

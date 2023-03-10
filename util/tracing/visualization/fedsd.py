@@ -29,6 +29,7 @@ css_style = ' <style> \
     \
     text { \
         font-size: smaller; \
+        font-family: sans-serif; \
     } \
     text.time {fill: #074936; } \
 </style> \
@@ -129,7 +130,6 @@ if __name__ == '__main__':
                 # Add to the list of sequence diagram actors and add the name
                 actors.append(fed_id)
                 actors_names[fed_id] = Path(fed_trace).stem
-                print(actors_names)
                 # Derive the x coordinate of the actor
                 x_coor[fed_id] = (padding * 2) + (spacing * (len(actors)-1))
                 fed_df['x1'] = x_coor[fed_id]
