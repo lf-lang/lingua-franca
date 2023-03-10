@@ -150,6 +150,13 @@ public abstract class CliBase implements Runnable {
      * CliBase, which implements the Runnable interface, is instantiated.
      */ 
     public void run() {
+
+        // If args are given in a json file, store its contents in jsonString.
+        if (topLevelArg.jsonFile != null) {
+            topLevelArg.jsonString = new String(
+                    Files.readAllBytes(topLevelArg.jsonFile));
+        }
+
         // If args are given in a json string, (1) unpack them into an args
         // string, and (2) call cmd.execute on them, which assigns them to their
         // correct instance variables, then (3) recurses into run().
