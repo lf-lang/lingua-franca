@@ -34,7 +34,7 @@ jobs:
           ref: master
       - name: Perform TypeScript tests
         run: |
-          ./gradlew test --tests org.lflang.tests.runtime.TypeScriptTest.* -Druntime="./reactor-ts"
+          ./gradlew test --tests org.lflang.tests.runtime.TypeScriptTest.* -Druntime="git://github.com/lf-lang/reactor-ts.git#master
       - name: Report to CodeCov
         uses: codecov/codecov-action@v3.1.1
         with:
