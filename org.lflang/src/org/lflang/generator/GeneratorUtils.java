@@ -20,6 +20,7 @@ import org.eclipse.xtext.resource.XtextResource;
 import org.eclipse.xtext.validation.CheckMode;
 import org.eclipse.xtext.validation.IResourceValidator;
 import org.eclipse.xtext.validation.Issue;
+import org.eclipse.xtext.xbase.lib.IteratorExtensions;
 
 import org.lflang.ASTUtils;
 import org.lflang.ErrorReporter;
@@ -45,6 +46,7 @@ import org.lflang.lf.Reaction;
 import org.lflang.lf.Reactor;
 import org.lflang.lf.TargetDecl;
 import org.lflang.util.FileUtil;
+import org.lflang.util.IteratorUtil;
 
 /**
  * A helper class with functions that may be useful for code
@@ -188,30 +190,7 @@ public class GeneratorUtils {
      * {@code resource}
      */
     public static <T> Iterable<T> findAll(Resource resource, Class<T> nodeType) {
-        Iterator<EObject> contents = resource.getAllContents();
-        assert contents != null : "Although getAllContents is not marked as NotNull, it should be.";
-        EObject temp = null;
-        while (!nodeType.isInstance(temp) && contents.hasNext()) temp = contents.next();
-        EObject next_ = temp;
-        return () -> new Iterator<>() {
-            EObject next = next_;
-
-            @Override
-            public boolean hasNext() {
-                return nodeType.isInstance(next);
-            }
-
-            @Override
-            public T next() {
-                // This cast is safe if hasNext() holds.
-                assert hasNext() : "next() was called on an Iterator when hasNext() was false.";
-                //noinspection unchecked
-                T current = (T) next;
-                next = null;
-                while (!nodeType.isInstance(next) && contents.hasNext()) next = contents.next();
-                return current;
-            }
-        };
+        return () -> IteratorExtensions.filter(resource.getAllContents(), nodeType);
     }
 
     /**

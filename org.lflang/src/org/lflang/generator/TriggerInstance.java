@@ -30,6 +30,7 @@ import java.util.LinkedHashSet;
 import java.util.Set;
 
 import org.lflang.lf.BuiltinTrigger;
+import org.lflang.lf.BuiltinTriggerRef;
 import org.lflang.lf.TriggerRef;
 import org.lflang.lf.Variable;
 import org.lflang.lf.impl.VariableImpl;
@@ -56,18 +57,17 @@ public class TriggerInstance<T extends Variable> extends NamedInstance<T> {
     
     /**
      * Construct a new instance for a special builtin trigger.
-     * This constructor must be used with Variable or BuiltinTriggerVariable
-     * as generic type T.
-     * 
-     * @param type The builtin trigger type.
-     * @param type The actual trigger definition.
+     *
+     * @param trigger The actual trigger definition.
      * @param parent The reactor instance that creates this instance.
      */
-    public TriggerInstance(BuiltinTrigger type, TriggerRef trigger, ReactorInstance parent) {
-        super((T)(new BuiltinTriggerVariable(type, trigger)), parent);
-        builtinTriggerType = type;
+    static TriggerInstance<BuiltinTriggerVariable> builtinTrigger(BuiltinTriggerRef trigger, ReactorInstance parent) {
+        var variable = new BuiltinTriggerVariable(trigger.getType(), trigger);
+        var result = new TriggerInstance<>(variable, parent);
+        result.builtinTriggerType = trigger.getType();
+        return result;
     }
-    
+
     /////////////////////////////////////////////
     //// Public Methods
 
