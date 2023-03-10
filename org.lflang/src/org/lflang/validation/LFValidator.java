@@ -1034,7 +1034,7 @@ public class LFValidator extends BaseLFValidator {
 
     private KeyValuePair getKeyValuePair(KeyValuePairs targetProperties, TargetProperty property) {
         List<KeyValuePair> properties = targetProperties.getPairs().stream()
-            .filter(pair -> pair.getName() == property.description)
+            .filter(pair -> pair.getName().equals(property.description))
             .toList();
         assert (properties.size() <= 1);
         return properties.size() > 0 ? properties.get(0) : null;
@@ -1128,7 +1128,7 @@ public class LFValidator extends BaseLFValidator {
     private void validateRos2TargetProperties(KeyValuePairs targetProperties) {
         KeyValuePair ros2 = getKeyValuePair(targetProperties, TargetProperty.ROS2);
         KeyValuePair ros2Dependencies = getKeyValuePair(targetProperties, TargetProperty.ROS2_DEPENDENCIES);
-        if (!ASTUtils.toBoolean(ros2.getValue()) && ros2Dependencies != null) {
+        if (ros2Dependencies != null && (ros2 == null || !ASTUtils.toBoolean(ros2.getValue()))) {
             warning(
                 "Ignoring ros2-dependencies as ros2 compilation is disabled",
                 ros2Dependencies,

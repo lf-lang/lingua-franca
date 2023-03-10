@@ -20,13 +20,17 @@ runs:
         cat gradle.properties
         echo $JAVA_HOME
       shell: bash
+    - name: Create hash of Gradle configuration
+      run: |
+        echo "gradle-hash"="$(find . -type f \( -name "gradle.properties" -o -name "gradle-wrapper.properties" \) -exec cat {} + | sha256sum | cut -d ' ' -f 1)" >> $GITHUB_ENV
+      shell: bash
     - name: Cache
       uses: actions/cache@v3
       with:
         path: |
           ~/.gradle/caches
           ~/.gradle/wrapper
-        key: gradle-${{ runner.os }}-${{ hashFiles('**/gradle-wrapper.properties') }}
+        key: gradle-${{ runner.os }}-${{ env.gradle-hash }}
         # restore-keys: |
         #   ${{ runner.os }}-gradle-
         
