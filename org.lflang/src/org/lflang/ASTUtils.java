@@ -793,18 +793,17 @@ public class ASTUtils {
                 if (type.isTime()) {
                     return "time";
                 } else {
-                    StringBuilder stars = new StringBuilder();
-                    List<String> iterList = convertToEmptyListIfNull(type.getStars());
-                    for (String s : iterList) {
-                        stars.append(s);
+                    StringBuilder result = new StringBuilder(type.getId());
+
+                    if (!type.getTypeArgs().isEmpty()) {
+                        result.append(type.getTypeArgs().stream().map(ASTUtils::toText)
+                            .collect(Collectors.joining(", ", "<", ">")));
                     }
-                    if (!IterableExtensions.isNullOrEmpty(type.getTypeParms())) {
-                        List<String> typeParamsStr = new ArrayList<>();
-                        type.getTypeParms().forEach(it -> typeParamsStr.add(toText(it)));
-                        return String.format("%s<%s>", type.getId(), String.join(", ", typeParamsStr));
-                    } else {
-                        return type.getId() + stars;
+
+                    for (String s : convertToEmptyListIfNull(type.getStars())) {
+                        result.append(s);
                     }
+                    return result.toString();
                 }
             }
         }
