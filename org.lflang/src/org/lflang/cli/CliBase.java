@@ -1,7 +1,6 @@
 package org.lflang.cli;
 
 import java.io.IOException;
-import java.io.PrintStream;
 import java.io.PrintWriter;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -17,10 +16,9 @@ import picocli.CommandLine;
 import picocli.CommandLine.ArgGroup;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Model.CommandSpec;
+
 import picocli.CommandLine.Option;
 import picocli.CommandLine.Parameters;
-import picocli.CommandLine.ParseResult;
-import picocli.CommandLine.Spec;
 
 import org.eclipse.emf.common.util.URI;
 import org.eclipse.emf.ecore.resource.Resource;
@@ -33,8 +31,6 @@ import org.eclipse.xtext.validation.Issue;
 import org.lflang.ErrorReporter;
 import org.lflang.LFRuntimeModule;
 import org.lflang.LFStandaloneSetup;
-import org.lflang.LocalStrings;
-import org.lflang.generator.LFGeneratorContext.BuildParm;
 import org.lflang.util.FileUtil;
 import com.google.gson.*;
 import com.google.inject.Inject;
@@ -50,11 +46,6 @@ import com.google.inject.Provider;
  * @author Atharva Patil
  */
 public abstract class CliBase implements Runnable {
-    /**
-     * Models a command specification, including the options, positional
-     * parameters and subcommands supported by the command.
-     */
-    @Spec CommandSpec spec;
 
     /**
      * Options and parameters present in both Lfc and Lff.
@@ -81,11 +72,11 @@ public abstract class CliBase implements Runnable {
     MutuallyExclusive topLevelArg;
 
     @Option(
-    names = {"-o", "--output-path"},
-    defaultValue = "",
-    fallbackValue = "",
-    description = "Specify the root output directory.")
-        private Path outputPath;
+        names = {"-o", "--output-path"},
+        defaultValue = "",
+        fallbackValue = "",
+        description = "Specify the root output directory.")
+    private Path outputPath;
 
     /**
      * Used to collect all errors that happen during validation/generation.
@@ -122,13 +113,6 @@ public abstract class CliBase implements Runnable {
      */
     @Inject
     private IResourceValidator validator;
-
-    /** Name of the program, eg "lfc". */
-    private final String toolName;
-
-    protected CliBase(String toolName) {
-        this.toolName = toolName;
-    }
 
     protected static void cliMain(
             String toolName, Class<? extends CliBase> toolClass,

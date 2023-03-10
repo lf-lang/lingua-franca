@@ -1,20 +1,12 @@
 package org.lflang.cli;
 
 
-import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Properties;
-import java.util.Set;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
-import picocli.CommandLine;
 import picocli.CommandLine.Command;
-import picocli.CommandLine.Model.OptionSpec;
 import picocli.CommandLine.Option;
-import picocli.CommandLine.Parameters;
 import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.xtext.generator.GeneratorDelegate;
 import org.eclipse.xtext.generator.JavaIoFileSystemAccess;
@@ -54,15 +46,8 @@ public class Lfc extends CliBase {
     @Inject
     private JavaIoFileSystemAccess fileAccess;
 
-    public Lfc() {
-        super("lfc");
-    }
-
-    /**
+    /*
      * Supported CLI options.
-     *
-     * @author Marten Lohstroh
-     * @author Atharva Patil
      */
 
     @Option(
@@ -101,7 +86,7 @@ public class Lfc extends CliBase {
     @Option(
         names = {"-l", "--lint"},
         arity = "0",
-        description = "Enable or disable linting of generated code.")
+        description = "Enable linting of generated code.")
     private boolean lint;
 
     @Option(
@@ -143,7 +128,7 @@ public class Lfc extends CliBase {
     @Option(
         names = {"-w", "--workers"},
         description = "Specify the default number of worker threads.")
-    private int workers;
+    private Integer workers;
 
     /**
      * Main function of the stand-alone compiler.
@@ -249,47 +234,48 @@ public class Lfc extends CliBase {
      * @return Properties for the code generator.
      */
     protected Properties filterPassOnProps() {
-        // Parameters corresponding to the options that need to be passed on to
-        // the generator as properties.
-        final Set<String> passOnParams = Stream.of(
-            BuildParm.BUILD_TYPE,
-            BuildParm.CLEAN,
-            BuildParm.TARGET_COMPILER,
-            BuildParm.EXTERNAL_RUNTIME_PATH,
-            BuildParm.LOGGING,
-            BuildParm.LINT,
-            BuildParm.NO_COMPILE,
-            BuildParm.QUIET,
-            BuildParm.RTI,
-            BuildParm.RUNTIME_VERSION,
-            BuildParm.SCHEDULER,
-            BuildParm.THREADING,
-            BuildParm.WORKERS)
-        .map(param -> param.getKey())
-        .collect(Collectors.toUnmodifiableSet());
-
         Properties props = new Properties();
 
-        for (OptionSpec option : spec.options()) {
-            String optionName = option.longestName();
-            // Check whether this option needs to be passed on to the code
-            // generator as a property.
-            if (passOnParams.contains(optionName)) {
-                String value = "";
-                // Boolean or Integer option.
-                if (option.getValue() instanceof Boolean ||
-                        option.getValue() instanceof Integer) {
-                    value = String.valueOf(option.getValue());
-                // String option.
-                } else if (option.getValue() instanceof String) {
-                    value = option.getValue();
-                // Path option.
-                } else if (option.getValue() instanceof Path) {
-                    value = option.getValue().toString();
-                }
-                props.setProperty(optionName, value);
-            }
+        if (buildType != null) {
+            props.setProperty(BuildParm.BUILD_TYPE.getKey(), buildType);
         }
+        if (clean) {
+            props.setProperty(BuildParm.CLEAN.getKey(), "true");
+        }
+        if (externalRuntimePath != null) {
+            props.setProperty(BuildParm.EXTERNAL_RUNTIME_PATH.getKey(), externalRuntimePath.toString());
+        }
+        if (lint) {
+            props.setProperty(BuildParm.LINT.getKey(), "true");
+        }
+        if (logging != null) {
+            props.setProperty(BuildParm.LOGGING.getKey(), logging);
+        }
+        if (noCompile) {
+            props.setProperty(BuildParm.NO_COMPILE.getKey(), "true");
+        }
+        if (targetCompiler != null) {
+            props.setProperty(BuildParm.TARGET_COMPILER.getKey(), targetCompiler);
+        }
+        if (quiet) {
+            props.setProperty(BuildParm.QUIET.getKey(), "true");
+        }
+        if (rti != null) {
+            props.setProperty(BuildParm.RTI.getKey(), rti);
+        }
+        if (runtimeVersion != null) {
+            props.setProperty(BuildParm.RUNTIME_VERSION.getKey(), runtimeVersion);
+        }
+        if (scheduler != null) {
+            props.setProperty(BuildParm.SCHEDULER.getKey(), scheduler);
+        }
+        if (threading != null) {
+            props.setProperty(BuildParm.THREADING.getKey(), threading);
+        }
+        if (workers != null) {
+            props.setProperty(BuildParm.WORKERS.getKey(), workers.toString());
+        }
+        
         return props;
     }
 }

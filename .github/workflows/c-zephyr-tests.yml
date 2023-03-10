@@ -44,6 +44,8 @@ jobs:
           submodules: true
           ref: ${{ inputs.compiler-ref }}
           fetch-depth: 0
+      - name: Try to get around git safe issues
+        run: git config --global --add safe.directory /__w/lingua-franca/lingua-franca 
       - name: Prepare build environment
         uses: ./.github/actions/prepare-build-env
       - name: Check out specific ref of reactor-c
@@ -53,8 +55,5 @@ jobs:
           path: org.lflang/src/lib/c/reactor-c
           ref: ${{ inputs.runtime-ref }}
         if: ${{ inputs.runtime-ref }}
-      - name: Try to get around git safe issues
-        run: chown root:root .
-
       - name: Perform Zephyr tests for C target with default scheduler
         run: ./gradlew test --tests org.lflang.tests.runtime.CZephyrTest.runZephyrTests
