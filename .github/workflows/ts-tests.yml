@@ -29,9 +29,6 @@ jobs:
       - name: Perform TypeScript tests
         run: |
           ./gradlew test --tests org.lflang.tests.runtime.TypeScriptTest.*
-      - name: Remove generated sources of tests to make glob star tractable
-        run: |
-          rm -rf test/TypeScript/src-gen
       - name: Report to CodeCov
         uses: codecov/codecov-action@v3.1.1
         with:
