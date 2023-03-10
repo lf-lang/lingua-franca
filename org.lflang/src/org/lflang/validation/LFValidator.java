@@ -1128,7 +1128,7 @@ public class LFValidator extends BaseLFValidator {
 
     private void validateKeepalive(KeyValuePairs targetProperties) {
         KeyValuePair keepalive = getKeyValuePair(targetProperties, TargetProperty.KEEPALIVE);
-        if (keepalive != null) {
+        if (keepalive != null && target == Target.CPP) {
             warning("The keepalive property is inferred automatically by the C++ " +
                 "runtime and the value given here is ignored", keepalive, Literals.KEY_VALUE_PAIR__NAME);
         }
