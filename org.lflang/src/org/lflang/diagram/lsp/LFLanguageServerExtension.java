@@ -1,19 +1,14 @@
 package org.lflang.diagram.lsp;
 
-import java.nio.file.Path;
 import java.util.concurrent.CompletableFuture;
-import java.util.function.Function;
 import java.util.ArrayList;
 
 import org.eclipse.emf.common.util.URI;
 import org.eclipse.lsp4j.jsonrpc.services.JsonNotification;
 import org.eclipse.lsp4j.jsonrpc.services.JsonRequest;
-import org.eclipse.lsp4j.jsonrpc.CancelChecker;
-import org.eclipse.lsp4j.ProgressParams;
 import org.eclipse.lsp4j.services.LanguageClient;
 import org.eclipse.xtext.ide.server.ILanguageServerExtension;
 import org.eclipse.xtext.ide.server.ILanguageServerAccess;
-import org.eclipse.xtext.util.CancelIndicator;
 
 import org.lflang.generator.GeneratorResult.Status;
 import org.lflang.generator.IntegratedBuilder;
@@ -92,7 +87,7 @@ class LFLanguageServerExtension implements ILanguageServerExtension {
     public CompletableFuture<String[]> buildAndRun(String uri) {
         return new CompletableFuture<String[]>().completeAsync(() -> {
             var result = buildWithProgress(client, uri, true);
-            if (!result.equals(Status.COMPILED)) return null;
+            if (!result.getStatus().equals(Status.COMPILED)) return null;
             LFCommand cmd = result.getContext().getFileConfig().getCommand();
             ArrayList<String> ret = new ArrayList<>();
             ret.add(cmd.directory().toString());
