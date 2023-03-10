@@ -42,8 +42,10 @@ subprojects {
         implementation group: 'com.google.inject', name: 'guice', version: guiceVersion
         // https://picocli.info/
         implementation group: 'info.picocli', name: 'picocli', version: picocliVersion
-        implementation group: 'org.jetbrains.kotlin', name: 'kotlin-stdlib', version: kotlinVersion
+        // https://mvnrepository.com/artifact/com.google.code.gson/gson
+        implementation group: 'com.google.code.gson', name: 'gson', version: gsonVersion
         // https://kotlinlang.org
+        implementation group: 'org.jetbrains.kotlin', name: 'kotlin-stdlib', version: kotlinVersion
         implementation group: 'org.jetbrains.kotlin', name: 'kotlin-reflect', version: kotlinVersion
     }
 

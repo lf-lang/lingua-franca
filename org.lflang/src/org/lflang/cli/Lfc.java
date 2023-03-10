@@ -169,7 +169,7 @@ public class Lfc extends CliBase {
      * Load the resource, validate it, and, invoke the code generator.
      */
     @Override
-    public void run() {
+    public void runTool() {
         // Check for json.
 
         // unpack json.

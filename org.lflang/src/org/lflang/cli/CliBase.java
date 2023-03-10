@@ -6,11 +6,15 @@ import java.io.PrintWriter;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map.Entry;
 import java.util.Properties;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import picocli.CommandLine;
+import picocli.CommandLine.ArgGroup;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Model.CommandSpec;
 import picocli.CommandLine.Option;
@@ -32,6 +36,7 @@ import org.lflang.LFStandaloneSetup;
 import org.lflang.LocalStrings;
 import org.lflang.generator.LFGeneratorContext.BuildParm;
 import org.lflang.util.FileUtil;
+import com.google.gson.*;
 import com.google.inject.Inject;
 import com.google.inject.Injector;
 import com.google.inject.Provider;
@@ -54,29 +59,33 @@ public abstract class CliBase implements Runnable {
     /**
      * Options and parameters present in both Lfc and Lff.
      */
-    @Parameters(
+    static class MutuallyExclusive {
+        @Parameters(
         arity = "1..",
         paramLabel = "FILES",
         description = "Paths of the files to run Lingua Franca programs on.")
-    protected List<Path> files;
+            protected List<Path> files;
 
-    @Option(
-        names = {"-o", "--output-path"},
-        defaultValue = "",
-        fallbackValue = "",
-        description = "Specify the root output directory.")
-    private Path outputPath;
-
-    // TODO: make json, json_file and files mutually exclusive.
-    @Option(
+        @Option(
         names="--json",
-        description="JSON object to read CLI options from.")
-    private String json;
+        description="JSON object containing CLI arguments.")
+            private String jsonString;
+
+        @Option(
+        names="--json-file",
+        description="JSON file containing CLI arguments.")
+            private Path jsonFile;
+    }
+
+    @ArgGroup(exclusive = true, multiplicity = "1")
+    MutuallyExclusive topLevelArg;
 
     @Option(
-        names="--json-file",
-        description="JSON file to read CLI options from.")
-    private Path jsonFile;
+    names = {"-o", "--output-path"},
+    defaultValue = "",
+    fallbackValue = "",
+    description = "Specify the root output directory.")
+        private Path outputPath;
 
     /**
      * Used to collect all errors that happen during validation/generation.
@@ -101,13 +110,13 @@ public abstract class CliBase implements Runnable {
      */
     @Inject
     protected Io io;
-    
+
     /**
      * Injected resource provider.
      */
     @Inject
     private Provider<ResourceSet> resourceSetProvider;
-    
+
     /**
      * Injected resource validator.
      */
@@ -132,31 +141,37 @@ public abstract class CliBase implements Runnable {
         CommandLine cmd = new CommandLine(main)
             .setOut(new PrintWriter(io.getOut()))
             .setErr(new PrintWriter(io.getErr()));
-        int exitCode = cmd.execute("--version");
-        exitCode = cmd.execute(args);
+        int exitCode = cmd.execute(args);
         io.callSystemExit(exitCode);
     }
 
     /**
-     * TODO
-     *
-     * if json:
-     *      process json and call cmd.execute
-     *
-     * if files:
-     *      cmd.execute
-     *
-     * why? so the in-built validation will be handled by picocli.
-     */
-
-    /**
      * The entrypoint of Picocli applications - the first method called when 
      * CliBase, which implements the Runnable interface, is instantiated.
-     * Lfc and Lff have their own specific implementations for this method.
      */ 
+    public void run() {
+        // If args are given in a json string, (1) unpack them into an args
+        // string, and (2) call cmd.execute on them, which assigns them to their
+        // correct instance variables, then (3) recurses into run().
+        if (topLevelArg.jsonString != null) {
+            // TODO: error handling.
+            String args = jsonStringToArgs(topLevelArg.jsonString);
+            // Execute application on unpacked args.
+            CommandLine cmd = spec.commandLine();
+            int exitCode = cmd.execute(args);
+            io.callSystemExit(exitCode);
 
-    // TODO: Make this runMain.
-    public abstract void run();
+        // Args are already unpacked; invoke tool-specific logic.
+        } else {
+            runTool();
+        }
+    }
+
+    /*
+     * The entrypoint of tool-specific logic.
+     * Lfc and Lff have their own specific implementations for this method.
+     */
+    public abstract void runTool();
 
     protected static Injector getInjector(String toolName, Io io) {
         final ReportingBackend reporter 
@@ -164,9 +179,9 @@ public abstract class CliBase implements Runnable {
 
         // Injector used to obtain Main instance.
         return new LFStandaloneSetup(
-            new LFRuntimeModule(),
-            new LFStandaloneModule(reporter, io)
-        ).createInjectorAndDoEMFRegistration();
+                new LFRuntimeModule(),
+                new LFStandaloneModule(reporter, io)
+                ).createInjectorAndDoEMFRegistration();
     }
 
     /**
@@ -182,14 +197,14 @@ public abstract class CliBase implements Runnable {
      * @return Validated input paths.
      */
     protected List<Path> getInputPaths() {
-        List<Path> paths = files.stream()
+        List<Path> paths = topLevelArg.files.stream()
             .map(io.getWd()::resolve)
             .collect(Collectors.toList());
 
         for (Path path : paths) {
             if (!Files.exists(path)) {
                 reporter.printFatalErrorAndExit(
-                    path + ": No such file or directory");
+                        path + ": No such file or directory");
             }
         }
 
@@ -207,11 +222,11 @@ public abstract class CliBase implements Runnable {
             root = io.getWd().resolve(outputPath).normalize();
             if (!Files.exists(root)) { // FIXME: Create it instead?
                 reporter.printFatalErrorAndExit(
-                    "Output location '" + root + "' does not exist.");
+                        "Output location '" + root + "' does not exist.");
             }
             if (!Files.isDirectory(root)) {
                 reporter.printFatalErrorAndExit(
-                    "Output location '" + root + "' is not a directory.");
+                        "Output location '" + root + "' is not a directory.");
             }
         }
 
@@ -290,5 +305,51 @@ public abstract class CliBase implements Runnable {
         } catch (RuntimeException e) {
             return null;
         }
+    }
+
+    /**
+     * Constructs an arguments string (specific to lingua franca cli tools) from 
+     * a json string. 
+     *
+     * The given json object takes the following form:
+     * {
+     *      "src": "/home/lf-user/workspace/lf-test/src/main.lf",
+     *      "out": "/home/lf-user/workspace/lf-test/src-gen",
+     *      "properties": {
+     *          "fast": true,
+     *          "federated": true
+     *      }
+     * }
+     */
+    private String jsonStringToArgs(String jsonString) {
+        String args = "";
+        // Get top-level json object.
+        JsonObject jsonObject = JsonParser
+            .parseString(jsonString)
+            .getAsJsonObject();
+
+        // Append input and output paths.
+        args += jsonObject.get("src").getAsString();
+        args += " --output-path " + jsonObject.get("out").getAsString();
+
+        // Get the remaining properties.
+        Set<Entry<String, JsonElement>> entrySet = jsonObject
+            .getAsJsonObject("properties")
+            .entrySet();
+
+        // Append the remaining properties to the args string.
+        for(Entry<String,JsonElement> entry : entrySet) {
+            String property = entry.getKey();
+            String value = entry.getValue().getAsString();
+
+            // Boolean except threading.
+            if (value == "true" && property != "threading") {
+                args += " --" + property;
+                // Options with arguments.
+            } else {
+                args += String.format(" --%1$s %2$s", property, value);
+            }
+        }
+        return args;
     }
 }
