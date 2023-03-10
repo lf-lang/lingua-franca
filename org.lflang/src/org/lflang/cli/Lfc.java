@@ -232,46 +232,46 @@ public class Lfc extends CliBase {
     protected Properties filterPassOnProps() {
         Properties props = new Properties();
 
-        if(buildType != null) {
+        if (buildType != null) {
             props.setProperty(BuildParm.BUILD_TYPE.getKey(), buildType);
         }
-        if(clean) {
+        if (clean) {
             props.setProperty(BuildParm.CLEAN.getKey(), "true");
         }
-        if(externalRuntimePath != null) {
+        if (externalRuntimePath != null) {
             props.setProperty(BuildParm.EXTERNAL_RUNTIME_PATH.getKey(), externalRuntimePath.toString());
         }
-        if(lint) {
+        if (lint) {
             props.setProperty(BuildParm.LINT.getKey(), "true");
         }
-        if(logging != null) {
+        if (logging != null) {
             props.setProperty(BuildParm.LOGGING.getKey(), logging);
         }
-        if(noCompile) {
+        if (noCompile) {
             props.setProperty(BuildParm.NO_COMPILE.getKey(), "true");
         }
-        if(targetCompiler != null) {
+        if (targetCompiler != null) {
             props.setProperty(BuildParm.TARGET_COMPILER.getKey(), targetCompiler);
         }
-        if(quiet) {
+        if (quiet) {
             props.setProperty(BuildParm.QUIET.getKey(), "true");
         }
-        if(rti != null) {
+        if (rti != null) {
             props.setProperty(BuildParm.RTI.getKey(), rti);
         }
-        if(runtimeVersion != null) {
+        if (runtimeVersion != null) {
             props.setProperty(BuildParm.RUNTIME_VERSION.getKey(), runtimeVersion);
         }
-        if(scheduler != null) {
+        if (scheduler != null) {
             props.setProperty(BuildParm.SCHEDULER.getKey(), scheduler);
         }
-        if(threading != null) {
+        if (threading != null) {
             props.setProperty(BuildParm.THREADING.getKey(), threading);
         }
-        if(workers != null) {
+        if (workers != null) {
             props.setProperty(BuildParm.WORKERS.getKey(), workers.toString());
         }
-
+        
         return props;
     }
 }
