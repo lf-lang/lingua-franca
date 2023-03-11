@@ -16,9 +16,9 @@ import picocli.CommandLine;
 import picocli.CommandLine.ArgGroup;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Model.CommandSpec;
-
 import picocli.CommandLine.Option;
 import picocli.CommandLine.Parameters;
+import picocli.CommandLine.Spec;
 
 import org.eclipse.emf.common.util.URI;
 import org.eclipse.emf.ecore.resource.Resource;
@@ -46,6 +46,11 @@ import com.google.inject.Provider;
  * @author Atharva Patil
  */
 public abstract class CliBase implements Runnable {
+    /**
+     * Models a command specification, including the options, positional
+     * parameters and subcommands supported by the command.
+     */
+    @Spec CommandSpec spec;
 
     /**
      * Options and parameters present in both Lfc and Lff.
@@ -134,25 +139,30 @@ public abstract class CliBase implements Runnable {
      * CliBase, which implements the Runnable interface, is instantiated.
      */ 
     public void run() {
-
         // If args are given in a json file, store its contents in jsonString.
         if (topLevelArg.jsonFile != null) {
-            topLevelArg.jsonString = new String(
-                    Files.readAllBytes(topLevelArg.jsonFile));
+            // TODO: validate paths.
+            try {
+                topLevelArg.jsonString = new String(
+                        Files.readAllBytes(topLevelArg.jsonFile));
+            } catch (IOException e) {
+                reporter.printFatalErrorAndExit(
+                        "No such file: " + topLevelArg.jsonFile);
+            }
         }
 
         // If args are given in a json string, (1) unpack them into an args
         // string, and (2) call cmd.execute on them, which assigns them to their
         // correct instance variables, then (3) recurses into run().
         if (topLevelArg.jsonString != null) {
-            // TODO: error handling.
+            // Unpack args from json string.
             String args = jsonStringToArgs(topLevelArg.jsonString);
             // Execute application on unpacked args.
             CommandLine cmd = spec.commandLine();
             int exitCode = cmd.execute(args);
             io.callSystemExit(exitCode);
 
-        // Args are already unpacked; invoke tool-specific logic.
+        // If args are already unpacked, invoke tool-specific logic.
         } else {
             runTool();
         }
@@ -315,32 +325,53 @@ public abstract class CliBase implements Runnable {
     private String jsonStringToArgs(String jsonString) {
         String args = "";
         // Get top-level json object.
-        JsonObject jsonObject = JsonParser
-            .parseString(jsonString)
-            .getAsJsonObject();
+        JsonObject jsonObject = new JsonObject();
 
-        // Append input and output paths.
-        args += jsonObject.get("src").getAsString();
-        args += " --output-path " + jsonObject.get("out").getAsString();
+        // Parse JSON string.
+        try {
+            jsonObject = JsonParser.parseString(jsonString).getAsJsonObject();
+        } catch (JsonParseException e) {
+            reporter.printFatalErrorAndExit(
+                    "Invalid JSON string:\n" + jsonString);
+        }
 
-        // Get the remaining properties.
-        Set<Entry<String, JsonElement>> entrySet = jsonObject
-            .getAsJsonObject("properties")
-            .entrySet();
+        // Append input paths.
+        JsonElement src = jsonObject.get("src");
+        if (src == null) {
+            reporter.printFatalErrorAndExit(
+                    "JSON Parse Exception: field \"src\" not found.");
+        }
+        args += src.getAsString();
 
-        // Append the remaining properties to the args string.
-        for(Entry<String,JsonElement> entry : entrySet) {
-            String property = entry.getKey();
-            String value = entry.getValue().getAsString();
+        // Append output path if given.
+        JsonElement out = jsonObject.get("out");
+        if (out != null) {
+            args += " --output-path " + out.getAsString();
+        }
 
-            // Boolean except threading.
-            if (value == "true" && property != "threading") {
-                args += " --" + property;
-                // Options with arguments.
-            } else {
-                args += String.format(" --%1$s %2$s", property, value);
+        // If there are no other properties, return args string.
+        JsonElement properties = jsonObject.get("properties");
+        if (properties != null) {
+            // Get the remaining properties.
+            Set<Entry<String, JsonElement>> entrySet = properties
+                .getAsJsonObject()
+                .entrySet();
+
+            // Append the remaining properties to the args string.
+            for(Entry<String,JsonElement> entry : entrySet) {
+                String property = entry.getKey();
+                String value = entry.getValue().getAsString();
+
+                // Boolean except --threading.
+                if (value == "true" && property != "threading") {
+                    args += " --" + property;
+                    // Options with arguments.
+                } else {
+                    args += String.format(" --%1$s %2$s", property, value);
+                }
             }
         }
+
         return args;
     }
 }
