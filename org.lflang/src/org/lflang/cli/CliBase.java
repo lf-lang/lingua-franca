@@ -327,10 +327,9 @@ public abstract class CliBase implements Runnable {
      */
     private String[] jsonStringToArgs(String jsonString) {
         ArrayList<String> argsList = new ArrayList<>();
-        // Get top-level json object.
         JsonObject jsonObject = new JsonObject();
 
-        // Parse JSON string.
+        // Parse JSON string and get top-level JSON object.
         try {
             jsonObject = JsonParser.parseString(jsonString).getAsJsonObject();
         } catch (JsonParseException e) {
@@ -349,7 +348,8 @@ public abstract class CliBase implements Runnable {
         // Append output path if given.
         JsonElement out = jsonObject.get("out");
         if (out != null) {
-            argsList.add("--output-path " + out.getAsString());
+            argsList.add("--output-path");
+            argsList.add(out.getAsString());
         }
 
         // If there are no other properties, return args array.
@@ -365,17 +365,17 @@ public abstract class CliBase implements Runnable {
                 String property = entry.getKey();
                 String value = entry.getValue().getAsString();
 
-                // Boolean except --threading.
-                if (value == "true" && property != "threading") {
-                    argsList.add("--" + property);
-                    // Options with arguments.
-                } else {
-                    argsList.add(String.format("--%1$s %2$s", property, value));
+                // Append option.
+                argsList.add("--" + property);
+                // Append argument for non-boolean options.
+                if (value != "true" || property == "threading") {
+                    argsList.add(value);
                 }
             }
         }
 
         // Return as String[].
-        return argsList.toArray(new String[argsList.size()]);
+        String[] args = argsList.toArray(new String[argsList.size()]);
+        return args;
     }
 }
