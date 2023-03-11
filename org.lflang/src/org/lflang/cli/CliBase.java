@@ -5,6 +5,7 @@ import java.io.PrintWriter;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map.Entry;
@@ -32,7 +33,10 @@ import org.lflang.ErrorReporter;
 import org.lflang.LFRuntimeModule;
 import org.lflang.LFStandaloneSetup;
 import org.lflang.util.FileUtil;
-import com.google.gson.*;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+import com.google.gson.JsonParseException;
 import com.google.inject.Inject;
 import com.google.inject.Injector;
 import com.google.inject.Provider;
@@ -141,7 +145,6 @@ public abstract class CliBase implements Runnable {
     public void run() {
         // If args are given in a json file, store its contents in jsonString.
         if (topLevelArg.jsonFile != null) {
-            // TODO: validate paths.
             try {
                 topLevelArg.jsonString = new String(
                         Files.readAllBytes(topLevelArg.jsonFile));
@@ -152,11 +155,11 @@ public abstract class CliBase implements Runnable {
         }
 
         // If args are given in a json string, (1) unpack them into an args
-        // string, and (2) call cmd.execute on them, which assigns them to their
+        // array, and (2) call cmd.execute on them, which assigns them to their
         // correct instance variables, then (3) recurses into run().
         if (topLevelArg.jsonString != null) {
             // Unpack args from json string.
-            String args = jsonStringToArgs(topLevelArg.jsonString);
+            String[] args = jsonStringToArgs(topLevelArg.jsonString);
             // Execute application on unpacked args.
             CommandLine cmd = spec.commandLine();
             int exitCode = cmd.execute(args);
@@ -309,7 +312,7 @@ public abstract class CliBase implements Runnable {
     }
 
     /**
-     * Constructs an arguments string (specific to lingua franca cli tools) from 
+     * Constructs an arguments array (specific to lingua franca cli tools) from 
      * a json string. 
      *
      * The given json object takes the following form:
@@ -322,8 +325,8 @@ public abstract class CliBase implements Runnable {
      *      }
      * }
      */
-    private String jsonStringToArgs(String jsonString) {
-        String args = "";
+    private String[] jsonStringToArgs(String jsonString) {
+        ArrayList<String> argsList = new ArrayList<>();
         // Get top-level json object.
         JsonObject jsonObject = new JsonObject();
 
@@ -341,15 +344,15 @@ public abstract class CliBase implements Runnable {
             reporter.printFatalErrorAndExit(
                     "JSON Parse Exception: field \"src\" not found.");
         }
-        args += src.getAsString();
+        argsList.add(src.getAsString());
 
         // Append output path if given.
         JsonElement out = jsonObject.get("out");
         if (out != null) {
-            args += " --output-path " + out.getAsString();
+            argsList.add("--output-path " + out.getAsString());
         }
 
-        // If there are no other properties, return args string.
+        // If there are no other properties, return args array.
         JsonElement properties = jsonObject.get("properties");
         if (properties != null) {
             // Get the remaining properties.
@@ -357,21 +360,22 @@ public abstract class CliBase implements Runnable {
                 .getAsJsonObject()
                 .entrySet();
 
-            // Append the remaining properties to the args string.
+            // Append the remaining properties to the args array.
             for(Entry<String,JsonElement> entry : entrySet) {
                 String property = entry.getKey();
                 String value = entry.getValue().getAsString();
 
                 // Boolean except --threading.
                 if (value == "true" && property != "threading") {
-                    args += " --" + property;
+                    argsList.add("--" + property);
                     // Options with arguments.
                 } else {
-                    args += String.format(" --%1$s %2$s", property, value);
+                    argsList.add(String.format("--%1$s %2$s", property, value));
                 }
             }
         }
 
-        return args;
+        // Return as String[].
+        return argsList.toArray(new String[argsList.size()]);
     }
 }
