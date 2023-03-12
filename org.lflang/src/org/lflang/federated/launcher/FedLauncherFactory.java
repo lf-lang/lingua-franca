@@ -15,11 +15,10 @@ public class FedLauncherFactory {
 
     public static FedLauncher getLauncher (
         FederateInstance federate,
-        TargetConfig targetConfig,
         FedFileConfig fileConfig,
         ErrorReporter errorReporter
     ) {
-        return getLauncher(Target.fromDecl(federate.target), targetConfig, fileConfig, errorReporter);
+        return getLauncher(Target.fromDecl(federate.target), federate.targetConfig, fileConfig, errorReporter);
     }
 
     /**
