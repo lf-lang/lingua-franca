@@ -244,7 +244,6 @@ public class FedGenerator {
         } else {
             launcher = FedLauncherFactory.getLauncher(
                 federates.get(0), // FIXME: This would not work for mixed-target programs.
-                targetConfig,
                 fileConfig,
                 errorReporter
             );
