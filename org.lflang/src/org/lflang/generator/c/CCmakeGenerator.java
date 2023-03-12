@@ -194,11 +194,6 @@ public class CCmakeGenerator {
         if (targetConfig.platformOptions.platform != Platform.AUTO) {
             cMakeCode.pr("set(CMAKE_SYSTEM_NAME "+targetConfig.platformOptions.platform.getcMakeName()+")");
         }
-
-        cMakeCode.pr("# Target definitions\n");
-        targetConfig.compileDefinitions.forEach((key, value) -> cMakeCode.pr(
-            "add_compile_definitions("+key+"="+value+")\n"
-        ));
         cMakeCode.newLine();
 
         if (targetConfig.platformOptions.platform == Platform.ZEPHYR) {
