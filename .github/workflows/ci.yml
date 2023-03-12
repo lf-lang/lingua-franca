@@ -48,7 +48,7 @@ jobs:
 
   # Run the C benchmark tests.
   c-benchmark-tests:
-    uses: lf-lang/benchmarks-lingua-franca/.github/workflows/benchmark-tests.yml@master
+    uses: lf-lang/benchmarks-lingua-franca/.github/workflows/benchmark-tests.yml@main
     with:
       target: 'C'
       benchmarks-ref: 'c-separate-gen-files'
