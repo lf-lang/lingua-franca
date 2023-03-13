@@ -71,7 +71,8 @@ public interface TargetTypes {
 
     /** Translate the braced list expression into target language syntax. */
     default String getTargetBracedListExpr(BracedListExpression expr, InferredType typeOrNull) {
-        return expr.getItems().stream().map(e -> getTargetExpr(e, typeOrNull.getComponentType()))
+        InferredType t = typeOrNull == null ? InferredType.undefined() : typeOrNull;
+        return expr.getItems().stream().map(e -> getTargetExpr(e, t))
             .collect(Collectors.joining(",", "{", "}"));
     }
 
