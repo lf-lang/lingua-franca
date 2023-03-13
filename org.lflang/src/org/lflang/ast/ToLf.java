@@ -777,7 +777,7 @@ public class ToLf extends LfSwitch<MalleableString> {
     }
     // Note that this strips the trailing comma. There is no way
     // to implement trailing commas with the current set of list() methods AFAIU.
-    return list(", ", "{ ", " }", false, false, object.getItems());
+    return list(", ", "{", "}", false, false, object.getItems());
   }
 
   @Override

@@ -50,7 +50,7 @@ reactor Scheduler {
         900 msec
     }
     // Size = 9
-    state action_hit_list_microstep: int[] = { 1, 2, 0, 1, 0, 2, 3, 4, 5 }
+    state action_hit_list_microstep: int[] = {1, 2, 0, 1, 0, 2, 3, 4, 5}
     state action_hit_list_times: int[] = {
         0,
         0,
