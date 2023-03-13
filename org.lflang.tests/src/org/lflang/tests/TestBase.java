@@ -191,6 +191,7 @@ public abstract class TestBase {
      */
     protected final void runTestsAndPrintResults(Target target,
                                                  Predicate<TestCategory> selected,
+                                                 TestLevel level,
                                                  Configurator configurator,
                                                  boolean copy) {
         var categories = Arrays.stream(TestCategory.values()).filter(selected).toList();
@@ -198,7 +199,7 @@ public abstract class TestBase {
             System.out.println(category.getHeader());
             var tests = TestRegistry.getRegisteredTests(target, category, copy);
             try {
-                validateAndRun(tests, configurator, category.level);
+                validateAndRun(tests, configurator, level);
             } catch (IOException e) {
                 throw new RuntimeIOException(e);
             }
@@ -220,10 +221,11 @@ public abstract class TestBase {
     protected void runTestsForTargets(String description,
                                       Predicate<TestCategory> selected,
                                       Configurator configurator,
+                                      TestLevel level,
                                       boolean copy) {
         for (Target target : this.targets) {
             runTestsFor(List.of(target), description, selected,
-                        configurator, copy);
+                        configurator, level, copy);
         }
     }
 
@@ -242,10 +244,11 @@ public abstract class TestBase {
                                String description,
                                Predicate<TestCategory> selected,
                                Configurator configurator,
+                               TestLevel level,
                                boolean copy) {
         for (Target target : subset) {
             printTestHeader(target, description);
-            runTestsAndPrintResults(target, selected, configurator, copy);
+            runTestsAndPrintResults(target, selected, level, configurator, copy);
         }
     }
 

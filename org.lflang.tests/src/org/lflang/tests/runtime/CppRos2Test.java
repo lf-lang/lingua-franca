@@ -31,6 +31,7 @@ public class CppRos2Test extends TestBase {
         trueLiteral.setLiteral("true");
         runTestsForTargets(Message.DESC_ROS2, it -> true,
                            it -> ASTUtils.addTargetProperty(it.getFileConfig().resource, "ros2", trueLiteral),
+                           TestLevel.EXECUTION,
                            true);
     }
 }
