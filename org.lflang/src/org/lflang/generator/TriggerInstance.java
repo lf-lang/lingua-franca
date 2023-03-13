@@ -36,13 +36,13 @@ import org.lflang.lf.Variable;
 import org.lflang.lf.impl.VariableImpl;
 
 /** Instance of a trigger (port, action, or timer).
- * 
+ *
  *  @author Marten Lohstroh
  *  @author Edward A. Lee
  *  @author Alexander Schulz-Rosengarten
  */
 public class TriggerInstance<T extends Variable> extends NamedInstance<T> {
-    
+
     /** Construct a new instance with the specified definition
      *  and parent. E.g., for a action instance, the definition
      *  is Action, and for a port instance, it is Port. These are
@@ -54,7 +54,7 @@ public class TriggerInstance<T extends Variable> extends NamedInstance<T> {
     protected TriggerInstance(T definition, ReactorInstance parent) {
         super(definition, parent);
     }
-    
+
     /**
      * Construct a new instance for a special builtin trigger.
      *
@@ -68,7 +68,7 @@ public class TriggerInstance<T extends Variable> extends NamedInstance<T> {
     /////////////////////////////////////////////
     //// Public Methods
 
-    /** 
+    /**
      * Return the reaction instances that are triggered or read by this trigger.
      * If this port is an output, then the reaction instances
      * belong to the parent of the port's parent. If the port
@@ -79,7 +79,7 @@ public class TriggerInstance<T extends Variable> extends NamedInstance<T> {
         return dependentReactions;
     }
 
-    /** 
+    /**
      * Return the reaction instances that may send data via this port.
      * If this port is an input, then the reaction instance
      * belongs to parent of the port's parent. If it is an output,
@@ -88,9 +88,9 @@ public class TriggerInstance<T extends Variable> extends NamedInstance<T> {
     public Set<ReactionInstance> getDependsOnReactions() {
         return dependsOnReactions;
     }
-    
-    /** 
-     * Return the name of this trigger. 
+
+    /**
+     * Return the name of this trigger.
      * @return The name of this trigger.
      */
     @Override
@@ -102,31 +102,36 @@ public class TriggerInstance<T extends Variable> extends NamedInstance<T> {
      * Return true if this trigger is "shutdown".
      */
     public boolean isShutdown() {
-        return this.definition instanceof BuiltinTriggerRef
-            && ((BuiltinTriggerRef) this.definition).getType().equals(BuiltinTrigger.SHUTDOWN);
+        return isBuiltInType(BuiltinTrigger.SHUTDOWN);
     }
 
     /**
      * Return true if this trigger is "startup"./
      */
     public boolean isStartup() {
-        return this.definition instanceof BuiltinTriggerRef
-            && ((BuiltinTriggerRef) this.definition).getType().equals(BuiltinTrigger.STARTUP);
+        return isBuiltInType(BuiltinTrigger.STARTUP);
     }
 
     /**
      * Return true if this trigger is "startup"./
      */
     public boolean isReset() {
-        return this.definition instanceof BuiltinTriggerRef
-            && ((BuiltinTriggerRef) this.definition).getType().equals(BuiltinTrigger.RESET);
+        return isBuiltInType(BuiltinTrigger.RESET);
+    }
+
+    /////////////////////////////////////////////
+    //// Private Methods
+
+    private boolean isBuiltInType(BuiltinTrigger type) {
+        return this.definition instanceof BuiltinTriggerVariable
+            && ((BuiltinTriggerRef) ((BuiltinTriggerVariable) this.definition).definition).getType().equals(type);
     }
 
     /////////////////////////////////////////////
     //// Protected Fields
-    
 
-    /** 
+
+    /**
      * Reaction instances that are triggered or read by this trigger.
      * If this port is an output, then the reaction instances
      * belong to the parent of the port's parent. If the port
@@ -135,14 +140,14 @@ public class TriggerInstance<T extends Variable> extends NamedInstance<T> {
      */
     Set<ReactionInstance> dependentReactions = new LinkedHashSet<>();
 
-    /** 
+    /**
      * Reaction instances that may send data via this port.
      * If this port is an input, then the reaction instance
      * belongs to parent of the port's parent. If it is an output,
      * the reaction instance belongs to the port's parent.
      */
     Set<ReactionInstance> dependsOnReactions = new LinkedHashSet<>();
-    
+
     /////////////////////////////////////////////
     //// Special class for builtin triggers
 
@@ -150,23 +155,23 @@ public class TriggerInstance<T extends Variable> extends NamedInstance<T> {
      * This class allows to have BuiltinTriggers represented by a Variable type.
      */
     static public class BuiltinTriggerVariable extends VariableImpl {
-        
+
         /** The builtin trigger type represented by this variable. */
         public final BuiltinTrigger type;
-        
+
         /** The actual TriggerRef definition in the AST. */
         public final TriggerRef definition;
-        
+
         public BuiltinTriggerVariable(BuiltinTriggerRef trigger) {
             this.type = trigger.getType();
             this.definition = trigger;
         }
-        
+
         @Override
         public String getName() {
             return this.type.name().toLowerCase();
         }
-        
+
         @Override
         public void setName(String newName) {
             throw new UnsupportedOperationException(
