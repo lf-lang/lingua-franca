@@ -100,6 +100,9 @@ public class ToText extends LfSwitch<String> {
 
     @Override
     public String caseType(Type type) {
+        if (type.getCode() != null) {
+            return caseCode(type.getCode());
+        }
         return ToLf.instance.caseType(type).toString();
     }
 
