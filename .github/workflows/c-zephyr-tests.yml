@@ -21,7 +21,7 @@ jobs:
   run:
     runs-on: ubuntu-latest
     container:
-      image: zephyrprojectrtos/zephyr-build:latest
+      image: zephyrprojectrtos/zephyr-build:v0.24.13
       options: -u root --entrypoint /bin/sh 
     steps:
       - name: Install Java 17, Maven and set JAVA_HOME

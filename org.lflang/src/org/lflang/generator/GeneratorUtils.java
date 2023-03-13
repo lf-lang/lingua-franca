@@ -158,9 +158,9 @@ public class GeneratorUtils {
         }
         for (Resource resource : resources) {
             for (Action action : findAll(resource, Action.class)) {
-                if (action.getOrigin() == ActionOrigin.PHYSICAL && 
+                if (action.getOrigin() == ActionOrigin.PHYSICAL &&
                     // Check if the user has explicitly set keepalive to false
-                    !targetConfig.setByUser.contains(TargetProperty.KEEPALIVE) && 
+                    !targetConfig.setByUser.contains(TargetProperty.KEEPALIVE) &&
                     !targetConfig.keepalive
                 ) {
                     // If not, set it to true
@@ -191,70 +191,6 @@ public class GeneratorUtils {
      */
     public static <T> Iterable<T> findAll(Resource resource, Class<T> nodeType) {
         return () -> IteratorExtensions.filter(resource.getAllContents(), nodeType);
-    }
-
-    /**
-     * Validate the files containing reactors in the given
-     * {@code instantiationGraph}. If a file is imported by
-     * another file in the instantiation graph, propagate the
-     * resulting errors to the importing file.
-     * @param context The context providing the cancel
-     *                indicator used by the validator.
-     * @param fileConfig The file system configuration.
-     * @param instantiationGraph A DAG containing all
-     *                           reactors of interest.
-     * @param errorReporter An error acceptor.
-     */
-    public static void validate(
-        IGeneratorContext context,
-        FileConfig fileConfig,
-        InstantiationGraph instantiationGraph,
-        ErrorReporter errorReporter
-    ) {
-        // NOTE: This method was previously misnamed validateImports.
-        // It validates all files, including the main file that does the importing.
-        // Also, it is now the only invocation of validation during code generation,
-        // and yet it used to only report errors in the files doing the importing.
-        IResourceValidator validator = ((XtextResource) fileConfig.resource).getResourceServiceProvider()
-                                                                            .getResourceValidator();
-        HashSet<Resource> bad = new HashSet<>();
-        HashSet<Resource> visited = new HashSet<>();
-        // The graph must be traversed in topological order so that errors will propagate through arbitrarily many
-        // levels.
-        for (Reactor reactor : instantiationGraph.nodesInTopologicalOrder()) {
-            Resource resource = reactor.eResource();
-            if (visited.contains(resource)) continue;
-            visited.add(resource);
-            List<Issue> issues = validator.validate(resource, CheckMode.ALL, context.getCancelIndicator());
-            if (
-                bad.contains(resource) || issues.size() > 0
-            ) {
-                // Report the error on this resource.
-                Path path = null;
-                try {
-                    path = FileUtil.toPath(resource);
-                } catch (IOException e) {
-                    path = Paths.get("Unknown file"); // Not sure if this is what we want.
-                }
-                for (Issue issue : issues) {
-                    errorReporter.reportError(path, issue.getLineNumber(), issue.getMessage());
-                }
-                
-                // Report errors on resources that import this one.
-                for (Reactor downstreamReactor : instantiationGraph.getDownstreamAdjacentNodes(reactor)) {
-                    for (Import importStatement : ((Model) downstreamReactor.eContainer()).getImports()) {
-                        // FIXME: This will report the error on ALL import statements in
-                        // file doing the importing, not just the one importing this resource.
-                        // I have no idea how to determine which import statement is the right one.
-                        errorReporter.reportError(importStatement, String.format(
-                            "Unresolved compilation issues in '%s': "
-                                + issues.toString(), importStatement.getImportURI()
-                        ));
-                        bad.add(downstreamReactor.eResource());
-                    }
-                }
-            }
-        }
     }
 
     /**
