@@ -100,9 +100,7 @@ public class ToText extends LfSwitch<String> {
 
     @Override
     public String caseType(Type type) {
-        String base = ASTUtils.baseType(type);
-        String arr = (type.getArraySpec() != null) ? doSwitch(type.getArraySpec()) : "";
-        return base + arr;
+        return ToLf.instance.caseType(type).toString();
     }
 
     @Override

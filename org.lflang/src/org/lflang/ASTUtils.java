@@ -781,7 +781,7 @@ public class ASTUtils {
 
     /**
      * Translate the given type into its textual representation, but
-     * do not append any array specifications.
+     * do not append any array specifications or type arguments.
      * @param type AST node to render as string.
      * @return Textual representation of the given argument.
      */
@@ -794,11 +794,6 @@ public class ASTUtils {
                     return "time";
                 } else {
                     StringBuilder result = new StringBuilder(type.getId());
-
-                    if (!type.getTypeArgs().isEmpty()) {
-                        result.append(type.getTypeArgs().stream().map(ASTUtils::toText)
-                            .collect(Collectors.joining(", ", "<", ">")));
-                    }
 
                     for (String s : convertToEmptyListIfNull(type.getStars())) {
                         result.append(s);
