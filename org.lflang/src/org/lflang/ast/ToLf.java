@@ -843,6 +843,11 @@ public class ToLf extends LfSwitch<MalleableString> {
     return initializer(object, false);
   }
 
+  /**
+   * Return true if the initializer should be output with an equals initializer.
+   * Old-style assignments with parentheses are also output that
+   * way to help with the transition.
+   */
   private boolean shouldOutputAsAssignment(Initializer init) {
     return init.isAssign()
         || init.getExprs().size() == 1 && ASTUtils.getTarget(init).mandatesEqualsInitializers();
