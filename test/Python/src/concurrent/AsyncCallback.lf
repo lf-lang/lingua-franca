@@ -32,7 +32,7 @@ main reactor AsyncCallback {
     timer t(0, 200 msec)
     state threads = {= list() =}
     state expected_time = 100 msec
-    state toggle = false
+    state toggle = False
 
     physical action a(100 msec)
     state i = 0

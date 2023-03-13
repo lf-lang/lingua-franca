@@ -36,7 +36,7 @@ main reactor {
 
     state threads = {= list() =}
     state expected_time = 100 msec
-    state toggle = false
+    state toggle = False
 
     physical action a(100 msec)
     state i = 0

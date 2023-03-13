@@ -18,7 +18,7 @@ reactor Deadline(threshold = 100 msec) {
 }
 
 main reactor DeadlineHandledAbove {
-    state violation_detected = false
+    state violation_detected = False
     d = new Deadline(threshold = 10 msec)
 
     reaction(startup) -> d.x {=

@@ -19,7 +19,7 @@ reactor Source {
 
 reactor Destination {
     input _in
-    state received = false
+    state received = False
 
     reaction(startup) {= print("Destination started.") =}
 
