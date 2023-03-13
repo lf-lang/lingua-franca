@@ -37,6 +37,7 @@ jobs:
           west update
           echo "ZEPHYR_BASE=/workdir/zephyrproject/zephyr" >> $GITHUB_ENV
           echo "ZEPHYR_SDK_INSTALL_DIR=/opt/toolchains/zephyr-sdk-0.15.2/" >> $GITHUB_ENV
+          west zephyr-export
       - name: Check out lingua-franca repository
         uses: actions/checkout@v3
         with:
