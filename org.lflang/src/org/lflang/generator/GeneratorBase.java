@@ -171,7 +171,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
     /**
      * A list ot AST transformations to apply before code generation
      */
-    private List<AstTransformation> astTransformations = new ArrayList();
+    private final List<AstTransformation> astTransformations = new ArrayList<>();
 
     /**
      * Create a new GeneratorBase object.
