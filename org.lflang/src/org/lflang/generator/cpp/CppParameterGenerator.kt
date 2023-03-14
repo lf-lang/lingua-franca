@@ -46,7 +46,7 @@ class CppParameterGenerator(private val reactor: Reactor) {
             with(it) {
                 """
                     using $typeAlias = $targetType;
-                    const $typeAlias $name${
+                    $typeAlias $name${
                     if (init == null) "" else CppTypes.getCppInitializer(
                         init,
                         inferredType,
@@ -57,10 +57,11 @@ class CppParameterGenerator(private val reactor: Reactor) {
             }
         }
 
-    /** Generate using declarations for each parameter for use in the inner reactor class.
-     *  This is required for C++ to bring templated parameters into scope.
+    /** Generate alias declarations for each parameter for use in the inner reactor class.
+     *  This is required to bring parameters into scope.
      */
-    fun generateUsingDeclarations() = reactor.parameters.joinToString(separator = "") { "using Parameters::${it.name};\n" }
+    fun generateInnerAliasDeclarations() =
+        reactor.parameters.joinToString(separator = "") { "const typename Parameters::${it.typeAlias}& ${it.name} = __lf_parameters.${it.name};\n" }
 
     /** Generate alias declarations for each parameter for use in the outer reactor class.
      *  This is required for some code bodies (e.g. target code in parameter initializers) to have access to the local parameters.
