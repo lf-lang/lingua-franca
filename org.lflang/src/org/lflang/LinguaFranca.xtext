@@ -318,7 +318,7 @@ Expression:
 // A list of expressions within braces.
 // In C/C++, this is an array initializer, struct initializer, or std::initializer_list.
 BracedListExpression:
-    '{' ( items+=Expression (',' items+=Expression)* )? ','? '}'
+     '{' {BracedListExpression} (items+=Expression (',' items+=Expression)*)? ','? '}'
 ;
 
 ParameterReference:

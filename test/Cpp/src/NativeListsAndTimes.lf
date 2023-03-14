@@ -9,7 +9,8 @@ reactor Foo(
     q: {=  // list of time values
         std::vector<reactor::Duration>
     =}{1 msec, 2 msec, 3 msec},
-    g: time[]{1 msec, 2 msec}  // List of time values
+    g: time[]{1 msec, 2 msec},  // List of time values
+    g2: int[] = {}
 ) {
     state s: time = y  // Reference to explicitly typed time parameter
     state t: time = z  // Reference to implicitly typed time parameter
