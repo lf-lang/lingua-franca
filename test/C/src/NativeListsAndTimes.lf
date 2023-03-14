@@ -19,6 +19,8 @@ main reactor(
     state baz = p      // Implicit type int[]
     state period = z   // Implicit type time
 
+    state empty_list: int[] = {}
+
     reaction(tick) {=
         // Target code
     =}

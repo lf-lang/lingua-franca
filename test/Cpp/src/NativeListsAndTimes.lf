@@ -23,6 +23,7 @@ reactor Foo(
     state times: std::vector<  // a list of lists
         std::vector<{= reactor::Duration =}>
     >{q, g}
+    state empty_list: int[] = {}
 
     reaction(tick) {=
         // Target code
