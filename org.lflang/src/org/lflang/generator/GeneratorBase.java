@@ -54,6 +54,7 @@ import org.lflang.TimeUnit;
 import org.lflang.TimeValue;
 import org.lflang.ast.AstTransformation;
 import org.lflang.graph.InstantiationGraph;
+import org.lflang.lf.ActionOrigin;
 import org.lflang.lf.Connection;
 import org.lflang.lf.Expression;
 import org.lflang.lf.Input;
@@ -765,7 +766,11 @@ public abstract class GeneratorBase extends AbstractLFValidator {
 
     /**
      * Make all inputs to LET reactions mutable. Throws error if reaction
-     * is attributed as a let but is in fact not a
+     * is attributed as a let but is in fact not a LET reaction.
+     *
+     * FIXME: This should probably be rephrased as an AST transformation
+     * FIXME: We should not compute the ACTUAL LET value here. Just verify that we
+     * have a LET. Because the actual LET value depends on the parameter passed in.
      */
     public void makeLetReactionInputsMutable() {
         for (Reactor reactor : reactors) {
@@ -779,17 +784,23 @@ public abstract class GeneratorBase extends AbstractLFValidator {
                         for (VarRef effect : reaction.getEffects()) {
                             Variable variable = effect.getVariable();
                             if (variable instanceof Action) {
-                                Time _minDelay = (Time) ((Action) variable).getMinDelay();
-                                if (_minDelay != null && _minDelay.getInterval() > 0) {
-                                    TimeValue minDelay = ASTUtils.toTimeValue(_minDelay);
-                                    if (minDelay.isEarlierThan(let)) {
-                                        let = minDelay;
+                                if (((Action) variable).getOrigin() == ActionOrigin.LOGICAL) {
+                                    Time _minDelay = (Time) ((Action) variable).getMinDelay();
+                                    if (_minDelay != null && _minDelay.getInterval() > 0) {
+                                        TimeValue minDelay = ASTUtils.toTimeValue(_minDelay);
+                                        if (minDelay.isEarlierThan(let)) {
+                                            let = minDelay;
+                                        }
+                                    } else {
+                                        hasLet = false;
+                                        letWarning = "Reaction marked LET but has Action with min_delay 0 as effect.";
+                                        break;
                                     }
                                 } else {
-                                    hasLet = false;
-                                    letWarning = "Reaction marked LET but has Action with min_delay 0 as effect.";
-                                    break;
+                                    // A Physical Action means a LET of FOREVER. As this is the initial
+                                    //  value, we dont do anything here
                                 }
+
                             } else if (variable instanceof Mode) {
                                 // Mode change effect
                                 hasLet = false;
