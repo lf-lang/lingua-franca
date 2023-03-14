@@ -89,7 +89,7 @@ fun CppTypes.getCppInitializer(
         }
     } else {
         val (prefix, postfix) = if (init.isBraces) Pair("{", "}") else Pair("(", ")")
-        init.exprs.joinToString(", ", prefix, postfix) {
+        init.exprs.joinWithCommas(prefix, postfix, trailing = false) {
             getTargetExpr(it, inferredType.componentType)
         }
     }
