@@ -31,47 +31,31 @@ public preamble {=
 =}
 
 reactor TestReactor(
-    // constructor #1 
-    // FIXME: should work without an explicit initialization, see https://github.com/lf-lang/lingua-franca/issues/623
-    // p_default: TestType,
+    /**
+     * FIXME: should work without an explicit initialization, see
+     * https://github.com/lf-lang/lingua-franca/issues/623
+     */
+    // p_default: TestType, constructor #1
     p_default: TestType(),
-    // constructor #1
-    p_empty: TestType(),
-    // constructor #2
-    p_value: TestType(24),
-    // constructor #1
-    p_init_empty: TestType{},
-    // constructor #1
-    p_init_empty2: TestType({}),
-    // constructor #1
-    p_init_some: TestType{2, 6, 6, 3, 1},
-    // constructor #1
-    p_assign_init_empty: TestType = {},
-    // constructor #3
-    p_assign_init_some: TestType = {4, 2, 1}
+    p_empty: TestType(),  // constructor #1
+    p_value: TestType(24),  // constructor #2
+    p_init_empty: TestType{},  // constructor #1
+    p_init_empty2: TestType({}),  // constructor #1
+    p_init_some: TestType{2, 6, 6, 3, 1},  // constructor #1
+    p_assign_init_empty: TestType = {},  // constructor #1
+    p_assign_init_some: TestType = {4, 2, 1}  // constructor #3
 ) {
-    // constructor #1
-    state s_default: TestType
-    // constructor #1
-    state s_empty: TestType()
-    // constructor #2
-    state s_value: TestType(24)
-    // constructor #1
-    state s_init_empty: TestType{}
-    // constructor #3
-    state s_init_empty2: TestType({})
-    // constructor #3
-    state s_init_some: TestType{3, 12, 40}
-    // constructor #3
-    state s_assign_init_empty: TestType = {}
-    // constructor #3
-    state s_assign_init_some: TestType = {4, 3, 2, 1}
-    // constructor #4
-    state s_copy1: TestType(p_default)
-    // constructor #4
-    state s_copy2: TestType{p_default}
-    // constructor #4
-    state s_copy3: TestType = p_default
+    state s_default: TestType                 // constructor #1
+    state s_empty: TestType()                 // constructor #1
+    state s_value: TestType(24)               // constructor #2
+    state s_init_empty: TestType{}            // constructor #1
+    state s_init_empty2: TestType({})         // constructor #3
+    state s_init_some: TestType{3, 12, 40}    // constructor #3
+    state s_assign_init_empty: TestType = {}  // constructor #3
+    state s_assign_init_some: TestType = {4, 3, 2, 1}  // constructor #3
+    state s_copy1: TestType(p_default)        // constructor #4
+    state s_copy2: TestType{p_default}        // constructor #4
+    state s_copy3: TestType = p_default       // constructor #4
 
     reaction(startup) {=
         reactor::validate(p_default.x == 62, "p_default should be default constructed and then moved");
