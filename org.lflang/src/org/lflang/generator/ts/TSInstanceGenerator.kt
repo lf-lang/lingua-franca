@@ -1,6 +1,5 @@
 package org.lflang.generator.ts
 
-import org.lflang.ErrorReporter
 import org.lflang.generator.getTargetInitializer
 import org.lflang.isBank
 import org.lflang.joinWithLn
@@ -14,7 +13,6 @@ import java.util.*
  * Generator for child reactor instantiations in TypeScript target.
  */
 class TSInstanceGenerator(
-    private val errorReporter: ErrorReporter,
     reactor: Reactor
 ) {
     private val childReactors: List<Instantiation>
@@ -27,7 +25,7 @@ class TSInstanceGenerator(
 
     private fun getTypeParams(typeParms: List<Type>): String =
         if (typeParms.isEmpty()) ""
-        else typeParms.joinToString(", ", "<", ">") { it.toText() }
+        else typeParms.joinToString(", ", "<", ">") { TSTypes.getTargetType(it) }
 
     private fun getReactorParameterList(parameters: List<Parameter>): String =
         parameters.joinToString(", ", "[__Reactor, ", "]") { TSTypes.getTargetType(it) }

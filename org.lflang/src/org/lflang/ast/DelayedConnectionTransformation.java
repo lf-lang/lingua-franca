@@ -21,6 +21,7 @@ import org.lflang.generator.TargetTypes;
 import org.lflang.lf.Action;
 import org.lflang.lf.ActionOrigin;
 import org.lflang.lf.Assignment;
+import org.lflang.lf.Code;
 import org.lflang.lf.Connection;
 import org.lflang.lf.Expression;
 import org.lflang.lf.Initializer;
@@ -113,9 +114,10 @@ public class DelayedConnectionTransformation implements AstTransformation {
                     // Assume all the types are the same, so just use the first on the right.
                     Type type = ((Port) connection.getRightPorts().get(0).getVariable()).getType();
                     Reactor delayClass = getDelayClass(type, connection.isPhysical());
+                    String generic = targetTypes.supportsGenerics()
+                        ? targetTypes.getTargetType(type) : null;
 
-                    Instantiation delayInstance = getDelayInstance(delayClass, connection,
-                        targetTypes.supportsGenerics() ? type : null,
+                    Instantiation delayInstance = getDelayInstance(delayClass, connection, generic,
                         !generator.generateAfterDelaysWithVariableWidth(), connection.isPhysical());
 
                     // Stage the new connections for insertion into the tree.
@@ -221,11 +223,15 @@ public class DelayedConnectionTransformation implements AstTransformation {
      *   we will accept zero delay on the connection.
      */
     private static Instantiation getDelayInstance(Reactor delayClass,
-        Connection connection, Type genericArg, Boolean defineWidthFromConnection, Boolean isPhysical) {
+        Connection connection, String genericArg, Boolean defineWidthFromConnection, Boolean isPhysical) {
         Instantiation delayInstance = factory.createInstantiation();
         delayInstance.setReactorClass(delayClass);
         if (genericArg != null) {
-            delayInstance.getTypeArgs().add(genericArg);
+            Code code = factory.createCode();
+            code.setBody(genericArg);
+            Type type = factory.createType();
+            type.setCode(code);
+            delayInstance.getTypeArgs().add(type);
         }
         if (ASTUtils.hasMultipleConnections(connection)) {
             WidthSpec widthSpec = factory.createWidthSpec();
