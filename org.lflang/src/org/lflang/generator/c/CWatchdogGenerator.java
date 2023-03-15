@@ -122,10 +122,6 @@ public class CWatchdogGenerator {
     ) {
         var reactor = ASTUtils.toDefinition(decl);
 
-        // WATCHDOG QUESTION 1: I followed similar structure to 
-        // `CReactionGenerator.generateReactionAndTriggerStructs`
-        // but am not sure why we need to check if watchdog exists in the 
-        // current federate.
         for (Watchdog watchdog : ASTUtils.allWatchdogs(reactor)) {
             String watchdogName = watchdog.getName();
             // Create pointer to the watchdog_t struct
@@ -148,6 +144,7 @@ public class CWatchdogGenerator {
             // Set values of watchdog_t struct in the reactor's constructor
             // WATCHDOG QUESTION 5: should I be defining these in the constructor of the reactor?
             //FIXME: update parameters
+            // constructorCode.pr("#ifdef LF_THREADED");
             constructorCode.pr(watchdog, String.join("\n",
                 "self->_lf_watchdog_"+watchdogName+".base = &(self->base);",
                 "self->_lf_watchdog_"+watchdogName+".expiration = NEVER;",
@@ -155,7 +152,7 @@ public class CWatchdogGenerator {
                 // "self->_lf_watchdog_"+watchdogName+".min_expiration = "+min_expiration+";",
                 "self->_lf_watchdog_"+watchdogName+".watchdog_function = &("+watchdogFunctionName+");"
             ));
-
+            // constructorCode.pr("#endif");
             // WATCHDOG QUESTION 6: should I be initializing mutex in this constructor?
         
         }

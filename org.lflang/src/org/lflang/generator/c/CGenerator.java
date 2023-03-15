@@ -445,6 +445,20 @@ public class CGenerator extends GeneratorBase {
         return true;
     }
 
+    /** Returns false if watchdogs exist and are
+     * unsupported in this context.
+     * Otherwise, return true.
+     */
+    protected boolean isWatchdogCompatible() {
+        if (hasWatchdogs() && !targetConfig.threading) {
+            errorReporter.reportError(
+                "Watchdogs are not supported for unthreaded programs."
+            );
+            return false;
+        }
+        return true;
+    }
+
     /**
      * Generate C code from the Lingua Franca model contained by the
      * specified resource. This is the main entry point for code
@@ -459,6 +473,7 @@ public class CGenerator extends GeneratorBase {
         super.doGenerate(resource, context);
         if (!GeneratorUtils.canGenerate(errorsOccurred(), mainDef, errorReporter, context)) return;
         if (!isOSCompatible()) return; // Incompatible OS and configuration
+        if (!isWatchdogCompatible()) return;
 
         // Perform set up that does not generate code
         setUpGeneralParameters();
@@ -822,9 +837,11 @@ public class CGenerator extends GeneratorBase {
         return false;
     }
 
-    private boolean hasWatchdogs(Reactor reactor) {
-        if (ASTUtils.allWatchdogs(reactor) != null) {
-            return true;
+    private boolean hasWatchdogs() {
+        for (Reactor reactor : reactors) {
+            if (ASTUtils.allWatchdogs(reactor) != null) {
+                return true;
+            }
         }
         return false;
     }
@@ -1432,7 +1449,6 @@ public class CGenerator extends GeneratorBase {
      *  a struct that contains parameters, state variables, inputs (triggering or not),
      *  actions (triggering or produced), and outputs.
      *  @param decl The reactor.
-     *  @param federate The federate, or null if this is not
      *   federated or not the main reactor and reactions should be
      *   unconditionally generated.
      */
@@ -1508,6 +1524,7 @@ public class CGenerator extends GeneratorBase {
         var foundOne = false;
         var temp = new CodeBuilder();
         var reactorRef = CUtil.reactorRef(instance);
+        // temp.pr("#ifdef LF_THREADED");
         for (WatchdogInstance watchdog : instance.watchdogs) {
             temp.pr("   _lf_watchdogs[_lf_watchdog_number_count++] = &"+reactorRef+"->_lf_watchdog_"+watchdog.getName()+";");
             temp.pr("   " + reactorRef+"->_lf_watchdog_"+watchdog.getName()+".min_expiration = "+GeneratorBase.timeInTargetLanguage(watchdog.getTimeout())+";");
@@ -1515,6 +1532,7 @@ public class CGenerator extends GeneratorBase {
             watchdogCount += 1;
             foundOne = true;
         }
+        // temp.pr("#endif");
         if (foundOne) {
             initializeTriggerObjects.pr(temp.toString());
         }

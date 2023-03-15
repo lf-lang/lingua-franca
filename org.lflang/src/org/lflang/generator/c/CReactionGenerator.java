@@ -683,7 +683,12 @@ public class CReactionGenerator {
     ) {
         Watchdog watchdog = (Watchdog) effect.getVariable();
         String watchdogName = watchdog.getName();
-        return "watchdog_t* "+watchdogName+" = &(self->_lf_watchdog_"+watchdogName+");";
+
+        return String.join("\n", List.of(
+        "#ifdef LF_THREADED", 
+        "    watchdog_t* "+watchdogName+" = &(self->_lf_watchdog_"+watchdogName+");",
+        "#endif"
+        ));
     }
 
     /**
