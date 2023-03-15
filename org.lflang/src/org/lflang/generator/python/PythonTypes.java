@@ -69,7 +69,7 @@ public class PythonTypes extends CTypes {
         return new PythonTypes() {
             @Override
             public String getTargetParamRef(ParameterReference expr, InferredType typeOrNull) {
-                return CUtil.reactorRef(instance) + "." + expr.getParameter().getName();
+                return PyUtil.reactorRef(instance) + "." + expr.getParameter().getName();
             }
         };
     }
