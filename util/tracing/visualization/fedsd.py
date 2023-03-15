@@ -20,13 +20,13 @@ css_style = ' <style> \
     } \
     .ABS {stroke: #d9dd1f; fill: #d9dd1f; } \
     .LTC { stroke: #073b4c; fill: #073b4c;} \
-    .MSG { stroke: #ef476f; fill: #ef476f} \
+    .T_MSG { stroke: #ef476f; fill: #ef476f} \
     .NET { stroke: #118ab2; fill: #118ab2} \
     .PTAG { stroke: #06d6a0; fill: #06d6a0} \
     .TAG { stroke: #08a578; fill: #08a578} \
     .TIMESTAMP { stroke: grey; fill: grey } \
+    .FED_ID {stroke: #80DD99; fill: #80DD99 } \
     .ADV {stroke-linecap="round" ; stroke: "red" ; fill: "red"} \
-    \
     text { \
         font-size: smaller; \
         font-family: sans-serif; \
@@ -275,7 +275,9 @@ if __name__ == '__main__':
             # FIXME: Using microseconds is hardwired here.
             physical_time = f'{int(row["physical_time"]/1000):,}'
 
-            if (row['logical_time'] == -1678240241788173894) :
+            if (row['event'] in {'FED_ID', 'ACK', 'REJECT', 'ADR_RQ', 'ADR_AD', 'MSG', 'P2P_MSG'}):
+                label = row['event']
+            elif (row['logical_time'] == -1678240241788173894) :
                 # FIXME: This isn't right.  NEVER == -9223372036854775808.
                 label = row['event'] + '(NEVER)'
             else:
