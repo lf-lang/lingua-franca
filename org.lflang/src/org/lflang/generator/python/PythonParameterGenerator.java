@@ -113,8 +113,16 @@ public class PythonParameterGenerator {
         // Handle overrides in the instantiation.
         // In case there is more than one assignment to this parameter, we need to
         // find the last one.
+        Assignment lastAssignment = null;
+        for (Assignment assignment : p.getParent().getDefinition().getParameters()) {
+            if (assignment.getLhs() == p.getDefinition()) {
+                lastAssignment = assignment;
+            }
+        }
+
         PythonTypes pyTypes = PythonTypes.generateParametersIn(p.getParent().getParent());
-        List<Expression> values = p.getInitialValue();
+        List<Expression> values = (lastAssignment != null) ? lastAssignment.getRhs().getExprs()
+            : p.getInitialValue();
         InferredType paramType = ASTUtils.getInferredType(p.getDefinition());
         if (values.size() == 1) {
             return pyTypes.getTargetExpr(values.get(0), paramType);
