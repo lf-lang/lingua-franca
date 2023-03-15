@@ -111,14 +111,7 @@ public class PythonParameterGenerator {
      */
     public static String generatePythonInitializer(ParameterInstance p) {
         PythonTypes pyTypes = PythonTypes.generateParametersIn(p.getParent().getParent());
-        List<Expression> values = p.getActualValue();
-        InferredType paramType = ASTUtils.getInferredType(p.getDefinition());
-        if (values.size() == 1) {
-            return pyTypes.getTargetExpr(values.get(0), paramType);
-        } else {
-            return values.stream().map(it -> pyTypes.getTargetExpr(it, paramType.getComponentType()))
-                .collect(Collectors.joining(", ", "( ", ")"));
-        }
+        return pyTypes.getTargetInitializer(p.getActualValue(), p.getDefinition().getType());
     }
 
 }

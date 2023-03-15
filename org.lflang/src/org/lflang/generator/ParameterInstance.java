@@ -34,7 +34,11 @@ import org.lflang.InferredType;
 import org.lflang.ASTUtils;
 import org.lflang.lf.Assignment;
 import org.lflang.lf.Expression;
+import org.lflang.lf.Initializer;
+import org.lflang.lf.LfFactory;
 import org.lflang.lf.Parameter;
+
+import kotlin.reflect.jvm.internal.impl.resolve.constants.KClassValue.Value;
 
 /** 
  * Representation of a compile-time instance of a parameter.
@@ -85,13 +89,18 @@ public class ParameterInstance extends NamedInstance<Parameter> {
      * in the containing instance. Parameter references are resolved
      * to actual expressions.
      */
-    // todo this should return an Initializer
-    public List<Expression> getActualValue() {
+    public Initializer getActualValue() {
         Assignment override = getOverride();
+        List<Expression> values;
         if (override != null) {
-            return override.getRhs().getExprs().stream().map(parent::resolveParameters).toList();
+            values = override.getRhs().getExprs().stream().map(parent::resolveParameters).toList();
+        } else {
+            values = getInitialValue();
         }
-        return getInitialValue();
+        Initializer init = LfFactory.eINSTANCE.createInitializer();
+        init.getExprs().addAll(values);
+        init.setParens(true); // todo
+        return init;
     }
     
     /**

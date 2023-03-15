@@ -9,6 +9,7 @@ import org.lflang.ASTUtils;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.lf.Assignment;
 import org.lflang.lf.Expression;
+import org.lflang.lf.Initializer;
 import org.lflang.lf.Parameter;
 import org.lflang.lf.Reactor;
 
@@ -33,14 +34,8 @@ public class CParameterGenerator {
         }
 
         CTypes ctypes = CTypes.generateParametersIn(p.getParent().getParent());
-        List<Expression> values = p.getActualValue();
-        InferredType paramType = ASTUtils.getInferredType(p.getDefinition());
-        if (values.size() == 1) {
-            return ctypes.getTargetExpr(values.get(0), paramType);
-        } else {
-            return values.stream().map(it -> ctypes.getTargetExpr(it, paramType.getComponentType()))
-                .collect(Collectors.joining(", ", "{ ", "}"));
-        }
+        Initializer values = p.getActualValue();
+        return ctypes.getTargetInitializer(values, p.getDefinition().getType());
     }
 
     /**
