@@ -126,7 +126,8 @@ public class InferredType {
     }
 
     /**
-     * Convert the inferred type to its textual representation while ignoring any list qualifiers.
+     * Convert the inferred type to its textual representation
+     * while ignoring any list qualifiers or type arguments.
      *
      * @return Textual representation of this inferred type without list qualifiers
      */

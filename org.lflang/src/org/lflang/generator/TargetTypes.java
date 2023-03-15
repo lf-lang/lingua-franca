@@ -166,8 +166,17 @@ public interface TargetTypes {
             return getTargetFixedSizeListType(type.baseType(), type.listSize);
         } else if (type.isVariableSizeList) {
             return getTargetVariableSizeListType(type.baseType());
+        } else if (!type.astType.getTypeArgs().isEmpty()) {
+            List<String> args = type.astType.getTypeArgs().stream().map(this::getTargetType).toList();
+            return getGenericType(type.baseType(), args);
         }
         return type.toOriginalText();
+    }
+
+    /** Build a generic type. The type args list must not be empty. */
+    default String getGenericType(String base, List<String> args) {
+        assert !args.isEmpty() : "Empty type arguments for " + base;
+        return base + "<" + String.join(", ", args) + ">";
     }
 
     /**

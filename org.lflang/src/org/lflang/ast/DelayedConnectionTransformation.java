@@ -21,6 +21,7 @@ import org.lflang.generator.TargetTypes;
 import org.lflang.lf.Action;
 import org.lflang.lf.ActionOrigin;
 import org.lflang.lf.Assignment;
+import org.lflang.lf.Code;
 import org.lflang.lf.Connection;
 import org.lflang.lf.Expression;
 import org.lflang.lf.Initializer;
@@ -113,7 +114,9 @@ public class DelayedConnectionTransformation implements AstTransformation {
                     // Assume all the types are the same, so just use the first on the right.
                     Type type = ((Port) connection.getRightPorts().get(0).getVariable()).getType();
                     Reactor delayClass = getDelayClass(type, connection.isPhysical());
-                    String generic = targetTypes.supportsGenerics() ? targetTypes.getTargetType(InferredType.fromAST(type)) : "";
+                    String generic = targetTypes.supportsGenerics()
+                        ? targetTypes.getTargetType(type) : null;
+
                     Instantiation delayInstance = getDelayInstance(delayClass, connection, generic,
                         !generator.generateAfterDelaysWithVariableWidth(), connection.isPhysical());
 
@@ -209,7 +212,7 @@ public class DelayedConnectionTransformation implements AstTransformation {
      * modification exceptions.
      * @param delayClass The class to create an instantiation for
      * @param connection The connection to create a delay instantiation foe
-     * @param generic A string that denotes the appropriate type parameter,
+     * @param genericArg A string that denotes the appropriate type parameter,
      *  which should be null or empty if the target does not support generics.
      * @param defineWidthFromConnection If this is true and if the connection
      *  is a wide connection, then instantiate a bank of delays where the width
@@ -220,13 +223,15 @@ public class DelayedConnectionTransformation implements AstTransformation {
      *   we will accept zero delay on the connection.
      */
     private static Instantiation getDelayInstance(Reactor delayClass,
-        Connection connection, String generic, Boolean defineWidthFromConnection, Boolean isPhysical) {
+        Connection connection, String genericArg, Boolean defineWidthFromConnection, Boolean isPhysical) {
         Instantiation delayInstance = factory.createInstantiation();
         delayInstance.setReactorClass(delayClass);
-        if (!StringExtensions.isNullOrEmpty(generic)) {
-            TypeParm typeParm = factory.createTypeParm();
-            typeParm.setLiteral(generic);
-            delayInstance.getTypeParms().add(typeParm);
+        if (genericArg != null) {
+            Code code = factory.createCode();
+            code.setBody(genericArg);
+            Type type = factory.createType();
+            type.setCode(code);
+            delayInstance.getTypeArgs().add(type);
         }
         if (ASTUtils.hasMultipleConnections(connection)) {
             WidthSpec widthSpec = factory.createWidthSpec();
