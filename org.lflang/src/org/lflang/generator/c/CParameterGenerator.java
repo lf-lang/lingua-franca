@@ -32,18 +32,8 @@ public class CParameterGenerator {
             return CUtil.bankIndex(p.getParent());
         }
 
-        // Handle overrides in the intantiation.
-        // In case there is more than one assignment to this parameter, we need to
-        // find the last one.
-        Assignment lastAssignment = null;
-        for (Assignment assignment: p.getParent().getDefinition().getParameters()) {
-            if (assignment.getLhs() == p.getDefinition()) {
-                lastAssignment = assignment;
-            }
-        }
-
         CTypes ctypes = CTypes.generateParametersIn(p.getParent().getParent());
-        List<Expression> values = (lastAssignment != null) ? lastAssignment.getRhs().getExprs() : p.getInitialValue();
+        List<Expression> values = p.getActualValue();
         InferredType paramType = ASTUtils.getInferredType(p.getDefinition());
         if (values.size() == 1) {
             return ctypes.getTargetExpr(values.get(0), paramType);

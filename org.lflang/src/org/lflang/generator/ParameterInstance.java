@@ -76,8 +76,22 @@ public class ParameterInstance extends NamedInstance<Parameter> {
      * of Time, Literal, or Code. That is, references to other
      * parameters have been replaced with their initial values.
      */
-    public List<Expression> getInitialValue() {
+    private List<Expression> getInitialValue() {
         return parent.initialParameterValue(this.definition);
+    }
+
+    /**
+     * Return the (possibly overridden) value of this parameter
+     * in the containing instance. Parameter references are resolved
+     * to actual expressions.
+     */
+    // todo this should return an Initializer
+    public List<Expression> getActualValue() {
+        Assignment override = getOverride();
+        if (override != null) {
+            return override.getRhs().getExprs().stream().map(parent::resolveParameters).toList();
+        }
+        return getInitialValue();
     }
     
     /**

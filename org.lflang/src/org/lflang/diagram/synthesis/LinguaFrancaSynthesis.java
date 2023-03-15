@@ -1189,9 +1189,9 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
         if (!StringExtensions.isNullOrEmpty(t)) {
             b.append(": ").append(t);
         }
-        if (!IterableExtensions.isNullOrEmpty(param.getInitialValue())) {
+        if (!IterableExtensions.isNullOrEmpty(param.getActualValue())) {
             b.append(" = ");
-            b.append(IterableExtensions.join(param.getInitialValue(), ", ", ASTUtils::toOriginalText));
+            b.append(IterableExtensions.join(param.getActualValue(), ", ", ASTUtils::toOriginalText));
         }
         return b.toString();
     }
