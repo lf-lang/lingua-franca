@@ -30,15 +30,13 @@ package org.lflang.generator;
 import java.util.List;
 import java.util.Optional;
 
-import org.lflang.InferredType;
 import org.lflang.ASTUtils;
+import org.lflang.InferredType;
 import org.lflang.lf.Assignment;
 import org.lflang.lf.Expression;
 import org.lflang.lf.Initializer;
 import org.lflang.lf.LfFactory;
 import org.lflang.lf.Parameter;
-
-import kotlin.reflect.jvm.internal.impl.resolve.constants.KClassValue.Value;
 
 /** 
  * Representation of a compile-time instance of a parameter.
