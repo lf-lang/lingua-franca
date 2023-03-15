@@ -91,7 +91,7 @@ public class ParameterInstance extends NamedInstance<Parameter> {
         Assignment override = getOverride();
         List<Expression> values;
         if (override != null) {
-            values = override.getRhs().getExprs().stream().map(parent::resolveParameters).toList();
+            values = override.getRhs().getExprs().stream().map(parent.parent::resolveParameters).toList();
         } else {
             values = getInitialValue();
         }
