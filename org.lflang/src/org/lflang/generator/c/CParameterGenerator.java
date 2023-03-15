@@ -1,7 +1,5 @@
 package org.lflang.generator.c;
 
-import java.util.ArrayList;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -9,13 +7,10 @@ import org.lflang.InferredType;
 import org.lflang.generator.ParameterInstance;
 import org.lflang.ASTUtils;
 import org.lflang.generator.CodeBuilder;
-import org.lflang.generator.GeneratorBase;
 import org.lflang.lf.Assignment;
 import org.lflang.lf.Expression;
 import org.lflang.lf.Parameter;
-import org.lflang.lf.ParameterReference;
 import org.lflang.lf.Reactor;
-import org.lflang.lf.Type;
 
 /**
  * Generates C code to declare and initialize parameters.
@@ -37,8 +32,18 @@ public class CParameterGenerator {
             return CUtil.bankIndex(p.getParent());
         }
 
+        // Handle overrides in the intantiation.
+        // In case there is more than one assignment to this parameter, we need to
+        // find the last one.
+        Assignment lastAssignment = null;
+        for (Assignment assignment: p.getParent().getDefinition().getParameters()) {
+            if (assignment.getLhs() == p.getDefinition()) {
+                lastAssignment = assignment;
+            }
+        }
+
         CTypes ctypes = CTypes.generateParametersIn(p.getParent().getParent());
-        List<Expression> values = p.getInitialValue();
+        List<Expression> values = (lastAssignment != null) ? lastAssignment.getRhs().getExprs() : p.getInitialValue();
         InferredType paramType = ASTUtils.getInferredType(p.getDefinition());
         if (values.size() == 1) {
             return ctypes.getTargetExpr(values.get(0), paramType);
