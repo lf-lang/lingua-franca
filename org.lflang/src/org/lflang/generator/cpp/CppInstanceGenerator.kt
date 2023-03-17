@@ -46,7 +46,7 @@ class CppInstanceGenerator(
 
         private val Instantiation.reactorType: String
             get() = if (reactor.isGeneric)
-                """${reactor.name}<${typeParms.joinToString(", ") { it.toText() }}>"""
+                """${reactor.name}<${typeArgs.joinToString(", ") { it.toText() }}>"""
             else
                 reactor.name
 
