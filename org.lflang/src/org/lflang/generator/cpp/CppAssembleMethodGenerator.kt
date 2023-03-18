@@ -26,8 +26,10 @@ package org.lflang.generator.cpp
 
 import org.lflang.*
 import org.lflang.generator.PrependOperator
+import org.lflang.generator.cpp.CppConnectionGenerator.Companion.isEnclaveConnection
 import org.lflang.generator.cpp.CppConnectionGenerator.Companion.name
 import org.lflang.generator.cpp.CppConnectionGenerator.Companion.requiresConnectionClass
+import org.lflang.generator.cpp.CppInstanceGenerator.Companion.isEnclave
 import org.lflang.generator.cpp.CppPortGenerator.Companion.dataType
 import org.lflang.lf.Action
 import org.lflang.lf.Connection
@@ -86,7 +88,7 @@ class CppAssembleMethodGenerator(private val reactor: Reactor) {
                     // is in a bank, but not a multiport
                     """
                         |for (auto& __lf_instance : ${container.name}) {
-                    ${" |  "..generateCode("__lf_instance->${port.name}")}
+                    ${" |  "..generateCode("__lf_instance->${if(container.isEnclave) "__lf_instance->" else ""}${port.name}")}
                         |}
                     """.trimMargin()
                 } else {
@@ -182,7 +184,7 @@ class CppAssembleMethodGenerator(private val reactor: Reactor) {
 
         // Generate code which adds all left hand ports and all right hand ports to a vector each. If we are handling multiports
         // within a bank, then we normally iterate over all banks in an outer loop and over all ports in an inner loop. However,
-        // if the connection is a cross connection, than we change the order on the right side and iterate over ports before banks.
+        // if the connection is an interleaved connection, than we change the order on the right side and iterate over ports before banks.
         return with(PrependOperator) {
             if (!c.requiresConnectionClass) {
                 """
@@ -193,7 +195,7 @@ class CppAssembleMethodGenerator(private val reactor: Reactor) {
                 ${" |"..c.rightPorts.joinWithLn { addAllPortsToVector(it, "__lf_right_ports_$idx") }}
                     |lfutil::bind_multiple_ports(__lf_left_ports_$idx, __lf_right_ports_$idx, ${c.isIterated});
                 """.trimMargin()
-            } else {
+            } else if (!c.isEnclaveConnection) {
                 """
                     |// connection $idx
                     |std::vector<$portType> __lf_left_ports_$idx;
@@ -210,6 +212,19 @@ class CppAssembleMethodGenerator(private val reactor: Reactor) {
                     |std::vector<$portType> __lf_right_ports_$idx;
                 ${" |"..c.rightPorts.joinWithLn { addAllPortsToVector(it, "__lf_right_ports_$idx") }}
                     |lfutil::bind_multiple_connections_with_ports(__lf_connection_pointers_$idx, __lf_right_ports_$idx, ${c.isIterated});
+                """.trimMargin()
+            } else {
+                """
+                    |// connection $idx
+                    |std::vector<$portType> __lf_left_ports_$idx;
+                ${" |"..c.leftPorts.joinWithLn { addAllPortsToVector(it, "__lf_left_ports_$idx") }}
+                    |std::vector<$portType> __lf_right_ports_$idx;
+                ${" |"..c.rightPorts.joinWithLn { addAllPortsToVector(it, "__lf_right_ports_$idx") }}
+                    |for(size_t __lf_idx{0}; __lf_idx < std::min(__lf_right_ports_$idx.size(), __lf_left_ports_$idx.size()); __lf_idx++) {
+                    |  ${c.name}.emplace_back("${c.name}" + std::to_string(__lf_idx), __lf_right_ports_$idx[__lf_idx]->environment()${if(c.delay != null) ", ${c.delay.toCppTime()}" else ""});
+                    |  ${c.name}.back().bind_upstream_port(__lf_left_ports_$idx[__lf_idx]);
+                    |  ${c.name}.back().bind_downstream_port(__lf_right_ports_$idx[__lf_idx]);
+                    |}
                 """.trimMargin()
             }
         }

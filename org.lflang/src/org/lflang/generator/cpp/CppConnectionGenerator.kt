@@ -69,13 +69,15 @@ class CppConnectionGenerator(private val reactor: Reactor) {
         reactor.connections.mapNotNull { generateConstructorInitializer(it) }.joinLn()
 
     private fun generateDecleration(connection: Connection): String? =
-        if (connection.requiresConnectionClass) {
-            if (connection.hasMultipleConnections) {
-                "std::vector<${connection.cppType}> ${connection.name};"
-            } else {
-                "${connection.cppType} ${connection.name};"
-            }
-        } else null
+        with(connection) {
+            if (requiresConnectionClass) {
+                when {
+                    hasMultipleConnections && isEnclaveConnection  -> "std::list<${connection.cppType}> ${connection.name};"
+                    hasMultipleConnections && !isEnclaveConnection -> "std::vector<${connection.cppType}> ${connection.name};"
+                    else                                           -> "${connection.cppType} ${connection.name};"
+                }
+            } else null
+        }
 
     private fun generateConstructorInitializer(connection: Connection): String? = with(connection) {
         if (requiresConnectionClass && !hasMultipleConnections) {
