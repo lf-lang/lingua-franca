@@ -5,23 +5,32 @@ target Cpp {
 
 reactor Src {
     timer t(0, 100ms)
-    output out: int
+    output[4] out: int
     state counter: int = 0
     reaction(t) -> out {=
-        out.set(counter++);
+        for (auto& port : out) {
+            port.set(counter++);
+        }
     =}
 }
 
-reactor Sink {
+reactor Sink(bank_index: std::size_t = 0) {
+    timer t(0, 50ms)
     input in: int
     state received: bool = false
+    state iteration: int = 0
     reaction(in) {=
         received = true;
         auto value = *in.get();
         reactor::log::Info() << "Received " << value << " at " << get_elapsed_logical_time();
-        auto expected = 100ms * value;
+        auto expected = 100ms * iteration;
+        if (value != iteration*4 + bank_index) {
+            reactor::log::Error() << "Expected to recive " << iteration*4 + bank_index;
+            exit(1);
+        }
+        iteration++;
         if (get_elapsed_logical_time() < expected) {
-            reactor::log::Error() << "Expecded value not before " << expected;
+            reactor::log::Error() << "Expected value not before " << expected;
             exit(1);
         }
     =}
@@ -31,13 +40,16 @@ reactor Sink {
             exit(1);
         }
     =}
+    reaction(t) {=
+        reactor::log::Info() << "Tick";
+    =}
 }
 
 main reactor {
     @enclave
     src = new Src()
     @enclave
-    sink = new Sink()
+    sink = new[4] Sink()
 
     src.out ~> sink.in
 }
