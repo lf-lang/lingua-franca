@@ -30,6 +30,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Properties;
 import java.util.Set;
 
 import org.lflang.TargetProperty.BuildType;
@@ -38,7 +39,9 @@ import org.lflang.TargetProperty.CoordinationType;
 import org.lflang.TargetProperty.LogLevel;
 import org.lflang.TargetProperty.Platform;
 import org.lflang.TargetProperty.SchedulerOption;
+import org.lflang.TargetProperty.UnionType;
 import org.lflang.generator.rust.RustTargetConfig;
+import org.lflang.lf.KeyValuePair;
 import org.lflang.lf.TargetDecl;
 
 /**
@@ -52,8 +55,69 @@ public class TargetConfig {
 
     public final Target target;
 
-    public TargetConfig(TargetDecl target) {
+    public TargetConfig(TargetDecl target) { // FIXME: eliminate this constructor if we can
         this.target = Target.fromDecl(target);
+    }
+
+    public TargetConfig(Properties args,
+        TargetDecl target,
+        ErrorReporter errorReporter) {
+        this(target);
+        if (target.getConfig() != null) {
+            List<KeyValuePair> pairs = target.getConfig().getPairs();
+            TargetProperty.set(this, pairs != null ? pairs : List.of(), errorReporter);
+        }
+        if (args.containsKey("no-compile")) {
+            this.noCompile = true;
+        }
+        if (args.containsKey("docker")) {
+            var arg = args.getProperty("docker");
+            if (Boolean.parseBoolean(arg)) {
+                this.dockerOptions = new DockerOptions();
+            } else {
+                this.dockerOptions = null;
+            }
+            // FIXME: this is pretty ad-hoc and does not account for more complex overrides yet.
+        }
+        if (args.containsKey("build-type")) {
+            this.cmakeBuildType = (BuildType) UnionType.BUILD_TYPE_UNION.forName(args.getProperty("build-type"));
+        }
+        if (args.containsKey("logging")) {
+            this.logLevel = LogLevel.valueOf(args.getProperty("logging").toUpperCase());
+        }
+        if (args.containsKey("workers")) {
+            this.workers = Integer.parseInt(args.getProperty("workers"));
+        }
+        if (args.containsKey("threading")) {
+            this.threading = Boolean.parseBoolean(args.getProperty("threading"));
+        }
+        if (args.containsKey("target-compiler")) {
+            this.compiler = args.getProperty("target-compiler");
+        }
+        if (args.containsKey("scheduler")) {
+            this.schedulerType = SchedulerOption.valueOf(
+                args.getProperty("scheduler")
+            );
+            this.setByUser.add(TargetProperty.SCHEDULER);
+        }
+        if (args.containsKey("target-flags")) {
+            this.compilerFlags.clear();
+            if (!args.getProperty("target-flags").isEmpty()) {
+                this.compilerFlags.addAll(List.of(
+                    args.getProperty("target-flags").split(" ")
+                ));
+            }
+        }
+        if (args.containsKey("runtime-version")) {
+            this.runtimeVersion = args.getProperty("runtime-version");
+        }
+        if (args.containsKey("external-runtime-path")) {
+            this.externalRuntimePath = args.getProperty("external-runtime-path");
+        }
+        if (args.containsKey(TargetProperty.KEEPALIVE.description)) {
+            this.keepalive = Boolean.parseBoolean(
+                args.getProperty(TargetProperty.KEEPALIVE.description));
+        }
     }
 
     /**

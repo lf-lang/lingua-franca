@@ -27,10 +27,13 @@ package org.lflang.federated.generator;
 
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.eclipse.emf.ecore.resource.Resource;
 
 import org.lflang.FileConfig;
+import org.lflang.TargetProperty;
 import org.lflang.util.FileUtil;
 
 /**
@@ -94,4 +97,33 @@ public class FedFileConfig extends FileConfig {
         super.doClean();
         FileUtil.deleteDirectory(this.getFedGenPath());
     }
+
+    /**
+     * Relativize target properties that involve paths like files and cmake-include to be
+     * relative to the generated .lf file for the federate.
+     */
+    public void relativizePaths(FedTargetConfig targetConfig) {
+        relativizePathList(targetConfig.protoFiles);
+        relativizePathList(targetConfig.fileNames);
+        relativizePathList(targetConfig.cmakeIncludes);
+    }
+
+    private void relativizePathList(List<String> paths) {
+        List<String> tempList = new ArrayList<>();
+        paths.forEach( f -> {
+            tempList.add(relativizePath(f));
+        });
+        paths.clear();
+        paths.addAll(tempList);
+    }
+
+    private String relativizePath(String path) {
+        Path resolvedPath = this.srcPath.resolve(path).toAbsolutePath();
+        return this.getSrcPath().relativize(resolvedPath).toString();
+    }
+
+
+
+
+
 }

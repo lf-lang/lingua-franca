@@ -164,7 +164,7 @@ public class MainContext implements LFGeneratorContext {
      */
     public void loadTargetConfig() {
         this.targetConfig = GeneratorUtils.getTargetConfig(
-            args, GeneratorUtils.findTarget(fileConfig.resource), errorReporter
+            args, GeneratorUtils.findTargetDecl(fileConfig.resource), errorReporter
         );
     }
 }

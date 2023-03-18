@@ -13,6 +13,7 @@ import org.lflang.Target;
 import org.lflang.TargetProperty;
 import org.lflang.ast.FormattingUtils;
 import org.lflang.federated.extensions.FedTargetExtensionFactory;
+import org.lflang.federated.launcher.RtiConfig;
 import org.lflang.generator.GeneratorUtils;
 import org.lflang.generator.LFGeneratorContext;
 
@@ -24,61 +25,29 @@ public class FedTargetEmitter {
         FederateInstance federate,
         FedFileConfig fileConfig,
         ErrorReporter errorReporter,
-        LinkedHashMap<String, Object> federationRTIProperties
+        RtiConfig rtiConfig
     ) throws IOException {
-        federate.targetConfig =
-        GeneratorUtils.getTargetConfig(
-            context.getArgs(),
-            federate.target,
-            errorReporter
-        );
-        // FIXME: Should we merge some properties with the main .lf file if the federate is imported?
-        // https://issue.lf-lang.org/1560
-        var fedReactorClass = federate.instantiation.getReactorClass();
-        if (!fedReactorClass.eResource().equals(fileConfig.resource)) {
-            // Merge some target properties of the main .lf file.
-            var target = GeneratorUtils.findTarget(fileConfig.resource);
-            if (target.getConfig() != null) {
-                // Merge properties
-                TargetProperty.update(
-                    federate.targetConfig,
-                    convertToEmptyListIfNull(target.getConfig().getPairs()),
-                    errorReporter
-                );
-            }
-        }
 
-        relativizeTargetPaths(federate, fileConfig);
-
-        clearFederatedTargetPropertiesI(federate);
-
-        FedTargetExtensionFactory.getExtension(federate.target)
+        // FIXME: First of all, this is not an initialization; there is all sorts of stuff happening
+        // in the implementations of this method. Second, true initialization stuff should happen
+        // when the target config is constructed, not when we're doing code generation.
+        FedTargetExtensionFactory.getExtension(federate.targetConfig.target)
                                  .initializeTargetConfig(
                                      context,
                                      numOfFederates,
                                      federate,
                                      fileConfig,
                                      errorReporter,
-                                     federationRTIProperties
+                                     rtiConfig
                                  );
 
-        return FormattingUtils.renderer(federate.target).apply(
+        return FormattingUtils.renderer(federate.targetConfig.target).apply(
             TargetProperty.extractTargetDecl(
-                Target.fromDecl(federate.target),
+                federate.targetConfig.target,
                 federate.targetConfig
             )
         );
     }
-
-    /**
-     * Clear target properties that should not end up in the generated .lf file
-     * for {@code federate}.
-     */
-    private void clearFederatedTargetPropertiesI(FederateInstance federate) {
-        federate.targetConfig.setByUser.remove(TargetProperty.CLOCK_SYNC);
-        federate.targetConfig.setByUser.remove(TargetProperty.CLOCK_SYNC_OPTIONS);
-    }
-
 
     /**
      * Relativize target properties that involve paths like files and cmake-include to be
