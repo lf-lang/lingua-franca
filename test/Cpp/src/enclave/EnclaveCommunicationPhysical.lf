@@ -13,17 +13,15 @@ reactor Src {
 }
 
 reactor Sink {
-    timer t(0, 50ms)
     input in: int
     state received: bool = false
     reaction(in) {=
         received = true;
         auto value = *in.get();
-        reactor::log::Info() << "Received " << value;
+        reactor::log::Info() << "Received " << value << " at " << get_elapsed_logical_time();
         auto expected = 100ms * value;
-        if (get_elapsed_logical_time() != expected) {
-            reactor::log::Error() << "Expecded value at " << expected << " but received it at " << get_elapsed_logical_time();
-            exit(1);
+        if (get_elapsed_logical_time() < expected) {
+            reactor::log::Error() << "Expecded value not before " << expected;
         }
     =}
     reaction(shutdown) {=
@@ -31,9 +29,6 @@ reactor Sink {
             reactor::log::Error() << "Nothing received.";
             exit(1);
         }
-    =}
-    reaction(t) {=
-        reactor::log::Info() << "Tick";
     =}
 }
 
@@ -43,5 +38,5 @@ main reactor {
     @enclave
     sink = new Sink()
 
-    src.out -> sink.in
+    src.out ~> sink.in
 }

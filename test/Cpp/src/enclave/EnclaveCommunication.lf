@@ -22,6 +22,7 @@ reactor Sink {
         auto expected = 100ms * value;
         if (get_elapsed_logical_time() != expected) {
             reactor::log::Error() << "Expecded value at " << expected << " but received it at " << get_elapsed_logical_time();
+            exit(1);
         }
     =}
     reaction(shutdown) {=
