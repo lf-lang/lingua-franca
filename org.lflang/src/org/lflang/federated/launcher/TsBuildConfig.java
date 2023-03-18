@@ -36,6 +36,7 @@ import org.lflang.federated.generator.FederateInstance;
  * 
  * @author Soroush Bateni
  * @author Hokeun Kim
+ * @author Marten Lohstroh
  */
 public class TsBuildConfig extends BuildConfig {
 
@@ -55,8 +56,4 @@ public class TsBuildConfig extends BuildConfig {
         return "node "+fileConfig.getSrcGenPath().resolve(federate.name).resolve("dist").resolve(jsFilename)+" -i $FEDERATION_ID";
     }
 
-    @Override
-    public String remoteExecuteCommand() {
-        return null;
-    }
 }

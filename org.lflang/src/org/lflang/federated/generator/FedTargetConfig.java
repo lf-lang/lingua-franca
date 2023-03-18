@@ -56,12 +56,15 @@ public class FedTargetConfig extends TargetConfig {
         // in the imported file.
         if (!federateResource.equals(mainResource)) {
             var importedTargetDecl = GeneratorUtils.findTargetDecl(federateResource);
-            // Merge properties
-            TargetProperty.update(
-                this,
-                convertToEmptyListIfNull(importedTargetDecl.getConfig().getPairs()),
-                errorReporter
-            );
+            var targetProperties = importedTargetDecl.getConfig();
+            if (targetProperties != null) {
+                // Merge properties
+                TargetProperty.update(
+                    this,
+                    convertToEmptyListIfNull(targetProperties.getPairs()),
+                    errorReporter
+                );
+            }
         }
     }
 

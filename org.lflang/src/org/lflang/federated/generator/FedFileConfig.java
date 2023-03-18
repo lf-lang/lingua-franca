@@ -122,13 +122,13 @@ public class FedFileConfig extends FileConfig {
         paths.addAll(tempList);
     }
 
+    /**
+     *
+     * @param path
+     * @return
+     */
     private String relativizePath(String path) {
         Path resolvedPath = this.srcPath.resolve(path).toAbsolutePath();
         return this.getSrcPath().relativize(resolvedPath).toString();
     }
-
-
-
-
-
 }
