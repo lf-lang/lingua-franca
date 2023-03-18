@@ -6,7 +6,7 @@ target Cpp {
 reactor Src {
     timer t(0, 100ms)
     output out: int
-    state counter: int(0);
+    state counter: int = 0
     reaction(t) -> out {=
         out.set(counter++);
     =}
@@ -14,8 +14,21 @@ reactor Src {
 
 reactor Sink {
     input in: int
+    state received: bool = false
     reaction(in) {=
-        reactor::log::Info() << "Received " << *in.get();
+        received = true;
+        auto value = *in.get();
+        reactor::log::Info() << "Received " << value;
+        auto expected = 100ms * value;
+        if (get_elapsed_logical_time() != expected) {
+            reactor::log::Error() << "Expecded value at " << expected << " but received it at " << get_elapsed_logical_time();
+        }
+    =}
+    reaction(shutdown) {=
+        if(!received) {
+            reactor::log::Error() << "Nothing received.";
+            exit(1);
+        }
     =}
 }
 
