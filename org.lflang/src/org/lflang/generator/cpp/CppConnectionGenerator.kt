@@ -27,10 +27,15 @@ class CppConnectionGenerator(private val reactor: Reactor) {
             get() {
                 val leftPort = leftPorts.first()
                 return when {
-                    isEnclaveConnection && !isPhysical && delay == null -> "reactor::EnclaveConnection<${leftPort.dataType}>"
-                    isPhysical                                          -> "reactor::PhysicalConnection<${leftPort.dataType}>"
-                    delay != null                                       -> "reactor::DelayedConnection<${leftPort.dataType}>"
-                    else                                                -> throw IllegalArgumentException("Unsupported connection type")
+                    isEnclaveConnection -> when {
+                        isPhysical    -> "reactor::PhysicalEnclaveConnection<${leftPort.dataType}>"
+                        delay != null -> "reactor::DelayedEnclaveConnection<${leftPort.dataType}>"
+                        else          -> "reactor::EnclaveConnection<${leftPort.dataType}>"
+                    }
+
+                    isPhysical          -> "reactor::PhysicalConnection<${leftPort.dataType}>"
+                    delay != null       -> "reactor::DelayedConnection<${leftPort.dataType}>"
+                    else                -> throw IllegalArgumentException("Unsupported connection type")
                 }
             }
 
@@ -72,13 +77,14 @@ class CppConnectionGenerator(private val reactor: Reactor) {
             }
         } else null
 
-    private fun generateConstructorInitializer(connection: Connection): String? =
-        if (connection.requiresConnectionClass && !connection.hasMultipleConnections) {
-            val name = connection.name
-            val delay = connection.delay?.toCppTime()
-            if (connection.isEnclaveConnection)
-                """, $name{"$name", ${connection.rightPorts[0].container.name}->__lf_env.get()}"""
-            else
-                """, $name{"$name", this, $delay}"""
+    private fun generateConstructorInitializer(connection: Connection): String? = with(connection) {
+        if (requiresConnectionClass && !hasMultipleConnections) {
+            when {
+                isEnclaveConnection && delay == null -> """, $name{"$name", ${rightPorts[0].container.name}->__lf_env.get()}"""
+                isEnclaveConnection && delay != null -> """, $name{"$name", ${rightPorts[0].container.name}->__lf_env.get(), ${delay.toCppTime()}}"""
+                else                                 -> """, $name{"$name", this, ${delay.toCppTime()}}"""
+            }
         } else null
+    }
+
 }
