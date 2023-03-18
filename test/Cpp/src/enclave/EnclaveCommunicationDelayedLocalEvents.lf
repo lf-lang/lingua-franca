@@ -1,21 +1,21 @@
 target Cpp {
-    timeout: 1s,
+    timeout: 1 s,
     workers: 1
 }
 
 reactor Src {
-    timer t(0, 100ms)
+    timer t(0, 100 ms)
     output out: int
     state counter: int = 0
-    reaction(t) -> out {=
-        out.set(counter++);
-    =}
+
+    reaction(t) -> out {= out.set(counter++); =}
 }
 
 reactor Sink {
-    timer t(0, 50ms)
+    timer t(0, 50 ms)
     input in: int
     state received: bool = false
+
     reaction(in) {=
         received = true;
         auto value = *in.get();
@@ -26,15 +26,15 @@ reactor Sink {
             exit(1);
         }
     =}
+
     reaction(shutdown) {=
         if(!received) {
             reactor::log::Error() << "Nothing received.";
             exit(1);
         }
     =}
-    reaction(t) {=
-        reactor::log::Info() << "Tick";
-    =}
+
+    reaction(t) {= reactor::log::Info() << "Tick"; =}
 }
 
 main reactor {
@@ -43,5 +43,5 @@ main reactor {
     @enclave
     sink = new Sink()
 
-    src.out -> sink.in after 50ms
+    src.out -> sink.in after 50 ms
 }

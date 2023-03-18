@@ -1,12 +1,13 @@
 target Cpp {
-    timeout: 1s,
+    timeout: 1 s,
     workers: 1
 }
 
 reactor Src {
-    timer t(0, 100ms)
+    timer t(0, 100 ms)
     output[4] out: int
     state counter: int = 0
+
     reaction(t) -> out {=
         for (auto& port : out) {
             port.set(counter++);
@@ -15,10 +16,11 @@ reactor Src {
 }
 
 reactor Sink(bank_index: std::size_t = 0) {
-    timer t(0, 50ms)
+    timer t(0, 50 ms)
     input in: int
     state received: bool = false
     state iteration: int = 0
+
     reaction(in) {=
         received = true;
         auto value = *in.get();
@@ -34,22 +36,22 @@ reactor Sink(bank_index: std::size_t = 0) {
             exit(1);
         }
     =}
+
     reaction(shutdown) {=
         if(!received) {
             reactor::log::Error() << "Nothing received.";
             exit(1);
         }
     =}
-    reaction(t) {=
-        reactor::log::Info() << "Tick";
-    =}
+
+    reaction(t) {= reactor::log::Info() << "Tick"; =}
 }
 
 main reactor {
     @enclave
     src = new Src()
-    @enclave(each=true)
+    @enclave(each = true)
     sink = new[4] Sink()
 
-    src.out -> sink.in after 50ms
+    src.out -> sink.in after 50 ms
 }
