@@ -6,8 +6,14 @@ if (name.endsWith(".tests")) {
 			resources.srcDirs = []
 		}
 		test {
-			java.srcDirs = ['src', 'src-gen']
-			kotlin.srcDirs = ['src', 'src-gen']
+			java {
+                          srcDirs = ['src', 'src-gen']
+                          exclude "org/lflang/diagram/**"
+                        }
+			kotlin {
+                          srcDirs = ['src', 'src-gen']
+                          exclude "org/lflang/diagram/**"
+                        }
 			resources.srcDirs = ['src', 'src-gen']
 			xtendOutputDir = 'xtend-gen'
 		}
@@ -15,8 +21,14 @@ if (name.endsWith(".tests")) {
 } else {
 	sourceSets {
 		main {
-			java.srcDirs = ['src', 'src-gen']
-			kotlin.srcDirs = ['src', 'src-gen']
+			java {
+                          srcDirs = ['src', 'src-gen']
+                          exclude "org/lflang/diagram/**"
+                        }
+			kotlin {
+                          srcDirs = ['src', 'src-gen']
+                          exclude "org/lflang/diagram/**"
+                        }
 			xtendOutputDir = 'xtend-gen'
 			resources {
 				srcDirs = ['src', 'src-gen']

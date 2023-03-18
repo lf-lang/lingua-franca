@@ -16,6 +16,7 @@ import org.lflang.lf.ArraySpec;
 import org.lflang.lf.Assignment;
 import org.lflang.lf.AttrParm;
 import org.lflang.lf.Attribute;
+import org.lflang.lf.BracedListExpression;
 import org.lflang.lf.BuiltinTriggerRef;
 import org.lflang.lf.Code;
 import org.lflang.lf.CodeExpr;
@@ -415,7 +416,6 @@ public class IsEqual extends LfSwitch<Boolean> {
     public Boolean caseAssignment(Assignment object) {
         return new ComparisonMachine<>(object, Assignment.class)
             .equivalent(Assignment::getLhs)
-            .equalAsObjects(Assignment::getEquals)
             .equivalent(Assignment::getRhs)
             .conclusion;
     }
@@ -437,8 +437,16 @@ public class IsEqual extends LfSwitch<Boolean> {
             Literal.class,
             Time.class,
             ParameterReference.class,
-            Code.class
+            Code.class,
+            BracedListExpression.class
         );
+    }
+
+    @Override
+    public Boolean caseBracedListExpression(BracedListExpression object) {
+        return new ComparisonMachine<>(object, BracedListExpression.class)
+            .listsEquivalent(BracedListExpression::getItems)
+            .conclusion;
     }
 
     @Override

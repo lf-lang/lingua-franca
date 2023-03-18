@@ -5,10 +5,10 @@ target Rust
 reactor Generic2<
     {= T: Default + Eq + Sync + std::fmt::Debug + Send + 'static =}
 >(
-    value: T({= Default::default() =})
+    value: T = {= Default::default() =}
 ) {
     input in: T
-    state v: T(value)
+    state v: T = value
 
     reaction(in) {=
         ctx.use_ref_opt(r#in, |i| {
@@ -21,7 +21,7 @@ reactor Generic2<
 reactor Generic<
     {= T: Default + Eq + Sync + std::fmt::Debug + Copy + Send + 'static =}
 >(
-    value: T({= Default::default() =})
+    value: T = {= Default::default() =}
 ) {
     input in: T
 

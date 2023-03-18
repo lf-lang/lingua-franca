@@ -4,10 +4,10 @@ target Python {
     fast: true
 }
 
-reactor Source(bank_index(0)) {
+reactor Source(bank_index = 0) {
     timer t(0, 200 msec)
     output out
-    state s(0)
+    state s = 0
 
     reaction(t) -> out {=
         out.set(self.s)
@@ -15,8 +15,8 @@ reactor Source(bank_index(0)) {
     =}
 }
 
-reactor Destination(bank_index(0)) {
-    state s(0)
+reactor Destination(bank_index = 0) {
+    state s = 0
     input _in
 
     reaction(_in) {=
@@ -35,7 +35,7 @@ reactor Destination(bank_index(0)) {
     =}
 }
 
-main reactor BankToBank(width(4)) {
+main reactor BankToBank(width = 4) {
     a = new[width] Source()
     b = new[width] Destination()
     a.out -> b._in

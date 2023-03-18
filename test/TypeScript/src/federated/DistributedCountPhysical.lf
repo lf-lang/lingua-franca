@@ -14,7 +14,7 @@ target TypeScript {
 
 reactor Count {
     timer t(200 msec, 1 sec)
-    state s: number(0)
+    state s: number = 0
     output out: number
 
     reaction(t) -> out {=
@@ -25,8 +25,8 @@ reactor Count {
 
 reactor Print {
     input inp: number
-    state c: number(0)
-    state compareTime: time(200 msec)
+    state c: number = 0
+    state compareTime: time = 200 msec
 
     reaction(inp) {=
         let elapsedTime = util.getElapsedLogicalTime();

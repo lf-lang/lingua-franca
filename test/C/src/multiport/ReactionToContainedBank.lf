@@ -6,9 +6,9 @@ target C {
 
 import TestCount from "../lib/TestCount.lf"
 
-main reactor ReactionToContainedBank(width: int(2)) {
+main reactor ReactionToContainedBank(width: int = 2) {
     timer t(0, 100 msec)
-    state count: int(1)
+    state count: int = 1
 
     test = new[width] TestCount(num_inputs = 11)
 

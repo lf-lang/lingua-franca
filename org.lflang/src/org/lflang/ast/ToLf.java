@@ -21,6 +21,7 @@ import org.eclipse.xtext.nodemodel.INode;
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils;
 import org.eclipse.xtext.xbase.lib.StringExtensions;
 import org.lflang.ASTUtils;
+import org.lflang.Target;
 import org.lflang.ast.MalleableString.Builder;
 import org.lflang.ast.MalleableString.Joiner;
 import org.lflang.lf.Action;
@@ -29,6 +30,7 @@ import org.lflang.lf.ArraySpec;
 import org.lflang.lf.Assignment;
 import org.lflang.lf.AttrParm;
 import org.lflang.lf.Attribute;
+import org.lflang.lf.BracedListExpression;
 import org.lflang.lf.BuiltinTriggerRef;
 import org.lflang.lf.Code;
 import org.lflang.lf.CodeExpr;
@@ -46,6 +48,7 @@ import org.lflang.lf.Input;
 import org.lflang.lf.Instantiation;
 import org.lflang.lf.KeyValuePair;
 import org.lflang.lf.KeyValuePairs;
+import org.lflang.lf.LfFactory;
 import org.lflang.lf.Literal;
 import org.lflang.lf.Method;
 import org.lflang.lf.MethodArgument;
@@ -476,7 +479,7 @@ public class ToLf extends LfSwitch<MalleableString> {
     }
     msb.append("state ").append(object.getName());
     msb.append(typeAnnotationFor(object.getType()));
-    msb.append(initializer(object.getInit(), true));
+    msb.append(initializer(object.getInit()));
 
     return msb.get();
   }
@@ -757,12 +760,24 @@ public class ToLf extends LfSwitch<MalleableString> {
   @Override
   public MalleableString caseKeyValuePairs(KeyValuePairs object) {
     // {KeyValuePairs} '{' (pairs+=KeyValuePair (',' (pairs+=KeyValuePair))* ','?)? '}'
-    if (object.getPairs().isEmpty()) return MalleableString.anyOf("");
+    if (object.getPairs().isEmpty()) {
+      return MalleableString.anyOf("");
+    }
     return new Builder()
         .append("{\n")
         .append(list(",\n", "", "\n", true, true, object.getPairs()).indent())
         .append("}")
         .get();
+  }
+
+  @Override
+  public MalleableString caseBracedListExpression(BracedListExpression object) {
+    if (object.getItems().isEmpty()) {
+      return MalleableString.anyOf("{}");
+    }
+    // Note that this strips the trailing comma. There is no way
+    // to implement trailing commas with the current set of list() methods AFAIU.
+    return list(", ", "{", "}", false, false, object.getItems());
   }
 
   @Override
@@ -819,35 +834,52 @@ public class ToLf extends LfSwitch<MalleableString> {
     // ));
     Builder msb = new Builder();
     msb.append(object.getLhs().getName());
-    if (object.getEquals() != null) {
-      msb.append(" = ");
-    }
-    msb.append(initializer(object.getRhs(), false));
+    msb.append(initializer(object.getRhs()));
     return msb.get();
   }
 
   @Override
   public MalleableString caseInitializer(Initializer object) {
-    return initializer(object, false);
+    return initializer(object);
   }
 
-  private MalleableString initializer(Initializer init, boolean nothingIfEmpty) {
+  /**
+   * Return true if the initializer should be output with an equals initializer.
+   * Old-style assignments with parentheses are also output that
+   * way to help with the transition.
+   */
+  private boolean shouldOutputAsAssignment(Initializer init) {
+    return init.isAssign()
+        || init.getExprs().size() == 1 && ASTUtils.getTarget(init).mandatesEqualsInitializers();
+  }
+
+  private MalleableString initializer(Initializer init) {
     if (init == null) {
       return MalleableString.anyOf("");
+    }
+    if (shouldOutputAsAssignment(init)) {
+      Expression expr = ASTUtils.asSingleExpr(init);
+      Objects.requireNonNull(expr);
+      return new Builder().append(" = ").append(doSwitch(expr)).get();
+    }
+    if (ASTUtils.getTarget(init) == Target.C) {
+      // This turns C array initializers into a braced expression.
+      // C++ variants are not converted.
+      BracedListExpression list = LfFactory.eINSTANCE.createBracedListExpression();
+      list.getItems().addAll(init.getExprs());
+      return new Builder().append(" = ").append(doSwitch(list)).get();
     }
     String prefix;
     String suffix;
     if (init.isBraces()) {
       prefix = "{";
       suffix = "}";
-    } else if (init.isParens()) {
+    } else {
+      assert init.isParens();
       prefix = "(";
       suffix = ")";
-    } else {
-      // unparenthesized parameter assignment.
-      prefix = suffix = "";
     }
-    return list(", ", prefix, suffix, nothingIfEmpty, false, init.getExprs());
+    return list(", ", prefix, suffix, false, false, init.getExprs());
   }
 
 
@@ -862,7 +894,7 @@ public class ToLf extends LfSwitch<MalleableString> {
     return builder
         .append(object.getName())
         .append(typeAnnotationFor(object.getType()))
-        .append(initializer(object.getInit(), true))
+        .append(initializer(object.getInit()))
         .get();
   }
 
