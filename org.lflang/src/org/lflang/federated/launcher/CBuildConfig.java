@@ -72,6 +72,6 @@ public class CBuildConfig extends BuildConfig {
 
     @Override
     public String localExecuteCommand() {
-        return fileConfig.binPath.resolve(fileConfig.name)+" -i $FEDERATION_ID";
+        return fileConfig.getFedBinPath().resolve(federate.name)+" -i $FEDERATION_ID";
     }
 }

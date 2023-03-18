@@ -92,6 +92,11 @@ public class FedFileConfig extends FileConfig {
         return srcPkgPath.resolve("fed-gen").resolve(this.name);
     }
 
+    /**
+     * Return the path to the directory in which the executables of compiled federates are stored.
+     */
+    public Path getFedBinPath() { return getFedGenPath().resolve("bin"); }
+
     @Override
     public void doClean() throws IOException {
         super.doClean();
