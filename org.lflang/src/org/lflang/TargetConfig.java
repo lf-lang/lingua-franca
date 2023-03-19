@@ -59,9 +59,11 @@ public class TargetConfig {
         this.target = Target.fromDecl(target);
     }
 
-    public TargetConfig(Properties args,
+    public TargetConfig(
+        Properties args,
         TargetDecl target,
-        ErrorReporter errorReporter) {
+        ErrorReporter errorReporter
+    ) {
         this(target);
         if (target.getConfig() != null) {
             List<KeyValuePair> pairs = target.getConfig().getPairs();
