@@ -1,7 +1,6 @@
 package org.lflang.federated.extensions;
 
 import java.io.IOException;
-import java.util.LinkedHashMap;
 
 import org.lflang.ErrorReporter;
 import org.lflang.InferredType;
