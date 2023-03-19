@@ -65,8 +65,7 @@ public class CBuildConfig extends BuildConfig {
     }
 
     @Override
-    public
-    String remoteExecuteCommand() {
+    public String remoteExecuteCommand() {
         return "bin/"+fileConfig.name+"_"+federate.name+" -i '$FEDERATION_ID'";
     }
 
