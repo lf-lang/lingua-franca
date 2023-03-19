@@ -62,18 +62,33 @@ import com.google.inject.Injector;
 
 public class FedGenerator {
 
-    private final FedFileConfig fileConfig;
-    private final ErrorReporter errorReporter;
+
     /**
-     * The current target configuration.
+     *
      */
-    private final TargetConfig targetConfig;
+    private final ErrorReporter errorReporter;
+
     /**
      * A list of federate instances.
      */
     private final List<FederateInstance> federates = new ArrayList<>();
 
+    /**
+     * File configuration to be used during the LF code generation stage (not the target code
+     * generation stage of individual federates).
+     */
+    private final FedFileConfig fileConfig;
+
+    /**
+     * Configuration of the RTI.
+     */
     final RtiConfig rtiConfig = new RtiConfig();
+
+    /**
+     * Target configuration of the federation; drawn from the file
+     * in which the federated reactor is defined.
+     */
+    private final TargetConfig targetConfig;
 
     /**
      * A map from instantiations to the federate instances for that
@@ -90,12 +105,26 @@ public class FedGenerator {
      */
     private Instantiation mainDef;
 
+    /**
+     * Create a new generator and initialize a file configuration, target configuration, and error
+     * reporter.
+     * @param context
+     */
     public FedGenerator(LFGeneratorContext context) {
         this.fileConfig = (FedFileConfig) context.getFileConfig();
         this.targetConfig = context.getTargetConfig();
         this.errorReporter = context.getErrorReporter();
     }
 
+    /**
+     * Produce LF code for each federate in a separate file, then invoke a target-specific code
+     * generator for each of those files.
+     *
+     * @param resource The resource that has the federated main reactor in it
+     * @param context The context in which to carry out the code generation.
+     * @return False if no errors have occurred, true otherwise.
+     * @throws IOException
+     */
     public boolean doGenerate(Resource resource, LFGeneratorContext context) throws IOException {
         if (!federatedExecutionIsSupported(resource)) return true;
         cleanIfNeeded(context);
@@ -109,17 +138,17 @@ public class FedGenerator {
         processCLIArguments(context);
 
         // Find the federated reactor
-        Reactor fedReactor = FedASTUtils.findFederatedReactor(resource);
+        Reactor federation = FedASTUtils.findFederatedReactor(resource);
 
         // Extract some useful information about the federation
-        analyzeFederates(fedReactor, context);
+        analyzeFederates(federation, context);
 
         // Find all the connections between federates.
         // For each connection between federates, replace it in the
         // AST with an action (which inherits the delay) and four reactions.
         // The action will be physical for physical connections and logical
         // for logical connections.
-        replaceFederateConnectionsWithProxies(fedReactor);
+        replaceFederateConnectionsWithProxies(federation);
 
         FedEmitter fedEmitter = new FedEmitter(
             fileConfig,
@@ -127,7 +156,8 @@ public class FedGenerator {
             errorReporter,
             rtiConfig
         );
-        // Generate code for each federate
+
+        // Generate LF code for each federate.
         Map<Path, CodeMap> lf2lfCodeMapMap = new HashMap<>();
         for (FederateInstance federate : federates) {
             lf2lfCodeMapMap.putAll(fedEmitter.generateFederate(
@@ -135,6 +165,7 @@ public class FedGenerator {
             ));
         }
 
+        // Do not invoke target code generators if --no-compile flag is used.
         if (context.getTargetConfig().noCompile) {
             context.finish(Status.GENERATED, lf2lfCodeMapMap);
             return false;
@@ -157,6 +188,11 @@ public class FedGenerator {
         ).doGenerate(federates, rtiConfig);
     }
 
+    /**
+     * Generate a Dockerfile for each federate and a docker-compose.yml for the federation.
+     * @param context The main context in which the federation has been compiled.
+     * @param subContexts The subcontexts in which the federates have been compiled.
+     */
     private void createDockerFiles(LFGeneratorContext context, List<SubContext> subContexts) {
         if (context.getTargetConfig().dockerOptions == null) return;
         final List<DockerData> services = new ArrayList<>();
@@ -174,10 +210,10 @@ public class FedGenerator {
         }
         // 2. create a docker-compose.yml for the federation
         try {
-            // FIXME: https://issue.lf-lang.org/1559
-            // It appears that the rtiHost information should come from federationRTIproperties,
-            // which is a kludge and not in scope here.
-            new FedDockerComposeGenerator(context, "localhost").writeDockerComposeFile(services);
+            new FedDockerComposeGenerator(
+                context,
+                rtiConfig.getHost()
+            ).writeDockerComposeFile(services);
         } catch (IOException e) {
             throw new RuntimeIOException(e);
         }
@@ -201,7 +237,9 @@ public class FedGenerator {
     /** Return whether federated execution is supported for {@code resource}. */
     private boolean federatedExecutionIsSupported(Resource resource) {
         var target = Target.fromDecl(GeneratorUtils.findTargetDecl(resource));
-        var targetOK = List.of(Target.C, Target.Python, Target.TS, Target.CPP, Target.CCPP).contains(target);
+        var targetOK = List.of(
+            Target.C, Target.Python, Target.TS, Target.CPP, Target.CCPP
+        ).contains(target);
         if (!targetOK) {
             errorReporter.reportError(
                 "Federated execution is not supported with target " + target + "."
@@ -440,16 +478,16 @@ public class FedGenerator {
      * Replace connections between federates in the AST with proxies that
      * handle sending and receiving data.
      *
-     * @param federate Reactor class of the federate.
+     * @param federation Reactor class of the federation.
      */
-    private void replaceFederateConnectionsWithProxies(Reactor federate) {
+    private void replaceFederateConnectionsWithProxies(Reactor federation) {
         // Each connection in the AST may represent more than one connection between
-        // federate instances because of banks and multiports. We need to generate communication
+        // federation instances because of banks and multiports. We need to generate communication
         // for each of these. To do this, we create a ReactorInstance so that we don't have
         // to duplicate the rather complicated logic in that class. We specify a depth of 1,
         // so it only creates the reactors immediately within the top level, not reactors
         // that those contain.
-        ReactorInstance mainInstance = new ReactorInstance(federate, errorReporter);
+        ReactorInstance mainInstance = new ReactorInstance(federation, errorReporter);
 
         for (ReactorInstance child : mainInstance.children) {
             for (PortInstance output : child.outputs) {
@@ -458,7 +496,7 @@ public class FedGenerator {
         }
 
         // Remove the connections at the top level
-        federate.getConnections().clear();
+        federation.getConnections().clear();
 
         // There will be AST transformations that invalidate some info
         // cached in ReactorInstance. FIXME: most likely not needed anymore
