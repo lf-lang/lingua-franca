@@ -165,7 +165,7 @@ public class FedLauncherGenerator {
         // Index used for storing pids of federates
         int federateIndex = 0;
         for (FederateInstance federate : federates) {
-            var buildConfig = getBuildConfig(federate.targetConfig.target, federate, fileConfig, errorReporter);
+            var buildConfig = getBuildConfig(federate, fileConfig, errorReporter);
             if (federate.isRemote) {
                 Path fedRelSrcGenPath = fileConfig.getOutPath().relativize(fileConfig.getSrcGenPath()).resolve(federate.name);
                 if(distCode.length() == 0) distCode.append(distHeader + "\n");
@@ -470,8 +470,19 @@ public class FedLauncherGenerator {
         federateIndex);
     }
 
-    private BuildConfig getBuildConfig(Target target, FederateInstance federate, FedFileConfig fileConfig, ErrorReporter errorReporter) {
-        return switch(target) {
+    /**
+     * Create a build configuration of the appropriate target.
+     *
+     * @param federate The federate to which the build configuration applies.
+     * @param fileConfig The file configuration of the federation to which the federate belongs.
+     * @param errorReporter An error reporter to report problems.
+     * @return
+     */
+    private BuildConfig getBuildConfig(
+        FederateInstance federate,
+        FedFileConfig fileConfig,
+        ErrorReporter errorReporter) {
+        return switch(federate.targetConfig.target) {
             case C, CCPP -> new CBuildConfig(federate, fileConfig, errorReporter);
             case Python -> new PyBuildConfig(federate, fileConfig, errorReporter);
             case TS -> new TsBuildConfig(federate, fileConfig, errorReporter);
