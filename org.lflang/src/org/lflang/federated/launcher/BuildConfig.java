@@ -4,13 +4,33 @@ import org.lflang.ErrorReporter;
 import org.lflang.federated.generator.FedFileConfig;
 import org.lflang.federated.generator.FederateInstance;
 
+/**
+ * A collection of methods used for building target code for federates.
+ */
 public abstract class BuildConfig {
 
+    /**
+     * The federate that this configuration applies to.
+     */
     protected final FederateInstance federate;
+
+    /**
+     * An error reporter to report problems.
+     */
     protected final ErrorReporter errorReporter;
 
+    /**
+     * The file configuration of the federation that the federate belongs to.
+     */
     protected final FedFileConfig fileConfig;
 
+    /**
+     * Create a new build configuration.
+     *
+     * @param federate The federate that this configuration applies to.
+     * @param fileConfig The file configuration of the federation that the federate belongs to.
+     * @param errorReporter An error reporter to report problems.
+     */
     public BuildConfig(FederateInstance federate, FedFileConfig fileConfig, ErrorReporter errorReporter) {
         this.errorReporter = errorReporter;
         this.federate = federate;
