@@ -1,12 +1,10 @@
 package org.lflang.federated.generator;
 
-import static org.lflang.ASTUtils.convertToEmptyListIfNull;
 import static org.lflang.generator.DockerGenerator.dockerGeneratorFactory;
 
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -29,7 +27,6 @@ import org.eclipse.xtext.resource.XtextResource;
 import org.eclipse.xtext.resource.XtextResourceSet;
 import org.eclipse.xtext.util.RuntimeIOException;
 import org.eclipse.xtext.xbase.lib.Exceptions;
-import org.eclipse.xtext.xbase.lib.Procedures.Procedure1;
 
 import org.lflang.ASTUtils;
 import org.lflang.ErrorReporter;
@@ -37,7 +34,6 @@ import org.lflang.FileConfig;
 import org.lflang.LFStandaloneSetup;
 import org.lflang.Target;
 import org.lflang.TargetConfig;
-import org.lflang.TargetProperty;
 import org.lflang.TargetProperty.CoordinationType;
 import org.lflang.federated.launcher.FedLauncherGenerator;
 import org.lflang.federated.launcher.RtiConfig;
@@ -60,32 +56,11 @@ import org.lflang.lf.Expression;
 import org.lflang.lf.Instantiation;
 import org.lflang.lf.LfFactory;
 import org.lflang.lf.Reactor;
+import org.lflang.util.Averager;
 
 import com.google.inject.Injector;
 
 public class FedGenerator {
-
-    /** Average asynchronously reported numbers and do something with them. */
-    private static class Averager {
-        private final int n;
-        private final int[] reports;
-
-        /** Create an averager of reports from {@code n} processes. */
-        public Averager(int n) {
-            this.n = n;
-            reports = new int[n];
-        }
-
-        /**
-         * Receive {@code x} from process {@code id} and invoke {@code callback}
-         * on the mean of the numbers most recently reported by the processes.
-         */
-        public synchronized void report(int id, int x, Procedure1<Integer> callback) {
-            assert 0 <= id && id < n;
-            reports[id] = x;
-            callback.apply(Arrays.stream(reports).sum() / n);
-        }
-    }
 
     private final FedFileConfig fileConfig;
     private final ErrorReporter errorReporter;
@@ -97,10 +72,6 @@ public class FedGenerator {
      * A list of federate instances.
      */
     private final List<FederateInstance> federates = new ArrayList<>();
-    /**
-     * A map from federate IDs to federate instances.
-     */
-    private final Map<Integer, FederateInstance> federateByID = new LinkedHashMap<>();
 
     final RtiConfig rtiConfig = new RtiConfig();
 
@@ -171,11 +142,19 @@ public class FedGenerator {
 
         Map<Path, CodeMap> codeMapMap = compileFederates(context, lf2lfCodeMapMap, subContexts -> {
             createDockerFiles(context, subContexts);
-            (new FedLauncherGenerator(this.targetConfig, this.fileConfig, this.errorReporter)).createLauncher(federates, rtiConfig);
+            generateLaunchScript();
         });
 
         context.finish(Status.COMPILED, codeMapMap);
         return false;
+    }
+
+    private void generateLaunchScript() {
+        new FedLauncherGenerator(
+            this.targetConfig,
+            this.fileConfig,
+            this.errorReporter
+        ).doGenerate(federates, rtiConfig);
     }
 
     private void createDockerFiles(LFGeneratorContext context, List<SubContext> subContexts) {
@@ -207,7 +186,7 @@ public class FedGenerator {
     /**
      * Check if a clean was requested from the standalone compiler and perform
      * the clean step.
-     * @param context
+     * @param context Context in which the generator operates
      */
     private void cleanIfNeeded(LFGeneratorContext context) {
         if (context.getArgs().containsKey(BuildParm.CLEAN.getKey())) {
@@ -217,43 +196,6 @@ public class FedGenerator {
                 System.err.println("WARNING: IO Error during clean");
             }
         }
-    }
-
-    /**
-     * Create a launcher for the federation.
-     */
-    public void createLauncher(
-        LFGeneratorContext context,
-        List<SubContext> subContexts,
-        LinkedHashMap<String, Object> federationRTIProperties
-    ) {
-
-
-//        FedLauncher launcher;
-//        if (federates.size() == 0) {
-//            // no federates, use target properties of main file
-//            TargetDecl targetDecl = GeneratorUtils.findTarget(fileConfig.resource);
-//            launcher = FedLauncherFactory.getLauncher(Target.fromDecl(targetDecl),
-//                                                      targetConfig,
-//                                                      fileConfig,
-//                                                      errorReporter);
-//        } else {
-//            launcher = FedLauncherFactory.getLauncher(
-//                federates.get(0), // FIXME: This would not work for mixed-target programs.
-//                fileConfig,
-//                errorReporter
-//            );
-//        }
-//        try {
-//            launcher.createLauncher(
-//                federates,
-//                federationRTIProperties
-//            );
-//        } catch (IOException e) {
-//            errorReporter.reportError(e.getMessage());
-//        }
-//
-//        // System.out.println(PythonInfoGenerator.generateFedRunInfo(fileConfig));
     }
 
     /** Return whether federated execution is supported for {@code resource}. */
@@ -298,7 +240,7 @@ public class FedGenerator {
         var compileThreadPool = Executors.newFixedThreadPool(numOfCompileThreads);
         System.out.println("******** Using "+numOfCompileThreads+" threads to compile the program.");
         Map<Path, CodeMap> codeMapMap = new ConcurrentHashMap<>();
-        List<SubContext> subContexts = Collections.synchronizedList(new ArrayList<SubContext>());
+        List<SubContext> subContexts = Collections.synchronizedList(new ArrayList<>());
         Averager averager = new Averager(federates.size());
         final var threadSafeErrorReporter = new SynchronizedErrorReporter(errorReporter);
         for (int i = 0; i < federates.size(); i++) {
@@ -466,18 +408,14 @@ public class FedGenerator {
             int federateID = federates.size();
             var resource = instantiation.getReactorClass().eResource();
             var federateTargetConfig = new FedTargetConfig(context, resource);
-            // FIXME: do we need this?
-            //var federateFileConfig = LFGenerator.createFileConfig(resource, fileConfig.getSrcGenPath(), false);
             FederateInstance federateInstance = new FederateInstance(
                 instantiation,
                 federateID,
                 i,
                 federateTargetConfig,
-                fileConfig,
                 errorReporter);
             federates.add(federateInstance);
             federateInstances.add(federateInstance);
-            federateByID.put(federateID, federateInstance);
 
             if (instantiation.getHost() != null) {
                 federateInstance.host = instantiation.getHost().getAddr();
@@ -502,16 +440,16 @@ public class FedGenerator {
      * Replace connections between federates in the AST with proxies that
      * handle sending and receiving data.
      *
-     * @param fedReactor
+     * @param federate Reactor class of the federate.
      */
-    private void replaceFederateConnectionsWithProxies(Reactor fedReactor) {
+    private void replaceFederateConnectionsWithProxies(Reactor federate) {
         // Each connection in the AST may represent more than one connection between
         // federate instances because of banks and multiports. We need to generate communication
         // for each of these. To do this, we create a ReactorInstance so that we don't have
         // to duplicate the rather complicated logic in that class. We specify a depth of 1,
         // so it only creates the reactors immediately within the top level, not reactors
         // that those contain.
-        ReactorInstance mainInstance = new ReactorInstance(fedReactor, errorReporter);
+        ReactorInstance mainInstance = new ReactorInstance(federate, errorReporter);
 
         for (ReactorInstance child : mainInstance.children) {
             for (PortInstance output : child.outputs) {
@@ -520,7 +458,7 @@ public class FedGenerator {
         }
 
         // Remove the connections at the top level
-        fedReactor.getConnections().clear();
+        federate.getConnections().clear();
 
         // There will be AST transformations that invalidate some info
         // cached in ReactorInstance. FIXME: most likely not needed anymore

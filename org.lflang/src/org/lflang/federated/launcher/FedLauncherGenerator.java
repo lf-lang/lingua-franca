@@ -35,7 +35,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.lflang.ErrorReporter;
-import org.lflang.FileConfig;
 import org.lflang.Target;
 import org.lflang.TargetConfig;
 import org.lflang.TargetProperty.ClockSyncMode;
@@ -103,7 +102,7 @@ public class FedLauncherGenerator {
      * @param rtiConfig
      *  Can have values for 'host', 'dir', and 'user'
      */
-    public void createLauncher(
+    public void doGenerate(
         List<FederateInstance> federates,
         RtiConfig rtiConfig
     ) {

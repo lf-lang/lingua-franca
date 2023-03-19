@@ -86,8 +86,6 @@ import com.google.common.base.Objects;
  */
 public class FederateInstance {
 
-    private final FileConfig fileConfig;
-
     /**
      * Construct a new instance with the specified instantiation of
      * of a top-level reactor. The federate will be given the specified
@@ -103,14 +101,12 @@ public class FederateInstance {
             int id, 
             int bankIndex,
             TargetConfig targetConfig,
-            FileConfig fileConfig,
             ErrorReporter errorReporter) {
         this.instantiation = instantiation;
         this.id = id;
         this.bankIndex = bankIndex;
         this.errorReporter = errorReporter;
         this.targetConfig = targetConfig;
-        this.fileConfig = fileConfig;
         
         if (instantiation != null) {
             this.name = instantiation.getName();
