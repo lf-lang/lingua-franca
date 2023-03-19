@@ -48,7 +48,8 @@ public class FedFileConfig extends FileConfig {
     public FedFileConfig(
         Resource resource,
         Path srcGenBasePath,
-        boolean useHierarchicalBin) throws IOException {
+        boolean useHierarchicalBin
+    ) throws IOException {
         super(resource, srcGenBasePath, useHierarchicalBin);
     }
 
