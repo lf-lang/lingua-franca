@@ -297,7 +297,7 @@ public class FedGenerator {
                 }
                 props.put("docker", "false");
 
-                TargetConfig subConfig = GeneratorUtils.getTargetConfig(
+                TargetConfig subConfig = new TargetConfig(
                     props, GeneratorUtils.findTargetDecl(subFileConfig.resource), subContextErrorReporter
                 );
                 SubContext subContext = new SubContext(context, IntegratedBuilder.VALIDATED_PERCENT_PROGRESS, 100) {

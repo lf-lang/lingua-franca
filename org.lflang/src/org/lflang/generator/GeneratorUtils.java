@@ -4,7 +4,6 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Properties;
 
 import org.eclipse.core.resources.IResource;
 import org.eclipse.core.resources.ResourcesPlugin;
@@ -17,13 +16,8 @@ import org.lflang.ASTUtils;
 import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
 import org.lflang.TargetConfig;
-import org.lflang.TargetConfig.DockerOptions;
-import org.lflang.TargetProperty.BuildType;
-import org.lflang.TargetProperty.LogLevel;
-import org.lflang.TargetProperty.UnionType;
 import org.lflang.generator.LFGeneratorContext.Mode;
 import org.lflang.TargetProperty;
-import org.lflang.TargetProperty.SchedulerOption;
 import org.lflang.lf.Action;
 import org.lflang.lf.ActionOrigin;
 import org.lflang.lf.Instantiation;
@@ -51,23 +45,6 @@ public class GeneratorUtils {
      */
     public static TargetDecl findTargetDecl(Resource resource) {
         return findAll(resource, TargetDecl.class).iterator().next();
-    }
-
-    /**
-     * Set the appropriate target properties based on the target properties of
-     * the main .lf file and the given command-line arguments, if applicable.
-     * @param args The commandline arguments to process.
-     * @param target The target properties AST node.
-     * @param errorReporter The error reporter to which errors should be sent.
-     */
-    public static TargetConfig getTargetConfig(
-        Properties args,
-        TargetDecl target,
-        ErrorReporter errorReporter
-    ) {
-        final TargetConfig targetConfig = new TargetConfig(args, target, errorReporter);
-
-        return targetConfig;
     }
 
     /**
