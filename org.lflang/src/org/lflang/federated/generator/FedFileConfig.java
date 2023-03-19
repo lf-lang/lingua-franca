@@ -33,7 +33,6 @@ import java.util.List;
 import org.eclipse.emf.ecore.resource.Resource;
 
 import org.lflang.FileConfig;
-import org.lflang.TargetProperty;
 import org.lflang.util.FileUtil;
 
 /**
@@ -46,10 +45,11 @@ import org.lflang.util.FileUtil;
  */
 public class FedFileConfig extends FileConfig {
 
-    public FedFileConfig(Resource resource, Path srcGenBasePath, boolean useHierarchicalBin) throws IOException {
-        // FIMXE: It is unclear to me that we need this class.
+    public FedFileConfig(
+        Resource resource,
+        Path srcGenBasePath,
+        boolean useHierarchicalBin) throws IOException {
         super(resource, srcGenBasePath, useHierarchicalBin);
-
     }
 
     public FedFileConfig(FileConfig fileConfig) throws IOException {
@@ -113,19 +113,20 @@ public class FedFileConfig extends FileConfig {
         relativizePathList(targetConfig.cmakeIncludes);
     }
 
+    /**
+     * Relativize each path in the given list.
+     * @param paths The paths to relativize.
+     */
     private void relativizePathList(List<String> paths) {
         List<String> tempList = new ArrayList<>();
-        paths.forEach( f -> {
-            tempList.add(relativizePath(f));
-        });
+        paths.forEach(f -> tempList.add(relativizePath(f)));
         paths.clear();
         paths.addAll(tempList);
     }
 
     /**
-     *
-     * @param path
-     * @return
+     * Relativize a single path.
+     * @param path The path to relativize.
      */
     private String relativizePath(String path) {
         Path resolvedPath = this.srcPath.resolve(path).toAbsolutePath();
