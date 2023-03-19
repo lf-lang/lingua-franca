@@ -53,14 +53,28 @@ import org.lflang.lf.TargetDecl;
  */
 public class TargetConfig {
 
+    /**
+     * The target of this configuration (e.g., C, TypeScript, Python).
+     */
     public final Target target;
 
+    /**
+     * Create a new target configuration based on the given target declaration AST node only.
+     * @param target AST node of a target declaration.
+     */
     public TargetConfig(TargetDecl target) { // FIXME: eliminate this constructor if we can
         this.target = Target.fromDecl(target);
     }
 
+    /**
+     * Create a new target configuration based on the given commandline arguments and target
+     * declaration AST node.
+     * @param cliArgs Arguments passed on the commandline.
+     * @param target AST node of a target declaration.
+     * @param errorReporter An error reporter to report problems.
+     */
     public TargetConfig(
-        Properties args,
+        Properties cliArgs,
         TargetDecl target,
         ErrorReporter errorReporter
     ) {
@@ -69,11 +83,11 @@ public class TargetConfig {
             List<KeyValuePair> pairs = target.getConfig().getPairs();
             TargetProperty.set(this, pairs != null ? pairs : List.of(), errorReporter);
         }
-        if (args.containsKey("no-compile")) {
+        if (cliArgs.containsKey("no-compile")) {
             this.noCompile = true;
         }
-        if (args.containsKey("docker")) {
-            var arg = args.getProperty("docker");
+        if (cliArgs.containsKey("docker")) {
+            var arg = cliArgs.getProperty("docker");
             if (Boolean.parseBoolean(arg)) {
                 this.dockerOptions = new DockerOptions();
             } else {
@@ -81,44 +95,44 @@ public class TargetConfig {
             }
             // FIXME: this is pretty ad-hoc and does not account for more complex overrides yet.
         }
-        if (args.containsKey("build-type")) {
-            this.cmakeBuildType = (BuildType) UnionType.BUILD_TYPE_UNION.forName(args.getProperty("build-type"));
+        if (cliArgs.containsKey("build-type")) {
+            this.cmakeBuildType = (BuildType) UnionType.BUILD_TYPE_UNION.forName(cliArgs.getProperty("build-type"));
         }
-        if (args.containsKey("logging")) {
-            this.logLevel = LogLevel.valueOf(args.getProperty("logging").toUpperCase());
+        if (cliArgs.containsKey("logging")) {
+            this.logLevel = LogLevel.valueOf(cliArgs.getProperty("logging").toUpperCase());
         }
-        if (args.containsKey("workers")) {
-            this.workers = Integer.parseInt(args.getProperty("workers"));
+        if (cliArgs.containsKey("workers")) {
+            this.workers = Integer.parseInt(cliArgs.getProperty("workers"));
         }
-        if (args.containsKey("threading")) {
-            this.threading = Boolean.parseBoolean(args.getProperty("threading"));
+        if (cliArgs.containsKey("threading")) {
+            this.threading = Boolean.parseBoolean(cliArgs.getProperty("threading"));
         }
-        if (args.containsKey("target-compiler")) {
-            this.compiler = args.getProperty("target-compiler");
+        if (cliArgs.containsKey("target-compiler")) {
+            this.compiler = cliArgs.getProperty("target-compiler");
         }
-        if (args.containsKey("scheduler")) {
+        if (cliArgs.containsKey("scheduler")) {
             this.schedulerType = SchedulerOption.valueOf(
-                args.getProperty("scheduler")
+                cliArgs.getProperty("scheduler")
             );
             this.setByUser.add(TargetProperty.SCHEDULER);
         }
-        if (args.containsKey("target-flags")) {
+        if (cliArgs.containsKey("target-flags")) {
             this.compilerFlags.clear();
-            if (!args.getProperty("target-flags").isEmpty()) {
+            if (!cliArgs.getProperty("target-flags").isEmpty()) {
                 this.compilerFlags.addAll(List.of(
-                    args.getProperty("target-flags").split(" ")
+                    cliArgs.getProperty("target-flags").split(" ")
                 ));
             }
         }
-        if (args.containsKey("runtime-version")) {
-            this.runtimeVersion = args.getProperty("runtime-version");
+        if (cliArgs.containsKey("runtime-version")) {
+            this.runtimeVersion = cliArgs.getProperty("runtime-version");
         }
-        if (args.containsKey("external-runtime-path")) {
-            this.externalRuntimePath = args.getProperty("external-runtime-path");
+        if (cliArgs.containsKey("external-runtime-path")) {
+            this.externalRuntimePath = cliArgs.getProperty("external-runtime-path");
         }
-        if (args.containsKey(TargetProperty.KEEPALIVE.description)) {
+        if (cliArgs.containsKey(TargetProperty.KEEPALIVE.description)) {
             this.keepalive = Boolean.parseBoolean(
-                args.getProperty(TargetProperty.KEEPALIVE.description));
+                cliArgs.getProperty(TargetProperty.KEEPALIVE.description));
         }
     }
 
