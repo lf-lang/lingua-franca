@@ -5,12 +5,12 @@ runs:
   steps:
     - name: Set Unix path separator
       run: |
-        echo "path_sep=/" >> $GITHUB_ENV
+        echo "path-sep=/" >> $GITHUB_ENV
       shell: bash
       if: ${{ runner.os != 'Windows' }}
     - name: Set Windows path separator
       run: |
-        echo "path_sep=\\" >> $GITHUB_ENV
+        echo "path-sep=\\" >> $GITHUB_ENV
       shell: bash
       if: ${{ runner.os == 'Windows' }}
     - name: Set up Java 17
@@ -33,8 +33,8 @@ runs:
       uses: actions/cache@v3
       with:
         path: |
-          ~${{ env.path_separator }}.gradle${{ env.path_separator }}caches
-          ~${{ env.path_separator }}.gradle${{ env.path_separator }}wrapper
+          ~${{ env.path-sep }}.gradle${{ env.path-sep }}caches
+          ~${{ env.path-sep }}.gradle${{ env.path-sep }}wrapper
         key: gradle-${{ runner.os }}-${{ env.gradle-hash }}
         # restore-keys: |
         #   ${{ runner.os }}-gradle-
