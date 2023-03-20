@@ -3,12 +3,12 @@ description: Set up Java, Maven, Gradle, etc.
 runs:
   using: "composite"
   steps:
-    - name: Set '/' path separator
+    - name: Set Unix path separator
       run: |
         echo "path_sep=/" >> $GITHUB_ENV
       shell: bash
     - if: ${{ runner.os != 'Windows' }}
-    - name: Set '\' path separator
+    - name: Set Windows path separator
       run: |
         echo "path_sep=\\" >> $GITHUB_ENV
       shell: bash
