@@ -26,13 +26,16 @@ package org.lflang.tests.cli;
 
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.lflang.tests.TestUtils.TempDirBuilder.dirBuilder;
 import static org.lflang.tests.TestUtils.TempDirChecker.dirChecker;
 import static org.lflang.tests.TestUtils.isDirectory;
 import static org.lflang.tests.TestUtils.isRegularFile;
 
 import java.io.IOException;
+import java.lang.reflect.Method;
 import java.nio.file.Path;
+import java.util.Properties;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -40,6 +43,7 @@ import org.junit.jupiter.api.io.TempDir;
 import org.lflang.LocalStrings;
 import org.lflang.cli.Io;
 import org.lflang.cli.Lfc;
+import org.lflang.generator.LFGeneratorContext.BuildParm;
 
 /**
  * @author Clément Fournier
@@ -101,10 +105,81 @@ public class LfcCliTest {
 
     }
 
+    @Test
+    public void testTargetProperties(@TempDir Path tempDir)
+            throws IOException {
+        dirBuilder(tempDir).file("src/File.lf", LF_PYTHON_FILE);
+
+        String[] args = {
+            "src/File.lf",
+            "--output-path", "src",
+            "--build-type", "Release",
+            "--clean",
+            "--target-compiler", "gcc",
+            "--external-runtime-path", "src",
+            "--federated",
+            "--logging", "4",
+            "--lint",
+            "--no-compile",
+            "--quiet",
+            "--rti", "-1",
+            "--runtime-version", "rs",
+            "--scheduler", "2",
+            "--threading", "false",
+            "--workers", "1",
+        };
+
+        lfcTester.runLfcObj(tempDir, args)
+            .verify(result -> {
+                result.checkOk();
+                // Get the properties method.
+                Method getPropsMethod =
+                    Lfc.class.getDeclaredMethod("filterPassOnProps");
+                // Change the method's visibility to public for testing.
+                getPropsMethod.setAccessible(true);
+                Properties properties =
+                    (Properties) getPropsMethod.invoke(result.lfcObj());
+                assertEquals(
+                        properties.getProperty(BuildParm.BUILD_TYPE.getKey()),
+                        "Release");
+                assertEquals(
+                        properties.getProperty(BuildParm.CLEAN.getKey()),
+                        "true");
+                assertEquals(
+                        properties.getProperty(
+                            BuildParm.EXTERNAL_RUNTIME_PATH.getKey()),
+                        "src");
+                assertEquals(
+                        properties.getProperty(BuildParm.LINT.getKey()),
+                        "true");
+                assertEquals(
+                        properties.getProperty(BuildParm.LOGGING.getKey()),
+                        "4");
+                assertEquals(
+                        properties.getProperty(
+                            BuildParm.TARGET_COMPILER.getKey()),
+                        "gcc");
+                assertEquals(
+                        properties.getProperty(BuildParm.QUIET.getKey()),
+                        "true");
+                assertEquals(
+                        properties.getProperty(BuildParm.RTI.getKey()),
+                        "-1");
+                assertEquals(
+                        properties.getProperty(
+                            BuildParm.RUNTIME_VERSION.getKey()),
+                        "rs");
+                assertEquals(
+                        properties.getProperty(BuildParm.THREADING.getKey()),
+                        "false");
+                assertEquals(
+                        properties.getProperty(BuildParm.WORKERS.getKey()),
+                        "1");
+            });
+    }
+
 
     static class LfcTestFixture extends CliToolTestFixture {
-
-
         @Override
         protected void runCliProgram(Io io, String[] args) {
             Lfc.main(io, args);
