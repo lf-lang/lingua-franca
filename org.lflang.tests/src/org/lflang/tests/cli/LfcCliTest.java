@@ -135,7 +135,7 @@ public class LfcCliTest {
                 result.checkOk();
                 // Get the properties method.
                 Method getPropsMethod =
-                    Lfc.class.getDeclaredMethod("filterPassOnProps");
+                    Lfc.class.getDeclaredMethod("getTargetProperties");
                 // Change the method's visibility to public for testing.
                 getPropsMethod.setAccessible(true);
                 Properties properties =
