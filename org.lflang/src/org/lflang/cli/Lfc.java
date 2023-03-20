@@ -233,7 +233,7 @@ public class Lfc extends CliBase {
      *
      * @return Properties for the code generator.
      */
-    protected Properties filterPassOnProps() {
+    private Properties filterPassOnProps() {
         Properties props = new Properties();
 
         if (buildType != null) {

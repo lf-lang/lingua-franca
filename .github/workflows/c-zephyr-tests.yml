@@ -21,7 +21,7 @@ jobs:
   run:
     runs-on: ubuntu-latest
     container:
-      image: zephyrprojectrtos/zephyr-build:latest
+      image: zephyrprojectrtos/zephyr-build:v0.24.13
       options: -u root --entrypoint /bin/sh 
     steps:
       - name: Install Java 17, Maven and set JAVA_HOME
@@ -45,7 +45,9 @@ jobs:
           ref: ${{ inputs.compiler-ref }}
           fetch-depth: 0
       - name: Try to get around git safe issues
-        run: git config --global --add safe.directory /__w/lingua-franca/lingua-franca 
+        run: |
+          git config --global --add safe.directory '/__w/lingua-franca/lingua-franca'
+          git config --global --add safe.directory '/__w/reactor-c/reactor-c'
       - name: Prepare build environment
         uses: ./.github/actions/prepare-build-env
       - name: Check out specific ref of reactor-c

@@ -115,10 +115,9 @@ class LetInferenceTest  {
         TreeIterator<EObject> it = model.eResource().getAllContents();
         while (it.hasNext()) {
             EObject obj = it.next();
-            if (!(obj instanceof Reactor)) {
+            if (!(obj instanceof Reactor reactor)) {
                 continue;
             }
-            Reactor reactor = (Reactor) obj;
             if (reactor.isMain()) {
                 mainDef = LfFactory.eINSTANCE.createInstantiation();
                 mainDef.setName(reactor.getName());
