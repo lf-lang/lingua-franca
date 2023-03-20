@@ -6,10 +6,12 @@ runs:
     - name: Set '/' path separator
     - run: |
       echo "path_sep=/" >> $GITHUB_ENV
+    - shell: bash
     - if: ${{ runner.os != 'Windows' }}
     - name: Set '\' path separator
     - run: |
       echo "path_sep=\\" >> $GITHUB_ENV
+    - shell: bash
     - if: ${{ runner.os == 'Windows' }}
     - name: Set up Java 17
       run: |
