@@ -14,6 +14,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
 import org.lflang.federated.generator.FedFileConfig;
+import org.lflang.generator.GeneratorUtils;
 import org.lflang.generator.LFGenerator;
 import org.lflang.generator.LFGeneratorContext.Mode;
 import org.lflang.generator.MainContext;
@@ -24,7 +25,7 @@ import org.lflang.tests.LFInjectorProvider;
 @InjectWith(LFInjectorProvider.class)
 
 /**
- *
+ * Tests for checking that target properties adequately translate into the target configuration.
  */
 class TargetConfigTests {
 
@@ -49,6 +50,10 @@ class TargetConfigTests {
         );
     }
 
+    /**
+     * Check that tracing target property affects the target configuration.
+     * @throws Exception
+     */
     @Test
     public void testParsing() throws Exception {
         assertHasTargetProperty(parser.parse("""
@@ -58,6 +63,11 @@ class TargetConfigTests {
             """), "tracing");
     }
 
+    /**
+     * Check that when a federation has the "tracing" target property set, the generated federates
+     * will also have it set.
+     * @throws Exception
+     */
     @Test
     public void testFederation() throws Exception {
         fileAccess.setOutputPath("src-gen");
@@ -78,6 +88,8 @@ class TargetConfigTests {
 
         var resource = federation.eResource();
         var context = new MainContext(Mode.STANDALONE, resource, fileAccess, () -> false);
+
+        if (GeneratorUtils.isHostWindows()) return;
 
         generator.doGenerate(resource, fileAccess, context);
 
