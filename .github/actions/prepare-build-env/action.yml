@@ -3,6 +3,14 @@ description: Set up Java, Maven, Gradle, etc.
 runs:
   using: "composite"
   steps:
+    - name: Set '/' path separator
+    - run: |
+      echo "path_sep=/" >> $GITHUB_ENV
+    - if: ${{ runner.os != 'Windows' }}
+    - name: Set '\' path separator
+    - run: |
+      echo "path_sep=\\" >> $GITHUB_ENV
+    - if: ${{ runner.os == 'Windows' }}
     - name: Set up Java 17
       run: |
         echo "$JAVA_HOME_17_X64/bin" >> $GITHUB_PATH
@@ -19,12 +27,12 @@ runs:
       run: |
         echo "gradle-hash"="$(find . -type f \( -name "gradle.properties" -o -name "gradle-wrapper.properties" \) -exec cat {} + | sha256sum | cut -d ' ' -f 1)" >> $GITHUB_ENV
       shell: bash
-    - name: Cache
+    - name: Cache (POSIX)
       uses: actions/cache@v3
       with:
         path: |
-          ~/.gradle/caches
-          ~/.gradle/wrapper
+          ~${{ env.path_separator }}.gradle${{ env.path_separator }}caches
+          ~${{ env.path_separator }}.gradle${{ env.path_separator }}wrapper
         key: gradle-${{ runner.os }}-${{ env.gradle-hash }}
         # restore-keys: |
         #   ${{ runner.os }}-gradle-
