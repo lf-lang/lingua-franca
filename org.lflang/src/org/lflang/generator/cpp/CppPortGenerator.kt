@@ -47,10 +47,11 @@ class CppPortGenerator(private val reactor: Reactor) {
         val VarRef.dataType: String
             get() {
                 val variableRef = when {
-                    this == null   -> ""
-                    container.isBank && container.isEnclave -> "${container.name}[0]->__lf_instance->${variable.name}"
-                    container.isBank && !container.isEnclave   -> "${container.name}[0]->${variable.name}"
-                    else                -> this.name
+                    this == null                             -> ""
+                    container == null                        -> this.name
+                    container.isBank && container.isEnclave  -> "${container.name}[0]->__lf_instance->${variable.name}"
+                    container.isBank && !container.isEnclave -> "${container.name}[0]->${variable.name}"
+                    else                                     -> this.name
                 }
                 val multiportRef = if (isMultiport) "$variableRef[0]" else variableRef
                 return "std::remove_reference<decltype($multiportRef)>::type::value_type"
