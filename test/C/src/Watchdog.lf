@@ -26,7 +26,7 @@ main reactor {
 
     reaction(a) -> w.x {=
         lf_set(w.x, 0);
-        lf_nanosleep(MSEC(40));
+        lf_nanosleep(MSEC(90));
     =}
 
     reaction(w.d) {= printf("Deadline reactor produced an output.\n"); =}
