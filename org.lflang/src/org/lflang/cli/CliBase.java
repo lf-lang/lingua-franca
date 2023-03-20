@@ -97,7 +97,11 @@ public abstract class CliBase implements Runnable {
         // Main instance.
         final CliBase main = injector.getInstance(toolClass);
         // Parse arguments and execute main logic.
-        CommandLine cmd = new CommandLine(main)
+        main.doExecute(io, args);
+    }
+
+    public void doExecute(Io io, String[] args) {
+        CommandLine cmd = new CommandLine(this)
             .setOut(new PrintWriter(io.getOut()))
             .setErr(new PrintWriter(io.getErr()));
         int exitCode = cmd.execute(args);
@@ -247,4 +251,5 @@ public abstract class CliBase implements Runnable {
             return null;
         }
     }
+
 }

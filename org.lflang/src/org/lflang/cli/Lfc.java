@@ -158,7 +158,7 @@ public class Lfc extends CliBase {
         List<Path> paths = getInputPaths();
         final Path outputRoot = getOutputRoot();
         // Hard code the props based on the options we want.
-        Properties properties = this.filterPassOnProps();
+        Properties properties = this.cliArgsToBuildParams();
 
         try {
             // Invoke the generator on all input file paths.
@@ -229,7 +229,7 @@ public class Lfc extends CliBase {
      *
      * @return Properties for the code generator.
      */
-    private Properties filterPassOnProps() {
+    public Properties cliArgsToBuildParams() {
         Properties props = new Properties();
 
         if (buildType != null) {

@@ -93,36 +93,6 @@ abstract class CliToolTestFixture {
     }
 
     /**
-     * Run and return and Lfc instance with the given arguments, in the given
-     * working directory.
-     *
-     * @param wd working directory
-     * @param args Arguments
-     * @return The execution result
-     */
-    public LfcObjExecutionResult runLfcObj(Path wd, String... args) {
-        ByteArrayOutputStream out = new ByteArrayOutputStream();
-        ByteArrayOutputStream err = new ByteArrayOutputStream();
-
-        Io testIo = new Io(
-            new PrintStream(err),
-            new PrintStream(out),
-            wd
-        );
-        // Main instance.
-        final Lfc lfcObj = new Lfc();
-        // Parse arguments and execute main logic.
-        int exitCode = testIo.fakeSystemExit(io -> (
-            new CommandLine(lfcObj)
-                .setOut(new PrintWriter(io.getOut()))
-                .setErr(new PrintWriter(io.getErr()))
-            ).execute(args)
-        );
-
-        return new LfcObjExecutionResult(out, err, exitCode, lfcObj);
-    }
-
-    /**
      * The result of an execution of a CLI program like LFC.
      *
      * @param out Output stream
@@ -190,53 +160,6 @@ abstract class CliToolTestFixture {
         @FunctionalInterface
         interface ThrowingConsumer<T> {
 
-            void accept(T t) throws Exception;
-        }
-    }
-
-    /**
-     * The result, including class instance, of an execution of a CLI program
-     * like LFC.
-     *
-     * @param out Output stream
-     * @param err Error stream
-     * @param exitCode Exit code of the process
-     */
-    record LfcObjExecutionResult(
-            ByteArrayOutputStream out,
-            ByteArrayOutputStream err,
-            int exitCode,
-            Lfc lfcObj
-    ) {
-        public void checkOk() {
-            assertEquals(0, exitCode);
-        }
-
-        /**
-         * Use this method to wrap assertions.
-         */
-        public void verify(ThrowingConsumer<LfcObjExecutionResult> actions) {
-            try {
-                actions.accept(this);
-            } catch (Exception | AssertionFailedError e) {
-                System.out.println("TEST FAILED");
-                System.out.println("> Return code: " + exitCode);
-                System.out.println("> Standard output -------------------------");
-                System.err.println(out.toString());
-                System.out.println("> Standard error --------------------------");
-                System.err.println(err.toString());
-                System.out.println("> -----------------------------------------");
-
-                if (e instanceof Exception) {
-                    throw new AssertionFailedError("Expected no exception to be thrown", e);
-                }
-                throw (AssertionFailedError) e;
-            }
-        }
-
-
-        @FunctionalInterface
-        interface ThrowingConsumer<T> {
             void accept(T t) throws Exception;
         }
     }

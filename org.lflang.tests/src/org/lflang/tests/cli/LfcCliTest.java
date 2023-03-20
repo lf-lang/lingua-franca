@@ -129,17 +129,12 @@ public class LfcCliTest {
             "--threading", "false",
             "--workers", "1",
         };
+        LfcOneShotTestFixture fixture = new LfcOneShotTestFixture();
 
-        lfcTester.runLfcObj(tempDir, args)
+        fixture.run(tempDir, args)
             .verify(result -> {
                 result.checkOk();
-                // Get the properties method.
-                Method getPropsMethod =
-                    Lfc.class.getDeclaredMethod("filterPassOnProps");
-                // Change the method's visibility to public for testing.
-                getPropsMethod.setAccessible(true);
-                Properties properties =
-                    (Properties) getPropsMethod.invoke(result.lfcObj());
+                Properties properties = fixture.lfc.cliArgsToBuildParams();
                 assertEquals(properties.getProperty(BuildParm.BUILD_TYPE.getKey()), "Release");
                 assertEquals(properties.getProperty(BuildParm.CLEAN.getKey()), "true");
                 assertEquals(properties.getProperty(BuildParm.EXTERNAL_RUNTIME_PATH.getKey()), "src");
@@ -156,9 +151,20 @@ public class LfcCliTest {
 
 
     static class LfcTestFixture extends CliToolTestFixture {
+
         @Override
         protected void runCliProgram(Io io, String[] args) {
             Lfc.main(io, args);
+        }
+    }
+
+    static class LfcOneShotTestFixture extends CliToolTestFixture {
+
+        private final Lfc lfc = new Lfc();
+
+        @Override
+        protected void runCliProgram(Io io, String[] args) {
+            lfc.doExecute(io, args);
         }
     }
 
