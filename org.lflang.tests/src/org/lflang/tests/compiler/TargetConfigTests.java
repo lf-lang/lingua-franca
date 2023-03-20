@@ -60,8 +60,8 @@ class TargetConfigTests {
 
     @Test
     public void testFederation() throws Exception {
-        fileAccess.setOutputPath("junit"); // FIXME: this does not appear to do anything. Why?
-        fileAccess.setCurrentSource("Federation.lf");
+        fileAccess.setOutputPath("src-gen");
+
         Model federation = parser.parse("""
             target C {
               tracing: true
@@ -73,7 +73,7 @@ class TargetConfigTests {
                 a = new Foo()
                 b = new Foo()
             }
-            """, URI.createFileURI("Federation.lf"), resourceSetProvider.get());
+            """, URI.createFileURI("tmp/src/Federation.lf"), resourceSetProvider.get());
         assertHasTargetProperty(federation, "tracing");
 
         var resource = federation.eResource();
