@@ -130,7 +130,7 @@ ${"             |"..preamble.code.toText()}
             "export class $reactorName extends __Reactor {"
         }
 
-        val instanceGenerator = TSInstanceGenerator(errorReporter, reactor)
+        val instanceGenerator = TSInstanceGenerator(reactor)
         val timerGenerator = TSTimerGenerator(reactor.timers)
         val parameterGenerator = TSParameterGenerator(reactor.parameters)
         val stateGenerator = TSStateGenerator(reactor.stateVars)

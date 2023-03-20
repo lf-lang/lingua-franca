@@ -207,26 +207,29 @@ public abstract class CliBase implements Runnable {
         assert resource != null;
 
         List<Issue> issues = this.validator.validate(
-                resource, CheckMode.ALL, CancelIndicator.NullImpl);
+            resource, CheckMode.ALL, CancelIndicator.NullImpl);
 
         for (Issue issue : issues) {
             // Issues may also relate to imported resources.
-            URI uri = issue.getUriToProblem(); 
-            try {
-                issueCollector.accept(
-                        new LfIssue(
-                            issue.getMessage(),
-                            issue.getSeverity(),
-                            issue.getLineNumber(),
-                            issue.getColumn(),
-                            issue.getLineNumberEnd(),
-                            issue.getColumnEnd(),
-                            issue.getLength(),
-                            FileUtil.toPath(uri)));
-            } catch (IOException e) {
-                reporter.printError(
-                        "Unable to convert '" + uri + "' to path." + e);
+            URI uri = issue.getUriToProblem();
+            Path path = null;
+            if (uri != null) {
+                try {
+                    path = FileUtil.toPath(uri);
+                } catch (IOException e) {
+                    reporter.printError("Unable to convert '" + uri + "' to path." + e);
+                }
             }
+            issueCollector.accept(
+                new LfIssue(
+                    issue.getMessage(),
+                    issue.getSeverity(),
+                    issue.getLineNumber(),
+                    issue.getColumn(),
+                    issue.getLineNumberEnd(),
+                    issue.getColumnEnd(),
+                    issue.getLength(),
+                    path));
         }
     }
 
