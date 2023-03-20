@@ -49,7 +49,6 @@ import picocli.CommandLine;
  * {@link org.lflang.cli.Lff}.
  *
  * @author Clément Fournier
- * @author Atharva Patil
  */
 abstract class CliToolTestFixture {
 
