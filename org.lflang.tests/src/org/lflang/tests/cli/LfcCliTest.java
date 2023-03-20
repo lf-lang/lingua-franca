@@ -140,42 +140,17 @@ public class LfcCliTest {
                 getPropsMethod.setAccessible(true);
                 Properties properties =
                     (Properties) getPropsMethod.invoke(result.lfcObj());
-                assertEquals(
-                        properties.getProperty(BuildParm.BUILD_TYPE.getKey()),
-                        "Release");
-                assertEquals(
-                        properties.getProperty(BuildParm.CLEAN.getKey()),
-                        "true");
-                assertEquals(
-                        properties.getProperty(
-                            BuildParm.EXTERNAL_RUNTIME_PATH.getKey()),
-                        "src");
-                assertEquals(
-                        properties.getProperty(BuildParm.LINT.getKey()),
-                        "true");
-                assertEquals(
-                        properties.getProperty(BuildParm.LOGGING.getKey()),
-                        "4");
-                assertEquals(
-                        properties.getProperty(
-                            BuildParm.TARGET_COMPILER.getKey()),
-                        "gcc");
-                assertEquals(
-                        properties.getProperty(BuildParm.QUIET.getKey()),
-                        "true");
-                assertEquals(
-                        properties.getProperty(BuildParm.RTI.getKey()),
-                        "-1");
-                assertEquals(
-                        properties.getProperty(
-                            BuildParm.RUNTIME_VERSION.getKey()),
-                        "rs");
-                assertEquals(
-                        properties.getProperty(BuildParm.THREADING.getKey()),
-                        "false");
-                assertEquals(
-                        properties.getProperty(BuildParm.WORKERS.getKey()),
-                        "1");
+                assertEquals(properties.getProperty(BuildParm.BUILD_TYPE.getKey()), "Release");
+                assertEquals(properties.getProperty(BuildParm.CLEAN.getKey()), "true");
+                assertEquals(properties.getProperty(BuildParm.EXTERNAL_RUNTIME_PATH.getKey()), "src");
+                assertEquals(properties.getProperty(BuildParm.LINT.getKey()), "true");
+                assertEquals(properties.getProperty(BuildParm.LOGGING.getKey()), "4");
+                assertEquals(properties.getProperty(BuildParm.TARGET_COMPILER.getKey()), "gcc");
+                assertEquals(properties.getProperty(BuildParm.QUIET.getKey()), "true");
+                assertEquals(properties.getProperty(BuildParm.RTI.getKey()), "-1");
+                assertEquals(properties.getProperty(BuildParm.RUNTIME_VERSION.getKey()), "rs");
+                assertEquals(properties.getProperty(BuildParm.THREADING.getKey()), "false");
+                assertEquals(properties.getProperty(BuildParm.WORKERS.getKey()), "1");
             });
     }
 
