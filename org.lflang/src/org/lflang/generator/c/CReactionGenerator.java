@@ -684,9 +684,7 @@ public class CReactionGenerator {
         String watchdogName = watchdog.getName();
 
         return String.join("\n", List.of(
-        "#ifdef LF_THREADED", 
-        "    watchdog_t* "+watchdogName+" = &(self->_lf_watchdog_"+watchdogName+");",
-        "#endif"
+        "watchdog_t* "+watchdogName+" = &(self->_lf_watchdog_"+watchdogName+");"
         ));
     }
 

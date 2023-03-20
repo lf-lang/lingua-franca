@@ -202,6 +202,7 @@ public class CWatchdogGenerator {
                 "       self_base_t* current_base = _lf_watchdogs[i]->base;",
                 "        if (&(current_base->watchdog_mutex) == NULL) {",
                 "            lf_mutex_init(&(current_base->watchdog_mutex));",
+                "            current_base->has_watchdog = true;",
                 "        }",
                 "    }"
             ));
