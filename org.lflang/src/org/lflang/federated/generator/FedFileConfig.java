@@ -27,6 +27,8 @@ package org.lflang.federated.generator;
 
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.eclipse.emf.ecore.resource.Resource;
 
@@ -43,10 +45,12 @@ import org.lflang.util.FileUtil;
  */
 public class FedFileConfig extends FileConfig {
 
-    public FedFileConfig(Resource resource, Path srcGenBasePath, boolean useHierarchicalBin) throws IOException {
-        // FIMXE: It is unclear to me that we need this class.
+    public FedFileConfig(
+        Resource resource,
+        Path srcGenBasePath,
+        boolean useHierarchicalBin
+    ) throws IOException {
         super(resource, srcGenBasePath, useHierarchicalBin);
-
     }
 
     public FedFileConfig(FileConfig fileConfig) throws IOException {
@@ -89,9 +93,44 @@ public class FedFileConfig extends FileConfig {
         return srcPkgPath.resolve("fed-gen").resolve(this.name);
     }
 
+    /**
+     * Return the path to the directory in which the executables of compiled federates are stored.
+     */
+    public Path getFedBinPath() { return getFedGenPath().resolve("bin"); }
+
     @Override
     public void doClean() throws IOException {
         super.doClean();
         FileUtil.deleteDirectory(this.getFedGenPath());
+    }
+
+    /**
+     * Relativize target properties that involve paths like files and cmake-include to be
+     * relative to the generated .lf file for the federate.
+     */
+    public void relativizePaths(FedTargetConfig targetConfig) {
+        relativizePathList(targetConfig.protoFiles);
+        relativizePathList(targetConfig.fileNames);
+        relativizePathList(targetConfig.cmakeIncludes);
+    }
+
+    /**
+     * Relativize each path in the given list.
+     * @param paths The paths to relativize.
+     */
+    private void relativizePathList(List<String> paths) {
+        List<String> tempList = new ArrayList<>();
+        paths.forEach(f -> tempList.add(relativizePath(f)));
+        paths.clear();
+        paths.addAll(tempList);
+    }
+
+    /**
+     * Relativize a single path.
+     * @param path The path to relativize.
+     */
+    private String relativizePath(String path) {
+        Path resolvedPath = this.srcPath.resolve(path).toAbsolutePath();
+        return this.getSrcPath().relativize(resolvedPath).toString();
     }
 }
