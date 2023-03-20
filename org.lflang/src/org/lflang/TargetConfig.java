@@ -110,6 +110,9 @@ public class TargetConfig {
         if (cliArgs.containsKey("target-compiler")) {
             this.compiler = cliArgs.getProperty("target-compiler");
         }
+        if (cliArgs.containsKey("tracing")) {
+            this.tracing = new TracingOptions();
+        }
         if (cliArgs.containsKey("scheduler")) {
             this.schedulerType = SchedulerOption.valueOf(
                 cliArgs.getProperty("scheduler")
@@ -277,9 +280,6 @@ public class TargetConfig {
      * 
      * This is now a wrapped class to account for overloaded definitions 
      * of defining platform (either a string or dictionary of values)
-     *
-     * @author Samuel Berkun
-     * @author Anirudh Rengarajan
      */
     public PlatformOptions platformOptions = new PlatformOptions();
 
@@ -373,7 +373,7 @@ public class TargetConfig {
         public int attenuation = 10;
 
         /**
-         * Whether or not to collect statistics while performing clock synchronization.
+         * Whether to collect statistics while performing clock synchronization.
          * This setting is only considered when clock synchronization has been activated.
          * The default is true.
          */
