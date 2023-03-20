@@ -47,6 +47,7 @@ import org.lflang.generator.LFGeneratorContext.BuildParm;
 
 /**
  * @author Clément Fournier
+ * @author Atharva Patil
  */
 public class LfcCliTest {
 
