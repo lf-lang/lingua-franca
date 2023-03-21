@@ -52,6 +52,7 @@ jobs:
     with:
       target: 'C'
       benchmarks-ref: 'c-separate-gen-files'
+      compiler-ref: bodyless-reactions
     needs: cancel
 
   # Run language server tests.
