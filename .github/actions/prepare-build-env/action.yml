@@ -33,9 +33,9 @@ runs:
       uses: webiny/action-post-run@3.0.0
       id: post-run-command
       with:
-      run: |
-        cd ~/.gradle/caches
-        find . -name ".lock" | xargs rm
+        run: |
+          cd ~/.gradle/caches
+          find . -name ".lock" | xargs rm
       if: ${{ runner.os == 'Windows' }}
     - name: Cache
       uses: actions/cache@v3
