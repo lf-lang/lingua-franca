@@ -25,6 +25,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 package org.lflang.federated.generator;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -39,6 +40,8 @@ import org.eclipse.emf.ecore.EObject;
 
 import org.lflang.ASTUtils;
 import org.lflang.ErrorReporter;
+import org.lflang.FileConfig;
+import org.lflang.Target;
 import org.lflang.TargetConfig;
 import org.lflang.TimeValue;
 import org.lflang.federated.serialization.SupportedSerializers;
@@ -47,6 +50,7 @@ import org.lflang.generator.GeneratorUtils;
 import org.lflang.generator.PortInstance;
 import org.lflang.generator.ReactionInstance;
 import org.lflang.generator.ReactorInstance;
+import org.lflang.generator.SubContext;
 import org.lflang.generator.TriggerInstance;
 import org.lflang.lf.Action;
 import org.lflang.lf.ActionOrigin;
@@ -62,7 +66,6 @@ import org.lflang.lf.Reaction;
 import org.lflang.lf.Reactor;
 import org.lflang.lf.ReactorDecl;
 import org.lflang.lf.StateVar;
-import org.lflang.lf.TargetDecl;
 import org.lflang.lf.Timer;
 import org.lflang.lf.TriggerRef;
 import org.lflang.lf.VarRef;
@@ -97,15 +100,14 @@ public class FederateInstance {
             Instantiation instantiation, 
             int id, 
             int bankIndex,
+            TargetConfig targetConfig,
             ErrorReporter errorReporter) {
         this.instantiation = instantiation;
         this.id = id;
         this.bankIndex = bankIndex;
         this.errorReporter = errorReporter;
-        this.target =  GeneratorUtils.findTarget(
-            ASTUtils.toDefinition(instantiation.getReactorClass()).eResource()
-        );
-        this.targetConfig = new TargetConfig(target); // FIXME: this is actually set in FedTargetEmitter. Why?
+        this.targetConfig = targetConfig;
+        
         if (instantiation != null) {
             this.name = instantiation.getName();
             // If the instantiation is in a bank, then we have to append
@@ -247,11 +249,6 @@ public class FederateInstance {
      * reactions) that belong to this federate instance.
      */
     public List<Reaction> networkReactions = new ArrayList<>();
-
-    /**
-     * Target of the federate.
-     */
-    public TargetDecl target;
 
     /**
      * Parsed target config of the federate.
