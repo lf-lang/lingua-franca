@@ -527,7 +527,7 @@ public enum Target {
      * program (and keepalive was not explicitly unset by the user).
      */
     public boolean setsKeepAliveOptionAutomatically() {
-        return this != Rust;
+        return this != Rust && this != CPP;
     }
 
     /**
