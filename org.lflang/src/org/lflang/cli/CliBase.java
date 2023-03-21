@@ -150,8 +150,8 @@ public abstract class CliBase implements Runnable {
         // If args are given in a json file, store its contents in jsonString.
         if (topLevelArg.jsonFile != null) {
             try {
-                topLevelArg.jsonString = new String(
-                        Files.readAllBytes(topLevelArg.jsonFile));
+                topLevelArg.jsonString = new String(Files.readAllBytes(
+                        io.getWd().resolve(topLevelArg.jsonFile)));
             } catch (IOException e) {
                 reporter.printFatalErrorAndExit(
                         "No such file: " + topLevelArg.jsonFile);
@@ -341,7 +341,7 @@ public abstract class CliBase implements Runnable {
             jsonObject = JsonParser.parseString(jsonString).getAsJsonObject();
         } catch (JsonParseException e) {
             reporter.printFatalErrorAndExit(
-                    "Invalid JSON string:\n" + jsonString);
+                    "Invalid JSON string:\n" + jsonString + e);
         }
 
         // Append input paths.
