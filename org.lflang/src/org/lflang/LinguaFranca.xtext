@@ -222,8 +222,8 @@ Preamble:
 Instantiation:
     (attributes+=Attribute)*
     name=ID '=' 'new' (widthSpec=WidthSpec)?
-    reactorClass=[ReactorDecl] ('<' typeParms+=TypeParm (',' typeParms+=TypeParm)* '>')? '('
-    (parameters+=Assignment (',' parameters+=Assignment)*)?
+    reactorClass=[ReactorDecl] ('<' typeArgs+=Type (',' typeArgs+=Type)* '>')? '('
+    (parameters+=Assignment (',' parameters+=Assignment)*)? 
     ')' (('at' host=Host ';') | ';'?);
 
 Connection:
@@ -324,8 +324,8 @@ Port:
 
 // A type is in the target language, hence either an ID or target code.
 Type:
-   time?='time' (arraySpec=ArraySpec)?
-   | id=DottedName ('<' typeParms+=Type (',' typeParms+=Type)* '>')? (stars+='*')* (arraySpec=ArraySpec)?
+   time?='time' (arraySpec=ArraySpec)? 
+   | id=DottedName ('<' typeArgs+=Type (',' typeArgs+=Type)* '>')? (stars+='*')* (arraySpec=ArraySpec)?
    | code=Code
 ;
 
