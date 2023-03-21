@@ -1,7 +1,7 @@
 // The purpose of this test is to check that the downstream enclave respects the
 // after delay when aquiring tags from its upstream.
 target Cpp {
-    timeout: 10 s,
+    timeout: 6 s,
     workers: 1
 }
 

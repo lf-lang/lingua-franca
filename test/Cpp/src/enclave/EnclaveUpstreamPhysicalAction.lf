@@ -1,16 +1,40 @@
-// The purpose of this test is to check that the downstream enclave advances
-// time independenty of the upstraem if the connection is physical.
+// The purpose of this test is to check that the downstream enclave can progress, even if there
+// are only sparse upstream events.
 target Cpp {
-    timeout: 6 s,
+    timeout: 10 s,
     workers: 1
 }
 
 reactor Src {
-    timer t(0, 2 s)
-    output out: int
-    state counter: int = 0
+    public preamble {=
+        #include <thread>
+    =}
 
-    reaction(t) -> out {= out.set(counter++); =}
+    state thread: std::thread{}
+    
+    physical action a: int
+    output out: int
+
+    reaction(startup) -> a {=  
+        // start new thread
+        this->thread = std::thread([&] () {
+            for (int i{0}; i < 3; i++) {
+                a.schedule(i);
+                std::this_thread::sleep_for(2s);
+            }
+        });
+    =}
+
+    reaction(a) -> out {=
+       out.set(a.get());
+    =}
+
+    reaction(shutdown) {=
+        // make sure to join the thread before shutting down
+        if(thread.joinable()) {
+            thread.join();
+        }
+    =}
 }
 
 reactor Sink {
@@ -48,5 +72,5 @@ main reactor {
     @enclave
     sink = new Sink()
 
-    src.out ~> sink.in
+    src.out -> sink.in
 }

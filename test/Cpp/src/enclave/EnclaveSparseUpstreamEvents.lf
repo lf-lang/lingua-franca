@@ -1,5 +1,5 @@
-// The purpose of this test is to check that the downstream enclave advances
-// time independenty of the upstraem if the connection is physical.
+// The purpose of this test is to check that the downstream enclave can progress, even if there
+// are only sparse upstream events.
 target Cpp {
     timeout: 6 s,
     workers: 1
@@ -23,8 +23,8 @@ reactor Sink {
         auto value = *in.get();
         reactor::log::Info() << "Received " << value;
         auto expected = 2s * value;
-        if (get_elapsed_logical_time() < expected) {
-            reactor::log::Error() << "Expected value not before " << expected << " but received it at " << get_elapsed_logical_time();
+        if (get_elapsed_logical_time() != expected) {
+            reactor::log::Error() << "Expected value at " << expected << " but received it at " << get_elapsed_logical_time();
             exit(1);
         }
     =}
@@ -48,5 +48,5 @@ main reactor {
     @enclave
     sink = new Sink()
 
-    src.out ~> sink.in
+    src.out -> sink.in
 }
