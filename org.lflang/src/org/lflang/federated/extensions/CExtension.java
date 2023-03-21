@@ -493,13 +493,19 @@ public class CExtension implements FedTargetExtension {
             writer.write(cPreamble);
         }
         var includes = new CodeBuilder();
-        if (federate.targetConfig.target == Target.C) {
+        if (federate.targetConfig.target != Target.Python) {
+            includes.pr("#ifdef __cplusplus\n"
+                + "extern \"C\" {\n"
+                + "#endif");
             includes.pr("#include \"core/federated/federate.h\"");
             includes.pr("#include \"core/federated/net_common.h\"");
             includes.pr("#include \"core/federated/net_util.h\"");
             includes.pr("#include \"core/threaded/reactor_threaded.h\"");
             includes.pr("#include \"core/utils/util.h\"");
             includes.pr("extern federate_instance_t _fed;");
+            includes.pr("#ifdef __cplusplus\n"
+                + "}\n"
+                + "#endif");
         }
 
         return includes.toString();

@@ -1052,7 +1052,8 @@ public class CGenerator extends GeneratorBase {
         generateReactorClassBody(reactor, header, src);
         header.pr("#endif // " + guardMacro);
         FileUtil.writeToFile(header.toString(), fileConfig.getSrcGenPath().resolve(headerName), true);
-        var extension = targetConfig.platformOptions.platform == Platform.ARDUINO ? ".ino" : (CCppMode ? ".cpp" : ".c");
+        var extension = targetConfig.platformOptions.platform == Platform.ARDUINO ? ".ino" :
+            CCppMode ? ".cpp" : ".c";
         FileUtil.writeToFile(src.toString(), fileConfig.getSrcGenPath().resolve(CUtil.getName(reactor) + extension), true);
     }
 
