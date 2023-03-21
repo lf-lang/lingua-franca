@@ -29,7 +29,12 @@ runs:
       run: |
         echo "gradle-hash"="$(find . -type f \( -name "gradle.properties" -o -name "gradle-wrapper.properties" \) -exec cat {} + | sha256sum | cut -d ' ' -f 1)" >> $GITHUB_ENV
       shell: bash
-    - name: Cache (POSIX)
+    - name: Remove lock files (Windows)
+      run: |
+        find . -name ".lock" | xargs rm
+      shell: bash
+      if: ${{ runner.os == 'Windows' }}
+    - name: Cache
       uses: actions/cache@v3
       with:
         path: |
