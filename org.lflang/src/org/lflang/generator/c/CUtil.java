@@ -147,9 +147,9 @@ public class CUtil {
      * reactor is main (to allow for instantiations that have the same name as
      * the main reactor or the .lf file).
      */
-    public static String getName(Reactor reactor) {
-        String name = reactor.getName().toLowerCase() + reactor.hashCode();
-        if (reactor.isMain()) {
+    public static String getName(TypeParameterizedReactor reactor) {
+        String name = reactor.r().getName().toLowerCase() + reactor.hashCode();
+        if (reactor.r().isMain()) {
             return name + "_main";
         }
         return name;
@@ -516,8 +516,8 @@ public class CUtil {
      * @param reactor The reactor class.
      * @return The type of a self struct for the specified reactor class.
      */
-    public static String selfType(Reactor reactor) {
-        if (reactor.isMain()) {
+    public static String selfType(TypeParameterizedReactor reactor) {
+        if (reactor.r().isMain()) {
             return "_" + CUtil.getName(reactor) + "_main_self_t";
         }
         return "_" + CUtil.getName(reactor) + "_self_t";

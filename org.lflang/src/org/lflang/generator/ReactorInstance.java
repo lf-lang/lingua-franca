@@ -42,6 +42,7 @@ import org.lflang.AttributeUtils;
 import org.lflang.ErrorReporter;
 import org.lflang.TimeValue;
 import org.lflang.generator.TriggerInstance.BuiltinTriggerVariable;
+import org.lflang.generator.c.TypeParameterizedReactor;
 import org.lflang.lf.Action;
 import org.lflang.lf.BuiltinTrigger;
 import org.lflang.lf.BuiltinTriggerRef;
@@ -59,9 +60,12 @@ import org.lflang.lf.Reaction;
 import org.lflang.lf.Reactor;
 import org.lflang.lf.ReactorDecl;
 import org.lflang.lf.Timer;
+import org.lflang.lf.Type;
 import org.lflang.lf.VarRef;
 import org.lflang.lf.Variable;
 import org.lflang.lf.WidthSpec;
+
+import com.google.common.collect.ImmutableMap;
 
 
 /**
@@ -158,6 +162,8 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
 
     /** Indicator that this reactor has itself as a parent, an error condition. */
     public final boolean recursive;
+
+    public final TypeParameterizedReactor tpr;
 
     //////////////////////////////////////////////////////
     //// Public methods.
@@ -770,6 +776,7 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
         this.reporter = reporter;
         this.reactorDeclaration = definition.getReactorClass();
         this.reactorDefinition = ASTUtils.toDefinition(reactorDeclaration);
+        this.tpr = new TypeParameterizedReactor(definition);
 
         // check for recursive instantiation
         var currentParent = parent;

@@ -379,6 +379,15 @@ public class ASTUtils {
         return ASTUtils.collectElements(definition, featurePackage.getReactor_Instantiations());
     }
 
+    public static List<ReactorInstance> allChildInstances(Reactor definition, ErrorReporter reporter) {
+        return allInstantiations(definition).stream().map(it -> new ReactorInstance(
+            it,
+            null,
+            reporter,
+            0
+        )).collect(Collectors.toList());
+    }
+
     /**
      * Given a reactor class, return a list of all its methods,
      * which includes methods of base classes that it extends.
@@ -448,9 +457,9 @@ public class ASTUtils {
         return ASTUtils.collectElements(definition, featurePackage.getReactor_Modes());
     }
 
-    public static List<Reactor> recursiveChildren(ReactorInstance r) {
-        List<Reactor> ret = new ArrayList<>();
-        ret.add(r.reactorDefinition);
+    public static List<ReactorInstance> recursiveChildren(ReactorInstance r) {
+        List<ReactorInstance> ret = new ArrayList<>();
+        ret.add(r);
         for (var child: r.children) {
             ret.addAll(recursiveChildren(child));
         }

@@ -544,10 +544,9 @@ public class PythonGenerator extends CGenerator {
     @Override
     protected void generateSelfStructExtension(
         CodeBuilder selfStructBody,
-        ReactorDecl decl,
+        Reactor reactor,
         CodeBuilder constructorCode
     ) {
-        Reactor reactor = ASTUtils.toDefinition(decl);
         // Add the name field
         selfStructBody.pr("char *_lf_name;");
         int reactionIndex = 0;
