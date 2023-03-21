@@ -31,7 +31,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
-import java.io.PrintWriter;
 import java.nio.file.Path;
 import java.util.concurrent.Callable;
 import java.util.function.Consumer;
@@ -40,16 +39,12 @@ import org.hamcrest.Matcher;
 import org.opentest4j.AssertionFailedError;
 
 import org.lflang.cli.Io;
-import org.lflang.cli.Lfc;
-
-import picocli.CommandLine;
 
 /**
  * Test utilities for a CLI tool, eg {@link org.lflang.cli.Lfc},
  * {@link org.lflang.cli.Lff}.
  *
  * @author Clément Fournier
- * @author Atharva Patil
  */
 abstract class CliToolTestFixture {
 
@@ -163,5 +158,4 @@ abstract class CliToolTestFixture {
             void accept(T t) throws Exception;
         }
     }
-
 }

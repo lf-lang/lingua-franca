@@ -35,7 +35,6 @@ import static org.lflang.tests.TestUtils.isRegularFile;
 import com.google.inject.Injector;
 
 import java.io.IOException;
-import java.lang.reflect.Method;
 import java.nio.file.Path;
 import java.util.Properties;
 
