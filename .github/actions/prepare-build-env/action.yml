@@ -31,7 +31,7 @@ runs:
       shell: bash
     - name: Remove lock files (Windows)
       run: |
-        cd ~/.gradle/caches
+        cd ~/.gradle
         find . -name ".lock" | xargs rm
       shell: bash
       if: ${{ runner.os == 'Windows' }}
