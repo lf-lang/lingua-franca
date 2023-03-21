@@ -32,8 +32,9 @@ import static org.lflang.tests.TestUtils.TempDirChecker.dirChecker;
 import static org.lflang.tests.TestUtils.isDirectory;
 import static org.lflang.tests.TestUtils.isRegularFile;
 
+import com.google.inject.Injector;
+
 import java.io.IOException;
-import java.lang.reflect.Method;
 import java.nio.file.Path;
 import java.util.Properties;
 
@@ -103,11 +104,10 @@ public class LfcCliTest {
                     .check("bin", isDirectory())
                     .check("src-gen/File/File.py", isRegularFile());
             });
-
     }
 
     @Test
-    public void testTargetProperties(@TempDir Path tempDir)
+    public void testBuildParams(@TempDir Path tempDir)
             throws IOException {
         dirBuilder(tempDir).file("src/File.lf", LF_PYTHON_FILE);
 
@@ -129,62 +129,45 @@ public class LfcCliTest {
             "--threading", "false",
             "--workers", "1",
         };
+        LfcOneShotTestFixture fixture = new LfcOneShotTestFixture();
 
-        lfcTester.runLfcObj(tempDir, args)
+        fixture.run(tempDir, args)
             .verify(result -> {
-                result.checkOk();
-                // Get the properties method.
-                Method getPropsMethod =
-                    Lfc.class.getDeclaredMethod("getTargetProperties");
-                // Change the method's visibility to public for testing.
-                getPropsMethod.setAccessible(true);
-                Properties properties =
-                    (Properties) getPropsMethod.invoke(result.lfcObj());
-                assertEquals(
-                        properties.getProperty(BuildParm.BUILD_TYPE.getKey()),
-                        "Release");
-                assertEquals(
-                        properties.getProperty(BuildParm.CLEAN.getKey()),
-                        "true");
-                assertEquals(
-                        properties.getProperty(
-                            BuildParm.EXTERNAL_RUNTIME_PATH.getKey()),
-                        "src");
-                assertEquals(
-                        properties.getProperty(BuildParm.LINT.getKey()),
-                        "true");
-                assertEquals(
-                        properties.getProperty(BuildParm.LOGGING.getKey()),
-                        "4");
-                assertEquals(
-                        properties.getProperty(
-                            BuildParm.TARGET_COMPILER.getKey()),
-                        "gcc");
-                assertEquals(
-                        properties.getProperty(BuildParm.QUIET.getKey()),
-                        "true");
-                assertEquals(
-                        properties.getProperty(BuildParm.RTI.getKey()),
-                        "-1");
-                assertEquals(
-                        properties.getProperty(
-                            BuildParm.RUNTIME_VERSION.getKey()),
-                        "rs");
-                assertEquals(
-                        properties.getProperty(BuildParm.THREADING.getKey()),
-                        "false");
-                assertEquals(
-                        properties.getProperty(BuildParm.WORKERS.getKey()),
-                        "1");
+                Properties properties = fixture.lfc.cliArgsToBuildParams();
+                assertEquals(properties.getProperty(BuildParm.BUILD_TYPE.getKey()), "Release");
+                assertEquals(properties.getProperty(BuildParm.CLEAN.getKey()), "true");
+                assertEquals(properties.getProperty(BuildParm.EXTERNAL_RUNTIME_PATH.getKey()), "src");
+                assertEquals(properties.getProperty(BuildParm.LINT.getKey()), "true");
+                assertEquals(properties.getProperty(BuildParm.LOGGING.getKey()), "4");
+                assertEquals(properties.getProperty(BuildParm.TARGET_COMPILER.getKey()), "gcc");
+                assertEquals(properties.getProperty(BuildParm.QUIET.getKey()), "true");
+                assertEquals(properties.getProperty(BuildParm.RTI.getKey()), "-1");
+                assertEquals(properties.getProperty(BuildParm.RUNTIME_VERSION.getKey()), "rs");
+                assertEquals(properties.getProperty(BuildParm.THREADING.getKey()), "false");
+                assertEquals(properties.getProperty(BuildParm.WORKERS.getKey()), "1");
             });
     }
 
 
     static class LfcTestFixture extends CliToolTestFixture {
+
         @Override
         protected void runCliProgram(Io io, String[] args) {
             Lfc.main(io, args);
         }
     }
 
+    static class LfcOneShotTestFixture extends CliToolTestFixture {
+
+        private Lfc lfc;
+
+        @Override
+        protected void runCliProgram(Io io, String[] args) {
+            // Injector used to obtain Main instance.
+            final Injector injector = Lfc.getInjector("lfc", io);
+            // Main instance.
+            this.lfc = injector.getInstance(Lfc.class);
+            lfc.doExecute(io, args);
+        }
+    }
 }
