@@ -30,10 +30,12 @@ runs:
         echo "gradle-hash"="$(find . -type f \( -name "gradle.properties" -o -name "gradle-wrapper.properties" \) -exec cat {} + | sha256sum | cut -d ' ' -f 1)" >> $GITHUB_ENV
       shell: bash
     - name: Remove lock files (Windows)
+      uses: webiny/action-post-run@3.0.0
+      id: post-run-command
+      with:
       run: |
-        cd ~/.gradle
+        cd ~/.gradle/caches
         find . -name ".lock" | xargs rm
-      shell: bash
       if: ${{ runner.os == 'Windows' }}
     - name: Cache
       uses: actions/cache@v3
