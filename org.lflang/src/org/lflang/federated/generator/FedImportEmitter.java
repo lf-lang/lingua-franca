@@ -54,7 +54,7 @@ public class FedImportEmitter {
                                        );
                                        return new_import;
                                    })
-                                   .map(FormattingUtils.renderer(federate.target))
+                                   .map(FormattingUtils.renderer(federate.targetConfig.target))
                                    .collect(Collectors.joining("\n")));
 
         return importStatements.getCode();

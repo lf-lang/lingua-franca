@@ -8,6 +8,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 import org.lflang.ErrorReporter;
+import org.lflang.federated.launcher.RtiConfig;
 import org.lflang.generator.CodeMap;
 import org.lflang.generator.LFGeneratorContext;
 import org.lflang.lf.Reactor;
@@ -20,18 +21,18 @@ public class FedEmitter {
     private final FedFileConfig fileConfig;
     private final Reactor originalMainReactor;
     private final ErrorReporter errorReporter;
-    private final LinkedHashMap<String, Object> federationRTIProperties;
+    private final RtiConfig rtiConfig;
 
     public FedEmitter(
         FedFileConfig fileConfig,
         Reactor originalMainReactor,
         ErrorReporter errorReporter,
-        LinkedHashMap<String, Object> federationRTIProperties
+        RtiConfig rtiConfig
     ) {
         this.fileConfig = fileConfig;
         this.originalMainReactor = originalMainReactor;
         this.errorReporter = errorReporter;
-        this.federationRTIProperties = federationRTIProperties;
+        this.rtiConfig = rtiConfig;
     }
 
     /**
@@ -55,9 +56,9 @@ public class FedEmitter {
 
         String federateCode = String.join(
             "\n",
-            new FedTargetEmitter().generateTarget(context, numOfFederates, federate, fileConfig, errorReporter, federationRTIProperties),
+            new FedTargetEmitter().generateTarget(context, numOfFederates, federate, fileConfig, errorReporter, rtiConfig),
             new FedImportEmitter().generateImports(federate, fileConfig),
-            new FedPreambleEmitter().generatePreamble(federate, fileConfig, federationRTIProperties, errorReporter),
+            new FedPreambleEmitter().generatePreamble(federate, fileConfig, rtiConfig, errorReporter),
             new FedReactorEmitter().generateReactorDefinitions(federate),
             new FedMainEmitter().generateMainReactor(
                 federate,

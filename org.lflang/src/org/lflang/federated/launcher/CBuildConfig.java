@@ -26,10 +26,8 @@
 package org.lflang.federated.launcher;
 
 import java.io.File;
-import java.io.IOException;
 
 import org.lflang.ErrorReporter;
-import org.lflang.TargetConfig;
 import org.lflang.federated.generator.FedFileConfig;
 import org.lflang.federated.generator.FederateInstance;
 import org.lflang.generator.c.CCompiler;
@@ -39,43 +37,25 @@ import org.lflang.generator.c.CCompiler;
  * that are written in C.
  *
  * @author Soroush Bateni
+ * @author Marten Lohstroh
  */
-public class FedCLauncher extends FedLauncher {
+public class CBuildConfig extends BuildConfig {
 
-    /**
-     * Create an instance of FedCLauncher.
-     *
-     * @param targetConfig The current target configuration.
-     * @param fileConfig The current file configuration.
-     * @param errorReporter A error reporter for reporting any errors or warnings during the code generation
-     */
-    public FedCLauncher(
-        TargetConfig targetConfig,
-        FedFileConfig fileConfig,
-        ErrorReporter errorReporter
-    ) {
-        super(targetConfig, fileConfig, errorReporter);
+    public CBuildConfig(FederateInstance federate, FedFileConfig fileConfig, ErrorReporter errorReporter) {
+        super(federate, fileConfig, errorReporter);
     }
 
-    /**
-     * Return the compile command for a federate.
-     *
-     * @param federate The federate to compile.
-     * @throws IOException
-     */
     @Override
-    protected
-    String compileCommandForFederate(FederateInstance federate) {
-        TargetConfig localTargetConfig = targetConfig;
+    public String compileCommand() {
 
         String commandToReturn = "";
         // FIXME: Hack to add platform support only for linux systems.
         // We need to fix the CMake build command for remote federates.
         String linuxPlatformSupport = "core" + File.separator + "platform" + File.separator + "lf_linux_support.c";
-        if (!localTargetConfig.compileAdditionalSources.contains(linuxPlatformSupport)) {
-            localTargetConfig.compileAdditionalSources.add(linuxPlatformSupport);
+        if (!federate.targetConfig.compileAdditionalSources.contains(linuxPlatformSupport)) {
+            federate.targetConfig.compileAdditionalSources.add(linuxPlatformSupport);
         }
-        CCompiler cCompiler= new CCompiler(localTargetConfig, fileConfig, errorReporter, false);
+        CCompiler cCompiler= new CCompiler(federate.targetConfig, fileConfig, errorReporter, false);
         commandToReturn = String.join(" ",
                 cCompiler.compileCCommand(
                         fileConfig.name+"_"+federate.name,
@@ -84,28 +64,13 @@ public class FedCLauncher extends FedLauncher {
         return commandToReturn;
     }
 
-    /**
-     * Return the command that will execute a remote federate, assuming that the current
-     * directory is the top-level project folder. This is used to create a launcher script
-     * for federates.
-     *
-     * @param federate The federate to execute.
-     */
     @Override
-    protected
-    String executeCommandForRemoteFederate(FederateInstance federate) {
+    public String remoteExecuteCommand() {
         return "bin/"+fileConfig.name+"_"+federate.name+" -i '$FEDERATION_ID'";
     }
 
-    /**
-     * Return the command that will execute a local federate.
-     * This is used to create a launcher script for federates.
-     *
-     * @param federate The federate to execute.
-     */
     @Override
-    protected
-    String executeCommandForLocalFederate(FedFileConfig fileConfig, FederateInstance federate) {
-        return fileConfig.getGenPath().resolve("bin/"+federate.name)+" -i $FEDERATION_ID";
+    public String localExecuteCommand() {
+        return fileConfig.getFedBinPath().resolve(federate.name)+" -i $FEDERATION_ID";
     }
 }
