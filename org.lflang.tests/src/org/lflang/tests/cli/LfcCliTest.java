@@ -32,6 +32,8 @@ import static org.lflang.tests.TestUtils.TempDirChecker.dirChecker;
 import static org.lflang.tests.TestUtils.isDirectory;
 import static org.lflang.tests.TestUtils.isRegularFile;
 
+import com.google.inject.Injector;
+
 import java.io.IOException;
 import java.lang.reflect.Method;
 import java.nio.file.Path;
@@ -103,11 +105,10 @@ public class LfcCliTest {
                     .check("bin", isDirectory())
                     .check("src-gen/File/File.py", isRegularFile());
             });
-
     }
 
     @Test
-    public void testTargetProperties(@TempDir Path tempDir)
+    public void testBuildParams(@TempDir Path tempDir)
             throws IOException {
         dirBuilder(tempDir).file("src/File.lf", LF_PYTHON_FILE);
 
@@ -133,7 +134,7 @@ public class LfcCliTest {
 
         fixture.run(tempDir, args)
             .verify(result -> {
-                result.checkOk();
+                // Don't validate execution because args are dummy args.
                 Properties properties = fixture.lfc.cliArgsToBuildParams();
                 assertEquals(properties.getProperty(BuildParm.BUILD_TYPE.getKey()), "Release");
                 assertEquals(properties.getProperty(BuildParm.CLEAN.getKey()), "true");
@@ -160,12 +161,15 @@ public class LfcCliTest {
 
     static class LfcOneShotTestFixture extends CliToolTestFixture {
 
-        private final Lfc lfc = new Lfc();
+        private Lfc lfc;
 
         @Override
         protected void runCliProgram(Io io, String[] args) {
+            // Injector used to obtain Main instance.
+            final Injector injector = Lfc.getInjector("lfc", io);
+            // Main instance.
+            this.lfc = injector.getInstance(Lfc.class);
             lfc.doExecute(io, args);
         }
     }
-
 }

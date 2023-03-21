@@ -115,7 +115,7 @@ public abstract class CliBase implements Runnable {
      */ 
     public abstract void run();
 
-    protected static Injector getInjector(String toolName, Io io) {
+    public static Injector getInjector(String toolName, Io io) {
         final ReportingBackend reporter 
             = new ReportingBackend(io, toolName + ": ");
 
