@@ -34,7 +34,7 @@ runs:
       id: post-run-command
       with:
         run: find . -name ".lock" | xargs rm
-        working-directory: C\:\Users\runneradmin\.gradle\caches
+        working-directory: C\:/Users/runneradmin/.gradle/caches
       if: ${{ runner.os == 'Windows' }}
     - name: Cache
       uses: actions/cache@v3
