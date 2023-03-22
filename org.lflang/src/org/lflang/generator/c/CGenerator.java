@@ -925,6 +925,16 @@ public class CGenerator extends GeneratorBase {
     private void generateReactorDefinitions() throws IOException {
         var generatedReactors = new LinkedHashSet<Reactor>();
         if (this.main != null) {
+            for (var r : this.main.children)
+            {
+                var def = r.getDefinition();
+                for (int i = 0; i < def.getTypeArgs().size(); ++i)
+                {
+                    var literal = r.reactorDefinition.getTypeParms().get(i).getLiteral();
+                    var type = r.getDefinition().getTypeArgs().get(i).getId();
+                    r.genericTypesMap.put(literal, type);
+                }
+            }
             generateReactorChildren(this.main, generatedReactors);
         }
 
@@ -1040,6 +1050,8 @@ public class CGenerator extends GeneratorBase {
      */
     private void generateReactorClass(Reactor reactor) throws IOException {
         // FIXME: Currently we're not reusing definitions for declarations that point to the same definition.
+        // TODO: add type_names to header_name and source_name
+        // TODO: add Generic Definitions to source files
         CodeBuilder header = new CodeBuilder();
         CodeBuilder src = new CodeBuilder();
         final String headerName = CUtil.getName(reactor) + ".h";

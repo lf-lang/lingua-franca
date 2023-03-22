@@ -71,6 +71,8 @@ public abstract class NamedInstance<T extends EObject> {
         
     /** A limit on the number of characters returned by uniqueID. */
     public static int identifierLengthLimit = 40;
+
+    public HashMap<String, String> genericTypesMap = new HashMap<>();
     
     //////////////////////////////////////////////////////
     //// Public methods.
