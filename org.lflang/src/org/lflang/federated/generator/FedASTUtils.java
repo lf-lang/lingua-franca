@@ -208,7 +208,7 @@ public class FedASTUtils {
             Type action_type = factory.createType();
             action_type.setId(
                 FedTargetExtensionFactory.getExtension(
-                    connection.srcFederate.target
+                    connection.srcFederate.targetConfig.target
                                    ).getNetworkBufferType()
             );
             action.setType(action_type);
@@ -264,7 +264,7 @@ public class FedASTUtils {
         setReactionBankIndex(networkReceiverReaction, connection.getDstBank());
 
         // FIXME: do not create a new extension every time it is used
-        FedTargetExtensionFactory.getExtension(connection.srcFederate.target)
+        FedTargetExtensionFactory.getExtension(connection.srcFederate.targetConfig.target)
                                  .annotateReaction(networkReceiverReaction);
 
         // The connection is 'physical' if it uses the ~> notation.
@@ -298,7 +298,7 @@ public class FedASTUtils {
         networkReceiverReaction.setCode(factory.createCode());
         networkReceiverReaction.getCode().setBody(
             FedTargetExtensionFactory.getExtension(
-                connection.dstFederate.target).generateNetworkReceiverBody(
+                connection.dstFederate.targetConfig.target).generateNetworkReceiverBody(
                     networkAction,
                     sourceRef,
                     destRef,
@@ -357,7 +357,7 @@ public class FedASTUtils {
         setReactionBankIndex(reaction, connection.getDstBank());
 
         // FIXME: do not create a new extension every time it is used
-        FedTargetExtensionFactory.getExtension(connection.srcFederate.target)
+        FedTargetExtensionFactory.getExtension(connection.srcFederate.targetConfig.target)
                                  .annotateReaction(reaction);
 
         // Create a new action that will be used to trigger the
@@ -397,7 +397,7 @@ public class FedASTUtils {
         reaction.getCode()
                 .setBody(
                     FedTargetExtensionFactory
-                        .getExtension(connection.dstFederate.target)
+                        .getExtension(connection.dstFederate.targetConfig.target)
                         .generateNetworkInputControlReactionBody(
                             receivingPortID,
                             maxSTP,
@@ -721,7 +721,7 @@ public class FedASTUtils {
         Reaction networkSenderReaction = factory.createReaction();
 
         // FIXME: do not create a new extension every time it is used
-        FedTargetExtensionFactory.getExtension(connection.srcFederate.target)
+        FedTargetExtensionFactory.getExtension(connection.srcFederate.targetConfig.target)
                                  .annotateReaction(networkSenderReaction);
 
         // If the sender or receiver is in a bank of reactors, then we want
@@ -750,7 +750,7 @@ public class FedASTUtils {
         networkSenderReaction.getTriggers().add(sourceRef);
         networkSenderReaction.setCode(factory.createCode());
         networkSenderReaction.getCode().setBody(
-            FedTargetExtensionFactory.getExtension(connection.srcFederate.target)
+            FedTargetExtensionFactory.getExtension(connection.srcFederate.targetConfig.target)
                                      .generateNetworkSenderBody(
                                    sourceRef,
                                    destRef,
@@ -797,7 +797,7 @@ public class FedASTUtils {
         setReactionBankIndex(reaction, connection.getSrcBank());
 
         // FIXME: do not create a new extension every time it is used
-        FedTargetExtensionFactory.getExtension(connection.srcFederate.target)
+        FedTargetExtensionFactory.getExtension(connection.srcFederate.targetConfig.target)
                                  .annotateReaction(reaction);
 
         // We use an action at the top-level to manually
@@ -845,7 +845,7 @@ public class FedASTUtils {
         reaction.setCode(factory.createCode());
 
         reaction.getCode().setBody(
-            FedTargetExtensionFactory.getExtension(connection.srcFederate.target)
+            FedTargetExtensionFactory.getExtension(connection.srcFederate.targetConfig.target)
                                      .generateNetworkOutputControlReactionBody(newPortRef, connection));
 
         ASTUtils.addReactionAttribute(reaction, "_unordered");

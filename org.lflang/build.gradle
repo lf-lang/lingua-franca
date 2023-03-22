@@ -3,9 +3,9 @@ import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
 repositories {
     mavenCentral()
     // TODO Replace this unofficial maven repository as soon as Klighd is released to maven central in the future.
-    //maven {
-    //    url "https://rtsys.informatik.uni-kiel.de/~kieler/files/repo/"
-    //}
+    maven {
+        url "https://rtsys.informatik.uni-kiel.de/~kieler/files/repo/"
+    }
 }
 dependencies {
     implementation "org.eclipse.xtext:org.eclipse.xtext:${xtextVersion}"
@@ -20,14 +20,14 @@ dependencies {
     implementation group: 'com.fasterxml.jackson.core', name: 'jackson-core', version: '2.12.4'
     implementation group: 'com.fasterxml.jackson.core', name: 'jackson-annotations', version: '2.12.4'
     implementation group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: '2.12.4'
-    //implementation ("de.cau.cs.kieler.klighd:de.cau.cs.kieler.klighd.lsp:${klighdVersion}") {
-    //    exclude group: 'org.eclipse.platform', module: 'org.eclipse.swt.*'
-    //    exclude group: 'org.eclipse.platform', module: 'org.eclipse.swt'
-    //}
-    //implementation ("de.cau.cs.kieler.klighd:de.cau.cs.kieler.klighd.standalone:${klighdVersion}") {
-    //    exclude group: 'org.eclipse.platform', module: 'org.eclipse.swt.*'
-    //    exclude group: 'org.eclipse.platform', module: 'org.eclipse.swt'
-    //}
+    implementation ("de.cau.cs.kieler.klighd:de.cau.cs.kieler.klighd.lsp:${klighdVersion}") {
+        exclude group: 'org.eclipse.platform', module: 'org.eclipse.swt.*'
+        exclude group: 'org.eclipse.platform', module: 'org.eclipse.swt'
+    }
+    implementation ("de.cau.cs.kieler.klighd:de.cau.cs.kieler.klighd.standalone:${klighdVersion}") {
+        exclude group: 'org.eclipse.platform', module: 'org.eclipse.swt.*'
+        exclude group: 'org.eclipse.platform', module: 'org.eclipse.swt'
+    }
 }
 
 configurations {

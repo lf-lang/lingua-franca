@@ -41,7 +41,7 @@ public class FedMainEmitter {
                 "Modes at the top level are not supported under federated execution."
             );
         }
-        var renderer = FormattingUtils.renderer(federate.target);
+        var renderer = FormattingUtils.renderer(federate.targetConfig.target);
 
         return String
             .join(
