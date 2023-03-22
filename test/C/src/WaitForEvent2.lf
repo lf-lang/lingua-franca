@@ -1,0 +1,38 @@
+/**
+ * Test of lf_wait_for_event where no event occurs.
+ * This relies on parallel scheduling of the reactions of A and B.
+ */
+target C {
+    timeout: 1s
+}
+reactor A {
+    input in:int
+    logical action a
+    reaction(in) -> a {=
+        // Delay to ensure that lf_wait_for_event does not get called prematurely.
+        lf_sleep(MSEC(250));
+        // Do not call schedule so that no notification occurs.
+        // lf_schedule(a, 0);
+    =}
+}
+reactor B {
+    input in:int
+    reaction(in) {=
+        lf_critical_section_enter();
+        int result = lf_wait_for_event(MSEC(500));
+        lf_critical_section_exit();
+        if (result == 0) {
+            lf_print_error_and_exit("Notification detected when there was none.");
+        }
+        lf_print("Timeout succeeded.");
+    =}
+}
+main reactor {
+    timer t(0)
+    a = new A()
+    b = new B()
+    reaction(t) -> a.in, b.in {=
+        lf_set(a.in, 42);
+        lf_set(b.in, 42);
+    =}
+}
