@@ -31,7 +31,7 @@ import org.lflang.lf.StateVar;
 /** 
  * Representation of a compile-time instance of a state variable.
  *  
- * @author{Shaokai Lin <shaokai@berkeley.edu>}
+ * 
  */
 public class StateVariableInstance extends NamedInstance<StateVar> {
 

@@ -2,7 +2,7 @@
  * An event queue implementation that
  * sorts events by time tag order
  *
- * @author{Shaokai Lin <shaokai@berkeley.edu>}
+ * 
  */
 package org.lflang.analyses.statespace;
 

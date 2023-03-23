@@ -2,7 +2,7 @@
  * A node in the state space diagram representing a step
  * in the execution of an LF program.
  * 
- * @author{Shaokai Lin <shaokai@berkeley.edu>}
+ * 
  */
 package org.lflang.analyses.statespace;
 

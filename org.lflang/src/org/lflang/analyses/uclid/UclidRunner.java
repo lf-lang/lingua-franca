@@ -1,7 +1,7 @@
 /** 
  * (EXPERIMENTAL) Runner for Uclid5 models.
  * 
- * @author{Shaokai Lin <shaokai@berkeley.edu>}
+ * 
  */
 package org.lflang.analyses.uclid;
 

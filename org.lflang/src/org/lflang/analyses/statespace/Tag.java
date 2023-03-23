@@ -3,7 +3,7 @@
  * which is a pair that consists of a
  * timestamp (type long) and a microstep (type long).
  * 
- * @author{Shaokai Lin <shaokai@berkeley.edu>}
+ * 
  */
 package org.lflang.analyses.statespace;
 

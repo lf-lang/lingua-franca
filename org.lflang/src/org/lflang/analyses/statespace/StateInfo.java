@@ -2,7 +2,7 @@
  * A class that represents information in a step
  * in a counterexample trace
  * 
- * @author{Shaokai Lin <shaokai@berkeley.edu>}
+ * 
  */
 package org.lflang.analyses.statespace;
 
