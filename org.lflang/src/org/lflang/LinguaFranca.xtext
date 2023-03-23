@@ -78,6 +78,7 @@ Reactor:
     ('<' typeParms+=TypeParm (',' typeParms+=TypeParm)* '>')?
     ('(' parameters+=Parameter (',' parameters+=Parameter)* ')')?
     ('at' host=Host)?
+    (Generic?='Generic')?
     ('extends' (superClasses+=[ReactorDecl] (',' superClasses+=[ReactorDecl])*))?
     '{'
     (     (preambles+=Preamble)
@@ -91,8 +92,12 @@ Reactor:
         | (connections+=Connection)
         | (reactions+=Reaction)
         | (modes+=Mode)
+        | (genericTypesList+=GenericTypeElement)
     )* '}';
 
+GenericTypeElement:
+    literal=STRING  ':' type=STRING
+;
 
 TypeParm:
     literal=TypeExpr | code=Code

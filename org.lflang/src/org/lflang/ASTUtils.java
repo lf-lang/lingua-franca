@@ -67,6 +67,7 @@ import org.lflang.lf.Code;
 import org.lflang.lf.Connection;
 import org.lflang.lf.Element;
 import org.lflang.lf.Expression;
+import org.lflang.lf.GenericTypeElement;
 import org.lflang.lf.ImportedReactor;
 import org.lflang.lf.Initializer;
 import org.lflang.lf.Input;
@@ -272,6 +273,20 @@ public class ASTUtils {
         newProperty.setValue(value);
         config.getPairs().add(newProperty);
         return true;
+    }
+
+    public static void addGenericTypeElementsToReactorDefinition(Reactor reactor, final String literal, final String type)
+    {
+        var typePair = LfFactory.eINSTANCE.createGenericTypeElement();
+        typePair.setLiteral(literal);
+        typePair.setType(type);
+
+        reactor.getGenericTypesList().add(typePair);
+        reactor.setGeneric(true);
+    }
+
+    public static List<GenericTypeElement> allGenericTypes(Reactor definition) {
+        return ASTUtils.collectElements(definition, featurePackage.getReactor_GenericTypesList());
     }
 
     /**

@@ -24,7 +24,9 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 package org.lflang.generator.c;
 
+import static org.lflang.ASTUtils.addGenericTypeElementsToReactorDefinition;
 import static org.lflang.ASTUtils.allActions;
+import static org.lflang.ASTUtils.allGenericTypes;
 import static org.lflang.ASTUtils.allPorts;
 import static org.lflang.ASTUtils.allReactions;
 import static org.lflang.ASTUtils.allStateVars;
@@ -88,6 +90,8 @@ import org.lflang.lf.ActionOrigin;
 import org.lflang.lf.Code;
 import org.lflang.lf.Input;
 import org.lflang.lf.Instantiation;
+import org.lflang.lf.KeyValuePair;
+import org.lflang.lf.KeyValuePairs;
 import org.lflang.lf.Mode;
 import org.lflang.lf.Model;
 import org.lflang.lf.Port;
@@ -97,6 +101,9 @@ import org.lflang.lf.Reactor;
 import org.lflang.lf.ReactorDecl;
 import org.lflang.lf.StateVar;
 import org.lflang.lf.Variable;
+import org.lflang.lf.impl.KeyValuePairImpl;
+import org.lflang.lf.impl.KeyValuePairsImpl;
+import org.lflang.services.LFGrammarAccess.KeyValuePairElements;
 import org.lflang.util.ArduinoUtil;
 import org.lflang.util.FileUtil;
 
@@ -930,9 +937,7 @@ public class CGenerator extends GeneratorBase {
                 var def = r.getDefinition();
                 for (int i = 0; i < def.getTypeArgs().size(); ++i)
                 {
-                    var literal = r.reactorDefinition.getTypeParms().get(i).getLiteral();
-                    var type = r.getDefinition().getTypeArgs().get(i).getId();
-                    r.genericTypesMap.put(literal, type);
+                    addGenericTypeElementsToReactorDefinition(r.reactorDefinition, r.reactorDefinition.getTypeParms().get(i).getLiteral(), def.getTypeArgs().get(i).getId());
                 }
             }
             generateReactorChildren(this.main, generatedReactors);
@@ -989,7 +994,7 @@ public class CGenerator extends GeneratorBase {
     ) throws IOException {
         for (ReactorInstance r : reactor.children) {
             if (r.reactorDeclaration != null &&
-                  !generatedReactors.contains(r.reactorDefinition)) {
+                  (!generatedReactors.contains(r.reactorDefinition) || r.reactorDefinition.isGeneric())) {
                 generatedReactors.add(r.reactorDefinition);
                 generateReactorChildren(r, generatedReactors);
                 inspectReactorEResource(r.reactorDeclaration);
@@ -1054,7 +1059,15 @@ public class CGenerator extends GeneratorBase {
         // TODO: add Generic Definitions to source files
         CodeBuilder header = new CodeBuilder();
         CodeBuilder src = new CodeBuilder();
-        final String headerName = CUtil.getName(reactor) + ".h";
+        StringBuilder headerNameBase = new StringBuilder();
+        headerNameBase.append(CUtil.getName(reactor));
+
+        for (var genericTypePair :
+            allGenericTypes(reactor)) {
+            headerNameBase.append("_").append(genericTypePair.getType());
+        }
+
+        final String headerName = headerNameBase.append(".h").toString();
         var guardMacro = headerName.toUpperCase().replace(".", "_");
         header.pr("#ifndef " + guardMacro);
         header.pr("#define " + guardMacro);
@@ -1118,6 +1131,12 @@ public class CGenerator extends GeneratorBase {
      * @param reactor The given reactor
      */
     protected void generateUserPreamblesForReactor(Reactor reactor, CodeBuilder src) {
+        src.pr("// *********** Create Definitions for Generic Types");
+        for (var genericTypePair:
+        allGenericTypes(reactor)) {
+            src.pr("#define " + genericTypePair.getLiteral() + " " + genericTypePair.getType());
+        }
+        src.pr("\n// *********** End of Generic Definitions.");
         for (Preamble p : convertToEmptyListIfNull(reactor.getPreambles())) {
             src.pr("// *********** From the preamble, verbatim:");
             src.prSourceLineNumber(p.getCode());
