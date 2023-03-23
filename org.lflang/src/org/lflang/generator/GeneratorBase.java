@@ -175,7 +175,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
     /**
      * A list ot AST transformations to apply before code generation
      */
-    private List<AstTransformation> astTransformations = new ArrayList();
+    private final List<AstTransformation> astTransformations = new ArrayList<>();
 
     /**
      * Create a new GeneratorBase object.
@@ -263,7 +263,6 @@ public abstract class GeneratorBase extends AbstractLFValidator {
         // to validate, which happens in setResources().
         setReactorsAndInstantiationGraph(context.getMode());
 
-        GeneratorUtils.validate(context, context.getFileConfig(), instantiationGraph, errorReporter);
         List<Resource> allResources = GeneratorUtils.getResources(reactors);
         resources.addAll(allResources.stream()  // FIXME: This filter reproduces the behavior of the method it replaces. But why must it be so complicated? Why are we worried about weird corner cases like this?
             .filter(it -> !Objects.equal(it, context.getFileConfig().resource) || mainDef != null && it == mainDef.getReactorClass().eResource())

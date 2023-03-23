@@ -30,6 +30,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Properties;
 import java.util.Set;
 
 import org.lflang.TargetProperty.BuildType;
@@ -38,7 +39,9 @@ import org.lflang.TargetProperty.CoordinationType;
 import org.lflang.TargetProperty.LogLevel;
 import org.lflang.TargetProperty.Platform;
 import org.lflang.TargetProperty.SchedulerOption;
+import org.lflang.TargetProperty.UnionType;
 import org.lflang.generator.rust.RustTargetConfig;
+import org.lflang.lf.KeyValuePair;
 import org.lflang.lf.TargetDecl;
 
 /**
@@ -50,10 +53,90 @@ import org.lflang.lf.TargetDecl;
  */
 public class TargetConfig {
 
+    /**
+     * The target of this configuration (e.g., C, TypeScript, Python).
+     */
     public final Target target;
 
-    public TargetConfig(TargetDecl target) {
+    /**
+     * Create a new target configuration based on the given target declaration AST node only.
+     * @param target AST node of a target declaration.
+     */
+    public TargetConfig(TargetDecl target) { // FIXME: eliminate this constructor if we can
         this.target = Target.fromDecl(target);
+    }
+
+    /**
+     * Create a new target configuration based on the given commandline arguments and target
+     * declaration AST node.
+     * @param cliArgs Arguments passed on the commandline.
+     * @param target AST node of a target declaration.
+     * @param errorReporter An error reporter to report problems.
+     */
+    public TargetConfig(
+        Properties cliArgs,
+        TargetDecl target,
+        ErrorReporter errorReporter
+    ) {
+        this(target);
+        if (target.getConfig() != null) {
+            List<KeyValuePair> pairs = target.getConfig().getPairs();
+            TargetProperty.set(this, pairs != null ? pairs : List.of(), errorReporter);
+        }
+        if (cliArgs.containsKey("no-compile")) {
+            this.noCompile = true;
+        }
+        if (cliArgs.containsKey("docker")) {
+            var arg = cliArgs.getProperty("docker");
+            if (Boolean.parseBoolean(arg)) {
+                this.dockerOptions = new DockerOptions();
+            } else {
+                this.dockerOptions = null;
+            }
+            // FIXME: this is pretty ad-hoc and does not account for more complex overrides yet.
+        }
+        if (cliArgs.containsKey("build-type")) {
+            this.cmakeBuildType = (BuildType) UnionType.BUILD_TYPE_UNION.forName(cliArgs.getProperty("build-type"));
+        }
+        if (cliArgs.containsKey("logging")) {
+            this.logLevel = LogLevel.valueOf(cliArgs.getProperty("logging").toUpperCase());
+        }
+        if (cliArgs.containsKey("workers")) {
+            this.workers = Integer.parseInt(cliArgs.getProperty("workers"));
+        }
+        if (cliArgs.containsKey("threading")) {
+            this.threading = Boolean.parseBoolean(cliArgs.getProperty("threading"));
+        }
+        if (cliArgs.containsKey("target-compiler")) {
+            this.compiler = cliArgs.getProperty("target-compiler");
+        }
+        if (cliArgs.containsKey("tracing")) {
+            this.tracing = new TracingOptions();
+        }
+        if (cliArgs.containsKey("scheduler")) {
+            this.schedulerType = SchedulerOption.valueOf(
+                cliArgs.getProperty("scheduler")
+            );
+            this.setByUser.add(TargetProperty.SCHEDULER);
+        }
+        if (cliArgs.containsKey("target-flags")) {
+            this.compilerFlags.clear();
+            if (!cliArgs.getProperty("target-flags").isEmpty()) {
+                this.compilerFlags.addAll(List.of(
+                    cliArgs.getProperty("target-flags").split(" ")
+                ));
+            }
+        }
+        if (cliArgs.containsKey("runtime-version")) {
+            this.runtimeVersion = cliArgs.getProperty("runtime-version");
+        }
+        if (cliArgs.containsKey("external-runtime-path")) {
+            this.externalRuntimePath = cliArgs.getProperty("external-runtime-path");
+        }
+        if (cliArgs.containsKey(TargetProperty.KEEPALIVE.description)) {
+            this.keepalive = Boolean.parseBoolean(
+                cliArgs.getProperty(TargetProperty.KEEPALIVE.description));
+        }
     }
 
     /**
@@ -203,9 +286,6 @@ public class TargetConfig {
      * 
      * This is now a wrapped class to account for overloaded definitions 
      * of defining platform (either a string or dictionary of values)
-     *
-     * @author Samuel Berkun
-     * @author Anirudh Rengarajan
      */
     public PlatformOptions platformOptions = new PlatformOptions();
 
@@ -299,7 +379,7 @@ public class TargetConfig {
         public int attenuation = 10;
 
         /**
-         * Whether or not to collect statistics while performing clock synchronization.
+         * Whether to collect statistics while performing clock synchronization.
          * This setting is only considered when clock synchronization has been activated.
          * The default is true.
          */

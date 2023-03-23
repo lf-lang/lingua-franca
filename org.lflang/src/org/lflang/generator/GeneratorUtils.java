@@ -1,50 +1,30 @@
 package org.lflang.generator;
 
-import java.io.IOException;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
-import java.util.Properties;
 
 import org.eclipse.core.resources.IResource;
 import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.emf.common.util.URI;
-import org.eclipse.emf.ecore.EObject;
 import org.eclipse.emf.ecore.resource.Resource;
-import org.eclipse.xtext.generator.IGeneratorContext;
-import org.eclipse.xtext.resource.XtextResource;
-import org.eclipse.xtext.validation.CheckMode;
-import org.eclipse.xtext.validation.IResourceValidator;
-import org.eclipse.xtext.validation.Issue;
+import org.eclipse.xtext.xbase.lib.IteratorExtensions;
 
 import org.lflang.ASTUtils;
 import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
-import org.lflang.Target;
 import org.lflang.TargetConfig;
-import org.lflang.TargetConfig.DockerOptions;
-import org.lflang.TargetProperty.BuildType;
-import org.lflang.TargetProperty.LogLevel;
-import org.lflang.TargetProperty.UnionType;
 import org.lflang.generator.LFGeneratorContext.Mode;
 import org.lflang.TargetProperty;
-import org.lflang.TargetProperty.SchedulerOption;
-import org.lflang.graph.InstantiationGraph;
 import org.lflang.lf.Action;
 import org.lflang.lf.ActionOrigin;
-import org.lflang.lf.Import;
 import org.lflang.lf.Instantiation;
 import org.lflang.lf.KeyValuePair;
 import org.lflang.lf.KeyValuePairs;
-import org.lflang.lf.Model;
-import org.lflang.lf.Reaction;
 import org.lflang.lf.Reactor;
 import org.lflang.lf.TargetDecl;
-import org.lflang.util.FileUtil;
 
 /**
  * A helper class with functions that may be useful for code
@@ -63,82 +43,8 @@ public class GeneratorUtils {
     /**
      * Return the target declaration found in the given resource.
      */
-    public static TargetDecl findTarget(Resource resource) {
+    public static TargetDecl findTargetDecl(Resource resource) {
         return findAll(resource, TargetDecl.class).iterator().next();
-    }
-
-    /**
-     * Set the appropriate target properties based on the target properties of
-     * the main .lf file and the given command-line arguments, if applicable.
-     * @param args The commandline arguments to process.
-     * @param target The target properties AST node.
-     * @param errorReporter The error reporter to which errors should be sent.
-     */
-    public static TargetConfig getTargetConfig(
-        Properties args,
-        TargetDecl target,
-        ErrorReporter errorReporter
-    ) {
-        final TargetConfig targetConfig = new TargetConfig(target); // FIXME: why not just do all of this in the constructor?
-        if (target.getConfig() != null) {
-            List<KeyValuePair> pairs = target.getConfig().getPairs();
-            TargetProperty.set(targetConfig, pairs != null ? pairs : List.of(), errorReporter);
-        }
-        if (args.containsKey("no-compile")) {
-            targetConfig.noCompile = true;
-        }
-        if (args.containsKey("no-verify")) {
-            targetConfig.noVerify = true;
-        }
-        if (args.containsKey("docker")) {
-            var arg = args.getProperty("docker");
-            if (Boolean.parseBoolean(arg)) {
-                targetConfig.dockerOptions = new DockerOptions();
-            } else {
-                targetConfig.dockerOptions = null;
-            }
-            // FIXME: this is pretty ad-hoc and does not account for more complex overrides yet.
-        }
-        if (args.containsKey("build-type")) {
-            targetConfig.cmakeBuildType = (BuildType) UnionType.BUILD_TYPE_UNION.forName(args.getProperty("build-type"));
-        }
-        if (args.containsKey("logging")) {
-            targetConfig.logLevel = LogLevel.valueOf(args.getProperty("logging").toUpperCase());
-        }
-        if (args.containsKey("workers")) {
-            targetConfig.workers = Integer.parseInt(args.getProperty("workers"));
-        }
-        if (args.containsKey("threading")) {
-            targetConfig.threading = Boolean.parseBoolean(args.getProperty("threading"));
-        }
-        if (args.containsKey("target-compiler")) {
-            targetConfig.compiler = args.getProperty("target-compiler");
-        }
-        if (args.containsKey("scheduler")) {
-            targetConfig.schedulerType = SchedulerOption.valueOf(
-                args.getProperty("scheduler")
-            );
-            targetConfig.setByUser.add(TargetProperty.SCHEDULER);
-        }
-        if (args.containsKey("target-flags")) {
-            targetConfig.compilerFlags.clear();
-            if (!args.getProperty("target-flags").isEmpty()) {
-                targetConfig.compilerFlags.addAll(List.of(
-                    args.getProperty("target-flags").split(" ")
-                ));
-            }
-        }
-        if (args.containsKey("runtime-version")) {
-            targetConfig.runtimeVersion = args.getProperty("runtime-version");
-        }
-        if (args.containsKey("external-runtime-path")) {
-            targetConfig.externalRuntimePath = args.getProperty("external-runtime-path");
-        }
-        if (args.containsKey(TargetProperty.KEEPALIVE.description)) {
-            targetConfig.keepalive = Boolean.parseBoolean(
-                args.getProperty(TargetProperty.KEEPALIVE.description));
-        }
-        return targetConfig;
     }
 
     /**
@@ -159,9 +65,9 @@ public class GeneratorUtils {
         }
         for (Resource resource : resources) {
             for (Action action : findAll(resource, Action.class)) {
-                if (action.getOrigin() == ActionOrigin.PHYSICAL && 
+                if (action.getOrigin() == ActionOrigin.PHYSICAL &&
                     // Check if the user has explicitly set keepalive to false
-                    !targetConfig.setByUser.contains(TargetProperty.KEEPALIVE) && 
+                    !targetConfig.setByUser.contains(TargetProperty.KEEPALIVE) &&
                     !targetConfig.keepalive
                 ) {
                     // If not, set it to true
@@ -191,94 +97,7 @@ public class GeneratorUtils {
      * {@code resource}
      */
     public static <T> Iterable<T> findAll(Resource resource, Class<T> nodeType) {
-        Iterator<EObject> contents = resource.getAllContents();
-        assert contents != null : "Although getAllContents is not marked as NotNull, it should be.";
-        EObject temp = null;
-        while (!nodeType.isInstance(temp) && contents.hasNext()) temp = contents.next();
-        EObject next_ = temp;
-        return () -> new Iterator<>() {
-            EObject next = next_;
-
-            @Override
-            public boolean hasNext() {
-                return nodeType.isInstance(next);
-            }
-
-            @Override
-            public T next() {
-                // This cast is safe if hasNext() holds.
-                assert hasNext() : "next() was called on an Iterator when hasNext() was false.";
-                //noinspection unchecked
-                T current = (T) next;
-                next = null;
-                while (!nodeType.isInstance(next) && contents.hasNext()) next = contents.next();
-                return current;
-            }
-        };
-    }
-
-    /**
-     * Validate the files containing reactors in the given
-     * {@code instantiationGraph}. If a file is imported by
-     * another file in the instantiation graph, propagate the
-     * resulting errors to the importing file.
-     * @param context The context providing the cancel
-     *                indicator used by the validator.
-     * @param fileConfig The file system configuration.
-     * @param instantiationGraph A DAG containing all
-     *                           reactors of interest.
-     * @param errorReporter An error acceptor.
-     */
-    public static void validate(
-        IGeneratorContext context,
-        FileConfig fileConfig,
-        InstantiationGraph instantiationGraph,
-        ErrorReporter errorReporter
-    ) {
-        // NOTE: This method was previously misnamed validateImports.
-        // It validates all files, including the main file that does the importing.
-        // Also, it is now the only invocation of validation during code generation,
-        // and yet it used to only report errors in the files doing the importing.
-        IResourceValidator validator = ((XtextResource) fileConfig.resource).getResourceServiceProvider()
-                                                                            .getResourceValidator();
-        HashSet<Resource> bad = new HashSet<>();
-        HashSet<Resource> visited = new HashSet<>();
-        // The graph must be traversed in topological order so that errors will propagate through arbitrarily many
-        // levels.
-        for (Reactor reactor : instantiationGraph.nodesInTopologicalOrder()) {
-            Resource resource = reactor.eResource();
-            if (visited.contains(resource)) continue;
-            visited.add(resource);
-            List<Issue> issues = validator.validate(resource, CheckMode.ALL, context.getCancelIndicator());
-            if (
-                bad.contains(resource) || issues.size() > 0
-            ) {
-                // Report the error on this resource.
-                Path path = null;
-                try {
-                    path = FileUtil.toPath(resource);
-                } catch (IOException e) {
-                    path = Paths.get("Unknown file"); // Not sure if this is what we want.
-                }
-                for (Issue issue : issues) {
-                    errorReporter.reportError(path, issue.getLineNumber(), issue.getMessage());
-                }
-                
-                // Report errors on resources that import this one.
-                for (Reactor downstreamReactor : instantiationGraph.getDownstreamAdjacentNodes(reactor)) {
-                    for (Import importStatement : ((Model) downstreamReactor.eContainer()).getImports()) {
-                        // FIXME: This will report the error on ALL import statements in
-                        // file doing the importing, not just the one importing this resource.
-                        // I have no idea how to determine which import statement is the right one.
-                        errorReporter.reportError(importStatement, String.format(
-                            "Unresolved compilation issues in '%s': "
-                                + issues.toString(), importStatement.getImportURI()
-                        ));
-                        bad.add(downstreamReactor.eResource());
-                    }
-                }
-            }
-        }
+        return () -> IteratorExtensions.filter(resource.getAllContents(), nodeType);
     }
 
     /**

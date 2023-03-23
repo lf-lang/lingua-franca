@@ -984,7 +984,7 @@ public enum TargetProperty {
      * @param config     The configuration object to update.
      * @param properties AST node that holds all the target properties.
      */
-    public static void update(TargetConfig config, List<KeyValuePair> properties,ErrorReporter err) {
+    public static void update(TargetConfig config, List<KeyValuePair> properties, ErrorReporter err) {
         properties.forEach(property ->  {
             TargetProperty p = forName(property.getName());
             if (p != null) {
