@@ -196,7 +196,7 @@ public class LFGenerator extends AbstractGenerator {
                 UclidGenerator uclidGenerator = new UclidGenerator(lfContext, properties);
                 // Generate uclid files.
                 uclidGenerator.doGenerate(resource, lfContext);
-                if (uclidGenerator.targetConfig.noVerify == false) {
+                if (!uclidGenerator.targetConfig.noVerify) {
                     // Invoke the generated uclid files.
                     uclidGenerator.runner.run();
                 } else {

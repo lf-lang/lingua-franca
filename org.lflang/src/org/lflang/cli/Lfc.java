@@ -113,7 +113,7 @@ public class Lfc extends CliBase {
     @Option(
         names = {"--no-verify"},
         arity = "0",
-        description = "Do not generate verification models.")
+        description = "Do not run the generated verification models.")
     private boolean noVerify;
 
     @Option(
