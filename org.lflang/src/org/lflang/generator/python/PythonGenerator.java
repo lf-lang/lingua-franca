@@ -279,8 +279,6 @@ public class PythonGenerator extends CGenerator {
         code.prComment("file:/" + FileUtil.toUnixString(fileConfig.srcFile));
         code.pr(PythonPreambleGenerator.generateCDefineDirectives(
             targetConfig, fileConfig.getSrcGenPath(), hasModalReactors));
-        code.pr(PythonPreambleGenerator.generateCIncludeStatements(
-            targetConfig, targetLanguageIsCpp(), hasModalReactors));
         return code.toString();
     }
 
@@ -306,7 +304,7 @@ public class PythonGenerator extends CGenerator {
         for (Model m : models) {
             pythonPreamble.pr(PythonPreambleGenerator.generatePythonPreambles(m.getPreambles()));
         }
-        return "";
+        return PythonPreambleGenerator.generateCIncludeStatements(targetConfig, targetLanguageIsCpp(), hasModalReactors);
     }
 
     @Override
@@ -514,12 +512,6 @@ public class PythonGenerator extends CGenerator {
     @Override
     protected void generateUserPreamblesForReactor(Reactor reactor, CodeBuilder src) {
         // Do nothing
-    }
-
-    @Override
-    protected void generateReactorClassHeaders(Reactor reactor, String headerName, CodeBuilder header, CodeBuilder src) {
-        header.pr(PythonPreambleGenerator.generateCIncludeStatements(targetConfig, targetLanguageIsCpp(), hasModalReactors));
-        super.generateReactorClassHeaders(reactor, headerName, header, src);
     }
 
     /**
