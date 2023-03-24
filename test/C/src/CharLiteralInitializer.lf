@@ -1,6 +1,10 @@
 // Check that a state variable can have a char literal initializer
 target C
 
+preamble {=
+    #include <stdio.h>
+=}
+
 main reactor CharLiteralInitializer {
     state c: char('x')
 
