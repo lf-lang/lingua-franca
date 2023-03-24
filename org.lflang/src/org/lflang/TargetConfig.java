@@ -86,6 +86,9 @@ public class TargetConfig {
         if (cliArgs.containsKey("no-compile")) {
             this.noCompile = true;
         }
+        if (cliArgs.containsKey("no-verify")) {
+            this.noVerify = true;
+        }
         if (cliArgs.containsKey("docker")) {
             var arg = cliArgs.getProperty("docker");
             if (Boolean.parseBoolean(arg)) {

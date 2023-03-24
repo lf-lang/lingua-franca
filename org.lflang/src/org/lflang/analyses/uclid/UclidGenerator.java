@@ -1043,36 +1043,30 @@ public class UclidGenerator extends GeneratorBase {
             for (TriggerInstance trigger : reaction.getReaction().triggers) {
                 String triggerPresentStr = "";
                 
-                if (trigger.isBuiltinTrigger()) {
-                    // Check if this trigger is a built-in trigger (startup or shutdown).
-                    if (trigger.isStartup()) {
-                        // FIXME: Treat startup as a variable.
-                        // triggerPresentStr = "g(i) == zero()";
-                        
-                        // Handle startup.
-                        code.pr(String.join("\n", 
-                            "// If startup is within frame (and all variables have default values),",
-                            "// " + reaction.getReaction().getFullNameWithJoiner("_") + " must be invoked.",
-                            "axiom(",
-                            "    ((start_time == 0) ==> (",
-                            "        finite_exists (i : integer) in indices :: i > START && i <= END",
-                            "            && " + reaction.getReaction().getFullNameWithJoiner("_") + "(rxn(i))" + " && tag_same(g(i), zero())",
-                            "            && !(",
-                            "            finite_exists (j : integer) in indices :: j > START && j <= END",
-                            "            && " + reaction.getReaction().getFullNameWithJoiner("_") + "(rxn(j))",
-                            "            && j != i",
-                            "            )",
-                            "    ))",
-                            ");"
-                        ));
-                        continue outerLoop;
-                    } else if (trigger.isShutdown()) {
-                        // FIXME: For a future version.
-                        System.out.println("Not implemented!");
-                    } else {
-                        // Unreachable.
-                        System.out.println("Unreachable!");
-                    }
+                if (trigger.isStartup()) {
+                    // FIXME: Treat startup as a variable.
+                    // triggerPresentStr = "g(i) == zero()";
+                    
+                    // Handle startup.
+                    code.pr(String.join("\n", 
+                        "// If startup is within frame (and all variables have default values),",
+                        "// " + reaction.getReaction().getFullNameWithJoiner("_") + " must be invoked.",
+                        "axiom(",
+                        "    ((start_time == 0) ==> (",
+                        "        finite_exists (i : integer) in indices :: i > START && i <= END",
+                        "            && " + reaction.getReaction().getFullNameWithJoiner("_") + "(rxn(i))" + " && tag_same(g(i), zero())",
+                        "            && !(",
+                        "            finite_exists (j : integer) in indices :: j > START && j <= END",
+                        "            && " + reaction.getReaction().getFullNameWithJoiner("_") + "(rxn(j))",
+                        "            && j != i",
+                        "            )",
+                        "    ))",
+                        ");"
+                    ));
+                    continue outerLoop;
+                } else if (trigger.isShutdown()) {
+                    // FIXME: For a future version.
+                    System.out.println("Not implemented!");
                 }
                 else {
                     // If the trigger is a port/action/timer.
