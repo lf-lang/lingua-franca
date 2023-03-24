@@ -975,18 +975,21 @@ public class CGenerator extends GeneratorBase {
      * Copy target-specific header file to the src-gen directory.
      */
     protected void copyTargetFiles() throws IOException {
-
-        String srcPrefix = targetConfig.platformOptions.platform == Platform.ARDUINO ? "src/" : "";
-
         // Copy the core lib
         String coreLib = LFGeneratorContext.BuildParm.EXTERNAL_RUNTIME_PATH.getValue(context);
-        Path dest = fileConfig.getSrcGenPath().resolve(srcPrefix + "core");
+        Path dest = fileConfig.getSrcGenPath();
+        if (targetConfig.platformOptions.platform == Platform.ARDUINO) dest = dest.resolve("src");
         if (coreLib != null) {
             FileUtil.copyDirectory(Path.of(coreLib), dest, true);
         } else {
             FileUtil.copyDirectoryFromClassPath(
                 "/lib/c/reactor-c/core",
-                dest,
+                dest.resolve("core"),
+                true
+            );
+            FileUtil.copyDirectoryFromClassPath(
+                "/lib/c/reactor-c/lib",
+                dest.resolve("lib"),
                 true
             );
         }
