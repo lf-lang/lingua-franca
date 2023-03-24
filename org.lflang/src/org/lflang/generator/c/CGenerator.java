@@ -465,111 +465,77 @@ public class CGenerator extends GeneratorBase {
         var cFilename = CCompiler.getTargetFileName(lfModuleName, this.CCppMode, targetConfig);
         var targetFile = fileConfig.getSrcGenPath() + File.separator + cFilename;
         try {
-                generateCodeFor(lfModuleName);
+            generateCodeFor(lfModuleName);
+            copyTargetFiles();
+            generateHeaders();
+            code.writeToFile(targetFile);
+        } catch (IOException e) {
+            //noinspection ThrowableNotThrown,ResultOfMethodCallIgnored
+            Exceptions.sneakyThrow(e);
+        }
 
+        // Create docker file.
+        if (targetConfig.dockerOptions != null && mainDef != null) {
+            try {
+                var dockerData = getDockerGenerator(context).generateDockerData();
+                dockerData.writeDockerFile();
+                (new DockerComposeGenerator(context)).writeDockerComposeFile(List.of(dockerData));
+            } catch (IOException e) {
+                throw new RuntimeException("Error while writing Docker files", e);
+            }
+        }
 
-                String srcPrefix = targetConfig.platformOptions.platform == Platform.ARDUINO ? "src/" : "";
-
-                // Copy the core lib
-                FileUtil.copyDirectoryFromClassPath(
-                    "/lib/c/reactor-c/core",
-                    fileConfig.getSrcGenPath().resolve(srcPrefix + "core"),
-                    true
-                );
-                // Copy the C target files
-                copyTargetFiles();
-
-                // For the Zephyr target, copy default config and board files.
-                if (targetConfig.platformOptions.platform == Platform.ZEPHYR) {
-                    FileUtil.copyDirectoryFromClassPath(
-                        "/lib/platform/zephyr/boards",
-                        fileConfig.getSrcGenPath().resolve("boards"),
-                        false
-                    );
-                    FileUtil.copyFileFromClassPath(
-                        "/lib/platform/zephyr/prj_lf.conf",
-                        fileConfig.getSrcGenPath().resolve("prj_lf.conf"),
-                        true
-                    );
-
-                    FileUtil.copyFileFromClassPath(
-                        "/lib/platform/zephyr/Kconfig",
-                        fileConfig.getSrcGenPath().resolve("Kconfig"),
-                        true
-                    );
-                }
-
-                generateHeaders();
-
-                // Write the generated code
-                code.writeToFile(targetFile);
+        // If cmake is requested, generate the CMakeLists.txt
+        if (targetConfig.platformOptions.platform != Platform.ARDUINO) {
+            var cmakeFile = fileConfig.getSrcGenPath() + File.separator + "CMakeLists.txt";
+            var sources = new HashSet<>(ASTUtils.recursiveChildren(main)).stream()
+                .map(CUtil::getName).map(it -> it + (CCppMode ? ".cpp" : ".c"))
+                .collect(Collectors.toList());
+            sources.add(cFilename);
+            var cmakeCode = cmakeGenerator.generateCMakeCode(
+                sources,
+                lfModuleName,
+                errorReporter,
+                CCppMode,
+                mainDef != null,
+                cMakeExtras,
+                targetConfig
+            );
+            try {
+                cmakeCode.writeToFile(cmakeFile);
+            } catch (IOException e) {
+                //noinspection ThrowableNotThrown,ResultOfMethodCallIgnored
+                Exceptions.sneakyThrow(e);
+            }
+        } else {
+            try {
+                Path include = fileConfig.getSrcGenPath().resolve("include/");
+                Path src = fileConfig.getSrcGenPath().resolve("src/");
+                FileUtil.arduinoDeleteHelper(src, targetConfig.threading);
+                FileUtil.relativeIncludeHelper(src, include);
+                FileUtil.relativeIncludeHelper(include, include);
             } catch (IOException e) {
                 //noinspection ThrowableNotThrown,ResultOfMethodCallIgnored
                 Exceptions.sneakyThrow(e);
             }
 
-            // Create docker file.
-            if (targetConfig.dockerOptions != null && mainDef != null) {
-                try {
-                    var dockerData = getDockerGenerator(context).generateDockerData();
-                    dockerData.writeDockerFile();
-                    (new DockerComposeGenerator(context)).writeDockerComposeFile(List.of(dockerData));
-                } catch (IOException e) {
-                    throw new RuntimeException("Error while writing Docker files", e);
-                }
-            }
-
-            // If cmake is requested, generate the CMakeLists.txt
-            if (targetConfig.platformOptions.platform != Platform.ARDUINO) {
-                var cmakeFile = fileConfig.getSrcGenPath() + File.separator + "CMakeLists.txt";
-                var sources = new HashSet<>(ASTUtils.recursiveChildren(main)).stream()
-                    .map(CUtil::getName).map(it -> it + (CCppMode ? ".cpp" : ".c"))
-                    .collect(Collectors.toList());
-                sources.add(cFilename);
-                var cmakeCode = cmakeGenerator.generateCMakeCode(
-                    sources,
-                    lfModuleName,
-                    errorReporter,
-                    CCppMode,
-                    mainDef != null,
-                    cMakeExtras,
-                    targetConfig
+            if (!targetConfig.noCompile) {
+                ArduinoUtil arduinoUtil = new ArduinoUtil(context, commandFactory, errorReporter);
+                arduinoUtil.buildArduino(fileConfig, targetConfig);
+                context.finish(
+                    GeneratorResult.Status.COMPILED, null
                 );
-                try {
-                    cmakeCode.writeToFile(cmakeFile);
-                } catch (IOException e) {
-                    //noinspection ThrowableNotThrown,ResultOfMethodCallIgnored
-                    Exceptions.sneakyThrow(e);
-                }
             } else {
-                try {
-                    Path include = fileConfig.getSrcGenPath().resolve("include/");
-                    Path src = fileConfig.getSrcGenPath().resolve("src/");
-                    FileUtil.arduinoDeleteHelper(src, targetConfig.threading);
-                    FileUtil.relativeIncludeHelper(src, include);
-                    FileUtil.relativeIncludeHelper(include, include);
-                } catch (IOException e) {
-                    //noinspection ThrowableNotThrown,ResultOfMethodCallIgnored
-                    Exceptions.sneakyThrow(e);
-                }
-
-                if (!targetConfig.noCompile) {
-                    ArduinoUtil arduinoUtil = new ArduinoUtil(context, commandFactory, errorReporter);
-                    arduinoUtil.buildArduino(fileConfig, targetConfig);
-                    context.finish(
-                        GeneratorResult.Status.COMPILED, null
-                    );
-                } else {
-                    System.out.println("********");
-                    System.out.println("To compile your program, run the following command to see information about the board you plugged in:\n\n\tarduino-cli board list\n\nGrab the FQBN and PORT from the command and run the following command in the generated sources directory:\n\n\tarduino-cli compile -b <FQBN> --build-property compiler.c.extra_flags='-DLF_UNTHREADED -DPLATFORM_ARDUINO -DINITIAL_EVENT_QUEUE_SIZE=10 -DINITIAL_REACT_QUEUE_SIZE=10' --build-property compiler.cpp.extra_flags='-DLF_UNTHREADED -DPLATFORM_ARDUINO -DINITIAL_EVENT_QUEUE_SIZE=10 -DINITIAL_REACT_QUEUE_SIZE=10' .\n\nTo flash/upload your generated sketch to the board, run the following command in the generated sources directory:\n\n\tarduino-cli upload -b <FQBN> -p <PORT>\n");
-                    // System.out.println("For a list of all boards installed on your computer, you can use the following command:\n\n\tarduino-cli board listall\n");
-                    context.finish(
-                        GeneratorResult.GENERATED_NO_EXECUTABLE.apply(context, null)
-                    );
-                }
-                GeneratorUtils.refreshProject(resource, context.getMode());
-                return;
+                System.out.println("********");
+                System.out.println("To compile your program, run the following command to see information about the board you plugged in:\n\n\tarduino-cli board list\n\nGrab the FQBN and PORT from the command and run the following command in the generated sources directory:\n\n\tarduino-cli compile -b <FQBN> --build-property compiler.c.extra_flags='-DLF_UNTHREADED -DPLATFORM_ARDUINO -DINITIAL_EVENT_QUEUE_SIZE=10 -DINITIAL_REACT_QUEUE_SIZE=10' --build-property compiler.cpp.extra_flags='-DLF_UNTHREADED -DPLATFORM_ARDUINO -DINITIAL_EVENT_QUEUE_SIZE=10 -DINITIAL_REACT_QUEUE_SIZE=10' .\n\nTo flash/upload your generated sketch to the board, run the following command in the generated sources directory:\n\n\tarduino-cli upload -b <FQBN> -p <PORT>\n");
+                // System.out.println("For a list of all boards installed on your computer, you can use the following command:\n\n\tarduino-cli board listall\n");
+                context.finish(
+                    GeneratorResult.GENERATED_NO_EXECUTABLE.apply(context, null)
+                );
             }
+            GeneratorUtils.refreshProject(resource, context.getMode());
+            return;
+        }
 
         // Dump the additional compile definitions to a file to keep the generated project
         // self-contained. In this way, third-party build tools like PlatformIO, west, arduino-cli can
@@ -1012,11 +978,38 @@ public class CGenerator extends GeneratorBase {
 
         String srcPrefix = targetConfig.platformOptions.platform == Platform.ARDUINO ? "src/" : "";
 
-        FileUtil.copyDirectoryFromClassPath(
-            "/lib/c/reactor-c/lib",
-            fileConfig.getSrcGenPath().resolve(srcPrefix + "lib"),
-            false
-        );
+        // Copy the core lib
+        String coreLib = LFGeneratorContext.BuildParm.EXTERNAL_RUNTIME_PATH.getValue(context);
+        Path dest = fileConfig.getSrcGenPath().resolve(srcPrefix + "core");
+        if (coreLib != null) {
+            FileUtil.copyDirectory(Path.of(coreLib), dest, true);
+        } else {
+            FileUtil.copyDirectoryFromClassPath(
+                "/lib/c/reactor-c/core",
+                dest,
+                true
+            );
+        }
+
+        // For the Zephyr target, copy default config and board files.
+        if (targetConfig.platformOptions.platform == Platform.ZEPHYR) {
+            FileUtil.copyDirectoryFromClassPath(
+                "/lib/platform/zephyr/boards",
+                fileConfig.getSrcGenPath().resolve("boards"),
+                false
+            );
+            FileUtil.copyFileFromClassPath(
+                "/lib/platform/zephyr/prj_lf.conf",
+                fileConfig.getSrcGenPath().resolve("prj_lf.conf"),
+                true
+            );
+
+            FileUtil.copyFileFromClassPath(
+                "/lib/platform/zephyr/Kconfig",
+                fileConfig.getSrcGenPath().resolve("Kconfig"),
+                true
+            );
+        }
     }
 
     ////////////////////////////////////////////
