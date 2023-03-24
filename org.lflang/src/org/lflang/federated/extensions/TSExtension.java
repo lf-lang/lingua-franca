@@ -97,22 +97,21 @@ public class TSExtension implements FedTargetExtension {
         var upstreamConnectionDelays = getUpstreamConnectionDelays(federate);
         return
         """
-            preamble {=
-                const defaultFederateConfig: __FederateConfig = {
-                    dependsOn: [%s],
-                    executionTimeout: undefined,
-                    fast: false,
-                    federateID: %d,
-                    federationID: "Unidentified Federation",
-                    keepAlive: false,
-                    minOutputDelay: %s,
-                    networkMessageActions: [%s],
-                    rtiHost: "%s",
-                    rtiPort: %d,
-                    sendsTo: [%s],
-                    upstreamConnectionDelays: [%s]
-                }
-            =}""".formatted(
+        const defaultFederateConfig: __FederateConfig = {
+            dependsOn: [%s],
+            executionTimeout: undefined,
+            fast: false,
+            federateID: %d,
+            federationID: "Unidentified Federation",
+            keepAlive: false,
+            minOutputDelay: %s,
+            networkMessageActions: [%s],
+            rtiHost: "%s",
+            rtiPort: %d,
+            sendsTo: [%s],
+            upstreamConnectionDelays: [%s]
+        }
+            """.formatted(
             federate.dependsOn.keySet().stream()
                               .map(e->String.valueOf(e.id))
                               .collect(Collectors.joining(",")),
