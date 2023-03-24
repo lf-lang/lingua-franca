@@ -1,5 +1,5 @@
-// The purpose of this test is to check that the downstream enclave can progress, even if there
-// are only sparse upstream events.
+// The purpose of this test is to check that the downstream enclave can
+// progress, even if there are only sparse upstream events.
 target Cpp {
     timeout: 6 s,
     workers: 1
