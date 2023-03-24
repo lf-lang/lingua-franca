@@ -403,6 +403,7 @@ public class PythonGenerator extends CGenerator {
             targetConfig.threading = false;
         }
         int cGeneratedPercentProgress = (IntegratedBuilder.VALIDATED_PERCENT_PROGRESS + 100) / 2;
+        code.pr(PythonPreambleGenerator.generateCIncludeStatements(targetConfig, targetLanguageIsCpp(), hasModalReactors));
         super.doGenerate(resource, new SubContext(
             context,
             IntegratedBuilder.VALIDATED_PERCENT_PROGRESS,
