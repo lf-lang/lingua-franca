@@ -47,7 +47,7 @@ atomicProp
     ;
 
 interval
-    : LBRACKET lowerbound=time COMMA upperbound=time RBRACKET # Range
+    : (LPAREN|LBRACKET) lowerbound=time COMMA upperbound=time (RPAREN|RBRACKET) # Range
     | LBRACKET instant=time RBRACKET # Singleton
     ;
 
