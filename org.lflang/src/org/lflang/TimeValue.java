@@ -25,8 +25,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 package org.lflang;
 
-import java.sql.Time;
-
 /**
  * Represents an amount of time (a duration).
  *
