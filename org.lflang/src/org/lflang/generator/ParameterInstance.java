@@ -73,13 +73,10 @@ public class ParameterInstance extends NamedInstance<Parameter> {
     //// Public Methods
 
     /**
-     * Get the initial value(s) of this parameter as a list of
-     * Value objects, where each Value is either an instance
-     * of Time, Literal, or Code. That is, references to other
-     * parameters have been replaced with their initial values.
+     * Get the initial value of this parameter.
      */
-    private List<Expression> getInitialValue() {
-        return parent.initialParameterValue(this.definition);
+    private Initializer getInitialValue() {
+        return definition.getInit();
     }
 
     /**
@@ -89,15 +86,12 @@ public class ParameterInstance extends NamedInstance<Parameter> {
      */
     public Initializer getActualValue() {
         Assignment override = getOverride();
-        List<Expression> values;
+        Initializer init;
         if (override != null) {
-            values = override.getRhs().getExprs();
+            init = override.getRhs();
         } else {
-            values = getInitialValue();
+            init = getInitialValue();
         }
-        Initializer init = LfFactory.eINSTANCE.createInitializer();
-        init.getExprs().addAll(values);
-        init.setParens(true); // todo
         return init;
     }
     

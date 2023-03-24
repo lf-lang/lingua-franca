@@ -452,29 +452,6 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
      */
     public Integer initialIntParameterValue(Parameter parameter) {
         return ASTUtils.initialValueInt(parameter, instantiations());
-    }  
-
-    /**
-     * Given a parameter definition for this reactor, return the initial value
-     * of the parameter. If the parameter is overridden when instantiating
-     * this reactor or any of its containing reactors, use that value.
-     * Otherwise, use the default value in the reactor definition.
-     * 
-     * The returned list of Value objects is such that each element is an
-     * instance of Time, String, or Code, never Parameter.
-     * For most uses, this list has only one element, but parameter
-     * values can be lists of elements, so the returned value is a list.
-     * 
-     * @param parameter The parameter definition (a syntactic object in the AST).
-     *
-     * @return A list of Value objects, or null if the parameter is not found.
-     *  Return an empty list if no initial value is given.
-     *  Each value is an instance of Literal if a literal value is given,
-     *  a Time if a time value was given, or a Code, if a code value was
-     *  given (text in the target language delimited by {= ... =}
-     */
-    List<Expression> initialParameterValue(Parameter parameter) {
-        return ASTUtils.initialValue(parameter, instantiations());
     }
 
     public Expression resolveParameters(Expression e) {
