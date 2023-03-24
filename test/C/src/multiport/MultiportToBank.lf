@@ -4,6 +4,10 @@ target C {
     fast: true
 }
 
+preamble {=
+    #include <stdio.h>
+=}
+
 reactor Source(width: int(2)) {
     output[width] out: int  // Connected to a bank of Destination reactors
     input dummy: int        // Not connected to anything

@@ -10,6 +10,10 @@ target C {
     fast: true
 }
 
+preamble {=
+    #include <stdio.h>
+=}
+
 reactor Ball {
     output position: int
     output velocity: int

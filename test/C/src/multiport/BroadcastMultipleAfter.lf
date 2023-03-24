@@ -3,6 +3,10 @@ target C {
     fast: true
 }
 
+preamble {=
+    #include <stdio.h>
+=}
+
 reactor Source(value: int(42)) {
     output out: int
 

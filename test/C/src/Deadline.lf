@@ -5,6 +5,10 @@ target C {
     timeout: 6 sec
 }
 
+preamble {=
+    #include <stdio.h>
+=}
+
 reactor Source(period: time(3 sec)) {
     output y: int
     timer t(0, period)

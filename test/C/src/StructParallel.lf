@@ -8,6 +8,7 @@ target C {
 import Source from "StructScale.lf"
 
 preamble {=
+    #include <stdio.h>
     #include "hello.h"
 =}
 

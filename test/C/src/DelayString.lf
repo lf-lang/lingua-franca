@@ -2,6 +2,10 @@
 // freed.
 target C
 
+preamble {=
+    #include <stdio.h>
+=}
+
 reactor DelayString2(delay: time(100 msec)) {
     input in: string
     output out: string

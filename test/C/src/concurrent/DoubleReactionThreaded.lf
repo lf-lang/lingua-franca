@@ -5,6 +5,10 @@ target C {
     fast: true
 }
 
+preamble {=
+    #include <stdio.h>
+=}
+
 reactor Clock(offset: time(0), period: time(1 sec)) {
     output y: int
     timer t(offset, period)

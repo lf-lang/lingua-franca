@@ -5,6 +5,10 @@ target C {
     fast: true
 }
 
+preamble {=
+    #include <stdio.h>
+=}
+
 reactor Count(stride: int(1)) {
     state count: int(1)
     output y: int

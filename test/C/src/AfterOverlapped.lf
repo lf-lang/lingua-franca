@@ -6,6 +6,10 @@ target C {
 
 import Count from "lib/Count.lf"
 
+preamble {=
+    #include <stdio.h>
+=}
+
 reactor Test {
     input c: int
     state i: int(0)

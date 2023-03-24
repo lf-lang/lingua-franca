@@ -9,6 +9,10 @@ target C {
     timeout: 1500 msec
 }
 
+preamble {=
+    #include <stdio.h>
+=}
+
 main reactor SlowingClockPhysical {
     physical action a(100 msec)
     state interval: time(100 msec)

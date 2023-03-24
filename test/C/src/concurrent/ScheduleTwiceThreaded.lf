@@ -1,5 +1,9 @@
 target C
 
+preamble {=
+    #include <stdio.h>
+=}
+
 main reactor {
     logical action a: int
     state rc_count: int(0)

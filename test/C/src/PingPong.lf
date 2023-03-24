@@ -25,6 +25,10 @@ target C {
     fast: true
 }
 
+preamble {=
+    #include <stdio.h>
+=}
+
 reactor Ping(count: int(10)) {
     input receive: int
     output send: int

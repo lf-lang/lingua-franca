@@ -2,6 +2,10 @@
 // permutations.
 target C
 
+preamble {=
+    #include <stdio.h>
+=}
+
 reactor Contained {
     output out: int
 

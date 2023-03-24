@@ -1,5 +1,9 @@
 target C
 
+preamble {=
+    #include <stdio.h>
+=}
+
 reactor Super {
     state count: int(0)
 

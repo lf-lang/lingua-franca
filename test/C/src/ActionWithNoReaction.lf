@@ -6,6 +6,10 @@ target C {
     timeout: 3 sec
 }
 
+preamble {=
+    #include <stdio.h>
+=}
+
 reactor foo {
     input x: int
     output y: int

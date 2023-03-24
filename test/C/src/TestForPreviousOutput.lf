@@ -2,6 +2,10 @@
 // a given output. The output should always be 42.
 target C
 
+preamble {=
+    #include <stdio.h>
+=}
+
 reactor Source {
     output out: int
 

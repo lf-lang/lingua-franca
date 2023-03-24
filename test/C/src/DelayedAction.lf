@@ -3,6 +3,10 @@ target C {
     timeout: 5 sec
 }
 
+preamble {=
+    #include <stdio.h>
+=}
+
 main reactor DelayedAction {
     timer t(0, 1 sec)
     logical action a

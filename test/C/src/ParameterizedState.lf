@@ -1,5 +1,9 @@
 target C
 
+preamble {=
+    #include <stdio.h>
+=}
+
 reactor Foo(bar: int(42)) {
     state baz(bar)
 

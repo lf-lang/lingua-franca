@@ -5,6 +5,10 @@ target C {
     fast: true
 }
 
+preamble {=
+    #include <stdio.h>
+=}
+
 reactor Source(check_override: int(0), bank_index: int(0)) {
     output out: int
 

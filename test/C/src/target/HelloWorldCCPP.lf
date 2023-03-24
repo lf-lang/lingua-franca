@@ -7,6 +7,10 @@ target CCpp {
     logging: DEBUG
 }
 
+preamble {=
+    #include <stdio.h>
+=}
+
 reactor HelloWorld {
     preamble {=
         #include <iostream>

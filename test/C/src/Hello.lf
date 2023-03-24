@@ -8,6 +8,10 @@ target C {
     fast: true
 }
 
+preamble {=
+    #include <stdio.h>
+=}
+
 reactor Reschedule(period: time(2 sec), message: string("Hello C")) {
     state count: int(0)
     state previous_time: time(0)

@@ -5,6 +5,10 @@ target C {
     flags: ""
 }
 
+preamble {=
+    #include <stdio.h>
+=}
+
 reactor Source(width: int(4)) {
     timer t(0, 200 msec)
     output[width] out: int

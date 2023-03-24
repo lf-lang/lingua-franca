@@ -2,6 +2,10 @@
 // on a struct. It delays by a logical time any pointer datatype.
 target C
 
+preamble {=
+    #include <stdio.h>
+=}
+
 reactor Source {
     output out: int[]
 

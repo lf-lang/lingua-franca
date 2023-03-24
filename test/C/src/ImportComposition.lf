@@ -4,6 +4,10 @@ target C
 
 import ImportedComposition from "lib/ImportedComposition.lf"
 
+preamble {=
+    #include <stdio.h>
+=}
+
 main reactor ImportComposition {
     a = new ImportedComposition()
     state received: bool(false)

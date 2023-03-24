@@ -5,6 +5,10 @@ target C {
     fast: true
 }
 
+preamble {=
+    #include <stdio.h>
+=}
+
 reactor Source {
     output[3] out: int  // Connected to a bank of Destination reactors
 

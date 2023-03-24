@@ -22,6 +22,10 @@ target C {
     protobufs: [ProtoHelloWorld.proto]
 }
 
+preamble {=
+    #include <stdio.h>
+=}
+
 reactor SourceProto {
     output out: ProtoHelloWorld
 

@@ -1,6 +1,10 @@
 // Illustration of lf_set_token() in the wiki.
 target C
 
+preamble {=
+    #include <stdio.h>
+=}
+
 reactor Source {
     output out: int*
     logical action a: int

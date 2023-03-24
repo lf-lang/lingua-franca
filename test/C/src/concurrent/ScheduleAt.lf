@@ -9,6 +9,10 @@ target C {
     keepalive: true
 }
 
+preamble {=
+    #include <stdio.h>
+=}
+
 reactor Scheduler {
     preamble {=
         #ifdef __cplusplus

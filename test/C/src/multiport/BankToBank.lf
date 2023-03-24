@@ -4,6 +4,10 @@ target C {
     fast: true
 }
 
+preamble {=
+    #include <stdio.h>
+=}
+
 reactor Source(bank_index: int(0)) {
     timer t(0, 200 msec)
     output out: int

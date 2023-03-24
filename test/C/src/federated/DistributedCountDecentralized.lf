@@ -12,6 +12,10 @@ target C {
 
 import Count from "../lib/Count.lf"
 
+preamble {=
+    #include <stdio.h>
+=}
+
 reactor Print {
     input in: int
     state c: int(1)

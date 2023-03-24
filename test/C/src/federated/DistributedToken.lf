@@ -20,6 +20,10 @@ target C {
     coordination: decentralized
 }
 
+preamble {=
+    #include <stdio.h>
+=}
+
 /**
  * Reactor that generates a sequence of messages, one per second. The message
  * will be a string consisting of a root string followed by a count.

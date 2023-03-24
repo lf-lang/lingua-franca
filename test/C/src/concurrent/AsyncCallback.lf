@@ -12,6 +12,10 @@ target C {
     timeout: 2 sec
 }
 
+preamble {=
+    #include <stdio.h>
+=}
+
 main reactor AsyncCallback {
     preamble {=
         void callback(void* a) {

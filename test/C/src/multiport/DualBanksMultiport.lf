@@ -1,5 +1,9 @@
 target C
 
+preamble {=
+    #include <stdio.h>
+=}
+
 reactor Base(bank_index: int(0)) {
     input[2] I: int
     state received: bool(false)

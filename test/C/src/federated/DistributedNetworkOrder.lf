@@ -13,6 +13,10 @@ target C {
     build-type: RelWithDebInfo  // Release with debug info
 }
 
+preamble {=
+    #include <stdio.h>
+=}
+
 reactor Sender {
     output out: int
     timer t(0, 1 msec)

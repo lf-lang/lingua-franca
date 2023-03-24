@@ -4,6 +4,10 @@ target C {
     fast: true
 }
 
+preamble {=
+    #include <stdio.h>
+=}
+
 reactor Source {
     logical action foo: int
     output y: int

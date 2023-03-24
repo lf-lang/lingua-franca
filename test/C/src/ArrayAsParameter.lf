@@ -3,6 +3,10 @@
 // encode their own length.
 target C
 
+preamble {=
+    #include <stdio.h>
+=}
+
 reactor Source(sequence: int[](0, 1, 2), n_sequence: int(3)) {
     output out: int
     state count: int(0)

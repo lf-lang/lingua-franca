@@ -1,6 +1,10 @@
 // Example in the Wiki.
 target C
 
+preamble {=
+    #include <stdio.h>
+=}
+
 reactor Scale(scale: int(2)) {
     input x: int
     output y: int

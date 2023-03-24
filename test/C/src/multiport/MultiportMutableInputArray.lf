@@ -4,6 +4,10 @@
 // Print. It gets freed after Print is done with it.
 target C
 
+preamble {=
+    #include <stdio.h>
+=}
+
 reactor Source {
     output[2] out: int[]
 

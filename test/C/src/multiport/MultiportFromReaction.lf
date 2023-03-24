@@ -4,6 +4,10 @@ target C {
     fast: true
 }
 
+preamble {=
+    #include <stdio.h>
+=}
+
 reactor Destination(width: int(1)) {
     state s: int(6)
     input[width] in: int
