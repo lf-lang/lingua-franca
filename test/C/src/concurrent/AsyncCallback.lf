@@ -9,11 +9,13 @@
  */
 target C {
     tracing: true,
-    timeout: 2 sec
+    timeout: 2 sec,
+    keepalive: true
 }
 
 preamble {=
     #include <stdio.h>
+    #include "platform.h"
 =}
 
 main reactor AsyncCallback {

@@ -4,6 +4,7 @@ target C
 
 preamble {=
     #include <stdio.h>
+    #include "platform.h"
 =}
 
 reactor Deadline(threshold: time(100 msec)) {
@@ -24,7 +25,7 @@ main reactor {
     d = new Deadline(threshold = 10 msec)
 
     reaction(startup) -> d.x {=
-        lf_nanosleep(MSEC(200));
+        lf_sleep(MSEC(200));
         lf_set(d.x, 42);
     =}
 
