@@ -8,13 +8,20 @@
  *
  * @author Soroush Bateni
  */
-target C {
+target CCpp {
     timeout: 1 sec,
     build-type: RelWithDebInfo  // Release with debug info
 }
 
 preamble {=
+    #ifdef __cplusplus
+    extern "C" {
+    #endif
     #include <stdio.h>
+    #include "federate.h"
+    #ifdef __cplusplus
+    }
+    #endif
 =}
 
 reactor Sender {
