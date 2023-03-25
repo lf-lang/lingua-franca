@@ -37,15 +37,6 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 /** Buffer for reading object descriptions. Size limit is BUFFER_SIZE bytes. */
 char buffer[BUFFER_SIZE];
 
-/** File containing the trace binary data. */
-FILE* trace_file = NULL;
-
-/** File for writing the output data. */
-FILE* output_file = NULL;
-
-/** File for writing summary statistics. */
-FILE* summary_file = NULL;
-
 /** Buffer for reading trace records. */
 trace_record_t trace[TRACE_BUFFER_CAPACITY];
 
@@ -60,6 +51,13 @@ char* top_level = NULL;
 object_description_t* object_table;
 int object_table_size = 0;
 
+typedef struct open_file_t open_file_t;
+typedef struct open_file_t {
+    FILE* file;
+    open_file_t* next;
+} open_file_t;
+open_file_t* _open_files = NULL;
+
 /**
  * Function to be invoked upon exiting.
  */
@@ -68,82 +66,57 @@ void termination() {
     for (int i = 0; i < object_table_size; i++) {
         free(object_table[i].description);
     }
-    if (trace_file != NULL) {
-        fclose(trace_file);
-    }
-    if (output_file != NULL) {
-        fclose(output_file);
-    }
-    if (summary_file != NULL) {
-        fclose(summary_file);
+    while (_open_files != NULL) {
+        fclose(_open_files->file);
+        open_file_t* tmp = _open_files->next;
+        free(_open_files);
+        _open_files = tmp;
     }
     printf("Done!\n");
 }
 
-/**
- * Open the trace file and the output file using the given filename.
- * This leaves the FILE* pointers in the global variables trace_file and output_file.
- * If the extension if "csv", then it also opens a summary_file.
- * The filename argument can include path information.
- * It can include the ".lft" extension or not.
- * The output file will have the same path and name except that the
- * extension will be given by the second argument.
- * The summary_file, if opened, will have the filename with "_summary.csv" appended.
- * @param filename The file name.
- * @param output_file_extension The extension to put on the output file name (e.g. "csv").
- * @return A pointer to the file.
- */
-void open_files(char* filename, char* output_file_extension) {
-    // Open the input file for reading.
-    size_t length = strlen(filename);
-    if (length > 4 && strcmp(&filename[length - 4], ".lft") == 0) {
-        // The filename includes the .lft extension.
-        length -= 4;
-    }
-    char trace_file_name[length + 4];
-    strncpy(trace_file_name, filename, length);
-    trace_file_name[length] = 0;
-    strcat(trace_file_name, ".lft");
-    trace_file = fopen(trace_file_name, "r");
-    if (trace_file == NULL) {
-        fprintf(stderr, "No trace file named %s.\n", trace_file_name);
+const char PATH_SEPARATOR =
+#ifdef _WIN32
+                            '\\';
+#else
+                            '/';
+#endif
+
+char* root_name(const char* path) {
+    if (path == NULL) return NULL;
+
+    // Remove any path.
+    char* last_separator = strrchr(path, PATH_SEPARATOR);
+    if (last_separator != NULL) path = last_separator + 1;
+
+    // Allocate and copy name without extension.
+    char* last_period = strrchr(path, '.');
+    size_t length = (last_period == NULL) ?
+        strlen(path) : last_period - path;
+    char* result = (char*)malloc(length + 1);
+    if (result == NULL) return NULL;
+    strncpy(result, path, length);
+    result[length] = '\0';
+
+    return result;
+}
+
+FILE* open_file(const char* path, const char* mode) {
+    FILE* result = fopen(path, mode);
+    if (result == NULL) {
+        fprintf(stderr, "No file named %s.\n", path);
         usage();
         exit(2);
     }
-
-    // Open the output file for writing.
-    if (output_file_extension) {
-        char output_file_name[length + strlen(output_file_extension) + 1];
-        strncpy(output_file_name, filename, length);
-        output_file_name[length] = 0;
-        strcat(output_file_name, ".");
-        strcat(output_file_name, output_file_extension);
-        output_file = fopen(output_file_name, "w");
-        if (output_file == NULL) {
-            fprintf(stderr, "Could not create output file named %s.\n", output_file_name);
-            usage();
-            exit(2);
-        }
-
-        if (strcmp("csv", output_file_extension) == 0) {
-            // Also open a summary_file.
-            char *suffix = "_summary.csv";
-            char summary_file_name[length + strlen(suffix) + 1];
-            strncpy(summary_file_name, filename, length);
-            summary_file_name[length] = 0;
-            strcat(summary_file_name, suffix);
-            summary_file = fopen(summary_file_name, "w");
-            if (summary_file == NULL) {
-                fprintf(stderr, "Could not create summary file named %s.\n", summary_file_name);
-                usage();
-                exit(2);
-            }
-        }
+    open_file_t* record = (open_file_t*)malloc(sizeof(open_file_t));
+    if (record == NULL) {
+        fprintf(stderr, "Out of memory.\n");
+        exit(3);
     }
-
-    if (atexit(termination) != 0) {
-        fprintf(stderr, "WARNING: Failed to register termination function!");
-    }
+    record->file = result;
+    record->next = _open_files;
+    _open_files = record;
+    return result;
 }
 
 /**
