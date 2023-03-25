@@ -175,10 +175,10 @@ Mode:
         (stateVars+=StateVar) |
         (timers+=Timer) |
         (actions+=Action) |
+        (watchdogs+=Watchdog) |
         (instantiations+=Instantiation) |
         (connections+=Connection) |
-        (reactions+=Reaction) |
-        (watchdogs+=Watchdog)
+        (reactions+=Reaction)
     )* '}';
 
 // Action that has either a physical or logical origin.
