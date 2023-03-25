@@ -25,7 +25,6 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 package org.lflang.federated.generator;
 
-import java.io.File;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -40,17 +39,13 @@ import org.eclipse.emf.ecore.EObject;
 
 import org.lflang.ASTUtils;
 import org.lflang.ErrorReporter;
-import org.lflang.FileConfig;
-import org.lflang.Target;
 import org.lflang.TargetConfig;
 import org.lflang.TimeValue;
 import org.lflang.federated.serialization.SupportedSerializers;
 import org.lflang.generator.ActionInstance;
-import org.lflang.generator.GeneratorUtils;
 import org.lflang.generator.PortInstance;
 import org.lflang.generator.ReactionInstance;
 import org.lflang.generator.ReactorInstance;
-import org.lflang.generator.SubContext;
 import org.lflang.generator.TriggerInstance;
 import org.lflang.lf.Action;
 import org.lflang.lf.ActionOrigin;
@@ -70,7 +65,6 @@ import org.lflang.lf.Timer;
 import org.lflang.lf.TriggerRef;
 import org.lflang.lf.VarRef;
 import org.lflang.lf.Variable;
-import org.lflang.lf.Watchdog;
 
 import com.google.common.base.Objects;
 
