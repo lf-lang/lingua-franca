@@ -13,16 +13,15 @@ import org.lflang.lf.Watchdog;
 public class WatchdogInstance {
 		
 	/**
-	 * Create a new watchdog instance associated with the given reaction
+	 * Create a new watchdog instance associated with the given reactor
 	 * instance.
 	 */
 	public WatchdogInstance(Watchdog definition, ReactorInstance reactor) {
         if (definition.getTimeout() != null) {
-            // WATCHDOG QUESTION
-            // How does this .getTimeValue work? Where is expression coming from 
-            // versus other time parameters?
+            // Get the timeout value given in the watchdog declaration.
             this.timeout = reactor.getTimeValue(definition.getTimeout());
         } else {
+            // NOTE: The grammar does not allow the timeout to be omitted, so this should not occur.
             this.timeout = TimeValue.ZERO;
         }
 
@@ -30,6 +29,9 @@ public class WatchdogInstance {
         this.definition = definition;
         this.reactor = reactor;
     }
+
+    //////////////////////////////////////////////////////
+    //// Public methods.
 
     public String getName() {
         return this.name;
@@ -47,27 +49,19 @@ public class WatchdogInstance {
         return this.reactor;
     }
 
-    //////////////////////////////////////////////////////
-    //// Public fields.
-
-
-    public final TimeValue timeout;
-
-    /**
-     * The watchdog name.
-     */
-    public final String name;
-
-    public final Watchdog definition;
-
-    public final ReactorInstance reactor;
-
-    //////////////////////////////////////////////////////
-    //// Public methods.
-	
-    //FIXME: unsure of use or need for watchdogs
     @Override
     public String toString() {
-        return "WatchdogInstance " + timeout.toString();
+        return "WatchdogInstance " + name + "(" + timeout.toString() + ")";
     }
+
+    //////////////////////////////////////////////////////
+    //// Private fields.
+
+    private final TimeValue timeout;
+
+    private final String name;
+
+    private final Watchdog definition;
+
+    private final ReactorInstance reactor;
 }
