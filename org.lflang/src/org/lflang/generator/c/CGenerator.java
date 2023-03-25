@@ -36,9 +36,7 @@ import static org.lflang.ASTUtils.toDefinition;
 import static org.lflang.ASTUtils.toText;
 import static org.lflang.util.StringUtil.addDoubleQuotes;
 
-import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -81,7 +79,6 @@ import org.lflang.generator.ReactionInstance;
 import org.lflang.generator.ReactorInstance;
 
 import org.lflang.generator.WatchdogInstance;
-import org.lflang.generator.SubContext;
 
 import org.lflang.generator.TargetTypes;
 import org.lflang.generator.TimerInstance;
@@ -839,7 +836,8 @@ public class CGenerator extends GeneratorBase {
 
     private boolean hasWatchdogs() {
         for (Reactor reactor : reactors) {
-            if (ASTUtils.allWatchdogs(reactor) != null) {
+            List<Watchdog> watchdogs = ASTUtils.allWatchdogs(reactor);
+            if (watchdogs != null && !watchdogs.isEmpty()) {
                 return true;
             }
         }
@@ -1526,9 +1524,8 @@ public class CGenerator extends GeneratorBase {
         var reactorRef = CUtil.reactorRef(instance);
         // temp.pr("#ifdef LF_THREADED");
         for (WatchdogInstance watchdog : instance.watchdogs) {
-            temp.pr("   _lf_watchdogs[_lf_watchdog_number_count++] = &"+reactorRef+"->_lf_watchdog_"+watchdog.getName()+";");
-            temp.pr("   " + reactorRef+"->_lf_watchdog_"+watchdog.getName()+".min_expiration = "+GeneratorBase.timeInTargetLanguage(watchdog.getTimeout())+";");
-            temp.pr("   " + reactorRef+"->_lf_watchdog_"+watchdog.getName()+".thread_id;");
+            temp.pr("_lf_watchdogs[_lf_watchdog_number_count++] = &"+reactorRef+"->_lf_watchdog_"+watchdog.getName()+";");
+            temp.pr(reactorRef+"->_lf_watchdog_"+watchdog.getName()+".min_expiration = "+GeneratorBase.timeInTargetLanguage(watchdog.getTimeout())+";");
             watchdogCount += 1;
             foundOne = true;
         }
@@ -1903,8 +1900,6 @@ public class CGenerator extends GeneratorBase {
      * specified reactor instance.
      * @param instance The reactor instance.
      */
-    // WATCHDOG QUESTION: Why do we wait to set the deadline instead of defining
-    // it in the constructor of the reactor?
     private void generateSetDeadline(ReactorInstance instance) {
         for (ReactionInstance reaction : instance.reactions) {
             var selfRef = CUtil.reactorRef(reaction.getParent())+"->_lf__reaction_"+reaction.index;
