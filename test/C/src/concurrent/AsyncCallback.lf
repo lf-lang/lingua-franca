@@ -7,15 +7,21 @@
  * Note: This test uses the LF platform support to enable it to run on multiple
  * platforms.
  */
-target C {
+target CCpp {
     tracing: true,
     timeout: 2 sec,
     keepalive: true
 }
 
 preamble {=
+    #ifdef __cplusplus
+    extern "C" {
+    #endif
     #include <stdio.h>
     #include "platform.h"
+    #ifdef __cplusplus
+    }
+    #endif
 =}
 
 main reactor AsyncCallback {

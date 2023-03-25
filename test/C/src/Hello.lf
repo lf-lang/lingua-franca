@@ -10,6 +10,7 @@ target C {
 
 preamble {=
     #include <stdio.h>
+    #include <time.h>
 =}
 
 reactor Reschedule(period: time(2 sec), message: string("Hello C")) {

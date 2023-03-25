@@ -3,8 +3,14 @@
 target C
 
 preamble {=
+    #ifdef __cplusplus
+    extern "C" {
+    #endif
     #include <stdio.h>
     #include "platform.h"
+    #ifdef __cplusplus
+    }
+    #endif
 =}
 
 reactor Deadline(threshold: time(100 msec)) {
