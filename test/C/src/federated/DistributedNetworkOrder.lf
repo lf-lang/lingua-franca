@@ -8,7 +8,7 @@
  *
  * @author Soroush Bateni
  */
-target CCpp {
+target C {
     timeout: 1 sec,
     build-type: RelWithDebInfo  // Release with debug info
 }
