@@ -77,7 +77,7 @@ main reactor {
     test = new TraceTesting(
         events_size = 5,
         trace_size = 165,
-        trace = (  // keep-format
+        trace = {  // keep-format
             0,0,0,1,1,0,0,0,0,0,0,
             500000000,0,0,0,1,1,1,0,0,0,0,
             250000000,0,0,1,1,0,1,0,0,0,0,
@@ -93,7 +93,7 @@ main reactor {
             500000000,0,1,0,1,0,1,0,1,1,1,
             250000000,0,1,0,1,0,1,1,1,0,1,
             250000000,1,1,0,1,0,1,0,1,0,1
-        ),
+        },
         training = false
     )
 
