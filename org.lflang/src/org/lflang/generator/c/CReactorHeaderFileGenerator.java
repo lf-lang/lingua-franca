@@ -73,9 +73,6 @@ public class CReactorHeaderFileGenerator {
             }
             #endif
             """);
-        ASTUtils.allNestedClasses(r)
-            .map(it -> outputPath(fileConfig, r).getParent().relativize(outputPath(fileConfig, it)))
-            .forEach(it -> builder.pr(String.format("#include \"%s\"", it)));
     }
 
     private static String userFacingSelfType(Reactor r) {
@@ -114,10 +111,10 @@ public class CReactorHeaderFileGenerator {
                 : String.format("""
                     %s %s[%s];
                     for (int i = 0; i < %s; i++) {
-                        %s[i] = self->_lf_%s[i].%s;
+                        %s[i] = (%s) self->_lf_%s[i].%s;
                     }
                     """,
-                    it.getType(false).replaceFirst("\\*", ""),
+                    it.getType(true).replaceFirst("\\*", ""),
                     it.getAlias(),
                     CReactionGenerator.maxContainedReactorBankWidth(
                         reactor.getInstantiations().stream()
@@ -126,6 +123,7 @@ public class CReactorHeaderFileGenerator {
                         null, 0, mainDef),
                     "self->_lf_"+it.container.getName()+"_width",
                     it.getAlias(),
+                    it.getType(true).replaceFirst("\\*", ""),
                     it.container.getName(),
                     it.getName()))
             .collect(Collectors.joining("\n"));
@@ -154,8 +152,10 @@ public class CReactorHeaderFileGenerator {
 
     private record PortVariable(TypedVariable tv, Reactor r, Instantiation container) {
         String getType(boolean userFacing) {
-            return CGenerator.variableStructType(tv, r, userFacing)
-                + "*" + (getWidth() != null ? "*" : "");
+            var typeName = container == null ?
+                CGenerator.variableStructType(tv, r, userFacing)
+                : CPortGenerator.localPortName(container.getReactorClass(), getName());
+            return typeName + "*" + (getWidth() != null ? "*" : "");
         }
         String getName() {
             return tv.getName();

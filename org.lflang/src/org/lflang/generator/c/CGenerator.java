@@ -922,7 +922,18 @@ public class CGenerator extends GeneratorBase {
             false
         );
         for (Reactor r : reactors) {
-            CReactorHeaderFileGenerator.doGenerate(types, r, fileConfig, this::generateAuxiliaryStructs, this::generateTopLevelPreambles);
+            CReactorHeaderFileGenerator.doGenerate(
+                types, r, fileConfig,
+                (builder, rr, userFacing) -> {
+                    generateAuxiliaryStructs(builder, rr, userFacing);
+                    if (userFacing) ASTUtils.allInstantiations(r).stream().map(Instantiation::getReactorClass).forEach(it -> {
+                        ASTUtils.allPorts(ASTUtils.toDefinition(it))
+                            .forEach(p -> builder.pr(CPortGenerator.generateAuxiliaryStruct(
+                                ASTUtils.toDefinition(it), p, getTarget(), errorReporter, types, new CodeBuilder(), true, it
+                            )));
+                    });
+                },
+                this::generateTopLevelPreambles);
         }
         FileUtil.copyDirectory(fileConfig.getIncludePath(), fileConfig.getSrcGenPath().resolve("include"), false);
     }
@@ -1154,7 +1165,8 @@ public class CGenerator extends GeneratorBase {
                 errorReporter,
                 types,
                 federatedExtension,
-                userFacing
+                userFacing,
+                null
             ));
         }
         // The very first item on this struct needs to be

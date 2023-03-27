@@ -44,23 +44,28 @@ public class CPortGenerator {
      * Generate the struct type definitions for the port of the
      * reactor
      *
-     * @param decl The reactor declaration
+     * @param r The reactor
      * @param port The port to generate the struct
      * @param target The target of the code generation (C, CCpp or Python)
      * @param errorReporter The error reporter
      * @param types The helper object for types related stuff
      * @param federatedExtension The code needed to support federated execution
+     * @param userFacing Whether this struct is to be presented in a user-facing header
+     * @param decl The reactorDecl if this struct is for the header of this reactor's container;
+     * null otherwise
      * @return The auxiliary struct for the port as a string
      */
     public static String generateAuxiliaryStruct(
-        Reactor decl,
+        Reactor r,
         Port port,
         Target target,
         ErrorReporter errorReporter,
         CTypes types,
         CodeBuilder federatedExtension,
-        boolean userFacing
+        boolean userFacing,
+        ReactorDecl decl
     ) {
+        assert decl == null || userFacing;
         var code = new CodeBuilder();
         code.pr("typedef struct {");
         code.indent();
@@ -80,8 +85,14 @@ public class CPortGenerator {
         code.pr(valueDeclaration(port, target, errorReporter, types));
         code.pr(federatedExtension.toString());
         code.unindent();
-        code.pr("} "+variableStructType(port, decl, userFacing)+";");
+        var name = decl != null ? localPortName(decl, port.getName())
+            : variableStructType(port, r, userFacing);
+        code.pr("} " + name + ";");
         return code.toString();
+    }
+
+    public static String localPortName(ReactorDecl decl, String portName) {
+        return decl.getName().toLowerCase() + "_" + portName + "_t";
     }
 
     /**
