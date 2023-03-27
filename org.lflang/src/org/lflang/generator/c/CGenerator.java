@@ -2016,6 +2016,7 @@ public class CGenerator extends GeneratorBase {
         builder.pr("#define " + guard);
         Stream.concat(Stream.of(reactor), ASTUtils.allNestedClasses(reactor))
             .flatMap(it -> ((Model) it.eContainer()).getPreambles().stream())
+            .collect(Collectors.toSet())
             .forEach(it -> builder.pr(toText(it.getCode())));
         for (String file : targetConfig.protoFiles) {
             var dotIndex = file.lastIndexOf(".");
