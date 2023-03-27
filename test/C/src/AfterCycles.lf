@@ -20,7 +20,7 @@ reactor Work {
 }
 
 main reactor AfterCycles {
-    state count: int(0)
+    state count: int = 0
     s = new Source()
     w0 = new Work()
     w1 = new Work()

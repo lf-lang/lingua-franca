@@ -20,7 +20,7 @@ main reactor ActionValuesCleanup {
     =}
 
     logical action act: FooDrop
-    state count: u32(0)
+    state count: u32 = 0
 
     reaction(startup) -> act {=
         ctx.schedule_with_v(act, Some(FooDrop { }), Asap)

@@ -17,7 +17,7 @@ preamble {=
 
 reactor Count {
     timer t(200 msec, 1 sec)
-    state s: int(0)
+    state s: int = 0
     output out: int
 
     reaction(t) -> out {=
@@ -28,7 +28,7 @@ reactor Count {
 
 reactor Print {
     input in: int
-    state c: int(0)
+    state c: int = 0
 
     reaction(in) {=
         interval_t elapsed_time = lf_time_logical_elapsed();

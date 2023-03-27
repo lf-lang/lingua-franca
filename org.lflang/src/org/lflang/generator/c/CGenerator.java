@@ -386,9 +386,9 @@ public class CGenerator extends GeneratorBase {
         this(
             context,
             ccppMode,
-            new CTypes(context.getErrorReporter()),
+            new CTypes(),
             new CCmakeGenerator(context.getFileConfig(), List.of()),
-            new CDelayBodyGenerator(new CTypes(context.getErrorReporter()))
+            new CDelayBodyGenerator(new CTypes())
         );
     }
 
@@ -1845,7 +1845,7 @@ public class CGenerator extends GeneratorBase {
             var selfRef = CUtil.reactorRef(reaction.getParent())+"->_lf__reaction_"+reaction.index;
             if (reaction.declaredDeadline != null) {
                 var deadline = reaction.declaredDeadline.maxDelay;
-                initializeTriggerObjects.pr(selfRef+".deadline = "+GeneratorBase.timeInTargetLanguage(deadline)+";");
+                initializeTriggerObjects.pr(selfRef+".deadline = "+types.getTargetTimeExpr(deadline)+";");
             } else { // No deadline.
                 initializeTriggerObjects.pr(selfRef+".deadline = NEVER;");
             }

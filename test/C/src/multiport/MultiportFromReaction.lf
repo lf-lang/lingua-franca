@@ -8,8 +8,8 @@ preamble {=
     #include <stdio.h>
 =}
 
-reactor Destination(width: int(1)) {
-    state s: int(6)
+reactor Destination(width: int = 1) {
+    state s: int = 6
     input[width] in: int
 
     reaction(in) {=
@@ -34,9 +34,9 @@ reactor Destination(width: int(1)) {
     =}
 }
 
-main reactor MultiportFromReaction(width: int(4)) {
+main reactor MultiportFromReaction(width: int = 4) {
     timer t(0, 200 msec)
-    state s: int(0)
+    state s: int = 0
     b = new Destination(width = width)
 
     reaction(t) -> b.in {=

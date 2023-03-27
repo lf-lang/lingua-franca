@@ -9,10 +9,10 @@ preamble {=
     #include <stdio.h>
 =}
 
-reactor Source(period: time(2 sec)) {
+reactor Source(period: time = 2 sec) {
     output y: int
     timer t(1 sec, period)
-    state count: int(0)
+    state count: int = 0
 
     reaction(t) -> y {=
         (self->count)++;
@@ -23,7 +23,7 @@ reactor Source(period: time(2 sec)) {
 
 reactor Test {
     input x: int
-    state count: int(0)
+    state count: int = 0
 
     reaction(x) {=
         (self->count)++;

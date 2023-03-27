@@ -11,7 +11,7 @@ preamble {=
 reactor Source {
     output out: int
     timer t(0, 1 sec)
-    state s: int(1)
+    state s: int = 1
 
     reaction(t) -> out {= lf_set(out, self->s++); =}
 }
@@ -31,7 +31,7 @@ reactor Add {
 
 reactor Print {
     input in: int
-    state expected: int(1)
+    state expected: int = 1
 
     reaction(in) {=
         printf("Received: %d.\n", in->value);

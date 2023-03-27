@@ -12,8 +12,8 @@ preamble {=
 =}
 
 main reactor {
-    state x: int(0)
-    state first: bool(true)
+    state x: int = 0
+    state first: bool = true
 
     timer t(0, 100 msec)
 

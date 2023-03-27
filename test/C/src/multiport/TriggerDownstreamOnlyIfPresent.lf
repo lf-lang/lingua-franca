@@ -14,7 +14,7 @@ preamble {=
 reactor Source {
     output a: int
     output b: int
-    state count: int(0)
+    state count: int = 0
     timer t(0, 200 msec)
 
     reaction(t) -> a, b {=

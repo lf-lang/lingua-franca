@@ -49,7 +49,7 @@ reactor Modal {
     }
 }
 
-reactor Producer(mode_id: int(0)) {
+reactor Producer(mode_id: int = 0) {
     output product: int
 
     timer t(0, 750 msec)
@@ -60,7 +60,7 @@ reactor Producer(mode_id: int(0)) {
     =}
 }
 
-reactor Consumer(mode_id: int(0)) {
+reactor Consumer(mode_id: int = 0) {
     input product: int
     output report: int
 

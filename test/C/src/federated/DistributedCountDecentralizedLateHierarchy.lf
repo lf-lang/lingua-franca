@@ -21,12 +21,12 @@ preamble {=
 
 reactor ImportantActuator {
     input in: int
-    state success: int(0)
-    state success_stp_violation: int(0)
+    state success: int = 0
+    state success_stp_violation: int = 0
     // Force a timer to be invoke periodically
     timer t(0, 10 msec)
     // to ensure logical time will advance in the absence of incoming messages.
-    state c: int(0)
+    state c: int = 0
 
     reaction(in) {=
         tag_t current_tag = lf_tag();
@@ -83,7 +83,7 @@ reactor Receiver {
     // Force a timer to be invoke periodically
     timer t(0, 10 msec)
     // to ensure logical time will advance in the absence of incoming messages.
-    state c: int(0)
+    state c: int = 0
     p = new Print()
     a = new ImportantActuator()
     in -> p.in

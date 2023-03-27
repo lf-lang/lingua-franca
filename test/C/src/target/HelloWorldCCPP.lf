@@ -15,7 +15,7 @@ reactor HelloWorld {
     preamble {=
         #include <iostream>
     =}
-    state success: bool(false)
+    state success: bool = false
 
     reaction(startup) {=
         std::cout << "Hello World." << std::endl;

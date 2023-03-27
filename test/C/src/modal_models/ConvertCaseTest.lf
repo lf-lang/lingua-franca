@@ -87,9 +87,9 @@ reactor Converter {
     }
 }
 
-reactor InputFeeder(message: string("")) {
+reactor InputFeeder(message: string = "") {
     output character: char
-    state idx: int(0)
+    state idx: int = 0
 
     timer t(0, 250 msec)
 

@@ -12,9 +12,9 @@ preamble {=
     #include "hello.h"
 =}
 
-reactor Check(expected: int(42)) {
+reactor Check(expected: int = 42) {
     input in: hello_t*
-    state invoked: bool(false)
+    state invoked: bool = false
 
     reaction(in) {=
         printf("Received: name = %s, value = %d\n", in->value->name, in->value->value);
@@ -33,7 +33,7 @@ reactor Check(expected: int(42)) {
     =}
 }
 
-reactor Print(scale: int(2)) {
+reactor Print(scale: int = 2) {
     // Mutable keyword indicates that this reactor wants a writable copy of the
     // input.
     mutable input in: hello_t*

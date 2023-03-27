@@ -5,7 +5,7 @@ preamble {=
     #include <stdio.h>
 =}
 
-reactor DelayPointer2(delay: time(100 msec)) {
+reactor DelayPointer2(delay: time = 100 msec) {
     input in: int*
     output out: int*
     logical action a: int*
@@ -34,8 +34,8 @@ reactor Source {
 
 reactor Test {
     input in: int*
-    state start_time: time(0)
-    state received_value: bool(false)
+    state start_time: time = 0
+    state received_value: bool = false
 
     reaction(startup) {=
         // Record the logical time at the start.

@@ -253,6 +253,14 @@ public class ASTUtils {
     }
 
     /**
+     * Return the target of the file in which the given node lives.
+     */
+    public static Target getTarget(EObject object) {
+        TargetDecl targetDecl = targetDecl(object.eResource());
+        return Target.fromDecl(targetDecl);
+    }
+
+    /**
      * Add a new target property to the given resource.
      *
      * This also creates a config object if the resource does not yey have one.

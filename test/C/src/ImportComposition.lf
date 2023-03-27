@@ -10,7 +10,7 @@ preamble {=
 
 main reactor ImportComposition {
     a = new ImportedComposition()
-    state received: bool(false)
+    state received: bool = false
 
     reaction(startup) -> a.x {= lf_set(a.x, 42); =}
 

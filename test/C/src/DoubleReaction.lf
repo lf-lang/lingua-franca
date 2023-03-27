@@ -9,10 +9,10 @@ preamble {=
     #include <stdio.h>
 =}
 
-reactor Clock(offset: time(0), period: time(1 sec)) {
+reactor Clock(offset: time = 0, period: time = 1 sec) {
     output y: int
     timer t(offset, period)
-    state count: int(0)
+    state count: int = 0
 
     reaction(t) -> y {=
         (self->count)++;
@@ -23,7 +23,7 @@ reactor Clock(offset: time(0), period: time(1 sec)) {
 reactor Destination {
     input x: int
     input w: int
-    state s: int(2)
+    state s: int = 2
 
     reaction(x, w) {=
         int sum = 0;

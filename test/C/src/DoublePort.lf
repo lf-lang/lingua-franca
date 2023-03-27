@@ -17,7 +17,7 @@ preamble {=
 =}
 
 reactor CountMicrostep {
-    state count: int(1)
+    state count: int = 1
     output out: int
     logical action act: int
     timer t(0, 1 sec)

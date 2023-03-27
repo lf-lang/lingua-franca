@@ -9,8 +9,8 @@ preamble {=
     #include <stdio.h>
 =}
 
-reactor Count(stride: int(1)) {
-    state count: int(1)
+reactor Count(stride: int = 1) {
+    state count: int = 1
     output y: int
     timer t(0, 100 msec)
 
@@ -22,7 +22,7 @@ reactor Count(stride: int(1)) {
 
 reactor Display {
     input x: int
-    state expected: int(1)  // for testing.
+    state expected: int = 1  // for testing.
 
     reaction(x) {=
         printf("Received: %d.\n", x->value);

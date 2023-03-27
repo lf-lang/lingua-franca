@@ -38,7 +38,7 @@ main reactor {
     timer stepper(0, 250 msec)
     counter = new CounterCycle()
 
-    state expected_value: int(1)
+    state expected_value: int = 1
 
     // Trigger
     reaction(stepper) -> counter.next {= lf_set(counter.next, true); =}

@@ -16,7 +16,7 @@ preamble {=
 
 reactor Print {
     input in: int
-    state c: int(1)
+    state c: int = 1
 
     reaction(in) {=
         interval_t elapsed_time = lf_time_logical_elapsed();

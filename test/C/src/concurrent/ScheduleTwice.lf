@@ -6,7 +6,7 @@ preamble {=
 
 main reactor ScheduleTwice {
     logical action a: int
-    state rc_count: int(0)
+    state rc_count: int = 0
     preamble {=
         #define VERBOSE
     =}

@@ -5,9 +5,9 @@ preamble {=
     #include <stdio.h>
 =}
 
-main reactor ActionIsPresent(offset: time(1 nsec), period: time(500 msec)) {
+main reactor ActionIsPresent(offset: time = 1 nsec, period: time = 500 msec) {
     logical action a
-    state success: bool(false)
+    state success: bool = false
 
     reaction(startup, a) -> a {=
         if (!a->is_present) {

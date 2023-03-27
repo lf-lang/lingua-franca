@@ -5,7 +5,7 @@ preamble {=
 =}
 
 reactor Super {
-    state count: int(0)
+    state count: int = 0
 
     reaction(startup) {=
         printf("%s(Super) started\n", self->name);
@@ -20,7 +20,7 @@ reactor Super {
     =}
 }
 
-reactor SubA(name: string("SubA")) extends Super {
+reactor SubA(name: string = "SubA") extends Super {
     reaction(startup) {=
         printf("%s started\n", self->name);
         if (self->count == 0) {
@@ -30,7 +30,7 @@ reactor SubA(name: string("SubA")) extends Super {
     =}
 }
 
-reactor SubB(name: string("SubB")) extends Super {
+reactor SubB(name: string = "SubB") extends Super {
     reaction(startup) {=
         printf("%s started\n", self->name);
         if (self->count == 0) {

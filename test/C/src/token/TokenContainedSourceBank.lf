@@ -14,9 +14,9 @@ preamble {=
     #include <stdio.h>
 =}
 
-main reactor(scale: int(1)) {
-    state count: int(0)
-    state input_received: bool(false)
+main reactor(scale: int = 1) {
+    state count: int = 0
+    state input_received: bool = false
 
     s = new[2] TokenSource()
 

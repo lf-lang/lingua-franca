@@ -8,10 +8,10 @@ preamble {=
     #include <stdio.h>
 =}
 
-reactor Source(width: int(1)) {
+reactor Source(width: int = 1) {
     timer t(0, 200 msec)
     output[width] out: int
-    state s: int(0)
+    state s: int = 0
 
     reaction(t) -> out {=
         for(int i = 0; i < out_width; i++) {
@@ -20,8 +20,8 @@ reactor Source(width: int(1)) {
     =}
 }
 
-reactor Destination(width: int(1)) {
-    state s: int(6)
+reactor Destination(width: int = 1) {
+    state s: int = 6
     input[width] in: int
 
     reaction(in) {=
@@ -46,7 +46,7 @@ reactor Destination(width: int(1)) {
     =}
 }
 
-main reactor(bank_width: int(4)) {
+main reactor(bank_width: int = 4) {
     a = new[bank_width] Source(width = 4)
     b = new[bank_width] Destination(width = 4)
     a.out -> b.in after 200 msec

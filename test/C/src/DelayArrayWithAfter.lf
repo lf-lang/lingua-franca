@@ -11,7 +11,7 @@ preamble {=
 
 reactor Source {
     output out: int[]
-    state iteration: int(1)
+    state iteration: int = 1
     timer t(0, 1 sec)
 
     reaction(t) -> out {=
@@ -27,10 +27,10 @@ reactor Source {
     =}
 }
 
-reactor Print(scale: int(1)) {  // The scale parameter is just for testing.
+reactor Print(scale: int = 1) {  // The scale parameter is just for testing.
     input in: int[]
-    state iteration: int(1)
-    state inputs_received: int(0)
+    state iteration: int = 1
+    state inputs_received: int = 0
 
     reaction(in) {=
         self->inputs_received++;

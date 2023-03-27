@@ -7,7 +7,7 @@ preamble {=
     #include <stdio.h>
 =}
 
-reactor Timer(m: time(0), n: time(0)) {
+reactor Timer(m: time = 0, n: time = 0) {
     output out: int
     timer t(m, n)
 
@@ -15,7 +15,7 @@ reactor Timer(m: time(0), n: time(0)) {
 }
 
 main reactor {
-    t = new Timer(m(0), n(1 msec))
+    t = new Timer(m = 0, n = 1 msec)
 
     state count: int
 

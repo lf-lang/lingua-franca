@@ -10,10 +10,10 @@ preamble {=
     #include <stdio.h>
 =}
 
-reactor SuperDenseSender(number_of_iterations: int(10)) {
+reactor SuperDenseSender(number_of_iterations: int = 10) {
     logical action loop
     output out: int
-    state iterator: int(0)
+    state iterator: int = 0
 
     reaction(startup, loop) -> out {=
         if (self->iterator < self->number_of_iterations) {
@@ -38,7 +38,7 @@ reactor SuperDenseSender(number_of_iterations: int(10)) {
     =}
 }
 
-reactor SuperDenseReceiver(number_of_iterations: int(10)) {
+reactor SuperDenseReceiver(number_of_iterations: int = 10) {
     input in: int
 
     reaction(in) {=

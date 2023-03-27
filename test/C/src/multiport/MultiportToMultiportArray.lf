@@ -12,7 +12,7 @@ preamble {=
 reactor Source {
     timer t(0, 200 msec)
     output[2] out: int[]
-    state s: int(0)
+    state s: int = 0
 
     reaction(t) -> out {=
         for(int i = 0; i < 2; i++) {
@@ -28,7 +28,7 @@ reactor Source {
 }
 
 reactor Destination {
-    state s: int(15)
+    state s: int = 15
     input[2] in: int[]
 
     reaction(in) {=

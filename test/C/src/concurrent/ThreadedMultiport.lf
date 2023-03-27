@@ -9,10 +9,10 @@ preamble {=
     #include <stdio.h>
 =}
 
-reactor Source(width: int(4)) {
+reactor Source(width: int = 4) {
     timer t(0, 200 msec)
     output[width] out: int
-    state s: int(0)
+    state s: int = 0
 
     reaction(t) -> out {=
         for(int i = 0; i < out_width; i++) {
@@ -22,7 +22,7 @@ reactor Source(width: int(4)) {
     =}
 }
 
-reactor Computation(iterations: int(100000000)) {
+reactor Computation(iterations: int = 100000000) {
     input in: int
     output out: int
 
@@ -38,8 +38,8 @@ reactor Computation(iterations: int(100000000)) {
     =}
 }
 
-reactor Destination(width: int(4), iterations: int(100000000)) {
-    state s: int(0)
+reactor Destination(width: int = 4, iterations: int = 100000000) {
+    state s: int = 0
     input[width] in: int
 
     reaction(in) {=
@@ -65,7 +65,7 @@ reactor Destination(width: int(4), iterations: int(100000000)) {
     =}
 }
 
-main reactor ThreadedMultiport(width: int(4), iterations: int(100000000)) {
+main reactor ThreadedMultiport(width: int = 4, iterations: int = 100000000) {
     a = new Source(width = width)
     t = new[width] Computation(iterations = iterations)
     b = new Destination(width = width, iterations = iterations)

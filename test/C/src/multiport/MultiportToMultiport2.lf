@@ -5,7 +5,7 @@ preamble {=
     #include <stdio.h>
 =}
 
-reactor Source(width: int(2)) {
+reactor Source(width: int = 2) {
     output[width] out: int
 
     reaction(startup) -> out {=
@@ -15,7 +15,7 @@ reactor Source(width: int(2)) {
     =}
 }
 
-reactor Destination(width: int(2)) {
+reactor Destination(width: int = 2) {
     input[width] in: int
 
     reaction(in) {=
@@ -34,9 +34,9 @@ reactor Destination(width: int(2)) {
 }
 
 main reactor MultiportToMultiport2(
-    width1: int(3),
-    width2: int(2),
-    width3: int(5)
+    width1: int = 3,
+    width2: int = 2,
+    width3: int = 5
 ) {
     a1 = new Source(width = width1)
     a2 = new Source(width = width2)

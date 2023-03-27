@@ -12,7 +12,7 @@ preamble {=
 main reactor DoubleTrigger {
     timer t1
     timer t2
-    state s: int(0)
+    state s: int = 0
 
     reaction(t1, t2) {=
         self->s++;

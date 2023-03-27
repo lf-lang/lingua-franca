@@ -14,7 +14,7 @@ reactor Contained {
 
 main reactor ReadOutputOfContainedReactor {
     c = new Contained()
-    state count: int(0)
+    state count: int = 0
 
     reaction(startup) c.out {=
         printf("Startup reaction reading output of contained reactor: %d.\n", c.out->value);

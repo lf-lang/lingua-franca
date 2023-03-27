@@ -5,7 +5,7 @@ preamble {=
     #include <stdio.h>
 =}
 
-reactor Source(width: int(2)) {
+reactor Source(width: int = 2) {
     output[width] out: int
 
     reaction(startup) -> out {=
@@ -15,7 +15,7 @@ reactor Source(width: int(2)) {
     =}
 }
 
-reactor Destination(width: int(2)) {
+reactor Destination(width: int = 2) {
     input[width] in: int
 
     reaction(in) {=
