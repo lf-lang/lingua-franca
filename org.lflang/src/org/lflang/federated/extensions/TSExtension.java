@@ -9,17 +9,15 @@ import java.util.stream.Collectors;
 import org.lflang.ASTUtils;
 import org.lflang.ErrorReporter;
 import org.lflang.InferredType;
-import org.lflang.Target;
 import org.lflang.TargetProperty.CoordinationType;
 import org.lflang.TimeValue;
 import org.lflang.federated.generator.FedASTUtils;
 import org.lflang.federated.generator.FedConnectionInstance;
 import org.lflang.federated.generator.FedFileConfig;
 import org.lflang.federated.generator.FederateInstance;
-import org.lflang.generator.GeneratorBase;
 import org.lflang.generator.LFGeneratorContext;
 import org.lflang.generator.ReactorInstance;
-import org.lflang.generator.ts.TSExtensionsKt;
+import org.lflang.generator.ts.TSTypes;
 import org.lflang.lf.Action;
 import org.lflang.lf.Expression;
 import org.lflang.lf.Output;
@@ -113,7 +111,7 @@ public class TSExtension implements FedTargetExtension {
                               .collect(Collectors.joining(",")),
             federate.id,
             minOutputDelay == null ? "undefined"
-                                   : "%s".formatted(TSExtensionsKt.toTsTime(minOutputDelay)),
+                                   : "%s".formatted(new TSTypes().getTargetTimeExpr(minOutputDelay)),
             federate.networkMessageActions
                 .stream()
                 .map(Variable::getName)
