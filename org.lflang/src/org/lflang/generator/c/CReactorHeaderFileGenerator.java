@@ -10,6 +10,7 @@ import java.util.stream.Stream;
 import org.eclipse.emf.ecore.EObject;
 
 import org.lflang.ASTUtils;
+import org.lflang.FileConfig;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.lf.Instantiation;
 import org.lflang.lf.LfFactory;
@@ -38,14 +39,14 @@ public class CReactorHeaderFileGenerator {
     }
 
     public static void doGenerate(CTypes types, Reactor r, CFileConfig fileConfig, GenerateAuxiliaryStructs generator, Function<EObject, String> topLevelPreamble) throws IOException {
-        String contents = generateHeaderFile(types, r, generator, topLevelPreamble.apply(r));
+        String contents = generateHeaderFile(types, fileConfig, r, generator, topLevelPreamble.apply(r));
         FileUtil.writeToFile(contents, fileConfig.getIncludePath().resolve(outputPath(fileConfig, r)));
     }
-    private static String generateHeaderFile(CTypes types, Reactor r, GenerateAuxiliaryStructs generator, String topLevelPreamble) {
+    private static String generateHeaderFile(CTypes types, CFileConfig fileConfig, Reactor r, GenerateAuxiliaryStructs generator, String topLevelPreamble) {
         CodeBuilder builder = new CodeBuilder();
         appendIncludeGuard(builder, r);
         builder.pr(topLevelPreamble);
-        appendPoundIncludes(builder, r);
+        appendPoundIncludes(builder, r, fileConfig);
         appendSelfStruct(builder, types, r);
         generator.generate(builder, r, true);
         for (Reaction reaction : r.getReactions()) {
@@ -60,7 +61,7 @@ public class CReactorHeaderFileGenerator {
         builder.pr("#ifndef " + macro);
         builder.pr("#define " + macro);
     }
-    private static void appendPoundIncludes(CodeBuilder builder, Reactor r) {
+    private static void appendPoundIncludes(CodeBuilder builder, Reactor r, CFileConfig fileConfig) {
         builder.pr("""
             #ifdef __cplusplus
             extern "C" {
@@ -73,8 +74,7 @@ public class CReactorHeaderFileGenerator {
             #endif
             """);
         ASTUtils.allNestedClasses(r)
-            .map(Reactor::getName)
-            .map(it -> it + ".h")
+            .map(it -> outputPath(fileConfig, r).getParent().relativize(outputPath(fileConfig, it)))
             .forEach(it -> builder.pr(String.format("#include \"%s\"", it)));
     }
 
