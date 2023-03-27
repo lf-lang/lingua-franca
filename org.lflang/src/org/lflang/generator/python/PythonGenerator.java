@@ -288,7 +288,7 @@ public class PythonGenerator extends CGenerator {
      * execution setup preamble specified in the target config.
      */
     @Override
-    protected String generateTopLevelPreambles(EObject ignored) {
+    protected String generateTopLevelPreambles(Reactor ignored) {
         // user preambles
         Set<Model> models = new LinkedHashSet<>();
         for (Reactor r : ASTUtils.convertToEmptyListIfNull(reactors)) {

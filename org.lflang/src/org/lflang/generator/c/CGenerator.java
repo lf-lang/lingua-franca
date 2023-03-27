@@ -2009,15 +2009,14 @@ public class CGenerator extends GeneratorBase {
     /**
      * Generate top-level preamble code.
      */
-    protected String generateTopLevelPreambles(EObject reactor) {
+    protected String generateTopLevelPreambles(Reactor reactor) {
         CodeBuilder builder = new CodeBuilder();
-        var mainModel = (Model) reactor.eContainer();
-        var guard = "TOP_LEVEL_PREAMBLE_" + mainModel.hashCode() + "_H";
+        var guard = "TOP_LEVEL_PREAMBLE_" + reactor.eContainer().hashCode() + "_H";
         builder.pr("#ifndef " + guard);
         builder.pr("#define " + guard);
-        for (Preamble p : mainModel.getPreambles()) {
-            builder.pr(toText(p.getCode()));
-        }
+        Stream.concat(Stream.of(reactor), ASTUtils.allNestedClasses(reactor))
+            .flatMap(it -> ((Model) it.eContainer()).getPreambles().stream())
+            .forEach(it -> builder.pr(toText(it.getCode())));
         for (String file : targetConfig.protoFiles) {
             var dotIndex = file.lastIndexOf(".");
             var rootFilename = file;

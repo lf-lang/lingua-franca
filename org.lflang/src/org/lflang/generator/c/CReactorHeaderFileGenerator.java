@@ -38,7 +38,7 @@ public class CReactorHeaderFileGenerator {
             .resolve(r.getName() + ".h");
     }
 
-    public static void doGenerate(CTypes types, Reactor r, CFileConfig fileConfig, GenerateAuxiliaryStructs generator, Function<EObject, String> topLevelPreamble) throws IOException {
+    public static void doGenerate(CTypes types, Reactor r, CFileConfig fileConfig, GenerateAuxiliaryStructs generator, Function<Reactor, String> topLevelPreamble) throws IOException {
         String contents = generateHeaderFile(types, fileConfig, r, generator, topLevelPreamble.apply(r));
         FileUtil.writeToFile(contents, fileConfig.getIncludePath().resolve(outputPath(fileConfig, r)));
     }
