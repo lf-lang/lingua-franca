@@ -926,12 +926,14 @@ public class CGenerator extends GeneratorBase {
                 types, r, fileConfig,
                 (builder, rr, userFacing) -> {
                     generateAuxiliaryStructs(builder, rr, userFacing);
-                    if (userFacing) ASTUtils.allInstantiations(r).stream().map(Instantiation::getReactorClass).forEach(it -> {
-                        ASTUtils.allPorts(ASTUtils.toDefinition(it))
-                            .forEach(p -> builder.pr(CPortGenerator.generateAuxiliaryStruct(
-                                ASTUtils.toDefinition(it), p, getTarget(), errorReporter, types, new CodeBuilder(), true, it
-                            )));
-                    });
+                    if (userFacing) {
+                        ASTUtils.allInstantiations(r).stream().map(Instantiation::getReactorClass).collect(Collectors.toSet()).forEach(it -> {
+                            ASTUtils.allPorts(ASTUtils.toDefinition(it))
+                                .forEach(p -> builder.pr(CPortGenerator.generateAuxiliaryStruct(
+                                    ASTUtils.toDefinition(it), p, getTarget(), errorReporter, types, new CodeBuilder(), true, it
+                                )));
+                        });
+                    }
                 },
                 this::generateTopLevelPreambles);
         }
