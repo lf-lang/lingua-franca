@@ -68,7 +68,7 @@ public class CReactorHeaderFileGenerator {
             #endif
             #include "../include/api/api.h"
             #include "../include/api/set.h"
-            #include "../include/core/reactor.h"  
+            #include "../include/core/reactor.h"
             #ifdef __cplusplus
             }
             #endif
@@ -100,7 +100,7 @@ public class CReactorHeaderFileGenerator {
 
     private static String reactionParameters(CTypes types, Reaction r, Reactor reactor) {
         return Stream.concat(Stream.of(userFacingSelfType(reactor) + "* self"), ioTypedVariableStream(r, reactor)
-            .map(it -> it.getType(true) + "* " + it.getName()))
+            .map(it -> it.getType(true) + " " + it.getName()))
             .collect(Collectors.joining(", "));
     }
 
@@ -110,26 +110,30 @@ public class CReactorHeaderFileGenerator {
         mainDef.setReactorClass(ASTUtils.findMainReactor(reactor.eResource()));
         return ioTypedVariableStream(r, reactor)
             .map(it -> it.getWidth() == null ?
-                String.format("%s* %s = %s;", it.getType(false), it.getAlias(), it.getRvalue())
+                String.format("%s %s = %s;", it.getType(false), it.getAlias(), it.getRvalue())
                 : String.format("""
-                    %s* %s[%s];
+                    %s %s[%s];
                     for (int i = 0; i < %s; i++) {
                         %s[i] = self->_lf_%s[i].%s;
                     }
                     """,
-                    it.getType(false),
+                    it.getType(false).replaceFirst("\\*", ""),
                     it.getAlias(),
-                    CReactionGenerator.maxContainedReactorBankWidth(it.r.getInstantiations().get(0), null, 0, mainDef),
-                    "self->_lf_"+it.r.getName()+"_width",
+                    CReactionGenerator.maxContainedReactorBankWidth(
+                        reactor.getInstantiations().stream()
+                            .filter(instantiation -> ASTUtils.toDefinition(instantiation.getReactorClass()).equals(it.r))
+                            .findAny().orElseThrow(),
+                        null, 0, mainDef),
+                    "self->_lf_"+it.container.getName()+"_width",
                     it.getAlias(),
-                    it.r.getName(),
+                    it.container.getName(),
                     it.getName()))
             .collect(Collectors.joining("\n"));
     }
 
     public static String reactionArguments(CTypes types, Reaction r, Reactor reactor) {
         return Stream.concat(Stream.of(getApiSelfStruct(reactor)), ioTypedVariableStream(r, reactor)
-                .map(it -> String.format("((%s*) %s)", it.getType(true), it.getAlias())))
+                .map(it -> String.format("((%s) %s)", it.getType(true), it.getAlias())))
             .collect(Collectors.joining(", "));
     }
 
@@ -150,7 +154,8 @@ public class CReactorHeaderFileGenerator {
 
     private record PortVariable(TypedVariable tv, Reactor r, Instantiation container) {
         String getType(boolean userFacing) {
-            return CGenerator.variableStructType(tv, r, userFacing);
+            return CGenerator.variableStructType(tv, r, userFacing)
+                + "*" + (getWidth() != null ? "*" : "");
         }
         String getName() {
             return tv.getName();
