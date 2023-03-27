@@ -45,6 +45,7 @@ import org.lflang.Target;
 import org.lflang.TargetConfig;
 import org.lflang.TimeValue;
 import org.lflang.federated.serialization.SupportedSerializers;
+import org.lflang.AttributeUtils;
 import org.lflang.generator.ActionInstance;
 import org.lflang.generator.GeneratorUtils;
 import org.lflang.generator.PortInstance;
@@ -107,7 +108,8 @@ public class FederateInstance {
         this.bankIndex = bankIndex;
         this.errorReporter = errorReporter;
         this.targetConfig = targetConfig;
-        
+        this.isTransient = AttributeUtils.isTransient(instantiation);
+
         if (instantiation != null) {
             this.name = instantiation.getName();
             // If the instantiation is in a bank, then we have to append
@@ -187,6 +189,10 @@ public class FederateInstance {
      */
     public int id = 0;
 
+    /**
+     * Type of the federate: transient if true, and peristent if false .
+     */
+    public boolean isTransient = false;
 
     /**
      * The name of this federate instance. This will be the instantiation

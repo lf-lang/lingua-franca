@@ -32,7 +32,8 @@ import org.eclipse.emf.ecore.EObject;
 import org.eclipse.xtext.nodemodel.ICompositeNode;
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils;
 import org.eclipse.xtext.resource.XtextResource;
-
+import org.lflang.federated.generator.FederateInstance;
+import org.lflang.generator.ReactorInstance;
 import org.lflang.lf.Action;
 import org.lflang.lf.AttrParm;
 import org.lflang.lf.Attribute;
@@ -191,6 +192,16 @@ public class AttributeUtils {
         return findAttributeByName(node, "sparse") != null;
     }
 
+    /**
+     * Return true if the specified node is an Instantiation and has an
+     * {@code @transient} attribute.
+     *  
+     * @param node An AST node.
+     */
+    public static boolean isTransient(EObject node) {
+        return findAttributeByName(node, "transient") != null;
+    }
+    
     /**
      * Return true if the reaction is unordered.
      *
