@@ -9,7 +9,10 @@ import java.util.stream.Stream;
 
 import org.eclipse.emf.ecore.EObject;
 
+import org.lflang.ASTUtils;
 import org.lflang.generator.CodeBuilder;
+import org.lflang.lf.Instantiation;
+import org.lflang.lf.LfFactory;
 import org.lflang.lf.Parameter;
 import org.lflang.lf.Port;
 import org.lflang.lf.Reaction;
@@ -19,6 +22,7 @@ import org.lflang.lf.TriggerRef;
 import org.lflang.lf.TypedVariable;
 import org.lflang.lf.VarRef;
 import org.lflang.lf.Variable;
+import org.lflang.lf.WidthSpec;
 import org.lflang.util.FileUtil;
 
 public class CReactorHeaderFileGenerator {
@@ -41,7 +45,7 @@ public class CReactorHeaderFileGenerator {
         CodeBuilder builder = new CodeBuilder();
         appendIncludeGuard(builder, r);
         builder.pr(topLevelPreamble);
-        appendPoundIncludes(builder);
+        appendPoundIncludes(builder, r);
         appendSelfStruct(builder, types, r);
         generator.generate(builder, r, true);
         for (Reaction reaction : r.getReactions()) {
@@ -56,7 +60,7 @@ public class CReactorHeaderFileGenerator {
         builder.pr("#ifndef " + macro);
         builder.pr("#define " + macro);
     }
-    private static void appendPoundIncludes(CodeBuilder builder) {
+    private static void appendPoundIncludes(CodeBuilder builder, Reactor r) {
         builder.pr("""
             #ifdef __cplusplus
             extern "C" {
@@ -68,6 +72,10 @@ public class CReactorHeaderFileGenerator {
             }
             #endif
             """);
+        ASTUtils.allNestedClasses(r)
+            .map(Reactor::getName)
+            .map(it -> it + ".h")
+            .forEach(it -> builder.pr(String.format("#include \"%s\"", it)));
     }
 
     private static String userFacingSelfType(Reactor r) {
@@ -91,14 +99,37 @@ public class CReactorHeaderFileGenerator {
     }
 
     private static String reactionParameters(CTypes types, Reaction r, Reactor reactor) {
-        return Stream.concat(Stream.of(userFacingSelfType(reactor) + "* self"), ioTypedVariableStream(r)
-            .map((tv) -> reactor.getName().toLowerCase() + "_" + tv.getName() + "_t* " + tv.getName()))
+        return Stream.concat(Stream.of(userFacingSelfType(reactor) + "* self"), ioTypedVariableStream(r, reactor)
+            .map(it -> it.getType(true) + "* " + it.getName()))
             .collect(Collectors.joining(", "));
     }
 
+    public static String nonInlineInitialization(CTypes types, Reaction r, Reactor reactor) {
+        var mainDef = LfFactory.eINSTANCE.createInstantiation();
+        mainDef.setName(reactor.getName());
+        mainDef.setReactorClass(ASTUtils.findMainReactor(reactor.eResource()));
+        return ioTypedVariableStream(r, reactor)
+            .map(it -> it.getWidth() == null ?
+                String.format("%s* %s = %s;", it.getType(false), it.getAlias(), it.getRvalue())
+                : String.format("""
+                    %s* %s[%s];
+                    for (int i = 0; i < %s; i++) {
+                        %s[i] = self->_lf_%s[i].%s;
+                    }
+                    """,
+                    it.getType(false),
+                    it.getAlias(),
+                    CReactionGenerator.maxContainedReactorBankWidth(it.r.getInstantiations().get(0), null, 0, mainDef),
+                    "self->_lf_"+it.r.getName()+"_width",
+                    it.getAlias(),
+                    it.r.getName(),
+                    it.getName()))
+            .collect(Collectors.joining("\n"));
+    }
+
     public static String reactionArguments(CTypes types, Reaction r, Reactor reactor) {
-        return Stream.concat(Stream.of(getApiSelfStruct(reactor)), ioTypedVariableStream(r)
-                .map(it -> String.format("((%s*) %s)", CGenerator.variableStructType(it, reactor, true), it.getName())))
+        return Stream.concat(Stream.of(getApiSelfStruct(reactor)), ioTypedVariableStream(r, reactor)
+                .map(it -> String.format("((%s*) %s)", it.getType(true), it.getAlias())))
             .collect(Collectors.joining(", "));
     }
 
@@ -106,9 +137,33 @@ public class CReactorHeaderFileGenerator {
         return "(" + userFacingSelfType(reactor) + "*) (((char*) self) + sizeof(self_base_t))";
     }
 
-    private static Stream<TypedVariable> ioTypedVariableStream(Reaction r) {
-        return varRefStream(r).map(it -> it.getVariable() instanceof TypedVariable tv ? tv : null)
+    private static Stream<PortVariable> ioTypedVariableStream(Reaction r, Reactor defaultReactorClass) {
+        return varRefStream(r)
+            .map(it -> it.getVariable() instanceof TypedVariable tv ?
+                new PortVariable(
+                    tv,
+                    ASTUtils.toDefinition(it.getContainer() == null ? defaultReactorClass : it.getContainer().getReactorClass()),
+                    it.getContainer())
+                : null)
             .filter(Objects::nonNull);
+    }
+
+    private record PortVariable(TypedVariable tv, Reactor r, Instantiation container) {
+        String getType(boolean userFacing) {
+            return CGenerator.variableStructType(tv, r, userFacing);
+        }
+        String getName() {
+            return tv.getName();
+        }
+        String getAlias() {
+            return getName();
+        }
+        String getWidth() {
+            return container.getWidthSpec() == null ? null : "self->_lf_"+r.getName()+"_width";
+        }
+        String getRvalue() {
+            return container == null ? getName() : container.getName() + "." + getName();
+        }
     }
 
     private static Stream<VarRef> inputVarRefStream(Reaction reaction) {

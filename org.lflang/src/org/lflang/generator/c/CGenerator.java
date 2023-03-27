@@ -1068,13 +1068,7 @@ public class CGenerator extends GeneratorBase {
         }
         src.pr("#include \"include/" + CReactorHeaderFileGenerator.outputPath(fileConfig, reactor) + "\"");
         src.pr("#include \"" + headerName + "\"");
-        Stream.concat(
-            reactor.getInstantiations().stream(),
-            reactor.getModes().stream().flatMap(it -> it.getInstantiations().stream())
-        )
-            .collect(Collectors.toSet()).stream()
-            .map(Instantiation::getReactorClass)
-            .map(ASTUtils::toDefinition).map(CUtil::getName)
+        ASTUtils.allNestedClasses(reactor).map(CUtil::getName)
             .map(name -> "#include \"" + name + ".h\"")
             .forEach(header::pr);
     }

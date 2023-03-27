@@ -379,6 +379,12 @@ public class ASTUtils {
         return ASTUtils.collectElements(definition, featurePackage.getReactor_Instantiations());
     }
 
+    public static Stream<Reactor> allNestedClasses(Reactor definition) {
+        return new HashSet<>(ASTUtils.allInstantiations(definition)).stream()
+            .map(Instantiation::getReactorClass)
+            .map(ASTUtils::toDefinition);
+    }
+
     /**
      * Given a reactor class, return a list of all its methods,
      * which includes methods of base classes that it extends.

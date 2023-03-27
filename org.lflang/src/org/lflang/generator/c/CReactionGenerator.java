@@ -1085,7 +1085,10 @@ public class CReactionGenerator {
     private static Code getCode(CTypes types, Reaction r, ReactorDecl container) {
         if (r.getCode() != null) return r.getCode();
         Code ret = LfFactory.eINSTANCE.createCode();
-        ret.setBody(r.getName() + "( " + CReactorHeaderFileGenerator.reactionArguments(types, r, ASTUtils.toDefinition(container)) + " );");
+        var reactor = ASTUtils.toDefinition(container);
+        ret.setBody(
+            CReactorHeaderFileGenerator.nonInlineInitialization(types, r, reactor) + "\n"
+                + r.getName() + "( " + CReactorHeaderFileGenerator.reactionArguments(types, r, reactor) + " );");
         return ret;
     }
 
