@@ -9,9 +9,9 @@ target C {
 
 import Count from "../lib/Count.lf"
 
-reactor Print(STP_offset_param: time(0)) {
+reactor Print(STP_offset_param: time = 0) {
     input in: int
-    state c: int(1)
+    state c: int = 1
 
     reaction(in) {=
         interval_t elapsed_time = lf_time_logical_elapsed();

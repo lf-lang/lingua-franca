@@ -8,6 +8,7 @@ import org.lflang.ASTUtils;
 import org.lflang.InferredType;
 import org.lflang.TimeValue;
 import org.lflang.lf.Action;
+import org.lflang.lf.BracedListExpression;
 import org.lflang.lf.CodeExpr;
 import org.lflang.lf.Expression;
 import org.lflang.lf.Initializer;
@@ -66,6 +67,13 @@ public interface TargetTypes {
 
     default String getTargetParamRef(ParameterReference expr, InferredType typeOrNull) {
         return escapeIdentifier(expr.getParameter().getName());
+    }
+
+    /** Translate the braced list expression into target language syntax. */
+    default String getTargetBracedListExpr(BracedListExpression expr, InferredType typeOrNull) {
+        InferredType t = typeOrNull == null ? InferredType.undefined() : typeOrNull;
+        return expr.getItems().stream().map(e -> getTargetExpr(e, t))
+            .collect(Collectors.joining(",", "{", "}"));
     }
 
     /**
@@ -231,10 +239,8 @@ public interface TargetTypes {
         var targetValues = init.getExprs().stream().map(it -> getTargetExpr(it, inferredType)).collect(Collectors.toList());
         if (inferredType.isFixedSizeList) {
             return getFixedSizeListInitExpression(targetValues, inferredType.listSize, init.isBraces());
-        } else if (inferredType.isVariableSizeList) {
+        } else  {
             return getVariableSizeListInitExpression(targetValues, init.isBraces());
-        } else {
-            return getMissingExpr(inferredType);
         }
     }
 
@@ -254,6 +260,8 @@ public interface TargetTypes {
             return ASTUtils.addZeroToLeadingDot(((Literal) expr).getLiteral()); // here we don't escape
         } else if (expr instanceof CodeExpr) {
             return ASTUtils.toText(((CodeExpr) expr).getCode());
+        } else if (expr instanceof BracedListExpression) {
+            return getTargetBracedListExpr((BracedListExpression) expr, type);
         } else {
             throw new IllegalStateException("Invalid value " + expr);
         }
