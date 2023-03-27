@@ -36,6 +36,6 @@ public record TypeParameterizedReactor(Reactor r, Map<String, Type> typeArgs) {
 
     @Override
     public int hashCode() {
-        return r.hashCode() * 31 + typeArgs.hashCode();
+        return Math.abs(r.hashCode() * 31 + typeArgs.hashCode());
     }
 }

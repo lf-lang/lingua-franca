@@ -411,7 +411,7 @@ public class ReactionInstanceGraph extends PrecedenceGraph<ReactionInstance.Runt
             var currentLevelNodes = groupedNodes.get(level);
             for (var node: currentLevelNodes) {
                 // Draw the node
-                var label = CUtil.getName(node.getReaction().getParent().reactorDefinition) + "." + node.getReaction().getName();
+                var label = CUtil.getName(node.getReaction().getParent().tpr) + "." + node.getReaction().getName();
                 // Need a positive number to name the nodes in GraphViz
                 var labelHashCode = label.hashCode() & 0xfffffff;
                 dotRepresentation.pr("    node_" + labelHashCode  + " [label=\""+ label +"\"];");
@@ -419,7 +419,7 @@ public class ReactionInstanceGraph extends PrecedenceGraph<ReactionInstance.Runt
                 // Draw the edges
                 var downstreamNodes = getDownstreamAdjacentNodes(node);
                 for (var downstreamNode: downstreamNodes) {
-                    var downstreamLabel =  CUtil.getName(downstreamNode.getReaction().getParent().reactorDefinition) + "." + downstreamNode.getReaction().getName();
+                    var downstreamLabel =  CUtil.getName(downstreamNode.getReaction().getParent().tpr) + "." + downstreamNode.getReaction().getName();
                     edges.append("    node_" + labelHashCode + " -> node_" +
                                      (downstreamLabel.hashCode() & 0xfffffff) + ";\n"
                     );

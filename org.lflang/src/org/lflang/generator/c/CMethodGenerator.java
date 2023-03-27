@@ -5,6 +5,7 @@ import static org.lflang.ASTUtils.allMethods;
 import org.lflang.ASTUtils;
 import org.lflang.InferredType;
 import org.lflang.generator.CodeBuilder;
+import org.lflang.generator.ReactorInstance;
 import org.lflang.lf.Method;
 import org.lflang.lf.Reactor;
 import org.lflang.lf.ReactorDecl;
@@ -67,7 +68,7 @@ public class CMethodGenerator {
         code.indent();
 
         // Define the "self" struct.
-        String structType = CUtil.selfType(ASTUtils.toDefinition(decl));
+        String structType = CUtil.selfType((ReactorInstance) ASTUtils.toDefinition(decl));
         // A null structType means there are no inputs, state,
         // or anything else. No need to declare it.
         if (structType != null) {

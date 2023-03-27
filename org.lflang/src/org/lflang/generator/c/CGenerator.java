@@ -939,9 +939,9 @@ public class CGenerator extends GeneratorBase {
             fileConfig.getIncludePath(),
             false
         );
-        for (Reactor r : reactors) {
-            CReactorHeaderFileGenerator.doGenerate(types, r, fileConfig, this::generateAuxiliaryStructs, this::generateTopLevelPreambles);
-        }
+//        for (var r : reactors) {
+            CReactorHeaderFileGenerator.doGenerate(types, this.main.tpr, fileConfig, this::generateAuxiliaryStructs, this::generateTopLevelPreambles);
+//        }
         FileUtil.copyDirectory(fileConfig.getIncludePath(), fileConfig.getSrcGenPath().resolve("include"), false);
     }
 
@@ -1034,12 +1034,13 @@ public class CGenerator extends GeneratorBase {
         header.pr(generateTopLevelPreambles(tpr.r()));
         generateUserPreamblesForReactor(tpr.r(), src);
         generateReactorClassBody(tpr, header, src);
+        tpr.typeArgs().entrySet().forEach(it -> header.pr("#undef " + it.getKey()));
         header.pr("#endif // " + guardMacro);
         FileUtil.writeToFile(header.toString(), fileConfig.getSrcGenPath().resolve(headerName), true);
         var extension = targetConfig.platformOptions.platform == Platform.ARDUINO ? ".ino"
-            : (CCppMode ? ".cpp" : ".c");
+            : CCppMode ? ".cpp" : ".c";
         FileUtil.writeToFile(src.toString(), fileConfig.getSrcGenPath().resolve(
-            CUtil.getName(reactor) + extension), true);
+            CUtil.getName(tpr) + extension), true);
     }
 
     protected void generateReactorClassHeaders(TypeParameterizedReactor tpr, String headerName, CodeBuilder header, CodeBuilder src) {
@@ -1047,7 +1048,7 @@ public class CGenerator extends GeneratorBase {
             src.pr("extern \"C\" {");
             header.pr("extern \"C\" {");
         }
-        tpr.typeArgs().entrySet().forEach(it -> src.pr("#define " + it.getKey() + " " + ASTUtils.toText(it.getValue())));
+        tpr.typeArgs().entrySet().forEach(it -> header.pr("#define " + it.getKey() + " " + ASTUtils.toText(it.getValue())));
         header.pr("#include \"include/core/reactor.h\"");
         src.pr("#include \"include/api/api.h\"");
         src.pr("#include \"include/api/set.h\"");
@@ -1058,6 +1059,7 @@ public class CGenerator extends GeneratorBase {
         }
         src.pr("#include \"include/" + CReactorHeaderFileGenerator.outputPath(fileConfig, tpr.r()) + "\"");
         src.pr("#include \"" + headerName + "\"");
+        tpr.typeArgs().entrySet().forEach(it -> src.pr("#define " + it.getKey() + " " + ASTUtils.toText(it.getValue())));
         new HashSet<>(ASTUtils.allInstantiations(tpr.r())).stream()
             .map(TypeParameterizedReactor::new).map(CUtil::getName)
             .map(name -> "#include \"" + name + ".h\"")
@@ -1068,11 +1070,11 @@ public class CGenerator extends GeneratorBase {
         // Some of the following methods create lines of code that need to
         // go into the constructor.  Collect those lines of code here:
         var constructorCode = new CodeBuilder();
-        generateAuxiliaryStructs(header, reactor, false);
-        generateSelfStruct(header, reactor, constructorCode);
-        generateMethods(src, reactor);
-        generateReactions(src, reactor);
-        generateConstructor(src, header, reactor, constructorCode);
+        generateAuxiliaryStructs(header, tpr, false);
+        generateSelfStruct(header, tpr, constructorCode);
+        generateMethods(src, tpr.r());
+        generateReactions(src, tpr.r());
+        generateConstructor(src, header, tpr, constructorCode);
     }
 
     /**
@@ -1097,16 +1099,16 @@ public class CGenerator extends GeneratorBase {
 
     /**
      * Generate a constructor for the specified reactor in the specified federate.
-     * @param reactor The parsed reactor data structure.
+     * @param tpr The parsed reactor data structure.
      * @param constructorCode Lines of code previously generated that need to
      *  go into the constructor.
      */
     protected void generateConstructor(
-        CodeBuilder src, CodeBuilder header, Reactor reactor, CodeBuilder constructorCode
+        CodeBuilder src, CodeBuilder header, TypeParameterizedReactor tpr, CodeBuilder constructorCode
     ) {
-        header.pr(CConstructorGenerator.generateConstructorPrototype(reactor));
+        header.pr(CConstructorGenerator.generateConstructorPrototype(tpr));
         src.pr(CConstructorGenerator.generateConstructor(
-            reactor,
+            tpr,
             constructorCode.toString()
         ));
     }
@@ -1363,7 +1365,7 @@ public class CGenerator extends GeneratorBase {
     /**
      * This function is provided to allow extensions of the CGenerator to append the structure of the self struct
      * @param body The body of the self struct
-     * @param decl The reactor declaration for the self struct
+     * @param reactor The reactor declaration for the self struct
      * @param constructorCode Code that is executed when the reactor is instantiated
      */
     protected void generateSelfStructExtension(
@@ -1649,6 +1651,9 @@ public class CGenerator extends GeneratorBase {
      */
     public static String variableStructType(Variable variable, TypeParameterizedReactor tpr, boolean userFacing) {
         return (userFacing ? tpr.getName().toLowerCase() : CUtil.getName(tpr)) +"_"+variable.getName()+"_t";
+    }
+    public static String variableStructType(Variable variable, Reactor r, boolean userFacing) {
+        return (userFacing ? r.getName().toLowerCase() : CUtil.getName(r)) +"_"+variable.getName()+"_t";
     }
 
     /**

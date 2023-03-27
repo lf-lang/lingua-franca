@@ -55,6 +55,7 @@ import org.lflang.generator.TargetTypes;
 import org.lflang.generator.c.CCmakeGenerator;
 import org.lflang.generator.c.CGenerator;
 import org.lflang.generator.c.CUtil;
+import org.lflang.generator.c.TypeParameterizedReactor;
 import org.lflang.lf.Action;
 import org.lflang.lf.Code;
 import org.lflang.lf.Input;
@@ -64,6 +65,7 @@ import org.lflang.lf.Port;
 import org.lflang.lf.Reaction;
 import org.lflang.lf.Reactor;
 import org.lflang.lf.ReactorDecl;
+import org.lflang.lf.Type;
 import org.lflang.util.FileUtil;
 import org.lflang.util.LFCommand;
 import org.lflang.util.StringUtil;
@@ -354,16 +356,16 @@ public class PythonGenerator extends CGenerator {
      */
     @Override
     public void generateAuxiliaryStructs(
-        CodeBuilder builder, Reactor r, boolean userFacing
+        CodeBuilder builder, TypeParameterizedReactor tpr, boolean userFacing
     ) {
-        for (Input input : ASTUtils.allInputs(r)) {
-            generateAuxiliaryStructsForPort(builder, r, input);
+        for (Input input : ASTUtils.allInputs(tpr.r())) {
+            generateAuxiliaryStructsForPort(builder, tpr.r(), input);
         }
-        for (Output output : ASTUtils.allOutputs(r)) {
-            generateAuxiliaryStructsForPort(builder, r, output);
+        for (Output output : ASTUtils.allOutputs(tpr.r())) {
+            generateAuxiliaryStructsForPort(builder, tpr.r(), output);
         }
-        for (Action action : ASTUtils.allActions(r)) {
-            generateAuxiliaryStructsForAction(builder, r, action);
+        for (Action action : ASTUtils.allActions(tpr.r())) {
+            generateAuxiliaryStructsForAction(builder, tpr.r(), action);
         }
     }
 
@@ -517,9 +519,9 @@ public class PythonGenerator extends CGenerator {
     }
 
     @Override
-    protected void generateReactorClassHeaders(Reactor reactor, String headerName, CodeBuilder header, CodeBuilder src) {
+    protected void generateReactorClassHeaders(TypeParameterizedReactor tpr, String headerName, CodeBuilder header, CodeBuilder src) {
         header.pr(PythonPreambleGenerator.generateCIncludeStatements(targetConfig, targetLanguageIsCpp(), hasModalReactors));
-        super.generateReactorClassHeaders(reactor, headerName, header, src);
+        super.generateReactorClassHeaders(tpr, headerName, header, src);
     }
 
     /**

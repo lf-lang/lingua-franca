@@ -767,11 +767,11 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
      * @param reporter An error reporter.
      * @param desiredDepth The depth to which to expand the hierarchy.
      */
-    private ReactorInstance(
-            Instantiation definition,
-            ReactorInstance parent,
-            ErrorReporter reporter,
-            int desiredDepth) {
+    public ReactorInstance(
+        Instantiation definition,
+        ReactorInstance parent,
+        ErrorReporter reporter,
+        int desiredDepth) {
         super(definition, parent);
         this.reporter = reporter;
         this.reactorDeclaration = definition.getReactorClass();
@@ -863,6 +863,10 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
                 mode.setupTranstions();
             }
         }
+    }
+
+    public TypeParameterizedReactor getTypeParameterizedReactor() {
+        return this.tpr;
     }
 
     //////////////////////////////////////////////////////

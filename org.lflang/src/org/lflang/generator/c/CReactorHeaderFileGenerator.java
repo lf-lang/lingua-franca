@@ -16,6 +16,7 @@ import org.lflang.lf.Reaction;
 import org.lflang.lf.Reactor;
 import org.lflang.lf.StateVar;
 import org.lflang.lf.TriggerRef;
+import org.lflang.lf.Type;
 import org.lflang.lf.TypedVariable;
 import org.lflang.lf.VarRef;
 import org.lflang.lf.Variable;
@@ -24,7 +25,7 @@ import org.lflang.util.FileUtil;
 public class CReactorHeaderFileGenerator {
 
     public interface GenerateAuxiliaryStructs {
-        void generate(CodeBuilder b, Reactor r, boolean userFacing);
+        void generate(CodeBuilder b, TypeParameterizedReactor r, boolean userFacing);
     }
 
     public static Path outputPath(CFileConfig fileConfig, Reactor r) {
@@ -33,19 +34,19 @@ public class CReactorHeaderFileGenerator {
             .resolve(r.getName() + ".h");
     }
 
-    public static void doGenerate(CTypes types, Reactor r, CFileConfig fileConfig, GenerateAuxiliaryStructs generator, Function<EObject, String> topLevelPreamble) throws IOException {
-        String contents = generateHeaderFile(types, r, generator, topLevelPreamble.apply(r));
-        FileUtil.writeToFile(contents, fileConfig.getIncludePath().resolve(outputPath(fileConfig, r)));
+    public static void doGenerate(CTypes types, TypeParameterizedReactor tpr, CFileConfig fileConfig, GenerateAuxiliaryStructs generator, Function<EObject, String> topLevelPreamble) throws IOException {
+        String contents = generateHeaderFile(types, tpr, generator, topLevelPreamble.apply(tpr.r()));
+        FileUtil.writeToFile(contents, fileConfig.getIncludePath().resolve(outputPath(fileConfig, tpr.r())));
     }
-    private static String generateHeaderFile(CTypes types, Reactor r, GenerateAuxiliaryStructs generator, String topLevelPreamble) {
+    private static String generateHeaderFile(CTypes types, TypeParameterizedReactor tpr, GenerateAuxiliaryStructs generator, String topLevelPreamble) {
         CodeBuilder builder = new CodeBuilder();
-        appendIncludeGuard(builder, r);
+        appendIncludeGuard(builder, tpr.r());
         builder.pr(topLevelPreamble);
         appendPoundIncludes(builder);
-        appendSelfStruct(builder, types, r);
-        generator.generate(builder, r, true);
-        for (Reaction reaction : r.getReactions()) {
-            appendSignature(builder, types, reaction, r);
+        appendSelfStruct(builder, types, tpr.r());
+        generator.generate(builder, tpr, true);
+        for (Reaction reaction : tpr.r().getReactions()) {
+            appendSignature(builder, types, reaction, tpr.r());
         }
         builder.pr("#endif");
         return builder.getCode();

@@ -15,12 +15,12 @@ public class CConstructorGenerator {
      *  go into the constructor.
      */
     public static String generateConstructor(
-        Reactor reactor,
+        TypeParameterizedReactor tpr,
         String constructorCode
     ) {
-        var structType = CUtil.selfType(reactor);
+        var structType = CUtil.selfType(tpr);
         var code = new CodeBuilder();
-        code.pr(structType+"* new_"+CUtil.getName(reactor)+"() {");
+        code.pr(structType+"* new_"+CUtil.getName(tpr)+"() {");
         code.indent();
         code.pr(structType+"* self = ("+structType+"*)_lf_new_reactor(sizeof("+structType+"));");
         code.pr(constructorCode);
@@ -30,7 +30,7 @@ public class CConstructorGenerator {
         return code.toString();
     }
 
-    public static String generateConstructorPrototype(Reactor reactor) {
-        return CUtil.selfType(reactor)+"* new_"+CUtil.getName(reactor)+"();";
+    public static String generateConstructorPrototype(TypeParameterizedReactor tpr) {
+        return CUtil.selfType(tpr)+"* new_"+CUtil.getName(tpr)+"();";
     }
 }
