@@ -501,7 +501,7 @@ public enum Target {
     }
 
     /**
-     * Whether the target requires using an equal sign to assign a defaul value to a parameter,
+     * Whether the target requires using an equal sign to assign a default value to a parameter,
      * or initialize a state variable. All targets mandate an equal sign when passing
      * arguments to a reactor constructor call, regardless of this method.
      */
