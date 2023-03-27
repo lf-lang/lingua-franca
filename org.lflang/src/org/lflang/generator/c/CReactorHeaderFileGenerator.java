@@ -106,8 +106,8 @@ public class CReactorHeaderFileGenerator {
         mainDef.setName(reactor.getName());
         mainDef.setReactorClass(ASTUtils.findMainReactor(reactor.eResource()));
         return ioTypedVariableStream(r, reactor)
-            .map(it -> it.getWidth() == null ?
-                String.format("%s %s = %s;", it.getType(false), it.getAlias(), it.getRvalue())
+            .map(it -> it.container == null ? "" : it.getWidth() == null ?
+                String.format("%s %s = (%s) %s;", it.getType(false), it.getAlias(), it.getType(false), it.getRvalue())
                 : String.format("""
                     %s %s[%s];
                     for (int i = 0; i < %s; i++) {
@@ -155,7 +155,10 @@ public class CReactorHeaderFileGenerator {
             var typeName = container == null ?
                 CGenerator.variableStructType(tv, r, userFacing)
                 : CPortGenerator.localPortName(container.getReactorClass(), getName());
-            return typeName + "*" + (getWidth() != null ? "*" : "");
+            var isMultiport = ASTUtils.isMultiport(ASTUtils.allPorts(r).stream()
+                    .filter(it -> it.getName().equals(tv.getName()))
+                    .findAny().orElseThrow());
+            return typeName + "*" + (getWidth() != null ? "*" : "") + (isMultiport ? "*" : "");
         }
         String getName() {
             return tv.getName();
@@ -164,7 +167,7 @@ public class CReactorHeaderFileGenerator {
             return getName();
         }
         String getWidth() {
-            return container.getWidthSpec() == null ? null : "self->_lf_"+r.getName()+"_width";
+            return container == null || container.getWidthSpec() == null ? null : "self->_lf_"+r.getName()+"_width";
         }
         String getRvalue() {
             return container == null ? getName() : container.getName() + "." + getName();
