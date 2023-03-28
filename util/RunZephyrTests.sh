@@ -1,5 +1,5 @@
 #!/bin/bash
-timeout=5
+timeout=30 # 30sec timeout should be enough. Even for the CI.
 verbose=false
 
 # Function to recursively find all folders containing the top-level CMakeLists.txt
@@ -9,7 +9,7 @@ num_failures=0
 failed_tests=""
 
 # Skip
-skip=("Methods")
+skip=()
 
 find_kconfig_folders() {
     if [ -f "$folder/CMakeLists.txt" ]; then
