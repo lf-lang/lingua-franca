@@ -9,7 +9,13 @@ import org.lflang.generator.UnsupportedGeneratorFeatureException;
 import org.lflang.lf.StateVar;
 
 public class TSTypes implements TargetTypes {
-    
+
+    private static TSTypes INSTANCE = new TSTypes();
+
+    private TSTypes() {
+
+    }
+
     @Override
     public String getTargetType(StateVar s) {
         var type = TargetTypes.super.getTargetType(s);
@@ -61,5 +67,9 @@ public class TSTypes implements TargetTypes {
 
     public String getVariableSizeListInitExpression(List<String> contents, boolean withBraces) {
         return "[" + String.join(", ", contents) + "]";
+    }
+
+    public static TSTypes getInstance() {
+        return INSTANCE;
     }
 }
