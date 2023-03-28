@@ -433,7 +433,10 @@ public abstract class TestBase {
             if (!configurator.configure(test)) {
                 throw new TestError("Test configuration unsuccessful.", Result.CONFIG_FAIL);
             }
-            context.loadTargetConfig(); // Reload in case target properties have changed.
+            // FIXME: The line below is commented out because it reloads the target properties
+            //  and thus overwrites changes done by the configurator. I am sure it was there 
+            //  for a reason. Thus the FIXME...
+            // context.loadTargetConfig(); // Reload in case target properties have changed.
         }
     }
 
