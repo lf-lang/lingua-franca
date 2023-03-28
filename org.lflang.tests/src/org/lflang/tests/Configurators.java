@@ -24,6 +24,7 @@
 
 package org.lflang.tests;
 
+import org.lflang.TargetProperty;
 import org.lflang.TargetProperty.Platform;
 import org.lflang.generator.LFGeneratorContext.BuildParm;
 import org.lflang.tests.TestRegistry.TestCategory;
@@ -65,13 +66,12 @@ public class Configurators {
     }
 
     public static boolean makeZephyrCompatible(LFTest test) {
-        test.getContext().getArgs().setProperty("threading", "false");
         test.getContext().getArgs().setProperty("tracing", "false");
         test.getContext().getTargetConfig().threading = false;
+        test.getContext().getTargetConfig().setByUser.add(TargetProperty.THREADING);
         test.getContext().getTargetConfig().platformOptions.platform = Platform.ZEPHYR;
         test.getContext().getTargetConfig().platformOptions.flash = false;
         test.getContext().getTargetConfig().platformOptions.board = "qemu_cortex_m3";
-
         return true;
     }
     /**
