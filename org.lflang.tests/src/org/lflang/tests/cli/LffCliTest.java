@@ -68,7 +68,7 @@ public class LffCliTest {
         ExecutionResult result = lffTester.run("--help", "--version");
         result.checkOk();
         result.checkNoErrorOutput();
-        result.checkStdOut(containsString("usage: lff"));
+        result.checkStdOut(containsString("Usage: lff"));
     }
 
     @Test
@@ -83,8 +83,7 @@ public class LffCliTest {
     @Test
     public void testWrongCliArg() {
         ExecutionResult result = lffTester.run("--notanargument", "File.lf");
-        result.checkStdErr(containsString("Unrecognized option: --notanargument"));
-        result.checkStdErr(containsString("fatal error"));
+        result.checkStdErr(containsString("Unknown option: '--notanargument'"));
         result.checkFailed();
     }
 

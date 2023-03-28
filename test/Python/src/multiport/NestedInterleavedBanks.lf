@@ -4,7 +4,7 @@
  */
 target Python
 
-reactor A(bank_index(0), outer_bank_index(0)) {
+reactor A(bank_index = 0, outer_bank_index = 0) {
     output[2] p
 
     reaction(startup) -> p {=
@@ -14,7 +14,7 @@ reactor A(bank_index(0), outer_bank_index(0)) {
     =}
 }
 
-reactor B(bank_index(0)) {
+reactor B(bank_index = 0) {
     output[4] q
     a = new[2] A(outer_bank_index = bank_index)
     interleaved (a.p) -> q

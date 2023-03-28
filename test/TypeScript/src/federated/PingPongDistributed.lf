@@ -1,10 +1,10 @@
 /** This checks communication between federates */
 target TypeScript
 
-reactor Ping(count: number(10)) {
+reactor Ping(count: number = 10) {
     input receive: number
     output send: number
-    state pingsLeft: number(count)
+    state pingsLeft: number = count
     logical action serve
 
     reaction(startup, serve) -> send {=
@@ -23,10 +23,10 @@ reactor Ping(count: number(10)) {
     =}
 }
 
-reactor Pong(expected: number(10)) {
+reactor Pong(expected: number = 10) {
     input receive: number
     output send: number
-    state count: number(0)
+    state count: number = 0
 
     reaction(receive) -> send {=
         count += 1;
@@ -45,7 +45,7 @@ reactor Pong(expected: number(10)) {
     =}
 }
 
-federated reactor PingPongDistributed(count: number(10)) {
+federated reactor PingPongDistributed(count: number = 10) {
     ping = new Ping(count = count)
     pong = new Pong(expected = count)
     ping.send -> pong.receive

@@ -22,7 +22,7 @@ jobs:
 
   # Test the Gradle build.
   build:
-    uses: lf-lang/lingua-franca/.github/workflows/build.yml@epoch-migration
+    uses: lf-lang/lingua-franca/.github/workflows/build.yml@master
     needs: cancel
 
   # Build the tools used for processing execution traces

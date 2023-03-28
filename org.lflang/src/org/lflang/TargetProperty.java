@@ -580,8 +580,7 @@ public enum TargetProperty {
             }),
 
     /**
-     * Directive to generate a Dockerfile. This is either a boolean,
-     * true or false, or a dictionary of options.
+     * Directive to enable tracing.
      */
     TRACING("tracing", UnionType.TRACING_UNION,
             Arrays.asList(Target.C, Target.CCPP, Target.CPP, Target.Python),
@@ -974,7 +973,7 @@ public enum TargetProperty {
      * @param config     The configuration object to update.
      * @param properties AST node that holds all the target properties.
      */
-    public static void update(TargetConfig config, List<KeyValuePair> properties,ErrorReporter err) {
+    public static void update(TargetConfig config, List<KeyValuePair> properties, ErrorReporter err) {
         properties.forEach(property ->  {
             TargetProperty p = forName(property.getName());
             if (p != null) {

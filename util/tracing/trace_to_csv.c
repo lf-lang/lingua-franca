@@ -37,6 +37,15 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define MAX_NUM_REACTIONS 64  // Maximum number of reactions reported in summary stats.
 #define MAX_NUM_WORKERS 64
 
+/** File containing the trace binary data. */
+FILE* trace_file = NULL;
+
+/** File for writing the output data. */
+FILE* output_file = NULL;
+
+/** File for writing summary statistics. */
+FILE* summary_file = NULL;
+
 /** Size of the stats table is object_table_size plus twice MAX_NUM_WORKERS. */
 int table_size;
 
@@ -69,7 +78,7 @@ typedef struct reaction_stats_t {
  */
 typedef struct summary_stats_t {
     trace_event_t event_type; // Use reaction_ends for reactions.
-    char* description;        // Description in the reaction table (e.g. reactor name).
+    const char* description;  // Description in the reaction table (e.g. reactor name).
     int occurrences;          // Number of occurrences of this description.
     int num_reactions_seen;
     reaction_stats_t reactions[MAX_NUM_REACTIONS];
@@ -94,11 +103,6 @@ size_t read_and_write_trace() {
     if (trace_length == 0) return 0;
     // Write each line.
     for (int i = 0; i < trace_length; i++) {
-        char* reaction_name = "none";
-        if (trace[i].reaction_number >= 0) {
-            reaction_name = (char*)malloc(4);
-            snprintf(reaction_name, 4, "%d", trace[i].reaction_number);
-        }
         // printf("DEBUG: reactor self struct pointer: %p\n", trace[i].pointer);
         int object_instance = -1;
         char* reactor_name = get_object_description(trace[i].pointer, &object_instance);
@@ -110,11 +114,11 @@ size_t read_and_write_trace() {
         if (trigger_name == NULL) {
             trigger_name = "NO TRIGGER";
         }
-        fprintf(output_file, "%s, %s, %s, %d, %lld, %d, %lld, %s, %lld\n",
+        fprintf(output_file, "%s, %s, %d, %d, %lld, %d, %lld, %s, %lld\n",
                 trace_event_names[trace[i].event_type],
                 reactor_name,
-                reaction_name,
-                trace[i].worker,
+                trace[i].src_id,
+                trace[i].dst_id,
                 trace[i].logical_time - start_time,
                 trace[i].microstep,
                 trace[i].physical_time - start_time,
@@ -125,33 +129,41 @@ size_t read_and_write_trace() {
         if (trace[i].physical_time > latest_time) {
             latest_time = trace[i].physical_time;
         }
-        if (summary_stats[object_instance] == NULL) {
-            summary_stats[object_instance] = (summary_stats_t*)calloc(1, sizeof(summary_stats_t));
+        if (object_instance >= 0 && summary_stats[NUM_EVENT_TYPES + object_instance] == NULL) {
+            summary_stats[NUM_EVENT_TYPES + object_instance] = (summary_stats_t*)calloc(1, sizeof(summary_stats_t));
         }
-        if (trigger_instance >= 0 && summary_stats[trigger_instance] == NULL) {
-            summary_stats[trigger_instance] = (summary_stats_t*)calloc(1, sizeof(summary_stats_t));
+        if (trigger_instance >= 0 && summary_stats[NUM_EVENT_TYPES + trigger_instance] == NULL) {
+            summary_stats[NUM_EVENT_TYPES + trigger_instance] = (summary_stats_t*)calloc(1, sizeof(summary_stats_t));
         }
         
-        summary_stats_t* stats;
+        summary_stats_t* stats = NULL;
         interval_t exec_time;
         reaction_stats_t* rstats;
         int index;
+
+        // Count of event type.
+        if (summary_stats[trace[i].event_type] == NULL) {
+            summary_stats[trace[i].event_type] = (summary_stats_t*)calloc(1, sizeof(summary_stats_t));
+        }
+        summary_stats[trace[i].event_type]->event_type = trace[i].event_type;
+        summary_stats[trace[i].event_type]->description = trace_event_names[trace[i].event_type];
+        summary_stats[trace[i].event_type]->occurrences++;
 
         switch(trace[i].event_type) {
             case reaction_starts:
             case reaction_ends:
                 // This code relies on the mutual exclusion of reactions in a reactor
                 // and the ordering of reaction_starts and reaction_ends events.
-                if (trace[i].reaction_number >= MAX_NUM_REACTIONS) {
+                if (trace[i].dst_id >= MAX_NUM_REACTIONS) {
                     fprintf(stderr, "WARNING: Too many reactions. Not all will be shown in summary file.\n");
                     continue;
                 }
-                stats = summary_stats[object_instance];
+                stats = summary_stats[NUM_EVENT_TYPES + object_instance];
                 stats->description = reactor_name;
-                if (trace[i].reaction_number >= stats->num_reactions_seen) {
-                    stats->num_reactions_seen = trace[i].reaction_number + 1;
+                if (trace[i].dst_id >= stats->num_reactions_seen) {
+                    stats->num_reactions_seen = trace[i].dst_id + 1;
                 }
-                rstats = &stats->reactions[trace[i].reaction_number];
+                rstats = &stats->reactions[trace[i].dst_id];
                 if (trace[i].event_type == reaction_starts) {
                     rstats->latest_start_time = trace[i].physical_time;
                 } else {
@@ -172,19 +184,19 @@ size_t read_and_write_trace() {
                     // No trigger. Do not report.
                     continue;
                 }
-                stats = summary_stats[trigger_instance];
+                stats = summary_stats[NUM_EVENT_TYPES + trigger_instance];
                 stats->description = trigger_name;
                 break;
             case user_event:
                 // Although these are not exec times and not reactions,
                 // commandeer the first entry in the reactions array to track values.
-                stats = summary_stats[object_instance];
+                stats = summary_stats[NUM_EVENT_TYPES + object_instance];
                 stats->description = reactor_name;
                 break;
             case user_value:
                 // Although these are not exec times and not reactions,
                 // commandeer the first entry in the reactions array to track values.
-                stats = summary_stats[object_instance];
+                stats = summary_stats[NUM_EVENT_TYPES + object_instance];
                 stats->description = reactor_name;
                 rstats = &stats->reactions[0]; 
                 rstats->occurrences++;
@@ -205,7 +217,7 @@ size_t read_and_write_trace() {
                 // Use the reactions array to store data.
                 // There will be two entries per worker, one for waits on the
                 // reaction queue and one for waits while advancing time.
-                index = trace[i].worker * 2;
+                index = trace[i].src_id * 2;
                 // Even numbered indices are used for waits on reaction queue.
                 // Odd numbered indices for waits for time advancement.
                 if (trace[i].event_type == scheduler_advancing_time_starts
@@ -216,10 +228,10 @@ size_t read_and_write_trace() {
                     fprintf(stderr, "WARNING: Too many workers. Not all will be shown in summary file.\n");
                     continue;
                 }
-                stats = summary_stats[object_table_size + index];
+                stats = summary_stats[NUM_EVENT_TYPES + object_table_size + index];
                 if (stats == NULL) {
                     stats = (summary_stats_t*)calloc(1, sizeof(summary_stats_t));
-                    summary_stats[object_table_size + index] = stats;
+                    summary_stats[NUM_EVENT_TYPES + object_table_size + index] = stats;
                 }
                 // num_reactions_seen here will be used to store the number of
                 // entries in the reactions array, which is twice the number of workers.
@@ -244,10 +256,15 @@ size_t read_and_write_trace() {
                     }
                 }
                 break;
+            default:
+                // No special summary statistics for the rest.
+                break;
         }
         // Common stats across event types.
-        stats->occurrences++;
-        stats->event_type = trace[i].event_type;
+        if (stats != NULL) {
+            stats->occurrences++;
+            stats->event_type = trace[i].event_type;
+        }
     }
     return trace_length;
 }
@@ -261,11 +278,22 @@ void write_summary_file() {
     fprintf(summary_file, "End time:, %lld\n", latest_time);
     fprintf(summary_file, "Total time:, %lld\n", latest_time - start_time);
 
+    fprintf(summary_file, "\nTotal Event Occurrences\n");
+    for (int i = 0; i < NUM_EVENT_TYPES; i++) {
+        summary_stats_t* stats = summary_stats[i];
+        if (stats != NULL) {
+            fprintf(summary_file, "%s, %d\n",
+                stats->description,
+                stats->occurrences
+            );
+        }
+    }
+
     // First pass looks for reaction invocations.
     // First print a header.
     fprintf(summary_file, "\nReaction Executions\n");
     fprintf(summary_file, "Reactor, Reaction, Occurrences, Total Time, Pct Total Time, Avg Time, Max Time, Min Time\n");
-    for (int i = 0; i < table_size; i++) {
+    for (int i = NUM_EVENT_TYPES; i < table_size; i++) {
         summary_stats_t* stats = summary_stats[i];
         if (stats != NULL && stats->num_reactions_seen > 0) {
             for (int j = 0; j < stats->num_reactions_seen; j++) {
@@ -288,7 +316,7 @@ void write_summary_file() {
 
     // Next pass looks for calls to schedule.
     bool first = true;
-    for (int i = 0; i < table_size; i++) {
+    for (int i = NUM_EVENT_TYPES; i < table_size; i++) {
         summary_stats_t* stats = summary_stats[i];
         if (stats != NULL && stats->event_type == schedule_called && stats->occurrences > 0) {
             if (first) {
@@ -302,7 +330,7 @@ void write_summary_file() {
 
     // Next pass looks for user-defined events.
     first = true;
-    for (int i = 0; i < table_size; i++) {
+    for (int i = NUM_EVENT_TYPES; i < table_size; i++) {
         summary_stats_t* stats = summary_stats[i];
         if (stats != NULL 
                 && (stats->event_type == user_event || stats->event_type == user_value)
@@ -329,7 +357,7 @@ void write_summary_file() {
 
     // Next pass looks for wait events.
     first = true;
-    for (int i = 0; i < table_size; i++) {
+    for (int i = NUM_EVENT_TYPES; i < table_size; i++) {
         summary_stats_t* stats = summary_stats[i];
         if (stats != NULL && (
                 stats->event_type == worker_wait_ends
@@ -369,15 +397,34 @@ int main(int argc, char* argv[]) {
         usage();
         exit(0);
     }
-    open_files(argv[1], "csv");
+    // Open the trace file.
+    trace_file = open_file(argv[1], "r");
+    if (trace_file == NULL) exit(1);
+
+    // Construct the name of the csv output file and open it.
+    char* root = root_name(argv[1]);
+    char csv_filename[strlen(root) + 5];
+    strcpy(csv_filename, root);
+    strcat(csv_filename, ".csv");
+    output_file = open_file(csv_filename, "w");
+    if (output_file == NULL) exit(1);
+
+    // Construct the name of the summary output file and open it.
+    char summary_filename[strlen(root) + 13];
+    strcpy(summary_filename, root);
+    strcat(summary_filename, "_summary.csv");
+    summary_file = open_file(summary_filename, "w");
+    if (summary_file == NULL) exit(1);
+
+    free(root);
 
     if (read_header() >= 0) {
         // Allocate an array for summary statistics.
-        table_size = object_table_size + (MAX_NUM_WORKERS * 2);
+        table_size = NUM_EVENT_TYPES + object_table_size + (MAX_NUM_WORKERS * 2);
         summary_stats = (summary_stats_t**)calloc(table_size, sizeof(summary_stats_t*));
 
         // Write a header line into the CSV file.
-        fprintf(output_file, "Event, Reactor, Reaction, Worker, Elapsed Logical Time, Microstep, Elapsed Physical Time, Trigger, Extra Delay\n");
+        fprintf(output_file, "Event, Reactor, Source, Destination, Elapsed Logical Time, Microstep, Elapsed Physical Time, Trigger, Extra Delay\n");
         while (read_and_write_trace() != 0) {};
 
         write_summary_file();

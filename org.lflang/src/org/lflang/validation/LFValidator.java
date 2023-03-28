@@ -69,6 +69,7 @@ import org.lflang.lf.Action;
 import org.lflang.lf.ActionOrigin;
 import org.lflang.lf.Assignment;
 import org.lflang.lf.Attribute;
+import org.lflang.lf.BracedListExpression;
 import org.lflang.lf.BuiltinTrigger;
 import org.lflang.lf.BuiltinTriggerRef;
 import org.lflang.lf.CodeExpr;
@@ -171,6 +172,30 @@ public class LFValidator extends BaseLFValidator {
     public void checkInitializer(Initializer init) {
         if (init.isBraces() && target != Target.CPP) {
             error("Brace initializers are only supported for the C++ target", Literals.INITIALIZER__BRACES);
+        } else if (init.isParens() && target.mandatesEqualsInitializers()) {
+            var message = "This syntax is deprecated in the " + target
+                + " target, use an equal sign instead of parentheses for assignment.";
+            if (init.getExprs().size() == 1) {
+                message += " (run the formatter to fix this automatically)";
+            }
+            warning(message, Literals.INITIALIZER__PARENS);
+        } else if (!init.isAssign() && init.eContainer() instanceof Assignment) {
+            var feature = init.isBraces() ? Literals.INITIALIZER__BRACES
+                : Literals.INITIALIZER__PARENS;
+            var message = "This syntax is deprecated, do not use parentheses or braces but an equal sign.";
+            if (init.getExprs().size() == 1) {
+                message += " (run the formatter to fix this automatically)";
+            }
+            warning(message, feature);
+        }
+    }
+
+    @Check(CheckType.FAST)
+    public void checkBracedExpression(BracedListExpression expr) {
+        if (!target.allowsBracedListExpressions()) {
+            var message = "Braced expression lists are not a valid expression for the " + target
+                + " target.";
+            error(message, Literals.BRACED_LIST_EXPRESSION.eContainmentFeature());
         }
     }
 
@@ -623,7 +648,7 @@ public class LFValidator extends BaseLFValidator {
             Reactor reactor = (Reactor) container;
             if (reactor.isMain()) {
                 // we need to check for the cli parameters that are always taken
-                List<String> cliParams = List.of("t", "threads", "o", "timeout", "k", "keepalive", "f", "fast", "help");
+                List<String> cliParams = List.of("t", "threads", "o", "timeout", "f", "fast", "help");
                 if (cliParams.contains(param.getName())) {
                     error("Parameter '" + param.getName()
                             + "' is already in use as command line argument by Lingua Franca,",
@@ -1030,11 +1055,12 @@ public class LFValidator extends BaseLFValidator {
         validateClockSyncTargetProperties(targetProperties);
         validateSchedulerTargetProperties(targetProperties);
         validateRos2TargetProperties(targetProperties);
+        validateKeepalive(targetProperties);
     }
 
     private KeyValuePair getKeyValuePair(KeyValuePairs targetProperties, TargetProperty property) {
         List<KeyValuePair> properties = targetProperties.getPairs().stream()
-            .filter(pair -> pair.getName() == property.description)
+            .filter(pair -> pair.getName().equals(property.description))
             .toList();
         assert (properties.size() <= 1);
         return properties.size() > 0 ? properties.get(0) : null;
@@ -1125,10 +1151,18 @@ public class LFValidator extends BaseLFValidator {
         }
     }
 
+    private void validateKeepalive(KeyValuePairs targetProperties) {
+        KeyValuePair keepalive = getKeyValuePair(targetProperties, TargetProperty.KEEPALIVE);
+        if (keepalive != null && target == Target.CPP) {
+            warning("The keepalive property is inferred automatically by the C++ " +
+                "runtime and the value given here is ignored", keepalive, Literals.KEY_VALUE_PAIR__NAME);
+        }
+    }
+
     private void validateRos2TargetProperties(KeyValuePairs targetProperties) {
         KeyValuePair ros2 = getKeyValuePair(targetProperties, TargetProperty.ROS2);
         KeyValuePair ros2Dependencies = getKeyValuePair(targetProperties, TargetProperty.ROS2_DEPENDENCIES);
-        if (!ASTUtils.toBoolean(ros2.getValue()) && ros2Dependencies != null) {
+        if (ros2Dependencies != null && (ros2 == null || !ASTUtils.toBoolean(ros2.getValue()))) {
             warning(
                 "Ignoring ros2-dependencies as ros2 compilation is disabled",
                 ros2Dependencies,
@@ -1586,8 +1620,11 @@ public class LFValidator extends BaseLFValidator {
                 // list of times
                 var exprs = init.getExprs();
                 if (exprs.isEmpty()) {
-                    error("Expected exactly one time value.", feature);
+                    error("Expected at least one time value.", feature);
                     return;
+                }
+                if (exprs.size() == 1 && exprs.get(0) instanceof BracedListExpression) {
+                    exprs = ((BracedListExpression) exprs.get(0)).getItems();
                 }
                 for (var component : exprs) {
                     checkExpressionIsTime(component, feature);
@@ -1598,7 +1635,7 @@ public class LFValidator extends BaseLFValidator {
         }
     }
 
-    public void checkExpressionIsTime(Initializer init, EStructuralFeature feature) {
+    private void checkExpressionIsTime(Initializer init, EStructuralFeature feature) {
         if (init == null) {
             return;
         }
@@ -1610,7 +1647,7 @@ public class LFValidator extends BaseLFValidator {
         }
     }
 
-    public void checkExpressionIsTime(Expression value, EStructuralFeature feature) {
+    private void checkExpressionIsTime(Expression value, EStructuralFeature feature) {
         if (value == null || value instanceof Time) {
             return;
         }

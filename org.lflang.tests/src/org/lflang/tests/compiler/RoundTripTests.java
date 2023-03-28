@@ -3,6 +3,7 @@ package org.lflang.tests.compiler;
 import static java.util.Collections.emptyList;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -28,11 +29,15 @@ import org.lflang.tests.TestRegistry.TestCategory;
 public class RoundTripTests {
 
     @Test
-    public void roundTripTest() throws Exception {
+    public void roundTripTest() {
         for (Target target : Target.values()) {
             for (TestCategory category : TestCategory.values()) {
                 for (LFTest test : TestRegistry.getRegisteredTests(target, category, false)) {
-                    run(test.getSrcPath());
+                    try {
+                        run(test.getSrcPath());
+                    } catch (Throwable thrown) {
+                        fail("Test case " + test.getSrcPath() + " failed", thrown);
+                    }
                 }
             }
         }

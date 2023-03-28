@@ -45,21 +45,19 @@ import org.lflang.federated.generator.FedASTUtils;
 import org.lflang.federated.generator.FedConnectionInstance;
 import org.lflang.federated.generator.FedFileConfig;
 import org.lflang.federated.generator.FederateInstance;
+import org.lflang.federated.launcher.RtiConfig;
 import org.lflang.federated.serialization.FedROS2CPPSerialization;
 import org.lflang.generator.CodeBuilder;
-import org.lflang.generator.GeneratorBase;
 import org.lflang.generator.GeneratorUtils;
 import org.lflang.generator.LFGeneratorContext;
 import org.lflang.generator.ReactionInstance;
 import org.lflang.generator.ReactorInstance;
-import org.lflang.generator.c.CGenerator;
 import org.lflang.generator.c.CTypes;
 import org.lflang.generator.c.CUtil;
 import org.lflang.lf.Action;
 import org.lflang.lf.Output;
 import org.lflang.lf.Port;
 import org.lflang.lf.VarRef;
-import org.lflang.util.FileUtil;
 
 /**
  * An extension class to the CGenerator that enables certain federated
@@ -83,18 +81,10 @@ public class CExtension implements FedTargetExtension {
         int numOfFederates, FederateInstance federate,
         FedFileConfig fileConfig,
         ErrorReporter errorReporter,
-        LinkedHashMap<String, Object> federationRTIProperties
+        RtiConfig rtiConfig
     ) throws IOException {
-        if(GeneratorUtils.isHostWindows()) {
-            errorReporter.reportError(
-                "Federated LF programs with a C target are currently not supported on Windows. " +
-                    "Exiting code generation."
-            );
-            // Return to avoid compiler errors
-            return;
-        }
 
-        CExtensionUtils.handleCompileDefinitions(federate, numOfFederates, federationRTIProperties);
+        CExtensionUtils.handleCompileDefinitions(federate, numOfFederates, rtiConfig);
 
         generateCMakeInclude(federate, fileConfig);
 
@@ -177,7 +167,7 @@ public class CExtension implements FedTargetExtension {
         CodeBuilder result,
         ErrorReporter errorReporter
     ) {
-        CTypes types = new CTypes(errorReporter);
+        CTypes types = new CTypes();
         // Adjust the type of the action and the receivingPort.
         // If it is "string", then change it to "char*".
         // This string is dynamically allocated, and type 'string' is to be
@@ -345,7 +335,7 @@ public class CExtension implements FedTargetExtension {
         String commonArgs,
         ErrorReporter errorReporter
     ) {
-        CTypes types = new CTypes(errorReporter);
+        CTypes types = new CTypes();
         var lengthExpression = "";
         var pointerExpression = "";
         switch (connection.getSerializer()) {
@@ -431,7 +421,7 @@ public class CExtension implements FedTargetExtension {
 
         // Find the maximum STP for decentralized coordination
         if(coordination == CoordinationType.DECENTRALIZED) {
-            result.pr("max_STP = "+ GeneratorBase.timeInTargetLanguage(maxSTP)+";");
+            result.pr("max_STP = "+ CTypes.getInstance().getTargetTimeExpr(maxSTP) +";");
         }
         result.pr("// Wait until the port status is known");
         result.pr("wait_until_port_status_known("+receivingPortID+", max_STP);");
@@ -488,11 +478,11 @@ public class CExtension implements FedTargetExtension {
     public String generatePreamble(
         FederateInstance federate,
         FedFileConfig fileConfig,
-        LinkedHashMap<String, Object> federationRTIProperties,
+        RtiConfig rtiConfig,
         ErrorReporter errorReporter
     ) throws IOException {
         // Put the C preamble in a `include/_federate.name + _preamble.h` file
-        String cPreamble = makePreamble(federate, fileConfig, federationRTIProperties, errorReporter);
+        String cPreamble = makePreamble(federate, fileConfig, rtiConfig, errorReporter);
         String relPath = "include" + File.separator + "_" + federate.name + "_preamble.h";
         Path fedPreamblePath = fileConfig.getSrcPath().resolve(relPath);
         Files.createDirectories(fedPreamblePath.getParent());
@@ -509,7 +499,7 @@ public class CExtension implements FedTargetExtension {
     protected String makePreamble(
         FederateInstance federate,
         FedFileConfig fileConfig,
-        LinkedHashMap<String, Object> federationRTIProperties,
+        RtiConfig rtiConfig,
         ErrorReporter errorReporter) {
 
         var code = new CodeBuilder();
@@ -532,7 +522,7 @@ public class CExtension implements FedTargetExtension {
 
         code.pr(generateSerializationPreamble(federate, fileConfig));
 
-        code.pr(generateExecutablePreamble(federate, federationRTIProperties, errorReporter));
+        code.pr(generateExecutablePreamble(federate, rtiConfig, errorReporter));
 
         code.pr(generateInitializeTriggers(federate, errorReporter));
 
@@ -582,12 +572,12 @@ public class CExtension implements FedTargetExtension {
      * Generate code for an executed preamble.
      *
      */
-    private String generateExecutablePreamble(FederateInstance federate, LinkedHashMap<String, Object> federationRTIProperties, ErrorReporter errorReporter) {
+    private String generateExecutablePreamble(FederateInstance federate, RtiConfig rtiConfig, ErrorReporter errorReporter) {
         CodeBuilder code = new CodeBuilder();
 
         code.pr(generateCodeForPhysicalActions(federate, errorReporter));
 
-        code.pr(generateCodeToInitializeFederate(federate, federationRTIProperties));
+        code.pr(generateCodeToInitializeFederate(federate, rtiConfig));
 
         code.pr(CExtensionUtils.allocateTriggersForFederate(federate));
 
@@ -600,10 +590,10 @@ public class CExtension implements FedTargetExtension {
 
     /**
      * Generate code to initialize the {@code federate}.
-     * @param federationRTIProperties Properties related to the RTI.
+     * @param rtiConfig
      * @return The generated code
      */
-    private String generateCodeToInitializeFederate(FederateInstance federate, LinkedHashMap<String, Object> federationRTIProperties) {
+    private String generateCodeToInitializeFederate(FederateInstance federate, RtiConfig rtiConfig) {
         CodeBuilder code = new CodeBuilder();
         code.pr("// ***** Start initializing the federated execution. */");
         code.pr(String.join("\n",
@@ -624,7 +614,7 @@ public class CExtension implements FedTargetExtension {
             if (stpParam.isPresent()) {
                 var globalSTP = ASTUtils.initialValue(stpParam.get(), List.of(federate.instantiation)).get(0);
                 var globalSTPTV = ASTUtils.getLiteralTimeValue(globalSTP);
-                code.pr("lf_set_stp_offset("+ CGenerator.timeInTargetLanguage(globalSTPTV)+");");
+                code.pr("lf_set_stp_offset("+ CTypes.getInstance().getTargetTimeExpr(globalSTPTV) +");");
             }
         }
 
@@ -672,12 +662,12 @@ public class CExtension implements FedTargetExtension {
 
         code.pr(String.join("\n",
                             "// Connect to the RTI. This sets _fed.socket_TCP_RTI and _lf_rti_socket_UDP.",
-                            "connect_to_rti("+addDoubleQuotes(federationRTIProperties.get("host").toString())+", "+ federationRTIProperties.get("port")+");"
+                            "connect_to_rti("+addDoubleQuotes(rtiConfig.getHost())+", "+ rtiConfig.getPort()+");"
         ));
 
         // Disable clock synchronization for the federate if it resides on the same host as the RTI,
         // unless that is overridden with the clock-sync-options target property.
-        if (CExtensionUtils.clockSyncIsOn(federate, federationRTIProperties)) {
+        if (CExtensionUtils.clockSyncIsOn(federate, rtiConfig)) {
             code.pr("synchronize_initial_physical_clock_with_rti(_fed.socket_TCP_RTI);");
         }
 
@@ -749,7 +739,7 @@ public class CExtension implements FedTargetExtension {
                 }
                 code.pr(
                     "_fed.min_delay_from_physical_action_to_federate_output = "
-                        + GeneratorBase.timeInTargetLanguage(minDelay) + ";");
+                        + CTypes.getInstance().getTargetTimeExpr(minDelay) + ";");
             }
         }
         return code.getCode();

@@ -3,6 +3,8 @@ package org.lflang.federated.extensions;
 import static org.lflang.util.StringUtil.addDoubleQuotes;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.LinkedHashMap;
 import java.util.stream.Collectors;
 
@@ -15,6 +17,8 @@ import org.lflang.federated.generator.FedASTUtils;
 import org.lflang.federated.generator.FedConnectionInstance;
 import org.lflang.federated.generator.FedFileConfig;
 import org.lflang.federated.generator.FederateInstance;
+import org.lflang.federated.launcher.RtiConfig;
+import org.lflang.generator.GeneratorBase;
 import org.lflang.generator.LFGeneratorContext;
 import org.lflang.generator.ReactorInstance;
 import org.lflang.generator.ts.TSTypes;
@@ -26,7 +30,7 @@ import org.lflang.lf.Variable;
 
 public class TSExtension implements FedTargetExtension {
     @Override
-    public void initializeTargetConfig(LFGeneratorContext context, int numOfFederates, FederateInstance federate, FedFileConfig fileConfig, ErrorReporter errorReporter, LinkedHashMap<String, Object> federationRTIProperties) throws IOException {
+    public void initializeTargetConfig(LFGeneratorContext context, int numOfFederates, FederateInstance federate, FedFileConfig fileConfig, ErrorReporter errorReporter, RtiConfig rtiConfig) throws IOException {
 
     }
 
@@ -86,9 +90,10 @@ public class TSExtension implements FedTargetExtension {
      */
     @Override
     public String generatePreamble(FederateInstance federate, FedFileConfig fileConfig,
-                                   LinkedHashMap<String, Object> federationRTIProperties,
+                                   RtiConfig rtiConfig,
                                    ErrorReporter errorReporter) {
         var minOutputDelay = getMinOutputDelay(federate, fileConfig, errorReporter);
+        var upstreamConnectionDelays = getUpstreamConnectionDelays(federate);
         return
         """
             preamble {=
@@ -103,7 +108,8 @@ public class TSExtension implements FedTargetExtension {
                     networkMessageActions: [%s],
                     rtiHost: "%s",
                     rtiPort: %d,
-                    sendsTo: [%s]
+                    sendsTo: [%s],
+                    upstreamConnectionDelays: [%s]
                 }
             =}""".formatted(
             federate.dependsOn.keySet().stream()
@@ -116,11 +122,12 @@ public class TSExtension implements FedTargetExtension {
                 .stream()
                 .map(Variable::getName)
                 .collect(Collectors.joining(",", "\"", "\"")),
-            federationRTIProperties.get("host"),
-            federationRTIProperties.get("port"),
+            rtiConfig.getHost(),
+            rtiConfig.getPort(),
             federate.sendsTo.keySet().stream()
                             .map(e->String.valueOf(e.id))
-                            .collect(Collectors.joining(","))
+                            .collect(Collectors.joining(",")),
+            upstreamConnectionDelays.stream().collect(Collectors.joining(","))
         );
     }
 
@@ -164,5 +171,34 @@ public class TSExtension implements FedTargetExtension {
             }
         }
         return null;
+    }
+
+    private List<String> getUpstreamConnectionDelays(FederateInstance federate) {
+        List<String> candidates = new ArrayList<>();
+        if (!federate.dependsOn.keySet().isEmpty()) {
+            for (FederateInstance upstreamFederate: federate.dependsOn.keySet()) {
+                String element = "[";
+                var delays = federate.dependsOn.get(upstreamFederate);
+                int cnt = 0;
+                if (delays != null) {
+                    for (Expression delay : delays) {
+                        if (delay == null) {
+                            element += "TimeValue.NEVER()";
+                        } else {
+                            element += "TimeValue.nsec(" + getNetworkDelayLiteral(delay) + ")";
+                        }
+                        cnt++;
+                        if (cnt != delays.size()) {
+                            element += ", ";
+                        }
+                    }
+                } else {
+                    element += "TimeValue.NEVER()";
+                }
+                element += "]";
+                candidates.add(element);
+            }
+        }
+        return candidates;
     }
 }

@@ -252,6 +252,14 @@ public class ASTUtils {
     }
 
     /**
+     * Return the target of the file in which the given node lives.
+     */
+    public static Target getTarget(EObject object) {
+        TargetDecl targetDecl = targetDecl(object.eResource());
+        return Target.fromDecl(targetDecl);
+    }
+
+    /**
      * Add a new target property to the given resource.
      *
      * This also creates a config object if the resource does not yey have one.
@@ -781,7 +789,7 @@ public class ASTUtils {
 
     /**
      * Translate the given type into its textual representation, but
-     * do not append any array specifications.
+     * do not append any array specifications or type arguments.
      * @param type AST node to render as string.
      * @return Textual representation of the given argument.
      */
@@ -793,18 +801,12 @@ public class ASTUtils {
                 if (type.isTime()) {
                     return "time";
                 } else {
-                    StringBuilder stars = new StringBuilder();
-                    List<String> iterList = convertToEmptyListIfNull(type.getStars());
-                    for (String s : iterList) {
-                        stars.append(s);
+                    StringBuilder result = new StringBuilder(type.getId());
+
+                    for (String s : convertToEmptyListIfNull(type.getStars())) {
+                        result.append(s);
                     }
-                    if (!IterableExtensions.isNullOrEmpty(type.getTypeParms())) {
-                        List<String> typeParamsStr = new ArrayList<>();
-                        type.getTypeParms().forEach(it -> typeParamsStr.add(toText(it)));
-                        return String.format("%s<%s>", type.getId(), String.join(", ", typeParamsStr));
-                    } else {
-                        return type.getId() + stars;
-                    }
+                    return result.toString();
                 }
             }
         }
