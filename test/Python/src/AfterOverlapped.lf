@@ -8,8 +8,8 @@ import Count from "lib/Count.lf"
 
 reactor Test {
     input c
-    state i(0)
-    state received(0)
+    state i = 0
+    state received = 0
 
     reaction(c) {=
         self.received += 1

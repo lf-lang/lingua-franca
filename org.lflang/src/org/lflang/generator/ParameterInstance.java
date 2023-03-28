@@ -30,10 +30,12 @@ package org.lflang.generator;
 import java.util.List;
 import java.util.Optional;
 
-import org.lflang.InferredType;
 import org.lflang.ASTUtils;
+import org.lflang.InferredType;
 import org.lflang.lf.Assignment;
 import org.lflang.lf.Expression;
+import org.lflang.lf.Initializer;
+import org.lflang.lf.LfFactory;
 import org.lflang.lf.Parameter;
 
 /** 
@@ -71,13 +73,26 @@ public class ParameterInstance extends NamedInstance<Parameter> {
     //// Public Methods
 
     /**
-     * Get the initial value(s) of this parameter as a list of
-     * Value objects, where each Value is either an instance
-     * of Time, Literal, or Code. That is, references to other
-     * parameters have been replaced with their initial values.
+     * Get the initial value of this parameter.
      */
-    public List<Expression> getInitialValue() {
-        return parent.initialParameterValue(this.definition);
+    private Initializer getInitialValue() {
+        return definition.getInit();
+    }
+
+    /**
+     * Return the (possibly overridden) value of this parameter
+     * in the containing instance. Parameter references are resolved
+     * to actual expressions.
+     */
+    public Initializer getActualValue() {
+        Assignment override = getOverride();
+        Initializer init;
+        if (override != null) {
+            init = override.getRhs();
+        } else {
+            init = getInitialValue();
+        }
+        return init;
     }
     
     /**

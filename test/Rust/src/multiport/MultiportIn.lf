@@ -8,7 +8,7 @@ target Rust {
 reactor Source {
     timer t(0, 200 msec)
     output out: u32
-    state s: u32(0)
+    state s: u32 = 0
 
     reaction(t) -> out {=
         ctx.set(out, self.s);
@@ -26,7 +26,7 @@ reactor Computation {
 }
 
 reactor Destination {
-    state s: u32(0)
+    state s: u32 = 0
     input[4] in: u32
 
     reaction(in) {=

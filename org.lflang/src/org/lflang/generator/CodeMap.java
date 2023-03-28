@@ -17,6 +17,7 @@ import org.eclipse.xtext.nodemodel.INode;
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils;
 import org.eclipse.xtext.util.LineAndColumn;
 
+import org.lflang.lf.ParameterReference;
 import org.lflang.lf.impl.ParameterReferenceImpl;
 
 /**
@@ -147,6 +148,10 @@ public class CodeMap {
                 oneBasedLfLineAndColumn.getLine(), oneBasedLfLineAndColumn.getColumn()
             );
             final URI uri = bestEffortGetEResource(astNode).getURI();
+            if (uri == null) {
+                // no EResource, no correspondence can be found
+                return representation;
+            }
             final Path lfPath = Path.of(uri.isFile() ? uri.toFileString() : uri.path());
             if (verbatim) lfStart = lfStart.plus(node.getText().substring(0, indexOf(node.getText(), representation)));
             return new Correspondence(
@@ -162,12 +167,10 @@ public class CodeMap {
          * This is a dangerous operation which can cause an unrecoverable error.
          */
         private static Resource bestEffortGetEResource(EObject astNode) {
-            if (astNode instanceof ParameterReferenceImpl pri) return pri.getParameter().eResource();
-            Resource ret = astNode.eResource();
-            if (ret != null) return ret;
-            throw new RuntimeException(
-                "Every non-null AST node should have an EResource, but \"" + astNode + "\" does not."
-            );
+            if (astNode instanceof ParameterReference pri) {
+                return pri.getParameter().eResource();
+            }
+            return astNode.eResource();
         }
 
         /**

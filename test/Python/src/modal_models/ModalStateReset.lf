@@ -14,7 +14,7 @@ reactor Modal {
     output count1
     output count2
 
-    state counter0(0)
+    state counter0 = 0
 
     reaction(next) -> count0 {=
         print(f"Counter0: {self.counter0}")
@@ -23,7 +23,7 @@ reactor Modal {
     =}
 
     initial mode One {
-        state counter1(0)
+        state counter1 = 0
         timer T1(0 msec, 250 msec)
         reaction(reset) {= self.counter1 = 0 =}
 
@@ -41,7 +41,7 @@ reactor Modal {
     }
 
     mode Two {
-        state counter2(-2)
+        state counter2 = -2
         timer T2(0 msec, 250 msec)
         reaction(reset) {= self.counter2 = -2 =}
 

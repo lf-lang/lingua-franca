@@ -9,7 +9,7 @@ reactor Box {
 }
 
 main reactor {
-    state done: bool(false)
+    state done: bool = false
 
     box0 = new Box()
     box1 = new Box()

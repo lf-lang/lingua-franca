@@ -10,7 +10,7 @@ reactor CAReplica {
     input remote_update
     input query
 
-    state balance(0)
+    state balance = 0
 
     output response
 

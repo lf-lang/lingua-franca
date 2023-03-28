@@ -12,7 +12,7 @@ reactor SendsPointer {
 }
 
 // expected parameter is for testing.
-reactor Print(expected: {= {value: number} =}({= { value: 42 } =})) {
+reactor Print(expected: {= {value: number} =} = {= { value: 42 } =}) {
     input x: {= {value: number} =}
 
     reaction(x) {=

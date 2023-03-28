@@ -1,6 +1,6 @@
 target Rust
 
-reactor Some(value: usize(30)) {
+reactor Some(value: usize = 30) {
     output[value] finished: unit
 
     reaction(startup) -> finished {=

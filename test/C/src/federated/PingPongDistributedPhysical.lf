@@ -26,10 +26,10 @@
  */
 target C
 
-reactor Ping(count: int(10)) {
+reactor Ping(count: int = 10) {
     input receive: int
     output send: int
-    state pingsLeft: int(count)
+    state pingsLeft: int = count
     logical action serve
 
     reaction(startup, serve) -> send {=
@@ -46,10 +46,10 @@ reactor Ping(count: int(10)) {
     =}
 }
 
-reactor Pong(expected: int(10)) {
+reactor Pong(expected: int = 10) {
     input receive: int
     output send: int
-    state count: int(0)
+    state count: int = 0
 
     reaction(receive) -> send {=
         self->count++;
@@ -71,7 +71,7 @@ reactor Pong(expected: int(10)) {
     =}
 }
 
-federated reactor(count: int(10)) {
+federated reactor(count: int = 10) {
     ping = new Ping(count = count)
     pong = new Pong(expected = count)
     ping.send ~> pong.receive

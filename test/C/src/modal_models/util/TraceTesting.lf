@@ -6,17 +6,17 @@ preamble {=
 =}
 
 reactor TraceTesting(
-    events_size: int(0),
-    trace_size: int(0),
-    trace: int[](0),
-    training: bool(false)
+    events_size: int = 0,
+    trace_size: int = 0,
+    trace: int[] = 0,
+    training: bool = false
 ) {
     input[events_size] events: int
 
-    state last_reaction_time: int(0)
-    state trace_idx: int(0)
-    state recorded_events: int*(0)
-    state recorded_events_next: int(0)
+    state last_reaction_time: int = 0
+    state trace_idx: int = 0
+    state recorded_events: int* = 0
+    state recorded_events_next: int = 0
 
     reaction(startup) {= self->last_reaction_time = lf_time_logical(); =}
 
