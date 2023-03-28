@@ -308,6 +308,15 @@ public class FedLauncherGenerator {
 
     private String getRtiCommand(List<FederateInstance> federates, boolean isRemote) {
         List<String> commands = new ArrayList<>();
+        
+        // Identify the transient federates number
+        int transientFederatesNumber = 0;
+        for (FederateInstance federate: federates) {
+            if (federate.isTransient) {
+                transientFederatesNumber++;
+            }
+        }
+
         if (isRemote) {
             commands.add("RTI -i '${FEDERATION_ID}' \\");
         } else {
@@ -320,7 +329,8 @@ public class FedLauncherGenerator {
             commands.add("                        -t \\");
         }
         commands.addAll(List.of(
-            "                        -n "+federates.size()+" \\",
+            "                        -n "+(federates.size() - transientFederatesNumber) +" \\",
+            "                        -nt "+transientFederatesNumber+" \\",
             "                        -c "+targetConfig.clockSync.toString()+" \\"
         ));
         if (targetConfig.clockSync.equals(ClockSyncMode.ON)) {
