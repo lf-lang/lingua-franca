@@ -61,3 +61,4 @@ jobs:
         run: |
           ./gradlew test --tests org.lflang.tests.runtime.CZephyrTest.buildZephyrTests
           ./gradlew test --tests org.lflang.tests.runtime.CZephyrTest.buildGenericTests
+          util/RunZephyrTests.sh test/C/src-gen
