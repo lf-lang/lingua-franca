@@ -383,10 +383,6 @@ public enum TargetProperty {
             (config, value, err) -> {
                 config.logLevel = (LogLevel) UnionType.LOGGING_UNION
                         .forName(ASTUtils.elementToSingleString(value));
-            },
-            (config, value, err) -> {
-                config.logLevel = (LogLevel) UnionType.LOGGING_UNION
-                    .forName(ASTUtils.elementToSingleString(value));
             }),
 
     /**
