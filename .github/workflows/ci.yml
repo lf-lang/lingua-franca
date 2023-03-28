@@ -65,12 +65,12 @@ jobs:
   
   # Run the C Arduino integration tests.
   c-arduino-tests:
-    uses: lf-lang/lingua-franca/.github/workflows/c-arduino-tests.yml@master
+    uses: lf-lang/lingua-franca/.github/workflows/c-arduino-tests.yml@proper-zephyr-ci
     needs: cancel
   
   # Run the C Zephyr integration tests.
   c-zephyr-tests:
-    uses: lf-lang/lingua-franca/.github/workflows/c-zephyr-tests.yml@master
+    uses: lf-lang/lingua-franca/.github/workflows/c-zephyr-tests.yml@proper-zephyr-ci
     needs: cancel
 
   # Run the CCpp integration tests.
