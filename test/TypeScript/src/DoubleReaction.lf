@@ -5,10 +5,10 @@ target TypeScript {
     fast: true
 }
 
-reactor Clock(offset: time(0), period: time(1 sec)) {
+reactor Clock(offset: time = 0, period: time = 1 sec) {
     output y: number
     timer t(offset, period)
-    state count: number(0)
+    state count: number = 0
 
     reaction(t) -> y {=
         count++;
@@ -19,7 +19,7 @@ reactor Clock(offset: time(0), period: time(1 sec)) {
 reactor Destination {
     input x: number
     input w: number
-    state s: number(2)
+    state s: number = 2
 
     reaction(x, w) {=
         let sum = 0;

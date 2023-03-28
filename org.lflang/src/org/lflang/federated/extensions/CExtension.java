@@ -48,19 +48,16 @@ import org.lflang.federated.generator.FederateInstance;
 import org.lflang.federated.launcher.RtiConfig;
 import org.lflang.federated.serialization.FedROS2CPPSerialization;
 import org.lflang.generator.CodeBuilder;
-import org.lflang.generator.GeneratorBase;
 import org.lflang.generator.GeneratorUtils;
 import org.lflang.generator.LFGeneratorContext;
 import org.lflang.generator.ReactionInstance;
 import org.lflang.generator.ReactorInstance;
-import org.lflang.generator.c.CGenerator;
 import org.lflang.generator.c.CTypes;
 import org.lflang.generator.c.CUtil;
 import org.lflang.lf.Action;
 import org.lflang.lf.Output;
 import org.lflang.lf.Port;
 import org.lflang.lf.VarRef;
-import org.lflang.util.FileUtil;
 
 /**
  * An extension class to the CGenerator that enables certain federated
@@ -170,7 +167,7 @@ public class CExtension implements FedTargetExtension {
         CodeBuilder result,
         ErrorReporter errorReporter
     ) {
-        CTypes types = new CTypes(errorReporter);
+        CTypes types = new CTypes();
         // Adjust the type of the action and the receivingPort.
         // If it is "string", then change it to "char*".
         // This string is dynamically allocated, and type 'string' is to be
@@ -338,7 +335,7 @@ public class CExtension implements FedTargetExtension {
         String commonArgs,
         ErrorReporter errorReporter
     ) {
-        CTypes types = new CTypes(errorReporter);
+        CTypes types = new CTypes();
         var lengthExpression = "";
         var pointerExpression = "";
         switch (connection.getSerializer()) {
@@ -424,7 +421,7 @@ public class CExtension implements FedTargetExtension {
 
         // Find the maximum STP for decentralized coordination
         if(coordination == CoordinationType.DECENTRALIZED) {
-            result.pr("max_STP = "+ GeneratorBase.timeInTargetLanguage(maxSTP)+";");
+            result.pr("max_STP = "+ CTypes.getInstance().getTargetTimeExpr(maxSTP) +";");
         }
         result.pr("// Wait until the port status is known");
         result.pr("wait_until_port_status_known("+receivingPortID+", max_STP);");
@@ -617,7 +614,7 @@ public class CExtension implements FedTargetExtension {
             if (stpParam.isPresent()) {
                 var globalSTP = ASTUtils.initialValue(stpParam.get(), List.of(federate.instantiation)).get(0);
                 var globalSTPTV = ASTUtils.getLiteralTimeValue(globalSTP);
-                code.pr("lf_set_stp_offset("+ CGenerator.timeInTargetLanguage(globalSTPTV)+");");
+                code.pr("lf_set_stp_offset("+ CTypes.getInstance().getTargetTimeExpr(globalSTPTV) +");");
             }
         }
 
@@ -745,7 +742,7 @@ public class CExtension implements FedTargetExtension {
                 }
                 code.pr(
                     "_fed.min_delay_from_physical_action_to_federate_output = "
-                        + GeneratorBase.timeInTargetLanguage(minDelay) + ";");
+                        + CTypes.getInstance().getTargetTimeExpr(minDelay) + ";");
             }
         }
         return code.getCode();

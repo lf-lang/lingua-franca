@@ -3,10 +3,10 @@ target TypeScript {
     timeout: 2 sec
 }
 
-reactor Source(width: number(1)) {
+reactor Source(width: number = 1) {
     timer t(0, 200 msec)
     output[width] out: number
-    state s: number(0)
+    state s: number = 0
 
     reaction(t) -> out {=
         for(let i = 0; i < out.length; i++) {
@@ -15,8 +15,8 @@ reactor Source(width: number(1)) {
     =}
 }
 
-reactor Destination(width: number(1)) {
-    state s: number(6)
+reactor Destination(width: number = 1) {
+    state s: number = 6
     input[width] inp: number
 
     reaction(inp) {=
@@ -40,7 +40,7 @@ reactor Destination(width: number(1)) {
     =}
 }
 
-main reactor BankToBankMultiport(bankWidth: number(4)) {
+main reactor BankToBankMultiport(bankWidth: number = 4) {
     a = new[bankWidth] Source(width = 4)
     b = new[bankWidth] Destination(width = 4)
     a.out -> b.inp

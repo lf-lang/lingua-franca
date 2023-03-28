@@ -21,7 +21,7 @@ reactor Test {
 
 main reactor Multiport {
     test = new Test()
-    state received: bool(false)
+    state received: bool = false
 
     reaction(startup) -> test.sink {=
         for (auto i = 0; i < 30; i++) {

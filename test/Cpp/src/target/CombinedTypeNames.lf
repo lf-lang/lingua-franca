@@ -3,11 +3,11 @@
 target Cpp
 
 reactor Foo(
-    bar: {= unsigned int =}(0),
-    baz: {= const unsigned int* =}({= nullptr =})
+    bar: {= unsigned int =} = 0,
+    baz: {= const unsigned int* =} = {= nullptr =}
 ) {
-    state s_bar: {= unsigned int =}(bar)
-    state s_baz: {= const unsigned int* =}(baz)
+    state s_bar: {= unsigned int =} = bar
+    state s_baz: {= const unsigned int* =} = baz
 
     reaction(startup) {=
         if (bar != 42 || s_bar != 42 || *baz != 42 || *s_baz != 42) {
@@ -17,6 +17,6 @@ reactor Foo(
     =}
 }
 
-main reactor(bar: {= unsigned int =}(42)) {
+main reactor(bar: {= unsigned int =} = 42) {
     foo = new Foo(bar = bar, baz = {= &bar =})
 }
