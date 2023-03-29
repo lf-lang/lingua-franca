@@ -352,28 +352,28 @@ public class PythonGenerator extends CGenerator {
     /**
      * Generate the aliases for inputs, outputs, and struct type definitions for
      * actions of the specified reactor in the specified federate.
-     * @param r The parsed reactor data structure.
+     * @param tpr The parsed reactor data structure.
      */
     @Override
     public void generateAuxiliaryStructs(
         CodeBuilder builder, TypeParameterizedReactor tpr, boolean userFacing
     ) {
         for (Input input : ASTUtils.allInputs(tpr.r())) {
-            generateAuxiliaryStructsForPort(builder, tpr.r(), input);
+            generateAuxiliaryStructsForPort(builder, tpr, input);
         }
         for (Output output : ASTUtils.allOutputs(tpr.r())) {
-            generateAuxiliaryStructsForPort(builder, tpr.r(), output);
+            generateAuxiliaryStructsForPort(builder, tpr, output);
         }
         for (Action action : ASTUtils.allActions(tpr.r())) {
             generateAuxiliaryStructsForAction(builder, tpr, action);
         }
     }
 
-    private void generateAuxiliaryStructsForPort(CodeBuilder builder, Reactor r,
+    private void generateAuxiliaryStructsForPort(CodeBuilder builder, TypeParameterizedReactor tpr,
                                                  Port port) {
         boolean isTokenType = CUtil.isTokenType(ASTUtils.getInferredType(port), types);
         builder.pr(port,
-                PythonPortGenerator.generateAliasTypeDef(r, port, isTokenType,
+                PythonPortGenerator.generateAliasTypeDef(tpr, port, isTokenType,
                                                          genericPortType));
     }
 
@@ -455,19 +455,19 @@ public class PythonGenerator extends CGenerator {
      *  a struct that contains parameters, state variables, inputs (triggering or not),
      *  actions (triggering or produced), and outputs.
      *  @param reaction The reaction.
-     *  @param r The reactor.
+     *  @param tpr The reactor.
      *  @param reactionIndex The position of the reaction within the reactor.
      */
     @Override
-    protected void generateReaction(CodeBuilder src, Reaction reaction, Reactor r, int reactionIndex) {
-        Reactor reactor = ASTUtils.toDefinition(r);
+    protected void generateReaction(CodeBuilder src, Reaction reaction, TypeParameterizedReactor tpr, int reactionIndex) {
+        Reactor reactor = ASTUtils.toDefinition(tpr.r());
 
         // Reactions marked with a `@_c_body` attribute are generated in C
         if (AttributeUtils.hasCBody(reaction)) {
-            super.generateReaction(src, reaction, r, reactionIndex);
+            super.generateReaction(src, reaction, tpr, reactionIndex);
             return;
         }
-        src.pr(PythonReactionGenerator.generateCReaction(reaction, reactor, reactionIndex, mainDef, errorReporter, types));
+        src.pr(PythonReactionGenerator.generateCReaction(reaction, tpr, reactor, reactionIndex, mainDef, errorReporter, types));
     }
 
     /**
@@ -504,7 +504,7 @@ public class PythonGenerator extends CGenerator {
      * @see PythonMethodGenerator
      */
     @Override
-    protected void generateMethods(CodeBuilder src, ReactorDecl reactor) {    }
+    protected void generateMethods(CodeBuilder src, TypeParameterizedReactor reactor) {    }
 
     /**
      * Generate C preambles defined by user for a given reactor
@@ -540,7 +540,7 @@ public class PythonGenerator extends CGenerator {
     /**
      * This function is provided to allow extensions of the CGenerator to append the structure of the self struct
      * @param selfStructBody The body of the self struct
-     * @param decl The reactor declaration for the self struct
+     * @param reactor The reactor declaration for the self struct
      * @param constructorCode Code that is executed when the reactor is instantiated
      */
     @Override

@@ -43,10 +43,10 @@ public class CReactorHeaderFileGenerator {
         appendIncludeGuard(builder, tpr.r());
         builder.pr(topLevelPreamble);
         appendPoundIncludes(builder);
-        appendSelfStruct(builder, types, tpr.r());
+        appendSelfStruct(builder, types, tpr);
         generator.generate(builder, tpr, true);
         for (Reaction reaction : tpr.r().getReactions()) {
-            appendSignature(builder, types, reaction, tpr.r());
+            appendSignature(builder, types, reaction, tpr);
         }
         builder.pr("#endif");
         return builder.getCode();
@@ -71,40 +71,40 @@ public class CReactorHeaderFileGenerator {
             """);
     }
 
-    private static String userFacingSelfType(Reactor r) {
-        return r.getName().toLowerCase() + "_self_t";
+    private static String userFacingSelfType(TypeParameterizedReactor tpr) {
+        return tpr.getName().toLowerCase() + "_self_t";
     }
 
-    private static void appendSelfStruct(CodeBuilder builder, CTypes types, Reactor r) {
-        builder.pr("typedef struct " + userFacingSelfType(r) + "{");
-        for (Parameter p : r.getParameters()) {
+    private static void appendSelfStruct(CodeBuilder builder, CTypes types, TypeParameterizedReactor tpr) {
+        builder.pr("typedef struct " + userFacingSelfType(tpr) + "{");
+        for (Parameter p : tpr.r().getParameters()) {
             builder.pr(types.getTargetType(p) + " " + p.getName() + ";");
         }
-        for (StateVar s : r.getStateVars()) {
+        for (StateVar s : tpr.r().getStateVars()) {
             builder.pr(types.getTargetType(s) + " " + s.getName() + ";");
         }
         builder.pr("int end[0]; // placeholder; MSVC does not compile empty structs");
-        builder.pr("} " + userFacingSelfType(r) + ";");
+        builder.pr("} " + userFacingSelfType(tpr) + ";");
     }
 
-    private static void appendSignature(CodeBuilder builder, CTypes types, Reaction r, Reactor reactor) {
-        if (r.getName() != null) builder.pr("void " + r.getName() + "(" + reactionParameters(types, r, reactor) + ");");
+    private static void appendSignature(CodeBuilder builder, CTypes types, Reaction r, TypeParameterizedReactor tpr) {
+        if (r.getName() != null) builder.pr("void " + r.getName() + "(" + reactionParameters(types, r, tpr) + ");");
     }
 
-    private static String reactionParameters(CTypes types, Reaction r, Reactor reactor) {
-        return Stream.concat(Stream.of(userFacingSelfType(reactor) + "* self"), ioTypedVariableStream(r)
-            .map((tv) -> reactor.getName().toLowerCase() + "_" + tv.getName() + "_t* " + tv.getName()))
+    private static String reactionParameters(CTypes types, Reaction r, TypeParameterizedReactor tpr) {
+        return Stream.concat(Stream.of(userFacingSelfType(tpr) + "* self"), ioTypedVariableStream(r)
+            .map((tv) -> tpr.getName().toLowerCase() + "_" + tv.getName() + "_t* " + tv.getName()))
             .collect(Collectors.joining(", "));
     }
 
-    public static String reactionArguments(CTypes types, Reaction r, Reactor reactor) {
-        return Stream.concat(Stream.of(getApiSelfStruct(reactor)), ioTypedVariableStream(r)
-                .map(it -> String.format("((%s*) %s)", CGenerator.variableStructType(it, reactor, true), it.getName())))
+    public static String reactionArguments(CTypes types, Reaction r, TypeParameterizedReactor tpr) {
+        return Stream.concat(Stream.of(getApiSelfStruct(tpr)), ioTypedVariableStream(r)
+                .map(it -> String.format("((%s*) %s)", CGenerator.variableStructType(it, tpr, true), it.getName())))
             .collect(Collectors.joining(", "));
     }
 
-    private static String getApiSelfStruct(Reactor reactor) {
-        return "(" + userFacingSelfType(reactor) + "*) (((char*) self) + sizeof(self_base_t))";
+    private static String getApiSelfStruct(TypeParameterizedReactor tpr) {
+        return "(" + userFacingSelfType(tpr) + "*) (((char*) self) + sizeof(self_base_t))";
     }
 
     private static Stream<TypedVariable> ioTypedVariableStream(Reaction r) {

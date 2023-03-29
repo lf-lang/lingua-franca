@@ -239,9 +239,9 @@ public class LFValidator extends BaseLFValidator {
                     } else {
                         // Unfortunately, xtext does not generate a suitable equals()
                         // method for AST types, so we have to manually check the types.
-                        if (!sameType(type, ((Port) port.getVariable()).getType())) {
-                            error("Types do not match.", Literals.CONNECTION__LEFT_PORTS);
-                        }
+//                        if (!sameType(type, ((Port) port.getVariable()).getType())) {
+//                            error("Types do not match.", Literals.CONNECTION__LEFT_PORTS);
+//                        }
                     }
                 }
             }
@@ -252,9 +252,9 @@ public class LFValidator extends BaseLFValidator {
                     if (type == null) {
                         type = ((Port) port.getVariable()).getType();
                     } else {
-                        if (!sameType(type, type = ((Port) port.getVariable()).getType())) {
-                            error("Types do not match.", Literals.CONNECTION__RIGHT_PORTS);
-                        }
+//                        if (!sameType(type, type = ((Port) port.getVariable()).getType())) {
+//                            error("Types do not match.", Literals.CONNECTION__RIGHT_PORTS);
+//                        }
                     }
                 }
             }

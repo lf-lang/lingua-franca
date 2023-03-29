@@ -12,6 +12,7 @@ import org.lflang.ErrorReporter;
 import org.lflang.Target;
 
 import org.lflang.generator.c.CReactionGenerator;
+import org.lflang.generator.c.TypeParameterizedReactor;
 import org.lflang.lf.ReactorDecl;
 import org.lflang.lf.Reaction;
 import org.lflang.lf.Reactor;
@@ -127,6 +128,7 @@ public class PythonReactionGenerator {
      */
     public static String generateCReaction(
         Reaction reaction,
+        TypeParameterizedReactor tpr,
         Reactor r,
         int reactionIndex,
         Instantiation mainDef,
@@ -139,14 +141,14 @@ public class PythonReactionGenerator {
         CodeBuilder code = new CodeBuilder();
         String cPyInit = generateCPythonInitializers(reaction, r, pyObjects, errorReporter);
         String cInit = CReactionGenerator.generateInitializationForReaction(
-                                                "", reaction, r, reactionIndex,
+                                                "", reaction, tpr, reactionIndex,
                                                 types, errorReporter, mainDef,
                                                 Target.Python.requiresTypes);
         code.pr(
             "#include " + StringUtil.addDoubleQuotes(
                 CCoreFilesUtils.getCTargetSetHeader()));
         code.pr(generateFunction(
-                    CReactionGenerator.generateReactionFunctionHeader(r, reactionIndex),
+                    CReactionGenerator.generateReactionFunctionHeader(tpr, reactionIndex),
                     cInit, reaction.getCode(),
                     generateCPythonReactionCaller(r, reactionIndex, pyObjects, cPyInit)
         ));
@@ -154,7 +156,7 @@ public class PythonReactionGenerator {
         // Generate code for the STP violation handler, if there is one.
         if (reaction.getStp() != null) {
             code.pr(generateFunction(
-                    CReactionGenerator.generateStpFunctionHeader(r, reactionIndex),
+                    CReactionGenerator.generateStpFunctionHeader(tpr, reactionIndex),
                     cInit, reaction.getStp().getCode(),
                     generateCPythonSTPCaller(r, reactionIndex, pyObjects)
                 ));
@@ -162,7 +164,7 @@ public class PythonReactionGenerator {
         // Generate code for the deadline violation function, if there is one.
         if (reaction.getDeadline() != null) {
             code.pr(generateFunction(
-                CReactionGenerator.generateDeadlineFunctionHeader(r, reactionIndex),
+                CReactionGenerator.generateDeadlineFunctionHeader(tpr, reactionIndex),
                 cInit, reaction.getDeadline().getCode(),
                 generateCPythonDeadlineCaller(r, reactionIndex, pyObjects)
             ));

@@ -1,5 +1,6 @@
 package org.lflang.generator.python;
 
+import org.lflang.generator.c.TypeParameterizedReactor;
 import org.lflang.lf.Input;
 import org.lflang.lf.Instantiation;
 import org.lflang.lf.Output;
@@ -195,8 +196,8 @@ public class PythonPortGenerator {
         );
     }
 
-    public static String generateAliasTypeDef(Reactor r, Port port, boolean isTokenType, String genericPortType) {
-        return "typedef "+genericPortType+" "+CGenerator.variableStructType(port, r, false)+";";
+    public static String generateAliasTypeDef(TypeParameterizedReactor tpr, Port port, boolean isTokenType, String genericPortType) {
+        return "typedef "+genericPortType+" "+CGenerator.variableStructType(port, tpr, false)+";";
     }
 
     private static String generateConvertCPortToPy(String port) {

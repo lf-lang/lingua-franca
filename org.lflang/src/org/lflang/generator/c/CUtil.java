@@ -529,12 +529,6 @@ public class CUtil {
         }
         return "_" + CUtil.getName(reactor) + "_self_t";
     }
-    public static String selfType(Reactor reactor) {
-        if (reactor.isMain()) {
-            return "_" + CUtil.getName(reactor) + "_main_self_t";
-        }
-        return "_" + CUtil.getName(reactor) + "_self_t";
-    }
 
     /** Construct a unique type for the "self" struct of the class of the given reactor. */
     public static String selfType(ReactorInstance instance) {

@@ -1052,7 +1052,7 @@ public class CGenerator extends GeneratorBase {
         header.pr("#include \"include/core/reactor.h\"");
         src.pr("#include \"include/api/api.h\"");
         src.pr("#include \"include/api/set.h\"");
-        generateIncludes(tpr.r());
+        generateIncludes(tpr);
         if (CCppMode) {
             src.pr("}");
             header.pr("}");
@@ -1072,16 +1072,16 @@ public class CGenerator extends GeneratorBase {
         var constructorCode = new CodeBuilder();
         generateAuxiliaryStructs(header, tpr, false);
         generateSelfStruct(header, tpr, constructorCode);
-        generateMethods(src, tpr.r());
-        generateReactions(src, tpr.r());
+        generateMethods(src, tpr);
+        generateReactions(src, tpr);
         generateConstructor(src, header, tpr, constructorCode);
     }
 
     /**
      * Generate methods for {@code reactor}.
      */
-    protected void generateMethods(CodeBuilder src, ReactorDecl reactor) {
-        CMethodGenerator.generateMethods(reactor, src, types);
+    protected void generateMethods(CodeBuilder src, TypeParameterizedReactor tpr) {
+        CMethodGenerator.generateMethods(tpr, src, types);
     }
 
     /**
@@ -1113,8 +1113,8 @@ public class CGenerator extends GeneratorBase {
         ));
     }
 
-    protected void generateIncludes(Reactor r) {
-        code.pr("#include \"" + CUtil.getName(r) + ".h\"");
+    protected void generateIncludes(TypeParameterizedReactor tpr) {
+        code.pr("#include \"" + CUtil.getName(tpr) + ".h\"");
     }
 
     /**
@@ -1201,11 +1201,12 @@ public class CGenerator extends GeneratorBase {
         // struct has a place to hold the data produced by this reactor's
         // reactions and a place to put pointers to data produced by
         // the contained reactors.
-        generateInteractingContainedReactors(reactor, body, constructorCode);
+        generateInteractingContainedReactors(tpr, reactor, body, constructorCode);
 
         // Next, generate the fields needed for each reaction.
         CReactionGenerator.generateReactionAndTriggerStructs(
             body,
+            tpr,
             reactor,
             constructorCode,
             types
@@ -1237,11 +1238,13 @@ public class CGenerator extends GeneratorBase {
      * reactions and a place to put pointers to data produced by
      * the contained reactors.
      *
+     * @param tpr The TypeParameterized Reactor
      * @param reactor The reactor.
      * @param body The place to put the struct definition for the contained reactors.
      * @param constructorCode The place to put matching code that goes in the container's constructor.
      */
     private void generateInteractingContainedReactors(
+        TypeParameterizedReactor tpr,
         Reactor reactor,
         CodeBuilder body,
         CodeBuilder constructorCode
@@ -1279,12 +1282,12 @@ public class CGenerator extends GeneratorBase {
                     // to be malloc'd at initialization.
                     if (!ASTUtils.isMultiport(port)) {
                         // Not a multiport.
-                        body.pr(port, variableStructType(port, containedReactorType, false)+" "+port.getName()+";");
+                        body.pr(port, variableStructType(port, tpr, false)+" "+port.getName()+";");
                     } else {
                         // Is a multiport.
                         // Memory will be malloc'd in initialization.
                         body.pr(port, String.join("\n",
-                            variableStructType(port, containedReactorType, false)+"** "+port.getName()+";",
+                            variableStructType(port, tpr, false)+"** "+port.getName()+";",
                             "int "+port.getName()+"_width;"
                         ));
                     }
@@ -1294,13 +1297,13 @@ public class CGenerator extends GeneratorBase {
                     // self struct of the container.
                     if (!ASTUtils.isMultiport(port)) {
                         // Not a multiport.
-                        body.pr(port, variableStructType(port, containedReactorType, false)+"* "+port.getName()+";");
+                        body.pr(port, variableStructType(port, tpr, false)+"* "+port.getName()+";");
                     } else {
                         // Is a multiport.
                         // Here, we will use an array of pointers.
                         // Memory will be malloc'd in initialization.
                         body.pr(port, String.join("\n",
-                            variableStructType(port, containedReactorType, false)+"** "+port.getName()+";",
+                            variableStructType(port, tpr, false)+"** "+port.getName()+";",
                             "int "+port.getName()+"_width;"
                         ));
                     }
@@ -1308,10 +1311,10 @@ public class CGenerator extends GeneratorBase {
                     var reactorIndex = "";
                     if (containedReactor.getWidthSpec() != null) {
                         reactorIndex = "[reactor_index]";
-                        constructorCode.pr("for (int reactor_index = 0; reactor_index < self->_lf_"+containedReactor.getName()+"_width; reactor_index++) {");
+                        constructorCode.pr("for (int reactor_index = 0; reactor_index < self->_lf_"+tpr.getName()+"_width; reactor_index++) {");
                         constructorCode.indent();
                     }
-                    var portOnSelf = "self->_lf_"+containedReactor.getName()+reactorIndex+"."+port.getName();
+                    var portOnSelf = "self->_lf_"+tpr.getName()+reactorIndex+"."+port.getName();
 
                     constructorCode.pr(
                         port,
@@ -1356,8 +1359,8 @@ public class CGenerator extends GeneratorBase {
             }
             body.unindent();
             body.pr(String.join("\n",
-                "} _lf_"+containedReactor.getName()+array+";",
-                "int _lf_"+containedReactor.getName()+"_width;"
+                "} _lf_"+tpr.getName()+array+";",
+                "int _lf_"+tpr.getName()+"_width;"
             ));
         }
     }
@@ -1380,13 +1383,13 @@ public class CGenerator extends GeneratorBase {
      *  These functions have a single argument that is a void* pointing to
      *  a struct that contains parameters, state variables, inputs (triggering or not),
      *  actions (triggering or produced), and outputs.
-     *  @param r The reactor.
+     *  @param tpr The reactor.
      */
-    public void generateReactions(CodeBuilder src, Reactor r) {
+    public void generateReactions(CodeBuilder src, TypeParameterizedReactor tpr) {
         var reactionIndex = 0;
-        var reactor = ASTUtils.toDefinition(r);
+        var reactor = ASTUtils.toDefinition(tpr.r());
         for (Reaction reaction : allReactions(reactor)) {
-            generateReaction(src, reaction, r, reactionIndex);
+            generateReaction(src, reaction, tpr, reactionIndex);
             // Increment reaction index even if the reaction is not in the federate
             // so that across federates, the reaction indices are consistent.
             reactionIndex++;
@@ -1398,13 +1401,13 @@ public class CGenerator extends GeneratorBase {
      *  a struct that contains parameters, state variables, inputs (triggering or not),
      *  actions (triggering or produced), and outputs.
      *  @param reaction The reaction.
-     *  @param r The reactor.
+     *  @param tpr The reactor.
      *  @param reactionIndex The position of the reaction within the reactor.
      */
-    protected void generateReaction(CodeBuilder src, Reaction reaction, Reactor r, int reactionIndex) {
+    protected void generateReaction(CodeBuilder src, Reaction reaction, TypeParameterizedReactor tpr, int reactionIndex) {
         src.pr(CReactionGenerator.generateReaction(
             reaction,
-            r,
+            tpr,
             reactionIndex,
             mainDef,
             errorReporter,
@@ -1660,12 +1663,12 @@ public class CGenerator extends GeneratorBase {
      * Construct a unique type for the struct of the specified
      * instance (port or action).
      * This is required to be the same as the type name returned by
-     * {@link #variableStructType(Variable, Reactor, boolean)}.
+     * {@link #variableStructType(Variable, TypeParameterizedReactor, boolean)}.
      * @param portOrAction The port or action instance.
      * @return The name of the self struct.
      */
     public static String variableStructType(TriggerInstance<?> portOrAction) {
-        return CUtil.getName(portOrAction.getParent().reactorDefinition)+"_"+portOrAction.getName()+"_t";
+        return CUtil.getName(portOrAction.getParent().tpr)+"_"+portOrAction.getName()+"_t";
     }
 
     /**
@@ -1694,7 +1697,7 @@ public class CGenerator extends GeneratorBase {
                 "// ***** Start initializing " + fullName + " of class " + reactorClass.getName());
         // Generate the instance self struct containing parameters, state variables,
         // and outputs (the "self" struct).
-        initializeTriggerObjects.pr(CUtil.reactorRefName(instance)+"["+CUtil.runtimeIndex(instance)+"] = new_"+CUtil.getName(reactorClass)+"();");
+        initializeTriggerObjects.pr(CUtil.reactorRefName(instance)+"["+CUtil.runtimeIndex(instance)+"] = new_"+CUtil.getName(instance.tpr)+"();");
         // Generate code to initialize the "self" struct in the
         // _lf_initialize_trigger_objects function.
         generateTraceTableEntries(instance);

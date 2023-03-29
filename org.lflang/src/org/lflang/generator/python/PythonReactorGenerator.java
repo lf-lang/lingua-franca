@@ -34,7 +34,7 @@ public class PythonReactorGenerator {
         CodeBuilder pythonClasses = new CodeBuilder();
         ReactorDecl decl = instance.getDefinition().getReactorClass();
         Reactor reactor = ASTUtils.toDefinition(decl);
-        String className = PyUtil.getName(reactor);
+        String className = PyUtil.getName(instance.tpr);
         if (instantiatedClasses == null) {
             return "";
         }
@@ -113,7 +113,7 @@ public class PythonReactorGenerator {
                         ReactorInstance main) {
         CodeBuilder code = new CodeBuilder();
 
-        String className = PyUtil.getName(instance.reactorDefinition);
+        String className = PyUtil.getName(instance.tpr);
 
         if (instance.getWidth() > 0) {
             // For each reactor instance, create a list regardless of whether it is a bank or not.
