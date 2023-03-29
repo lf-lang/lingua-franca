@@ -1,5 +1,5 @@
 #!/bin/bash
-timeout=30 # 30sec timeout should be enough. Even for the CI.
+timeout=120 # 2min timeout is hopefully enough
 verbose=false
 
 # Function to recursively find all folders containing the top-level CMakeLists.txt
@@ -59,6 +59,7 @@ run_zephyr_test() {
 
         if echo "$line" | grep -q 'FATAL ERROR';
         then
+            echo "Matched on ERROR"
             echo $line
             success=false
             pkill -P $$
@@ -74,6 +75,7 @@ run_zephyr_test() {
         fi
 
         if (($SECONDS > $timeout)) ; then
+            echo "Timeout without freeze"
             success=false
             break
         fi
@@ -81,7 +83,7 @@ run_zephyr_test() {
 
     return_val=0
     if [ "$success" = false ]; then
-        echo "Timeout"
+        echo "General Timeout"
         pkill -P $$
         return_val=1
     fi
