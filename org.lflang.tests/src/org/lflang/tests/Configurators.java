@@ -71,7 +71,7 @@ public class Configurators {
         test.getContext().getTargetConfig().setByUser.add(TargetProperty.THREADING);
         test.getContext().getTargetConfig().platformOptions.platform = Platform.ZEPHYR;
         test.getContext().getTargetConfig().platformOptions.flash = false;
-        test.getContext().getTargetConfig().platformOptions.board = "qemu_cortex_m3";
+        test.getContext().getTargetConfig().platformOptions.board = "qemu_cortex_a53";
         return true;
     }
     /**
