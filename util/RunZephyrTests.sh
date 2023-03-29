@@ -1,5 +1,5 @@
 #!/bin/bash
-timeout=120 # 2min timeout is hopefully enough
+timeout=300 # 5min timeout is hopefully enough
 verbose=false
 
 # Function to recursively find all folders containing the top-level CMakeLists.txt
