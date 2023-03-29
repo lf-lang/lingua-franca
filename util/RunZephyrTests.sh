@@ -85,6 +85,10 @@ run_zephyr_test() {
     if [ "$success" = false ]; then
         echo "General Timeout"
         pkill -P $$
+        echo "Test output:"
+        echo "----------------------------------------------------------------"
+        cat res.txt
+        echo "----------------------------------------------------------------"
         return_val=1
     fi
     
