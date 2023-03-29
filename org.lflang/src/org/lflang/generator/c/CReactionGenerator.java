@@ -758,9 +758,9 @@ public class CReactionGenerator {
                 "self->_lf__reaction_"+reactionCount+".deadline_violation_handler = "+deadlineFunctionPointer+";",
                 "self->_lf__reaction_"+reactionCount+".STP_handler = "+STPFunctionPointer+";",
                 "self->_lf__reaction_"+reactionCount+".name = "+addDoubleQuotes("?")+";",
-                (reaction.eContainer() instanceof Mode ?
+                reaction.eContainer() instanceof Mode ?
                 "self->_lf__reaction_"+reactionCount+".mode = &self->_lf__modes["+reactor.getModes().indexOf((Mode) reaction.eContainer())+"];" :
-                "self->_lf__reaction_"+reactionCount+".mode = NULL;")
+                "self->_lf__reaction_"+reactionCount+".mode = NULL;"
             ));
             // Increment the reactionCount even if the reaction is not in the federate
             // so that reaction indices are consistent across federates.

@@ -365,7 +365,7 @@ public class PythonGenerator extends CGenerator {
             generateAuxiliaryStructsForPort(builder, tpr.r(), output);
         }
         for (Action action : ASTUtils.allActions(tpr.r())) {
-            generateAuxiliaryStructsForAction(builder, tpr.r(), action);
+            generateAuxiliaryStructsForAction(builder, tpr, action);
         }
     }
 
@@ -377,9 +377,9 @@ public class PythonGenerator extends CGenerator {
                                                          genericPortType));
     }
 
-    private void generateAuxiliaryStructsForAction(CodeBuilder builder, Reactor r,
+    private void generateAuxiliaryStructsForAction(CodeBuilder builder, TypeParameterizedReactor tpr,
                                                    Action action) {
-        builder.pr(action, PythonActionGenerator.generateAliasTypeDef(r, action, genericActionType));
+        builder.pr(action, PythonActionGenerator.generateAliasTypeDef(tpr, action, genericActionType));
     }
 
     /**
