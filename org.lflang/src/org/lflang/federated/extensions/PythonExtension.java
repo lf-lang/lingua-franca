@@ -86,10 +86,6 @@ public class PythonExtension extends CExtension {
         ErrorReporter errorReporter
     ) {
         var result = new CodeBuilder();
-
-        // We currently have no way to mark a reaction "unordered"
-        // in the AST, so we use a magic string at the start of the body.
-        result.pr("// " + ReactionInstance.UNORDERED_REACTION_MARKER + "\n");
         result.pr(PyUtil.generateGILAcquireCode() + "\n");
         result.pr(
             super.generateNetworkSenderBody(
@@ -116,10 +112,6 @@ public class PythonExtension extends CExtension {
         ErrorReporter errorReporter
     ) {
         var result = new CodeBuilder();
-
-        // We currently have no way to mark a reaction "unordered"
-        // in the AST, so we use a magic string at the start of the body.
-        result.pr("// " + ReactionInstance.UNORDERED_REACTION_MARKER + "\n");
         result.pr(PyUtil.generateGILAcquireCode() + "\n");
         result.pr(
             super.generateNetworkReceiverBody(

@@ -64,27 +64,18 @@ public class ReactionInstance extends NamedInstance<Reaction> {
      * only by the ReactorInstance class, but it is public to enable unit tests.
      * @param definition A reaction definition.
      * @param parent The parent reactor instance, which cannot be null.
-     * @param isUnordered Indicator that this reaction is unordered w.r.t. other reactions.
      * @param index The index of the reaction within the reactor (0 for the
      * first reaction, 1 for the second, etc.).
      */
     public ReactionInstance(
             Reaction definition, 
             ReactorInstance parent, 
-            boolean isUnordered, 
             int index
     ) {
         super(definition, parent);
         this.index = index;
-        this.isUnordered = isUnordered;
         
-        // If the reaction body starts with the magic string
-        // UNORDERED_REACTION_MARKER, then mark it unordered,
-        // overriding the argument.
         String body = ASTUtils.toText(definition.getCode());
-        if (body.contains(UNORDERED_REACTION_MARKER)) {
-            this.isUnordered = true;
-        }
         
         // Identify the dependencies for this reaction.
         // First handle the triggers.
@@ -223,24 +214,10 @@ public class ReactionInstance extends NamedInstance<Reaction> {
     public DeadlineInstance declaredDeadline;
 
     /**
-     * Sadly, we have no way to mark reaction "unordered" in the AST,
-     * so instead, we use a magic comment at the start of the reaction body.
-     * This is that magic comment.
-     */
-    public static String UNORDERED_REACTION_MARKER
-            = "**** This reaction is unordered.";
-
-    /**
      * Index of order of occurrence within the reactor definition.
      * The first reaction has index 0, the second index 1, etc.
      */
     public int index;
-
-    /**
-     * Whether or not this reaction is ordered with respect to other
-     * reactions in the same reactor.
-     */
-    public boolean isUnordered;
 
     /**
      * The ports that this reaction reads but that do not trigger it.
@@ -274,7 +251,7 @@ public class ReactionInstance extends NamedInstance<Reaction> {
      * Return the set of immediate downstream reactions, which are reactions
      * that receive data produced by this reaction plus
      * at most one reaction in the same reactor whose definition
-     * lexically follows this one (unless this reaction is unordered).
+     * lexically follows this one.
      */
     public Set<ReactionInstance> dependentReactions() {
         // Cache the result.
@@ -282,7 +259,7 @@ public class ReactionInstance extends NamedInstance<Reaction> {
         dependentReactionsCache = new LinkedHashSet<>();
         
         // First, add the next lexical reaction, if appropriate.
-        if (!isUnordered && parent.reactions.size() > index + 1) {
+        if (parent.reactions.size() > index + 1) {
             // Find the next reaction in the parent's reaction list.
             dependentReactionsCache.add(parent.reactions.get(index + 1));
         }
@@ -307,7 +284,6 @@ public class ReactionInstance extends NamedInstance<Reaction> {
      * Return the set of immediate upstream reactions, which are reactions
      * that send data to this one plus at most one reaction in the same
      * reactor whose definition immediately precedes the definition of this one
-     * (unless this reaction is unordered).
      */
     public Set<ReactionInstance> dependsOnReactions() {
         // Cache the result.
@@ -315,11 +291,11 @@ public class ReactionInstance extends NamedInstance<Reaction> {
         dependsOnReactionsCache = new LinkedHashSet<>();
         
         // First, add the previous lexical reaction, if appropriate.
-        if (!isUnordered && index > 0) {
+        if (index > 0) {
             // Find the previous ordered reaction in the parent's reaction list.
             int earlierIndex = index - 1;
             ReactionInstance earlierOrderedReaction = parent.reactions.get(earlierIndex);
-            while (earlierOrderedReaction.isUnordered && --earlierIndex >= 0) {
+            while (--earlierIndex >= 0) {
                 earlierOrderedReaction = parent.reactions.get(earlierIndex);
             }
             if (earlierIndex >= 0) {

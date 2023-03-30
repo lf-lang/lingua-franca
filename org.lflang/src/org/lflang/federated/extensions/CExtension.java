@@ -137,9 +137,6 @@ public class CExtension implements FedTargetExtension {
     ) {
         var receiveRef = CUtil.portRefInReaction(receivingPort, connection.getDstBank(), connection.getDstChannel());
         var result = new CodeBuilder();
-        // We currently have no way to mark a reaction "unordered"
-        // in the AST, so we use a magic string at the start of the body.
-        result.pr("// " + ReactionInstance.UNORDERED_REACTION_MARKER);
         // Transfer the physical time of arrival from the action to the port
         result.pr(receiveRef+"->physical_time_of_arrival = self->_lf__"+action.getName()+".physical_time_of_arrival;");
         if (coordinationType == CoordinationType.DECENTRALIZED && !connection.getDefinition().isPhysical()) {
@@ -254,10 +251,6 @@ public class CExtension implements FedTargetExtension {
         // The ID of the receiving port (rightPort) is the position
         // of the action in this list.
         int receivingPortID = connection.getDstFederate().networkMessageActions.size();
-
-        // We currently have no way to mark a reaction "unordered"
-        // in the AST, so we use a magic string at the start of the body.
-        result.pr("// " + ReactionInstance.UNORDERED_REACTION_MARKER + "\n");
 
         result.pr("// Sending from " + sendRef + " in federate "
                       + connection.getSrcFederate().name + " to " + receiveRef
@@ -416,10 +409,6 @@ public class CExtension implements FedTargetExtension {
     ) {
         // Store the code
         var result = new CodeBuilder();
-
-        // We currently have no way to mark a reaction "unordered"
-        // in the AST, so we use a magic string at the start of the body.
-        result.pr("// " + ReactionInstance.UNORDERED_REACTION_MARKER + "\n");
         result.pr("interval_t max_STP = 0LL;");
 
         // Find the maximum STP for decentralized coordination
@@ -447,10 +436,6 @@ public class CExtension implements FedTargetExtension {
         // The ID of the receiving port (rightPort) is the position
         // of the networkAction (see below) in this list.
         int receivingPortID = connection.getDstFederate().networkMessageActions.size();
-
-        // We currently have no way to mark a reaction "unordered"
-        // in the AST, so we use a magic string at the start of the body.
-        result.pr("// " + ReactionInstance.UNORDERED_REACTION_MARKER + "\n");
         var sendRef = CUtil.portRefInReaction(srcOutputPort, connection.getSrcBank(), connection.getSrcChannel());
         // Get the delay literal
         var additionalDelayString = CExtensionUtils.getNetworkDelayLiteral(connection.getDefinition().getDelay());

@@ -182,8 +182,7 @@ public class ReactionInstanceGraph extends PrecedenceGraph<ReactionInstance.Runt
                         // If another upstream reaction shows up, then this will be
                         // reset to null.
                         if (this.getUpstreamAdjacentNodes(dstRuntime).size() == 1
-                                && (dstRuntime.getReaction().isUnordered
-                                        || dstRuntime.getReaction().index == 0)) {
+                                && (dstRuntime.getReaction().index == 0)) {
                             dstRuntime.dominating = srcRuntime;
                         } else {
                             dstRuntime.dominating = null;
@@ -217,25 +216,22 @@ public class ReactionInstanceGraph extends PrecedenceGraph<ReactionInstance.Runt
                 this.addNode(runtime);                
             }
             
-            // If this is not an unordered reaction, then create a dependency
-            // on any previously defined reaction.
-            if (!reaction.isUnordered) {
-                // If there is an earlier reaction in this same reactor, then
-                // create a link in the reaction graph for all runtime instances.
-                if (previousReaction != null) {
-                    List<Runtime> previousRuntimes = previousReaction.getRuntimeInstances();
-                    int count = 0;
-                    for (Runtime runtime : runtimes) {
-                        // Only add the reaction order edge if previous reaction is outside of a mode or both are in the same mode
-                        // This allows modes to break cycles since modes are always mutually exclusive.
-                        if (runtime.getReaction().getMode(true) == null || runtime.getReaction().getMode(true) == reaction.getMode(true)) {
-                            this.addEdge(runtime, previousRuntimes.get(count));
-                            count++;
-                        }
+            // If there is an earlier reaction in this same reactor, then
+            // create a link in the reaction graph for all runtime instances.
+            if (previousReaction != null) {
+                List<Runtime> previousRuntimes = previousReaction.getRuntimeInstances();
+                int count = 0;
+                for (Runtime runtime : runtimes) {
+                    // Only add the reaction order edge if previous reaction is outside of a mode or both are in the same mode
+                    // This allows modes to break cycles since modes are always mutually exclusive.
+                    if (runtime.getReaction().getMode(true) == null || runtime.getReaction().getMode(true) == reaction.getMode(true)) {
+                        this.addEdge(runtime, previousRuntimes.get(count));
+                        count++;
                     }
                 }
-                previousReaction = reaction;
             }
+            previousReaction = reaction;
+            
 
             // Add downstream reactions. Note that this is sufficient.
             // We don't need to also add upstream reactions because this reaction

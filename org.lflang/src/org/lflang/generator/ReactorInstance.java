@@ -700,15 +700,6 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
     /** The map of used built-in triggers. */
     protected Map<BuiltinTrigger, TriggerInstance<BuiltinTriggerVariable>> builtinTriggers = new HashMap<>();
 
-    /**
-     * The LF syntax does not currently support declaring reactions unordered,
-     * but unordered reactions are created in the AST transformations handling
-     * federated communication and after delays. Unordered reactions can execute
-     * in any order and concurrently even though they are in the same reactor.
-     * FIXME: Remove this when the language provides syntax.
-     */
-    protected Set<Reaction> unorderedReactions = new LinkedHashSet<>();
-
     /** The nested list of instantiations that created this reactor instance. */
     protected List<Instantiation> _instantiations;
 
@@ -729,13 +720,8 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
 
             // Check for startup and shutdown triggers.
             for (Reaction reaction : reactions) {
-                if (AttributeUtils.isUnordered(reaction)) {
-                    unorderedReactions.add(reaction);
-                }
                 // Create the reaction instance.
-                var reactionInstance = new ReactionInstance(reaction, this,
-                    unorderedReactions.contains(reaction), count++);
-                
+                var reactionInstance = new ReactionInstance(reaction, this, count++);
                 // Add the reaction instance to the map of reactions for this
                 // reactor.
                 this.reactions.add(reactionInstance);

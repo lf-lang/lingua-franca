@@ -192,16 +192,6 @@ public class AttributeUtils {
     }
 
     /**
-     * Return true if the reaction is unordered.
-     *
-     * Currently, this is only used for synthesized reactions in the context of
-     * federated execution.
-     */
-    public static boolean isUnordered(Reaction reaction) {
-        return findAttributeByName(reaction, "_unordered") != null;
-    }
-
-    /**
      * Return true if the reactor is marked to be a federate.
      */
     public static boolean isFederate(Reactor reactor) {
