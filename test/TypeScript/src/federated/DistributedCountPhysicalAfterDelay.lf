@@ -36,7 +36,7 @@ reactor Print {
         if (c !== 2) {
             util.requestErrorStop(`ERROR: Expected to receive 1 item. Received ${c - 1}.`);
         } else {
-        console.log("SUCCESS: Successfully received 1 item.");
+            console.log("SUCCESS: Successfully received 1 item.");
         }
     =}
 }
