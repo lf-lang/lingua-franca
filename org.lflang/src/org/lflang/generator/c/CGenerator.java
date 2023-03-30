@@ -1048,18 +1048,20 @@ public class CGenerator extends GeneratorBase {
             src.pr("extern \"C\" {");
             header.pr("extern \"C\" {");
         }
-        tpr.typeArgs().entrySet().forEach(it -> header.pr("#define " + it.getKey() + " " + ASTUtils.toText(it.getValue())));
+        tpr.typeArgs().forEach((literal, concreteType) -> header.pr(
+            "#define " + literal + " " + ASTUtils.toText(concreteType)));
         header.pr("#include \"include/core/reactor.h\"");
         src.pr("#include \"include/api/api.h\"");
         src.pr("#include \"include/api/set.h\"");
+        src.pr("#include \"include/api/generics.h\"");
         generateIncludes(tpr);
         if (CCppMode) {
             src.pr("}");
             header.pr("}");
         }
-        src.pr("#include \"include/" + CReactorHeaderFileGenerator.outputPath(fileConfig, tpr.r()) + "\"");
         src.pr("#include \"" + headerName + "\"");
-        tpr.typeArgs().entrySet().forEach(it -> src.pr("#define " + it.getKey() + " " + ASTUtils.toText(it.getValue())));
+        tpr.typeArgs().forEach((literal, concreteType) -> src.pr(
+            "#define " + literal + " " + ASTUtils.toText(concreteType)));
         new HashSet<>(ASTUtils.allInstantiations(tpr.r())).stream()
             .map(TypeParameterizedReactor::new).map(CUtil::getName)
             .map(name -> "#include \"" + name + ".h\"")

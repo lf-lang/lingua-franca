@@ -28,15 +28,15 @@ public class CReactorHeaderFileGenerator {
         void generate(CodeBuilder b, TypeParameterizedReactor r, boolean userFacing);
     }
 
-    public static Path outputPath(CFileConfig fileConfig, Reactor r) {
-        return Path.of(Path.of(r.eResource().getURI().toFileString())
+    public static Path outputPath(CFileConfig fileConfig, TypeParameterizedReactor tpr) {
+        return Path.of(Path.of(tpr.r().eResource().getURI().toFileString())
                 .getFileName().toString().replaceFirst("[.][^.]+$", ""))
-            .resolve(r.getName() + ".h");
+            .resolve(tpr.getName() + ".h");
     }
 
     public static void doGenerate(CTypes types, TypeParameterizedReactor tpr, CFileConfig fileConfig, GenerateAuxiliaryStructs generator, Function<EObject, String> topLevelPreamble) throws IOException {
         String contents = generateHeaderFile(types, tpr, generator, topLevelPreamble.apply(tpr.r()));
-        FileUtil.writeToFile(contents, fileConfig.getIncludePath().resolve(outputPath(fileConfig, tpr.r())));
+        FileUtil.writeToFile(contents, fileConfig.getIncludePath().resolve(outputPath(fileConfig, tpr)));
     }
     private static String generateHeaderFile(CTypes types, TypeParameterizedReactor tpr, GenerateAuxiliaryStructs generator, String topLevelPreamble) {
         CodeBuilder builder = new CodeBuilder();
@@ -64,6 +64,7 @@ public class CReactorHeaderFileGenerator {
             #endif
             #include "../include/api/api.h"
             #include "../include/api/set.h"
+            #include "../include/api/generics.h"
             #include "../include/core/reactor.h"  
             #ifdef __cplusplus
             }
