@@ -23,7 +23,7 @@ class TSConstructorGenerator(
 ) {
 
     private fun initializeParameter(p: Parameter): String =
-        "${p.name}: ${TSTypes.getTargetType(p)} = ${TSTypes.getTargetInitializer(p)}"
+        "${p.name}: ${TSTypes.getInstance().getTargetType(p)} = ${TSTypes.getInstance().getTargetInitializer(p)}"
 
     private fun generateConstructorArguments(reactor: Reactor): String {
         val arguments = StringJoiner(", \n")
