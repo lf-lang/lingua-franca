@@ -427,16 +427,14 @@ public abstract class TestBase {
         if (level.compareTo(TestLevel.BUILD) < 0) {
             context.getArgs().setProperty("no-compile", "");
         }
-
+        
+        // Reload in case target properties have changed.
+        context.loadTargetConfig();
         // Update the test by applying the configuration. E.g., to carry out an AST transformation.
         if (configurator != null) {
             if (!configurator.configure(test)) {
                 throw new TestError("Test configuration unsuccessful.", Result.CONFIG_FAIL);
             }
-            // FIXME: The line below is commented out because it reloads the target properties
-            //  and thus overwrites changes done by the configurator. I am sure it was there 
-            //  for a reason. Thus the FIXME...
-            // context.loadTargetConfig(); // Reload in case target properties have changed.
         }
     }
 
