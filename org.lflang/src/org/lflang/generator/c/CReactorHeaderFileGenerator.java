@@ -65,7 +65,8 @@ public class CReactorHeaderFileGenerator {
             #include "../include/api/api.h"
             #include "../include/api/set.h"
             #include "../include/api/generics.h"
-            #include "../include/core/reactor.h"  
+            #include "../include/utils/type_converter.h"
+            #include "../include/core/reactor.h"
             #ifdef __cplusplus
             }
             #endif

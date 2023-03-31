@@ -19,7 +19,8 @@ public class CCoreFilesUtils {
     public static List<String> getCTargetHeader() {
         return List.of(
             "include/api/api.h",
-            "include/api/generics.h"
+            "include/api/generics.h",
+            "include/utils/type_converter.h"
         );
     }
 
