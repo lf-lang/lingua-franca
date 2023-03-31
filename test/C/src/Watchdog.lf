@@ -1,6 +1,6 @@
 target C {
     workers: 100
-};
+}
 
 reactor Watcher {
     input x: int

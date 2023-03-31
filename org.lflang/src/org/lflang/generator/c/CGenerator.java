@@ -473,7 +473,7 @@ public class CGenerator extends GeneratorBase {
         super.doGenerate(resource, context);
         if (!GeneratorUtils.canGenerate(errorsOccurred(), mainDef, errorReporter, context)) return;
         if (!isOSCompatible()) return; // Incompatible OS and configuration
-        // if (!isWatchdogCompatible()) return;
+        if (!isWatchdogCompatible()) return;
 
         // Perform set up that does not generate code
         setUpGeneralParameters();
