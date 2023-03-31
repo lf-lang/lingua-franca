@@ -49,12 +49,10 @@ import org.lflang.federated.generator.FederateInstance;
 import org.lflang.federated.launcher.RtiConfig;
 import org.lflang.federated.serialization.FedROS2CPPSerialization;
 import org.lflang.generator.CodeBuilder;
-import org.lflang.generator.GeneratorBase;
 import org.lflang.generator.GeneratorUtils;
 import org.lflang.generator.LFGeneratorContext;
 import org.lflang.generator.ReactionInstance;
 import org.lflang.generator.ReactorInstance;
-import org.lflang.generator.c.CGenerator;
 import org.lflang.generator.c.CTypes;
 import org.lflang.generator.c.CUtil;
 import org.lflang.lf.Action;
@@ -170,7 +168,7 @@ public class CExtension implements FedTargetExtension {
         CodeBuilder result,
         ErrorReporter errorReporter
     ) {
-        CTypes types = new CTypes(errorReporter);
+        CTypes types = new CTypes();
         // Adjust the type of the action and the receivingPort.
         // If it is "string", then change it to "char*".
         // This string is dynamically allocated, and type 'string' is to be
@@ -338,7 +336,7 @@ public class CExtension implements FedTargetExtension {
         String commonArgs,
         ErrorReporter errorReporter
     ) {
-        CTypes types = new CTypes(errorReporter);
+        CTypes types = new CTypes();
         var lengthExpression = "";
         var pointerExpression = "";
         switch (connection.getSerializer()) {
@@ -424,7 +422,7 @@ public class CExtension implements FedTargetExtension {
 
         // Find the maximum STP for decentralized coordination
         if(coordination == CoordinationType.DECENTRALIZED) {
-            result.pr("max_STP = "+ GeneratorBase.timeInTargetLanguage(maxSTP)+";");
+            result.pr("max_STP = "+ CTypes.getInstance().getTargetTimeExpr(maxSTP) +";");
         }
         result.pr("// Wait until the port status is known");
         result.pr("wait_until_port_status_known("+receivingPortID+", max_STP);");
@@ -493,13 +491,19 @@ public class CExtension implements FedTargetExtension {
             writer.write(cPreamble);
         }
         var includes = new CodeBuilder();
-        if (federate.targetConfig.target == Target.C) {
+        if (federate.targetConfig.target != Target.Python) {
+            includes.pr("#ifdef __cplusplus\n"
+                + "extern \"C\" {\n"
+                + "#endif");
             includes.pr("#include \"core/federated/federate.h\"");
             includes.pr("#include \"core/federated/net_common.h\"");
             includes.pr("#include \"core/federated/net_util.h\"");
             includes.pr("#include \"core/threaded/reactor_threaded.h\"");
             includes.pr("#include \"core/utils/util.h\"");
             includes.pr("extern federate_instance_t _fed;");
+            includes.pr("#ifdef __cplusplus\n"
+                + "}\n"
+                + "#endif");
         }
 
         return includes.toString();
@@ -626,7 +630,7 @@ public class CExtension implements FedTargetExtension {
             if (stpParam.isPresent()) {
                 var globalSTP = ASTUtils.initialValue(stpParam.get(), List.of(federate.instantiation)).get(0);
                 var globalSTPTV = ASTUtils.getLiteralTimeValue(globalSTP);
-                code.pr("lf_set_stp_offset("+ CGenerator.timeInTargetLanguage(globalSTPTV)+");");
+                code.pr("lf_set_stp_offset("+ CTypes.getInstance().getTargetTimeExpr(globalSTPTV) +");");
             }
         }
 
@@ -751,7 +755,7 @@ public class CExtension implements FedTargetExtension {
                 }
                 code.pr(
                     "_fed.min_delay_from_physical_action_to_federate_output = "
-                        + GeneratorBase.timeInTargetLanguage(minDelay) + ";");
+                        + CTypes.getInstance().getTargetTimeExpr(minDelay) + ";");
             }
         }
         return code.getCode();

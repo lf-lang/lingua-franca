@@ -1,8 +1,12 @@
 target C
 
-reactor Base(bank_index: int(0)) {
+preamble {=
+    #include <stdio.h>
+=}
+
+reactor Base(bank_index: int = 0) {
     input I: int
-    state received: bool(false)
+    state received: bool = false
 
     reaction(shutdown) {=
         if(!self->received) {

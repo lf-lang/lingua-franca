@@ -3,6 +3,8 @@
 target C
 
 preamble {=
+    #include <stdio.h>
+
     typedef struct hello_t {
         char* name;
         int value;
@@ -11,7 +13,7 @@ preamble {=
 
 main reactor StructAsState {
     // Notice that target code delimiters are no longer necessary.
-    state s: hello_t("Earth", 42)
+    state s: hello_t = {"Earth", 42}
 
     reaction(startup) {=
         printf("State s.name=\"%s\", value=%d.\n", self->s.name, self->s.value);

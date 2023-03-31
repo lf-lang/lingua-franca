@@ -14,7 +14,6 @@ import org.lflang.ASTUtils;
 import org.lflang.ErrorReporter;
 import org.lflang.InferredType;
 import org.lflang.TargetConfig;
-import org.lflang.TargetProperty.Platform;
 import org.lflang.federated.extensions.CExtensionUtils;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.lf.Action;
@@ -1086,7 +1085,9 @@ public class CReactionGenerator {
     private static Code getCode(CTypes types, Reaction r, TypeParameterizedReactor tpr) {
         if (r.getCode() != null) return r.getCode();
         Code ret = LfFactory.eINSTANCE.createCode();
-        ret.setBody(r.getName() + "( " + CReactorHeaderFileGenerator.reactionArguments(types, r, tpr) + " );");
+        ret.setBody(
+            CReactorHeaderFileGenerator.nonInlineInitialization(r, tpr.r()) + "\n"
+                + r.getName() + "( " + CReactorHeaderFileGenerator.reactionArguments(r, tpr) + " );");
         return ret;
     }
 

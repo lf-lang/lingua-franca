@@ -12,6 +12,10 @@ target C {
     coordination: decentralized
 }
 
+preamble {=
+    #include <stdio.h>
+=}
+
 reactor Sender {
     output out: int
     timer t(0, 1 msec)
@@ -31,7 +35,7 @@ reactor Sender {
 
 reactor Receiver {
     input in: int
-    state success: int(0)
+    state success: int = 0
 
     reaction(in) {=
         tag_t current_tag = lf_tag();

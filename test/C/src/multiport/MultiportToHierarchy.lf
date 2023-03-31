@@ -6,10 +6,14 @@ target C {
     fast: true
 }
 
-reactor Source(width: int(2)) {
+preamble {=
+    #include <stdio.h>
+=}
+
+reactor Source(width: int = 2) {
     timer t(0, 200 msec)
     output[width] out: int
-    state s: int(0)
+    state s: int = 0
 
     reaction(t) -> out {=
         for(int i = 0; i < 4; i++) {
@@ -18,8 +22,8 @@ reactor Source(width: int(2)) {
     =}
 }
 
-reactor Destination(width: int(4)) {
-    state s: int(6)
+reactor Destination(width: int = 4) {
+    state s: int = 6
     input[width] in: int
 
     reaction(in) {=
@@ -44,13 +48,13 @@ reactor Destination(width: int(4)) {
     =}
 }
 
-reactor Container(width: int(4)) {
+reactor Container(width: int = 4) {
     input[width] in: int
     dst = new Destination()
     in -> dst.in
 }
 
-main reactor MultiportToHierarchy(width: int(4)) {
+main reactor MultiportToHierarchy(width: int = 4) {
     a = new Source(width = width)
     b = new Container(width = width)
     a.out -> b.in

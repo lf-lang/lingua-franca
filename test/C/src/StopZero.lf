@@ -6,9 +6,13 @@
  */
 target C
 
+preamble {=
+    #include <stdio.h>
+=}
+
 reactor Sender {
     output out: int
-    state reaction_invoked_correctly: bool(false)
+    state reaction_invoked_correctly: bool = false
     timer t(0, 1 usec)
     logical action act
 

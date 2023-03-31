@@ -27,13 +27,13 @@ STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
 THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
  * @section DESCRIPTION
- * 
+ *
  * Standalone program to send a Lingua Franca trace file to InfluxDB.
  * InfluxDB is a database server to which data can be posted using HTTP
  * or sent as a UDP datagram.
- * 
+ *
  * ## Compiling this Program
- * 
+ *
  * To compile this program, simply do this in this source directory:
  * ```
  *    make install
@@ -41,13 +41,13 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * This will place an executable program `trace_to_influxdb` in the directory `lingua-franca/bin`.
  * I find it convenient to have this directory in my `PATH` (this is also where the
  * `lfc` command-line Lingua Franca compiler is located).
- * 
+ *
  * ## Setting up InfluxDB
- * 
+ *
  * To set up InfluxDB, see:
- * 
+ *
  * [https://docs.influxdata.com/influxdb/v2.0/get-started/](https://docs.influxdata.com/influxdb/v2.0/get-started/)
- * 
+ *
  * If you have previously installed InfluxDB and you want a fresh start, do this:
  * ```shell
  *     rm -rf ~/.influxdbv2/
@@ -58,13 +58,13 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *     kill -9 PID
  * ```
  * where 'PID' is replaced with whatever process ID(s) are reported by the `ps` command above.
- * 
+ *
  * To start an InfluxDB server on localhost with port 8087:
  * ```shell
  *    influxd --http-bind-address :8087 --reporting-disabled
  * ```
  * The 'reporting-disabled' option simply disables notifications to the InfluxDB mother ship.
- * 
+ *
  * You then need to set up at least one user, organization, and bucket. You can do this by pointing your browser to
  * ```
  *     http://localhost:8087
@@ -77,9 +77,9 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * ```
  * The UI in the browser will then give you the options Quick Start or Advanced, either of which you can select.
  * If you select "Data" on the left, you can browse Buckets to verify that your test bucket was created.
- * 
+ *
  * ## Uploading Trace Data to InfluxDB
- * 
+ *
  * First, generate a trace file by setting a target parameter in a Lingua Franca program:
  * ```
  *     target C {
@@ -87,7 +87,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *     };
  * ```
  * Then, when you run this program, a binary file with extension `.lft` will be created.
- * 
+ *
  * In your browser, in the InfluxDB UI, select Data on the left, then select the Tokens tab.
  * Select a token and copy the token string to clipboard. It will looks something like this:
  * ```
@@ -100,15 +100,16 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * ```
  * where 'Filename' and the token are replaced with your values.
  * This will upload the trace data to InfluxDB.
- * 
+ *
  * You can also specify the following command-line options:
  * * -h, --host: The host name running InfluxDB. If not given, this defaults to "localhost".
  * * -p, --port: The port for accessing InfluxDB. This defaults to 8086. If you used 8087, as shown above, then you have to give this option.
- * 
+ *
  * The data can then be viewed in the InfluxDB browser, or you can configure an external
  * tool such as Grafana to visualize it (see https://grafana.com/docs/grafana/latest/datasources/influxdb/).
  */
 #define LF_TRACE
+#include <stdio.h>
 #include "reactor.h"
 #include "trace.h"
 #include "trace_util.h"
@@ -116,6 +117,9 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #define MAX_NUM_REACTIONS 64  // Maximum number of reactions reported in summary stats.
 #define MAX_NUM_WORKERS 64
+
+/** File containing the trace binary data. */
+FILE* trace_file = NULL;
 
 /** Struct identifying the influx client. */
 influx_client_t influx_client;
@@ -151,10 +155,14 @@ size_t read_and_write_trace() {
     if (trace_length == 0) return 0;
     // Write each line.
     for (int i = 0; i < trace_length; i++) {
+
+        // Ignore federated traces.
+        if (trace[i].event_type > federated) continue;
+
         char* reaction_name = "none";
-        if (trace[i].reaction_number >= 0) {
+        if (trace[i].dst_id >= 0) {
             reaction_name = (char*)malloc(4);
-            snprintf(reaction_name, 4, "%d", trace[i].reaction_number);
+            snprintf(reaction_name, 4, "%d", trace[i].dst_id);
         }
         // printf("DEBUG: reactor self struct pointer: %p\n", trace[i].pointer);
         int object_instance = -1;
@@ -176,7 +184,7 @@ size_t read_and_write_trace() {
             INFLUX_MEAS(trace_event_names[trace[i].event_type]),
             INFLUX_TAG("Reactor", reactor_name),
             INFLUX_TAG("Reaction", reaction_name),
-            INFLUX_F_INT("Worker", trace[i].worker),
+            INFLUX_F_INT("Worker", trace[i].src_id),
             INFLUX_F_INT("Logical Time", trace[i].logical_time),
             INFLUX_F_INT("Microstep", trace[i].microstep),
             INFLUX_F_STR("Trigger Name", trigger_name),
@@ -201,7 +209,7 @@ int main(int argc, char* argv[]) {
     influx_v2_client.token = NULL;
     influx_v2_client.host = "localhost";
     influx_v2_client.port = 8086;
-    influx_v2_client.org = "iCyPhy"; 
+    influx_v2_client.org = "iCyPhy";
     influx_v2_client.bucket = "test";
 
     char* filename = NULL;
@@ -259,7 +267,8 @@ int main(int argc, char* argv[]) {
         exit(1);
     }
 
-    open_files(filename, NULL);
+    // Open the trace file.
+    trace_file = open_file(filename, "r");
 
     if (read_header() >= 0) {
         size_t num_records = 0, result;

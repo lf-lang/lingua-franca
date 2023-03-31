@@ -1,7 +1,7 @@
 target Cpp
 
-reactor Foo(bar: int(4)) {
-    state baz(bar)
+reactor Foo(bar: int = 4) {
+    state baz = bar
 
     reaction(startup) {=
         std::cout << "Baz: " << baz << std::endl;

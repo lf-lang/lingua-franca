@@ -5,6 +5,10 @@ target C {
     fast: true
 }
 
+preamble {=
+    #include <stdio.h>
+=}
+
 reactor Source {
     output[2] out: int
 
@@ -16,9 +20,9 @@ reactor Source {
     =}
 }
 
-reactor Destination(expected: int(0)) {
+reactor Destination(expected: int = 0) {
     input in: int
-    state received: bool(false)
+    state received: bool = false
 
     reaction(in) {=
         printf("Received: %d.\n", in->value);

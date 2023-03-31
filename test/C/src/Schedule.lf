@@ -1,6 +1,10 @@
 // Example from Schedule section of the C Reactor Target wiki page.
 target C
 
+preamble {=
+    #include <stdio.h>
+=}
+
 reactor Schedule2 {
     input x: int
     logical action a

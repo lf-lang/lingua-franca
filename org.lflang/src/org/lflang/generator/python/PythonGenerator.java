@@ -100,7 +100,7 @@ public class PythonGenerator extends CGenerator {
 
     public PythonGenerator(LFGeneratorContext context) {
         this(context,
-            new PythonTypes(context.getErrorReporter()),
+            new PythonTypes(),
             new CCmakeGenerator(
                 context.getFileConfig(),
                 List.of("lib/python_action.c",
@@ -281,8 +281,6 @@ public class PythonGenerator extends CGenerator {
         code.prComment("file:/" + FileUtil.toUnixString(fileConfig.srcFile));
         code.pr(PythonPreambleGenerator.generateCDefineDirectives(
             targetConfig, fileConfig.getSrcGenPath(), hasModalReactors));
-        code.pr(PythonPreambleGenerator.generateCIncludeStatements(
-            targetConfig, targetLanguageIsCpp(), hasModalReactors));
         return code.toString();
     }
 
@@ -292,7 +290,7 @@ public class PythonGenerator extends CGenerator {
      * execution setup preamble specified in the target config.
      */
     @Override
-    protected String generateTopLevelPreambles(EObject ignored) {
+    protected String generateTopLevelPreambles(Reactor ignored) {
         // user preambles
         Set<Model> models = new LinkedHashSet<>();
         for (Reactor r : ASTUtils.convertToEmptyListIfNull(reactors)) {
@@ -308,7 +306,7 @@ public class PythonGenerator extends CGenerator {
         for (Model m : models) {
             pythonPreamble.pr(PythonPreambleGenerator.generatePythonPreambles(m.getPreambles()));
         }
-        return "";
+        return PythonPreambleGenerator.generateCIncludeStatements(targetConfig, targetLanguageIsCpp(), hasModalReactors);
     }
 
     @Override
@@ -407,6 +405,7 @@ public class PythonGenerator extends CGenerator {
             targetConfig.threading = false;
         }
         int cGeneratedPercentProgress = (IntegratedBuilder.VALIDATED_PERCENT_PROGRESS + 100) / 2;
+        code.pr(PythonPreambleGenerator.generateCIncludeStatements(targetConfig, targetLanguageIsCpp(), hasModalReactors));
         super.doGenerate(resource, new SubContext(
             context,
             IntegratedBuilder.VALIDATED_PERCENT_PROGRESS,

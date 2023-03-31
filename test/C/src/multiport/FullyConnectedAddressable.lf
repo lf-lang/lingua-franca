@@ -1,12 +1,16 @@
 // In this pattern, each node can send direct messages to individual other nodes
 target C
 
-reactor Node(num_nodes: size_t(4), bank_index: int(0)) {
+preamble {=
+    #include <stdio.h>
+=}
+
+reactor Node(num_nodes: size_t = 4, bank_index: int = 4) {
     input[num_nodes] in: int
     output[num_nodes] out: int
 
-    state received: int(0)
-    state triggered: bool(false)
+    state received: int = 0
+    state triggered: bool = false
 
     reaction(startup) -> out {=
         int outChannel = (self->bank_index + 1) % self->num_nodes;
@@ -45,7 +49,7 @@ reactor Node(num_nodes: size_t(4), bank_index: int(0)) {
     =}
 }
 
-main reactor(num_nodes: size_t(4)) {
+main reactor(num_nodes: size_t = 4) {
     nodes1 = new[num_nodes] Node(num_nodes = num_nodes)
     nodes1.out -> interleaved (nodes1.in)
 

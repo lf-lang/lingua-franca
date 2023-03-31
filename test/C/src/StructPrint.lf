@@ -5,6 +5,7 @@ target C {
 }
 
 preamble {=
+    #include <stdio.h>
     #include "hello.h"
 =}
 
@@ -20,7 +21,7 @@ reactor Print {
     =}
 }
 
-reactor Check(expected: int(42)) {  // expected parameter is for testing.
+reactor Check(expected: int = 42) {  // expected parameter is for testing.
     input in: hello_t*
 
     reaction(in) {=

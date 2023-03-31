@@ -9,9 +9,13 @@ target C {
 
 import Sender from "lib/LoopedActionSender.lf"
 
+preamble {=
+    #include <stdio.h>
+=}
+
 reactor Consumer {
     input in: int
-    state reaction_invoked_correctly: bool(false)
+    state reaction_invoked_correctly: bool = false
 
     reaction(in) {=
         tag_t current_tag = lf_tag();

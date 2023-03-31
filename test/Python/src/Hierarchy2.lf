@@ -14,7 +14,7 @@ reactor Source {
 reactor Count {
     output out
     timer t(0, 1 sec)
-    state i(0)
+    state i = 0
 
     reaction(t) -> out {=
         self.i += 1
@@ -39,7 +39,7 @@ reactor Add {
 
 reactor Print {
     input _in
-    state expected(2)
+    state expected = 2
 
     reaction(_in) {=
         print("Received: ", _in.value)

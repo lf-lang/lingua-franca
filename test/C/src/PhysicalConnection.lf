@@ -1,6 +1,10 @@
 /** Test physical connections. */
 target C
 
+preamble {=
+    #include <stdio.h>
+=}
+
 reactor Source {
     output out: int
 

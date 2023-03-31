@@ -5,9 +5,13 @@ target C {
     fast: true
 }
 
+preamble {=
+    #include <stdio.h>
+=}
+
 reactor Printer {
     input x: int
-    state count: int(1)
+    state count: int = 1
 
     reaction(x) {=
         printf("Inside reactor received: %d\n", x->value);
@@ -20,7 +24,7 @@ reactor Printer {
 }
 
 main reactor SendingInsideThreaded {
-    state count: int(0)
+    state count: int = 0
     timer t(0, 1 sec)
     p = new Printer()
 

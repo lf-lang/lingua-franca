@@ -6,8 +6,12 @@ target C {
     build-type: Debug
 }
 
+preamble {=
+    #include <stdio.h>
+=}
+
 reactor HelloWorld2 {
-    state success: bool(false)
+    state success: bool = false
 
     reaction(startup) {=
         printf("Hello World.\n");

@@ -1,6 +1,10 @@
 // Setup for WCET analysis of Worker
 target C
 
+preamble {=
+    #include <stdio.h>
+=}
+
 reactor Source {
     output out1: int
     output out2: int

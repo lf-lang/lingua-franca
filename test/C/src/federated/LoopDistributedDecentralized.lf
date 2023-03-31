@@ -15,7 +15,7 @@ preamble {=
     void* ping(void* actionref);
 =}
 
-reactor Looper(incr: int(1), delay: time(0 msec), stp_offset: time(0)) {
+reactor Looper(incr: int = 1, delay: time = 0 msec, stp_offset: time = 0) {
     preamble {=
         bool stop = false;
         // Thread to trigger an action once every second.
@@ -31,7 +31,7 @@ reactor Looper(incr: int(1), delay: time(0 msec), stp_offset: time(0)) {
     input in: int
     output out: int
     physical action a(stp_offset)
-    state count: int(0)
+    state count: int = 0
 
     reaction(startup) -> a {=
         // Start the thread that listens for Enter or Return.
@@ -73,7 +73,7 @@ reactor Looper(incr: int(1), delay: time(0 msec), stp_offset: time(0)) {
     =}
 }
 
-federated reactor LoopDistributedDecentralized(delay: time(0)) {
+federated reactor LoopDistributedDecentralized(delay: time = 0) {
     left = new Looper(stp_offset = 900 usec)
     right = new Looper(incr = -1, stp_offset = 2400 usec)
     left.out -> right.in

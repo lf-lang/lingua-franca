@@ -1,10 +1,10 @@
 // Tests the is_present variable for actions in cpp
 target Cpp
 
-main reactor ActionIsPresent(offset: time(1 nsec), period: time(500 msec)) {
+main reactor ActionIsPresent(offset: time = 1 nsec, period: time(500 msec)) {
     logical action a
-    state success: bool(false)
-    state zero: time(0 nsec)
+    state success: bool = false
+    state zero: time = 0 nsec
 
     reaction(startup, a) -> a {=
         if (!a.is_present()) {

@@ -11,6 +11,10 @@ target C {
 
 import TraceTesting from "util/TraceTesting.lf"
 
+preamble {=
+    #include <stdio.h>
+=}
+
 reactor Modal {
     input next: bool
     output count: int
@@ -28,11 +32,11 @@ reactor Modal {
     }
 }
 
-reactor Counter(period: time(1 sec)) {
+reactor Counter(period: time = 1 sec) {
     output value: int
 
     timer t(0, period)
-    reset state curval: int(0)
+    reset state curval: int = 0
 
     reaction(t) -> value {= lf_set(value, self->curval++); =}
 }
@@ -44,7 +48,7 @@ main reactor {
     test = new TraceTesting(
         events_size = 1,
         trace_size = 51,
-        trace = (  // keep-format
+        trace = {  // keep-format
             0,1,0,
             250000000,1,1,
             250000000,1,2,
@@ -62,7 +66,7 @@ main reactor {
             100000000,1,3,
             100000000,1,4,
             100000000,1,5
-        ),
+        },
         training = false
     )
 

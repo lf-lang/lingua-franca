@@ -9,7 +9,7 @@ reactor Print {
     reaction(startup) -> out named send
 }
 
-reactor Check(expected: int(42)) {  // expected parameter is for testing.
+reactor Check(expected: int = 42) {  // expected parameter is for testing.
     input in: int
 
     reaction(in) named receive

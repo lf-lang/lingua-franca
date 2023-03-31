@@ -4,7 +4,7 @@ target Python {
     fast: true
 }
 
-reactor CountSelf2(delay(100 msec)) {
+reactor CountSelf2(delay = 100 msec) {
     output out
     logical action a
 
@@ -21,7 +21,7 @@ reactor CountSelf2(delay(100 msec)) {
 
 reactor Test {
     input _in
-    state count(0)
+    state count = 0
 
     reaction(_in) {=
         print("Received: {:d}".format(_in.value))

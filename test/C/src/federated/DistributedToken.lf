@@ -20,17 +20,21 @@ target C {
     coordination: decentralized
 }
 
+preamble {=
+    #include <stdio.h>
+=}
+
 /**
  * Reactor that generates a sequence of messages, one per second. The message
  * will be a string consisting of a root string followed by a count.
  * @param root The root string.
  * @output message The message.
  */
-reactor MessageGenerator(root: string("")) {
+reactor MessageGenerator(root: string = "") {
     // Output type char* instead of string is used for dynamically allocated
     // character arrays (as opposed to static constant strings).
     output message: char*
-    state count: int(1)
+    state count: int = 1
     // Send first message after 1 sec so that the startup reactions do not
     // factor into the transport time measurement on the first message.
     timer t(1 sec, 1 sec)
@@ -57,7 +61,7 @@ reactor MessageGenerator(root: string("")) {
  */
 reactor PrintMessage {
     input message: char*
-    state count: int(0)
+    state count: int = 0
 
     reaction(message) {=
         printf("PrintMessage: At (elapsed) logical time %lld, receiver receives: %s\n",

@@ -13,6 +13,17 @@ target C {
     build-type: RelWithDebInfo  // Release with debug info
 }
 
+preamble {=
+    #ifdef __cplusplus
+    extern "C" {
+    #endif
+    #include <stdio.h>
+    #include "federate.h"
+    #ifdef __cplusplus
+    }
+    #endif
+=}
+
 reactor Sender {
     output out: int
     timer t(0, 1 msec)
@@ -32,7 +43,7 @@ reactor Sender {
 
 reactor Receiver {
     input in: int
-    state success: int(0)
+    state success: int = 0
 
     reaction(in) {=
         tag_t current_tag = lf_tag();

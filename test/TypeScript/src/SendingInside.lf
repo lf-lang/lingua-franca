@@ -7,7 +7,7 @@ target TypeScript {
 
 reactor Printer {
     input x: number
-    state count: number(1)
+    state count: number = 1
 
     reaction(x) {=
         console.log("Inside reactor received: " + x);
@@ -19,7 +19,7 @@ reactor Printer {
 }
 
 main reactor SendingInside {
-    state count: number(0)
+    state count: number = 0
     timer t(0, 1 sec)
     p = new Printer()
 

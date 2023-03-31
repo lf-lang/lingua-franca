@@ -6,10 +6,14 @@ target C {
 
 import Count from "lib/Count.lf"
 
+preamble {=
+    #include <stdio.h>
+=}
+
 reactor Test {
     input c: int
-    state i: int(0)
-    state received: int(0)
+    state i: int = 0
+    state received: int = 0
 
     reaction(c) {=
         self->received++;
