@@ -14,7 +14,6 @@ import org.lflang.ASTUtils;
 import org.lflang.ErrorReporter;
 import org.lflang.InferredType;
 import org.lflang.TargetConfig;
-import org.lflang.TargetProperty.Platform;
 import org.lflang.federated.extensions.CExtensionUtils;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.lf.Action;
@@ -1087,8 +1086,8 @@ public class CReactionGenerator {
         Code ret = LfFactory.eINSTANCE.createCode();
         var reactor = ASTUtils.toDefinition(container);
         ret.setBody(
-            CReactorHeaderFileGenerator.nonInlineInitialization(types, r, reactor) + "\n"
-                + r.getName() + "( " + CReactorHeaderFileGenerator.reactionArguments(types, r, reactor) + " );");
+            CReactorHeaderFileGenerator.nonInlineInitialization(r, reactor) + "\n"
+                + r.getName() + "( " + CReactorHeaderFileGenerator.reactionArguments(r, reactor) + " );");
         return ret;
     }
 

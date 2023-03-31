@@ -372,6 +372,7 @@ public class ASTUtils {
         return ASTUtils.collectElements(definition, featurePackage.getReactor_Inputs());
     }
 
+    /** A list of all ports of {@code definition}, in an unspecified order. */
     public static List<Port> allPorts(Reactor definition) {
         return Stream.concat(ASTUtils.allInputs(definition).stream(), ASTUtils.allOutputs(definition).stream()).toList();
     }
@@ -462,6 +463,7 @@ public class ASTUtils {
         return ASTUtils.collectElements(definition, featurePackage.getReactor_Modes());
     }
 
+    /** A list of all reactors instantiated, transitively or intransitively, by {@code r}. */
     public static List<Reactor> recursiveChildren(ReactorInstance r) {
         List<Reactor> ret = new ArrayList<>();
         ret.add(r.reactorDefinition);

@@ -42,12 +42,10 @@ import java.nio.file.Path;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Locale;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import org.eclipse.emf.ecore.EObject;
 import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.xtext.xbase.lib.Exceptions;
 import org.eclipse.xtext.xbase.lib.IterableExtensions;
@@ -85,7 +83,6 @@ import org.lflang.generator.TimerInstance;
 import org.lflang.generator.TriggerInstance;
 import org.lflang.lf.Action;
 import org.lflang.lf.ActionOrigin;
-import org.lflang.lf.Code;
 import org.lflang.lf.Input;
 import org.lflang.lf.Instantiation;
 import org.lflang.lf.Mode;
@@ -914,6 +911,7 @@ public class CGenerator extends GeneratorBase {
         }
     }
 
+    /** Generate user-visible header files for all reactors instantiated. */
     private void generateHeaders() throws IOException {
         FileUtil.deleteDirectory(fileConfig.getIncludePath());
         FileUtil.copyDirectoryFromClassPath(
@@ -1079,7 +1077,7 @@ public class CGenerator extends GeneratorBase {
             src.pr("}");
             header.pr("}");
         }
-        src.pr("#include \"include/" + CReactorHeaderFileGenerator.outputPath(fileConfig, reactor) + "\"");
+        src.pr("#include \"include/" + CReactorHeaderFileGenerator.outputPath(reactor) + "\"");
         src.pr("#include \"" + headerName + "\"");
         ASTUtils.allNestedClasses(reactor).map(CUtil::getName)
             .map(name -> "#include \"" + name + ".h\"")
