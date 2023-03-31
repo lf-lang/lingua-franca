@@ -148,7 +148,7 @@ public class FedGenerator {
         // AST with an action (which inherits the delay) and four reactions.
         // The action will be physical for physical connections and logical
         // for logical connections.
-        replaceFederateConnectionsWithProxies(federation);
+        replaceFederateConnectionsWithProxies(federation, resource);
 
         FedEmitter fedEmitter = new FedEmitter(
             fileConfig,
@@ -479,8 +479,9 @@ public class FedGenerator {
      * handle sending and receiving data.
      *
      * @param federation Reactor class of the federation.
+     * @param resource
      */
-    private void replaceFederateConnectionsWithProxies(Reactor federation) {
+    private void replaceFederateConnectionsWithProxies(Reactor federation, Resource resource) {
         // Each connection in the AST may represent more than one connection between
         // federation instances because of banks and multiports. We need to generate communication
         // for each of these. To do this, we create a ReactorInstance so that we don't have
@@ -491,7 +492,7 @@ public class FedGenerator {
 
         for (ReactorInstance child : mainInstance.children) {
             for (PortInstance output : child.outputs) {
-                replaceConnectionFromOutputPort(output);
+                replaceConnectionFromOutputPort(output, resource);
             }
         }
 
@@ -507,8 +508,9 @@ public class FedGenerator {
      * Replace the connections from the specified output port.
      *
      * @param output The output port instance.
+     * @param resource
      */
-    private void replaceConnectionFromOutputPort(PortInstance output) {
+    private void replaceConnectionFromOutputPort(PortInstance output, Resource resource) {
         // Iterate through ranges of the output port
         for (SendRange srcRange : output.getDependentPorts()) {
             if (srcRange.connection == null) {
@@ -523,7 +525,8 @@ public class FedGenerator {
             for (RuntimeRange<PortInstance> dstRange : srcRange.destinations) {
                 replaceOneToManyConnection(
                     srcRange,
-                    dstRange
+                    dstRange,
+                    resource
                 );
             }
         }
@@ -536,10 +539,11 @@ public class FedGenerator {
      * @param srcRange A range of an output port that sources data for this
      *                 connection.
      * @param dstRange A range of input ports that receive the data.
+     * @param resource
      */
     private void replaceOneToManyConnection(
         SendRange srcRange,
-        RuntimeRange<PortInstance> dstRange
+        RuntimeRange<PortInstance> dstRange, Resource resource
     ) {
         MixedRadixInt srcID = srcRange.startMR();
         MixedRadixInt dstID = dstRange.startMR();
@@ -575,7 +579,7 @@ public class FedGenerator {
                 FedUtils.getSerializer(srcRange.connection, srcFederate, dstFederate)
             );
 
-            replaceFedConnection(fedConnection);
+            replaceFedConnection(fedConnection, resource);
 
             dstID.increment();
             srcID.increment();
@@ -590,8 +594,9 @@ public class FedGenerator {
      * Replace a one-to-one federated connection with proxies.
      *
      * @param connection A connection between two federates.
+     * @param resource
      */
-    private void replaceFedConnection(FedConnectionInstance connection) {
+    private void replaceFedConnection(FedConnectionInstance connection, Resource resource) {
         if (!connection.getDefinition().isPhysical()
             && targetConfig.coordination != CoordinationType.DECENTRALIZED) {
             // Map the delays on connections between federates.
@@ -621,6 +626,6 @@ public class FedGenerator {
             }
         }
 
-        FedASTUtils.makeCommunication(connection, targetConfig.coordination, errorReporter);
+        FedASTUtils.makeCommunication(connection, resource, targetConfig.coordination, errorReporter);
     }
 }

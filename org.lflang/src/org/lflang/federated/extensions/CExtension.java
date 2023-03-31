@@ -542,9 +542,8 @@ public class CExtension implements FedTargetExtension {
         var federatedReactor = FedASTUtils.findFederatedReactor(federate.instantiation.eResource());
         var oldFederatedReactorName = federatedReactor.getName();
         federatedReactor.setName(federate.name);
-        var main = new ReactorInstance(federatedReactor, errorReporter, 1);
-        code.pr(CExtensionUtils.initializeTriggersForNetworkActions(federate, main));
-        code.pr(CExtensionUtils.initializeTriggerForControlReactions(main, main, federate));
+        code.pr(CExtensionUtils.initializeTriggersForNetworkActions(federate, errorReporter));
+        //code.pr(CExtensionUtils.initializeTriggerForControlReactions(main, main, federate));
         federatedReactor.setName(oldFederatedReactorName);
         
         return """

@@ -40,8 +40,6 @@ import org.eclipse.emf.ecore.EObject;
 
 import org.lflang.ASTUtils;
 import org.lflang.ErrorReporter;
-import org.lflang.FileConfig;
-import org.lflang.Target;
 import org.lflang.TargetConfig;
 import org.lflang.TimeValue;
 import org.lflang.federated.serialization.SupportedSerializers;
@@ -54,6 +52,7 @@ import org.lflang.generator.SubContext;
 import org.lflang.generator.TriggerInstance;
 import org.lflang.lf.Action;
 import org.lflang.lf.ActionOrigin;
+import org.lflang.lf.Connection;
 import org.lflang.lf.Expression;
 import org.lflang.lf.Import;
 import org.lflang.lf.ImportedReactor;
@@ -202,6 +201,12 @@ public class FederateInstance {
      *  The sending federate needs to specify this ID.
      */
     public List<Action> networkMessageActions = new ArrayList<>();
+
+
+    /**
+     * List of networkMessage reactors corresponding to actions.
+     */
+    public List<Reactor> networkMessageActionReactors = new ArrayList<>();
     
     /**
      * A set of federates with which this federate has an inbound connection
@@ -251,6 +256,26 @@ public class FederateInstance {
     public List<Reaction> networkReactions = new ArrayList<>();
 
     /**
+     * List of generated network reactors (network input and outputs) that
+     * belong to this federate instance.
+     */
+    public List<Reactor> networkReactors = new ArrayList<>();
+
+
+    /**
+     * List of generated network connections (network input and outputs) that
+     * belong to this federate instance.
+     */
+    public List<Connection> networkConnections = new ArrayList<>();
+
+
+    /**
+     * List of generated network instantiations (network input and outputs) that
+     * belong to this federate instance.
+     */
+    public List<Instantiation> networkInstantiations = new ArrayList<>();
+
+    /**
      * Parsed target config of the federate.
      */
     public TargetConfig targetConfig;
@@ -295,18 +320,21 @@ public class FederateInstance {
         Instantiation instantiation,
         ReactorDecl reactor
     ) {
+
         if (instantiation.getReactorClass().equals(ASTUtils.toDefinition(reactor))) {
             return true;
         }
 
         boolean instantiationsCheck = false;
+        if (networkReactors.contains(ASTUtils.toDefinition(reactor))){
+            return true;
+        }
         // For a federate, we don't need to look inside imported reactors.
         if (instantiation.getReactorClass() instanceof Reactor reactorDef) {
             for (Instantiation child : reactorDef.getInstantiations()) {
                 instantiationsCheck |= contains(child, reactor);
             }
         }
-
         return instantiationsCheck;
     }
 

@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.regex.Pattern;
 
 import org.lflang.ASTUtils;
+import org.lflang.ErrorReporter;
 import org.lflang.InferredType;
 import org.lflang.TargetConfig.ClockSyncOptions;
 import org.lflang.TargetProperty;
@@ -82,7 +83,7 @@ public class CExtensionUtils {
      * @param main The main reactor that contains the federate (used to lookup references).
      * @return
      */
-    public static String initializeTriggersForNetworkActions(FederateInstance federate, ReactorInstance main) {
+    public static String initializeTriggersForNetworkActions(FederateInstance federate, ErrorReporter errorReporter) {
         CodeBuilder code = new CodeBuilder();
         if (federate.networkMessageActions.size() > 0) {
             // Create a static array of trigger_t pointers.
@@ -91,9 +92,11 @@ public class CExtensionUtils {
             // There should be exactly one ActionInstance in the
             // main reactor for each Action.
             var triggers = new LinkedList<String>();
-            for (Action action : federate.networkMessageActions) {
+            for (int i = 0; i < federate.networkMessageActions.size(); ++i) {
                 // Find the corresponding ActionInstance.
-                var actionInstance = main.lookupActionInstance(action);
+                Action action = federate.networkMessageActions.get(i);
+                var reactor = new ReactorInstance(federate.networkMessageActionReactors.get(i), errorReporter, 1);
+                var actionInstance = reactor.lookupActionInstance(action);
                 triggers.add(CUtil.actionRef(actionInstance, null));
             }
             var actionTableCount = 0;

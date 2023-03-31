@@ -11,6 +11,7 @@ import org.lflang.ErrorReporter;
 import org.lflang.federated.launcher.RtiConfig;
 import org.lflang.generator.CodeMap;
 import org.lflang.generator.LFGeneratorContext;
+import org.lflang.lf.Model;
 import org.lflang.lf.Reactor;
 
 /**
