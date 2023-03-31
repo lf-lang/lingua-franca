@@ -38,7 +38,7 @@ jobs:
 
   # Run the unit tests.
   unit-tests:
-    uses: lf-lang/lingua-franca/.github/workflows/unit-tests.yml@master
+    uses: lf-lang/lingua-franca/.github/workflows/unit-tests.yml@bodyless-reactions
     needs: cancel
 
   # Run tests for the standalone compiler.
