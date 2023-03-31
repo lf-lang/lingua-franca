@@ -1062,8 +1062,6 @@ public class CGenerator extends GeneratorBase {
         header.pr("#include \"include/core/reactor.h\"");
         src.pr("#include \"include/api/api.h\"");
         src.pr("#include \"include/api/set.h\"");
-        src.pr("#include \"include/api/generics.h\"");
-        src.pr("#include \"include/utils/type_converter.h\"");
         generateIncludes(tpr);
         if (CCppMode) {
             src.pr("}");
