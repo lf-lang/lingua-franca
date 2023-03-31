@@ -1,9 +1,5 @@
 target C
 
-preamble {=
-    #include <stdio.h>
-=}
-
 reactor TestDouble(expected: double[] = {1.0, 1.0, 1.0, 1.0}) {
     input in: double
     state count: int = 0

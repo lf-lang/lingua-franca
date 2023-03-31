@@ -2,10 +2,6 @@
 // reactor.
 target C
 
-preamble {=
-    #include <stdio.h>
-=}
-
 reactor Contained {
     output trigger: int
     input in1: int

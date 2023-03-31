@@ -12,10 +12,6 @@ target C {
     coordination: decentralized
 }
 
-preamble {=
-    #include <stdio.h>
-=}
-
 reactor Sender {
     output out: int
     timer t(0, 1 msec)

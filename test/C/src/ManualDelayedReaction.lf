@@ -5,10 +5,6 @@ target C {
     keepalive: false
 }
 
-preamble {=
-    #include <stdio.h>
-=}
-
 // That's the stuff that shall be generated for the after
 reactor GeneratedDelay {
     input y_in: int

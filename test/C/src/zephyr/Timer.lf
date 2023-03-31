@@ -6,10 +6,6 @@ target C {
     threading: false
 }
 
-preamble {=
-    #include <stdio.h>
-=}
-
 main reactor {
     timer t(0, 1 sec)
 

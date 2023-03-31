@@ -5,10 +5,6 @@ target C {
     fast: true
 }
 
-preamble {=
-    #include <stdio.h>
-=}
-
 reactor Source(width: int = 2) {
     output[width] out: int
 

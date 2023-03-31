@@ -11,10 +11,6 @@ target C {
     timeout: 1 sec
 }
 
-preamble {=
-    #include <stdio.h>
-=}
-
 reactor Count {
     timer t(200 msec, 1 sec)
     state s: int = 0

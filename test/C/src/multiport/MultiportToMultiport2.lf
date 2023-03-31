@@ -1,10 +1,6 @@
 // Test multiport to multiport connections. See also MultiportToMultiport.
 target C
 
-preamble {=
-    #include <stdio.h>
-=}
-
 reactor Source(width: int = 2) {
     output[width] out: int
 

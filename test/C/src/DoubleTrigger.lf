@@ -5,10 +5,6 @@ target C {
     fast: true
 }
 
-preamble {=
-    #include <stdio.h>
-=}
-
 main reactor DoubleTrigger {
     timer t1
     timer t2

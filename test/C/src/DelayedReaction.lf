@@ -1,10 +1,6 @@
 // Test delay made on a connection.
 target C
 
-preamble {=
-    #include <stdio.h>
-=}
-
 reactor Source {
     output out: int
     timer t

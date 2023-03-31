@@ -7,10 +7,6 @@ target C {
     timeout: 110 msec
 }
 
-preamble {=
-    #include <stdio.h>
-=}
-
 main reactor {
     state x: int = 0
     state first: bool = true

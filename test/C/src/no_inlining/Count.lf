@@ -3,10 +3,6 @@ target C {
     files: ["../../c"]
 }
 
-preamble {=
-    #include <stdio.h>
-=}
-
 main reactor Count {
     timer t(0, 1 msec)
 

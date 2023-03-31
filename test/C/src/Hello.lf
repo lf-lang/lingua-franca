@@ -9,7 +9,6 @@ target C {
 }
 
 preamble {=
-    #include <stdio.h>
     #include <time.h>
 =}
 

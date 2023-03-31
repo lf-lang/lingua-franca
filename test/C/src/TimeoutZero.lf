@@ -10,10 +10,6 @@ target C {
 
 import Sender from "lib/LoopedActionSender.lf"
 
-preamble {=
-    #include <stdio.h>
-=}
-
 reactor Consumer {
     input in: int
     state success: bool = false

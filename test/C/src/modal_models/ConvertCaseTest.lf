@@ -6,10 +6,6 @@ target C {
 
 import TraceTesting from "util/TraceTesting.lf"
 
-preamble {=
-    #include <stdio.h>
-=}
-
 reactor ResetProcessor {
     input discard: bool
     input character: char
@@ -54,9 +50,7 @@ reactor Converter {
     input raw: char
     output converted: int
 
-    preamble {=
-        #include <stdio.h>
-    =}
+    preamble {=  =}
 
     initial mode Upper {
         reaction(raw) -> converted, reset(Lower) {=

@@ -1,10 +1,6 @@
 // Test delaying a pointer type.
 target C
 
-preamble {=
-    #include <stdio.h>
-=}
-
 reactor DelayPointer2(delay: time = 100 msec) {
     input in: int*
     output out: int*

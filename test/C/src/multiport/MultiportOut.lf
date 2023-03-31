@@ -4,10 +4,6 @@ target C {
     fast: true
 }
 
-preamble {=
-    #include <stdio.h>
-=}
-
 reactor Source {
     timer t(0, 200 msec)
     output[4] out: int

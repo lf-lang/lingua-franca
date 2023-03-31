@@ -23,10 +23,6 @@ target C {
     protobufs: Person.proto
 }
 
-preamble {=
-    #include <stdio.h>
-=}
-
 main reactor {
     reaction(startup) {=
         Person person = PERSON__INIT; // Macro to create the protocol buffer

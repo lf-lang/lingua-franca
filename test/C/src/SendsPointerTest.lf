@@ -2,10 +2,7 @@
 // Reference counting ensures that the struct is freed.
 target C
 
-preamble {=
-    #include <stdio.h>
-    typedef int* int_pointer;
-=}
+preamble {= typedef int* int_pointer; =}
 
 reactor SendsPointer {
     output out: int_pointer

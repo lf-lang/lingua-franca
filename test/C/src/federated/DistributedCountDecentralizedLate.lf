@@ -13,10 +13,6 @@ target C {
 
 import Count from "../lib/Count.lf"
 
-preamble {=
-    #include <stdio.h>
-=}
-
 reactor Print {
     input in: int  // STP ()
     state success: int = 0  // STP(in, 30 msec);

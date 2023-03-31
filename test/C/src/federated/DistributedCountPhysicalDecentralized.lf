@@ -12,10 +12,6 @@ target C {
     coordination: decentralized
 }
 
-preamble {=
-    #include <stdio.h>
-=}
-
 reactor Count {
     timer t(200 msec, 1 sec)
     state s: int = 0

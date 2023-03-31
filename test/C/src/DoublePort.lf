@@ -12,10 +12,6 @@ target C {
 
 import Count from "lib/Count.lf"
 
-preamble {=
-    #include <stdio.h>
-=}
-
 reactor CountMicrostep {
     state count: int = 1
     output out: int

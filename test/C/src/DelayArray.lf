@@ -4,10 +4,6 @@ target C {
     build-type: RelWithDebInfo
 }
 
-preamble {=
-    #include <stdio.h>
-=}
-
 reactor DelayPointer(delay: time = 100 msec) {
     input in: int[]
     output out: int[]

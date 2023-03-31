@@ -5,10 +5,6 @@ target C {
     fast: true
 }
 
-preamble {=
-    #include <stdio.h>
-=}
-
 reactor Printer {
     input x: int
     state count: int = 1

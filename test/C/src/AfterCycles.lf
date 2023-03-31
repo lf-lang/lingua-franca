@@ -2,10 +2,6 @@
 // running without detected a cycle.
 target C
 
-preamble {=
-    #include <stdio.h>
-=}
-
 reactor Source {
     output out: unsigned
 

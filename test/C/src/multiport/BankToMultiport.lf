@@ -1,10 +1,6 @@
 // Test bank of reactors to multiport input with id parameter in the bank.
 target C
 
-preamble {=
-    #include <stdio.h>
-=}
-
 reactor Source(bank_index: int = 0) {
     output out: int
 

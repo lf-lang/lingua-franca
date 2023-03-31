@@ -7,10 +7,6 @@ target C {
     timeout: 2 sec
 }
 
-preamble {=
-    #include <stdio.h>
-=}
-
 reactor CounterCycle {
     input next: bool
 
