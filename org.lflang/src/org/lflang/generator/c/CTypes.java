@@ -1,11 +1,18 @@
 package org.lflang.generator.c;
 
+import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
-import org.lflang.ErrorReporter;
 import org.lflang.InferredType;
+import org.lflang.TimeUnit;
+import org.lflang.TimeValue;
+import org.lflang.generator.ReactorInstance;
 import org.lflang.generator.TargetTypes;
+import org.lflang.lf.Initializer;
+import org.lflang.lf.ParameterReference;
+import org.lflang.lf.Type;
 
 public class CTypes implements TargetTypes {
 
@@ -13,20 +20,9 @@ public class CTypes implements TargetTypes {
     // For example, for "foo[10]", the first match will be "foo" and the second "[10]".
     // For "foo[]", the first match will be "foo" and the second "".
     static final Pattern arrayPattern = Pattern.compile("^\\s*(?:/\\*.*?\\*/)?\\s*(\\w+)\\s*\\[([0-9]*)]\\s*$");
+    private static final CTypes INSTANCE = new CTypes();
 
-    // FIXME: Instead of using the ErrorReporter, perhaps we should be raising assertion errors or
-    //  UnsupportedOperationExceptions or some other non-recoverable errors.
-    private final ErrorReporter errorReporter;
-
-    /**
-     * Initializes a {@code CTargetTypes} with the given
-     * error reporter.
-     * @param errorReporter The error reporter for any
-     *                      errors raised in the code
-     *                      generation process.
-     */
-    public CTypes(ErrorReporter errorReporter) {
-        this.errorReporter = errorReporter;
+    public CTypes() {
     }
 
     @Override
@@ -56,7 +52,7 @@ public class CTypes implements TargetTypes {
 
     @Override
     public String getTargetUndefinedType() {
-        return String.format("/* %s */", errorReporter.reportError("undefined type"));
+        return "/*undefined*/";
     }
 
     /**
@@ -76,6 +72,33 @@ public class CTypes implements TargetTypes {
             return matcher.group(1) + '*';
         }
         return result;
+    }
+
+    @Override
+    public String getTargetParamRef(ParameterReference expr, InferredType typeOrNull) {
+        throw new UnsupportedOperationException("No context defined");
+    }
+
+    @Override
+    public String getTargetTimeExpr(TimeValue time) {
+        if (time != null) {
+            if (time.unit != null) {
+                return cMacroName(time.unit) + "(" + time.getMagnitude() + ")";
+            } else {
+                return Long.valueOf(time.getMagnitude()).toString();
+            }
+        }
+        return "0"; // FIXME: do this or throw exception?
+    }
+
+    @Override
+    public String getFixedSizeListInitExpression(List<String> contents, int listSize, boolean withBraces) {
+        return contents.stream().collect(Collectors.joining(", ", "{ ", " }"));
+    }
+
+    @Override
+    public String getVariableSizeListInitExpression(List<String> contents, boolean withBraces) {
+        return contents.stream().collect(Collectors.joining(", ", "{ ", " }"));
     }
 
     /**
@@ -118,5 +141,24 @@ public class CTypes implements TargetTypes {
             }
         }
         return declaration;
+    }
+
+    // note that this is moved out by #544
+    public static String cMacroName(TimeUnit unit) {
+        return unit.getCanonicalName().toUpperCase();
+    }
+
+    public static CTypes getInstance() {
+        return INSTANCE;
+    }
+
+
+    public static CTypes generateParametersIn(ReactorInstance instance) {
+        return new CTypes() {
+            @Override
+            public String getTargetParamRef(ParameterReference expr, InferredType typeOrNull) {
+                return CUtil.reactorRef(instance) + "->" + expr.getParameter().getName();
+            }
+        };
     }
 }

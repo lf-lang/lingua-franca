@@ -69,7 +69,7 @@ class TSParameterPreambleGenerator(
         mainParameters.joinWithLn { parameter ->
 
             """
-                |let __CL${parameter.name}: ${TSTypes.getTargetType(parameter)} | undefined = undefined;
+                |let __CL${parameter.name}: ${TSTypes.getInstance().getTargetType(parameter)} | undefined = undefined;
                 |if (__processedCLArgs.${parameter.name} !== undefined) {
                 |    if (__processedCLArgs.${parameter.name} !== null) {
                 |        __CL${parameter.name} = __processedCLArgs.${parameter.name};
@@ -114,7 +114,7 @@ class TSParameterPreambleGenerator(
             var customArgType: String? = null
             var customTypeLabel: String? = null
 
-            val paramType = TSTypes.getTargetType(parameter)
+            val paramType = TSTypes.getInstance().getTargetType(parameter)
             if (paramType == "string") {
                 mainParameters.add(parameter)
                 customArgType = "String";

@@ -10,7 +10,7 @@ reactor Contained {
 
 main reactor ReadOutputOfContainedReactor {
     c = new Contained()
-    state count: number(0)
+    state count: number = 0
 
     reaction(startup) c.out {=
         console.log("Startup reaction reading output of contained reactor: " + c.out);

@@ -10,7 +10,7 @@ reactor Sender {
     output out: int
     timer t(0, 1 usec)
     logical action act
-    state reaction_invoked_correctly: bool(false)
+    state reaction_invoked_correctly: bool = false
 
     reaction(t, act) -> out, act {=
         lf_print("Sending 42 at (%lld, %u).",
@@ -63,10 +63,10 @@ reactor Sender {
 }
 
 reactor Receiver(
-    stp_offset: time(10 msec)  // Used in the decentralized variant of the test
+    stp_offset: time = 10 msec  // Used in the decentralized variant of the test
 ) {
     input in: int
-    state reaction_invoked_correctly: bool(false)
+    state reaction_invoked_correctly: bool = false
 
     reaction(in) {=
         lf_print("Received %d at (%lld, %u).",

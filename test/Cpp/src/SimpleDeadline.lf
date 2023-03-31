@@ -3,7 +3,7 @@
 // violation.
 target Cpp
 
-reactor Deadline(threshold: time(100 msec)) {
+reactor Deadline(threshold: time = 100 msec) {
     private preamble {=
         #include <thread>
     =}

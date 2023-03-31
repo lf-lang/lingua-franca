@@ -429,7 +429,7 @@ class TSGenerator(
         return true
     }
 
-    override fun getTargetTypes(): TargetTypes = TSTypes
+    override fun getTargetTypes(): TargetTypes = TSTypes.getInstance()
 
     override fun getTarget(): Target {
         return Target.TS

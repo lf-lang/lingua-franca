@@ -2,7 +2,7 @@
 target Python
 
 main reactor {
-    state foo(2)
+    state foo = 2
 
     method getFoo() {= return self.foo =}
 
