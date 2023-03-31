@@ -1,4 +1,6 @@
-target C
+target C {
+    workers: 100
+};
 
 reactor Watcher {
     input x: int
@@ -6,7 +8,7 @@ reactor Watcher {
 
     watchdog poodle(10 msec) {=
         instant_t p = lf_time_physical_elapsed() - lf_time_logical_elapsed();
-        printf("Deadline missed! Lag: %lld (too late by %lld nsecs)\n", p, p-500000);
+        printf("Watchdog missed! Lag: %lld (too late by %lld nsecs)\n", p, p-500000);
     =}
 
     reaction(x) -> poodle, d {=

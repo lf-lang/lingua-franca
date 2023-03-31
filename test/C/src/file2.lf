@@ -1,0 +1,40 @@
+target C
+
+reactor Watcher {
+    input x: int
+    // Produced if the
+    // deadline is
+    // violated.
+    output d: int
+
+    reaction(x) ->
+    poodle, d {=
+        lf_watchdog_start(poodle, 0);
+        printf("Normal reaction.\n");
+    =}
+}
+
+main reactor {
+    logical action a
+    w = new Watcher(
+
+    )
+
+    reaction(
+        startup
+    ) ->
+    w.x, a {=
+        lf_set(w.x, 0);
+        lf_schedule(a, 0);
+    =}
+
+    reaction(a) ->
+    w.x {=
+        lf_set(w.x, 0);
+        lf_nanosleep(MSEC(40));
+    =}
+
+    reaction(w.d) {=
+        printf("Deadline reactor produced an output.\n");
+    =}
+}
