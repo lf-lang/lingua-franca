@@ -1527,7 +1527,7 @@ public class CGenerator extends GeneratorBase {
         // temp.pr("#ifdef LF_THREADED");
         for (WatchdogInstance watchdog : instance.watchdogs) {
             temp.pr("   _lf_watchdogs[_lf_watchdog_number_count++] = &"+reactorRef+"->_lf_watchdog_"+watchdog.getName()+";");
-            temp.pr("   " + reactorRef+"->_lf_watchdog_"+watchdog.getName()+".min_expiration = "+GeneratorBase.timeInTargetLanguage(watchdog.getTimeout())+";");
+            temp.pr("   " + reactorRef+"->_lf_watchdog_"+watchdog.getName()+".min_expiration = "+watchdog.getTimeout()+";");
             temp.pr("   " + reactorRef+"->_lf_watchdog_"+watchdog.getName()+".thread_id;");
             watchdogCount += 1;
             foundOne = true;
