@@ -221,7 +221,7 @@ public class ReactionInstance extends NamedInstance<Reaction> {
      * Deadline for this reaction instance, if declared.
      */
     public DeadlineInstance declaredDeadline;
-    
+
     /**
      * Sadly, we have no way to mark reaction "unordered" in the AST,
      * so instead, we use a magic comment at the start of the reaction body.

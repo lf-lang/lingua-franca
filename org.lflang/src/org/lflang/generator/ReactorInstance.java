@@ -39,8 +39,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
-import org.eclipse.emf.ecore.util.EcoreUtil;
-
 import org.lflang.ASTUtils;
 import org.lflang.AttributeUtils;
 import org.lflang.ErrorReporter;
@@ -55,7 +53,6 @@ import org.lflang.lf.Expression;
 import org.lflang.lf.Initializer;
 import org.lflang.lf.Input;
 import org.lflang.lf.Instantiation;
-import org.lflang.lf.LfFactory;
 import org.lflang.lf.Mode;
 import org.lflang.lf.Output;
 import org.lflang.lf.Parameter;
@@ -69,8 +66,6 @@ import org.lflang.lf.VarRef;
 import org.lflang.lf.Variable;
 import org.lflang.lf.Watchdog;
 import org.lflang.lf.WidthSpec;
-import org.lflang.lf.Watchdog;
-
 
 /**
  * Representation of a compile-time instance of a reactor.
