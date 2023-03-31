@@ -12,7 +12,7 @@ target C {
 }
 
 reactor Count {
-    state count: int(1)
+    state count: int = 1
     input in: int
     output out: int
     timer t(0, 1 msec)
@@ -26,7 +26,7 @@ reactor Count {
 }
 
 reactor CountMicrostep {
-    state count: int(1)
+    state count: int = 1
     output out: int
     logical action act: int
     timer t(0, 1 msec)

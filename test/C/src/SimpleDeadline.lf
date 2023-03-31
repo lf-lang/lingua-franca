@@ -3,7 +3,7 @@
 // violation.
 target C
 
-reactor Deadline(threshold: time(100 msec)) {
+reactor Deadline(threshold: time = 100 msec) {
     input x: int
     output deadlineViolation: bool
 

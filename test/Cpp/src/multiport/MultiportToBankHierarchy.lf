@@ -15,9 +15,9 @@ reactor Source {
     =}
 }
 
-reactor Destination(bank_index: size_t(0)) {
+reactor Destination(bank_index: size_t = 0) {
     input in: unsigned
-    state received: bool(false)
+    state received: bool = false
 
     reaction(in) {=
         std::cout << "Destination " << bank_index << " received " << *in.get() << ".\n";

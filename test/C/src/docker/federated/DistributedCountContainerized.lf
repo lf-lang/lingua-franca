@@ -15,7 +15,9 @@ target C {
 import Count from "../../lib/Count.lf"
 import Print from "../../federated/DistributedCount.lf"
 
-federated reactor DistributedCountContainerized(offset: time(200 msec)) at rti {
+federated reactor DistributedCountContainerized(
+    offset: time = 200 msec
+) at rti {
     c = new Count()
     p = new Print()
     c.out -> p.in after offset

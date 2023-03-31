@@ -1,14 +1,14 @@
 // In this pattern, each node can send direct messages to individual other nodes
 target Rust
 
-reactor Node(bank_index: usize(0), num_nodes: usize(4)) {
-    state bank_index(bank_index)
-    state num_nodes(num_nodes)
+reactor Node(bank_index: usize = 0, num_nodes: usize = 4) {
+    state bank_index = bank_index
+    state num_nodes = num_nodes
 
     input[num_nodes] inpt: usize
     output[num_nodes] out: usize
 
-    state received: bool(false)
+    state received: bool = false
 
     reaction(startup) -> out {=
         println!("Hello from node {}!", self.bank_index);
@@ -43,7 +43,7 @@ reactor Node(bank_index: usize(0), num_nodes: usize(4)) {
     =}
 }
 
-main reactor(num_nodes: usize(4)) {
+main reactor(num_nodes: usize = 4) {
     nodes1 = new[num_nodes] Node(num_nodes = num_nodes)
     nodes1.out -> interleaved (nodes1.inpt)
 

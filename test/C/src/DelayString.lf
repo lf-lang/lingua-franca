@@ -2,7 +2,7 @@
 // freed.
 target C
 
-reactor DelayString2(delay: time(100 msec)) {
+reactor DelayString2(delay: time = 100 msec) {
     input in: string
     output out: string
     logical action a: string
@@ -17,7 +17,7 @@ reactor DelayString2(delay: time(100 msec)) {
 
 reactor Test {
     input in: string
-    state start_time: time(0)
+    state start_time: time = 0
 
     reaction(in) {=
         printf("Received: %s.\n", in->value);

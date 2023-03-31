@@ -13,8 +13,8 @@ reactor foo {
 }
 
 reactor print {
-    state expected_time: time(0)
-    state i: int(0)
+    state expected_time: time = 0
+    state i: int = 0
     input x: int
 
     reaction(x) {=

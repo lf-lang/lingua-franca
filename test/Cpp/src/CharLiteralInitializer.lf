@@ -2,7 +2,7 @@
 target Cpp
 
 main reactor CharLiteralInitializer {
-    state c: char('x')
+    state c: char = 'x'
 
     reaction(startup) {=
         if (c != 'x') {
