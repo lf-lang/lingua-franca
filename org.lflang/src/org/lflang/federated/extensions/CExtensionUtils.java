@@ -83,7 +83,7 @@ public class CExtensionUtils {
      * @param main The main reactor that contains the federate (used to lookup references).
      * @return
      */
-    public static String initializeTriggersForNetworkActions(FederateInstance federate, ErrorReporter errorReporter) {
+    public static String initializeTriggersForNetworkActions(FederateInstance federate, ReactorInstance main, ErrorReporter errorReporter) {
         CodeBuilder code = new CodeBuilder();
         if (federate.networkMessageActions.size() > 0) {
             // Create a static array of trigger_t pointers.
@@ -95,7 +95,7 @@ public class CExtensionUtils {
             for (int i = 0; i < federate.networkMessageActions.size(); ++i) {
                 // Find the corresponding ActionInstance.
                 Action action = federate.networkMessageActions.get(i);
-                var reactor = new ReactorInstance(federate.networkMessageActionReactors.get(i), errorReporter, 1);
+                var reactor = main.lookupReactorInstance(federate.networkReceiverInstantiations.get(i));
                 var actionInstance = reactor.lookupActionInstance(action);
                 triggers.add(CUtil.actionRef(actionInstance, null));
             }

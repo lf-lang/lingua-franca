@@ -29,6 +29,7 @@ package org.lflang.federated.generator;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
@@ -363,7 +364,7 @@ public class FedASTUtils {
         connection.dstFederate.networkReactions.add(networkReceiverReaction);
         connection.dstFederate.networkReactors.add(receiver);
         connection.dstFederate.networkConnections.add(receiverFromReaction);
-        connection.dstFederate.networkInstantiations.add(networkInstance);
+        connection.dstFederate.networkReceiverInstantiations.add(networkInstance);
 
 
         // if (
@@ -743,6 +744,76 @@ public class FedASTUtils {
     public static int networkIDSender = 0;
     public static int networkIDReceiver = 0;
 
+    private static Map<FederateInstance, Reactor> networkSenderReactors = new HashMap<>();
+    private static Map<FederateInstance, Instantiation> networkSenderInstantiations  = new HashMap<>();
+
+
+    private static Reactor getNetworkSenderReactor(FedConnectionInstance connection, 
+    CoordinationType coordination, Resource resource, ErrorReporter errorReporter) {
+        LfFactory factory = LfFactory.eINSTANCE;
+        // Reactor classDef = networkSenderReactors.getOrDefault(connection.srcFederate, null);
+        // if (classDef != null) {
+        //     return classDef;
+        // }
+        Type type = EcoreUtil.copy(connection.getSourcePortInstance().getDefinition().getType());
+
+        //Initialize Reactor and Reaction AST Nodes
+        Reactor sender = factory.createReactor();
+        Reaction networkSenderReaction = factory.createReaction();
+
+        VarRef inRef = factory.createVarRef(); //in port to network reaction
+        VarRef destRef = factory.createVarRef(); //destination fed
+
+        Input in = factory.createInput();
+
+        sender.getReactions().add(networkSenderReaction);
+        sender.getInputs().add(in);
+
+        EObject node = IteratorExtensions.findFirst(resource.getAllContents(), Model.class::isInstance);
+        ((Model) node).getReactors().add(sender);
+        sender.setName("NetworkSender_" + networkIDSender++);
+
+        // FIXME: do not create a new extension every time it is used
+        FedTargetExtensionFactory.getExtension(connection.srcFederate.targetConfig.target)
+                                 .annotateReaction(networkSenderReaction);
+
+        // If the sender or receiver is in a bank of reactors, then we want
+        // these reactions to appear only in the federate whose bank ID matches.
+        setReactionBankIndex(networkSenderReaction, connection.getSrcBank());
+
+
+        in.setName("msg");
+        in.setType(type);
+        in.setWidthSpec(EcoreUtil.copy(connection.getSourcePortInstance().getDefinition().getWidthSpec()));
+        inRef.setVariable(in);
+
+        destRef.setContainer(connection.getDestinationPortInstance().getParent().getDefinition());
+        destRef.setVariable(connection.getDestinationPortInstance().getDefinition());
+        
+        // Configure the sending reaction.
+        networkSenderReaction.getTriggers().add(inRef);
+        networkSenderReaction.setCode(factory.createCode());
+        networkSenderReaction.getCode().setBody(
+            FedTargetExtensionFactory.getExtension(connection.srcFederate.targetConfig.target)
+                                     .generateNetworkSenderBody(
+                                   inRef,
+                                   destRef,
+                                   connection,
+                                   InferredType.fromAST(type),
+                                   coordination,
+                                   errorReporter
+                               ));
+        
+        // Add the network sender reaction to the federate instance's list
+        // of network reactions
+        connection.srcFederate.networkReactions.add(networkSenderReaction);
+        connection.srcFederate.networkReactors.add(sender);
+
+        networkSenderReactors.put(connection.srcFederate, sender);
+        return sender;
+                               
+    }
+
     /**
      * Add a network sender reactor for a given input port 'source' to
      * source's parent reactor. This reaction will react to the 'source'
@@ -764,42 +835,33 @@ public class FedASTUtils {
     ) {
         LfFactory factory = LfFactory.eINSTANCE;
         // Assume all the types are the same, so just use the first on the right.
-        Type type = EcoreUtil.copy(connection.getSourcePortInstance().getDefinition().getType());
-        VarRef sourceRef = factory.createVarRef(); //out connection
-        VarRef instRef = factory.createVarRef(); //instantiation connection
-        VarRef destRef = factory.createVarRef(); //destination fed
-        Reactor sender = factory.createReactor();
-        Reaction networkSenderReaction = factory.createReaction();
-        Input in = factory.createInput();
-        VarRef inRef = factory.createVarRef(); //in port
-        Connection senderToReaction = factory.createConnection();
+        
+        Reactor sender = getNetworkSenderReactor(connection, coordination, resource, errorReporter);
+        
         Instantiation networkInstance = factory.createInstantiation();
+
+        VarRef sourceRef = factory.createVarRef(); //out port from federate
+        VarRef instRef = factory.createVarRef(); //out port from federate
 
         Reactor top = connection.getSourcePortInstance()
                                 .getParent()
                                 .getParent().reactorDefinition; // Top-level reactor.
 
 
-        sender.getReactions().add(networkSenderReaction);
-        sender.getInputs().add(in);
-        EObject node = IteratorExtensions.findFirst(resource.getAllContents(), Model.class::isInstance);
-        ((Model) node).getReactors().add(sender);
-        sender.setName("NetworkSender_" + networkIDSender++);
-
         networkInstance.setReactorClass(sender);
         networkInstance.setName(ASTUtils.getUniqueIdentifier(top, "ns_" + connection.getDstFederate().name));
         top.getInstantiations().add(networkInstance);
 
+        Connection senderToReaction = factory.createConnection();
+
+        // Establish references to the involved ports.
+        sourceRef.setContainer(connection.getSourcePortInstance().getParent().getDefinition());
+        sourceRef.setVariable(connection.getSourcePortInstance().getDefinition());
+        instRef.setContainer(networkInstance);
+        instRef.setVariable(sender.getInputs().get(0));
+
         senderToReaction.getLeftPorts().add(sourceRef);
         senderToReaction.getRightPorts().add(instRef);
-
-        // FIXME: do not create a new extension every time it is used
-        FedTargetExtensionFactory.getExtension(connection.srcFederate.targetConfig.target)
-                                 .annotateReaction(networkSenderReaction);
-
-        // If the sender or receiver is in a bank of reactors, then we want
-        // these reactions to appear only in the federate whose bank ID matches.
-        setReactionBankIndex(networkSenderReaction, connection.getSrcBank());
 
         // The connection is 'physical' if it uses the ~> notation.
         if (connection.getDefinition().isPhysical()) {
@@ -813,43 +875,8 @@ public class FedASTUtils {
             }
         }
 
-        // Establish references to the involved ports.
-        sourceRef.setContainer(connection.getSourcePortInstance().getParent().getDefinition());
-        sourceRef.setVariable(connection.getSourcePortInstance().getDefinition());
-        instRef.setContainer(networkInstance);
-        instRef.setVariable(in);
-        destRef.setContainer(connection.getDestinationPortInstance().getParent().getDefinition());
-        destRef.setVariable(connection.getDestinationPortInstance().getDefinition());
-
-        in.setName("msg");
-        in.setType(type);
-        in.setWidthSpec(EcoreUtil.copy(connection.getSourcePortInstance().getDefinition().getWidthSpec()));
-        inRef.setVariable(in);
-
-
-        // Configure the sending reaction.
-        networkSenderReaction.getTriggers().add(inRef);
-        networkSenderReaction.setCode(factory.createCode());
-        networkSenderReaction.getCode().setBody(
-            FedTargetExtensionFactory.getExtension(connection.srcFederate.targetConfig.target)
-                                     .generateNetworkSenderBody(
-                                   inRef,
-                                   destRef,
-                                   connection,
-                                   InferredType.fromAST(type),
-                                   coordination,
-                                   errorReporter
-                               ));
-
-        // Add the sending reaction to the parent.
-        //networkSenderReaction.getTriggers().add(inRef);
-
-        // Add the network sender reaction to the federate instance's list
-        // of network reactions
-        connection.srcFederate.networkReactions.add(networkSenderReaction);
-        connection.srcFederate.networkReactors.add(sender);
         connection.srcFederate.networkConnections.add(senderToReaction);
-        connection.srcFederate.networkInstantiations.add(networkInstance);
+        connection.srcFederate.networkSenderInstantiations.add(networkInstance);
     }
 
     /**

@@ -273,7 +273,12 @@ public class FederateInstance {
      * List of generated network instantiations (network input and outputs) that
      * belong to this federate instance.
      */
-    public List<Instantiation> networkInstantiations = new ArrayList<>();
+    public List<Instantiation> networkSenderInstantiations = new ArrayList<>();
+    /**
+     * List of generated network instantiations (network input and outputs) that
+     * belong to this federate instance.
+     */
+    public List<Instantiation> networkReceiverInstantiations = new ArrayList<>();
 
     /**
      * Parsed target config of the federate.

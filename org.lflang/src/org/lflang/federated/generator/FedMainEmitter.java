@@ -55,7 +55,8 @@ public class FedMainEmitter {
                    ASTUtils.allTimers(originalMainReactor).stream().filter(federate::contains).map(renderer).collect(Collectors.joining("\n")),
                    ASTUtils.allMethods(originalMainReactor).stream().filter(federate::contains).map(renderer).collect(Collectors.joining("\n")),
                    ASTUtils.allReactions(originalMainReactor).stream().filter(federate::contains).map(renderer).collect(Collectors.joining("\n")),
-                   federate.networkInstantiations.stream().map(renderer).collect(Collectors.joining("\n")),
+                   federate.networkSenderInstantiations.stream().map(renderer).collect(Collectors.joining("\n")),
+                   federate.networkReceiverInstantiations.stream().map(renderer).collect(Collectors.joining("\n")),
                    federate.networkConnections.stream().map(renderer).collect(Collectors.joining("\n"))
                ).indent(4).stripTrailing(),
                "}"
