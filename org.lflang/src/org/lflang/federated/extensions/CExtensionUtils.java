@@ -582,4 +582,28 @@ public class CExtensionUtils {
         }
         return code.getCode();
     }
+
+    public static CharSequence upstreamPortReactions(FederateInstance federate, ReactorInstance main) {
+        CodeBuilder code = new CodeBuilder();
+        if (!federate.networkMessageActions.isEmpty()) {
+            // Create a static array of trigger_t pointers.
+            // networkMessageActions is a list of Actions, but we
+            // need a list of trigger struct names for ActionInstances.
+            // There should be exactly one ActionInstance in the
+            // main reactor for each Action.
+            var reactions = new LinkedList<String>();
+            for (int i = 0; i < federate.networkMessageActions.size(); ++i) {
+                // Find the corresponding ActionInstance.
+                var reaction = federate.networkReceiverReactions.get(i);
+                var reactor = main.lookupReactorInstance(federate.networkReceiverInstantiations.get(i));
+                var reactionInstance = reactor.lookupReactionInstance(reaction);
+                reactions.add(CUtil.reactionRef(reactionInstance));
+            }
+            var tableCount = 0;
+            for (String react: reactions) {
+                code.pr("upstreamPortReactions[" + (tableCount++) + "] = (reaction_t*)&" + react + "; \\");
+            }
+        }
+        return code.getCode();
+    }
 }
