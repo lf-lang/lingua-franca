@@ -1,5 +1,5 @@
 target C {
-    platform: Zephyr
+    platform: "Zephyr"
 }
 
 
