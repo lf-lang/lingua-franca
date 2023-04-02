@@ -201,12 +201,6 @@ public class FederateInstance {
      *  The sending federate needs to specify this ID.
      */
     public List<Action> networkMessageActions = new ArrayList<>();
-
-
-    /**
-     * List of networkMessage reactors corresponding to actions.
-     */
-    public List<Reactor> networkMessageActionReactors = new ArrayList<>();
     
     /**
      * A set of federates with which this federate has an inbound connection
@@ -249,11 +243,14 @@ public class FederateInstance {
     public boolean isRemote = false;
     
     /**
-     * List of generated network reactions (network receivers,
-     * network input control reactions, network senders, and network output control
-     * reactions) that belong to this federate instance.
+     * List of generated network reactions (network receivers) that belong to this federate instance.
      */
-    public List<Reaction> networkReactions = new ArrayList<>();
+    public List<Reaction> networkReceiverReactions = new ArrayList<>();
+
+    /**
+     * List of generated network reactions (network sender) that belong to this federate instance.
+     */
+    public List<Reaction> networkSenderReactions = new ArrayList<>();
 
     /**
      * List of generated network reactors (network input and outputs) that
@@ -378,7 +375,7 @@ public class FederateInstance {
         // the parameters, so we need to include the parameter.
         var topLevelUserDefinedReactions = ((Reactor) instantiation.eContainer())
             .getReactions().stream().filter(
-                r -> !networkReactions.contains(r) && contains(r)
+                r -> !networkReceiverReactions.contains(r) && !networkSenderReactions.contains(r) && contains(r)
             ).collect(Collectors.toCollection(ArrayList::new));
         returnValue |= !topLevelUserDefinedReactions.isEmpty();
         return returnValue;
@@ -445,10 +442,11 @@ public class FederateInstance {
         assert reactor != null;
         if (!reactor.getReactions().contains(reaction)) return false;
         
-        if (networkReactions.contains(reaction)) {
+        if (networkReceiverReactions.contains(reaction) || networkSenderReactions.contains(reaction)) {
             // Reaction is a network reaction that belongs to this federate
             return true;
         }
+
 
         int reactionBankIndex = FedASTUtils.getReactionBankIndex(reaction);
         if (reactionBankIndex >= 0 && this.bankIndex >= 0 && reactionBankIndex != this.bankIndex) {
@@ -543,7 +541,8 @@ public class FederateInstance {
         // Construct the set of excluded reactions for this federate.
         // If a reaction is a network reaction that belongs to this federate, we
         // don't need to perform this analysis.
-        Iterable<Reaction> reactions = ASTUtils.allReactions(federatedReactor).stream().filter(it -> !networkReactions.contains(it)).collect(Collectors.toList());
+        Iterable<Reaction> reactions = ASTUtils.allReactions(federatedReactor).stream().filter(it -> !networkReceiverReactions.contains(it))
+            .filter(it -> !networkSenderReactions.contains(it)).collect(Collectors.toList());
         for (Reaction react : reactions) {
             // Create a collection of all the VarRefs (i.e., triggers, sources, and effects) in the react
             // signature that are ports that reference federates.

@@ -218,6 +218,7 @@ public class CCmakeGenerator {
         cMakeCode.pr("target_include_directories(${LF_MAIN_TARGET} PUBLIC include/core/platform)");
         cMakeCode.pr("target_include_directories(${LF_MAIN_TARGET} PUBLIC include/core/modal_models)");
         cMakeCode.pr("target_include_directories(${LF_MAIN_TARGET} PUBLIC include/core/utils)");
+        
 
         if(targetConfig.auth) {
             // If security is requested, add the auth option.

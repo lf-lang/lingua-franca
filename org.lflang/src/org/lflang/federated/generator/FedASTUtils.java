@@ -293,9 +293,6 @@ public class FedASTUtils {
         // Keep track of this action in the destination federate.
         connection.dstFederate.networkMessageActions.add(networkAction);
 
-        // Keep track of the  in the destination federate.
-        connection.dstFederate.networkMessageActionReactors.add(receiver);
-
         // Add the action definition to the parent reactor.
         receiver.getActions().add(networkAction);
 
@@ -361,7 +358,7 @@ public class FedASTUtils {
 
         // Add the network receiver reaction to the federate instance's list
         // of network reactions
-        connection.dstFederate.networkReactions.add(networkReceiverReaction);
+        connection.dstFederate.networkReceiverReactions.add(networkReceiverReaction);
         connection.dstFederate.networkReactors.add(receiver);
         connection.dstFederate.networkConnections.add(receiverFromReaction);
         connection.dstFederate.networkReceiverInstantiations.add(networkInstance);
@@ -462,7 +459,7 @@ public class FedASTUtils {
 
         // Add the network input control reaction to the federate instance's list
         // of network reactions
-        connection.dstFederate.networkReactions.add(reaction);
+        //connection.dstFederate.networkReactions.add(reaction);
 
         // Add necessary dependencies to reaction to ensure that it executes correctly
         // relative to other network input control reactions in the federate.
@@ -806,7 +803,7 @@ public class FedASTUtils {
         
         // Add the network sender reaction to the federate instance's list
         // of network reactions
-        connection.srcFederate.networkReactions.add(networkSenderReaction);
+        connection.srcFederate.networkSenderReactions.add(networkSenderReaction);
         connection.srcFederate.networkReactors.add(sender);
 
         networkSenderReactors.put(connection.srcFederate, sender);
@@ -964,6 +961,6 @@ public class FedASTUtils {
 
         // Add the network output control reaction to the federate instance's list
         // of network reactions
-        connection.srcFederate.networkReactions.add(reaction);
+        //connection.srcFederate.networkReactions.add(reaction);
     }
 }

@@ -508,10 +508,16 @@ public class CExtension implements FedTargetExtension {
         size_t _lf_action_table_size = %1$s;
         """.formatted(numOfNetworkActions));
 
+        int numOfNetworkReactions = federate.networkReceiverReactions.size();
+        code.pr("""
+        reaction_t* upstreamPortReactions[%1$s];
+        size_t num_upstream_port_dependencies = %1$s;
+        """.formatted(numOfNetworkReactions));
+
         code.pr(generateSerializationPreamble(federate, fileConfig));
 
         code.pr(generateExecutablePreamble(federate, rtiConfig, errorReporter));
-
+        
         code.pr(generateInitializeTriggers(federate, errorReporter));
 
         code.pr(CExtensionUtils.generateFederateNeighborStructure(federate));
@@ -544,7 +550,7 @@ public class CExtension implements FedTargetExtension {
         federatedReactor.setName(federate.name);
         var main = new ReactorInstance(federatedReactor, errorReporter, -1);
         code.pr(CExtensionUtils.initializeTriggersForNetworkActions(federate, main, errorReporter));
-        //code.pr(CExtensionUtils.initializeTriggerForControlReactions(main, main, federate));
+        code.pr(CExtensionUtils.upstreamPortReactions(federate, main));
         federatedReactor.setName(oldFederatedReactorName);
         
         return """
