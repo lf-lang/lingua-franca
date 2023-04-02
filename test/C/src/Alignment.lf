@@ -7,7 +7,7 @@ target C {
 
 reactor Source {
     output out: int
-    state count: int(1)
+    state count: int = 1
     timer t(0, 100 msec)
 
     reaction(t) -> out {= lf_set(out, self->count++); =}
@@ -16,8 +16,8 @@ reactor Source {
 reactor Sieve {
     input in: int
     output out: bool
-    state primes: int*({= NULL =})
-    state last_prime: int(0)
+    state primes: int* = {= NULL =}
+    state last_prime: int = 0
 
     reaction(startup) {=
         // There are 1229 primes between 1 and 10,000.
@@ -74,7 +74,7 @@ reactor Sieve {
 reactor Destination {
     input ok: bool
     input in: int
-    state last_invoked: tag_t({= NEVER_TAG_INITIALIZER =})
+    state last_invoked: tag_t = {= NEVER_TAG_INITIALIZER =}
 
     reaction(ok, in) {=
         if (ok->is_present && in->is_present) {

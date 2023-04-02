@@ -7,7 +7,7 @@ target Cpp {
 
 reactor Printer {
     input x: int
-    state count: int(1)
+    state count: int = 1
 
     reaction(x) {=
         std::cout << "Inside reactor received: " << *x.get() << std::endl;
@@ -20,7 +20,7 @@ reactor Printer {
 }
 
 main reactor SendingInside {
-    state count: int(0)
+    state count: int = 0
     timer t(0, 1 sec)
     p = new Printer()
 

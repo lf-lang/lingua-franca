@@ -1,7 +1,7 @@
 target TypeScript
 
-reactor Foo(bar: number(42)) {
-    state baz(bar)
+reactor Foo(bar: number = 42) {
+    state baz = bar
 
     reaction(startup) {= console.log("Baz: " + baz); =}
 }

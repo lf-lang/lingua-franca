@@ -34,7 +34,7 @@ public class FormattingUnitTests {
 
     @Test
     public void testAssignments() {
-        assertIsFormatted(
+        assertFormatsTo(
             """
                 target C
 
@@ -42,6 +42,15 @@ public class FormattingUnitTests {
                     input ok: bool
                     input in: int
                     state last_invoked: tag_t({= NEVER_TAG_INITIALIZER =})
+                }
+                """,
+            """
+                target C
+
+                reactor Destination {
+                    input ok: bool
+                    input in: int
+                    state last_invoked: tag_t = {= NEVER_TAG_INITIALIZER =}
                 }
                 """
         );
@@ -56,16 +65,34 @@ public class FormattingUnitTests {
                 reactor Destination {
                     state  one_init: tag_t( {= NEVER_TAG_INITIALIZER =})
                     state no_init:   tag_t
-                     state list_init(1,2)
+                     state list_init(1,2) // this syntax is deprecated
                 }
                 """,
             """
                 target Python
 
                 reactor Destination {
+                    state one_init: tag_t = {= NEVER_TAG_INITIALIZER =}
+                    state no_init: tag_t
+                    state list_init(1, 2)  # this syntax is deprecated
+                }
+                """
+        );
+    }
+
+    @Test
+    public void testCppInits() {
+        assertIsFormatted(
+            """
+                target Cpp
+
+                reactor Destination {
                     state one_init: tag_t({= NEVER_TAG_INITIALIZER =})
                     state no_init: tag_t
-                    state list_init(1, 2)
+                    state assign: int = 0
+                    state paren: int(0)
+                    state brace: std::vector<int>{1, 2}
+                    state paren_list: std::vector<int>(1, 2)
                 }
                 """
         );

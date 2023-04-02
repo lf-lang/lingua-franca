@@ -16,7 +16,7 @@ object TSDelayBodyGenerator : DelayBodyGenerator {
      */
     private fun getActionType(action: Action): String {
         return if (action.type != null) {
-            TSTypes.getTargetType(action.type)
+            TSTypes.getInstance().getTargetType(action.type)
         } else {
             "Present"
         }

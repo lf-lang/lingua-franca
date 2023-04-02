@@ -15,7 +15,7 @@ class TSStateGenerator(
     fun generateClassProperties(): String {
         val stateClassProperties = LinkedList<String>()
         for (stateVar in stateVars) {
-            stateClassProperties.add("${stateVar.name}: __State<${TSTypes.getTargetType(stateVar)}>;");
+            stateClassProperties.add("${stateVar.name}: __State<${TSTypes.getInstance().getTargetType(stateVar)}>;");
         }
         return stateClassProperties.joinToString("\n")
     }
@@ -25,7 +25,7 @@ class TSStateGenerator(
         // Next handle states.
         for (stateVar in stateVars) {
             if (ASTUtils.isInitialized(stateVar)) {
-                stateInstantiations.add("this.${stateVar.name} = new __State(${TSTypes.getTargetInitializer(stateVar)});");
+                stateInstantiations.add("this.${stateVar.name} = new __State(${TSTypes.getInstance().getTargetInitializer(stateVar)});");
             } else {
                 stateInstantiations.add("this.${stateVar.name} = new __State(undefined);");
             }

@@ -316,6 +316,9 @@ public class FedLauncherGenerator {
         if (targetConfig.auth) {
             commands.add("                        -a \\");
         }
+        if (targetConfig.tracing != null) {
+            commands.add("                        -t \\");
+        }
         commands.addAll(List.of(
             "                        -n "+federates.size()+" \\",
             "                        -c "+targetConfig.clockSync.toString()+" \\"

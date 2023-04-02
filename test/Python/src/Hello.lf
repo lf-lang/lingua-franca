@@ -8,9 +8,9 @@ target Python {
     fast: true
 }
 
-reactor Reschedule(period(2 sec), message("Hello Python")) {
-    state count(0)
-    state previous_time(0)
+reactor Reschedule(period = 2 sec, message = "Hello Python") {
+    state count = 0
+    state previous_time = 0
     timer t(1 sec, period)
     logical action a
 
@@ -38,7 +38,7 @@ reactor Reschedule(period(2 sec), message("Hello Python")) {
     =}
 }
 
-reactor Inside(period(1 sec), message("Composite default message.")) {
+reactor Inside(period = 1 sec, message = "Composite default message.") {
     third_instance = new Reschedule(period = period, message = message)
 }
 
