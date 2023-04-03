@@ -75,6 +75,8 @@ public class CWatchdogGenerator {
                 }
             }
         }
+        // Add watchdog definition
+        watchdogInitialization.pr("watchdog_t* "+watchdog.getName()+" = &(self->_lf_watchdog_"+watchdog.getName()+");\n");
 
         // Next generate all the collected setup code.
         code.pr(watchdogInitialization.toString());
@@ -125,7 +127,8 @@ public class CWatchdogGenerator {
         function.pr(init);
         function.prSourceLineNumber(watchdog.getCode());
         function.pr(ASTUtils.toText(watchdog.getCode()));
-        function.pr("lf_set("+watchdog.getName()+", 1);");
+        //FIXME: will need to lf_schedule instead
+        // function.pr("lf_set("+watchdog.getName()+", 1);");
         function.unindent();
         function.pr("}");
         return function.toString();
