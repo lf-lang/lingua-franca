@@ -106,11 +106,31 @@ public class CWatchdogGenerator {
      * Generate the watchdog function.
      */
     public static String generateWatchdogFunction(Watchdog watchdog,
-                                                  ReactorDecl decl) {
-        return CReactionGenerator.generateFunction(generateWatchdogFunctionHeader(watchdog, decl),
+                                                  ReactorDecl decl) {                                          
+        return generateFunction(generateWatchdogFunctionHeader(watchdog, decl),
                                                    generateInitializationForWatchdog(watchdog, decl),
-                                                   watchdog.getCode());
+                                                   watchdog);
     }
+
+    /**
+     * Do heavy lifting to generate above watchdog function
+     * @param header function name and declaration.
+     * @param init initialize variable.
+     * @param watchdog The watchdog.
+     */
+    public static String generateFunction(String header, String init, Watchdog watchdog) {
+        var function = new CodeBuilder();
+        function.pr(header + " {");
+        function.indent();
+        function.pr(init);
+        function.prSourceLineNumber(watchdog.getCode());
+        function.pr(ASTUtils.toText(watchdog.getCode()));
+        function.pr("lf_set("+watchdog.getName()+", 1);");
+        function.unindent();
+        function.pr("}");
+        return function.toString();
+    }
+
 
     /**
      * Generate watchdog definition in parent struct.

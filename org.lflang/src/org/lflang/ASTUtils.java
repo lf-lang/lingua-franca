@@ -586,6 +586,13 @@ public class ASTUtils {
     ////////////////////////////////
     //// Utility functions for translating AST nodes into text
 
+    // public static Code toCode(String text) {
+    //     Code code = null;
+    //     if (text == null) return code;
+    //     code.setBody(text);
+    //     return code;
+    // }
+
     /**
      * Translate the given code into its textual representation
      * with {@code CodeMap.Correspondence} tags inserted, or
