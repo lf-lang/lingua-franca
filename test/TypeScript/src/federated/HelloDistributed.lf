@@ -20,7 +20,7 @@ reactor Source {
 
 reactor Destination {
     input inp: string
-    state received: boolean(false)
+    state received: boolean = false
 
     reaction(startup) {= console.log("Destination started."); =}
 

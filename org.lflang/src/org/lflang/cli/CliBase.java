@@ -212,7 +212,7 @@ public abstract class CliBase implements Runnable {
         for (Path path : paths) {
             if (!Files.exists(path)) {
                 reporter.printFatalErrorAndExit(
-                        path + ": No such file or directory");
+                    path + ": No such file or directory.");
             }
         }
 
@@ -230,11 +230,11 @@ public abstract class CliBase implements Runnable {
             root = io.getWd().resolve(outputPath).normalize();
             if (!Files.exists(root)) { // FIXME: Create it instead?
                 reporter.printFatalErrorAndExit(
-                        "Output location '" + root + "' does not exist.");
+                    root + ": Output location does not exist.");
             }
             if (!Files.isDirectory(root)) {
                 reporter.printFatalErrorAndExit(
-                        "Output location '" + root + "' is not a directory.");
+                    root + ": Output location is not a directory.");
             }
         }
 

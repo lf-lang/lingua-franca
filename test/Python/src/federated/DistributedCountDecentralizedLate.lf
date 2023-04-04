@@ -18,12 +18,12 @@ reactor Print {
     # STP ()
     input in_
     # STP(in, 30 msec);
-    state success(0)
-    state success_stp_violation(0)
+    state success = 0
+    state success_stp_violation = 0
     # Force a timer to be invoke periodically
     timer t(0, 10 usec)
     # to ensure logical time will advance in the absence of incoming messages.
-    state c(0)
+    state c = 0
 
     reaction(in_) {=
         current_tag = lf.tag()

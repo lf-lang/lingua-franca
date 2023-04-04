@@ -13,11 +13,11 @@ target C {
     timeout: 4 sec
 }
 
-reactor Looper(incr: int(1), delay: time(0 msec)) {
+reactor Looper(incr: int = 1, delay: time = 0 msec) {
     input in: int
     output out: int
     physical action a(delay)
-    state count: int(0)
+    state count: int = 0
 
     timer t(0, 1 sec)
 
@@ -41,11 +41,11 @@ reactor Looper(incr: int(1), delay: time(0 msec)) {
     =}
 }
 
-reactor Looper2(incr: int(1), delay: time(0 msec)) {
+reactor Looper2(incr: int = 1, delay: time = 0 msec) {
     input in: int
     output out: int
     physical action a(delay)
-    state count: int(0)
+    state count: int = 0
 
     timer t(0, 1 sec)
 
@@ -69,7 +69,7 @@ reactor Looper2(incr: int(1), delay: time(0 msec)) {
     =}
 }
 
-federated reactor(delay: time(0)) {
+federated reactor(delay: time = 0) {
     left = new Looper()
     right = new Looper2(incr = -1)
     left.out -> right.in

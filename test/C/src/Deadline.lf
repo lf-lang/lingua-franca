@@ -5,10 +5,10 @@ target C {
     timeout: 6 sec
 }
 
-reactor Source(period: time(3 sec)) {
+reactor Source(period: time = 3 sec) {
     output y: int
     timer t(0, period)
-    state count: int(0)
+    state count: int = 0
 
     reaction(t) -> y {=
         if (2 * (self->count / 2) != self->count) {
@@ -22,9 +22,9 @@ reactor Source(period: time(3 sec)) {
     =}
 }
 
-reactor Destination(timeout: time(1 sec)) {
+reactor Destination(timeout: time = 1 sec) {
     input x: int
-    state count: int(0)
+    state count: int = 0
 
     reaction(x) {=
         printf("Destination receives: %d\n", x->value);

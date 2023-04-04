@@ -6,7 +6,7 @@ target Python {
 main reactor {
     timer t(0, 1 sec)
     timer t2(0, 2 sec)
-    state counter(0)
+    state counter = 0
 
     reaction(t2) {= self.counter += 2 =}
 
