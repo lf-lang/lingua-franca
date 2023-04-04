@@ -56,4 +56,6 @@ jobs:
           ref: ${{ inputs.runtime-ref }}
         if: ${{ inputs.runtime-ref }}
       - name: Perform Zephyr tests for C target with default scheduler
-        run: ./gradlew test --tests org.lflang.tests.runtime.CZephyrTest.runZephyrTests
+        run: |
+          ./gradlew test --tests org.lflang.tests.runtime.CZephyrTest.build*
+          util/RunZephyrTests.sh test/C/src-gen
