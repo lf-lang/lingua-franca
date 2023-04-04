@@ -24,6 +24,9 @@
 
 package org.lflang.tests;
 
+import org.lflang.TargetProperty;
+import org.lflang.TargetProperty.Platform;
+import org.lflang.generator.LFGeneratorContext.BuildParm;
 import org.lflang.tests.TestRegistry.TestCategory;
 
 /**
@@ -62,15 +65,13 @@ public class Configurators {
         return true;
     }
 
-    // TODO: In the future we want to execute to the test with QEMU
-    //  but it requires parsing QEMU output until either:
-    //  1) A timeout
-    //  2) "exit" is printed to stdout. Then look if there is a FATAL ERROR printed somewhere
-    // So it would requre continously parsing the stdout and waiting for exit keyword
-    public static boolean platformZephyrQemuNoFlash(LFTest test) {
-        test.getContext().getArgs().setProperty("threading", "false");
-        // TODO: How can I set platform as a dictionary (platform.board platform.flash etc)
-        // test.getContext().getArgs().setProperty("platform", "Zephyr");
+    public static boolean makeZephyrCompatible(LFTest test) {
+        test.getContext().getArgs().setProperty("tracing", "false");
+        test.getContext().getTargetConfig().threading = false;
+        test.getContext().getTargetConfig().setByUser.add(TargetProperty.THREADING);
+        test.getContext().getTargetConfig().platformOptions.platform = Platform.ZEPHYR;
+        test.getContext().getTargetConfig().platformOptions.flash = false;
+        test.getContext().getTargetConfig().platformOptions.board = "qemu_cortex_a53";
         return true;
     }
     /**
