@@ -33,8 +33,8 @@ public class CPortGenerator {
         CodeBuilder body,
         CodeBuilder constructorCode
     ) {
-        generateInputDeclarations(tpr, decl, body, constructorCode);
-        generateOutputDeclarations(tpr, decl, body, constructorCode);
+        generateInputDeclarations(tpr, body, constructorCode);
+        generateOutputDeclarations(tpr, body, constructorCode);
     }
 
     /**
@@ -198,7 +198,6 @@ public class CPortGenerator {
      */
     private static void generateInputDeclarations(
         TypeParameterizedReactor tpr,
-        ReactorDecl decl,
         CodeBuilder body,
         CodeBuilder constructorCode
     ) {
@@ -237,7 +236,6 @@ public class CPortGenerator {
      */
     private static void generateOutputDeclarations(
         TypeParameterizedReactor tpr,
-        ReactorDecl decl,
         CodeBuilder body,
         CodeBuilder constructorCode
     ) {

@@ -31,7 +31,7 @@ public record TypeParameterizedReactor(Reactor r, Map<String, Type> typeArgs) {
 
     public String getName() {
         // FIXME: Types that are not just a single token need to be escaped or hashed
-        return r.getName() + typeArgs.values().stream().map(ASTUtils::toText).collect(Collectors.joining("_"));
+        return r.getName() + typeArgs.values().stream().map(ASTUtils::toOriginalText).collect(Collectors.joining("_"));
     }
 
     @Override

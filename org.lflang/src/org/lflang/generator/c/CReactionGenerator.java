@@ -56,8 +56,6 @@ public class CReactionGenerator {
                                                            ErrorReporter errorReporter,
                                                            Instantiation mainDef,
                                                            boolean requiresTypes) {
-        Reactor reactor = tpr.r();
-
         // Construct the reactionInitialization code to go into
         // the body of the function before the verbatim code.
         CodeBuilder reactionInitialization = new CodeBuilder();
@@ -129,7 +127,7 @@ public class CReactionGenerator {
             // No triggers are given, which means react to any input.
             // Declare an argument for every input.
             // NOTE: this does not include contained outputs.
-            for (Input input : reactor.getInputs()) {
+            for (Input input : tpr.r().getInputs()) {
                 reactionInitialization.pr(generateInputVariablesInReaction(input, tpr, types));
             }
         }
@@ -164,7 +162,7 @@ public class CReactionGenerator {
                     }
                 } else if (effect.getVariable() instanceof Mode) {
                     // Mode change effect
-                    int idx = ASTUtils.allModes(reactor).indexOf((Mode)effect.getVariable());
+                    int idx = ASTUtils.allModes(tpr.r()).indexOf((Mode)effect.getVariable());
                     String name = effect.getVariable().getName();
                     if (idx >= 0) {
                         reactionInitialization.pr(
@@ -350,6 +348,7 @@ public class CReactionGenerator {
         Instantiation definition,
         Input input
     ) {
+        // TODO: Get reactorInstance or TPR from Instantiation
         CodeBuilder structBuilder = structs.get(definition);
         if (structBuilder == null) {
             structBuilder = new CodeBuilder();
@@ -672,7 +671,6 @@ public class CReactionGenerator {
     public static void generateReactionAndTriggerStructs(
         CodeBuilder body,
         TypeParameterizedReactor tpr,
-        Reactor reactor,
         CodeBuilder constructorCode,
         CTypes types
     ) {
@@ -760,7 +758,7 @@ public class CReactionGenerator {
                 "self->_lf__reaction_"+reactionCount+".STP_handler = "+STPFunctionPointer+";",
                 "self->_lf__reaction_"+reactionCount+".name = "+addDoubleQuotes("?")+";",
                 reaction.eContainer() instanceof Mode ?
-                "self->_lf__reaction_"+reactionCount+".mode = &self->_lf__modes["+reactor.getModes().indexOf((Mode) reaction.eContainer())+"];" :
+                "self->_lf__reaction_"+reactionCount+".mode = &self->_lf__modes["+tpr.r().getModes().indexOf((Mode) reaction.eContainer())+"];" :
                 "self->_lf__reaction_"+reactionCount+".mode = NULL;"
             ));
             // Increment the reactionCount even if the reaction is not in the federate
@@ -770,7 +768,7 @@ public class CReactionGenerator {
 
         // Next, create and initialize the trigger_t objects.
         // Start with the timers.
-        for (Timer timer : ASTUtils.allTimers(reactor)) {
+        for (Timer timer : ASTUtils.allTimers(tpr.r())) {
             createTriggerT(body, timer, triggerMap, constructorCode, types);
             // Since the self struct is allocated using calloc, there is no need to set falsy fields.
             constructorCode.pr("self->_lf__"+timer.getName()+".is_timer = true;");
@@ -791,7 +789,7 @@ public class CReactionGenerator {
         }
 
         // Next handle actions.
-        for (Action action : ASTUtils.allActions(reactor)) {
+        for (Action action : ASTUtils.allActions(tpr.r())) {
             createTriggerT(body, action, triggerMap, constructorCode, types);
             var isPhysical = "true";
             if (action.getOrigin().equals(ActionOrigin.LOGICAL)) {
@@ -821,7 +819,7 @@ public class CReactionGenerator {
         }
 
         // Next handle inputs.
-        for (Input input : ASTUtils.allInputs(reactor)) {
+        for (Input input : ASTUtils.allInputs(tpr.r())) {
             createTriggerT(body, input, triggerMap, constructorCode, types);
         }
     }

@@ -18,11 +18,11 @@ public class CStateGenerator {
      * @param reactor The reactor
      * @param types A helper object for types
      */
-    public static String generateDeclarations(Reactor reactor, CTypes types) {
+    public static String generateDeclarations(TypeParameterizedReactor reactor, CTypes types) {
         CodeBuilder code = new CodeBuilder();
-        for (StateVar stateVar : ASTUtils.allStateVars(reactor)) {
+        for (StateVar stateVar : ASTUtils.allStateVars(reactor.r())) {
             code.prSourceLineNumber(stateVar);
-            code.pr(types.getTargetType(stateVar) + " " + stateVar.getName() + ";");
+            code.pr(CUtil.getConcreteType(reactor, types.getTargetType(stateVar)) + " " + stateVar.getName() + ";");
         }
         return code.toString();
     }

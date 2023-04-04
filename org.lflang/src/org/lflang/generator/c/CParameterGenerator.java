@@ -76,14 +76,14 @@ public class CParameterGenerator {
 
     /**
      * Generate code for parameters variables of a reactor in the form "parameter.type parameter.name;"
-     * @param reactor The reactor
+     * @param reactor {@link TypeParameterizedReactor}
      * @param types A helper class for types
      */
-    public static String generateDeclarations(Reactor reactor, CTypes types) {
+    public static String generateDeclarations(TypeParameterizedReactor reactor, CTypes types) {
         CodeBuilder code = new CodeBuilder();
-        for (Parameter parameter : ASTUtils.allParameters(reactor)) {
+        for (Parameter parameter : ASTUtils.allParameters(reactor.r())) {
             code.prSourceLineNumber(parameter);
-            code.pr(types.getTargetType(parameter) + " " + parameter.getName() + ";");
+            code.pr(CUtil.getConcreteType(reactor, types.getTargetType(parameter)) + " " + parameter.getName() + ";");
         }
         return code.toString();
     }

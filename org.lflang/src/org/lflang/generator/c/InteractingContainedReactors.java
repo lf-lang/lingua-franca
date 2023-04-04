@@ -101,6 +101,7 @@ public class InteractingContainedReactors {
      * @param port The port.
      */
     private List<Integer> addPort(Instantiation containedReactor, Port port) {
+        var parent = containedReactor.eContainer();
         // Get or create the entry for the containedReactor.
         var containedReactorEntry = portsByContainedReactor.computeIfAbsent(
             containedReactor,

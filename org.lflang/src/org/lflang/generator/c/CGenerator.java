@@ -1048,8 +1048,6 @@ public class CGenerator extends GeneratorBase {
             src.pr("extern \"C\" {");
             header.pr("extern \"C\" {");
         }
-        tpr.typeArgs().forEach((literal, concreteType) -> header.pr(
-            "#define " + literal + " " + ASTUtils.toText(concreteType)));
         header.pr("#include \"include/core/reactor.h\"");
         src.pr("#include \"include/api/api.h\"");
         src.pr("#include \"include/api/set.h\"");
@@ -1062,11 +1060,19 @@ public class CGenerator extends GeneratorBase {
         }
         src.pr("#include \"" + headerName + "\"");
         tpr.typeArgs().forEach((literal, concreteType) -> src.pr(
-            "#define " + literal + " " + ASTUtils.toText(concreteType)));
+            "#if defined " + literal + "\n" +
+                "#undef " + literal + "\n" +
+                "#endif // " + literal + "\n" +
+                "#define " + literal + " " + ASTUtils.toOriginalText(concreteType)));
         new HashSet<>(ASTUtils.allInstantiations(tpr.r())).stream()
             .map(TypeParameterizedReactor::new).map(CUtil::getName)
             .map(name -> "#include \"" + name + ".h\"")
             .forEach(header::pr);
+        tpr.typeArgs().forEach((literal, concreteType) -> header.pr(
+            "#if defined " + literal + "\n" +
+                "#undef " + literal + "\n" +
+                "#endif // " + literal + "\n" +
+                "#define " + literal + " " + ASTUtils.toOriginalText(concreteType)));
     }
 
     private void generateReactorClassBody(TypeParameterizedReactor tpr, CodeBuilder header, CodeBuilder src) {
@@ -1186,10 +1192,10 @@ public class CGenerator extends GeneratorBase {
         generateSelfStructExtension(body, reactor, constructorCode);
 
         // Next handle parameters.
-        body.pr(CParameterGenerator.generateDeclarations(reactor, types));
+        body.pr(CParameterGenerator.generateDeclarations(tpr, types));
 
         // Next handle states.
-        body.pr(CStateGenerator.generateDeclarations(reactor, types));
+        body.pr(CStateGenerator.generateDeclarations(tpr, types));
 
         // Next handle actions.
         CActionGenerator.generateDeclarations(tpr, body, constructorCode);
@@ -1204,13 +1210,12 @@ public class CGenerator extends GeneratorBase {
         // struct has a place to hold the data produced by this reactor's
         // reactions and a place to put pointers to data produced by
         // the contained reactors.
-        generateInteractingContainedReactors(tpr, reactor, body, constructorCode);
+        generateInteractingContainedReactors(tpr, body, constructorCode);
 
         // Next, generate the fields needed for each reaction.
         CReactionGenerator.generateReactionAndTriggerStructs(
             body,
             tpr,
-            reactor,
             constructorCode,
             types
         );
@@ -1241,20 +1246,18 @@ public class CGenerator extends GeneratorBase {
      * reactions and a place to put pointers to data produced by
      * the contained reactors.
      *
-     * @param tpr The TypeParameterized Reactor
-     * @param reactor The reactor.
+     * @param tpr {@link TypeParameterizedReactor}
      * @param body The place to put the struct definition for the contained reactors.
      * @param constructorCode The place to put matching code that goes in the container's constructor.
      */
     private void generateInteractingContainedReactors(
         TypeParameterizedReactor tpr,
-        Reactor reactor,
         CodeBuilder body,
         CodeBuilder constructorCode
     ) {
         // The contents of the struct will be collected first so that
         // we avoid duplicate entries and then the struct will be constructed.
-        var contained = new InteractingContainedReactors(reactor);
+        var contained = new InteractingContainedReactors(tpr.r());
         // Next generate the relevant code.
         for (Instantiation containedReactor : contained.containedReactors()) {
             Reactor containedReactorType = ASTUtils.toDefinition(containedReactor.getReactorClass());
@@ -1285,12 +1288,12 @@ public class CGenerator extends GeneratorBase {
                     // to be malloc'd at initialization.
                     if (!ASTUtils.isMultiport(port)) {
                         // Not a multiport.
-                        body.pr(port, variableStructType(port, tpr, false)+" "+port.getName()+";");
+                        body.pr(port, variableStructType(port, containedReactorType, false)+" "+port.getName()+";");
                     } else {
                         // Is a multiport.
                         // Memory will be malloc'd in initialization.
                         body.pr(port, String.join("\n",
-                            variableStructType(port, tpr, false)+"** "+port.getName()+";",
+                            variableStructType(port, containedReactorType, false)+"** "+port.getName()+";",
                             "int "+port.getName()+"_width;"
                         ));
                     }
@@ -1300,13 +1303,13 @@ public class CGenerator extends GeneratorBase {
                     // self struct of the container.
                     if (!ASTUtils.isMultiport(port)) {
                         // Not a multiport.
-                        body.pr(port, variableStructType(port, tpr, false)+"* "+port.getName()+";");
+                        body.pr(port, variableStructType(port, containedReactorType, false)+"* "+port.getName()+";");
                     } else {
                         // Is a multiport.
                         // Here, we will use an array of pointers.
                         // Memory will be malloc'd in initialization.
                         body.pr(port, String.join("\n",
-                            variableStructType(port, tpr, false)+"** "+port.getName()+";",
+                            variableStructType(port, containedReactorType, false)+"** "+port.getName()+";",
                             "int "+port.getName()+"_width;"
                         ));
                     }
@@ -1769,6 +1772,7 @@ public class CGenerator extends GeneratorBase {
                     if (CUtil.isTokenType(type, types)) {
                         typeStr = CUtil.rootType(typeStr);
                     }
+                    typeStr = CUtil.getConcreteType(reactor.tpr, typeStr);
                     if (typeStr != null && !typeStr.equals("") && !typeStr.equals("void")) {
                         payloadSize = "sizeof("+typeStr+")";
                     }
