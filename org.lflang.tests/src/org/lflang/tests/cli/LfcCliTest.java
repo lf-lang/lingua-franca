@@ -45,7 +45,6 @@ import org.lflang.LocalStrings;
 import org.lflang.cli.Io;
 import org.lflang.cli.Lfc;
 import org.lflang.generator.LFGeneratorContext.BuildParm;
-import org.lflang.tests.TestUtils.TempDirBuilder;
 
 /**
  * @author Clément Fournier
@@ -62,28 +61,6 @@ public class LfcCliTest {
         }
         """;
 
-    static final String JSON_STRING = """
-        {
-            "src": "src/File.lf",
-            "out": "src",
-            "properties": {
-                "build-type": "Release",
-                "clean": true,
-                "target-compiler": "gcc",
-                "external-runtime-path": "src",
-                "federated": true,
-                "logging": "4",
-                "lint": true,
-                "no-compile": true,
-                "quiet": true,
-                "rti": "-1",
-                "runtime-version": "rs",
-                "scheduler": "2",
-                "threading": false,
-                "workers": "1"
-            }
-        }
-        """;
 
     @Test
     public void testHelpArg() {
@@ -111,30 +88,6 @@ public class LfcCliTest {
         lfcTester.run("--notanargument", "File.lf")
             .verify(result -> {
                 result.checkStdErr(containsString("Unknown option: '--notanargument'"));
-                result.checkFailed();
-            });
-    }
-
-    @Test
-    public void testMutuallyExclusiveCliArgs() {
-        lfcTester.run("File.lf", "--json", JSON_STRING)
-            .verify(result -> {
-                result.checkStdErr(containsString(
-                            "are mutually exclusive (specify only one)"));
-                result.checkFailed();
-            });
-
-        lfcTester.run("File.lf", "--json-file", "test.json")
-            .verify(result -> {
-                result.checkStdErr(containsString(
-                            "are mutually exclusive (specify only one)"));
-                result.checkFailed();
-            });
-
-        lfcTester.run("--json", JSON_STRING, "--json-file", "test.json")
-            .verify(result -> {
-                result.checkStdErr(containsString(
-                            "are mutually exclusive (specify only one)"));
                 result.checkFailed();
             });
     }
@@ -180,7 +133,6 @@ public class LfcCliTest {
 
         fixture.run(tempDir, args)
             .verify(result -> {
-                // Don't validate execution because args are dummy args.
                 Properties properties = fixture.lfc.cliArgsToBuildParams();
                 assertEquals(properties.getProperty(BuildParm.BUILD_TYPE.getKey()), "Release");
                 assertEquals(properties.getProperty(BuildParm.CLEAN.getKey()), "true");
@@ -196,59 +148,6 @@ public class LfcCliTest {
             });
     }
 
-    @Test
-    public void testBuildParamsJsonString(@TempDir Path tempDir)
-            throws IOException {
-        dirBuilder(tempDir).file("src/File.lf", LF_PYTHON_FILE);
-
-        String[] args = {"--json", JSON_STRING};
-        LfcOneShotTestFixture fixture = new LfcOneShotTestFixture();
-
-        fixture.run(tempDir, args)
-            .verify(result -> {
-                // Don't validate execution because args are dummy args.
-                Properties properties = fixture.lfc.cliArgsToBuildParams();
-                assertEquals(properties.getProperty(BuildParm.BUILD_TYPE.getKey()), "Release");
-                assertEquals(properties.getProperty(BuildParm.CLEAN.getKey()), "true");
-                assertEquals(properties.getProperty(BuildParm.EXTERNAL_RUNTIME_PATH.getKey()), "src");
-                assertEquals(properties.getProperty(BuildParm.LINT.getKey()), "true");
-                assertEquals(properties.getProperty(BuildParm.LOGGING.getKey()), "4");
-                assertEquals(properties.getProperty(BuildParm.TARGET_COMPILER.getKey()), "gcc");
-                assertEquals(properties.getProperty(BuildParm.QUIET.getKey()), "true");
-                assertEquals(properties.getProperty(BuildParm.RTI.getKey()), "-1");
-                assertEquals(properties.getProperty(BuildParm.RUNTIME_VERSION.getKey()), "rs");
-                assertEquals(properties.getProperty(BuildParm.THREADING.getKey()), "false");
-                assertEquals(properties.getProperty(BuildParm.WORKERS.getKey()), "1");
-            });
-    }
-
-    @Test
-    public void testBuildParamsJsonFile(@TempDir Path tempDir)
-            throws IOException {
-        TempDirBuilder dir = dirBuilder(tempDir);
-        dir.file("src/File.lf", LF_PYTHON_FILE);
-        dir.file("src/test.json", JSON_STRING);
-
-        String[] args = {"--json-file", "src/test.json"};
-        LfcOneShotTestFixture fixture = new LfcOneShotTestFixture();
-
-        fixture.run(tempDir, args)
-            .verify(result -> {
-                // Don't validate execution because args are dummy args.
-                Properties properties = fixture.lfc.cliArgsToBuildParams();
-                assertEquals(properties.getProperty(BuildParm.BUILD_TYPE.getKey()), "Release");
-                assertEquals(properties.getProperty(BuildParm.CLEAN.getKey()), "true");
-                assertEquals(properties.getProperty(BuildParm.EXTERNAL_RUNTIME_PATH.getKey()), "src");
-                assertEquals(properties.getProperty(BuildParm.LINT.getKey()), "true");
-                assertEquals(properties.getProperty(BuildParm.LOGGING.getKey()), "4");
-                assertEquals(properties.getProperty(BuildParm.TARGET_COMPILER.getKey()), "gcc");
-                assertEquals(properties.getProperty(BuildParm.QUIET.getKey()), "true");
-                assertEquals(properties.getProperty(BuildParm.RTI.getKey()), "-1");
-                assertEquals(properties.getProperty(BuildParm.RUNTIME_VERSION.getKey()), "rs");
-                assertEquals(properties.getProperty(BuildParm.THREADING.getKey()), "false");
-                assertEquals(properties.getProperty(BuildParm.WORKERS.getKey()), "1");
-            });
-    }
 
     static class LfcTestFixture extends CliToolTestFixture {
 

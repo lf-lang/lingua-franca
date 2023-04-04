@@ -16,7 +16,6 @@ import org.lflang.federated.generator.FedASTUtils;
 import org.lflang.federated.generator.FedConnectionInstance;
 import org.lflang.federated.generator.FedFileConfig;
 import org.lflang.federated.generator.FederateInstance;
-import org.lflang.federated.launcher.RtiConfig;
 import org.lflang.generator.GeneratorBase;
 import org.lflang.generator.LFGeneratorContext;
 import org.lflang.generator.ReactorInstance;
@@ -29,7 +28,7 @@ import org.lflang.lf.Variable;
 
 public class TSExtension implements FedTargetExtension {
     @Override
-    public void initializeTargetConfig(LFGeneratorContext context, int numOfFederates, FederateInstance federate, FedFileConfig fileConfig, ErrorReporter errorReporter, RtiConfig rtiConfig) throws IOException {
+    public void initializeTargetConfig(LFGeneratorContext context, int numOfFederates, FederateInstance federate, FedFileConfig fileConfig, ErrorReporter errorReporter, LinkedHashMap<String, Object> federationRTIProperties) throws IOException {
 
     }
 
@@ -89,7 +88,7 @@ public class TSExtension implements FedTargetExtension {
      */
     @Override
     public String generatePreamble(FederateInstance federate, FedFileConfig fileConfig,
-                                   RtiConfig rtiConfig,
+                                   LinkedHashMap<String, Object> federationRTIProperties,
                                    ErrorReporter errorReporter) {
         var minOutputDelay = getMinOutputDelay(federate, fileConfig, errorReporter);
         return
@@ -119,8 +118,8 @@ public class TSExtension implements FedTargetExtension {
                 .stream()
                 .map(Variable::getName)
                 .collect(Collectors.joining(",", "\"", "\"")),
-            rtiConfig.getHost(),
-            rtiConfig.getPort(),
+            federationRTIProperties.get("host"),
+            federationRTIProperties.get("port"),
             federate.sendsTo.keySet().stream()
                             .map(e->String.valueOf(e.id))
                             .collect(Collectors.joining(","))

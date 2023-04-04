@@ -12,8 +12,8 @@ public class FedTargetExtensionFactory {
     /**
      * Given a target, return the appropriate extension.
      */
-    public static FedTargetExtension getExtension(Target target) {
-        switch (target) {
+    public static FedTargetExtension getExtension(TargetDecl target) {
+        switch (Target.fromDecl(target)) {
         case CCPP:
         case C: return new CExtension();
         case Python: return new PythonExtension();

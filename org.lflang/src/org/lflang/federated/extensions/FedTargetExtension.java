@@ -1,15 +1,21 @@
 package org.lflang.federated.extensions;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
 
 import org.lflang.ErrorReporter;
+import org.lflang.FileConfig;
 import org.lflang.InferredType;
+import org.lflang.Target;
+import org.lflang.TargetConfig;
 import org.lflang.TargetProperty.CoordinationType;
 import org.lflang.TimeValue;
 import org.lflang.federated.generator.FedConnectionInstance;
 import org.lflang.federated.generator.FedFileConfig;
 import org.lflang.federated.generator.FederateInstance;
-import org.lflang.federated.launcher.RtiConfig;
+import org.lflang.federated.serialization.SupportedSerializers;
 import org.lflang.generator.LFGeneratorContext;
 import org.lflang.lf.Action;
 import org.lflang.lf.Reaction;
@@ -27,7 +33,7 @@ public interface FedTargetExtension {
      * @param errorReporter  Used to report errors.
      */
     void initializeTargetConfig(LFGeneratorContext context, int numOfFederates, FederateInstance federate, FedFileConfig fileConfig,
-                                ErrorReporter errorReporter, RtiConfig rtiConfig) throws IOException;
+                                ErrorReporter errorReporter, LinkedHashMap<String, Object> federationRTIProperties) throws IOException;
 
     /**
      * Generate code for the body of a reaction that handles the
@@ -114,13 +120,13 @@ public interface FedTargetExtension {
      * Add necessary preamble to the source to set up federated execution.
      *
      * @param federate
-     * @param rtiConfig
+     * @param federationRTIProperties
      * @param errorReporter
      * @return
      */
     String generatePreamble(FederateInstance federate,
                             FedFileConfig fileConfig,
-                            RtiConfig rtiConfig,
+                            LinkedHashMap<String, Object> federationRTIProperties,
                             ErrorReporter errorReporter)
         throws IOException;
 }

@@ -36,24 +36,35 @@ import org.lflang.federated.generator.FederateInstance;
  * 
  * @author Soroush Bateni
  * @author Hokeun Kim
- * @author Marten Lohstroh
  */
-public class TsBuildConfig extends BuildConfig {
+public class FedTSLauncher extends FedLauncher {
 
-
-    public TsBuildConfig(FederateInstance federate, FedFileConfig fileConfig, ErrorReporter errorReporter) {
-        super(federate, fileConfig, errorReporter);
+    /**
+     * Create an instance of FedCLauncher.
+     *
+     * @param targetConfig The current target configuration.
+     * @param fileConfig The current file configuration.
+     * @param errorReporter A error reporter for reporting any errors or warnings during the code generation
+     */
+    public FedTSLauncher(
+        TargetConfig targetConfig,
+        FedFileConfig fileConfig,
+        ErrorReporter errorReporter
+    ) {
+        super(targetConfig, fileConfig, errorReporter);
     }
-
+    
+    /**
+     * Return the command that will execute a local federate, assuming that the current
+     * directory is the top-level project folder. This is used to create a launcher script
+     * for federates.
+     * 
+     * @param federate The federate to execute.
+     */
     @Override
-    public String compileCommand() {
-        return null;
-    }
-
-    @Override
-    public String localExecuteCommand() {
+    protected
+    String executeCommandForLocalFederate(FedFileConfig fileConfig, FederateInstance federate) {
         String jsFilename = federate.name + ".js";
         return "node "+fileConfig.getSrcGenPath().resolve(federate.name).resolve("dist").resolve(jsFilename)+" -i $FEDERATION_ID";
     }
-
 }

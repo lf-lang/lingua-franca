@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.regex.Pattern;
@@ -16,7 +17,6 @@ import org.lflang.TargetProperty.ClockSyncMode;
 import org.lflang.TimeValue;
 import org.lflang.federated.generator.FedFileConfig;
 import org.lflang.federated.generator.FederateInstance;
-import org.lflang.federated.launcher.RtiConfig;
 import org.lflang.federated.serialization.FedROS2CPPSerialization;
 import org.lflang.federated.serialization.SupportedSerializers;
 import org.lflang.generator.CodeBuilder;
@@ -239,7 +239,7 @@ public class CExtensionUtils {
     public static void handleCompileDefinitions(
         FederateInstance federate,
         int numOfFederates,
-        RtiConfig rtiConfig
+        LinkedHashMap<String, Object> federationRTIProperties
     ) {
         federate.targetConfig.setByUser.add(TargetProperty.COMPILE_DEFINITIONS);
         federate.targetConfig.compileDefinitions.put("FEDERATED", "");
@@ -250,7 +250,7 @@ public class CExtensionUtils {
 
         handleAdvanceMessageInterval(federate);
 
-        initializeClockSynchronization(federate, rtiConfig);
+        initializeClockSynchronization(federate, federationRTIProperties);
     }
 
     /**
@@ -276,9 +276,9 @@ public class CExtensionUtils {
         }
     }
 
-    static boolean clockSyncIsOn(FederateInstance federate, RtiConfig rtiConfig) {
+    static boolean clockSyncIsOn(FederateInstance federate, LinkedHashMap<String, Object> federationRTIProperties) {
         return federate.targetConfig.clockSync != ClockSyncMode.OFF
-            && (!rtiConfig.getHost().equals(federate.host)
+            && (!federationRTIProperties.get("host").toString().equals(federate.host)
             || federate.targetConfig.clockSyncOptions.localFederatesOn);
     }
 
@@ -290,10 +290,10 @@ public class CExtensionUtils {
      */
     public static void initializeClockSynchronization(
         FederateInstance federate,
-        RtiConfig rtiConfig
+        LinkedHashMap<String, Object> federationRTIProperties
     ) {
         // Check if clock synchronization should be enabled for this federate in the first place
-        if (clockSyncIsOn(federate, rtiConfig)) {
+        if (clockSyncIsOn(federate, federationRTIProperties)) {
             System.out.println("Initial clock synchronization is enabled for federate "
                                    + federate.id
             );

@@ -55,8 +55,8 @@ public class FormattingUtils {
     }
 
     /** Return a function that renders AST nodes for the given target. */
-    public static Function<EObject, String> renderer(Target target) {
-        return object -> render(object, DEFAULT_LINE_LENGTH, target, true);
+    public static Function<EObject, String> renderer(TargetDecl targetDecl) {
+        return object -> render(object, DEFAULT_LINE_LENGTH, Target.fromDecl(targetDecl), true);
     }
 
     /**
