@@ -62,6 +62,29 @@ public class LfcCliTest {
         }
         """;
 
+    static final String JSON_STRING = """
+        {
+            "src": "src/File.lf",
+            "out": "src",
+            "properties": {
+                "build-type": "Release",
+                "clean": true,
+                "target-compiler": "gcc",
+                "external-runtime-path": "src",
+                "federated": true,
+                "logging": "info",
+                "lint": true,
+                "no-compile": true,
+                "quiet": true,
+                "rti": "path/to/rti",
+                "runtime-version": "rs",
+                "scheduler": "GEDF_NP",
+                "threading": false,
+                "workers": "1"
+            }
+        }
+        """;
+
     @Test
     public void testHelpArg() {
         lfcTester.run("--help", "--version")
@@ -69,6 +92,30 @@ public class LfcCliTest {
                 result.checkOk();
                 result.checkNoErrorOutput();
                 result.checkStdOut(containsString("Usage: lfc"));
+            });
+    }
+
+    @Test
+    public void testMutuallyExclusiveCliArgs() {
+        lfcTester.run("File.lf", "--json", JSON_STRING)
+            .verify(result -> {
+                result.checkStdErr(containsString(
+                            "are mutually exclusive (specify only one)"));
+                result.checkFailed();
+            });
+
+        lfcTester.run("File.lf", "--json-file", "test.json")
+            .verify(result -> {
+                result.checkStdErr(containsString(
+                            "are mutually exclusive (specify only one)"));
+                result.checkFailed();
+            });
+
+        lfcTester.run("--json", JSON_STRING, "--json-file", "test.json")
+            .verify(result -> {
+                result.checkStdErr(containsString(
+                            "are mutually exclusive (specify only one)"));
+                result.checkFailed();
             });
     }
 
@@ -163,6 +210,29 @@ public class LfcCliTest {
             });
     }
 
+    public void verifyGeneratorArgs(Path tempDir, String[] args) {
+        LfcOneShotTestFixture fixture = new LfcOneShotTestFixture();
+
+        fixture.run(tempDir, args)
+            .verify(result -> {
+                // Don't validate execution because args are dummy args.
+                Properties properties = fixture.lfc.getGeneratorArgs();
+                assertEquals(properties.getProperty(BuildParm.BUILD_TYPE.getKey()), "Release");
+                assertEquals(properties.getProperty(BuildParm.CLEAN.getKey()), "true");
+                assertEquals(properties.getProperty(BuildParm.TARGET_COMPILER.getKey()), "gcc");
+                assertEquals(properties.getProperty(BuildParm.EXTERNAL_RUNTIME_PATH.getKey()), "src");
+                assertEquals(properties.getProperty(BuildParm.LOGGING.getKey()), "info");
+                assertEquals(properties.getProperty(BuildParm.LINT.getKey()), "true");
+                assertEquals(properties.getProperty(BuildParm.NO_COMPILE.getKey()), "true");
+                assertEquals(properties.getProperty(BuildParm.QUIET.getKey()), "true");
+                assertEquals(properties.getProperty(BuildParm.RTI.getKey()), "path/to/rti");
+                assertEquals(properties.getProperty(BuildParm.RUNTIME_VERSION.getKey()), "rs");
+                assertEquals(properties.getProperty(BuildParm.SCHEDULER.getKey()), "GEDF_NP");
+                assertEquals(properties.getProperty(BuildParm.THREADING.getKey()), "false");
+                assertEquals(properties.getProperty(BuildParm.WORKERS.getKey()), "1");
+            });
+    }
+
     @Test
     public void testGeneratorArgs(@TempDir Path tempDir)
             throws IOException {
@@ -188,26 +258,30 @@ public class LfcCliTest {
             "--threading", "false",
             "--workers", "1",
         };
-        LfcOneShotTestFixture fixture = new LfcOneShotTestFixture();
+        verifyGeneratorArgs(tempDir, args);
+    }
 
-        fixture.run(tempDir, args)
-            .verify(result -> {
-                // Don't validate execution because args are dummy args.
-                Properties properties = fixture.lfc.getGeneratorArgs();
-                assertEquals(properties.getProperty(BuildParm.BUILD_TYPE.getKey()), "Release");
-                assertEquals(properties.getProperty(BuildParm.CLEAN.getKey()), "true");
-                assertEquals(properties.getProperty(BuildParm.TARGET_COMPILER.getKey()), "gcc");
-                assertEquals(properties.getProperty(BuildParm.EXTERNAL_RUNTIME_PATH.getKey()), "src");
-                assertEquals(properties.getProperty(BuildParm.LOGGING.getKey()), "info");
-                assertEquals(properties.getProperty(BuildParm.LINT.getKey()), "true");
-                assertEquals(properties.getProperty(BuildParm.NO_COMPILE.getKey()), "true");
-                assertEquals(properties.getProperty(BuildParm.QUIET.getKey()), "true");
-                assertEquals(properties.getProperty(BuildParm.RTI.getKey()), "path/to/rti");
-                assertEquals(properties.getProperty(BuildParm.RUNTIME_VERSION.getKey()), "rs");
-                assertEquals(properties.getProperty(BuildParm.SCHEDULER.getKey()), "GEDF_NP");
-                assertEquals(properties.getProperty(BuildParm.THREADING.getKey()), "false");
-                assertEquals(properties.getProperty(BuildParm.WORKERS.getKey()), "1");
-            });
+    @Test
+    public void testGeneratorArgsJsonString(@TempDir Path tempDir)
+            throws IOException {
+        TempDirBuilder dir = dirBuilder(tempDir);
+        dir.file("src/File.lf", LF_PYTHON_FILE);
+        dir.mkdirs("path//to/rti");
+
+        String[] args = {"--json", JSON_STRING};
+        verifyGeneratorArgs(tempDir, args);
+    }
+
+    @Test
+    public void testGeneratorArgsJsonFile(@TempDir Path tempDir)
+            throws IOException {
+        TempDirBuilder dir = dirBuilder(tempDir);
+        dir.file("src/File.lf", LF_PYTHON_FILE);
+        dir.file("src/test.json", JSON_STRING);
+        dir.mkdirs("path//to/rti");
+
+        String[] args = {"--json-file", "src/test.json"};
+        verifyGeneratorArgs(tempDir, args);
     }
 
     static class LfcTestFixture extends CliToolTestFixture {

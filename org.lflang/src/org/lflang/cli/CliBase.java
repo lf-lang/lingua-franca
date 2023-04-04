@@ -4,12 +4,22 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Arrays;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map.Entry;
+import java.util.Properties;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import picocli.CommandLine;
+import picocli.CommandLine.ArgGroup;
+import picocli.CommandLine.Command;
+import picocli.CommandLine.Model.CommandSpec;
 import picocli.CommandLine.Option;
 import picocli.CommandLine.Parameters;
+import picocli.CommandLine.Spec;
 
 import org.eclipse.emf.common.util.URI;
 import org.eclipse.emf.ecore.resource.Resource;
@@ -23,6 +33,10 @@ import org.lflang.ErrorReporter;
 import org.lflang.LFRuntimeModule;
 import org.lflang.LFStandaloneSetup;
 import org.lflang.util.FileUtil;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+import com.google.gson.JsonParseException;
 import com.google.inject.Inject;
 import com.google.inject.Injector;
 import com.google.inject.Provider;
@@ -36,22 +50,42 @@ import com.google.inject.Provider;
  * @author Atharva Patil
  */
 public abstract class CliBase implements Runnable {
+    /**
+     * Models a command specification, including the options, positional
+     * parameters and subcommands supported by the command.
+     */
+    @Spec CommandSpec spec;
 
     /**
      * Options and parameters present in both Lfc and Lff.
      */
-    @Parameters(
-        arity = "1..",
-        paramLabel = "FILES",
-        description = "Paths of the files to run Lingua Franca programs on.")
-    protected List<Path> files;
+    static class MutuallyExclusive {
+         @Parameters(
+         arity = "1..",
+         paramLabel = "FILES",
+         description = "Paths of the files to run Lingua Franca programs on.")
+             protected List<Path> files;
 
-    @Option(
-        names = {"-o", "--output-path"},
-        defaultValue = "",
-        fallbackValue = "",
-        description = "Specify the root output directory.")
-    private Path outputPath;
+         @Option(
+         names="--json",
+         description="JSON object containing CLI arguments.")
+             private String jsonString;
+
+         @Option(
+         names="--json-file",
+         description="JSON file containing CLI arguments.")
+             private Path jsonFile;
+     }
+
+     @ArgGroup(exclusive = true, multiplicity = "1")
+     MutuallyExclusive topLevelArg;
+
+     @Option(
+     names = {"-o", "--output-path"},
+     defaultValue = "",
+     fallbackValue = "",
+     description = "Specify the root output directory.")
+         private Path outputPath;
 
     /**
      * Used to collect all errors that happen during validation/generation.
@@ -111,9 +145,39 @@ public abstract class CliBase implements Runnable {
     /**
      * The entrypoint of Picocli applications - the first method called when 
      * CliBase, which implements the Runnable interface, is instantiated.
-     * Lfc and Lff have their own specific implementations for this method.
      */ 
-    public abstract void run();
+    public void run() {
+        // If args are given in a json file, store its contents in jsonString.
+        if (topLevelArg.jsonFile != null) {
+            try {
+                topLevelArg.jsonString = new String(Files.readAllBytes(
+                        io.getWd().resolve(topLevelArg.jsonFile)));
+            } catch (IOException e) {
+                reporter.printFatalErrorAndExit(
+                        "No such file: " + topLevelArg.jsonFile);
+            }
+        }
+        // If args are given in a json string, (1) unpack them into an args
+        // array, and (2) call cmd.execute on them, which assigns them to their
+        // correct instance variables, then (3) recurses into run().
+        if (topLevelArg.jsonString != null) {
+            // Unpack args from json string.
+            String[] args = jsonStringToArgs(topLevelArg.jsonString);
+            // Execute application on unpacked args.
+            CommandLine cmd = spec.commandLine();
+            int exitCode = cmd.execute(args);
+            io.callSystemExit(exitCode);
+        // If args are already unpacked, invoke tool-specific logic.
+        } else {
+            runTool();
+        }
+    }
+
+    /*
+     * The entrypoint of tool-specific logic.
+     * Lfc and Lff have their own specific implementations for this method.
+     */
+    public abstract void runTool();
 
     public static Injector getInjector(String toolName, Io io) {
         final ReportingBackend reporter 
@@ -139,7 +203,7 @@ public abstract class CliBase implements Runnable {
      * @return Validated input paths.
      */
     protected List<Path> getInputPaths() {
-        List<Path> paths = files.stream()
+        List<Path> paths = topLevelArg.files.stream()
             .map(io.getWd()::resolve)
             .collect(Collectors.toList());
 
@@ -252,4 +316,54 @@ public abstract class CliBase implements Runnable {
         }
     }
 
+    private String[] jsonStringToArgs(String jsonString) {
+        ArrayList<String> argsList = new ArrayList<>();
+        JsonObject jsonObject = new JsonObject();
+
+        // Parse JSON string and get top-level JSON object.
+        try {
+            jsonObject = JsonParser.parseString(jsonString).getAsJsonObject();
+        } catch (JsonParseException e) {
+            reporter.printFatalErrorAndExit(
+                    "Invalid JSON string:\n" + jsonString);
+        }
+        // Append input paths.
+        JsonElement src = jsonObject.get("src");
+        if (src == null) {
+            reporter.printFatalErrorAndExit(
+                    "JSON Parse Exception: field \"src\" not found.");
+        }
+        argsList.add(src.getAsString());
+        // Append output path if given.
+        JsonElement out = jsonObject.get("out");
+        if (out != null) {
+            argsList.add("--output-path");
+            argsList.add(out.getAsString());
+        }
+
+        // If there are no other properties, return args array.
+        JsonElement properties = jsonObject.get("properties");
+        if (properties != null) {
+            // Get the remaining properties.
+            Set<Entry<String, JsonElement>> entrySet = properties
+                .getAsJsonObject()
+                .entrySet();
+            // Append the remaining properties to the args array.
+            for(Entry<String,JsonElement> entry : entrySet) {
+                String property = entry.getKey();
+                String value = entry.getValue().getAsString();
+
+                // Append option.
+                argsList.add("--" + property);
+                // Append argument for non-boolean options.
+                if (value != "true" || property == "threading") {
+                    argsList.add(value);
+                }
+            }
+        }
+
+        // Return as String[].
+        String[] args = argsList.toArray(new String[argsList.size()]);
+        return args;
+    }
 }
