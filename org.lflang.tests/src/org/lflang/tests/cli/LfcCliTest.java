@@ -210,6 +210,8 @@ public class LfcCliTest {
             });
     }
 
+    // Helper method for comparing argument values in tests testGeneratorArgs,
+    // testGeneratorArgsJsonString and testGeneratorArgsJsonFile.
     public void verifyGeneratorArgs(Path tempDir, String[] args) {
         LfcOneShotTestFixture fixture = new LfcOneShotTestFixture();
 
