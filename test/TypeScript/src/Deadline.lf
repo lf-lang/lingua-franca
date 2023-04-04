@@ -5,10 +5,10 @@ target TypeScript {
     timeout: 4 sec
 }
 
-reactor Source(period: time = 2 sec) {  // run = "bin/Deadline -timeout 4 sec"
+reactor Source(period: time(2 sec)) {  // run = "bin/Deadline -timeout 4 sec"
     output y: number
     timer t(0, period)
-    state count: number = 0
+    state count: number(0)
 
     reaction(t) -> y {=
         if (2 * Math.floor(count / 2) != count){
@@ -25,9 +25,9 @@ reactor Source(period: time = 2 sec) {  // run = "bin/Deadline -timeout 4 sec"
     =}
 }
 
-reactor Destination(timeout: time = 1 sec) {
+reactor Destination(timeout: time(1 sec)) {
     input x: number
-    state count: number = 0
+    state count: number(0)
 
     reaction(x) {=
         console.log("Destination receives: " + x);

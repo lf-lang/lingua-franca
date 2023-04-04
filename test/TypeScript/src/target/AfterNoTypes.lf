@@ -15,7 +15,7 @@ reactor Foo {
 }
 
 reactor Print {
-    state expected_time: time = 10 msec
+    state expected_time: time(10 msec)
     input x
 
     reaction(x) {=

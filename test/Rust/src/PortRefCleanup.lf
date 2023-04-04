@@ -14,8 +14,8 @@ main reactor {
     timer t1(0)
     timer t2(15 msec)
 
-    state reaction_num: u32 = 0
-    state done: bool = false
+    state reaction_num: u32(0)
+    state done: bool(false)
 
     reaction(t1) -> boxr.inp {=
         ctx.set(boxr__inp, 150);

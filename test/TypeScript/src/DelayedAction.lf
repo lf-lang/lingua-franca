@@ -5,7 +5,7 @@ target TypeScript {
 main reactor DelayedAction {
     timer t(0, 1 sec)
     logical action a
-    state count: number = 0
+    state count: number(0)
 
     reaction(t) -> a {= actions.a.schedule(TimeValue.msec(100), null); =}
 

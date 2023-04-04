@@ -1,6 +1,6 @@
 target Cpp
 
-reactor Foo(a: size_t = 8, b: size_t = 2) {
+reactor Foo(a: size_t{8}, b: size_t{2}) {
     input[{= a*b =}] in: size_t
     output[{= a/b =}] out: size_t
 

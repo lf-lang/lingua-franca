@@ -11,8 +11,8 @@ reactor Sink {
     timer t2(15 msec)
 
     input in: u32
-    state reaction_num: u32 = 0
-    state done: bool = false
+    state reaction_num: u32(0)
+    state done: bool(false)
 
     reaction(in, t2) {=
         if self.reaction_num == 0 {

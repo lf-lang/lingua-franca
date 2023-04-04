@@ -96,7 +96,7 @@ public class PythonGenerator extends CGenerator {
 
     public PythonGenerator(LFGeneratorContext context) {
         this(context,
-            new PythonTypes(),
+            new PythonTypes(context.getErrorReporter()),
             new CCmakeGenerator(
                 context.getFileConfig(),
                 List.of("lib/python_action.c",

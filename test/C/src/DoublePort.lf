@@ -13,7 +13,7 @@ target C {
 import Count from "lib/Count.lf"
 
 reactor CountMicrostep {
-    state count: int = 1
+    state count: int(1)
     output out: int
     logical action act: int
     timer t(0, 1 sec)

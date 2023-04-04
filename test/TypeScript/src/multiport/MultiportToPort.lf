@@ -15,9 +15,9 @@ reactor Source {
     =}
 }
 
-reactor Destination(expected: number = 0) {
+reactor Destination(expected: number(0)) {
     input inp: number
-    state received: boolean = false
+    state received: boolean(false)
 
     reaction(inp) {=
         console.log("Received " + inp);

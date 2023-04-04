@@ -6,9 +6,9 @@ target C {
     fast: true
 }
 
-reactor Source(size: int = 3) {
+reactor Source(size: int(3)) {
     output out: int[]
-    state count: int = 0
+    state count: int(0)
     timer t(0, 1 sec)
 
     reaction(t) -> out {=
@@ -26,9 +26,9 @@ reactor Source(size: int = 3) {
 }
 
 // The scale parameter is just for testing.
-reactor Print(scale: int = 1, size: int = 3) {
+reactor Print(scale: int(1), size: int(3)) {
     input in: int[]
-    state count: int = 0
+    state count: int(0)
 
     reaction(in) {=
         bool failed = false; // For testing.

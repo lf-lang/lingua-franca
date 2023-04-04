@@ -10,7 +10,7 @@ main reactor {
 
     timer t(0, 2 msec)
 
-    state tick: u32 = 0
+    state tick: u32(0)
 
     reaction(startup) -> clock, a {=
         ctx.schedule(a, after!(3 ms)); // out of order on purpose

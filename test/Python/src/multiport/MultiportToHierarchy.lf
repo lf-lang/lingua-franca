@@ -9,7 +9,7 @@ target Python {
 reactor Source {
     timer t(0, 200 msec)
     output[4] out
-    state s = 0
+    state s(0)
 
     reaction(t) -> out {=
         for port in out:
@@ -18,8 +18,8 @@ reactor Source {
     =}
 }
 
-reactor Destination(width = 4) {
-    state s = 6
+reactor Destination(width(4)) {
+    state s(6)
     input[width] _in
 
     reaction(_in) {=
@@ -42,7 +42,7 @@ reactor Destination(width = 4) {
     =}
 }
 
-reactor Container(width = 4) {
+reactor Container(width(4)) {
     input[width] _in
     dst = new Destination()
     _in -> dst._in

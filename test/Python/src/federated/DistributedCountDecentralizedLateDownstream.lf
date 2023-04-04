@@ -28,12 +28,12 @@ import Count from "../lib/Count.lf"
 reactor ImportantActuator {
     input inp
     # Count messages that arrive without STP violation.
-    state success = 0
-    state success_stp_violation = 0
+    state success(0)
+    state success_stp_violation(0)
     # Force a timer to be invoked periodically
     timer t(0, 10 usec)
     # to ensure logical time will advance in the absence of incoming messages.
-    state c = 0
+    state c(0)
 
     reaction(inp) {=
         current_tag = lf.tag()
@@ -81,7 +81,7 @@ reactor Receiver {
     # Force a timer to be invoke periodically
     timer t(0, 10 msec)
     # to ensure logical time will advance in the absence of incoming messages.
-    state c = 0
+    state c(0)
     p = new Print()
     a = new ImportantActuator()
 

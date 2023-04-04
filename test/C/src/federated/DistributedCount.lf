@@ -14,7 +14,7 @@ import Count from "../lib/Count.lf"
 
 reactor Print {
     input in: int
-    state c: int = 1
+    state c: int(1)
 
     reaction(in) {=
         interval_t elapsed_time = lf_time_logical_elapsed();
@@ -35,7 +35,7 @@ reactor Print {
     =}
 }
 
-federated reactor DistributedCount(offset: time = 200 msec) {
+federated reactor DistributedCount(offset: time(200 msec)) {
     c = new Count()
     p = new Print()
     c.out -> p.in after offset

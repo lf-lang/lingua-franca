@@ -5,8 +5,8 @@ target Python {
     fast: true
 }
 
-reactor Count(stride = 1) {
-    state count = 1
+reactor Count(stride(1)) {
+    state count(1)
     output y
     timer t(0, 100 msec)
 
@@ -18,7 +18,7 @@ reactor Count(stride = 1) {
 
 reactor Display {
     input x
-    state expected = 1  # for testing.
+    state expected(1)  # for testing.
 
     reaction(x) {=
         print("Received: ", x.value)

@@ -383,6 +383,10 @@ public enum TargetProperty {
             (config, value, err) -> {
                 config.logLevel = (LogLevel) UnionType.LOGGING_UNION
                         .forName(ASTUtils.elementToSingleString(value));
+            },
+            (config, value, err) -> {
+                config.logLevel = (LogLevel) UnionType.LOGGING_UNION
+                    .forName(ASTUtils.elementToSingleString(value));
             }),
 
     /**
@@ -576,7 +580,8 @@ public enum TargetProperty {
             }),
 
     /**
-     * Directive to enable tracing.
+     * Directive to generate a Dockerfile. This is either a boolean,
+     * true or false, or a dictionary of options.
      */
     TRACING("tracing", UnionType.TRACING_UNION,
             Arrays.asList(Target.C, Target.CCPP, Target.CPP, Target.Python),

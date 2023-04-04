@@ -2,7 +2,7 @@
 // disconnected)
 target Rust
 
-reactor Source(width: usize = 2) {
+reactor Source(width: usize(2)) {
     output[width] out: usize
 
     reaction(startup) -> out {=
@@ -12,7 +12,7 @@ reactor Source(width: usize = 2) {
     =}
 }
 
-reactor Destination(width: usize = 2) {
+reactor Destination(width: usize(2)) {
     input[width] in: usize
 
     reaction(in) {=

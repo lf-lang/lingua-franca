@@ -13,12 +13,19 @@ import org.eclipse.core.resources.IResource;
 import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.emf.common.util.URI;
+import org.eclipse.emf.ecore.EObject;
 import org.eclipse.emf.ecore.resource.Resource;
+import org.eclipse.xtext.generator.IGeneratorContext;
+import org.eclipse.xtext.resource.XtextResource;
+import org.eclipse.xtext.validation.CheckMode;
+import org.eclipse.xtext.validation.IResourceValidator;
+import org.eclipse.xtext.validation.Issue;
 import org.eclipse.xtext.xbase.lib.IteratorExtensions;
 
 import org.lflang.ASTUtils;
 import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
+import org.lflang.Target;
 import org.lflang.TargetConfig;
 import org.lflang.TargetConfig.DockerOptions;
 import org.lflang.TargetProperty.BuildType;
@@ -27,14 +34,19 @@ import org.lflang.TargetProperty.UnionType;
 import org.lflang.generator.LFGeneratorContext.Mode;
 import org.lflang.TargetProperty;
 import org.lflang.TargetProperty.SchedulerOption;
-
+import org.lflang.graph.InstantiationGraph;
 import org.lflang.lf.Action;
 import org.lflang.lf.ActionOrigin;
+import org.lflang.lf.Import;
 import org.lflang.lf.Instantiation;
 import org.lflang.lf.KeyValuePair;
 import org.lflang.lf.KeyValuePairs;
+import org.lflang.lf.Model;
+import org.lflang.lf.Reaction;
 import org.lflang.lf.Reactor;
 import org.lflang.lf.TargetDecl;
+import org.lflang.util.FileUtil;
+import org.lflang.util.IteratorUtil;
 
 /**
  * A helper class with functions that may be useful for code

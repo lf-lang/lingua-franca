@@ -25,10 +25,10 @@ class TSInstanceGenerator(
 
     private fun getTypeParams(typeParms: List<Type>): String =
         if (typeParms.isEmpty()) ""
-        else typeParms.joinToString(", ", "<", ">") { TSTypes.getInstance().getTargetType(it) }
+        else typeParms.joinToString(", ", "<", ">") { TSTypes.getTargetType(it) }
 
     private fun getReactorParameterList(parameters: List<Parameter>): String =
-        parameters.joinToString(", ", "[__Reactor, ", "]") { TSTypes.getInstance().getTargetType(it) }
+        parameters.joinToString(", ", "[__Reactor, ", "]") { TSTypes.getTargetType(it) }
 
 
     fun generateClassProperties(): String =
@@ -50,7 +50,7 @@ class TSInstanceGenerator(
             childReactorArguments.add("this")
 
             for (parameter in childReactor.reactorClass.toDefinition().parameters) {
-                childReactorArguments.add(TSTypes.getInstance().getTargetInitializer(parameter, childReactor))
+                childReactorArguments.add(TSTypes.getTargetInitializer(parameter, childReactor))
             }
             if (childReactor.isBank) {
                 childReactorInstantiations.add(

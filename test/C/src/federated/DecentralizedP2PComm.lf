@@ -6,15 +6,15 @@ target C {
 }
 
 reactor Platform(
-    start: int = 0,
-    expected_start: int = 0,
-    stp_offset_param: time = 0
+    start: int(0),
+    expected_start: int(0),
+    stp_offset_param: time(0)
 ) {
     input in: int
     output out: int
     timer t(0, 100 msec)
-    state count: int = start
-    state expected: int = expected_start
+    state count: int(start)
+    state expected: int(expected_start)
 
     reaction(t) -> out {= lf_set(out, self->count++); =}
 

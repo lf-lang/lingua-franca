@@ -7,7 +7,7 @@ target Python {
 
 reactor Printer {
     input x
-    state count = 1
+    state count(1)
 
     reaction(x) {=
         print("Inside reactor received: ", x.value)
@@ -19,7 +19,7 @@ reactor Printer {
 }
 
 main reactor SendingInside {
-    state count = 0
+    state count(0)
     timer t(0, 1 sec)
     p = new Printer()
 

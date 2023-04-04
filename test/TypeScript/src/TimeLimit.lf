@@ -7,10 +7,10 @@ target TypeScript {
     logging: INFO
 }
 
-reactor Clock(offset: time = 0, period: time = 1 sec) {
+reactor Clock(offset: time(0), period: time(1 sec)) {
     output y: number
     timer t(offset, period)
-    state count: number = 0
+    state count: number(0)
 
     reaction(t) -> y {=
         count++;
@@ -20,7 +20,7 @@ reactor Clock(offset: time = 0, period: time = 1 sec) {
 
 reactor Destination {
     input x: number
-    state s: number = 1
+    state s: number(1)
 
     reaction(x) {=
         if (x != s) {
@@ -30,7 +30,7 @@ reactor Destination {
     =}
 }
 
-main reactor TimeLimit(period: time = 1 msec) {  // usecs take a little too long
+main reactor TimeLimit(period: time(1 msec)) {  // usecs take a little too long
     timer stop(10 sec)
 
     c = new Clock(period = period)

@@ -8,10 +8,10 @@
  */
 target Cpp
 
-reactor A(bank_index: size_t = 0) {
+reactor A(bank_index: size_t(0)) {
     input[4] in: size_t
     output out: size_t
-    state received: bool = false
+    state received: bool(false)
 
     reaction(startup) -> out {= out.set(bank_index); =}
 

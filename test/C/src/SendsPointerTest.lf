@@ -13,7 +13,7 @@ reactor SendsPointer {
     =}
 }
 
-reactor Print(expected: int = 42) {  // expected parameter is for testing.
+reactor Print(expected: int(42)) {  // expected parameter is for testing.
     input in: int_pointer
 
     reaction(in) {=

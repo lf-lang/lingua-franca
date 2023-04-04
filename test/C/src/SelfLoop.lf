@@ -7,7 +7,7 @@ reactor Self {
     input x: int
     output y: int
     logical action a: int
-    state expected: int = 43
+    state expected: int(43)
 
     reaction(a) -> y {=
         printf("a = %d\n", a->value);

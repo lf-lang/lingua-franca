@@ -14,11 +14,11 @@ target Python {
     timeout: 5 sec
 }
 
-reactor Contained(incr = 1) {
+reactor Contained(incr(1)) {
     timer t(0, 1 sec)
     input inp
-    state count = 0
-    state received_count = 0
+    state count(0)
+    state received_count(0)
 
     reaction(t) {= self.count += self.incr =}
 
@@ -31,10 +31,10 @@ reactor Contained(incr = 1) {
     =}
 }
 
-reactor Looper(incr = 1, delay = 0 msec) {
+reactor Looper(incr(1), delay(0 msec)) {
     input inp
     output out
-    state count = 0
+    state count(0)
     timer t(0, 1 sec)
 
     c = new Contained(incr = incr)
@@ -59,7 +59,7 @@ reactor Looper(incr = 1, delay = 0 msec) {
     =}
 }
 
-federated reactor(delay = 0) {
+federated reactor(delay(0)) {
     left = new Looper()
     right = new Looper(incr = -1)
     left.out -> right.inp

@@ -5,7 +5,7 @@ target Cpp
 
 import Source, Print from "ArrayPrint.lf"
 
-reactor Scale(scale: int = 2) {
+reactor Scale(scale: int(2)) {
     input in: int[3]
 
     output out: int[3]

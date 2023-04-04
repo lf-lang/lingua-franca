@@ -2,15 +2,15 @@ target Cpp {
     fast: true
 }
 
-reactor Source(value: unsigned = 42) {
+reactor Source(value: unsigned(42)) {
     output out: unsigned
 
     reaction(startup) -> out {= out.set(value); =}
 }
 
-reactor Sink(bank_index: size_t = 0) {
+reactor Sink(bank_index: size_t(0)) {
     input in: unsigned
-    state received: bool = false
+    state received: bool{false}
 
     reaction(in) {=
         std::cout << bank_index << " received " << *in.get() << '\n';

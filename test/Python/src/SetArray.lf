@@ -9,7 +9,7 @@ reactor Source {
     reaction(startup) -> out {= out.set([0,1,2]) =}
 }
 
-reactor Print(scale = 1) {  # The scale parameter is just for testing.
+reactor Print(scale(1)) {  # The scale parameter is just for testing.
     input _in
 
     reaction(_in) {=

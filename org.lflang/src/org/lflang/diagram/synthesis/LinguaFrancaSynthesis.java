@@ -66,7 +66,6 @@ import org.lflang.ASTUtils;
 import org.lflang.AttributeUtils;
 import org.lflang.InferredType;
 import org.lflang.ast.FormattingUtils;
-import org.lflang.ast.ToText;
 import org.lflang.diagram.synthesis.action.CollapseAllReactorsAction;
 import org.lflang.diagram.synthesis.action.ExpandAllReactorsAction;
 import org.lflang.diagram.synthesis.action.FilterCycleAction;
@@ -1188,12 +1187,12 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
         b.append(param.getName());
         String t = param.type.toOriginalText();
         if (!StringExtensions.isNullOrEmpty(t)) {
-            b.append(": ").append(t);
+            b.append(":").append(t);
         }
-        if (param.getOverride() != null) {
-            b.append(" = ");
-            var init = param.getActualValue();
-            b.append(FormattingUtils.render(init));
+        if (!IterableExtensions.isNullOrEmpty(param.getInitialValue())) {
+            b.append("(");
+            b.append(IterableExtensions.join(param.getInitialValue(), ", ", ASTUtils::toOriginalText));
+            b.append(")");
         }
         return b.toString();
     }

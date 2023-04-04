@@ -3,7 +3,7 @@ target Rust
 
 reactor Child {
     input inp: i32
-    state done: bool = false
+    state done: bool(false)
 
     reaction(inp) {=
         assert_eq!(ctx.get(inp), Some(76600));

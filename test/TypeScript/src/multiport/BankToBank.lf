@@ -6,7 +6,7 @@ target TypeScript {
 reactor Source {
     timer t(0, 200 msec)
     output out: number
-    state s: number = 0
+    state s: number(0)
 
     reaction(t) -> out {=
         out = s;
@@ -15,7 +15,7 @@ reactor Source {
 }
 
 reactor Destination {
-    state s: number = 0
+    state s: number(0)
     input inp: number
 
     reaction(inp) {=
@@ -34,7 +34,7 @@ reactor Destination {
     =}
 }
 
-main reactor BankToBank(width: number = 4) {
+main reactor BankToBank(width: number(4)) {
     // FIXME: Should set the width to "width" rather than "4".
     a = new[4] Source()
     b = new[4] Destination()

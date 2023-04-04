@@ -10,7 +10,7 @@ reactor Source {
     reaction(a) -> out {= lf_set_token(out, a->token); =}
 }
 
-reactor Print(expected: int = 42) {  // expected parameter is for testing.
+reactor Print(expected: int(42)) {  // expected parameter is for testing.
     input in: int*
 
     reaction(in) {=

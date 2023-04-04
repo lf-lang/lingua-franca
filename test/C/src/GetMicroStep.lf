@@ -2,7 +2,7 @@
 target C
 
 main reactor GetMicroStep {
-    state s: int = 1
+    state s: int(1)
 
     logical action l
 

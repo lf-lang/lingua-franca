@@ -10,7 +10,7 @@ target C {
 import Source, Print from "ArrayPrint.lf"
 import Scale from "ArrayScale.lf"
 
-reactor Free(scale: int = 2, size: int = 3) {
+reactor Free(scale: int(2), size: int(3)) {
     mutable input in: int[]
 
     reaction(in) {=

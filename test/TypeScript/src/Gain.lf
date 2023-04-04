@@ -1,7 +1,7 @@
 // Example in the Wiki.
 target TypeScript
 
-reactor Scale(scale: number = 2) {
+reactor Scale(scale: number(2)) {
     input x: number
     output y: number
 
@@ -10,7 +10,7 @@ reactor Scale(scale: number = 2) {
 
 reactor Test {
     input x: number
-    state received_value: boolean = false
+    state received_value: boolean(false)
 
     reaction(x) {=
         console.log("Received " + x + ".");

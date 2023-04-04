@@ -17,7 +17,7 @@ target TypeScript {
 import Count from "../lib/Count.lf"
 
 reactor CountMicrostep {
-    state count: number = 1
+    state count: number(1)
     output out: number
     logical action act: number
     timer t(0, 1 sec)

@@ -3,7 +3,7 @@ target Python
 
 import Source from "MultiportToMultiport2.lf"
 
-reactor Destination(width = 2) {
+reactor Destination(width(2)) {
     input[width] _in
 
     reaction(_in) {=

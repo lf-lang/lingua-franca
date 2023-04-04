@@ -7,7 +7,7 @@ target Rust {
 reactor Source {
     timer t(0, 200 msec)
     output[4] out: u32
-    state s: u32 = 0
+    state s: u32(0)
 
     reaction(t) -> out {=
         for chan in out {
@@ -18,7 +18,7 @@ reactor Source {
 }
 
 reactor Destination {
-    state s: u32 = 6
+    state s: u32(6)
     input[4] in: u32
 
     reaction(in) {=

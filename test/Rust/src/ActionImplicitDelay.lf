@@ -3,7 +3,7 @@ target Rust
 
 main reactor ActionImplicitDelay {
     logical action act(40 msec)
-    state count: u64 = 1
+    state count: u64(1)
 
     reaction(startup) -> act {= ctx.schedule(act, Asap); =}
 

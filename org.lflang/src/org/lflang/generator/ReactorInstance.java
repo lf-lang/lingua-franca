@@ -26,9 +26,6 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 package org.lflang.generator;
 
-import static org.lflang.ASTUtils.belongsTo;
-import static org.lflang.ASTUtils.getLiteralTimeValue;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -36,7 +33,6 @@ import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 
 import org.eclipse.emf.ecore.util.EcoreUtil;
@@ -47,12 +43,10 @@ import org.lflang.ErrorReporter;
 import org.lflang.TimeValue;
 import org.lflang.generator.TriggerInstance.BuiltinTriggerVariable;
 import org.lflang.lf.Action;
-import org.lflang.lf.Assignment;
 import org.lflang.lf.BuiltinTrigger;
 import org.lflang.lf.BuiltinTriggerRef;
 import org.lflang.lf.Connection;
 import org.lflang.lf.Expression;
-import org.lflang.lf.Initializer;
 import org.lflang.lf.Input;
 import org.lflang.lf.Instantiation;
 import org.lflang.lf.LfFactory;
@@ -452,50 +446,29 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
      */
     public Integer initialIntParameterValue(Parameter parameter) {
         return ASTUtils.initialValueInt(parameter, instantiations());
-    }
+    }  
 
-    public Expression resolveParameters(Expression e) {
-        return LfExpressionVisitor.dispatch(e, this, ParameterInliner.INSTANCE);
-    }
-
-
-    private static final class ParameterInliner extends LfExpressionVisitor.LfExpressionDeepCopyVisitor<ReactorInstance> {
-        static final ParameterInliner INSTANCE = new ParameterInliner();
-
-        @Override
-        public Expression visitParameterRef(ParameterReference expr, ReactorInstance instance) {
-            if (!ASTUtils.belongsTo(expr.getParameter(), instance.definition)) {
-                throw new IllegalArgumentException("Parameter "
-                    + expr.getParameter().getName()
-                    + " is not a parameter of reactor instance "
-                    + instance.getName()
-                    + "."
-                );
-            }
-
-            Optional<Assignment> assignment =
-                instance.definition.getParameters().stream()
-                    .filter(it -> it.getLhs().equals(expr.getParameter()))
-                    .findAny(); // There is at most one
-
-            if (assignment.isPresent()) {
-                // replace the parameter with its value.
-                Expression value = ASTUtils.asSingleExpr(assignment.get().getRhs());
-                // recursively resolve parameters
-                return instance.getParent().resolveParameters(value);
-            } else {
-                // In that case use the default value. Default values
-                // cannot use parameter values, so they don't need to
-                // be recursively resolved.
-                Initializer init = expr.getParameter().getInit();
-                Expression defaultValue = ASTUtils.asSingleExpr(init);
-                if (defaultValue == null) {
-                    // this is a problem
-                    return super.visitParameterRef(expr, instance);
-                }
-                return defaultValue;
-            }
-        }
+    /**
+     * Given a parameter definition for this reactor, return the initial value
+     * of the parameter. If the parameter is overridden when instantiating
+     * this reactor or any of its containing reactors, use that value.
+     * Otherwise, use the default value in the reactor definition.
+     * 
+     * The returned list of Value objects is such that each element is an
+     * instance of Time, String, or Code, never Parameter.
+     * For most uses, this list has only one element, but parameter
+     * values can be lists of elements, so the returned value is a list.
+     * 
+     * @param parameter The parameter definition (a syntactic object in the AST).
+     * 
+     * @return A list of Value objects, or null if the parameter is not found.
+     *  Return an empty list if no initial value is given.
+     *  Each value is an instance of Literal if a literal value is given,
+     *  a Time if a time value was given, or a Code, if a code value was
+     *  given (text in the target language delimited by {= ... =}
+     */
+    public List<Expression> initialParameterValue(Parameter parameter) {
+        return ASTUtils.initialValue(parameter, instantiations());
     }
 
     /**
@@ -708,8 +681,14 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
      * precise time value assigned to this reactor instance.
      */
     public TimeValue getTimeValue(Expression expr) {
-        Expression resolved = resolveParameters(expr);
-        return getLiteralTimeValue(resolved);
+        if (expr instanceof ParameterReference) {
+            final var param = ((ParameterReference)expr).getParameter();
+            // Avoid a runtime error in validator for invalid programs.
+            if (lookupParameterInstance(param).getInitialValue().isEmpty()) return null;
+            return ASTUtils.getLiteralTimeValue(lookupParameterInstance(param).getInitialValue().get(0));
+        } else {
+            return ASTUtils.getLiteralTimeValue(expr);
+        }
     }
     
     //////////////////////////////////////////////////////

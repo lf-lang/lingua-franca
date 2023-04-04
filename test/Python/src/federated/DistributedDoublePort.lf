@@ -14,7 +14,7 @@ target Python {
 import Count from "../lib/Count.lf"
 
 reactor CountMicrostep {
-    state count = 1
+    state count(1)
     output out
     logical action act
     timer t(0, 1 sec)

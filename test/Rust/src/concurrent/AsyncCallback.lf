@@ -4,17 +4,17 @@ target Rust {
     cargo-features: ["cli"]
 }
 
-main reactor AsyncCallback(period: time = 10 msec) {
+main reactor AsyncCallback(period: time(10 msec)) {
     preamble {= use std::thread; =}
 
     timer t(0, period)
     state thread: Option<thread::JoinHandle<unit>>
-    state expected_time: time = period
-    state period: time = period
-    state toggle: bool = false
+    state expected_time: time(period)
+    state period: time(period)
+    state toggle: bool(false)
 
     physical action act
-    state i: u32 = 0
+    state i: u32(0)
 
     reaction(t) -> act {=
         let act = act.clone();

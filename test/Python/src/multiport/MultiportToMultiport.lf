@@ -6,10 +6,10 @@ target Python {
 
 import Destination from "MultiportToHierarchy.lf"
 
-reactor Source(width = 1) {
+reactor Source(width(1)) {
     timer t(0, 200 msec)
     output[width] out
-    state s = 0
+    state s(0)
 
     reaction(t) -> out {=
         for i in range(len(out)):

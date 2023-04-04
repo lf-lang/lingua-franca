@@ -3,7 +3,7 @@ target Python {
 }
 
 reactor HelloWorld2 {
-    state success = False
+    state success(False)
 
     reaction(startup) {=
         print("Hello World.")

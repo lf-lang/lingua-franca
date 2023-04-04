@@ -19,8 +19,8 @@ reactor Source {
 }
 
 reactor Print(
-    expected_value: int = 42,
-    expected_name: {= std::string =} = "Earth"
+    expected_value: int(42),
+    expected_name: {= std::string =}("Earth")
 ) {
     input in: Hello
 

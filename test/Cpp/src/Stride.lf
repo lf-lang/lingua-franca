@@ -5,8 +5,8 @@ target Cpp {
     fast: true
 }
 
-reactor Count(stride: int = 1) {
-    state count: int = 0
+reactor Count(stride: int(1)) {
+    state count: int(0)
     output y: int
     timer t(0, 100 msec)
 

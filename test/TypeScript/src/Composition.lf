@@ -4,10 +4,10 @@ target TypeScript {
     timeout: 5 sec
 }
 
-reactor Source(period: time = 2 sec) {
+reactor Source(period: time(2 sec)) {
     output y: number
     timer t(1 sec, period)
-    state count: number = 0
+    state count: number(0)
 
     reaction(t) -> y {=
         count++;
@@ -17,7 +17,7 @@ reactor Source(period: time = 2 sec) {
 
 reactor Test {
     input x: number
-    state count: number = 0
+    state count: number(0)
 
     reaction(x) {=
         count++;

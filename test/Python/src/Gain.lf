@@ -1,7 +1,7 @@
 # Example in the Wiki.
 target Python
 
-reactor Scale(scale = 2) {
+reactor Scale(scale(2)) {
     input x
     output y
 
@@ -10,7 +10,7 @@ reactor Scale(scale = 2) {
 
 reactor Test {
     input x
-    state received_value = 0
+    state received_value(0)
 
     reaction(x) {=
         print("Received " + str(x.value))

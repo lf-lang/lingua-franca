@@ -28,7 +28,6 @@ import org.lflang.InferredType
 import org.lflang.TimeUnit
 import org.lflang.TimeValue
 import org.lflang.generator.TargetTypes
-import org.lflang.joinWithCommas
 import org.lflang.lf.Initializer
 import org.lflang.lf.ParameterReference
 
@@ -72,24 +71,14 @@ val TimeUnit?.cppUnit
 /**
  * Returns a C++ variable initializer.
  */
-fun CppTypes.getCppInitializer(
-    init: Initializer?,
-    inferredType: InferredType,
-    disableEquals: Boolean = false,
-    typeAlias: String? = null
-): String =
-    if (init == null) {
+fun CppTypes.getCppInitializer(init: Initializer?, inferredType: InferredType): String {
+    return if (init == null) {
         "/*uninitialized*/"
-    } else if (init.isAssign && !disableEquals) {
-        val e = init.exprs.single()
-        " = " + getTargetExpr(e, inferredType)
-    } else if (init.isParens && typeAlias != null && !disableEquals) {
-        " = $typeAlias" + init.exprs.joinWithCommas("(", ")", trailing = false) {
-            getTargetExpr(it, inferredType.componentType)
-        }
     } else {
+        assert(init.isBraces || init.isParens)
         val (prefix, postfix) = if (init.isBraces) Pair("{", "}") else Pair("(", ")")
-        init.exprs.joinWithCommas(prefix, postfix, trailing = false) {
+        init.exprs.joinToString(", ", prefix, postfix) {
             getTargetExpr(it, inferredType.componentType)
         }
     }
+}

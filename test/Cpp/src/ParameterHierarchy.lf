@@ -7,7 +7,7 @@
  */
 target Cpp
 
-reactor Deep(p: int = 0) {
+reactor Deep(p: int(0)) {
     reaction(startup) {=
         if(p != 42) {
             reactor::log::Error() << "Parameter value is: " << p << ". Should have been 42.";
@@ -18,11 +18,11 @@ reactor Deep(p: int = 0) {
     =}
 }
 
-reactor Intermediate(p: int = 10) {
+reactor Intermediate(p: int(10)) {
     a = new Deep(p = p)
 }
 
-reactor Another(p: int = 20) {
+reactor Another(p: int(20)) {
     // also test forwarding parameters via target code blocks
     a = new Intermediate(p = {= p =})
 }

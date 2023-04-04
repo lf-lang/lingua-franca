@@ -9,7 +9,7 @@ target C {
 reactor SenderAndReceiver {
     output out: int
     input[2] in: int
-    state received: bool = false
+    state received: bool(false)
 
     reaction(startup) -> out {= lf_set(out, 42); =}
 

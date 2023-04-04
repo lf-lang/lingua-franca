@@ -5,7 +5,7 @@ target Cpp {
 main reactor {
     timer t(1 sec, 1 sec)
 
-    state triggered: bool = false
+    state triggered: bool{false}
 
     reaction(t) {=
         triggered = true;

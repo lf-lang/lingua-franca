@@ -7,9 +7,9 @@ target C {
 
 import TestCountMultiport from "../lib/TestCountMultiport.lf"
 
-main reactor(width: int = 2) {
+main reactor(width: int(2)) {
     timer t(0, 100 msec)
-    state count: int = 1
+    state count: int(1)
 
     test = new[width] TestCountMultiport(num_inputs = 11, width = width)
 

@@ -8,7 +8,7 @@ import Count from "../lib/Count.lf"
 reactor Destination {
     preamble {= import sys =}
     input[2] in_
-    state count = 1
+    state count(1)
 
     reaction(in_) {=
         for i in range(len(in_)):

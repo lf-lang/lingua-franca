@@ -7,7 +7,7 @@ target Python {
 reactor Node {
     preamble {= import sys =}
     timer t(0, 100 msec)
-    state count = 0
+    state count(0)
 
     reaction(t) {=
         print("Hello world {}.".format(self.count))

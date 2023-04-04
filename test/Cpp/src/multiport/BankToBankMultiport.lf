@@ -4,10 +4,10 @@ target Cpp {
     fast: true
 }
 
-reactor Source(width: size_t = 1) {
+reactor Source(width: size_t(1)) {
     timer t(0, 200 msec)
     output[width] out: int
-    state s: int = 0
+    state s: int(0)
 
     reaction(t) -> out {=
         for(size_t i = 0; i < out.size(); i++) {
@@ -16,8 +16,8 @@ reactor Source(width: size_t = 1) {
     =}
 }
 
-reactor Destination(width: size_t = 1) {
-    state s: int = 6
+reactor Destination(width: size_t(1)) {
+    state s: int(6)
     input[width] in: int
 
     reaction(in) {=
@@ -44,7 +44,7 @@ reactor Destination(width: size_t = 1) {
     =}
 }
 
-main reactor(bank_width: size_t = 4) {
+main reactor(bank_width: size_t(4)) {
     a = new[bank_width] Source(width = 4)
     b = new[bank_width] Destination(width = 4)
     a.out -> b.in

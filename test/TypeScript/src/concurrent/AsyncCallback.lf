@@ -17,11 +17,11 @@ main reactor AsyncCallback {
         }
     =}
     timer t(0, 200 msec)
-    state expected_time: time = 100 msec
-    state toggle: boolean = false
+    state expected_time: time(100 msec)
+    state toggle: boolean(false)
 
     physical action a(100 msec): number
-    state i: number = 0
+    state i: number(0)
 
     reaction(t) -> a {=
         // set a timeout for the callback

@@ -13,13 +13,13 @@ target Rust {
  * @param break_interval: Determines how long the reactor should take a break
  * after sending take_a_break_after messages.
  */
-reactor Sender(take_a_break_after: u32 = 10, break_interval: time = 400 msec) {
+reactor Sender(take_a_break_after: u32(10), break_interval: time(400 msec)) {
     output out: u32
     logical action act
-    state sent_messages: u32 = 0
+    state sent_messages: u32(0)
 
-    state take_a_break_after = take_a_break_after
-    state break_interval = break_interval
+    state take_a_break_after(take_a_break_after)
+    state break_interval(break_interval)
 
     reaction(startup, act) -> act, out {=
         // Send a message on out
@@ -40,7 +40,7 @@ reactor Sender(take_a_break_after: u32 = 10, break_interval: time = 400 msec) {
 
 reactor Consumer {
     input in_: u32
-    state reaction_invoked_correctly: bool = false
+    state reaction_invoked_correctly: bool(false)
 
     reaction(in_) {=
         let current_tag = ctx.get_tag();

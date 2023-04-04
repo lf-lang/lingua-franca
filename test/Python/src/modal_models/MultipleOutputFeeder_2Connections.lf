@@ -28,11 +28,11 @@ reactor Modal {
     }
 }
 
-reactor Counter(period = 1 sec) {
+reactor Counter(period(1 sec)) {
     output value
 
     timer t(0, period)
-    reset state curval = 0
+    reset state curval(0)
 
     reaction(t) -> value {=
         value.set(self.curval)

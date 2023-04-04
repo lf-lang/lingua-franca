@@ -10,8 +10,8 @@ target Python {
 
 main reactor SlowingClock {
     logical action a(100 msec)
-    state interval = 100 msec
-    state expected_time = 100 msec
+    state interval(100 msec)
+    state expected_time(100 msec)
 
     reaction(startup) -> a {= a.schedule(0) =}
 

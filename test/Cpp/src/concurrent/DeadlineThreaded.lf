@@ -5,13 +5,13 @@ target Cpp {
     timeout: 4 sec
 }
 
-reactor Source(period: time = 2 sec) {
+reactor Source(period: time(2 sec)) {
     private preamble {=
         #include <thread>
     =}
     output y: int
     timer t(0, period)
-    state count: int = 0
+    state count: int(0)
 
     reaction(t) -> y {=
         if (count % 2 == 1) {
@@ -25,9 +25,9 @@ reactor Source(period: time = 2 sec) {
     =}
 }
 
-reactor Destination(timeout: time = 1 sec) {
+reactor Destination(timeout: time(1 sec)) {
     input x: int
-    state count: int = 0
+    state count: int(0)
 
     reaction(x) {=
         std::cout << "Destination receives: " << *x.get() << std::endl;

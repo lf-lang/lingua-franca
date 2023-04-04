@@ -13,13 +13,13 @@ main reactor {
     (a.x)+ -> c.z, d.u, e.t
 }
 
-reactor A(bank_index = 0) {
+reactor A(bank_index(0)) {
     output[4] x
     b = new[2] B(a_bank_index = bank_index)
     b.y -> x
 }
 
-reactor B(a_bank_index = 0, bank_index = 0) {
+reactor B(a_bank_index(0), bank_index(0)) {
     output[2] y
 
     reaction(startup) -> y {=
@@ -29,7 +29,7 @@ reactor B(a_bank_index = 0, bank_index = 0) {
     =}
 }
 
-reactor C(bank_index = 0) {
+reactor C(bank_index(0)) {
     input[2] z
     f = new F(c_bank_index = bank_index)
     g = new G(c_bank_index = bank_index)
@@ -57,7 +57,7 @@ reactor E {
     =}
 }
 
-reactor F(c_bank_index = 0) {
+reactor F(c_bank_index(0)) {
     input w
 
     reaction(w) {=
@@ -68,7 +68,7 @@ reactor F(c_bank_index = 0) {
     =}
 }
 
-reactor G(c_bank_index = 0) {
+reactor G(c_bank_index(0)) {
     input s
 
     reaction(s) {=

@@ -5,10 +5,10 @@ target Python {
     fast: true
 }
 
-reactor Clock(offset = 0, period = 1 sec) {
+reactor Clock(offset(0), period(1 sec)) {
     output y
     timer t(offset, period)
-    state count = 0
+    state count(0)
 
     reaction(t) -> y {=
         self.count += 1
@@ -19,7 +19,7 @@ reactor Clock(offset = 0, period = 1 sec) {
 reactor Destination {
     input x
     input w
-    state s = 2
+    state s(2)
 
     reaction(x, w) {=
         sm = 0

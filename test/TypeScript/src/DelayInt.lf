@@ -2,7 +2,7 @@
 // is a start at handling dynamic memory allocation for such actions.
 target TypeScript
 
-reactor Delay(delay: time = 100 msec) {
+reactor Delay(delay: time(100 msec)) {
     input x: number
     output out: number
     logical action a: number
@@ -18,8 +18,8 @@ reactor Delay(delay: time = 100 msec) {
 
 reactor Test {
     input x: number
-    state start_time: time = 0
-    state received_value: boolean = false
+    state start_time: time(0)
+    state received_value: boolean(false)
 
     reaction(startup) {=
         // Record the logical time at the start.

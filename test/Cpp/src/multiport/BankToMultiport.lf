@@ -1,7 +1,7 @@
 // Test bank of reactors to multiport input with id parameter in the bank.
 target Cpp
 
-reactor Source(bank_index: size_t = 0) {
+reactor Source(bank_index: size_t(0)) {
     output out: unsigned
 
     reaction(startup) -> out {= out.set(bank_index); =}
@@ -9,7 +9,7 @@ reactor Source(bank_index: size_t = 0) {
 
 reactor Sink {
     input[4] in: unsigned
-    state received: bool = false
+    state received: bool(false)
 
     reaction(in) {=
         for (unsigned i = 0; i < in.size(); i++) {

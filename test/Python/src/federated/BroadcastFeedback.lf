@@ -8,7 +8,7 @@ target Python {
 reactor SenderAndReceiver {
     output out
     input[2] inp
-    state received = False
+    state received(False)
 
     reaction(startup) -> out {= out.set(42) =}
 

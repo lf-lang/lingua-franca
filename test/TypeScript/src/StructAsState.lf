@@ -8,7 +8,7 @@ main reactor StructAsState {
             value: number;
         }
     =}
-    state s: hello_t = {= {name: "Earth", value: 42} =}
+    state s: hello_t({= {name: "Earth", value: 42} =})
 
     reaction(startup) {=
         console.log("State s.name=" + s.name + ", s.value=" + s.value);

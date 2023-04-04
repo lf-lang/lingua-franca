@@ -11,7 +11,7 @@ reactor Sender {
     output out: number
     timer t(0, 1 usec)
     logical action act
-    state reaction_invoked_correctly: boolean = false
+    state reaction_invoked_correctly: boolean(false)
 
     reaction(t, act) -> out, act {=
         console.log(`Sending 42 at (${util.getElapsedLogicalTime()}, `
@@ -58,10 +58,10 @@ reactor Sender {
 }
 
 reactor Receiver(
-    stp_offset: time = 10 msec  // Used in the decentralized variant of the test
+    stp_offset: time(10 msec)  // Used in the decentralized variant of the test
 ) {
     input in1: number
-    state reaction_invoked_correctly: boolean = false
+    state reaction_invoked_correctly: boolean(false)
 
     reaction(in1) {=
         console.log(`Received ${in1} at (${util.getElapsedLogicalTime()}, `

@@ -4,9 +4,9 @@ target Cpp {
 }
 
 reactor Node(
-    id: std::string = "node",
-    period: time = 100 msec,
-    duration: time = 50 msec
+    id: std::string("node"),
+    period: time(100 msec),
+    duration: time(50 msec)
 ) {
     timer t(0, period)
 

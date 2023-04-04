@@ -34,7 +34,7 @@ main reactor {
     timer stepper(0, 250 msec)
     counter = new CounterCycle()
 
-    state expected_value = 1
+    state expected_value(1)
 
     reaction(stepper) -> counter.next {= counter.next.set(True) =}  # Trigger
 

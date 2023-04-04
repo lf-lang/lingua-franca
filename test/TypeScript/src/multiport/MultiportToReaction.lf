@@ -3,9 +3,9 @@ target TypeScript {
     timeout: 2 sec
 }
 
-reactor Source(width: number = 1) {
+reactor Source(width: number(1)) {
     timer t(0, 200 msec)
-    state s: number = 0
+    state s: number(0)
     output[width] out: number
 
     reaction(t) -> out {=
@@ -17,7 +17,7 @@ reactor Source(width: number = 1) {
 }
 
 main reactor MultiportToReaction {
-    state s: number = 6
+    state s: number(6)
     b = new Source(width = 4)
 
     reaction(b.out) {=

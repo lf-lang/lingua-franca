@@ -1,10 +1,10 @@
 target Rust
 
-reactor Node(bank_index: usize = 0, num_nodes: usize = 4) {
+reactor Node(bank_index: usize(0), num_nodes: usize(4)) {
     input[num_nodes] in: usize
     output out: usize
-    state bank_index = bank_index
-    state num_nodes = num_nodes
+    state bank_index(bank_index)
+    state num_nodes(num_nodes)
 
     reaction(startup) -> out {= ctx.set(out, self.bank_index); =}
 
@@ -15,7 +15,7 @@ reactor Node(bank_index: usize = 0, num_nodes: usize = 4) {
     =}
 }
 
-main reactor(num_nodes: usize = 4) {
+main reactor(num_nodes: usize(4)) {
     nodes = new[num_nodes] Node(num_nodes = num_nodes)
     (nodes.out)+ -> nodes.in
 }

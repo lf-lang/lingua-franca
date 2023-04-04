@@ -8,7 +8,7 @@
  */
 target Cpp
 
-reactor ReactorWithMultiport(width: size_t = 3) {
+reactor ReactorWithMultiport(width: size_t(3)) {
     output[width] out: int
 
     reaction(startup) -> out {=
@@ -18,7 +18,7 @@ reactor ReactorWithMultiport(width: size_t = 3) {
     =}
 }
 
-reactor MultiportSplitter(width: size_t = 3) {
+reactor MultiportSplitter(width: size_t(3)) {
     input[width] in: int
 
     output out0: int
@@ -34,9 +34,9 @@ main reactor IndexIntoMultiportOutput {
 
     source.out -> splitter.in
 
-    state received0: bool = false
-    state received1: bool = false
-    state received2: bool = false
+    state received0: bool{false}
+    state received1: bool{false}
+    state received2: bool{false}
 
     reaction(splitter.out0) {=
         received0 = true;

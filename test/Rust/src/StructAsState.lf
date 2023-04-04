@@ -15,7 +15,7 @@ main reactor StructAsState {
      * - state s: Hello(name: "Earth".into(), value: 42);
      * - state s: Hello { name: "Earth".into(), value: 42 };
      */
-    state s: Hello = {= Hello { name: "Earth".into(), value: 42 } =}
+    state s: Hello({= Hello { name: "Earth".into(), value: 42 } =})
 
     reaction(startup) {=
         println!("State s.name=\"{}\", s.value={}.", self.s.name, self.s.value);

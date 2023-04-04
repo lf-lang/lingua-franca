@@ -2,7 +2,7 @@
 // container reacts to that output.
 target C
 
-reactor Deadline(threshold: time = 100 msec) {
+reactor Deadline(threshold: time(100 msec)) {
     input x: int
     output deadline_violation: bool
 
@@ -16,7 +16,7 @@ reactor Deadline(threshold: time = 100 msec) {
 }
 
 main reactor {
-    state violation_detected: bool = false
+    state violation_detected: bool(false)
     d = new Deadline(threshold = 10 msec)
 
     reaction(startup) -> d.x {=

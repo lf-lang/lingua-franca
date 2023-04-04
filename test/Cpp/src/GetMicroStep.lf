@@ -2,7 +2,7 @@
 target Cpp
 
 main reactor GetMicroStep {
-    state s: {= reactor::mstep_t =} = 1
+    state s: {= reactor::mstep_t =}(1)
 
     logical action l
 

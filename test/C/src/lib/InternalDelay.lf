@@ -1,6 +1,6 @@
 target C
 
-reactor InternalDelay(delay: int = 10 msec) {
+reactor InternalDelay(delay: int(10 msec)) {
     input in: int
     output out: int
     logical action d: int

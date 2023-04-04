@@ -5,7 +5,7 @@ target Python {
     fast: true
 }
 
-reactor Source(check_override = 0, bank_index = 0) {
+reactor Source(check_override(0), bank_index(0)) {
     output out
 
     reaction(startup) -> out {=
@@ -15,7 +15,7 @@ reactor Source(check_override = 0, bank_index = 0) {
 
 reactor Destination {
     input[3] _in
-    state received = 0
+    state received(0)
 
     reaction(_in) {=
         for (idx, port) in enumerate(_in):

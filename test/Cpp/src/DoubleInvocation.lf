@@ -14,7 +14,7 @@ target Cpp {
 reactor Ball {
     output position: int
     output velocity: int
-    state p: int = 200
+    state p: int(200)
     timer trigger(0, 1 sec)
 
     reaction(trigger) -> position, velocity {=
@@ -27,7 +27,7 @@ reactor Ball {
 reactor Print {
     input velocity: int
     input position: int
-    state previous: int = -1
+    state previous: int(-1)
 
     reaction(startup) {=
         reactor::log::Info() << "####### Print startup";

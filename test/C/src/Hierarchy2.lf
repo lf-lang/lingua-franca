@@ -14,7 +14,7 @@ reactor Source {
 reactor Count {
     output out: int
     timer t(0, 1 sec)
-    state i: int = 0
+    state i: int(0)
 
     reaction(t) -> out {=
         (self->i)++;
@@ -37,7 +37,7 @@ reactor Add {
 
 reactor Print {
     input in: int
-    state expected: int = 2
+    state expected: int(2)
 
     reaction(in) {=
         printf("Received: %d.\n", in->value);

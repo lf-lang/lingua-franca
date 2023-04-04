@@ -1,13 +1,13 @@
 target Rust
 
 reactor Print(
-    value: i32 = 42,
-    name: String = {= "xxx".into() =},
-    other: bool = false
+    value: i32(42),
+    name: String({= "xxx".into() =}),
+    other: bool(false)
 ) {
-    state value = value
-    state name = name
-    state other = other
+    state value(value)
+    state name(name)
+    state other(other)
 
     reaction(startup) {=
         assert_eq!(42, self.value);

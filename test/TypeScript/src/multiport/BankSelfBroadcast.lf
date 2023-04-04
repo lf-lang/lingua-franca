@@ -12,7 +12,7 @@ target TypeScript
 reactor A {
     input[4] inp: number
     output out: number
-    state received: boolean = false
+    state received: boolean(false)
 
     reaction(startup) -> out {= out = this.getBankIndex(); =}
 

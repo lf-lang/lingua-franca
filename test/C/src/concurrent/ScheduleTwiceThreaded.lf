@@ -2,7 +2,7 @@ target C
 
 main reactor {
     logical action a: int
-    state rc_count: int = 0
+    state rc_count: int(0)
 
     reaction(startup) -> a {=
         lf_schedule_int(a, MSEC(100), 42);

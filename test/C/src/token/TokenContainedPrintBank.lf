@@ -10,7 +10,7 @@ target C {
 import TokenPrint from "lib/Token.lf"
 
 main reactor {
-    state count: int = 0
+    state count: int(0)
     timer t(0, 1 ms)
     p = new[2] TokenPrint()
 

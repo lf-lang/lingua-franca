@@ -14,9 +14,9 @@ target C {
 
 main reactor Fade {
     timer t1(0, 30 msec)
-    state led: int = 9
-    state brightness: int = 9
-    state fadeAmount: int = 5
+    state led: int(9)
+    state brightness: int(9)
+    state fadeAmount: int(5)
 
     reaction(startup) {= pinMode(self->led, OUTPUT); =}
 

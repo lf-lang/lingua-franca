@@ -2,7 +2,7 @@ target Cpp {
     timeout: 1 sec
 }
 
-reactor Node(message: std::string = "Hello", period: time = 1 sec) {
+reactor Node(message: std::string("Hello"), period: time(1 sec)) {
     timer t(0, period)
 
     reaction(t) {= reactor::log::Info() << message; =}

@@ -4,8 +4,10 @@ import java.util.List;
 import java.util.ArrayList;
 import org.lflang.ASTUtils;
 import org.lflang.Target;
+import org.lflang.federated.generator.FederateInstance;
 import org.lflang.generator.ActionInstance;
 import org.lflang.generator.CodeBuilder;
+import org.lflang.generator.GeneratorBase;
 import org.lflang.generator.ReactorInstance;
 import org.lflang.lf.Action;
 import org.lflang.lf.Reactor;
@@ -38,10 +40,9 @@ public class CActionGenerator {
                 var triggerStructName = CUtil.reactorRef(action.getParent()) + "->_lf__" + action.getName();
                 var minDelay = action.getMinDelay();
                 var minSpacing = action.getMinSpacing();
-                var offsetInitializer = triggerStructName+".offset = " + CTypes.getInstance().getTargetTimeExpr(minDelay)
-                    + ";";
+                var offsetInitializer = triggerStructName+".offset = " + GeneratorBase.timeInTargetLanguage(minDelay) + ";";
                 var periodInitializer = triggerStructName+".period = " + (minSpacing != null ?
-                    CTypes.getInstance().getTargetTimeExpr(minSpacing) :
+                                                                         GeneratorBase.timeInTargetLanguage(minSpacing) :
                                                                          CGenerator.UNDEFINED_MIN_SPACING) + ";";
                 code.addAll(List.of(
                     "// Initializing action "+action.getFullName(),

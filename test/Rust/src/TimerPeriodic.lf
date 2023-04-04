@@ -3,7 +3,7 @@ target Rust {
 }
 
 main reactor TimerPeriodic {
-    state i: i32 = 0
+    state i: i32(0)
     timer t2(0, 3 msec)
 
     reaction(t2) {=

@@ -20,7 +20,7 @@ reactor Print {
     =}
 }
 
-reactor Check(expected: int = 42) {  // expected parameter is for testing.
+reactor Check(expected: int(42)) {  // expected parameter is for testing.
     input in: hello_t*
 
     reaction(in) {=

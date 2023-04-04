@@ -7,7 +7,7 @@ import Count from "lib/Count.lf"
 
 reactor Test {
     input c: int
-    state i: int = 0
+    state i: int(0)
 
     reaction(c) {=
         i++;

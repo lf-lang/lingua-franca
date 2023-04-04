@@ -10,7 +10,7 @@ preamble {= import hello =}
 reactor Source {
     output out
     timer t(0, 1 sec)
-    state s = 0
+    state s(0)
 
     reaction(t) -> out {=
         self.s += 1
@@ -20,7 +20,7 @@ reactor Source {
 
 reactor Print {  # expected parameter is for testing.
     input _in
-    state s = 0
+    state s(0)
 
     reaction(_in) {=
         self.s += 1

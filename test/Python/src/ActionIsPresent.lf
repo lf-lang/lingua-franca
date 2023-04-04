@@ -1,10 +1,10 @@
 # Tests the is_present variable for actions.
 target Python
 
-main reactor ActionIsPresent(offset = 1 nsec, period = 500 msec) {
+main reactor ActionIsPresent(offset(1 nsec), period(500 msec)) {
     logical action a
-    state first_time = True
-    state success = False
+    state first_time(True)
+    state success(False)
 
     reaction(startup, a) -> a {=
         # The is_present field should be initially False

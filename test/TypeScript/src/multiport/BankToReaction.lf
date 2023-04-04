@@ -5,7 +5,7 @@ target TypeScript {
 import Count from "../lib/Count.lf"
 
 main reactor {
-    state count: number = 1
+    state count: number(1)
 
     s = new[2] Count()
 

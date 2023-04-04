@@ -26,7 +26,6 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 package org.lflang.generator.python;
 
-import org.lflang.InferredType;
 import org.lflang.generator.ReactorInstance;
 import org.lflang.generator.GeneratorBase;
 import org.lflang.generator.c.CUtil;
@@ -144,6 +143,25 @@ public class PyUtil extends CUtil {
      * @return A value string in the target language
      */
     protected static String getPythonTargetValue(Expression expr) {
-        return PythonTypes.getInstance().getTargetExpr(expr, InferredType.undefined());
+        String returnValue;
+        switch (ASTUtils.toOriginalText(expr)) {
+            case "false":
+                returnValue = "False";
+                break;
+            case "true":
+                returnValue = "True";
+                break;
+            default: 
+                returnValue = GeneratorBase.getTargetValue(expr);
+        }
+
+        // Parameters in Python are always prepended with a 'self.'
+        // predicate. Therefore, we need to append the returned value
+        // if it is a parameter.
+        if (expr instanceof ParameterReference) {
+            returnValue = "self." + returnValue;
+        }
+
+        return returnValue;
     }
 }

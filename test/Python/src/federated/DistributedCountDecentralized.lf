@@ -16,7 +16,7 @@ import Count from "../lib/Count.lf"
 reactor Print {
     preamble {= import sys =}
     input in_
-    state c = 1
+    state c(1)
 
     reaction(in_) {=
         print(f"At tag ({lf.time.logical_elapsed()}, {lf.tag().microstep}), received {in_.value}. "

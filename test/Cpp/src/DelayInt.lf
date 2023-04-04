@@ -1,7 +1,7 @@
 // This tests actions with payloads by delaying an input by a fixed amount.
 target Cpp
 
-reactor Delay(delay: time = 100 msec) {
+reactor Delay(delay: time(100 msec)) {
     input in: int
     output out: int
     logical action d: int

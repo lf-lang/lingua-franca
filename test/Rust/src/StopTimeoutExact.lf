@@ -9,7 +9,7 @@ target Rust {
 main reactor StopTimeoutExact {
     timer t(0, 10 msec)  // the fifth triggering will coincide with the timeout
 
-    state reacted_on_shutdown: bool = false
+    state reacted_on_shutdown: bool(false)
 
     reaction(t) {=
         if ctx.get_tag() == tag!(T0 + 50 ms) {

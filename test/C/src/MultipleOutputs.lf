@@ -20,7 +20,7 @@ reactor C {
 
 main reactor {
     c = new C()
-    state triggered: bool = true
+    state triggered: bool(true)
 
     reaction(c.z) {=
         lf_print("c.z = %d", c.z->value);

@@ -9,7 +9,7 @@ target C {
 
 import Print, Source from "ArrayPrint.lf"
 
-reactor Scale(scale: int = 2) {
+reactor Scale(scale: int(2)) {
     mutable input in: int[]
     output out: int[]
 

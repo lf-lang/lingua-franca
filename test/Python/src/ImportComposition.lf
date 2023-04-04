@@ -6,7 +6,7 @@ import ImportedComposition from "lib/ImportedComposition.lf"
 
 main reactor ImportComposition {
     a = new ImportedComposition()
-    state received = False
+    state received(false)
 
     reaction(startup) -> a.x {= a.x.set(42) =}
 

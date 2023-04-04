@@ -11,11 +11,11 @@ reactor Source {
     =}
 }
 
-reactor Sink(bank_index: usize = 0) {
+reactor Sink(bank_index: usize(0)) {
     input in: usize
-    state bank_index = bank_index
+    state bank_index(bank_index)
 
-    state asserts_done: u32 = 0
+    state asserts_done: u32(0)
 
     reaction(in) {=
         assert_eq!(ctx.get(r#in), Some(self.bank_index));

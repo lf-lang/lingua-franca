@@ -3,7 +3,7 @@ target C
 reactor Container {
     input in: bool
 
-    state triggered: bool = false
+    state triggered: bool(false)
 
     contained = new Contained()
 
@@ -21,7 +21,7 @@ reactor Container {
 reactor Contained {
     input in: bool
 
-    state triggered: bool = false
+    state triggered: bool(false)
 
     reaction(in) {= self->triggered = true; =}
 

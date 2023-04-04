@@ -1,8 +1,8 @@
 target C
 
-reactor TestDouble(expected: double[] = {1.0, 1.0, 1.0, 1.0}) {
+reactor TestDouble(expected: double[](1.0, 1.0, 1.0, 1.0)) {
     input in: double
-    state count: int = 0
+    state count: int(0)
 
     reaction(in) {=
         printf("Received: %f\n", in->value);

@@ -11,8 +11,8 @@ import TestCount from "../lib/TestCount.lf"
 
 reactor WithLogicalAction {
     output out: int
-    state thread_id: lf_thread_t = 0
-    state counter: int = 1
+    state thread_id: lf_thread_t(0)
+    state counter: int(1)
     logical action act(0): int
 
     reaction(startup, act) -> act, out {=

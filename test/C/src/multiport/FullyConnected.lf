@@ -1,10 +1,10 @@
 target C
 
-reactor Node(num_nodes: size_t = 4, bank_index: int = 0) {
+reactor Node(num_nodes: size_t(4), bank_index: int(0)) {
     input[num_nodes] in: int
     output out: int
 
-    state received: bool = false
+    state received: bool(false)
 
     reaction(startup) -> out {=
         lf_print("Hello from node %d!", self->bank_index);
@@ -35,7 +35,7 @@ reactor Node(num_nodes: size_t = 4, bank_index: int = 0) {
     =}
 }
 
-main reactor(num_nodes: size_t = 4) {
+main reactor(num_nodes: size_t(4)) {
     nodes = new[num_nodes] Node(num_nodes = num_nodes)
     (nodes.out)+ -> nodes.in
 }

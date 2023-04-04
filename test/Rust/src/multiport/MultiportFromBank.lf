@@ -3,14 +3,14 @@ target Rust {
     timeout: 2 sec
 }
 
-reactor Source(bank_index: usize = 0) {
+reactor Source(bank_index: usize(0)) {
     output out: usize
-    state bank_index = bank_index
+    state bank_index(bank_index)
 
     reaction(startup) -> out {= ctx.set(out, self.bank_index); =}
 }
 
-reactor Destination(port_width: usize = 2) {
+reactor Destination(port_width: usize(2)) {
     input[port_width] in: usize
 
     reaction(in) {=

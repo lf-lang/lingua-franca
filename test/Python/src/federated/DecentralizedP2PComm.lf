@@ -5,13 +5,13 @@ target Python {
     coordination: decentralized
 }
 
-reactor Platform(start = 0, expected_start = 0, stp_offset_param = 0) {
+reactor Platform(start(0), expected_start(0), stp_offset_param(0)) {
     preamble {= import sys =}
     input in_
     output out
     timer t(0, 100 msec)
-    state count = start
-    state expected = expected_start
+    state count(start)
+    state expected(expected_start)
 
     reaction(t) -> out {=
         out.set(self.count)

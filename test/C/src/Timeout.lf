@@ -11,7 +11,7 @@ import Sender from "lib/LoopedActionSender.lf"
 
 reactor Consumer {
     input in: int
-    state success: bool = false
+    state success: bool(false)
 
     reaction(in) {=
         tag_t current_tag = lf_tag();

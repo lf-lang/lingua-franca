@@ -1,7 +1,7 @@
 target Python
 
 reactor Super {
-    state count = 0
+    state count(0)
 
     reaction(startup) {=
         print("{:s}(Super) started".format(self.name))
@@ -15,7 +15,7 @@ reactor Super {
     =}
 }
 
-reactor SubA(name = "SubA") extends Super {
+reactor SubA(name("SubA")) extends Super {
     reaction(startup) {=
         print("{:s} started".format(self.name))
         if self.count == 0:
@@ -24,7 +24,7 @@ reactor SubA(name = "SubA") extends Super {
     =}
 }
 
-reactor SubB(name = "SubB") extends Super {
+reactor SubB(name("SubB")) extends Super {
     reaction(startup) {=
         print("{:s} started".format(self.name))
         if self.count == 0:

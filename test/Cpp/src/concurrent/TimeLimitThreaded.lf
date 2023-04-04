@@ -6,10 +6,10 @@ target Cpp {
     fast: true
 }
 
-reactor Clock(offset: time = 0, period: time = 1 sec) {
+reactor Clock(offset: time(0), period: time(1 sec)) {
     output y: int
     timer t(offset, period)
-    state count: int = 0
+    state count: int(0)
 
     reaction(t) -> y {=
         count++;
@@ -20,7 +20,7 @@ reactor Clock(offset: time = 0, period: time = 1 sec) {
 
 reactor Destination {
     input x: int
-    state s: int = 1
+    state s: int(1)
 
     reaction(x) {=
         //std::cout << "Received " << *x.get() << '\n';
@@ -40,7 +40,7 @@ reactor Destination {
     =}
 }
 
-main reactor(period: time = 1 sec) {
+main reactor(period: time(1 sec)) {
     timer stop(10 sec)
     c = new Clock(period = period)
     d = new Destination()

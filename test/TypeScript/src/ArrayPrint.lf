@@ -15,7 +15,7 @@ reactor Source {
     =}
 }
 
-reactor Print(scale: number = 1) {  // The scale parameter is just for testing.
+reactor Print(scale: number(1)) {  // The scale parameter is just for testing.
     input x: {= Array<number> =}
 
     reaction(x) {=

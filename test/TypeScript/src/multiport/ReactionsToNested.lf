@@ -4,9 +4,9 @@ target TypeScript {
     timeout: 1 sec
 }
 
-reactor T(expected: number = 0) {
+reactor T(expected: number(0)) {
     input z: number
-    state received: boolean = false
+    state received: boolean(false)
 
     reaction(z) {=
         console.log("T received " + z);

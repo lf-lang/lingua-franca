@@ -1,7 +1,7 @@
 // Test multiport to multiport connections. See also MultiportToMultiport.
 target TypeScript
 
-reactor Source(width: number = 2) {
+reactor Source(width: number(2)) {
     output[width] out: number
 
     reaction(startup) -> out {=
@@ -11,7 +11,7 @@ reactor Source(width: number = 2) {
     =}
 }
 
-reactor Destination(width: number = 2) {
+reactor Destination(width: number(2)) {
     input[width] inp: number
 
     reaction(inp) {=

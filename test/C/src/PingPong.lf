@@ -25,10 +25,10 @@ target C {
     fast: true
 }
 
-reactor Ping(count: int = 10) {
+reactor Ping(count: int(10)) {
     input receive: int
     output send: int
-    state pingsLeft: int = count
+    state pingsLeft: int(count)
     logical action serve
 
     reaction(startup, serve) -> send {= lf_set(send, self->pingsLeft--); =}
@@ -42,10 +42,10 @@ reactor Ping(count: int = 10) {
     =}
 }
 
-reactor Pong(expected: int = 10) {
+reactor Pong(expected: int(10)) {
     input receive: int
     output send: int
-    state count: int = 0
+    state count: int(0)
 
     reaction(receive) -> send {=
         self->count++;

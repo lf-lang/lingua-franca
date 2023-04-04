@@ -6,7 +6,7 @@ target TypeScript {
 
 import Source, Destination from "MultiportFromBank.lf"
 
-reactor Container(portWidth: number = 3) {
+reactor Container(portWidth: number(3)) {
     output[portWidth] out: number
     s = new[portWidth] Source()
     s.out -> out

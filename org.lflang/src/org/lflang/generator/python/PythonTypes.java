@@ -1,20 +1,27 @@
 package org.lflang.generator.python;
 
-import java.util.List;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
+import org.lflang.ErrorReporter;
 import org.lflang.InferredType;
-import org.lflang.generator.ReactorInstance;
 import org.lflang.generator.c.CTypes;
-import org.lflang.generator.c.CUtil;
-import org.lflang.lf.ParameterReference;
 
 public class PythonTypes extends CTypes {
 
     // Regular expression pattern for pointer types. The star at the end has to be visible.
     static final Pattern pointerPatternVariable = Pattern.compile("^\\s*+(\\w+)\\s*\\*\\s*$");
-    private static final PythonTypes INSTANCE = new PythonTypes();
+
+    /**
+     * Initializes a {@code CTargetTypes} with the given
+     * error reporter.
+     *
+     * @param errorReporter The error reporter for any
+     *                      errors raised in the code
+     *                      generation process.
+     */
+    public PythonTypes(ErrorReporter errorReporter) {
+        super(errorReporter);
+    }
 
     @Override
     public String getTargetUndefinedType() {
@@ -32,45 +39,16 @@ public class PythonTypes extends CTypes {
     public String getPythonType(InferredType type) {
         var result = super.getTargetType(type);
 
-        result = switch (result) {
-            case "double" -> "float";
-            case "string" -> "object";
-            default -> result;
-        };
+        switch(result){
+        case "double": result = "float";
+        case "string": result = "object";
+        }
 
         var matcher = pointerPatternVariable.matcher(result);
-        if (matcher.find()) {
+        if(matcher.find()) {
             return matcher.group(1);
         }
 
         return result;
-    }
-
-    @Override
-    public String getTargetParamRef(ParameterReference expr, InferredType typeOrNull) {
-        return "self." + expr.getParameter().getName();
-    }
-
-    @Override
-    public String getFixedSizeListInitExpression(List<String> contents, int listSize, boolean withBraces) {
-        return contents.stream().collect(Collectors.joining(", ", "[ ", " ]"));
-    }
-
-    @Override
-    public String getVariableSizeListInitExpression(List<String> contents, boolean withBraces) {
-        return contents.stream().collect(Collectors.joining(", ", "[ ", " ]"));
-    }
-
-    public static PythonTypes getInstance() {
-        return INSTANCE;
-    }
-
-    public static PythonTypes generateParametersIn(ReactorInstance instance) {
-        return new PythonTypes() {
-            @Override
-            public String getTargetParamRef(ParameterReference expr, InferredType typeOrNull) {
-                return PyUtil.reactorRef(instance) + "." + expr.getParameter().getName();
-            }
-        };
     }
 }

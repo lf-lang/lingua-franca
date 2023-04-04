@@ -4,6 +4,6 @@ target Rust {
 }
 
 // todo allow test framework to pass CLI arguments.
-main reactor CliFeature(size: u32 = 4, t: time = 4 sec) {
+main reactor CliFeature(size: u32(4), t: time(4 sec)) {
     reaction(startup) {= println!("success"); =}
 }

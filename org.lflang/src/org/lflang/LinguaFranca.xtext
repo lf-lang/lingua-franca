@@ -139,7 +139,7 @@ TargetDecl:
 Initializer:
       parens?='(' (exprs+=Expression (','  exprs+=Expression)* (trailingComma?=',')?)? ')'
     | braces?='{' (exprs+=Expression (','  exprs+=Expression)* (trailingComma?=',')?)? '}'
-    | assign?='=' exprs+=Expression
+//    | assign?='=' exprs+=Expression // todo later
 ;
 
 
@@ -285,15 +285,13 @@ VarRefOrModeTransition returns VarRef:
 
 Assignment:
     lhs=[Parameter]
-    rhs=AssignmentInitializer
+    (equals='=')? rhs=AssignmentInitializer
 ;
 
+// TODO Only allow = based parameter assignment
 AssignmentInitializer returns Initializer:
-      assign?='=' exprs+=Expression
-    // these syntaxes are legacy and now deprecated
-    // todo remove in future version.
-    | '='? parens?='(' (exprs+=Expression (','  exprs+=Expression)* (trailingComma?=',')?)? ')'
-    // note: the previous syntax `= { expr* }` is now parsed as a BracedListExpression
+      exprs+=Expression
+    | parens?='(' (exprs+=Expression (','  exprs+=Expression)* (trailingComma?=',')?)? ')'
     | braces?='{' (exprs+=Expression (','  exprs+=Expression)* (trailingComma?=',')?)? '}'
 ;
 
@@ -312,13 +310,6 @@ Expression:
     | Time
     | ParameterReference
     | {CodeExpr} code=Code
-    | BracedListExpression
-;
-
-// A list of expressions within braces.
-// In C/C++, this is an array initializer, struct initializer, or std::initializer_list.
-BracedListExpression:
-     '{' {BracedListExpression} (items+=Expression (',' items+=Expression)*)? ','? '}'
 ;
 
 ParameterReference:

@@ -13,7 +13,7 @@ target TypeScript {
 reactor Ball {
     output position: number
     output velocity: number
-    state p: number = 200
+    state p: number(200)
     timer trigger(0, 1 sec)
 
     reaction(trigger) -> position, velocity {=
@@ -26,7 +26,7 @@ reactor Ball {
 reactor Print {
     input velocity: number
     input position: number
-    state previous: number = -1
+    state previous: number(-1)
 
     reaction(startup) {=
         console.log("####### Print startup");

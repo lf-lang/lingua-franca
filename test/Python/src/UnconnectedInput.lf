@@ -7,7 +7,7 @@ target Python {
 reactor Source {
     output out
     timer t(0, 1 sec)
-    state s = 1
+    state s(1)
 
     reaction(t) -> out {=
         out.set(self.s)
@@ -32,7 +32,7 @@ reactor Add {
 
 reactor Print {
     input _in
-    state expected = 1
+    state expected(1)
 
     reaction(_in) {=
         print("Received: ", _in.value)

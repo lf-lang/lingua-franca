@@ -4,9 +4,9 @@ target C {
     timeout: 1 sec
 }
 
-reactor T(expected: int = 0) {
+reactor T(expected: int(0)) {
     input z: int
-    state received: bool = false
+    state received: bool(false)
 
     reaction(z) {=
         lf_print("T received %d", z->value);

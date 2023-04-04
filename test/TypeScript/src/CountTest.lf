@@ -6,7 +6,7 @@ import Count from "lib/Count.lf"
 
 reactor Test {
     input c: number
-    state i: number = 0
+    state i: number(0)
 
     reaction(c) {=
         console.log("Received " + c);

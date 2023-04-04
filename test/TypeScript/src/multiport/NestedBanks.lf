@@ -20,7 +20,7 @@ reactor A {
     b.y -> x
 }
 
-reactor B(aBankIndex: number = 0) {
+reactor B(aBankIndex: number(0)) {
     output[2] y: number
 
     reaction(startup) -> y {=
@@ -60,7 +60,7 @@ reactor E {
     =}
 }
 
-reactor F(cBankIndex: number = 0) {
+reactor F(cBankIndex: number(0)) {
     input w: number
 
     reaction(w) {=
@@ -71,7 +71,7 @@ reactor F(cBankIndex: number = 0) {
     =}
 }
 
-reactor G(cBankIndex: number = 0) {
+reactor G(cBankIndex: number(0)) {
     input s: number
 
     reaction(s) {=

@@ -21,7 +21,7 @@ reactor Receiver {
     # Force a timer to be invoke periodically
     timer t(0, 10 msec)
     # to ensure logical time will advance in the absence of incoming messages.
-    state c = 0
+    state c(0)
     p = new Print()
     a = new ImportantActuator()
     inp -> p.inp

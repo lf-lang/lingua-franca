@@ -101,7 +101,7 @@ class LetInferenceTest  {
         ));
 
         Assertions.assertNotNull(model);
-        final var ctypes = CTypes.getInstance();
+        final var ctypes = new CTypes(new DefaultErrorReporter());
         final var resource = model.eResource();
         final var transformation = new DelayedConnectionTransformation(new CDelayBodyGenerator(ctypes), ctypes, resource, true, true);
         transformation.applyTransformation(ASTUtils.getAllReactors(resource));

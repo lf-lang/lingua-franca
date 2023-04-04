@@ -2,7 +2,7 @@
 # freed.
 target Python
 
-reactor DelayString2(delay = 100 msec) {
+reactor DelayString2(delay(100 msec)) {
     input _in
     output out
     logical action a
@@ -14,7 +14,7 @@ reactor DelayString2(delay = 100 msec) {
 
 reactor Test {
     input _in
-    state start_time = 0
+    state start_time(0)
 
     reaction(_in) {=
         print("Received: ", _in.value)

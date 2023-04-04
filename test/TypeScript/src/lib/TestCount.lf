@@ -9,13 +9,9 @@
  */
 target TypeScript
 
-reactor TestCount(
-    start: number = 1,
-    stride: number = 1,
-    numInputs: number = 1
-) {
-    state count: number = start
-    state inputsReceived: number = 0
+reactor TestCount(start: number(1), stride: number(1), numInputs: number(1)) {
+    state count: number(start)
+    state inputsReceived: number(0)
     input inp: number
 
     reaction(inp) {=

@@ -358,7 +358,7 @@ class TSReactionGenerator(
 
             // Underscores are added to parameter names to prevent conflict with prologue
             val name = param.name
-            reactSignature.add("__$name: __Parameter<${TSTypes.getInstance().getTargetType(param)}>")
+            reactSignature.add("__$name: __Parameter<${TSTypes.getTargetType(param)}>")
             reactFunctArgs.add("this.$name")
             reactPrologue.add("let $name = __$name.get();")
         }
@@ -367,7 +367,7 @@ class TSReactionGenerator(
         for (state in reactor.stateVars) {
             // Underscores are added to state names to prevent conflict with prologue
             val name = state.name
-            reactSignature.add("__$name: __State<${TSTypes.getInstance().getTargetType(state)}>")
+            reactSignature.add("__$name: __State<${TSTypes.getTargetType(state)}>")
             reactFunctArgs.add("this.$name")
             reactPrologue.add("let $name = __$name.get();")
             reactEpilogue.add(

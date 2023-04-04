@@ -1,9 +1,9 @@
 // Test writing inputs to a contained reactor bank
 target Cpp
 
-reactor Contained(bank_index: size_t = 0) {
+reactor Contained(bank_index: size_t(0)) {
     input in: unsigned
-    state count: int = 0
+    state count: int(0)
 
     reaction(in) {=
         unsigned result = *in.get();

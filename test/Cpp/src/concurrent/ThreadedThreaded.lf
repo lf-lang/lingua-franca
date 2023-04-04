@@ -13,7 +13,7 @@ target Cpp {
 reactor Source {
     timer t(0, 200 msec)
     output out: int
-    state s: int = 0
+    state s: int(0)
 
     reaction(t) -> out {=
         out.set(s);
@@ -35,7 +35,7 @@ reactor Computation {
 }
 
 reactor Destination {
-    state s: int = 0
+    state s: int(0)
     input[4] in: int
 
     reaction(in) {=

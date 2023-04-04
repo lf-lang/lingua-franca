@@ -5,7 +5,7 @@ target Python {
 
 preamble {= import hello =}
 
-reactor DelayPointer(delay = 100 msec) {
+reactor DelayPointer(delay(100 msec)) {
     input _in
     output out
     logical action a
@@ -25,7 +25,7 @@ reactor Source {
     reaction(startup) -> out {= out.set(hello.hello("Earth", 42)) =}
 }
 
-reactor Print(expected = 42) {  # expected parameter is for testing.
+reactor Print(expected(42)) {  # expected parameter is for testing.
     input _in
 
     reaction(_in) {=

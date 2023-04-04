@@ -9,7 +9,7 @@ target Python {
 reactor GeneratedDelay {
     input y_in
     output y_out
-    state y_state = 0
+    state y_state(0)
 
     physical action act(0 msec)  # TODO: delay in act or the schedule call?
 

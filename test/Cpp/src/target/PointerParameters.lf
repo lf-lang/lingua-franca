@@ -2,7 +2,7 @@
 // Compilation without errors is success.
 target Cpp
 
-reactor Foo(ptr: int* = {= nullptr =}) {
+reactor Foo(ptr: int*{{= nullptr =}}) {
     reaction(startup) {=
         if (ptr == nullptr || *ptr != 42) {
             reactor::log::Error() << "received an unexpected value!";

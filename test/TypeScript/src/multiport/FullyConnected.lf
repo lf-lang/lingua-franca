@@ -1,10 +1,10 @@
 target TypeScript
 
-reactor Node(numNodes: number = 4) {
+reactor Node(numNodes: number(4)) {
     input[numNodes] inp: number
     output out: number
 
-    state received: boolean = false
+    state received: boolean(false)
 
     reaction(startup) -> out {=
         console.log("Hello from node " + this.getBankIndex() + "!");
@@ -36,7 +36,7 @@ reactor Node(numNodes: number = 4) {
     =}
 }
 
-main reactor(numNodes: number = 4) {
+main reactor(numNodes: number(4)) {
     nodes = new[numNodes] Node(numNodes = numNodes)
     (nodes.out)+ -> nodes.inp
 }

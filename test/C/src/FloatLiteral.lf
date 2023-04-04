@@ -6,10 +6,10 @@ main reactor {
         #include <math.h>
     =}
 
-    state N: double = 6.0221409e+23
-    state charge: double = -1.6021766E-19
-    state minus_epsilon: double = -.01e0
-    state expected: double = .964853323188E5
+    state N: double(6.0221409e+23)
+    state charge: double(-1.6021766E-19)
+    state minus_epsilon: double(-.01e0)
+    state expected: double(.964853323188E5)
 
     reaction(startup) {=
         double F = - self->N * self->charge;

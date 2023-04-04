@@ -32,7 +32,7 @@ reactor Sender {
     output out: std_msgs::msg::Int32
 
     // state serialized_msg_pcl:rclcpp::SerializedMessage({=0u=});
-    state count: int = 0
+    state count: int(0)
 
     timer t(0, 1 sec)
 
@@ -45,7 +45,7 @@ reactor Sender {
 
 reactor Receiver {
     input in: std_msgs::msg::Int32
-    state count: int = 0
+    state count: int(0)
 
     reaction(in) {=
         // Print the ROS2 message data

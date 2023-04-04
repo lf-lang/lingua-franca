@@ -19,7 +19,7 @@ reactor Foo {
 }
 
 reactor Count {
-    state count: int = 1
+    state count: int(1)
     input in1: int
     input in2: int
     input in3: int
@@ -37,7 +37,7 @@ reactor Count {
 }
 
 reactor CountMicrostep {
-    state count: int = 1
+    state count: int(1)
     output out: int
     logical action act: int
     timer t(0, 1 msec)

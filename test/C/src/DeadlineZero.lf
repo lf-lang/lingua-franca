@@ -5,7 +5,7 @@ target C {
 
 reactor Detector {
     input trigger: int
-    state cnt: int = 0
+    state cnt: int(0)
 
     reaction(trigger) {=
         printf("ERROR: failed to detect zero-duration deadline at iteration %d.\n", self->cnt);

@@ -20,7 +20,7 @@ preamble {=
  */
 reactor TokenSource {
     output out: int_array_t*
-    state count: int = 0
+    state count: int(0)
     timer t(0, 1 ms)
 
     reaction(startup) -> out {=
@@ -42,10 +42,10 @@ reactor TokenSource {
  * value is a scaled version of the sequence of values produced by the
  * TokenSource, where the scaling factor is given by the scale parameter.
  */
-reactor TokenPrint(scale: int = 1) {
+reactor TokenPrint(scale: int(1)) {
     input in: int_array_t*
-    state count: int = 0
-    state input_received: bool = false
+    state count: int(0)
+    state input_received: bool(false)
 
     reaction(in) {=
         self->input_received = true;
@@ -79,7 +79,7 @@ reactor TokenPrint(scale: int = 1) {
  * input is declared mutable so, if possible, the input token will be modified
  * rather than allocating a new token.
  */
-reactor TokenScale(scale: int = 2) {
+reactor TokenScale(scale: int(2)) {
     mutable input in: int_array_t*
     output out: int_array_t*
 

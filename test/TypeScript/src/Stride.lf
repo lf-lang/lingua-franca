@@ -5,8 +5,8 @@ target TypeScript {
     fast: true
 }
 
-reactor Count(stride: number = 1) {
-    state count: number = 0
+reactor Count(stride: number(1)) {
+    state count: number(0)
     output y: number
     timer t(0, 100 msec)
 

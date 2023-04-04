@@ -3,7 +3,7 @@ target Python
 
 reactor Source(sequence(0, 1, 2)) {
     output out
-    state count = 0
+    state count(0)
     logical action next
 
     reaction(startup, next) -> out, next {=
@@ -16,8 +16,8 @@ reactor Source(sequence(0, 1, 2)) {
 
 reactor Print {
     input _in
-    state count = 1
-    state received = 0
+    state count(1)
+    state received(0)
 
     reaction(_in) {=
         self.received+=1
@@ -36,7 +36,7 @@ reactor Print {
 }
 
 main reactor ArrayAsParameter {
-    s = new Source(sequence(1, 2, 3, 4))
+    s = new Source(sequence = (1, 2, 3, 4))
     p = new Print()
     s.out -> p._in
 }

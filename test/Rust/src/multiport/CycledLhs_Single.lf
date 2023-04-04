@@ -8,7 +8,7 @@ reactor Test {
     output[2] out: u32
     input[4] in: u32
     logical action act: {= (u32, u32) =}
-    state last: u32 = 1
+    state last: u32(1)
 
     reaction(startup) -> act {=
         ctx.schedule_with_v(act, Some((0, 1)), after!(1 us));

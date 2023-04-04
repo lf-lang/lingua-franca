@@ -31,7 +31,7 @@ reactor Sender {
 
 reactor Receiver {
     input in: int
-    state success: int = 0
+    state success: int(0)
 
     reaction(in) {=
         tag_t current_tag = lf_tag();

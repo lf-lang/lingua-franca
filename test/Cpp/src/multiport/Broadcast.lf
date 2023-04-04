@@ -6,7 +6,7 @@ reactor Source {
     reaction(startup) -> out {= out.set(42); =}
 }
 
-reactor Sink(bank_index: size_t = 0) {
+reactor Sink(bank_index: size_t(0)) {
     input in: unsigned
 
     reaction(in) {=

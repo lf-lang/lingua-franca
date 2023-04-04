@@ -94,9 +94,8 @@ class CppReactorGenerator(private val reactor: Reactor, fileConfig: CppFileConfi
             | private:
         ${" |  "..reactions.generateReactionViewForwardDeclarations()}
             |
-            |  class Inner: public lfutil::LFScope {
-            |    const Parameters __lf_parameters;
-        ${" |    "..parameters.generateInnerAliasDeclarations()}
+            |  class Inner: public lfutil::LFScope, public Parameters {
+        ${" |    "..parameters.generateUsingDeclarations()}
         ${" |    "..state.generateDeclarations()}
         ${" |    "..methods.generateDeclarations()}
         ${" |    "..reactions.generateBodyDeclarations()}
@@ -162,9 +161,9 @@ class CppReactorGenerator(private val reactor: Reactor, fileConfig: CppFileConfi
         return with(PrependOperator) {
             """
                 |${reactor.templateLine}
-                |${reactor.templateName}::Inner::Inner(::reactor::Reactor* reactor, Parameters&& parameters)
+                |${reactor.templateName}::Inner::Inner(::reactor::Reactor* reactor, Parameters&& __lf_parameters)
                 |  : LFScope(reactor)
-            ${" |  , __lf_parameters(std::forward<Parameters>(parameters))"}
+            ${" |  , Parameters(std::forward<Parameters>(__lf_parameters))"}
             ${" |  "..state.generateInitializers()}
                 |{}
                 """.trimMargin()

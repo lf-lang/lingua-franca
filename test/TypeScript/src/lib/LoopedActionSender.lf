@@ -12,10 +12,10 @@ target TypeScript
  * @param breakInterval: Determines how long the reactor should take a break
  * after sending takeBreakAfter messages.
  */
-reactor Sender(takeBreakAfter: number = 10, breakInterval: time = 400 msec) {
+reactor Sender(takeBreakAfter: number(10), breakInterval: time(400 msec)) {
     output out: number
     logical action act
-    state sentMessages: number = 0
+    state sentMessages: number(0)
 
     reaction(startup, act) -> act, out {=
         // Send a message on out

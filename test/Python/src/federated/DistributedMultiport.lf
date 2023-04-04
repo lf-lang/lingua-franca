@@ -7,7 +7,7 @@ target Python {
 reactor Source {
     output[4] out
     timer t(0, 100 msec)
-    state count = 0
+    state count(0)
 
     reaction(t) -> out {=
         for i in range(len(out)):
@@ -19,7 +19,7 @@ reactor Source {
 reactor Destination {
     preamble {= import sys =}
     input[4] in_
-    state count = 0
+    state count(0)
 
     reaction(in_) {=
         for i in range(len(in_)):
