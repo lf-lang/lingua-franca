@@ -781,7 +781,7 @@ public class ASTUtils {
 
     /**
      * Translate the given type into its textual representation, but
-     * do not append any array specifications or type arguments.
+     * do not append any array specifications.
      * @param type AST node to render as string.
      * @return Textual representation of the given argument.
      */
@@ -793,12 +793,18 @@ public class ASTUtils {
                 if (type.isTime()) {
                     return "time";
                 } else {
-                    StringBuilder result = new StringBuilder(type.getId());
-
-                    for (String s : convertToEmptyListIfNull(type.getStars())) {
-                        result.append(s);
+                    StringBuilder stars = new StringBuilder();
+                    List<String> iterList = convertToEmptyListIfNull(type.getStars());
+                    for (String s : iterList) {
+                        stars.append(s);
                     }
-                    return result.toString();
+                    if (!IterableExtensions.isNullOrEmpty(type.getTypeParms())) {
+                        List<String> typeParamsStr = new ArrayList<>();
+                        type.getTypeParms().forEach(it -> typeParamsStr.add(toText(it)));
+                        return String.format("%s<%s>", type.getId(), String.join(", ", typeParamsStr));
+                    } else {
+                        return type.getId() + stars;
+                    }
                 }
             }
         }

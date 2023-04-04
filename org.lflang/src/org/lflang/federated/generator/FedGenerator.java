@@ -26,7 +26,6 @@ import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.xtext.generator.JavaIoFileSystemAccess;
 import org.eclipse.xtext.resource.XtextResource;
 import org.eclipse.xtext.resource.XtextResourceSet;
-import org.eclipse.xtext.util.RuntimeIOException;
 import org.eclipse.xtext.xbase.lib.CollectionLiterals;
 import org.eclipse.xtext.xbase.lib.Exceptions;
 import org.eclipse.xtext.xbase.lib.Pair;
@@ -177,29 +176,30 @@ public class FedGenerator {
             return false;
         }
 
-        Map<Path, CodeMap> codeMapMap = compileFederates(context, lf2lfCodeMapMap, subContexts -> {
+        Map<Path, CodeMap> codeMapMap = compileFederates(context, lf2lfCodeMapMap, (subContexts) -> {
             if (context.getTargetConfig().dockerOptions == null) return;
-            final List<DockerData> services = new ArrayList<>();
+            final List<DockerData> services = new ArrayList();
             // 1. create a Dockerfile for each federate
-            for (SubContext subContext : subContexts) {// Inherit Docker options from main context
+            subContexts.forEach((subContext) -> {
+                // Inherit Docker options from main context
                 subContext.getTargetConfig().dockerOptions = context.getTargetConfig().dockerOptions;
                 var dockerGenerator = dockerGeneratorFactory(subContext);
                 var dockerData = dockerGenerator.generateDockerData();
                 try {
                     dockerData.writeDockerFile();
                 } catch (IOException e) {
-                    throw new RuntimeIOException(e);
+                    Exceptions.sneakyThrow(e);
                 }
                 services.add(dockerData);
-            }
+            });
             // 2. create a docker-compose.yml for the federation
             try {
                 // FIXME: https://issue.lf-lang.org/1559
                 // It appears that the rtiHost information should come from federationRTIproperties,
                 // which is a kludge and not in scope here.
-                new FedDockerComposeGenerator(context, "localhost").writeDockerComposeFile(services);
+                (new FedDockerComposeGenerator(context, "localhost")).writeDockerComposeFile(services);
             } catch (IOException e) {
-                throw new RuntimeIOException(e);
+                Exceptions.sneakyThrow(e);
             }
         });
 

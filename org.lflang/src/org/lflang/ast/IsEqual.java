@@ -332,7 +332,7 @@ public class IsEqual extends LfSwitch<Boolean> {
             .equalAsObjects(Instantiation::getName)
             .equivalent(Instantiation::getWidthSpec)
             .equivalent(Instantiation::getReactorClass)
-            .listsEquivalent(Instantiation::getTypeArgs)
+            .listsEquivalent(Instantiation::getTypeParms)
             .listsEquivalent(Instantiation::getParameters)
             .equivalent(Instantiation::getHost)
             .conclusion;
@@ -472,7 +472,7 @@ public class IsEqual extends LfSwitch<Boolean> {
             .equalAsObjects(Type::isTime)
             .equivalent(Type::getArraySpec)
             .equalAsObjects(Type::getId)
-            .listsEquivalent(Type::getTypeArgs)
+            .listsEquivalent(Type::getTypeParms)
             .listsEqualAsObjects(Type::getStars)
             .equivalent(Type::getArraySpec)
             .equivalent(Type::getCode)

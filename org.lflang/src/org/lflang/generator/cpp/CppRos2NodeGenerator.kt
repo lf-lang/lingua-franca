@@ -59,13 +59,14 @@ class CppRos2NodeGenerator(
             |  : Node("$nodeName", node_options) {
             |  unsigned workers = ${if (targetConfig.workers != 0) targetConfig.workers else "std::thread::hardware_concurrency()"};
             |  bool fast{${targetConfig.fastMode}};
+            |  bool keepalive{${targetConfig.keepalive}};
             |  reactor::Duration lf_timeout{${targetConfig.timeout?.toCppCode() ?: "reactor::Duration::max()"}};
             |
             |  // provide a globally accessible reference to this node
             |  // FIXME: this is pretty hacky...
             |  lf_node = this;
             |
-            |  lf_env = std::make_unique<reactor::Environment>(workers, fast, lf_timeout);
+            |  lf_env = std::make_unique<reactor::Environment>(workers, keepalive, fast, lf_timeout);
             |
             |  // instantiate the main reactor
             |  lf_main_reactor = std::make_unique<${main.name}> ("${main.name}", lf_env.get(), ${main.name}::Parameters{});

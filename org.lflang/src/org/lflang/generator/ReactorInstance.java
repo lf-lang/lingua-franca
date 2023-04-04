@@ -746,8 +746,12 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
     /**
      * Returns the built-in trigger or create a new one if none exists.
      */
-    protected TriggerInstance<BuiltinTriggerVariable> getOrCreateBuiltinTrigger(BuiltinTriggerRef trigger) {
-        return builtinTriggers.computeIfAbsent(trigger.getType(), ref -> TriggerInstance.builtinTrigger(trigger, this));
+    protected TriggerInstance<? extends Variable> getOrCreateBuiltinTrigger(BuiltinTriggerRef trigger) {
+        if (!builtinTriggers.containsKey(trigger.getType())) {
+            builtinTriggers.put(trigger.getType(), 
+                    new TriggerInstance<>(trigger.getType(), trigger, this));
+        }
+        return builtinTriggers.get(trigger.getType());
     }
     
     ////////////////////////////////////////

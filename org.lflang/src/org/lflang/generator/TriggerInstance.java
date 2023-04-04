@@ -30,19 +30,18 @@ import java.util.LinkedHashSet;
 import java.util.Set;
 
 import org.lflang.lf.BuiltinTrigger;
-import org.lflang.lf.BuiltinTriggerRef;
 import org.lflang.lf.TriggerRef;
 import org.lflang.lf.Variable;
 import org.lflang.lf.impl.VariableImpl;
 
 /** Instance of a trigger (port, action, or timer).
- *
+ * 
  *  @author Marten Lohstroh
  *  @author Edward A. Lee
  *  @author Alexander Schulz-Rosengarten
  */
 public class TriggerInstance<T extends Variable> extends NamedInstance<T> {
-
+    
     /** Construct a new instance with the specified definition
      *  and parent. E.g., for a action instance, the definition
      *  is Action, and for a port instance, it is Port. These are
@@ -54,21 +53,33 @@ public class TriggerInstance<T extends Variable> extends NamedInstance<T> {
     protected TriggerInstance(T definition, ReactorInstance parent) {
         super(definition, parent);
     }
-
+    
     /**
      * Construct a new instance for a special builtin trigger.
-     *
-     * @param trigger The actual trigger definition.
+     * This constructor must be used with Variable or BuiltinTriggerVariable
+     * as generic type T.
+     * 
+     * @param type The builtin trigger type.
+     * @param type The actual trigger definition.
      * @param parent The reactor instance that creates this instance.
      */
-    static TriggerInstance<BuiltinTriggerVariable> builtinTrigger(BuiltinTriggerRef trigger, ReactorInstance parent) {
-        return new TriggerInstance<>(new BuiltinTriggerVariable(trigger), parent);
+    public TriggerInstance(BuiltinTrigger type, TriggerRef trigger, ReactorInstance parent) {
+        super((T)(new BuiltinTriggerVariable(type, trigger)), parent);
+        builtinTriggerType = type;
     }
-
+    
     /////////////////////////////////////////////
     //// Public Methods
 
     /**
+     * Return the built-in trigger type or null if this is not a
+     * built-in trigger.
+     */
+    public BuiltinTrigger getBuiltinTriggerType() {
+        return builtinTriggerType;
+    }
+    
+    /** 
      * Return the reaction instances that are triggered or read by this trigger.
      * If this port is an output, then the reaction instances
      * belong to the parent of the port's parent. If the port
@@ -79,18 +90,18 @@ public class TriggerInstance<T extends Variable> extends NamedInstance<T> {
         return dependentReactions;
     }
 
-    /**
+    /** 
      * Return the reaction instances that may send data via this port.
      * If this port is an input, then the reaction instance
      * belongs to parent of the port's parent. If it is an output,
-     * the reaction instance belongs to the port's parent.
+     * the the reaction instance belongs to the port's parent.
      */
     public Set<ReactionInstance> getDependsOnReactions() {
         return dependsOnReactions;
-    }
-
-    /**
-     * Return the name of this trigger.
+    };
+    
+    /** 
+     * Return the name of this trigger. 
      * @return The name of this trigger.
      */
     @Override
@@ -102,52 +113,52 @@ public class TriggerInstance<T extends Variable> extends NamedInstance<T> {
      * Return true if this trigger is "shutdown".
      */
     public boolean isShutdown() {
-        return isBuiltInType(BuiltinTrigger.SHUTDOWN);
+        return builtinTriggerType == BuiltinTrigger.SHUTDOWN;
     }
 
     /**
      * Return true if this trigger is "startup"./
      */
     public boolean isStartup() {
-        return isBuiltInType(BuiltinTrigger.STARTUP);
+        return builtinTriggerType == BuiltinTrigger.STARTUP;
     }
 
     /**
      * Return true if this trigger is "startup"./
      */
     public boolean isReset() {
-        return isBuiltInType(BuiltinTrigger.RESET);
+        return builtinTriggerType == BuiltinTrigger.RESET;
     }
 
-    /////////////////////////////////////////////
-    //// Private Methods
-
-    private boolean isBuiltInType(BuiltinTrigger type) {
-        return this.definition instanceof BuiltinTriggerVariable
-            && ((BuiltinTriggerRef) ((BuiltinTriggerVariable) this.definition).definition).getType().equals(type);
+    /**
+     * Return true if this trigger is a builtin one.
+     */
+    public boolean isBuiltinTrigger() {
+        return builtinTriggerType != null;
     }
 
     /////////////////////////////////////////////
     //// Protected Fields
-
-
-    /**
+    
+    BuiltinTrigger builtinTriggerType = null;
+    
+    /** 
      * Reaction instances that are triggered or read by this trigger.
      * If this port is an output, then the reaction instances
      * belong to the parent of the port's parent. If the port
      * is an input, then the reaction instances belong to the
      * port's parent.
      */
-    Set<ReactionInstance> dependentReactions = new LinkedHashSet<>();
+    Set<ReactionInstance> dependentReactions = new LinkedHashSet<ReactionInstance>();
 
-    /**
+    /** 
      * Reaction instances that may send data via this port.
      * If this port is an input, then the reaction instance
      * belongs to parent of the port's parent. If it is an output,
-     * the reaction instance belongs to the port's parent.
+     * the the reaction instance belongs to the port's parent.
      */
-    Set<ReactionInstance> dependsOnReactions = new LinkedHashSet<>();
-
+    Set<ReactionInstance> dependsOnReactions = new LinkedHashSet<ReactionInstance>();
+    
     /////////////////////////////////////////////
     //// Special class for builtin triggers
 
@@ -155,23 +166,23 @@ public class TriggerInstance<T extends Variable> extends NamedInstance<T> {
      * This class allows to have BuiltinTriggers represented by a Variable type.
      */
     static public class BuiltinTriggerVariable extends VariableImpl {
-
+        
         /** The builtin trigger type represented by this variable. */
         public final BuiltinTrigger type;
-
+        
         /** The actual TriggerRef definition in the AST. */
         public final TriggerRef definition;
-
-        public BuiltinTriggerVariable(BuiltinTriggerRef trigger) {
-            this.type = trigger.getType();
+        
+        public BuiltinTriggerVariable(BuiltinTrigger type, TriggerRef trigger) {
+            this.type = type;
             this.definition = trigger;
         }
-
+        
         @Override
         public String getName() {
             return this.type.name().toLowerCase();
         }
-
+        
         @Override
         public void setName(String newName) {
             throw new UnsupportedOperationException(

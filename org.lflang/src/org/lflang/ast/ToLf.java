@@ -296,8 +296,8 @@ public class ToLf extends LfSwitch<MalleableString> {
       msb.append("time");
     } else if (type.getId() != null) {
       msb.append(type.getId()); // TODO: Multiline dottedName?
-      if (type.getTypeArgs() != null) {
-        msb.append(list(", ", "<", ">", true, false, type.getTypeArgs()));
+      if (type.getTypeParms() != null) {
+        msb.append(list(", ", "<", ">", true, false, type.getTypeParms()));
       }
       msb.append("*".repeat(type.getStars().size()));
     }
@@ -690,7 +690,7 @@ public class ToLf extends LfSwitch<MalleableString> {
     msb.append(object.getName()).append(" = new");
     if (object.getWidthSpec() != null) msb.append(doSwitch(object.getWidthSpec()));
     msb.append(" ").append(object.getReactorClass().getName());
-    msb.append(list(", ", "<", ">", true, false, object.getTypeArgs()));
+    msb.append(list(", ", "<", ">", true, false, object.getTypeParms()));
     msb.append(list(false, object.getParameters()));
     // TODO: Delete the following case when the corresponding feature is removed
     if (object.getHost() != null) msb.append(" at ").append(doSwitch(object.getHost()));

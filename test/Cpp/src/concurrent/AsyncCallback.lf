@@ -1,6 +1,7 @@
 // Test asynchronous callbacks that trigger a physical action.
 target Cpp {
     timeout: 2 sec,
+    keepalive: true,
     cmake-include: "AsyncCallback.cmake"
 }
 

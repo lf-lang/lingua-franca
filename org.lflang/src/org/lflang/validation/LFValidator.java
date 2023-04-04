@@ -623,7 +623,7 @@ public class LFValidator extends BaseLFValidator {
             Reactor reactor = (Reactor) container;
             if (reactor.isMain()) {
                 // we need to check for the cli parameters that are always taken
-                List<String> cliParams = List.of("t", "threads", "o", "timeout", "f", "fast", "help");
+                List<String> cliParams = List.of("t", "threads", "o", "timeout", "k", "keepalive", "f", "fast", "help");
                 if (cliParams.contains(param.getName())) {
                     error("Parameter '" + param.getName()
                             + "' is already in use as command line argument by Lingua Franca,",
@@ -1030,7 +1030,6 @@ public class LFValidator extends BaseLFValidator {
         validateClockSyncTargetProperties(targetProperties);
         validateSchedulerTargetProperties(targetProperties);
         validateRos2TargetProperties(targetProperties);
-        validateKeepalive(targetProperties);
     }
 
     private KeyValuePair getKeyValuePair(KeyValuePairs targetProperties, TargetProperty property) {
@@ -1123,14 +1122,6 @@ public class LFValidator extends BaseLFValidator {
                 // the given scheduler is invalid, but this is already checked by
                 // checkTargetProperties
             }
-        }
-    }
-
-    private void validateKeepalive(KeyValuePairs targetProperties) {
-        KeyValuePair keepalive = getKeyValuePair(targetProperties, TargetProperty.KEEPALIVE);
-        if (keepalive != null && target == Target.CPP) {
-            warning("The keepalive property is inferred automatically by the C++ " +
-                "runtime and the value given here is ignored", keepalive, Literals.KEY_VALUE_PAIR__NAME);
         }
     }
 
