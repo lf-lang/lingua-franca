@@ -854,6 +854,11 @@ public class CReactionGenerator {
         for (Input input : ASTUtils.allInputs(reactor)) {
             createTriggerT(body, input, triggerMap, constructorCode, types);
         }
+
+        // Next handle watchdogs.
+        for (Watchdog watchdog : ASTUtils.allWatchdogs(reactor)) {
+            createTriggerT(body, watchdog, triggerMap, constructorCode, types);
+        }
     }
 
     /**

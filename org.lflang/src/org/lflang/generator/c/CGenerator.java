@@ -310,6 +310,7 @@ import com.google.common.collect.Iterables;
  * @author Alexander Schulz-Rosengarten
  * @author Hou Seng Wong
  * @author Anirudh Rengarajan
+ * @author Benjamin Asch
  */
 @SuppressWarnings("StaticPseudoFunctionalStyleMethod")
 public class CGenerator extends GeneratorBase {
