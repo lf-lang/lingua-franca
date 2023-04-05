@@ -128,7 +128,7 @@ public class CWatchdogGenerator {
         function.prSourceLineNumber(watchdog.getCode());
         function.pr(ASTUtils.toText(watchdog.getCode()));
         //FIXME: will need to lf_schedule instead
-        // function.pr("lf_set("+watchdog.getName()+", 1);");
+        function.pr("_lf_schedule((*"+watchdog.getName()+").trigger, 0, NULL);");
         function.unindent();
         function.pr("}");
         return function.toString();
@@ -173,7 +173,8 @@ public class CWatchdogGenerator {
                 "self->_lf_watchdog_"+watchdogName+".expiration = NEVER;",
                 "self->_lf_watchdog_"+watchdogName+".thread_active = false;",
                 // "self->_lf_watchdog_"+watchdogName+".min_expiration = "+min_expiration+";",
-                "self->_lf_watchdog_"+watchdogName+".watchdog_function = "+watchdogFunctionName+";"
+                "self->_lf_watchdog_"+watchdogName+".watchdog_function = "+watchdogFunctionName+";",
+                "self->_lf_watchdog_"+watchdogName+".trigger = &(self->_lf__"+watchdogName+");"
             ));
             // constructorCode.pr("#endif");
             // WATCHDOG QUESTION 6: should I be initializing mutex in this constructor?

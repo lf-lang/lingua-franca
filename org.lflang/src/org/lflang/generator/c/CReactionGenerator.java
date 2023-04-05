@@ -866,7 +866,7 @@ public class CReactionGenerator {
      * reaction_t pointers pointing to reactions triggered by this variable,
      * and initialize the pointers in the array in the constructor.
      * @param body The place to write the self struct entries.
-     * @param variable The trigger variable (Timer, Action, or Input).
+     * @param variable The trigger variable (Timer, Watchdog, Action, or Input).
      * @param triggerMap A map from Variables to a list of the reaction indices
      *  triggered by the variable.
      * @param constructorCode The place to write the constructor code.

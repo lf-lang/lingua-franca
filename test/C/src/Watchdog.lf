@@ -58,8 +58,8 @@ main reactor {
         self->count++;
     =}
     reaction(shutdown) {=
-        if (self->count != 4) {
-            lf_print_error_and_exit("Watchdog produced output %d times. Expected 4.", self->count);
+        if (self->count != 5) {
+            lf_print_error_and_exit("Watchdog produced output %d times. Expected 5.", self->count);
         }
     =}
 }
