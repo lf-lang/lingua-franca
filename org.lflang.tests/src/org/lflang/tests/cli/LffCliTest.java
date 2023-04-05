@@ -130,7 +130,7 @@ public class LffCliTest {
         result.checkFailed();
 
         result.checkStdErr(containsString(
-            tempDir.resolve("nosuchdir") + ": No such file or directory"));
+            tempDir.resolve("nosuchdir") + ": No such file or directory."));
     }
 
 

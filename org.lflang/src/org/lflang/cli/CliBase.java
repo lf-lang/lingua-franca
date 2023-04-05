@@ -97,7 +97,11 @@ public abstract class CliBase implements Runnable {
         // Main instance.
         final CliBase main = injector.getInstance(toolClass);
         // Parse arguments and execute main logic.
-        CommandLine cmd = new CommandLine(main)
+        main.doExecute(io, args);
+    }
+
+    public void doExecute(Io io, String[] args) {
+        CommandLine cmd = new CommandLine(this)
             .setOut(new PrintWriter(io.getOut()))
             .setErr(new PrintWriter(io.getErr()));
         int exitCode = cmd.execute(args);
@@ -111,7 +115,7 @@ public abstract class CliBase implements Runnable {
      */ 
     public abstract void run();
 
-    protected static Injector getInjector(String toolName, Io io) {
+    public static Injector getInjector(String toolName, Io io) {
         final ReportingBackend reporter 
             = new ReportingBackend(io, toolName + ": ");
 
@@ -142,7 +146,7 @@ public abstract class CliBase implements Runnable {
         for (Path path : paths) {
             if (!Files.exists(path)) {
                 reporter.printFatalErrorAndExit(
-                    path + ": No such file or directory");
+                    path + ": No such file or directory.");
             }
         }
 
@@ -160,11 +164,11 @@ public abstract class CliBase implements Runnable {
             root = io.getWd().resolve(outputPath).normalize();
             if (!Files.exists(root)) { // FIXME: Create it instead?
                 reporter.printFatalErrorAndExit(
-                    "Output location '" + root + "' does not exist.");
+                    root + ": Output location does not exist.");
             }
             if (!Files.isDirectory(root)) {
                 reporter.printFatalErrorAndExit(
-                    "Output location '" + root + "' is not a directory.");
+                    root + ": Output location is not a directory.");
             }
         }
 
@@ -247,4 +251,5 @@ public abstract class CliBase implements Runnable {
             return null;
         }
     }
+
 }

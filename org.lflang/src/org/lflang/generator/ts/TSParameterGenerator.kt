@@ -12,7 +12,7 @@ class TSParameterGenerator(
 
     fun generateClassProperties(): String =
         parameters.joinWithLn {
-            "${it.name}: __Parameter<${TSTypes.getTargetType(it)}>;"
+            "${it.name}: __Parameter<${TSTypes.getInstance().getTargetType(it)}>;"
         }
 
     fun generateInstantiations(): String =
