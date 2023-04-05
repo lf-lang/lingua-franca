@@ -1795,7 +1795,7 @@ public class LinguaFrancaValidationTest {
         String testCase = """
                 target C;
                 reactor R {
-                    state s:int = 0;
+                    state s:int(0);
                 }
                 main reactor {
                     initial mode IM {
@@ -1836,7 +1836,7 @@ public class LinguaFrancaValidationTest {
                         reaction(startup) -> M {==}
                     }
                     mode M {
-                        reset state s:int = 0;
+                        reset state s:int(0);
                     }
                 }
             """;
