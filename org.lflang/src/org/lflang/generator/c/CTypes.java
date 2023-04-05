@@ -97,11 +97,12 @@ public class CTypes implements TargetTypes {
      * @param initializer True to return a form usable in a static initializer.
      */
     public String getVariableDeclaration(
+            TypeParameterizedReactor tpr,
             InferredType type,
             String variableName,
             boolean initializer
     ) {
-        String t = TargetTypes.super.getTargetType(type);
+        String t = CUtil.getConcreteType(tpr, TargetTypes.super.getTargetType(type));
         Matcher matcher = arrayPattern.matcher(t);
         String declaration = String.format("%s %s", t, variableName);
         if (matcher.find()) {

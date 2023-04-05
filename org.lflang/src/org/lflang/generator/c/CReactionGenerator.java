@@ -665,7 +665,7 @@ public class CReactionGenerator {
      * specified reactor and a trigger_t struct for each trigger (input, action,
      * timer, or output of a contained reactor).
      * @param body The place to put the code for the self struct.
-     * @param reactor The reactor.
+     * @param tpr {@link TypeParameterizedReactor}
      * @param constructorCode The place to put the constructor code.
      */
     public static void generateReactionAndTriggerStructs(

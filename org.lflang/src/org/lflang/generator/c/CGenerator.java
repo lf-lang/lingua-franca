@@ -1068,11 +1068,6 @@ public class CGenerator extends GeneratorBase {
             .map(TypeParameterizedReactor::new).map(CUtil::getName)
             .map(name -> "#include \"" + name + ".h\"")
             .forEach(header::pr);
-        tpr.typeArgs().forEach((literal, concreteType) -> header.pr(
-            "#if defined " + literal + "\n" +
-                "#undef " + literal + "\n" +
-                "#endif // " + literal + "\n" +
-                "#define " + literal + " " + ASTUtils.toOriginalText(concreteType)));
     }
 
     private void generateReactorClassBody(TypeParameterizedReactor tpr, CodeBuilder header, CodeBuilder src) {
@@ -1878,7 +1873,7 @@ public class CGenerator extends GeneratorBase {
             if (initializer.startsWith("{")) {
                 var temporaryVariableName = parameter.uniqueID();
                 initializeTriggerObjects.pr(String.join("\n",
-                    "static "+types.getVariableDeclaration(parameter.type, temporaryVariableName, true)+" = "+initializer+";",
+                    "static "+types.getVariableDeclaration(instance.tpr, parameter.type, temporaryVariableName, true)+" = "+initializer+";",
                     selfRef+"->"+parameter.getName()+" = "+temporaryVariableName+";"
                 ));
             } else {

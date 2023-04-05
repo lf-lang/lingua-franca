@@ -73,7 +73,7 @@ public class CPortGenerator {
                 "int destination_channel;",  // From lf_port_base_t
                 "int num_destinations;"      // From lf_port_base_t
         ));
-        code.pr(valueDeclaration(port, target, errorReporter, types));
+        code.pr(valueDeclaration(tpr, port, target, errorReporter, types));
         code.pr(federatedExtension.toString());
         code.unindent();
         code.pr("} "+variableStructType(port, tpr, userFacing)+";");
@@ -172,6 +172,7 @@ public class CPortGenerator {
      * @return A string providing the value field of the port struct.
      */
     private static String valueDeclaration(
+        TypeParameterizedReactor tpr,
         Port port,
         Target target,
         ErrorReporter errorReporter,
@@ -184,7 +185,7 @@ public class CPortGenerator {
         }
         // Do not convert to lf_token_t* using lfTypeToTokenType because there
         // will be a separate field pointing to the token.
-        return types.getVariableDeclaration(ASTUtils.getInferredType(port), "value", false) + ";";
+        return types.getVariableDeclaration(tpr, ASTUtils.getInferredType(port), "value", false) + ";";
     }
 
     /**

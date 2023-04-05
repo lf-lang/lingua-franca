@@ -47,7 +47,7 @@ public class CStateGenerator {
         CTypes types
     ) {
         var initExpr = getInitializerExpr(stateVar, instance);
-        String baseInitializer = generateBaseInitializer(selfRef, stateVar, initExpr, types);
+        String baseInitializer = generateBaseInitializer(instance.tpr, selfRef, stateVar, initExpr, types);
         String modalReset = generateModalReset(instance, selfRef, stateVar, initExpr, mode, types);
         return String.join("\n",
             baseInitializer,
@@ -56,6 +56,7 @@ public class CStateGenerator {
     }
 
     private static String generateBaseInitializer(
+        TypeParameterizedReactor tpr,
         String selfRef,
         StateVar stateVar,
         String initExpr,
@@ -67,7 +68,7 @@ public class CStateGenerator {
         ) {
             return selfRef + "->" + stateVar.getName() + " = " + initExpr + ";";
         } else {
-            var declaration = types.getVariableDeclaration(
+            var declaration = types.getVariableDeclaration(tpr,
                 ASTUtils.getInferredType(stateVar),
                 "_initial", true);
             return String.join("\n",
@@ -103,7 +104,7 @@ public class CStateGenerator {
         } else {
             CodeBuilder code = new CodeBuilder();
             var source = "_initial";
-            var declaration = types.getVariableDeclaration(
+            var declaration = types.getVariableDeclaration(instance.tpr,
                 ASTUtils.getInferredType(stateVar),
                 source, true);
             code.pr("{ // For scoping");

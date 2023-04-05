@@ -140,7 +140,7 @@ public class CActionGenerator {
                 "bool has_value;",     // From lf_action_base_t
                 "trigger_t* trigger;"  // From lf_action_base_t
         ));
-        code.pr(valueDeclaration(action, target, types));
+        code.pr(valueDeclaration(tpr, action, target, types));
         code.pr(federatedExtension.toString());
         code.unindent();
         code.pr("} " + variableStructType(action, tpr, userFacing) + ";");
@@ -155,10 +155,12 @@ public class CActionGenerator {
      *     int* value;
      * ```
      * This will return an empty string for an action with no type.
+     * @param tpr {@link TypeParameterizedReactor}
      * @param action The action.
      * @return A string providing the value field of the action struct.
      */
     private static String valueDeclaration(
+        TypeParameterizedReactor tpr,
         Action action,
         Target target,
         CTypes types
@@ -170,6 +172,6 @@ public class CActionGenerator {
         // will be a separate field pointing to the token.
         return action.getType() == null && target.requiresTypes ?
                "" :
-               types.getTargetType(action) + " value;";
+               CUtil.getConcreteType(tpr, types.getTargetType(action)) + " value;";
     }
 }
