@@ -88,7 +88,7 @@ public class Lff extends CliBase {
      * Validates all paths and invokes the formatter on the input paths.
      */
     @Override
-    public void runTool() {
+    public void doRun() {
         List<Path> paths = getInputPaths();
         final Path outputRoot = getOutputRoot();
 

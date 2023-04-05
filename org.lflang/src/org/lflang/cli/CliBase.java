@@ -169,7 +169,7 @@ public abstract class CliBase implements Runnable {
             io.callSystemExit(exitCode);
         // If args are already unpacked, invoke tool-specific logic.
         } else {
-            runTool();
+            doRun();
         }
     }
 
@@ -177,7 +177,7 @@ public abstract class CliBase implements Runnable {
      * The entrypoint of tool-specific logic.
      * Lfc and Lff have their own specific implementations for this method.
      */
-    public abstract void runTool();
+    public abstract void doRun();
 
     public static Injector getInjector(String toolName, Io io) {
         final ReportingBackend reporter 
@@ -325,7 +325,7 @@ public abstract class CliBase implements Runnable {
             jsonObject = JsonParser.parseString(jsonString).getAsJsonObject();
         } catch (JsonParseException e) {
             reporter.printFatalErrorAndExit(
-                    "Invalid JSON string:\n" + jsonString);
+                    String.format("Invalid JSON string:%n %s", jsonString));
         }
         // Append input paths.
         JsonElement src = jsonObject.get("src");
