@@ -15,7 +15,7 @@ import org.lflang.lf.StateVar;
 public class CStateGenerator {
     /**
      * Generate code for state variables of a reactor in the form "stateVar.type stateVar.name;"
-     * @param reactor The reactor
+     * @param reactor {@link TypeParameterizedReactor}
      * @param types A helper object for types
      */
     public static String generateDeclarations(TypeParameterizedReactor reactor, CTypes types) {
@@ -34,10 +34,10 @@ public class CStateGenerator {
      * this way, and there is no way to tell whether the type of the array
      * is a struct.
      *
-     * @param instance
-     * @param stateVar
-     * @param mode
-     * @return
+     * @param instance {@link ReactorInstance}
+     * @param stateVar {@link StateVar}
+     * @param mode {@link ModeInstance}
+     * @return String
      */
     public static String generateInitializer(
         ReactorInstance instance,
@@ -92,7 +92,7 @@ public class CStateGenerator {
             return "";
         }
         var modeRef = "&"+CUtil.reactorRef(mode.getParent())+"->_lf__modes["+mode.getParent().modes.indexOf(mode)+"]";
-        var type = types.getTargetType(ASTUtils.getInferredType(stateVar));
+        var type = CUtil.getConcreteType(instance.tpr, types.getTargetType(ASTUtils.getInferredType(stateVar)));
 
         if (ASTUtils.isOfTimeType(stateVar) ||
             ASTUtils.isParameterized(stateVar) &&

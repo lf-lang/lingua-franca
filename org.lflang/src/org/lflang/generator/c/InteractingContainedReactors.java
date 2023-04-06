@@ -8,12 +8,14 @@ import java.util.Set;
 
 import org.lflang.ASTUtils;
 import org.lflang.federated.generator.FederateInstance;
+import org.lflang.generator.NamedInstance;
 import org.lflang.lf.Input;
 import org.lflang.lf.Instantiation;
 import org.lflang.lf.Output;
 import org.lflang.lf.Port;
 import org.lflang.lf.Reaction;
 import org.lflang.lf.Reactor;
+import org.lflang.lf.ReactorDecl;
 import org.lflang.lf.TriggerRef;
 import org.lflang.lf.VarRef;
 
@@ -101,7 +103,6 @@ public class InteractingContainedReactors {
      * @param port The port.
      */
     private List<Integer> addPort(Instantiation containedReactor, Port port) {
-        var parent = containedReactor.eContainer();
         // Get or create the entry for the containedReactor.
         var containedReactorEntry = portsByContainedReactor.computeIfAbsent(
             containedReactor,

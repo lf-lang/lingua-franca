@@ -58,7 +58,9 @@ import org.eclipse.xtext.xbase.lib.StringExtensions;
 import org.lflang.ast.ToText;
 import org.lflang.generator.CodeMap;
 import org.lflang.generator.InvalidSourceException;
+import org.lflang.generator.NamedInstance;
 import org.lflang.generator.ReactorInstance;
+import org.lflang.generator.c.TypeParameterizedReactor;
 import org.lflang.lf.Action;
 import org.lflang.lf.Assignment;
 import org.lflang.lf.AttrParm;
@@ -899,12 +901,12 @@ public class ASTUtils {
         return true;
     }
 
-	/**
+    /**
      * Report whether the given code is an integer number or not.
      * @param code AST node to inspect.
      * @return True if the given code is an integer, false otherwise.
      */
-	public static boolean isInteger(Code code) {
+    public static boolean isInteger(Code code) {
         return isInteger(toText(code));
     }
 

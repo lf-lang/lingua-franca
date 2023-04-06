@@ -33,9 +33,8 @@ import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
-
-import org.eclipse.emf.ecore.util.EcoreUtil;
 
 import org.lflang.ASTUtils;
 import org.lflang.AttributeUtils;
@@ -50,7 +49,6 @@ import org.lflang.lf.Connection;
 import org.lflang.lf.Expression;
 import org.lflang.lf.Input;
 import org.lflang.lf.Instantiation;
-import org.lflang.lf.LfFactory;
 import org.lflang.lf.Mode;
 import org.lflang.lf.Output;
 import org.lflang.lf.Parameter;
@@ -60,12 +58,9 @@ import org.lflang.lf.Reaction;
 import org.lflang.lf.Reactor;
 import org.lflang.lf.ReactorDecl;
 import org.lflang.lf.Timer;
-import org.lflang.lf.Type;
 import org.lflang.lf.VarRef;
 import org.lflang.lf.Variable;
 import org.lflang.lf.WidthSpec;
-
-import com.google.common.collect.ImmutableMap;
 
 
 /**
@@ -164,6 +159,39 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
     public final boolean recursive;
 
     public final TypeParameterizedReactor tpr;
+
+    private static final HashMap<Integer, ReactorInstance> gReactorInstancesMap = new HashMap<>();
+
+    //////////////////////////////////////////////////////
+    //// Static methods.
+
+    /** Map {@link ReactorInstance} against achievable hashcode from {@link Reactor} */
+    public static void mapReactorInstance(Reactor r, ReactorInstance i) {
+        gReactorInstancesMap.put(computeHash(r, i), i);
+    }
+
+    /** Get {@link ReactorInstance} for supplied {@link Reactor} */
+    public static ReactorInstance getReactorInstance(Reactor r) {
+        var wrapper = new Object() {
+            ReactorInstance ins = null;
+        };
+        gReactorInstancesMap.forEach((hash, i) -> {
+            if (Objects.equals(hash, computeHash(r, i))) {
+                wrapper.ins = i;
+            }
+        });
+        return wrapper.ins;
+    }
+
+    /** Clears out the cache of ReactorInstance for next LF processing */
+    public static void clearReactorInstanceMap() {
+        gReactorInstancesMap.clear();
+    }
+
+    /** Calculates Unique HashCode for the <code>key</code> of <code>ReactorInstanceMap</code>*/
+    private static Integer computeHash(Reactor r, ReactorInstance i) {
+        return Math.abs(r.hashCode() * 37 + r.getTypeParms().hashCode() + i.tpr.hashCode());
+    }
 
     //////////////////////////////////////////////////////
     //// Public methods.
@@ -777,6 +805,9 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
         this.reactorDeclaration = definition.getReactorClass();
         this.reactorDefinition = ASTUtils.toDefinition(reactorDeclaration);
         this.tpr = new TypeParameterizedReactor(definition);
+
+        // Add ReactorInstance against achievable hashcode from Reactor
+        ReactorInstance.mapReactorInstance(ASTUtils.toDefinition(definition.getReactorClass()), this);
 
         // check for recursive instantiation
         var currentParent = parent;

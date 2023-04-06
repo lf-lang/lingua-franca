@@ -18,6 +18,7 @@ import org.lflang.FileConfig;
 import org.lflang.generator.LFGeneratorContext;
 import org.lflang.generator.LFGeneratorContext.BuildParm;
 import org.lflang.generator.MainContext;
+import org.lflang.generator.ReactorInstance;
 
 import com.google.inject.Inject;
 
@@ -201,6 +202,7 @@ public class Lfc extends CliBase {
 
             try {
                 this.generator.generate(resource, this.fileAccess, context);
+                ReactorInstance.clearReactorInstanceMap();
             } catch (Exception e) {
                 reporter.printFatalErrorAndExit("Error running generator", e);
             }

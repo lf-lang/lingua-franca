@@ -42,8 +42,6 @@ import java.nio.file.Path;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Locale;
-import java.util.Map;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -86,7 +84,6 @@ import org.lflang.generator.TimerInstance;
 import org.lflang.generator.TriggerInstance;
 import org.lflang.lf.Action;
 import org.lflang.lf.ActionOrigin;
-import org.lflang.lf.Code;
 import org.lflang.lf.Input;
 import org.lflang.lf.Instantiation;
 import org.lflang.lf.Mode;
@@ -97,7 +94,6 @@ import org.lflang.lf.Reaction;
 import org.lflang.lf.Reactor;
 import org.lflang.lf.ReactorDecl;
 import org.lflang.lf.StateVar;
-import org.lflang.lf.Type;
 import org.lflang.lf.Variable;
 import org.lflang.util.ArduinoUtil;
 import org.lflang.util.FileUtil;
@@ -1255,7 +1251,7 @@ public class CGenerator extends GeneratorBase {
         var contained = new InteractingContainedReactors(tpr.r());
         // Next generate the relevant code.
         for (Instantiation containedReactor : contained.containedReactors()) {
-            Reactor containedReactorType = ASTUtils.toDefinition(containedReactor.getReactorClass());
+            var containedReactorType = ReactorInstance.getReactorInstance(ASTUtils.toDefinition(containedReactor.getReactorClass()));
             // First define an _width variable in case it is a bank.
             var array = "";
             var width = -2;
@@ -1267,11 +1263,11 @@ public class CGenerator extends GeneratorBase {
             }
             // NOTE: The following needs to be done for each instance
             // so that the width can be parameter, not in the constructor.
-            // Here, we conservatively use a width that is the largest of all isntances.
+            // Here, we conservatively use a width that is the largest of all instances.
             constructorCode.pr(String.join("\n",
                 "// Set the _width variable for all cases. This will be -2",
                 "// if the reactor is not a bank of reactors.",
-                "self->_lf_"+containedReactor.getName()+"_width = "+width+";"
+                "self->_lf_"+containedReactorType.tpr.getName()+"_width = "+width+";"
             ));
 
             // Generate one struct for each contained reactor that interacts.
@@ -1283,12 +1279,12 @@ public class CGenerator extends GeneratorBase {
                     // to be malloc'd at initialization.
                     if (!ASTUtils.isMultiport(port)) {
                         // Not a multiport.
-                        body.pr(port, variableStructType(port, containedReactorType, false)+" "+port.getName()+";");
+                        body.pr(port, variableStructType(port, containedReactorType.tpr, false)+" "+port.getName()+";");
                     } else {
                         // Is a multiport.
                         // Memory will be malloc'd in initialization.
                         body.pr(port, String.join("\n",
-                            variableStructType(port, containedReactorType, false)+"** "+port.getName()+";",
+                            variableStructType(port, containedReactorType.tpr, false)+"** "+port.getName()+";",
                             "int "+port.getName()+"_width;"
                         ));
                     }
@@ -1298,13 +1294,13 @@ public class CGenerator extends GeneratorBase {
                     // self struct of the container.
                     if (!ASTUtils.isMultiport(port)) {
                         // Not a multiport.
-                        body.pr(port, variableStructType(port, containedReactorType, false)+"* "+port.getName()+";");
+                        body.pr(port, variableStructType(port, containedReactorType.tpr, false)+"* "+port.getName()+";");
                     } else {
                         // Is a multiport.
                         // Here, we will use an array of pointers.
                         // Memory will be malloc'd in initialization.
                         body.pr(port, String.join("\n",
-                            variableStructType(port, containedReactorType, false)+"** "+port.getName()+";",
+                            variableStructType(port, containedReactorType.tpr, false)+"** "+port.getName()+";",
                             "int "+port.getName()+"_width;"
                         ));
                     }
@@ -1312,10 +1308,10 @@ public class CGenerator extends GeneratorBase {
                     var reactorIndex = "";
                     if (containedReactor.getWidthSpec() != null) {
                         reactorIndex = "[reactor_index]";
-                        constructorCode.pr("for (int reactor_index = 0; reactor_index < self->_lf_"+tpr.getName()+"_width; reactor_index++) {");
+                        constructorCode.pr("for (int reactor_index = 0; reactor_index < self->_lf_"+containedReactorType.tpr.getName()+"_width; reactor_index++) {");
                         constructorCode.indent();
                     }
-                    var portOnSelf = "self->_lf_"+tpr.getName()+reactorIndex+"."+port.getName();
+                    var portOnSelf = "self->_lf_"+containedReactorType.tpr.getName()+reactorIndex+"."+port.getName();
 
                     constructorCode.pr(
                         port,
@@ -1360,8 +1356,8 @@ public class CGenerator extends GeneratorBase {
             }
             body.unindent();
             body.pr(String.join("\n",
-                "} _lf_"+tpr.getName()+array+";",
-                "int _lf_"+tpr.getName()+"_width;"
+                "} _lf_"+containedReactorType.tpr.getName()+array+";",
+                "int _lf_"+containedReactorType.tpr.getName()+"_width;"
             ));
         }
     }

@@ -14,9 +14,9 @@ import org.lflang.ASTUtils;
 import org.lflang.ErrorReporter;
 import org.lflang.InferredType;
 import org.lflang.TargetConfig;
-import org.lflang.TargetProperty.Platform;
 import org.lflang.federated.extensions.CExtensionUtils;
 import org.lflang.generator.CodeBuilder;
+import org.lflang.generator.ReactorInstance;
 import org.lflang.lf.Action;
 import org.lflang.lf.ActionOrigin;
 import org.lflang.lf.BuiltinTriggerRef;
@@ -30,7 +30,6 @@ import org.lflang.lf.Output;
 import org.lflang.lf.Port;
 import org.lflang.lf.Reaction;
 import org.lflang.lf.Reactor;
-import org.lflang.lf.ReactorDecl;
 import org.lflang.lf.Timer;
 import org.lflang.lf.TriggerRef;
 import org.lflang.lf.VarRef;
@@ -206,18 +205,19 @@ public class CReactionGenerator {
         // Before the reaction initialization,
         // generate the structs used for communication to and from contained reactors.
         for (Instantiation containedReactor : fieldsForStructsForContainedReactors.keySet()) {
+            var containedReactorType = ReactorInstance.getReactorInstance((Reactor) containedReactor.getReactorClass());
             String array = "";
             if (containedReactor.getWidthSpec() != null) {
-                String containedReactorWidthVar = generateWidthVariable(containedReactor.getName());
+                String containedReactorWidthVar = generateWidthVariable(containedReactorType.tpr.getName());
                 code.pr("int "+containedReactorWidthVar+" = self->_lf_"+containedReactorWidthVar+";");
                 // Windows does not support variables in arrays declared on the stack,
                 // so we use the maximum size over all bank members.
                 array = "["+maxContainedReactorBankWidth(containedReactor, null, 0, mainDef)+"]";
             }
             code.pr(String.join("\n",
-                "struct "+containedReactor.getName()+" {",
+                "struct "+containedReactorType.getName()+" {",
                 "    "+fieldsForStructsForContainedReactors.get(containedReactor)+"",
-                "} "+containedReactor.getName()+array+";"
+                "} "+containedReactorType.getName()+array+";"
             ));
         }
         // Next generate all the collected setup code.
@@ -348,14 +348,15 @@ public class CReactionGenerator {
         Instantiation definition,
         Input input
     ) {
-        // TODO: Get reactorInstance or TPR from Instantiation
         CodeBuilder structBuilder = structs.get(definition);
         if (structBuilder == null) {
             structBuilder = new CodeBuilder();
             structs.put(definition, structBuilder);
         }
-        String inputStructType = CGenerator.variableStructType(input, ASTUtils.toDefinition(definition.getReactorClass()), false);
-        String defName = definition.getName();
+        var reactorInstance = ReactorInstance.getReactorInstance(ASTUtils.toDefinition(definition.getReactorClass()));
+        String inputStructType = CGenerator.variableStructType(input, reactorInstance.tpr, false);
+        String defName = reactorInstance.getName();
+        String subName = reactorInstance.tpr.getName();
         String defWidth = generateWidthVariable(defName);
         String inputName = input.getName();
         String inputWidth = generateWidthVariable(inputName);
@@ -366,12 +367,12 @@ public class CReactionGenerator {
                 // Contained reactor is a bank.
                 builder.pr(String.join("\n",
                     "for (int bankIndex = 0; bankIndex < self->_lf_"+defWidth+"; bankIndex++) {",
-                    "    "+defName+"[bankIndex]."+inputName+" = &(self->_lf_"+defName+"[bankIndex]."+inputName+");",
+                    "    "+defName+"[bankIndex]."+inputName+" = &(self->_lf_"+subName+"[bankIndex]."+inputName+");",
                     "}"
                 ));
             } else {
                 // Contained reactor is not a bank.
-                builder.pr(defName+"."+inputName+" = &(self->_lf_"+defName+"."+inputName+");");
+                builder.pr(defName+"."+inputName+" = &(self->_lf_"+subName+"."+inputName+");");
             }
         } else {
             // Contained reactor's input is a multiport.
@@ -384,14 +385,14 @@ public class CReactionGenerator {
             if (definition.getWidthSpec() != null) {
                 builder.pr(String.join("\n",
                     "for (int _i = 0; _i < self->_lf_"+defWidth+"; _i++) {",
-                    "    "+defName+"[_i]."+inputName+" = self->_lf_"+defName+"[_i]."+inputName+";",
-                    "    "+defName+"[_i]."+inputWidth+" = self->_lf_"+defName+"[_i]."+inputWidth+";",
+                    "    "+defName+"[_i]."+inputName+" = self->_lf_"+subName+"[_i]."+inputName+";",
+                    "    "+defName+"[_i]."+inputWidth+" = self->_lf_"+subName+"[_i]."+inputWidth+";",
                     "}"
                 ));
             } else {
                 builder.pr(String.join("\n",
-                    defName+"."+inputName+" = self->_lf_"+defName+"."+inputName+";",
-                    defName+"."+inputWidth+" = self->_lf_"+defName+"."+inputWidth+";"
+                    defName+"."+inputName+" = self->_lf_"+subName+"."+inputName+";",
+                    defName+"."+inputWidth+" = self->_lf_"+subName+"."+inputWidth+";"
                 ));
             }
         }
@@ -421,14 +422,15 @@ public class CReactionGenerator {
         } else {
             // port is an output of a contained reactor.
             Output output = (Output) port.getVariable();
-            String portStructType = CGenerator.variableStructType(output, tpr, false);
+            String portStructType = CGenerator.variableStructType(output, ReactorInstance.getReactorInstance(ASTUtils.toDefinition(port.getContainer().getReactorClass())).getTypeParameterizedReactor(), false);
 
             CodeBuilder structBuilder = structs.get(port.getContainer());
             if (structBuilder == null) {
                 structBuilder = new CodeBuilder();
                 structs.put(port.getContainer(), structBuilder);
             }
-            String reactorName = port.getContainer().getName();
+            String reactorName = ReactorInstance.getReactorInstance(ASTUtils.toDefinition(port.getContainer().getReactorClass())).tpr.getName();
+            String subName = ReactorInstance.getReactorInstance(ASTUtils.toDefinition(port.getContainer().getReactorClass())).getName();
             String reactorWidth = generateWidthVariable(reactorName);
             String outputName = output.getName();
             String outputWidth = generateWidthVariable(outputName);
@@ -450,21 +452,21 @@ public class CReactionGenerator {
                 // Output is in a bank.
                 builder.pr(String.join("\n",
                     "for (int i = 0; i < "+reactorWidth+"; i++) {",
-                    "    "+reactorName+"[i]."+outputName+" = self->_lf_"+reactorName+"[i]."+outputName+";",
+                    "    "+subName+"[i]."+outputName+" = self->_lf_"+reactorName+"[i]."+outputName+";",
                     "}"
                 ));
                 if (ASTUtils.isMultiport(output)) {
                     builder.pr(String.join("\n",
                         "for (int i = 0; i < "+reactorWidth+"; i++) {",
-                        "    "+reactorName+"[i]."+outputWidth+" = self->_lf_"+reactorName+"[i]."+outputWidth+";",
+                        "    "+subName+"[i]."+outputWidth+" = self->_lf_"+reactorName+"[i]."+outputWidth+";",
                         "}"
                     ));
                 }
             } else {
                  // Output is not in a bank.
-                builder.pr(reactorName+"."+outputName+" = self->_lf_"+reactorName+"."+outputName+";");
+                builder.pr(subName+"."+outputName+" = self->_lf_"+reactorName+"."+outputName+";");
                 if (ASTUtils.isMultiport(output)) {
-                    builder.pr(reactorName+"."+outputWidth+" = self->_lf_"+reactorName+"."+outputWidth+";");
+                    builder.pr(subName+"."+outputWidth+" = self->_lf_"+reactorName+"."+outputWidth+";");
                 }
             }
         }
@@ -641,9 +643,10 @@ public class CReactionGenerator {
             // The container of the output may be a contained reactor or
             // the reactor containing the reaction.
             String outputStructType = (effect.getContainer() == null) ?
-                    CGenerator.variableStructType(output, tpr, false)
-                    :
-                    CGenerator.variableStructType(output, ASTUtils.toDefinition(effect.getContainer().getReactorClass()), false);
+                CGenerator.variableStructType(output, tpr, false)
+                :
+                    CGenerator.variableStructType(output, ReactorInstance.getReactorInstance(
+                        ASTUtils.toDefinition(effect.getContainer().getReactorClass())).getTypeParameterizedReactor(), false);
             if (!ASTUtils.isMultiport(output)) {
                 // Output port is not a multiport.
                 return outputStructType+"* "+outputName+" = &self->_lf_"+outputName+";";
