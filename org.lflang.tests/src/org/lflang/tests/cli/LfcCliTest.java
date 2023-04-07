@@ -268,7 +268,7 @@ public class LfcCliTest {
             throws IOException {
         TempDirBuilder dir = dirBuilder(tempDir);
         dir.file("src/File.lf", LF_PYTHON_FILE);
-        dir.mkdirs("path//to/rti");
+        dir.mkdirs("path/to/rti");
 
         String[] args = {"--json", JSON_STRING};
         verifyGeneratorArgs(tempDir, args);

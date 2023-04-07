@@ -63,7 +63,7 @@ public abstract class CliBase implements Runnable {
          @Parameters(
          arity = "1..",
          paramLabel = "FILES",
-         description = "Paths of the files to run Lingua Franca programs on.")
+         description = "Paths to one or more Lingua Franca programs.")
              protected List<Path> files;
 
          @Option(
