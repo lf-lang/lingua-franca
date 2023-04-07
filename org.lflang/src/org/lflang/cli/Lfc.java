@@ -156,7 +156,7 @@ public class Lfc extends CliBase {
      * Load the resource, validate it, and, invoke the code generator.
      */
     @Override
-    public void run() {
+    public void doRun() {
         List<Path> paths = getInputPaths();
         final Path outputRoot = getOutputRoot();
         // Hard code the props based on the options we want.
