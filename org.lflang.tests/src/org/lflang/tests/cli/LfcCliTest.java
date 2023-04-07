@@ -280,7 +280,7 @@ public class LfcCliTest {
         TempDirBuilder dir = dirBuilder(tempDir);
         dir.file("src/File.lf", LF_PYTHON_FILE);
         dir.file("src/test.json", JSON_STRING);
-        dir.mkdirs("path//to/rti");
+        dir.mkdirs("path/to/rti");
 
         String[] args = {"--json-file", "src/test.json"};
         verifyGeneratorArgs(tempDir, args);
