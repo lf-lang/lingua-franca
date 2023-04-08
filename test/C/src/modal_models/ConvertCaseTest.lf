@@ -50,8 +50,6 @@ reactor Converter {
     input raw: char
     output converted: int
 
-    preamble {=  =}
-
     initial mode Upper {
         reaction(raw) -> converted, reset(Lower) {=
             char c = raw->value;
