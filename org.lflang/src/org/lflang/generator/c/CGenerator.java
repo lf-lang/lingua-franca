@@ -1243,6 +1243,11 @@ public class CGenerator extends GeneratorBase {
         // Next, generate fields for modes
         CModesGenerator.generateDeclarations(reactor, body, constructorCode);
 
+        // constructorCode.pr(reactor, String.join("\n", 
+        //     "#ifdef LF_THREADED",
+        //     "   self->base->watchdog_mutex = NULL;",
+        //     "#endif"));
+
         // The first field has to always be a pointer to the list of
         // of allocated memory that must be freed when the reactor is freed.
         // This means that the struct can be safely cast to self_base_t.

@@ -1,0 +1,66 @@
+/**
+ * Test watchdog.
+ * This test starts a watchdog timer of 150ms every 100ms.
+ * Half the time, it then sleeps after starting the watchdog so that
+ * the watchdog expires.  There should be a total of five watchdog
+ * expirations.
+ * @author Benjamin Asch
+ * @author Edward A. Lee
+ */
+
+target Python {
+    timeout: 1100ms,
+    threading: true
+}
+
+reactor Watcher(timeout(150 ms)) {
+    timer t(100 ms, 100 ms) // Offset ameliorates startup time.
+    output d                // Produced if watchdog triggers.
+    state alternating(False)
+    state count(0)
+
+    watchdog poodle(timeout) {=
+        p = lf_time_physical_elapsed() - lf_time_logical_elapsed()
+        lf_print("Watchdog timed out! Lag: "+p+" (too late by "+(p - self.timeout)+" ns)")
+        self.count += 1
+    =}
+
+    reaction(t) -> poodle, d {=
+        lf_watchdog_start(poodle, 0)
+        lf_print("Watchdog started at physical time "+lf_time_physical_elapsed())
+        lf_print("Will expire at "+lf_time_logical_elapsed() + self.timeout)
+        if (self.alternating) {
+            lf_sleep(160 ms)
+        }
+        self.alternating = not self.alternating
+    =}
+
+    reaction(poodle) -> d {=
+        lf_print("Reaction poodle was called.")
+        d.set(1)
+    =}
+
+    reaction(shutdown) -> poodle {=
+        _lf_watchdog_stop(poodle)
+        if (self.count != 5) {
+            lf_print_error_and_exit("Watchdog expired "+self.count+" times. Expected 5.")
+        }
+    =}
+}
+
+main reactor {
+    logical action a 
+    state count(0)
+    w = new Watcher()
+
+    reaction(w.d) {=
+        lf_print("*** Watcher reactor produced an output.")
+        self.count += 1
+    =}
+
+    reaction(shutdown) {=
+        if (self.count != 5) {
+            lf_print_error_and_exit("Watchdog produced output "+self.count+" times. Expected 5.")
+        }
+    =}
+}
