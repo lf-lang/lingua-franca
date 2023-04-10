@@ -6,9 +6,7 @@ reactor Foo(
     y: time = 0,                // Units are missing but not required
     z = 1 msec,                 // Type is missing but not required
     p: int[]{1, 2, 3, 4},       // List of integers
-    q: {=  // list of time values
-        std::vector<reactor::Duration>
-    =}{1 msec, 2 msec, 3 msec},
+    q: {= std::vector<reactor::Duration> =}{1 msec, 2 msec, 3 msec},
     g: time[]{1 msec, 2 msec},  // List of time values
     g2: int[] = {}
 ) {

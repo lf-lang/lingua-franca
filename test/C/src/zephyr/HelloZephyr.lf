@@ -1,9 +1,5 @@
 target C {
-    threading: false,
-    platform: {
-        name: Zephyr,
-        board: qemu_cortex_m3
-    }
+    platform: "Zephyr"
 }
 
 main reactor {
