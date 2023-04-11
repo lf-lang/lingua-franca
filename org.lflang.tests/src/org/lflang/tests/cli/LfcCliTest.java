@@ -34,6 +34,7 @@ import static org.lflang.tests.TestUtils.isRegularFile;
 
 import com.google.inject.Injector;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Properties;
@@ -125,7 +126,8 @@ public class LfcCliTest {
             .verify(result -> {
                 result.checkOk();
                 result.checkNoErrorOutput();
-                result.checkStdOut(equalTo("lfc " + LocalStrings.VERSION + "\n"));
+                result.checkStdOut(equalTo(
+                    "lfc " + LocalStrings.VERSION + System.lineSeparator()));
             });
     }
 
@@ -227,7 +229,8 @@ public class LfcCliTest {
                 assertEquals(properties.getProperty(BuildParm.LINT.getKey()), "true");
                 assertEquals(properties.getProperty(BuildParm.NO_COMPILE.getKey()), "true");
                 assertEquals(properties.getProperty(BuildParm.QUIET.getKey()), "true");
-                assertEquals(properties.getProperty(BuildParm.RTI.getKey()), "path/to/rti");
+                assertEquals(properties.getProperty(BuildParm.RTI.getKey()),
+                        "path" + File.separator + "to" + File.separator + "rti");
                 assertEquals(properties.getProperty(BuildParm.RUNTIME_VERSION.getKey()), "rs");
                 assertEquals(properties.getProperty(BuildParm.SCHEDULER.getKey()), "GEDF_NP");
                 assertEquals(properties.getProperty(BuildParm.THREADING.getKey()), "false");
