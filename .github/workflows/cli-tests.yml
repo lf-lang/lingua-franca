@@ -37,3 +37,9 @@ jobs:
           ./gradlew buildAll
           bin/lfc.ps1 --help
         if: ${{ runner.os == 'Windows' }}
+      - name: Report to CodeCov
+        uses: codecov/codecov-action@v3.1.1
+        with:
+          file: org.lflang.tests/build/reports/xml/jacoco
+          fail_ci_if_error: false
+          verbose: true
