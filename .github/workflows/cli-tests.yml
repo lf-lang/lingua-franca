@@ -18,7 +18,7 @@ jobs:
         uses: ./.github/actions/prepare-build-env
       - name: Run standalone cli tests
         run: |
-          ./gradlew :org.lflang.cli:test --stacktrace
+          ./gradlew test --tests org.lflang.tests.cli.* --stacktrace
       - name: Test build bash scripts (Linux and macOS only)
         run: |
           .github/scripts/test-build.sh
