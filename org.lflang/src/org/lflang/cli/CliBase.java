@@ -157,16 +157,14 @@ public abstract class CliBase implements Runnable {
                         "No such file: " + topLevelArg.jsonFile);
             }
         }
-        // If args are given in a json string, (1) unpack them into an args
-        // array, and (2) call cmd.execute on them, which assigns them to their
-        // correct instance variables, then (3) recurses into run().
+        // If args are given in a json string, unpack them and re-run
+        // picocli argument validation.
         if (topLevelArg.jsonString != null) {
             // Unpack args from json string.
             String[] args = jsonStringToArgs(topLevelArg.jsonString);
             // Execute application on unpacked args.
             CommandLine cmd = spec.commandLine();
-            int exitCode = cmd.execute(args);
-            io.callSystemExit(exitCode);
+            cmd.execute(args);
         // If args are already unpacked, invoke tool-specific logic.
         } else {
             runTool();
