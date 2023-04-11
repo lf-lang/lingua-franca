@@ -160,20 +160,27 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
 
     public final TypeParameterizedReactor tpr;
 
+    /** HashMap containing {@link ReactorInstance} against <code>hashCode</code> achievable from Reactor */
     private static final HashMap<Integer, ReactorInstance> gReactorInstancesMap = new HashMap<>();
 
     //////////////////////////////////////////////////////
     //// Static methods.
 
-    /** Map {@link ReactorInstance} against achievable hashcode from {@link Reactor} */
-    public static void mapReactorInstance(Reactor r, ReactorInstance i, final String n) {
-        gReactorInstancesMap.put(computeHash(r, n), i);
+    /** Map {@link ReactorInstance} against achievable hashcode from {@link Reactor}
+     * @param reactor The Reactor
+     * @param reactorInstance The ReactorInstance for the specified Reactor
+     * @param defName definition Name for the specified Reactor
+     * */
+    public static void mapReactorInstance(Reactor reactor, ReactorInstance reactorInstance, final String defName) {
+        gReactorInstancesMap.put(computeHash(reactor, defName), reactorInstance);
     }
 
-    /** Get {@link ReactorInstance} for supplied {@link Reactor} */
-    public static ReactorInstance getReactorInstance(Reactor r, final String n) {
-        var instance = gReactorInstancesMap.get(computeHash(r, n));
-        return instance;
+    /** Get {@link ReactorInstance} for supplied {@link Reactor}
+     * @param reactor The reactor
+     * @param defName definition Name for the specified reactor
+     * */
+    public static ReactorInstance getReactorInstance(Reactor reactor, final String defName) {
+        return gReactorInstancesMap.get(computeHash(reactor, defName));
     }
 
     /** Clears out the cache of ReactorInstance for next LF processing */
@@ -181,7 +188,10 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
         gReactorInstancesMap.clear();
     }
 
-    /** Calculates Unique HashCode for the <code>key</code> of <code>ReactorInstanceMap</code>*/
+    /** Calculates Unique HashCode for the <code>key</code> of <code>ReactorInstanceMap</code>
+     * @param r The reactor
+     * @param n definition Name for the Reactor
+     * */
     private static Integer computeHash(Reactor r, final String n) {
         return Math.abs(r.hashCode() * 37 + r.getTypeParms().hashCode() + n.hashCode());
     }
