@@ -166,21 +166,14 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
     //// Static methods.
 
     /** Map {@link ReactorInstance} against achievable hashcode from {@link Reactor} */
-    public static void mapReactorInstance(Reactor r, ReactorInstance i) {
-        gReactorInstancesMap.put(computeHash(r, i), i);
+    public static void mapReactorInstance(Reactor r, ReactorInstance i, final String n) {
+        gReactorInstancesMap.put(computeHash(r, n), i);
     }
 
     /** Get {@link ReactorInstance} for supplied {@link Reactor} */
-    public static ReactorInstance getReactorInstance(Reactor r) {
-        var wrapper = new Object() {
-            ReactorInstance ins = null;
-        };
-        gReactorInstancesMap.forEach((hash, i) -> {
-            if (Objects.equals(hash, computeHash(r, i))) {
-                wrapper.ins = i;
-            }
-        });
-        return wrapper.ins;
+    public static ReactorInstance getReactorInstance(Reactor r, final String n) {
+        var instance = gReactorInstancesMap.get(computeHash(r, n));
+        return instance;
     }
 
     /** Clears out the cache of ReactorInstance for next LF processing */
@@ -189,8 +182,8 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
     }
 
     /** Calculates Unique HashCode for the <code>key</code> of <code>ReactorInstanceMap</code>*/
-    private static Integer computeHash(Reactor r, ReactorInstance i) {
-        return Math.abs(r.hashCode() * 37 + r.getTypeParms().hashCode() + i.tpr.hashCode());
+    private static Integer computeHash(Reactor r, final String n) {
+        return Math.abs(r.hashCode() * 37 + r.getTypeParms().hashCode() + n.hashCode());
     }
 
     //////////////////////////////////////////////////////
@@ -807,7 +800,7 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
         this.tpr = new TypeParameterizedReactor(definition);
 
         // Add ReactorInstance against achievable hashcode from Reactor
-        ReactorInstance.mapReactorInstance(ASTUtils.toDefinition(definition.getReactorClass()), this);
+        ReactorInstance.mapReactorInstance(ASTUtils.toDefinition(definition.getReactorClass()), this, definition.getName());
 
         // check for recursive instantiation
         var currentParent = parent;

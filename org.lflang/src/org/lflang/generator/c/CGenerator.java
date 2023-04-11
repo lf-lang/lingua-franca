@@ -1251,7 +1251,7 @@ public class CGenerator extends GeneratorBase {
         var contained = new InteractingContainedReactors(tpr.r());
         // Next generate the relevant code.
         for (Instantiation containedReactor : contained.containedReactors()) {
-            var containedReactorType = ReactorInstance.getReactorInstance(ASTUtils.toDefinition(containedReactor.getReactorClass()));
+            var containedReactorType = ReactorInstance.getReactorInstance(ASTUtils.toDefinition(containedReactor.getReactorClass()), containedReactor.getName());
             // First define an _width variable in case it is a bank.
             var array = "";
             var width = -2;

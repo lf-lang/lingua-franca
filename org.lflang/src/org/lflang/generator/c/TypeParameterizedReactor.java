@@ -3,7 +3,6 @@ package org.lflang.generator.c;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.stream.Collectors;
 
 import org.lflang.ASTUtils;
