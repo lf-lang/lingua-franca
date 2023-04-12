@@ -28,7 +28,7 @@ jacoco {
 jacocoTestReport {
     reports {
         xml.required = true
-        csv.required = true
+        csv.required = false
         html.destination file("${buildDir}/reports/html/jacoco")
         xml.destination file("${buildDir}/reports/xml/jacoco")
         csv.destination file("${buildDir}/reports/csv/jacoco")
