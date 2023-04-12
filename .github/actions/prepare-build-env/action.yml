@@ -34,3 +34,9 @@ runs:
         key: gradle-${{ runner.os }}-${{ env.gradle-hash }}
         # restore-keys: |
         #   ${{ runner.os }}-gradle-
+    - name: Bring down Gradle daemon (Windows)
+      uses: webiny/action-post-run@3.0.0
+      id: post-run-command
+      with:
+        run: ./gradlew --stop
+      if: ${{ runner.os == 'Windows' }}
