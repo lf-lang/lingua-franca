@@ -47,11 +47,23 @@ public class CZephyrTest extends RuntimeTest {
     }
 
     @Test
-    public void runZephyrTests() {
+    public void buildZephyrTests() {
         Assumptions.assumeTrue(isLinux(), "Zephyr tests only run on Linux");
         super.runTestsFor(List.of(Target.C),
             Message.DESC_ZEPHYR,
-            TestCategory.ZEPHYR::equals, Configurators::platformZephyrQemuNoFlash,
+            TestCategory.ZEPHYR::equals,
+            Configurators::makeZephyrCompatible,
+            TestLevel.BUILD,
+            false);
+    }
+    @Test
+    public void buildGenericTests() {
+        Assumptions.assumeTrue(isLinux(), "Zephyr tests only run on Linux");
+        super.runTestsFor(List.of(Target.C),
+            Message.DESC_GENERIC,
+            TestCategory.GENERIC::equals,
+            Configurators::makeZephyrCompatible,
+            TestLevel.BUILD,
             false);
     }
 }

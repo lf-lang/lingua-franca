@@ -27,7 +27,12 @@ public class CMethodGenerator {
     ) {
         for (Method method : allMethods(reactor)) {
             var functionName = methodFunctionName(reactor, method);
-            body.pr("#define "+method.getName()+"(...) "+functionName+"(self, ##__VA_ARGS__)");
+            // If the method has no arguments. Do not pass it any variadic arguments.s
+            if (method.getArguments().size() > 0) {
+                body.pr("#define "+method.getName()+"(...) "+functionName+"(self, ##__VA_ARGS__)");
+            } else {
+                body.pr("#define "+method.getName()+"() "+functionName+"(self)");
+            }
         }
     }
 
