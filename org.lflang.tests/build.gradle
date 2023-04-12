@@ -21,14 +21,14 @@ apply plugin: 'jacoco'
 
 jacoco {
     toolVersion = jacocoVersion
-    reportsDir = file("$buildDir/reports/jacoco") //default directory where jacoco generates test reports
+    reportsDirectory = file("$buildDir/reports/jacoco") //default directory where jacoco generates test reports
 }
 
 
 jacocoTestReport {
     reports {
-        xml.enabled true
-        csv.enabled true
+        xml.required = true
+        csv.required = true
         html.destination file("${buildDir}/reports/html/jacoco")
         xml.destination file("${buildDir}/reports/xml/jacoco")
         csv.destination file("${buildDir}/reports/csv/jacoco")
