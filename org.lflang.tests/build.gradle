@@ -31,7 +31,6 @@ jacocoTestReport {
         csv.required = false
         html.destination file("${buildDir}/reports/html/jacoco")
         xml.destination file("${buildDir}/reports/xml/jacoco")
-        csv.destination file("${buildDir}/reports/csv/jacoco")
     }
     def fileFilter = [  'org/lflang/services/**', 
                         'org/lflang/linguaFranca/impl/**', 
