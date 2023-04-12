@@ -16,7 +16,6 @@ plugins {
     id 'java'
     id 'jacoco'
     id "com.diffplug.spotless" version "${spotlessVersion}"
-    id "org.xtext.builder" version "4.0.0"
 }
 
 subprojects {
@@ -48,12 +47,12 @@ subprojects {
         implementation group: 'org.jetbrains.kotlin', name: 'kotlin-stdlib', version: kotlinVersion
         implementation group: 'org.jetbrains.kotlin', name: 'kotlin-reflect', version: kotlinVersion
     }
-    apply plugin: "org.xtext.builder"
+
     apply from: "${rootDir}/gradle/source-layout.gradle"
     apply plugin: 'eclipse'
 
     // generate xtend sources before kotlin compilation
-    compileKotlin.dependsOn("generateXtext")
+    compileKotlin.dependsOn("generateXtextLanguage")
 
     sourceCompatibility = JavaVersion.VERSION_17
     targetCompatibility = JavaVersion.VERSION_17
