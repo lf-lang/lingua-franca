@@ -42,4 +42,4 @@ jobs:
           file: org.lflang.tests/build/reports/xml/jacoco
           fail_ci_if_error: false
           verbose: true
-        if: matrix.platform == 'ubuntu-latest'
+        if: ${{ runner.os == 'Linux' }}
