@@ -3,16 +3,6 @@ description: Set up Java, Maven, Gradle, etc.
 runs:
   using: "composite"
   steps:
-    - name: Set Unix path separator
-      run: |
-        echo "path-sep=/" >> $GITHUB_ENV
-      shell: bash
-      if: ${{ runner.os != 'Windows' }}
-    - name: Set Windows path separator
-      run: |
-        echo "path-sep=\\" >> $GITHUB_ENV
-      shell: bash
-      if: ${{ runner.os == 'Windows' }}
     - name: Set up Java 17
       run: |
         echo "$JAVA_HOME_17_X64/bin" >> $GITHUB_PATH
@@ -29,13 +19,6 @@ runs:
       run: |
         echo "gradle-hash"="$(find . -type f \( -name "gradle.properties" -o -name "gradle-wrapper.properties" \) -exec cat {} + | sha256sum | cut -d ' ' -f 1)" >> $GITHUB_ENV
       shell: bash
-    - name: Remove lock files (Windows)
-      uses: webiny/action-post-run@3.0.0
-      id: post-run-command
-      with:
-        run: find . -name ".lock" | xargs rm
-        working-directory: C\:/Users/runneradmin/.gradle/caches
-      if: ${{ runner.os == 'Windows' }}
     - name: Cache
       uses: actions/cache@v3
       with:
@@ -45,3 +28,9 @@ runs:
         key: gradle-${{ runner.os }}-${{ env.gradle-hash }}
         # restore-keys: |
         #   ${{ runner.os }}-gradle-
+    - name: Shutdown Gradle (Windows)
+      uses: webiny/action-post-run@3.0.0
+      id: post-run-command
+      with:
+        run: ./gradlew --stop
+      if: ${{ runner.os == 'Windows' }}
