@@ -97,13 +97,12 @@ public class CActionGenerator {
      */
     public static void generateDeclarations(
         Reactor reactor,
-        ReactorDecl decl,
         CodeBuilder body,
         CodeBuilder constructorCode
     ) {
         for (Action action : ASTUtils.allActions(reactor)) {
             var actionName = action.getName();
-            body.pr(action, CGenerator.variableStructType(action, decl)+" _lf_"+actionName+";");
+            body.pr(action, CGenerator.variableStructType(action, reactor, false)+" _lf_"+actionName+";");
             // Initialize the trigger pointer in the action.
             constructorCode.pr(action, "self->_lf_"+actionName+".trigger = &self->_lf__"+actionName+";");
         }
@@ -121,11 +120,12 @@ public class CActionGenerator {
      * @return The auxiliary struct for the port as a string
      */
     public static String generateAuxiliaryStruct(
-        ReactorDecl decl,
+        Reactor r,
         Action action,
         Target target,
         CTypes types,
-        CodeBuilder federatedExtension
+        CodeBuilder federatedExtension,
+        boolean userFacing
     ) {
         var code = new CodeBuilder();
         code.pr("typedef struct {");
@@ -145,7 +145,7 @@ public class CActionGenerator {
         code.pr(valueDeclaration(action, target, types));
         code.pr(federatedExtension.toString());
         code.unindent();
-        code.pr("} " + variableStructType(action, decl) + ";");
+        code.pr("} " + variableStructType(action, r, userFacing) + ";");
         return code.toString();
     }
 

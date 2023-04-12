@@ -455,15 +455,20 @@ public class FileUtil {
      * @param dir The folder to search for includes to change. 
      * @throws IOException If the given set of files cannot be relativized.
      */
-    public static void relativeIncludeHelper(Path dir) throws IOException {
+    public static void relativeIncludeHelper(Path dir, Path includePath) throws IOException {
         System.out.println("Relativizing all includes in " + dir.toString());
-        List<Path> allPaths = Files.walk(dir)
+        List<Path> includePaths = Files.walk(includePath)
+            .filter(Files::isRegularFile)
+            .filter(FileUtil::isCFile)
+            .sorted(Comparator.reverseOrder())
+            .collect(Collectors.toList());
+        List<Path> srcPaths = Files.walk(dir)
             .filter(Files::isRegularFile)
             .filter(FileUtil::isCFile)
             .sorted(Comparator.reverseOrder())
             .collect(Collectors.toList());
         Map<String, Path> fileStringToFilePath = new HashMap<String, Path>();
-        for (Path path : allPaths) {
+        for (Path path : includePaths) {
             String fileName = path.getFileName().toString();
             if (path.getFileName().toString().contains("CMakeLists.txt")) continue;
             if (fileStringToFilePath.put(fileName, path) != null) {
@@ -471,7 +476,7 @@ public class FileUtil {
             }
         }
         Pattern regexExpression = Pattern.compile("#include\s+[\"]([^\"]+)*[\"]");
-        for (Path path : allPaths) {
+        for (Path path : srcPaths) {
             String fileName = path.getFileName().toString();
             String fileContents = Files.readString(path);
             Matcher matcher = regexExpression.matcher(fileContents);

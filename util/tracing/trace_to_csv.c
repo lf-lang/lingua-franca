@@ -30,6 +30,8 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * text file.
  */
 #define LF_TRACE
+#include <stdio.h>
+#include <string.h>
 #include "reactor.h"
 #include "trace.h"
 #include "trace_util.h"
@@ -84,7 +86,7 @@ typedef struct summary_stats_t {
     reaction_stats_t reactions[MAX_NUM_REACTIONS];
 } summary_stats_t;
 
-/** 
+/**
  * Sumary stats array. This array has the same size as the
  * object table. Pointer in the array will be void if there
  * are no stats for the object table item.
@@ -135,7 +137,7 @@ size_t read_and_write_trace() {
         if (trigger_instance >= 0 && summary_stats[NUM_EVENT_TYPES + trigger_instance] == NULL) {
             summary_stats[NUM_EVENT_TYPES + trigger_instance] = (summary_stats_t*)calloc(1, sizeof(summary_stats_t));
         }
-        
+
         summary_stats_t* stats = NULL;
         interval_t exec_time;
         reaction_stats_t* rstats;
@@ -198,7 +200,7 @@ size_t read_and_write_trace() {
                 // commandeer the first entry in the reactions array to track values.
                 stats = summary_stats[NUM_EVENT_TYPES + object_instance];
                 stats->description = reactor_name;
-                rstats = &stats->reactions[0]; 
+                rstats = &stats->reactions[0];
                 rstats->occurrences++;
                 // User values are stored in the "extra_delay" field, which is an interval_t.
                 interval_t value = trace[i].extra_delay;
@@ -332,7 +334,7 @@ void write_summary_file() {
     first = true;
     for (int i = NUM_EVENT_TYPES; i < table_size; i++) {
         summary_stats_t* stats = summary_stats[i];
-        if (stats != NULL 
+        if (stats != NULL
                 && (stats->event_type == user_event || stats->event_type == user_value)
                 && stats->occurrences > 0) {
             if (first) {

@@ -15,19 +15,23 @@ target C {
 
 preamble {=
     #include <unistd.h> // Defines sleep()
-    bool stop = false;
-    // Thread to trigger an action once every second.
-    void* ping(void* actionref) {
-        while(!stop) {
-            lf_print("Scheduling action.");
-            lf_schedule(actionref, 0);
-            sleep(1);
-        }
-        return NULL;
-    }
+    extern bool stop;
+    void* ping(void* actionref);
 =}
 
 reactor Looper(incr: int = 1, delay: time = 0 msec) {
+    preamble {=
+        bool stop = false;
+        // Thread to trigger an action once every second.
+        void* ping(void* actionref) {
+            while(!stop) {
+                lf_print("Scheduling action.");
+                lf_schedule(actionref, 0);
+                sleep(1);
+            }
+            return NULL;
+        }
+    =}
     input in: int
     input in2: int
     output out: int

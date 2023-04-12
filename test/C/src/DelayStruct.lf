@@ -5,6 +5,7 @@ target C {
 
 preamble {=
     #include "hello.h"
+    #include <stdio.h>
 =}
 
 reactor DelayPointer(delay: time = 100 msec) {

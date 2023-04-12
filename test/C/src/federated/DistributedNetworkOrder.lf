@@ -13,6 +13,16 @@ target C {
     build-type: RelWithDebInfo  // Release with debug info
 }
 
+preamble {=
+    #ifdef __cplusplus
+    extern "C" {
+    #endif
+    #include "federate.h"
+    #ifdef __cplusplus
+    }
+    #endif
+=}
+
 reactor Sender {
     output out: int
     timer t(0, 1 msec)
