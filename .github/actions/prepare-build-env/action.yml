@@ -23,8 +23,8 @@ runs:
       uses: actions/cache@v3
       with:
         path: |
-          ~${{ env.path-sep }}.gradle${{ env.path-sep }}caches
-          ~${{ env.path-sep }}.gradle${{ env.path-sep }}wrapper
+          ~/.gradle/caches
+          ~/.gradle/wrapper
         key: gradle-${{ runner.os }}-${{ env.gradle-hash }}
         # restore-keys: |
         #   ${{ runner.os }}-gradle-
