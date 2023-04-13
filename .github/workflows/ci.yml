@@ -51,7 +51,7 @@ jobs:
     uses: lf-lang/benchmarks-lingua-franca/.github/workflows/benchmark-tests.yml@main
     with:
       target: 'C'
-      benchmarks-ref: 'c-separate-gen-files'
+      benchmarks-ref: main
       compiler-ref: master
     needs: cancel
 
