@@ -77,6 +77,7 @@ reactor Destination {
     state last_invoked: tag_t = {= NEVER_TAG_INITIALIZER =}
 
     reaction(ok, in) {=
+        tag_t current_tag = lf_tag();
         if (ok->is_present && in->is_present) {
             lf_print("Destination: Input %d is prime at tag (%lld, %d).",
                 in->value,
