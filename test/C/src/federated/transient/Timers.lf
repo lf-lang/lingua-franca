@@ -1,0 +1,23 @@
+target C {
+    timeout: 10s,
+    tracing: true,
+    threading: true 
+}
+
+reactor Timer(period:time = 2s) {
+    output out: int
+    timer t(0, period)
+    state count: int = 0
+    reaction(t) -> out {=
+        lf_set(out, self->count);
+        lf_print("Count is = %d", self->count);
+        self->count++;
+    =}
+}
+
+federated reactor {
+    @transient
+    t0 = new Timer(period = 1s)
+    t1 = new Timer()
+    t2 = new Timer()
+}
