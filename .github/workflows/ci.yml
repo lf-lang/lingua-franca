@@ -38,7 +38,7 @@ jobs:
 
   # Run the unit tests.
   unit-tests:
-    uses: lf-lang/lingua-franca/.github/workflows/unit-tests.yml@bodyless-reactions
+    uses: lf-lang/lingua-franca/.github/workflows/unit-tests.yml@master
     needs: cancel
 
   # Run tests for the standalone compiler.
@@ -52,7 +52,7 @@ jobs:
     with:
       target: 'C'
       benchmarks-ref: 'c-separate-gen-files'
-      compiler-ref: bodyless-reactions
+      compiler-ref: master
     needs: cancel
 
   # Run language server tests.
