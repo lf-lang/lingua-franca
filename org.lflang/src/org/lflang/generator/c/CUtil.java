@@ -853,7 +853,7 @@ public class CUtil {
                         if (term.getParameter() != null) {
                             result.add(getTargetReference(term.getParameter()));
                         } else {
-                            result.add("" + term.getWidth());
+                            result.add(String.valueOf(term.getWidth()));
                         }
                     }
                 }

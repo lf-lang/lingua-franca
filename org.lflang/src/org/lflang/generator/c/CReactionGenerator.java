@@ -216,7 +216,7 @@ public class CReactionGenerator {
             }
             code.pr(String.join("\n",
                 "struct "+containedReactorType.getName()+" {",
-                "    "+fieldsForStructsForContainedReactors.get(containedReactor)+"",
+                "    "+fieldsForStructsForContainedReactors.get(containedReactor),
                 "} "+containedReactorType.getName()+array+";"
             ));
         }
@@ -697,8 +697,7 @@ public class CReactionGenerator {
             // Create the map of triggers to reactions.
             for (TriggerRef trigger : reaction.getTriggers()) {
                 // trigger may not be a VarRef (it could be "startup" or "shutdown").
-                if (trigger instanceof VarRef) {
-                    var triggerAsVarRef = (VarRef) trigger;
+                if (trigger instanceof VarRef triggerAsVarRef) {
                     var reactionList = triggerMap.get(triggerAsVarRef.getVariable());
                     if (reactionList == null) {
                         reactionList = new LinkedList<>();
@@ -811,9 +810,9 @@ public class CReactionGenerator {
             // self->_lf__"+action.getName()+".is_timer = false;
             constructorCode.pr(String.join("\n",
                 "self->_lf__" + action.getName() + ".is_physical = " + isPhysical + ";",
-                (!(action.getPolicy() == null || action.getPolicy().isEmpty()) ?
+                !(action.getPolicy() == null || action.getPolicy().isEmpty()) ?
                     "self->_lf__" + action.getName() + ".policy = " + action.getPolicy() + ";" :
-                    ""),
+                    "",
                 // Need to set the element_size in the trigger_t and the action struct.
                 "self->_lf__" + action.getName() + ".tmplt.type.element_size = " + elementSize
                     + ";",

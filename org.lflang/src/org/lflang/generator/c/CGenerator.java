@@ -344,10 +344,10 @@ public class CGenerator extends GeneratorBase {
     /**
      * Extra lines that need to go into the generated CMakeLists.txt.
      */
-    private String cMakeExtras = "";
+    private final String cMakeExtras = "";
 
     /** Place to collect code to execute at the start of a time step. */
-    private CodeBuilder startTimeStep = new CodeBuilder();
+    private final CodeBuilder startTimeStep = new CodeBuilder();
 
     /** Count of the number of token pointers that need to have their
      *  reference count decremented in _lf_start_time_step().
@@ -515,7 +515,7 @@ public class CGenerator extends GeneratorBase {
                 try {
                     var dockerData = getDockerGenerator(context).generateDockerData();
                     dockerData.writeDockerFile();
-                    (new DockerComposeGenerator(context)).writeDockerComposeFile(List.of(dockerData));
+                    new DockerComposeGenerator(context).writeDockerComposeFile(List.of(dockerData));
                 } catch (IOException e) {
                     throw new RuntimeException("Error while writing Docker files", e);
                 }
@@ -1949,7 +1949,7 @@ public class CGenerator extends GeneratorBase {
     // Perform set up that does not generate code
     protected void setUpGeneralParameters() {
         accommodatePhysicalActionsIfPresent();
-        targetConfig.compileDefinitions.put("LOG_LEVEL", targetConfig.logLevel.ordinal() + "");
+        targetConfig.compileDefinitions.put("LOG_LEVEL", String.valueOf(targetConfig.logLevel.ordinal()));
         targetConfig.compileAdditionalSources.addAll(CCoreFilesUtils.getCTargetSrc());
         // Create the main reactor instance if there is a main reactor.
         createMainReactorInstance();

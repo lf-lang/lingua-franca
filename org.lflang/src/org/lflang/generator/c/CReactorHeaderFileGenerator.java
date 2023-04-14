@@ -95,7 +95,7 @@ public class CReactorHeaderFileGenerator {
 
     private static String reactionParameters(CTypes types, Reaction r, TypeParameterizedReactor tpr) {
         return Stream.concat(Stream.of(userFacingSelfType(tpr) + "* self"), ioTypedVariableStream(r)
-            .map((tv) -> tpr.getName().toLowerCase() + "_" + tv.getName() + "_t* " + tv.getName()))
+            .map(tv -> tpr.getName().toLowerCase() + "_" + tv.getName() + "_t* " + tv.getName()))
             .collect(Collectors.joining(", "));
     }
 

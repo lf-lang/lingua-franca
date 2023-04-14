@@ -10,8 +10,6 @@ import org.lflang.lf.Instantiation;
 import org.lflang.lf.Reactor;
 import org.lflang.lf.Type;
 
-import com.google.common.collect.ImmutableMap;
-
 public record TypeParameterizedReactor(Reactor r, Map<String, Type> typeArgs) {
 
     public TypeParameterizedReactor(Instantiation i) {
@@ -26,7 +24,7 @@ public record TypeParameterizedReactor(Reactor r, Map<String, Type> typeArgs) {
                 ret.put(r.getTypeParms().get(i).getLiteral(), instantiation.getTypeArgs().get(i));
             }
         }
-        return ret; // ImmutableMap.copyOf(ret);
+        return ret;
     }
 
     public String getName() {

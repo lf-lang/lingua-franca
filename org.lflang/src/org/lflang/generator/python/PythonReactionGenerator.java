@@ -209,8 +209,7 @@ public class PythonReactionGenerator {
         // Next, add the triggers (input and actions; timers are not needed).
         // TODO: handle triggers
         for (TriggerRef trigger : ASTUtils.convertToEmptyListIfNull(reaction.getTriggers())) {
-            if (trigger instanceof VarRef) {
-                VarRef triggerAsVarRef = (VarRef) trigger;
+            if (trigger instanceof VarRef triggerAsVarRef) {
                 code.pr(generateVariableToSendPythonReaction(triggerAsVarRef, actionsAsTriggers, decl, pyObjects));
             }
         }
@@ -274,14 +273,13 @@ public class PythonReactionGenerator {
 
         // Handle triggers
         for (TriggerRef trigger : ASTUtils.convertToEmptyListIfNull(reaction.getTriggers())) {
-            if (!(trigger instanceof VarRef)) {
+            if (!(trigger instanceof VarRef triggerAsVarRef)) {
                 continue;
             }
-            VarRef triggerAsVarRef = (VarRef) trigger;
             if (triggerAsVarRef.getVariable() instanceof Port) {
                 if (triggerAsVarRef.getVariable() instanceof Input) {
                     if (((Input) triggerAsVarRef.getVariable()).isMutable()) {
-                        generatedParams.add("mutable_"+triggerAsVarRef.getVariable().getName()+"");
+                        generatedParams.add("mutable_"+triggerAsVarRef.getVariable().getName());
 
                         // Create a deep copy
                         if (ASTUtils.isMultiport((Input) triggerAsVarRef.getVariable())) {

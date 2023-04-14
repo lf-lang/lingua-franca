@@ -1185,9 +1185,6 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
      */
     public boolean isGeneratedDelay() {
         // FIXME: hacky string matching again...
-        if (this.definition.getReactorClass().getName().contains(DelayBodyGenerator.GEN_DELAY_CLASS_NAME)) {
-            return true;
-        }
-        return false;
+        return this.definition.getReactorClass().getName().contains(DelayBodyGenerator.GEN_DELAY_CLASS_NAME);
     }
 }
