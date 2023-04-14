@@ -60,7 +60,7 @@ reactor Looper(incr: int = 1, delay: time = 0 msec) {
         tag_t current_tag = lf_tag();
         lf_print("Received %d at logical time (%lld, %d).",
             in->value,
-            current_tag.time - start_time, current_tag.microstep
+            current_tag.time - lf_time_start(), current_tag.microstep
         );
     =}
 
@@ -68,13 +68,14 @@ reactor Looper(incr: int = 1, delay: time = 0 msec) {
         tag_t current_tag = lf_tag();
         lf_print("Received %d on in2 at logical time (%lld, %d).",
             in2->value,
-            current_tag.time - start_time, current_tag.microstep
+            current_tag.time - lf_time_start(), current_tag.microstep
         );
     =}
 
     reaction(t) {=
+        tag_t current_tag = lf_tag();
         lf_print("Timer triggered at logical time (%lld, %d).",
-            current_tag.time - start_time, current_tag.microstep
+            current_tag.time - lf_time_start(), current_tag.microstep
         );
     =}
 

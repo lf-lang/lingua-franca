@@ -81,14 +81,14 @@ reactor Destination {
         if (ok->is_present && in->is_present) {
             lf_print("Destination: Input %d is prime at tag (%lld, %d).",
                 in->value,
-                current_tag.time - start_time, current_tag.microstep
+                current_tag.time - lf_time_start(), current_tag.microstep
             );
         }
         if (lf_tag_compare(current_tag, self->last_invoked) <= 0) {
             lf_print_error_and_exit("Invoked at tag (%lld, %d), "
                 "but previously invoked at tag (%lld, %d).",
-                current_tag.time - start_time, current_tag.microstep,
-                self->last_invoked.time - start_time, self->last_invoked.microstep
+                current_tag.time - lf_time_start(), current_tag.microstep,
+                self->last_invoked.time - lf_time_start(), self->last_invoked.microstep
             );
         }
         self->last_invoked = current_tag;
