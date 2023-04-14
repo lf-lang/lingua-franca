@@ -31,6 +31,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * point your chrome browser to chrome://tracing/ and the load the .json file.
  */
 #define LF_TRACE
+#include <stdio.h>
 #include "reactor.h"
 #include "trace.h"
 #include "trace_util.h"
@@ -92,7 +93,7 @@ size_t read_and_write_trace(FILE* trace_file, FILE* output_file) {
         if (reactor_name == NULL) {
             if (trace[i].event_type == worker_wait_starts || trace[i].event_type == worker_wait_ends) {
                 reactor_name = "WAIT";
-            } else if (trace[i].event_type == scheduler_advancing_time_starts 
+            } else if (trace[i].event_type == scheduler_advancing_time_starts
                     || trace[i].event_type == scheduler_advancing_time_starts) {
                 reactor_name = "ADVANCE TIME";
             } else {
@@ -194,7 +195,7 @@ size_t read_and_write_trace(FILE* trace_file, FILE* output_file) {
                 phase = "E";
                 break;
             default:
-                fprintf(stderr, "WARNING: Unrecognized event type %d: %s\n", 
+                fprintf(stderr, "WARNING: Unrecognized event type %d: %s\n",
                         trace[i].event_type, trace_event_names[trace[i].event_type]);
                 pid = PID_FOR_UNKNOWN_EVENT;
                 phase = "i";
@@ -275,7 +276,7 @@ void write_metadata_events(FILE* output_file) {
             "\"pid\": 0, "
             "\"tid\": 0, "
             "\"args\": {"
-                "\"name\": \"Main thread\"" 
+                "\"name\": \"Main thread\""
                     "}},\n"
         );
 
@@ -328,7 +329,7 @@ void write_metadata_events(FILE* output_file) {
             );
         }
     }
-    
+
     // Write the reactor names for the logical timelines.
     for (int i = 0; i < object_table_size; i++) {
         if (object_table[i].type == trace_trigger) {
@@ -341,10 +342,10 @@ void write_metadata_events(FILE* output_file) {
                     "\"pid\": %d, "         // the "process" to identify by reactor.
                     "\"tid\": %d,"          // The "thread" to label with action or timer name.
                     "\"args\": {"
-                        "\"name\": \"Trigger %s\"" 
+                        "\"name\": \"Trigger %s\""
                     "}},\n",
                 reactor_index + 1, // Offset of 1 prevents collision with Execution.
-                i,  
+                i,
                 object_table[i].description);
         } else if (object_table[i].type == trace_reactor) {
             fprintf(output_file, "{"
@@ -352,7 +353,7 @@ void write_metadata_events(FILE* output_file) {
                     "\"ph\": \"M\", "      // mark as metadata.
                     "\"pid\": %d, "         // the "process" to label as reactor.
                     "\"args\": {"
-                        "\"name\": \"Reactor %s reactions, actions, and timers in logical time\"" 
+                        "\"name\": \"Reactor %s reactions, actions, and timers in logical time\""
                     "}},\n",
                 i + 1,  // Offset of 1 prevents collision with Execution.
                 object_table[i].description);
@@ -363,7 +364,7 @@ void write_metadata_events(FILE* output_file) {
                     "\"pid\": %d, "         // the "process" to label as reactor.
                     "\"tid\": %d,"          // The "thread" to label with action or timer name.
                     "\"args\": {"
-                        "\"name\": \"%s\"" 
+                        "\"name\": \"%s\""
                     "}},\n",
                 PID_FOR_USER_EVENT,
                 i, // This is the index in the object table.
@@ -376,7 +377,7 @@ void write_metadata_events(FILE* output_file) {
                     "\"ph\": \"M\", "      // mark as metadata.
                     "\"pid\": 0, "         // the "process" to label "Execution".
                     "\"args\": {"
-                        "\"name\": \"Execution of %s\"" 
+                        "\"name\": \"Execution of %s\""
                     "}},\n",
                 top_level);
     // Name the "process" for "Worker Waiting" if the PID is not the main execution one.
@@ -386,7 +387,7 @@ void write_metadata_events(FILE* output_file) {
                     "\"ph\": \"M\", "      // mark as metadata.
                     "\"pid\": %d, "        // the "process" to label "Workers waiting for reaction queue".
                     "\"args\": {"
-                        "\"name\": \"Workers waiting for reaction queue\"" 
+                        "\"name\": \"Workers waiting for reaction queue\""
                     "}},\n",
                 PID_FOR_WORKER_WAIT);
     }
@@ -397,7 +398,7 @@ void write_metadata_events(FILE* output_file) {
                     "\"ph\": \"M\", "      // mark as metadata.
                     "\"pid\": %d, "        // the "process" to label "Workers waiting for reaction queue".
                     "\"args\": {"
-                        "\"name\": \"Workers advancing time\"" 
+                        "\"name\": \"Workers advancing time\""
                     "}},\n",
                 PID_FOR_WORKER_ADVANCING_TIME);
     }
@@ -408,7 +409,7 @@ void write_metadata_events(FILE* output_file) {
                     "\"ph\": \"M\", "      // mark as metadata.
                     "\"pid\": %d, "        // the "process" to label "User events".
                     "\"args\": {"
-                        "\"name\": \"User events in %s, shown in physical time:\"" 
+                        "\"name\": \"User events in %s, shown in physical time:\""
                     "}}\n",
                 PID_FOR_USER_EVENT, top_level);
 }

@@ -30,6 +30,9 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * text file.
  */
 #define LF_TRACE
+#include <stdio.h>
+#include <string.h>
+#include <errno.h>
 #include "reactor.h"
 #include "trace.h"
 #include "trace_util.h"
@@ -187,12 +190,12 @@ void print_table() {
         } else {
             type = "unknown type";
         }
-        printf("pointer = %p, trigger = %p, type = %s: %s\n", 
+        printf("pointer = %p, trigger = %p, type = %s: %s\n",
             object_table[i].pointer,
             object_table[i].trigger,
             type,
             object_table[i].description);
-    } 
+    }
     printf("-------\n");
 }
 

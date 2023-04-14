@@ -1,9 +1,11 @@
 // Test bank of reactors to multiport input with id parameter in the bank.
 target C
 
-preamble {= int table[] = {4, 3, 2, 1}; =}
+preamble {= extern int table[4]; =}
 
 reactor Source(bank_index: int = 0, value: int = 0) {
+    preamble {= int table[] = {4, 3, 2, 1}; =}
+
     output out: int
 
     reaction(startup) -> out {= lf_set(out, self->value); =}

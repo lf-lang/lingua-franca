@@ -2,6 +2,16 @@
 // a given output. The output should always be 42.
 target C
 
+preamble {=
+    #ifdef __cplusplus
+    extern "C" {
+    #endif
+    #include <time.h>
+    #ifdef __cplusplus
+    }
+    #endif
+=}
+
 reactor Source {
     output out: int
 

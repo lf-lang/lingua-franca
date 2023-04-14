@@ -7,6 +7,16 @@ target C {
     timeout: 2 sec
 }
 
+preamble {=
+    #ifdef __cplusplus
+    extern "C" {
+    #endif
+    #include "platform.h"
+    #ifdef __cplusplus
+    }
+    #endif
+=}
+
 main reactor {
     preamble {=
         void callback(void* a) {

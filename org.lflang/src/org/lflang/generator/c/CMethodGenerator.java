@@ -72,7 +72,7 @@ public class CMethodGenerator {
         code.indent();
 
         // Define the "self" struct.
-        String structType = CUtil.selfType(decl);
+        String structType = CUtil.selfType(ASTUtils.toDefinition(decl));
         // A null structType means there are no inputs, state,
         // or anything else. No need to declare it.
         if (structType != null) {
@@ -139,7 +139,7 @@ public class CMethodGenerator {
      * @return The function name for the method.
      */
     private static String methodFunctionName(ReactorDecl reactor, Method method) {
-        return reactor.getName().toLowerCase() + "_method_" + method.getName();
+        return CUtil.getName(ASTUtils.toDefinition(reactor)) + "_method_" + method.getName();
     }
 
     /**

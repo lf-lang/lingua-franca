@@ -212,6 +212,7 @@ public class CCmakeGenerator {
 
         cMakeCode.pr("target_link_libraries(${LF_MAIN_TARGET} PRIVATE core)");
 
+        cMakeCode.pr("target_include_directories(${LF_MAIN_TARGET} PUBLIC .)");
         cMakeCode.pr("target_include_directories(${LF_MAIN_TARGET} PUBLIC include/)");
         cMakeCode.pr("target_include_directories(${LF_MAIN_TARGET} PUBLIC include/api)");
         cMakeCode.pr("target_include_directories(${LF_MAIN_TARGET} PUBLIC include/core)");

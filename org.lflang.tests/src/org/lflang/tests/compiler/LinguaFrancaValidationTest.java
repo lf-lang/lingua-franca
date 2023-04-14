@@ -1150,7 +1150,7 @@ public class LinguaFrancaValidationTest {
      */
     private List<String> synthesizeExamples(DictionaryType type, boolean correct) {
         List<String> examples = new LinkedList<>();
-        // Produce a set of singleton dictionaries. 
+        // Produce a set of singleton dictionaries.
         // If incorrect examples are wanted, garble the key.
         for (DictionaryElement option : type.options) {
             synthesizeExamples(option.getType(), correct).forEach(it -> examples.add(
@@ -1629,7 +1629,7 @@ public class LinguaFrancaValidationTest {
             """;
         // TODO: Uncomment and fix test
         // List<Issue> issues = validator.validate(parseWithoutError(testCase));
-        // Assertions.assertTrue(issues.size() == 1 && 
+        // Assertions.assertTrue(issues.size() == 1 &&
         //     issues.get(0).getMessage().contains("Cannot assign a host to reactor '") &&
         //     issues.get(0).getMessage().contains("' because it is not federated."));
     }
@@ -1795,7 +1795,7 @@ public class LinguaFrancaValidationTest {
         String testCase = """
                 target C;
                 reactor R {
-                    state s:int(0);
+                    state s:int = 0;
                 }
                 main reactor {
                     initial mode IM {
@@ -1810,7 +1810,7 @@ public class LinguaFrancaValidationTest {
             "This reactor contains state variables that are not reset upon mode entry: "
                 + "s in R"
                 + ".\nThe state variables are neither marked for automatic reset nor have a dedicated reset reaction. "
-                + "It is usafe to instatiate this reactor inside a mode entered with reset.");
+                + "It is unsafe to instantiate this reactor inside a mode entered with reset.");
     }
 
     @Test
@@ -1836,16 +1836,14 @@ public class LinguaFrancaValidationTest {
                         reaction(startup) -> M {==}
                     }
                     mode M {
-                        reset state s:int(0);
+                        reset state s:int = 0;
                     }
                 }
             """;
         validator.assertWarning(parseWithoutError(testCase), LfPackage.eINSTANCE.getReaction(), null,
-            "You should specifiy a transition type! "
+            "You should specify a transition type! "
                 + "Reset and history transitions have different effects on this target mode. "
                 + "Currently, a reset type is implicitly assumed.");
     }
 
 }
-
-
