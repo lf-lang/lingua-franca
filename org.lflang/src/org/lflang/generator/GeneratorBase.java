@@ -165,6 +165,12 @@ public abstract class GeneratorBase extends AbstractLFValidator {
      */
     public boolean hasDeadlines = false;
 
+    /**
+     * Indicates whether the program has any watchdogs.
+     * This is used to check for support.
+     */
+    public boolean hasWatchdogs = false;
+
     // //////////////////////////////////////////
     // // Private fields.
 
@@ -293,6 +299,10 @@ public abstract class GeneratorBase extends AbstractLFValidator {
         // Check for existence and support of modes
         hasModalReactors = IterableExtensions.exists(reactors, it -> !it.getModes().isEmpty());
         checkModalReactorSupport(false);
+
+        // Check for the existence and support of watchdogs
+        hasWatchdogs = IterableExtensions.exists(reactors, it -> !it.getWatchdogs().isEmpty());
+        checkWatchdogSupport(targetConfig.threading && getTarget() == Target.C);
         additionalPostProcessingForModes();
     }
 
@@ -428,6 +438,20 @@ public abstract class GeneratorBase extends AbstractLFValidator {
                                       "target configuration does not support modal reactors!");
         }
     }
+
+    /**
+     * Checks whether watchdogs are present and are supported.
+     * @param isSupported indicates whether or not this is a supported target
+     *      and whether or not it is a threaded runtime.
+     */
+    protected void checkWatchdogSupport(boolean isSupported) {
+        if (hasWatchdogs && !isSupported) {
+            errorReporter.reportError(
+                "Watchdogs are currently only supported for threaded programs in the C target."
+            );
+        }
+    }
+
 
     /**
      * Finds and transforms connections into forwarding reactions iff the connections have the same destination as other

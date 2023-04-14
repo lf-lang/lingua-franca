@@ -446,6 +446,7 @@ public class CGenerator extends GeneratorBase {
     /** Returns false if watchdogs exist and are
      * unsupported in this context.
      * Otherwise, return true.
+     * (DEPRECATED) Alternative implemented in GeneratorBase
      */
     protected boolean isWatchdogCompatible() {
         if (hasWatchdogs() && !targetConfig.threading) {
@@ -453,6 +454,12 @@ public class CGenerator extends GeneratorBase {
                 "Watchdogs are not supported for unthreaded programs."
             );
             return false;
+        }
+        if (hasWatchdogs() && CCppMode) {
+            //FIXME: check to see if watchdogs work in CCppMode cases
+            errorReporter.reportError(
+                "Watchdogs are not currently supported in the CCpp target."
+            );
         }
         return true;
     }
@@ -471,7 +478,7 @@ public class CGenerator extends GeneratorBase {
         super.doGenerate(resource, context);
         if (!GeneratorUtils.canGenerate(errorsOccurred(), mainDef, errorReporter, context)) return;
         if (!isOSCompatible()) return; // Incompatible OS and configuration
-        if (!isWatchdogCompatible()) return;
+        // if (!isWatchdogCompatible()) return;
 
         // Perform set up that does not generate code
         setUpGeneralParameters();
