@@ -28,7 +28,6 @@ package org.lflang.generator.c;
 
 import java.io.File;
 import java.io.IOException;
-import java.math.BigInteger;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -39,7 +38,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-import org.lflang.ASTUtils;
 import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
 import org.lflang.InferredType;
@@ -55,12 +53,12 @@ import org.lflang.generator.TriggerInstance;
 import org.lflang.lf.Parameter;
 import org.lflang.lf.Port;
 import org.lflang.lf.Reactor;
-import org.lflang.lf.ReactorDecl;
 import org.lflang.lf.VarRef;
 import org.lflang.lf.Variable;
 import org.lflang.lf.WidthTerm;
 import org.lflang.util.FileUtil;
 import org.lflang.util.LFCommand;
+import org.lflang.util.Pair;
 
 /**
  * A collection of utilities for C code generation.
@@ -877,6 +875,21 @@ public class CUtil {
     }
 
     /**
+     * Given a String <code>str</code> separate the Typename from tokens (* OR [])
+     *
+     * @param str Input String
+     * @return {@link Pair} of Typename and Tokens
+     * */
+    public static Pair<String, String> separateTokensFromTypes(String str) {
+        var starIdx = str.indexOf("*");
+        if (starIdx == -1) {
+            var idx = str.indexOf("[");
+            return idx == -1 ? new Pair<>(str, "") : new Pair<>(str.substring(0, idx), str.substring(idx));
+        }
+        return new Pair<>(str.substring(0, starIdx), str.substring(starIdx));
+    }
+
+    /**
      * Given a <code>type</code> we need to check if the type is Generic Type literal and if
      * it is we need to find the corresponding concrete type
      *
@@ -886,14 +899,19 @@ public class CUtil {
     public static String getConcreteType(TypeParameterizedReactor tpr, final String type) {
         if (tpr == null)
             return type;
-        var wrapper = new Object() { String concreteType = ""; };
+
+        var wrapper = new Object() {
+            String concreteType = "";
+            final Pair<String, String> inPair = separateTokensFromTypes(type);
+        };
         tpr.typeArgs().forEach((literal, concreteType) -> {
-            if (type.equals(literal))
+            if (wrapper.inPair.getFirst().equals(literal))
             {
                 wrapper.concreteType = String.valueOf(concreteType.getId());
             }
         });
-        return (wrapper.concreteType.isEmpty()) ? type : wrapper.concreteType;
+
+        return wrapper.concreteType.isEmpty() ? type : wrapper.concreteType + wrapper.inPair.getSecond();
     }
 
     public static String generateWidthVariable(String var) {
