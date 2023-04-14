@@ -6,11 +6,11 @@
 target C {
     platform: {
         name: "arduino",
-        board: "arduino:avr:mega"
+        board: "arduino:samd:mzero_bl",
     }
 }
 
-main reactor Blink {
+main reactor BlinkSAMD {
     timer t1(0, 1 sec)
     timer t2(500 msec, 1 sec)
 
