@@ -40,7 +40,7 @@ public class CReactorHeaderFileGenerator {
     }
     private static String generateHeaderFile(CTypes types, TypeParameterizedReactor tpr, GenerateAuxiliaryStructs generator, String topLevelPreamble) {
         CodeBuilder builder = new CodeBuilder();
-        appendIncludeGuard(builder, tpr.r());
+        appendIncludeGuard(builder, tpr);
         builder.pr(topLevelPreamble);
         appendPoundIncludes(builder);
         appendSelfStruct(builder, types, tpr);
@@ -52,7 +52,7 @@ public class CReactorHeaderFileGenerator {
         return builder.getCode();
     }
 
-    private static void appendIncludeGuard(CodeBuilder builder, Reactor r) {
+    private static void appendIncludeGuard(CodeBuilder builder, TypeParameterizedReactor r) {
         String macro = CUtil.getName(r) + "_H";
         builder.pr("#ifndef " + macro);
         builder.pr("#define " + macro);

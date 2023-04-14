@@ -28,6 +28,7 @@ package org.lflang.generator.c;
 
 import java.io.File;
 import java.io.IOException;
+import java.math.BigInteger;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -150,13 +151,6 @@ public class CUtil {
     public static String getName(TypeParameterizedReactor reactor) {
         String name = reactor.r().getName().toLowerCase() + reactor.hashCode();
         if (reactor.r().isMain()) {
-            return name + "_main";
-        }
-        return name;
-    }
-    public static String getName(Reactor reactor) {
-        String name = reactor.getName().toLowerCase() + reactor.hashCode();
-        if (reactor.isMain()) {
             return name + "_main";
         }
         return name;

@@ -40,7 +40,7 @@ public class PythonReactionGenerator {
      * @param reactionIndex The index of the reaction
      * @param pyObjects CPython related objects
      */
-    public static String generateCPythonReactionCaller(Reactor reactor,
+    public static String generateCPythonReactionCaller(TypeParameterizedReactor reactor,
                                                         int reactionIndex,
                                                         List<String> pyObjects,
                                                         String inits) {
@@ -55,7 +55,7 @@ public class PythonReactionGenerator {
      * @param reactionIndex The index of the reaction
      * @param pyObjects CPython related objects
      */
-    public static String generateCPythonDeadlineCaller(Reactor r,
+    public static String generateCPythonDeadlineCaller(TypeParameterizedReactor r,
                                                        int reactionIndex,
                                                        List<String> pyObjects) {
         String pythonFunctionName = generatePythonDeadlineFunctionName(reactionIndex);
@@ -69,7 +69,7 @@ public class PythonReactionGenerator {
      * @param reactionIndex The index of the reaction
      * @param pyObjects CPython related objects
      */
-    public static String generateCPythonSTPCaller(Reactor r,
+    public static String generateCPythonSTPCaller(TypeParameterizedReactor r,
                                                        int reactionIndex,
                                                        List<String> pyObjects) {
         String pythonFunctionName = generatePythonSTPFunctionName(reactionIndex);
@@ -150,7 +150,7 @@ public class PythonReactionGenerator {
         code.pr(generateFunction(
                     CReactionGenerator.generateReactionFunctionHeader(tpr, reactionIndex),
                     cInit, reaction.getCode(),
-                    generateCPythonReactionCaller(r, reactionIndex, pyObjects, cPyInit)
+                    generateCPythonReactionCaller(tpr, reactionIndex, pyObjects, cPyInit)
         ));
 
         // Generate code for the STP violation handler, if there is one.
@@ -158,7 +158,7 @@ public class PythonReactionGenerator {
             code.pr(generateFunction(
                     CReactionGenerator.generateStpFunctionHeader(tpr, reactionIndex),
                     cInit, reaction.getStp().getCode(),
-                    generateCPythonSTPCaller(r, reactionIndex, pyObjects)
+                    generateCPythonSTPCaller(tpr, reactionIndex, pyObjects)
                 ));
         }
         // Generate code for the deadline violation function, if there is one.
@@ -166,7 +166,7 @@ public class PythonReactionGenerator {
             code.pr(generateFunction(
                 CReactionGenerator.generateDeadlineFunctionHeader(tpr, reactionIndex),
                 cInit, reaction.getDeadline().getCode(),
-                generateCPythonDeadlineCaller(r, reactionIndex, pyObjects)
+                generateCPythonDeadlineCaller(tpr, reactionIndex, pyObjects)
             ));
         }
         code.pr(

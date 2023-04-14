@@ -18,14 +18,15 @@ public record TypeParameterizedReactor(Reactor r, Map<String, Type> typeArgs) {
         this(ASTUtils.toDefinition(i.getReactorClass()), addTypeArgs(i, ASTUtils.toDefinition(i.getReactorClass())));
     }
 
-    private static ImmutableMap<String, Type> addTypeArgs(Instantiation instantiation, Reactor r) {
+
+    private static Map<String, Type> addTypeArgs(Instantiation instantiation, Reactor r) {
         HashMap<String, Type> ret = new HashMap<>();
         if (instantiation.getTypeArgs() != null) {
             for (int i = 0; i < r.getTypeParms().size(); i++) {
                 ret.put(r.getTypeParms().get(i).getLiteral(), instantiation.getTypeArgs().get(i));
             }
         }
-        return ImmutableMap.copyOf(ret);
+        return ret; // ImmutableMap.copyOf(ret);
     }
 
     public String getName() {

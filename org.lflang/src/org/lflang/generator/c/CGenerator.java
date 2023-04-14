@@ -39,9 +39,11 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -94,11 +96,13 @@ import org.lflang.lf.Reaction;
 import org.lflang.lf.Reactor;
 import org.lflang.lf.ReactorDecl;
 import org.lflang.lf.StateVar;
+import org.lflang.lf.Type;
 import org.lflang.lf.Variable;
 import org.lflang.util.ArduinoUtil;
 import org.lflang.util.FileUtil;
 
 import com.google.common.base.Objects;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 
 /**
@@ -922,10 +926,37 @@ public class CGenerator extends GeneratorBase {
     private void generateReactorDefinitions() throws IOException {
         var generatedReactors = new LinkedHashSet<TypeParameterizedReactor>();
         if (this.main != null) {
+            resolveTemplatedTypes(this.main, this.main.tpr);
             generateReactorChildren(this.main, generatedReactors);
             generateReactorClass(this.main.getTypeParameterizedReactor());
         }
         // do not generate code for reactors that are not instantiated
+    }
+
+    /**
+     * Recursively Resolve all Templated Types of child Reactors to their respective
+     * concrete types
+     *
+     * @param reactorInstance The Reactor Class
+     * @param parentTpr {@link TypeParameterizedReactor} of Parent
+     * */
+    private void resolveTemplatedTypes(ReactorInstance reactorInstance, TypeParameterizedReactor parentTpr) {
+        for (var child : reactorInstance.children) {
+            if (parentTpr.typeArgs() != null) {
+                Map<String, Type> copy = new HashMap<>();
+                child.tpr.typeArgs().forEach((literal, typename) -> {
+                    var type = typename.getId();
+                    if (parentTpr.typeArgs().containsKey(type)) {
+                        var basicType = parentTpr.typeArgs().get(type);
+                        copy.put(literal, basicType);
+                    }
+                });
+                if (!copy.isEmpty()) { // If we found some templated-types update the tpr with new map
+                    child.tpr = new TypeParameterizedReactor(child.tpr.r(), copy);
+                }
+                resolveTemplatedTypes(child, child.tpr);
+            }
+        }
     }
 
     private void generateHeaders() throws IOException {
@@ -935,9 +966,7 @@ public class CGenerator extends GeneratorBase {
             fileConfig.getIncludePath(),
             false
         );
-//        for (var r : reactors) {
-            CReactorHeaderFileGenerator.doGenerate(types, this.main.tpr, fileConfig, this::generateAuxiliaryStructs, this::generateTopLevelPreambles);
-//        }
+        CReactorHeaderFileGenerator.doGenerate(types, this.main.tpr, fileConfig, this::generateAuxiliaryStructs, this::generateTopLevelPreambles);
         FileUtil.copyDirectory(fileConfig.getIncludePath(), fileConfig.getSrcGenPath().resolve("include"), false);
     }
 
@@ -1030,7 +1059,6 @@ public class CGenerator extends GeneratorBase {
         header.pr(generateTopLevelPreambles(tpr.r()));
         generateUserPreamblesForReactor(tpr.r(), src);
         generateReactorClassBody(tpr, header, src);
-        tpr.typeArgs().entrySet().forEach(it -> header.pr("#undef " + it.getKey()));
         header.pr("#endif // " + guardMacro);
         FileUtil.writeToFile(header.toString(), fileConfig.getSrcGenPath().resolve(headerName), true);
         var extension = targetConfig.platformOptions.platform == Platform.ARDUINO ? ".ino"
@@ -1060,10 +1088,8 @@ public class CGenerator extends GeneratorBase {
                 "#undef " + literal + "\n" +
                 "#endif // " + literal + "\n" +
                 "#define " + literal + " " + ASTUtils.toOriginalText(concreteType)));
-        new HashSet<>(ASTUtils.allInstantiations(tpr.r())).stream()
-            .map(TypeParameterizedReactor::new).map(CUtil::getName)
-            .map(name -> "#include \"" + name + ".h\"")
-            .forEach(header::pr);
+        ASTUtils.allIncludes(tpr.r()).stream().map(name -> "#include \""
+            + name + ".h\"").forEach(header::pr);
     }
 
     private void generateReactorClassBody(TypeParameterizedReactor tpr, CodeBuilder header, CodeBuilder src) {
@@ -1651,9 +1677,6 @@ public class CGenerator extends GeneratorBase {
      */
     public static String variableStructType(Variable variable, TypeParameterizedReactor tpr, boolean userFacing) {
         return (userFacing ? tpr.getName().toLowerCase() : CUtil.getName(tpr)) +"_"+variable.getName()+"_t";
-    }
-    public static String variableStructType(Variable variable, Reactor r, boolean userFacing) {
-        return (userFacing ? r.getName().toLowerCase() : CUtil.getName(r)) +"_"+variable.getName()+"_t";
     }
 
     /**

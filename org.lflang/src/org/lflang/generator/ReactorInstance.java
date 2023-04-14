@@ -158,7 +158,7 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
     /** Indicator that this reactor has itself as a parent, an error condition. */
     public final boolean recursive;
 
-    public final TypeParameterizedReactor tpr;
+    public TypeParameterizedReactor tpr;
 
     /** HashMap containing {@link ReactorInstance} against <code>hashCode</code> achievable from Reactor */
     private static final HashMap<Integer, ReactorInstance> gReactorInstancesMap = new HashMap<>();
