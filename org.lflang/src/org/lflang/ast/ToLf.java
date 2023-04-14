@@ -881,9 +881,8 @@ public class ToLf extends LfSwitch<MalleableString> {
   }
 
   /**
-   * Return true if the initializer should be output with an equals initializer.
-   * Old-style assignments with parentheses are also output that
-   * way to help with the transition.
+   * Return true if the initializer should be output with an equals initializer. Old-style
+   * assignments with parentheses are also output that way to help with the transition.
    */
   private boolean shouldOutputAsAssignment(Initializer init) {
     return init.isAssign()
@@ -918,7 +917,6 @@ public class ToLf extends LfSwitch<MalleableString> {
     }
     return list(", ", prefix, suffix, false, false, init.getExprs());
   }
-
 
   @Override
   public MalleableString caseParameter(Parameter object) {

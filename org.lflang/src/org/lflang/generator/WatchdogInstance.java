@@ -4,64 +4,60 @@ import org.lflang.TimeValue;
 import org.lflang.lf.Watchdog;
 
 /**
- * Instance of a watchdog. Upon creation the actual delay is converted into
- * a proper time value. If a parameter is referenced, it is looked up in the
- * given (grand)parent reactor instance.
- * 
+ * Instance of a watchdog. Upon creation the actual delay is converted into a proper time value. If
+ * a parameter is referenced, it is looked up in the given (grand)parent reactor instance.
+ *
  * @author{Benjamin Asch <benjamintasch@berkeley.edu>}
  */
 public class WatchdogInstance {
-		
-	/**
-	 * Create a new watchdog instance associated with the given reactor
-	 * instance.
-	 */
-	public WatchdogInstance(Watchdog definition, ReactorInstance reactor) {
-        if (definition.getTimeout() != null) {
-            // Get the timeout value given in the watchdog declaration.
-            this.timeout = reactor.getTimeValue(definition.getTimeout());
-        } else {
-            // NOTE: The grammar does not allow the timeout to be omitted, so this should not occur.
-            this.timeout = TimeValue.ZERO;
-        }
 
-        this.name = definition.getName().toString();
-        this.definition = definition;
-        this.reactor = reactor;
+  /** Create a new watchdog instance associated with the given reactor instance. */
+  public WatchdogInstance(Watchdog definition, ReactorInstance reactor) {
+    if (definition.getTimeout() != null) {
+      // Get the timeout value given in the watchdog declaration.
+      this.timeout = reactor.getTimeValue(definition.getTimeout());
+    } else {
+      // NOTE: The grammar does not allow the timeout to be omitted, so this should not occur.
+      this.timeout = TimeValue.ZERO;
     }
 
-    //////////////////////////////////////////////////////
-    //// Public methods.
+    this.name = definition.getName().toString();
+    this.definition = definition;
+    this.reactor = reactor;
+  }
 
-    public String getName() {
-        return this.name;
-    }
+  //////////////////////////////////////////////////////
+  //// Public methods.
 
-    public Watchdog getDefinition() {
-        return this.definition;
-    }
+  public String getName() {
+    return this.name;
+  }
 
-    public TimeValue getTimeout() {
-        return (TimeValue) this.timeout;
-    }
+  public Watchdog getDefinition() {
+    return this.definition;
+  }
 
-    public ReactorInstance getReactor() {
-        return this.reactor;
-    }
+  public TimeValue getTimeout() {
+    return (TimeValue) this.timeout;
+  }
 
-    @Override
-    public String toString() {
-        return "WatchdogInstance " + name + "(" + timeout.toString() + ")";
-    }
+  public ReactorInstance getReactor() {
+    return this.reactor;
+  }
 
-    //////////////////////////////////////////////////////
-    //// Private fields.
+  @Override
+  public String toString() {
+    return "WatchdogInstance " + name + "(" + timeout.toString() + ")";
+  }
 
-    private final TimeValue timeout;
+  //////////////////////////////////////////////////////
+  //// Private fields.
 
-    private final String name;
+  private final TimeValue timeout;
 
-    private final Watchdog definition;
+  private final String name;
 
-    private final ReactorInstance reactor;
+  private final Watchdog definition;
+
+  private final ReactorInstance reactor;
 }
