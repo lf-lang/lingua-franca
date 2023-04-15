@@ -62,7 +62,7 @@ jobs:
 
   # Run the C integration tests.
   c-tests:
-    uses: lf-lang/lingua-franca/.github/workflows/c-tests.yml@master
+    uses: lf-lang/lingua-franca/.github/workflows/c-tests.yml@auth-fail-test
     needs: cancel
   
   # Run the C Arduino integration tests.
@@ -77,7 +77,7 @@ jobs:
 
   # Run the CCpp integration tests.
   ccpp-tests:
-    uses: lf-lang/lingua-franca/.github/workflows/c-tests.yml@master
+    uses: lf-lang/lingua-franca/.github/workflows/c-tests.yml@auth-fail-test
     with:
       use-cpp: true
     needs: cancel
