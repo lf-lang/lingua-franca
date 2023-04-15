@@ -177,6 +177,7 @@ public class TargetConfig {
      * Useful for copying them to remote machines. This is needed because
      * target cmake-includes can be resources with resource paths.
      */
+    // FIXME: Code smell. This gets populated in CGenerator.copyUserFiles
     public List<String> cmakeIncludesWithoutPath = new ArrayList<>();
 
     /**
@@ -237,14 +238,7 @@ public class TargetConfig {
     /**
      * List of files to be copied to src-gen.
      */
-    public List<String> fileNames = new ArrayList<>();
-
-    /**
-     * List of file names from the files target property with no path info.
-     * Useful for copying them to remote machines. This is needed because
-     * target files can be resources with resource paths.
-     */
-    public List<String> filesNamesWithoutPath = new ArrayList<>();
+    public List<String> fileNames = new ArrayList<>(); // FIXME: misnamed, these are files or paths, not file names.
 
     /**
      * If true, configure the execution environment to keep executing if there

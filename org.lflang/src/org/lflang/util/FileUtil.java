@@ -14,6 +14,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.Enumeration;
 import java.util.HashMap;
@@ -239,6 +240,15 @@ public class FileUtil {
         copyFile(source, destination, false);
     }
 
+    public static void copyFileOrDirectory(Path source, Path destination) throws IOException {
+        if (Files.isDirectory(source)) {
+            copyDirectory(source, destination);
+        } else if (Files.isRegularFile(source)) {
+            copyFile(source, destination);
+        } else {
+            throw new IllegalArgumentException("Source is neither a directory nor a regular file.");
+        }
+    }
     /**
      * Copy a given input stream to a destination file.
      *
@@ -359,6 +369,7 @@ public class FileUtil {
         final String connectionEntryName = connection.getEntryName();
 
         boolean copiedFiles = false;
+
         // Iterate all entries in the jar file.
         for (Enumeration<JarEntry> e = jar.entries(); e.hasMoreElements(); ) {
             final JarEntry entry = e.nextElement();
@@ -366,9 +377,10 @@ public class FileUtil {
 
             // Extract files only if they match the given source path.
             if (entryName.startsWith(connectionEntryName)) {
-                String filename = entry.getName().substring(connectionEntryName.length() + 1);
+                String filename = entryName.equals(connectionEntryName) ?
+                    connectionEntryName :
+                    entryName.substring(connectionEntryName.length() + 1);
                 Path currentFile = destination.resolve(filename);
-
                 if (entry.isDirectory()) {
                     Files.createDirectories(currentFile);
                 } else {
@@ -509,6 +521,31 @@ public class FileUtil {
                 Files.deleteIfExists(path);
             }
         }
+    }
+
+    public static Path findInProject(Path fileOrDirectory, FileConfig fileConfig) {
+        if (fileOrDirectory.isAbsolute() && Files.exists(fileOrDirectory)) {
+            return fileOrDirectory;
+        } else {
+            Path relPath;
+            // Disregard root and interpret as relative path
+            if (fileOrDirectory.isAbsolute()) {
+                relPath = Paths.get(
+                    String.valueOf(fileOrDirectory).replaceFirst(
+                        String.valueOf(fileOrDirectory.getRoot()),
+                        "")
+                );
+            } else {
+                relPath = fileOrDirectory;
+            }
+            // Look relative to the source file and relative to the package root.
+            var locations = List.of(fileConfig.srcFile, fileConfig.srcPkgPath);
+            var found = locations.stream().filter(loc -> Files.exists(loc.resolve(relPath))).findFirst();
+            if (found.isPresent()) {
+                return found.get();
+            }
+        }
+        return null;
     }
 
     /**

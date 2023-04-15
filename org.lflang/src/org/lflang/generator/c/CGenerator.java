@@ -39,6 +39,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -820,49 +821,55 @@ public class CGenerator extends GeneratorBase {
     @Override
     public void copyUserFiles(TargetConfig targetConfig, FileConfig fileConfig) {
         super.copyUserFiles(targetConfig, fileConfig);
-        // Make sure the target directory exists.
         var targetDir = this.fileConfig.getSrcGenPath();
-        try {
-            Files.createDirectories(targetDir);
-        } catch (IOException e) {
-            //noinspection ThrowableNotThrown,ResultOfMethodCallIgnored
-            Exceptions.sneakyThrow(e);
-        }
-
+        // FIXME: this code probably belongs in the super method.
         for (String filename : targetConfig.fileNames) {
-            var relativeFileName = CUtil.copyFileOrResource(
-                    filename,
-                    fileConfig.srcFile.getParent(),
-                    targetDir);
-            if (StringExtensions.isNullOrEmpty(relativeFileName)) {
-                errorReporter.reportError(
-                    "Failed to find file " + filename + " specified in the" +
-                    " files target property."
-                );
+            var path = Paths.get(filename);
+            var copied = false;
+            var found = FileUtil.findInProject(path, fileConfig);
+            if (found != null) {
+                try {
+                    FileUtil.copyFileOrDirectory(found, targetDir);
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
             } else {
-                targetConfig.filesNamesWithoutPath.add(
-                    relativeFileName
-                );
+                // Attempt to copy from the classpath instead.
+                // If the filename is not a directory, it will
+                // just be copied without further recursion.
+                try {
+                    FileUtil.copyDirectoryFromClassPath(
+                        filename,
+                        targetDir,
+                        false
+                    );
+                } catch (IOException e) {
+                    errorReporter.reportError(
+                        "Failed to find '" + filename + "' specified in the" +
+                            " files target property."
+                    );
+                }
             }
         }
 
-        for (String filename : targetConfig.cmakeIncludes) {
-            var relativeCMakeIncludeFileName =
-                CUtil.copyFileOrResource(
-                    filename,
-                    fileConfig.srcFile.getParent(),
-                    targetDir);
-            // Check if the file exists
-            if (StringExtensions.isNullOrEmpty(relativeCMakeIncludeFileName)) {
-                errorReporter.reportError(
-                    "Failed to find cmake-include file " + filename
-                );
-            } else {
-                this.targetConfig.cmakeIncludesWithoutPath.add(
-                    relativeCMakeIncludeFileName
-                );
-            }
-        }
+//        for (String filename : targetConfig.cmakeIncludes) {
+//            var relativeCMakeIncludeFileName =
+//                CUtil.copyFileOrResource(
+//                    filename,
+//                    fileConfig.srcFile.getParent(),
+//                    targetDir);
+//            // Check if the file exists
+//            if (StringExtensions.isNullOrEmpty(relativeCMakeIncludeFileName)) {
+//                errorReporter.reportError(
+//                    "Failed to find cmake-include file " + filename
+//                );
+//            } else {
+//                // FIXME: weird
+//                this.targetConfig.cmakeIncludesWithoutPath.add(
+//                    relativeCMakeIncludeFileName
+//                );
+//            }
+//        }
 
         if (!StringExtensions.isNullOrEmpty(targetConfig.fedSetupPreamble)) {
             try {
