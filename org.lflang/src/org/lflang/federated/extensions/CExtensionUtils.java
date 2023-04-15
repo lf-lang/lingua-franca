@@ -244,6 +244,10 @@ public class CExtensionUtils {
         federate.targetConfig.setByUser.add(TargetProperty.COMPILE_DEFINITIONS);
         federate.targetConfig.compileDefinitions.put("FEDERATED", "");
         federate.targetConfig.compileDefinitions.put("FEDERATED_"+federate.targetConfig.coordination.toString().toUpperCase(), "");
+        if (federate.targetConfig.auth) {
+            System.out.println("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
+            federate.targetConfig.compileDefinitions.put("FEDERATED_AUTHENTICATED", "");
+        }
         federate.targetConfig.compileDefinitions.put("NUMBER_OF_FEDERATES", String.valueOf(numOfFederates));
         federate.targetConfig.compileDefinitions.put("EXECUTABLE_PREAMBLE", "");
         federate.targetConfig.compileDefinitions.put("WORKERS_NEEDED_FOR_FEDERATE", String.valueOf(minThreadsToHandleInputPorts(federate)));
