@@ -227,9 +227,9 @@ public class CCmakeGenerator {
             if (targetConfig.platformOptions.platform != Platform.AUTO) {
                 osName = targetConfig.platformOptions.platform.toString();
             }
-            // if (osName.contains("mac")) {
-            //     cMakeCode.pr("set(OPENSSL_ROOT_DIR /usr/local/opt/openssl)");
-            // }
+            if (osName.contains("mac")) {
+                cMakeCode.pr("set(OPENSSL_ROOT_DIR /usr/local/opt/openssl)");
+            }
             cMakeCode.pr("# Find OpenSSL and link to it");
             cMakeCode.pr("find_package(OpenSSL REQUIRED)");
             cMakeCode.pr("target_link_libraries( ${LF_MAIN_TARGET} PRIVATE OpenSSL::SSL)");
