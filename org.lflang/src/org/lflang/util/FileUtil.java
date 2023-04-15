@@ -538,11 +538,14 @@ public class FileUtil {
             } else {
                 relPath = fileOrDirectory;
             }
+
             // Look relative to the source file and relative to the package root.
             var locations = List.of(fileConfig.srcPath, fileConfig.srcPkgPath);
-            var found = locations.stream().filter(loc -> Files.exists(loc.resolve(relPath))).findFirst();
+            var found = locations.stream().filter(
+                    loc -> Files.exists(loc.resolve(relPath))
+                ).findFirst();
             if (found.isPresent()) {
-                return found.get();
+                return found.get().resolve(relPath);
             }
         }
         return null;

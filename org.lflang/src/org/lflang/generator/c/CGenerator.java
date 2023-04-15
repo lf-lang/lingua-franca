@@ -825,11 +825,10 @@ public class CGenerator extends GeneratorBase {
         // FIXME: this code probably belongs in the super method.
         for (String filename : targetConfig.fileNames) {
             var path = Paths.get(filename);
-            var copied = false;
             var found = FileUtil.findInProject(path, fileConfig);
             if (found != null) {
                 try {
-                    FileUtil.copyFileOrDirectory(found, targetDir);
+                    FileUtil.copyFileOrDirectory(found, targetDir.resolve(found.getFileName()));
                 } catch (IOException e) {
                     throw new RuntimeException(e);
                 }
