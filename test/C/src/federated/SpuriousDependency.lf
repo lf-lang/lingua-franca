@@ -10,6 +10,7 @@ target C
 reactor Passthrough {
     input in: int
     output out: int
+
     reaction(in) -> out {=
         lf_print("Hello from passthrough");
         lf_set(out, in->value);
@@ -34,7 +35,6 @@ federated reactor {
     t1 = new Twisty()
     t0.out1 -> t1.in0
     t1.out1 -> t0.in0
-    reaction(startup) -> t0.in1 {=
-        lf_set(t0.in1, 0);
-    =}
+
+    reaction(startup) -> t0.in1 {= lf_set(t0.in1, 0); =}
 }
