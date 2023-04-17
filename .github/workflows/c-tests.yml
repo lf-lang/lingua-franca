@@ -24,6 +24,10 @@ jobs:
         platform: [ubuntu-latest, macos-latest, windows-latest]
     runs-on: ${{ matrix.platform }}
     steps:
+    - uses: actions/checkout@v2
+    - name: Setup upterm session
+      uses: lhotari/action-upterm@v1
+    steps:
       - name: Check out lingua-franca repository
         uses: actions/checkout@v3
         with:
@@ -43,11 +47,11 @@ jobs:
       - name: Install dependencies OS X
         run: |
           brew install coreutils
-          brew reinstall openssl
+          brew install openssl
           brew link openssl --force
-          # echo 'export PATH="/usr/local/opt/openssl@3/bin:$PATH"' >> /Users/runner/.bash_profile
-          # export LDFLAGS="-L/usr/local/opt/openssl@3/lib"
-          # export CPPFLAGS="-I/usr/local/opt/openssl@3/include"
+          echo 'export PATH="/usr/local/opt/openssl@3/bin:$PATH"' >> /Users/runner/.bash_profile
+          export LDFLAGS="-L/usr/local/opt/openssl@3/lib"
+          export CPPFLAGS="-I/usr/local/opt/openssl@3/include"
         if: ${{ runner.os == 'macOS' }}
       - name: Install RTI
         uses: ./.github/actions/install-rti
