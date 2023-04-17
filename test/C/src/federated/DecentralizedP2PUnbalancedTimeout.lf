@@ -11,10 +11,10 @@ target C {
     coordination: decentralized
 }
 
-reactor Clock(offset: time(0), period: time(1 sec)) {
+reactor Clock(offset: time = 0, period: time = 1 sec) {
     output y: int
     timer t(offset, period)
-    state count: int(0)
+    state count: int = 0
 
     reaction(t) -> y {=
         (self->count)++;
@@ -29,14 +29,14 @@ reactor Clock(offset: time(0), period: time(1 sec)) {
 
 reactor Destination {
     input x: int
-    state s: int(1)
+    state s: int = 1
 
     reaction(x) {=
         lf_print("Received %d", x->value);
         tag_t current_tag = lf_tag();
         if (x->value != self->s) {
             lf_print_error_and_exit("At tag (%lld, %u) expected %d and got %d.",
-                current_tag.time - start_time, current_tag.microstep, self->s, x->value
+                current_tag.time - lf_time_start(), current_tag.microstep, self->s, x->value
             );
         }
         self->s++;
@@ -48,7 +48,7 @@ reactor Destination {
     =}
 }
 
-federated reactor(period: time(10 usec)) {
+federated reactor(period: time = 10 usec) {
     c = new Clock(period = period)
     d = new Destination()
     c.y -> d.x

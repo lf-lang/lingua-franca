@@ -103,7 +103,7 @@ class LetInferenceTest  {
         ));
 
         Assertions.assertNotNull(model);
-        final var ctypes = new CTypes(new DefaultErrorReporter());
+        final var ctypes = CTypes.getInstance();
         final var resource = model.eResource();
         final var transformation = new DelayedConnectionTransformation(new CDelayBodyGenerator(ctypes), ctypes, resource, true, true);
         transformation.applyTransformation(ASTUtils.getAllReactors(resource));
@@ -117,10 +117,9 @@ class LetInferenceTest  {
         TreeIterator<EObject> it = model.eResource().getAllContents();
         while (it.hasNext()) {
             EObject obj = it.next();
-            if (!(obj instanceof Reactor)) {
+            if (!(obj instanceof Reactor reactor)) {
                 continue;
             }
-            Reactor reactor = (Reactor) obj;
             if (reactor.isMain()) {
                 mainDef = LfFactory.eINSTANCE.createInstantiation();
                 mainDef.setName(reactor.getName());

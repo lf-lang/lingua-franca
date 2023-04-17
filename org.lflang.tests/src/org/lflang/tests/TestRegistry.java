@@ -32,14 +32,14 @@ import org.lflang.tests.TestBase.TestLevel;
 
 /**
  * A registry to retrieve tests from, organized by target and category.
- * 
+ *
  * @author Marten Lohstroh
  */
 public class TestRegistry {
-    
+
     static class TestMap {
         /**
-         * Registry that maps targets to maps from categories to sets of tests. 
+         * Registry that maps targets to maps from categories to sets of tests.
          */
         protected final Map<Target,
                 Map<TestCategory, Set<LFTest>>> map = new HashMap<>();
@@ -57,7 +57,7 @@ public class TestRegistry {
                 map.put(target, categories);
             }
         }
-        
+
         /**
          * Return a set of tests given a target and test category.
          * @param t The target.
@@ -68,26 +68,26 @@ public class TestRegistry {
             return this.map.get(t).get(c);
         }
     }
-    
+
     /**
      * List of directories that should be skipped when indexing test files. Any
      * test file that has a directory in its path that matches an entry in this
      * array will not be discovered.
      */
     public static final String[] IGNORED_DIRECTORIES = {"failing", "knownfailed", "failed", "fed-gen"};
-    
+
     /**
      * Path to the root of the repository.
      */
     public static final Path LF_REPO_PATH = Paths.get("").toAbsolutePath();
-        
+
     /**
      * Path to the test directory in the repository.
      */
     public static final Path LF_TEST_PATH = LF_REPO_PATH.resolve("test");
 
     /**
-     * Internal data structure that stores registered tests. 
+     * Internal data structure that stores registered tests.
      */
     protected static final TestMap registered = new TestMap();
 
@@ -96,31 +96,31 @@ public class TestRegistry {
      * source files with no main reactor are indexed here.
      */
     protected static final TestMap ignored = new TestMap();
-    
+
     /**
      * A map from each test category to a set of tests that is the union of
      * all registered tests in that category across all targets.
      */
     protected static final Map<TestCategory, Set<LFTest>> allTargets = new HashMap<>();
-    
+
     /**
      * Enumeration of test categories, used to map tests to categories. The
      * nearest containing directory that matches any of the categories will
      * determine the category that the test is mapped to. Matching is case
      * insensitive.
-     * 
+     *
      * For example, the following files will all map to THREADED:
      * - C/threaded/Foo.lf
-     * - C/THREADED/Foo.lf 
+     * - C/THREADED/Foo.lf
      * - C/Threaded/Foo.lf
-     * - C/foo/threaded/Bar.lf 
-     * - C/foo/bar/threaded/Threaded.lf 
+     * - C/foo/threaded/Bar.lf
+     * - C/foo/bar/threaded/Threaded.lf
      * - C/federated/threaded/bar.lf
-     * but the following will not: 
+     * but the following will not:
      * - C/Foo.lf (maps to COMMON)
      * - C/Threaded.lf (maps to COMMON)
      * - C/threaded/federated/foo.lf (maps to FEDERATED)
-     * 
+     *
      * @author Marten Lohstroh
      */
     public enum TestCategory {
@@ -144,6 +144,7 @@ public class TestRegistry {
         /** Tests using the LET scheduler **/
         LET(true),
 
+        NO_INLINING(false),
         // non-shared tests
         DOCKER(true),
         DOCKER_FEDERATED(true, "docker" + File.separator + "federated"),
@@ -158,7 +159,7 @@ public class TestRegistry {
         public final boolean isCommon;
         public final String path;
         public final TestLevel level ;
-        
+
         /**
          * Create a new test category.
          */
@@ -192,14 +193,14 @@ public class TestRegistry {
 
         /**
          * Return a header associated with the category.
-         * 
+         *
          * @return A header to print in the test report.
          */
         public String getHeader() {
             return TestBase.THICK_LINE + "Category: " + this.name();
         }
     }
-    
+
     // Static code that performs the file system traversal and discovers
     // all .lf files to be included in the registry.
     static {
@@ -223,7 +224,7 @@ public class TestRegistry {
                 } else {
                     System.out.println("WARNING: No test directory for target " + target + "\n");
                 }
-                
+
             } catch (IOException e) {
                 System.err.println(
                         "ERROR: Caught exception while indexing tests for target " + target);
@@ -234,7 +235,7 @@ public class TestRegistry {
                     c -> allTargets.get(c).addAll(getRegisteredTests(target, c, false)));
         }
     }
-    
+
     /**
      * Calling this function forces the lazy initialization of the static code
      * that indexes all files. It is advisable to do this prior to executing
@@ -242,10 +243,10 @@ public class TestRegistry {
      * printed while indexing are printed first.
      */
     public static void initialize() {}
-    
+
     /**
      * Return the tests that were indexed for a given target and category.
-     * 
+     *
      * @param target The target to get indexed tests for.
      * @param category The category of tests to include in the returned tests.
      * @param copy Whether to return copies of the indexed tests instead of the indexed tests themselves.
@@ -263,7 +264,7 @@ public class TestRegistry {
             return registered.getTests(target, category);
         }
     }
-    
+
     /**
      * Return the test that were found but not indexed because they did not
      * have a main reactor.
@@ -278,11 +279,11 @@ public class TestRegistry {
         s.append(TestBase.THIN_LINE);
         s.append("Ignored: ").append(ignored.size()).append("\n");
         s.append(TestBase.THIN_LINE);
-        
+
         for (LFTest test : ignored) {
             s.append("No main reactor in: ").append(test).append("\n");
         }
-        
+
         Set<LFTest> own = getRegisteredTests(target, category, false);
         if (category.isCommon) {
             Set<LFTest> all = allTargets.get(category);
@@ -304,17 +305,17 @@ public class TestRegistry {
 
     /**
      * FileVisitor implementation that maintains a stack to map found tests to
-     * the appropriate category and excludes directories that are listed as 
+     * the appropriate category and excludes directories that are listed as
      * "ignored" from walks.
-     * 
+     *
      * Specifically, when a directory is encountered that matches a category,
      * this category is pushed onto the stack. Similarly, when the DFS leaves
      * such a directory, its corresponding category is popped from the stack.
      * Any test (*.lf) file that is encountered will be mapped to the category
-     * that is on top of the stack. Initially, the stack has one element that 
+     * that is on top of the stack. Initially, the stack has one element that
      * is TestCategory.COMMON, meaning that test files in the top-level test
      * directory for a given target will be mapped to that category.
-     * 
+     *
      * @author Marten Lohstroh
      */
     public static class TestDirVisitor extends SimpleFileVisitor<Path> {
@@ -328,7 +329,7 @@ public class TestRegistry {
          * The target that all encountered tests belong to.
          */
         protected Target target;
-        
+
         protected ResourceSet rs;
 
         protected Path srcBasePath;
@@ -345,7 +346,7 @@ public class TestRegistry {
             this.target = target;
             this.srcBasePath = srcBasePath;
         }
-        
+
         /**
          * Push categories onto the stack as appropriate and skip directories
          * that should be ignored.
@@ -366,7 +367,7 @@ public class TestRegistry {
             }
             return CONTINUE;
         }
-               
+
         /**
          * Pop categories from the stack as appropriate.
          */
@@ -380,7 +381,7 @@ public class TestRegistry {
             }
             return CONTINUE;
         }
-        
+
         /**
          * Add test files to the registry if they end with ".lf", but only if they have a main reactor.
          */

@@ -131,7 +131,7 @@ public class CCmakeGenerator {
                 cMakeCode.pr("set(BOARD qemu_cortex_m3)");
             }
             cMakeCode.pr("# We require Zephyr version 3.2.0");
-            cMakeCode.pr("find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE} EXACT 3.2.0)");
+            cMakeCode.pr("find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE} 3.2.0)");
             cMakeCode.newLine();
         }
 
@@ -194,11 +194,6 @@ public class CCmakeGenerator {
         if (targetConfig.platformOptions.platform != Platform.AUTO) {
             cMakeCode.pr("set(CMAKE_SYSTEM_NAME "+targetConfig.platformOptions.platform.getcMakeName()+")");
         }
-
-        cMakeCode.pr("# Target definitions\n");
-        targetConfig.compileDefinitions.forEach((key, value) -> cMakeCode.pr(
-            "add_compile_definitions("+key+"="+value+")\n"
-        ));
         cMakeCode.newLine();
 
         if (targetConfig.platformOptions.platform == Platform.ZEPHYR) {
@@ -217,6 +212,7 @@ public class CCmakeGenerator {
 
         cMakeCode.pr("target_link_libraries(${LF_MAIN_TARGET} PRIVATE core)");
 
+        cMakeCode.pr("target_include_directories(${LF_MAIN_TARGET} PUBLIC .)");
         cMakeCode.pr("target_include_directories(${LF_MAIN_TARGET} PUBLIC include/)");
         cMakeCode.pr("target_include_directories(${LF_MAIN_TARGET} PUBLIC include/api)");
         cMakeCode.pr("target_include_directories(${LF_MAIN_TARGET} PUBLIC include/core)");

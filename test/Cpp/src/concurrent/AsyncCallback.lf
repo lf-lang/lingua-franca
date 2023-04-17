@@ -1,7 +1,6 @@
 // Test asynchronous callbacks that trigger a physical action.
 target Cpp {
     timeout: 2 sec,
-    keepalive: true,
     cmake-include: "AsyncCallback.cmake"
 }
 
@@ -12,11 +11,11 @@ main reactor AsyncCallback {
 
     timer t(0, 200 msec)
     state thread: {= std::thread =}
-    state expected_time: time(100 msec)
-    state toggle: bool(false)
+    state expected_time: time = 100 msec
+    state toggle: bool = false
 
     physical action a: int
-    state i: int(0)
+    state i: int = 0
 
     reaction(t) -> a {=
         // make sure to join the old thread first

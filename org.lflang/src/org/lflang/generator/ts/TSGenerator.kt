@@ -301,7 +301,7 @@ class TSGenerator(
             if (ret != 0) {
                 val errors: String = pnpmInstall.errors.toString()
                 errorReporter.reportError(
-                    GeneratorUtils.findTarget(resource),
+                    GeneratorUtils.findTargetDecl(resource),
                     "ERROR: pnpm install command failed" + if (errors.isBlank()) "." else ":\n$errors")
             }
             installProtoBufsIfNeeded(true, path, context.cancelIndicator)
@@ -318,10 +318,10 @@ class TSGenerator(
 
             if (npmInstall.run(context.cancelIndicator) != 0) {
                 errorReporter.reportError(
-                    GeneratorUtils.findTarget(resource),
+                    GeneratorUtils.findTargetDecl(resource),
                     "ERROR: npm install command failed: " + npmInstall.errors.toString())
                 errorReporter.reportError(
-                    GeneratorUtils.findTarget(resource), "ERROR: npm install command failed." +
+                    GeneratorUtils.findTargetDecl(resource), "ERROR: npm install command failed." +
                         "\nFor installation instructions, see: https://www.npmjs.com/get-npm")
                 return
             }
@@ -429,7 +429,7 @@ class TSGenerator(
         return true
     }
 
-    override fun getTargetTypes(): TargetTypes = TSTypes
+    override fun getTargetTypes(): TargetTypes = TSTypes.getInstance()
 
     override fun getTarget(): Target {
         return Target.TS

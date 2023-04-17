@@ -4,10 +4,8 @@ import java.util.List;
 import java.util.ArrayList;
 import org.lflang.ASTUtils;
 import org.lflang.Target;
-import org.lflang.federated.generator.FederateInstance;
 import org.lflang.generator.ActionInstance;
 import org.lflang.generator.CodeBuilder;
-import org.lflang.generator.GeneratorBase;
 import org.lflang.generator.ReactorInstance;
 import org.lflang.lf.Action;
 import org.lflang.lf.Reactor;
@@ -40,9 +38,10 @@ public class CActionGenerator {
                 var triggerStructName = CUtil.reactorRef(action.getParent()) + "->_lf__" + action.getName();
                 var minDelay = action.getMinDelay();
                 var minSpacing = action.getMinSpacing();
-                var offsetInitializer = triggerStructName+".offset = " + GeneratorBase.timeInTargetLanguage(minDelay) + ";";
+                var offsetInitializer = triggerStructName+".offset = " + CTypes.getInstance().getTargetTimeExpr(minDelay)
+                    + ";";
                 var periodInitializer = triggerStructName+".period = " + (minSpacing != null ?
-                                                                         GeneratorBase.timeInTargetLanguage(minSpacing) :
+                    CTypes.getInstance().getTargetTimeExpr(minSpacing) :
                                                                          CGenerator.UNDEFINED_MIN_SPACING) + ";";
                 code.addAll(List.of(
                     "// Initializing action "+action.getFullName(),
@@ -98,13 +97,12 @@ public class CActionGenerator {
      */
     public static void generateDeclarations(
         Reactor reactor,
-        ReactorDecl decl,
         CodeBuilder body,
         CodeBuilder constructorCode
     ) {
         for (Action action : ASTUtils.allActions(reactor)) {
             var actionName = action.getName();
-            body.pr(action, CGenerator.variableStructType(action, decl)+" _lf_"+actionName+";");
+            body.pr(action, CGenerator.variableStructType(action, reactor, false)+" _lf_"+actionName+";");
             // Initialize the trigger pointer in the action.
             constructorCode.pr(action, "self->_lf_"+actionName+".trigger = &self->_lf__"+actionName+";");
         }
@@ -122,11 +120,12 @@ public class CActionGenerator {
      * @return The auxiliary struct for the port as a string
      */
     public static String generateAuxiliaryStruct(
-        ReactorDecl decl,
+        Reactor r,
         Action action,
         Target target,
         CTypes types,
-        CodeBuilder federatedExtension
+        CodeBuilder federatedExtension,
+        boolean userFacing
     ) {
         var code = new CodeBuilder();
         code.pr("typedef struct {");
@@ -146,7 +145,7 @@ public class CActionGenerator {
         code.pr(valueDeclaration(action, target, types));
         code.pr(federatedExtension.toString());
         code.unindent();
-        code.pr("} " + variableStructType(action, decl) + ";");
+        code.pr("} " + variableStructType(action, r, userFacing) + ";");
         return code.toString();
     }
 

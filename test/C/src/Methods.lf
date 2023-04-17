@@ -1,7 +1,7 @@
 target C
 
 main reactor {
-    state foo: int(2)
+    state foo: int = 2
 
     method getFoo(): int {= return self->foo; =}
 

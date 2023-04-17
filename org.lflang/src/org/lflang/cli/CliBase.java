@@ -1,21 +1,26 @@
 package org.lflang.cli;
 
 import java.io.IOException;
-import java.io.PrintStream;
 import java.io.PrintWriter;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map.Entry;
 import java.util.Properties;
+import java.util.Set;
 import java.util.stream.Collectors;
 
-import org.apache.commons.cli.CommandLine;
-import org.apache.commons.cli.CommandLineParser;
-import org.apache.commons.cli.DefaultParser;
-import org.apache.commons.cli.HelpFormatter;
-import org.apache.commons.cli.Option;
-import org.apache.commons.cli.Options;
-import org.apache.commons.cli.ParseException;
+import picocli.CommandLine;
+import picocli.CommandLine.ArgGroup;
+import picocli.CommandLine.Command;
+import picocli.CommandLine.Model.CommandSpec;
+import picocli.CommandLine.Option;
+import picocli.CommandLine.Parameters;
+import picocli.CommandLine.Spec;
+
 import org.eclipse.emf.common.util.URI;
 import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.emf.ecore.resource.ResourceSet;
@@ -27,10 +32,11 @@ import org.eclipse.xtext.validation.Issue;
 import org.lflang.ErrorReporter;
 import org.lflang.LFRuntimeModule;
 import org.lflang.LFStandaloneSetup;
-import org.lflang.LocalStrings;
-import org.lflang.generator.LFGeneratorContext.BuildParm;
 import org.lflang.util.FileUtil;
-
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+import com.google.gson.JsonParseException;
 import com.google.inject.Inject;
 import com.google.inject.Injector;
 import com.google.inject.Provider;
@@ -41,177 +47,209 @@ import com.google.inject.Provider;
  * @author Marten Lohstroh
  * @author Christian Menard
  * @author Billy Bao
+ * @author Atharva Patil
  */
-public abstract class CliBase {
+public abstract class CliBase implements Runnable {
+    /**
+     * Models a command specification, including the options, positional
+     * parameters and subcommands supported by the command.
+     */
+    @Spec CommandSpec spec;
+
+    /**
+     * Options and parameters present in both Lfc and Lff.
+     */
+    static class MutuallyExclusive {
+         @Parameters(
+         arity = "1..",
+         paramLabel = "FILES",
+         description = "Paths to one or more Lingua Franca programs.")
+             protected List<Path> files;
+
+         @Option(
+         names="--json",
+         description="JSON object containing CLI arguments.")
+             private String jsonString;
+
+         @Option(
+         names="--json-file",
+         description="JSON file containing CLI arguments.")
+             private Path jsonFile;
+     }
+
+     @ArgGroup(exclusive = true, multiplicity = "1")
+     MutuallyExclusive topLevelArg;
+
+     @Option(
+     names = {"-o", "--output-path"},
+     defaultValue = "",
+     fallbackValue = "",
+     description = "Specify the root output directory.")
+         private Path outputPath;
 
     /**
      * Used to collect all errors that happen during validation/generation.
      */
     @Inject
     protected IssueCollector issueCollector;
+
     /**
      * Used to report error messages at the end.
      */
     @Inject
     protected ReportingBackend reporter;
+
     /**
      * Used to report error messages at the end.
      */
     @Inject
     protected ErrorReporter errorReporter;
+
     /**
      * IO context of this run.
      */
     @Inject
     protected Io io;
+    
     /**
      * Injected resource provider.
      */
     @Inject
     private Provider<ResourceSet> resourceSetProvider;
+    
     /**
      * Injected resource validator.
      */
     @Inject
     private IResourceValidator validator;
 
-    /** Name of the program, eg "lfc". */
-    private final String toolName;
-
-    protected CliBase(String toolName) {
-        this.toolName = toolName;
-    }
-
-    protected static void cliMain(String toolName, Class<? extends CliBase> toolClass, Io io, String[] args) {
+    protected static void cliMain(
+            String toolName, Class<? extends CliBase> toolClass,
+            Io io, String[] args) {
         // Injector used to obtain Main instance.
         final Injector injector = getInjector(toolName, io);
         // Main instance.
         final CliBase main = injector.getInstance(toolClass);
-        main.runMain(args);
+        // Parse arguments and execute main logic.
+        main.doExecute(io, args);
     }
 
-    protected static Injector getInjector(String toolName, Io io) {
-        final ReportingBackend reporter = new ReportingBackend(io, toolName + ": ");
-
-        // Injector used to obtain Main instance.
-        return new LFStandaloneSetup(new LFRuntimeModule(), new LFStandaloneModule(reporter, io))
-            .createInjectorAndDoEMFRegistration();
+    public void doExecute(Io io, String[] args) {
+        CommandLine cmd = new CommandLine(this)
+            .setOut(new PrintWriter(io.getOut()))
+            .setErr(new PrintWriter(io.getErr()));
+        int exitCode = cmd.execute(args);
+        io.callSystemExit(exitCode);
     }
-
 
     /**
-     * Main function of the tool.
-     *
-     * @param args Command-line arguments.
+     * The entrypoint of Picocli applications - the first method called when 
+     * CliBase, which implements the Runnable interface, is instantiated.
+     */ 
+    public void run() {
+        // If args are given in a json file, store its contents in jsonString.
+        if (topLevelArg.jsonFile != null) {
+            try {
+                topLevelArg.jsonString = new String(Files.readAllBytes(
+                        io.getWd().resolve(topLevelArg.jsonFile)));
+            } catch (IOException e) {
+                reporter.printFatalErrorAndExit(
+                        "No such file: " + topLevelArg.jsonFile);
+            }
+        }
+        // If args are given in a json string, unpack them and re-run
+        // picocli argument validation.
+        if (topLevelArg.jsonString != null) {
+            // Unpack args from json string.
+            String[] args = jsonStringToArgs(topLevelArg.jsonString);
+            // Execute application on unpacked args.
+            CommandLine cmd = spec.commandLine();
+            cmd.execute(args);
+        // If args are already unpacked, invoke tool-specific logic.
+        } else {
+            doRun();
+        }
+    }
+
+    /*
+     * The entrypoint of tool-specific logic.
+     * Lfc and Lff have their own specific implementations for this method.
      */
-    protected void runMain(final String... args) {
+    public abstract void doRun();
 
-        // Main instance.
-        // Apache Commons Options object configured to according to available CLI arguments.
-        Options options = getOptions();
-        // CLI arguments parser.
-        CommandLineParser parser = new DefaultParser();
-        // Helper object for printing "help" menu.
-        HelpFormatter formatter = new HelpFormatter();
+    public static Injector getInjector(String toolName, Io io) {
+        final ReportingBackend reporter 
+            = new ReportingBackend(io, toolName + ": ");
 
-        final Option helpOption = new Option("h", "help", false, BuildParm.HELP.description);
-        final Option versionOption = new Option("version", "version", false, BuildParm.VERSION.description);
-
-        options.addOption(helpOption);
-        options.addOption(versionOption);
-
-        CommandLine cmd;
-        try {
-            cmd = parser.parse(options, args, false);
-        } catch (ParseException e) {
-            reporter.printFatalError(
-                "Unable to parse command-line arguments. Reason: " + e.getMessage() + "\n"
-                    + "The full command-line was: " + Arrays.toString(args));
-            printHelp(options, formatter, io.getErr());
-            io.callSystemExit(1);
-            return;
-        }
-
-        // If requested, print help and abort
-        if (cmd.hasOption(helpOption.getOpt())) {
-            printHelp(options, formatter, io.getOut());
-            io.callSystemExit(0);
-        }
-
-        // If requested, print version and abort
-        if (cmd.hasOption(versionOption.getLongOpt())) {
-            io.getOut().println(toolName + " " + LocalStrings.VERSION);
-            io.callSystemExit(0);
-        }
-
-        List<String> files = cmd.getArgList();
-
-        if (files.size() < 1) {
-            reporter.printFatalErrorAndExit("No input files.");
-        }
-        try {
-            List<Path> paths = files.stream().map(io.getWd()::resolve).collect(Collectors.toList());
-            runTool(cmd, paths);
-        } catch (RuntimeException e) {
-            reporter.printFatalErrorAndExit("An unexpected error occurred:", e);
-        }
-        io.callSystemExit(0);
+        // Injector used to obtain Main instance.
+        return new LFStandaloneSetup(
+            new LFRuntimeModule(),
+            new LFStandaloneModule(reporter, io)
+        ).createInjectorAndDoEMFRegistration();
     }
 
-    protected abstract Options getOptions();
-    protected abstract void runTool(CommandLine cmd, List<Path> inputFiles);
-
-    // Print help on the correct output stream. Unfortunately the library doesn't have
-    // a more convenient overload.
-    private void printHelp(Options options, HelpFormatter formatter, PrintStream out) {
-        try (PrintWriter pw = new PrintWriter(out)) {
-            formatter.printHelp(pw,
-                formatter.getWidth(),
-                toolName,
-                null,
-                options,
-                formatter.getLeftPadding(),
-                formatter.getDescPadding(),
-                null,
-                false);
-        }
-    }
-
-    /** Resolve to an absolute path, in the given {@link #io} context. */
+    /**
+     * Resolve to an absolute path, in the given {@link #io} context.
+     */
     protected Path toAbsolutePath(Path other) {
         return io.getWd().resolve(other).toAbsolutePath();
     }
 
     /**
-     * Store command-line arguments as properties, to be passed on to the runtime.
+     * Returns the validated input paths.
      *
-     * @param passOptions Which options should be passed to the runtime.
-     * @return Provided arguments in cmd as properties, which should be passed to the runtime.
+     * @return Validated input paths.
      */
-    protected Properties filterProps(CommandLine cmd, List<Option> passOptions) {
-        Properties props = new Properties();
-        for (Option o : cmd.getOptions()) {
-            if (passOptions.contains(o)) {
-                String value = "";
-                if (o.hasArg()) {
-                    value = o.getValue();
-                }
-                props.setProperty(o.getLongOpt(), value);
+    protected List<Path> getInputPaths() {
+        List<Path> paths = topLevelArg.files.stream()
+            .map(io.getWd()::resolve)
+            .collect(Collectors.toList());
+
+        for (Path path : paths) {
+            if (!Files.exists(path)) {
+                reporter.printFatalErrorAndExit(
+                    path + ": No such file or directory.");
             }
         }
-        return props;
+
+        return paths;
     }
 
     /**
-     * If some errors were collected, print them and abort execution. Otherwise, return.
+     * Returns the validated, normalized output path.
+     *
+     * @return Validated, normalized output path.
+     */
+    protected Path getOutputRoot() {
+        Path root = null;
+        if (!outputPath.toString().isEmpty()) {
+            root = io.getWd().resolve(outputPath).normalize();
+            if (!Files.exists(root)) { // FIXME: Create it instead?
+                reporter.printFatalErrorAndExit(
+                    root + ": Output location does not exist.");
+            }
+            if (!Files.isDirectory(root)) {
+                reporter.printFatalErrorAndExit(
+                    root + ": Output location is not a directory.");
+            }
+        }
+
+        return root;
+    }
+
+    /**
+     * If some errors were collected, print them and abort execution.
+     * Otherwise, return.
      */
     protected void exitIfCollectedErrors() {
         if (issueCollector.getErrorsOccurred()) {
             // if there are errors, don't print warnings.
             List<LfIssue> errors = printErrorsIfAny();
-            String cause = errors.size() == 1 ? "previous error"
-                                              : errors.size() + " previous errors";
-            reporter.printFatalErrorAndExit("Aborting due to " + cause);
+            String cause = errors.size() + " previous error";
+            if (errors.size() > 1) {
+                cause += 's';
+            }
+            reporter.printFatalErrorAndExit("Aborting due to " + cause + '.');
         }
     }
 
@@ -234,23 +272,36 @@ public abstract class CliBase {
     public void validateResource(Resource resource) {
         assert resource != null;
 
-        List<Issue> issues = this.validator.validate(resource, CheckMode.ALL, CancelIndicator.NullImpl);
+        List<Issue> issues = this.validator.validate(
+            resource, CheckMode.ALL, CancelIndicator.NullImpl);
 
         for (Issue issue : issues) {
-            URI uri = issue.getUriToProblem(); // Issues may also relate to imported resources.
-            try {
-                issueCollector.accept(new LfIssue(issue.getMessage(), issue.getSeverity(),
-                                                  issue.getLineNumber(), issue.getColumn(),
-                                                  issue.getLineNumberEnd(), issue.getColumnEnd(),
-                                                  issue.getLength(), FileUtil.toPath(uri)));
-            } catch (IOException e) {
-                reporter.printError("Unable to convert '" + uri + "' to path." + e);
+            // Issues may also relate to imported resources.
+            URI uri = issue.getUriToProblem();
+            Path path = null;
+            if (uri != null) {
+                try {
+                    path = FileUtil.toPath(uri);
+                } catch (IOException e) {
+                    reporter.printError("Unable to convert '" + uri + "' to path." + e);
+                }
             }
+            issueCollector.accept(
+                new LfIssue(
+                    issue.getMessage(),
+                    issue.getSeverity(),
+                    issue.getLineNumber(),
+                    issue.getColumn(),
+                    issue.getLineNumberEnd(),
+                    issue.getColumnEnd(),
+                    issue.getLength(),
+                    path));
         }
     }
 
     /**
      * Obtains a resource from a path. Returns null if path is not an LF file.
+     *
      * @param path The path to obtain the resource from.
      * @return The obtained resource. Set to null if path is not an LF file.
      */
@@ -261,5 +312,56 @@ public abstract class CliBase {
         } catch (RuntimeException e) {
             return null;
         }
+    }
+
+    private String[] jsonStringToArgs(String jsonString) {
+        ArrayList<String> argsList = new ArrayList<>();
+        JsonObject jsonObject = new JsonObject();
+
+        // Parse JSON string and get top-level JSON object.
+        try {
+            jsonObject = JsonParser.parseString(jsonString).getAsJsonObject();
+        } catch (JsonParseException e) {
+            reporter.printFatalErrorAndExit(
+                    String.format("Invalid JSON string:%n %s", jsonString));
+        }
+        // Append input paths.
+        JsonElement src = jsonObject.get("src");
+        if (src == null) {
+            reporter.printFatalErrorAndExit(
+                    "JSON Parse Exception: field \"src\" not found.");
+        }
+        argsList.add(src.getAsString());
+        // Append output path if given.
+        JsonElement out = jsonObject.get("out");
+        if (out != null) {
+            argsList.add("--output-path");
+            argsList.add(out.getAsString());
+        }
+
+        // If there are no other properties, return args array.
+        JsonElement properties = jsonObject.get("properties");
+        if (properties != null) {
+            // Get the remaining properties.
+            Set<Entry<String, JsonElement>> entrySet = properties
+                .getAsJsonObject()
+                .entrySet();
+            // Append the remaining properties to the args array.
+            for(Entry<String,JsonElement> entry : entrySet) {
+                String property = entry.getKey();
+                String value = entry.getValue().getAsString();
+
+                // Append option.
+                argsList.add("--" + property);
+                // Append argument for non-boolean options.
+                if (value != "true" || property == "threading") {
+                    argsList.add(value);
+                }
+            }
+        }
+
+        // Return as String[].
+        String[] args = argsList.toArray(new String[argsList.size()]);
+        return args;
     }
 }

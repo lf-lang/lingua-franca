@@ -10,6 +10,7 @@ import org.eclipse.xtext.nodemodel.util.NodeModelUtils;
 
 import org.lflang.ASTUtils;
 import org.lflang.lf.ArraySpec;
+import org.lflang.lf.BracedListExpression;
 import org.lflang.lf.Code;
 import org.lflang.lf.CodeExpr;
 import org.lflang.lf.Host;
@@ -79,6 +80,11 @@ public class ToText extends LfSwitch<String> {
     }
 
     @Override
+    public String caseBracedListExpression(BracedListExpression object) {
+        return ToLf.instance.caseBracedListExpression(object).toString();
+    }
+
+    @Override
     public String caseHost(Host host) {
         return ToLf.instance.caseHost(host).toString();
     }
@@ -100,9 +106,10 @@ public class ToText extends LfSwitch<String> {
 
     @Override
     public String caseType(Type type) {
-        String base = ASTUtils.baseType(type);
-        String arr = (type.getArraySpec() != null) ? doSwitch(type.getArraySpec()) : "";
-        return base + arr;
+        if (type.getCode() != null) {
+            return caseCode(type.getCode());
+        }
+        return ToLf.instance.caseType(type).toString();
     }
 
     @Override

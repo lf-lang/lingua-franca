@@ -4,7 +4,6 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.regex.Pattern;
@@ -17,6 +16,7 @@ import org.lflang.TargetProperty.ClockSyncMode;
 import org.lflang.TimeValue;
 import org.lflang.federated.generator.FedFileConfig;
 import org.lflang.federated.generator.FederateInstance;
+import org.lflang.federated.launcher.RtiConfig;
 import org.lflang.federated.serialization.FedROS2CPPSerialization;
 import org.lflang.federated.serialization.SupportedSerializers;
 import org.lflang.generator.CodeBuilder;
@@ -239,7 +239,7 @@ public class CExtensionUtils {
     public static void handleCompileDefinitions(
         FederateInstance federate,
         int numOfFederates,
-        LinkedHashMap<String, Object> federationRTIProperties
+        RtiConfig rtiConfig
     ) {
         federate.targetConfig.setByUser.add(TargetProperty.COMPILE_DEFINITIONS);
         federate.targetConfig.compileDefinitions.put("FEDERATED", "");
@@ -250,7 +250,7 @@ public class CExtensionUtils {
 
         handleAdvanceMessageInterval(federate);
 
-        initializeClockSynchronization(federate, federationRTIProperties);
+        initializeClockSynchronization(federate, rtiConfig);
     }
 
     /**
@@ -276,9 +276,9 @@ public class CExtensionUtils {
         }
     }
 
-    static boolean clockSyncIsOn(FederateInstance federate, LinkedHashMap<String, Object> federationRTIProperties) {
+    static boolean clockSyncIsOn(FederateInstance federate, RtiConfig rtiConfig) {
         return federate.targetConfig.clockSync != ClockSyncMode.OFF
-            && (!federationRTIProperties.get("host").toString().equals(federate.host)
+            && (!rtiConfig.getHost().equals(federate.host)
             || federate.targetConfig.clockSyncOptions.localFederatesOn);
     }
 
@@ -290,10 +290,10 @@ public class CExtensionUtils {
      */
     public static void initializeClockSynchronization(
         FederateInstance federate,
-        LinkedHashMap<String, Object> federationRTIProperties
+        RtiConfig rtiConfig
     ) {
         // Check if clock synchronization should be enabled for this federate in the first place
-        if (clockSyncIsOn(federate, federationRTIProperties)) {
+        if (clockSyncIsOn(federate, rtiConfig)) {
             System.out.println("Initial clock synchronization is enabled for federate "
                                    + federate.id
             );
@@ -430,16 +430,16 @@ public class CExtensionUtils {
                             // Use NEVER to encode no delay at all.
                             code.pr("candidate_tmp = NEVER;");
                         } else {
-                            var delayTime = GeneratorBase.getTargetTime(delay);
-                            if (delay instanceof ParameterReference) {
-                                // The delay is given as a parameter reference. Find its value.
-                                final var param = ((ParameterReference)delay).getParameter();
-                                delayTime = GeneratorBase.timeInTargetLanguage(ASTUtils.getDefaultAsTimeValue(param));
-                            }
+                            var delayTime =
+                                delay instanceof ParameterReference
+                                    // In that case use the default value.
+                                    ? CTypes.getInstance().getTargetTimeExpr(ASTUtils.getDefaultAsTimeValue(((ParameterReference) delay).getParameter()))
+                                    : CTypes.getInstance().getTargetExpr(delay, InferredType.time());
+
                             code.pr(String.join("\n",
-                                                "if ("+delayTime+" < candidate_tmp) {",
-                                                "    candidate_tmp = "+delayTime+";",
-                                                "}"
+                                "if (" + delayTime + " < candidate_tmp) {",
+                                "    candidate_tmp = " + delayTime + ";",
+                                "}"
                             ));
                         }
                     }

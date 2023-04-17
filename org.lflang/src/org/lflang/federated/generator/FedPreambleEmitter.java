@@ -8,6 +8,7 @@ import java.util.LinkedHashMap;
 import org.lflang.ASTUtils;
 import org.lflang.ErrorReporter;
 import org.lflang.federated.extensions.FedTargetExtensionFactory;
+import org.lflang.federated.launcher.RtiConfig;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.lf.Model;
 import org.lflang.lf.Preamble;
@@ -20,7 +21,7 @@ public class FedPreambleEmitter {
      * Add necessary code to the source and necessary build support to
      * enable the requested serializations in 'enabledSerializations'
      */
-    String generatePreamble(FederateInstance federate, FedFileConfig fileConfig, LinkedHashMap<String, Object> federationRTIProperties, ErrorReporter errorReporter)
+    String generatePreamble(FederateInstance federate, FedFileConfig fileConfig, RtiConfig rtiConfig, ErrorReporter errorReporter)
         throws IOException {
         CodeBuilder preambleCode = new CodeBuilder();
 
@@ -38,8 +39,13 @@ public class FedPreambleEmitter {
             ));
         }
 
-        preambleCode.pr(FedTargetExtensionFactory.getExtension(federate.target).generatePreamble(
-            federate, fileConfig, federationRTIProperties, errorReporter));
+        preambleCode.pr("""
+            preamble {=
+            %s
+            =}""".formatted(FedTargetExtensionFactory.getExtension(federate.targetConfig.target).generatePreamble(
+                federate, fileConfig, rtiConfig, errorReporter
+            ))
+        );
 
         return preambleCode.getCode();
     }

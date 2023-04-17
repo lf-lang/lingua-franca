@@ -394,20 +394,22 @@ public class FileUtil {
      * @param dir The folder to search for folders and files to delete. 
      * @throws IOException If the given folder and unneeded files cannot be deleted.
      */
-    public static void arduinoDeleteHelper(Path dir) throws IOException {
+    public static void arduinoDeleteHelper(Path dir, boolean threadingOn) throws IOException {
         deleteDirectory(dir.resolve("core/federated")); // TODO: Add Federated Support to Arduino
         deleteDirectory(dir.resolve("include/core/federated")); // TODO: Add Federated Support to Arduino
         
-        deleteDirectory(dir.resolve("core/threaded")); // No Threaded Support for Arduino
-        deleteDirectory(dir.resolve("include/core/threaded")); // No Threaded Support for Arduino
+        if (!threadingOn) {
+            deleteDirectory(dir.resolve("core/threaded")); // No Threaded Support for Arduino
+            deleteDirectory(dir.resolve("include/core/threaded")); // No Threaded Support for Arduino
+            deleteDirectory(dir.resolve("core/platform/arduino_mbed")); // No Threaded Support for Arduino
+        } 
 
         List<Path> allPaths = Files.walk(dir)
                     .sorted(Comparator.reverseOrder())
                     .collect(Collectors.toList());
         for (Path path : allPaths) {
             String toCheck = path.toString().toLowerCase();
-            if (toCheck.contains("cmake") || toCheck.contains("semaphore")
-            || (toCheck.contains("core/platform/") && !toCheck.contains("lf_arduino"))) {
+            if (toCheck.contains("cmake")) {
                 Files.delete(path);
             }
         }
@@ -444,7 +446,7 @@ public class FileUtil {
      */
     public static boolean isCFile(Path path) {
         String fileName = path.getFileName().toString();
-        return fileName.endsWith(".c") || fileName.endsWith(".h");
+        return fileName.endsWith(".c") || fileName.endsWith(".cpp") || fileName.endsWith(".h");
     }
 
     /**
@@ -453,15 +455,20 @@ public class FileUtil {
      * @param dir The folder to search for includes to change. 
      * @throws IOException If the given set of files cannot be relativized.
      */
-    public static void relativeIncludeHelper(Path dir) throws IOException {
+    public static void relativeIncludeHelper(Path dir, Path includePath) throws IOException {
         System.out.println("Relativizing all includes in " + dir.toString());
-        List<Path> allPaths = Files.walk(dir)
+        List<Path> includePaths = Files.walk(includePath)
+            .filter(Files::isRegularFile)
+            .filter(FileUtil::isCFile)
+            .sorted(Comparator.reverseOrder())
+            .collect(Collectors.toList());
+        List<Path> srcPaths = Files.walk(dir)
             .filter(Files::isRegularFile)
             .filter(FileUtil::isCFile)
             .sorted(Comparator.reverseOrder())
             .collect(Collectors.toList());
         Map<String, Path> fileStringToFilePath = new HashMap<String, Path>();
-        for (Path path : allPaths) {
+        for (Path path : includePaths) {
             String fileName = path.getFileName().toString();
             if (path.getFileName().toString().contains("CMakeLists.txt")) continue;
             if (fileStringToFilePath.put(fileName, path) != null) {
@@ -469,7 +476,7 @@ public class FileUtil {
             }
         }
         Pattern regexExpression = Pattern.compile("#include\s+[\"]([^\"]+)*[\"]");
-        for (Path path : allPaths) {
+        for (Path path : srcPaths) {
             String fileName = path.getFileName().toString();
             String fileContents = Files.readString(path);
             Matcher matcher = regexExpression.matcher(fileContents);

@@ -11,9 +11,9 @@ reactor Destination {
     input x: number
 
     reaction(x) {=
-        let time =util.getElapsedLogicalTime;
+        let time = util.getElapsedLogicalTime();
         console.log("Received event at logical time: " +  time);
-        if (time.isEqualTo(0)) {
+        if (time.isZero()) {
             util.requestErrorStop("ERROR: Logical time should be greater than zero");
         }
     =}

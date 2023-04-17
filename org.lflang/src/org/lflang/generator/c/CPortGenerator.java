@@ -44,22 +44,28 @@ public class CPortGenerator {
      * Generate the struct type definitions for the port of the
      * reactor
      *
-     * @param decl The reactor declaration
+     * @param r The reactor
      * @param port The port to generate the struct
      * @param target The target of the code generation (C, CCpp or Python)
      * @param errorReporter The error reporter
      * @param types The helper object for types related stuff
      * @param federatedExtension The code needed to support federated execution
+     * @param userFacing Whether this struct is to be presented in a user-facing header
+     * @param decl The reactorDecl if this struct is for the header of this reactor's container;
+     * null otherwise
      * @return The auxiliary struct for the port as a string
      */
     public static String generateAuxiliaryStruct(
-        ReactorDecl decl,
+        Reactor r,
         Port port,
         Target target,
         ErrorReporter errorReporter,
         CTypes types,
-        CodeBuilder federatedExtension
+        CodeBuilder federatedExtension,
+        boolean userFacing,
+        ReactorDecl decl
     ) {
+        assert decl == null || userFacing;
         var code = new CodeBuilder();
         code.pr("typedef struct {");
         code.indent();
@@ -85,8 +91,14 @@ public class CPortGenerator {
         ));
         code.pr(federatedExtension.toString());
         code.unindent();
-        code.pr("} "+variableStructType(port, decl)+";");
+        var name = decl != null ? localPortName(decl, port.getName())
+            : variableStructType(port, r, userFacing);
+        code.pr("} " + name + ";");
         return code.toString();
+    }
+
+    public static String localPortName(ReactorDecl decl, String portName) {
+        return decl.getName().toLowerCase() + "_" + portName + "_t";
     }
 
     /**
@@ -216,21 +228,21 @@ public class CPortGenerator {
             if (ASTUtils.isMultiport(input)) {
                 body.pr(input, String.join("\n",
                     "// Multiport input array will be malloc'd later.",
-                    variableStructType(input, decl)+"** _lf_"+inputName+";",
+                    variableStructType(input, reactor, false)+"** _lf_"+inputName+";",
                     "int _lf_"+inputName+"_width;",
                     "// Default input (in case it does not get connected)",
-                    variableStructType(input, decl)+" _lf_default__"+inputName+";",
+                    variableStructType(input, reactor, false)+" _lf_default__"+inputName+";",
                     "// Struct to support efficiently reading sparse inputs.",
                     "lf_sparse_io_record_t* _lf_"+inputName+"__sparse;"
                 ));
             } else {
                 // input is not a multiport.
                 body.pr(input, String.join("\n",
-                    variableStructType(input, decl)+"* _lf_"+inputName+";",
+                    variableStructType(input, reactor, false)+"* _lf_"+inputName+";",
                     "// width of -2 indicates that it is not a multiport.",
                     "int _lf_"+inputName+"_width;",
                     "// Default input (in case it does not get connected)",
-                    variableStructType(input, decl)+" _lf_default__"+inputName+";"
+                    variableStructType(input, reactor, false)+" _lf_default__"+inputName+";"
                 ));
 
                 constructorCode.pr(input, String.join("\n",
@@ -262,7 +274,7 @@ public class CPortGenerator {
             if (ASTUtils.isMultiport(output)) {
                 body.pr(output, String.join("\n",
                     "// Array of output ports.",
-                    variableStructType(output, decl)+"* _lf_"+outputName+";",
+                    variableStructType(output, reactor, false)+"* _lf_"+outputName+";",
                     "int _lf_"+outputName+"_width;",
                     "// An array of pointers to the individual ports. Useful",
                     "// for the lf_set macros to work out-of-the-box for",
@@ -270,11 +282,11 @@ public class CPortGenerator {
                     "// value can be accessed via a -> operator (e.g.,foo[i]->value).",
                     "// So we have to handle multiports specially here a construct that",
                     "// array of pointers.",
-                    variableStructType(output, decl)+"** _lf_"+outputName+"_pointers;"
+                    variableStructType(output, reactor, false)+"** _lf_"+outputName+"_pointers;"
                 ));
             } else {
                 body.pr(output, String.join("\n",
-                    variableStructType(output, decl)+" _lf_"+outputName+";",
+                    variableStructType(output, reactor, false)+" _lf_"+outputName+";",
                     "int _lf_"+outputName+"_width;"
                 ));
             }

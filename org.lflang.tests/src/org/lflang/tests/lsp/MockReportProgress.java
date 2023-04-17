@@ -17,7 +17,7 @@ public class MockReportProgress implements IntegratedBuilder.ReportProgress {
 
     @Override
     public void apply(String message, Integer percentage) {
-        System.out.printf("%s [%d -> %d]%n", message, previousPercentProgress, percentage);
+        System.out.printf("MockReportProgress: %s [%d -> %d]%n", message, previousPercentProgress, percentage);
         if (percentage == null) return;
         if (percentage < previousPercentProgress || percentage < 0 || percentage > 100) failed = true;
         previousPercentProgress = percentage;

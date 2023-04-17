@@ -3,8 +3,8 @@ target TypeScript {
     timeout: 2 sec
 }
 
-reactor Destination(width: number(1)) {
-    state s: number(6)
+reactor Destination(width: number = 1) {
+    state s: number = 6
     input[width] inp: number
 
     reaction(inp) {=
@@ -28,9 +28,9 @@ reactor Destination(width: number(1)) {
     =}
 }
 
-main reactor MultiportFromReaction(width: number(4)) {
+main reactor MultiportFromReaction(width: number = 4) {
     timer t(0, 200 msec)
-    state s: number(0)
+    state s: number = 0
     b = new Destination(width = width)
 
     reaction(t) -> b.inp {=

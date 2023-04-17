@@ -35,6 +35,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import org.eclipse.emf.ecore.EObject;
 import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.xtext.xbase.lib.Exceptions;
 
@@ -55,6 +56,7 @@ import org.lflang.generator.c.CCmakeGenerator;
 import org.lflang.generator.c.CGenerator;
 import org.lflang.generator.c.CUtil;
 import org.lflang.lf.Action;
+import org.lflang.lf.Code;
 import org.lflang.lf.Input;
 import org.lflang.lf.Model;
 import org.lflang.lf.Output;
@@ -96,7 +98,7 @@ public class PythonGenerator extends CGenerator {
 
     public PythonGenerator(LFGeneratorContext context) {
         this(context,
-            new PythonTypes(context.getErrorReporter()),
+            new PythonTypes(),
             new CCmakeGenerator(
                 context.getFileConfig(),
                 List.of("lib/python_action.c",
@@ -277,8 +279,6 @@ public class PythonGenerator extends CGenerator {
         code.prComment("file:/" + FileUtil.toUnixString(fileConfig.srcFile));
         code.pr(PythonPreambleGenerator.generateCDefineDirectives(
             targetConfig, fileConfig.getSrcGenPath(), hasModalReactors));
-        code.pr(PythonPreambleGenerator.generateCIncludeStatements(
-            targetConfig, targetLanguageIsCpp(), hasModalReactors));
         return code.toString();
     }
 
@@ -288,7 +288,7 @@ public class PythonGenerator extends CGenerator {
      * execution setup preamble specified in the target config.
      */
     @Override
-    protected String generateTopLevelPreambles() {
+    protected String generateTopLevelPreambles(Reactor ignored) {
         // user preambles
         Set<Model> models = new LinkedHashSet<>();
         for (Reactor r : ASTUtils.convertToEmptyListIfNull(reactors)) {
@@ -304,13 +304,7 @@ public class PythonGenerator extends CGenerator {
         for (Model m : models) {
             pythonPreamble.pr(PythonPreambleGenerator.generatePythonPreambles(m.getPreambles()));
         }
-
-        // C preamble for federated execution setup
-        String ret = "";
-        if (targetConfig.fedSetupPreamble != null) {
-            ret = "#include \"" + targetConfig.fedSetupPreamble + "\"";
-        }
-        return ret;
+        return PythonPreambleGenerator.generateCIncludeStatements(targetConfig, targetLanguageIsCpp(), hasModalReactors);
     }
 
     @Override
@@ -354,38 +348,34 @@ public class PythonGenerator extends CGenerator {
     /**
      * Generate the aliases for inputs, outputs, and struct type definitions for
      * actions of the specified reactor in the specified federate.
-     * @param decl The parsed reactor data structure.
+     * @param r The parsed reactor data structure.
      */
     @Override
     public void generateAuxiliaryStructs(
-        ReactorDecl decl
+        CodeBuilder builder, Reactor r, boolean userFacing
     ) {
-        Reactor reactor = ASTUtils.toDefinition(decl);
-        // First, handle inputs.
-        for (Input input : ASTUtils.allInputs(reactor)) {
-            generateAuxiliaryStructsForPort(decl, input);
+        for (Input input : ASTUtils.allInputs(r)) {
+            generateAuxiliaryStructsForPort(builder, r, input);
         }
-        // Next, handle outputs.
-        for (Output output : ASTUtils.allOutputs(reactor)) {
-            generateAuxiliaryStructsForPort(decl, output);
+        for (Output output : ASTUtils.allOutputs(r)) {
+            generateAuxiliaryStructsForPort(builder, r, output);
         }
-        // Finally, handle actions.
-        for (Action action : ASTUtils.allActions(reactor)) {
-            generateAuxiliaryStructsForAction(decl, action);
+        for (Action action : ASTUtils.allActions(r)) {
+            generateAuxiliaryStructsForAction(builder, r, action);
         }
     }
 
-    private void generateAuxiliaryStructsForPort(ReactorDecl decl,
+    private void generateAuxiliaryStructsForPort(CodeBuilder builder, Reactor r,
                                                  Port port) {
         boolean isTokenType = CUtil.isTokenType(ASTUtils.getInferredType(port), types);
-        code.pr(port,
-                PythonPortGenerator.generateAliasTypeDef(decl, port, isTokenType,
+        builder.pr(port,
+                PythonPortGenerator.generateAliasTypeDef(r, port, isTokenType,
                                                          genericPortType));
     }
 
-    private void generateAuxiliaryStructsForAction(ReactorDecl decl,
+    private void generateAuxiliaryStructsForAction(CodeBuilder builder, Reactor r,
                                                    Action action) {
-        code.pr(action, PythonActionGenerator.generateAliasTypeDef(decl, action, genericActionType));
+        builder.pr(action, PythonActionGenerator.generateAliasTypeDef(r, action, genericActionType));
     }
 
     /**
@@ -413,6 +403,7 @@ public class PythonGenerator extends CGenerator {
             targetConfig.threading = false;
         }
         int cGeneratedPercentProgress = (IntegratedBuilder.VALIDATED_PERCENT_PROGRESS + 100) / 2;
+        code.pr(PythonPreambleGenerator.generateCIncludeStatements(targetConfig, targetLanguageIsCpp(), hasModalReactors));
         super.doGenerate(resource, new SubContext(
             context,
             IntegratedBuilder.VALIDATED_PERCENT_PROGRESS,
@@ -461,19 +452,19 @@ public class PythonGenerator extends CGenerator {
      *  a struct that contains parameters, state variables, inputs (triggering or not),
      *  actions (triggering or produced), and outputs.
      *  @param reaction The reaction.
-     *  @param decl The reactor.
+     *  @param r The reactor.
      *  @param reactionIndex The position of the reaction within the reactor.
      */
     @Override
-    protected void generateReaction(Reaction reaction, ReactorDecl decl, int reactionIndex) {
-        Reactor reactor = ASTUtils.toDefinition(decl);
+    protected void generateReaction(CodeBuilder src, Reaction reaction, Reactor r, int reactionIndex) {
+        Reactor reactor = ASTUtils.toDefinition(r);
 
         // Reactions marked with a `@_c_body` attribute are generated in C
         if (AttributeUtils.hasCBody(reaction)) {
-            super.generateReaction(reaction, decl, reactionIndex);
+            super.generateReaction(src, reaction, r, reactionIndex);
             return;
         }
-        code.pr(PythonReactionGenerator.generateCReaction(reaction, decl, reactionIndex, mainDef, errorReporter, types));
+        src.pr(PythonReactionGenerator.generateCReaction(reaction, reactor, reactionIndex, mainDef, errorReporter, types));
     }
 
     /**
@@ -510,7 +501,7 @@ public class PythonGenerator extends CGenerator {
      * @see PythonMethodGenerator
      */
     @Override
-    protected void generateMethods(ReactorDecl reactor) {    }
+    protected void generateMethods(CodeBuilder src, ReactorDecl reactor) {    }
 
     /**
      * Generate C preambles defined by user for a given reactor
@@ -520,7 +511,7 @@ public class PythonGenerator extends CGenerator {
      * @param reactor The given reactor
      */
     @Override
-    protected void generateUserPreamblesForReactor(Reactor reactor) {
+    protected void generateUserPreamblesForReactor(Reactor reactor, CodeBuilder src) {
         // Do nothing
     }
 

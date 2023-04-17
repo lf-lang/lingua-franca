@@ -15,23 +15,27 @@ target C {
 
 preamble {=
     #include <unistd.h> // Defines sleep()
-    bool stop = false;
-    // Thread to trigger an action once every second.
-    void* ping(void* actionref) {
-        while(!stop) {
-            lf_print("Scheduling action.");
-            lf_schedule(actionref, 0);
-            sleep(1);
-        }
-        return NULL;
-    }
+    extern bool stop;
+    void* ping(void* actionref);
 =}
 
-reactor Looper(incr: int(1), delay: time(0 msec)) {
+reactor Looper(incr: int = 1, delay: time = 0 msec) {
+    preamble {=
+        bool stop = false;
+        // Thread to trigger an action once every second.
+        void* ping(void* actionref) {
+            while(!stop) {
+                lf_print("Scheduling action.");
+                lf_schedule(actionref, 0);
+                sleep(1);
+            }
+            return NULL;
+        }
+    =}
     input in: int
     output out: int
     physical action a(delay)
-    state count: int(0)
+    state count: int = 0
 
     reaction(startup) -> a {=
         // Start the thread that listens for Enter or Return.
@@ -62,7 +66,7 @@ reactor Looper(incr: int(1), delay: time(0 msec)) {
     =}
 }
 
-federated reactor(delay: time(0)) {
+federated reactor(delay: time = 0) {
     left = new Looper()
     right = new Looper(incr = -1)
     left.out -> right.in

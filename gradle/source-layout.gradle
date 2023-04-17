@@ -9,7 +9,6 @@ if (name.endsWith(".tests")) {
 			java.srcDirs = ['src', 'src-gen']
 			kotlin.srcDirs = ['src', 'src-gen']
 			resources.srcDirs = ['src', 'src-gen']
-			xtendOutputDir = 'xtend-gen'
 		}
 	}
 } else {
@@ -17,7 +16,6 @@ if (name.endsWith(".tests")) {
 		main {
 			java.srcDirs = ['src', 'src-gen']
 			kotlin.srcDirs = ['src', 'src-gen']
-			xtendOutputDir = 'xtend-gen'
 			resources {
 				srcDirs = ['src', 'src-gen']
 				exclude 'src/lib/rs/reactor-rust' // rust runtime does not need to be packed here.
@@ -31,7 +29,7 @@ if (name.endsWith(".tests")) {
 }
 
 sourceSets.all {
-	resources.exclude '**/*.g', '**/*.mwe2', '**/*.xtend', '**/*._trace'
+	resources.exclude '**/*.g', '**/*.mwe2', '**/*._trace'
 }
 
 jar {

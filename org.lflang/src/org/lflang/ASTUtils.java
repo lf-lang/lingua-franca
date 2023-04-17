@@ -58,6 +58,7 @@ import org.eclipse.xtext.xbase.lib.StringExtensions;
 import org.lflang.ast.ToText;
 import org.lflang.generator.CodeMap;
 import org.lflang.generator.InvalidSourceException;
+import org.lflang.generator.ReactorInstance;
 import org.lflang.lf.Action;
 import org.lflang.lf.Assignment;
 import org.lflang.lf.AttrParm;
@@ -252,6 +253,14 @@ public class ASTUtils {
     }
 
     /**
+     * Return the target of the file in which the given node lives.
+     */
+    public static Target getTarget(EObject object) {
+        TargetDecl targetDecl = targetDecl(object.eResource());
+        return Target.fromDecl(targetDecl);
+    }
+
+    /**
      * Add a new target property to the given resource.
      *
      * This also creates a config object if the resource does not yey have one.
@@ -363,6 +372,11 @@ public class ASTUtils {
         return ASTUtils.collectElements(definition, featurePackage.getReactor_Inputs());
     }
 
+    /** A list of all ports of {@code definition}, in an unspecified order. */
+    public static List<Port> allPorts(Reactor definition) {
+        return Stream.concat(ASTUtils.allInputs(definition).stream(), ASTUtils.allOutputs(definition).stream()).toList();
+    }
+
     /**
      * Given a reactor class, return a list of all its instantiations,
      * which includes instantiations of base classes that it extends.
@@ -372,6 +386,12 @@ public class ASTUtils {
      */
     public static List<Instantiation> allInstantiations(Reactor definition) {
         return ASTUtils.collectElements(definition, featurePackage.getReactor_Instantiations());
+    }
+
+    public static Stream<Reactor> allNestedClasses(Reactor definition) {
+        return new HashSet<>(ASTUtils.allInstantiations(definition)).stream()
+            .map(Instantiation::getReactorClass)
+            .map(ASTUtils::toDefinition);
     }
 
     /**
@@ -441,6 +461,16 @@ public class ASTUtils {
      */
     public static List<Mode> allModes(Reactor definition) {
         return ASTUtils.collectElements(definition, featurePackage.getReactor_Modes());
+    }
+
+    /** A list of all reactors instantiated, transitively or intransitively, by {@code r}. */
+    public static List<Reactor> recursiveChildren(ReactorInstance r) {
+        List<Reactor> ret = new ArrayList<>();
+        ret.add(r.reactorDefinition);
+        for (var child: r.children) {
+            ret.addAll(recursiveChildren(child));
+        }
+        return ret;
     }
 
     /**
@@ -781,7 +811,7 @@ public class ASTUtils {
 
     /**
      * Translate the given type into its textual representation, but
-     * do not append any array specifications.
+     * do not append any array specifications or type arguments.
      * @param type AST node to render as string.
      * @return Textual representation of the given argument.
      */
@@ -793,18 +823,12 @@ public class ASTUtils {
                 if (type.isTime()) {
                     return "time";
                 } else {
-                    StringBuilder stars = new StringBuilder();
-                    List<String> iterList = convertToEmptyListIfNull(type.getStars());
-                    for (String s : iterList) {
-                        stars.append(s);
+                    StringBuilder result = new StringBuilder(type.getId());
+
+                    for (String s : convertToEmptyListIfNull(type.getStars())) {
+                        result.append(s);
                     }
-                    if (!IterableExtensions.isNullOrEmpty(type.getTypeParms())) {
-                        List<String> typeParamsStr = new ArrayList<>();
-                        type.getTypeParms().forEach(it -> typeParamsStr.add(toText(it)));
-                        return String.format("%s<%s>", type.getId(), String.join(", ", typeParamsStr));
-                    } else {
-                        return type.getId() + stars;
-                    }
+                    return result.toString();
                 }
             }
         }
