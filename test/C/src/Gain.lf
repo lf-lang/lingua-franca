@@ -1,7 +1,7 @@
 // Example in the Wiki.
 target C
 
-reactor Scale(scale: int(2)) {
+reactor Scale(scale: int = 2) {
     input x: int
     output y: int
 
@@ -10,7 +10,7 @@ reactor Scale(scale: int(2)) {
 
 reactor Test {
     input x: int
-    state received_value: bool(false)
+    state received_value: bool = false
 
     reaction(x) {=
         printf("Received %d.\n", x->value);

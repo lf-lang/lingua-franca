@@ -161,7 +161,7 @@ public abstract class Validator {
      */
     private Pair<ValidationStrategy, LFCommand> getValidationStrategy(Path generatedFile) {
         List<ValidationStrategy> sorted = getPossibleStrategies().stream()
-            .sorted(Comparator.comparingInt(vs -> -vs.getPriority())).collect(Collectors.toList());
+            .sorted(Comparator.comparingInt(vs -> -vs.getPriority())).toList();
         for (ValidationStrategy strategy : sorted) {
             LFCommand validateCommand = strategy.getCommand(generatedFile);
             if (validateCommand != null) {

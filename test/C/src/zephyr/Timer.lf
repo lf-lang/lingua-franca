@@ -3,7 +3,8 @@ target C {
         name: Zephyr,
         board: qemu_cortex_m3
     },
-    threading: false
+    threading: false,
+    timeout: 10 sec
 }
 
 main reactor {

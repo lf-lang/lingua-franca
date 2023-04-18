@@ -1,7 +1,7 @@
 target Rust
 
 main reactor TimerDefaults {
-    state i: i32(0)
+    state i: i32 = 0
     timer t
 
     reaction(t) {=

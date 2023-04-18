@@ -2,7 +2,7 @@
 target C
 
 reactor Foo {
-    state foo: int(2)
+    state foo: int = 2
 
     method add(x: int) {= self->foo += x; =}
 
@@ -16,7 +16,7 @@ reactor Foo {
 }
 
 main reactor {
-    state foo: int(2)
+    state foo: int = 2
 
     a = new Foo()
 

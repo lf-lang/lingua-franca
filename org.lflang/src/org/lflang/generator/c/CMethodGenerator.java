@@ -27,7 +27,12 @@ public class CMethodGenerator {
     ) {
         for (Method method : allMethods(reactor)) {
             var functionName = methodFunctionName(reactor, method);
-            body.pr("#define "+method.getName()+"(...) "+functionName+"(self, ##__VA_ARGS__)");
+            // If the method has no arguments. Do not pass it any variadic arguments.s
+            if (method.getArguments().size() > 0) {
+                body.pr("#define "+method.getName()+"(...) "+functionName+"(self, ##__VA_ARGS__)");
+            } else {
+                body.pr("#define "+method.getName()+"() "+functionName+"(self)");
+            }
         }
     }
 
@@ -67,7 +72,7 @@ public class CMethodGenerator {
         code.indent();
 
         // Define the "self" struct.
-        String structType = CUtil.selfType(decl);
+        String structType = CUtil.selfType(ASTUtils.toDefinition(decl));
         // A null structType means there are no inputs, state,
         // or anything else. No need to declare it.
         if (structType != null) {
@@ -134,7 +139,7 @@ public class CMethodGenerator {
      * @return The function name for the method.
      */
     private static String methodFunctionName(ReactorDecl reactor, Method method) {
-        return reactor.getName().toLowerCase() + "_method_" + method.getName();
+        return CUtil.getName(ASTUtils.toDefinition(reactor)) + "_method_" + method.getName();
     }
 
     /**

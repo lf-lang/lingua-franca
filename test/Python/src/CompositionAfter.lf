@@ -5,10 +5,10 @@ target Python {
     timeout: 10 sec
 }
 
-reactor Source(period(2 sec)) {
+reactor Source(period = 2 sec) {
     output y
     timer t(1 sec, period)
-    state count(0)
+    state count = 0
 
     reaction(t) -> y {=
         self.count += 1
@@ -18,7 +18,7 @@ reactor Source(period(2 sec)) {
 
 reactor Test {
     input x
-    state count(0)
+    state count = 0
 
     reaction(x) {=
         self.count += 1
@@ -29,7 +29,7 @@ reactor Test {
     =}
 }
 
-main reactor(delay(5 sec)) {
+main reactor(delay = 5 sec) {
     s = new Source()
     d = new Test()
     s.y -> d.x after delay

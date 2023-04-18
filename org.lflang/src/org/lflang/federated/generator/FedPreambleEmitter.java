@@ -39,8 +39,13 @@ public class FedPreambleEmitter {
             ));
         }
 
-        preambleCode.pr(FedTargetExtensionFactory.getExtension(federate.targetConfig.target).generatePreamble(
-            federate, fileConfig, rtiConfig, errorReporter));
+        preambleCode.pr("""
+            preamble {=
+            %s
+            =}""".formatted(FedTargetExtensionFactory.getExtension(federate.targetConfig.target).generatePreamble(
+                federate, fileConfig, rtiConfig, errorReporter
+            ))
+        );
 
         return preambleCode.getCode();
     }

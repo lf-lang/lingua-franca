@@ -8,9 +8,9 @@ target TypeScript {
     fast: true
 }
 
-reactor Reschedule(period: time(2 sec), message: string("Hello TypeScript")) {
-    state count: number(0)
-    state previous_time: time(0)
+reactor Reschedule(period: time = 2 sec, message: string = "Hello TypeScript") {
+    state count: number = 0
+    state previous_time: time = 0
     timer t(1 sec, period)
     logical action a
 
@@ -38,8 +38,8 @@ reactor Reschedule(period: time(2 sec), message: string("Hello TypeScript")) {
 }
 
 reactor Inside(
-    period: time(1 sec),
-    message: string("Composite default message.")
+    period: time = 1 sec,
+    message: string = "Composite default message."
 ) {
     third_instance = new Reschedule(period = period, message = message)
 }

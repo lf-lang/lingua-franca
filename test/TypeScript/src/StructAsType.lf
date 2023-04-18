@@ -18,7 +18,7 @@ reactor Source {
     =}
 }
 
-reactor Print(expected: number(42)) {  // expected parameter is for testing.
+reactor Print(expected: number = 42) {  // expected parameter is for testing.
     input x: hello_t
 
     reaction(x) {=

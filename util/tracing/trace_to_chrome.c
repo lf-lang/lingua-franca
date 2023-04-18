@@ -31,6 +31,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * point your chrome browser to chrome://tracing/ and the load the .json file.
  */
 #define LF_TRACE
+#include <stdio.h>
 #include "reactor.h"
 #include "trace.h"
 #include "trace_util.h"
@@ -42,6 +43,12 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /** Maximum thread ID seen. */
 int max_thread_id = 0;
+
+/** File containing the trace binary data. */
+FILE* trace_file = NULL;
+
+/** File for writing the output data. */
+FILE* output_file = NULL;
 
 /**
  * Print a usage message.
@@ -62,17 +69,23 @@ bool physical_time_only = false;
 
 /**
  * Read a trace in the specified file and write it to the specified json file.
+ * @param trace_file An open trace file.
+ * @param output_file An open output .json file.
  * @return The number of records read or 0 upon seeing an EOF.
  */
-size_t read_and_write_trace() {
+size_t read_and_write_trace(FILE* trace_file, FILE* output_file) {
     int trace_length = read_trace(trace_file);
     if (trace_length == 0) return 0;
     // Write each line.
     for (int i = 0; i < trace_length; i++) {
         char* reaction_name = "\"UNKNOWN\"";
-        if (trace[i].reaction_number >= 0) {
+
+        // Ignore federated trace events.
+        if (trace[i].event_type > federated) continue;
+
+        if (trace[i].dst_id >= 0) {
             reaction_name = (char*)malloc(4);
-            snprintf(reaction_name, 4, "%d", trace[i].reaction_number);
+            snprintf(reaction_name, 4, "%d", trace[i].dst_id);
         }
         // printf("DEBUG: Reactor's self struct pointer: %p\n", trace[i].pointer);
         int reactor_index;
@@ -80,7 +93,7 @@ size_t read_and_write_trace() {
         if (reactor_name == NULL) {
             if (trace[i].event_type == worker_wait_starts || trace[i].event_type == worker_wait_ends) {
                 reactor_name = "WAIT";
-            } else if (trace[i].event_type == scheduler_advancing_time_starts 
+            } else if (trace[i].event_type == scheduler_advancing_time_starts
                     || trace[i].event_type == scheduler_advancing_time_starts) {
                 reactor_name = "ADVANCE TIME";
             } else {
@@ -113,7 +126,7 @@ size_t read_and_write_trace() {
         }
 
         // Default thread id is the worker number.
-        int thread_id = trace[i].worker;
+        int thread_id = trace[i].src_id;
 
         char* args;
         asprintf(&args, "{"
@@ -182,7 +195,7 @@ size_t read_and_write_trace() {
                 phase = "E";
                 break;
             default:
-                fprintf(stderr, "WARNING: Unrecognized event type %d: %s", 
+                fprintf(stderr, "WARNING: Unrecognized event type %d: %s\n",
                         trace[i].event_type, trace_event_names[trace[i].event_type]);
                 pid = PID_FOR_UNKNOWN_EVENT;
                 phase = "i";
@@ -206,8 +219,8 @@ size_t read_and_write_trace() {
         );
         free(args);
 
-        if (trace[i].worker > max_thread_id) {
-            max_thread_id = trace[i].worker;
+        if (trace[i].src_id > max_thread_id) {
+            max_thread_id = trace[i].src_id;
         }
         // If the event is reaction_starts and physical_time_only is not set,
         // then also generate an instantaneous
@@ -217,13 +230,13 @@ size_t read_and_write_trace() {
             pid = reactor_index + 1;
             reaction_name = (char*)malloc(4);
             char name[13];
-            snprintf(name, 13, "reaction %d", trace[i].reaction_number);
+            snprintf(name, 13, "reaction %d", trace[i].dst_id);
 
             // NOTE: If the reactor has more than 1024 timers and actions, then
             // there will be a collision of thread IDs here.
-            thread_id = 1024 + trace[i].reaction_number;
-            if (trace[i].reaction_number > max_reaction_number) {
-                max_reaction_number = trace[i].reaction_number;
+            thread_id = 1024 + trace[i].dst_id;
+            if (trace[i].dst_id > max_reaction_number) {
+                max_reaction_number = trace[i].dst_id;
             }
 
             fprintf(output_file, "{"
@@ -253,8 +266,9 @@ size_t read_and_write_trace() {
 
 /**
  * Write metadata events, which provide names in the renderer.
+ * @param output_file An open output .json file.
  */
-void write_metadata_events() {
+void write_metadata_events(FILE* output_file) {
     // Thread 0 is the main thread.
     fprintf(output_file, "{"
             "\"name\": \"thread_name\", "
@@ -262,7 +276,7 @@ void write_metadata_events() {
             "\"pid\": 0, "
             "\"tid\": 0, "
             "\"args\": {"
-                "\"name\": \"Main thread\"" 
+                "\"name\": \"Main thread\""
                     "}},\n"
         );
 
@@ -315,7 +329,7 @@ void write_metadata_events() {
             );
         }
     }
-    
+
     // Write the reactor names for the logical timelines.
     for (int i = 0; i < object_table_size; i++) {
         if (object_table[i].type == trace_trigger) {
@@ -328,10 +342,10 @@ void write_metadata_events() {
                     "\"pid\": %d, "         // the "process" to identify by reactor.
                     "\"tid\": %d,"          // The "thread" to label with action or timer name.
                     "\"args\": {"
-                        "\"name\": \"Trigger %s\"" 
+                        "\"name\": \"Trigger %s\""
                     "}},\n",
                 reactor_index + 1, // Offset of 1 prevents collision with Execution.
-                i,  
+                i,
                 object_table[i].description);
         } else if (object_table[i].type == trace_reactor) {
             fprintf(output_file, "{"
@@ -339,7 +353,7 @@ void write_metadata_events() {
                     "\"ph\": \"M\", "      // mark as metadata.
                     "\"pid\": %d, "         // the "process" to label as reactor.
                     "\"args\": {"
-                        "\"name\": \"Reactor %s reactions, actions, and timers in logical time\"" 
+                        "\"name\": \"Reactor %s reactions, actions, and timers in logical time\""
                     "}},\n",
                 i + 1,  // Offset of 1 prevents collision with Execution.
                 object_table[i].description);
@@ -350,7 +364,7 @@ void write_metadata_events() {
                     "\"pid\": %d, "         // the "process" to label as reactor.
                     "\"tid\": %d,"          // The "thread" to label with action or timer name.
                     "\"args\": {"
-                        "\"name\": \"%s\"" 
+                        "\"name\": \"%s\""
                     "}},\n",
                 PID_FOR_USER_EVENT,
                 i, // This is the index in the object table.
@@ -363,7 +377,7 @@ void write_metadata_events() {
                     "\"ph\": \"M\", "      // mark as metadata.
                     "\"pid\": 0, "         // the "process" to label "Execution".
                     "\"args\": {"
-                        "\"name\": \"Execution of %s\"" 
+                        "\"name\": \"Execution of %s\""
                     "}},\n",
                 top_level);
     // Name the "process" for "Worker Waiting" if the PID is not the main execution one.
@@ -373,7 +387,7 @@ void write_metadata_events() {
                     "\"ph\": \"M\", "      // mark as metadata.
                     "\"pid\": %d, "        // the "process" to label "Workers waiting for reaction queue".
                     "\"args\": {"
-                        "\"name\": \"Workers waiting for reaction queue\"" 
+                        "\"name\": \"Workers waiting for reaction queue\""
                     "}},\n",
                 PID_FOR_WORKER_WAIT);
     }
@@ -384,7 +398,7 @@ void write_metadata_events() {
                     "\"ph\": \"M\", "      // mark as metadata.
                     "\"pid\": %d, "        // the "process" to label "Workers waiting for reaction queue".
                     "\"args\": {"
-                        "\"name\": \"Workers advancing time\"" 
+                        "\"name\": \"Workers advancing time\""
                     "}},\n",
                 PID_FOR_WORKER_ADVANCING_TIME);
     }
@@ -395,7 +409,7 @@ void write_metadata_events() {
                     "\"ph\": \"M\", "      // mark as metadata.
                     "\"pid\": %d, "        // the "process" to label "User events".
                     "\"args\": {"
-                        "\"name\": \"User events in %s, shown in physical time:\"" 
+                        "\"name\": \"User events in %s, shown in physical time:\""
                     "}}\n",
                 PID_FOR_USER_EVENT, top_level);
 }
@@ -416,13 +430,22 @@ int main(int argc, char* argv[]) {
         usage();
         exit(0);
     }
-    open_files(filename, "json");
+
+    // Open the trace file.
+    trace_file = open_file(filename, "r");
+
+    // Construct the name of the csv output file and open it.
+    char* root = root_name(filename);
+    char json_filename[strlen(root) + 6];
+    strcpy(json_filename, root);
+    strcat(json_filename, ".json");
+    output_file = open_file(json_filename, "w");
 
     if (read_header(trace_file) >= 0) {
         // Write the opening bracket into the json file.
         fprintf(output_file, "{ \"traceEvents\": [\n");
-        while (read_and_write_trace() != 0) {};
-        write_metadata_events();
+        while (read_and_write_trace(trace_file, output_file) != 0) {};
+        write_metadata_events(output_file);
         fprintf(output_file, "]}\n");
    }
 }
