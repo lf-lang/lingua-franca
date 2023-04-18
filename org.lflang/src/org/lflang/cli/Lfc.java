@@ -121,11 +121,10 @@ public class Lfc extends CliBase {
     private String scheduler;
 
     @Option(
-        names = {"-t", "--threading"},
-        paramLabel = "<true/false>",
-        description = "Specify whether the runtime should use multi-threading"
-                    + " (true/false).")
-    private String threading;
+        names = "--single-threaded",
+        arity = "0",
+        description = "Specify whether the runtime should use single-threaded.")
+    private boolean singleThreaded;
 
     @Option(
         names = {"-w", "--workers"},
@@ -299,8 +298,8 @@ public class Lfc extends CliBase {
             props.setProperty(BuildParm.SCHEDULER.getKey(), scheduler);
         }
 
-        if (threading != null) {
-            props.setProperty(BuildParm.THREADING.getKey(), threading);
+        if (singleThreaded) {
+            props.setProperty(BuildParm.THREADING.getKey(), "false");
         }
 
         if (workers != null) {

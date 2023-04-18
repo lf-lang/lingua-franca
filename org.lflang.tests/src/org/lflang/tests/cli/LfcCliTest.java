@@ -80,7 +80,7 @@ public class LfcCliTest {
                 "rti": "path/to/rti",
                 "runtime-version": "rs",
                 "scheduler": "GEDF_NP",
-                "threading": false,
+                "single-threaded": true,
                 "workers": "1"
             }
         }
@@ -260,7 +260,7 @@ public class LfcCliTest {
             "--rti", "path/to/rti",
             "--runtime-version", "rs",
             "--scheduler", "GEDF_NP",
-            "--threading", "false",
+            "--single-threaded",
             "--workers", "1",
         };
         verifyGeneratorArgs(tempDir, args);
