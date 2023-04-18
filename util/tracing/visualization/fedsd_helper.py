@@ -44,7 +44,11 @@ prune_event_name = {
     "Receiving ADR_AD": "ADR_AD",
     "Receiving ADR_QR": "ADR_QR",
     "Receiving UNIDENTIFIED": "UNIDENTIFIED",
-    "Scheduler advancing time ends": "AdvLT"
+    "Scheduler advancing time ends": "AdvLT",
+    "Sending TAG_QR": "TAG_QR",
+    "Sending TAG_QR_RES": "TAG_QR_RES",
+    "Receiving TAG_QR": "TAG_QR",
+    "Receiving TAG_QR_RES": "TAG_QR_RES"
 }
 
 prune_event_name.setdefault(" ", "UNIDENTIFIED")
