@@ -6,23 +6,19 @@ lfc: error: Name of main reactor must match the file name (or be omitted).
   |              ^ Name of main reactor must match the file name (or be omitted).
   |
 5 |   state liss(2, 3);
-
-lfc: error: missing '{=' at '{'
+lfc: error: no viable alternative at input '{'
 --> %%%PATH.lf%%%:6:22
   |
 5 |   state liss(2, 3);
 6 |   reaction (startup) {
-  |                      ^ missing '{=' at '{'
+  |                      ^ no viable alternative at input '{'
   |
 7 |     print(self.liss)
-
-lfc: error: mismatched input '<EOF>' expecting '=}'
- --> %%%PATH.lf%%%:9:2
-   |
- 8 | }
-   | >>>>>>>>>>>>>>
- 9 | }
-10 | 
-   | < mismatched input '<EOF>' expecting '=}'
-11 | 
-
+lfc: error: no viable alternative at input '('
+--> %%%PATH.lf%%%:7:5
+  |
+6 |   reaction (startup) {
+7 |     print(self.liss)
+  |     ^^^^^ no viable alternative at input '('
+  |
+8 | }

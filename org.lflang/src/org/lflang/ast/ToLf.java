@@ -598,13 +598,12 @@ public class ToLf extends LfSwitch<MalleableString> {
 
   @Override
   public MalleableString caseReaction(Reaction object) {
-    // ('reaction')
-    // ('(' (triggers+=TriggerRef (',' triggers+=TriggerRef)*)? ')')?
+    // (attributes+=Attribute)*
+    // (('reaction') | mutation ?= 'mutation')
+    // ('(' (triggers+=TriggerRef (',' triggers+=TriggerRef)*)? ')')
     // (sources+=VarRef (',' sources+=VarRef)*)?
     // ('->' effects+=VarRefOrModeTransition (',' effects+=VarRefOrModeTransition)*)?
-    // code=Code
-    // (stp=STP)?
-    // (deadline=Deadline)?
+    // ((('named' name=ID)? code=Code) | 'named' name=ID)(stp=STP)?(deadline=Deadline)?
     Builder msb = new Builder();
     addAttributes(msb, object::getAttributes);
     if (object.isMutation()) {
@@ -633,7 +632,8 @@ public class ToLf extends LfSwitch<MalleableString> {
                               : doSwitch(varRef))
                   .collect(new Joiner(", ")));
     }
-    msb.append(" ").append(doSwitch(object.getCode()));
+    if (object.getName() != null) msb.append(" named ").append(object.getName());
+    if (object.getCode() != null) msb.append(" ").append(doSwitch(object.getCode()));
     if (object.getStp() != null) msb.append(" ").append(doSwitch(object.getStp()));
     if (object.getDeadline() != null) msb.append(" ").append(doSwitch(object.getDeadline()));
     return msb.get();

@@ -275,19 +275,20 @@ public class IsEqual extends LfSwitch<Boolean> {
         .conclusion;
   }
 
-  @Override
-  public Boolean caseReaction(Reaction object) {
-    return new ComparisonMachine<>(object, Reaction.class)
-        .listsEquivalent(Reaction::getAttributes)
-        .listsEquivalent(Reaction::getTriggers)
-        .listsEquivalent(Reaction::getSources)
-        .listsEquivalent(Reaction::getEffects)
-        .equalAsObjects(Reaction::isMutation)
-        .equivalent(Reaction::getCode)
-        .equivalent(Reaction::getStp)
-        .equivalent(Reaction::getDeadline)
-        .conclusion;
-  }
+    @Override
+    public Boolean caseReaction(Reaction object) {
+        return new ComparisonMachine<>(object, Reaction.class)
+            .listsEquivalent(Reaction::getAttributes)
+            .listsEquivalent(Reaction::getTriggers)
+            .listsEquivalent(Reaction::getSources)
+            .listsEquivalent(Reaction::getEffects)
+            .equalAsObjects(Reaction::isMutation)
+            .equalAsObjects(Reaction::getName)
+            .equivalent(Reaction::getCode)
+            .equivalent(Reaction::getStp)
+            .equivalent(Reaction::getDeadline)
+            .conclusion;
+    }
 
   @Override
   public Boolean caseTriggerRef(TriggerRef object) {

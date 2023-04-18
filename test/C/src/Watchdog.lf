@@ -1,21 +1,19 @@
 /**
- * Test watchdog.
- * This test starts a watchdog timer of 150ms every 100ms.
- * Half the time, it then sleeps after starting the watchdog so that
- * the watchdog expires.  There should be a total of five watchdog
- * expirations.
+ * Test watchdog. This test starts a watchdog timer of 150ms every 100ms. Half
+ * the time, it then sleeps after starting the watchdog so that the watchdog
+ * expires. There should be a total of five watchdog expirations.
  * @author Benjamin Asch
  * @author Edward A. Lee
  */
 target C {
-    timeout: 1100ms
+    timeout: 1100 ms
 }
 
-reactor Watcher(timeout:time(150ms)) {
-    timer t(100ms, 100ms)  // Offset ameliorates startup time.
-    output d: int          // Produced if the watchdog triggers.
-    state alternating:bool(false)
-    state count:int(0)
+reactor Watcher(timeout: time = 150 ms) {
+    timer t(100 ms, 100 ms)  // Offset ameliorates startup time.
+    output d: int            // Produced if the watchdog triggers.
+    state alternating: bool = false
+    state count: int = 0
 
     watchdog poodle(timeout) {=
         instant_t p = lf_time_physical_elapsed() - lf_time_logical_elapsed();
@@ -32,12 +30,12 @@ reactor Watcher(timeout:time(150ms)) {
         }
         self->alternating = !self->alternating;
     =}
-    
+
     reaction(poodle) -> d {=
         lf_print("Reaction poodle was called.");
         lf_set(d, 1);
     =}
-    
+
     reaction(shutdown) -> poodle {=
         // FIXME: There needs to be an lf_watchdog_stop() defined.
         _lf_watchdog_stop(poodle);
@@ -49,14 +47,15 @@ reactor Watcher(timeout:time(150ms)) {
 
 main reactor {
     logical action a
-    state count:int(0)
-    
+    state count: int = 0
+
     w = new Watcher()
 
     reaction(w.d) {=
         lf_print("*** Watcher reactor produced an output.");
         self->count++;
     =}
+
     reaction(shutdown) {=
         if (self->count != 5) {
             lf_print_error_and_exit("Watchdog produced output %d times. Expected 5.", self->count);

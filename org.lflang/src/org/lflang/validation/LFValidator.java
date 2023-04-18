@@ -196,6 +196,7 @@ public class LFValidator extends BaseLFValidator {
   @Check(CheckType.FAST)
   public void checkAssignment(Assignment assignment) {
 
+<<<<<<< HEAD
     // If the left-hand side is a time parameter, make sure the assignment has units
     typeCheck(
         assignment.getRhs(),
@@ -209,6 +210,171 @@ public class LFValidator extends BaseLFValidator {
               + TimeValue.MAX_LONG_DEADLINE
               + " nanoseconds.",
           Literals.ASSIGNMENT__RHS);
+=======
+        // Report if connection is part of a cycle.
+        Set<NamedInstance<?>> cycles = this.info.topologyCycles();
+        for (VarRef lp : connection.getLeftPorts()) {
+            for (VarRef rp : connection.getRightPorts()) {
+                boolean leftInCycle = false;
+
+                for (NamedInstance<?> it : cycles) {
+                    if ((lp.getContainer() == null && it.getDefinition().equals(lp.getVariable()))
+                        || (it.getDefinition().equals(lp.getVariable()) && it.getParent().equals(lp.getContainer()))) {
+                        leftInCycle = true;
+                        break;
+                    }
+                }
+
+                for (NamedInstance<?> it : cycles) {
+                    if ((rp.getContainer() == null && it.getDefinition().equals(rp.getVariable()))
+                        || (it.getDefinition().equals(rp.getVariable()) && it.getParent().equals(rp.getContainer()))) {
+                        if (leftInCycle) {
+                            Reactor reactor = ASTUtils.getEnclosingReactor(connection);
+                            String reactorName = reactor.getName();
+                            error(String.format("Connection in reactor %s creates", reactorName) +
+                                  String.format("a cyclic dependency between %s and %s.", toOriginalText(lp), toOriginalText(rp)),
+                                  Literals.CONNECTION__DELAY);
+                        }
+                    }
+                }
+            }
+        }
+
+        // FIXME: look up all ReactorInstance objects that have a definition equal to the
+        // container of this connection. For each of those occurrences, the widths have to match.
+        // For the C target, since C has such a weak type system, check that
+        // the types on both sides of every connection match. For other languages,
+        // we leave type compatibility that language's compiler or interpreter.
+        if (isCBasedTarget()) {
+            Type type = (Type) null;
+            for (VarRef port : connection.getLeftPorts()) {
+                // If the variable is not a port, then there is some other
+                // error. Avoid a class cast exception.
+                if (port.getVariable() instanceof Port) {
+                    if (type == null) {
+                        type = ((Port) port.getVariable()).getType();
+                    } else {
+                        // Unfortunately, xtext does not generate a suitable equals()
+                        // method for AST types, so we have to manually check the types.
+                        if (!sameType(type, ((Port) port.getVariable()).getType())) {
+                            error("Types do not match.", Literals.CONNECTION__LEFT_PORTS);
+                        }
+                    }
+                }
+            }
+            for (VarRef port : connection.getRightPorts()) {
+                // If the variable is not a port, then there is some other
+                // error. Avoid a class cast exception.
+                if (port.getVariable() instanceof Port) {
+                    if (type == null) {
+                        type = ((Port) port.getVariable()).getType();
+                    } else {
+                        if (!sameType(type, type = ((Port) port.getVariable()).getType())) {
+                            error("Types do not match.", Literals.CONNECTION__RIGHT_PORTS);
+                        }
+                    }
+                }
+            }
+        }
+
+        // Check whether the total width of the left side of the connection
+        // matches the total width of the right side. This cannot be determined
+        // here if the width is not given as a constant. In that case, it is up
+        // to the code generator to check it.
+        int leftWidth = 0;
+        for (VarRef port : connection.getLeftPorts()) {
+            int width = inferPortWidth(port, null, null); // null args imply incomplete check.
+            if (width < 0 || leftWidth < 0) {
+                // Cannot determine the width of the left ports.
+                leftWidth = -1;
+            } else {
+                leftWidth += width;
+            }
+        }
+        int rightWidth = 0;
+        for (VarRef port : connection.getRightPorts()) {
+            int width = inferPortWidth(port, null, null); // null args imply incomplete check.
+            if (width < 0 || rightWidth < 0) {
+                // Cannot determine the width of the left ports.
+                rightWidth = -1;
+            } else {
+                rightWidth += width;
+            }
+        }
+
+        if (leftWidth != -1 && rightWidth != -1 && leftWidth != rightWidth) {
+            if (connection.isIterated()) {
+                if (leftWidth == 0 || rightWidth % leftWidth != 0) {
+                    // FIXME: The second argument should be Literals.CONNECTION, but
+                    // stupidly, xtext will not accept that. There seems to be no way to
+                    // report an error for the whole connection statement.
+                    warning(String.format("Left width %s does not divide right width %s", leftWidth, rightWidth),
+                            Literals.CONNECTION__LEFT_PORTS
+                    );
+                }
+            } else {
+                // FIXME: The second argument should be Literals.CONNECTION, but
+                // stupidly, xtext will not accept that. There seems to be no way to
+                // report an error for the whole connection statement.
+                warning(String.format("Left width %s does not match right width %s", leftWidth, rightWidth),
+                        Literals.CONNECTION__LEFT_PORTS
+                );
+            }
+        }
+
+        Reactor reactor = ASTUtils.getEnclosingReactor(connection);
+
+        // Make sure the right port is not already an effect of a reaction.
+        for (Reaction reaction : ASTUtils.allReactions(reactor)) {
+            for (VarRef effect : reaction.getEffects()) {
+                for (VarRef rightPort : connection.getRightPorts()) {
+                    if (rightPort.getVariable().equals(effect.getVariable()) && // Refers to the same variable
+                        rightPort.getContainer() == effect.getContainer() && // Refers to the same instance
+                        (   reaction.eContainer() instanceof Reactor || // Either is not part of a mode
+                            connection.eContainer() instanceof Reactor ||
+                            connection.eContainer() == reaction.eContainer() // Or they are in the same mode
+                        )) {
+                        error("Cannot connect: Port named '" + effect.getVariable().getName() +
+                            "' is already effect of a reaction.",
+                            Literals.CONNECTION__RIGHT_PORTS);
+                    }
+                }
+            }
+        }
+
+        // Check that the right port does not already have some other
+        // upstream connection.
+        for (Connection c : reactor.getConnections()) {
+            if (c != connection) {
+                for (VarRef thisRightPort : connection.getRightPorts()) {
+                    for (VarRef thatRightPort : c.getRightPorts()) {
+                        if (thisRightPort.getVariable().equals(thatRightPort.getVariable()) && // Refers to the same variable
+                            thisRightPort.getContainer() == thatRightPort.getContainer() && // Refers to the same instance
+                            (   connection.eContainer() instanceof Reactor || // Or either of the connections in not part of a mode
+                                c.eContainer() instanceof Reactor ||
+                                connection.eContainer() == c.eContainer() // Or they are in the same mode
+                            )) {
+                            error(
+                                "Cannot connect: Port named '" + thisRightPort.getVariable().getName() +
+                                    "' may only appear once on the right side of a connection.",
+                                Literals.CONNECTION__RIGHT_PORTS);
+                        }
+                    }
+                }
+            }
+        }
+
+        // Check the after delay
+        if (connection.getDelay() != null) {
+            final var delay = connection.getDelay();
+            if (delay instanceof ParameterReference || delay instanceof Time || delay instanceof Literal) {
+                checkExpressionIsTime(delay, Literals.CONNECTION__DELAY);
+            } else {
+                error("After delays can only be given by time literals or parameters.",
+                      Literals.CONNECTION__DELAY);
+            }
+        }
+>>>>>>> origin
     }
   }
 
@@ -221,6 +387,348 @@ public class LFValidator extends BaseLFValidator {
       for (VarRef rp : connection.getRightPorts()) {
         boolean leftInCycle = false;
 
+<<<<<<< HEAD
+=======
+   @Check
+    public void checkImport(Import imp) {
+        if (toDefinition(imp.getReactorClasses().get(0)).eResource().getErrors().size() > 0) {
+            error("Error loading resource.", Literals.IMPORT__IMPORT_URI); // FIXME: print specifics.
+            return;
+        }
+
+        // FIXME: report error if resource cannot be resolved.
+        for (ImportedReactor reactor : imp.getReactorClasses()) {
+            if (!isUnused(reactor)) {
+                return;
+            }
+        }
+        warning("Unused import.", Literals.IMPORT__IMPORT_URI);
+    }
+
+    @Check
+    public void checkImportedReactor(ImportedReactor reactor) {
+        if (isUnused(reactor)) {
+            warning("Unused reactor class.",
+                Literals.IMPORTED_REACTOR__REACTOR_CLASS);
+        }
+
+        if (info.instantiationGraph.hasCycles()) {
+            Set<Reactor> cycleSet = new HashSet<>();
+            for (Set<Reactor> cycle : info.instantiationGraph.getCycles()) {
+                cycleSet.addAll(cycle);
+            }
+            if (dependsOnCycle(toDefinition(reactor), cycleSet, new HashSet<>())) {
+                error("Imported reactor '" + toDefinition(reactor).getName() +
+                      "' has cyclic instantiation in it.", Literals.IMPORTED_REACTOR__REACTOR_CLASS);
+            }
+        }
+    }
+
+    @Check(CheckType.FAST)
+    public void checkInput(Input input) {
+        Reactor parent = (Reactor)input.eContainer();
+        if (parent.isMain() || parent.isFederated()) {
+            error("Main reactor cannot have inputs.", Literals.VARIABLE__NAME);
+        }
+        checkName(input.getName(), Literals.VARIABLE__NAME);
+        if (target.requiresTypes) {
+            if (input.getType() == null) {
+                error("Input must have a type.", Literals.TYPED_VARIABLE__TYPE);
+            }
+        }
+
+        // mutable has no meaning in C++
+        if (input.isMutable() && this.target == Target.CPP) {
+            warning(
+                "The mutable qualifier has no meaning for the C++ target and should be removed. " +
+                "In C++, any value can be made mutable by calling get_mutable_copy().",
+                Literals.INPUT__MUTABLE
+            );
+        }
+
+        // Variable width multiports are not supported (yet?).
+        if (input.getWidthSpec() != null && input.getWidthSpec().isOfVariableLength()) {
+            error("Variable-width multiports are not supported.", Literals.PORT__WIDTH_SPEC);
+        }
+    }
+
+    @Check(CheckType.FAST)
+    public void checkInstantiation(Instantiation instantiation) {
+        checkName(instantiation.getName(), Literals.INSTANTIATION__NAME);
+        Reactor reactor = toDefinition(instantiation.getReactorClass());
+        if (reactor.isMain() || reactor.isFederated()) {
+            error(
+                "Cannot instantiate a main (or federated) reactor: " +
+                    instantiation.getReactorClass().getName(),
+                Literals.INSTANTIATION__REACTOR_CLASS
+            );
+        }
+
+        // Report error if this instantiation is part of a cycle.
+        // FIXME: improve error message.
+        // FIXME: Also report if there exists a cycle within.
+        if (this.info.instantiationGraph.getCycles().size() > 0) {
+            for (Set<Reactor> cycle : this.info.instantiationGraph.getCycles()) {
+                Reactor container = (Reactor) instantiation.eContainer();
+                if (cycle.contains(container) && cycle.contains(reactor)) {
+                    List<String> names = new ArrayList<>();
+                    for (Reactor r : cycle) {
+                        names.add(r.getName());
+                    }
+
+                    error(
+                        "Instantiation is part of a cycle: " + String.join(", ", names) + ".",
+                        Literals.INSTANTIATION__REACTOR_CLASS
+                    );
+                }
+            }
+        }
+        // Variable width multiports are not supported (yet?).
+        if (instantiation.getWidthSpec() != null
+                && instantiation.getWidthSpec().isOfVariableLength()
+        ) {
+            if (isCBasedTarget()) {
+                warning("Variable-width banks are for internal use only.",
+                    Literals.INSTANTIATION__WIDTH_SPEC
+                );
+            } else {
+                error("Variable-width banks are not supported.",
+                    Literals.INSTANTIATION__WIDTH_SPEC
+                );
+            }
+        }
+    }
+
+    /** Check target parameters, which are key-value pairs. */
+    @Check(CheckType.FAST)
+    public void checkKeyValuePair(KeyValuePair param) {
+        // Check only if the container's container is a Target.
+        if (param.eContainer().eContainer() instanceof TargetDecl) {
+            TargetProperty prop = TargetProperty.forName(param.getName());
+
+            // Make sure the key is valid.
+            if (prop == null) {
+                String options = TargetProperty.getOptions().stream()
+                                               .map(p -> p.description).sorted()
+                                               .collect(Collectors.joining(", "));
+                warning(
+                    "Unrecognized target parameter: " + param.getName() +
+                        ". Recognized parameters are: " + options,
+                    Literals.KEY_VALUE_PAIR__NAME);
+            } else {
+                // Check whether the property is supported by the target.
+                if (!prop.supportedBy.contains(this.target)) {
+                    warning(
+                        "The target parameter: " + param.getName() +
+                            " is not supported by the " + this.target +
+                            " target and will thus be ignored.",
+                        Literals.KEY_VALUE_PAIR__NAME);
+                }
+
+                // Report problem with the assigned value.
+                prop.type.check(param.getValue(), param.getName(), this);
+            }
+
+            for (String it : targetPropertyErrors) {
+                error(it, Literals.KEY_VALUE_PAIR__VALUE);
+            }
+            targetPropertyErrors.clear();
+
+            for (String it : targetPropertyWarnings) {
+                error(it, Literals.KEY_VALUE_PAIR__VALUE);
+            }
+            targetPropertyWarnings.clear();
+        }
+    }
+
+    @Check(CheckType.FAST)
+    public void checkModel(Model model) {
+        // Since we're doing a fast check, we only want to update
+        // if the model info hasn't been initialized yet. If it has,
+        // we use the old information and update it during a normal
+        // check (see below).
+        if (!info.updated) {
+            info.update(model, errorReporter);
+        }
+    }
+
+    @Check(CheckType.NORMAL)
+    public void updateModelInfo(Model model) {
+        info.update(model, errorReporter);
+    }
+
+    @Check(CheckType.FAST)
+    public void checkOutput(Output output) {
+        Reactor parent = (Reactor)output.eContainer();
+        if (parent.isMain() || parent.isFederated()) {
+            error("Main reactor cannot have outputs.", Literals.VARIABLE__NAME);
+        }
+        checkName(output.getName(), Literals.VARIABLE__NAME);
+        if (this.target.requiresTypes) {
+            if (output.getType() == null) {
+                error("Output must have a type.", Literals.TYPED_VARIABLE__TYPE);
+            }
+        }
+
+        // Variable width multiports are not supported (yet?).
+        if (output.getWidthSpec() != null && output.getWidthSpec().isOfVariableLength()) {
+            error("Variable-width multiports are not supported.", Literals.PORT__WIDTH_SPEC);
+        }
+    }
+
+    @Check(CheckType.FAST)
+    public void checkParameter(Parameter param) {
+        checkName(param.getName(), Literals.PARAMETER__NAME);
+
+        if (param.getInit() == null) {
+            // todo make initialization non-mandatory
+            //  https://github.com/lf-lang/lingua-franca/issues/623
+            error("Parameter must have a default value.", Literals.PARAMETER__INIT);
+            return;
+        }
+
+        if (this.target.requiresTypes) {
+            // Report missing target type. param.inferredType.undefine
+            if (ASTUtils.getInferredType(param).isUndefined()) {
+                error("Type declaration missing.", Literals.PARAMETER__TYPE);
+            }
+        }
+
+        if (param.getType() != null) {
+            typeCheck(param.getInit(), ASTUtils.getInferredType(param), Literals.PARAMETER__INIT);
+        }
+
+        if (param.getInit() != null) {
+            for (Expression expr : param.getInit().getExprs()) {
+                if (expr instanceof ParameterReference) {
+                    // Initialization using parameters is forbidden.
+                    error("Parameter cannot be initialized using parameter.",
+                        Literals.PARAMETER__INIT);
+                }
+            }
+        }
+
+        if (this.target == Target.CPP) {
+            EObject container = param.eContainer();
+            Reactor reactor = (Reactor) container;
+            if (reactor.isMain()) {
+                // we need to check for the cli parameters that are always taken
+                List<String> cliParams = List.of("t", "threads", "o", "timeout", "f", "fast", "help");
+                if (cliParams.contains(param.getName())) {
+                    error("Parameter '" + param.getName()
+                            + "' is already in use as command line argument by Lingua Franca,",
+                        Literals.PARAMETER__NAME);
+                }
+            }
+        }
+
+        if (isCBasedTarget() &&
+            this.info.overflowingParameters.contains(param)) {
+            error(
+                "Time value used to specify a deadline exceeds the maximum of " +
+                    TimeValue.MAX_LONG_DEADLINE + " nanoseconds.",
+                Literals.PARAMETER__INIT);
+        }
+
+    }
+
+    @Check(CheckType.FAST)
+    public void checkPreamble(Preamble preamble) {
+        if (this.target == Target.CPP) {
+            if (preamble.getVisibility() == Visibility.NONE) {
+                error(
+                    "Preambles for the C++ target need a visibility qualifier (private or public)!",
+                    Literals.PREAMBLE__VISIBILITY
+                );
+            } else if (preamble.getVisibility() == Visibility.PRIVATE) {
+                EObject container = preamble.eContainer();
+                if (container != null && container instanceof Reactor) {
+                    Reactor reactor = (Reactor) container;
+                    if (isGeneric(reactor)) {
+                        warning(
+                            "Private preambles in generic reactors are not truly private. " +
+                                "Since the generated code is placed in a *_impl.hh file, it will " +
+                                "be visible on the public interface. Consider using a public " +
+                                "preamble within the reactor or a private preamble on file scope.",
+                            Literals.PREAMBLE__VISIBILITY);
+                    }
+                }
+            }
+        } else if (preamble.getVisibility() != Visibility.NONE) {
+            warning(
+                String.format("The %s qualifier has no meaning for the %s target. It should be removed.",
+                              preamble.getVisibility(), this.target.name()),
+                Literals.PREAMBLE__VISIBILITY
+            );
+        }
+    }
+
+    @Check(CheckType.FAST)
+    public void checkReaction(Reaction reaction) {
+
+        if (reaction.getTriggers() == null || reaction.getTriggers().size() == 0) {
+            warning("Reaction has no trigger.", Literals.REACTION__TRIGGERS);
+        }
+        HashSet<Variable> triggers = new HashSet<>();
+        // Make sure input triggers have no container and output sources do.
+        for (TriggerRef trigger : reaction.getTriggers()) {
+            if (trigger instanceof VarRef) {
+                VarRef triggerVarRef = (VarRef) trigger;
+                triggers.add(triggerVarRef.getVariable());
+                if (triggerVarRef instanceof Input) {
+                    if (triggerVarRef.getContainer() != null) {
+                        error(String.format("Cannot have an input of a contained reactor as a trigger: %s.%s", triggerVarRef.getContainer().getName(), triggerVarRef.getVariable().getName()),
+                        Literals.REACTION__TRIGGERS);
+                    }
+                } else if (triggerVarRef.getVariable() instanceof Output) {
+                    if (triggerVarRef.getContainer() == null) {
+                        error(String.format("Cannot have an output of this reactor as a trigger: %s", triggerVarRef.getVariable().getName()),
+                            Literals.REACTION__TRIGGERS);
+                    }
+                }
+            }
+        }
+
+        // Make sure input sources have no container and output sources do.
+        // Also check that a source is not already listed as a trigger.
+        for (VarRef source : reaction.getSources()) {
+            if (triggers.contains(source.getVariable())) {
+                error(String.format("Source is already listed as a trigger: %s", source.getVariable().getName()),
+                    Literals.REACTION__SOURCES);
+            }
+            if (source.getVariable() instanceof Input) {
+                if (source.getContainer() != null) {
+                    error(String.format("Cannot have an input of a contained reactor as a source: %s.%s", source.getContainer().getName(), source.getVariable().getName()),
+                        Literals.REACTION__SOURCES);
+                }
+            } else if (source.getVariable() instanceof Output) {
+                if (source.getContainer() == null) {
+                    error(String.format("Cannot have an output of this reactor as a source: %s", source.getVariable().getName()),
+                        Literals.REACTION__SOURCES);
+                }
+            }
+        }
+
+        // Make sure output effects have no container and input effects do.
+        for (VarRef effect : reaction.getEffects()) {
+            if (effect.getVariable() instanceof Input) {
+                if (effect.getContainer() == null) {
+                    error(String.format("Cannot have an input of this reactor as an effect: %s", effect.getVariable().getName()),
+                        Literals.REACTION__EFFECTS);
+                }
+            } else if (effect.getVariable() instanceof Output) {
+                if (effect.getContainer() != null) {
+                    error(String.format("Cannot have an output of a contained reactor as an effect: %s.%s", effect.getContainer().getName(), effect.getVariable().getName()),
+                        Literals.REACTION__EFFECTS);
+                }
+            }
+        }
+
+        // // Report error if this reaction is part of a cycle.
+        Set<NamedInstance<?>> cycles = this.info.topologyCycles();
+        Reactor reactor = ASTUtils.getEnclosingReactor(reaction);
+        boolean reactionInCycle = false;
+>>>>>>> origin
         for (NamedInstance<?> it : cycles) {
           if ((lp.getContainer() == null && it.getDefinition().equals(lp.getVariable()))
               || (it.getDefinition().equals(lp.getVariable())
@@ -927,12 +1435,33 @@ public class LFValidator extends BaseLFValidator {
       }
     }
 
+<<<<<<< HEAD
     // Check for illegal names.
     checkName(reactor.getName(), Literals.REACTOR_DECL__NAME);
 
     // C++ reactors may not be called 'preamble'
     if (this.target == Target.CPP && reactor.getName().equalsIgnoreCase("preamble")) {
       error("Reactor cannot be named '" + reactor.getName() + "'", Literals.REACTOR_DECL__NAME);
+=======
+    /**
+     * Check if the requested serialization is supported.
+     */
+    @Check(CheckType.FAST)
+    public void checkSerializer(Serializer serializer) {
+        boolean isValidSerializer = false;
+        for (SupportedSerializers method : SupportedSerializers.values()) {
+          if (method.name().equalsIgnoreCase(serializer.getType())){
+              isValidSerializer = true;
+          }
+        }
+
+        if (!isValidSerializer) {
+            error(
+                "Serializer can be " + Arrays.asList(SupportedSerializers.values()),
+                Literals.SERIALIZER__TYPE
+            );
+        }
+>>>>>>> origin
     }
 
     if (reactor.getHost() != null) {
@@ -1248,6 +1777,7 @@ public class LFValidator extends BaseLFValidator {
     spec.check(this, attr);
   }
 
+<<<<<<< HEAD
   @Check(CheckType.FAST)
   public void checkWidthSpec(WidthSpec widthSpec) {
     if (!this.target.supportsMultiports()) {
@@ -1272,6 +1802,75 @@ public class LFValidator extends BaseLFValidator {
           }
         } else if (term.getWidth() < 0) {
           error("Width must be a positive integer.", Literals.WIDTH_SPEC__TERMS);
+=======
+    /**
+     * Check whether an attribute is supported
+     * and the validity of the attribute.
+     *
+     * @param attr The attribute being checked
+     */
+    @Check(CheckType.FAST)
+    public void checkAttributes(Attribute attr) {
+        String name = attr.getAttrName().toString();
+        AttributeSpec spec = AttributeSpec.ATTRIBUTE_SPECS_BY_NAME.get(name);
+        if (spec == null) {
+            error("Unknown attribute.", Literals.ATTRIBUTE__ATTR_NAME);
+            return;
+        }
+        // Check the validity of the attribute.
+        spec.check(this, attr);
+    }
+
+    @Check(CheckType.FAST)
+    public void checkWidthSpec(WidthSpec widthSpec) {
+        if (!this.target.supportsMultiports()) {
+            error("Multiports and banks are currently not supported by the given target.",
+                Literals.WIDTH_SPEC__TERMS);
+        } else {
+            for (WidthTerm term : widthSpec.getTerms()) {
+                if (term.getParameter() != null) {
+                    if (!this.target.supportsParameterizedWidths()) {
+                        error("Parameterized widths are not supported by this target.", Literals.WIDTH_SPEC__TERMS);
+                    }
+                } else if (term.getPort() != null) {
+                    // Widths given with `widthof()` are not supported (yet?).
+                    // This feature is currently only used for after delays.
+                    error("widthof is not supported.", Literals.WIDTH_SPEC__TERMS);
+                } else if (term.getCode() != null) {
+                     if (this.target != Target.CPP) {
+                        error("This target does not support width given as code.", Literals.WIDTH_SPEC__TERMS);
+                    }
+                } else if (term.getWidth() < 0) {
+                    error("Width must be a positive integer.", Literals.WIDTH_SPEC__TERMS);
+                }
+            }
+        }
+    }
+
+    @Check(CheckType.FAST)
+    public void checkReactorIconAttribute(Reactor reactor) {
+        var path = AttributeUtils.getIconPath(reactor);
+        if (path != null) {
+            var param = AttributeUtils.findAttributeByName(reactor, "icon").getAttrParms().get(0);
+            // Check file extension
+            var validExtensions = Set.of("bmp", "png", "gif", "ico", "jpeg");
+            var extensionStrart = path.lastIndexOf(".");
+            var extension = extensionStrart != -1 ? path.substring(extensionStrart + 1) : "";
+            if (!validExtensions.contains(extension.toLowerCase())) {
+                warning("File extension '" + extension + "' is not supported. Provide any of: " + String.join(", ", validExtensions),
+                        param, Literals.ATTR_PARM__VALUE);
+                return;
+            }
+
+            // Check file location
+            var iconLocation = FileUtil.locateFile(path, reactor.eResource());
+            if (iconLocation == null) {
+                warning("Cannot locate icon file.", param, Literals.ATTR_PARM__VALUE);
+            }
+            if (("file".equals(iconLocation.getScheme()) || iconLocation.getScheme() == null) && !(new File(iconLocation.getPath()).exists())) {
+                warning("Icon does not exist.", param, Literals.ATTR_PARM__VALUE);
+            }
+>>>>>>> origin
         }
       }
     }
@@ -1666,6 +2265,7 @@ public class LFValidator extends BaseLFValidator {
       error(RESERVED_MESSAGE + name, feature);
     }
 
+<<<<<<< HEAD
     if (this.target == Target.TS) {
       // "actions" is a reserved word within a TS reaction
       if (name.equals("actions")) {
@@ -1681,6 +2281,79 @@ public class LFValidator extends BaseLFValidator {
   public void typeCheck(Initializer init, InferredType type, EStructuralFeature feature) {
     if (init == null) {
       return;
+=======
+    @Check(CheckType.FAST)
+    public void checkMissingStateResetInMode(Reactor reactor) {
+        if (!reactor.getModes().isEmpty()) {
+            var resetModes = new HashSet<Mode>();
+            // Collect all modes that may be reset
+            for (var m : reactor.getModes()) {
+                for (var r : m.getReactions()) {
+                    for (var e : r.getEffects()) {
+                        if (e.getVariable() instanceof Mode && e.getTransition() != ModeTransition.HISTORY) {
+                            resetModes.add((Mode) e.getVariable());
+                        }
+                    }
+                }
+            }
+            for (var m : resetModes) {
+                // Check state variables in this mode
+                if (!m.getStateVars().isEmpty()) {
+                    var hasResetReaction = m.getReactions().stream().anyMatch(
+                            r -> r.getTriggers().stream().anyMatch(
+                                    t -> (t instanceof BuiltinTriggerRef &&
+                                         ((BuiltinTriggerRef) t).getType() == BuiltinTrigger.RESET)));
+                    if (!hasResetReaction) {
+                        for (var s : m.getStateVars()) {
+                            if (!s.isReset()) {
+                                error("State variable is not reset upon mode entry. It is neither marked for automatic reset nor is there a reset reaction.",
+                                        m, Literals.MODE__STATE_VARS, m.getStateVars().indexOf(s));
+                            }
+                        }
+                    }
+                }
+                // Check state variables in instantiated reactors
+                if (!m.getInstantiations().isEmpty()) {
+                    for (var i : m.getInstantiations()) {
+                        var error = new LinkedHashSet<StateVar>();
+                        var checked = new HashSet<Reactor>();
+                        var toCheck = new LinkedList<Reactor>();
+                        toCheck.add((Reactor) i.getReactorClass());
+                        while (!toCheck.isEmpty()) {
+                            var check = toCheck.pop();
+                            checked.add(check);
+                            if (!check.getStateVars().isEmpty()) {
+                                var hasResetReaction = check.getReactions().stream().anyMatch(
+                                        r -> r.getTriggers().stream().anyMatch(
+                                                t -> (t instanceof BuiltinTriggerRef &&
+                                                     ((BuiltinTriggerRef) t).getType() == BuiltinTrigger.RESET)));
+                                if (!hasResetReaction) {
+                                    // Add state vars that are not self-resetting to the error
+                                    check.getStateVars().stream().filter(s -> !s.isReset()).forEachOrdered(error::add);
+                                }
+                            }
+                            // continue with inner
+                            for (var innerInstance : check.getInstantiations()) {
+                                var next = (Reactor) innerInstance.getReactorClass();
+                                if (!checked.contains(next)) {
+                                    toCheck.push(next);
+                                }
+                            }
+                        }
+                        if (!error.isEmpty()) {
+                            error("This reactor contains state variables that are not reset upon mode entry: "
+                                    + error.stream().map(e -> e.getName() + " in "
+                                            + ASTUtils.getEnclosingReactor(e).getName()).collect(Collectors.joining(", "))
+                                    + ".\nThe state variables are neither marked for automatic reset nor have a dedicated reset reaction. "
+                                    + "It is unsafe to instantiate this reactor inside a mode entered with reset.",
+                                    m, Literals.MODE__INSTANTIATIONS,
+                                    m.getInstantiations().indexOf(i));
+                        }
+                    }
+                }
+            }
+        }
+>>>>>>> origin
     }
 
     // TODO:
@@ -1713,6 +2386,7 @@ public class LFValidator extends BaseLFValidator {
       return;
     }
 
+<<<<<<< HEAD
     if (init.getExprs().size() != 1) {
       error("Expected exactly one time value.", feature);
     } else {
@@ -1723,6 +2397,58 @@ public class LFValidator extends BaseLFValidator {
   private void checkExpressionIsTime(Expression value, EStructuralFeature feature) {
     if (value == null || value instanceof Time) {
       return;
+=======
+    @Check(CheckType.FAST)
+    public void checkUnspecifiedTransitionType(Reaction reaction) {
+        for (var effect : reaction.getEffects()) {
+            var variable = effect.getVariable();
+            if (variable instanceof Mode) {
+                // The transition type is always set to default by Xtext.
+                // Hence, check if there is an explicit node for the transition type in the AST.
+                var transitionAssignment = NodeModelUtils.findNodesForFeature((EObject) effect, Literals.VAR_REF__TRANSITION);
+                if (transitionAssignment.isEmpty()) { // Transition type not explicitly specified.
+                    var mode = (Mode) variable;
+                    // Check if reset or history transition would make a difference.
+                    var makesDifference = !mode.getStateVars().isEmpty()
+                            || !mode.getTimers().isEmpty()
+                            || !mode.getActions().isEmpty()
+                            || mode.getConnections().stream().anyMatch(c -> c.getDelay() != null);
+                    if (!makesDifference && !mode.getInstantiations().isEmpty()) {
+                        // Also check instantiated reactors
+                        for (var i : mode.getInstantiations()) {
+                            var checked = new HashSet<Reactor>();
+                            var toCheck = new LinkedList<Reactor>();
+                            toCheck.add((Reactor) i.getReactorClass());
+                            while (!toCheck.isEmpty() && !makesDifference) {
+                                var check = toCheck.pop();
+                                checked.add(check);
+
+                                makesDifference |= !check.getModes().isEmpty()
+                                        || !ASTUtils.allStateVars(check).isEmpty()
+                                        || !ASTUtils.allTimers(check).isEmpty()
+                                        || !ASTUtils.allActions(check).isEmpty()
+                                        || ASTUtils.allConnections(check).stream().anyMatch(c -> c.getDelay() != null);
+
+                                // continue with inner
+                                for (var innerInstance : check.getInstantiations()) {
+                                    var next = (Reactor) innerInstance.getReactorClass();
+                                    if (!checked.contains(next)) {
+                                        toCheck.push(next);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    if (makesDifference) {
+                        warning("You should specify a transition type! "
+                                + "Reset and history transitions have different effects on this target mode. "
+                                + "Currently, a reset type is implicitly assumed.",
+                                reaction, Literals.REACTION__EFFECTS, reaction.getEffects().indexOf(effect));
+                    }
+                }
+            }
+        }
+>>>>>>> origin
     }
 
     if (value instanceof ParameterReference) {
@@ -1953,5 +2679,223 @@ public class LFValidator extends BaseLFValidator {
       "Names of objects (inputs, outputs, actions, timers, parameters, "
           + "state, reactor definitions, and reactor instantiation) may not start with \"__\": ";
 
+<<<<<<< HEAD
   private static String USERNAME_REGEX = "^[a-z_]([a-z0-9_-]{0,31}|[a-z0-9_-]{0,30}\\$)$";
+=======
+            if (ASTUtils.isInteger(((Literal) value).getLiteral())) {
+                error("Missing time unit.", feature);
+                return;
+            }
+            // fallthrough
+        }
+
+        error("Invalid time value.", feature);
+    }
+
+    /**
+     * Return the number of main or federated reactors declared.
+     *
+     * @param iter An iterator over all objects in the resource.
+     */
+    private int countMainOrFederated(TreeIterator<EObject> iter) {
+        int nMain = 0;
+        while (iter.hasNext()) {
+            EObject obj = iter.next();
+            if (!(obj instanceof Reactor)) {
+                continue;
+            }
+            Reactor r = (Reactor) obj;
+            if (r.isMain() || r.isFederated()) {
+                nMain++;
+            }
+        }
+        return nMain;
+    }
+
+    /**
+     * Report whether a given reactor has dependencies on a cyclic
+     * instantiation pattern. This means the reactor has an instantiation
+     * in it -- directly or in one of its contained reactors -- that is
+     * self-referential.
+     * @param reactor The reactor definition to find out whether it has any
+     * dependencies on cyclic instantiations.
+     * @param cycleSet The set of all reactors that are part of an
+     * instantiation cycle.
+     * @param visited The set of nodes already visited in this graph traversal.
+     */
+    private boolean dependsOnCycle(
+            Reactor reactor, Set<Reactor> cycleSet, Set<Reactor> visited
+    ) {
+        Set<Reactor> origins = info.instantiationGraph.getUpstreamAdjacentNodes(reactor);
+        if (visited.contains(reactor)) {
+            return false;
+        } else {
+            visited.add(reactor);
+            for (Reactor it : origins) {
+                if (cycleSet.contains(it) || dependsOnCycle(it, cycleSet, visited)) {
+                    // Reached a cycle.
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Report whether the name of the given element matches any variable in
+     * the ones to check against.
+     * @param element The element to compare against all variables in the given iterable.
+     * @param toCheckAgainst Iterable variables to compare the given element against.
+     */
+    private boolean hasNameConflict(Variable element,
+        Iterable<Variable> toCheckAgainst) {
+        int numNameConflicts = 0;
+        for (Variable it : toCheckAgainst) {
+            if (it.getName().equals(element.getName())) {
+                numNameConflicts++;
+            }
+        }
+        return numNameConflicts > 0;
+    }
+
+    /**
+     * Return true if target is C or a C-based target like CCpp.
+     */
+    private boolean isCBasedTarget() {
+        return (this.target == Target.C || this.target == Target.CCPP);
+    }
+
+    /**
+     * Report whether a given imported reactor is used in this resource or not.
+     * @param reactor The imported reactor to check whether it is used.
+     */
+    private boolean isUnused(ImportedReactor reactor) {
+        TreeIterator<EObject> instantiations = reactor.eResource().getAllContents();
+        TreeIterator<EObject> subclasses = reactor.eResource().getAllContents();
+
+        boolean instantiationsCheck = true;
+        while (instantiations.hasNext() && instantiationsCheck) {
+            EObject obj = instantiations.next();
+            if (!(obj instanceof Instantiation)) {
+                continue;
+            }
+            Instantiation inst = (Instantiation) obj;
+            instantiationsCheck &= (inst.getReactorClass() != reactor && inst.getReactorClass() != reactor.getReactorClass());
+        }
+
+        boolean subclassesCheck = true;
+        while (subclasses.hasNext() && subclassesCheck) {
+            EObject obj = subclasses.next();
+            if (!(obj instanceof Reactor)) {
+                continue;
+            }
+            Reactor subclass = (Reactor) obj;
+            for (ReactorDecl decl : subclass.getSuperClasses()) {
+                subclassesCheck &= (decl != reactor && decl != reactor.getReactorClass());
+            }
+        }
+        return instantiationsCheck && subclassesCheck;
+    }
+
+    /**
+     * Return true if the two types match. Unfortunately, xtext does not
+     * seem to create a suitable equals() method for Type, so we have to
+     * do this manually.
+     */
+    private boolean sameType(Type type1, Type type2) {
+        if (type1 == null) {
+            return type2 == null;
+        }
+        if (type2 == null) {
+            return type1 == null;
+        }
+        // Most common case first.
+        if (type1.getId() != null) {
+            if (type1.getStars() != null) {
+                if (type2.getStars() == null) return false;
+                if (type1.getStars().size() != type2.getStars().size()) return false;
+            }
+            return (type1.getId().equals(type2.getId()));
+        }
+
+        // Type specification in the grammar is:
+        // (time?='time' (arraySpec=ArraySpec)?) | ((id=(DottedName) (stars+='*')* ('<' typeParms+=TypeParm (',' typeParms+=TypeParm)* '>')? (arraySpec=ArraySpec)?) | code=Code);
+        if (type1.isTime()) {
+            if (!type2.isTime()) return false;
+            // Ignore the arraySpec because that is checked when connection
+            // is checked for balance.
+            return true;
+        }
+        // Type must be given in a code body
+        return type1.getCode().getBody().equals(type2.getCode().getBody());
+    }
+
+    //////////////////////////////////////////////////////////////
+    //// Private fields.
+
+    /** The error reporter. */
+    private ValidatorErrorReporter errorReporter
+        = new ValidatorErrorReporter(getMessageAcceptor(), new ValidatorStateAccess());
+
+    /** Helper class containing information about the model. */
+    private ModelInfo info = new ModelInfo();
+
+    @Inject(optional = true)
+    private ValidationMessageAcceptor messageAcceptor;
+
+    /** The declared target. */
+    private Target target;
+
+    private List<String> targetPropertyErrors = new ArrayList<>();
+
+    private List<String> targetPropertyWarnings = new ArrayList<>();
+
+    //////////////////////////////////////////////////////////////
+    //// Private static constants.
+
+    private static String ACTIONS_MESSAGE
+        = "\"actions\" is a reserved word for the TypeScript target for objects "
+                + "(inputs, outputs, actions, timers, parameters, state, reactor definitions, "
+                + "and reactor instantiation): ";
+
+    private static String HOST_OR_FQN_REGEX
+        = "^([a-z0-9]+(-[a-z0-9]+)*)|(([a-z0-9]+(-[a-z0-9]+)*\\.)+[a-z]{2,})$";
+
+    /**
+     * Regular expression to check the validity of IPV4 addresses (due to David M. Syzdek).
+     */
+    private static String IPV4_REGEX = "((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\\.){3,3}" +
+                                      "(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])";
+
+    /**
+     * Regular expression to check the validity of IPV6 addresses (due to David M. Syzdek),
+     * with minor adjustment to allow up to six IPV6 segments (without truncation) in front
+     * of an embedded IPv4-address.
+     **/
+    private static String IPV6_REGEX =
+                "(([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|" +
+                "([0-9a-fA-F]{1,4}:){1,7}:|" +
+                "([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|" +
+                "([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|" +
+                "([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|" +
+                "([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|" +
+                "([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|" +
+                 "[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|" +
+                                 ":((:[0-9a-fA-F]{1,4}){1,7}|:)|" +
+        "fe80:(:[0-9a-fA-F]{0,4}){0,4}%[0-9a-zA-Z]{1,}|" +
+        "::(ffff(:0{1,4}){0,1}:){0,1}" + IPV4_REGEX + "|" +
+        "([0-9a-fA-F]{1,4}:){1,4}:"    + IPV4_REGEX + "|" +
+        "([0-9a-fA-F]{1,4}:){1,6}"     + IPV4_REGEX + ")";
+
+    private static String RESERVED_MESSAGE = "Reserved words in the target language are not allowed for objects "
+            + "(inputs, outputs, actions, timers, parameters, state, reactor definitions, and reactor instantiation): ";
+
+    private static List<String> SPACING_VIOLATION_POLICIES = List.of("defer", "drop", "replace");
+
+    private static String UNDERSCORE_MESSAGE = "Names of objects (inputs, outputs, actions, timers, parameters, "
+            + "state, reactor definitions, and reactor instantiation) may not start with \"__\": ";
+
+    private static String USERNAME_REGEX = "^[a-z_]([a-z0-9_-]{0,31}|[a-z0-9_-]{0,30}\\$)$";
+
+>>>>>>> origin
 }

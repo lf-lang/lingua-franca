@@ -10,6 +10,15 @@ target C {
 }
 
 reactor Scheduler {
+    preamble {=
+        #ifdef __cplusplus
+        extern "C" {
+        #endif
+        #include "include/core/reactor_common.h"
+        #ifdef __cplusplus
+        }
+        #endif
+    =}
     logical action act
     // List of microsteps. Size = 16
     state microstep_delay_list: uint32_t[] = {

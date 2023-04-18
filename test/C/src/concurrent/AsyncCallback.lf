@@ -9,8 +9,19 @@
  */
 target C {
     tracing: true,
-    timeout: 2 sec
+    timeout: 2 sec,
+    keepalive: true
 }
+
+preamble {=
+    #ifdef __cplusplus
+    extern "C" {
+    #endif
+    #include "platform.h"
+    #ifdef __cplusplus
+    }
+    #endif
+=}
 
 main reactor AsyncCallback {
     preamble {=

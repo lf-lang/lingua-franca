@@ -16,10 +16,6 @@ jobs:
           fetch-depth: 0
       - name: Prepare build environment
         uses: ./.github/actions/prepare-build-env
-      # FIXME: reenable once the cli test is fixed
-      # - name: Run standalone cli tests
-      #   run: |
-      #     ./gradlew :org.lflang.cli:test --stacktrace
       - name: Test build bash scripts (Linux and macOS only)
         run: |
           .github/scripts/test-build.sh
@@ -37,3 +33,14 @@ jobs:
           ./gradlew buildAll
           bin/lfc.ps1 --help
         if: ${{ runner.os == 'Windows' }}
+      - name: Run standalone cli tests
+        run: |
+          ./gradlew test --tests org.lflang.tests.cli.* --stacktrace
+#   NOTE: do not put other invocations for gradlew in between these steps, or coverage reporting will break.
+      - name: Report to CodeCov
+        uses: codecov/codecov-action@v3.1.1
+        with:
+          file: org.lflang.tests/build/reports/xml/jacoco
+          fail_ci_if_error: false
+          verbose: true
+        if: ${{ runner.os == 'Linux' }}
