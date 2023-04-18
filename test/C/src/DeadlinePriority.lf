@@ -4,9 +4,10 @@ target C {
     threading: false
 }
 
-preamble {= int global_cnt = 0; =}
+preamble {= extern int global_cnt; =}
 
 reactor NoDeadline {
+    preamble {= int global_cnt = 0; =}
     timer t(0 msec, 100 msec)
 
     reaction(t) {= global_cnt++; =}

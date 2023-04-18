@@ -2,6 +2,16 @@
 // freed.
 target C
 
+preamble {=
+    #ifdef __cplusplus
+    extern "C" {
+    #endif
+    #include <string.h>
+    #ifdef __cplusplus
+    }
+    #endif
+=}
+
 reactor DelayString2(delay: time = 100 msec) {
     input in: string
     output out: string
@@ -17,7 +27,6 @@ reactor DelayString2(delay: time = 100 msec) {
 
 reactor Test {
     input in: string
-    state start_time: time = 0
 
     reaction(in) {=
         printf("Received: %s.\n", in->value);

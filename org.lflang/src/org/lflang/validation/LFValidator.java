@@ -224,9 +224,9 @@ public class LFValidator extends BaseLFValidator {
         for (VarRef lp : connection.getLeftPorts()) {
             for (VarRef rp : connection.getRightPorts()) {
                 boolean leftInCycle = false;
-                
+
                 for (NamedInstance<?> it : cycles) {
-                    if ((lp.getContainer() == null && it.getDefinition().equals(lp.getVariable())) 
+                    if ((lp.getContainer() == null && it.getDefinition().equals(lp.getVariable()))
                         || (it.getDefinition().equals(lp.getVariable()) && it.getParent().equals(lp.getContainer()))) {
                         leftInCycle = true;
                         break;
@@ -234,7 +234,7 @@ public class LFValidator extends BaseLFValidator {
                 }
 
                 for (NamedInstance<?> it : cycles) {
-                    if ((rp.getContainer() == null && it.getDefinition().equals(rp.getVariable())) 
+                    if ((rp.getContainer() == null && it.getDefinition().equals(rp.getVariable()))
                         || (it.getDefinition().equals(rp.getVariable()) && it.getParent().equals(rp.getContainer()))) {
                         if (leftInCycle) {
                             Reactor reactor = ASTUtils.getEnclosingReactor(connection);
@@ -510,7 +510,7 @@ public class LFValidator extends BaseLFValidator {
                     for (Reactor r : cycle) {
                         names.add(r.getName());
                     }
-                    
+
                     error(
                         "Instantiation is part of a cycle: " + String.join(", ", names) + ".",
                         Literals.INSTANTIATION__REACTOR_CLASS
@@ -563,12 +563,12 @@ public class LFValidator extends BaseLFValidator {
                 // Report problem with the assigned value.
                 prop.type.check(param.getValue(), param.getName(), this);
             }
-            
+
             for (String it : targetPropertyErrors) {
                 error(it, Literals.KEY_VALUE_PAIR__VALUE);
             }
             targetPropertyErrors.clear();
-            
+
             for (String it : targetPropertyWarnings) {
                 error(it, Literals.KEY_VALUE_PAIR__VALUE);
             }
@@ -664,7 +664,7 @@ public class LFValidator extends BaseLFValidator {
                     TimeValue.MAX_LONG_DEADLINE + " nanoseconds.",
                 Literals.PARAMETER__INIT);
         }
-        
+
     }
 
     @Check(CheckType.FAST)
@@ -691,7 +691,7 @@ public class LFValidator extends BaseLFValidator {
             }
         } else if (preamble.getVisibility() != Visibility.NONE) {
             warning(
-                String.format("The %s qualifier has no meaning for the %s target. It should be removed.", 
+                String.format("The %s qualifier has no meaning for the %s target. It should be removed.",
                               preamble.getVisibility(), this.target.name()),
                 Literals.PREAMBLE__VISIBILITY
             );
@@ -982,12 +982,12 @@ public class LFValidator extends BaseLFValidator {
         for (SupportedSerializers method : SupportedSerializers.values()) {
           if (method.name().equalsIgnoreCase(serializer.getType())){
               isValidSerializer = true;
-          }          
+          }
         }
-        
+
         if (!isValidSerializer) {
             error(
-                "Serializer can be " + Arrays.asList(SupportedSerializers.values()), 
+                "Serializer can be " + Arrays.asList(SupportedSerializers.values()),
                 Literals.SERIALIZER__TYPE
             );
         }
@@ -1218,7 +1218,7 @@ public class LFValidator extends BaseLFValidator {
     /**
      * Check whether an attribute is supported
      * and the validity of the attribute.
-     * 
+     *
      * @param attr The attribute being checked
      */
     @Check(CheckType.FAST)
@@ -1258,7 +1258,7 @@ public class LFValidator extends BaseLFValidator {
             }
         }
     }
-    
+
     @Check(CheckType.FAST)
     public void checkReactorIconAttribute(Reactor reactor) {
         var path = AttributeUtils.getIconPath(reactor);
@@ -1273,7 +1273,7 @@ public class LFValidator extends BaseLFValidator {
                         param, Literals.ATTR_PARM__VALUE);
                 return;
             }
-            
+
             // Check file location
             var iconLocation = FileUtil.locateFile(path, reactor.eResource());
             if (iconLocation == null) {
@@ -1387,7 +1387,7 @@ public class LFValidator extends BaseLFValidator {
                 if (!m.getStateVars().isEmpty()) {
                     var hasResetReaction = m.getReactions().stream().anyMatch(
                             r -> r.getTriggers().stream().anyMatch(
-                                    t -> (t instanceof BuiltinTriggerRef && 
+                                    t -> (t instanceof BuiltinTriggerRef &&
                                          ((BuiltinTriggerRef) t).getType() == BuiltinTrigger.RESET)));
                     if (!hasResetReaction) {
                         for (var s : m.getStateVars()) {
@@ -1411,7 +1411,7 @@ public class LFValidator extends BaseLFValidator {
                             if (!check.getStateVars().isEmpty()) {
                                 var hasResetReaction = check.getReactions().stream().anyMatch(
                                         r -> r.getTriggers().stream().anyMatch(
-                                                t -> (t instanceof BuiltinTriggerRef && 
+                                                t -> (t instanceof BuiltinTriggerRef &&
                                                      ((BuiltinTriggerRef) t).getType() == BuiltinTrigger.RESET)));
                                 if (!hasResetReaction) {
                                     // Add state vars that are not self-resetting to the error
@@ -1428,10 +1428,10 @@ public class LFValidator extends BaseLFValidator {
                         }
                         if (!error.isEmpty()) {
                             error("This reactor contains state variables that are not reset upon mode entry: "
-                                    + error.stream().map(e -> e.getName() + " in " 
+                                    + error.stream().map(e -> e.getName() + " in "
                                             + ASTUtils.getEnclosingReactor(e).getName()).collect(Collectors.joining(", "))
                                     + ".\nThe state variables are neither marked for automatic reset nor have a dedicated reset reaction. "
-                                    + "It is usafe to instatiate this reactor inside a mode entered with reset.",
+                                    + "It is unsafe to instantiate this reactor inside a mode entered with reset.",
                                     m, Literals.MODE__INSTANTIATIONS,
                                     m.getInstantiations().indexOf(i));
                         }
@@ -1454,12 +1454,12 @@ public class LFValidator extends BaseLFValidator {
             var variable = effect.getVariable();
             if (variable instanceof Mode) {
                 // The transition type is always set to default by Xtext.
-                // Hence, check if there is an explicit node for the transition type in the AST. 
+                // Hence, check if there is an explicit node for the transition type in the AST.
                 var transitionAssignment = NodeModelUtils.findNodesForFeature((EObject) effect, Literals.VAR_REF__TRANSITION);
                 if (transitionAssignment.isEmpty()) { // Transition type not explicitly specified.
                     var mode = (Mode) variable;
                     // Check if reset or history transition would make a difference.
-                    var makesDifference = !mode.getStateVars().isEmpty() 
+                    var makesDifference = !mode.getStateVars().isEmpty()
                             || !mode.getTimers().isEmpty()
                             || !mode.getActions().isEmpty()
                             || mode.getConnections().stream().anyMatch(c -> c.getDelay() != null);
@@ -1472,13 +1472,13 @@ public class LFValidator extends BaseLFValidator {
                             while (!toCheck.isEmpty() && !makesDifference) {
                                 var check = toCheck.pop();
                                 checked.add(check);
-                                
+
                                 makesDifference |= !check.getModes().isEmpty()
-                                        || !ASTUtils.allStateVars(check).isEmpty() 
+                                        || !ASTUtils.allStateVars(check).isEmpty()
                                         || !ASTUtils.allTimers(check).isEmpty()
                                         || !ASTUtils.allActions(check).isEmpty()
                                         || ASTUtils.allConnections(check).stream().anyMatch(c -> c.getDelay() != null);
-                                
+
                                 // continue with inner
                                 for (var innerInstance : check.getInstantiations()) {
                                     var next = (Reactor) innerInstance.getReactorClass();
@@ -1490,7 +1490,7 @@ public class LFValidator extends BaseLFValidator {
                         }
                     }
                     if (makesDifference) {
-                        warning("You should specifiy a transition type! "
+                        warning("You should specify a transition type! "
                                 + "Reset and history transitions have different effects on this target mode. "
                                 + "Currently, a reset type is implicitly assumed.",
                                 reaction, Literals.REACTION__EFFECTS, reaction.getEffects().indexOf(effect));
@@ -1877,5 +1877,5 @@ public class LFValidator extends BaseLFValidator {
             + "state, reactor definitions, and reactor instantiation) may not start with \"__\": ";
 
     private static String USERNAME_REGEX = "^[a-z_]([a-z0-9_-]{0,31}|[a-z0-9_-]{0,30}\\$)$";
-    
+
 }

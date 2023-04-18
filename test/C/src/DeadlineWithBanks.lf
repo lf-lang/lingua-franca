@@ -9,9 +9,11 @@ target C {
     build-type: Debug
 }
 
-preamble {= volatile int global_cnt = 0; =}
+preamble {= extern volatile int global_cnt; =}
 
 reactor Bank(bank_index: int = 0) {
+    preamble {= volatile int global_cnt = 0; =}
+
     timer t(0, 100 msec)
     output out: int
 

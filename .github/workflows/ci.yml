@@ -43,7 +43,7 @@ jobs:
 
   # Run tests for the standalone compiler.
   cli-tests:
-    uses: lf-lang/lingua-franca/.github/workflows/cli-tests.yml@cli-codecov
+    uses: lf-lang/lingua-franca/.github/workflows/cli-tests.yml@master
     needs: cancel
 
   # Run the C benchmark tests.
@@ -51,6 +51,8 @@ jobs:
     uses: lf-lang/benchmarks-lingua-franca/.github/workflows/benchmark-tests.yml@main
     with:
       target: 'C'
+      benchmarks-ref: main
+      compiler-ref: master
     needs: cancel
 
   # Run language server tests.
