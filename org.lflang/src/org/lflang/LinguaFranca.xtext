@@ -13,22 +13,22 @@ are permitted provided that the following conditions are met:
    this list of conditions and the following disclaimer in the documentation
    and/or other materials provided with the distribution.
 
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
-ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED 
-WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE 
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
 DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR
-ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES 
-(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; 
-LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON 
-ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT 
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS 
+ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
+ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ***************/
 
-/** 
+/**
  * Grammar for Lingua Franca.
  * A note of caution: extending this grammar with productions that introduce
- * new terminals (i.e., anything written between quotes), will require those 
+ * new terminals (i.e., anything written between quotes), will require those
  * terminals to also be added to the Token production at the bottom of this
  * file. Failing to do so will cause a parse error whenever a terminal not
  * listed in the Token production is featured in a segment of target-language
@@ -44,7 +44,7 @@ import "http://www.eclipse.org/emf/2002/Ecore" as ecore
 
 // Use the package name "lf" for generated files defining the classes
 // in the metamodel (i.e., the classes representing nodes in the
-// abstract syntax tree (AST), i.e., the eCore model). 
+// abstract syntax tree (AST), i.e., the eCore model).
 generate lf "https://lf-lang.org"
 
 /////////// Overall file
@@ -105,7 +105,7 @@ TypeExpr:
 
 /**
  * Specification of the target language. Target properties can be specified in
- * YAML format to pass on configuration details to the runtime environment. 
+ * YAML format to pass on configuration details to the runtime environment.
  */
 TargetDecl:
     'target' name=ID (config=KeyValuePairs)? ';'?;
@@ -114,11 +114,11 @@ TargetDecl:
 /////////// Statements
 
 /**
- * Declaration of a state variable. Types are optional, but may be required 
- * during validation (depending on the target language). Initialization is also 
+ * Declaration of a state variable. Types are optional, but may be required
+ * during validation (depending on the target language). Initialization is also
  * optional. A state variable can be initialized by assigning a `Expression` or list
  * of these. Note that a `Expression` may also be a reference to a parameter.
- * The following checks must be carried out during validation: 
+ * The following checks must be carried out during validation:
  *  - if the list of initialization expressions has more than one element in it, a
  *  type must be specified;
  *  - if the `time` type is specified, there can only be a single initialization
@@ -139,7 +139,7 @@ TargetDecl:
 Initializer:
       parens?='(' (exprs+=Expression (','  exprs+=Expression)* (trailingComma?=',')?)? ')'
     | braces?='{' (exprs+=Expression (','  exprs+=Expression)* (trailingComma?=',')?)? '}'
-//    | assign?='=' exprs+=Expression // todo later
+    | assign?='=' exprs+=Expression
 ;
 
 
@@ -180,10 +180,10 @@ Mode:
     )* '}';
 
 // Action that has either a physical or logical origin.
-// 
+//
 // If the origin is logical, the minDelay is a minimum logical delay
 // after the logical time at which schedule() is called that the
-// action will occur. If the origin is physical, then the 
+// action will occur. If the origin is physical, then the
 // minDelay is a minimum logical delay after the physical time
 // at which schedule() is called that the action will occur.
 //
@@ -198,12 +198,11 @@ Action:
 Reaction:
     (attributes+=Attribute)*
     (('reaction') | mutation ?= 'mutation')
-    ('(' (triggers+=TriggerRef (',' triggers+=TriggerRef)*)? ')')?
+    ('(' (triggers+=TriggerRef (',' triggers+=TriggerRef)*)? ')')
     (sources+=VarRef (',' sources+=VarRef)*)?
     ('->' effects+=VarRefOrModeTransition (',' effects+=VarRefOrModeTransition)*)?
-    code=Code
-    (stp=STP)?
-    (deadline=Deadline)?;
+    ((('named' name=ID)? code=Code) | 'named' name=ID)(stp=STP)?(deadline=Deadline)?
+    ;
 
 TriggerRef:
     BuiltinTriggerRef | VarRef;
@@ -213,7 +212,7 @@ BuiltinTriggerRef:
 
 Deadline:
     'deadline' '(' delay=Expression ')' code=Code;
-    
+
 STP:
     'STP' '(' value=Expression ')' code=Code;
 
@@ -230,7 +229,7 @@ Instantiation:
 Connection:
     ((leftPorts += VarRef (',' leftPorts += VarRef)*)
     | ( '(' leftPorts += VarRef (',' leftPorts += VarRef)* ')' iterated ?= '+'?))
-    ('->' | physical?='~>') 
+    ('->' | physical?='~>')
     rightPorts += VarRef (',' rightPorts += VarRef)*
     ('after' delay=Expression)?
     (serializer=Serializer)?
@@ -264,7 +263,7 @@ Array: // todo allow empty array in grammar, replace with validator error
 Element:
     keyvalue=KeyValuePairs
     | array=Array
-    | literal=Literal 
+    | literal=Literal
     | (time=INT unit=TimeUnit)
     | id=Path;
 
@@ -277,21 +276,23 @@ Variable:
     TypedVariable | Timer | Mode;
 
 VarRef:
-    variable=[Variable] | container=[Instantiation] '.' variable=[Variable]
-    | interleaved?='interleaved' '(' (variable=[Variable] | container=[Instantiation] '.' variable=[Variable]) ')'
+    (variable=[Variable] | container=[Instantiation] '.' variable=[Variable]
+    | interleaved?='interleaved' '(' (variable=[Variable] | container=[Instantiation] '.' variable=[Variable]) ')') ('as' (alias=ID))?
 ;
 VarRefOrModeTransition returns VarRef:
     VarRef | transition=ModeTransition '(' variable=[Mode] ')';
 
 Assignment:
     lhs=[Parameter]
-    (equals='=')? rhs=AssignmentInitializer
+    rhs=AssignmentInitializer
 ;
 
-// TODO Only allow = based parameter assignment
 AssignmentInitializer returns Initializer:
-      exprs+=Expression
-    | parens?='(' (exprs+=Expression (','  exprs+=Expression)* (trailingComma?=',')?)? ')'
+      assign?='=' exprs+=Expression
+    // these syntaxes are legacy and now deprecated
+    // todo remove in future version.
+    | '='? parens?='(' (exprs+=Expression (','  exprs+=Expression)* (trailingComma?=',')?)? ')'
+    // note: the previous syntax `= { expr* }` is now parsed as a BracedListExpression
     | braces?='{' (exprs+=Expression (','  exprs+=Expression)* (trailingComma?=',')?)? '}'
 ;
 
@@ -310,6 +311,13 @@ Expression:
     | Time
     | ParameterReference
     | {CodeExpr} code=Code
+    | BracedListExpression
+;
+
+// A list of expressions within braces.
+// In C/C++, this is an array initializer, struct initializer, or std::initializer_list.
+BracedListExpression:
+     '{' {BracedListExpression} (items+=Expression (',' items+=Expression)*)? ','? '}'
 ;
 
 ParameterReference:
@@ -322,7 +330,7 @@ Time:
 
 Port:
     Input | Output;
-    
+
 // A type is in the target language, hence either an ID or target code.
 Type:
    time?='time' (arraySpec=ArraySpec)? 
@@ -419,24 +427,24 @@ IPV4Addr:
 ;
 
 IPV6Seg:
-    // NOTE: This rule is too permissive by design. 
+    // NOTE: This rule is too permissive by design.
     // Further checking is done during validation.
     (INT | (INT? ID))
 ;
 
 
 IPV6Addr:
-    // NOTE: This rule is too permissive by design. 
-    // Further checking is done during validation. 
+    // NOTE: This rule is too permissive by design.
+    // Further checking is done during validation.
     // IPV6 with truncation.
-    '::' | ('::' (IPV6Seg (':'))* IPV6Seg) | ((IPV6Seg (':'|'::'))+ IPV6Seg?) | 
-    
+    '::' | ('::' (IPV6Seg (':'))* IPV6Seg) | ((IPV6Seg (':'|'::'))+ IPV6Seg?) |
+
     // (Link-local IPv6 addresses with zone index) "fe80::7:8%1"
     (ID '::' IPV6Seg (':' IPV6Seg)* '%' (INT | ID)+) |
 
     // IPv4-mapped IPv6 addresses and IPv4-translated addresses
     ('::' IPV4Addr) | ('::' ID ':' (INT ':')? IPV4Addr) |
-    
+
     // IPv4-Embedded IPv6 Address
     (((IPV6Seg (':' IPV6Seg)* '::') | (IPV6Seg (':' IPV6Seg)*) ':') IPV4Addr)
 ;
@@ -453,7 +461,7 @@ Code:
     {Code} '{=' body=Body '=}'
 ;
 
-FSName: 
+FSName:
     (ID | '.' | '_')+
 ;
 // Absolute or relative directory path in Windows, Linux, or MacOS.
@@ -492,11 +500,11 @@ Token:
     // Non-constant terminals
     ID | INT | FLOAT_EXP_SUFFIX | LT_ANNOT | STRING | CHAR_LIT | ML_COMMENT | SL_COMMENT | WS | ANY_OTHER |
     // Keywords
-    'target' | 'import' | 'main' | 'realtime' | 'reactor' | 'state' | 'time' | 
-    'mutable' | 'input' | 'output' | 'timer' | 'action' | 'reaction' | 
+    'target' | 'import' | 'main' | 'realtime' | 'reactor' | 'state' | 'time' |
+    'mutable' | 'input' | 'output' | 'timer' | 'action' | 'reaction' |
     'startup' | 'shutdown' | 'after' | 'deadline' | 'mutation' | 'preamble' |
     'new' | 'federated' | 'at' | 'as' | 'from' | 'widthof' | 'const' | 'method' |
-    'interleaved' | 'mode' | 'initial' | 'reset' | 'history' |
+    'interleaved' | 'mode' | 'initial' | 'reset' | 'history' | 'named' |
     // Other terminals
     NEGINT | TRUE | FALSE |
     // Action origins
@@ -516,7 +524,7 @@ Token:
     // Underscore
     '_' |
     // Arrow
-    '->' | 
+    '->' |
     // Assignment
     '=' |
     // Percentage

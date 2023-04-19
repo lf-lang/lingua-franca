@@ -3,6 +3,17 @@ target C {
     timeout: 3 sec
 }
 
+preamble {=
+    #ifdef __cplusplus
+    extern "C" {
+    #endif
+    #include <string.h>
+    #include <stdlib.h>
+    #ifdef __cplusplus
+    }
+    #endif
+=}
+
 main reactor ScheduleValue {
     logical action a: char*
 

@@ -1,6 +1,7 @@
 package org.lflang.cli;
 
 
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Properties;
@@ -14,6 +15,7 @@ import org.eclipse.xtext.util.CancelIndicator;
 
 import org.lflang.ASTUtils;
 import org.lflang.FileConfig;
+import org.lflang.TargetProperty.UnionType;
 
 import org.lflang.generator.LFGeneratorContext;
 import org.lflang.generator.LFGeneratorContext.BuildParm;
@@ -105,7 +107,7 @@ public class Lfc extends CliBase {
     @Option(
         names = {"-r", "--rti"},
         description = "Specify the location of the RTI.")
-    private String rti;
+    private Path rti;
 
     @Option(
         names = "--runtime-version",
@@ -154,11 +156,11 @@ public class Lfc extends CliBase {
      * Load the resource, validate it, and, invoke the code generator.
      */
     @Override
-    public void run() {
+    public void doRun() {
         List<Path> paths = getInputPaths();
         final Path outputRoot = getOutputRoot();
         // Hard code the props based on the options we want.
-        Properties properties = this.filterPassOnProps();
+        Properties properties = this.getGeneratorArgs();
 
         try {
             // Invoke the generator on all input file paths.
@@ -229,45 +231,78 @@ public class Lfc extends CliBase {
      *
      * @return Properties for the code generator.
      */
-    protected Properties filterPassOnProps() {
+    public Properties getGeneratorArgs() {
         Properties props = new Properties();
 
         if (buildType != null) {
+            // Validate build type.
+            if (UnionType.BUILD_TYPE_UNION.forName(buildType) == null) {
+                reporter.printFatalErrorAndExit(
+                    buildType + ": Invalid build type.");
+            }
             props.setProperty(BuildParm.BUILD_TYPE.getKey(), buildType);
         }
+
         if (clean) {
             props.setProperty(BuildParm.CLEAN.getKey(), "true");
         }
+
         if (externalRuntimePath != null) {
-            props.setProperty(BuildParm.EXTERNAL_RUNTIME_PATH.getKey(), externalRuntimePath.toString());
+            props.setProperty(BuildParm.EXTERNAL_RUNTIME_PATH.getKey(),
+                    externalRuntimePath.toString());
         }
+
         if (lint) {
             props.setProperty(BuildParm.LINT.getKey(), "true");
         }
+
         if (logging != null) {
+            // Validate log level.
+            if (UnionType.LOGGING_UNION.forName(logging) == null) {
+                reporter.printFatalErrorAndExit(
+                    logging + ": Invalid log level.");
+            }
             props.setProperty(BuildParm.LOGGING.getKey(), logging);
         }
+
         if (noCompile) {
             props.setProperty(BuildParm.NO_COMPILE.getKey(), "true");
         }
+
         if (targetCompiler != null) {
             props.setProperty(BuildParm.TARGET_COMPILER.getKey(), targetCompiler);
         }
+
         if (quiet) {
             props.setProperty(BuildParm.QUIET.getKey(), "true");
         }
+
         if (rti != null) {
-            props.setProperty(BuildParm.RTI.getKey(), rti);
+            // Validate RTI path.
+            if (!Files.exists(io.getWd().resolve(rti))) {
+                reporter.printFatalErrorAndExit(
+                    rti + ": Invalid RTI path.");
+            }
+            props.setProperty(BuildParm.RTI.getKey(), rti.toString());
         }
+
         if (runtimeVersion != null) {
             props.setProperty(BuildParm.RUNTIME_VERSION.getKey(), runtimeVersion);
         }
+
         if (scheduler != null) {
+            // Validate scheduler.
+            if (UnionType.SCHEDULER_UNION.forName(scheduler) == null) {
+                reporter.printFatalErrorAndExit(
+                    scheduler + ": Invalid scheduler.");
+            }
             props.setProperty(BuildParm.SCHEDULER.getKey(), scheduler);
         }
+
         if (threading != null) {
             props.setProperty(BuildParm.THREADING.getKey(), threading);
         }
+
         if (workers != null) {
             props.setProperty(BuildParm.WORKERS.getKey(), workers.toString());
         }

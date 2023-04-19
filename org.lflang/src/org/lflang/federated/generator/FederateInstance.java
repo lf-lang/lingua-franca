@@ -73,17 +73,17 @@ import org.lflang.lf.Variable;
 import com.google.common.base.Objects;
 
 
-/** 
+/**
  * Instance of a federate, or marker that no federation has been defined
  * (if isSingleton() returns true) FIXME: this comment makes no sense.
  * Every top-level reactor (contained
  * directly by the main reactor) is a federate, so there will be one
  * instance of this class for each top-level reactor.
- * 
+ *
  * @author Edward A. Lee
  * @author Soroush Bateni
  */
-public class FederateInstance {
+public class FederateInstance { // why does this not extend ReactorInstance?
 
     /**
      * Construct a new instance with the specified instantiation of

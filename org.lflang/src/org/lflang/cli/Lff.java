@@ -51,13 +51,18 @@ public class Lff extends CliBase {
     @Option(
         names = "--no-recurse",
         description = "Do not format files in subdirectories of the"
-                    + " specified paths.")
+            + " specified paths.")
     private boolean noRecurse = false;
 
     @Option(
         names = {"-v", "--verbose"},
         description = "Print more details on files affected.")
     private boolean verbose = false;
+
+    @Option(
+        names = {"--ignore-errors"},
+        description = "Ignore validation errors in files and format them anyway.")
+    private boolean ignoreErrors = false;
 
     /**
      * Main function of the formatter.
@@ -83,7 +88,7 @@ public class Lff extends CliBase {
      * Validates all paths and invokes the formatter on the input paths.
      */
     @Override
-    public void run() {
+    public void doRun() {
         List<Path> paths = getInputPaths();
         final Path outputRoot = getOutputRoot();
 
@@ -147,12 +152,13 @@ public class Lff extends CliBase {
             if (verbose) {
                 reporter.printInfo("Skipped " + path + ": not an LF file");
             }
-            return; 
+            return;
         }
         validateResource(resource);
 
-        // todo don't abort whole run if one file has errors
-        exitIfCollectedErrors();
+        if (!ignoreErrors) {
+            exitIfCollectedErrors();
+        }
         final String formattedFileContents =
             FormattingUtils.render(resource.getContents().get(0), lineLength);
 
@@ -163,24 +169,30 @@ public class Lff extends CliBase {
                 FileUtil.writeToFile(formattedFileContents, outputPath, true);
             } catch (IOException e) {
                 if (e instanceof FileAlreadyExistsException) {
-                    // Only happens if a subdirectory is named with 
+                    // Only happens if a subdirectory is named with
                     // ".lf" at the end.
                     reporter.printFatalErrorAndExit(
                         "Error writing to "
                         + outputPath
-                        + ": file already exists. Make sure that no file or" 
+                        + ": file already exists. Make sure that no file or"
                         + " directory within provided input paths have the"
                         + " same relative paths.");
                 }
             }
         }
 
-        exitIfCollectedErrors();
-        issueCollector.getAllIssues().forEach(reporter::printIssue);
+        if (!ignoreErrors) {
+            exitIfCollectedErrors();
+        }
+        // Only errors are printed. Warnings are not helpful for LFF
+        // and since they don't prevent the file from being formatted,
+        // the position of the issue may be wrong in the formatted file.
+        // issueCollector.getAllIssues().forEach(reporter::printIssue);
         if (verbose) {
             String msg = "Formatted " + io.getWd().relativize(path);
-            if (path != outputPath) msg += 
-                " -> " + io.getWd().relativize(outputPath);
+            if (path != outputPath) {
+              msg += " -> " + io.getWd().relativize(outputPath);
+            }
             reporter.printInfo(msg);
         }
     }

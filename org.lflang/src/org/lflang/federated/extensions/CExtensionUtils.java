@@ -433,16 +433,16 @@ public class CExtensionUtils {
                             // Use NEVER to encode no delay at all.
                             code.pr("candidate_tmp = NEVER;");
                         } else {
-                            var delayTime = GeneratorBase.getTargetTime(delay);
-                            if (delay instanceof ParameterReference) {
-                                // The delay is given as a parameter reference. Find its value.
-                                final var param = ((ParameterReference)delay).getParameter();
-                                delayTime = GeneratorBase.timeInTargetLanguage(ASTUtils.getDefaultAsTimeValue(param));
-                            }
+                            var delayTime =
+                                delay instanceof ParameterReference
+                                    // In that case use the default value.
+                                    ? CTypes.getInstance().getTargetTimeExpr(ASTUtils.getDefaultAsTimeValue(((ParameterReference) delay).getParameter()))
+                                    : CTypes.getInstance().getTargetExpr(delay, InferredType.time());
+
                             code.pr(String.join("\n",
-                                                "if ("+delayTime+" < candidate_tmp) {",
-                                                "    candidate_tmp = "+delayTime+";",
-                                                "}"
+                                "if (" + delayTime + " < candidate_tmp) {",
+                                "    candidate_tmp = " + delayTime + ";",
+                                "}"
                             ));
                         }
                     }

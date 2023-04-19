@@ -7,7 +7,7 @@ target Python {
 
 reactor Source {
     output out
-    state iteration(1)
+    state iteration = 1
     timer t(0, 1 sec)
 
     reaction(t) -> out {=
@@ -18,10 +18,10 @@ reactor Source {
     =}
 }
 
-reactor Print(scale(1)) {  # The scale parameter is just for testing.
+reactor Print(scale = 1) {  # The scale parameter is just for testing.
     input _in
-    state iteration(1)
-    state inputs_received(0)
+    state iteration = 1
+    state inputs_received = 0
 
     reaction(_in) {=
         self.inputs_received += 1

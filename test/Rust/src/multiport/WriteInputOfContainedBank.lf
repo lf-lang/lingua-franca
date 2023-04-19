@@ -1,11 +1,11 @@
 // Test writing inputs to a contained reactor bank
 target Rust
 
-reactor Contained(bank_index: usize(0)) {
-    state bank_index(bank_index)
+reactor Contained(bank_index: usize = 0) {
+    state bank_index = bank_index
 
     input inpt: usize
-    state count: usize(0)
+    state count: usize = 0
 
     reaction(inpt) {=
         let result = ctx.get(inpt).unwrap();

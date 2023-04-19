@@ -288,7 +288,7 @@ public class FedGenerator {
                 Resource res = rs.getResource(URI.createFileURI(
                     fileConfig.getSrcPath().resolve(fed.name + ".lf").toAbsolutePath().toString()
                 ), true);
-                FileConfig subFileConfig = LFGenerator.createFileConfig(res, fileConfig.getSrcGenPath(), false);
+                FileConfig subFileConfig = LFGenerator.createFileConfig(res, fileConfig.getSrcGenPath(), true);
                 ErrorReporter subContextErrorReporter = new LineAdjustingErrorReporter(threadSafeErrorReporter, lf2lfCodeMapMap);
 
                 var props = new Properties();

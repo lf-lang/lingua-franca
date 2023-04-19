@@ -47,19 +47,15 @@ import org.lflang.FileConfig;
 import org.lflang.MainConflictChecker;
 import org.lflang.Target;
 import org.lflang.TargetConfig;
-import org.lflang.TimeUnit;
-import org.lflang.TimeValue;
 import org.lflang.ast.AstTransformation;
 import org.lflang.graph.InstantiationGraph;
 import org.lflang.lf.Connection;
-import org.lflang.lf.Expression;
 import org.lflang.lf.Instantiation;
 import org.lflang.lf.LfFactory;
 import org.lflang.lf.Mode;
 
 import org.lflang.lf.Reaction;
 import org.lflang.lf.Reactor;
-import org.lflang.lf.Time;
 import org.lflang.validation.AbstractLFValidator;
 
 import com.google.common.base.Objects;
@@ -386,33 +382,6 @@ public abstract class GeneratorBase extends AbstractLFValidator {
         return reactionBankIndices.get(reaction);
     }
 
-    /**
-     * Given a representation of time that may possibly include units, return
-     * a string that the target language can recognize as a value. In this base
-     * class, if units are given, e.g. "msec", then we convert the units to upper
-     * case and return an expression of the form "MSEC(value)". Particular target
-     * generators will need to either define functions or macros for each possible
-     * time unit or override this method to return something acceptable to the
-     * target language.
-     * @param time A TimeValue that represents a time.
-     * @return A string, such as "MSEC(100)" for 100 milliseconds.
-     */
-    public static String timeInTargetLanguage(TimeValue time) {
-        if (time != null) {
-            if (time.unit != null) {
-                return cMacroName(time.unit) + "(" + time.getMagnitude() + ")";
-            } else {
-                return Long.valueOf(time.getMagnitude()).toString();
-            }
-        }
-        return "0"; // FIXME: do this or throw exception?
-    }
-
-    // note that this is moved out by #544
-    public static String cMacroName(TimeUnit unit) {
-        return unit.getCanonicalName().toUpperCase();
-    }
-
     // //////////////////////////////////////////
     // // Protected methods.
 
@@ -642,50 +611,4 @@ public abstract class GeneratorBase extends AbstractLFValidator {
      */
     public abstract Target getTarget();
 
-    /**
-     * Get textual representation of a time in the target language.
-     *
-     * @param t A time AST node
-     * @return A time string in the target language
-     */
-    // FIXME: this should be placed in ExpressionGenerator
-    public static String getTargetTime(Time t) {
-        TimeValue value = new TimeValue(t.getInterval(), TimeUnit.fromName(t.getUnit()));
-        return timeInTargetLanguage(value);
-    }
-
-    /**
-     * Get textual representation of a value in the target language.
-     *
-     * If the value evaluates to 0, it is interpreted as a normal value.
-     *
-     * @param expr An AST node
-     * @return A string in the target language
-     */
-    // FIXME: this should be placed in ExpressionGenerator
-    public static String getTargetValue(Expression expr) {
-        if (expr instanceof Time) {
-            return getTargetTime((Time)expr);
-        }
-        return ASTUtils.toText(expr);
-    }
-
-    /**
-     * Get textual representation of a value in the target language.
-     *
-     * If the value evaluates to 0, it is interpreted as a time.
-     *
-     * @param expr A time AST node
-     * @return A time string in the target language
-     */
-    // FIXME: this should be placed in ExpressionGenerator
-    public static String getTargetTime(Expression expr) {
-        if (expr instanceof Time) {
-            return getTargetTime((Time)expr);
-        } else if (ASTUtils.isZero(expr)) {
-            TimeValue value = TimeValue.ZERO;
-            return timeInTargetLanguage(value);
-        }
-        return ASTUtils.toText(expr);
-    }
 }
