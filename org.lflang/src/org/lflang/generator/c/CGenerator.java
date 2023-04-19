@@ -949,6 +949,9 @@ public class CGenerator extends GeneratorBase {
                     if (parentTpr.typeArgs().containsKey(type)) {
                         var basicType = parentTpr.typeArgs().get(type);
                         copy.put(literal, basicType);
+                    } else {
+                        // Typename is not inherited from Parent Reactor. Keep As Is!
+                        copy.put(literal, typename);
                     }
                 });
                 if (!copy.isEmpty()) { // If we found some templated-types update the tpr with new map
