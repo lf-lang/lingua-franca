@@ -1,7 +1,7 @@
 target Cpp
 
 main reactor {
-    state foo: int(2)
+    state foo: int = 2
 
     const method getFoo(): int {= return foo; =}
 

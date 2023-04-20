@@ -37,11 +37,14 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
+
+import org.lflang.ASTUtils;
 import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
 import org.lflang.InferredType;
 import org.lflang.TargetConfig;
-import org.lflang.federated.FederateInstance;
+
+import org.lflang.generator.ActionInstance;
 import org.lflang.generator.GeneratorCommandFactory;
 import org.lflang.generator.LFGeneratorContext;
 import org.lflang.generator.PortInstance;
@@ -59,10 +62,10 @@ import org.lflang.util.FileUtil;
 import org.lflang.util.LFCommand;
 
 /**
- * A collection of utilities for C code generation. This class codifies the coding conventions for
- * the C target code generator. I.e., it defines how variables are named and referenced.
- *
- * @author{Edward A. Lee <eal@berkeley.edu>}
+ * A collection of utilities for C code generation.
+ * This class codifies the coding conventions for the C target code generator.
+ * I.e., it defines how variables are named and referenced.
+ * @author Edward A. Lee
  */
 public class CUtil {
 
@@ -81,18 +84,30 @@ public class CUtil {
   //////////////////////////////////////////////////////
   //// Public methods.
 
-  /**
-   * Return a default name of a variable to refer to the bank index of a reactor in a bank. This is
-   * has the form uniqueID_i where uniqueID is an identifier for the instance that is guaranteed to
-   * be different from the ID of any other instance in the program. If the instance is not a bank,
-   * return "0".
-   *
-   * @param instance A reactor instance.
-   */
-  public static String bankIndex(ReactorInstance instance) {
-    if (!instance.isBank()) return "0";
-    return bankIndexName(instance);
-  }
+    /**
+     * Return a reference to the action struct of the specified
+     * action instance. This action_base_t struct is on the self struct.
+     * @param instance The action instance.
+     * @param runtimeIndex An optional index variable name to use to address runtime instances.
+     */
+    public static String actionRef(ActionInstance instance, String runtimeIndex) {
+        return reactorRef(instance.getParent(), runtimeIndex)
+                + "->_lf_"
+                + instance.getName();
+    }
+
+    /**
+     * Return a default name of a variable to refer to the bank index of a reactor
+     * in a bank. This is has the form uniqueID_i where uniqueID
+     * is an identifier for the instance that is guaranteed to be different
+     * from the ID of any other instance in the program.
+     * If the instance is not a bank, return "0".
+     * @param instance A reactor instance.
+     */
+    public static String bankIndex(ReactorInstance instance) {
+        if (!instance.isBank()) return "0";
+        return bankIndexName(instance);
+    }
 
   /**
    * Return a default name of a variable to refer to the bank index of a reactor in a bank. This is
@@ -125,56 +140,72 @@ public class CUtil {
     return port.uniqueID() + "_c";
   }
 
-  /**
-   * Return a reference to the specified port.
-   *
-   * <p>The returned string will have one of the following forms:
-   *
-   * <p>* selfStructs[k]->_lf_portName * selfStructs[k]->_lf_portName *
-   * selfStructs[k]->_lf_portName[i] * selfStructs[k]->_lf_parent.portName *
-   * selfStructs[k]->_lf_parent.portName[i] * selfStructs[k]->_lf_parent[j].portName *
-   * selfStructs[k]->_lf_parent[j].portName[i]
-   *
-   * <p>where k is the runtime index of either the port's parent or the port's parent's parent, the
-   * latter when isNested is true. The index j is present if the parent is a bank, and the index i
-   * is present if the port is a multiport.
-   *
-   * <p>The first two forms are used if isNested is false, and the remaining four are used if
-   * isNested is true. Set isNested to true when referencing a port belonging to a contained
-   * reactor.
-   *
-   * @param port The port.
-   * @param isNested True to return a reference relative to the parent's parent.
-   * @param includeChannelIndex True to include the channel index at the end.
-   * @param runtimeIndex A variable name to use to index the runtime instance or null to use the
-   *     default, the string returned by {@link CUtil#runtimeIndex(ReactorInstance)}.
-   * @param bankIndex A variable name to use to index the bank or null to use the default, the
-   *     string returned by {@link CUtil#bankIndex(ReactorInstance)}.
-   * @param channelIndex A variable name to use to index the channel or null to use the default, the
-   *     string returned by {@link CUtil#channelIndex(PortInstance)}.
-   */
-  public static String portRef(
-      PortInstance port,
-      boolean isNested,
-      boolean includeChannelIndex,
-      String runtimeIndex,
-      String bankIndex,
-      String channelIndex) {
-    String channel = "";
-    if (channelIndex == null) channelIndex = channelIndex(port);
-    if (port.isMultiport() && includeChannelIndex) {
-      channel = "[" + channelIndex + "]";
+    /**
+     * Return the name of the reactor. A '_main` is appended to the name if the
+     * reactor is main (to allow for instantiations that have the same name as
+     * the main reactor or the .lf file).
+     */
+    public static String getName(Reactor reactor) {
+        String name = reactor.getName().toLowerCase() + reactor.hashCode();
+        if (reactor.isMain()) {
+            return name + "_main";
+        }
+        return name;
     }
-    if (isNested) {
-      return reactorRefNested(port.getParent(), runtimeIndex, bankIndex)
-          + "."
-          + port.getName()
-          + channel;
-    } else {
-      String sourceStruct = CUtil.reactorRef(port.getParent(), runtimeIndex);
-      return sourceStruct + "->_lf_" + port.getName() + channel;
+
+    /**
+     * Return a reference to the specified port.
+     *
+     * The returned string will have one of the following forms:
+     *
+     * * selfStructs[k]->_lf_portName
+     * * selfStructs[k]->_lf_portName
+     * * selfStructs[k]->_lf_portName[i]
+     * * selfStructs[k]->_lf_parent.portName
+     * * selfStructs[k]->_lf_parent.portName[i]
+     * * selfStructs[k]->_lf_parent[j].portName
+     * * selfStructs[k]->_lf_parent[j].portName[i]
+     *
+     * where k is the runtime index of either the port's parent
+     * or the port's parent's parent, the latter when isNested is true.
+     * The index j is present if the parent is a bank, and
+     * the index i is present if the port is a multiport.
+     *
+     * The first two forms are used if isNested is false,
+     * and the remaining four are used if isNested is true.
+     * Set isNested to true when referencing a port belonging
+     * to a contained reactor.
+     *
+     * @param port The port.
+     * @param isNested True to return a reference relative to the parent's parent.
+     * @param includeChannelIndex True to include the channel index at the end.
+     * @param runtimeIndex A variable name to use to index the runtime instance or
+     *  null to use the default, the string returned by {@link CUtil#runtimeIndex(ReactorInstance)}.
+     * @param bankIndex A variable name to use to index the bank or null to use the
+     *  default, the string returned by {@link CUtil#bankIndex(ReactorInstance)}.
+     * @param channelIndex A variable name to use to index the channel or null to
+     *  use the default, the string returned by {@link CUtil#channelIndex(PortInstance)}.
+     */
+    public static String portRef(
+            PortInstance port,
+            boolean isNested,
+            boolean includeChannelIndex,
+            String runtimeIndex,
+            String bankIndex,
+            String channelIndex
+    ) {
+        String channel = "";
+        if (channelIndex == null) channelIndex = channelIndex(port);
+        if (port.isMultiport() && includeChannelIndex) {
+            channel = "[" + channelIndex + "]";
+        }
+        if (isNested) {
+            return reactorRefNested(port.getParent(), runtimeIndex, bankIndex) + "." + port.getName() + channel;
+        } else {
+            String sourceStruct = CUtil.reactorRef(port.getParent(), runtimeIndex);
+            return sourceStruct + "->_lf_" + port.getName() + channel;
+        }
     }
-  }
 
   /**
    * Return a reference to the port on the self struct of the port's parent. This is used when an
@@ -463,21 +494,23 @@ public class CUtil {
     return result.toString();
   }
 
-  /**
-   * Return a unique type for the "self" struct of the specified reactor class from the reactor
-   * class.
-   *
-   * @param reactor The reactor class.
-   * @return The type of a self struct for the specified reactor class.
-   */
-  public static String selfType(ReactorDecl reactor) {
-    return reactor.getName().toLowerCase() + "_self_t";
-  }
+    /**
+     * Return a unique type for the "self" struct of the specified
+     * reactor class from the reactor class.
+     * @param reactor The reactor class.
+     * @return The type of a self struct for the specified reactor class.
+     */
+    public static String selfType(Reactor reactor) {
+        if (reactor.isMain()) {
+            return "_" + CUtil.getName(reactor) + "_main_self_t";
+        }
+        return "_" + CUtil.getName(reactor) + "_self_t";
+    }
 
-  /** Construct a unique type for the "self" struct of the class of the given reactor. */
-  public static String selfType(ReactorInstance instance) {
-    return selfType(instance.getDefinition().getReactorClass());
-  }
+    /** Construct a unique type for the "self" struct of the class of the given reactor. */
+    public static String selfType(ReactorInstance instance) {
+        return selfType(ASTUtils.toDefinition(instance.getDefinition().getReactorClass()));
+    }
 
   /**
    * Return a reference to the trigger_t struct of the specified trigger instance (input port or
@@ -816,25 +849,9 @@ public class CUtil {
     return type.isVariableSizeList || targetType.trim().endsWith("*");
   }
 
-  /**
-   * The number of threads needs to be at least one larger than the input ports to allow the
-   * federate to wait on all input ports while allowing an additional worker thread to process
-   * incoming messages.
-   *
-   * @param federates
-   * @return The minimum number of threads needed.
-   */
-  public static int minThreadsToHandleInputPorts(List<FederateInstance> federates) {
-    int nthreads = 1;
-    for (FederateInstance federate : federates) {
-      nthreads = Math.max(nthreads, federate.networkMessageActions.size() + 1);
+    public static String generateWidthVariable(String var) {
+        return var + "_width";
     }
-    return nthreads;
-  }
-
-  public static String generateWidthVariable(String var) {
-    return var + "_width";
-  }
 
   /**
    * If the type specification of the form {@code type[]}, {@code type*}, or {@code type}, return

@@ -1,7 +1,7 @@
 target Python
 
-reactor Foo(bar(42)) {
-    state baz(500 msec)
+reactor Foo(bar = 42) {
+    state baz = 500 msec
 
     reaction(startup) {= print("Baz: ", self.baz) =}
 }

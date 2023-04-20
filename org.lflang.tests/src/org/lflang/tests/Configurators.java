@@ -24,13 +24,16 @@
 
 package org.lflang.tests;
 
+import org.lflang.TargetProperty;
+import org.lflang.TargetProperty.Platform;
+import org.lflang.generator.LFGeneratorContext.BuildParm;
 import org.lflang.tests.TestRegistry.TestCategory;
 
 /**
  * Configuration procedures for {@link TestBase} methods.
  *
  * @author Clément Fournier
- * @author Marten Lohstroh <marten@berkeley.edu>
+ * @author Marten Lohstroh
  */
 public class Configurators {
 
@@ -62,6 +65,15 @@ public class Configurators {
         return true;
     }
 
+    public static boolean makeZephyrCompatible(LFTest test) {
+        test.getContext().getArgs().setProperty("tracing", "false");
+        test.getContext().getTargetConfig().threading = false;
+        test.getContext().getTargetConfig().setByUser.add(TargetProperty.THREADING);
+        test.getContext().getTargetConfig().platformOptions.platform = Platform.ZEPHYR;
+        test.getContext().getTargetConfig().platformOptions.flash = false;
+        test.getContext().getTargetConfig().platformOptions.board = "qemu_cortex_a53";
+        return true;
+    }
     /**
      * Make no changes to the configuration.
      *
@@ -79,14 +91,17 @@ public class Configurators {
 
         // CONCURRENT, FEDERATED, DOCKER_FEDERATED, DOCKER
         // are not compatible with single-threaded execution.
+        // ARDUINO and ZEPHYR have their own test suites, so we don't need to rerun.
         boolean excluded = category == TestCategory.CONCURRENT
             || category == TestCategory.SERIALIZATION
             || category == TestCategory.FEDERATED
             || category == TestCategory.DOCKER_FEDERATED
-            || category == TestCategory.DOCKER;
+            || category == TestCategory.DOCKER
+            || category == TestCategory.ARDUINO
+            || category == TestCategory.ZEPHYR;
 
-        // SERIALIZATION, TARGET, and ARDUINO tests are excluded on Windows.
-        excluded |= TestBase.isWindows() && (category == TestCategory.TARGET || category == TestCategory.ARDUINO);
+        // SERIALIZATION and TARGET tests are excluded on Windows.
+        excluded |= TestBase.isWindows() && (category == TestCategory.TARGET);
         return !excluded;
     }
 }

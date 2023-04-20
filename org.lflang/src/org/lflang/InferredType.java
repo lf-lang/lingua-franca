@@ -46,7 +46,7 @@ import org.lflang.lf.Type;
  * translated to target code using the code generators or be converted to a general
  * textual representation using toText().
  *
- * @author Christian Menard <christian.menard@tu-dresden.de>
+ * @author Christian Menard
  */
 public class InferredType {
 
@@ -126,7 +126,8 @@ public class InferredType {
     }
 
     /**
-     * Convert the inferred type to its textual representation while ignoring any list qualifiers.
+     * Convert the inferred type to its textual representation
+     * while ignoring any list qualifiers or type arguments.
      *
      * @return Textual representation of this inferred type without list qualifiers
      */

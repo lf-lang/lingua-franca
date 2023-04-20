@@ -8,6 +8,7 @@ import org.lflang.ASTUtils;
 import org.lflang.InferredType;
 import org.lflang.TimeValue;
 import org.lflang.lf.Action;
+import org.lflang.lf.BracedListExpression;
 import org.lflang.lf.CodeExpr;
 import org.lflang.lf.Expression;
 import org.lflang.lf.Initializer;
@@ -66,6 +67,13 @@ public interface TargetTypes {
 
     default String getTargetParamRef(ParameterReference expr, InferredType typeOrNull) {
         return escapeIdentifier(expr.getParameter().getName());
+    }
+
+    /** Translate the braced list expression into target language syntax. */
+    default String getTargetBracedListExpr(BracedListExpression expr, InferredType typeOrNull) {
+        InferredType t = typeOrNull == null ? InferredType.undefined() : typeOrNull;
+        return expr.getItems().stream().map(e -> getTargetExpr(e, t))
+            .collect(Collectors.joining(",", "{", "}"));
     }
 
     /**
@@ -166,8 +174,17 @@ public interface TargetTypes {
             return getTargetFixedSizeListType(type.baseType(), type.listSize);
         } else if (type.isVariableSizeList) {
             return getTargetVariableSizeListType(type.baseType());
+        } else if (!type.astType.getTypeArgs().isEmpty()) {
+            List<String> args = type.astType.getTypeArgs().stream().map(this::getTargetType).toList();
+            return getGenericType(type.baseType(), args);
         }
         return type.toOriginalText();
+    }
+
+    /** Build a generic type. The type args list must not be empty. */
+    default String getGenericType(String base, List<String> args) {
+        assert !args.isEmpty() : "Empty type arguments for " + base;
+        return base + "<" + String.join(", ", args) + ">";
     }
 
     /**
@@ -222,10 +239,8 @@ public interface TargetTypes {
         var targetValues = init.getExprs().stream().map(it -> getTargetExpr(it, inferredType)).collect(Collectors.toList());
         if (inferredType.isFixedSizeList) {
             return getFixedSizeListInitExpression(targetValues, inferredType.listSize, init.isBraces());
-        } else if (inferredType.isVariableSizeList) {
+        } else  {
             return getVariableSizeListInitExpression(targetValues, init.isBraces());
-        } else {
-            return getMissingExpr(inferredType);
         }
     }
 
@@ -245,6 +260,8 @@ public interface TargetTypes {
             return ASTUtils.addZeroToLeadingDot(((Literal) expr).getLiteral()); // here we don't escape
         } else if (expr instanceof CodeExpr) {
             return ASTUtils.toText(((CodeExpr) expr).getCode());
+        } else if (expr instanceof BracedListExpression) {
+            return getTargetBracedListExpr((BracedListExpression) expr, type);
         } else {
             throw new IllegalStateException("Invalid value " + expr);
         }

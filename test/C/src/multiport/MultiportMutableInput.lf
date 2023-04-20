@@ -12,23 +12,22 @@ reactor Source {
     =}
 }
 
-reactor Print(scale: int(1)) {  // The scale parameter is just for testing.
+reactor Print(scale: int = 1) {  // The scale parameter is just for testing.
     input[2] in: int
 
     reaction(in) {=
         int expected = 42;
         for(int j = 0; j < 2; j++) {
-            printf("Received on channel %d: %d", j, in[j]->value);
+            lf_print("Received on channel %d: %d", j, in[j]->value);
             if (in[j]->value != expected) {
-                printf("ERROR: Expected %d!\n", expected);
-                exit(1);
+                lf_print_error_and_exit("ERROR: Expected %d!\n", expected);
             }
             expected *=2;
         }
     =}
 }
 
-reactor Scale(scale: int(2)) {
+reactor Scale(scale: int = 2) {
     mutable input[2] in: int
     output[2] out: int
 

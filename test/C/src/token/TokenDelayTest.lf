@@ -1,0 +1,17 @@
+/**
+ * Test of token delayed using a logical action.
+ * @author Edward A. Lee (eal@berkeley.edu)
+ */
+target C {
+    timeout: 2 ms
+}
+
+import TokenSource, TokenPrint, TokenDelay from "lib/Token.lf"
+
+main reactor {
+    s = new TokenSource()
+    d = new TokenDelay()
+    p = new TokenPrint()
+    s.out -> d.in
+    d.out -> p.in
+}

@@ -1,6 +1,5 @@
 package org.lflang.generator;
 
-import com.google.common.collect.ImmutableMap;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -14,14 +13,18 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.stream.Collectors;
+
 import org.eclipse.xtext.util.CancelIndicator;
+
 import org.lflang.ErrorReporter;
 import org.lflang.util.LFCommand;
+
+import com.google.common.collect.ImmutableMap;
 
 /**
  * Validate generated code.
  *
- * @author Peter Donovan <peterdonovan@berkeley.edu>
+ * @author Peter Donovan
  */
 public abstract class Validator {
 
@@ -167,26 +170,25 @@ public abstract class Validator {
     return commands;
   }
 
-  /**
-   * Return the validation strategy and command corresponding to the given file if such a strategy
-   * and command are available.
-   *
-   * @return the validation strategy and command corresponding to the given file if such a strategy
-   *     and command are available
-   */
-  private Pair<ValidationStrategy, LFCommand> getValidationStrategy(Path generatedFile) {
-    List<ValidationStrategy> sorted =
-        getPossibleStrategies().stream()
-            .sorted(Comparator.comparingInt(vs -> -vs.getPriority()))
-            .toList();
-    for (ValidationStrategy strategy : sorted) {
-      LFCommand validateCommand = strategy.getCommand(generatedFile);
-      if (validateCommand != null) {
-        return new Pair<>(strategy, validateCommand);
-      }
+    /**
+     * Return the validation strategy and command
+     * corresponding to the given file if such a strategy
+     * and command are available.
+     * @return the validation strategy and command
+     * corresponding to the given file if such a strategy
+     * and command are available
+     */
+    private Pair<ValidationStrategy, LFCommand> getValidationStrategy(Path generatedFile) {
+        List<ValidationStrategy> sorted = getPossibleStrategies().stream()
+            .sorted(Comparator.comparingInt(vs -> -vs.getPriority())).toList();
+        for (ValidationStrategy strategy : sorted) {
+            LFCommand validateCommand = strategy.getCommand(generatedFile);
+            if (validateCommand != null) {
+                return new Pair<>(strategy, validateCommand);
+            }
+        }
+        return new Pair<>(null, null);
     }
-    return new Pair<>(null, null);
-  }
 
   /**
    * List all validation strategies that exist for the implementor without filtering by platform or

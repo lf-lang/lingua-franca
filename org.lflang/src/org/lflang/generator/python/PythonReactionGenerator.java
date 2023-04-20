@@ -4,10 +4,13 @@ import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
+
 import org.lflang.ASTUtils;
+import org.lflang.AttributeUtils;
 import org.lflang.ErrorReporter;
 import org.lflang.Target;
-import org.lflang.generator.DelayBodyGenerator;
+
 import org.lflang.generator.c.CReactionGenerator;
 import org.lflang.lf.ReactorDecl;
 import org.lflang.lf.Reaction;
@@ -31,49 +34,46 @@ import org.lflang.lf.Mode;
 
 public class PythonReactionGenerator {
     /**
-     * Generate code to call reaction numbered "reactionIndex" in reactor "decl".
-     * @param decl The reactor containing the reaction
+     * Generate code to call reaction numbered "reactionIndex" in reactor "reactor".
+     * @param reactor The reactor containing the reaction
      * @param reactionIndex The index of the reaction
-     * @param pyObjectDescriptor CPython related descriptors for each object in "pyObjects".
      * @param pyObjects CPython related objects
      */
-    public static String generateCPythonReactionCaller(ReactorDecl decl,
+    public static String generateCPythonReactionCaller(Reactor reactor,
                                                         int reactionIndex,
                                                         List<String> pyObjects,
                                                         String inits) {
         String pythonFunctionName = generatePythonReactionFunctionName(reactionIndex);
         String cpythonFunctionName = generateCPythonReactionFunctionName(reactionIndex);
-        return generateCPythonFunctionCaller(decl.getName(), pythonFunctionName, cpythonFunctionName, pyObjects, inits);
+        return generateCPythonFunctionCaller(CUtil.getName(reactor), pythonFunctionName, cpythonFunctionName, pyObjects, inits);
     }
 
     /**
-     * Generate code to call deadline function numbered "reactionIndex" in reactor "decl".
-     * @param decl The reactor containing the reaction
+     * Generate code to call deadline function numbered "reactionIndex" in reactor "r".
+     * @param r The reactor containing the reaction
      * @param reactionIndex The index of the reaction
-     * @param pyObjectDescriptor CPython related descriptors for each object in "pyObjects".
      * @param pyObjects CPython related objects
      */
-    public static String generateCPythonDeadlineCaller(ReactorDecl decl,
+    public static String generateCPythonDeadlineCaller(Reactor r,
                                                        int reactionIndex,
                                                        List<String> pyObjects) {
         String pythonFunctionName = generatePythonDeadlineFunctionName(reactionIndex);
         String cpythonFunctionName = generateCPythonDeadlineFunctionName(reactionIndex);
-        return generateCPythonFunctionCaller(decl.getName(), pythonFunctionName, cpythonFunctionName, pyObjects, "");
+        return generateCPythonFunctionCaller(CUtil.getName(r), pythonFunctionName, cpythonFunctionName, pyObjects, "");
     }
 
     /**
-     * Generate code to call deadline function numbered "reactionIndex" in reactor "decl".
-     * @param decl The reactor containing the reaction
+     * Generate code to call deadline function numbered "reactionIndex" in reactor "r".
+     * @param r The reactor containing the reaction
      * @param reactionIndex The index of the reaction
-     * @param pyObjectDescriptor CPython related descriptors for each object in "pyObjects".
      * @param pyObjects CPython related objects
      */
-    public static String generateCPythonSTPCaller(ReactorDecl decl,
+    public static String generateCPythonSTPCaller(Reactor r,
                                                        int reactionIndex,
                                                        List<String> pyObjects) {
         String pythonFunctionName = generatePythonSTPFunctionName(reactionIndex);
         String cpythonFunctionName = generateCPythonSTPFunctionName(reactionIndex);
-        return generateCPythonFunctionCaller(decl.getName(), pythonFunctionName, cpythonFunctionName, pyObjects, "");
+        return generateCPythonFunctionCaller(CUtil.getName(r), pythonFunctionName, cpythonFunctionName, pyObjects, "");
     }
 
     /**
@@ -119,55 +119,52 @@ public class PythonReactionGenerator {
      * Generate the reaction in the .c file, which calls the Python reaction through the CPython interface.
      *
      * @param reaction The reaction to generate Python-specific initialization for.
-     * @param decl The reactor to which <code>reaction<code> belongs to.
+     * @param r The reactor to which <code>reaction<code> belongs to.
      * @param reactionIndex The index number of the reaction in decl.
      * @param mainDef The main reactor.
      * @param errorReporter An error reporter.
      * @param types A helper class for type-related stuff.
-     * @param isFederatedAndDecentralized True if program is federated and coordination type is decentralized.
      */
     public static String generateCReaction(
         Reaction reaction,
-        ReactorDecl decl,
+        Reactor r,
         int reactionIndex,
         Instantiation mainDef,
         ErrorReporter errorReporter,
-        CTypes types,
-        boolean isFederatedAndDecentralized
+        CTypes types
     ) {
         // Contains the actual comma separated list of inputs to the reaction of type generic_port_instance_struct.
         // Each input must be cast to (PyObject *) (aka their descriptors for Py_BuildValue are "O")
         List<String> pyObjects = new ArrayList<>();
         CodeBuilder code = new CodeBuilder();
-        String cPyInit = generateCPythonInitializers(reaction, decl, pyObjects, errorReporter);
+        String cPyInit = generateCPythonInitializers(reaction, r, pyObjects, errorReporter);
         String cInit = CReactionGenerator.generateInitializationForReaction(
-                                                "", reaction, decl, reactionIndex,
+                                                "", reaction, r, reactionIndex,
                                                 types, errorReporter, mainDef,
-                                                isFederatedAndDecentralized,
                                                 Target.Python.requiresTypes);
         code.pr(
             "#include " + StringUtil.addDoubleQuotes(
                 CCoreFilesUtils.getCTargetSetHeader()));
         code.pr(generateFunction(
-                    CReactionGenerator.generateReactionFunctionHeader(decl, reactionIndex),
+                    CReactionGenerator.generateReactionFunctionHeader(r, reactionIndex),
                     cInit, reaction.getCode(),
-                    generateCPythonReactionCaller(decl, reactionIndex, pyObjects, cPyInit)
+                    generateCPythonReactionCaller(r, reactionIndex, pyObjects, cPyInit)
         ));
 
         // Generate code for the STP violation handler, if there is one.
         if (reaction.getStp() != null) {
             code.pr(generateFunction(
-                    CReactionGenerator.generateStpFunctionHeader(decl, reactionIndex),
+                    CReactionGenerator.generateStpFunctionHeader(r, reactionIndex),
                     cInit, reaction.getStp().getCode(),
-                    generateCPythonSTPCaller(decl, reactionIndex, pyObjects)
+                    generateCPythonSTPCaller(r, reactionIndex, pyObjects)
                 ));
         }
         // Generate code for the deadline violation function, if there is one.
         if (reaction.getDeadline() != null) {
             code.pr(generateFunction(
-                CReactionGenerator.generateDeadlineFunctionHeader(decl, reactionIndex),
+                CReactionGenerator.generateDeadlineFunctionHeader(r, reactionIndex),
                 cInit, reaction.getDeadline().getCode(),
-                generateCPythonDeadlineCaller(decl, reactionIndex, pyObjects)
+                generateCPythonDeadlineCaller(r, reactionIndex, pyObjects)
             ));
         }
         code.pr(
@@ -380,17 +377,12 @@ public class PythonReactionGenerator {
         Reactor reactor = ASTUtils.toDefinition(instance.getDefinition().getReactorClass());
         CodeBuilder code = new CodeBuilder();
 
-        // Delay reactors and top-level reactions used in the top-level reactor(s) in federated execution are generated in C
-        if (reactor.getName().contains(DelayBodyGenerator.GEN_DELAY_CLASS_NAME) ||
-                instance.getDefinition().getReactorClass() == (mainDef != null ? mainDef.getReactorClass() : null) &&
-                reactor.isFederated()) {
-            return "";
-        }
-
         // Initialize the name field to the unique name of the instance
         code.pr(nameOfSelfStruct+"->_lf_name = \""+instance.uniqueID()+"_lf\";");
 
         for (ReactionInstance reaction : instance.reactions) {
+            // Reactions marked with a `@_c_body` attribute are generated in C
+            if (AttributeUtils.hasCBody(reaction.getDefinition())) continue;
             // Create a PyObject for each reaction
             code.pr(generateCPythonReactionLinker(instance, reaction, nameOfSelfStruct));
         }
@@ -488,6 +480,9 @@ public class PythonReactionGenerator {
      * @param reaction The reaction of reactor
      */
     public static String generatePythonReaction(Reactor reactor, Reaction reaction, int reactionIndex) {
+        // Reactions marked with a `@_c_body` attribute are generated in C
+        if (AttributeUtils.hasCBody(reaction))  return "";
+
         CodeBuilder code = new CodeBuilder();
         List<String> reactionParameters = new ArrayList<>(); // Will contain parameters for the function (e.g., Foo(x,y,z,...)
         CodeBuilder inits = new CodeBuilder(); // Will contain initialization code for some parameters

@@ -21,7 +21,7 @@ import com.google.common.collect.ImmutableList;
 
 /**
  * Insert problems into integration tests.
- * @author Peter Donovan <peterdonovan@berkeley.edu>
+ * @author Peter Donovan
  */
 @SuppressWarnings("ClassCanBeRecord")
 class ErrorInserter {
@@ -68,7 +68,7 @@ class ErrorInserter {
         /** The zero-based indices of the touched lines. */
         private final List<Integer> badLines;
         /** The original test on which this is based. */
-        private final Path path;
+        private final Path srcFile;
         /** The content of this test. */
         private final LinkedList<String> lines;
         /** Whether the error inserter is permitted to insert a line before the current line. */
@@ -82,9 +82,9 @@ class ErrorInserter {
          */
         private AlteredTest(Path originalTest, BiPredicate<String, String> insertCondition) throws IOException {
             this.badLines = new ArrayList<>();
-            this.path = originalTest;
+            this.srcFile = originalTest;
             this.lines = new LinkedList<>();  // Constant-time insertion during iteration is desired.
-            this.lines.addAll(Files.readAllLines(originalTest));
+            this.lines.addAll(Files.readAllLines(srcFile));
             this.insertCondition = it -> {
                 it.previous();
                 String s0 = it.previous();
@@ -95,8 +95,8 @@ class ErrorInserter {
         }
 
         /** Return the location where the content of {@code this} lives. */
-        public Path getPath() {
-            return path;
+        public Path getSrcFile() {
+            return srcFile;
         }
 
         /**
@@ -104,10 +104,11 @@ class ErrorInserter {
          * @throws IOException If an I/O error occurred.
          */
         public void write() throws IOException {
-            if (!path.toFile().renameTo(swapFile(path).toFile())) {
+            Path src = srcFile;
+            if (!src.toFile().renameTo(swapFile(src).toFile())) {
                 throw new IOException("Failed to create a swap file.");
             }
-            try (PrintWriter writer = new PrintWriter(path.toFile())) {
+            try (PrintWriter writer = new PrintWriter(src.toFile())) {
                 lines.forEach(writer::println);
             }
         }
@@ -117,11 +118,12 @@ class ErrorInserter {
          */
         @Override
         public void close() throws IOException {
-            if (!swapFile(path).toFile().exists()) throw new IllegalStateException("Swap file does not exist.");
-            if (!path.toFile().delete()) {
+            Path src = srcFile;
+            if (!swapFile(src).toFile().exists()) throw new IllegalStateException("Swap file does not exist.");
+            if (!src.toFile().delete()) {
                 throw new IOException("Failed to delete the file associated with the original test.");
             }
-            if (!swapFile(path).toFile().renameTo(path.toFile())) {
+            if (!swapFile(src).toFile().renameTo(src.toFile())) {
                 throw new IOException("Failed to restore the altered LF file to its original state.");
             }
         }
@@ -334,7 +336,7 @@ class ErrorInserter {
 
     /**
      * Alter the given test and return the altered version.
-     * @param test An LF file that can be used as a test.
+     * @param test The path to the test.
      * @return An {@code AlteredTest} that is based on {@code test}.
      */
     public AlteredTest alterTest(Path test) throws IOException {

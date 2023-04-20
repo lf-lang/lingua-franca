@@ -14,7 +14,7 @@ import Count from "../lib/Count.lf"
 
 reactor Print {
     input inp: number
-    state c: number(1)
+    state c: number = 1
 
     reaction(inp) {=
         const elapsedTime = util.getElapsedLogicalTime();
@@ -22,7 +22,7 @@ reactor Print {
         if (inp !== c) {
             util.requestErrorStop("Expected to receive " + c + ".");
         }
-        if (elapsedTime.isEqualTo(TimeValue.msec(200).add(TimeValue.sec(c - 1)))) {
+        if (!elapsedTime.isEqualTo(TimeValue.msec(200).add(TimeValue.sec(c - 1)))) {
             util.requestErrorStop("Expected received time to be " + TimeValue.msec(200).add(TimeValue.sec(c - 1)) + ".");
         }
         c++;
@@ -35,7 +35,7 @@ reactor Print {
     =}
 }
 
-federated reactor DistributedCount(offset: time(200 msec)) {
+federated reactor DistributedCount(offset: time = 200 msec) {
     c = new Count()
     p = new Print()
     c.out -> p.inp after offset

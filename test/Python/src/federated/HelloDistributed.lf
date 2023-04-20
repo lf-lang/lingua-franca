@@ -13,13 +13,13 @@ reactor Source {
     reaction(startup) -> out {=
         print("Sending 'Hello World!' message from source federate.");
         out.set("Hello World!")
-        request_stop()
+        lf_request_stop()
     =}
 }
 
 reactor Destination {
     input _in
-    state received(false)
+    state received = False
 
     reaction(startup) {= print("Destination started.") =}
 

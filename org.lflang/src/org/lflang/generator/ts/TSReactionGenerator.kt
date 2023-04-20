@@ -2,7 +2,7 @@ package org.lflang.generator.ts
 
 import org.lflang.ErrorReporter
 import org.lflang.ASTUtils
-import org.lflang.federated.FederateInstance
+import org.lflang.federated.generator.FederateInstance
 import org.lflang.generator.PrependOperator
 import org.lflang.generator.getTargetTimeExpr
 import org.lflang.isBank
@@ -19,16 +19,15 @@ import java.util.LinkedList
 /**
  * Reaction generator for TypeScript target.
  *
- *  @author{Matt Weber <matt.weber@berkeley.edu>}
- *  @author{Edward A. Lee <eal@berkeley.edu>}
- *  @author{Marten Lohstroh <marten@berkeley.edu>}
- *  @author {Christian Menard <christian.menard@tu-dresden.de>}
- *  @author {Hokeun Kim <hokeunkim@berkeley.edu>}
+ *  @author Matt Weber
+ *  @author Edward A. Lee
+ *  @author Marten Lohstroh
+ *  @author Christian Menard
+ *  @author Hokeun Kim
  */
 class TSReactionGenerator(
     private val errorReporter: ErrorReporter,
-    private val reactor: Reactor,
-    private val federate: FederateInstance
+    private val reactor: Reactor
 ) {
 
     private fun VarRef.generateVarRef(): String {
@@ -359,7 +358,7 @@ class TSReactionGenerator(
 
             // Underscores are added to parameter names to prevent conflict with prologue
             val name = param.name
-            reactSignature.add("__$name: __Parameter<${TSTypes.getTargetType(param)}>")
+            reactSignature.add("__$name: __Parameter<${TSTypes.getInstance().getTargetType(param)}>")
             reactFunctArgs.add("this.$name")
             reactPrologue.add("let $name = __$name.get();")
         }
@@ -368,7 +367,7 @@ class TSReactionGenerator(
         for (state in reactor.stateVars) {
             // Underscores are added to state names to prevent conflict with prologue
             val name = state.name
-            reactSignature.add("__$name: __State<${TSTypes.getTargetType(state)}>")
+            reactSignature.add("__$name: __State<${TSTypes.getInstance().getTargetType(state)}>")
             reactFunctArgs.add("this.$name")
             reactPrologue.add("let $name = __$name.get();")
             reactEpilogue.add(
@@ -416,29 +415,10 @@ class TSReactionGenerator(
         // Next handle reaction instances.
         // If the app is federated, only generate
         // reactions that are contained by that federate
-        val generatedReactions: List<Reaction>
-        if (reactor.isFederated) {
-            generatedReactions = LinkedList<Reaction>()
-            for (reaction in reactor.reactions) {
-                // TODO(hokeun): Find a better way to gracefully handle this skipping.
-                // Do not add reactions created by generateNetworkOutputControlReactionBody
-                // or generateNetworkInputControlReactionBody.
-                if (reaction.code.toText().contains("generateNetworkOutputControlReactionBody")
-                    || reaction.code.toText().contains("generateNetworkInputControlReactionBody")
-                ) {
-                    continue
-                }
-                if (federate.contains(reaction)) {
-                    generatedReactions.add(reaction)
-                }
-            }
-        } else {
-            generatedReactions = reactor.reactions
-        }
 
         ///////////////////// Reaction generation begins /////////////////////
         // TODO(hokeun): Consider separating this out as a new class.
-        for (reaction in generatedReactions) {
+        for (reaction in reactor.reactions) {
             // Write the reaction itself
             reactionCodes.add(generateSingleReaction(reactor, reaction))
         }

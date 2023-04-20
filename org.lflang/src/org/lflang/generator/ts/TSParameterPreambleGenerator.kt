@@ -36,11 +36,11 @@ import java.util.StringJoiner
 /**
  * Preamble generator for global parameters in TypeScript target.
  *
- *  @author{Matt Weber <matt.weber@berkeley.edu>}
- *  @author{Edward A. Lee <eal@berkeley.edu>}
- *  @author{Marten Lohstroh <marten@berkeley.edu>}
- *  @author {Christian Menard <christian.menard@tu-dresden.de>}
- *  @author {Hokeun Kim <hokeunkim@berkeley.edu>}
+ *  @author Matt Weber
+ *  @author Edward A. Lee
+ *  @author Marten Lohstroh
+ *  @author Christian Menard
+ *  @author Hokeun Kim
  */
 
 class TSParameterPreambleGenerator(
@@ -69,7 +69,7 @@ class TSParameterPreambleGenerator(
         mainParameters.joinWithLn { parameter ->
 
             """
-                |let __CL${parameter.name}: ${TSTypes.getTargetType(parameter)} | undefined = undefined;
+                |let __CL${parameter.name}: ${TSTypes.getInstance().getTargetType(parameter)} | undefined = undefined;
                 |if (__processedCLArgs.${parameter.name} !== undefined) {
                 |    if (__processedCLArgs.${parameter.name} !== null) {
                 |        __CL${parameter.name} = __processedCLArgs.${parameter.name};
@@ -114,7 +114,7 @@ class TSParameterPreambleGenerator(
             var customArgType: String? = null
             var customTypeLabel: String? = null
 
-            val paramType = TSTypes.getTargetType(parameter)
+            val paramType = TSTypes.getInstance().getTargetType(parameter)
             if (paramType == "string") {
                 mainParameters.add(parameter)
                 customArgType = "String";

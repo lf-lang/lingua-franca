@@ -21,6 +21,7 @@ import org.eclipse.xtext.nodemodel.INode;
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils;
 import org.eclipse.xtext.xbase.lib.StringExtensions;
 import org.lflang.ASTUtils;
+import org.lflang.Target;
 import org.lflang.ast.MalleableString.Builder;
 import org.lflang.ast.MalleableString.Joiner;
 import org.lflang.lf.Action;
@@ -29,6 +30,7 @@ import org.lflang.lf.ArraySpec;
 import org.lflang.lf.Assignment;
 import org.lflang.lf.AttrParm;
 import org.lflang.lf.Attribute;
+import org.lflang.lf.BracedListExpression;
 import org.lflang.lf.BuiltinTriggerRef;
 import org.lflang.lf.Code;
 import org.lflang.lf.CodeExpr;
@@ -46,6 +48,7 @@ import org.lflang.lf.Input;
 import org.lflang.lf.Instantiation;
 import org.lflang.lf.KeyValuePair;
 import org.lflang.lf.KeyValuePairs;
+import org.lflang.lf.LfFactory;
 import org.lflang.lf.Literal;
 import org.lflang.lf.Method;
 import org.lflang.lf.MethodArgument;
@@ -104,6 +107,7 @@ public class ToLf extends LfSwitch<MalleableString> {
   @Override
   public MalleableString doSwitch(EObject eObject) {
     ICompositeNode node = NodeModelUtils.findActualNodeFor(eObject);
+    if (node == null) return super.doSwitch(eObject);
     var ancestorComments = getAncestorComments(node);
     Predicate<INode> doesNotBelongToAncestor = n -> !ancestorComments.contains(n);
     List<String> followingComments =
@@ -123,9 +127,10 @@ public class ToLf extends LfSwitch<MalleableString> {
     allComments.addAll(followingComments);
     if (allComments.stream().anyMatch(s -> KEEP_FORMAT_COMMENT.matcher(s).matches())) {
       return MalleableString.anyOf(StringUtil.trimCodeBlock(node.getText(), 0))
-          .addComments(followingComments.stream());
+          .addComments(followingComments.stream())
+          .setSourceEObject(eObject);
     }
-    return super.doSwitch(eObject).addComments(allComments.stream());
+    return super.doSwitch(eObject).addComments(allComments.stream()).setSourceEObject(eObject);
   }
 
   /** Return all comments contained by ancestors of {@code node} that belong to said ancestors. */
@@ -294,8 +299,8 @@ public class ToLf extends LfSwitch<MalleableString> {
       msb.append("time");
     } else if (type.getId() != null) {
       msb.append(type.getId()); // TODO: Multiline dottedName?
-      if (type.getTypeParms() != null) {
-        msb.append(list(", ", "<", ">", true, false, type.getTypeParms()));
+      if (type.getTypeArgs() != null) {
+        msb.append(list(", ", "<", ">", true, false, type.getTypeArgs()));
       }
       msb.append("*".repeat(type.getStars().size()));
     }
@@ -474,7 +479,7 @@ public class ToLf extends LfSwitch<MalleableString> {
     }
     msb.append("state ").append(object.getName());
     msb.append(typeAnnotationFor(object.getType()));
-    msb.append(initializer(object.getInit(), true));
+    msb.append(initializer(object.getInit()));
 
     return msb.get();
   }
@@ -590,13 +595,12 @@ public class ToLf extends LfSwitch<MalleableString> {
 
   @Override
   public MalleableString caseReaction(Reaction object) {
-    // ('reaction')
-    // ('(' (triggers+=TriggerRef (',' triggers+=TriggerRef)*)? ')')?
+    // (attributes+=Attribute)*
+    // (('reaction') | mutation ?= 'mutation')
+    // ('(' (triggers+=TriggerRef (',' triggers+=TriggerRef)*)? ')')
     // (sources+=VarRef (',' sources+=VarRef)*)?
     // ('->' effects+=VarRefOrModeTransition (',' effects+=VarRefOrModeTransition)*)?
-    // code=Code
-    // (stp=STP)?
-    // (deadline=Deadline)?
+    // ((('named' name=ID)? code=Code) | 'named' name=ID)(stp=STP)?(deadline=Deadline)?
     Builder msb = new Builder();
     addAttributes(msb, object::getAttributes);
     if (object.isMutation()) {
@@ -625,7 +629,8 @@ public class ToLf extends LfSwitch<MalleableString> {
                               : doSwitch(varRef))
                   .collect(new Joiner(", ")));
     }
-    msb.append(" ").append(doSwitch(object.getCode()));
+    if (object.getName() != null) msb.append(" named ").append(object.getName());
+    if (object.getCode() != null) msb.append(" ").append(doSwitch(object.getCode()));
     if (object.getStp() != null) msb.append(" ").append(doSwitch(object.getStp()));
     if (object.getDeadline() != null) msb.append(" ").append(doSwitch(object.getDeadline()));
     return msb.get();
@@ -684,10 +689,11 @@ public class ToLf extends LfSwitch<MalleableString> {
     // (parameters+=Assignment (',' parameters+=Assignment)*)?
     // ')' ('at' host=Host)? ';'?;
     Builder msb = new Builder();
+    addAttributes(msb, object::getAttributes);
     msb.append(object.getName()).append(" = new");
     if (object.getWidthSpec() != null) msb.append(doSwitch(object.getWidthSpec()));
     msb.append(" ").append(object.getReactorClass().getName());
-    msb.append(list(", ", "<", ">", true, false, object.getTypeParms()));
+    msb.append(list(", ", "<", ">", true, false, object.getTypeArgs()));
     msb.append(list(false, object.getParameters()));
     // TODO: Delete the following case when the corresponding feature is removed
     if (object.getHost() != null) msb.append(" at ").append(doSwitch(object.getHost()));
@@ -754,12 +760,24 @@ public class ToLf extends LfSwitch<MalleableString> {
   @Override
   public MalleableString caseKeyValuePairs(KeyValuePairs object) {
     // {KeyValuePairs} '{' (pairs+=KeyValuePair (',' (pairs+=KeyValuePair))* ','?)? '}'
-    if (object.getPairs().isEmpty()) return MalleableString.anyOf("");
+    if (object.getPairs().isEmpty()) {
+      return MalleableString.anyOf("");
+    }
     return new Builder()
         .append("{\n")
         .append(list(",\n", "", "\n", true, true, object.getPairs()).indent())
         .append("}")
         .get();
+  }
+
+  @Override
+  public MalleableString caseBracedListExpression(BracedListExpression object) {
+    if (object.getItems().isEmpty()) {
+      return MalleableString.anyOf("{}");
+    }
+    // Note that this strips the trailing comma. There is no way
+    // to implement trailing commas with the current set of list() methods AFAIU.
+    return list(", ", "{", "}", false, false, object.getItems());
   }
 
   @Override
@@ -816,35 +834,52 @@ public class ToLf extends LfSwitch<MalleableString> {
     // ));
     Builder msb = new Builder();
     msb.append(object.getLhs().getName());
-    if (object.getEquals() != null) {
-      msb.append(" = ");
-    }
-    msb.append(initializer(object.getRhs(), false));
+    msb.append(initializer(object.getRhs()));
     return msb.get();
   }
 
   @Override
   public MalleableString caseInitializer(Initializer object) {
-    return initializer(object, false);
+    return initializer(object);
   }
 
-  private MalleableString initializer(Initializer init, boolean nothingIfEmpty) {
+  /**
+   * Return true if the initializer should be output with an equals initializer.
+   * Old-style assignments with parentheses are also output that
+   * way to help with the transition.
+   */
+  private boolean shouldOutputAsAssignment(Initializer init) {
+    return init.isAssign()
+        || init.getExprs().size() == 1 && ASTUtils.getTarget(init).mandatesEqualsInitializers();
+  }
+
+  private MalleableString initializer(Initializer init) {
     if (init == null) {
       return MalleableString.anyOf("");
+    }
+    if (shouldOutputAsAssignment(init)) {
+      Expression expr = ASTUtils.asSingleExpr(init);
+      Objects.requireNonNull(expr);
+      return new Builder().append(" = ").append(doSwitch(expr)).get();
+    }
+    if (ASTUtils.getTarget(init) == Target.C) {
+      // This turns C array initializers into a braced expression.
+      // C++ variants are not converted.
+      BracedListExpression list = LfFactory.eINSTANCE.createBracedListExpression();
+      list.getItems().addAll(init.getExprs());
+      return new Builder().append(" = ").append(doSwitch(list)).get();
     }
     String prefix;
     String suffix;
     if (init.isBraces()) {
       prefix = "{";
       suffix = "}";
-    } else if (init.isParens()) {
+    } else {
+      assert init.isParens();
       prefix = "(";
       suffix = ")";
-    } else {
-      // unparenthesized parameter assignment.
-      prefix = suffix = "";
     }
-    return list(", ", prefix, suffix, nothingIfEmpty, false, init.getExprs());
+    return list(", ", prefix, suffix, false, false, init.getExprs());
   }
 
 
@@ -859,7 +894,7 @@ public class ToLf extends LfSwitch<MalleableString> {
     return builder
         .append(object.getName())
         .append(typeAnnotationFor(object.getType()))
-        .append(initializer(object.getInit(), true))
+        .append(initializer(object.getInit()))
         .get();
   }
 
@@ -1020,29 +1055,40 @@ public class ToLf extends LfSwitch<MalleableString> {
     var sorted =
         statementListList.stream()
             .flatMap(List::stream)
-            .sorted(Comparator.comparing(object -> NodeModelUtils.getNode(object).getStartLine()))
+            .sequential()
+            .sorted(
+                Comparator.comparing(
+                    object -> {
+                      INode node = NodeModelUtils.getNode(object);
+                      return node == null ? 0 : node.getStartLine();
+                    }))
             .toList();
     if (sorted.isEmpty()) return MalleableString.anyOf("");
     var ret = new Builder();
     var first = true;
     for (var object : sorted) {
       if (!first) {
-        INode node = NodeModelUtils.getNode(object);
-        StringBuilder leadingText = new StringBuilder();
-        if (!forceWhitespace) {
-          for (INode n : node.getAsTreeIterable()) {
-            if (n instanceof ICompositeNode) continue;
-            if (!ASTUtils.isComment(n) && !n.getText().isBlank()) break;
-            leadingText.append(n.getText());
-          }
-        }
-        boolean hasLeadingBlankLines =
-            leadingText.toString().lines().skip(1).filter(String::isBlank).count() > 1;
-        ret.append("\n".repeat(forceWhitespace || hasLeadingBlankLines ? 2 : 1));
+        ret.append("\n".repeat(shouldAddWhitespaceBefore(object, forceWhitespace) ? 2 : 1));
       }
       ret.append(doSwitch(object));
       first = false;
     }
     return ret.append("\n").get().indent();
+  }
+
+  private static boolean shouldAddWhitespaceBefore(EObject object, boolean forceWhitespace) {
+    INode node = NodeModelUtils.getNode(object);
+    if (node == null) return true;
+    StringBuilder leadingText = new StringBuilder();
+    if (!forceWhitespace) {
+      for (INode n : node.getAsTreeIterable()) {
+        if (n instanceof ICompositeNode) continue;
+        if (!ASTUtils.isComment(n) && !n.getText().isBlank()) break;
+        leadingText.append(n.getText());
+      }
+    }
+    boolean hasLeadingBlankLines =
+        leadingText.toString().lines().skip(1).filter(String::isBlank).count() > 1;
+    return forceWhitespace || hasLeadingBlankLines;
   }
 }

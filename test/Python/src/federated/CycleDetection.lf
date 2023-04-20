@@ -10,7 +10,7 @@ reactor CAReplica {
     input remote_update
     input query
 
-    state balance(0)
+    state balance = 0
 
     output response
 
@@ -36,7 +36,7 @@ reactor UserInput {
             self.sys.stderr.write("Did not receive the expected balance. Expected: 200. Got: {}.\n".format(balance.value))
             self.sys.exit(1)
         print("Balance: {}".format(balance.value))
-        request_stop()
+        lf_request_stop()
     =}
 
     reaction(shutdown) {= print("Test passed!") =}

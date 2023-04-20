@@ -1,0 +1,14 @@
+target C {
+    platform: {
+        name: Zephyr,
+        board: qemu_cortex_m3
+    },
+    threading: false,
+    timeout: 10 sec
+}
+
+main reactor {
+    timer t(0, 1 sec)
+
+    reaction(t) {= printf("Hello\n"); =}
+}

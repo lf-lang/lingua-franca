@@ -8,7 +8,7 @@ target Python {
 reactor Source {
     timer t(0, 200 msec)
     output out
-    state s(0)
+    state s = 0
 
     reaction(t) -> out {=
         out.set(self.s)
@@ -23,8 +23,8 @@ reactor Computation {
     reaction(_in) -> out {= out.set(_in.value) =}
 }
 
-reactor Destination(width(1)) {
-    state s(0)
+reactor Destination(width = 1) {
+    state s = 0
     input[width] _in
 
     reaction(_in) {=

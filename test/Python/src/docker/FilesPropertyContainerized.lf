@@ -7,7 +7,7 @@ preamble {=
     try:
         import hello
     except:
-        request_stop()
+        lf_request_stop()
 =}
 
 main reactor {
@@ -15,9 +15,9 @@ main reactor {
         try:
             import hello
         except:
-            request_stop()
+            lf_request_stop()
     =}
-    state passed(false)
+    state passed = False
     timer t(1 msec)
 
     reaction(t) {= self.passed = True =}

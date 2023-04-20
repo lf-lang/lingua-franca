@@ -1,14 +1,14 @@
 package org.lflang.generator.c;
 
 import java.util.List;
-import org.lflang.generator.GeneratorBase;
+
 import org.lflang.generator.TimerInstance;
 
 /**
  * Generates C code to declare and initialize timers.
  *
- * @author {Edward A. Lee <eal@berkeley.edu>}
- * @author {Soroush Bateni <soroush@utdallas.edu>
+ * @author Edward A. Lee
+ * @author {Soroush Bateni
  */
 public class CTimerGenerator {
     /**
@@ -18,8 +18,8 @@ public class CTimerGenerator {
      */
     public static String generateInitializer(TimerInstance timer) {
         var triggerStructName = CUtil.reactorRef(timer.getParent()) + "->_lf__"  + timer.getName();
-        var offset = GeneratorBase.timeInTargetLanguage(timer.getOffset());
-        var period = GeneratorBase.timeInTargetLanguage(timer.getPeriod());
+        var offset = CTypes.getInstance().getTargetTimeExpr(timer.getOffset());
+        var period = CTypes.getInstance().getTargetTimeExpr(timer.getPeriod());
         var mode = timer.getMode(false);
         var modeRef = mode != null ?
             "&"+CUtil.reactorRef(mode.getParent())+"->_lf__modes["+mode.getParent().modes.indexOf(mode)+"];" :
@@ -63,7 +63,7 @@ public class CTimerGenerator {
                     if (_lf_timer_triggers[i] != NULL) {
                         _lf_initialize_timer(_lf_timer_triggers[i]);
                     }
-                }""".indent(4) :
+                }""".indent(4).stripTrailing() :
             "",
             "}"
         );

@@ -1,26 +1,35 @@
 package org.lflang.generator.ts
 
 import org.lflang.*
-import org.lflang.federated.FederateInstance
 import org.lflang.generator.PrependOperator
-import org.lflang.generator.ReactorInstance
 import org.lflang.lf.*
+import org.lflang.validation.AttributeSpec
 import java.util.*
 
 /**
  * Reactor generator for TypeScript target.
  *
- *  @author{Matt Weber <matt.weber@berkeley.edu>}
- *  @author{Edward A. Lee <eal@berkeley.edu>}
- *  @author{Marten Lohstroh <marten@berkeley.edu>}
- *  @author {Christian Menard <christian.menard@tu-dresden.de>}
- *  @author {Hokeun Kim <hokeunkim@berkeley.edu>}
+ *  @author Matt Weber
+ *  @author Edward A. Lee
+ *  @author Marten Lohstroh
+ *  @author Christian Menard
+ *  @author Hokeun Kim
  */
 class TSReactorGenerator(
     private val tsGenerator: TSGenerator,
     private val errorReporter: ErrorReporter,
     private val targetConfig: TargetConfig
 ) {
+
+    companion object {
+        const val MIN_OUTPUT_DELAY_STATEMENT =
+            """
+                if (defaultFederateConfig.minOutputDelay !== undefined) {
+                    __app.setMinDelayFromPhysicalActionToFederateOutput(defaultFederateConfig.minOutputDelay);
+                }
+            """
+    }
+
     // Initializer functions
     fun getTargetInitializerHelper(param: Parameter,
                                    list: List<String>): String {
@@ -38,7 +47,7 @@ class TSReactorGenerator(
      *  main one.
      *  @param instance A reactor instance.
      */
-    private fun generateReactorInstance(
+    private fun generateMainReactorInstance(
         defn: Instantiation,
         mainParameters: Set<Parameter>
     ): String {
@@ -51,116 +60,84 @@ class TSReactorGenerator(
         // assignment variable ("__CL" + the parameter's name). That variable will
         // be undefined if the command line argument wasn't specified. Otherwise
         // use undefined in the constructor.
-        val mainReactorParams = StringJoiner(", ")
-        for (parameter in defn.reactorClass.toDefinition().parameters) {
-
-            if (mainParameters.contains(parameter)) {
-                mainReactorParams.add("__CL" + parameter.name)
-            } else {
-                mainReactorParams.add("undefined")
-            }
+        val mainReactorParams = defn.reactorClass.toDefinition().parameters.joinWithCommas { p ->
+            if (p in mainParameters) "__CL" + p.name
+            else "undefined"
         }
 
-        return with(PrependOperator) {
-            """
-            |// ************* Instance $fullName of class ${defn.reactorClass.name}
-            |let __app;
-            |if (!__noStart) {
-            |    __app = new $fullName(__timeout, __keepAlive, __fast, __federationID, $mainReactorParams);
-            |}
-            """
-        }.trimMargin()
+        return """
+        |// ************* Instance $fullName of class ${defn.reactorClass.name}
+        |let __app;
+        |if (!__noStart) {
+        |    __app = new $fullName(__timeout, __keepAlive, __fast, __federationID, $mainReactorParams () => true, () => process.exit(1));
+        |}
+        """.trimMargin()
     }
 
     /** Generate code to call the _start function on the main App
      *  instance to start the runtime
      *  @param instance A reactor instance.
      */
-    private fun generateRuntimeStart(federate: FederateInstance,
-                                     main: ReactorInstance?,
-                                     defn: Instantiation): String {
-        var minOutputDelay = TimeValue.MAX_VALUE;
-        if (tsGenerator.isFederatedAndCentralized && main != null) {
-            // Check for outputs that depend on physical actions.
-            for (reactorInstance in main.children) {
-                if (federate.contains(reactorInstance)) {
-                    val outputDelayMap = federate.findOutputsConnectedToPhysicalActions(reactorInstance)
-                    for (outputDelay in outputDelayMap.values) {
-                        if (outputDelay.isEarlierThan(minOutputDelay)) {
-                            minOutputDelay = outputDelay
-                        }
-                    }
-                }
-            }
-        }
-
-        if (minOutputDelay != TimeValue.MAX_VALUE && targetConfig.coordinationOptions.advance_message_interval == null) {
-            // There is a path from a physical action to output for reactor but advance message interval is not set.
-            // Report a warning.
-            errorReporter.reportWarning(
-                """
-                    Found a path from a physical action to output for reactor ${defn.name}.
-                    The amount of delay is $minOutputDelay.
-                    With centralized coordination, this can result in a large number of messages to the RTI.
-                    Consider refactoring the code so that the output does not depend on the physical action,
-                    or consider using decentralized coordination. To silence this warning, set the target
-                    parameter coordination-options with a value like {advance-message-interval: 10 msec}
-                """.trimIndent()
-            )
-
-        }
-
+    private fun generateRuntimeStart(defn: Instantiation): String {
+        val isFederate = AttributeUtils.isFederate(defn.reactor)
         return with(PrependOperator) {
                 """
             |// ************* Starting Runtime for ${defn.name} + of class ${defn.reactorClass.name}.
             |if (!__noStart && __app) {
-            |    ${if (minOutputDelay == TimeValue.MAX_VALUE) "" else "__app.setMinDelayFromPhysicalActionToFederateOutput(${TSGenerator.timeInTargetLanguage(minOutputDelay)})"}
+${"         |"..MIN_OUTPUT_DELAY_STATEMENT.takeIf { isFederate }.orEmpty()}
             |    __app._start();
             |}
             |
             """
-            }.trimMargin()
+        }.trimMargin()
     }
 
-    private fun generateReactorPreambles(preambles: List<Preamble>): String {
-        val preambleCodes = LinkedList<String>()
-
-        for (preamble in preambles) {
-            preambleCodes.add(with(PrependOperator) {
+    private fun generateReactorPreambles(preambles: List<Preamble>): String =
+        preambles.joinToString("\n") { preamble ->
+            with(PrependOperator) {
                 """
-                |// *********** From the preamble, verbatim:
-                |${preamble.code.toText()}
-                |
-                |// *********** End of preamble."""}.trimMargin())
+            |// *********** From the preamble, verbatim:
+${"             |"..preamble.code.toText()}
+            |// *********** End of preamble."""
+            }.trimMargin()
         }
-        return preambleCodes.joinToString("\n")
+
+    private fun getNetworkMessagActions(reactor: Reactor): List<String> {
+        val attribute = AttributeUtils.findAttributeByName(reactor, "_fed_config")
+        val actionsStr = AttributeUtils.getAttributeParameter(attribute, AttributeSpec.NETWORK_MESSAGE_ACTIONS)
+        return actionsStr?.split(",")?.filter { it.isNotEmpty()} ?: emptyList()
     }
 
-    fun generateReactor(reactor: Reactor, federate: FederateInstance): String {
+    fun generateReactor(reactor: Reactor): String {
         var reactorName = reactor.name
         if (!reactor.typeParms.isEmpty()) {
             reactorName +=
                 reactor.typeParms.joinToString(", ", "<", ">") { it.toText() }
         }
 
+        val isFederate = AttributeUtils.isFederate(reactor)
+        val networkMessageActions = getNetworkMessagActions(reactor)
+
         // NOTE: type parameters that are referenced in ports or actions must extend
         // Present in order for the program to type check.
-        val classDefinition: String = if (reactor.isMain()) {
-            "class $reactorName extends __App {"
-        } else if (reactor.isFederated) {
-            "class $reactorName extends __FederatedApp {"
+        val classDefinition: String = if (reactor.isMain) {
+            if (isFederate) {
+                "class $reactorName extends __FederatedApp {"
+            } else {
+                "class $reactorName extends __App {"
+            }
         } else {
             "export class $reactorName extends __Reactor {"
         }
 
-        val instanceGenerator = TSInstanceGenerator(errorReporter, reactor, federate)
+        val instanceGenerator = TSInstanceGenerator(reactor)
         val timerGenerator = TSTimerGenerator(reactor.timers)
         val parameterGenerator = TSParameterGenerator(reactor.parameters)
         val stateGenerator = TSStateGenerator(reactor.stateVars)
-        val actionGenerator = TSActionGenerator(reactor.actions, federate)
+        val actionGenerator = TSActionGenerator(reactor.actions, networkMessageActions)
         val portGenerator = TSPortGenerator(reactor.inputs, reactor.outputs)
 
-        val constructorGenerator = TSConstructorGenerator(tsGenerator, errorReporter, reactor, federate, targetConfig)
+        val constructorGenerator = TSConstructorGenerator(errorReporter, reactor)
         return with(PrependOperator) {
             """
                 |// =============== START reactor class ${reactor.name}
@@ -173,8 +150,8 @@ class TSReactorGenerator(
             ${" |    "..stateGenerator.generateClassProperties()}
             ${" |    "..actionGenerator.generateClassProperties()}
             ${" |    "..portGenerator.generateClassProperties()}
-            ${" |    "..constructorGenerator.generateConstructor(instanceGenerator, timerGenerator, parameterGenerator,
-                stateGenerator, actionGenerator, portGenerator)}
+            ${" |    "..constructorGenerator.generateConstructor(targetConfig, instanceGenerator, timerGenerator, parameterGenerator,
+                stateGenerator, actionGenerator, portGenerator, isFederate, networkMessageActions)}
                 |}
                 |// =============== END reactor class ${reactor.name}
                 |
@@ -182,16 +159,14 @@ class TSReactorGenerator(
         }
     }
 
-    fun generateReactorInstanceAndStart(
-        federate: FederateInstance,
-        main: ReactorInstance?,
+    fun generateMainReactorInstanceAndStart(
         mainDef: Instantiation,
         mainParameters: Set<Parameter>
     ): String {
         return with(PrependOperator) {
             """
-            |${generateReactorInstance(mainDef, mainParameters)}
-            |${generateRuntimeStart(federate, main, mainDef)}
+${"         |"..generateMainReactorInstance(mainDef, mainParameters)}
+${"         |"..generateRuntimeStart(mainDef)}
             |
             """
         }.trimMargin()

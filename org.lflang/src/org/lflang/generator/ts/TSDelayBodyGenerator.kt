@@ -1,6 +1,7 @@
 package org.lflang.generator.ts
 
 import org.lflang.ASTUtils
+import org.lflang.Target
 import org.lflang.generator.DelayBodyGenerator
 import org.lflang.lf.Action
 import org.lflang.lf.VarRef
@@ -15,7 +16,7 @@ object TSDelayBodyGenerator : DelayBodyGenerator {
      */
     private fun getActionType(action: Action): String {
         return if (action.type != null) {
-            TSTypes.getTargetType(action.type)
+            TSTypes.getInstance().getTargetType(action.type)
         } else {
             "Present"
         }

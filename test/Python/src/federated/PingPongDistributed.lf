@@ -21,10 +21,10 @@
  */
 target Python
 
-reactor Ping(count(10)) {
+reactor Ping(count = 10) {
     input receive
     output send
-    state pingsLeft(count)
+    state pingsLeft = count
     logical action serve
 
     reaction(startup, serve) -> send {=
@@ -37,23 +37,23 @@ reactor Ping(count(10)) {
         if self.pingsLeft > 0:
             serve.schedule(0)
         else:
-            request_stop()
+            lf_request_stop()
     =}
 }
 
-reactor Pong(expected(10)) {
+reactor Pong(expected = 10) {
     preamble {= import sys =}
 
     input receive
     output send
-    state count(0)
+    state count = 0
 
     reaction(receive) -> send {=
         self.count += 1
         print("At logical time {}, Pong received {}.\n".format(lf.time.logical_elapsed(), receive.value))
         send.set(receive.value)
         if self.count == self.expected:
-            request_stop()
+            lf_request_stop()
     =}
 
     reaction(shutdown) {=
@@ -64,7 +64,7 @@ reactor Pong(expected(10)) {
     =}
 }
 
-federated reactor(count(10)) {
+federated reactor(count = 10) {
     ping = new Ping(count = count)
     pong = new Pong(expected = count)
     ping.send ~> pong.receive

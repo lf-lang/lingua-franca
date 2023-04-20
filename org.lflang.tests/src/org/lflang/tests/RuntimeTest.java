@@ -12,7 +12,7 @@ import org.lflang.tests.TestRegistry.TestCategory;
 /**
  * A collection of JUnit tests to perform on a given set of targets.
  * 
- * @author Marten Lohstroh <marten@berkeley.edu>
+ * @author Marten Lohstroh
  *
  */
 public abstract class RuntimeTest extends TestBase {
@@ -33,6 +33,11 @@ public abstract class RuntimeTest extends TestBase {
     protected RuntimeTest(List<Target> targets) {
         super(targets);
     }
+
+    /**
+     * Whether to enable {@link #runEnclaveTests()}.
+     */
+    protected boolean supportsEnclaves() { return false; }
 
     /**
      * Whether to enable {@link #runFederatedTests()}.
@@ -59,6 +64,7 @@ public abstract class RuntimeTest extends TestBase {
     public void runGenericTests() {
         runTestsForTargets(Message.DESC_GENERIC,
                            TestCategory.GENERIC::equals, Configurators::noChanges,
+                            TestLevel.EXECUTION,
                            false);
     }
 
@@ -66,6 +72,7 @@ public abstract class RuntimeTest extends TestBase {
     public void runTargetSpecificTests() {
         runTestsForTargets(Message.DESC_TARGET_SPECIFIC,
                            TestCategory.TARGET::equals, Configurators::noChanges,
+                            TestLevel.EXECUTION,
                            false);
     }
 
@@ -73,6 +80,7 @@ public abstract class RuntimeTest extends TestBase {
     public void runMultiportTests() {
         runTestsForTargets(Message.DESC_MULTIPORT,
                            TestCategory.MULTIPORT::equals, Configurators::noChanges,
+                           TestLevel.EXECUTION,
                            false);
     }
 
@@ -81,6 +89,7 @@ public abstract class RuntimeTest extends TestBase {
         Assumptions.assumeTrue(supportsGenericTypes(), Message.NO_GENERICS_SUPPORT);
         runTestsForTargets(Message.DESC_TYPE_PARMS,
                            TestCategory.GENERICS::equals, Configurators::noChanges,
+                           TestLevel.EXECUTION,
                            false);
     }
 
@@ -98,6 +107,7 @@ public abstract class RuntimeTest extends TestBase {
                     Message.DESC_AS_FEDERATED,
                     categories::contains,
                     it -> ASTUtils.makeFederated(it.getFileConfig().resource),
+                    TestLevel.EXECUTION,
                     true);
     }
 
@@ -105,6 +115,7 @@ public abstract class RuntimeTest extends TestBase {
     public void runConcurrentTests() {
         runTestsForTargets(Message.DESC_CONCURRENT,
                            TestCategory.CONCURRENT::equals, Configurators::noChanges,
+                           TestLevel.EXECUTION,
                            false);
 
     }
@@ -114,6 +125,7 @@ public abstract class RuntimeTest extends TestBase {
         Assumptions.assumeTrue(supportsFederatedExecution(), Message.NO_FEDERATION_SUPPORT);
         runTestsForTargets(Message.DESC_FEDERATED,
                            TestCategory.FEDERATED::equals, Configurators::noChanges,
+                           TestLevel.EXECUTION,
                            false);
     }
 
@@ -124,6 +136,7 @@ public abstract class RuntimeTest extends TestBase {
     public void runModalTests() {
         runTestsForTargets(Message.DESC_MODAL,
                            TestCategory.MODAL_MODELS::equals, Configurators::noChanges,
+                           TestLevel.EXECUTION,
                            false);
     }
 
@@ -137,6 +150,7 @@ public abstract class RuntimeTest extends TestBase {
         Assumptions.assumeTrue(supportsDockerOption(), Message.NO_DOCKER_SUPPORT);
         runTestsForTargets(Message.DESC_DOCKER,
                            TestCategory.DOCKER::equals, Configurators::noChanges,
+                            TestLevel.EXECUTION,
                            false);
     }
 
@@ -152,6 +166,7 @@ public abstract class RuntimeTest extends TestBase {
         Assumptions.assumeTrue(supportsFederatedExecution(), Message.NO_FEDERATION_SUPPORT);
         runTestsForTargets(Message.DESC_DOCKER_FEDERATED,
                            TestCategory.DOCKER_FEDERATED::equals, Configurators::noChanges,
+                           TestLevel.EXECUTION,
                            false);
     }
 
@@ -162,7 +177,21 @@ public abstract class RuntimeTest extends TestBase {
             Message.DESC_SINGLE_THREADED,
             Configurators::compatibleWithThreadingOff,
             Configurators::disableThreading,
+            TestLevel.EXECUTION,
             true
         );
     }
+
+    /**
+     * Run enclave tests if the target supports enclaves.
+     */
+    @Test
+    public void runEnclaveTests() {
+        Assumptions.assumeTrue(supportsEnclaves(), Message.NO_ENCLAVE_SUPPORT);
+        runTestsForTargets(Message.DESC_ENCLAVE,
+            TestCategory.ENCLAVE::equals, Configurators::noChanges,
+            TestLevel.EXECUTION,
+            false);
+    }
+
 }

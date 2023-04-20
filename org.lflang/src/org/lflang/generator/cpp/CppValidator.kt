@@ -15,7 +15,7 @@ import java.util.regex.Pattern
 /**
  * A validator for generated C++.
  *
- * @author Peter Donovan <peterdonovan@berkeley.edu>
+ * @author Peter Donovan
  */
 class CppValidator(
     private val fileConfig: CppFileConfig,

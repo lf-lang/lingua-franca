@@ -7,7 +7,6 @@
  */
 target Python {
     timeout: 5 sec,
-    logging: DEBUG,
     coordination: centralized
 }
 
@@ -16,7 +15,7 @@ import Count from "../lib/Count.lf"
 reactor Print {
     preamble {= import sys =}
     input in_
-    state c(1)
+    state c = 1
 
     reaction(in_) {=
         elapsed_time = lf.time.logical_elapsed()
@@ -37,7 +36,7 @@ reactor Print {
     =}
 }
 
-federated reactor DistributedCount(offset(200 msec)) {
+federated reactor DistributedCount(offset = 200 msec) {
     c = new Count()
     p = new Print()
     c.out -> p.in_ after offset

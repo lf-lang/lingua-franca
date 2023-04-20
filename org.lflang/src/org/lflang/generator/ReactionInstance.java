@@ -33,7 +33,6 @@ import java.util.List;
 import java.util.Set;
 
 import org.lflang.ASTUtils;
-import org.lflang.TimeUnit;
 import org.lflang.TimeValue;
 import org.lflang.lf.Action;
 import org.lflang.lf.BuiltinTriggerRef;
@@ -46,7 +45,7 @@ import org.lflang.lf.Variable;
 
 /**
  * Representation of a compile-time instance of a reaction.
- * Like {@link ReactorInstance}, one or more parents of this reaction
+ * Like {@link ReactorInstance}, if one or more parents of this reaction
  * is a bank of reactors, then there will be more than one runtime instance
  * corresponding to this compile-time instance.  The {@link #getRuntimeInstances()}
  * method returns a list of these runtime instances, each an instance of the
@@ -54,8 +53,8 @@ import org.lflang.lf.Variable;
  * its depth an acyclic precedence graph representing the dependencies between
  * reactions at a tag.
  *  
- * @author{Edward A. Lee <eal@berkeley.edu>}
- * @author{Marten Lohstroh <marten@berkeley.edu>}
+ * @author Edward A. Lee
+ * @author Marten Lohstroh
  */
 public class ReactionInstance extends NamedInstance<Reaction> {
 
@@ -554,9 +553,12 @@ public class ReactionInstance extends NamedInstance<Reaction> {
     ///////////////////////////////////////////////////////////
     //// Inner classes
 
-    /** Inner class representing a runtime instance. */
+    /** Inner class representing a runtime instance of a reaction. */
     public class Runtime {
         public TimeValue deadline;
+        // If this reaction instance depends on exactly one upstream
+        // reaction (via a port), then the "dominating" field will
+        // point to that upstream reaction.
         public Runtime dominating;
         /** ID ranging from 0 to parent.getTotalWidth() - 1. */
         public int id;

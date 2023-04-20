@@ -1,7 +1,6 @@
 // Test asynchronous callbacks that trigger a non-physical action.
 target Cpp {
     timeout: 2 sec,
-    keepalive: true,
     cmake-include: "AsyncCallback.cmake"
 }
 
@@ -11,10 +10,10 @@ main reactor AsyncCallback2 {
     =}
 
     timer t(0, 200 msec)
-    state expected_time: time(0)
+    state expected_time: time = 0
 
     logical action a: int
-    state i: int(0)
+    state i: int = 0
 
     reaction(t) -> a {=
         // start new thread

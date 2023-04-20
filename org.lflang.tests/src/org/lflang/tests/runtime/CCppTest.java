@@ -12,7 +12,7 @@ import org.lflang.tests.TestRegistry.TestCategory;
  *
  * NOTE: This test does not inherit any tests because it directly extends TestBase.
  *
- * @author Marten Lohstroh <marten@berkeley.edu>
+ * @author Marten Lohstroh
  */
 public class CCppTest extends TestBase {
 
@@ -33,6 +33,7 @@ public class CCppTest extends TestBase {
         runTestsForTargets(Message.DESC_AS_CCPP, CCppTest::isExcludedFromCCpp,
                            it -> ASTUtils.changeTargetName(it.getFileConfig().resource,
                                                            Target.CCPP.getDisplayName()),
+                           TestLevel.EXECUTION,
                            true);
     }
 
@@ -41,8 +42,11 @@ public class CCppTest extends TestBase {
      */
     private static boolean isExcludedFromCCpp(TestCategory category) {
         boolean excluded = category == TestCategory.SERIALIZATION;
-        excluded |= isWindows() && (category == TestCategory.DOCKER_FEDERATED || category == TestCategory.ARDUINO) ;
+        excluded |= isWindows() && (category == TestCategory.DOCKER_FEDERATED);
         excluded |= isMac() && (category == TestCategory.DOCKER_FEDERATED || category == TestCategory.DOCKER);
+        excluded |= category == TestCategory.ZEPHYR;
+        excluded |= category == TestCategory.ARDUINO;
+        excluded |= category == TestCategory.NO_INLINING;
         return !excluded;
     }
 }

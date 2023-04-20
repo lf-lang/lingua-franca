@@ -17,9 +17,9 @@ import static org.lflang.generator.c.CGenerator.variableStructType;
 /**
  * Generates C code to declare and initialize ports.
  *
- * @author {Edward A. Lee <eal@berkeley.edu>}
- * @author {Soroush Bateni <soroush@utdallas.edu>}
- * @author {Hou Seng Wong <housengw@berkeley.edu>}
+ * @author Edward A. Lee
+ * @author Soroush Bateni
+ * @author Hou Seng Wong
  */
 public class CPortGenerator {
     /**
@@ -44,45 +44,55 @@ public class CPortGenerator {
      * Generate the struct type definitions for the port of the
      * reactor
      *
-     * @param decl The reactor declaration
+     * @param r The reactor
      * @param port The port to generate the struct
      * @param target The target of the code generation (C, CCpp or Python)
      * @param errorReporter The error reporter
      * @param types The helper object for types related stuff
      * @param federatedExtension The code needed to support federated execution
+     * @param userFacing Whether this struct is to be presented in a user-facing header
+     * @param decl The reactorDecl if this struct is for the header of this reactor's container;
+     * null otherwise
      * @return The auxiliary struct for the port as a string
      */
     public static String generateAuxiliaryStruct(
-        ReactorDecl decl,
+        Reactor r,
         Port port,
         Target target,
         ErrorReporter errorReporter,
         CTypes types,
-        CodeBuilder federatedExtension
+        CodeBuilder federatedExtension,
+        boolean userFacing,
+        ReactorDecl decl
     ) {
+        assert decl == null || userFacing;
         var code = new CodeBuilder();
         code.pr("typedef struct {");
         code.indent();
         // NOTE: The following fields are required to be the first ones so that
-        // pointer to this struct can be cast to a (lf_port_base_t*) to access
-        // these fields for any port.
+        // pointer to this struct can be cast to a (lf_port_base_t*) or to
+        // (token_template_t*) to access these fields for any port.
+        // IMPORTANT: These must match exactly the fields defined in port.h!!
         code.pr(String.join("\n",
-                "bool is_present;",
-                "lf_sparse_io_record_t* sparse_record;",
-                "int destination_channel;"
+                "token_type_t type;",  // From token_template_t
+                "lf_token_t* token;",  // From token_template_t
+                "size_t length;",      // From token_template_t
+                "bool is_present;",    // From lf_port_base_t
+                "lf_sparse_io_record_t* sparse_record;",  // From lf_port_base_t
+                "int destination_channel;",  // From lf_port_base_t
+                "int num_destinations;"      // From lf_port_base_t
         ));
         code.pr(valueDeclaration(port, target, errorReporter, types));
-        code.pr(String.join("\n",
-                    "int num_destinations;",
-                    "lf_token_t* token;",
-                    "int length;",
-                    "void (*destructor) (void* value);",
-                    "void* (*copy_constructor) (void* value);",
-                    federatedExtension.toString()
-        ));
+        code.pr(federatedExtension.toString());
         code.unindent();
-        code.pr("} "+variableStructType(port, decl)+";");
+        var name = decl != null ? localPortName(decl, port.getName())
+            : variableStructType(port, r, userFacing);
+        code.pr("} " + name + ";");
         return code.toString();
+    }
+
+    public static String localPortName(ReactorDecl decl, String portName) {
+        return decl.getName().toLowerCase() + "_" + portName + "_t";
     }
 
     /**
@@ -164,36 +174,6 @@ public class CPortGenerator {
                 );
     }
 
-     /**
-     * Generate code to set up the tables used in _lf_start_time_step for input ports.
-     */
-    public static String initializeStartTimeStepTableForInput(
-        PortInstance input
-    ) {
-        var portRef = CUtil.portRefName(input);
-        return input.isMultiport() ?
-                String.join("\n",
-                    "for (int i = 0; i < "+input.getWidth()+"; i++) {",
-                    "    _lf_tokens_with_ref_count[_lf_tokens_with_ref_count_count].token",
-                    "            = &"+portRef+"[i]->token;",
-                    "    _lf_tokens_with_ref_count[_lf_tokens_with_ref_count_count].status",
-                    "            = (port_status_t*)&"+portRef+"[i]->is_present;",
-                    "    _lf_tokens_with_ref_count[_lf_tokens_with_ref_count_count++].reset_is_present = false;",
-                    "};"
-                ) :
-                initializeStartTimeStepTableForPort(portRef);
-    }
-
-    public static String initializeStartTimeStepTableForPort(
-        String portRef
-    ) {
-        return String.join("\n",
-            "_lf_tokens_with_ref_count[_lf_tokens_with_ref_count_count].token = &"+portRef+"->token;",
-            "_lf_tokens_with_ref_count[_lf_tokens_with_ref_count_count].status = (port_status_t*)&"+portRef+"->is_present;",
-            "_lf_tokens_with_ref_count[_lf_tokens_with_ref_count_count++].reset_is_present = false;"
-        );
-    }
-
     /**
      * For the specified port, return a declaration for port struct to
      * contain the value of the port. A multiport output with width 4 and
@@ -242,21 +222,21 @@ public class CPortGenerator {
             if (ASTUtils.isMultiport(input)) {
                 body.pr(input, String.join("\n",
                     "// Multiport input array will be malloc'd later.",
-                    variableStructType(input, decl)+"** _lf_"+inputName+";",
+                    variableStructType(input, reactor, false)+"** _lf_"+inputName+";",
                     "int _lf_"+inputName+"_width;",
                     "// Default input (in case it does not get connected)",
-                    variableStructType(input, decl)+" _lf_default__"+inputName+";",
+                    variableStructType(input, reactor, false)+" _lf_default__"+inputName+";",
                     "// Struct to support efficiently reading sparse inputs.",
                     "lf_sparse_io_record_t* _lf_"+inputName+"__sparse;"
                 ));
             } else {
                 // input is not a multiport.
                 body.pr(input, String.join("\n",
-                    variableStructType(input, decl)+"* _lf_"+inputName+";",
+                    variableStructType(input, reactor, false)+"* _lf_"+inputName+";",
                     "// width of -2 indicates that it is not a multiport.",
                     "int _lf_"+inputName+"_width;",
                     "// Default input (in case it does not get connected)",
-                    variableStructType(input, decl)+" _lf_default__"+inputName+";"
+                    variableStructType(input, reactor, false)+" _lf_default__"+inputName+";"
                 ));
 
                 constructorCode.pr(input, String.join("\n",
@@ -288,7 +268,7 @@ public class CPortGenerator {
             if (ASTUtils.isMultiport(output)) {
                 body.pr(output, String.join("\n",
                     "// Array of output ports.",
-                    variableStructType(output, decl)+"* _lf_"+outputName+";",
+                    variableStructType(output, reactor, false)+"* _lf_"+outputName+";",
                     "int _lf_"+outputName+"_width;",
                     "// An array of pointers to the individual ports. Useful",
                     "// for the lf_set macros to work out-of-the-box for",
@@ -296,11 +276,11 @@ public class CPortGenerator {
                     "// value can be accessed via a -> operator (e.g.,foo[i]->value).",
                     "// So we have to handle multiports specially here a construct that",
                     "// array of pointers.",
-                    variableStructType(output, decl)+"** _lf_"+outputName+"_pointers;"
+                    variableStructType(output, reactor, false)+"** _lf_"+outputName+"_pointers;"
                 ));
             } else {
                 body.pr(output, String.join("\n",
-                    variableStructType(output, decl)+" _lf_"+outputName+";",
+                    variableStructType(output, reactor, false)+" _lf_"+outputName+";",
                     "int _lf_"+outputName+"_width;"
                 ));
             }

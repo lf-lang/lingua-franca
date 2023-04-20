@@ -13,7 +13,7 @@ import org.lflang.toText
 /**
  * The following definition provide extension that are useful for TypeScript target.
  *
- *  @author {Hokeun Kim <hokeunkim@berkeley.edu>}
+ *  @author Hokeun Kim
  */
 fun WidthSpec.toTSCode(): String = terms.joinToString(" + ") {
     when {
@@ -39,7 +39,7 @@ fun WidthSpec.toTSCode(): String = terms.joinToString(" + ") {
  * @return The TS type.
  */
 val Port.tsPortType: String
-    get() = type?.let { TSTypes.getTargetType(it) } ?: "Present"
+    get() = type?.let { TSTypes.getInstance().getTargetType(it) } ?: "Present"
 
 /**
  * Return a TS type for the specified action.
@@ -48,7 +48,7 @@ val Port.tsPortType: String
  * @return The TS type.
  */
 val Action.tsActionType: String
-    get() = type?.let { TSTypes.getTargetType(it) } ?: "Present"
+    get() = type?.let { TSTypes.getInstance().getTargetType(it) } ?: "Present"
 
-fun Expression.toTsTime(): String = TSTypes.getTargetTimeExpr(this)
-fun TimeValue.toTsTime(): String = TSTypes.getTargetTimeExpr(this)
+fun Expression.toTsTime(): String = TSTypes.getInstance().getTargetTimeExpr(this)
+fun TimeValue.toTsTime(): String = TSTypes.getInstance().getTargetTimeExpr(this)

@@ -1,9 +1,9 @@
 // Test writing multiport inputs to a contained reactor bank
 target Cpp
 
-reactor Contained(bank_index: size_t(0)) {
+reactor Contained(bank_index: size_t = 0) {
     input[4] in: unsigned
-    state count: int(0)
+    state count: int = 0
 
     reaction(in) {=
         for (size_t i = 0; i < 3; i++) {

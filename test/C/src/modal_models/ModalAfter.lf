@@ -45,7 +45,7 @@ reactor Modal {
     }
 }
 
-reactor Producer(mode_id: int(0)) {
+reactor Producer(mode_id: int = 0) {
     output product: int
 
     timer t(0, 750 msec)
@@ -56,7 +56,7 @@ reactor Producer(mode_id: int(0)) {
     =}
 }
 
-reactor Consumer(mode_id: int(0)) {
+reactor Consumer(mode_id: int = 0) {
     input product: int
     output report: int
 
@@ -73,7 +73,7 @@ main reactor {
     test = new TraceTesting(
         events_size = 5,
         trace_size = 165,
-        trace = (  // keep-format
+        trace = {  // keep-format
             0,0,0,1,1,0,0,0,0,0,0,
             500000000,0,0,0,1,1,1,0,0,0,0,
             250000000,0,0,1,1,0,1,0,0,0,0,
@@ -89,7 +89,7 @@ main reactor {
             500000000,0,1,0,1,0,1,0,1,1,1,
             250000000,0,1,0,1,0,1,1,1,0,1,
             250000000,1,1,0,1,0,1,0,1,0,1
-        ),
+        },
         training = false
     )
 

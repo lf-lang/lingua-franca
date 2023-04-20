@@ -9,9 +9,9 @@ import org.lflang.generator.Range;
 /**
  * Interface for reporting errors.
  *
- * @author Edward A. Lee <eal@berkeley.edu>
- * @author Marten Lohstroh <marten@berkeley.edu>
- * @author Christian Menard <christian.menard@tu-dresden.de>
+ * @author Edward A. Lee
+ * @author Marten Lohstroh
+ * @author Christian Menard
  */
 public interface ErrorReporter {
 
@@ -170,10 +170,16 @@ public interface ErrorReporter {
     return report(file, severity, message, range.getStartInclusive().getOneBasedLine());
   }
 
-  /**
-   * Check if errors where reported.
-   *
-   * @return true if errors where reported
-   */
-  boolean getErrorsOccurred();
+    /**
+     * Check if errors where reported.
+     *
+     * @return true if errors where reported
+     */
+    boolean getErrorsOccurred();
+
+    /**
+     * Clear error history, if exists.
+     * This is usually only the case for error markers in Epoch (Eclipse).
+     */
+    default void clearHistory() {}
 }

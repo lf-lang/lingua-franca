@@ -6,7 +6,7 @@ reactor Loop {
     input in: int
     output out: int
     timer t(0, 100 msec)
-    state count: int(1)
+    state count: int = 1
 
     reaction(in) {=
         lf_print("Received %d.", in->value);
@@ -20,7 +20,7 @@ reactor Loop {
         self->count++;
     =}
 
-    reaction(t) -> out {= SET(out, self->count); =}
+    reaction(t) -> out {= lf_set(out, self->count); =}
 
     reaction(shutdown) {=
         if (self->count != 11) {

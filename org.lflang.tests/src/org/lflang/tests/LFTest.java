@@ -18,7 +18,7 @@ import org.lflang.generator.LFGeneratorContext;
 /**
  * Information about an indexed Lingua Franca test program.
  * 
- * @author Marten Lohstroh <marten@berkeley.edu>
+ * @author Marten Lohstroh
  *
  */
 public class LFTest implements Comparable<LFTest> {
@@ -31,9 +31,6 @@ public class LFTest implements Comparable<LFTest> {
 
     /** The result of the test. */
     private Result result = Result.UNKNOWN;
-
-    /** Object used to determine where the code generator puts files. */
-    private FileConfig fileConfig;
 
     /** Context provided to the code generators */
     private LFGeneratorContext context;
@@ -76,7 +73,7 @@ public class LFTest implements Comparable<LFTest> {
         return compilationLog;
     }
 
-    public FileConfig getFileConfig() { return fileConfig; }
+    public FileConfig getFileConfig() { return context.getFileConfig(); }
 
     public LFGeneratorContext getContext() { return context; }
 
@@ -155,7 +152,7 @@ public class LFTest implements Comparable<LFTest> {
         }
         if (e.getException() != null) {
             issues.append(System.lineSeparator());
-            issues.append(TestBase.stackTraceToString(e));
+            issues.append(TestBase.stackTraceToString(e.getException()));
         }
     }
 
@@ -165,9 +162,8 @@ public class LFTest implements Comparable<LFTest> {
         execLog.clear();
     }
 
-    void configure(LFGeneratorContext context, FileConfig fileConfig) {
+    void configure(LFGeneratorContext context) {
         this.context = context;
-        this.fileConfig = fileConfig;
     }
 
     /**
@@ -218,7 +214,7 @@ public class LFTest implements Comparable<LFTest> {
      * recording output streams up until the moment that a test is interrupted
      * upon timing out.
      *
-     * @author Marten Lohstroh <marten@berkeley.edu>
+     * @author Marten Lohstroh
      *
      */
     public static final class ExecutionLogger {

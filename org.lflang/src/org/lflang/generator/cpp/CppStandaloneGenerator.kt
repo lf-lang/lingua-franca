@@ -19,15 +19,21 @@ class CppStandaloneGenerator(generator: CppGenerator) :
         // generate the main source file (containing main())
         val mainFile = Paths.get("main.cc")
         val mainCodeMap =
-            CodeMap.fromGeneratedCode(CppStandaloneMainGenerator(mainReactor, generator.targetConfig, fileConfig).generateCode())
+            CodeMap.fromGeneratedCode(
+                CppStandaloneMainGenerator(
+                    mainReactor,
+                    generator.targetConfig,
+                    generator.fileConfig
+                ).generateCode()
+            )
         cppSources.add(mainFile)
         codeMaps[fileConfig.srcGenPath.resolve(mainFile)] = mainCodeMap
         println("Path: $srcGenPath $srcGenPath")
 
-        FileUtil.writeToFile(mainCodeMap.generatedCode, srcGenPath.resolve(mainFile))
+        FileUtil.writeToFile(mainCodeMap.generatedCode, srcGenPath.resolve(mainFile), true)
 
         // generate the cmake scripts
-        val cmakeGenerator = CppStandaloneCmakeGenerator(targetConfig, fileConfig)
+        val cmakeGenerator = CppStandaloneCmakeGenerator(targetConfig, generator.fileConfig)
         val srcGenRoot = fileConfig.srcGenBasePath
         val pkgName = fileConfig.srcGenPkgPath.fileName.toString()
         FileUtil.writeToFile(cmakeGenerator.generateRootCmake(pkgName), srcGenRoot.resolve("CMakeLists.txt"), true)

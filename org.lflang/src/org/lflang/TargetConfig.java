@@ -29,6 +29,8 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Properties;
 import java.util.Set;
 
 import org.lflang.TargetProperty.BuildType;
@@ -37,16 +39,105 @@ import org.lflang.TargetProperty.CoordinationType;
 import org.lflang.TargetProperty.LogLevel;
 import org.lflang.TargetProperty.Platform;
 import org.lflang.TargetProperty.SchedulerOption;
+import org.lflang.TargetProperty.UnionType;
 import org.lflang.generator.rust.RustTargetConfig;
+import org.lflang.lf.KeyValuePair;
+import org.lflang.lf.TargetDecl;
 
 /**
  * A class for keeping the current target configuration.
  *
  * Class members of type String are initialized as empty strings,
  * unless otherwise stated.
- * @author Marten Lohstroh <marten@berkeley.edu>
+ * @author Marten Lohstroh
  */
 public class TargetConfig {
+
+    /**
+     * The target of this configuration (e.g., C, TypeScript, Python).
+     */
+    public final Target target;
+
+    /**
+     * Create a new target configuration based on the given target declaration AST node only.
+     * @param target AST node of a target declaration.
+     */
+    public TargetConfig(TargetDecl target) { // FIXME: eliminate this constructor if we can
+        this.target = Target.fromDecl(target);
+    }
+
+    /**
+     * Create a new target configuration based on the given commandline arguments and target
+     * declaration AST node.
+     * @param cliArgs Arguments passed on the commandline.
+     * @param target AST node of a target declaration.
+     * @param errorReporter An error reporter to report problems.
+     */
+    public TargetConfig(
+        Properties cliArgs,
+        TargetDecl target,
+        ErrorReporter errorReporter
+    ) {
+        this(target);
+        if (target.getConfig() != null) {
+            List<KeyValuePair> pairs = target.getConfig().getPairs();
+            TargetProperty.set(this, pairs != null ? pairs : List.of(), errorReporter);
+        }
+        if (cliArgs.containsKey("no-compile")) {
+            this.noCompile = true;
+        }
+        if (cliArgs.containsKey("docker")) {
+            var arg = cliArgs.getProperty("docker");
+            if (Boolean.parseBoolean(arg)) {
+                this.dockerOptions = new DockerOptions();
+            } else {
+                this.dockerOptions = null;
+            }
+            // FIXME: this is pretty ad-hoc and does not account for more complex overrides yet.
+        }
+        if (cliArgs.containsKey("build-type")) {
+            this.cmakeBuildType = (BuildType) UnionType.BUILD_TYPE_UNION.forName(cliArgs.getProperty("build-type"));
+        }
+        if (cliArgs.containsKey("logging")) {
+            this.logLevel = LogLevel.valueOf(cliArgs.getProperty("logging").toUpperCase());
+        }
+        if (cliArgs.containsKey("workers")) {
+            this.workers = Integer.parseInt(cliArgs.getProperty("workers"));
+        }
+        if (cliArgs.containsKey("threading")) {
+            this.threading = Boolean.parseBoolean(cliArgs.getProperty("threading"));
+        }
+        if (cliArgs.containsKey("target-compiler")) {
+            this.compiler = cliArgs.getProperty("target-compiler");
+        }
+        if (cliArgs.containsKey("tracing")) {
+            this.tracing = new TracingOptions();
+        }
+        if (cliArgs.containsKey("scheduler")) {
+            this.schedulerType = SchedulerOption.valueOf(
+                cliArgs.getProperty("scheduler")
+            );
+            this.setByUser.add(TargetProperty.SCHEDULER);
+        }
+        if (cliArgs.containsKey("target-flags")) {
+            this.compilerFlags.clear();
+            if (!cliArgs.getProperty("target-flags").isEmpty()) {
+                this.compilerFlags.addAll(List.of(
+                    cliArgs.getProperty("target-flags").split(" ")
+                ));
+            }
+        }
+        if (cliArgs.containsKey("runtime-version")) {
+            this.runtimeVersion = cliArgs.getProperty("runtime-version");
+        }
+        if (cliArgs.containsKey("external-runtime-path")) {
+            this.externalRuntimePath = cliArgs.getProperty("external-runtime-path");
+        }
+        if (cliArgs.containsKey(TargetProperty.KEEPALIVE.description)) {
+            this.keepalive = Boolean.parseBoolean(
+                cliArgs.getProperty(TargetProperty.KEEPALIVE.description));
+        }
+    }
 
     /**
      * Keep track of every target property that is explicitly set by the user.
@@ -189,9 +280,6 @@ public class TargetConfig {
      * 
      * This is now a wrapped class to account for overloaded definitions 
      * of defining platform (either a string or dictionary of values)
-     *
-     * @author Samuel Berkun (sberkun@berkeley.edu)
-     * @author Anirudh Rengarajan (arengarajan@berkeley.edu)
      */
     public PlatformOptions platformOptions = new PlatformOptions();
 
@@ -268,7 +356,10 @@ public class TargetConfig {
     public boolean exportToYaml = false;
 
     /** Rust-specific configuration. */
-    public final RustTargetConfig rust = new RustTargetConfig();
+    public final RustTargetConfig rust = new RustTargetConfig(); // FIXME: https://issue.lf-lang.org/1558
+
+    /** Path to a C file used by the Python target to setup federated execution. */
+    public String fedSetupPreamble = null; // FIXME: https://issue.lf-lang.org/1558
 
     /**
      * Settings related to clock synchronization.
@@ -282,7 +373,7 @@ public class TargetConfig {
         public int attenuation = 10;
 
         /**
-         * Whether or not to collect statistics while performing clock synchronization.
+         * Whether to collect statistics while performing clock synchronization.
          * This setting is only considered when clock synchronization has been activated.
          * The default is true.
          */
@@ -341,67 +432,17 @@ public class TargetConfig {
          * The base image and tag from which to build the Docker image. The default is "alpine:latest".
          */
         public String from = "alpine:latest";
-    }
 
-    /**
-     * Enum representing the different boards supported by Arduino-CMake and future embedded boards.
-     */
-    public enum Board {
-        NONE(),
-        YN("Arduino Yn [avr.yun]"),
-        UNO("Arduino Uno [avr.uno]"),
-        DUEMILANOVE("Arduino Duemilanove or Diecimila [avr.diecimila]"),
-        DIECIMILA("Arduino Duemilanove or Diecimila [avr.diecimila]"),
-        NANO("Arduino Nano [avr.nano]"),
-        MEGA("Arduino Mega or Mega 2560 [avr.mega]"),
-        MEGA_2560("Arduino Mega or Mega 2560 [avr.mega]"),
-        MEGA_ADK("Arduino Mega ADK [avr.megaADK]"),
-        LEONARDO("Arduino Leonardo [avr.leonardo]"),
-        LEONARDO_ETH("Arduino Leonardo ETH [avr.leonardoeth]"),
-        MICRO("Arduino Micro [avr.micro]"),
-        ESPLORA("Arduino Esplora [avr.esplora]"),
-        MINI("Arduino Mini [avr.mini]"),
-        ETHERNET("Arduino Ethernet [avr.ethernet]"),
-        FIO("Arduino Fio [avr.fio]"),
-        BT("Arduino BT [avr.bt]"),
-        LILYPAD_USB("LilyPad Arduino USB [avr.LilyPadUSB]"),
-        LILYPAD("LilyPad Arduino [avr.lilypad]"),
-        PRO("Arduino Pro or Pro Mini [avr.pro]"),
-        PRO_MINI("Arduino Pro or Pro Mini [avr.pro]"),
-        NG("Arduino NG or older [avr.atmegang]"),
-        OLDER("Arduino NG or older [avr.atmegang]"),
-        ROBOT_CONTROL("Arduino Robot Control [avr.robotControl]"),
-        ROBOT_MOTOR("Arduino Robot Motor [avr.robotMotor]"),
-        GEMMA("Arduino Gemma [avr.gemma]"),
-        CIRCUIT_PLAYGROUND("Adafruit Circuit Playground [avr.circuitplay32u4cat]"),
-        YN_MINI("Arduino Yn Mini [avr.yunmini]"),
-        INDUSTRIAL_101("Arduino Industrial 101 [avr.chiwawa]"),
-        LININO_ONE("Linino One [avr.one]"),
-        UNO_WIFI("Arduino Uno WiFi [avr.unowifi]"),
-        SAM_DUE_PROG("Arduino Due (Programming Port) [sam.arduino_due_x_dbg]"),
-        SAM_DUE_NATIVE("Arduino Due (Native USB Port) [sam.arduino_due_x]");
-
-        String boardName;
-        Board() {
-            this.boardName = this.toString();
-        }
-        Board(String boardName) {
-            this.boardName = boardName;
-        }
-
-        /**
-        * Return the name in lower case.
-        */
         @Override
-        public String toString() {
-            return this.name().toLowerCase();
-        }
-
-        /**
-        * Get the CMake name for the platform.
-        */
-        public String getBoardName() {
-            return this.boardName;
+        public boolean equals(Object o) {
+            if (this == o) {
+                return true;
+            }
+            if (o == null || getClass() != o.getClass()) {
+                return false;
+            }
+            DockerOptions that = (DockerOptions) o;
+            return from.equals(that.from);
         }
     }
 
@@ -416,14 +457,27 @@ public class TargetConfig {
         public Platform platform = Platform.AUTO;
 
         /**
-         * The base board we target when building LF on Arduino/Embedded Boards. For OS development and generic embedded systems, this value is unused.
+         * The string value used to determine what type of embedded board we work with and can be used to simplify the build process. For example,
+         * when we want to flash to an Arduino Nano 33 BLE board, we can use the string arduino:mbed_nano:nano33ble
          */
-        public Board board = Board.UNO;
+        public String board = null;
+
+
+        /**
+         * The string value used to determine the port on which to flash the compiled program (i.e. /dev/cu.usbmodem21301)
+         */
+        public String port = null;
 
         /**
          * The baud rate used as a parameter to certain embedded platforms. 9600 is a standard rate amongst systems like Arduino, so it's the default value.
          */
         public int baudRate = 9600;
+
+        /**
+         * The boolean statement used to determine whether we should automatically attempt to flash once we compile. This may require the use of board and
+         * port values depending on the infrastructure you use to flash the boards.
+         */
+        public boolean flash = false;
     }   
 
     /**
@@ -435,5 +489,17 @@ public class TargetConfig {
          * This defaults to the name of the .lf file.
          */
         public String traceFileName = null;
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) {
+                return true;
+            }
+            if (o == null || getClass() != o.getClass()) {
+                return false;
+            }
+            TracingOptions that = (TracingOptions) o;
+            return Objects.equals(traceFileName, that.traceFileName); // traceFileName may be null
+        }
     }
 }

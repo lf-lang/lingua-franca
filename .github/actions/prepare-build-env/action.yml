@@ -14,8 +14,29 @@ runs:
         echo $(which java)
         cat gradle.properties
         echo $JAVA_HOME
-        echo $(which mvn)
-        echo $(mvn -v)
       shell: bash
-    - name: Validate Gradle wrapper
-      uses: gradle/wrapper-validation-action@v1.0.4
+    - name: Create hash of Gradle configuration (macOS only)
+      run: |
+        echo "gradle-hash"="$(find . -type f \( -name "gradle.properties" -o -name "gradle-wrapper.properties" \) -exec cat {} + | shasum -a 256 | cut -d ' ' -f 1)" >> $GITHUB_ENV
+      if: ${{ runner.os == 'macOS' }}
+      shell: bash
+    - name: Create hash of Gradle configuration (Linux and Windows only)
+      run: |
+        echo "gradle-hash"="$(find . -type f \( -name "gradle.properties" -o -name "gradle-wrapper.properties" \) -exec cat {} + | sha256sum | cut -d ' ' -f 1)" >> $GITHUB_ENV
+      if: ${{ runner.os == 'Windows' || runner.os == 'Linux' }}
+      shell: bash
+    - name: Cache
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/.gradle/caches
+          ~/.gradle/wrapper
+        key: gradle-${{ runner.os }}-${{ env.gradle-hash }}
+        # restore-keys: |
+        #   ${{ runner.os }}-gradle-
+    - name: Bring down Gradle daemon (Windows)
+      uses: webiny/action-post-run@3.0.0
+      id: post-run-command
+      with:
+        run: ./gradlew --stop
+      if: ${{ runner.os == 'Windows' }}

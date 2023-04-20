@@ -28,9 +28,9 @@ jobs:
         if: ${{ runner.os == 'macOS' }}
       - name: Perform TypeScript tests
         run: |
-          ./gradlew test --tests org.lflang.tests.runtime.TypeScriptTest.*
+          ./gradlew test --tests org.lflang.tests.runtime.TypeScriptTest.* -Druntime="git://github.com/lf-lang/reactor-ts.git#master"
       - name: Report to CodeCov
-        uses: codecov/codecov-action@v2.1.0
+        uses: codecov/codecov-action@v3.1.1
         with:
           file: org.lflang.tests/build/reports/xml/jacoco
           fail_ci_if_error: false

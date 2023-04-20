@@ -5,6 +5,7 @@ import org.lflang.lf.Instantiation;
 import org.lflang.lf.Output;
 import org.lflang.lf.Port;
 import org.lflang.lf.Action;
+import org.lflang.lf.Reactor;
 import org.lflang.lf.ReactorDecl;
 import org.lflang.lf.VarRef;
 import java.util.List;
@@ -91,8 +92,7 @@ public class PythonPortGenerator {
         // Create the local variable whose name matches the input.getName().
         // If the input has not been declared mutable, then this is a pointer
         // to the upstream output. Otherwise, it is a copy of the upstream output,
-        // which nevertheless points to the same token and value (hence, as done
-        // below, we have to use writable_copy()). There are 8 cases,
+        // which nevertheless points to the same token and value. There are 8 cases,
         // depending on whether the input is mutable, whether it is a multiport,
         // and whether it is a token type.
         // Easy case first.
@@ -195,8 +195,8 @@ public class PythonPortGenerator {
         );
     }
 
-    public static String generateAliasTypeDef(ReactorDecl decl, Port port, boolean isTokenType, String genericPortType) {
-        return "typedef "+genericPortType+" "+CGenerator.variableStructType(port, decl)+";";
+    public static String generateAliasTypeDef(Reactor r, Port port, boolean isTokenType, String genericPortType) {
+        return "typedef "+genericPortType+" "+CGenerator.variableStructType(port, r, false)+";";
     }
 
     private static String generateConvertCPortToPy(String port) {
