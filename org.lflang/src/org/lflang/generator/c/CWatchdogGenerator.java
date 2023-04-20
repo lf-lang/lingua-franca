@@ -1,6 +1,7 @@
 package org.lflang.generator.c;
 
 import java.util.List;
+
 import org.lflang.ASTUtils;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.lf.Mode;
@@ -34,7 +35,7 @@ public class CWatchdogGenerator {
     CodeBuilder code = new CodeBuilder();
 
     // Define the "self" struct.
-    String structType = CUtil.selfType(decl);
+    String structType = CUtil.selfType(reactor);
     // A null structType means there are no inputs, state,
     // or anything else. No need to declare it.
     if (structType != null) {

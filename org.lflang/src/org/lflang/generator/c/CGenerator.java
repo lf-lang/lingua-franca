@@ -1110,7 +1110,7 @@ public class CGenerator extends GeneratorBase {
         generateAuxiliaryStructs(header, reactor, false);
         generateSelfStruct(header, reactor, constructorCode);
         generateMethods(src, reactor);
-        generateWatchdogs(reactor);
+        generateWatchdogs(src, reactor);
         generateReactions(src, reactor);
         generateConstructor(src, header, reactor, constructorCode);
     }
@@ -1469,10 +1469,10 @@ public class CGenerator extends GeneratorBase {
      *   federated or not the main reactor and reactions should be
      *   unconditionally generated.
      */
-    public void generateWatchdogs(ReactorDecl decl) {
+    public void generateWatchdogs(CodeBuilder src, ReactorDecl decl) {
       var reactor = ASTUtils.toDefinition(decl);
       for (Watchdog watchdog : ASTUtils.allWatchdogs(reactor)) {
-          generateWatchdog(watchdog, decl);
+          generateWatchdog(src, watchdog, decl);
       }
   }
 
@@ -1483,8 +1483,8 @@ public class CGenerator extends GeneratorBase {
    *  @param watchdog The watchdog.
    *  @param decl The reactor.
    */
-  protected void generateWatchdog(Watchdog watchdog, ReactorDecl decl) {
-      code.pr(CWatchdogGenerator.generateWatchdog(
+  protected void generateWatchdog(CodeBuilder src, Watchdog watchdog, ReactorDecl decl) {
+      src.pr(CWatchdogGenerator.generateWatchdog(
           watchdog,
           decl
       ));

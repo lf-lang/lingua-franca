@@ -1191,7 +1191,7 @@ public class CReactionGenerator {
         return generateFunctionHeader(functionName);
     }
 
-    private static String generateFunctionHeader(String functionName) {
+    public static String generateFunctionHeader(String functionName) {
         return "void " + functionName + "(void* instance_args)";
     }
 }

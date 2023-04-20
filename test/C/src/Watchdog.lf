@@ -6,7 +6,8 @@
  * @author Edward A. Lee
  */
 target C {
-    timeout: 1100 ms
+    timeout: 1100 ms,
+    fast: false
 }
 
 reactor Watcher(timeout: time = 150 ms) {
@@ -18,6 +19,7 @@ reactor Watcher(timeout: time = 150 ms) {
     watchdog poodle(timeout) {=
         instant_t p = lf_time_physical_elapsed() - lf_time_logical_elapsed();
         lf_print("Watchdog timed out! Lag: %lld (too late by " PRINTF_TIME " ns)", p, p - self->timeout);
+        lf_print("At logical time inside watchdog panic: " PRINTF_TIME, lf_time_logical_elapsed());
         self->count++;
     =}
 
