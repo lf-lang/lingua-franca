@@ -27,7 +27,6 @@ reactor DelayString2(delay: time = 100 msec) {
 
 reactor Test {
     input in: string
-    state start_time: time = 0
 
     reaction(in) {=
         printf("Received: %s.\n", in->value);
