@@ -66,21 +66,18 @@ import org.lflang.lf.Watchdog;
 import org.lflang.lf.WidthSpec;
 
 /**
- * Representation of a compile-time instance of a reactor.
- * If the reactor is instantiated as a bank of reactors, or if any
- * of its parents is instantiated as a bank of reactors, then one instance
- * of this ReactorInstance class represents all the runtime instances within
- * these banks.  The {@link #getTotalWidth()} method returns the number of such
- * runtime instances, which is the product of the bank width of this reactor
- * instance and the bank widths of all of its parents.
- * There is exactly one instance of this ReactorInstance class for each
- * graphical rendition of a reactor in the diagram view.
+ * Representation of a compile-time instance of a reactor. If the reactor is instantiated as a bank
+ * of reactors, or if any of its parents is instantiated as a bank of reactors, then one instance of
+ * this ReactorInstance class represents all the runtime instances within these banks. The {@link
+ * #getTotalWidth()} method returns the number of such runtime instances, which is the product of
+ * the bank width of this reactor instance and the bank widths of all of its parents. There is
+ * exactly one instance of this ReactorInstance class for each graphical rendition of a reactor in
+ * the diagram view.
  *
- * For the main reactor, which has no parent, once constructed,
- * this object represents the entire Lingua Franca program.
- * If the program has causality loops (a programming error), then
- * {@link #hasCycles()} will return true and {@link #getCycles()} will
- * return the ports and reaction instances involved in the cycles.
+ * <p>For the main reactor, which has no parent, once constructed, this object represents the entire
+ * Lingua Franca program. If the program has causality loops (a programming error), then {@link
+ * #hasCycles()} will return true and {@link #getCycles()} will return the ports and reaction
+ * instances involved in the cycles.
  *
  * @author Marten Lohstroh
  * @author Edward A. Lee
@@ -264,44 +261,44 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
     return null;
   }
 
-    /**
-     * Return the set of ReactionInstance and PortInstance that form causality
-     * loops in the topmost parent reactor in the instantiation hierarchy. This will return an
-     * empty set if there are no causality loops.
-     */
-    public Set<NamedInstance<?>> getCycles() {
-        if (depth != 0) return root().getCycles();
-        if (cachedCycles != null) return cachedCycles;
-        cachedCycles = new LinkedHashSet<>();
+  /**
+   * Return the set of ReactionInstance and PortInstance that form causality loops in the topmost
+   * parent reactor in the instantiation hierarchy. This will return an empty set if there are no
+   * causality loops.
+   */
+  public Set<NamedInstance<?>> getCycles() {
+    if (depth != 0) return root().getCycles();
+    if (cachedCycles != null) return cachedCycles;
+    cachedCycles = new LinkedHashSet<>();
 
-        ReactionInstanceGraph reactionRuntimes = assignLevels();
-        if (reactionRuntimes.nodes().size() > 0) {
-            Set<ReactionInstance> reactions = new LinkedHashSet<>();
-            Set<PortInstance> ports = new LinkedHashSet<>();
-            // There are cycles. But the nodes set includes not
-            // just the cycles, but also nodes that are downstream of the
-            // cycles.  Use Tarjan's algorithm to get just the cycles.
-            var cycleNodes = reactionRuntimes.getCycles();
-            for (var cycle : cycleNodes) {
-                for (ReactionInstance.Runtime runtime : cycle) {
-                    reactions.add(runtime.getReaction());
-                }
-            }
-            // Need to figure out which ports are involved in the cycles.
-            // It may not be all ports that depend on this reaction.
-            for (ReactionInstance r : reactions) {
-                for (TriggerInstance<? extends Variable> p : r.effects) {
-                    if (p instanceof PortInstance) {
-                        findPaths((PortInstance)p, reactions, ports);
-                    }
-                }
-            }
-            cachedCycles.addAll(reactions);
-            cachedCycles.addAll(ports);
+    ReactionInstanceGraph reactionRuntimes = assignLevels();
+    if (reactionRuntimes.nodes().size() > 0) {
+      Set<ReactionInstance> reactions = new LinkedHashSet<>();
+      Set<PortInstance> ports = new LinkedHashSet<>();
+      // There are cycles. But the nodes set includes not
+      // just the cycles, but also nodes that are downstream of the
+      // cycles.  Use Tarjan's algorithm to get just the cycles.
+      var cycleNodes = reactionRuntimes.getCycles();
+      for (var cycle : cycleNodes) {
+        for (ReactionInstance.Runtime runtime : cycle) {
+          reactions.add(runtime.getReaction());
         }
-
-        return cachedCycles;
+      }
+      // Need to figure out which ports are involved in the cycles.
+      // It may not be all ports that depend on this reaction.
+      for (ReactionInstance r : reactions) {
+        for (TriggerInstance<? extends Variable> p : r.effects) {
+          if (p instanceof PortInstance) {
+            findPaths((PortInstance) p, reactions, ports);
+          }
+        }
+      }
+      cachedCycles.addAll(reactions);
+      cachedCycles.addAll(ports);
     }
+
+    return cachedCycles;
+  }
 
   /**
    * Override the base class to append [i_d], where d is the depth, if this reactor is in a bank of
@@ -448,51 +445,52 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
     return LfExpressionVisitor.dispatch(e, this, ParameterInliner.INSTANCE);
   }
 
-  private static final class ParameterInliner extends LfExpressionVisitor.LfExpressionDeepCopyVisitor<ReactorInstance> {
+  private static final class ParameterInliner
+      extends LfExpressionVisitor.LfExpressionDeepCopyVisitor<ReactorInstance> {
     static final ParameterInliner INSTANCE = new ParameterInliner();
 
     @Override
     public Expression visitParameterRef(ParameterReference expr, ReactorInstance instance) {
-        if (!ASTUtils.belongsTo(expr.getParameter(), instance.definition)) {
-            throw new IllegalArgumentException("Parameter "
+      if (!ASTUtils.belongsTo(expr.getParameter(), instance.definition)) {
+        throw new IllegalArgumentException(
+            "Parameter "
                 + expr.getParameter().getName()
                 + " is not a parameter of reactor instance "
                 + instance.getName()
-                + "."
-            );
-        }
+                + ".");
+      }
 
-        Optional<Assignment> assignment =
-            instance.definition.getParameters().stream()
-                .filter(it -> it.getLhs().equals(expr.getParameter()))
-                .findAny(); // There is at most one
+      Optional<Assignment> assignment =
+          instance.definition.getParameters().stream()
+              .filter(it -> it.getLhs().equals(expr.getParameter()))
+              .findAny(); // There is at most one
 
-        if (assignment.isPresent()) {
-            // replace the parameter with its value.
-            Expression value = ASTUtils.asSingleExpr(assignment.get().getRhs());
-            // recursively resolve parameters
-            return instance.getParent().resolveParameters(value);
-        } else {
-            // In that case use the default value. Default values
-            // cannot use parameter values, so they don't need to
-            // be recursively resolved.
-            Initializer init = expr.getParameter().getInit();
-            Expression defaultValue = ASTUtils.asSingleExpr(init);
-            if (defaultValue == null) {
-                // this is a problem
-                return super.visitParameterRef(expr, instance);
-            }
-            return defaultValue;
+      if (assignment.isPresent()) {
+        // replace the parameter with its value.
+        Expression value = ASTUtils.asSingleExpr(assignment.get().getRhs());
+        // recursively resolve parameters
+        return instance.getParent().resolveParameters(value);
+      } else {
+        // In that case use the default value. Default values
+        // cannot use parameter values, so they don't need to
+        // be recursively resolved.
+        Initializer init = expr.getParameter().getInit();
+        Expression defaultValue = ASTUtils.asSingleExpr(init);
+        if (defaultValue == null) {
+          // this is a problem
+          return super.visitParameterRef(expr, instance);
         }
+        return defaultValue;
+      }
     }
-}
+  }
 
-    // /**
-    //  * Return the startup trigger or null if not used in any reaction.
-    //  */
-    // public TriggerInstance<BuiltinTriggerVariable> getStartupTrigger() {
-    //     return _instantiations;
-    // }
+  // /**
+  //  * Return the startup trigger or null if not used in any reaction.
+  //  */
+  // public TriggerInstance<BuiltinTriggerVariable> getStartupTrigger() {
+  //     return _instantiations;
+  // }
 
   ///////////////////////////////////////////////////
   //// Methods for finding instances in this reactor given an AST node.
@@ -670,21 +668,21 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
   protected void createReactionInstances() {
     List<Reaction> reactions = ASTUtils.allReactions(reactorDefinition);
     if (reactions != null) {
-        int count = 0;
+      int count = 0;
 
-        // Check for startup and shutdown triggers.
-        for (Reaction reaction : reactions) {
-            if (AttributeUtils.isUnordered(reaction)) {
-                unorderedReactions.add(reaction);
-            }
-            // Create the reaction instance.
-            var reactionInstance = new ReactionInstance(reaction, this,
-                unorderedReactions.contains(reaction), count++);
-
-            // Add the reaction instance to the map of reactions for this
-            // reactor.
-            this.reactions.add(reactionInstance);
+      // Check for startup and shutdown triggers.
+      for (Reaction reaction : reactions) {
+        if (AttributeUtils.isUnordered(reaction)) {
+          unorderedReactions.add(reaction);
         }
+        // Create the reaction instance.
+        var reactionInstance =
+            new ReactionInstance(reaction, this, unorderedReactions.contains(reaction), count++);
+
+        // Add the reaction instance to the map of reactions for this
+        // reactor.
+        this.reactions.add(reactionInstance);
+      }
     }
   }
 
@@ -692,14 +690,14 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
   protected void createWatchdogInstances() {
     List<Watchdog> watchdogs = ASTUtils.allWatchdogs(reactorDefinition);
     if (watchdogs != null) {
-        for (Watchdog watchdog : watchdogs) {
-            // Create the watchdog instance.
-            var watchdogInstance = new WatchdogInstance(watchdog, this);
+      for (Watchdog watchdog : watchdogs) {
+        // Create the watchdog instance.
+        var watchdogInstance = new WatchdogInstance(watchdog, this);
 
-            // Add the watchdog instance to the list of watchdogs for this
-            // reactor.
-            this.watchdogs.add(watchdogInstance);
-        }
+        // Add the watchdog instance to the list of watchdogs for this
+        // reactor.
+        this.watchdogs.add(watchdogInstance);
+      }
     }
   }
 
@@ -716,172 +714,167 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
    * @param desiredDepth The depth to which to expand the hierarchy.
    */
   private ReactorInstance(
-            Instantiation definition,
-            ReactorInstance parent,
-            ErrorReporter reporter,
-            int desiredDepth) {
-        super(definition, parent);
-        this.reporter = reporter;
-        this.reactorDeclaration = definition.getReactorClass();
-        this.reactorDefinition = ASTUtils.toDefinition(reactorDeclaration);
+      Instantiation definition, ReactorInstance parent, ErrorReporter reporter, int desiredDepth) {
+    super(definition, parent);
+    this.reporter = reporter;
+    this.reactorDeclaration = definition.getReactorClass();
+    this.reactorDefinition = ASTUtils.toDefinition(reactorDeclaration);
 
-        // check for recursive instantiation
-        var currentParent = parent;
-        var foundSelfAsParent = false;
-        do {
-            if (currentParent != null) {
-                if (currentParent.reactorDefinition == this.reactorDefinition) {
-                    foundSelfAsParent = true;
-                    currentParent = null; // break
-                } else {
-                    currentParent = currentParent.parent;
-                }
-            }
-        } while(currentParent != null);
-
-        this.recursive = foundSelfAsParent;
-        if (recursive) {
-            reporter.reportError(definition, "Recursive reactor instantiation.");
+    // check for recursive instantiation
+    var currentParent = parent;
+    var foundSelfAsParent = false;
+    do {
+      if (currentParent != null) {
+        if (currentParent.reactorDefinition == this.reactorDefinition) {
+          foundSelfAsParent = true;
+          currentParent = null; // break
+        } else {
+          currentParent = currentParent.parent;
         }
+      }
+    } while (currentParent != null);
 
-        // If the reactor definition is null, give up here. Otherwise, diagram generation
-        // will fail an NPE.
-        if (reactorDefinition == null) {
-            reporter.reportError(definition, "Reactor instantiation has no matching reactor definition.");
-            return;
-        }
-
-        setInitialWidth();
-
-        // Apply overrides and instantiate parameters for this reactor instance.
-        for (Parameter parameter : ASTUtils.allParameters(reactorDefinition)) {
-            this.parameters.add(new ParameterInstance(parameter, this));
-        }
-
-        // Instantiate inputs for this reactor instance
-        for (Input inputDecl : ASTUtils.allInputs(reactorDefinition)) {
-            this.inputs.add(new PortInstance(inputDecl, this, reporter));
-        }
-
-        // Instantiate outputs for this reactor instance
-        for (Output outputDecl : ASTUtils.allOutputs(reactorDefinition)) {
-            this.outputs.add(new PortInstance(outputDecl, this, reporter));
-        }
-
-        // Do not process content (except interface above) if recursive
-        if (!recursive && (desiredDepth < 0 || this.depth < desiredDepth)) {
-            // Instantiate children for this reactor instance.
-            // While doing this, assign an index offset to each.
-            for (Instantiation child : ASTUtils.allInstantiations(reactorDefinition)) {
-                var childInstance = new ReactorInstance(
-                    child,
-                    this,
-                    reporter,
-                    desiredDepth
-                );
-                this.children.add(childInstance);
-            }
-
-            // Instantiate timers for this reactor instance
-            for (Timer timerDecl : ASTUtils.allTimers(reactorDefinition)) {
-                this.timers.add(new TimerInstance(timerDecl, this));
-            }
-
-            // Instantiate actions for this reactor instance
-            for (Action actionDecl : ASTUtils.allActions(reactorDefinition)) {
-                this.actions.add(new ActionInstance(actionDecl, this));
-            }
-
-            establishPortConnections();
-
-            // Create the reaction instances in this reactor instance.
-            // This also establishes all the implied dependencies.
-            // Note that this can only happen _after_ the children,
-            // port, action, and timer instances have been created.
-            createReactionInstances();
-
-            // Instantiate modes for this reactor instance
-            // This must come after the child elements (reactions, etc) of this reactor
-            // are created in order to allow their association with modes
-            for (Mode modeDecl : ASTUtils.allModes(reactorDefinition)) {
-                this.modes.add(new ModeInstance(modeDecl, this));
-            }
-            for (ModeInstance mode : this.modes) {
-                mode.setupTranstions();
-            }
-        }
+    this.recursive = foundSelfAsParent;
+    if (recursive) {
+      reporter.reportError(definition, "Recursive reactor instantiation.");
     }
 
-    /**
-     * Return a list of Instantiation objects for evaluating parameter
-     * values.  The first object in the list is the AST Instantiation
-     * that created this reactor instance, the second is the AST instantiation
-     * that created the containing reactor instance, and so on until there
-     * are no more containing reactor instances. This will return an empty
-     * list if this reactor instance is at the top level (is main).
-     */
-    public List<Instantiation> instantiations() {
-        if (_instantiations == null) {
-            _instantiations = new ArrayList<>();
-            if (definition != null) {
-                _instantiations.add(definition);
-                if (parent != null) {
-                    _instantiations.addAll(parent.instantiations());
-                }
-            }
+    // If the reactor definition is null, give up here. Otherwise, diagram generation
+    // will fail an NPE.
+    if (reactorDefinition == null) {
+      reporter.reportError(definition, "Reactor instantiation has no matching reactor definition.");
+      return;
+    }
+
+    setInitialWidth();
+
+    // Apply overrides and instantiate parameters for this reactor instance.
+    for (Parameter parameter : ASTUtils.allParameters(reactorDefinition)) {
+      this.parameters.add(new ParameterInstance(parameter, this));
+    }
+
+    // Instantiate inputs for this reactor instance
+    for (Input inputDecl : ASTUtils.allInputs(reactorDefinition)) {
+      this.inputs.add(new PortInstance(inputDecl, this, reporter));
+    }
+
+    // Instantiate outputs for this reactor instance
+    for (Output outputDecl : ASTUtils.allOutputs(reactorDefinition)) {
+      this.outputs.add(new PortInstance(outputDecl, this, reporter));
+    }
+
+    // Do not process content (except interface above) if recursive
+    if (!recursive && (desiredDepth < 0 || this.depth < desiredDepth)) {
+      // Instantiate children for this reactor instance.
+      // While doing this, assign an index offset to each.
+      for (Instantiation child : ASTUtils.allInstantiations(reactorDefinition)) {
+        var childInstance = new ReactorInstance(child, this, reporter, desiredDepth);
+        this.children.add(childInstance);
+      }
+
+      // Instantiate timers for this reactor instance
+      for (Timer timerDecl : ASTUtils.allTimers(reactorDefinition)) {
+        this.timers.add(new TimerInstance(timerDecl, this));
+      }
+
+      // Instantiate actions for this reactor instance
+      for (Action actionDecl : ASTUtils.allActions(reactorDefinition)) {
+        this.actions.add(new ActionInstance(actionDecl, this));
+      }
+
+      establishPortConnections();
+
+      // Create the reaction instances in this reactor instance.
+      // This also establishes all the implied dependencies.
+      // Note that this can only happen _after_ the children,
+      // port, action, and timer instances have been created.
+      createReactionInstances();
+
+      // Instantiate modes for this reactor instance
+      // This must come after the child elements (reactions, etc) of this reactor
+      // are created in order to allow their association with modes
+      for (Mode modeDecl : ASTUtils.allModes(reactorDefinition)) {
+        this.modes.add(new ModeInstance(modeDecl, this));
+      }
+      for (ModeInstance mode : this.modes) {
+        mode.setupTranstions();
+      }
+    }
+  }
+
+  /**
+   * Return a list of Instantiation objects for evaluating parameter values. The first object in the
+   * list is the AST Instantiation that created this reactor instance, the second is the AST
+   * instantiation that created the containing reactor instance, and so on until there are no more
+   * containing reactor instances. This will return an empty list if this reactor instance is at the
+   * top level (is main).
+   */
+  public List<Instantiation> instantiations() {
+    if (_instantiations == null) {
+      _instantiations = new ArrayList<>();
+      if (definition != null) {
+        _instantiations.add(definition);
+        if (parent != null) {
+          _instantiations.addAll(parent.instantiations());
         }
-        return _instantiations;
+      }
     }
+    return _instantiations;
+  }
 
-    /**
-     * Returns true if this is a bank of reactors.
-     * @return true if a reactor is a bank, false otherwise
-     */
-    public boolean isBank() {
-        return definition.getWidthSpec() != null;
+  /**
+   * Returns true if this is a bank of reactors.
+   *
+   * @return true if a reactor is a bank, false otherwise
+   */
+  public boolean isBank() {
+    return definition.getWidthSpec() != null;
+  }
+
+  /**
+   * Returns whether this is a main or federated reactor.
+   *
+   * @return true if reactor definition is marked as main or federated, false otherwise.
+   */
+  public boolean isMainOrFederated() {
+    return reactorDefinition != null
+        && (reactorDefinition.isMain() || reactorDefinition.isFederated());
+  }
+
+  /**
+   * Return true if the specified reactor instance is either equal to this reactor instance or a
+   * parent of it.
+   *
+   * @param r The reactor instance.
+   */
+  public boolean isParent(ReactorInstance r) {
+    ReactorInstance p = this;
+    while (p != null) {
+      if (p == r) return true;
+      p = p.getParent();
     }
+    return false;
+  }
 
-    /**
-     * Returns whether this is a main or federated reactor.
-     * @return true if reactor definition is marked as main or federated, false otherwise.
-     */
-    public boolean isMainOrFederated() {
-        return reactorDefinition != null
-                && (reactorDefinition.isMain() || reactorDefinition.isFederated());
+  ///////////////////////////////////////////////////
+  //// Methods for finding instances in this reactor given an AST node.
+
+  /**
+   * Return the action instance within this reactor instance corresponding to the specified action
+   * reference.
+   *
+   * @param action The action as an AST node.
+   * @return The corresponding action instance or null if the action does not belong to this
+   *     reactor.
+   */
+  public ActionInstance lookupActionInstance(Action action) {
+    for (ActionInstance actionInstance : actions) {
+      if (actionInstance.definition == action) {
+        return actionInstance;
+      }
     }
-
-    /**
-     * Return true if the specified reactor instance is either equal to this
-     * reactor instance or a parent of it.
-     * @param r The reactor instance.
-     */
-    public boolean isParent(ReactorInstance r) {
-        ReactorInstance p = this;
-        while (p != null) {
-            if (p == r) return true;
-            p = p.getParent();
-        }
-        return false;
-    }
-
-    ///////////////////////////////////////////////////
-    //// Methods for finding instances in this reactor given an AST node.
-
-    /**
-     * Return the action instance within this reactor
-     * instance corresponding to the specified action reference.
-     * @param action The action as an AST node.
-     * @return The corresponding action instance or null if the
-     *  action does not belong to this reactor.
-     */
-    public ActionInstance lookupActionInstance(Action action) {
-        for (ActionInstance actionInstance : actions) {
-            if (actionInstance.definition == action) {
-                return actionInstance;
-            }
-        }
-        return null;
-    }
+    return null;
+  }
 
   //////////////////////////////////////////////////////
   //// Private methods.
@@ -903,100 +896,100 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
     dst.instance.dependsOnPorts.add(src);
   }
 
-    //////////////////////////////////////////////////////
-    //// Protected methods.
+  //////////////////////////////////////////////////////
+  //// Protected methods.
 
-    /**
-     * Returns the built-in trigger or create a new one if none exists.
-     */
-    protected TriggerInstance<BuiltinTriggerVariable> getOrCreateBuiltinTrigger(BuiltinTriggerRef trigger) {
-        return builtinTriggers.computeIfAbsent(trigger.getType(), ref -> TriggerInstance.builtinTrigger(trigger, this));
-    }
+  /** Returns the built-in trigger or create a new one if none exists. */
+  protected TriggerInstance<BuiltinTriggerVariable> getOrCreateBuiltinTrigger(
+      BuiltinTriggerRef trigger) {
+    return builtinTriggers.computeIfAbsent(
+        trigger.getType(), ref -> TriggerInstance.builtinTrigger(trigger, this));
+  }
 
-    /**
-     * Populate connectivity information in the port instances.
-     * Note that this can only happen _after_ the children and port instances have been created.
-     * Unfortunately, we have to do some complicated things here
-     * to support multiport-to-multiport, multiport-to-bank,
-     * and bank-to-multiport communication.  The principle being followed is:
-     * in each connection statement, for each port instance on the left,
-     * connect to the next available port on the right.
-     */
-    private void establishPortConnections() {
-        for (Connection connection : ASTUtils.allConnections(reactorDefinition)) {
-            List<RuntimeRange<PortInstance>> leftPorts = listPortInstances(connection.getLeftPorts(), connection);
-            Iterator<RuntimeRange<PortInstance>> srcRanges = leftPorts.iterator();
-            List<RuntimeRange<PortInstance>> rightPorts = listPortInstances(connection.getRightPorts(), connection);
-            Iterator<RuntimeRange<PortInstance>> dstRanges = rightPorts.iterator();
+  /**
+   * Populate connectivity information in the port instances. Note that this can only happen _after_
+   * the children and port instances have been created. Unfortunately, we have to do some
+   * complicated things here to support multiport-to-multiport, multiport-to-bank, and
+   * bank-to-multiport communication. The principle being followed is: in each connection statement,
+   * for each port instance on the left, connect to the next available port on the right.
+   */
+  private void establishPortConnections() {
+    for (Connection connection : ASTUtils.allConnections(reactorDefinition)) {
+      List<RuntimeRange<PortInstance>> leftPorts =
+          listPortInstances(connection.getLeftPorts(), connection);
+      Iterator<RuntimeRange<PortInstance>> srcRanges = leftPorts.iterator();
+      List<RuntimeRange<PortInstance>> rightPorts =
+          listPortInstances(connection.getRightPorts(), connection);
+      Iterator<RuntimeRange<PortInstance>> dstRanges = rightPorts.iterator();
 
-            // Check for empty lists.
-            if (!srcRanges.hasNext()) {
-                if (dstRanges.hasNext()) {
-                    reporter.reportWarning(connection, "No sources to provide inputs.");
-                }
-                return;
-            } else if (!dstRanges.hasNext()) {
-                reporter.reportWarning(connection, "No destination. Outputs will be lost.");
-                return;
-            }
-
-            RuntimeRange<PortInstance> src = srcRanges.next();
-            RuntimeRange<PortInstance> dst = dstRanges.next();
-
-            while(true) {
-                if (dst.width == src.width) {
-                    connectPortInstances(src, dst, connection);
-                    if (!dstRanges.hasNext()) {
-                        if (srcRanges.hasNext()) {
-                            // Should not happen (checked by the validator).
-                            reporter.reportWarning(connection,
-                                    "Source is wider than the destination. Outputs will be lost.");
-                        }
-                        break;
-                    }
-                    if (!srcRanges.hasNext()) {
-                        if (connection.isIterated()) {
-                            srcRanges = leftPorts.iterator();
-                        } else {
-                            if (dstRanges.hasNext()) {
-                                // Should not happen (checked by the validator).
-                                reporter.reportWarning(connection,
-                                        "Destination is wider than the source. Inputs will be missing.");
-                            }
-                            break;
-                        }
-                    }
-                    dst = dstRanges.next();
-                    src = srcRanges.next();
-                } else if (dst.width < src.width) {
-                    // Split the left (src) range in two.
-                    connectPortInstances(src.head(dst.width), dst, connection);
-                    src = src.tail(dst.width);
-                    if (!dstRanges.hasNext()) {
-                        // Should not happen (checked by the validator).
-                        reporter.reportWarning(connection,
-                                "Source is wider than the destination. Outputs will be lost.");
-                        break;
-                    }
-                    dst = dstRanges.next();
-                } else if (src.width < dst.width) {
-                    // Split the right (dst) range in two.
-                    connectPortInstances(src, dst.head(src.width), connection);
-                    dst = dst.tail(src.width);
-                    if (!srcRanges.hasNext()) {
-                        if (connection.isIterated()) {
-                            srcRanges = leftPorts.iterator();
-                        } else {
-                            reporter.reportWarning(connection,
-                                    "Destination is wider than the source. Inputs will be missing.");
-                            break;
-                        }
-                    }
-                    src = srcRanges.next();
-                }
-            }
+      // Check for empty lists.
+      if (!srcRanges.hasNext()) {
+        if (dstRanges.hasNext()) {
+          reporter.reportWarning(connection, "No sources to provide inputs.");
         }
+        return;
+      } else if (!dstRanges.hasNext()) {
+        reporter.reportWarning(connection, "No destination. Outputs will be lost.");
+        return;
+      }
+
+      RuntimeRange<PortInstance> src = srcRanges.next();
+      RuntimeRange<PortInstance> dst = dstRanges.next();
+
+      while (true) {
+        if (dst.width == src.width) {
+          connectPortInstances(src, dst, connection);
+          if (!dstRanges.hasNext()) {
+            if (srcRanges.hasNext()) {
+              // Should not happen (checked by the validator).
+              reporter.reportWarning(
+                  connection, "Source is wider than the destination. Outputs will be lost.");
+            }
+            break;
+          }
+          if (!srcRanges.hasNext()) {
+            if (connection.isIterated()) {
+              srcRanges = leftPorts.iterator();
+            } else {
+              if (dstRanges.hasNext()) {
+                // Should not happen (checked by the validator).
+                reporter.reportWarning(
+                    connection, "Destination is wider than the source. Inputs will be missing.");
+              }
+              break;
+            }
+          }
+          dst = dstRanges.next();
+          src = srcRanges.next();
+        } else if (dst.width < src.width) {
+          // Split the left (src) range in two.
+          connectPortInstances(src.head(dst.width), dst, connection);
+          src = src.tail(dst.width);
+          if (!dstRanges.hasNext()) {
+            // Should not happen (checked by the validator).
+            reporter.reportWarning(
+                connection, "Source is wider than the destination. Outputs will be lost.");
+            break;
+          }
+          dst = dstRanges.next();
+        } else if (src.width < dst.width) {
+          // Split the right (dst) range in two.
+          connectPortInstances(src, dst.head(src.width), connection);
+          dst = dst.tail(src.width);
+          if (!srcRanges.hasNext()) {
+            if (connection.isIterated()) {
+              srcRanges = leftPorts.iterator();
+            } else {
+              reporter.reportWarning(
+                  connection, "Destination is wider than the source. Inputs will be missing.");
+              break;
+            }
+          }
+          src = srcRanges.next();
+        }
+      }
     }
+  }
 
   /**
    * If path exists from the specified port to any reaction in the specified set of reactions, then
@@ -1044,93 +1037,91 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
    */
   private List<RuntimeRange<PortInstance>> listPortInstances(
       List<VarRef> references, Connection connection) {
-        List<RuntimeRange<PortInstance>> result = new ArrayList<>();
-        List<RuntimeRange<PortInstance>> tails = new LinkedList<>();
-        int count = 0;
-        for (VarRef portRef : references) {
-            // Simple error checking first.
-            if (!(portRef.getVariable() instanceof Port)) {
-                reporter.reportError(portRef, "Not a port.");
-                return result;
-            }
-            // First, figure out which reactor we are dealing with.
-            // The reactor we want is the container of the port.
-            // If the port reference has no container, then the reactor is this one.
-            var reactor = this;
-            if (portRef.getContainer() != null) {
-                reactor = getChildReactorInstance(portRef.getContainer());
-            }
-            // The reactor can be null only if there is an error in the code.
-            // Skip this portRef so that diagram synthesis can complete.
-            if (reactor != null) {
-                PortInstance portInstance = reactor.lookupPortInstance(
-                        (Port) portRef.getVariable());
-                
-                Set<ReactorInstance> interleaved = new LinkedHashSet<>();
-                if (portRef.isInterleaved()) {
-                    // NOTE: Here, we are assuming that the interleaved()
-                    // keyword is only allowed on the multiports contained by
-                    // contained reactors.
-                    interleaved.add(portInstance.parent);
-                }
-                RuntimeRange<PortInstance> range = new RuntimeRange.Port(
-                        portInstance, interleaved);
-                // If this portRef is not the last one in the references list
-                // then we have to check whether the range can be incremented at
-                // the lowest two levels (port and container).  If not,
-                // split the range and add the tail to list to iterate over again.
-                // The reason for this is that the connection has only local visibility,
-                // but the range width may be reflective of bank structure higher
-                // in the hierarchy.
-                if (count < references.size() - 1) {
-                    int portWidth = portInstance.width;
-                    int portParentWidth = portInstance.parent.width;
-                    // If the port is being connected on the inside and there is
-                    // more than one port in the list, then we can only connect one
-                    // bank member at a time.
-                    if (reactor == this && references.size() > 1) {
-                        portParentWidth = 1;
-                    }
-                    int widthBound = portWidth * portParentWidth;
-                                        
-                    // If either of these widths cannot be determined, assume infinite.
-                    if (portWidth < 0) widthBound = Integer.MAX_VALUE;
-                    if (portParentWidth < 0) widthBound = Integer.MAX_VALUE;
-                    
-                    if (widthBound < range.width) {
-                        // Need to split the range.
-                        tails.add(range.tail(widthBound));
-                        range = range.head(widthBound);
-                    }
-                }
-                result.add(range);
-            }
-        }
-        // Iterate over the tails.
-        while(tails.size() > 0) {
-            List<RuntimeRange<PortInstance>> moreTails = new LinkedList<>();
-            count = 0;
-            for (RuntimeRange<PortInstance> tail : tails) {
-                if (count < tails.size() - 1) {
-                    int widthBound = tail.instance.width;
-                    if (tail._interleaved.contains(tail.instance.parent)) {
-                        widthBound = tail.instance.parent.width;
-                    }
-                    // If the width cannot be determined, assume infinite.
-                    if (widthBound < 0) widthBound = Integer.MAX_VALUE;
-                    
-                    if (widthBound < tail.width) {
-                        // Need to split the range again
-                        moreTails.add(tail.tail(widthBound));
-                        tail = tail.head(widthBound);
-                    }
-                }
-                result.add(tail);
-            }
-            tails = moreTails;
-        }
+    List<RuntimeRange<PortInstance>> result = new ArrayList<>();
+    List<RuntimeRange<PortInstance>> tails = new LinkedList<>();
+    int count = 0;
+    for (VarRef portRef : references) {
+      // Simple error checking first.
+      if (!(portRef.getVariable() instanceof Port)) {
+        reporter.reportError(portRef, "Not a port.");
         return result;
+      }
+      // First, figure out which reactor we are dealing with.
+      // The reactor we want is the container of the port.
+      // If the port reference has no container, then the reactor is this one.
+      var reactor = this;
+      if (portRef.getContainer() != null) {
+        reactor = getChildReactorInstance(portRef.getContainer());
+      }
+      // The reactor can be null only if there is an error in the code.
+      // Skip this portRef so that diagram synthesis can complete.
+      if (reactor != null) {
+        PortInstance portInstance = reactor.lookupPortInstance((Port) portRef.getVariable());
+
+        Set<ReactorInstance> interleaved = new LinkedHashSet<>();
+        if (portRef.isInterleaved()) {
+          // NOTE: Here, we are assuming that the interleaved()
+          // keyword is only allowed on the multiports contained by
+          // contained reactors.
+          interleaved.add(portInstance.parent);
+        }
+        RuntimeRange<PortInstance> range = new RuntimeRange.Port(portInstance, interleaved);
+        // If this portRef is not the last one in the references list
+        // then we have to check whether the range can be incremented at
+        // the lowest two levels (port and container).  If not,
+        // split the range and add the tail to list to iterate over again.
+        // The reason for this is that the connection has only local visibility,
+        // but the range width may be reflective of bank structure higher
+        // in the hierarchy.
+        if (count < references.size() - 1) {
+          int portWidth = portInstance.width;
+          int portParentWidth = portInstance.parent.width;
+          // If the port is being connected on the inside and there is
+          // more than one port in the list, then we can only connect one
+          // bank member at a time.
+          if (reactor == this && references.size() > 1) {
+            portParentWidth = 1;
+          }
+          int widthBound = portWidth * portParentWidth;
+
+          // If either of these widths cannot be determined, assume infinite.
+          if (portWidth < 0) widthBound = Integer.MAX_VALUE;
+          if (portParentWidth < 0) widthBound = Integer.MAX_VALUE;
+
+          if (widthBound < range.width) {
+            // Need to split the range.
+            tails.add(range.tail(widthBound));
+            range = range.head(widthBound);
+          }
+        }
+        result.add(range);
+      }
     }
+    // Iterate over the tails.
+    while (tails.size() > 0) {
+      List<RuntimeRange<PortInstance>> moreTails = new LinkedList<>();
+      count = 0;
+      for (RuntimeRange<PortInstance> tail : tails) {
+        if (count < tails.size() - 1) {
+          int widthBound = tail.instance.width;
+          if (tail._interleaved.contains(tail.instance.parent)) {
+            widthBound = tail.instance.parent.width;
+          }
+          // If the width cannot be determined, assume infinite.
+          if (widthBound < 0) widthBound = Integer.MAX_VALUE;
+
+          if (widthBound < tail.width) {
+            // Need to split the range again
+            moreTails.add(tail.tail(widthBound));
+            tail = tail.head(widthBound);
+          }
+        }
+        result.add(tail);
+      }
+      tails = moreTails;
+    }
+    return result;
+  }
 
   /**
    * If this is a bank of reactors, set the width. It will be set to -1 if it cannot be determined.
