@@ -170,16 +170,16 @@ public interface ErrorReporter {
     return report(file, severity, message, range.getStartInclusive().getOneBasedLine());
   }
 
-    /**
-     * Check if errors where reported.
-     *
-     * @return true if errors where reported
-     */
-    boolean getErrorsOccurred();
+  /**
+   * Check if errors where reported.
+   *
+   * @return true if errors where reported
+   */
+  boolean getErrorsOccurred();
 
-    /**
-     * Clear error history, if exists.
-     * This is usually only the case for error markers in Epoch (Eclipse).
-     */
-    default void clearHistory() {}
+  /**
+   * Clear error history, if exists. This is usually only the case for error markers in Epoch
+   * (Eclipse).
+   */
+  default void clearHistory() {}
 }

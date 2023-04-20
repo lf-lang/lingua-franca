@@ -145,32 +145,24 @@ public class LFCommand {
     }
   }
 
-
-    /**
-     * Execute the command.
-     * <p>
-     * Executing a process directly with `processBuilder.start()` could
-     * lead to a deadlock as the subprocess blocks when output or error
-     * buffers are full. This method ensures that output and error messages
-     * are continuously read and forwards them to the system output and
-     * error streams as well as to the output and error streams hold in
-     * this class.
-     * </p>
-     * <p>
-     * If the current operation is cancelled (as indicated
-     * by <code>cancelIndicator</code>), the subprocess
-     * is destroyed. Output and error streams until that
-     * point are still collected.
-     * </p>
-     *
-     * @param cancelIndicator The indicator of whether the underlying process
-     * should be terminated.
-     * @return the process' return code
-     * @author Christian Menard
-     */
-    public int run(CancelIndicator cancelIndicator) {
-        assert !didRun;
-        didRun = true;
+  /**
+   * Execute the command.
+   *
+   * <p>Executing a process directly with `processBuilder.start()` could lead to a deadlock as the
+   * subprocess blocks when output or error buffers are full. This method ensures that output and
+   * error messages are continuously read and forwards them to the system output and error streams
+   * as well as to the output and error streams hold in this class.
+   *
+   * <p>If the current operation is cancelled (as indicated by <code>cancelIndicator</code>), the
+   * subprocess is destroyed. Output and error streams until that point are still collected.
+   *
+   * @param cancelIndicator The indicator of whether the underlying process should be terminated.
+   * @return the process' return code
+   * @author Christian Menard
+   */
+  public int run(CancelIndicator cancelIndicator) {
+    assert !didRun;
+    didRun = true;
 
     System.out.println("--- Current working directory: " + processBuilder.directory().toString());
     System.out.println("--- Executing command: " + String.join(" ", processBuilder.command()));
