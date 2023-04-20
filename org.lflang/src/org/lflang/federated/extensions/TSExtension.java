@@ -11,7 +11,6 @@ import java.util.stream.Collectors;
 import org.lflang.ASTUtils;
 import org.lflang.ErrorReporter;
 import org.lflang.InferredType;
-import org.lflang.Target;
 import org.lflang.TargetProperty.CoordinationType;
 import org.lflang.TimeValue;
 import org.lflang.federated.generator.FedASTUtils;
@@ -22,7 +21,7 @@ import org.lflang.federated.launcher.RtiConfig;
 import org.lflang.generator.GeneratorBase;
 import org.lflang.generator.LFGeneratorContext;
 import org.lflang.generator.ReactorInstance;
-import org.lflang.generator.ts.TSExtensionsKt;
+import org.lflang.generator.ts.TSTypes;
 import org.lflang.lf.Action;
 import org.lflang.lf.Expression;
 import org.lflang.lf.Output;
@@ -97,28 +96,27 @@ public class TSExtension implements FedTargetExtension {
         var upstreamConnectionDelays = getUpstreamConnectionDelays(federate);
         return
         """
-            preamble {=
-                const defaultFederateConfig: __FederateConfig = {
-                    dependsOn: [%s],
-                    executionTimeout: undefined,
-                    fast: false,
-                    federateID: %d,
-                    federationID: "Unidentified Federation",
-                    keepAlive: false,
-                    minOutputDelay: %s,
-                    networkMessageActions: [%s],
-                    rtiHost: "%s",
-                    rtiPort: %d,
-                    sendsTo: [%s],
-                    upstreamConnectionDelays: [%s]
-                }
-            =}""".formatted(
+        const defaultFederateConfig: __FederateConfig = {
+            dependsOn: [%s],
+            executionTimeout: undefined,
+            fast: false,
+            federateID: %d,
+            federationID: "Unidentified Federation",
+            keepAlive: false,
+            minOutputDelay: %s,
+            networkMessageActions: [%s],
+            rtiHost: "%s",
+            rtiPort: %d,
+            sendsTo: [%s],
+            upstreamConnectionDelays: [%s]
+        }
+            """.formatted(
             federate.dependsOn.keySet().stream()
                               .map(e->String.valueOf(e.id))
                               .collect(Collectors.joining(",")),
             federate.id,
             minOutputDelay == null ? "undefined"
-                                   : "%s".formatted(TSExtensionsKt.toTsTime(minOutputDelay)),
+                                   : "%s".formatted(TSTypes.getInstance().getTargetTimeExpr(minOutputDelay)),
             federate.networkMessageActions
                 .stream()
                 .map(Variable::getName)

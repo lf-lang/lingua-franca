@@ -284,6 +284,7 @@ public class IsEqual extends LfSwitch<Boolean> {
             .listsEquivalent(Reaction::getSources)
             .listsEquivalent(Reaction::getEffects)
             .equalAsObjects(Reaction::isMutation)
+            .equalAsObjects(Reaction::getName)
             .equivalent(Reaction::getCode)
             .equivalent(Reaction::getStp)
             .equivalent(Reaction::getDeadline)

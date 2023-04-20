@@ -46,7 +46,7 @@ import org.lflang.lf.WidthSpec
  */
 
 /** Get the "name" a reaction is represented with in target code.*/
-val Reaction.name
+val Reaction.codeName
     get(): String = "r$indexInContainer"
 
 /* **********************************************************************************************

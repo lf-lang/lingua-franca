@@ -7,6 +7,10 @@ target C {
     logging: DEBUG
 }
 
+preamble {=
+    #include <string.h>
+=}
+
 reactor Source {
     timer t(0, 200 msec)
     output out: int

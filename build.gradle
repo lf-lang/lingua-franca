@@ -42,19 +42,17 @@ subprojects {
         implementation group: 'com.google.inject', name: 'guice', version: guiceVersion
         // https://picocli.info/
         implementation group: 'info.picocli', name: 'picocli', version: picocliVersion
-    }
-    dependencies {
+        // https://mvnrepository.com/artifact/com.google.code.gson/gson
+        implementation group: 'com.google.code.gson', name: 'gson', version: gsonVersion
         implementation group: 'org.jetbrains.kotlin', name: 'kotlin-stdlib', version: kotlinVersion
         implementation group: 'org.jetbrains.kotlin', name: 'kotlin-reflect', version: kotlinVersion
     }
 
-
-    apply plugin: 'org.xtext.xtend'
     apply from: "${rootDir}/gradle/source-layout.gradle"
     apply plugin: 'eclipse'
 
     // generate xtend sources before kotlin compilation
-    compileKotlin.dependsOn("generateXtext")
+    compileKotlin.dependsOn(":org.lflang:generateXtextLanguage")
 
     sourceCompatibility = JavaVersion.VERSION_17
     targetCompatibility = JavaVersion.VERSION_17

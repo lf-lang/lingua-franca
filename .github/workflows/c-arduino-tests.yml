@@ -59,4 +59,11 @@ jobs:
           arduino-cli core install arduino:sam
           arduino-cli core install arduino:mbed
       - name: Perform Arduino tests for C target with default scheduler
-        run: ./gradlew test --tests org.lflang.tests.runtime.CArduinoTest.runArduinoTests
+        run: ./gradlew test --tests org.lflang.tests.runtime.CArduinoTest.buildArduinoTests
+      - name: Report to CodeCov
+        uses: codecov/codecov-action@v3.1.1
+        with:
+          file: org.lflang.tests/build/reports/xml/jacoco
+          fail_ci_if_error: false
+          verbose: true
+        if: ${{ !inputs.runtime-ref && runner.os == 'Linux' }}  # i.e., if this is part of the main repo's CI

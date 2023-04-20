@@ -7,6 +7,10 @@
  */
 target C
 
+preamble {=
+    #include <string.h>
+=}
+
 reactor Source {
     output out: string
 

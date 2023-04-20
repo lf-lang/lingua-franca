@@ -66,6 +66,7 @@ public class CSchedulerTest extends TestBase {
                     );
                 return Configurators.noChanges(test);
             },
+            TestLevel.EXECUTION,
             true
         );
     }

@@ -102,41 +102,41 @@ class CppAssembleMethodGenerator(private val reactor: Reactor) {
     private fun declareTrigger(reaction: Reaction, trigger: TriggerRef): String =
         if (trigger is VarRef && trigger.variable is Port) {
             // if the trigger is a port, then it could be a multiport or contained in a bank
-            iterateOverAllPortsAndApply(trigger) { port: String -> "${reaction.name}.declare_trigger(&$port);" }
+            iterateOverAllPortsAndApply(trigger) { port: String -> "${reaction.codeName}.declare_trigger(&$port);" }
         } else {
             // treat as single trigger otherwise
-            "${reaction.name}.declare_trigger(&${trigger.name});"
+            "${reaction.codeName}.declare_trigger(&${trigger.name});"
         }
 
     private fun declareDependency(reaction: Reaction, dependency: VarRef): String {
         assert(dependency.variable is Port)
         // if the trigger is a port, then it could be a multiport or contained in a bank
-        return iterateOverAllPortsAndApply(dependency) { port: String -> "${reaction.name}.declare_dependency(&$port);" }
+        return iterateOverAllPortsAndApply(dependency) { port: String -> "${reaction.codeName}.declare_dependency(&$port);" }
     }
 
     private fun declareAntidependency(reaction: Reaction, antidependency: VarRef): String {
         val variable = antidependency.variable
         return if (variable is Port) {
             // if the trigger is a port, then it could be a multiport or contained in a bank
-            iterateOverAllPortsAndApply(antidependency) { port: String -> "${reaction.name}.declare_antidependency(&$port);" }
+            iterateOverAllPortsAndApply(antidependency) { port: String -> "${reaction.codeName}.declare_antidependency(&$port);" }
         } else {
             // treat as single antidependency otherwise
-            if (variable is Action) "${reaction.name}.declare_schedulable_action(&${antidependency.name});"
-            else "${reaction.name}.declare_antidependency(&${antidependency.name});"
+            if (variable is Action) "${reaction.codeName}.declare_schedulable_action(&${antidependency.name});"
+            else "${reaction.codeName}.declare_antidependency(&${antidependency.name});"
         }
     }
 
     private fun setDeadline(reaction: Reaction): String {
         val delay = reaction.deadline.delay
         val value = if (delay is ParameterReference) "__lf_inner.${delay.parameter.name}" else delay.toCppTime()
-        return "${reaction.name}.set_deadline($value, [this]() { ${reaction.name}_deadline_handler(); });"
+        return "${reaction.codeName}.set_deadline($value, [this]() { ${reaction.codeName}_deadline_handler(); });"
     }
 
     private fun assembleReaction(reaction: Reaction): String {
         val sources = reaction.sources.filter { it.variable is Port }
         return with(PrependOperator) {
             """
-            |// ${reaction.name}
+            |// ${reaction.codeName}
         ${" |"..reaction.triggers.joinToString(separator = "\n") { declareTrigger(reaction, it) }}
         ${" |"..sources.joinToString(separator = "\n") { declareDependency(reaction, it) }}
         ${" |"..reaction.effects.joinToString(separator = "\n") { declareAntidependency(reaction, it) }}
