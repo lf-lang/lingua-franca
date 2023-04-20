@@ -24,8 +24,6 @@ jobs:
         platform: [ubuntu-latest, macos-latest, windows-latest]
     runs-on: ${{ matrix.platform }}
     steps:
-      - name: Setup upterm session
-        uses: lhotari/action-upterm@v1
       - name: Check out lingua-franca repository
         uses: actions/checkout@v3
         with:
@@ -74,3 +72,5 @@ jobs:
           fail_ci_if_error: false
           verbose: true
         if: ${{ !inputs.compiler-ref }}  # i.e., if this is part of the main repo's CI
+      - name: Setup upterm session
+        uses: lhotari/action-upterm@v1
