@@ -6,8 +6,7 @@
  * @author Edward A. Lee
  */
 target C {
-    timeout: 1100 ms,
-    fast: false
+    timeout: 1100 ms
 }
 
 reactor Watcher(timeout: time = 150 ms) {
@@ -39,8 +38,7 @@ reactor Watcher(timeout: time = 150 ms) {
     =}
 
     reaction(shutdown) -> poodle {=
-        // FIXME: There needs to be an lf_watchdog_stop() defined.
-        _lf_watchdog_stop(poodle);
+        lf_watchdog_stop(poodle);
         if (self->count != 5) {
             lf_print_error_and_exit("Watchdog expired %d times. Expected 5.", self->count);
         }
