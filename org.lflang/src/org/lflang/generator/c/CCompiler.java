@@ -25,6 +25,7 @@
 
 package org.lflang.generator.c;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -230,6 +231,8 @@ public class CCompiler {
                     fileConfig.binPath
                 )
             ),
+            "-DLF_SOURCE_DIRECTORY=\"" + fileConfig.srcPath + "\"", // Do not convert to Unix path.
+            "-DLF_FILE_SEPARATOR=\"" + File.separator + "\"",
             FileUtil.toUnixString(fileConfig.getSrcGenPath())
         ));
 
