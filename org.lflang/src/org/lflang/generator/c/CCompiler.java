@@ -223,6 +223,8 @@ public class CCompiler {
     private static List<String> cmakeOptions(TargetConfig targetConfig, FileConfig fileConfig) {
         List<String> arguments = new ArrayList<>();
         cmakeCompileDefinitions(targetConfig).forEachOrdered(arguments::add);
+        String separator = File.separator;
+        if (separator.equals("\\")) separator = "\\\\";
         arguments.addAll(List.of(
             "-DCMAKE_BUILD_TYPE=" + ((targetConfig.cmakeBuildType!=null) ? targetConfig.cmakeBuildType.toString() : "Release"),
             "-DCMAKE_INSTALL_PREFIX=" + FileUtil.toUnixString(fileConfig.getOutPath()),
@@ -232,7 +234,7 @@ public class CCompiler {
                 )
             ),
             "-DLF_SOURCE_DIRECTORY=\"" + fileConfig.srcPath + "\"", // Do not convert to Unix path.
-            "-DLF_FILE_SEPARATOR=\"" + File.separator + "\"",
+            "-DLF_FILE_SEPARATOR=\"" + separator + "\"",
             FileUtil.toUnixString(fileConfig.getSrcGenPath())
         ));
 
