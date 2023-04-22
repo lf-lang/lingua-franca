@@ -49,6 +49,8 @@ jobs:
       - name: Install RTI
         uses: ./.github/actions/install-rti
         if: ${{ runner.os == 'macOS' || runner.os == 'Linux' }}
+      - name: Setup upterm session
+        uses: lhotari/action-upterm@v1
       - name: Perform tests for C target with default scheduler
         run: |
           ./gradlew test --tests org.lflang.tests.runtime.CTest.*
