@@ -358,6 +358,11 @@ public class CExtensionUtils {
         CodeBuilder cmakeIncludeCode = new CodeBuilder();
 
         cmakeIncludeCode.pr(generateSerializationCMakeExtension(federate));
+        cmakeIncludeCode.pr(
+            "add_compile_definitions(LF_SOURCE_DIRECTORY=\""
+            + fileConfig.srcPath
+            + "\")"
+        );
 
         try (var srcWriter = Files.newBufferedWriter(cmakeIncludePath)) {
             srcWriter.write(cmakeIncludeCode.getCode());

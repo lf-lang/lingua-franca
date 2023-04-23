@@ -233,10 +233,16 @@ public class CCompiler {
                     fileConfig.binPath
                 )
             ),
-            "-DLF_SOURCE_DIRECTORY=\"" + fileConfig.srcPath + "\"", // Do not convert to Unix path.
             "-DLF_FILE_SEPARATOR=\"" + separator + "\"",
             FileUtil.toUnixString(fileConfig.getSrcGenPath())
         ));
+        // Add #define for source file directory.
+        // Do not do this for federated programs because for those, the definition is put
+        // into the cmake file (and fileConfig.srcPath is the wrong directory anyway).
+        if (!fileConfig.srcPath.toString().contains("fed-gen")) {
+            // Do not convert to Unix path
+            arguments.add("-DLF_SOURCE_DIRECTORY=\"" + fileConfig.srcPath + "\"");
+        }
 
         if (GeneratorUtils.isHostWindows()) {
             arguments.add("-DCMAKE_SYSTEM_VERSION=\"10.0\"");
