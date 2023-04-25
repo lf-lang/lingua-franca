@@ -1,0 +1,39 @@
+// This example is derived from the C++ enclave test case, which says "This is a 
+// basic test for enclaved execution. The deadlines should never be
+// violated for the test to pass.".
+// Here, we transform it into a federated one, where the `fast` federate is 
+// transient.
+
+target C {
+    timeout: 20 sec
+}
+
+reactor Slow {
+    timer t(0, 1 sec)
+
+    reaction(t) {=
+        lf_print("Slow reaction starts");
+        lf_sleep(700000000);
+        lf_print("Slow reaction ends");
+    =} deadline(200 msec) {=
+        lf_print_error_and_exit("Slow deadline was violated!");
+    =}
+}
+
+reactor Fast {
+    timer t(0 msec, 100 msec)
+
+    reaction(t) {=
+        lf_print("Fast reaction executes");
+    =} deadline(
+        200 msec
+    ) {=
+        lf_print_error_and_exit("Fast deadline was violated!");
+    =}
+}
+
+federated reactor {
+    slow = new Slow()
+    @transient
+    fast = new Fast()
+}
