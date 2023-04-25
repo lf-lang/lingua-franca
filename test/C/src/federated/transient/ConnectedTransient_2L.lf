@@ -1,0 +1,64 @@
+target C {
+    timeout: 20s,
+    tracing: true
+}
+
+reactor Up(period:time = 2s) {
+    output out: int
+    timer t(0, period)
+    state count: int = 0
+    reaction(t) -> out {=
+        lf_set(out, self->count);
+        lf_print("Count is = %d at (%lld, %ld)", self->count, lf_time_logical_elapsed(), lf_tag().microstep);
+        self->count++;
+    =}
+}
+
+reactor PassThrough {
+    input in: int
+    output out: int
+    reaction(in) -> out {=
+        lf_set(out, in->value);
+        lf_print("PassThrough :: Passing %d at (%lld, %ld)", in->value, lf_time_logical_elapsed(), lf_tag().microstep);
+    =}
+}
+
+reactor Middle {
+    input in1: int
+    input in2: int
+    output out: int
+    state count: int=0
+    reaction(in1) -> out {=
+        self->count += in1->value;
+        lf_set(out, self->count);
+        lf_print("IN1 :: Sending %d at (%lld, %ld)", self->count, lf_time_logical_elapsed(), lf_tag().microstep);
+    =}
+    reaction(in2) -> out {=
+        self->count += in2->value;
+        lf_set(out, self->count);
+        lf_print("IN2 :: Sending %d at (%lld, %ld)", self->count, lf_time_logical_elapsed(), lf_tag().microstep);
+    =}
+}
+
+reactor Down{
+    input in: int
+    reaction(in) {=
+        lf_print("Received %d at (%lld, %ld)", in->value, lf_time_logical_elapsed(), lf_tag().microstep);
+    =}
+}
+
+federated reactor {
+    up1 = new Up(period = 2s)
+    up2 = new Up(period = 1s)
+    @transient
+    pt = new PassThrough()
+    @transient
+    mid = new Middle()
+    down = new Down()
+
+    // Connections
+    up1.out -> pt.in
+    pt.out -> mid.in1
+    up2.out -> mid.in2
+    mid.out -> down.in
+}
