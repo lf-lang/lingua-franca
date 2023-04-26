@@ -1,15 +1,15 @@
-/**
- * Test reading a file at a location relative to the source file.
- */
+/** Test reading a file at a location relative to the source file. */
 target C
+
 reactor Source {
-    output out:char* // Use char*, not string, so memory is freed.
+    output out: char*  // Use char*, not string, so memory is freed.
+
     reaction(startup) -> out {=
         char* file_path =
             LF_SOURCE_DIRECTORY
             LF_FILE_SEPARATOR "lib"
             LF_FILE_SEPARATOR "FileReader.txt";
-            
+
         FILE* file = fopen(file_path, "rb");
         if (file == NULL) lf_print_error_and_exit("Error opening file at path %s.", file_path);
 
@@ -26,15 +26,17 @@ reactor Source {
         fread(buffer, file_size, 1, file);
         buffer[file_size] = '\0';
         fclose(file);
-                
+
         lf_set(out, buffer);
     =}
 }
+
 main reactor {
     preamble {=
         #include <string.h>
     =}
     s = new Source()
+
     reaction(s.out) {=
         printf("Received: %s\n", s.out->value);
         if (strcmp("Hello World", s.out->value) != 0) {
