@@ -53,6 +53,7 @@ import org.lflang.Target;
 import org.lflang.TargetConfig;
 import org.lflang.TargetProperty;
 import org.lflang.TargetProperty.Platform;
+import org.lflang.TimeValue;
 import org.lflang.ast.DelayedConnectionTransformation;
 import org.lflang.federated.extensions.CExtensionUtils;
 import org.lflang.generator.ActionInstance;
@@ -1484,7 +1485,7 @@ public class CGenerator extends GeneratorBase {
     var temp = new CodeBuilder();
     var reactorRef = CUtil.reactorRef(instance);
     // temp.pr("#ifdef LF_THREADED");
-    for (WatchdogInstance watchdog : instance.watchdogs) {
+    for (Watchdog watchdog : ASTUtils.allWatchdogs(ASTUtils.toDefinition(instance.getDefinition().getReactorClass()))) {
       temp.pr(
           "   _lf_watchdogs[_lf_watchdog_number_count++] = &"
               + reactorRef
@@ -1497,7 +1498,7 @@ public class CGenerator extends GeneratorBase {
               + "->_lf_watchdog_"
               + watchdog.getName()
               + ".min_expiration = "
-              + CTypes.getInstance().getTargetTimeExpr(watchdog.getTimeout())
+              + CTypes.getInstance().getTargetTimeExpr(instance.getTimeValue(watchdog.getTimeout()))
               + ";");
       temp.pr("   " + reactorRef + "->_lf_watchdog_" + watchdog.getName() + ".thread_id;");
       watchdogCount += 1;
