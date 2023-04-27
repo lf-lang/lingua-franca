@@ -670,9 +670,6 @@ public class CGenerator extends GeneratorBase {
       // Generate function to schedule timers for all reactors.
       code.pr(CTimerGenerator.generateLfInitializeTimer(timerCount));
 
-      // Generate function to initialize mutexes for all reactors with watchdogs.
-      code.pr(CWatchdogGenerator.generateLfInitializeWatchdogMutexes(watchdogCount));
-
       // Generate a function that will either do nothing
       // (if there is only one federate or the coordination
       // is set to decentralized) or, if there are
@@ -1175,8 +1172,7 @@ public class CGenerator extends GeneratorBase {
     // Next, generate fields for modes
     CModesGenerator.generateDeclarations(reactor, body, constructorCode);
 
-    // The first field has to always be a pointer to the list of
-    // of allocated memory that must be freed when the reactor is freed.
+    // The first field has to always be a pointer to be struct_base_t.
     // This means that the struct can be safely cast to self_base_t.
     builder.pr("typedef struct {");
     builder.indent();

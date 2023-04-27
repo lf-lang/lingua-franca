@@ -212,27 +212,4 @@ public class CWatchdogGenerator {
             "   int _lf_" + name + "_number = " + count + ";",
             "#endif"));
   }
-
-  /** Generate _lf_initialize_watchdog_mutexes function. */
-  // FIXME: finish implementing
-  public static String generateLfInitializeWatchdogMutexes(int watchdogCount) {
-    var s = new StringBuilder();
-    s.append("void _lf_initialize_watchdog_mutexes() {");
-    if (watchdogCount > 0) {
-      s.append("\n");
-      s.append(
-          String.join(
-              "\n",
-              "    for (int i = 0; i < _lf_watchdog_number; i++) {",
-              "       self_base_t* current_base = _lf_watchdogs[i]->base;",
-              "        if (&(current_base->watchdog_mutex) == NULL) {",
-              "            lf_mutex_init(&(current_base->watchdog_mutex));",
-              "            current_base->has_watchdog = true;",
-              "        }",
-              "    }"));
-    }
-    s.append("\n");
-    s.append("}\n");
-    return s.toString();
-  }
 }
