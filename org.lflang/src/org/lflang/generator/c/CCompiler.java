@@ -226,7 +226,7 @@ public class CCompiler {
         String separator = File.separator;
         String maybeQuote = ""; // Windows seems to require extra level of quoting.
         if (separator.equals("\\")) {
-            separator = "\\\\";
+            separator = "\\\\\\\\";
             maybeQuote = "\\\"";
         }
         arguments.addAll(List.of(
