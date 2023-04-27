@@ -238,7 +238,6 @@ public class CCompiler {
                 )
             ),
             "-DLF_FILE_SEPARATOR=\"" + maybeQuote + separator + maybeQuote + "\"",
-            FileUtil.toUnixString(fileConfig.getSrcGenPath())
         ));
         // Add #define for source file directory.
         // Do not do this for federated programs because for those, the definition is put
@@ -247,6 +246,7 @@ public class CCompiler {
             // Do not convert to Unix path
             arguments.add("-DLF_SOURCE_DIRECTORY=\"" + maybeQuote + fileConfig.srcPath + maybeQuote + "\"");
         }
+        arguments.add(FileUtil.toUnixString(fileConfig.getSrcGenPath()));
 
         if (GeneratorUtils.isHostWindows()) {
             arguments.add("-DCMAKE_SYSTEM_VERSION=\"10.0\"");
