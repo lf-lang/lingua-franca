@@ -225,9 +225,11 @@ public class CCompiler {
         cmakeCompileDefinitions(targetConfig).forEachOrdered(arguments::add);
         String separator = File.separator;
         String maybeQuote = ""; // Windows seems to require extra level of quoting.
+        String srcPath = fileConfig.srcPath.toString(); // Windows requires escaping the backslashes.
         if (separator.equals("\\")) {
             separator = "\\\\\\\\";
             maybeQuote = "\\\"";
+            srcPath = srcPath.replaceAll("\\\\", "\\\\");
         }
         arguments.addAll(List.of(
             "-DCMAKE_BUILD_TYPE=" + ((targetConfig.cmakeBuildType!=null) ? targetConfig.cmakeBuildType.toString() : "Release"),
@@ -244,7 +246,7 @@ public class CCompiler {
         // into the cmake file (and fileConfig.srcPath is the wrong directory anyway).
         if (!fileConfig.srcPath.toString().contains("fed-gen")) {
             // Do not convert to Unix path
-            arguments.add("-DLF_SOURCE_DIRECTORY=\"" + maybeQuote + fileConfig.srcPath + maybeQuote + "\"");
+            arguments.add("-DLF_SOURCE_DIRECTORY=\"" + maybeQuote + srcPath + maybeQuote + "\"");
         }
         arguments.add(FileUtil.toUnixString(fileConfig.getSrcGenPath()));
 
