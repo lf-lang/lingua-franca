@@ -237,7 +237,7 @@ public class CCompiler {
                     fileConfig.binPath
                 )
             ),
-            "-DLF_FILE_SEPARATOR=\"" + maybeQuote + separator + maybeQuote + "\"",
+            "-DLF_FILE_SEPARATOR=\"" + maybeQuote + separator + maybeQuote + "\""
         ));
         // Add #define for source file directory.
         // Do not do this for federated programs because for those, the definition is put
