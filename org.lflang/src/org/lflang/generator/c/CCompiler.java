@@ -224,7 +224,11 @@ public class CCompiler {
         List<String> arguments = new ArrayList<>();
         cmakeCompileDefinitions(targetConfig).forEachOrdered(arguments::add);
         String separator = File.separator;
-        if (separator.equals("\\")) separator = "\\\\";
+        String maybeQuote = ""; // Windows seems to require extra level of quoting.
+        if (separator.equals("\\")) {
+            separator = "\\\\";
+            maybeQuote = "\\\"";
+        }
         arguments.addAll(List.of(
             "-DCMAKE_BUILD_TYPE=" + ((targetConfig.cmakeBuildType!=null) ? targetConfig.cmakeBuildType.toString() : "Release"),
             "-DCMAKE_INSTALL_PREFIX=" + FileUtil.toUnixString(fileConfig.getOutPath()),
@@ -233,7 +237,7 @@ public class CCompiler {
                     fileConfig.binPath
                 )
             ),
-            "-DLF_FILE_SEPARATOR=\"" + separator + "\"",
+            "-DLF_FILE_SEPARATOR=\"" + maybeQuote + separator + maybeQuote + "\"",
             FileUtil.toUnixString(fileConfig.getSrcGenPath())
         ));
         // Add #define for source file directory.
@@ -241,7 +245,7 @@ public class CCompiler {
         // into the cmake file (and fileConfig.srcPath is the wrong directory anyway).
         if (!fileConfig.srcPath.toString().contains("fed-gen")) {
             // Do not convert to Unix path
-            arguments.add("-DLF_SOURCE_DIRECTORY=\"" + fileConfig.srcPath + "\"");
+            arguments.add("-DLF_SOURCE_DIRECTORY=\"" + maybeQuote + fileConfig.srcPath + maybeQuote + "\"");
         }
 
         if (GeneratorUtils.isHostWindows()) {
