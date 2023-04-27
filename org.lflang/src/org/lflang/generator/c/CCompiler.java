@@ -229,7 +229,7 @@ public class CCompiler {
         if (separator.equals("\\")) {
             separator = "\\\\\\\\";
             maybeQuote = "\\\"";
-            srcPath = srcPath.replaceAll("\\\\", "\\\\");
+            srcPath = srcPath.replaceAll("\\\\", "\\\\\\\\");
         }
         arguments.addAll(List.of(
             "-DCMAKE_BUILD_TYPE=" + ((targetConfig.cmakeBuildType!=null) ? targetConfig.cmakeBuildType.toString() : "Release"),
