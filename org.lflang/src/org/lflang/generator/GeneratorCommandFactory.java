@@ -128,6 +128,7 @@ public class GeneratorCommandFactory {
         if (command != null) {
             command.setEnvironmentVariable("LF_CURRENT_WORKING_DIRECTORY", dir.toString());
             command.setEnvironmentVariable("LF_SOURCE_DIRECTORY", fileConfig.srcPath.toString());
+            command.setEnvironmentVariable("LF_PROJECT_DIRECTORY", fileConfig.srcPkgPath.toString());
             command.setEnvironmentVariable("LF_SOURCE_GEN_DIRECTORY", fileConfig.getSrcGenPath().toString());
             command.setEnvironmentVariable("LF_BIN_DIRECTORY", fileConfig.binPath.toString());
         } else {
