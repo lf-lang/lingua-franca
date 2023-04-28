@@ -242,7 +242,9 @@ public class FileUtil {
 
     /**
      * Given a list of files or directories, attempt to find them based on the given generator
-     * context, and copy then to the destination.
+     * context, and copy then to the destination. Files are searched for in the file system first.
+     * Files that cannot be found in the file system are looked for on the class path.
+     *
      * @param filesOrDirectories The files or directories to copy.
      * @param destination The location to copy them to.
      * @param context The generator context that specifies where the files must be found.
