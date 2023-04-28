@@ -611,7 +611,9 @@ public class CGenerator extends GeneratorBase {
                     GeneratorResult.Status.COMPILED, null
                 );
             }
-            System.out.println("Compiled binary is in " + fileConfig.binPath);
+            if (!errorsOccurred()){
+                System.out.println("Compiled binary is in " + fileConfig.binPath);
+            }
         } else {
             context.finish(GeneratorResult.GENERATED_NO_EXECUTABLE.apply(context, null));
         }
