@@ -644,7 +644,7 @@ public class CGenerator extends GeneratorBase {
       code.pr(CReactionGenerator.generateBuiltinTriggersTable(resetReactionCount, "reset"));
 
       // If there are watchdogs, create a table of triggers.
-      code.pr(CWatchdogGenerator.generateBuiltinTriggersTable(watchdogCount, "watchdog"));
+      code.pr(CWatchdogGenerator.generateWatchdogTable(watchdogCount));
 
       // If there are modes, create a table of mode state to be checked for transitions.
       code.pr(
@@ -745,16 +745,6 @@ public class CGenerator extends GeneratorBase {
         if (reaction.getDeadline() != null) {
           return true;
         }
-      }
-    }
-    return false;
-  }
-
-  private boolean hasWatchdogs() {
-    for (Reactor reactor : reactors) {
-      List<Watchdog> watchdogs = ASTUtils.allWatchdogs(reactor);
-      if (watchdogs != null && !watchdogs.isEmpty()) {
-        return true;
       }
     }
     return false;
@@ -1045,9 +1035,10 @@ public class CGenerator extends GeneratorBase {
     // go into the constructor.  Collect those lines of code here:
     var constructorCode = new CodeBuilder();
     generateAuxiliaryStructs(header, reactor, false);
+    // The following must go before the self struct so the #include watchdog.h ends up in the header.
+    CWatchdogGenerator.generateWatchdogs(src, header, reactor);
     generateSelfStruct(header, reactor, constructorCode);
     generateMethods(src, reactor);
-    generateWatchdogs(src, reactor);
     generateReactions(src, reactor);
     generateConstructor(src, header, reactor, constructorCode);
   }
@@ -1074,6 +1065,8 @@ public class CGenerator extends GeneratorBase {
   /**
    * Generate a constructor for the specified reactor in the specified federate.
    *
+   * @param src Where to put the assembled code.
+   * @param header Where to put header code.
    * @param reactor The parsed reactor data structure.
    * @param constructorCode Lines of code previously generated that need to go into the constructor.
    */
@@ -1399,33 +1392,6 @@ public class CGenerator extends GeneratorBase {
   }
 
   /**
-   * Generate watchdog functions definition for a reactor. These functions have a single argument
-   * that is a void* pointing to a struct that contains parameters, state variables, inputs
-   * (triggering or not), actions (triggering or produced), and outputs.
-   *
-   * @param decl The reactor. federated or not the main reactor and reactions should be
-   *     unconditionally generated.
-   */
-  public void generateWatchdogs(CodeBuilder src, ReactorDecl decl) {
-    var reactor = ASTUtils.toDefinition(decl);
-    for (Watchdog watchdog : ASTUtils.allWatchdogs(reactor)) {
-      generateWatchdog(src, watchdog, decl);
-    }
-  }
-
-  /**
-   * Generate a watchdog function definition for a reactor. This function will have a single
-   * argument that is a void* pointing to a struct that contains parameters, state variables, inputs
-   * (triggering or not), actions (triggering or produced), and outputs.
-   *
-   * @param watchdog The watchdog.
-   * @param decl The reactor.
-   */
-  protected void generateWatchdog(CodeBuilder src, Watchdog watchdog, ReactorDecl decl) {
-    src.pr(CWatchdogGenerator.generateWatchdog(watchdog, decl));
-  }
-
-  /**
    * Record startup, shutdown, and reset reactions.
    *
    * @param instance A reactor instance.
@@ -1480,7 +1446,8 @@ public class CGenerator extends GeneratorBase {
     var temp = new CodeBuilder();
     var reactorRef = CUtil.reactorRef(instance);
     // temp.pr("#ifdef LF_THREADED");
-    for (WatchdogInstance watchdog : instance.watchdogs) {
+    for (Watchdog watchdog
+        : ASTUtils.allWatchdogs(ASTUtils.toDefinition(instance.getDefinition().getReactorClass()))) {
       temp.pr(
           "   _lf_watchdogs[_lf_watchdog_number_count++] = &"
               + reactorRef
@@ -1493,7 +1460,7 @@ public class CGenerator extends GeneratorBase {
               + "->_lf_watchdog_"
               + watchdog.getName()
               + ".min_expiration = "
-              + CTypes.getInstance().getTargetTimeExpr(watchdog.getTimeout())
+              + CTypes.getInstance().getTargetTimeExpr(instance.getTimeValue(watchdog.getTimeout()))
               + ";");
       temp.pr("   " + reactorRef + "->_lf_watchdog_" + watchdog.getName() + ".thread_id;");
       watchdogCount += 1;

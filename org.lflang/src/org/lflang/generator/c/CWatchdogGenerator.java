@@ -19,6 +19,36 @@ import org.lflang.lf.Watchdog;
 public class CWatchdogGenerator {
 
   /**
+   * Generate watchdog functions definition for a reactor. These functions have a single argument
+   * that is a void* pointing to a struct that contains parameters, state variables, inputs
+   * (triggering or not), actions (triggering or produced), and outputs.
+   *
+   * @param src The place to put the code.
+   * @param header The place to put header code.
+   * @param decl The reactor declaration.
+   */
+  public static void generateWatchdogs(CodeBuilder src, CodeBuilder header, ReactorDecl decl) {
+    var reactor = ASTUtils.toDefinition(decl);
+    if (hasWatchdogs(reactor)) {
+      header.pr("#include \"core/threaded/watchdog.h\"");
+      for (Watchdog watchdog : ASTUtils.allWatchdogs(reactor)) {
+        src.pr(generateWatchdogFunction(watchdog, decl));
+      }
+    }
+  }
+
+  /**
+   * Return true if the given reactor has one or more watchdogs.
+   * @param reactor The reactor.
+   * @return True if the given reactor has watchdogs.
+   */
+  public static boolean hasWatchdogs(Reactor reactor) {
+    List<Watchdog> watchdogs = ASTUtils.allWatchdogs(reactor);
+    if (watchdogs != null && !watchdogs.isEmpty()) return true;
+    return false;
+  }
+
+  /**
    * Generate necessary initialization code inside the body of the watchdog that belongs to reactor
    * decl.
    *
@@ -147,7 +177,7 @@ public class CWatchdogGenerator {
     return function.toString();
   }
 
-  /** Generate watchdog definition in parent struct. */
+  /** Generate watchdog definition in the reactor's self struct. */
   public static void generateWatchdogStruct(
       CodeBuilder body, ReactorDecl decl, CodeBuilder constructorCode) {
     var reactor = ASTUtils.toDefinition(decl);
@@ -161,7 +191,6 @@ public class CWatchdogGenerator {
       var watchdogFunctionName = generateWatchdogFunctionName(watchdog, decl);
       // Set values of watchdog_t struct in the reactor's constructor
       // FIXME: update parameters
-      // constructorCode.pr("#ifdef LF_THREADED");
       constructorCode.pr(
           watchdog,
           String.join(
@@ -169,7 +198,6 @@ public class CWatchdogGenerator {
               "self->_lf_watchdog_" + watchdogName + ".base = &(self->base);",
               "self->_lf_watchdog_" + watchdogName + ".expiration = NEVER;",
               "self->_lf_watchdog_" + watchdogName + ".thread_active = false;",
-              // "self->_lf_watchdog_"+watchdogName+".min_expiration = "+min_expiration+";",
               "self->_lf_watchdog_"
                   + watchdogName
                   + ".watchdog_function = "
@@ -179,37 +207,27 @@ public class CWatchdogGenerator {
                   + watchdogName
                   + ".trigger = &(self->_lf__"
                   + watchdogName
-                  + ");"));
+                  + ");"
+          )
+      );
     }
   }
 
   /**
-   * Generate a watchdog function definition for a reactor. This function will have a single
-   * argument that is a void* pointing to a struct that contains parameters, state variables, inputs
-   * (triggering or not), actions (triggering or produced), and outputs.
-   *
-   * @param watchdog The watchdog.
-   * @param decl The reactor.
+   * Generate a global table of watchdog structs.
+   * @param count The number of watchdogs found.
+   * @return The code that defines the table or a comment if count is 0.
    */
-  public static String generateWatchdog(Watchdog watchdog, ReactorDecl decl) {
-    var code = new CodeBuilder();
-
-    code.pr(generateWatchdogFunction(watchdog, decl));
-
-    return code.toString();
-  }
-
-  public static String generateBuiltinTriggersTable(int count, String name) {
+  public static String generateWatchdogTable(int count) {
+    if (count == 0) {
+      return "// No watchdogs found.";
+    }
     return String.join(
         "\n",
         List.of(
-            "// Array of pointers to " + name + " triggers.",
-            "#ifdef LF_THREADED",
-            (count > 0
-                    ? "   watchdog_t* _lf_" + name + "s[" + count + "]"
-                    : "   watchdog_t* _lf_" + name + "s = NULL")
-                + ";",
-            "   int _lf_" + name + "_number = " + count + ";",
-            "#endif"));
+            "// Array of pointers to watchdog structs.",
+            "   watchdog_t* _lf_watchdogs[" + count + "];",
+            "   int _lf_watchdog_number = " + count + ";"
+        ));
   }
 }
