@@ -230,7 +230,7 @@ public class TargetConfig {
     /**
      * List of files to be copied to src-gen.
      */
-    public List<String> fileNames = new ArrayList<>(); // FIXME: misnamed, these are files or paths, not file names.
+    public List<String> files = new ArrayList<>();
 
     /**
      * If true, configure the execution environment to keep executing if there

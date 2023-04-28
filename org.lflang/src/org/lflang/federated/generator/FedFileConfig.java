@@ -111,7 +111,7 @@ public class FedFileConfig extends FileConfig {
      */
     public void relativizePaths(FedTargetConfig targetConfig) {
         relativizePathList(targetConfig.protoFiles);
-        relativizePathList(targetConfig.fileNames);
+        relativizePathList(targetConfig.files);
         relativizePathList(targetConfig.cmakeIncludes);
     }
 
