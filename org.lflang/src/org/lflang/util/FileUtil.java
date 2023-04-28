@@ -240,9 +240,15 @@ public class FileUtil {
         copyFile(source, destination, false);
     }
 
+    /**
+     * Given a list of files or directories, attempt to find them based on the given generator
+     * context, and copy then to the destination.
+     * @param filesOrDirectories The files or directories to copy.
+     * @param destination The location to copy them to.
+     * @param context The generator context that specifies where the files must be found.
+     */
     public static void copyFiles(List<String> filesOrDirectories, Path destination, LFGeneratorContext context) {
         for (String fileOrDirectory : filesOrDirectories) {
-            System.out.println("****Copying " + fileOrDirectory + " to " + destination);
             var path = Paths.get(fileOrDirectory);
             var found = FileUtil.findInPackage(path, context.getFileConfig());
             if (found != null) {
