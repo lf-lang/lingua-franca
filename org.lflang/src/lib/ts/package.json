@@ -20,7 +20,6 @@
         "rimraf": "^3.0.2"
     },
     "scripts": {
-        "check-types": "tsc",
         "build": "npx rimraf dist && npx tsc --outDir dist"
     }
 }
