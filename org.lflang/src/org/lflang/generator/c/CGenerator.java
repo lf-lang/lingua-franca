@@ -1962,6 +1962,14 @@ public class CGenerator extends GeneratorBase {
             System.out.println("To enable compilation for the Arduino platform, you must specify the fully-qualified board name (FQBN) in the target property. For example, platform: {name: arduino, board: arduino:avr:leonardo}. Entering \"no-compile\" mode and generating target code only.");
             targetConfig.noCompile = true;
         }
+
+        if (targetConfig.platformOptions.platform == Platform.ZEPHYR && targetConfig.platformOptions.userThreads >= 0) {
+            targetConfig.compileDefinitions.put(
+                "USER_THREADS",
+                String.valueOf(targetConfig.platformOptions.userThreads)
+            );
+        }
+
         if (targetConfig.threading) {  // FIXME: This logic is duplicated in CMake
             pickScheduler();
             // FIXME: this and pickScheduler should be combined.
