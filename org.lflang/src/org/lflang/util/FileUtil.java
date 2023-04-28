@@ -36,6 +36,7 @@ import org.eclipse.emf.common.util.URI;
 import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.xtext.util.RuntimeIOException;
 
+import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
 import org.lflang.generator.LFGeneratorContext;
 
@@ -247,17 +248,23 @@ public class FileUtil {
      *
      * @param filesOrDirectories The files or directories to copy.
      * @param destination The location to copy them to.
-     * @param context The generator context that specifies where the files must be found.
+     * @param fileConfig The file configuration that specifies where the files must be found.
+     * @param errorReporter An error reporter to report problems.
      */
-    public static void copyFiles(List<String> filesOrDirectories, Path destination, LFGeneratorContext context) {
+    public static void copyFiles(
+        List<String> filesOrDirectories,
+        Path destination,
+        FileConfig fileConfig,
+        ErrorReporter errorReporter
+    ) {
         for (String fileOrDirectory : filesOrDirectories) {
             var path = Paths.get(fileOrDirectory);
-            var found = FileUtil.findInPackage(path, context.getFileConfig());
+            var found = FileUtil.findInPackage(path, fileConfig);
             if (found != null) {
                 try {
                     FileUtil.copyFileOrDirectory(found, destination.resolve(found.getFileName()));
                 } catch (IOException e) {
-                    context.getErrorReporter().reportError(
+                    errorReporter.reportError(
                         "Unable to copy '" + fileOrDirectory + "' from the file system."
                     );
                 }
@@ -272,7 +279,7 @@ public class FileUtil {
                         false
                     );
                 } catch (IOException e) {
-                    context.getErrorReporter().reportError(
+                    errorReporter.reportError(
                         "Unable to copy '" + fileOrDirectory + "' from the class path."
                     );
                 }

@@ -37,9 +37,7 @@ import static org.lflang.util.StringUtil.addDoubleQuotes;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -823,15 +821,16 @@ public class CGenerator extends GeneratorBase {
     @Override
     protected void copyUserFiles(TargetConfig targetConfig, FileConfig fileConfig) {
         super.copyUserFiles(targetConfig, fileConfig);
-        var targetDir = fileConfig.getSrcGenPath();
+        // Must use class variable to determine destination!
+        var destination = this.fileConfig.getSrcGenPath();
 
-        FileUtil.copyFiles(targetConfig.cmakeIncludes, targetDir, context);
+        FileUtil.copyFiles(targetConfig.cmakeIncludes, destination, fileConfig, errorReporter);
 
         // FIXME: Unclear what the following does, but it does not appear to belong here.
         if (!StringExtensions.isNullOrEmpty(targetConfig.fedSetupPreamble)) {
             try {
                 FileUtil.copyFile(fileConfig.srcFile.getParent().resolve(targetConfig.fedSetupPreamble),
-                                  targetDir.resolve(targetConfig.fedSetupPreamble));
+                                  destination.resolve(targetConfig.fedSetupPreamble));
             } catch (IOException e) {
                 errorReporter.reportError("Failed to find _fed_setup file " + targetConfig.fedSetupPreamble);
             }
