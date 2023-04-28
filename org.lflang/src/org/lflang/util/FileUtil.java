@@ -272,6 +272,13 @@ public class FileUtil {
         }
     }
 
+    /**
+     * If the source is a directory, then copy the contents of the directory to the destination.
+     * If the source is a file, then copy the file to the destination.
+     * @param source A file or directory to copy to the destination.
+     * @param destination A directory to copy the file(s) at the source to.
+     * @throws IOException
+     */
     public static void copyFileOrDirectory(Path source, Path destination) throws IOException {
         if (Files.isDirectory(source)) {
             copyDirectory(source, destination);
@@ -555,6 +562,17 @@ public class FileUtil {
         }
     }
 
+    /**
+     * Return an absolute path to the given file or directory if it can be found within the package.
+     * Otherwise, return null.
+     *
+     * NOTE: If the given file or directory is given as an absolute path but cannot be found, it is
+     * interpreted as a relative path with respect to the project root.
+     *
+     * @param fileOrDirectory The file or directory to look for.
+     * @param fileConfig A file configuration that determines where the package is located.
+     * @return An absolute path of the file or directory was found; null otherwise.
+     */
     public static Path findInPackage(Path fileOrDirectory, FileConfig fileConfig) {
         if (fileOrDirectory.isAbsolute() && Files.exists(fileOrDirectory)) {
             return fileOrDirectory;
