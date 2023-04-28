@@ -173,14 +173,6 @@ public class TargetConfig {
     public List<String> cmakeIncludes = new ArrayList<>();
 
     /**
-     * List of cmake-includes from the cmake-include target property with no path info.
-     * Useful for copying them to remote machines. This is needed because
-     * target cmake-includes can be resources with resource paths.
-     */
-    // FIXME: Code smell. This gets populated in CGenerator.copyUserFiles
-    public List<String> cmakeIncludesWithoutPath = new ArrayList<>();
-
-    /**
      * The compiler to invoke, unless a build command has been specified.
      */
     public String compiler = "";

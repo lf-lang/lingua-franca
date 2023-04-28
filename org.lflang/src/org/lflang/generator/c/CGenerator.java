@@ -819,57 +819,13 @@ public class CGenerator extends GeneratorBase {
      * @param fileConfig The fileConfig used to make the copy and resolve paths.
      */
     @Override
-    public void copyUserFiles(TargetConfig targetConfig, FileConfig fileConfig) {
+    protected void copyUserFiles(TargetConfig targetConfig, FileConfig fileConfig) {
         super.copyUserFiles(targetConfig, fileConfig);
-        var targetDir = this.fileConfig.getSrcGenPath();
-        // FIXME: this code probably belongs in the super method.
-        for (String filename : targetConfig.fileNames) {
-            var path = Paths.get(filename);
-            var found = FileUtil.findInProject(path, fileConfig);
-            if (found != null) {
-                try {
-                    FileUtil.copyFileOrDirectory(found, targetDir.resolve(found.getFileName()));
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
-                }
-            } else {
-                // Attempt to copy from the classpath instead.
-                // If the filename is not a directory, it will
-                // just be copied without further recursion.
-                try {
-                    FileUtil.copyDirectoryFromClassPath(
-                        filename,
-                        targetDir,
-                        false
-                    );
-                } catch (IOException e) {
-                    errorReporter.reportError(
-                        "Failed to find '" + filename + "' specified in the" +
-                            " files target property."
-                    );
-                }
-            }
-        }
+        var targetDir = fileConfig.getSrcGenPath();
 
-//        for (String filename : targetConfig.cmakeIncludes) {
-//            var relativeCMakeIncludeFileName =
-//                CUtil.copyFileOrResource(
-//                    filename,
-//                    fileConfig.srcFile.getParent(),
-//                    targetDir);
-//            // Check if the file exists
-//            if (StringExtensions.isNullOrEmpty(relativeCMakeIncludeFileName)) {
-//                errorReporter.reportError(
-//                    "Failed to find cmake-include file " + filename
-//                );
-//            } else {
-//                // FIXME: weird
-//                this.targetConfig.cmakeIncludesWithoutPath.add(
-//                    relativeCMakeIncludeFileName
-//                );
-//            }
-//        }
+        FileUtil.copyFiles(targetConfig.cmakeIncludes, targetDir, context);
 
+        // FIXME: Unclear what the following does, but it does not appear to belong here.
         if (!StringExtensions.isNullOrEmpty(targetConfig.fedSetupPreamble)) {
             try {
                 FileUtil.copyFile(fileConfig.srcFile.getParent().resolve(targetConfig.fedSetupPreamble),

@@ -132,7 +132,7 @@ public class FedFileConfig extends FileConfig {
      * @param path The path to relativize.
      */
     private String relativizePath(Path path) {
-        if (FileUtil.findInProject(path, this) == null) {
+        if (FileUtil.findInPackage(path, this) == null) {
             return String.valueOf(path);
         } else {
             Path resolvedPath = this.srcPath.resolve(path).toAbsolutePath();

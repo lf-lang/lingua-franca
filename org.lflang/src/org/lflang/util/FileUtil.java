@@ -14,7 +14,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.Enumeration;
 import java.util.HashMap;
@@ -38,6 +37,7 @@ import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.xtext.util.RuntimeIOException;
 
 import org.lflang.FileConfig;
+import org.lflang.generator.LFGeneratorContext;
 
 public class FileUtil {
 
@@ -151,7 +151,7 @@ public class FileUtil {
                         sourceURI = iFile != null ? iFile.getRawLocation().toFile().getParentFile().toURI() : null; 
                     }
                     if (sourceURI != null) {
-                        return sourceURI.resolve(path.toString());
+                        return sourceURI.resolve(path);
                     }
                 } catch (Exception e) {
                     // nothing
@@ -238,6 +238,38 @@ public class FileUtil {
      */
     public static void copyFile(Path source, Path destination)  throws IOException {
         copyFile(source, destination, false);
+    }
+
+    public static void copyFiles(List<String> filesOrDirectories, Path destination, LFGeneratorContext context) {
+        for (String fileOrDirectory : filesOrDirectories) {
+            System.out.println("****Copying " + fileOrDirectory + " to " + destination);
+            var path = Paths.get(fileOrDirectory);
+            var found = FileUtil.findInPackage(path, context.getFileConfig());
+            if (found != null) {
+                try {
+                    FileUtil.copyFileOrDirectory(found, destination.resolve(found.getFileName()));
+                } catch (IOException e) {
+                    context.getErrorReporter().reportError(
+                        "Unable to copy '" + fileOrDirectory + "' from the file system."
+                    );
+                }
+            } else {
+                // Attempt to copy from the classpath instead.
+                // If the filename is not a directory, it will
+                // just be copied without further recursion.
+                try {
+                    FileUtil.copyDirectoryFromClassPath(
+                        fileOrDirectory,
+                        destination,
+                        false
+                    );
+                } catch (IOException e) {
+                    context.getErrorReporter().reportError(
+                        "Unable to copy '" + fileOrDirectory + "' from the class path."
+                    );
+                }
+            }
+        }
     }
 
     public static void copyFileOrDirectory(Path source, Path destination) throws IOException {
@@ -523,7 +555,7 @@ public class FileUtil {
         }
     }
 
-    public static Path findInProject(Path fileOrDirectory, FileConfig fileConfig) {
+    public static Path findInPackage(Path fileOrDirectory, FileConfig fileConfig) {
         if (fileOrDirectory.isAbsolute() && Files.exists(fileOrDirectory)) {
             return fileOrDirectory;
         } else {
