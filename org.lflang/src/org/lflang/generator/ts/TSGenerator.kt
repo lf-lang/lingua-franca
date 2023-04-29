@@ -195,7 +195,7 @@ class TSGenerator(
         }
         manifest.toFile().forEachLine {
             var line = it.replace("\"LinguaFrancaDefault\"", "\"${fileConfig.name}\"");
-            if (line.matches(rtRegex) && line.contains(RUNTIME_URL)) {
+            if (line.contains(rtRegex) && line.contains(RUNTIME_URL)) {
                 devMode = true;
             }
             if (rtPath != null) {
@@ -329,18 +329,6 @@ class TSGenerator(
                 return
             }
 
-            // If reactor-ts is pulled from GitHub and building is done using npm,
-            // first build reactor-ts (pnpm does this automatically).
-            if (devMode) {
-                val rtPath = path.resolve("node_modules").resolve("@lf-lang").resolve("reactor-ts")
-                val buildRuntime = commandFactory.createCommand("npm", listOf("prepublish"), rtPath)
-                if (buildRuntime.run(context.cancelIndicator) != 0) {
-                    errorReporter.reportError(
-                        GeneratorUtils.findTargetDecl(resource),
-                        "ERROR: unable to build runtime in dev mode: " + buildRuntime.errors.toString())
-                }
-            }
-
             if (npmInstall.run(context.cancelIndicator) != 0) {
                 errorReporter.reportError(
                     GeneratorUtils.findTargetDecl(resource),
@@ -350,6 +338,19 @@ class TSGenerator(
                         "\nFor installation instructions, see: https://www.npmjs.com/get-npm")
                 return
             }
+
+            // If reactor-ts is pulled from GitHub and building is done using npm,
+            // first build reactor-ts (pnpm does this automatically).
+            if (devMode) {
+                val rtPath = path.resolve("node_modules").resolve("@lf-lang").resolve("reactor-ts")
+                val buildRuntime = commandFactory.createCommand("npm", listOf("run", "prepublish"), rtPath)
+                if (buildRuntime.run(context.cancelIndicator) != 0) {
+                    errorReporter.reportError(
+                        GeneratorUtils.findTargetDecl(resource),
+                        "ERROR: unable to build runtime in dev mode: " + buildRuntime.errors.toString())
+                }
+            }
+
             installProtoBufsIfNeeded(false, path, context.cancelIndicator)
         }
     }
