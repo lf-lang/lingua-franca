@@ -244,6 +244,9 @@ public class CExtensionUtils {
         federate.targetConfig.setByUser.add(TargetProperty.COMPILE_DEFINITIONS);
         federate.targetConfig.compileDefinitions.put("FEDERATED", "");
         federate.targetConfig.compileDefinitions.put("FEDERATED_"+federate.targetConfig.coordination.toString().toUpperCase(), "");
+        if (federate.targetConfig.auth) {
+            federate.targetConfig.compileDefinitions.put("FEDERATED_AUTHENTICATED", "");
+        }
         federate.targetConfig.compileDefinitions.put("NUMBER_OF_FEDERATES", String.valueOf(numOfFederates));
         federate.targetConfig.compileDefinitions.put("EXECUTABLE_PREAMBLE", "");
         federate.targetConfig.compileDefinitions.put("WORKERS_NEEDED_FOR_FEDERATE", String.valueOf(minThreadsToHandleInputPorts(federate)));
@@ -358,6 +361,11 @@ public class CExtensionUtils {
         CodeBuilder cmakeIncludeCode = new CodeBuilder();
 
         cmakeIncludeCode.pr(generateSerializationCMakeExtension(federate));
+        cmakeIncludeCode.pr(
+            "add_compile_definitions(LF_SOURCE_DIRECTORY=\""
+            + fileConfig.srcPath
+            + "\")"
+        );
 
         try (var srcWriter = Files.newBufferedWriter(cmakeIncludePath)) {
             srcWriter.write(cmakeIncludeCode.getCode());
