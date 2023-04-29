@@ -367,7 +367,7 @@ public class CExtensionUtils {
             + "\")"
         );
         cmakeIncludeCode.pr(
-            "add_compile_definitions(LF_PROJECT_DIRECTORY=\""
+            "add_compile_definitions(LF_PACKAGE_DIRECTORY=\""
                 + fileConfig.srcPkgPath
                 + "\")"
         );

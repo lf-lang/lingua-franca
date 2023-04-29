@@ -6,7 +6,7 @@ reactor Source {
 
     reaction(startup) -> out {=
         char* file_path =
-            LF_PROJECT_DIRECTORY
+            LF_PACKAGE_DIRECTORY
             LF_FILE_SEPARATOR "src"
             LF_FILE_SEPARATOR "lib"
             LF_FILE_SEPARATOR "FileReader.txt";
