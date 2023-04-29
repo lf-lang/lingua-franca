@@ -1,0 +1,13 @@
+/** Success here is just successfully compiling. */
+target C {
+    files: "/lib/c/reactor-c/util/sensor_simulator.h",
+    timeout: 1s
+}
+reactor Foo {
+    reaction(startup) {=
+        lf_print("Hello World");
+    =}
+}
+federated reactor {
+    f = new Foo()
+}
