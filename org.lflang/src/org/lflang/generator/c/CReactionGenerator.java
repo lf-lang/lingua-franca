@@ -1377,6 +1377,12 @@ public class CReactionGenerator {
     return generateFunctionHeader(functionName);
   }
 
+  /**
+   * Return the start of a function declaration for a function that takes
+   * a `void*` argument and returns void.
+   * @param functionName
+   * @return
+   */
   public static String generateFunctionHeader(String functionName) {
     return "void " + functionName + "(void* instance_args)";
   }

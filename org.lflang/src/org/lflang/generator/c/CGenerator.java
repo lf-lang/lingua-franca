@@ -72,7 +72,6 @@ import org.lflang.generator.ReactorInstance;
 import org.lflang.generator.TargetTypes;
 import org.lflang.generator.TimerInstance;
 import org.lflang.generator.TriggerInstance;
-import org.lflang.generator.WatchdogInstance;
 import org.lflang.lf.Action;
 import org.lflang.lf.ActionOrigin;
 import org.lflang.lf.Input;
@@ -86,7 +85,6 @@ import org.lflang.lf.Reactor;
 import org.lflang.lf.ReactorDecl;
 import org.lflang.lf.StateVar;
 import org.lflang.lf.Variable;
-import org.lflang.lf.Watchdog;
 import org.lflang.util.ArduinoUtil;
 import org.lflang.util.FileUtil;
 
@@ -1441,37 +1439,6 @@ public class CGenerator extends GeneratorBase {
     }
   }
 
-  private void recordWatchdogs(ReactorInstance instance) {
-    var foundOne = false;
-    var temp = new CodeBuilder();
-    var reactorRef = CUtil.reactorRef(instance);
-    // temp.pr("#ifdef LF_THREADED");
-    for (Watchdog watchdog
-        : ASTUtils.allWatchdogs(ASTUtils.toDefinition(instance.getDefinition().getReactorClass()))) {
-      temp.pr(
-          "   _lf_watchdogs[_lf_watchdog_number_count++] = &"
-              + reactorRef
-              + "->_lf_watchdog_"
-              + watchdog.getName()
-              + ";");
-      temp.pr(
-          "   "
-              + reactorRef
-              + "->_lf_watchdog_"
-              + watchdog.getName()
-              + ".min_expiration = "
-              + CTypes.getInstance().getTargetTimeExpr(instance.getTimeValue(watchdog.getTimeout()))
-              + ";");
-      temp.pr("   " + reactorRef + "->_lf_watchdog_" + watchdog.getName() + ".thread_id;");
-      watchdogCount += 1;
-      foundOne = true;
-    }
-    // temp.pr("#endif");
-    if (foundOne) {
-      initializeTriggerObjects.pr(temp.toString());
-    }
-  }
-
   /**
    * Generate code to set up the tables used in _lf_start_time_step to decrement reference counts
    * and mark outputs absent between time steps. This function puts the code into startTimeStep.
@@ -1746,7 +1713,7 @@ public class CGenerator extends GeneratorBase {
     initializeOutputMultiports(instance);
     initializeInputMultiports(instance);
     recordBuiltinTriggers(instance);
-    recordWatchdogs(instance);
+    watchdogCount += CWatchdogGenerator.generateInitializeWatchdogs(initializeTriggerObjects, instance);
 
     // Next, initialize the "self" struct with state variables.
     // These values may be expressions that refer to the parameter values defined above.
