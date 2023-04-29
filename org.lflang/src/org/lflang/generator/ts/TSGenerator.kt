@@ -61,8 +61,10 @@ class TSGenerator(
 
 
     val fileConfig: TSFileConfig = context.fileConfig as TSFileConfig
+    var devMode = false;
 
     companion object {
+
         /** Path to the TS lib directory (relative to class path)  */
         const val LIB_PATH = "/lib/ts"
 
@@ -71,6 +73,8 @@ class TSGenerator(
          * source package root if they cannot be found in the source directory.
          */
         val CONFIG_FILES = arrayOf("package.json", "tsconfig.json", ".eslintrc.json")
+
+        const val RUNTIME_URL = "git://github.com/lf-lang/reactor-ts.git"
 
         fun timeInTargetLanguage(value: TimeValue): String {
             return if (value.unit != null) {
@@ -186,12 +190,18 @@ class TSGenerator(
         if (rtPath != null) rtPath = formatRuntimePath(rtPath)
         // FIXME: do better CLI arg validation upstream
         // https://github.com/lf-lang/lingua-franca/issues/1429
+        if (rtPath != null || rtVersion != null) {
+            devMode = true;
+        }
         manifest.toFile().forEachLine {
             var line = it.replace("\"LinguaFrancaDefault\"", "\"${fileConfig.name}\"");
+            if (line.matches(rtRegex) && line.contains(RUNTIME_URL)) {
+                devMode = true;
+            }
             if (rtPath != null) {
                 line = line.replace(rtRegex, "$1: \"$rtPath\",")
             } else if (rtVersion != null) {
-                line = line.replace(rtRegex, "$1: \"git://github.com/lf-lang/reactor-ts.git#$rtVersion\",")
+                line = line.replace(rtRegex, "$1: \"$RUNTIME_URL#$rtVersion\",")
             }
             sb.appendLine(line)
         }
@@ -311,11 +321,24 @@ class TSGenerator(
             errorReporter.reportWarning(
                 "Falling back on npm. To prevent an accumulation of replicated dependencies, " +
                         "it is highly recommended to install pnpm globally (npm install -g pnpm).")
+
             val npmInstall = commandFactory.createCommand("npm", if (production) listOf("install", "--production") else listOf("install"), path)
 
             if (npmInstall == null) {
                 errorReporter.reportError(NO_NPM_MESSAGE)
                 return
+            }
+
+            // If reactor-ts is pulled from GitHub and building is done using npm,
+            // first build reactor-ts (pnpm does this automatically).
+            if (devMode) {
+                val rtPath = path.resolve("node_modules").resolve("@lf-lang").resolve("reactor-ts")
+                val buildRuntime = commandFactory.createCommand("npm", listOf("prepublish"), rtPath)
+                if (buildRuntime.run(context.cancelIndicator) != 0) {
+                    errorReporter.reportError(
+                        GeneratorUtils.findTargetDecl(resource),
+                        "ERROR: unable to build runtime in dev mode: " + buildRuntime.errors.toString())
+                }
             }
 
             if (npmInstall.run(context.cancelIndicator) != 0) {
