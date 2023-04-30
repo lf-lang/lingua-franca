@@ -36,7 +36,9 @@ import org.eclipse.emf.common.util.URI;
 import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.xtext.util.RuntimeIOException;
 
+import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
+import org.lflang.generator.LFGeneratorContext;
 
 public class FileUtil {
 
@@ -150,7 +152,7 @@ public class FileUtil {
                         sourceURI = iFile != null ? iFile.getRawLocation().toFile().getParentFile().toURI() : null; 
                     }
                     if (sourceURI != null) {
-                        return sourceURI.resolve(path.toString());
+                        return sourceURI.resolve(path);
                     }
                 } catch (Exception e) {
                     // nothing
@@ -239,6 +241,68 @@ public class FileUtil {
         copyFile(source, destination, false);
     }
 
+    /**
+     * Given a list of files or directories, attempt to find them based on the given generator
+     * context, and copy then to the destination. Files are searched for in the file system first.
+     * Files that cannot be found in the file system are looked for on the class path.
+     *
+     * @param filesOrDirectories The files or directories to copy.
+     * @param destination The location to copy them to.
+     * @param fileConfig The file configuration that specifies where the files must be found.
+     * @param errorReporter An error reporter to report problems.
+     */
+    public static void copyFiles(
+        List<String> filesOrDirectories,
+        Path destination,
+        FileConfig fileConfig,
+        ErrorReporter errorReporter
+    ) {
+        for (String fileOrDirectory : filesOrDirectories) {
+            var path = Paths.get(fileOrDirectory);
+            var found = FileUtil.findInPackage(path, fileConfig);
+            if (found != null) {
+                try {
+                    FileUtil.copyFileOrDirectory(found, destination.resolve(found.getFileName()));
+                } catch (IOException e) {
+                    errorReporter.reportError(
+                        "Unable to copy '" + fileOrDirectory + "' from the file system."
+                    );
+                }
+            } else {
+                // Attempt to copy from the classpath instead.
+                // If the filename is not a directory, it will
+                // just be copied without further recursion.
+                try {
+                    FileUtil.copyDirectoryFromClassPath(
+                        fileOrDirectory,
+                        destination,
+                        false
+                    );
+                } catch (IOException e) {
+                    errorReporter.reportError(
+                        "Unable to copy '" + fileOrDirectory + "' from the class path."
+                    );
+                }
+            }
+        }
+    }
+
+    /**
+     * If the source is a directory, then copy the contents of the directory to the destination.
+     * If the source is a file, then copy the file to the destination.
+     * @param source A file or directory to copy to the destination.
+     * @param destination A directory to copy the file(s) at the source to.
+     * @throws IOException
+     */
+    public static void copyFileOrDirectory(Path source, Path destination) throws IOException {
+        if (Files.isDirectory(source)) {
+            copyDirectory(source, destination);
+        } else if (Files.isRegularFile(source)) {
+            copyFile(source, destination);
+        } else {
+            throw new IllegalArgumentException("Source is neither a directory nor a regular file.");
+        }
+    }
     /**
      * Copy a given input stream to a destination file.
      *
@@ -359,6 +423,7 @@ public class FileUtil {
         final String connectionEntryName = connection.getEntryName();
 
         boolean copiedFiles = false;
+
         // Iterate all entries in the jar file.
         for (Enumeration<JarEntry> e = jar.entries(); e.hasMoreElements(); ) {
             final JarEntry entry = e.nextElement();
@@ -366,9 +431,10 @@ public class FileUtil {
 
             // Extract files only if they match the given source path.
             if (entryName.startsWith(connectionEntryName)) {
-                String filename = entry.getName().substring(connectionEntryName.length() + 1);
+                String filename = entryName.equals(connectionEntryName) ?
+                    connectionEntryName :
+                    entryName.substring(connectionEntryName.length() + 1);
                 Path currentFile = destination.resolve(filename);
-
                 if (entry.isDirectory()) {
                     Files.createDirectories(currentFile);
                 } else {
@@ -509,6 +575,45 @@ public class FileUtil {
                 Files.deleteIfExists(path);
             }
         }
+    }
+
+    /**
+     * Return an absolute path to the given file or directory if it can be found within the package.
+     * Otherwise, return null.
+     *
+     * NOTE: If the given file or directory is given as an absolute path but cannot be found, it is
+     * interpreted as a relative path with respect to the project root.
+     *
+     * @param fileOrDirectory The file or directory to look for.
+     * @param fileConfig A file configuration that determines where the package is located.
+     * @return An absolute path of the file or directory was found; null otherwise.
+     */
+    public static Path findInPackage(Path fileOrDirectory, FileConfig fileConfig) {
+        if (fileOrDirectory.isAbsolute() && Files.exists(fileOrDirectory)) {
+            return fileOrDirectory;
+        } else {
+            Path relPath;
+            // Disregard root and interpret as relative path
+            if (fileOrDirectory.isAbsolute()) {
+                relPath = Paths.get(
+                    String.valueOf(fileOrDirectory).replaceFirst(
+                        String.valueOf(fileOrDirectory.getRoot()),
+                        "")
+                );
+            } else {
+                relPath = fileOrDirectory;
+            }
+
+            // Look relative to the source file and relative to the package root.
+            var locations = List.of(fileConfig.srcPath, fileConfig.srcPkgPath);
+            var found = locations.stream().filter(
+                    loc -> Files.exists(loc.resolve(relPath))
+                ).findFirst();
+            if (found.isPresent()) {
+                return found.get().resolve(relPath);
+            }
+        }
+        return null;
     }
 
     /**

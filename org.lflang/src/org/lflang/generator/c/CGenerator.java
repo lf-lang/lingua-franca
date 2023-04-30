@@ -37,7 +37,6 @@ import static org.lflang.util.StringUtil.addDoubleQuotes;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
@@ -610,7 +609,9 @@ public class CGenerator extends GeneratorBase {
                     GeneratorResult.Status.COMPILED, null
                 );
             }
-            System.out.println("Compiled binary is in " + fileConfig.binPath);
+            if (!errorsOccurred()){
+                System.out.println("Compiled binary is in " + fileConfig.binPath);
+            }
         } else {
             context.finish(GeneratorResult.GENERATED_NO_EXECUTABLE.apply(context, null));
         }
@@ -803,9 +804,15 @@ public class CGenerator extends GeneratorBase {
                     break;
                 }
             }
-            // Copy the user files and cmake-includes to the src-gen path of the main .lf file
             if (lfResource != null) {
+                // Copy the user files and cmake-includes to the src-gen path of the main .lf file
                 copyUserFiles(lfResource.getTargetConfig(), lfResource.getFileConfig());
+                // Merge the CMake includes from the imported file into the target config
+                lfResource.getTargetConfig().cmakeIncludes.forEach(incl -> {
+                    if (!this.targetConfig.cmakeIncludes.contains(incl)) {
+                        this.targetConfig.cmakeIncludes.add(incl);
+                    }
+                });
             }
         }
     }
@@ -818,56 +825,18 @@ public class CGenerator extends GeneratorBase {
      * @param fileConfig The fileConfig used to make the copy and resolve paths.
      */
     @Override
-    public void copyUserFiles(TargetConfig targetConfig, FileConfig fileConfig) {
+    protected void copyUserFiles(TargetConfig targetConfig, FileConfig fileConfig) {
         super.copyUserFiles(targetConfig, fileConfig);
-        // Make sure the target directory exists.
-        var targetDir = this.fileConfig.getSrcGenPath();
-        try {
-            Files.createDirectories(targetDir);
-        } catch (IOException e) {
-            //noinspection ThrowableNotThrown,ResultOfMethodCallIgnored
-            Exceptions.sneakyThrow(e);
-        }
+        // Must use class variable to determine destination!
+        var destination = this.fileConfig.getSrcGenPath();
 
-        for (String filename : targetConfig.fileNames) {
-            var relativeFileName = CUtil.copyFileOrResource(
-                    filename,
-                    fileConfig.srcFile.getParent(),
-                    targetDir);
-            if (StringExtensions.isNullOrEmpty(relativeFileName)) {
-                errorReporter.reportError(
-                    "Failed to find file " + filename + " specified in the" +
-                    " files target property."
-                );
-            } else {
-                targetConfig.filesNamesWithoutPath.add(
-                    relativeFileName
-                );
-            }
-        }
+        FileUtil.copyFiles(targetConfig.cmakeIncludes, destination, fileConfig, errorReporter);
 
-        for (String filename : targetConfig.cmakeIncludes) {
-            var relativeCMakeIncludeFileName =
-                CUtil.copyFileOrResource(
-                    filename,
-                    fileConfig.srcFile.getParent(),
-                    targetDir);
-            // Check if the file exists
-            if (StringExtensions.isNullOrEmpty(relativeCMakeIncludeFileName)) {
-                errorReporter.reportError(
-                    "Failed to find cmake-include file " + filename
-                );
-            } else {
-                this.targetConfig.cmakeIncludesWithoutPath.add(
-                    relativeCMakeIncludeFileName
-                );
-            }
-        }
-
+        // FIXME: Unclear what the following does, but it does not appear to belong here.
         if (!StringExtensions.isNullOrEmpty(targetConfig.fedSetupPreamble)) {
             try {
                 FileUtil.copyFile(fileConfig.srcFile.getParent().resolve(targetConfig.fedSetupPreamble),
-                                  targetDir.resolve(targetConfig.fedSetupPreamble));
+                                  destination.resolve(targetConfig.fedSetupPreamble));
             } catch (IOException e) {
                 errorReporter.reportError("Failed to find _fed_setup file " + targetConfig.fedSetupPreamble);
             }
