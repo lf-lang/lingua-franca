@@ -32,7 +32,6 @@ import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import java.util.function.Predicate;
 import java.util.regex.Matcher;
@@ -61,8 +60,6 @@ import org.lflang.generator.InvalidSourceException;
 import org.lflang.generator.ReactorInstance;
 import org.lflang.lf.Action;
 import org.lflang.lf.Assignment;
-import org.lflang.lf.AttrParm;
-import org.lflang.lf.Attribute;
 import org.lflang.lf.Code;
 import org.lflang.lf.Connection;
 import org.lflang.lf.Element;
@@ -263,7 +260,6 @@ public class ASTUtils {
 
     /**
      * Add a new target property to the given resource.
-     *
      * This also creates a config object if the resource does not yey have one.
      *
      * @param resource The resource to modify
