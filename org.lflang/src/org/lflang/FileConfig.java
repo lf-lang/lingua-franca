@@ -1,6 +1,5 @@
 package org.lflang;
 
-import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -15,7 +14,6 @@ import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.xtext.generator.IFileSystemAccess2;
 
 
-import org.lflang.federated.generator.FedFileConfig;
 import org.lflang.generator.GeneratorUtils;
 import org.lflang.util.FileUtil;
 import org.lflang.util.LFCommand;
@@ -308,7 +306,7 @@ public abstract class FileConfig {
      * Return the extension used for binaries on the platform on which compilation takes place.
      */
     protected String getExecutableExtension() {
-        return (GeneratorUtils.isHostWindows() ? ".exe" : "");
+        return GeneratorUtils.isHostWindows() ? ".exe" : "";
     }
 
     /**
