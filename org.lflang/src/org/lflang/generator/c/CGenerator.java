@@ -398,7 +398,7 @@ public class CGenerator extends GeneratorBase {
         // keepalive is set to true, unless the user has explicitly set it to false.
         for (Resource resource : GeneratorUtils.getResources(reactors)) {
             for (Action action : ASTUtils.allElementsOfClass(resource, Action.class)) {
-                if (Objects.equal(action.getOrigin(), ActionOrigin.PHYSICAL)) {
+                if (ActionOrigin.PHYSICAL.equals(action.getOrigin())) {
                     // If the unthreaded runtime is not requested by the user, use the threaded runtime instead
                     // because it is the only one currently capable of handling asynchronous events.
                     if (!targetConfig.threading && !targetConfig.setByUser.contains(TargetProperty.THREADING)) {
@@ -1484,7 +1484,7 @@ public class CGenerator extends GeneratorBase {
 
                     temp.pr("// Add port "+port.getFullName()+" to array of is_present fields.");
 
-                    if (!Objects.equal(port.getParent(), instance)) {
+                    if (!instance.equals(port.getParent())) {
                         // The port belongs to contained reactor, so we also have
                         // iterate over the instance bank members.
                         temp.startScopedBlock();
@@ -1507,7 +1507,7 @@ public class CGenerator extends GeneratorBase {
 
                     startTimeStepIsPresentCount += port.getWidth() * port.getParent().getTotalWidth();
 
-                    if (!Objects.equal(port.getParent(), instance)) {
+                    if (!instance.equals(port.getParent())) {
                         temp.pr("count++;");
                         temp.endScopedBlock();
                         temp.endScopedBlock();
