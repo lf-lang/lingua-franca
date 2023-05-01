@@ -150,6 +150,7 @@ public class CWatchdogGenerator {
     if (count == 0) {
       return String.join("\n",
           "// No watchdogs found.",
+          "typedef void watchdog_t;",
           "watchdog_t* _lf_watchdogs = NULL;",
           "int _lf_watchdog_number = 0;"
       );
