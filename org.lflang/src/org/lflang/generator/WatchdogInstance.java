@@ -1,3 +1,11 @@
+/**
+ * @file
+ * @author Benjamin Asch
+ * @author Edward A. Lee
+ * @copyright (c) 2023, The University of California at Berkeley
+ * License in [BSD 2-clause](https://github.com/lf-lang/lingua-franca/blob/master/LICENSE)
+ * @brief Instance of a watchdog
+ */
 package org.lflang.generator;
 
 import org.lflang.TimeValue;
