@@ -11,8 +11,9 @@ target C {
 
 reactor Watcher(timeout: time = 150 ms) {
     timer t(100 ms, 100 ms)  // Offset ameliorates startup time.
-                             // Period has to be smaller than watchdog timeout.
-    output d: int            // Produced if the watchdog triggers.
+    // Period has to be smaller than watchdog timeout. Produced if the watchdog
+    // triggers.
+    output d: int
     state count: int = 0
 
     watchdog poodle(timeout) {=
