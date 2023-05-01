@@ -1208,6 +1208,9 @@ public class CGenerator extends GeneratorBase {
             types
         );
 
+        // Generate the fields needed for each watchdog.
+        CWatchdogGenerator.generateWatchdogStruct(body, decl, constructorCode);
+
         // Next, generate fields for modes
         CModesGenerator.generateDeclarations(reactor, body, constructorCode);
 
