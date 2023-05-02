@@ -26,12 +26,7 @@
 
 package org.lflang.generator.c;
 
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
@@ -553,63 +548,6 @@ public class CUtil {
         + "_trigger";
   }
 
-  /**
-   * Copy the 'fileName' (which also could be a directory name) from the 'srcDirectory' to the
-   * 'destinationDirectory'. This function has a fallback search mechanism, where if `fileName` is
-   * not found in the `srcDirectory`, it will try to find `fileName` via the following procedure: 1-
-   * Search in LF_CLASSPATH. @see findFile() 2- Search in CLASSPATH. @see findFile() 3- Search for
-   * 'fileName' as a resource. That means the `fileName` can be '/path/to/class/resource'. @see
-   * java.lang.Class.getResourceAsStream()
-   *
-   * @param fileName Name of the file or directory.
-   * @param srcDir Where the file or directory is currently located.
-   * @param dstDir Where the file or directory should be placed.
-   * @return The name of the file or directory in destinationDirectory or an empty string on
-   *     failure.
-   */
-  public static String copyFileOrResource(String fileName, Path srcDir, Path dstDir) {
-    // Try to copy the file or directory from the file system.
-    Path file = findFileOrDirectory(fileName, srcDir);
-    if (file != null) {
-      Path target = dstDir.resolve(file.getFileName());
-      try {
-        if (Files.isDirectory(file)) {
-          FileUtil.copyDirectory(file, target);
-        } else if (Files.isRegularFile(file)) {
-          Files.copy(file, target, StandardCopyOption.REPLACE_EXISTING);
-        }
-        return file.getFileName().toString();
-      } catch (IOException e) {
-        // Failed to copy the file or directory, most likely
-        // because it doesn't exist. Will try to find it as a
-        // resource before giving up.
-      }
-    }
-
-    String filenameWithoutPath = fileName;
-    int lastSeparator = fileName.lastIndexOf(File.separator);
-    if (lastSeparator > 0) {
-      // FIXME: Brittle. What if the file is in a subdirectory?
-      filenameWithoutPath = fileName.substring(lastSeparator + 1);
-    }
-    // Try to copy the file or directory as a resource.
-    try {
-      FileUtil.copyFileFromClassPath(fileName, dstDir.resolve(filenameWithoutPath));
-      return filenameWithoutPath;
-    } catch (IOException ex) {
-      // Will try one more time as a directory
-    }
-
-    try {
-      FileUtil.copyDirectoryFromClassPath(fileName, dstDir.resolve(filenameWithoutPath), false);
-      return filenameWithoutPath;
-    } catch (IOException ex) {
-      System.err.println("WARNING: Failed to find file or directory " + fileName);
-    }
-
-    return "";
-  }
-
   //////////////////////////////////////////////////////
   //// FIXME: Not clear what the strategy is with the following inner interface.
   // The {@code ReportCommandErrors} interface allows the
@@ -629,44 +567,6 @@ public class CUtil {
    */
   public interface ReportCommandErrors {
     void report(String errors);
-  }
-
-  /**
-   * Search for a given file or directory name in the given directory. If not found, search in
-   * directories in LF_CLASSPATH. If there is no LF_CLASSPATH environment variable, use CLASSPATH,
-   * if it is defined. The first file or directory that is found will be returned. Otherwise, null
-   * is returned.
-   *
-   * @param fileName The file or directory name or relative path + name as a String.
-   * @param directory String representation of the directory to search in.
-   * @return A Java Path or null if not found.
-   */
-  public static Path findFileOrDirectory(String fileName, Path directory) {
-    Path foundFile;
-
-    // Check in local directory
-    foundFile = directory.resolve(fileName);
-    if (Files.exists(foundFile)) {
-      return foundFile;
-    }
-
-    // Check in LF_CLASSPATH
-    // Load all the resources in LF_CLASSPATH if it is set.
-    String classpathLF = System.getenv("LF_CLASSPATH");
-    if (classpathLF == null) {
-      classpathLF = System.getenv("CLASSPATH");
-    }
-    if (classpathLF != null) {
-      String[] paths = classpathLF.split(System.getProperty("path.separator"));
-      for (String path : paths) {
-        foundFile = Paths.get(path).resolve(fileName);
-        if (Files.exists(foundFile)) {
-          return foundFile;
-        }
-      }
-    }
-    // Not found.
-    return null;
   }
 
   /**
