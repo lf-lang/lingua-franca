@@ -235,7 +235,7 @@ class TSGenerator(
                     "No '" + configFile + "' exists in " + fileConfig.srcPath +
                             ". Using default configuration."
                 )
-                FileUtil.copyFileFromClassPath("$LIB_PATH/$configFile", configFileDest)
+                FileUtil.copyFromClassPath("$LIB_PATH/$configFile", configFileDest, true)
             }
         }
     }

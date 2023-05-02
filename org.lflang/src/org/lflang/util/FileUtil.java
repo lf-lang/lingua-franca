@@ -38,7 +38,6 @@ import org.eclipse.xtext.util.RuntimeIOException;
 
 import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
-import org.lflang.generator.LFGeneratorContext;
 
 public class FileUtil {
 
@@ -262,27 +261,26 @@ public class FileUtil {
             var found = FileUtil.findInPackage(path, fileConfig);
             if (found != null) {
                 try {
-                    FileUtil.copyFileOrDirectory(found, destination.resolve(found.getFileName()));
+                    FileUtil.copyFromFileSystem(found, destination.resolve(path.getFileName()));
+                    System.out.println("Copied '" + fileOrDirectory + "' from the file system.");
                 } catch (IOException e) {
                     errorReporter.reportError(
                         "Unable to copy '" + fileOrDirectory + "' from the file system."
                     );
                 }
             } else {
-                // Attempt to copy from the classpath instead.
-                // If the filename is not a directory, it will
-                // just be copied without further recursion.
                 try {
-                    FileUtil.copyDirectoryFromClassPath(
+                    FileUtil.copyFromClassPath(
                         fileOrDirectory,
                         destination,
                         false
                     );
-                } catch (IOException e) {
+                } catch(IOException e) {
                     errorReporter.reportError(
                         "Unable to copy '" + fileOrDirectory + "' from the class path."
                     );
                 }
+                System.out.println("Copied '" + fileOrDirectory + "' from the class path.");
             }
         }
     }
@@ -294,7 +292,7 @@ public class FileUtil {
      * @param destination A directory to copy the file(s) at the source to.
      * @throws IOException
      */
-    public static void copyFileOrDirectory(Path source, Path destination) throws IOException {
+    public static void copyFromFileSystem(Path source, Path destination) throws IOException {
         if (Files.isDirectory(source)) {
             copyDirectory(source, destination);
         } else if (Files.isRegularFile(source)) {
@@ -315,58 +313,24 @@ public class FileUtil {
      * @throws IOException if copy fails.
      */
     private static void copyInputStream(InputStream source, Path destination, boolean skipIfUnchanged) throws IOException {
-        Files.createDirectories(destination.getParent());
-
         // Read the stream once and keep a copy of all bytes. This is required as a stream cannot be read twice.
         final var bytes = source.readAllBytes();
-        // abort if the destination file does not change
-        if(skipIfUnchanged && Files.isRegularFile(destination)) {
-            if (Arrays.equals(bytes, Files.readAllBytes(destination))) {
-                return;
+        final var parent = destination.getParent();
+        if (Files.isRegularFile(destination)) {
+            if (skipIfUnchanged) {
+                if (Arrays.equals(bytes, Files.readAllBytes(destination))) {
+                    // Abort if the file contents are the same.
+                    return;
+                }
+            } else {
+                // Delete the file exists but the contents don't match.
+                Files.delete(destination);
             }
+        } else if (!Files.exists(parent)) {
+            Files.createDirectories(parent);
         }
 
         Files.write(destination, bytes);
-    }
-
-    /**
-     *  Lookup a file in the classpath and copy its contents to a destination path
-     *  in the filesystem.
-     *
-     *  This also creates new directories for any directories on the destination
-     *  path that do not yet exist.
-     *
-     *  @param source The source file as a path relative to the classpath.
-     *  @param destination The file system path that the source file is copied to.
-     *  @param skipIfUnchanged If true, don't overwrite the destination file if its content would not be changed
-     * @throws IOException If the given source cannot be copied.
-     */
-    public static void copyFileFromClassPath(final String source, final Path destination, final boolean skipIfUnchanged) throws IOException {
-        InputStream sourceStream = FileConfig.class.getResourceAsStream(source);
-
-        // Copy the file.
-        if (sourceStream == null) {
-            throw new TargetResourceNotFoundException(source);
-        } else {
-            try (sourceStream) {
-                copyInputStream(sourceStream, destination, skipIfUnchanged);
-            }
-        }
-    }
-
-    /**
-     *  Lookup a file in the classpath and copy its contents to a destination path
-     *  in the filesystem.
-     *
-     *  This also creates new directories for any directories on the destination
-     *  path that do not yet exist.
-     *
-     *  @param source The source file as a path relative to the classpath.
-     *  @param destination The file system path that the source file is copied to.
-     * @throws IOException If the given source cannot be copied.
-     */
-    public static void copyFileFromClassPath(final String source, final Path destination) throws IOException {
-        copyFileFromClassPath(source, destination, false);
     }
 
     /**
@@ -381,22 +345,27 @@ public class FileUtil {
      *  @param skipIfUnchanged If true, don't overwrite the file if its content would not be changed
      *  @throws IOException If the given source cannot be copied.
      */
-    public static void copyDirectoryFromClassPath(final String source, final Path destination, final boolean skipIfUnchanged) throws IOException {
+    public static void copyFromClassPath(final String source, final Path destination, final boolean skipIfUnchanged) throws IOException {
         final URL resource = FileConfig.class.getResource(source);
+
         if (resource == null) {
             throw new TargetResourceNotFoundException(source);
         }
 
         final URLConnection connection = resource.openConnection();
         if (connection instanceof JarURLConnection) {
-            boolean copiedFiles = copyDirectoryFromJar((JarURLConnection) connection, destination, skipIfUnchanged);
+            boolean copiedFiles = copyFromJar((JarURLConnection) connection, destination, skipIfUnchanged);
             if (!copiedFiles) {
                 throw new TargetResourceNotFoundException(source);
             }
         } else {
             try {
                 Path dir = Paths.get(FileLocator.toFileURL(resource).toURI());
-                copyDirectory(dir, destination, skipIfUnchanged);
+                if (dir.toFile().isDirectory()) {
+                    copyFile(dir, destination, skipIfUnchanged);
+                } else {
+                    copyDirectory(dir, destination, skipIfUnchanged);
+                }
             } catch(URISyntaxException e) {
                 // This should never happen as toFileURL should always return a valid URL
                 throw new IOException("Unexpected error while resolving " + source + " on the classpath");
@@ -418,7 +387,7 @@ public class FileUtil {
      * @return true if any files were copied
      * @throws IOException If the given source cannot be copied.
      */
-    private static boolean copyDirectoryFromJar(JarURLConnection connection, final Path destination, final boolean skipIfUnchanged) throws IOException {
+    private static boolean copyFromJar(JarURLConnection connection, final Path destination, final boolean skipIfUnchanged) throws IOException {
         final JarFile jar = connection.getJarFile();
         final String connectionEntryName = connection.getEntryName();
 
@@ -431,9 +400,10 @@ public class FileUtil {
 
             // Extract files only if they match the given source path.
             if (entryName.startsWith(connectionEntryName)) {
-                String filename = entryName.equals(connectionEntryName) ?
-                    connectionEntryName :
-                    entryName.substring(connectionEntryName.length() + 1);
+                // Gobble up the separator only if there is one.
+                String filename = entryName.equals(connectionEntryName) ? entryName :
+                    entry.getName().substring(connectionEntryName.length() + 1);
+
                 Path currentFile = destination.resolve(filename);
                 if (entry.isDirectory()) {
                     Files.createDirectories(currentFile);
@@ -610,7 +580,7 @@ public class FileUtil {
                     loc -> Files.exists(loc.resolve(relPath))
                 ).findFirst();
             if (found.isPresent()) {
-                return found.get().resolve(relPath);
+                return found.get().resolve(relPath).toAbsolutePath();
             }
         }
         return null;

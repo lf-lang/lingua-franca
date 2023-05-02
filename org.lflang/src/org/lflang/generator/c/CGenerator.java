@@ -883,7 +883,7 @@ public class CGenerator extends GeneratorBase {
     /** Generate user-visible header files for all reactors instantiated. */
     private void generateHeaders() throws IOException {
         FileUtil.deleteDirectory(fileConfig.getIncludePath());
-        FileUtil.copyDirectoryFromClassPath(
+        FileUtil.copyFromClassPath(
             fileConfig.getRuntimeIncludePath(),
             fileConfig.getIncludePath(),
             false
@@ -962,12 +962,12 @@ public class CGenerator extends GeneratorBase {
         if (coreLib != null) {
             FileUtil.copyDirectory(Path.of(coreLib), dest, true);
         } else {
-            FileUtil.copyDirectoryFromClassPath(
+            FileUtil.copyFromClassPath(
                 "/lib/c/reactor-c/core",
                 dest.resolve("core"),
                 true
             );
-            FileUtil.copyDirectoryFromClassPath(
+            FileUtil.copyFromClassPath(
                 "/lib/c/reactor-c/lib",
                 dest.resolve("lib"),
                 true
@@ -976,18 +976,18 @@ public class CGenerator extends GeneratorBase {
 
         // For the Zephyr target, copy default config and board files.
         if (targetConfig.platformOptions.platform == Platform.ZEPHYR) {
-            FileUtil.copyDirectoryFromClassPath(
+            FileUtil.copyFromClassPath(
                 "/lib/platform/zephyr/boards",
                 fileConfig.getSrcGenPath().resolve("boards"),
                 false
             );
-            FileUtil.copyFileFromClassPath(
+            FileUtil.copyFromClassPath(
                 "/lib/platform/zephyr/prj_lf.conf",
                 fileConfig.getSrcGenPath().resolve("prj_lf.conf"),
                 true
             );
 
-            FileUtil.copyFileFromClassPath(
+            FileUtil.copyFromClassPath(
                 "/lib/platform/zephyr/Kconfig",
                 fileConfig.getSrcGenPath().resolve("Kconfig"),
                 true
