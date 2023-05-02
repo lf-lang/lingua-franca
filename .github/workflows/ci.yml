@@ -51,7 +51,6 @@ jobs:
     uses: lf-lang/benchmarks-lingua-franca/.github/workflows/benchmark-tests.yml@main
     with:
       target: 'C'
-      benchmarks-ref: main
     needs: cancel
 
   # Run language server tests.
