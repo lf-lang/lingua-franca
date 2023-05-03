@@ -181,8 +181,6 @@ class TSGenerator(
         val manifest = fileConfig.srcGenPath.resolve("package.json");
         val rtRegex = Regex("(\"@lf-lang/reactor-ts\")(.+)")
         if (rtPath != null) rtPath = formatRuntimePath(rtPath)
-        // FIXME: do better CLI arg validation upstream
-        // https://github.com/lf-lang/lingua-franca/issues/1429
         if (rtPath != null || rtVersion != null) {
             devMode = true;
         }
