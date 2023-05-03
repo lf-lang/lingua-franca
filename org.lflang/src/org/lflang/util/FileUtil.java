@@ -163,17 +163,16 @@ public class FileUtil {
     }
 
     /**
-     * Recursively copies the contents of the given 'src'
-     * directory to 'dest'. Existing files of the destination
-     * may be overwritten.
+     * Recursively copy the contents of the given 'srcDir' into the given 'dstDir'.
+     * Existing files of the destination may be overwritten.
      *
-     * @param src The source directory path.
-     * @param dest The destination directory path.
+     * @param srcDir The source directory path.
+     * @param dstDir The destination directory path.
      * @param skipIfUnchanged If true, don't overwrite the destination file if its content would not be changed
      * @throws IOException if copy fails.
      */
-    public static void copyDirectory(final Path src, final Path dest, final boolean skipIfUnchanged) throws IOException {
-        try (Stream<Path> stream = Files.walk(src)) {
+    public static void copyDirectoryContents(final Path srcDir, final Path dstDir, final boolean skipIfUnchanged) throws IOException {
+        try (Stream<Path> stream = Files.walk(srcDir)) {
             stream.forEach(source -> {
                 // Handling checked exceptions in lambda expressions is
                 // hard. See
@@ -182,7 +181,7 @@ public class FileUtil {
                 // here.
                 if (Files.isRegularFile(source)) { // do not copy directories
                     try {
-                        Path target = dest.resolve(src.relativize(source));
+                        Path target = dstDir.resolve(srcDir.relativize(source));
                         Files.createDirectories(target.getParent());
                         copyFile(source, target, skipIfUnchanged);
                     } catch (IOException e) {
@@ -195,68 +194,72 @@ public class FileUtil {
         }
     }
 
-    /**
-     * Recursively copies the contents of the given 'src'
-     * directory to 'dest'. Existing files of the destination
-     * may be overwritten.
-     *
-     * @param src The source directory path.
-     * @param dest The destination directory path.
-     * @throws IOException if copy fails.
-     */
-    public static void copyDirectory(final Path src, final Path dest) throws IOException {
-        copyDirectory(src, dest, false);
+    public static void copyDirectory(final Path srcDir, final Path dstDir) throws IOException {
+        copyDirectoryContents(srcDir, dstDir.resolve(srcDir.getFileName()), false);
     }
 
     /**
-     * Copy a given file from 'source' to 'destination'.
+     * Recursively copy the contents of the given 'srcDir'
+     * to 'dstDir'.
+     * Existing files of the destination may be overwritten.
      *
-     * This also creates new directories for any directories on the destination
-     * path that do not yet exist.
+     * @param srcDir The directory to copy files from.
+     * @param dstDir The directory to copy files to.
+     * @throws IOException if copy fails.
+     */
+    public static void copyDirectoryContents(final Path srcDir, final Path dstDir) throws IOException {
+        copyDirectoryContents(srcDir, dstDir, false);
+    }
+
+    /**
+     * Copy a given file from 'srcFile' to 'dstFile'.
      *
-     * @param source The source file path.
-     * @param destination The destination file path.
+     * This also creates new directories for any directories
+     * on the path to `dstFile` that do not yet exist.
+     *
+     * @param srcFile The source file path.
+     * @param dstFile The destination file path.
      * @param skipIfUnchanged If true, don't overwrite the destination file if its content would not be changed
      * @throws IOException if copy fails.
      */
-    public static void copyFile(Path source, Path destination, boolean skipIfUnchanged)  throws IOException {
-        BufferedInputStream stream = new BufferedInputStream(new FileInputStream(source.toFile()));
+    public static void copyFile(Path srcFile, Path dstFile, boolean skipIfUnchanged)  throws IOException {
+        BufferedInputStream stream = new BufferedInputStream(new FileInputStream(srcFile.toFile()));
         try (stream) {
-            copyInputStream(stream, destination, skipIfUnchanged);
+            copyInputStream(stream, dstFile, skipIfUnchanged);
         }
     }
 
     /**
-     * Copy a given file from 'source' to 'destination'.
+     * Copy a 'srcFile' to 'dstFile'.
      *
-     * This also creates new directories for any directories on the destination
-     * path that do not yet exist.
+     * This also creates new directories for any directories
+     * on the path to `dstFile` that do not yet exist.
      *
-     * @param source The source file path.
-     * @param destination The destination file path.
+     * @param srcFile The source file path.
+     * @param dstFile The destination file path.
      * @throws IOException if copy fails.
      */
-    public static void copyFile(Path source, Path destination)  throws IOException {
-        copyFile(source, destination, false);
+    public static void copyFile(Path srcFile, Path dstFile)  throws IOException {
+        copyFile(srcFile, dstFile, false);
     }
 
     /**
      * Given a list of files or directories, attempt to find them based on the given generator
-     * context, and copy then to the destination. Files are searched for in the file system first.
-     * Files that cannot be found in the file system are looked for on the class path.
+     * context, and copy them to the destination. Entries are searched for in the file system first.
+     * Entries that cannot be found in the file system are looked for on the class path.
      *
-     * @param filesOrDirectories The files or directories to copy.
+     * @param entries The files or directories to copy.
      * @param destination The location to copy them to.
      * @param fileConfig The file configuration that specifies where the files must be found.
      * @param errorReporter An error reporter to report problems.
      */
-    public static void copyFiles(
-        List<String> filesOrDirectories,
+    public static void copyFilesOrDirectories(
+        List<String> entries,
         Path destination,
         FileConfig fileConfig,
         ErrorReporter errorReporter
     ) {
-        for (String fileOrDirectory : filesOrDirectories) {
+        for (String fileOrDirectory : entries) {
             var path = Paths.get(fileOrDirectory);
             var found = FileUtil.findInPackage(path, fileConfig);
             if (found != null) {
@@ -362,7 +365,7 @@ public class FileUtil {
             try {
                 Path path = Paths.get(FileLocator.toFileURL(resource).toURI());
                 if (path.toFile().isDirectory()) {
-                    copyDirectory(path, destination, skipIfUnchanged);
+                    copyDirectoryContents(path, destination, skipIfUnchanged);
                 } else {
                     copyFile(path, destination.resolve(path.getFileName()), skipIfUnchanged);
                 }

@@ -830,7 +830,7 @@ public class CGenerator extends GeneratorBase {
         // Must use class variable to determine destination!
         var destination = this.fileConfig.getSrcGenPath();
 
-        FileUtil.copyFiles(targetConfig.cmakeIncludes, destination, fileConfig, errorReporter);
+        FileUtil.copyFilesOrDirectories(targetConfig.cmakeIncludes, destination, fileConfig, errorReporter);
 
         // FIXME: Unclear what the following does, but it does not appear to belong here.
         if (!StringExtensions.isNullOrEmpty(targetConfig.fedSetupPreamble)) {
@@ -904,7 +904,7 @@ public class CGenerator extends GeneratorBase {
                 },
                 this::generateTopLevelPreambles);
         }
-        FileUtil.copyDirectory(fileConfig.getIncludePath(), fileConfig.getSrcGenPath().resolve("include"), false);
+        FileUtil.copyDirectoryContents(fileConfig.getIncludePath(), fileConfig.getSrcGenPath().resolve("include"), false);
     }
 
     /**
@@ -960,7 +960,7 @@ public class CGenerator extends GeneratorBase {
         Path dest = fileConfig.getSrcGenPath();
         if (targetConfig.platformOptions.platform == Platform.ARDUINO) dest = dest.resolve("src");
         if (coreLib != null) {
-            FileUtil.copyDirectory(Path.of(coreLib), dest, true);
+            FileUtil.copyDirectoryContents(Path.of(coreLib), dest, true);
         } else {
             FileUtil.copyFromClassPath(
                 "/lib/c/reactor-c/core",
