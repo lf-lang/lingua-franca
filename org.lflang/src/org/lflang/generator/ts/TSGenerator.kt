@@ -38,7 +38,6 @@ import org.lflang.scoping.LFGlobalScopeProvider
 import org.lflang.util.FileUtil
 import java.nio.file.Files
 import java.nio.file.Path
-import java.nio.file.StandardCopyOption
 import java.util.*
 
 private const val NO_NPM_MESSAGE = "The TypeScript target requires npm >= 6.14.4. " +
@@ -61,18 +60,12 @@ class TSGenerator(
 
 
     val fileConfig: TSFileConfig = context.fileConfig as TSFileConfig
-    var devMode = false;
+    private var devMode = false
 
     companion object {
 
         /** Path to the TS lib directory (relative to class path)  */
         const val LIB_PATH = "/lib/ts"
-
-        /**
-         * Names of the configuration files to check for and copy to the generated
-         * source package root if they cannot be found in the source directory.
-         */
-        val CONFIG_FILES = arrayOf("package.json", "tsconfig.json", ".eslintrc.json")
 
         const val RUNTIME_URL = "git://github.com/lf-lang/reactor-ts.git"
 
@@ -223,21 +216,11 @@ class TSGenerator(
      * as the source file, copy a default version from $LIB_PATH/.
      */
     private fun copyConfigFiles() {
-        for (configFile in CONFIG_FILES) {
-            val configFileDest = fileConfig.srcGenPath.resolve(configFile)
-            val configFileInSrc = fileConfig.srcPath.resolve(configFile)
-            if (configFileInSrc.toFile().exists()) {
-                println("Copying $configFileInSrc to $configFileDest")
-                Files.createDirectories(configFileDest.parent)
-                Files.copy(configFileInSrc, configFileDest, StandardCopyOption.REPLACE_EXISTING)
-            } else {
-                println(
-                    "No '" + configFile + "' exists in " + fileConfig.srcPath +
-                            ". Using default configuration."
-                )
-                FileUtil.copyFromClassPath("$LIB_PATH/$configFile", configFileDest, true)
-            }
-        }
+        FileUtil.copyFromClassPath(
+            LIB_PATH,
+            fileConfig.srcGenPath,
+            true
+        )
     }
 
 

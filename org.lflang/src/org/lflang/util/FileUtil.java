@@ -337,41 +337,41 @@ public class FileUtil {
     }
 
     /**
-     *  Lookup a directory in the classpath and copy its contents to a destination path
-     *  in the filesystem.
+     *  Look up the given entry in the classpath. If it is a file, copy it into the destination
+     *  directory. If it is a directory, copy its contents to the destination directory.
      *
      *  This also creates new directories for any directories on the destination
      *  path that do not yet exist.
      *
-     *  @param source The source directory as a path relative to the classpath.
-     *  @param destination The file system path that the source directory is copied to.
+     *  @param entry The entry to be found on the class path and copied to the given destination.
+     *  @param dstDir The file system path that found files are to be copied to.
      *  @param skipIfUnchanged If true, don't overwrite the file if its content would not be changed
      *  @throws IOException If the given source cannot be copied.
      */
-    public static void copyFromClassPath(final String source, final Path destination, final boolean skipIfUnchanged) throws IOException {
-        final URL resource = FileConfig.class.getResource(source);
+    public static void copyFromClassPath(final String entry, final Path dstDir, final boolean skipIfUnchanged) throws IOException {
+        final URL resource = FileConfig.class.getResource(entry);
 
         if (resource == null) {
-            throw new TargetResourceNotFoundException(source);
+            throw new TargetResourceNotFoundException(entry);
         }
 
         final URLConnection connection = resource.openConnection();
         if (connection instanceof JarURLConnection) {
-            boolean copiedFiles = copyFromJar((JarURLConnection) connection, destination, skipIfUnchanged);
+            boolean copiedFiles = copyFromJar((JarURLConnection) connection, dstDir, skipIfUnchanged);
             if (!copiedFiles) {
-                throw new TargetResourceNotFoundException(source);
+                throw new TargetResourceNotFoundException(entry);
             }
         } else {
             try {
                 Path path = Paths.get(FileLocator.toFileURL(resource).toURI());
                 if (path.toFile().isDirectory()) {
-                    copyDirectoryContents(path, destination, skipIfUnchanged);
+                    copyDirectoryContents(path, dstDir, skipIfUnchanged);
                 } else {
-                    copyFile(path, destination.resolve(path.getFileName()), skipIfUnchanged);
+                    copyFile(path, dstDir.resolve(path.getFileName()), skipIfUnchanged);
                 }
             } catch(URISyntaxException e) {
                 // This should never happen as toFileURL should always return a valid URL
-                throw new IOException("Unexpected error while resolving " + source + " on the classpath");
+                throw new IOException("Unexpected error while resolving " + entry + " on the classpath");
             }
         }
     }
