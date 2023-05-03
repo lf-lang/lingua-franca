@@ -253,7 +253,7 @@ public class FileUtil {
      * @param fileConfig The file configuration that specifies where the files must be found.
      * @param errorReporter An error reporter to report problems.
      */
-    public static void copyFilesOrDirectories(
+    public static void copyFilesOrDirectoryContents(
         List<String> entries,
         Path destination,
         FileConfig fileConfig,
@@ -297,9 +297,9 @@ public class FileUtil {
      */
     public static void copyFromFileSystem(Path source, Path destination) throws IOException {
         if (Files.isDirectory(source)) {
-            copyDirectory(source, destination);
+            copyDirectoryContents(source, destination);
         } else if (Files.isRegularFile(source)) {
-            copyFile(source, destination.resolve(source.getFileName())); // FIXME: should copyFile have the same API and have a directory as the second argument?
+            copyFile(source, destination.resolve(source.getFileName()));
         } else {
             throw new IllegalArgumentException("Source is neither a directory nor a regular file.");
         }
@@ -329,6 +329,8 @@ public class FileUtil {
                 // Delete the file exists but the contents don't match.
                 Files.delete(destination);
             }
+        } else if (Files.isDirectory(destination)) {
+            deleteDirectory(destination);
         } else if (!Files.exists(parent)) {
             Files.createDirectories(parent);
         }
@@ -387,12 +389,12 @@ public class FileUtil {
         ).findFirst().isPresent();
     }
 
-    private static void copyFileFromJar(JarFile jar, String source, Path destination, boolean skipIfUnchanged) throws IOException {
-        var entry = jar.getJarEntry(source);
+    private static void copyFileFromJar(JarFile jar, String srcFile, Path dstDir, boolean skipIfUnchanged) throws IOException {
+        var entry = jar.getJarEntry(srcFile);
         var filename = Paths.get(entry.getName()).getFileName();
         InputStream is = jar.getInputStream(entry);
         try (is) {
-            copyInputStream(is, destination.resolve(filename), skipIfUnchanged);
+            copyInputStream(is, dstDir.resolve(filename), skipIfUnchanged);
         }
     }
 
@@ -550,6 +552,15 @@ public class FileUtil {
                 output.append(fileContents, lastIndex, fileContents.length());
             }
             writeToFile(output.toString(), path);
+        }
+    }
+
+    public static void delete(Path fileOrDirectory) throws IOException {
+        if (Files.isRegularFile(fileOrDirectory)) {
+            Files.deleteIfExists(fileOrDirectory);
+        }
+        if (Files.isDirectory(fileOrDirectory)) {
+            deleteDirectory(fileOrDirectory);
         }
     }
 
