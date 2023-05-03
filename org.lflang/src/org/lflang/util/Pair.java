@@ -23,26 +23,26 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * @section DESCRIPTION
  *
  * This Class provides a Pair of Templated Types
- * This provides the same facility as std::pair<T, U> in C++
+ * This provides the same facility as std::pair<T, Y> in C++
  */
 
 package org.lflang.util;
 
-public final class Pair<T, U> {
-    private final T first;
-    private final U second;
-    public Pair(final T t, final U u)
+public final class Pair<T1, T2> {
+    private final T1 first;
+    private final T2 second;
+    public Pair(final T1 t1, final T2 t2)
     {
-        this.first = t;
-        this.second = u;
+        this.first = t1;
+        this.second = t2;
     }
 
-    public T getFirst()
+    public T1 getFirst()
     {
         return this.first;
     }
 
-    public U getSecond()
+    public T2 getSecond()
     {
         return this.second;
     }
@@ -54,7 +54,7 @@ public final class Pair<T, U> {
         if (this == other)
             return true;
         if (this.getClass().equals(other.getClass())) {
-            Pair<?, ?> otherPair = (Pair<?, ?>) other;
+            var otherPair = (Pair<?, ?>) other;
             boolean isEqual = (first == null) ? otherPair.getFirst() == null : first.equals(otherPair.getFirst());
 
             if (!isEqual)
@@ -72,6 +72,6 @@ public final class Pair<T, U> {
 
     @Override
     public String toString() {
-        return "Pair(" + first + ", " + second + ")";
+        return "Pair<" + first + ", " + second + ">";
     }
 }
