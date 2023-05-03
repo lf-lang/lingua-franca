@@ -261,7 +261,7 @@ public class FileUtil {
             var found = FileUtil.findInPackage(path, fileConfig);
             if (found != null) {
                 try {
-                    FileUtil.copyFromFileSystem(found, destination.resolve(path.getFileName()));
+                    FileUtil.copyFromFileSystem(found, destination);
                     System.out.println("Copied '" + fileOrDirectory + "' from the file system.");
                 } catch (IOException e) {
                     errorReporter.reportError(
@@ -296,7 +296,7 @@ public class FileUtil {
         if (Files.isDirectory(source)) {
             copyDirectory(source, destination);
         } else if (Files.isRegularFile(source)) {
-            copyFile(source, destination);
+            copyFile(source, destination.resolve(source.getFileName())); // FIXME: should copyFile have the same API and have a directory as the second argument?
         } else {
             throw new IllegalArgumentException("Source is neither a directory nor a regular file.");
         }
@@ -360,16 +360,36 @@ public class FileUtil {
             }
         } else {
             try {
-                Path dir = Paths.get(FileLocator.toFileURL(resource).toURI());
-                if (dir.toFile().isDirectory()) {
-                    copyFile(dir, destination, skipIfUnchanged);
+                Path path = Paths.get(FileLocator.toFileURL(resource).toURI());
+                if (path.toFile().isDirectory()) {
+                    copyDirectory(path, destination, skipIfUnchanged);
                 } else {
-                    copyDirectory(dir, destination, skipIfUnchanged);
+                    copyFile(path, destination.resolve(path.getFileName()), skipIfUnchanged);
                 }
             } catch(URISyntaxException e) {
                 // This should never happen as toFileURL should always return a valid URL
                 throw new IOException("Unexpected error while resolving " + source + " on the classpath");
             }
+        }
+    }
+
+    /**
+     * Return true if the given connection points to a file.
+     * @param connection A connection to a JAR file.
+     * @throws IOException If the connection is faulty.
+     */
+    private static boolean isFileInJar(JarURLConnection connection) throws IOException {
+        return connection.getJarFile().stream().filter(
+            it -> it.getName().equals(connection.getEntryName())
+        ).findFirst().isPresent();
+    }
+
+    private static void copyFileFromJar(JarFile jar, String source, Path destination, boolean skipIfUnchanged) throws IOException {
+        var entry = jar.getJarEntry(source);
+        var filename = Paths.get(entry.getName()).getFileName();
+        InputStream is = jar.getInputStream(entry);
+        try (is) {
+            copyInputStream(is, destination.resolve(filename), skipIfUnchanged);
         }
     }
 
@@ -389,7 +409,12 @@ public class FileUtil {
      */
     private static boolean copyFromJar(JarURLConnection connection, final Path destination, final boolean skipIfUnchanged) throws IOException {
         final JarFile jar = connection.getJarFile();
-        final String connectionEntryName = connection.getEntryName();
+        final String source = connection.getEntryName();
+
+        if (isFileInJar(connection)) {
+            copyFileFromJar(jar, source, destination, skipIfUnchanged);
+            return true;
+        }
 
         boolean copiedFiles = false;
 
@@ -397,13 +422,8 @@ public class FileUtil {
         for (Enumeration<JarEntry> e = jar.entries(); e.hasMoreElements(); ) {
             final JarEntry entry = e.nextElement();
             final String entryName = entry.getName();
-
-            // Extract files only if they match the given source path.
-            if (entryName.startsWith(connectionEntryName)) {
-                // Gobble up the separator only if there is one.
-                String filename = entryName.equals(connectionEntryName) ? entryName :
-                    entry.getName().substring(connectionEntryName.length() + 1);
-
+            if (entryName.startsWith(source)) {
+                String filename = entry.getName().substring(source.length() + 1);
                 Path currentFile = destination.resolve(filename);
                 if (entry.isDirectory()) {
                     Files.createDirectories(currentFile);
