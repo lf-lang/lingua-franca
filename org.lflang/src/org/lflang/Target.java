@@ -463,6 +463,16 @@ public enum Target {
     }
 
     /**
+     * Return true if the target supports federated execution.
+     */
+    public boolean supportsFederated() {
+        return switch (this) {
+            case C, CCPP, Python, TS -> true;
+            default -> false;
+        };
+    }
+
+    /**
      * Return true if the target supports reactor inheritance (extends keyword).
      */
     public boolean supportsInheritance() {
