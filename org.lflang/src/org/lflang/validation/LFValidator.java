@@ -971,6 +971,11 @@ public class LFValidator extends BaseLFValidator {
         if (reactor.isFederated()) {
             FedValidator.validateFederatedReactor(reactor, this.errorReporter);
         }
+
+        if (!reactor.getSuperClasses().isEmpty() && !target.supportsInheritance()) {
+            error("The " + target.name() + " target does not support reactor inheritance.",
+                  Literals.REACTOR__SUPER_CLASSES);
+        }
     }
 
     /**
