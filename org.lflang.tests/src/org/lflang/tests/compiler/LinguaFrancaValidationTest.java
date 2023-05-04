@@ -812,6 +812,41 @@ public class LinguaFrancaValidationTest {
         }
     }
 
+    @Test
+    public void testInheritanceSupport() throws Exception {
+        for (Target target : Target.values()) {
+            Model model = parseWithoutError("""
+                    target %s
+                    reactor A{}
+                    reactor B extends A{}
+                """.formatted(target));
+
+            if(target.supportsInheritance()) {
+                validator.assertNoIssues(model);
+            } else {
+                validator.assertError(model, LfPackage.eINSTANCE.getReactor(), null,
+                    "The " + target.getDisplayName() + " target does not support reactor inheritance.");
+            }
+        }
+    }
+
+    @Test
+    public void testFederationSupport() throws Exception {
+        for (Target target : Target.values()) {
+            Model model = parseWithoutError("""
+                    target %s
+                    federated reactor {}
+                """.formatted(target));
+
+            if(target.supportsFederated()) {
+                validator.assertNoIssues(model);
+            } else {
+                validator.assertError(model, LfPackage.eINSTANCE.getReactor(), null,
+                    "The " + target.getDisplayName() + " target does not support federated execution.");
+            }
+        }
+    }
+
 
     /**
      * Tests for state and parameter declarations, including native lists.
