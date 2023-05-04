@@ -25,7 +25,6 @@
 
 package org.lflang.generator.c;
 
-import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -223,14 +222,6 @@ public class CCompiler {
     private static List<String> cmakeOptions(TargetConfig targetConfig, FileConfig fileConfig) {
         List<String> arguments = new ArrayList<>();
         cmakeCompileDefinitions(targetConfig).forEachOrdered(arguments::add);
-        String separator = File.separator;
-        String maybeQuote = ""; // Windows seems to require extra level of quoting.
-        String srcPath = fileConfig.srcPath.toString(); // Windows requires escaping the backslashes.
-        if (separator.equals("\\")) {
-            separator = "\\\\\\\\";
-            maybeQuote = "\\\"";
-            srcPath = srcPath.replaceAll("\\\\", "\\\\\\\\");
-        }
         arguments.addAll(List.of(
             "-DCMAKE_BUILD_TYPE=" + ((targetConfig.cmakeBuildType!=null) ? targetConfig.cmakeBuildType.toString() : "Release"),
             "-DCMAKE_INSTALL_PREFIX=" + FileUtil.toUnixString(fileConfig.getOutPath()),
@@ -239,16 +230,8 @@ public class CCompiler {
                     fileConfig.binPath
                 )
             ),
-            "-DLF_FILE_SEPARATOR=\"" + maybeQuote + separator + maybeQuote + "\""
+            FileUtil.toUnixString(fileConfig.getSrcGenPath())
         ));
-        // Add #define for source file directory.
-        // Do not do this for federated programs because for those, the definition is put
-        // into the cmake file (and fileConfig.srcPath is the wrong directory anyway).
-        if (!fileConfig.srcPath.toString().contains("fed-gen")) {
-            // Do not convert to Unix path
-            arguments.add("-DLF_SOURCE_DIRECTORY=\"" + maybeQuote + srcPath + maybeQuote + "\"");
-        }
-        arguments.add(FileUtil.toUnixString(fileConfig.getSrcGenPath()));
 
         if (GeneratorUtils.isHostWindows()) {
             arguments.add("-DCMAKE_SYSTEM_VERSION=\"10.0\"");

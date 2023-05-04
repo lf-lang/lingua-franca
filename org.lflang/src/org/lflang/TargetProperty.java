@@ -276,16 +276,16 @@ public enum TargetProperty {
      * processed by the code generator.
      */
     FILES("files", UnionType.FILE_OR_FILE_ARRAY, List.of(Target.C, Target.CCPP, Target.Python),
-            (config) -> ASTUtils.toElement(config.files),
+            (config) -> ASTUtils.toElement(config.fileNames),
             (config, value, err) -> {
-                config.files = ASTUtils.elementToListOfStrings(value);
+                config.fileNames = ASTUtils.elementToListOfStrings(value);
             },
             // FIXME: This merging of lists is potentially dangerous since
             // the incoming list of files can belong to a .lf file that is
             // located in a different location, and keeping just filename
             // strings like this without absolute paths is incorrect.
             (config, value, err) -> {
-                config.files.addAll(ASTUtils.elementToListOfStrings(value));
+                config.fileNames.addAll(ASTUtils.elementToListOfStrings(value));
             }),
 
     /**

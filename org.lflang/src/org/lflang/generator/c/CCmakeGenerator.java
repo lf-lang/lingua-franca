@@ -25,7 +25,6 @@
 
 package org.lflang.generator.c;
 
-import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
@@ -314,8 +313,8 @@ public class CCmakeGenerator {
         cMakeCode.newLine();
 
         // Add the include file
-        for (String includeFile : targetConfig.cmakeIncludes) {
-            cMakeCode.pr("include(\""+ Path.of(includeFile).getFileName()+"\")");
+        for (String includeFile : targetConfig.cmakeIncludesWithoutPath) {
+            cMakeCode.pr("include(\""+includeFile+"\")");
         }
         cMakeCode.newLine();
 

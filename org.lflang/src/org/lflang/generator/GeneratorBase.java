@@ -56,7 +56,6 @@ import org.lflang.lf.Mode;
 
 import org.lflang.lf.Reaction;
 import org.lflang.lf.Reactor;
-import org.lflang.util.FileUtil;
 import org.lflang.validation.AbstractLFValidator;
 
 import com.google.common.base.Objects;
@@ -349,9 +348,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
      * @param targetConfig The targetConfig to read the `files` from.
      * @param fileConfig The fileConfig used to make the copy and resolve paths.
      */
-    protected void copyUserFiles(TargetConfig targetConfig, FileConfig fileConfig) {
-        FileUtil.copyFiles(targetConfig.files, this.context.getFileConfig().getSrcGenPath(), fileConfig, errorReporter);
-    }
+    protected void copyUserFiles(TargetConfig targetConfig, FileConfig fileConfig) {}
 
     /**
      * Return true if errors occurred in the last call to doGenerate().

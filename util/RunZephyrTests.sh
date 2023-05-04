@@ -9,7 +9,7 @@ num_failures=0
 failed_tests=""
 
 # Skip
-skip=("FileReader")
+skip=()
 
 find_kconfig_folders() {
     if [ -f "$folder/CMakeLists.txt" ]; then

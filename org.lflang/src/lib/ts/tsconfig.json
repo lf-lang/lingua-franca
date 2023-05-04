@@ -1,22 +1,19 @@
 {
     "compilerOptions": {
         "allowJs": true,
+        "noEmit": true,
         "target": "esnext",
-        "module": "CommonJS",
         "types": ["node", "@lf-lang/reactor-ts", "ulog", "microtime", "command-line-args", "command-line-usage"],
-        "typeRoots": ["./node_modules/@types/", "./node_modules/@lf-lang/reactor-ts/src/core/@types/"],
         "esModuleInterop": true,
         "isolatedModules": true,
         "lib": ["esnext", "dom"],
         "sourceMap": true,
         "strict": true,
         "moduleResolution": "node",
-        "skipLibCheck": true,
         "strictBindCallApply": true,
         "strictNullChecks": true,
         "strictFunctionTypes": true,
-        "noImplicitThis": true,
-        "outDir": "dist"
+        "typeRoots": ["./node_modules/@types/", "./node_modules/@lf-lang/reactor-ts/src/core/@types/"]
     },
     "include": [
         "src/**/*"

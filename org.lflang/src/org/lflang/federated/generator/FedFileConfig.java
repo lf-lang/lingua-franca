@@ -27,7 +27,6 @@ package org.lflang.federated.generator;
 
 import java.io.IOException;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -111,7 +110,7 @@ public class FedFileConfig extends FileConfig {
      */
     public void relativizePaths(FedTargetConfig targetConfig) {
         relativizePathList(targetConfig.protoFiles);
-        relativizePathList(targetConfig.files);
+        relativizePathList(targetConfig.fileNames);
         relativizePathList(targetConfig.cmakeIncludes);
     }
 
@@ -121,22 +120,17 @@ public class FedFileConfig extends FileConfig {
      */
     private void relativizePathList(List<String> paths) {
         List<String> tempList = new ArrayList<>();
-        paths.forEach(f -> tempList.add(relativizePath(Paths.get(f))));
+        paths.forEach(f -> tempList.add(relativizePath(f)));
         paths.clear();
         paths.addAll(tempList);
     }
 
     /**
-     * Relativize a single path, but only if it points to a local resource in the project (i.e., not
-     * on the class path).
+     * Relativize a single path.
      * @param path The path to relativize.
      */
-    private String relativizePath(Path path) {
-        if (FileUtil.findInPackage(path, this) == null) {
-            return String.valueOf(path);
-        } else {
-            Path resolvedPath = this.srcPath.resolve(path).toAbsolutePath();
-            return this.getSrcPath().relativize(resolvedPath).toString();
-        }
+    private String relativizePath(String path) {
+        Path resolvedPath = this.srcPath.resolve(path).toAbsolutePath();
+        return this.getSrcPath().relativize(resolvedPath).toString();
     }
 }
