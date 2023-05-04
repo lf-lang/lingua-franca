@@ -126,13 +126,12 @@ class CppGenerator(
         // copy static library files over to the src-gen directory
         val genIncludeDir = srcGenPath.resolve("__include__")
         listOf("lfutil.hh", "time_parser.hh").forEach {
-            FileUtil.copyFromClassPath("$libDir/$it", genIncludeDir, true)
+            FileUtil.copySingleFileFromClasspath("$libDir/$it", genIncludeDir, true)
         }
-        FileUtil.copyFromClassPath(
+        FileUtil.copySingleFileFromClasspath(
             "$libDir/3rd-party/cxxopts.hpp",
             genIncludeDir.resolve("CLI"),
-            true
-        )
+            true)
 
         // copy or download reactor-cpp
         if (targetConfig.externalRuntimePath == null) {
@@ -142,6 +141,7 @@ class CppGenerator(
                 FileUtil.copyFromClassPath(
                     "$libDir/reactor-cpp",
                     fileConfig.srcGenBasePath.resolve("reactor-cpp-default"),
+                    true,
                     true
                 )
             }

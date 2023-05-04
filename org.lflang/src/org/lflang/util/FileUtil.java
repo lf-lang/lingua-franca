@@ -194,8 +194,8 @@ public class FileUtil {
         }
     }
 
-    public static void copyDirectory(final Path srcDir, final Path dstDir) throws IOException {
-        copyDirectoryContents(srcDir, dstDir.resolve(srcDir.getFileName()), false);
+    public static void copyDirectory(final Path srcDir, final Path dstDir, final boolean skipIfUnchanged) throws IOException {
+        copyDirectoryContents(srcDir, dstDir.resolve(srcDir.getFileName()), skipIfUnchanged);
     }
 
     /**
@@ -243,28 +243,30 @@ public class FileUtil {
         copyFile(srcFile, dstFile, false);
     }
 
+
     /**
-     * Given a list of files or directories, attempt to find them based on the given generator
+     * Given a list of files or directories, attempt to find them using the given generator
      * context, and copy them to the destination. Entries are searched for in the file system first.
      * Entries that cannot be found in the file system are looked for on the class path.
      *
-     * @param entries The files or directories to copy.
-     * @param destination The location to copy them to.
+     * @param entries The files or directory contents to copy.
+     * @param dstDir The location to copy the files to.
      * @param fileConfig The file configuration that specifies where the files must be found.
      * @param errorReporter An error reporter to report problems.
      */
-    public static void copyFilesOrDirectoryContents(
+    public static void copyFilesOrDirectories(
         List<String> entries,
-        Path destination,
+        Path dstDir,
         FileConfig fileConfig,
-        ErrorReporter errorReporter
+        ErrorReporter errorReporter,
+        boolean contentsOnly
     ) {
         for (String fileOrDirectory : entries) {
             var path = Paths.get(fileOrDirectory);
             var found = FileUtil.findInPackage(path, fileConfig);
             if (found != null) {
                 try {
-                    FileUtil.copyFromFileSystem(found, destination);
+                    FileUtil.copyFromFileSystem(found, dstDir, contentsOnly);
                     System.out.println("Copied '" + fileOrDirectory + "' from the file system.");
                 } catch (IOException e) {
                     errorReporter.reportError(
@@ -275,8 +277,9 @@ public class FileUtil {
                 try {
                     FileUtil.copyFromClassPath(
                         fileOrDirectory,
-                        destination,
-                        false
+                        dstDir,
+                        false,
+                        contentsOnly
                     );
                 } catch(IOException e) {
                     errorReporter.reportError(
@@ -295,11 +298,15 @@ public class FileUtil {
      * @param destination A directory to copy the file(s) at the source to.
      * @throws IOException
      */
-    public static void copyFromFileSystem(Path source, Path destination) throws IOException {
+    public static void copyFromFileSystem(Path source, Path destination, boolean contentsOnly) throws IOException {
         if (Files.isDirectory(source)) {
-            copyDirectoryContents(source, destination);
+            if (contentsOnly) {
+                copyDirectoryContents(source, destination);
+            } else {
+                copyDirectory(source, destination, false);
+            }
         } else if (Files.isRegularFile(source)) {
-            copyFile(source, destination.resolve(source.getFileName()));
+            FileUtil.copyFile(source, destination.resolve(source.getFileName()));
         } else {
             throw new IllegalArgumentException("Source is neither a directory nor a regular file.");
         }
@@ -338,19 +345,7 @@ public class FileUtil {
         Files.write(destination, bytes);
     }
 
-    /**
-     *  Look up the given entry in the classpath. If it is a file, copy it into the destination
-     *  directory. If it is a directory, copy its contents to the destination directory.
-     *
-     *  This also creates new directories for any directories on the destination
-     *  path that do not yet exist.
-     *
-     *  @param entry The entry to be found on the class path and copied to the given destination.
-     *  @param dstDir The file system path that found files are to be copied to.
-     *  @param skipIfUnchanged If true, don't overwrite the file if its content would not be changed
-     *  @throws IOException If the given source cannot be copied.
-     */
-    public static void copyFromClassPath(final String entry, final Path dstDir, final boolean skipIfUnchanged) throws IOException {
+    public static void copySingleFileFromClasspath(final String entry, final Path dstDir, final boolean skipIfUnchanged) throws IOException {
         final URL resource = FileConfig.class.getResource(entry);
 
         if (resource == null) {
@@ -359,7 +354,46 @@ public class FileUtil {
 
         final URLConnection connection = resource.openConnection();
         if (connection instanceof JarURLConnection) {
-            boolean copiedFiles = copyFromJar((JarURLConnection) connection, dstDir, skipIfUnchanged);
+            copySingleFileFromJar((JarURLConnection) connection, dstDir, skipIfUnchanged);
+        } else {
+            try {
+                Path path = Paths.get(FileLocator.toFileURL(resource).toURI());
+                copyFile(path, dstDir.resolve(path.getFileName()), skipIfUnchanged);
+            } catch(URISyntaxException e) {
+                // This should never happen as toFileURL should always return a valid URL
+                throw new IOException("Unexpected error while resolving " + entry + " on the classpath");
+            }
+        }
+    }
+
+    /**
+     * Look up the given entry in the classpath. If it is a file, copy it into the destination
+     * directory. If it is a directory, copy its contents to the destination directory.
+     *
+     * This also creates new directories for any directories on the destination
+     * path that do not yet exist.
+     *
+     * @param entry The entry to be found on the class path and copied to the given destination.
+     * @param dstDir The file system path that found files are to be copied to.
+     * @param skipIfUnchanged If true, don't overwrite the file or directory if its content would not be changed
+     * @param contentsOnly If true and the entry is a directory, then copy its contents but not the directory itself.
+     * @throws IOException If the given source cannot be copied.
+     */
+    public static void copyFromClassPath(
+        final String entry,
+        final Path dstDir,
+        final boolean skipIfUnchanged,
+        final boolean contentsOnly
+    ) throws IOException {
+        final URL resource = FileConfig.class.getResource(entry);
+
+        if (resource == null) {
+            throw new TargetResourceNotFoundException(entry);
+        }
+
+        final URLConnection connection = resource.openConnection();
+        if (connection instanceof JarURLConnection) {
+            boolean copiedFiles = copyFromJar((JarURLConnection) connection, dstDir, skipIfUnchanged, contentsOnly);
             if (!copiedFiles) {
                 throw new TargetResourceNotFoundException(entry);
             }
@@ -367,7 +401,12 @@ public class FileUtil {
             try {
                 Path path = Paths.get(FileLocator.toFileURL(resource).toURI());
                 if (path.toFile().isDirectory()) {
-                    copyDirectoryContents(path, dstDir, skipIfUnchanged);
+                    if (contentsOnly) {
+                        copyDirectoryContents(path, dstDir, skipIfUnchanged);
+                    } else {
+                        copyDirectory(path, dstDir, skipIfUnchanged);
+                    }
+
                 } else {
                     copyFile(path, dstDir.resolve(path.getFileName()), skipIfUnchanged);
                 }
@@ -389,7 +428,7 @@ public class FileUtil {
         ).findFirst().isPresent();
     }
 
-    private static void copyFileFromJar(JarFile jar, String srcFile, Path dstDir, boolean skipIfUnchanged) throws IOException {
+    private static void copySingleFileFromJar(JarFile jar, String srcFile, Path dstDir, boolean skipIfUnchanged) throws IOException {
         var entry = jar.getJarEntry(srcFile);
         var filename = Paths.get(entry.getName()).getFileName();
         InputStream is = jar.getInputStream(entry);
@@ -399,37 +438,57 @@ public class FileUtil {
     }
 
     /**
-     * Copy a directory from a jar to a destination path in the filesystem.
+     * Copy the contents from an entry in a JAR to destination directory in the filesystem. The entry
+     * may be a file, in which case it will be copied under the same name into the destination
+     * directory. If the entry is a directory, then if the 'contentsOnly' flag is set, only the
+     * contents of the directory will be copied into the destination directory (not the directory
+     * itself). A directory will be copied as a whole, including its contents, if 'contentsOnly' is
+     * set to false.
      *
      * This method should only be used in standalone mode (lfc).
      *
-     * This also creates new directories for any directories on the destination
-     * path that do not yet exist
+     * This also creates new directories for any directories on
+     * the destination path that do not yet exist.
      *
-     * @param connection a URLConnection to the source directory within the jar
-     * @param destination The file system path that the source directory is copied to.
-     * @param skipIfUnchanged If true, don't overwrite the file if its content would not be changed
+     * @param connection a URLConnection to the source entry within the jar
+     * @param dstDir The file system path that entries are copied to.
+     * @param skipIfUnchanged If true, don't overwrite the file if its content would not be changed.
+     * @param contentsOnly If true, and the connection points to a directory, copy its contents only
+     * (not the directory itself).
      * @return true if any files were copied
      * @throws IOException If the given source cannot be copied.
      */
-    private static boolean copyFromJar(JarURLConnection connection, final Path destination, final boolean skipIfUnchanged) throws IOException {
+    private static boolean copyFromJar(
+        JarURLConnection connection,
+        Path dstDir,
+        final boolean skipIfUnchanged,
+        final boolean contentsOnly
+    ) throws IOException {
+
+        if (copySingleFileFromJar(connection, dstDir, skipIfUnchanged)) {
+            return true;
+        }
+        return copyMultipleFilesFromJar(connection, dstDir, skipIfUnchanged, contentsOnly);
+    }
+
+    private static boolean copyMultipleFilesFromJar(JarURLConnection connection,
+        Path dstDir,
+        final boolean skipIfUnchanged,
+        final boolean contentsOnly) throws IOException {
         final JarFile jar = connection.getJarFile();
         final String source = connection.getEntryName();
 
-        if (isFileInJar(connection)) {
-            copyFileFromJar(jar, source, destination, skipIfUnchanged);
-            return true;
-        }
-
         boolean copiedFiles = false;
-
+        if (!contentsOnly) {
+            dstDir = dstDir.resolve(Paths.get(source).getFileName());
+        }
         // Iterate all entries in the jar file.
         for (Enumeration<JarEntry> e = jar.entries(); e.hasMoreElements(); ) {
             final JarEntry entry = e.nextElement();
             final String entryName = entry.getName();
             if (entryName.startsWith(source)) {
                 String filename = entry.getName().substring(source.length() + 1);
-                Path currentFile = destination.resolve(filename);
+                Path currentFile = dstDir.resolve(filename);
                 if (entry.isDirectory()) {
                     Files.createDirectories(currentFile);
                 } else {
@@ -442,6 +501,22 @@ public class FileUtil {
             }
         }
         return copiedFiles;
+    }
+
+    private static boolean copySingleFileFromJar(
+        JarURLConnection connection,
+        Path dstDir,
+        final boolean skipIfUnchanged
+    ) throws IOException {
+        final JarFile jar = connection.getJarFile();
+        final String source = connection.getEntryName();
+
+        if (!isFileInJar(connection)) {
+            return false;
+        }
+        copySingleFileFromJar(jar, source, dstDir, skipIfUnchanged);
+
+        return true;
     }
 
     /**

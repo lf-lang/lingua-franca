@@ -661,18 +661,21 @@ public class PythonGenerator extends CGenerator {
         super.copyTargetFiles();
         FileUtil.copyFromClassPath(
             "/lib/py/reactor-c-py/include",
-            fileConfig.getSrcGenPath().resolve("include"),
-            true
+            fileConfig.getSrcGenPath(),
+            true,
+            false
         );
         FileUtil.copyFromClassPath(
             "/lib/py/reactor-c-py/lib",
-            fileConfig.getSrcGenPath().resolve("lib"),
-            true
+            fileConfig.getSrcGenPath(),
+            true,
+            false
         );
         FileUtil.copyFromClassPath(
             "/lib/py/reactor-c-py/LinguaFrancaBase",
-            fileConfig.getSrcGenPath().resolve("LinguaFrancaBase"),
-            true
+            fileConfig.getSrcGenPath(),
+            true,
+            false
         );
     }
 

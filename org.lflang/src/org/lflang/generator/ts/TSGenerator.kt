@@ -217,6 +217,7 @@ class TSGenerator(
         FileUtil.copyFromClassPath(
             LIB_PATH,
             fileConfig.srcGenPath,
+            true,
             true
         )
     }

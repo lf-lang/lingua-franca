@@ -830,7 +830,8 @@ public class CGenerator extends GeneratorBase {
         // Must use class variable to determine destination!
         var destination = this.fileConfig.getSrcGenPath();
 
-        FileUtil.copyFilesOrDirectoryContents(targetConfig.cmakeIncludes, destination, fileConfig, errorReporter);
+        // NOTE: All entries should be files, but we are not checking this.
+        FileUtil.copyFilesOrDirectories(targetConfig.cmakeIncludes, destination, fileConfig, errorReporter, true);
 
         // FIXME: Unclear what the following does, but it does not appear to belong here.
         if (!StringExtensions.isNullOrEmpty(targetConfig.fedSetupPreamble)) {
@@ -886,7 +887,8 @@ public class CGenerator extends GeneratorBase {
         FileUtil.copyFromClassPath(
             fileConfig.getRuntimeIncludePath(),
             fileConfig.getIncludePath(),
-            false
+            false,
+            true
         );
         for (Reactor r : reactors) {
             CReactorHeaderFileGenerator.doGenerate(
@@ -964,13 +966,15 @@ public class CGenerator extends GeneratorBase {
         } else {
             FileUtil.copyFromClassPath(
                 "/lib/c/reactor-c/core",
-                dest.resolve("core"),
-                true
+                dest,
+                true,
+                false
             );
             FileUtil.copyFromClassPath(
                 "/lib/c/reactor-c/lib",
-                dest.resolve("lib"),
-                true
+                dest,
+                true,
+                false
             );
         }
 
@@ -978,16 +982,17 @@ public class CGenerator extends GeneratorBase {
         if (targetConfig.platformOptions.platform == Platform.ZEPHYR) {
             FileUtil.copyFromClassPath(
                 "/lib/platform/zephyr/boards",
-                fileConfig.getSrcGenPath().resolve("boards"),
+                fileConfig.getSrcGenPath(),
+                false,
                 false
             );
-            FileUtil.copyFromClassPath(
+            FileUtil.copySingleFileFromClasspath(
                 "/lib/platform/zephyr/prj_lf.conf",
                 fileConfig.getSrcGenPath(),
                 true
             );
 
-            FileUtil.copyFromClassPath(
+            FileUtil.copySingleFileFromClasspath(
                 "/lib/platform/zephyr/Kconfig",
                 fileConfig.getSrcGenPath(),
                 true

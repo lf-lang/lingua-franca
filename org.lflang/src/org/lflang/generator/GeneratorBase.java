@@ -350,7 +350,12 @@ public abstract class GeneratorBase extends AbstractLFValidator {
      * @param fileConfig The fileConfig used to make the copy and resolve paths.
      */
     protected void copyUserFiles(TargetConfig targetConfig, FileConfig fileConfig) {
-        FileUtil.copyFilesOrDirectoryContents(targetConfig.files, this.context.getFileConfig().getSrcGenPath(), fileConfig, errorReporter);
+        FileUtil.copyFilesOrDirectories(
+            targetConfig.files,
+            this.context.getFileConfig().getSrcGenPath(),
+            fileConfig,
+            errorReporter,
+            false);
     }
 
     /**
