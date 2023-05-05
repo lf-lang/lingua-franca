@@ -38,7 +38,6 @@ import org.lflang.scoping.LFGlobalScopeProvider
 import org.lflang.util.FileUtil
 import java.nio.file.Files
 import java.nio.file.Path
-import java.nio.file.StandardCopyOption
 import java.util.*
 
 private const val NO_NPM_MESSAGE = "The TypeScript target requires npm >= 6.14.4. " +
@@ -61,7 +60,7 @@ class TSGenerator(
 
 
     val fileConfig: TSFileConfig = context.fileConfig as TSFileConfig
-    var devMode = false;
+    private var devMode = false
 
     companion object {
 
@@ -188,8 +187,6 @@ class TSGenerator(
         val manifest = fileConfig.srcGenPath.resolve("package.json");
         val rtRegex = Regex("(\"@lf-lang/reactor-ts\")(.+)")
         if (rtPath != null) rtPath = formatRuntimePath(rtPath)
-        // FIXME: do better CLI arg validation upstream
-        // https://github.com/lf-lang/lingua-franca/issues/1429
         if (rtPath != null || rtVersion != null) {
             devMode = true;
         }
@@ -223,19 +220,13 @@ class TSGenerator(
      * as the source file, copy a default version from $LIB_PATH/.
      */
     private fun copyConfigFiles() {
+        FileUtil.copyFromClassPath(LIB_PATH, fileConfig.srcGenPath, true, true)
         for (configFile in CONFIG_FILES) {
-            val configFileDest = fileConfig.srcGenPath.resolve(configFile)
-            val configFileInSrc = fileConfig.srcPath.resolve(configFile)
-            if (configFileInSrc.toFile().exists()) {
-                println("Copying $configFileInSrc to $configFileDest")
-                Files.createDirectories(configFileDest.parent)
-                Files.copy(configFileInSrc, configFileDest, StandardCopyOption.REPLACE_EXISTING)
+            var override = FileUtil.findAndCopyFile(configFile, fileConfig.srcGenPath, fileConfig);
+            if (override != null) {
+                System.out.println("Using user-provided '" + override + "'");
             } else {
-                println(
-                    "No '" + configFile + "' exists in " + fileConfig.srcPath +
-                            ". Using default configuration."
-                )
-                FileUtil.copyFileFromClassPath("$LIB_PATH/$configFile", configFileDest)
+                System.out.println("Using default '" + configFile + "'");
             }
         }
     }

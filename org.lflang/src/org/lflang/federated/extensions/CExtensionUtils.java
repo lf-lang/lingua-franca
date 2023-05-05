@@ -366,6 +366,11 @@ public class CExtensionUtils {
             + fileConfig.srcPath
             + "\")"
         );
+        cmakeIncludeCode.pr(
+            "add_compile_definitions(LF_PACKAGE_DIRECTORY=\""
+                + fileConfig.srcPkgPath
+                + "\")"
+        );
 
         try (var srcWriter = Files.newBufferedWriter(cmakeIncludePath)) {
             srcWriter.write(cmakeIncludeCode.getCode());
