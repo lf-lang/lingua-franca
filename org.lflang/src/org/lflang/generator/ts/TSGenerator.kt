@@ -220,12 +220,7 @@ class TSGenerator(
      * as the source file, copy a default version from $LIB_PATH/.
      */
     private fun copyConfigFiles() {
-        FileUtil.copyFromClassPath(
-            LIB_PATH,
-            fileConfig.srcGenPath,
-            true,
-            true
-        )
+        FileUtil.copyFromClassPath(LIB_PATH, fileConfig.srcGenPath, true, true)
         for (configFile in CONFIG_FILES) {
             var override = FileUtil.findAndCopyFile(configFile, fileConfig.srcGenPath, fileConfig);
             if (override != null) {
