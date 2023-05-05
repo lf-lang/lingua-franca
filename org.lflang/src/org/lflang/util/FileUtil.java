@@ -163,13 +163,14 @@ public class FileUtil {
     }
 
     /**
-     * Recursively copy the contents of the given 'srcDir' into the given 'dstDir'.
-     * Existing files of the destination may be overwritten.
+     * Recursively copy the contents of the given source directory into the given destination
+     * directory. Existing files of the destination may be overwritten.
      *
      * @param srcDir The source directory path.
      * @param dstDir The destination directory path.
-     * @param skipIfUnchanged If true, don't overwrite the destination file if its content would not be changed
-     * @throws IOException if copy fails.
+     * @param skipIfUnchanged If true, don't overwrite anything in the destination if its content
+     * would not be changed.
+     * @throws IOException If the operation fails.
      */
     public static void copyDirectoryContents(final Path srcDir, final Path dstDir, final boolean skipIfUnchanged) throws IOException {
         try (Stream<Path> stream = Files.walk(srcDir)) {
@@ -194,14 +195,24 @@ public class FileUtil {
         }
     }
 
-    public static void copyDirectory(final Path srcDir, final Path dstDir, final boolean skipIfUnchanged) throws IOException {
+    /**
+     * Copy the given source directory into the given destination directory. For example, if the
+     * source directory is {@code foo/bar} and the destination is {@code baz}, then copies of the
+     * contents of {@code foo/bar} will be located in {@code baz/bar}.
+     * @param srcDir The source directory path.
+     * @param dstDir The destination directory path.
+     * @param skipIfUnchanged If true, don't overwrite anything in the destination if its content
+     * would not be changed.
+     * @throws IOException If the operation fails.
+     */
+    public static void copyDirectory(
+        final Path srcDir, final Path dstDir, final boolean skipIfUnchanged) throws IOException {
         copyDirectoryContents(srcDir, dstDir.resolve(srcDir.getFileName()), skipIfUnchanged);
     }
 
     /**
-     * Recursively copy the contents of the given 'srcDir'
-     * to 'dstDir'.
-     * Existing files of the destination may be overwritten.
+     * Recursively copy the contents of the given source directory into the given destination
+     * directory. Existing files of the destination may be overwritten.
      *
      * @param srcDir The directory to copy files from.
      * @param dstDir The directory to copy files to.
@@ -212,15 +223,15 @@ public class FileUtil {
     }
 
     /**
-     * Copy a given file from 'srcFile' to 'dstFile'.
+     * Copy a given source file to a given destination file.
      *
-     * This also creates new directories for any directories
-     * on the path to `dstFile` that do not yet exist.
+     * This also creates new directories on the path to {@code dstFile} that do not yet exist.
      *
      * @param srcFile The source file path.
      * @param dstFile The destination file path.
-     * @param skipIfUnchanged If true, don't overwrite the destination file if its content would not be changed
-     * @throws IOException if copy fails.
+     * @param skipIfUnchanged If true, don't overwrite the destination file if its content
+     * would not be changed.
+     * @throws IOException If the operation fails.
      */
     public static void copyFile(Path srcFile, Path dstFile, boolean skipIfUnchanged)  throws IOException {
         BufferedInputStream stream = new BufferedInputStream(new FileInputStream(srcFile.toFile()));
@@ -230,10 +241,10 @@ public class FileUtil {
     }
 
     /**
-     * Copy a 'srcFile' to 'dstFile'.
+     * Copy a given source file to a given destination file.
      *
      * This also creates new directories for any directories
-     * on the path to `dstFile` that do not yet exist.
+     * on the path to {@code dstFile} that do not yet exist.
      *
      * @param srcFile The source file path.
      * @param dstFile The destination file path.
@@ -245,13 +256,21 @@ public class FileUtil {
 
 
     /**
-     * Given a list of files or directories, attempt to find them using the given generator
-     * context, and copy them to the destination. Entries are searched for in the file system first.
-     * Entries that cannot be found in the file system are looked for on the class path.
+     * Given a list of files or directories, attempt to find each entry based on the given generator
+     * context and copy it to the destination directory. Entries are searched for in the file system
+     * first, relative to the source file and relative to the package root. Entries that cannot be
+     * found in the file system are looked for on the class path.
+     * <p>
+     * If {@code contentsOnly} is true, then for each entry that is a directory, only its contents
+     * are copied, not the directory itself.
+     * For example, if the entry is a directory {@code foo/bar} and the destination is {@code baz},
+     * then copies of the contents of {@code foo/bar} will be located directly in {@code baz}.
+     * If {@code contentsOnly} is false, then copies of the contents of {@code foo/bar} will be
+     * located in {@code baz/bar}.
      *
-     * @param entries The files or directory contents to copy.
+     * @param entries The files or directories to copy from.
      * @param dstDir The location to copy the files to.
-     * @param fileConfig The file configuration that specifies where the files must be found.
+     * @param fileConfig The file configuration that specifies where the find entries the given entries.
      * @param errorReporter An error reporter to report problems.
      */
     public static void copyFilesOrDirectories(
@@ -292,21 +311,26 @@ public class FileUtil {
     }
 
     /**
-     * If the source is a directory, then copy the contents of the directory to the destination.
-     * If the source is a file, then copy the file to the destination.
-     * @param source A file or directory to copy to the destination.
-     * @param destination A directory to copy the file(s) at the source to.
-     * @throws IOException
+     * If the given {@code entry} is a file, then copy it into the destination. If the {@code entry}
+     * is a directory and {@code contentsOnly} is true, then copy its contents to the destination
+     * directory. If the {@code entry} is a directory and {@code contentsOnly} is true, then copy it
+     * including its contents to the destination directory.
+     *
+     * @param entry A file or directory to copy to the destination directory.
+     * @param dstDir A directory to copy the entry or its contents to.
+     * @param contentsOnly If true and {@code entry} is a directory, then copy its contents but not
+     * the directory itself.
+     * @throws IOException If the operation fails.
      */
-    public static void copyFromFileSystem(Path source, Path destination, boolean contentsOnly) throws IOException {
-        if (Files.isDirectory(source)) {
+    public static void copyFromFileSystem(Path entry, Path dstDir, boolean contentsOnly) throws IOException {
+        if (Files.isDirectory(entry)) {
             if (contentsOnly) {
-                copyDirectoryContents(source, destination);
+                copyDirectoryContents(entry, dstDir);
             } else {
-                copyDirectory(source, destination, false);
+                copyDirectory(entry, dstDir, false);
             }
-        } else if (Files.isRegularFile(source)) {
-            FileUtil.copyFile(source, destination.resolve(source.getFileName()));
+        } else if (Files.isRegularFile(entry)) {
+            FileUtil.copyFile(entry, dstDir.resolve(entry.getFileName()));
         } else {
             throw new IllegalArgumentException("Source is neither a directory nor a regular file.");
         }
@@ -319,8 +343,9 @@ public class FileUtil {
      *
      * @param source The source input stream.
      * @param destination The destination file path.
-     * @param skipIfUnchanged If true, don't overwrite the destination file if its content would not be changed
-     * @throws IOException if copy fails.
+     * @param skipIfUnchanged If true, don't overwrite the destination file if its content would
+     * not be changed.
+     * @throws IOException If the operation fails.
      */
     private static void copyInputStream(InputStream source, Path destination, boolean skipIfUnchanged) throws IOException {
         // Read the stream once and keep a copy of all bytes. This is required as a stream cannot be read twice.
@@ -345,6 +370,16 @@ public class FileUtil {
         Files.write(destination, bytes);
     }
 
+    /**
+     * Look up the given {@code entry} in the classpath. If it is found and is a file, copy it into
+     * the destination directory. If the entry is not found or not a file, throw an exception.
+     *
+     * @param entry A file copy to the destination directory.
+     * @param dstDir A directory to copy the entry to.
+     * @param skipIfUnchanged If true, don't overwrite the destination file if its content would
+     * not be changed.
+     * @throws IOException If the operation failed.
+     */
     public static void copySingleFileFromClasspath(final String entry, final Path dstDir, final boolean skipIfUnchanged) throws IOException {
         final URL resource = FileConfig.class.getResource(entry);
 
@@ -354,7 +389,9 @@ public class FileUtil {
 
         final URLConnection connection = resource.openConnection();
         if (connection instanceof JarURLConnection) {
-            copySingleFileFromJar((JarURLConnection) connection, dstDir, skipIfUnchanged);
+            if (!copySingleFileFromJar((JarURLConnection) connection, dstDir, skipIfUnchanged)) {
+                throw new IOException("'" + entry + "' is not a file");
+            }
         } else {
             try {
                 Path path = Paths.get(FileLocator.toFileURL(resource).toURI());
@@ -367,8 +404,11 @@ public class FileUtil {
     }
 
     /**
-     * Look up the given entry in the classpath. If it is a file, copy it into the destination
-     * directory. If it is a directory, copy its contents to the destination directory.
+     * Look up the given {@code entry} in the classpath. If it is a file, copy it into the destination
+     * directory.
+     * If the {@code entry} is a directory and {@code contentsOnly} is true, then copy its contents
+     * to the destination directory. If the {@code entry} is a directory and {@code contentsOnly} is
+     * true, then copy it including its contents to the destination directory.
      *
      * This also creates new directories for any directories on the destination
      * path that do not yet exist.
@@ -377,7 +417,7 @@ public class FileUtil {
      * @param dstDir The file system path that found files are to be copied to.
      * @param skipIfUnchanged If true, don't overwrite the file or directory if its content would not be changed
      * @param contentsOnly If true and the entry is a directory, then copy its contents but not the directory itself.
-     * @throws IOException If the given source cannot be copied.
+     * @throws IOException If the operation failed.
      */
     public static void copyFromClassPath(
         final String entry,
@@ -428,6 +468,16 @@ public class FileUtil {
         ).findFirst().isPresent();
     }
 
+    /**
+     * Given a JAR file and a {@code srcFile} entry, copy it into the given destination directory.
+     *
+     * @param jar The JAR file from which to copy {@code srcFile}.
+     * @param srcFile The source file to copy from the given {@code jar}.
+     * @param dstDir The directory to top the source file into.
+     * @param skipIfUnchanged If true, don't overwrite the destination file if its content would
+     *      * not be changed.
+     * @throws IOException If the operation fails.
+     */
     private static void copySingleFileFromJar(JarFile jar, String srcFile, Path dstDir, boolean skipIfUnchanged) throws IOException {
         var entry = jar.getJarEntry(srcFile);
         var filename = Paths.get(entry.getName()).getFileName();
@@ -440,10 +490,10 @@ public class FileUtil {
     /**
      * Copy the contents from an entry in a JAR to destination directory in the filesystem. The entry
      * may be a file, in which case it will be copied under the same name into the destination
-     * directory. If the entry is a directory, then if the 'contentsOnly' flag is set, only the
+     * directory. If the entry is a directory, then if {@code contentsOnly} is true, only the
      * contents of the directory will be copied into the destination directory (not the directory
-     * itself). A directory will be copied as a whole, including its contents, if 'contentsOnly' is
-     * set to false.
+     * itself). A directory will be copied as a whole, including its contents, if
+     * {@code contentsOnly} is false.
      *
      * This method should only be used in standalone mode (lfc).
      *
@@ -471,6 +521,20 @@ public class FileUtil {
         return copyMultipleFilesFromJar(connection, dstDir, skipIfUnchanged, contentsOnly);
     }
 
+    /**
+     * Given a connection to a JAR file that points to an entry that is a directory, copy all entries
+     * located in that directory or its subdirectories into the given {@code dstDir}.
+     * <p>
+     * If {@code contentsOnly} is true, only the contents of the directory will be copied into the
+     * destination directory (not the directory itself). The directory will be copied as a whole,
+     * including its contents, if {@code contentsOnly} is false.
+     * @param connection A connection to a JAR file that points to a directory entry.
+     * @param dstDir The destination directory to copy the matching entries to.
+     * @param skipIfUnchanged
+     * @param contentsOnly
+     * @return
+     * @throws IOException
+     */
     private static boolean copyMultipleFilesFromJar(JarURLConnection connection,
         Path dstDir,
         final boolean skipIfUnchanged,
@@ -503,6 +567,16 @@ public class FileUtil {
         return copiedFiles;
     }
 
+    /**
+     * Given a connection to a JAR file that points to an entry that is a file, copy the file into the
+     * given {@code dstDir}.
+     * @param connection A connection to a JAR file that points to a directory entry.
+     * @param dstDir The destination directory to copy the file to.
+     * @param skipIfUnchanged
+     * @return {@code true} the connection entry is a file, and it was copied successfully;
+     * {@code false} if the connection entry is not a file and the copy operation was aborted.
+     * @throws IOException If the operation failed.
+     */
     private static boolean copySingleFileFromJar(
         JarURLConnection connection,
         Path dstDir,
@@ -630,6 +704,13 @@ public class FileUtil {
         }
     }
 
+    /**
+     * Delete the given file or directory if it exists. If {@code fileOrDirectory} is a directory,
+     * deletion is recursive.
+     *
+     * @param fileOrDirectory The file or directory to delete.
+     * @throws IOException If the operation failed.
+     */
     public static void delete(Path fileOrDirectory) throws IOException {
         if (Files.isRegularFile(fileOrDirectory)) {
             Files.deleteIfExists(fileOrDirectory);
