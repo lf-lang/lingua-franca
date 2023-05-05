@@ -600,7 +600,7 @@ public class CUtil {
      * <ul>
      * <li> {@code: LF_CURRENT_WORKING_DIRECTORY}: The directory in which the command is invoked.
      * <li> {@code:LF_SOURCE_DIRECTORY}: The directory containing the .lf file being compiled.
-     * <li> {@code:LF_PACKAGE_DIRECTORY}: The directory for the root of the project.
+     * <li> {@code:LF_PACKAGE_DIRECTORY}: The directory that is the root of the package.
      * <li> {@code:LF_SOURCE_GEN_DIRECTORY}: The directory in which generated files are placed.
      * <li> {@code:LF_BIN_DIRECTORY}: The directory into which to put binaries.
      * </ul>
