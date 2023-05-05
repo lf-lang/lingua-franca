@@ -254,6 +254,33 @@ public class FileUtil {
         copyFile(srcFile, dstFile, false);
     }
 
+    /**
+     * Find the given {@code file} in the package and return the path to the file that was found; null
+     * if it was not found.
+     *
+     * @param file The file to look for.
+     * @param dstDir The directory to copy it to.
+     * @param fileConfig The file configuration that specifies where look for the file.
+     * @return The path to the file that was found, or null if it was not found.
+     */
+    public static Path findAndCopyFile(
+        String file,
+        Path dstDir,
+        FileConfig fileConfig
+    ) {
+        var path = Paths.get(file);
+        var found = FileUtil.findInPackage(path, fileConfig);
+        if (found != null) {
+            try {
+                FileUtil.copyFile(found, dstDir.resolve(path.getFileName()));
+                return found;
+            } catch (IOException e) {
+                return null;
+            }
+        } else {
+            return null;
+        }
+    }
 
     /**
      * Given a list of files or directories, attempt to find each entry based on the given generator
@@ -307,14 +334,13 @@ public class FileUtil {
                             false,
                             false
                         );
+                        System.out.println("Copied '" + fileOrDirectory + "' from the class path.");
                     }
-
                 } catch(IOException e) {
                     errorReporter.reportError(
                         "Unable to copy '" + fileOrDirectory + "' from the class path. Reason: " + e.toString()
                     );
                 }
-                System.out.println("Copied '" + fileOrDirectory + "' from the class path.");
             }
         }
     }
@@ -472,9 +498,9 @@ public class FileUtil {
      * @throws IOException If the connection is faulty.
      */
     private static boolean isFileInJar(JarURLConnection connection) throws IOException {
-        return connection.getJarFile().stream().filter(
+        return connection.getJarFile().stream().anyMatch(
             it -> it.getName().equals(connection.getEntryName())
-        ).findFirst().isPresent();
+        );
     }
 
     /**
@@ -625,7 +651,7 @@ public class FileUtil {
 
         List<Path> allPaths = Files.walk(dir)
                     .sorted(Comparator.reverseOrder())
-                    .collect(Collectors.toList());
+                    .toList();
         for (Path path : allPaths) {
             String toCheck = path.toString().toLowerCase();
             if (toCheck.contains("cmake")) {
@@ -680,12 +706,12 @@ public class FileUtil {
             .filter(Files::isRegularFile)
             .filter(FileUtil::isCFile)
             .sorted(Comparator.reverseOrder())
-            .collect(Collectors.toList());
+            .toList();
         List<Path> srcPaths = Files.walk(dir)
             .filter(Files::isRegularFile)
             .filter(FileUtil::isCFile)
             .sorted(Comparator.reverseOrder())
-            .collect(Collectors.toList());
+            .toList();
         Map<String, Path> fileStringToFilePath = new HashMap<String, Path>();
         for (Path path : includePaths) {
             String fileName = path.getFileName().toString();
@@ -696,7 +722,6 @@ public class FileUtil {
         }
         Pattern regexExpression = Pattern.compile("#include\s+[\"]([^\"]+)*[\"]");
         for (Path path : srcPaths) {
-            String fileName = path.getFileName().toString();
             String fileContents = Files.readString(path);
             Matcher matcher = regexExpression.matcher(fileContents);
             int lastIndex = 0;
@@ -739,7 +764,7 @@ public class FileUtil {
             System.out.println("Cleaning " + dir);
             List<Path> pathsToDelete = Files.walk(dir)
                     .sorted(Comparator.reverseOrder())
-                    .collect(Collectors.toList());
+                    .toList();
             for (Path path : pathsToDelete) {
                 Files.deleteIfExists(path);
             }

@@ -38,7 +38,6 @@ import org.lflang.scoping.LFGlobalScopeProvider
 import org.lflang.util.FileUtil
 import java.nio.file.Files
 import java.nio.file.Path
-import java.nio.file.StandardCopyOption
 import java.util.*
 
 private const val NO_NPM_MESSAGE = "The TypeScript target requires npm >= 6.14.4. " +
@@ -228,17 +227,11 @@ class TSGenerator(
             true
         )
         for (configFile in CONFIG_FILES) {
-            val configFileInSrc = fileConfig.srcPath.resolve(configFile)
-            if (configFileInSrc.toFile().exists()) {
-                val configFileDest = fileConfig.srcGenPath.resolve(configFile)
-                println("Copying $configFileInSrc to $configFileDest")
-                Files.copy(configFileInSrc, configFileDest, StandardCopyOption.REPLACE_EXISTING)
+            var override = FileUtil.findAndCopyFile(configFile, fileConfig.srcGenPath, fileConfig);
+            if (override != null) {
+                System.out.println("Using user-provided '" + override + "'");
             } else {
-                println(
-                    "No '" + configFile + "' exists in " + fileConfig.srcPath +
-                            ". Using default configuration."
-                )
-                FileUtil.copyFileFromClassPath("$LIB_PATH/$configFile", fileConfig.srcGenPath, true)
+                System.out.println("Using default '" + configFile + "'");
             }
         }
     }
