@@ -299,7 +299,7 @@ public class FileUtil {
             } else {
                 try {
                     if (fileEntriesOnly) {
-                          copyFileFromClasspath(fileOrDirectory, dstDir, false);
+                          copyFileFromClassPath(fileOrDirectory, dstDir, false);
                     } else {
                         FileUtil.copyFromClassPath(
                             fileOrDirectory,
@@ -389,7 +389,7 @@ public class FileUtil {
      * not be changed.
      * @throws IOException If the operation failed.
      */
-    public static void copyFileFromClasspath(final String entry, final Path dstDir, final boolean skipIfUnchanged) throws IOException {
+    public static void copyFileFromClassPath(final String entry, final Path dstDir, final boolean skipIfUnchanged) throws IOException {
         final URL resource = FileConfig.class.getResource(entry);
 
         if (resource == null) {

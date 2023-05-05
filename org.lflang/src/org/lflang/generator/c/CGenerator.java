@@ -983,13 +983,13 @@ public class CGenerator extends GeneratorBase {
                 false,
                 false
             );
-            FileUtil.copyFileFromClasspath(
+            FileUtil.copyFileFromClassPath(
                 "/lib/platform/zephyr/prj_lf.conf",
                 fileConfig.getSrcGenPath(),
                 true
             );
 
-            FileUtil.copyFileFromClasspath(
+            FileUtil.copyFileFromClassPath(
                 "/lib/platform/zephyr/Kconfig",
                 fileConfig.getSrcGenPath(),
                 true
