@@ -531,8 +531,8 @@ public class FileUtil {
     }
 
     /**
-     * Given a connection to a JAR file that points to an entry that is a directory, copy all entries
-     * located in that directory or its subdirectories into the given {@code dstDir}.
+     * Given a connection to a JAR file that points to an entry that is a directory, recursively copy
+     * all entries located in that directory into the given {@code dstDir}.
      * <p>
      * If {@code contentsOnly} is true, only the contents of the directory will be copied into the
      * destination directory (not the directory itself). The directory will be copied as a whole,
