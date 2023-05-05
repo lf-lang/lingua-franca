@@ -129,11 +129,16 @@ if __name__ == '__main__':
             if (not fed_df.empty):
                 # Get the federate id number
                 fed_id = fed_df.iloc[-1]['self_id']
-                # Add to the list of sequence diagram actors and add the name
-                actors.append(fed_id)
-                actors_names[fed_id] = Path(fed_trace).stem
-                # Derive the x coordinate of the actor
-                x_coor[fed_id] = (padding * 2) + (spacing * (len(actors)-1))
+                ### Check that the federate id have not been entrered yet.
+                ### This is particlurly useful for transient actors, when
+                ### they leave and join several times
+                if (actors.count(fed_id) == 0): 
+                    # Add to the list of sequence diagram actors and add the name
+                    actors.append(fed_id)
+                    actors_names[fed_id] = Path(fed_trace).stem
+                    # Derive the x coordinate of the actor
+                    x_coor[fed_id] = (padding * 2) + (spacing * (len(actors)-1))
+                    
                 fed_df['x1'] = x_coor[fed_id]
                 # Append into trace_df
                 trace_df = trace_df.append(fed_df, sort=False, ignore_index=True)
