@@ -595,15 +595,15 @@ public class CUtil {
     /**
      * Run the custom build command specified with the "build" parameter.
      * This command is executed in the same directory as the source file.
-     *
+     * <p>
      * The following environment variables will be available to the command:
-     *
-     * * LF_CURRENT_WORKING_DIRECTORY: The directory in which the command is invoked.
-     * * LF_SOURCE_DIRECTORY: The directory containing the .lf file being compiled.
-     * * LF_PACKAGE_DIRECTORY: The directory for the root of the project.
-     * * LF_SOURCE_GEN_DIRECTORY: The directory in which generated files are placed.
-     * * LF_BIN_DIRECTORY: The directory into which to put binaries.
-     *
+     * <ul>
+     * <li> {@code: LF_CURRENT_WORKING_DIRECTORY}: The directory in which the command is invoked.
+     * <li> {@code:LF_SOURCE_DIRECTORY}: The directory containing the .lf file being compiled.
+     * <li> {@code:LF_PACKAGE_DIRECTORY}: The directory for the root of the project.
+     * <li> {@code:LF_SOURCE_GEN_DIRECTORY}: The directory in which generated files are placed.
+     * <li> {@code:LF_BIN_DIRECTORY}: The directory into which to put binaries.
+     * </ul>
      */
     public static void runBuildCommand(
         FileConfig fileConfig,
