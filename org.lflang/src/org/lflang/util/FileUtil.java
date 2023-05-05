@@ -398,7 +398,7 @@ public class FileUtil {
 
         final URLConnection connection = resource.openConnection();
         if (connection instanceof JarURLConnection) {
-            if (!copySingleFileFromJar((JarURLConnection) connection, dstDir, skipIfUnchanged)) {
+            if (!copyFileFromJar((JarURLConnection) connection, dstDir, skipIfUnchanged)) {
                 throw new IOException("'" + entry + "' is not a file");
             }
         } else {
@@ -487,7 +487,7 @@ public class FileUtil {
      *      * not be changed.
      * @throws IOException If the operation fails.
      */
-    private static void copySingleFileFromJar(JarFile jar, String srcFile, Path dstDir, boolean skipIfUnchanged) throws IOException {
+    private static void copyFileFromJar(JarFile jar, String srcFile, Path dstDir, boolean skipIfUnchanged) throws IOException {
         var entry = jar.getJarEntry(srcFile);
         var filename = Paths.get(entry.getName()).getFileName();
         InputStream is = jar.getInputStream(entry);
@@ -524,10 +524,10 @@ public class FileUtil {
         final boolean contentsOnly
     ) throws IOException {
 
-        if (copySingleFileFromJar(connection, dstDir, skipIfUnchanged)) {
+        if (copyFileFromJar(connection, dstDir, skipIfUnchanged)) {
             return true;
         }
-        return copyMultipleFilesFromJar(connection, dstDir, skipIfUnchanged, contentsOnly);
+        return copyDirectoryFromJar(connection, dstDir, skipIfUnchanged, contentsOnly);
     }
 
     /**
@@ -544,7 +544,7 @@ public class FileUtil {
      * @return
      * @throws IOException
      */
-    private static boolean copyMultipleFilesFromJar(JarURLConnection connection,
+    private static boolean copyDirectoryFromJar(JarURLConnection connection,
         Path dstDir,
         final boolean skipIfUnchanged,
         final boolean contentsOnly) throws IOException {
@@ -586,7 +586,7 @@ public class FileUtil {
      * {@code false} if the connection entry is not a file and the copy operation was aborted.
      * @throws IOException If the operation failed.
      */
-    private static boolean copySingleFileFromJar(
+    private static boolean copyFileFromJar(
         JarURLConnection connection,
         Path dstDir,
         final boolean skipIfUnchanged
@@ -597,7 +597,7 @@ public class FileUtil {
         if (!isFileInJar(connection)) {
             return false;
         }
-        copySingleFileFromJar(jar, source, dstDir, skipIfUnchanged);
+        copyFileFromJar(jar, source, dstDir, skipIfUnchanged);
 
         return true;
     }
