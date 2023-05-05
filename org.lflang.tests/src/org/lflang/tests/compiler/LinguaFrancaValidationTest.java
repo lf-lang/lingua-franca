@@ -281,7 +281,7 @@ public class LinguaFrancaValidationTest {
     public void disallowUnderscoreReactorDef() throws Exception {
         String testCase = """
                 target TypeScript;
-                main reactor __Foo {
+                reactor __Foo {
                 }
             """;
         validator.assertError(parseWithoutError(testCase), LfPackage.eINSTANCE.getReactor(), null,
