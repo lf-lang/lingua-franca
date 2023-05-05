@@ -15,10 +15,14 @@ import org.lflang.ASTUtils;
 import org.lflang.ErrorReporter;
 import org.lflang.ast.FormattingUtils;
 import org.lflang.generator.CodeBuilder;
+import org.lflang.generator.PortInstance;
 import org.lflang.generator.ReactorInstance;
 import org.lflang.lf.Instantiation;
 import org.lflang.lf.Reactor;
 import org.lflang.lf.Variable;
+
+import org.lflang.util.Pair;
+
 
 /**
  * Helper class to generate a main reactor
@@ -63,6 +67,26 @@ public class FedMainEmitter {
             );
     }
 
+    private static String getDependencyList(FederateInstance federate, Pair<PortInstance, PortInstance> p){
+        //StringBuilder lst = new StringBuilder();
+        var inputPort = p.getFirst();
+        var outputPort = p.getSecond();
+        var inputPortInstance = federate.networkPortToInstantiation.getOrDefault(inputPort, null);
+        var outputPortInstance = federate.networkPortToInstantiation.getOrDefault(outputPort, null);
+        //var outputPortControlReaction = federate.networkPortToInstantiation.getOrDefault(outputPort, null);
+        if(inputPortInstance == null) return "";
+        //System.out.println("IP: " + inputPortReaction.getCode());
+        if(outputPortInstance != null){
+            //System.out.println("OP: " + outputPortReaction.toString());
+            return inputPortInstance.getName() + "," + outputPortInstance.getName();
+        }
+        return "";
+
+
+
+        
+    }
+
     /**
      * Generate the signature of the main reactor.
      * @param federate The federate.
@@ -85,12 +109,19 @@ public class FedMainEmitter {
             .stream()
             .map(Variable::getName)
             .collect(Collectors.joining(","));
+        
+        List<String> vals = new ArrayList<>();
+        for (var pair: federate.networkReactionDependencyPairs){
+            vals.add(getDependencyList(federate, pair));
+        }
 
+        String intraDependencies = String.join(";", vals);
         return
         """
-        @_fed_config(network_message_actions="%s")
+        @_fed_config(network_message_actions="%s", dependencyPairs="%s")
         main reactor %s {
         """.formatted(networkMessageActionsListString,
+                      intraDependencies,
                       paramList.equals("()") ? "" : paramList);
     }
 }
