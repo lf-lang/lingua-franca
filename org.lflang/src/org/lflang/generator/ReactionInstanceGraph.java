@@ -27,15 +27,21 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 package org.lflang.generator;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.eclipse.xtend.lib.macro.services.UpstreamTypeLookup;
+import org.lflang.AttributeUtils;
 import org.lflang.generator.ReactionInstance.Runtime;
 import org.lflang.generator.c.CUtil;
 import org.lflang.graph.PrecedenceGraph;
+import org.lflang.lf.Attribute;
 import org.lflang.lf.Variable;
+import org.lflang.validation.AttributeSpec;
 
 /**
  * This class analyzes the dependencies between reaction runtime instances.
@@ -86,8 +92,10 @@ public class ReactionInstanceGraph extends PrecedenceGraph<ReactionInstance.Runt
         this.clear();
         addNodesAndEdges(main);
 
+
         // FIXME: Use {@link TargetProperty#EXPORT_DEPENDENCY_GRAPH}.
         // System.out.println(toDOT());
+        addDependentNetworkEdges(main);
 
         // Assign a level to each reaction.
         // If there are cycles present in the graph, it will be detected here.
@@ -100,12 +108,46 @@ public class ReactionInstanceGraph extends PrecedenceGraph<ReactionInstance.Runt
         }
     }
     /**
+     * Adds manually a set of dependent network edges as needed to nudge the level assignment
+     * algorithm into creating a correct level assignment.
+     * @param main
+     */
+    private void addDependentNetworkEdges(ReactorInstance main) {
+
+        Attribute attribute = AttributeUtils.findAttributeByName(main.definition.getReactorClass(), "_fed_config");
+        String actionsStr = AttributeUtils.getAttributeParameter(attribute, AttributeSpec.DEPENDENCY_PAIRS);
+        if (actionsStr == null) return; //No dependent network edges, the levels algorithm has enough information
+        List<String> dependencies = List.of(actionsStr.split(";", -1));
+        // Recursively add nodes and edges from contained reactors.
+        Map<String, ReactorInstance> m = new HashMap<>();
+        for (ReactorInstance child : main.children) {
+            m.put(child.getName(), child);
+        }
+        for(String dependency: dependencies){
+            List<String> dep = List.of(dependency.split(",", 2));
+            ReactorInstance downStream = m.getOrDefault(dep.get(0), null);
+            ReactorInstance upStream = m.getOrDefault(dep.get(1), null);
+            if(downStream == null || upStream == null) {
+                System.out.println("Downstream or Upstream reaction pair is undefined. Continuing.");
+                continue;
+            }
+            ReactionInstance down = downStream.reactions.get(0);
+            Runtime downRuntime = down.getRuntimeInstances().get(0);
+            for(ReactionInstance up: upStream.reactions){
+                Runtime upRuntime = up.getRuntimeInstances().get(0);
+                addEdge(downRuntime, upRuntime);
+            }
+        }
+        
+    }
+    /**
      * This function rebuilds the graph and propagates and assigns deadlines
      * to all reactions.
      */
     public void rebuildAndAssignDeadlines() {
         this.clear();
         addNodesAndEdges(main);
+        addDependentNetworkEdges(main);
         assignInferredDeadlines();
         this.clear();
     }
@@ -298,7 +340,7 @@ public class ReactionInstanceGraph extends PrecedenceGraph<ReactionInstance.Runt
                 removeEdge(effect, origin);
                 // If the effect node has no more incoming edges,
                 // then move it in the start set.
-                if (getUpstreamAdjacentNodes(effect).size() == 0) {
+                if (getUpstreamAdjacentNodes(effect).isEmpty()) {
                     start.add(effect);
                 }
             }
