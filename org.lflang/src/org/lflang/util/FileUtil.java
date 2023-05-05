@@ -278,31 +278,40 @@ public class FileUtil {
         Path dstDir,
         FileConfig fileConfig,
         ErrorReporter errorReporter,
-        boolean contentsOnly
+        boolean fileEntriesOnly
     ) {
         for (String fileOrDirectory : entries) {
             var path = Paths.get(fileOrDirectory);
             var found = FileUtil.findInPackage(path, fileConfig);
             if (found != null) {
                 try {
-                    FileUtil.copyFromFileSystem(found, dstDir, contentsOnly);
+                    if (fileEntriesOnly) {
+                        FileUtil.copyFile(found, dstDir.resolve(path.getFileName()));
+                    } else {
+                        FileUtil.copyFromFileSystem(found, dstDir, false);
+                    }
                     System.out.println("Copied '" + fileOrDirectory + "' from the file system.");
                 } catch (IOException e) {
                     errorReporter.reportError(
-                        "Unable to copy '" + fileOrDirectory + "' from the file system."
+                        "Unable to copy '" + fileOrDirectory + "' from the file system. Reason: " + e.toString()
                     );
                 }
             } else {
                 try {
-                    FileUtil.copyFromClassPath(
-                        fileOrDirectory,
-                        dstDir,
-                        false,
-                        contentsOnly
-                    );
+                    if (fileEntriesOnly) {
+                          copySingleFileFromClasspath(fileOrDirectory, dstDir, false);
+                    } else {
+                        FileUtil.copyFromClassPath(
+                            fileOrDirectory,
+                            dstDir,
+                            false,
+                            false
+                        );
+                    }
+
                 } catch(IOException e) {
                     errorReporter.reportError(
-                        "Unable to copy '" + fileOrDirectory + "' from the class path."
+                        "Unable to copy '" + fileOrDirectory + "' from the class path. Reason: " + e.toString()
                     );
                 }
                 System.out.println("Copied '" + fileOrDirectory + "' from the class path.");

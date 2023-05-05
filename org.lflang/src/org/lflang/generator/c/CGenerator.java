@@ -828,7 +828,6 @@ public class CGenerator extends GeneratorBase {
         // Must use class variable to determine destination!
         var destination = this.fileConfig.getSrcGenPath();
 
-        // NOTE: All entries should be files, but we are not checking this.
         FileUtil.copyFilesOrDirectories(targetConfig.cmakeIncludes, destination, fileConfig, errorReporter, true);
 
         // FIXME: Unclear what the following does, but it does not appear to belong here.
