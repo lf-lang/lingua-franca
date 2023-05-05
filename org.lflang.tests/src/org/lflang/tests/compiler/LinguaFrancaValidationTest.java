@@ -821,7 +821,7 @@ public class LinguaFrancaValidationTest {
                     reactor B extends A{}
                 """.formatted(target));
 
-            if(target.supportsInheritance()) {
+            if (target.supportsInheritance()) {
                 validator.assertNoIssues(model);
             } else {
                 validator.assertError(model, LfPackage.eINSTANCE.getReactor(), null,
@@ -838,7 +838,7 @@ public class LinguaFrancaValidationTest {
                     federated reactor {}
                 """.formatted(target));
 
-            if(target.supportsFederated()) {
+            if (target.supportsFederated()) {
                 validator.assertNoIssues(model);
             } else {
                 validator.assertError(model, LfPackage.eINSTANCE.getReactor(), null,

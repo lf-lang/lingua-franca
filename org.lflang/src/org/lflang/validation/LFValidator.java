@@ -984,7 +984,7 @@ public class LFValidator extends BaseLFValidator {
         }
 
         if (reactor.isFederated()) {
-            if(!target.supportsFederated()) {
+            if (!target.supportsFederated()) {
                 error("The " + target.getDisplayName() + " target does not support federated execution.",
                     Literals.REACTOR__FEDERATED);
             }
