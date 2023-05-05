@@ -425,8 +425,6 @@ public class CGenerator extends GeneratorBase {
                     "LF programs with a CCpp target are currently not supported on Windows. " +
                     "Exiting code generation."
                 );
-                // FIXME: The incompatibility between our C runtime code and the
-                //  Visual Studio compiler is extensive.
                 return false;
             }
         }
