@@ -852,53 +852,22 @@ public class LFValidator extends BaseLFValidator {
     // FIXME: improve error message.
     }
 
-    public void checkReactorName(Reactor reactor) throws IOException {
-        String name = FileUtil.nameWithoutExtension(reactor.eResource());
-
+    public void checkReactorName(String name) throws IOException {
         // Check for illegal names.
-        if(reactor.getName() != null) {
-            checkName(reactor.getName(), Literals.REACTOR_DECL__NAME);
+        checkName(name, Literals.REACTOR_DECL__NAME);
 
-            // C++ reactors may not be called 'preamble'
-            if (this.target == Target.CPP && name.equalsIgnoreCase("preamble")) {
-                error(
-                    "Reactor cannot be named '" + name + "'",
-                    Literals.REACTOR_DECL__NAME
-                );
-            }
-        }
-
-        if (reactor.isFederated() || reactor.isMain()) {
-            if(reactor.getName() != null && !reactor.getName().equals(name)) {
-                // Make sure that if the name is given, it matches the expected name.
-                error(
-                    "Name of main reactor must match the file name (or be omitted).",
-                    Literals.REACTOR_DECL__NAME
-                );
-            }
-        } else {
-            // Not federated or main.
-            if (reactor.getName() == null) {
-                error(
-                    "Reactor must be named.",
-                    Literals.REACTOR_DECL__NAME
-                );
-            } else {
-                TreeIterator<EObject> iter = reactor.eResource().getAllContents();
-                int nMain = countMainOrFederated(iter);
-                if (nMain > 0 && reactor.getName().equals(name)) {
-                    error(
-                        "Name conflict with main reactor.",
-                        Literals.REACTOR_DECL__NAME
-                    );
-                }
-            }
+        // C++ reactors may not be called 'preamble'
+        if (this.target == Target.CPP &&  name.equalsIgnoreCase("preamble")) {
+            error(
+                "Reactor cannot be named '" + name + "'",
+                Literals.REACTOR_DECL__NAME
+            );
         }
     }
 
     @Check(CheckType.FAST)
     public void checkReactor(Reactor reactor) throws IOException {
-        checkReactorName(reactor);
+        String fileName = FileUtil.nameWithoutExtension(reactor.eResource());
 
         if (reactor.isFederated() || reactor.isMain()) {
             // Do not allow multiple main/federated reactors.
@@ -913,6 +882,40 @@ public class LFValidator extends BaseLFValidator {
                     "Multiple definitions of main or federated reactor.",
                     attribute
                 );
+            }
+
+            if(reactor.getName() != null && !reactor.getName().equals(fileName)) {
+                // Make sure that if the name is given, it matches the expected name.
+                error(
+                    "Name of main reactor must match the file name (or be omitted).",
+                    Literals.REACTOR_DECL__NAME
+                );
+            }
+
+            // check the reactor name indicated by the file name
+            // Skip this check if the file is named __synthetic0. This Name is used during testing,
+            // and we would get an unexpected error due to the '__' prefix otherwise.
+            if (!fileName.equals("__synthetic0")) {
+                checkReactorName(fileName);
+            }
+        } else {
+            // Not federated or main.
+            if (reactor.getName() == null) {
+                error(
+                    "Reactor must be named.",
+                    Literals.REACTOR_DECL__NAME
+                );
+            } else {
+                checkReactorName(reactor.getName());
+
+                TreeIterator<EObject> iter = reactor.eResource().getAllContents();
+                int nMain = countMainOrFederated(iter);
+                if (nMain > 0 && reactor.getName().equals(fileName)) {
+                    error(
+                        "Name conflict with main reactor.",
+                        Literals.REACTOR_DECL__NAME
+                    );
+                }
             }
         }
 

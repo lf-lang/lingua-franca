@@ -137,7 +137,7 @@ public class LinguaFrancaValidationTest {
 
         Model model_error_1 = parser.parse("""
                 target Cpp;
-                main reactor Preamble {
+                reactor Preamble {
                 }
             """);
 
@@ -145,7 +145,7 @@ public class LinguaFrancaValidationTest {
                 target Cpp;
                 reactor Preamble {
                 }
-                main reactor Main {
+                main reactor {
                 }
             """);
 
