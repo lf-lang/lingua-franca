@@ -122,59 +122,75 @@ public class CExtensionUtils {
      *
      * @param instance  The reactor instance that is at any level of the
      *                  hierarchy within the federate.
-     * @param federate  The top-level federate
+     * @param errorReporter  The top-level federate
      * @return A string that initializes the aforementioned three structures.
      */
-    public static String initializeTriggerForControlReactions(
-            ReactorInstance instance,
-            ReactorInstance main,
-            FederateInstance federate
-    ) {
-        CodeBuilder builder = new CodeBuilder();
-        // The network control reactions are always in the main federated
-        // reactor
-        if (instance != main) {
-            return "";
-        }
+    // public static String initializeTriggersForControlReactions(
+    //         FederateInstance instance,
+    //         ReactorInstance main,
+    //         ErrorReporter errorReporter
+    // ) {
+    //     CodeBuilder builder = new CodeBuilder();
 
-        ReactorDecl reactorClass = instance.getDefinition().getReactorClass();
-        Reactor reactor = ASTUtils.toDefinition(reactorClass);
-        String nameOfSelfStruct = CUtil.reactorRef(instance);
+    //     if (federate.networkSenderControlReactions.size() > 0) {
+    //         // Create a static array of trigger_t pointers.
+    //         // networkMessageActions is a list of Actions, but we
+    //         // need a list of trigger struct names for ActionInstances.
+    //         // There should be exactly one ActionInstance in the
+    //         // main reactor for each Action.
+    //         var triggers = new LinkedList<String>();
+    //         for (int i = 0; i < federate.networkSenderControlReactions.size(); ++i) {
+    //             // Find the corresponding ActionInstance.
+    //             Action action = federate.networkMessageActions.get(i);
+    //             var reactor = main.lookupReactorInstance(federate.networkReceiverInstantiations.get(i));
+    //             var actionInstance = reactor.lookupActionInstance(action);
+    //             triggers.add(CUtil.actionRef(actionInstance, null));
+    //         }
+    //         var actionTableCount = 0;
+    //         for (String trigger : triggers) {
+    //             code.pr("_lf_action_table[" + (actionTableCount++) + "] = (lf_action_base_t*)&"
+    //                         + trigger + "; \\");
+    //         }
+    //     }
 
-        // Initialize triggers for network input control reactions
-        for (Action trigger : federate.networkInputControlReactionsTriggers) {
-            // Check if the trigger belongs to this reactor instance
-            if (ASTUtils.allReactions(reactor).stream().anyMatch(r -> {
-                return r.getTriggers().stream().anyMatch(t -> {
-                    if (t instanceof VarRef) {
-                        return ((VarRef) t).getVariable().equals(trigger);
-                    } else {
-                        return false;
-                    }
-                });
-            })) {
-                // Initialize the triggers_for_network_input_control_reactions for the input
-                builder.pr(
-                    String.join("\n",
-                        "/* Add trigger " + nameOfSelfStruct + "->_lf__"+trigger.getName()+" to the global list of network input ports. */ \\",
-                        "_fed.triggers_for_network_input_control_reactions["+federate.networkInputControlReactionsTriggers.indexOf(trigger)+"]= \\",
-                        "    &"+nameOfSelfStruct+"->_lf__"+trigger.getName()+"; \\"
-                    )
-                );
-            }
-        }
+    //     ReactorDecl reactorClass = instance.getDefinition().getReactorClass();
+    //     Reactor reactor = ASTUtils.toDefinition(reactorClass);
+    //     String nameOfSelfStruct = CUtil.reactorRef(instance);
 
-        nameOfSelfStruct = CUtil.reactorRef(instance);
+    //     // Initialize triggers for network input control reactions
+    //     for (Action trigger : errorReporter.networkInputControlReactionsTriggers) {
+    //         // Check if the trigger belongs to this reactor instance
+    //         if (ASTUtils.allReactions(reactor).stream().anyMatch(r -> {
+    //             return r.getTriggers().stream().anyMatch(t -> {
+    //                 if (t instanceof VarRef) {
+    //                     return ((VarRef) t).getVariable().equals(trigger);
+    //                 } else {
+    //                     return false;
+    //                 }
+    //             });
+    //         })) {
+    //             // Initialize the triggers_for_network_input_control_reactions for the input
+    //             builder.pr(
+    //                 String.join("\n",
+    //                     "/* Add trigger " + nameOfSelfStruct + "->_lf__"+trigger.getName()+" to the global list of network input ports. */ \\",
+    //                     "_fed.triggers_for_network_input_control_reactions["+errorReporter.networkInputControlReactionsTriggers.indexOf(trigger)+"]= \\",
+    //                     "    &"+nameOfSelfStruct+"->_lf__"+trigger.getName()+"; \\"
+    //                 )
+    //             );
+    //         }
+    //     }
 
-        // Initialize the trigger for network output control reactions if it doesn't exist.
-        if (federate.networkOutputControlReactionsTrigger != null) {
-            builder.pr("_fed.trigger_for_network_output_control_reactions=&"
-                    + nameOfSelfStruct
-                    + "->_lf__outputControlReactionTrigger; \\");
-        }
+    //     nameOfSelfStruct = CUtil.reactorRef(instance);
 
-        return builder.getCode();
-    }
+    //     // Initialize the trigger for network output control reactions if it doesn't exist.
+    //     if (errorReporter.networkOutputControlReactionsTrigger != null) {
+    //         builder.pr("_fed.trigger_for_network_output_control_reactions=&"
+    //                 + nameOfSelfStruct
+    //                 + "->_lf__outputControlReactionTrigger; \\");
+    //     }
+
+    //     return builder.getCode();
+    // }
 
     /**
      * Create a port status field variable for a network input port "input" in
@@ -606,4 +622,29 @@ public class CExtensionUtils {
         }
         return code.getCode();
     }
+
+    public static CharSequence downstreamControlPortReactions(FederateInstance federate, ReactorInstance main) {
+        CodeBuilder code = new CodeBuilder();
+        if (!federate.networkSenderControlReactions.isEmpty()) {
+            // Create a static array of trigger_t pointers.
+            // networkMessageActions is a list of Actions, but we
+            // need a list of trigger struct names for ActionInstances.
+            // There should be exactly one ActionInstance in the
+            // main reactor for each Action.
+            var reactions = new LinkedList<String>();
+            for (int i = 0; i < federate.networkSenderControlReactions.size(); ++i) {
+                // Find the corresponding ActionInstance.
+                var reaction = federate.networkSenderControlReactions.get(i);
+                var reactor = main.lookupReactorInstance(federate.networkSenderInstantiations.get(i));
+                var reactionInstance = reactor.lookupReactionInstance(reaction);
+                reactions.add(CUtil.reactionRef(reactionInstance));
+            }
+            var tableCount = 0;
+            for (String react: reactions) {
+                code.pr("downstreamControlPortReactions[" + (tableCount++) + "] = (reaction_t*)&" + react + "; \\");
+            }
+        }
+        return code.getCode();
+    }
 }
+

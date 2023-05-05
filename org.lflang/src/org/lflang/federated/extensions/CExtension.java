@@ -523,9 +523,15 @@ public class CExtension implements FedTargetExtension {
 
         int numOfNetworkReactions = federate.networkReceiverReactions.size();
         code.pr("""
-        reaction_t* upstreamPortReactions[%1$s];
-        size_t num_upstream_port_dependencies = %1$s;
+        reaction_t* networkInputReactions[%1$s];
+        size_t numNetworkInputReactions = %1$s;
         """.formatted(numOfNetworkReactions));
+
+        int numOfNetworkSenderControlReactions = federate.networkSenderControlReactions.size();
+        code.pr("""
+        reaction_t* portAbsentReaction[%1$s];
+        size_t numSenderReactions = %1$s;
+        """.formatted(numOfNetworkSenderControlReactions));
 
         code.pr(generateSerializationPreamble(federate, fileConfig));
 
@@ -563,7 +569,9 @@ public class CExtension implements FedTargetExtension {
         federatedReactor.setName(federate.name);
         var main = new ReactorInstance(federatedReactor, errorReporter, -1);
         code.pr(CExtensionUtils.initializeTriggersForNetworkActions(federate, main, errorReporter));
-        code.pr(CExtensionUtils.upstreamPortReactions(federate, main));
+        //code.pr(CExtensionUtils.initializeTriggersForControlReactions(federate, main, errorReporter));
+        //code.pr(CExtensionUtils.networkInputReactions(federate, main));
+        //code.pr(CExtensionUtils.portAbsentReaction(federate, main));
         federatedReactor.setName(oldFederatedReactorName);
 
         return """
@@ -586,7 +594,7 @@ public class CExtension implements FedTargetExtension {
 
         code.pr(generateCodeToInitializeFederate(federate, rtiConfig));
 
-        code.pr(CExtensionUtils.allocateTriggersForFederate(federate));
+        //code.pr(CExtensionUtils.allocateTriggersForFederate(federate));
 
         return """
             void _lf_executable_preamble() {
@@ -606,7 +614,8 @@ public class CExtension implements FedTargetExtension {
         code.pr(String.join("\n",
                             "// Initialize the socket mutex",
                             "lf_mutex_init(&outbound_socket_mutex);",
-                            "lf_cond_init(&port_status_changed, &mutex);"
+                            "lf_cond_init(&port_status_changed, &mutex);",
+                            CExtensionUtils.surroundWithIfFederatedDecentralized("lf_cond_init(&logical_time_changed, &mutex);")
         ));
 
         // Find the STA (A.K.A. the global STP offset) for this federate.
