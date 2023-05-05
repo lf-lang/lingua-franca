@@ -6,11 +6,9 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
 import org.eclipse.lsp4j.DiagnosticSeverity;
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure0;
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure2;
-
 import org.lflang.ErrorReporter;
 
 /**
@@ -64,10 +62,9 @@ public class HumanReadableReportingStrategy implements DiagnosticReporting.Strat
      * @param relativeTo The path against which any paths should be resolved.
      */
     public HumanReadableReportingStrategy(Pattern diagnosticMessagePattern, Pattern labelPattern, Path relativeTo) {
-        for (String groupName : new String[]{"path", "line", "column", "message", "severity"}) {
-            assert diagnosticMessagePattern.pattern().contains(groupName) : String.format(
-                "Error line patterns must have a named capturing group called %s", groupName
-            );
+        for (String groupName : new String[] {"path", "line", "column", "message", "severity"}) {
+            assert diagnosticMessagePattern.pattern().contains(groupName)
+                    : String.format("Error line patterns must have a named capturing group called %s", groupName);
         }
         this.diagnosticMessagePattern = diagnosticMessagePattern;
         this.labelPattern = labelPattern;
@@ -96,17 +93,19 @@ public class HumanReadableReportingStrategy implements DiagnosticReporting.Strat
      * @param maps A mapping from generated file paths to
      *             CodeMaps.
      */
-    private void reportErrorLine(String line, Iterator<String> it, ErrorReporter errorReporter, Map<Path, CodeMap> maps) {
+    private void reportErrorLine(
+            String line, Iterator<String> it, ErrorReporter errorReporter, Map<Path, CodeMap> maps) {
         Matcher matcher = diagnosticMessagePattern.matcher(stripEscaped(line));
         if (matcher.matches()) {
             final Path path = Paths.get(matcher.group("path"));
             final Position generatedFilePosition = Position.fromOneBased(
-                Integer.parseInt(matcher.group("line")),
-                Integer.parseInt(matcher.group("column") != null ? matcher.group("column") : "0") // FIXME: Unreliable heuristic
-            );
-            final String message = DiagnosticReporting.messageOf(
-                matcher.group("message"), path, generatedFilePosition
-            );
+                    Integer.parseInt(matcher.group("line")),
+                    Integer.parseInt(
+                            matcher.group("column") != null
+                                    ? matcher.group("column")
+                                    : "0") // FIXME: Unreliable heuristic
+                    );
+            final String message = DiagnosticReporting.messageOf(matcher.group("message"), path, generatedFilePosition);
             final CodeMap map = maps.get(relativeTo != null ? relativeTo.resolve(path) : path);
             final DiagnosticSeverity severity = DiagnosticReporting.severityOf(matcher.group("severity"));
             if (map == null) {
@@ -117,8 +116,7 @@ public class HumanReadableReportingStrategy implements DiagnosticReporting.Strat
                 Position lfFilePosition = map.adjusted(srcFile, generatedFilePosition);
                 if (matcher.group("column") != null) {
                     reportAppropriateRange(
-                        (p0, p1) -> errorReporter.report(srcFile, severity, message, p0, p1), lfFilePosition, it
-                    );
+                            (p0, p1) -> errorReporter.report(srcFile, severity, message, p0, p1), lfFilePosition, it);
                 } else {
                     errorReporter.report(srcFile, severity, message, lfFilePosition.getOneBasedLine());
                 }
@@ -138,8 +136,7 @@ public class HumanReadableReportingStrategy implements DiagnosticReporting.Strat
      *           following a diagnostic message.
      */
     private void reportAppropriateRange(
-        Procedure2<Position, Position> report, Position lfFilePosition, Iterator<String> it
-    ) {
+            Procedure2<Position, Position> report, Position lfFilePosition, Iterator<String> it) {
         Procedure0 failGracefully = () -> report.apply(lfFilePosition, lfFilePosition.plus(" "));
         if (!it.hasNext()) {
             failGracefully.apply();
@@ -149,12 +146,11 @@ public class HumanReadableReportingStrategy implements DiagnosticReporting.Strat
         Matcher labelMatcher = labelPattern.matcher(line);
         if (labelMatcher.find()) {
             report.apply(
-                Position.fromZeroBased(
-                    lfFilePosition.getZeroBasedLine(),
-                    lfFilePosition.getZeroBasedColumn() - labelMatcher.group(1).length()
-                ),
-                lfFilePosition.plus(labelMatcher.group(2))
-            );
+                    Position.fromZeroBased(
+                            lfFilePosition.getZeroBasedLine(),
+                            lfFilePosition.getZeroBasedColumn()
+                                    - labelMatcher.group(1).length()),
+                    lfFilePosition.plus(labelMatcher.group(2)));
             return;
         }
         if (diagnosticMessagePattern.matcher(line).find()) {

@@ -1,7 +1,6 @@
 package org.lflang.federated.extensions;
 
 import java.io.IOException;
-
 import org.lflang.ErrorReporter;
 import org.lflang.InferredType;
 import org.lflang.TargetProperty.CoordinationType;
@@ -26,8 +25,14 @@ public interface FedTargetExtension {
      * @param fileConfig     An instance of {@code FedFileConfig}.
      * @param errorReporter  Used to report errors.
      */
-    void initializeTargetConfig(LFGeneratorContext context, int numOfFederates, FederateInstance federate, FedFileConfig fileConfig,
-                                ErrorReporter errorReporter, RtiConfig rtiConfig) throws IOException;
+    void initializeTargetConfig(
+            LFGeneratorContext context,
+            int numOfFederates,
+            FederateInstance federate,
+            FedFileConfig fileConfig,
+            ErrorReporter errorReporter,
+            RtiConfig rtiConfig)
+            throws IOException;
 
     /**
      * Generate code for the body of a reaction that handles the
@@ -42,14 +47,13 @@ public interface FedTargetExtension {
      * @param errorReporter
      */
     String generateNetworkReceiverBody(
-        Action action,
-        VarRef sendingPort,
-        VarRef receivingPort,
-        FedConnectionInstance connection,
-        InferredType type,
-        CoordinationType coordinationType,
-        ErrorReporter errorReporter
-    );
+            Action action,
+            VarRef sendingPort,
+            VarRef receivingPort,
+            FedConnectionInstance connection,
+            InferredType type,
+            CoordinationType coordinationType,
+            ErrorReporter errorReporter);
 
     /**
      * Generate code for the body of a reaction that handles an output
@@ -62,13 +66,12 @@ public interface FedTargetExtension {
      * @param errorReporter FIXME
      */
     String generateNetworkSenderBody(
-        VarRef sendingPort,
-        VarRef receivingPort,
-        FedConnectionInstance connection,
-        InferredType type,
-        CoordinationType coordinationType,
-        ErrorReporter errorReporter
-    );
+            VarRef sendingPort,
+            VarRef receivingPort,
+            FedConnectionInstance connection,
+            InferredType type,
+            CoordinationType coordinationType,
+            ErrorReporter errorReporter);
 
     /**
      * Generate code for the body of a reaction that decides whether the trigger for the given
@@ -83,10 +86,7 @@ public interface FedTargetExtension {
      * @param coordination FIXME
      */
     String generateNetworkInputControlReactionBody(
-        int receivingPortID,
-        TimeValue maxSTP,
-        CoordinationType coordination
-    );
+            int receivingPortID, TimeValue maxSTP, CoordinationType coordination);
 
     /**
      * Generate code for the body of a reaction that sends a port status message for the given
@@ -95,17 +95,14 @@ public interface FedTargetExtension {
      * @oaram srcOutputPort FIXME
      * @param connection FIXME
      */
-    String generateNetworkOutputControlReactionBody(
-        VarRef srcOutputPort,
-        FedConnectionInstance connection
-    );
+    String generateNetworkOutputControlReactionBody(VarRef srcOutputPort, FedConnectionInstance connection);
 
     /** Optionally apply additional annotations to the reaction. */
     default void annotateReaction(Reaction reaction) {}
 
     /**
-     * Return the type for the raw network buffer in the target language (e.g., `uint_8` in C). This would be the type of the 
-     * network messages after serialization and before deserialization. It is primarily used to determine the type for the 
+     * Return the type for the raw network buffer in the target language (e.g., `uint_8` in C). This would be the type of the
+     * network messages after serialization and before deserialization. It is primarily used to determine the type for the
      * network action at the receiver.
      */
     String getNetworkBufferType();
@@ -118,9 +115,7 @@ public interface FedTargetExtension {
      * @param errorReporter
      * @return
      */
-    String generatePreamble(FederateInstance federate,
-                            FedFileConfig fileConfig,
-                            RtiConfig rtiConfig,
-                            ErrorReporter errorReporter)
-        throws IOException;
+    String generatePreamble(
+            FederateInstance federate, FedFileConfig fileConfig, RtiConfig rtiConfig, ErrorReporter errorReporter)
+            throws IOException;
 }

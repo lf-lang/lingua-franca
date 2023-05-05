@@ -1,17 +1,16 @@
 package org.lflang.generator;
 
-import java.nio.file.Path;
-import java.io.IOException;
+import static org.lflang.generator.c.CMixedRadixGenerator.*;
+import static org.lflang.util.StringUtil.joinObjects;
 
+import java.io.IOException;
+import java.nio.file.Path;
 import org.eclipse.emf.common.CommonPlugin;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils;
-import org.lflang.federated.generator.FederateInstance;
 import org.lflang.generator.c.CUtil;
 import org.lflang.lf.Code;
 import org.lflang.util.FileUtil;
-import static org.lflang.generator.c.CMixedRadixGenerator.*;
-import static org.lflang.util.StringUtil.joinObjects;
 
 /**
  * Helper class for printing code with indentation.
@@ -86,16 +85,15 @@ public class CodeBuilder {
      * @param args Additional arguments to pass to the formatter.
      */
     public void pr(String format, Object... args) {
-        pr(
-            (args != null && args.length > 0) ? String.format(format, args) : format
-        );
+        pr((args != null && args.length > 0) ? String.format(format, args) : format);
     }
 
     /**
      * Append the given text to the code buffer at the current indentation level.
      */
     public void pr(CharSequence text) {
-        for (String line : (Iterable<? extends String>) () -> text.toString().lines().iterator()) {
+        for (String line :
+                (Iterable<? extends String>) () -> text.toString().lines().iterator()) {
             code.append(indentation).append(line).append("\n");
         }
     }
@@ -155,9 +153,9 @@ public class CodeBuilder {
 
         CodeBuilder builder = new CodeBuilder();
 
-        for(String line : lines) {
+        for (String line : lines) {
             String trimmedLine = line.trim();
-            if(!trimmedLine.startsWith(prefix)) {
+            if (!trimmedLine.startsWith(prefix)) {
                 builder.pr(line);
             }
         }
@@ -193,13 +191,11 @@ public class CodeBuilder {
      *
      * @param reactor The reactor instance.
      */
-    public void startScopedBlock(
-        ReactorInstance reactor
-    ) {
+    public void startScopedBlock(ReactorInstance reactor) {
         if (reactor != null && reactor.isBank()) {
             var index = CUtil.bankIndexName(reactor);
             pr("// Reactor is a bank. Iterate over bank members.");
-            pr("for (int "+index+" = 0; "+index+" < "+reactor.width+"; "+index+"++) {");
+            pr("for (int " + index + " = 0; " + index + " < " + reactor.width + "; " + index + "++) {");
             indent();
         } else {
             startScopedBlock();
@@ -217,8 +213,8 @@ public class CodeBuilder {
     public void startChannelIteration(PortInstance port) {
         if (port.isMultiport) {
             var channel = CUtil.channelIndexName(port);
-            pr("// Port "+port.getFullName()+" is a multiport. Iterate over its channels.");
-            pr("for (int "+channel+" = 0; "+channel+" < "+port.width+"; "+channel+"++) {");
+            pr("// Port " + port.getFullName() + " is a multiport. Iterate over its channels.");
+            pr("for (int " + channel + " = 0; " + channel + " < " + port.width + "; " + channel + "++) {");
             indent();
         }
     }
@@ -239,11 +235,10 @@ public class CodeBuilder {
      * @param count The variable name to use for the counter, or
      *  null to not provide a counter.
      */
-    public void startScopedBankChannelIteration(PortInstance port,
-                                                String count) {
+    public void startScopedBankChannelIteration(PortInstance port, String count) {
         if (count != null) {
             startScopedBlock();
-            pr("int "+count+" = 0;");
+            pr("int " + count + " = 0;");
         }
         startScopedBlock(port.parent);
         startChannelIteration(port);
@@ -275,55 +270,55 @@ public class CodeBuilder {
      *  port's parent.
      */
     public void startScopedRangeBlock(
-        RuntimeRange<PortInstance> range,
-        String runtimeIndex,
-        String bankIndex,
-        String channelIndex,
-        boolean nested
-    ) {
+            RuntimeRange<PortInstance> range,
+            String runtimeIndex,
+            String bankIndex,
+            String channelIndex,
+            boolean nested) {
 
-        pr("// Iterate over range "+range.toString()+".");
-        var ri = (runtimeIndex == null)? "runtime_index" : runtimeIndex;
-        var ci = (channelIndex == null)? CUtil.channelIndexName(range.instance) : channelIndex;
-        var bi = (bankIndex == null)? CUtil.bankIndexName(range.instance.parent) : bankIndex;
+        pr("// Iterate over range " + range.toString() + ".");
+        var ri = (runtimeIndex == null) ? "runtime_index" : runtimeIndex;
+        var ci = (channelIndex == null) ? CUtil.channelIndexName(range.instance) : channelIndex;
+        var bi = (bankIndex == null) ? CUtil.bankIndexName(range.instance.parent) : bankIndex;
         var rangeMR = range.startMR();
         var sizeMR = rangeMR.getDigits().size();
         var nestedLevel = (nested) ? 2 : 1;
 
         startScopedBlock();
         if (range.width > 1) {
-            pr(String.join("\n",
-                "int range_start[] =  { "+joinObjects(rangeMR.getDigits(), ", ")+" };",
-                "int range_radixes[] = { "+joinObjects(rangeMR.getRadixes(), ", ")+" };",
-                "int permutation[] = { "+joinObjects(range.permutation(), ", ")+" };",
-                "mixed_radix_int_t range_mr = {",
-                "    "+sizeMR+",",
-                "    range_start,",
-                "    range_radixes,",
-                "    permutation",
-                "};",
-                "for (int range_count = "+range.start+"; range_count < "+range.start+" + "+range.width+"; range_count++) {"
-            ));
+            pr(String.join(
+                    "\n",
+                    "int range_start[] =  { " + joinObjects(rangeMR.getDigits(), ", ") + " };",
+                    "int range_radixes[] = { " + joinObjects(rangeMR.getRadixes(), ", ") + " };",
+                    "int permutation[] = { " + joinObjects(range.permutation(), ", ") + " };",
+                    "mixed_radix_int_t range_mr = {",
+                    "    " + sizeMR + ",",
+                    "    range_start,",
+                    "    range_radixes,",
+                    "    permutation",
+                    "};",
+                    "for (int range_count = " + range.start + "; range_count < " + range.start + " + " + range.width
+                            + "; range_count++) {"));
             indent();
-            pr(String.join("\n",
-                "int "+ri+" = mixed_radix_parent(&range_mr, "+nestedLevel+"); // Runtime index.",
-                "SUPPRESS_UNUSED_WARNING("+ri+");",
-                "int "+ci+" = range_mr.digits[0]; // Channel index.",
-                "SUPPRESS_UNUSED_WARNING("+ci+");",
-                "int "+bi+" = "+(sizeMR <= 1 ? "0" : "range_mr.digits[1]")+"; // Bank index.",
-                "SUPPRESS_UNUSED_WARNING("+bi+");"
-            ));
+            pr(String.join(
+                    "\n",
+                    "int " + ri + " = mixed_radix_parent(&range_mr, " + nestedLevel + "); // Runtime index.",
+                    "SUPPRESS_UNUSED_WARNING(" + ri + ");",
+                    "int " + ci + " = range_mr.digits[0]; // Channel index.",
+                    "SUPPRESS_UNUSED_WARNING(" + ci + ");",
+                    "int " + bi + " = " + (sizeMR <= 1 ? "0" : "range_mr.digits[1]") + "; // Bank index.",
+                    "SUPPRESS_UNUSED_WARNING(" + bi + ");"));
 
         } else {
             var ciValue = rangeMR.getDigits().get(0);
             var riValue = rangeMR.get(nestedLevel);
-            var biValue = (sizeMR > 1)? rangeMR.getDigits().get(1) : 0;
-            pr(String.join("\n",
-                "int "+ri+" = "+riValue+"; SUPPRESS_UNUSED_WARNING("+ri+"); // Runtime index.",
-                "int "+ci+" = "+ciValue+"; SUPPRESS_UNUSED_WARNING("+ci+"); // Channel index.",
-                "int "+bi+" = "+biValue+"; SUPPRESS_UNUSED_WARNING("+bi+"); // Bank index.",
-                "int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);"
-            ));
+            var biValue = (sizeMR > 1) ? rangeMR.getDigits().get(1) : 0;
+            pr(String.join(
+                    "\n",
+                    "int " + ri + " = " + riValue + "; SUPPRESS_UNUSED_WARNING(" + ri + "); // Runtime index.",
+                    "int " + ci + " = " + ciValue + "; SUPPRESS_UNUSED_WARNING(" + ci + "); // Channel index.",
+                    "int " + bi + " = " + biValue + "; SUPPRESS_UNUSED_WARNING(" + bi + "); // Bank index.",
+                    "int range_count = 0; SUPPRESS_UNUSED_WARNING(range_count);"));
         }
     }
 
@@ -358,55 +353,52 @@ public class CodeBuilder {
      * @param srcRange The send range.
      * @param dstRange The destination range.
      */
-    public void startScopedRangeBlock(
-        SendRange srcRange,
-        RuntimeRange<PortInstance> dstRange
-    ) {
+    public void startScopedRangeBlock(SendRange srcRange, RuntimeRange<PortInstance> dstRange) {
         var srcRangeMR = srcRange.startMR();
         var srcSizeMR = srcRangeMR.getRadixes().size();
         var srcNestedLevel = (srcRange.instance.isInput()) ? 2 : 1;
         var dstNested = dstRange.instance.isOutput();
 
-        pr("// Iterate over ranges "+srcRange+" and "+dstRange+".");
+        pr("// Iterate over ranges " + srcRange + " and " + dstRange + ".");
         startScopedBlock();
         if (srcRange.width > 1) {
-            pr(String.join("\n",
-                "int src_start[] =  { "+joinObjects(srcRangeMR.getDigits(), ", ")+" };",
-                "int src_value[] =  { "+joinObjects(srcRangeMR.getDigits(), ", ")+" }; // Will be incremented.",
-                "int src_radixes[] = { "+joinObjects(srcRangeMR.getRadixes(), ", ")+" };",
-                "int src_permutation[] = { "+joinObjects(srcRange.permutation(), ", ")+" };",
-                "mixed_radix_int_t src_range_mr = {",
-                "    "+srcSizeMR+",",
-                "    src_value,",
-                "    src_radixes,",
-                "    src_permutation",
-                "};"
-            ));
+            pr(String.join(
+                    "\n",
+                    "int src_start[] =  { " + joinObjects(srcRangeMR.getDigits(), ", ") + " };",
+                    "int src_value[] =  { " + joinObjects(srcRangeMR.getDigits(), ", ") + " }; // Will be incremented.",
+                    "int src_radixes[] = { " + joinObjects(srcRangeMR.getRadixes(), ", ") + " };",
+                    "int src_permutation[] = { " + joinObjects(srcRange.permutation(), ", ") + " };",
+                    "mixed_radix_int_t src_range_mr = {",
+                    "    " + srcSizeMR + ",",
+                    "    src_value,",
+                    "    src_radixes,",
+                    "    src_permutation",
+                    "};"));
         } else {
             var ciValue = srcRangeMR.getDigits().get(0);
-            var biValue = (srcSizeMR > 1)? srcRangeMR.getDigits().get(1) : 0;
+            var biValue = (srcSizeMR > 1) ? srcRangeMR.getDigits().get(1) : 0;
             var riValue = srcRangeMR.get(srcNestedLevel);
-            pr(String.join("\n",
-                "int "+sr+" = "+riValue+"; // Runtime index.",
-                "SUPPRESS_UNUSED_WARNING("+sr+");",
-                "int "+sc+" = "+ciValue+"; // Channel index.",
-                "SUPPRESS_UNUSED_WARNING("+sc+");",
-                "int "+sb+" = "+biValue+"; // Bank index.",
-                "SUPPRESS_UNUSED_WARNING("+sb+");"
-            ));
+            pr(String.join(
+                    "\n",
+                    "int " + sr + " = " + riValue + "; // Runtime index.",
+                    "SUPPRESS_UNUSED_WARNING(" + sr + ");",
+                    "int " + sc + " = " + ciValue + "; // Channel index.",
+                    "SUPPRESS_UNUSED_WARNING(" + sc + ");",
+                    "int " + sb + " = " + biValue + "; // Bank index.",
+                    "SUPPRESS_UNUSED_WARNING(" + sb + ");"));
         }
 
         startScopedRangeBlock(dstRange, dr, db, dc, dstNested);
 
         if (srcRange.width > 1) {
-            pr(String.join("\n",
-                "int "+sr+" = mixed_radix_parent(&src_range_mr, "+srcNestedLevel+"); // Runtime index.",
-                "SUPPRESS_UNUSED_WARNING("+sr+");",
-                "int "+sc+" = src_range_mr.digits[0]; // Channel index.",
-                "SUPPRESS_UNUSED_WARNING("+sc+");",
-                "int "+sb+" = "+(srcSizeMR <= 1 ? "0" : "src_range_mr.digits[1]")+"; // Bank index.",
-                "SUPPRESS_UNUSED_WARNING("+sb+");"
-            ));
+            pr(String.join(
+                    "\n",
+                    "int " + sr + " = mixed_radix_parent(&src_range_mr, " + srcNestedLevel + "); // Runtime index.",
+                    "SUPPRESS_UNUSED_WARNING(" + sr + ");",
+                    "int " + sc + " = src_range_mr.digits[0]; // Channel index.",
+                    "SUPPRESS_UNUSED_WARNING(" + sc + ");",
+                    "int " + sb + " = " + (srcSizeMR <= 1 ? "0" : "src_range_mr.digits[1]") + "; // Bank index.",
+                    "SUPPRESS_UNUSED_WARNING(" + sb + ");"));
         }
     }
 
@@ -437,9 +429,7 @@ public class CodeBuilder {
      * @param count The variable name to use for the counter, or
      *  null to not provide a counter.
      */
-    public void endScopedBankChannelIteration(
-        PortInstance port, String count
-    ) {
+    public void endScopedBankChannelIteration(PortInstance port, String count) {
         if (count != null) {
             pr(count + "++;");
         }
@@ -454,9 +444,7 @@ public class CodeBuilder {
      * End a scoped block for the specified range.
      * @param range The send range.
      */
-    public void endScopedRangeBlock(
-        RuntimeRange<PortInstance> range
-    ) {
+    public void endScopedRangeBlock(RuntimeRange<PortInstance> range) {
         if (range.width > 1) {
             pr("mixed_radix_incr(&range_mr);");
             endScopedBlock(); // Terminate for loop.
@@ -470,20 +458,17 @@ public class CodeBuilder {
      * @param srcRange The send range.
      * @param dstRange The destination range.
      */
-    public void endScopedRangeBlock(
-        SendRange srcRange,
-        RuntimeRange<PortInstance> dstRange
-    ) {
+    public void endScopedRangeBlock(SendRange srcRange, RuntimeRange<PortInstance> dstRange) {
         if (srcRange.width > 1) {
-            pr(String.join("\n",
-                "mixed_radix_incr(&src_range_mr);",
-                "if (mixed_radix_to_int(&src_range_mr) >= "+srcRange.start+" + "+srcRange.width+") {",
-                "    // Start over with the source.",
-                "    for (int i = 0; i < src_range_mr.size; i++) {",
-                "        src_range_mr.digits[i] = src_start[i];",
-                "    }",
-                "}"
-            ));
+            pr(String.join(
+                    "\n",
+                    "mixed_radix_incr(&src_range_mr);",
+                    "if (mixed_radix_to_int(&src_range_mr) >= " + srcRange.start + " + " + srcRange.width + ") {",
+                    "    // Start over with the source.",
+                    "    for (int i = 0; i < src_range_mr.size; i++) {",
+                    "        src_range_mr.digits[i] = src_start[i];",
+                    "    }",
+                    "}"));
         }
         if (dstRange.width > 1) {
             pr("mixed_radix_incr(&range_mr);");

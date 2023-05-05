@@ -1,7 +1,6 @@
 package org.lflang.ast;
 
 import java.util.List;
-
 import org.lflang.lf.Reactor;
 
 /**

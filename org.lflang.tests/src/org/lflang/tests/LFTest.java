@@ -8,16 +8,14 @@ import java.io.OutputStream;
 import java.io.Reader;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-
 import org.eclipse.xtext.util.RuntimeIOException;
-
 import org.lflang.FileConfig;
 import org.lflang.Target;
 import org.lflang.generator.LFGeneratorContext;
 
 /**
  * Information about an indexed Lingua Franca test program.
- * 
+ *
  * @author Marten Lohstroh
  *
  */
@@ -59,7 +57,8 @@ public class LFTest implements Comparable<LFTest> {
     public LFTest(Target target, Path srcFile) {
         this.target = target;
         this.srcPath = srcFile;
-        this.name = FileConfig.findPackageRoot(srcFile, s -> {}).relativize(srcFile).toString();
+        this.name =
+                FileConfig.findPackageRoot(srcFile, s -> {}).relativize(srcFile).toString();
         this.relativePath = Paths.get(name);
     }
 
@@ -73,11 +72,17 @@ public class LFTest implements Comparable<LFTest> {
         return compilationLog;
     }
 
-    public FileConfig getFileConfig() { return context.getFileConfig(); }
+    public FileConfig getFileConfig() {
+        return context.getFileConfig();
+    }
 
-    public LFGeneratorContext getContext() { return context; }
+    public LFGeneratorContext getContext() {
+        return context;
+    }
 
-    public Path getSrcPath() { return srcPath; }
+    public Path getSrcPath() {
+        return srcPath;
+    }
 
     /**
      * Comparison implementation to allow for tests to be sorted (e.g., when added to a
@@ -208,7 +213,6 @@ public class LFTest implements Comparable<LFTest> {
         }
     }
 
-
     /**
      * Inner class for capturing streams during execution of a test, capable of
      * recording output streams up until the moment that a test is interrupted
@@ -260,7 +264,6 @@ public class LFTest implements Comparable<LFTest> {
                 } catch (IOException e) {
                     throw new RuntimeIOException(e);
                 }
-
             });
         }
 
@@ -273,7 +276,6 @@ public class LFTest implements Comparable<LFTest> {
             buffer = null;
         }
     }
-
 
     /**
      * Return a thread responsible for recording the standard output stream of the given process.

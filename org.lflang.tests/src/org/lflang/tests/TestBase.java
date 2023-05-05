@@ -3,7 +3,11 @@ package org.lflang.tests;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.io.FileWriter;
+import com.google.inject.Inject;
+import com.google.inject.Injector;
+import com.google.inject.Provider;
+import java.io.BufferedWriter;
+import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.io.PrintWriter;
@@ -12,8 +16,6 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.io.File;
-import java.io.BufferedWriter;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -24,7 +26,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
-
 import org.eclipse.emf.common.util.URI;
 import org.eclipse.emf.ecore.resource.Resource.Diagnostic;
 import org.eclipse.emf.ecore.resource.ResourceSet;
@@ -37,7 +38,6 @@ import org.eclipse.xtext.util.RuntimeIOException;
 import org.eclipse.xtext.validation.CheckMode;
 import org.eclipse.xtext.validation.IResourceValidator;
 import org.junit.jupiter.api.extension.ExtendWith;
-
 import org.lflang.DefaultErrorReporter;
 import org.lflang.FileConfig;
 import org.lflang.LFRuntimeModule;
@@ -48,18 +48,11 @@ import org.lflang.generator.LFGenerator;
 import org.lflang.generator.LFGeneratorContext;
 import org.lflang.generator.LFGeneratorContext.BuildParm;
 import org.lflang.generator.MainContext;
-import org.lflang.generator.GeneratorCommandFactory;
 import org.lflang.tests.Configurators.Configurator;
 import org.lflang.tests.LFTest.Result;
 import org.lflang.tests.TestRegistry.TestCategory;
 import org.lflang.util.FileUtil;
 import org.lflang.util.LFCommand;
-import org.lflang.util.ArduinoUtil;
-
-
-import com.google.inject.Inject;
-import com.google.inject.Injector;
-import com.google.inject.Provider;
 
 /**
  * Base class for test classes that define JUnit tests.
@@ -72,13 +65,15 @@ public abstract class TestBase {
 
     @Inject
     IResourceValidator validator;
+
     @Inject
     LFGenerator generator;
+
     @Inject
     JavaIoFileSystemAccess fileAccess;
+
     @Inject
     Provider<ResourceSet> resourceSetProvider;
-
 
     /** Reference to System.out. */
     private static final PrintStream out = System.out;
@@ -91,13 +86,11 @@ public abstract class TestBase {
 
     /** Content separator used in test output, 78 characters wide. */
     public static final String THIN_LINE =
-        "------------------------------------------------------------------------------" +
-            System.lineSeparator();
+            "------------------------------------------------------------------------------" + System.lineSeparator();
 
     /** Content separator used in test output, 78 characters wide. */
     public static final String THICK_LINE =
-        "==============================================================================" +
-            System.lineSeparator();
+            "==============================================================================" + System.lineSeparator();
 
     /** The targets for which to run the tests. */
     private final List<Target> targets;
@@ -107,16 +100,21 @@ public abstract class TestBase {
      * @author Marten Lohstroh
      *
      */
-    public enum TestLevel {VALIDATION, CODE_GEN, BUILD, EXECUTION}
+    public enum TestLevel {
+        VALIDATION,
+        CODE_GEN,
+        BUILD,
+        EXECUTION
+    }
 
     /**
      * Static function for converting a path to its associated test level.
      * @author Anirudh Rengarajan
      */
     public static TestLevel pathToLevel(Path path) {
-        while(path.getParent() != null) {
+        while (path.getParent() != null) {
             String name = path.getFileName().toString();
-            for (var category: TestCategory.values()) {
+            for (var category : TestCategory.values()) {
                 if (category.name().equalsIgnoreCase(name)) {
                     return category.level;
                 }
@@ -157,13 +155,15 @@ public abstract class TestBase {
         public static final String DESC_ARDUINO = "Running Arduino tests.";
         public static final String DESC_ZEPHYR = "Running Zephyr tests.";
         public static final String DESC_AS_CCPP = "Running C tests as CCpp.";
-        public static final String DESC_SINGLE_THREADED = "Run non-concurrent and non-federated tests with threading = off.";
+        public static final String DESC_SINGLE_THREADED =
+                "Run non-concurrent and non-federated tests with threading = off.";
         public static final String DESC_SCHED_SWAPPING = "Running with non-default runtime scheduler ";
         public static final String DESC_ROS2 = "Running tests using ROS2.";
         public static final String DESC_MODAL = "Run modal reactor tests.";
 
         /* Missing dependency messages */
-        public static final String MISSING_DOCKER = "Executable 'docker' not found or 'docker' daemon thread not running";
+        public static final String MISSING_DOCKER =
+                "Executable 'docker' not found or 'docker' daemon thread not running";
         public static final String MISSING_ARDUINO_CLI = "Executable 'arduino-cli' not found";
     }
 
@@ -189,11 +189,8 @@ public abstract class TestBase {
      * @param copy Whether or not to work on copies of tests in the test.
      * registry.
      */
-    protected final void runTestsAndPrintResults(Target target,
-                                                 Predicate<TestCategory> selected,
-                                                 TestLevel level,
-                                                 Configurator configurator,
-                                                 boolean copy) {
+    protected final void runTestsAndPrintResults(
+            Target target, Predicate<TestCategory> selected, TestLevel level, Configurator configurator, boolean copy) {
         var categories = Arrays.stream(TestCategory.values()).filter(selected).toList();
         for (var category : categories) {
             System.out.println(category.getHeader());
@@ -218,14 +215,14 @@ public abstract class TestBase {
      * @param copy Whether or not to work on copies of tests in the test.
      * registry.
      */
-    protected void runTestsForTargets(String description,
-                                      Predicate<TestCategory> selected,
-                                      Configurator configurator,
-                                      TestLevel level,
-                                      boolean copy) {
+    protected void runTestsForTargets(
+            String description,
+            Predicate<TestCategory> selected,
+            Configurator configurator,
+            TestLevel level,
+            boolean copy) {
         for (Target target : this.targets) {
-            runTestsFor(List.of(target), description, selected,
-                        configurator, level, copy);
+            runTestsFor(List.of(target), description, selected, configurator, level, copy);
         }
     }
 
@@ -240,12 +237,13 @@ public abstract class TestBase {
      * @param copy Whether to work on copies of tests in the test.
      * registry.
      */
-    protected void runTestsFor(List<Target> subset,
-                               String description,
-                               Predicate<TestCategory> selected,
-                               Configurator configurator,
-                               TestLevel level,
-                               boolean copy) {
+    protected void runTestsFor(
+            List<Target> subset,
+            String description,
+            Predicate<TestCategory> selected,
+            Configurator configurator,
+            TestLevel level,
+            boolean copy) {
         for (Target target : subset) {
             printTestHeader(target, description);
             runTestsAndPrintResults(target, selected, level, configurator, copy);
@@ -268,7 +266,7 @@ public abstract class TestBase {
         return OS.contains("win");
     }
 
-     /**
+    /**
      * Determine whether the current platform is MacOS.
      * @return true if the current platform is MacOS, false otherwise.
      */
@@ -306,7 +304,6 @@ public abstract class TestBase {
         System.setErr(new PrintStream(test.getOutputStream()));
     }
 
-
     /**
      * Run a test, print results on stderr.
      *
@@ -322,7 +319,8 @@ public abstract class TestBase {
         TestBase runner;
         try {
             @SuppressWarnings("unchecked")
-            Constructor<? extends TestBase> constructor = (Constructor<? extends TestBase>) testClass.getConstructors()[0];
+            Constructor<? extends TestBase> constructor =
+                    (Constructor<? extends TestBase>) testClass.getConstructors()[0];
             runner = constructor.newInstance();
         } catch (InstantiationException | IllegalAccessException | InvocationTargetException e) {
             throw new IllegalStateException(e);
@@ -406,20 +404,28 @@ public abstract class TestBase {
             System.out.println("Using default runtime.");
         }
 
-        var r = resourceSetProvider.get().getResource(
-            URI.createFileURI(test.getSrcPath().toFile().getAbsolutePath()),
-            true);
+        var r = resourceSetProvider
+                .get()
+                .getResource(URI.createFileURI(test.getSrcPath().toFile().getAbsolutePath()), true);
 
         if (r.getErrors().size() > 0) {
-            String message = r.getErrors().stream().map(Diagnostic::toString).collect(Collectors.joining(System.lineSeparator()));
+            String message = r.getErrors().stream()
+                    .map(Diagnostic::toString)
+                    .collect(Collectors.joining(System.lineSeparator()));
             throw new TestError(message, Result.PARSE_FAIL);
         }
 
-        fileAccess.setOutputPath(FileConfig.findPackageRoot(test.getSrcPath(), s -> {}).resolve(FileConfig.DEFAULT_SRC_GEN_DIR).toString());
+        fileAccess.setOutputPath(FileConfig.findPackageRoot(test.getSrcPath(), s -> {})
+                .resolve(FileConfig.DEFAULT_SRC_GEN_DIR)
+                .toString());
         var context = new MainContext(
-            LFGeneratorContext.Mode.STANDALONE, CancelIndicator.NullImpl, (m, p) -> {}, props, r, fileAccess,
-            fileConfig -> new DefaultErrorReporter()
-        );
+                LFGeneratorContext.Mode.STANDALONE,
+                CancelIndicator.NullImpl,
+                (m, p) -> {},
+                props,
+                r,
+                fileAccess,
+                fileConfig -> new DefaultErrorReporter());
 
         test.configure(context);
 
@@ -427,7 +433,7 @@ public abstract class TestBase {
         if (level.compareTo(TestLevel.BUILD) < 0) {
             context.getArgs().setProperty("no-compile", "");
         }
-        
+
         // Reload in case target properties have changed.
         context.loadTargetConfig();
         // Update the test by applying the configuration. E.g., to carry out an AST transformation.
@@ -445,11 +451,12 @@ public abstract class TestBase {
         // Validate the resource and store issues in the test object.
         try {
             var context = test.getContext();
-            var issues = validator.validate(context.getFileConfig().resource,
-                                            CheckMode.ALL, context.getCancelIndicator());
+            var issues =
+                    validator.validate(context.getFileConfig().resource, CheckMode.ALL, context.getCancelIndicator());
             if (issues != null && !issues.isEmpty()) {
                 if (issues.stream().anyMatch(it -> it.getSeverity() == Severity.ERROR)) {
-                    String message = issues.stream().map(Objects::toString).collect(Collectors.joining(System.lineSeparator()));
+                    String message =
+                            issues.stream().map(Objects::toString).collect(Collectors.joining(System.lineSeparator()));
                     throw new TestError(message, Result.VALIDATE_FAIL);
                 }
             }
@@ -459,7 +466,6 @@ public abstract class TestBase {
             throw new TestError("Exception during validation.", Result.VALIDATE_FAIL, e);
         }
     }
-
 
     /**
      * Override to add some LFC arguments to all runs of this test class.
@@ -489,7 +495,6 @@ public abstract class TestBase {
 
         return test.getContext().getResult();
     }
-
 
     /**
      * Given an indexed test, execute it and label the test as failing if it
@@ -533,10 +538,12 @@ public abstract class TestBase {
                 if (p.exitValue() != 0) {
                     String message = "Exit code: " + p.exitValue();
                     if (p.exitValue() == 139) {
-                        // The java ProcessBuilder and Process interface does not allow us to reliably retrieve stderr and stdout
-                        // from a process that segfaults. We can only print a message indicating that the putput is incomplete.
-                        message += System.lineSeparator() +
-                            "This exit code typically indicates a segfault. In this case, the execution output is likely missing or incomplete.";
+                        // The java ProcessBuilder and Process interface does not allow us to reliably retrieve stderr
+                        // and stdout
+                        // from a process that segfaults. We can only print a message indicating that the putput is
+                        // incomplete.
+                        message += System.lineSeparator()
+                                + "This exit code typically indicates a segfault. In this case, the execution output is likely missing or incomplete.";
                     }
                     throw new TestError(message, Result.TEST_FAIL);
                 }
@@ -549,7 +556,7 @@ public abstract class TestBase {
         }
     }
 
-    static public String stackTraceToString(Throwable t) {
+    public static String stackTraceToString(Throwable t) {
         StringWriter sw = new StringWriter();
         PrintWriter pw = new PrintWriter(sw);
         t.printStackTrace(pw);
@@ -559,12 +566,13 @@ public abstract class TestBase {
     }
 
     /** Bash script that is used to execute docker tests. */
-    static private String DOCKER_RUN_SCRIPT = """
+    private static String DOCKER_RUN_SCRIPT =
+            """
             #!/bin/bash
 
             # exit when any command fails
             set -e
-            
+
             docker compose -f "$1" rm -f
             docker compose -f "$1" up --build | tee docker_log.txt
             docker compose -f "$1" down --rmi local
@@ -619,10 +627,10 @@ public abstract class TestBase {
      */
     private void checkDockerExists() throws TestError {
         if (LFCommand.get("docker", List.of()) == null) {
-            throw new TestError("Executable 'docker' not found" , Result.NO_EXEC_FAIL);
+            throw new TestError("Executable 'docker' not found", Result.NO_EXEC_FAIL);
         }
         if (LFCommand.get("docker-compose", List.of()) == null) {
-            throw new TestError("Executable 'docker-compose' not found" , Result.NO_EXEC_FAIL);
+            throw new TestError("Executable 'docker-compose' not found", Result.NO_EXEC_FAIL);
         }
     }
 
@@ -633,7 +641,8 @@ public abstract class TestBase {
     private ProcessBuilder getDockerExecCommand(LFTest test) throws TestError {
         checkDockerExists();
         var srcGenPath = test.getFileConfig().getSrcGenPath();
-        var dockerComposeFile = FileUtil.globFilesEndsWith(srcGenPath, "docker-compose.yml").get(0);
+        var dockerComposeFile =
+                FileUtil.globFilesEndsWith(srcGenPath, "docker-compose.yml").get(0);
         return new ProcessBuilder(getDockerRunScript().toString(), dockerComposeFile.toString());
     }
 
@@ -644,11 +653,12 @@ public abstract class TestBase {
     private ProcessBuilder getExecCommand(LFTest test) throws TestError {
 
         var srcBasePath = test.getFileConfig().srcPkgPath.resolve("src");
-        var relativePathName = srcBasePath.relativize(test.getFileConfig().srcPath).toString();
+        var relativePathName =
+                srcBasePath.relativize(test.getFileConfig().srcPath).toString();
 
         // special case to test docker file generation
-        if (relativePathName.equalsIgnoreCase(TestCategory.DOCKER.getPath()) ||
-            relativePathName.equalsIgnoreCase(TestCategory.DOCKER_FEDERATED.getPath())) {
+        if (relativePathName.equalsIgnoreCase(TestCategory.DOCKER.getPath())
+                || relativePathName.equalsIgnoreCase(TestCategory.DOCKER_FEDERATED.getPath())) {
             return getDockerExecCommand(test);
         } else {
             LFCommand command = test.getFileConfig().getCommand();
@@ -690,8 +700,8 @@ public abstract class TestBase {
             } catch (TestError e) {
                 test.handleTestError(e);
             } catch (Throwable e) {
-                test.handleTestError(new TestError(
-                    "Unknown exception during test execution", Result.TEST_EXCEPTION, e));
+                test.handleTestError(
+                        new TestError("Unknown exception during test execution", Result.TEST_EXCEPTION, e));
             } finally {
                 restoreOutputs();
             }

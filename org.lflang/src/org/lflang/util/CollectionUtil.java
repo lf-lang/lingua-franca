@@ -50,7 +50,6 @@ public class CollectionUtil {
         return set;
     }
 
-
     public static <K, V> Map<K, V> plus(Map<K, V> map, K k, V v) {
         if (map == null || map.isEmpty()) {
             return Collections.singletonMap(k, v);
@@ -66,7 +65,6 @@ public class CollectionUtil {
         map.put(k, v);
         return map;
     }
-
 
     /**
      * Remove the given value from all the sets that are values
@@ -88,7 +86,6 @@ public class CollectionUtil {
         mapValuesInPlace(map, set -> minus(set, valueToRemove));
     }
 
-
     /**
      * Apply a transform to the values of the map. If the mapping
      * function returns null, the entry is removed.
@@ -107,7 +104,6 @@ public class CollectionUtil {
         }
     }
 
-
     /**
      * Returns a set that contains the elements of the given
      * set minus one element. An empty set is considered empty.
@@ -125,7 +121,6 @@ public class CollectionUtil {
         }
         throw new AssertionError("should be unreachable");
     }
-
 
     /**
      * Returns a map that is identical to the original map,
@@ -152,7 +147,6 @@ public class CollectionUtil {
         return map;
     }
 
-
     /**
      * Returns a copy of the set. The returned set should be
      * considered unmodifiable.
@@ -169,7 +163,6 @@ public class CollectionUtil {
         }
     }
 
-
     /**
      * Returns an immutable Set that contains all argument values.
      * Duplicate elements are removed without error (contrary
@@ -185,5 +178,4 @@ public class CollectionUtil {
         result.addAll(Arrays.asList(rest));
         return result;
     }
-
 }

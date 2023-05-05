@@ -14,15 +14,12 @@ public class CConstructorGenerator {
      * @param constructorCode Lines of code previously generated that need to
      *  go into the constructor.
      */
-    public static String generateConstructor(
-        Reactor reactor,
-        String constructorCode
-    ) {
+    public static String generateConstructor(Reactor reactor, String constructorCode) {
         var structType = CUtil.selfType(reactor);
         var code = new CodeBuilder();
-        code.pr(structType+"* new_"+CUtil.getName(reactor)+"() {");
+        code.pr(structType + "* new_" + CUtil.getName(reactor) + "() {");
         code.indent();
-        code.pr(structType+"* self = ("+structType+"*)_lf_new_reactor(sizeof("+structType+"));");
+        code.pr(structType + "* self = (" + structType + "*)_lf_new_reactor(sizeof(" + structType + "));");
         code.pr(constructorCode);
         code.pr("return self;");
         code.unindent();
@@ -31,6 +28,6 @@ public class CConstructorGenerator {
     }
 
     public static String generateConstructorPrototype(Reactor reactor) {
-        return CUtil.selfType(reactor)+"* new_"+CUtil.getName(reactor)+"();";
+        return CUtil.selfType(reactor) + "* new_" + CUtil.getName(reactor) + "();";
     }
 }

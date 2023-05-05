@@ -1,19 +1,9 @@
 package org.lflang.generator;
 
-import java.io.File;
 import java.nio.file.Path;
 import java.util.Collections;
-import java.util.List;
 import java.util.Map;
 import java.util.function.BiFunction;
-import java.util.function.Function;
-
-import org.eclipse.xtext.generator.GeneratorContext;
-
-import org.lflang.FileConfig;
-import org.lflang.Target;
-import org.lflang.TargetConfig;
-import org.lflang.util.LFCommand;
 
 /**
  * A {@code GeneratorResult} is the outcome of a code generation task.
@@ -24,16 +14,16 @@ public class GeneratorResult {
     public static GeneratorResult NOTHING = incompleteGeneratorResult(Status.NOTHING);
     public static GeneratorResult CANCELLED = incompleteGeneratorResult(Status.CANCELLED);
     public static GeneratorResult FAILED = incompleteGeneratorResult(Status.FAILED);
-    public static BiFunction<LFGeneratorContext, Map<Path, CodeMap>, GeneratorResult> GENERATED_NO_EXECUTABLE
-        = (context, codeMaps) -> new GeneratorResult(Status.GENERATED, context, codeMaps);
+    public static BiFunction<LFGeneratorContext, Map<Path, CodeMap>, GeneratorResult> GENERATED_NO_EXECUTABLE =
+            (context, codeMaps) -> new GeneratorResult(Status.GENERATED, context, codeMaps);
 
     /**
      * A {@code Status} is a level of completion of a code generation task.
      */
     public enum Status {
-        NOTHING(result -> ""),  // Code generation was not performed.
+        NOTHING(result -> ""), // Code generation was not performed.
         CANCELLED(result -> "Code generation was cancelled."),
-        FAILED(result -> ""),  // This may be due to a failed validation check, in which case the error should have been
+        FAILED(result -> ""), // This may be due to a failed validation check, in which case the error should have been
         // sent to the error reporter and handled there. This makes a message unnecessary.
         GENERATED(GetUserMessage.COMPLETED),
         COMPILED(GetUserMessage.COMPLETED);
@@ -45,10 +35,10 @@ public class GeneratorResult {
         public interface GetUserMessage {
             GetUserMessage COMPLETED = result -> {
                 return String.format(
-                    "Code generation complete. The executable is at \"%s\".",
-                    result.getContext().getFileConfig().getExecutable()
-                );
+                        "Code generation complete. The executable is at \"%s\".",
+                        result.getContext().getFileConfig().getExecutable());
             };
+
             String apply(GeneratorResult result);
         }
 
@@ -117,5 +107,4 @@ public class GeneratorResult {
     public LFGeneratorContext getContext() {
         return context;
     }
-
 }

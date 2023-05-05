@@ -1,15 +1,9 @@
 package org.lflang.generator.c;
 
-import java.util.LinkedList;
-
 import org.lflang.ASTUtils;
-import org.lflang.InferredType;
 import org.lflang.generator.CodeBuilder;
-import org.lflang.generator.GeneratorBase;
 import org.lflang.generator.ModeInstance;
 import org.lflang.generator.ReactorInstance;
-import org.lflang.lf.Expression;
-import org.lflang.lf.ParameterReference;
 import org.lflang.lf.Reactor;
 import org.lflang.lf.StateVar;
 
@@ -41,79 +35,55 @@ public class CStateGenerator {
      * @return
      */
     public static String generateInitializer(
-        ReactorInstance instance,
-        String selfRef,
-        StateVar stateVar,
-        ModeInstance mode,
-        CTypes types
-    ) {
+            ReactorInstance instance, String selfRef, StateVar stateVar, ModeInstance mode, CTypes types) {
         var initExpr = getInitializerExpr(stateVar, instance);
         String baseInitializer = generateBaseInitializer(selfRef, stateVar, initExpr, types);
         String modalReset = generateModalReset(instance, selfRef, stateVar, initExpr, mode, types);
-        return String.join("\n",
-            baseInitializer,
-            modalReset
-        );
+        return String.join("\n", baseInitializer, modalReset);
     }
 
-    private static String generateBaseInitializer(
-        String selfRef,
-        StateVar stateVar,
-        String initExpr,
-        CTypes types
-    ) {
-        if (ASTUtils.isOfTimeType(stateVar) ||
-            ASTUtils.isParameterized(stateVar) &&
-            !stateVar.getInit().getExprs().isEmpty()
-        ) {
+    private static String generateBaseInitializer(String selfRef, StateVar stateVar, String initExpr, CTypes types) {
+        if (ASTUtils.isOfTimeType(stateVar)
+                || ASTUtils.isParameterized(stateVar)
+                        && !stateVar.getInit().getExprs().isEmpty()) {
             return selfRef + "->" + stateVar.getName() + " = " + initExpr + ";";
         } else {
-            var declaration = types.getVariableDeclaration(
-                ASTUtils.getInferredType(stateVar),
-                "_initial", true);
-            return String.join("\n",
-                "{ // For scoping",
-                "    static "+declaration+" = "+initExpr+";",
-                "    "+selfRef+"->"+stateVar.getName()+" = _initial;",
-                "} // End scoping."
-            );
+            var declaration = types.getVariableDeclaration(ASTUtils.getInferredType(stateVar), "_initial", true);
+            return String.join(
+                    "\n",
+                    "{ // For scoping",
+                    "    static " + declaration + " = " + initExpr + ";",
+                    "    " + selfRef + "->" + stateVar.getName() + " = _initial;",
+                    "} // End scoping.");
         }
     }
 
     private static String generateModalReset(
-        ReactorInstance instance,
-        String selfRef,
-        StateVar stateVar,
-        String initExpr,
-        ModeInstance mode,
-        CTypes types
-    ) {
+            ReactorInstance instance,
+            String selfRef,
+            StateVar stateVar,
+            String initExpr,
+            ModeInstance mode,
+            CTypes types) {
         if (mode == null || !stateVar.isReset()) {
             return "";
         }
-        var modeRef = "&"+CUtil.reactorRef(mode.getParent())+"->_lf__modes["+mode.getParent().modes.indexOf(mode)+"]";
+        var modeRef = "&" + CUtil.reactorRef(mode.getParent()) + "->_lf__modes["
+                + mode.getParent().modes.indexOf(mode) + "]";
         var type = types.getTargetType(ASTUtils.getInferredType(stateVar));
 
-        if (ASTUtils.isOfTimeType(stateVar) ||
-            ASTUtils.isParameterized(stateVar) &&
-            !stateVar.getInit().getExprs().isEmpty()) {
-            return CModesGenerator.generateStateResetStructure(
-                modeRef, selfRef,
-                stateVar.getName(),
-                initExpr, type);
+        if (ASTUtils.isOfTimeType(stateVar)
+                || ASTUtils.isParameterized(stateVar)
+                        && !stateVar.getInit().getExprs().isEmpty()) {
+            return CModesGenerator.generateStateResetStructure(modeRef, selfRef, stateVar.getName(), initExpr, type);
         } else {
             CodeBuilder code = new CodeBuilder();
             var source = "_initial";
-            var declaration = types.getVariableDeclaration(
-                ASTUtils.getInferredType(stateVar),
-                source, true);
+            var declaration = types.getVariableDeclaration(ASTUtils.getInferredType(stateVar), source, true);
             code.pr("{ // For scoping");
             code.indent();
-            code.pr("static "+declaration+" = "+initExpr+";");
-            code.pr(CModesGenerator.generateStateResetStructure(
-                modeRef, selfRef,
-                stateVar.getName(),
-                source, type));
+            code.pr("static " + declaration + " = " + initExpr + ";");
+            code.pr(CModesGenerator.generateStateResetStructure(modeRef, selfRef, stateVar.getName(), source, type));
             code.unindent();
             code.pr("} // End scoping.");
             return code.toString();

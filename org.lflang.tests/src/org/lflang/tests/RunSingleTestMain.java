@@ -29,7 +29,6 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
 import org.lflang.Target;
 import org.lflang.tests.runtime.CCppTest;
 import org.lflang.tests.runtime.CTest;
@@ -45,7 +44,6 @@ import org.lflang.tests.runtime.TypeScriptTest;
  * @author Clément Fournier
  */
 public class RunSingleTestMain {
-
 
     private static final Pattern TEST_FILE_PATTERN = Pattern.compile("(test/(\\w+))/src/([^/]++/)*(\\w+.lf)");
 
@@ -74,20 +72,20 @@ public class RunSingleTestMain {
 
     private static Class<? extends TestBase> getTestInstance(Target target) {
         switch (target) {
-        case C:
-            return CTest.class;
-        case CCPP:
-            return CCppTest.class;
-        case CPP:
-            return CppTest.class;
-        case TS:
-            return TypeScriptTest.class;
-        case Python:
-            return PythonTest.class;
-        case Rust:
-            return RustTest.class;
-        default:
-            throw new IllegalArgumentException();
+            case C:
+                return CTest.class;
+            case CCPP:
+                return CCppTest.class;
+            case CPP:
+                return CppTest.class;
+            case TS:
+                return TypeScriptTest.class;
+            case Python:
+                return PythonTest.class;
+            case Rust:
+                return RustTest.class;
+            default:
+                throw new IllegalArgumentException();
         }
     }
 }

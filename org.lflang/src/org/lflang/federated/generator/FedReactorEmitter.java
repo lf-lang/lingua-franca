@@ -1,7 +1,6 @@
 package org.lflang.federated.generator;
 
 import java.util.stream.Collectors;
-
 import org.lflang.ast.FormattingUtils;
 import org.lflang.lf.Model;
 
@@ -15,10 +14,9 @@ public class FedReactorEmitter {
      */
     String generateReactorDefinitions(FederateInstance federate) {
         return ((Model) federate.instantiation.eContainer().eContainer())
-            .getReactors()
-            .stream()
-            .filter(federate::contains)
-            .map(FormattingUtils.renderer(federate.targetConfig.target))
-            .collect(Collectors.joining("\n"));
+                .getReactors().stream()
+                        .filter(federate::contains)
+                        .map(FormattingUtils.renderer(federate.targetConfig.target))
+                        .collect(Collectors.joining("\n"));
     }
 }

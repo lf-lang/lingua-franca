@@ -32,7 +32,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
 import org.lflang.lf.Connection;
 
 /**
@@ -41,14 +40,14 @@ import org.lflang.lf.Connection;
  * receive the same data sent in this range.
  * All ranges in the destinations list have widths that are an integer
  * multiple N of this range but not necessarily the same start offsets.
- * 
+ *
  * This class and subclasses are designed to be immutable.
  * Modifications always return a new RuntimeRange.
  *
  * @author Edward A. Lee
-*/
+ */
 public class SendRange extends RuntimeRange.Port {
-    
+
     /**
      * Create a new send range.
      * @param instance The instance over which this is a range of.
@@ -58,12 +57,7 @@ public class SendRange extends RuntimeRange.Port {
      * @param connection The connection that establishes this send or null if not unique or none.
      */
     public SendRange(
-            PortInstance instance,
-            int start,
-            int width,
-            Set<ReactorInstance> interleaved,
-            Connection connection
-    ) {
+            PortInstance instance, int start, int width, Set<ReactorInstance> interleaved, Connection connection) {
         super(instance, start, width, interleaved);
         this.connection = connection;
     }
@@ -81,8 +75,7 @@ public class SendRange extends RuntimeRange.Port {
             RuntimeRange<PortInstance> src,
             RuntimeRange<PortInstance> dst,
             Set<ReactorInstance> interleaved,
-            Connection connection
-    ) {
+            Connection connection) {
         super(src.instance, src.start, src.width, interleaved);
         destinations.add(dst);
         _interleaved.addAll(src._interleaved);
@@ -94,7 +87,7 @@ public class SendRange extends RuntimeRange.Port {
 
     /** The connection that establishes this relationship or null if not unique or none. */
     public final Connection connection;
-    
+
     /** The list of destination ranges to which this broadcasts. */
     public final List<RuntimeRange<PortInstance>> destinations = new ArrayList<>();
 
@@ -109,14 +102,13 @@ public class SendRange extends RuntimeRange.Port {
      */
     public void addDestination(RuntimeRange<PortInstance> dst) {
         if (dst.width % width != 0) {
-            throw new IllegalArgumentException(
-                    "Destination range width is not a multiple of sender's width");
+            throw new IllegalArgumentException("Destination range width is not a multiple of sender's width");
         }
         destinations.add(dst);
         // Void any precomputed number of destinations.
         _numberOfDestinationReactors = -1;
     }
-    
+
     /**
      * Override the base class to add additional comparisons so that
      * ordering is never ambiguous. This means that sorting will be deterministic.
@@ -127,9 +119,9 @@ public class SendRange extends RuntimeRange.Port {
         int result = super.compareTo(o);
         if (result == 0) {
             // Longer destination lists come first.
-            if (destinations.size() > ((SendRange)o).destinations.size()) {
+            if (destinations.size() > ((SendRange) o).destinations.size()) {
                 return -1;
-            } else if (destinations.size() == ((SendRange)o).destinations.size()) {
+            } else if (destinations.size() == ((SendRange) o).destinations.size()) {
                 return instance.getFullName().compareTo(o.instance.getFullName());
             } else {
                 return 1;
@@ -183,7 +175,7 @@ public class SendRange extends RuntimeRange.Port {
         if (newWidth <= 0) return null;
 
         SendRange result = new SendRange(instance, start, newWidth, _interleaved, connection);
-        
+
         for (RuntimeRange<PortInstance> destination : destinations) {
             result.destinations.add(destination.head(newWidth));
         }
@@ -209,12 +201,8 @@ public class SendRange extends RuntimeRange.Port {
             // split into multiple destinations.
             while (destination != null) {
                 int dstStart = destination.start + (newStart - start);
-                RuntimeRange.Port dst = new RuntimeRange.Port(
-                        destination.instance,
-                        dstStart,
-                        newWidth,
-                        destination._interleaved
-                );
+                RuntimeRange.Port dst =
+                        new RuntimeRange.Port(destination.instance, dstStart, newWidth, destination._interleaved);
                 result.addDestination(dst);
                 destination = destination.tail(width);
             }
@@ -229,15 +217,14 @@ public class SendRange extends RuntimeRange.Port {
      * If this offset is 0 then this returns this range unmodified.
      * This overrides the base class to also apply tail()
      * to the destination list.
-     * @param offset The number of elements to consume. 
+     * @param offset The number of elements to consume.
      */
     @Override
     public SendRange tail(int offset) {
         // NOTE: Cannot use the superclass because it returns a RuntimeRange, not a SendRange.
         // Also, cannot return this without applying tail() to the destinations.
         if (offset >= width) return null;
-        SendRange result = new SendRange(
-                instance, start + offset, width - offset, _interleaved, connection);
+        SendRange result = new SendRange(instance, start + offset, width - offset, _interleaved, connection);
 
         for (RuntimeRange<PortInstance> destination : destinations) {
             result.destinations.add(destination.tail(offset));
@@ -269,11 +256,11 @@ public class SendRange extends RuntimeRange.Port {
      * overlaps with this SendRange and the destinations include all the
      * destinations of this SendRange. If the assumption is not satisfied,
      * throw an IllegalArgumentException.
-     * 
+     *
      * If any parent of this range is marked interleaved and is also a parent of the
      * specified srcRange, then that parent will be marked interleaved
      * in the result.
-     * 
+     *
      * @param srcRange A new source range.
      * @param srcRangeOffset An offset into the source range.
      */
@@ -283,22 +270,18 @@ public class SendRange extends RuntimeRange.Port {
         for (RuntimeRange<PortInstance> srcDestination : srcRange.destinations) {
             RuntimeRange<?> overlap = srcDestination.overlap(this);
             if (overlap == null) continue; // Not this one.
-            
+
             if (overlap.width == width) {
                 // Found an overlap that is completely contained.
                 // If this width is greater than the srcRange width,
                 // then assume srcRange is multicasting via this.
-                int newWidth = Math.min(width,  srcRange.width);
+                int newWidth = Math.min(width, srcRange.width);
                 // The interleaving of the result is the union of the two interleavings.
                 Set<ReactorInstance> interleaving = new LinkedHashSet<>();
                 interleaving.addAll(_interleaved);
                 interleaving.addAll(srcRange._interleaved);
                 SendRange result = new SendRange(
-                        srcRange.instance,
-                        srcRange.start + srcRangeOffset,
-                        newWidth,
-                        interleaving,
-                        connection);
+                        srcRange.instance, srcRange.start + srcRangeOffset, newWidth, interleaving, connection);
                 for (RuntimeRange<PortInstance> dst : destinations) {
                     result.addDestination(dst);
                 }
@@ -306,8 +289,7 @@ public class SendRange extends RuntimeRange.Port {
             }
         }
         throw new IllegalArgumentException(
-                "Expected this SendRange " + this
-                + " to be completely contained by a destination of " + srcRange);
+                "Expected this SendRange " + this + " to be completely contained by a destination of " + srcRange);
     }
 
     //////////////////////////////////////////////////////////

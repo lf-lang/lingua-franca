@@ -1,16 +1,16 @@
 /*************
  * Copyright (c) 2019-2020, The University of California at Berkeley.
-
+ *
  * Redistribution and use in source and binary forms, with or without modification,
  * are permitted provided that the following conditions are met:
-
+ *
  * 1. Redistributions of source code must retain the above copyright notice,
  *    this list of conditions and the following disclaimer.
-
+ *
  * 2. Redistributions in binary form must reproduce the above copyright notice,
  *    this list of conditions and the following disclaimer in the documentation
  *    and/or other materials provided with the distribution.
-
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -24,23 +24,23 @@
  ***************/
 package org.lflang.generator;
 
+import com.google.common.base.Objects;
+import com.google.common.collect.Iterables;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.LinkedHashSet;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
 import org.eclipse.core.resources.IMarker;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.emf.ecore.util.EcoreUtil;
 import org.eclipse.xtext.xbase.lib.IterableExtensions;
 import org.eclipse.xtext.xbase.lib.IteratorExtensions;
-
 import org.lflang.ASTUtils;
 import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
@@ -53,14 +53,10 @@ import org.lflang.lf.Connection;
 import org.lflang.lf.Instantiation;
 import org.lflang.lf.LfFactory;
 import org.lflang.lf.Mode;
-
 import org.lflang.lf.Reaction;
 import org.lflang.lf.Reactor;
 import org.lflang.util.FileUtil;
 import org.lflang.validation.AbstractLFValidator;
-
-import com.google.common.base.Objects;
-import com.google.common.collect.Iterables;
 
 /**
  * Generator base class for specifying core functionality
@@ -93,7 +89,9 @@ public abstract class GeneratorBase extends AbstractLFValidator {
      */
     protected final TargetConfig targetConfig;
 
-    public TargetConfig getTargetConfig() { return this.targetConfig;}
+    public TargetConfig getTargetConfig() {
+        return this.targetConfig;
+    }
 
     public final LFGeneratorContext context;
 
@@ -102,7 +100,9 @@ public abstract class GeneratorBase extends AbstractLFValidator {
      */
     protected GeneratorCommandFactory commandFactory;
 
-    public GeneratorCommandFactory getCommandFactory() { return commandFactory; }
+    public GeneratorCommandFactory getCommandFactory() {
+        return commandFactory;
+    }
 
     /**
      * Definition of the main (top-level) reactor.
@@ -110,7 +110,10 @@ public abstract class GeneratorBase extends AbstractLFValidator {
      * reactor.
      */
     protected Instantiation mainDef;
-    public Instantiation getMainDef() { return mainDef; }
+
+    public Instantiation getMainDef() {
+        return mainDef;
+    }
 
     /**
      * A list of Reactor definitions in the main resource, including non-main
@@ -152,7 +155,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
     /**
      * Map from reactions to bank indices
      */
-    protected Map<Reaction,Integer> reactionBankIndices = null;
+    protected Map<Reaction, Integer> reactionBankIndices = null;
 
     /**
      * Indicates whether the current Lingua Franca program
@@ -202,7 +205,8 @@ public abstract class GeneratorBase extends AbstractLFValidator {
      */
     private void createMainInstantiation() {
         // Find the main reactor and create an AST node for its instantiation.
-        Iterable<EObject> nodes = IteratorExtensions.toIterable(context.getFileConfig().resource.getAllContents());
+        Iterable<EObject> nodes =
+                IteratorExtensions.toIterable(context.getFileConfig().resource.getAllContents());
         for (Reactor reactor : Iterables.filter(nodes, Reactor.class)) {
             if (reactor.isMain()) {
                 // Creating a definition for the main reactor because there isn't one.
@@ -250,7 +254,8 @@ public abstract class GeneratorBase extends AbstractLFValidator {
 
         // Configure the command factory
         commandFactory.setVerbose();
-        if (Objects.equal(context.getMode(), LFGeneratorContext.Mode.STANDALONE) && context.getArgs().containsKey("quiet")) {
+        if (Objects.equal(context.getMode(), LFGeneratorContext.Mode.STANDALONE)
+                && context.getArgs().containsKey("quiet")) {
             commandFactory.setQuiet();
         }
 
@@ -265,17 +270,19 @@ public abstract class GeneratorBase extends AbstractLFValidator {
         setReactorsAndInstantiationGraph(context.getMode());
 
         List<Resource> allResources = GeneratorUtils.getResources(reactors);
-        resources.addAll(allResources.stream()  // FIXME: This filter reproduces the behavior of the method it replaces. But why must it be so complicated? Why are we worried about weird corner cases like this?
-            .filter(it -> !Objects.equal(it, context.getFileConfig().resource) || mainDef != null && it == mainDef.getReactorClass().eResource())
-            .map(it -> GeneratorUtils.getLFResource(it, context.getFileConfig().getSrcGenBasePath(), context, errorReporter))
-            .toList()
-        );
+        resources.addAll(
+                allResources
+                        .stream() // FIXME: This filter reproduces the behavior of the method it replaces. But why must
+                        // it be so
+                        // complicated? Why are we worried about weird corner cases like this?
+                        .filter(it -> !Objects.equal(it, context.getFileConfig().resource)
+                                || mainDef != null
+                                        && it == mainDef.getReactorClass().eResource())
+                        .map(it -> GeneratorUtils.getLFResource(
+                                it, context.getFileConfig().getSrcGenBasePath(), context, errorReporter))
+                        .toList());
         GeneratorUtils.accommodatePhysicalActionsIfPresent(
-            allResources,
-            getTarget().setsKeepAliveOptionAutomatically(),
-            targetConfig,
-            errorReporter
-        );
+                allResources, getTarget().setsKeepAliveOptionAutomatically(), targetConfig, errorReporter);
         // FIXME: Should the GeneratorBase pull in `files` from imported
         // resources?
 
@@ -292,7 +299,8 @@ public abstract class GeneratorBase extends AbstractLFValidator {
         setReactorsAndInstantiationGraph(context.getMode());
 
         // Check for existence and support of modes
-        hasModalReactors = IterableExtensions.exists(reactors, it -> !it.getModes().isEmpty());
+        hasModalReactors =
+                IterableExtensions.exists(reactors, it -> !it.getModes().isEmpty());
         checkModalReactorSupport(false);
         additionalPostProcessingForModes();
     }
@@ -332,7 +340,8 @@ public abstract class GeneratorBase extends AbstractLFValidator {
         // If there is no main reactor or if all reactors in the file need to be validated, then make sure the reactors
         // list includes even reactors that are not instantiated anywhere.
         if (mainDef == null || Objects.equal(mode, LFGeneratorContext.Mode.LSP_MEDIUM)) {
-            Iterable<EObject> nodes = IteratorExtensions.toIterable(context.getFileConfig().resource.getAllContents());
+            Iterable<EObject> nodes = IteratorExtensions.toIterable(
+                    context.getFileConfig().resource.getAllContents());
             for (Reactor r : IterableExtensions.filter(nodes, Reactor.class)) {
                 if (!reactors.contains(r)) {
                     reactors.add(r);
@@ -428,8 +437,8 @@ public abstract class GeneratorBase extends AbstractLFValidator {
      */
     protected void checkModalReactorSupport(boolean isSupported) {
         if (hasModalReactors && !isSupported) {
-            errorReporter.reportError("The currently selected code generation or " +
-                                      "target configuration does not support modal reactors!");
+            errorReporter.reportError("The currently selected code generation or "
+                    + "target configuration does not support modal reactors!");
         }
     }
 
@@ -444,13 +453,17 @@ public abstract class GeneratorBase extends AbstractLFValidator {
                 var factory = LfFactory.eINSTANCE;
                 for (Connection connection : transform) {
                     // Currently only simple transformations are supported
-                    if (connection.isPhysical() || connection.getDelay() != null || connection.isIterated() ||
-                        connection.getLeftPorts().size() > 1 || connection.getRightPorts().size() > 1
-                    ) {
-                        errorReporter.reportError(connection, "Cannot transform connection in modal reactor. Connection uses currently not supported features.");
+                    if (connection.isPhysical()
+                            || connection.getDelay() != null
+                            || connection.isIterated()
+                            || connection.getLeftPorts().size() > 1
+                            || connection.getRightPorts().size() > 1) {
+                        errorReporter.reportError(
+                                connection,
+                                "Cannot transform connection in modal reactor. Connection uses currently not supported features.");
                     } else {
                         var reaction = factory.createReaction();
-                        ((Mode)connection.eContainer()).getReactions().add(reaction);
+                        ((Mode) connection.eContainer()).getReactions().add(reaction);
 
                         var sourceRef = connection.getLeftPorts().get(0);
                         var destRef = connection.getRightPorts().get(0);
@@ -458,10 +471,14 @@ public abstract class GeneratorBase extends AbstractLFValidator {
                         reaction.getEffects().add(destRef);
 
                         var code = factory.createCode();
-                        var source = (sourceRef.getContainer() != null ?
-                                sourceRef.getContainer().getName() + "." : "") + sourceRef.getVariable().getName();
-                        var dest = (destRef.getContainer() != null ?
-                                destRef.getContainer().getName() + "." : "") + destRef.getVariable().getName();
+                        var source = (sourceRef.getContainer() != null
+                                        ? sourceRef.getContainer().getName() + "."
+                                        : "")
+                                + sourceRef.getVariable().getName();
+                        var dest = (destRef.getContainer() != null
+                                        ? destRef.getContainer().getName() + "."
+                                        : "")
+                                + destRef.getVariable().getName();
                         code.setBody(getConflictingConnectionsInModalReactorsBody(source, dest));
                         reaction.setCode(code);
 
@@ -479,9 +496,8 @@ public abstract class GeneratorBase extends AbstractLFValidator {
      * support modal reactors.
      */
     protected String getConflictingConnectionsInModalReactorsBody(String source, String dest) {
-        errorReporter.reportError("The currently selected code generation " +
-                                  "is missing an implementation for conflicting " +
-                                  "transforming connections in modal reactors.");
+        errorReporter.reportError("The currently selected code generation "
+                + "is missing an implementation for conflicting " + "transforming connections in modal reactors.");
         return "MODAL MODELS NOT SUPPORTED";
     }
 
@@ -504,7 +520,8 @@ public abstract class GeneratorBase extends AbstractLFValidator {
 
         @Override
         public String toString() {
-          return (isError ? "Error" : "Non-error") + " at " + line + ":" + character + " of file " + filepath + ": " + message;
+            return (isError ? "Error" : "Non-error") + " at " + line + ":" + character + " of file " + filepath + ": "
+                    + message;
         }
     }
 
@@ -555,8 +572,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
                 if (message.length() > 0) {
                     if (severity == IMarker.SEVERITY_ERROR)
                         errorReporter.reportError(path, lineNumber, message.toString());
-                    else
-                        errorReporter.reportWarning(path, lineNumber, message.toString());
+                    else errorReporter.reportWarning(path, lineNumber, message.toString());
 
                     if (!Objects.equal(originalPath.toFile(), path.toFile())) {
                         // Report an error also in the top-level resource.
@@ -568,7 +584,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
                         } else {
                             errorReporter.reportWarning(originalPath, 1, "Warning in imported file: " + path);
                         }
-                     }
+                    }
                 }
                 if (parsed.isError) {
                     severity = IMarker.SEVERITY_ERROR;
@@ -632,19 +648,22 @@ public abstract class GeneratorBase extends AbstractLFValidator {
      * what mode the generator is in, and where the generated sources are to be put.
      */
     public void printInfo(LFGeneratorContext.Mode mode) {
-        System.out.println("Generating code for: " + context.getFileConfig().resource.getURI().toString());
+        System.out.println("Generating code for: "
+                + context.getFileConfig().resource.getURI().toString());
         System.out.println("******** mode: " + mode);
-        System.out.println("******** generated sources: " + context.getFileConfig().getSrcGenPath());
+        System.out.println(
+                "******** generated sources: " + context.getFileConfig().getSrcGenPath());
     }
 
     /**
      * Get the buffer type used for network messages
      */
-    public String getNetworkBufferType() { return ""; }
+    public String getNetworkBufferType() {
+        return "";
+    }
 
     /**
      * Return the Targets enum for the current target
      */
     public abstract Target getTarget();
-
 }

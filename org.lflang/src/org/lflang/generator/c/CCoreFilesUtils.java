@@ -1,4 +1,5 @@
 package org.lflang.generator.c;
+
 import java.util.List;
 
 /**
@@ -11,15 +12,11 @@ import java.util.List;
 public class CCoreFilesUtils {
 
     public static List<String> getCTargetSrc() {
-        return List.of(
-            "lib/schedule.c"
-        );
+        return List.of("lib/schedule.c");
     }
 
     public static List<String> getCTargetHeader() {
-        return List.of(
-            "include/api/api.h"
-        );
+        return List.of("include/api/api.h");
     }
 
     public static String getCTargetSetHeader() {

@@ -24,17 +24,13 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  ***************/
-
 package org.lflang.cli;
 
+import com.google.inject.Inject;
 import java.nio.file.Path;
-
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.xtext.diagnostics.Severity;
-
 import org.lflang.ErrorReporter;
-
-import com.google.inject.Inject;
 
 /**
  * An error reporter that forwards all messages to an {@link IssueCollector}.
@@ -57,12 +53,10 @@ public class StandaloneErrorReporter implements ErrorReporter {
         return message;
     }
 
-
     @Override
     public String reportError(String message) {
         return reportSimpleFileCtx(message, Severity.ERROR, null, null);
     }
-
 
     @Override
     public String reportWarning(String message) {
@@ -74,12 +68,10 @@ public class StandaloneErrorReporter implements ErrorReporter {
         return reportSimpleFileCtx(message, Severity.INFO, null, null);
     }
 
-
     @Override
     public String reportError(EObject obj, String message) {
         return reportWithNode(message, Severity.ERROR, obj);
     }
-
 
     @Override
     public String reportWarning(EObject obj, String message) {
@@ -91,12 +83,10 @@ public class StandaloneErrorReporter implements ErrorReporter {
         return reportWithNode(message, Severity.INFO, obj);
     }
 
-
     @Override
     public String reportError(Path file, Integer line, String message) {
         return reportSimpleFileCtx(message, Severity.ERROR, line, file);
     }
-
 
     @Override
     public String reportWarning(Path file, Integer line, String message) {
@@ -107,7 +97,6 @@ public class StandaloneErrorReporter implements ErrorReporter {
     public String reportInfo(Path file, Integer line, String message) {
         return reportSimpleFileCtx(message, Severity.INFO, line, file);
     }
-
 
     @Override
     public boolean getErrorsOccurred() {

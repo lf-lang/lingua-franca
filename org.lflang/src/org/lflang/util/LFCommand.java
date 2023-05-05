@@ -1,28 +1,27 @@
 /*************
- Copyright (c) 2019-2021 TU Dresden
- Copyright (c) 2019-2021 UC Berkeley
-
- Redistribution and use in source and binary forms, with or without modification,
- are permitted provided that the following conditions are met:
-
- 1. Redistributions of source code must retain the above copyright notice,
- this list of conditions and the following disclaimer.
-
- 2. Redistributions in binary form must reproduce the above copyright notice,
- this list of conditions and the following disclaimer in the documentation
- and/or other materials provided with the distribution.
-
- THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY
- EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
- MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL
- THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
- SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
- PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
- INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
- STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
- THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * Copyright (c) 2019-2021 TU Dresden
+ * Copyright (c) 2019-2021 UC Berkeley
+ *
+ * Redistribution and use in source and binary forms, with or without modification,
+ * are permitted provided that the following conditions are met:
+ *
+ * 1. Redistributions of source code must retain the above copyright notice,
+ * this list of conditions and the following disclaimer.
+ *
+ * 2. Redistributions in binary form must reproduce the above copyright notice,
+ * this list of conditions and the following disclaimer in the documentation
+ * and/or other materials provided with the distribution.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY
+ * EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+ * MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL
+ * THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+ * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
+ * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
+ * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  ***************/
-
 package org.lflang.util;
 
 import java.io.ByteArrayOutputStream;
@@ -42,7 +41,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
-
 import org.eclipse.xtext.util.CancelIndicator;
 
 /**
@@ -70,7 +68,6 @@ public class LFCommand {
     protected ByteArrayOutputStream errors = new ByteArrayOutputStream();
     protected boolean quiet;
 
-
     /**
      * Construct an LFCommand that executes the command carried by {@code pb}.
      */
@@ -79,29 +76,36 @@ public class LFCommand {
         this.quiet = quiet;
     }
 
-
     /**
      * Get the output collected during command execution
      */
-    public OutputStream getOutput() { return output; }
-
+    public OutputStream getOutput() {
+        return output;
+    }
 
     /**
      * Get the error output collected during command execution
      */
-    public OutputStream getErrors() { return errors; }
+    public OutputStream getErrors() {
+        return errors;
+    }
 
     /** Get this command's program and arguments. */
-    public List<String> command() { return processBuilder.command(); }
+    public List<String> command() {
+        return processBuilder.command();
+    }
 
     /** Get this command's working directory. */
-    public File directory() { return processBuilder.directory(); }
+    public File directory() {
+        return processBuilder.directory();
+    }
 
     /**
      * Get a String representation of the stored command
      */
-    public String toString() { return String.join(" ", processBuilder.command()); }
-
+    public String toString() {
+        return String.join(" ", processBuilder.command());
+    }
 
     /**
      * Collect as much output as possible from {@code in} without blocking, print it to
@@ -128,7 +132,7 @@ public class LFCommand {
                 e.printStackTrace();
                 break;
             }
-        } while (len > 0);  // Do not necessarily continue
+        } while (len > 0); // Do not necessarily continue
         // to EOF (len == -1) because a blocking read
         // operation is hard to interrupt.
     }
@@ -151,7 +155,6 @@ public class LFCommand {
             collectOutput(process.getErrorStream(), errors, System.err);
         }
     }
-
 
     /**
      * Execute the command.
@@ -179,17 +182,15 @@ public class LFCommand {
         assert !didRun;
         didRun = true;
 
-        System.out.println("--- Current working directory: " + processBuilder.directory().toString());
+        System.out.println(
+                "--- Current working directory: " + processBuilder.directory().toString());
         System.out.println("--- Executing command: " + String.join(" ", processBuilder.command()));
 
         final Process process = startProcess();
         if (process == null) return -1;
 
         ScheduledExecutorService poller = Executors.newSingleThreadScheduledExecutor();
-        poller.scheduleAtFixedRate(
-            () -> poll(process, cancelIndicator),
-            0, PERIOD_MILLISECONDS, TimeUnit.MILLISECONDS
-        );
+        poller.scheduleAtFixedRate(() -> poll(process, cancelIndicator), 0, PERIOD_MILLISECONDS, TimeUnit.MILLISECONDS);
 
         try {
             final int returnCode = process.waitFor();
@@ -212,7 +213,6 @@ public class LFCommand {
         return run(null);
     }
 
-
     /**
      * Add the given variables and their values to the command's environment.
      *
@@ -221,7 +221,6 @@ public class LFCommand {
     public void setEnvironmentVariables(Map<String, String> variables) {
         processBuilder.environment().putAll(variables);
     }
-
 
     /**
      * Add the given variable and its value to the command's environment.
@@ -232,10 +231,10 @@ public class LFCommand {
     public void setEnvironmentVariable(String variableName, String value) {
         processBuilder.environment().put(variableName, value);
     }
-    
+
     /**
      * Replace the given variable and its value in the command's environment.
-     * 
+     *
      * @param variableName name of the variable to add
      * @param value        the variable's value
      */
@@ -268,7 +267,6 @@ public class LFCommand {
     public static LFCommand get(final String cmd, final List<String> args, boolean quiet) {
         return get(cmd, args, quiet, Paths.get(""));
     }
-
 
     /**
      * Create a LFCommand instance from a given command, an argument list and a directory.
@@ -336,7 +334,6 @@ public class LFCommand {
         return null;
     }
 
-
     /**
      * Search for matches to the given command by following the PATH environment variable.
      * @param command A command for which to search.
@@ -349,7 +346,10 @@ public class LFCommand {
             Process p = whichBuilder.start();
             if (p.waitFor() != 0) return null;
             return Arrays.stream(new String(p.getInputStream().readAllBytes()).split("\n"))
-                .map(String::strip).map(File::new).filter(File::canExecute).collect(Collectors.toList());
+                    .map(String::strip)
+                    .map(File::new)
+                    .filter(File::canExecute)
+                    .collect(Collectors.toList());
         } catch (InterruptedException | IOException e) {
             e.printStackTrace();
             return null;
@@ -358,10 +358,10 @@ public class LFCommand {
 
     /**
      * Attempt to start the execution of this command.
-     * 
+     *
      * First collect a list of paths where the executable might be found,
-     * then select an executable that successfully executes from the 
-     * list of paths. Return the {@code Process} instance that is the 
+     * then select an executable that successfully executes from the
+     * list of paths. Return the {@code Process} instance that is the
      * result of a successful execution, or {@code null} if no successful
      * execution happened.
      * @return The {@code Process} that is started by this command, or {@code null} in case of failure.
@@ -385,7 +385,6 @@ public class LFCommand {
         }
     }
 
-
     private static boolean checkIfCommandIsExecutableWithBash(final String command, final Path dir) {
         // check first if bash is installed
         if (findCommand("bash") == null) {
@@ -393,12 +392,8 @@ public class LFCommand {
         }
 
         // then try to find command with bash
-        final ProcessBuilder bashBuilder = new ProcessBuilder(List.of(
-            "bash",
-            "--login",
-            "-c",
-            String.format("\"which %s\"", command)
-        ));
+        final ProcessBuilder bashBuilder =
+                new ProcessBuilder(List.of("bash", "--login", "-c", String.format("\"which %s\"", command)));
         bashBuilder.directory(dir.toFile());
         try {
             int bashReturn = bashBuilder.start().waitFor();

@@ -1,16 +1,16 @@
 /*************
  * Copyright (c) 2020, The University of California at Berkeley.
- * 
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
- * 
+ *
  * 1. Redistributions of source code must retain the above copyright notice,
  * this list of conditions and the following disclaimer.
- * 
+ *
  * 2. Redistributions in binary form must reproduce the above copyright notice,
  * this list of conditions and the following disclaimer in the documentation
  * and/or other materials provided with the distribution.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
  * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -23,12 +23,10 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  ***************/
-
 package org.lflang.graph;
 
 import java.util.Arrays;
 import java.util.Collection;
-
 import org.lflang.generator.NamedInstance;
 import org.lflang.generator.PortInstance;
 import org.lflang.generator.ReactionInstance;
@@ -41,10 +39,10 @@ import org.lflang.lf.Variable;
 /**
  * A graph with vertices that are ports or reactions and edges that denote
  * dependencies between them.
- * 
+ *
  * NOTE: This is not used anywhere anymore, but we keep it in case this particular
  * graph structure proves useful in the future.
- * 
+ *
  * @author Marten Lohstroh
  */
 public class TopologyGraph extends PrecedenceGraph<NamedInstance<?>> {
@@ -52,12 +50,12 @@ public class TopologyGraph extends PrecedenceGraph<NamedInstance<?>> {
     /**
      * Construct a graph with vertices that are reactions or ports and edges
      * that represent (zero-delay) dependencies.
-     * 
+     *
      * After constructing the graph, run Tarjan's algorithm to detect cyclic
      * dependencies between reactions. It is assumed that no instantiation
      * cycles are present in the program. Checks for instantiation cycles thus
      * must be carried out prior to constructing this graph.
-     * 
+     *
      * @param reactors The reactor instances to construct the graph for.
      */
     public TopologyGraph(Collection<? extends ReactorInstance> reactors) {
@@ -75,7 +73,7 @@ public class TopologyGraph extends PrecedenceGraph<NamedInstance<?>> {
     /**
      * Build the graph by recursively visiting reactor instances contained in
      * the passed in reactor instance.
-     * 
+     *
      * @param reactor A reactor instance to harvest dependencies from.
      */
     public void collectNodesFrom(ReactorInstance reactor) {
@@ -105,10 +103,10 @@ public class TopologyGraph extends PrecedenceGraph<NamedInstance<?>> {
 
     /**
      * Given a reaction instance, record dependencies implied by its effects.
-     * 
+     *
      * Excluded from the recorded dependencies are those that are broken by
      * physical connections or "after" delays.
-     * 
+     *
      * @param reaction The reaction to record the dependencies of.
      */
     private void addEffects(ReactionInstance reaction) {
@@ -127,10 +125,10 @@ public class TopologyGraph extends PrecedenceGraph<NamedInstance<?>> {
 
     /**
      * Given a reaction instance, record dependencies implied by its sources.
-     * 
+     *
      * Excluded from the recorded dependencies are those that are broken by
      * physical connections or "after" delays.
-     * 
+     *
      * @param reaction The reaction to record the dependencies of.
      */
     private void addSources(ReactionInstance reaction) {
@@ -150,7 +148,7 @@ public class TopologyGraph extends PrecedenceGraph<NamedInstance<?>> {
     /**
      * Record a dependency between two port instances, but only if there is a
      * zero-delay path from origin to destination.
-     * 
+     *
      * @param reaction A reaction that has one of the given ports as a source or
      *                 effect.
      * @param orig     The upstream port.
@@ -158,8 +156,8 @@ public class TopologyGraph extends PrecedenceGraph<NamedInstance<?>> {
      * @param connection The connection creating this dependency or null if not
      *  created by a connection.
      */
-    private void recordDependency(ReactionInstance reaction, PortInstance orig,
-            PortInstance dest, Connection connection) {
+    private void recordDependency(
+            ReactionInstance reaction, PortInstance orig, PortInstance dest, Connection connection) {
         if (!dependencyBroken(connection)) {
             addEdge(dest, orig);
         }
@@ -167,7 +165,7 @@ public class TopologyGraph extends PrecedenceGraph<NamedInstance<?>> {
 
     /**
      * Report whether or not the given connection breaks dependencies or not.
-     * 
+     *
      * @param c An AST object that represents a connection.
      * @return true if the connection is physical or has a delay.
      */

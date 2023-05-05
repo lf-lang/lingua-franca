@@ -1,49 +1,47 @@
 /* Base class for instances with names in Lingua Franca. */
 
 /*************
-Copyright (c) 2019, The University of California at Berkeley.
-
-Redistribution and use in source and binary forms, with or without modification,
-are permitted provided that the following conditions are met:
-
-1. Redistributions of source code must retain the above copyright notice,
-   this list of conditions and the following disclaimer.
-
-2. Redistributions in binary form must reproduce the above copyright notice,
-   this list of conditions and the following disclaimer in the documentation
-   and/or other materials provided with the distribution.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY
-EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
-MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL
-THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
-PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
-INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
-STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
-THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-***************/
-
+ * Copyright (c) 2019, The University of California at Berkeley.
+ *
+ * Redistribution and use in source and binary forms, with or without modification,
+ * are permitted provided that the following conditions are met:
+ *
+ * 1. Redistributions of source code must retain the above copyright notice,
+ * this list of conditions and the following disclaimer.
+ *
+ * 2. Redistributions in binary form must reproduce the above copyright notice,
+ * this list of conditions and the following disclaimer in the documentation
+ * and/or other materials provided with the distribution.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY
+ * EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+ * MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL
+ * THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+ * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
+ * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
+ * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ ***************/
 package org.lflang.generator;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-
 import org.eclipse.emf.ecore.EObject;
 
-/** 
+/**
  * Base class for compile-time instances with names in Lingua Franca.
  * An instance of concrete subclasses of this class represents one or
  * more runtime instances of a reactor, port, reaction, etc. There
  * will be more than one runtime instance if the object or any of its
  * parents is a bank of reactors.
- *  
+ *
  * @author Marten Lohstroh
  * @author Edward A. Lee
  */
 public abstract class NamedInstance<T extends EObject> {
-        
+
     /**
      * Construct a new instance with the specified definition
      * and parent. E.g., for a reactor instance, the definition
@@ -65,13 +63,13 @@ public abstract class NamedInstance<T extends EObject> {
             this.depth++;
         }
     }
-    
+
     //////////////////////////////////////////////////////
     //// Public fields.
-        
+
     /** A limit on the number of characters returned by uniqueID. */
     public static int identifierLengthLimit = 40;
-    
+
     //////////////////////////////////////////////////////
     //// Public methods.
 
@@ -81,7 +79,7 @@ public abstract class NamedInstance<T extends EObject> {
     public T getDefinition() {
         return definition;
     }
-    
+
     /**
      * Get the depth of the reactor instance. This is 0 for the main reactor,
      * 1 for reactors immediately contained therein, etc.
@@ -89,8 +87,8 @@ public abstract class NamedInstance<T extends EObject> {
     public int getDepth() {
         return depth;
     }
-    
-    /** 
+
+    /**
      * Return the full name of this instance, which has the form
      * "a.b.c", where "c" is the name of this instance, "b" is the name
      * of its container, and "a" is the name of its container, stopping
@@ -103,7 +101,7 @@ public abstract class NamedInstance<T extends EObject> {
     public String getFullName() {
         return getFullNameWithJoiner(".");
     }
-    
+
     /**
      * Return the name of this instance as given in its definition.
      * Note that this is unique only relative to other instances with
@@ -111,14 +109,14 @@ public abstract class NamedInstance<T extends EObject> {
      * @return The name of this instance within its parent.
      */
     public abstract String getName();
-    
+
     /**
      * Return the parent or null if this is a top-level reactor.
      */
     public ReactorInstance getParent() {
         return parent;
     }
-    
+
     /**
      * Return the parent at the given depth or null if there is
      * no parent at the given depth.
@@ -142,22 +140,22 @@ public abstract class NamedInstance<T extends EObject> {
     public int getWidth() {
         return width;
     }
-    
+
     /**
      * Return true if this instance has the specified parent
      * (possibly indirectly, anywhere up the hierarchy).
      */
     public boolean hasParent(ReactorInstance container) {
-        
+
         ReactorInstance p = parent;
-        
+
         while (p != null) {
             if (p == container) return true;
             p = p.parent;
         }
         return false;
     }
-    
+
     /**
      * Return a list of all the parents starting with the root().
      */
@@ -174,7 +172,7 @@ public abstract class NamedInstance<T extends EObject> {
         }
         return result;
     }
-    
+
     /**
      * Return the root reactor, which is the top-level parent.
      * @return The top-level parent.
@@ -183,10 +181,10 @@ public abstract class NamedInstance<T extends EObject> {
         if (parent != null) {
             return parent.root();
         } else {
-            return (ReactorInstance)this;
+            return (ReactorInstance) this;
         }
     }
-            
+
     /**
      * Set the width. This method is here for testing only and should
      * not be used for any other purpose.
@@ -217,20 +215,19 @@ public abstract class NamedInstance<T extends EObject> {
             // Construct the unique ID only if it has not been
             // previously constructed.
             String prefix = getFullNameWithJoiner("_").toLowerCase();
-            
+
             // Replace all non-alphanumeric (Latin) characters with underscore.
             prefix = prefix.replaceAll("[^A-Za-z0-9]", "_");
-            
+
             // Truncate, if necessary.
             if (prefix.length() > identifierLengthLimit) {
-                prefix = '_' 
-                    + prefix.substring(prefix.length() - identifierLengthLimit + 1);
+                prefix = '_' + prefix.substring(prefix.length() - identifierLengthLimit + 1);
             }
-            
+
             // Ensure uniqueness.
             ReactorInstance toplevel = root();
             if (toplevel.uniqueIDCount == null) {
-                toplevel.uniqueIDCount = new HashMap<String,Integer>();
+                toplevel.uniqueIDCount = new HashMap<String, Integer>();
             }
             var count = toplevel.uniqueIDCount.get(prefix);
             if (count == null) {
@@ -245,7 +242,7 @@ public abstract class NamedInstance<T extends EObject> {
         }
         return _uniqueID;
     }
-    
+
     /**
      * Returns the directly/indirectly enclosing mode.
      * @param direct flag whether to check only for direct enclosing mode
@@ -256,7 +253,10 @@ public abstract class NamedInstance<T extends EObject> {
         ModeInstance mode = null;
         if (parent != null) {
             if (!parent.modes.isEmpty()) {
-                mode = parent.modes.stream().filter(it -> it.contains(this)).findFirst().orElse(null);
+                mode = parent.modes.stream()
+                        .filter(it -> it.contains(this))
+                        .findFirst()
+                        .orElse(null);
             }
             if (mode == null && !direct) {
                 mode = parent.getMode(false);
@@ -281,9 +281,9 @@ public abstract class NamedInstance<T extends EObject> {
      * no entry in this map. This map should be non-null only
      * for the main reactor (the top level).
      */
-    HashMap<String,Integer> uniqueIDCount;
+    HashMap<String, Integer> uniqueIDCount;
 
-    /** 
+    /**
      * The width of this instance. This is 1 for everything
      * except a PortInstance representing a multiport and a
      * ReactorInstance representing a bank.
@@ -323,12 +323,12 @@ public abstract class NamedInstance<T extends EObject> {
 
     //////////////////////////////////////////////////////
     //// Private fields.
-    
+
     /**
      * The full name of this instance.
      */
     private String _fullName = null;
-    
+
     /**
      * Unique ID for this instance. This is null until
      * uniqueID() is called.

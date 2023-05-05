@@ -5,21 +5,19 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.List;
-
+import org.eclipse.xtext.xbase.lib.Exceptions;
 import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
 import org.lflang.TargetConfig;
 import org.lflang.generator.GeneratorCommandFactory;
 import org.lflang.generator.LFGeneratorContext;
 
-import org.eclipse.xtext.xbase.lib.Exceptions;
-
 /**
  * Utilities for Building using Arduino CLI.
  *
- * We take in a Generator Context, Command Factory, and Error Reporter and 
+ * We take in a Generator Context, Command Factory, and Error Reporter and
  * make subsequent calls to arduino-cli given a FileConfig and TargetConfig.
- * 
+ *
  * This should be used immediately after CodeGen to compile if the user provides
  * a board type within their LF file. If the user also provides a port with flash enabled,
  * we will also attempt to upload the compiled sketch directly to the board.
@@ -30,7 +28,8 @@ public class ArduinoUtil {
     private GeneratorCommandFactory commandFactory;
     private ErrorReporter errorReporter;
 
-    public ArduinoUtil (LFGeneratorContext context, GeneratorCommandFactory commandFactory, ErrorReporter errorReporter) {
+    public ArduinoUtil(
+            LFGeneratorContext context, GeneratorCommandFactory commandFactory, ErrorReporter errorReporter) {
         this.context = context;
         this.commandFactory = commandFactory;
         this.errorReporter = errorReporter;
@@ -57,7 +56,8 @@ public class ArduinoUtil {
         } else {
             var srcGenPath = fileConfig.getSrcGenPath();
             try {
-                // Write to a temporary file to execute since ProcessBuilder does not like spaces and double quotes in its arguments.
+                // Write to a temporary file to execute since ProcessBuilder does not like spaces and double quotes in
+                // its arguments.
                 File testScript = File.createTempFile("arduino", null);
                 testScript.deleteOnExit();
                 if (!testScript.setExecutable(true)) {
@@ -65,18 +65,24 @@ public class ArduinoUtil {
                 }
                 var fileWriter = new FileWriter(testScript.getAbsoluteFile(), true);
                 BufferedWriter bufferedWriter = new BufferedWriter(fileWriter);
-                String board = targetConfig.platformOptions.board != null ? targetConfig.platformOptions.board : "arduino:avr:leonardo";
-                String isThreaded = targetConfig.platformOptions.board.contains("mbed") ? "-DLF_THREADED" : "-DLF_UNTHREADED";
-                bufferedWriter.write("arduino-cli compile -b " + board + " --build-property " +
-                    "compiler.c.extra_flags=\"" + isThreaded + " -DPLATFORM_ARDUINO -DINITIAL_EVENT_QUEUE_SIZE=10 -DINITIAL_REACT_QUEUE_SIZE=10\" " +
-                    "--build-property compiler.cpp.extra_flags=\"" + isThreaded + " -DPLATFORM_ARDUINO -DINITIAL_EVENT_QUEUE_SIZE=10 -DINITIAL_REACT_QUEUE_SIZE=10\" "
-                    + srcGenPath.toString());
+                String board = targetConfig.platformOptions.board != null
+                        ? targetConfig.platformOptions.board
+                        : "arduino:avr:leonardo";
+                String isThreaded =
+                        targetConfig.platformOptions.board.contains("mbed") ? "-DLF_THREADED" : "-DLF_UNTHREADED";
+                bufferedWriter.write(
+                        "arduino-cli compile -b " + board + " --build-property " + "compiler.c.extra_flags=\""
+                                + isThreaded
+                                + " -DPLATFORM_ARDUINO -DINITIAL_EVENT_QUEUE_SIZE=10 -DINITIAL_REACT_QUEUE_SIZE=10\" "
+                                + "--build-property compiler.cpp.extra_flags=\""
+                                + isThreaded
+                                + " -DPLATFORM_ARDUINO -DINITIAL_EVENT_QUEUE_SIZE=10 -DINITIAL_REACT_QUEUE_SIZE=10\" "
+                                + srcGenPath.toString());
                 bufferedWriter.close();
-                return commandFactory.createCommand(
-                    testScript.getAbsolutePath(), List.of(), null);
+                return commandFactory.createCommand(testScript.getAbsolutePath(), List.of(), null);
             } catch (IOException e) {
-               e.printStackTrace();
-               throw new IOException(e);
+                e.printStackTrace();
+                throw new IOException(e);
             }
         }
     }
@@ -89,14 +95,15 @@ public class ArduinoUtil {
     public void buildArduino(FileConfig fileConfig, TargetConfig targetConfig) {
         System.out.println("Retrieving Arduino Compile Script");
         try {
-            LFCommand command = arduinoCompileCommand(fileConfig, targetConfig); // Use ProcessBuilder for finer control.
+            LFCommand command =
+                    arduinoCompileCommand(fileConfig, targetConfig); // Use ProcessBuilder for finer control.
             int retCode = 0;
             retCode = command.run(context.getCancelIndicator());
             if (retCode != 0 && context.getMode() == LFGeneratorContext.Mode.STANDALONE) {
                 errorReporter.reportError("arduino-cli failed with error code " + retCode);
                 throw new IOException("arduino-cli failure");
             }
-        } catch (IOException e){
+        } catch (IOException e) {
             Exceptions.sneakyThrow(e);
         }
         System.out.println("SUCCESS: Compiling generated code for " + fileConfig.name + " finished with no errors.");
@@ -104,11 +111,16 @@ public class ArduinoUtil {
             if (targetConfig.platformOptions.port != null) {
                 System.out.println("Invoking flash command for Arduino");
                 LFCommand flash = commandFactory.createCommand(
-                    "arduino-cli", List.of("upload", "-b", targetConfig.platformOptions.board, "-p", targetConfig.platformOptions.port), fileConfig.getSrcGenPath());
+                        "arduino-cli",
+                        List.of(
+                                "upload",
+                                "-b",
+                                targetConfig.platformOptions.board,
+                                "-p",
+                                targetConfig.platformOptions.port),
+                        fileConfig.getSrcGenPath());
                 if (flash == null) {
-                    errorReporter.reportError(
-                    "Could not create arduino-cli flash command."
-                    );
+                    errorReporter.reportError("Could not create arduino-cli flash command.");
                 }
                 int flashRet = flash.run();
                 if (flashRet != 0) {
@@ -121,7 +133,8 @@ public class ArduinoUtil {
             }
         } else {
             System.out.println("********");
-            System.out.println("To flash your program, run the following command to see information about the board you plugged in:\n\n\tarduino-cli board list\n\nGrab the FQBN and PORT from the command and run the following command in the generated sources directory:\n\n\tarduino-cli upload -b <FQBN> -p <PORT>\n");
+            System.out.println(
+                    "To flash your program, run the following command to see information about the board you plugged in:\n\n\tarduino-cli board list\n\nGrab the FQBN and PORT from the command and run the following command in the generated sources directory:\n\n\tarduino-cli upload -b <FQBN> -p <PORT>\n");
         }
     }
 }

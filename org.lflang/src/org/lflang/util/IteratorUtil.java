@@ -4,8 +4,6 @@ import java.util.Iterator;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
-import org.lflang.lf.Reactor;
-
 /**
  * A utility class for Iterator.
  *
@@ -31,7 +29,7 @@ public final class IteratorUtil {
     /**
      * Given an iterator of type T, turn it into a stream containing only the
      * instances of the given class of type S.
-     * 
+     *
      * @param <T>      The type of elements the iterator iterates over.
      * @param <S>      The type of class to filter out instance of.
      * @param iterator An iterator of type T.
@@ -39,11 +37,10 @@ public final class IteratorUtil {
      * @return A filtered stream that only has in it instances of the given
      *         class.
      */
-    public static <T, S> Stream<S> asFilteredStream(Iterator<T> iterator,
-            Class<S> cls) {
+    public static <T, S> Stream<S> asFilteredStream(Iterator<T> iterator, Class<S> cls) {
         return asStream(iterator, false).filter(cls::isInstance).map(cls::cast);
     }
-    
+
     /**
      * Turn an iterator into a sequential or parallel stream.
      *

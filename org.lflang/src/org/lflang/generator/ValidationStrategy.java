@@ -1,7 +1,6 @@
 package org.lflang.generator;
 
 import java.nio.file.Path;
-
 import org.lflang.util.LFCommand;
 
 /**

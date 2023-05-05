@@ -55,5 +55,5 @@ public interface DelayBodyGenerator {
     boolean generateAfterDelaysWithVariableWidth();
 
     /** Used to optionally apply additional transformations to the generated reactions */
-    default void finalizeReactions(Reaction delayReaction, Reaction forwardReaction) { }
+    default void finalizeReactions(Reaction delayReaction, Reaction forwardReaction) {}
 }

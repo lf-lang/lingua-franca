@@ -30,11 +30,12 @@ public class CCppTest extends TestBase {
     @Test
     public void runAsCCpp() {
         Assumptions.assumeFalse(isWindows(), Message.NO_WINDOWS_SUPPORT);
-        runTestsForTargets(Message.DESC_AS_CCPP, CCppTest::isExcludedFromCCpp,
-                           it -> ASTUtils.changeTargetName(it.getFileConfig().resource,
-                                                           Target.CCPP.getDisplayName()),
-                           TestLevel.EXECUTION,
-                           true);
+        runTestsForTargets(
+                Message.DESC_AS_CCPP,
+                CCppTest::isExcludedFromCCpp,
+                it -> ASTUtils.changeTargetName(it.getFileConfig().resource, Target.CCPP.getDisplayName()),
+                TestLevel.EXECUTION,
+                true);
     }
 
     /**

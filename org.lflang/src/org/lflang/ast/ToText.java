@@ -1,14 +1,9 @@
 package org.lflang.ast;
 
-import java.util.regex.Pattern;
-
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.xtext.nodemodel.ICompositeNode;
 import org.eclipse.xtext.nodemodel.ILeafNode;
-import org.eclipse.xtext.nodemodel.INode;
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils;
-
-import org.lflang.ASTUtils;
 import org.lflang.lf.ArraySpec;
 import org.lflang.lf.BracedListExpression;
 import org.lflang.lf.Code;
@@ -23,7 +18,6 @@ import org.lflang.lf.VarRef;
 import org.lflang.lf.util.LfSwitch;
 import org.lflang.util.StringUtil;
 
-
 /**
  * Switch class for converting AST nodes to some textual representation that seems likely
  * to be useful for as many code generators as possible.
@@ -34,7 +28,9 @@ public class ToText extends LfSwitch<String> {
     public static final ToText instance = new ToText();
 
     // private constructor
-    private ToText() { super(); }
+    private ToText() {
+        super();
+    }
 
     @Override
     public String caseArraySpec(ArraySpec spec) {
@@ -121,7 +117,8 @@ public class ToText extends LfSwitch<String> {
     @Override
     public String caseVarRef(VarRef v) {
         if (v.getContainer() != null) {
-            return String.format("%s.%s", v.getContainer().getName(), v.getVariable().getName());
+            return String.format(
+                    "%s.%s", v.getContainer().getName(), v.getVariable().getName());
         } else {
             return v.getVariable().getName();
         }
@@ -129,6 +126,7 @@ public class ToText extends LfSwitch<String> {
 
     @Override
     public String defaultCase(EObject object) {
-        throw new UnsupportedOperationException("ToText has no case for " + object.getClass().getName());
+        throw new UnsupportedOperationException(
+                "ToText has no case for " + object.getClass().getName());
     }
 }

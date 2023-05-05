@@ -8,7 +8,6 @@ import org.eclipse.xtext.parser.antlr.ISyntaxErrorMessageProvider;
 import org.eclipse.xtext.resource.IDefaultResourceDescriptionStrategy;
 import org.eclipse.xtext.scoping.IGlobalScopeProvider;
 import org.eclipse.xtext.validation.INamesAreUniqueValidationHelper;
-
 import org.lflang.formatting2.LFFormatter;
 import org.lflang.scoping.LFGlobalScopeProvider;
 import org.lflang.validation.LFNamesAreUniqueValidationHelper;
@@ -40,7 +39,7 @@ public class LFRuntimeModule extends AbstractLFRuntimeModule {
     public Class<? extends INamesAreUniqueValidationHelper> bindNamesAreUniqueValidationHelper() {
         return LFNamesAreUniqueValidationHelper.class;
     }
-    
+
     public Class<? extends ISyntaxErrorMessageProvider> bindISyntaxErrorMessageProvider() {
         return LFSyntaxErrorMessageProvider.class;
     }

@@ -4,7 +4,6 @@ import org.lflang.generator.c.CDockerGenerator;
 import org.lflang.generator.python.PythonDockerGenerator;
 import org.lflang.generator.ts.TSDockerGenerator;
 
-
 /**
  * A class for generating docker files.
  *
@@ -16,7 +15,7 @@ public abstract class DockerGenerator {
     /**
      * Configuration for interactions with the filesystem.
      */
-     protected final LFGeneratorContext context;
+    protected final LFGeneratorContext context;
 
     /**
      * The constructor for the base docker file generation class.
@@ -24,13 +23,12 @@ public abstract class DockerGenerator {
      */
     public DockerGenerator(LFGeneratorContext context) {
         this.context = context;
-
     }
 
     /**
      * Generate the contents of a Dockerfile.
      */
-     protected abstract String generateDockerFileContent();
+    protected abstract String generateDockerFileContent();
 
     /**
      * Produce a DockerData object.

@@ -1,9 +1,10 @@
 package org.lflang.generator;
 
+import com.google.inject.Inject;
+import com.google.inject.Provider;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Properties;
-
 import org.eclipse.emf.common.util.URI;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.emf.ecore.resource.Resource;
@@ -15,13 +16,9 @@ import org.eclipse.xtext.util.CancelIndicator;
 import org.eclipse.xtext.validation.CheckMode;
 import org.eclipse.xtext.validation.IResourceValidator;
 import org.eclipse.xtext.validation.Issue;
-
 import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
 import org.lflang.generator.LFGeneratorContext.Mode;
-
-import com.google.inject.Inject;
-import com.google.inject.Provider;
 
 /**
  * Manages Lingua Franca build processes that are requested
@@ -57,10 +54,13 @@ public class IntegratedBuilder {
 
     @Inject
     private IResourceValidator validator;
+
     @Inject
     private GeneratorDelegate generator;
+
     @Inject
     private JavaIoFileSystemAccess fileAccess;
+
     @Inject
     private Provider<ResourceSet> resourceSetProvider;
 
@@ -73,14 +73,10 @@ public class IntegratedBuilder {
      * @return The result of the build.
      */
     public GeneratorResult run(
-        URI uri,
-        boolean mustComplete,
-        ReportProgress reportProgress,
-        CancelIndicator cancelIndicator
-    ) {
-        fileAccess.setOutputPath(
-            FileConfig.findPackageRoot(Path.of(uri.path()), s -> {}).resolve(FileConfig.DEFAULT_SRC_GEN_DIR).toString()
-        );
+            URI uri, boolean mustComplete, ReportProgress reportProgress, CancelIndicator cancelIndicator) {
+        fileAccess.setOutputPath(FileConfig.findPackageRoot(Path.of(uri.path()), s -> {})
+                .resolve(FileConfig.DEFAULT_SRC_GEN_DIR)
+                .toString());
         List<EObject> parseRoots = getResource(uri).getContents();
         if (parseRoots.isEmpty()) return GeneratorResult.NOTHING;
         ErrorReporter errorReporter = new LanguageServerErrorReporter(parseRoots.get(0));
@@ -102,9 +98,8 @@ public class IntegratedBuilder {
      */
     private void validate(URI uri, ErrorReporter errorReporter) {
         for (Issue issue : validator.validate(getResource(uri), CheckMode.ALL, CancelIndicator.NullImpl)) {
-            getReportMethod(errorReporter, issue.getSeverity()).apply(
-                Path.of(uri.path()), issue.getLineNumber(), issue.getMessage()
-            );
+            getReportMethod(errorReporter, issue.getSeverity())
+                    .apply(Path.of(uri.path()), issue.getLineNumber(), issue.getMessage());
         }
     }
 
@@ -117,18 +112,17 @@ public class IntegratedBuilder {
      * @return The result of the build.
      */
     private GeneratorResult doGenerate(
-        URI uri,
-        boolean mustComplete,
-        ReportProgress reportProgress,
-        CancelIndicator cancelIndicator
-    ) {
+            URI uri, boolean mustComplete, ReportProgress reportProgress, CancelIndicator cancelIndicator) {
         var resource = getResource(uri);
         LFGeneratorContext context = new MainContext(
-            mustComplete ? Mode.LSP_SLOW : LFGeneratorContext.Mode.LSP_MEDIUM,
-            cancelIndicator, reportProgress, new Properties(),
-            resource, fileAccess,
-            fileConfig -> new LanguageServerErrorReporter(resource.getContents().get(0))
-        );
+                mustComplete ? Mode.LSP_SLOW : LFGeneratorContext.Mode.LSP_MEDIUM,
+                cancelIndicator,
+                reportProgress,
+                new Properties(),
+                resource,
+                fileAccess,
+                fileConfig ->
+                        new LanguageServerErrorReporter(resource.getContents().get(0)));
         generator.generate(getResource(uri), fileAccess, context);
         return context.getResult();
     }

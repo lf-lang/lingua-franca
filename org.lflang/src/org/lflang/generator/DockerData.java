@@ -2,7 +2,6 @@ package org.lflang.generator;
 
 import java.io.IOException;
 import java.nio.file.Path;
-
 import org.lflang.util.FileUtil;
 
 /**
@@ -26,11 +25,7 @@ public class DockerData {
      */
     public final String serviceName;
 
-    public DockerData(
-        String serviceName,
-        Path dockerFilePath,
-        String dockerFileContent
-    ) {
+    public DockerData(String serviceName, Path dockerFilePath, String dockerFileContent) {
 
         if (!dockerFilePath.toFile().isAbsolute()) {
             throw new RuntimeException("Cannot use relative docker file path in DockerData instance");

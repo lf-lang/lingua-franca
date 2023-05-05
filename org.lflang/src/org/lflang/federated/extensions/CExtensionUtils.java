@@ -7,7 +7,6 @@ import java.nio.file.Path;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.regex.Pattern;
-
 import org.lflang.ASTUtils;
 import org.lflang.InferredType;
 import org.lflang.TargetConfig.ClockSyncOptions;
@@ -20,7 +19,6 @@ import org.lflang.federated.launcher.RtiConfig;
 import org.lflang.federated.serialization.FedROS2CPPSerialization;
 import org.lflang.federated.serialization.SupportedSerializers;
 import org.lflang.generator.CodeBuilder;
-import org.lflang.generator.GeneratorBase;
 import org.lflang.generator.ReactorInstance;
 import org.lflang.generator.c.CTypes;
 import org.lflang.generator.c.CUtil;
@@ -35,7 +33,8 @@ import org.lflang.lf.VarRef;
 public class CExtensionUtils {
 
     // Regular expression pattern for shared_ptr types.
-    static final Pattern sharedPointerVariable = Pattern.compile("^(/\\*.*?\\*/)?std::shared_ptr<(?<type>((/\\*.*?\\*/)?(\\S+))+)>$");
+    static final Pattern sharedPointerVariable =
+            Pattern.compile("^(/\\*.*?\\*/)?std::shared_ptr<(?<type>((/\\*.*?\\*/)?(\\S+))+)>$");
 
     /**
      * Generate C code that allocates sufficient memory for the following two
@@ -54,21 +53,19 @@ public class CExtensionUtils {
      * @return A string that allocates memory for the aforementioned three
      * structures.
      */
-    public static String allocateTriggersForFederate(
-        FederateInstance federate
-    ) {
+    public static String allocateTriggersForFederate(FederateInstance federate) {
 
         CodeBuilder builder = new CodeBuilder();
         if (federate.networkInputControlReactionsTriggers.size() > 0) {
             // Proliferate the network input control reaction trigger array
             builder.pr(
-                """
+                    """
                 // Initialize the array of pointers to network input port triggers
                 _fed.triggers_for_network_input_control_reactions_size = %s;
                 _fed.triggers_for_network_input_control_reactions = (trigger_t**)malloc(
                     _fed.triggers_for_network_input_control_reactions_size * sizeof(trigger_t*));
-                """.formatted(federate.networkInputControlReactionsTriggers.size()));
-
+                """
+                            .formatted(federate.networkInputControlReactionsTriggers.size()));
         }
         return builder.getCode();
     }
@@ -98,8 +95,7 @@ public class CExtensionUtils {
             }
             var actionTableCount = 0;
             for (String trigger : triggers) {
-                code.pr("_lf_action_table[" + (actionTableCount++) + "] = (lf_action_base_t*)&"
-                            + trigger + "; \\");
+                code.pr("_lf_action_table[" + (actionTableCount++) + "] = (lf_action_base_t*)&" + trigger + "; \\");
             }
         }
         return code.getCode();
@@ -123,10 +119,7 @@ public class CExtensionUtils {
      * @return A string that initializes the aforementioned three structures.
      */
     public static String initializeTriggerForControlReactions(
-            ReactorInstance instance,
-            ReactorInstance main,
-            FederateInstance federate
-    ) {
+            ReactorInstance instance, ReactorInstance main, FederateInstance federate) {
         CodeBuilder builder = new CodeBuilder();
         // The network control reactions are always in the main federated
         // reactor
@@ -151,13 +144,13 @@ public class CExtensionUtils {
                 });
             })) {
                 // Initialize the triggers_for_network_input_control_reactions for the input
-                builder.pr(
-                    String.join("\n",
-                        "/* Add trigger " + nameOfSelfStruct + "->_lf__"+trigger.getName()+" to the global list of network input ports. */ \\",
-                        "_fed.triggers_for_network_input_control_reactions["+federate.networkInputControlReactionsTriggers.indexOf(trigger)+"]= \\",
-                        "    &"+nameOfSelfStruct+"->_lf__"+trigger.getName()+"; \\"
-                    )
-                );
+                builder.pr(String.join(
+                        "\n",
+                        "/* Add trigger " + nameOfSelfStruct + "->_lf__" + trigger.getName()
+                                + " to the global list of network input ports. */ \\",
+                        "_fed.triggers_for_network_input_control_reactions["
+                                + federate.networkInputControlReactionsTriggers.indexOf(trigger) + "]= \\",
+                        "    &" + nameOfSelfStruct + "->_lf__" + trigger.getName() + "; \\"));
             }
         }
 
@@ -188,8 +181,7 @@ public class CExtensionUtils {
             // triggers for each channel of
             // the multiport to keep track of the status of each channel
             // individually
-            builder.append("trigger_t* _lf__" + input.getName()
-            + "_network_port_status;\n");
+            builder.append("trigger_t* _lf__" + input.getName() + "_network_port_status;\n");
         } else {
             // If it is not a multiport, then we could re-use the port trigger,
             // and nothing needs to be
@@ -223,7 +215,7 @@ public class CExtensionUtils {
             if (delay instanceof ParameterReference) {
                 // The parameter has to be parameter of the main reactor.
                 // And that value has to be a Time.
-                tv = ASTUtils.getDefaultAsTimeValue(((ParameterReference)delay).getParameter());
+                tv = ASTUtils.getDefaultAsTimeValue(((ParameterReference) delay).getParameter());
             } else {
                 tv = ASTUtils.getLiteralTimeValue(delay);
             }
@@ -233,23 +225,22 @@ public class CExtensionUtils {
     }
 
     static boolean isSharedPtrType(InferredType type, CTypes types) {
-        return !type.isUndefined() && sharedPointerVariable.matcher(types.getTargetType(type)).find();
+        return !type.isUndefined()
+                && sharedPointerVariable.matcher(types.getTargetType(type)).find();
     }
 
-    public static void handleCompileDefinitions(
-        FederateInstance federate,
-        int numOfFederates,
-        RtiConfig rtiConfig
-    ) {
+    public static void handleCompileDefinitions(FederateInstance federate, int numOfFederates, RtiConfig rtiConfig) {
         federate.targetConfig.setByUser.add(TargetProperty.COMPILE_DEFINITIONS);
         federate.targetConfig.compileDefinitions.put("FEDERATED", "");
-        federate.targetConfig.compileDefinitions.put("FEDERATED_"+federate.targetConfig.coordination.toString().toUpperCase(), "");
+        federate.targetConfig.compileDefinitions.put(
+                "FEDERATED_" + federate.targetConfig.coordination.toString().toUpperCase(), "");
         if (federate.targetConfig.auth) {
             federate.targetConfig.compileDefinitions.put("FEDERATED_AUTHENTICATED", "");
         }
         federate.targetConfig.compileDefinitions.put("NUMBER_OF_FEDERATES", String.valueOf(numOfFederates));
         federate.targetConfig.compileDefinitions.put("EXECUTABLE_PREAMBLE", "");
-        federate.targetConfig.compileDefinitions.put("WORKERS_NEEDED_FOR_FEDERATE", String.valueOf(minThreadsToHandleInputPorts(federate)));
+        federate.targetConfig.compileDefinitions.put(
+                "WORKERS_NEEDED_FOR_FEDERATE", String.valueOf(minThreadsToHandleInputPorts(federate)));
 
         handleAdvanceMessageInterval(federate);
 
@@ -273,16 +264,14 @@ public class CExtensionUtils {
         federate.targetConfig.setByUser.remove(TargetProperty.COORDINATION_OPTIONS);
         if (advanceMessageInterval != null) {
             federate.targetConfig.compileDefinitions.put(
-                "ADVANCE_MESSAGE_INTERVAL",
-                String.valueOf(advanceMessageInterval.toNanoSeconds())
-            );
+                    "ADVANCE_MESSAGE_INTERVAL", String.valueOf(advanceMessageInterval.toNanoSeconds()));
         }
     }
 
     static boolean clockSyncIsOn(FederateInstance federate, RtiConfig rtiConfig) {
         return federate.targetConfig.clockSync != ClockSyncMode.OFF
-            && (!rtiConfig.getHost().equals(federate.host)
-            || federate.targetConfig.clockSyncOptions.localFederatesOn);
+                && (!rtiConfig.getHost().equals(federate.host)
+                        || federate.targetConfig.clockSyncOptions.localFederatesOn);
     }
 
     /**
@@ -291,15 +280,10 @@ public class CExtensionUtils {
      * Clock synchronization can be enabled using the clock-sync target property.
      * @see <a href="https://github.com/icyphy/lingua-franca/wiki/Distributed-Execution#clock-synchronization">Documentation</a>
      */
-    public static void initializeClockSynchronization(
-        FederateInstance federate,
-        RtiConfig rtiConfig
-    ) {
+    public static void initializeClockSynchronization(FederateInstance federate, RtiConfig rtiConfig) {
         // Check if clock synchronization should be enabled for this federate in the first place
         if (clockSyncIsOn(federate, rtiConfig)) {
-            System.out.println("Initial clock synchronization is enabled for federate "
-                                   + federate.id
-            );
+            System.out.println("Initial clock synchronization is enabled for federate " + federate.id);
             if (federate.targetConfig.clockSync == ClockSyncMode.ON) {
                 if (federate.targetConfig.clockSyncOptions.collectStats) {
                     System.out.println("Will collect clock sync statistics for federate " + federate.id);
@@ -310,15 +294,12 @@ public class CExtensionUtils {
                     federate.targetConfig.compilerFlags.add("-lm");
                     federate.targetConfig.setByUser.add(TargetProperty.FLAGS);
                 }
-                System.out.println("Runtime clock synchronization is enabled for federate "
-                                       + federate.id
-                );
+                System.out.println("Runtime clock synchronization is enabled for federate " + federate.id);
             }
 
             addClockSyncCompileDefinitions(federate);
         }
     }
-
 
     /**
      * Initialize clock synchronization (if enabled) and its related options for a given federate.
@@ -331,10 +312,11 @@ public class CExtensionUtils {
         ClockSyncMode mode = federate.targetConfig.clockSync;
         ClockSyncOptions options = federate.targetConfig.clockSyncOptions;
 
-
         federate.targetConfig.compileDefinitions.put("_LF_CLOCK_SYNC_INITIAL", "");
-        federate.targetConfig.compileDefinitions.put("_LF_CLOCK_SYNC_PERIOD_NS", String.valueOf(options.period.toNanoSeconds()));
-        federate.targetConfig.compileDefinitions.put("_LF_CLOCK_SYNC_EXCHANGES_PER_INTERVAL", String.valueOf(options.trials));
+        federate.targetConfig.compileDefinitions.put(
+                "_LF_CLOCK_SYNC_PERIOD_NS", String.valueOf(options.period.toNanoSeconds()));
+        federate.targetConfig.compileDefinitions.put(
+                "_LF_CLOCK_SYNC_EXCHANGES_PER_INTERVAL", String.valueOf(options.trials));
         federate.targetConfig.compileDefinitions.put("_LF_CLOCK_SYNC_ATTENUATION", String.valueOf(options.attenuation));
 
         if (mode == ClockSyncMode.ON) {
@@ -345,41 +327,29 @@ public class CExtensionUtils {
         }
     }
 
-
     /**
      * Generate a file to be included by CMake.
      */
-    public static void generateCMakeInclude(
-        FederateInstance federate,
-        FedFileConfig fileConfig
-    ) throws IOException {
+    public static void generateCMakeInclude(FederateInstance federate, FedFileConfig fileConfig) throws IOException {
         Files.createDirectories(fileConfig.getSrcPath().resolve("include"));
 
-        Path cmakeIncludePath = fileConfig.getSrcPath()
-                                          .resolve("include" + File.separator + federate.name + "_extension.cmake");
+        Path cmakeIncludePath =
+                fileConfig.getSrcPath().resolve("include" + File.separator + federate.name + "_extension.cmake");
 
         CodeBuilder cmakeIncludeCode = new CodeBuilder();
 
         cmakeIncludeCode.pr(generateSerializationCMakeExtension(federate));
-        cmakeIncludeCode.pr(
-            "add_compile_definitions(LF_SOURCE_DIRECTORY=\""
-            + fileConfig.srcPath
-            + "\")"
-        );
-        cmakeIncludeCode.pr(
-            "add_compile_definitions(LF_PACKAGE_DIRECTORY=\""
-                + fileConfig.srcPkgPath
-                + "\")"
-        );
+        cmakeIncludeCode.pr("add_compile_definitions(LF_SOURCE_DIRECTORY=\"" + fileConfig.srcPath + "\")");
+        cmakeIncludeCode.pr("add_compile_definitions(LF_PACKAGE_DIRECTORY=\"" + fileConfig.srcPkgPath + "\")");
 
         try (var srcWriter = Files.newBufferedWriter(cmakeIncludePath)) {
             srcWriter.write(cmakeIncludeCode.getCode());
         }
 
-        federate.targetConfig.cmakeIncludes.add(fileConfig.getSrcPath().relativize(cmakeIncludePath).toString());
+        federate.targetConfig.cmakeIncludes.add(
+                fileConfig.getSrcPath().relativize(cmakeIncludePath).toString());
         federate.targetConfig.setByUser.add(TargetProperty.CMAKE_INCLUDE);
     }
-
 
     /**
      * Generate code that sends the neighbor structure message to the RTI.
@@ -389,45 +359,45 @@ public class CExtensionUtils {
      */
     public static String generateFederateNeighborStructure(FederateInstance federate) {
         var code = new CodeBuilder();
-        code.pr(String.join("\n",
-                            "/**",
-                            "* Generated function that sends information about connections between this federate and",
-                            "* other federates where messages are routed through the RTI. Currently, this",
-                            "* only includes logical connections when the coordination is centralized. This",
-                            "* information is needed for the RTI to perform the centralized coordination.",
-                            "* @see MSG_TYPE_NEIGHBOR_STRUCTURE in net_common.h",
-                            "*/",
-                            "void send_neighbor_structure_to_RTI(int rti_socket) {"
-        ));
+        code.pr(String.join(
+                "\n",
+                "/**",
+                "* Generated function that sends information about connections between this federate and",
+                "* other federates where messages are routed through the RTI. Currently, this",
+                "* only includes logical connections when the coordination is centralized. This",
+                "* information is needed for the RTI to perform the centralized coordination.",
+                "* @see MSG_TYPE_NEIGHBOR_STRUCTURE in net_common.h",
+                "*/",
+                "void send_neighbor_structure_to_RTI(int rti_socket) {"));
         code.indent();
         // Initialize the array of information about the federate's immediate upstream
         // and downstream relayed (through the RTI) logical connections, to send to the
         // RTI.
-        code.pr(String.join("\n",
-                            "interval_t candidate_tmp;",
-                            "size_t buffer_size = 1 + 8 + ",
-                            "                "+federate.dependsOn.keySet().size()+" * ( sizeof(uint16_t) + sizeof(int64_t) ) +",
-                            "                "+federate.sendsTo.keySet().size()+" * sizeof(uint16_t);",
-                            "unsigned char buffer_to_send[buffer_size];",
-                            "",
-                            "size_t message_head = 0;",
-                            "buffer_to_send[message_head] = MSG_TYPE_NEIGHBOR_STRUCTURE;",
-                            "message_head++;",
-                            "encode_int32((int32_t)"+federate.dependsOn.keySet().size()+", &(buffer_to_send[message_head]));",
-                            "message_head+=sizeof(int32_t);",
-                            "encode_int32((int32_t)"+federate.sendsTo.keySet().size()+", &(buffer_to_send[message_head]));",
-                            "message_head+=sizeof(int32_t);"
-        ));
+        code.pr(String.join(
+                "\n",
+                "interval_t candidate_tmp;",
+                "size_t buffer_size = 1 + 8 + ",
+                "                " + federate.dependsOn.keySet().size() + " * ( sizeof(uint16_t) + sizeof(int64_t) ) +",
+                "                " + federate.sendsTo.keySet().size() + " * sizeof(uint16_t);",
+                "unsigned char buffer_to_send[buffer_size];",
+                "",
+                "size_t message_head = 0;",
+                "buffer_to_send[message_head] = MSG_TYPE_NEIGHBOR_STRUCTURE;",
+                "message_head++;",
+                "encode_int32((int32_t)" + federate.dependsOn.keySet().size() + ", &(buffer_to_send[message_head]));",
+                "message_head+=sizeof(int32_t);",
+                "encode_int32((int32_t)" + federate.sendsTo.keySet().size() + ", &(buffer_to_send[message_head]));",
+                "message_head+=sizeof(int32_t);"));
 
         if (!federate.dependsOn.keySet().isEmpty()) {
             // Next, populate these arrays.
             // Find the minimum delay in the process.
             // FIXME: Zero delay is not really the same as a microstep delay.
             for (FederateInstance upstreamFederate : federate.dependsOn.keySet()) {
-                code.pr(String.join("\n",
-                                    "encode_uint16((uint16_t)"+upstreamFederate.id+", &(buffer_to_send[message_head]));",
-                                    "message_head += sizeof(uint16_t);"
-                ));
+                code.pr(String.join(
+                        "\n",
+                        "encode_uint16((uint16_t)" + upstreamFederate.id + ", &(buffer_to_send[message_head]));",
+                        "message_head += sizeof(uint16_t);"));
                 // The minimum delay calculation needs to be made in the C code because it
                 // may depend on parameter values.
                 // FIXME: These would have to be top-level parameters, which don't really
@@ -443,29 +413,30 @@ public class CExtensionUtils {
                             // Use NEVER to encode no delay at all.
                             code.pr("candidate_tmp = NEVER;");
                         } else {
-                            var delayTime =
-                                delay instanceof ParameterReference
+                            var delayTime = delay instanceof ParameterReference
                                     // In that case use the default value.
-                                    ? CTypes.getInstance().getTargetTimeExpr(ASTUtils.getDefaultAsTimeValue(((ParameterReference) delay).getParameter()))
+                                    ? CTypes.getInstance()
+                                            .getTargetTimeExpr(ASTUtils.getDefaultAsTimeValue(
+                                                    ((ParameterReference) delay).getParameter()))
                                     : CTypes.getInstance().getTargetExpr(delay, InferredType.time());
 
-                            code.pr(String.join("\n",
-                                "if (" + delayTime + " < candidate_tmp) {",
-                                "    candidate_tmp = " + delayTime + ";",
-                                "}"
-                            ));
+                            code.pr(String.join(
+                                    "\n",
+                                    "if (" + delayTime + " < candidate_tmp) {",
+                                    "    candidate_tmp = " + delayTime + ";",
+                                    "}"));
                         }
                     }
-                    code.pr(String.join("\n",
-                                        "encode_int64((int64_t)candidate_tmp, &(buffer_to_send[message_head]));",
-                                        "message_head += sizeof(int64_t);"
-                    ));
+                    code.pr(String.join(
+                            "\n",
+                            "encode_int64((int64_t)candidate_tmp, &(buffer_to_send[message_head]));",
+                            "message_head += sizeof(int64_t);"));
                 } else {
                     // Use NEVER to encode no delay at all.
-                    code.pr(String.join("\n",
-                                        "encode_int64(NEVER, &(buffer_to_send[message_head]));",
-                                        "message_head += sizeof(int64_t);"
-                    ));
+                    code.pr(String.join(
+                            "\n",
+                            "encode_int64(NEVER, &(buffer_to_send[message_head]));",
+                            "message_head += sizeof(int64_t);"));
                 }
             }
         }
@@ -476,36 +447,34 @@ public class CExtensionUtils {
             // Find the minimum delay in the process.
             // FIXME: Zero delay is not really the same as a microstep delay.
             for (FederateInstance downstreamFederate : federate.sendsTo.keySet()) {
-                code.pr(String.join("\n",
-                                    "encode_uint16("+downstreamFederate.id+", &(buffer_to_send[message_head]));",
-                                    "message_head += sizeof(uint16_t);"
-                ));
+                code.pr(String.join(
+                        "\n",
+                        "encode_uint16(" + downstreamFederate.id + ", &(buffer_to_send[message_head]));",
+                        "message_head += sizeof(uint16_t);"));
             }
         }
-        code.pr(String.join("\n",
-                            "write_to_socket_errexit(",
-                            "    rti_socket, ",
-                            "    buffer_size,",
-                            "    buffer_to_send,",
-                            "    \"Failed to send the neighbor structure message to the RTI.\"",
-                            ");"
-        ));
+        code.pr(String.join(
+                "\n",
+                "write_to_socket_errexit(",
+                "    rti_socket, ",
+                "    buffer_size,",
+                "    buffer_to_send,",
+                "    \"Failed to send the neighbor structure message to the RTI.\"",
+                ");"));
         code.unindent();
         code.pr("}");
         return code.toString();
     }
 
-
     public static List<String> getFederatedFiles() {
         return List.of(
-            "federated/net_util.c",
-            "federated/net_util.h",
-            "federated/net_common.h",
-            "federated/federate.c",
-            "federated/federate.h",
-            "federated/clock-sync.h",
-            "federated/clock-sync.c"
-        );
+                "federated/net_util.c",
+                "federated/net_util.h",
+                "federated/net_common.h",
+                "federated/federate.c",
+                "federated/federate.h",
+                "federated/clock-sync.h",
+                "federated/clock-sync.c");
     }
 
     /**
@@ -517,7 +486,8 @@ public class CExtensionUtils {
             #ifdef FEDERATED
             %s
             #endif // FEDERATED
-            """.formatted(code);
+            """
+                .formatted(code);
     }
 
     /**
@@ -529,7 +499,8 @@ public class CExtensionUtils {
             #ifdef FEDERATED_CENTRALIZED
             %s
             #endif // FEDERATED_CENTRALIZED
-            """.formatted(code);
+            """
+                .formatted(code);
     }
 
     /**
@@ -541,29 +512,27 @@ public class CExtensionUtils {
             #ifdef FEDERATED_DECENTRALIZED
             %s
             #endif // FEDERATED_DECENTRALIZED
-            """.formatted(code);
+            """
+                .formatted(code);
     }
 
     /**
      * Generate preamble code needed for enabled serializers of the federate.
      */
-    public static String generateSerializationPreamble(
-        FederateInstance federate,
-        FedFileConfig fileConfig
-    ) {
+    public static String generateSerializationPreamble(FederateInstance federate, FedFileConfig fileConfig) {
         CodeBuilder code = new CodeBuilder();
         for (SupportedSerializers serializer : federate.enabledSerializers) {
             switch (serializer) {
-            case NATIVE:
-            case PROTO: {
-                // No need to do anything at this point.
-                break;
-            }
-            case ROS2: {
-                var ROSSerializer = new FedROS2CPPSerialization();
-                code.pr(ROSSerializer.generatePreambleForSupport().toString());
-                break;
-            }
+                case NATIVE:
+                case PROTO: {
+                    // No need to do anything at this point.
+                    break;
+                }
+                case ROS2: {
+                    var ROSSerializer = new FedROS2CPPSerialization();
+                    code.pr(ROSSerializer.generatePreambleForSupport().toString());
+                    break;
+                }
             }
         }
         return code.getCode();
@@ -572,22 +541,20 @@ public class CExtensionUtils {
     /**
      * Generate cmake-include code needed for enabled serializers of the federate.
      */
-    public static String generateSerializationCMakeExtension(
-        FederateInstance federate
-    ) {
+    public static String generateSerializationCMakeExtension(FederateInstance federate) {
         CodeBuilder code = new CodeBuilder();
         for (SupportedSerializers serializer : federate.enabledSerializers) {
             switch (serializer) {
-            case NATIVE:
-            case PROTO: {
-                // No CMake code is needed for now
-                break;
-            }
-            case ROS2: {
-                var ROSSerializer = new FedROS2CPPSerialization();
-                code.pr(ROSSerializer.generateCompilerExtensionForSupport());
-                break;
-            }
+                case NATIVE:
+                case PROTO: {
+                    // No CMake code is needed for now
+                    break;
+                }
+                case ROS2: {
+                    var ROSSerializer = new FedROS2CPPSerialization();
+                    code.pr(ROSSerializer.generateCompilerExtensionForSupport());
+                    break;
+                }
             }
         }
         return code.getCode();

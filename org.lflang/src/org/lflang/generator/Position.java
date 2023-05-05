@@ -148,7 +148,7 @@ public class Position implements Comparable<Position> {
      * caused by {@code text}
      */
     public Position plus(String text) {
-        text += "\n";  // Turn line separators into line terminators.
+        text += "\n"; // Turn line separators into line terminators.
         String[] lines = text.lines().toArray(String[]::new);
         if (lines.length == 0) return this; // OK not to copy because Positions are immutable
         int lastLineLength = lines[lines.length - 1].length();
@@ -211,9 +211,7 @@ public class Position implements Comparable<Position> {
         Matcher matcher = PATTERN.matcher(s);
         if (matcher.matches()) {
             return Position.fromZeroBased(
-                Integer.parseInt(matcher.group("line")),
-                Integer.parseInt(matcher.group("column"))
-            );
+                    Integer.parseInt(matcher.group("line")), Integer.parseInt(matcher.group("column")));
         }
         throw new IllegalArgumentException(String.format("Could not parse %s as a Position.", s));
     }
@@ -231,7 +229,7 @@ public class Position implements Comparable<Position> {
      * with the names removed from the named capturing
      * groups
      */
-    public static String removeNamedCapturingGroups(Pattern regex) {  // FIXME: Does this belong here?
+    public static String removeNamedCapturingGroups(Pattern regex) { // FIXME: Does this belong here?
         return regex.toString().replaceAll("\\(\\?<\\w+>", "(");
     }
 }

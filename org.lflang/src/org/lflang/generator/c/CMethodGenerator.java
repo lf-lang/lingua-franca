@@ -21,17 +21,14 @@ public class CMethodGenerator {
      * @param reactor The reactor.
      * @param body The place to put the macro definitions.
      */
-    public static void generateMacrosForMethods(
-        Reactor reactor,
-        CodeBuilder body
-    ) {
+    public static void generateMacrosForMethods(Reactor reactor, CodeBuilder body) {
         for (Method method : allMethods(reactor)) {
             var functionName = methodFunctionName(reactor, method);
             // If the method has no arguments. Do not pass it any variadic arguments.s
             if (method.getArguments().size() > 0) {
-                body.pr("#define "+method.getName()+"(...) "+functionName+"(self, ##__VA_ARGS__)");
+                body.pr("#define " + method.getName() + "(...) " + functionName + "(self, ##__VA_ARGS__)");
             } else {
-                body.pr("#define "+method.getName()+"() "+functionName+"(self)");
+                body.pr("#define " + method.getName() + "() " + functionName + "(self)");
             }
         }
     }
@@ -41,12 +38,9 @@ public class CMethodGenerator {
      * @param reactor The reactor.
      * @param body The place to put the macro definitions.
      */
-    public static void generateMacroUndefsForMethods(
-        Reactor reactor,
-        CodeBuilder body
-    ) {
+    public static void generateMacroUndefsForMethods(Reactor reactor, CodeBuilder body) {
         for (Method method : allMethods(reactor)) {
-            body.pr("#undef "+method.getName());
+            body.pr("#undef " + method.getName());
         }
     }
 
@@ -58,16 +52,12 @@ public class CMethodGenerator {
      * @param decl The reactor declaration.
      * @param types The C-specific type conversion functions.
      */
-    public static String generateMethod(
-        Method method,
-        ReactorDecl decl,
-        CTypes types
-    ) {
+    public static String generateMethod(Method method, ReactorDecl decl, CTypes types) {
         var code = new CodeBuilder();
         var body = ASTUtils.toText(method.getCode());
 
         code.prSourceLineNumber(method);
-        code.prComment("Implementation of method "+method.getName()+"()");
+        code.prComment("Implementation of method " + method.getName() + "()");
         code.pr(generateMethodSignature(method, decl, types) + " {");
         code.indent();
 
@@ -76,10 +66,9 @@ public class CMethodGenerator {
         // A null structType means there are no inputs, state,
         // or anything else. No need to declare it.
         if (structType != null) {
-             code.pr(String.join("\n",
-                 structType+"* self = ("+structType+"*)instance_args;"
-                         + " SUPPRESS_UNUSED_WARNING(self);"
-             ));
+            code.pr(String.join(
+                    "\n",
+                    structType + "* self = (" + structType + "*)instance_args;" + " SUPPRESS_UNUSED_WARNING(self);"));
         }
 
         code.prSourceLineNumber(method.getCode());
@@ -97,11 +86,7 @@ public class CMethodGenerator {
      * @param code The place to put the code.
      * @param types The C-specific type conversion functions.
      */
-    public static void generateMethods(
-            ReactorDecl decl,
-            CodeBuilder code,
-            CTypes types
-    ) {
+    public static void generateMethods(ReactorDecl decl, CodeBuilder code, CTypes types) {
         var reactor = ASTUtils.toDefinition(decl);
         code.prComment("***** Start of method declarations.");
         signatures(decl, code, types);
@@ -121,11 +106,7 @@ public class CMethodGenerator {
      * @param decl The reactor declaration.
      * @param types The C-specific type conversion functions.
      */
-    public static void signatures(
-        ReactorDecl decl,
-        CodeBuilder body,
-        CTypes types
-    ) {
+    public static void signatures(ReactorDecl decl, CodeBuilder body, CTypes types) {
         Reactor reactor = ASTUtils.toDefinition(decl);
         for (Method method : allMethods(reactor)) {
             body.pr(generateMethodSignature(method, decl, types) + ";");
@@ -150,11 +131,7 @@ public class CMethodGenerator {
      * @param decl The reactor declaration.
      * @param types The C-specific type conversion functions.
      */
-    public static String generateMethodSignature(
-        Method method,
-        ReactorDecl decl,
-        CTypes types
-    ) {
+    public static String generateMethodSignature(Method method, ReactorDecl decl, CTypes types) {
         var functionName = methodFunctionName(decl, method);
 
         StringBuilder result = new StringBuilder();

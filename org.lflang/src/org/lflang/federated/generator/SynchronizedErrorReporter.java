@@ -1,10 +1,8 @@
 package org.lflang.federated.generator;
 
 import java.nio.file.Path;
-
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.lsp4j.DiagnosticSeverity;
-
 import org.lflang.ErrorReporter;
 import org.lflang.generator.Position;
 
@@ -72,7 +70,8 @@ public class SynchronizedErrorReporter implements ErrorReporter {
     }
 
     @Override
-    public synchronized String report(Path file, DiagnosticSeverity severity, String message, Position startPos, Position endPos) {
+    public synchronized String report(
+            Path file, DiagnosticSeverity severity, String message, Position startPos, Position endPos) {
         return parent.report(file, severity, message, startPos, endPos);
     }
 

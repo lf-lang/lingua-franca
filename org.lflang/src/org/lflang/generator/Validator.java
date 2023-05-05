@@ -1,9 +1,6 @@
 package org.lflang.generator;
 
-import org.eclipse.xtext.util.CancelIndicator;
-
-import org.lflang.ErrorReporter;
-import org.lflang.util.LFCommand;
+import com.google.common.collect.ImmutableMap;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -17,8 +14,9 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.stream.Collectors;
-
-import com.google.common.collect.ImmutableMap;
+import org.eclipse.xtext.util.CancelIndicator;
+import org.lflang.ErrorReporter;
+import org.lflang.util.LFCommand;
 
 /**
  * Validate generated code.
@@ -37,6 +35,7 @@ public abstract class Validator {
     protected static class Pair<S, T> {
         public final S first;
         public final T second;
+
         public Pair(S first, T second) {
             this.first = first;
             this.second = second;
@@ -61,15 +60,21 @@ public abstract class Validator {
      */
     public final void doValidate(LFGeneratorContext context) throws ExecutionException, InterruptedException {
         if (!validationEnabled(context)) return;
-        final List<Callable<Pair<ValidationStrategy, LFCommand>>> tasks = getValidationStrategies().stream().map(
-            it -> (Callable<Pair<ValidationStrategy, LFCommand>>) () -> {
-                it.second.run(context.getCancelIndicator());
-                return it;
-            }
-        ).collect(Collectors.toList());
+        final List<Callable<Pair<ValidationStrategy, LFCommand>>> tasks = getValidationStrategies().stream()
+                .map(it -> (Callable<Pair<ValidationStrategy, LFCommand>>) () -> {
+                    it.second.run(context.getCancelIndicator());
+                    return it;
+                })
+                .collect(Collectors.toList());
         for (Future<Pair<ValidationStrategy, LFCommand>> f : getFutures(tasks)) {
-            f.get().first.getErrorReportingStrategy().report(f.get().second.getErrors().toString(), errorReporter, codeMaps);
-            f.get().first.getOutputReportingStrategy().report(f.get().second.getOutput().toString(), errorReporter, codeMaps);
+            f.get()
+                    .first
+                    .getErrorReportingStrategy()
+                    .report(f.get().second.getErrors().toString(), errorReporter, codeMaps);
+            f.get()
+                    .first
+                    .getOutputReportingStrategy()
+                    .report(f.get().second.getOutput().toString(), errorReporter, codeMaps);
         }
     }
 
@@ -100,21 +105,21 @@ public abstract class Validator {
     private static <T> List<Future<T>> getFutures(List<Callable<T>> tasks) throws InterruptedException {
         List<Future<T>> futures = List.of();
         switch (tasks.size()) {
-        case 0:
-            break;
-        case 1:
-            try {
-                futures = List.of(CompletableFuture.completedFuture(tasks.get(0).call()));
-            } catch (Exception e) {
-                System.err.println(e.getMessage());  // This should never happen
-            }
-            break;
-        default:
-            ExecutorService service = Executors.newFixedThreadPool(
-                Math.min(Runtime.getRuntime().availableProcessors(), tasks.size())
-            );
-            futures = service.invokeAll(tasks);
-            service.shutdown();
+            case 0:
+                break;
+            case 1:
+                try {
+                    futures = List.of(
+                            CompletableFuture.completedFuture(tasks.get(0).call()));
+                } catch (Exception e) {
+                    System.err.println(e.getMessage()); // This should never happen
+                }
+                break;
+            default:
+                ExecutorService service = Executors.newFixedThreadPool(
+                        Math.min(Runtime.getRuntime().availableProcessors(), tasks.size()));
+                futures = service.invokeAll(tasks);
+                service.shutdown();
         }
         return futures;
     }
@@ -138,8 +143,8 @@ public abstract class Validator {
      */
     private List<Pair<ValidationStrategy, LFCommand>> getValidationStrategies() {
         final List<Pair<ValidationStrategy, LFCommand>> commands = new ArrayList<>();
-        long mostRecentDateModified = codeMaps.keySet().stream()
-            .map(it -> it.toFile().lastModified()).reduce(0L, Math::max);
+        long mostRecentDateModified =
+                codeMaps.keySet().stream().map(it -> it.toFile().lastModified()).reduce(0L, Math::max);
         for (Path generatedFile : codeMaps.keySet()) {
             if (generatedFile.toFile().lastModified() > mostRecentDateModified - FILE_AGE_THRESHOLD_MILLIS) {
                 final Pair<ValidationStrategy, LFCommand> p = getValidationStrategy(generatedFile);
@@ -161,7 +166,8 @@ public abstract class Validator {
      */
     private Pair<ValidationStrategy, LFCommand> getValidationStrategy(Path generatedFile) {
         List<ValidationStrategy> sorted = getPossibleStrategies().stream()
-            .sorted(Comparator.comparingInt(vs -> -vs.getPriority())).toList();
+                .sorted(Comparator.comparingInt(vs -> -vs.getPriority()))
+                .toList();
         for (ValidationStrategy strategy : sorted) {
             LFCommand validateCommand = strategy.getCommand(generatedFile);
             if (validateCommand != null) {

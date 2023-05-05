@@ -1,32 +1,30 @@
 /** A data structure for a reactor instance. */
 
 /*************
-Copyright (c) 2019-2022, The University of California at Berkeley.
-
-Redistribution and use in source and binary forms, with or without modification,
-are permitted provided that the following conditions are met:
-
-1. Redistributions of source code must retain the above copyright notice,
-   this list of conditions and the following disclaimer.
-
-2. Redistributions in binary form must reproduce the above copyright notice,
-   this list of conditions and the following disclaimer in the documentation
-   and/or other materials provided with the distribution.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY
-EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
-MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL
-THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
-PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
-INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
-STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
-THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-***************/
-
+ * Copyright (c) 2019-2022, The University of California at Berkeley.
+ *
+ * Redistribution and use in source and binary forms, with or without modification,
+ * are permitted provided that the following conditions are met:
+ *
+ * 1. Redistributions of source code must retain the above copyright notice,
+ * this list of conditions and the following disclaimer.
+ *
+ * 2. Redistributions in binary form must reproduce the above copyright notice,
+ * this list of conditions and the following disclaimer in the documentation
+ * and/or other materials provided with the distribution.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY
+ * EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+ * MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL
+ * THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+ * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
+ * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
+ * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ ***************/
 package org.lflang.generator;
 
-import static org.lflang.ASTUtils.belongsTo;
 import static org.lflang.ASTUtils.getLiteralTimeValue;
 
 import java.util.ArrayList;
@@ -38,9 +36,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-
-import org.eclipse.emf.ecore.util.EcoreUtil;
-
 import org.lflang.ASTUtils;
 import org.lflang.AttributeUtils;
 import org.lflang.ErrorReporter;
@@ -55,7 +50,6 @@ import org.lflang.lf.Expression;
 import org.lflang.lf.Initializer;
 import org.lflang.lf.Input;
 import org.lflang.lf.Instantiation;
-import org.lflang.lf.LfFactory;
 import org.lflang.lf.Mode;
 import org.lflang.lf.Output;
 import org.lflang.lf.Parameter;
@@ -68,7 +62,6 @@ import org.lflang.lf.Timer;
 import org.lflang.lf.VarRef;
 import org.lflang.lf.Variable;
 import org.lflang.lf.WidthSpec;
-
 
 /**
  * Representation of a compile-time instance of a reactor.
@@ -280,7 +273,7 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
             for (ReactionInstance r : reactions) {
                 for (TriggerInstance<? extends Variable> p : r.effects) {
                     if (p instanceof PortInstance) {
-                        findPaths((PortInstance)p, reactions, ports);
+                        findPaths((PortInstance) p, reactions, ports);
                     }
                 }
             }
@@ -296,7 +289,7 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
      * @param name The input name.
      */
     public PortInstance getInput(String name) {
-        for (PortInstance port: inputs) {
+        for (PortInstance port : inputs) {
             if (port.getName().equals(name)) {
                 return port;
             }
@@ -322,10 +315,10 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
      */
     @Override
     public String uniqueID() {
-       if (this.isMainOrFederated()) {
-          return super.uniqueID() + "_main";
-       }
-       return super.uniqueID();
+        if (this.isMainOrFederated()) {
+            return super.uniqueID() + "_main";
+        }
+        return super.uniqueID();
     }
 
     /**
@@ -333,7 +326,7 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
      * @param name The output name.
      */
     public PortInstance getOutput(String name) {
-        for (PortInstance port: outputs) {
+        for (PortInstance port : outputs) {
             if (port.getName().equals(name)) {
                 return port;
             }
@@ -347,7 +340,7 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
      * @param name The parameter name.
      */
     public ParameterInstance getParameter(String name) {
-        for (ParameterInstance parameter: parameters) {
+        for (ParameterInstance parameter : parameters) {
             if (parameter.getName().equals(name)) {
                 return parameter;
             }
@@ -458,23 +451,21 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
         return LfExpressionVisitor.dispatch(e, this, ParameterInliner.INSTANCE);
     }
 
-
-    private static final class ParameterInliner extends LfExpressionVisitor.LfExpressionDeepCopyVisitor<ReactorInstance> {
+    private static final class ParameterInliner
+            extends LfExpressionVisitor.LfExpressionDeepCopyVisitor<ReactorInstance> {
         static final ParameterInliner INSTANCE = new ParameterInliner();
 
         @Override
         public Expression visitParameterRef(ParameterReference expr, ReactorInstance instance) {
             if (!ASTUtils.belongsTo(expr.getParameter(), instance.definition)) {
                 throw new IllegalArgumentException("Parameter "
-                    + expr.getParameter().getName()
-                    + " is not a parameter of reactor instance "
-                    + instance.getName()
-                    + "."
-                );
+                        + expr.getParameter().getName()
+                        + " is not a parameter of reactor instance "
+                        + instance.getName()
+                        + ".");
             }
 
-            Optional<Assignment> assignment =
-                instance.definition.getParameters().stream()
+            Optional<Assignment> assignment = instance.definition.getParameters().stream()
                     .filter(it -> it.getLhs().equals(expr.getParameter()))
                     .findAny(); // There is at most one
 
@@ -532,8 +523,7 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
      * @return true if reactor definition is marked as main or federated, false otherwise.
      */
     public boolean isMainOrFederated() {
-        return reactorDefinition != null
-                && (reactorDefinition.isMain() || reactorDefinition.isFederated());
+        return reactorDefinition != null && (reactorDefinition.isMain() || reactorDefinition.isFederated());
     }
 
     /**
@@ -754,8 +744,8 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
                     unorderedReactions.add(reaction);
                 }
                 // Create the reaction instance.
-                var reactionInstance = new ReactionInstance(reaction, this,
-                    unorderedReactions.contains(reaction), count++);
+                var reactionInstance =
+                        new ReactionInstance(reaction, this, unorderedReactions.contains(reaction), count++);
 
                 // Add the reaction instance to the map of reactions for this
                 // reactor.
@@ -783,10 +773,7 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
      * @param desiredDepth The depth to which to expand the hierarchy.
      */
     private ReactorInstance(
-            Instantiation definition,
-            ReactorInstance parent,
-            ErrorReporter reporter,
-            int desiredDepth) {
+            Instantiation definition, ReactorInstance parent, ErrorReporter reporter, int desiredDepth) {
         super(definition, parent);
         this.reporter = reporter;
         this.reactorDeclaration = definition.getReactorClass();
@@ -804,7 +791,7 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
                     currentParent = currentParent.parent;
                 }
             }
-        } while(currentParent != null);
+        } while (currentParent != null);
 
         this.recursive = foundSelfAsParent;
         if (recursive) {
@@ -840,12 +827,7 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
             // Instantiate children for this reactor instance.
             // While doing this, assign an index offset to each.
             for (Instantiation child : ASTUtils.allInstantiations(reactorDefinition)) {
-                var childInstance = new ReactorInstance(
-                    child,
-                    this,
-                    reporter,
-                    desiredDepth
-                );
+                var childInstance = new ReactorInstance(child, this, reporter, desiredDepth);
                 this.children.add(childInstance);
             }
 
@@ -894,10 +876,7 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
      * @param connection The connection establishing this relationship.
      */
     public static void connectPortInstances(
-            RuntimeRange<PortInstance> src,
-            RuntimeRange<PortInstance> dst,
-            Connection connection
-    ) {
+            RuntimeRange<PortInstance> src, RuntimeRange<PortInstance> dst, Connection connection) {
         SendRange range = new SendRange(src, dst, src._interleaved, connection);
         src.instance.dependentPorts.add(range);
         dst.instance.dependsOnPorts.add(src);
@@ -933,14 +912,14 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
             RuntimeRange<PortInstance> src = srcRanges.next();
             RuntimeRange<PortInstance> dst = dstRanges.next();
 
-            while(true) {
+            while (true) {
                 if (dst.width == src.width) {
                     connectPortInstances(src, dst, connection);
                     if (!dstRanges.hasNext()) {
                         if (srcRanges.hasNext()) {
                             // Should not happen (checked by the validator).
-                            reporter.reportWarning(connection,
-                                    "Source is wider than the destination. Outputs will be lost.");
+                            reporter.reportWarning(
+                                    connection, "Source is wider than the destination. Outputs will be lost.");
                         }
                         break;
                     }
@@ -950,8 +929,8 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
                         } else {
                             if (dstRanges.hasNext()) {
                                 // Should not happen (checked by the validator).
-                                reporter.reportWarning(connection,
-                                        "Destination is wider than the source. Inputs will be missing.");
+                                reporter.reportWarning(
+                                        connection, "Destination is wider than the source. Inputs will be missing.");
                             }
                             break;
                         }
@@ -964,8 +943,8 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
                     src = src.tail(dst.width);
                     if (!dstRanges.hasNext()) {
                         // Should not happen (checked by the validator).
-                        reporter.reportWarning(connection,
-                                "Source is wider than the destination. Outputs will be lost.");
+                        reporter.reportWarning(
+                                connection, "Source is wider than the destination. Outputs will be lost.");
                         break;
                     }
                     dst = dstRanges.next();
@@ -977,8 +956,8 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
                         if (connection.isIterated()) {
                             srcRanges = leftPorts.iterator();
                         } else {
-                            reporter.reportWarning(connection,
-                                    "Destination is wider than the source. Inputs will be missing.");
+                            reporter.reportWarning(
+                                    connection, "Destination is wider than the source. Inputs will be missing.");
                             break;
                         }
                     }
@@ -994,11 +973,7 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
      * to the specified set of ports.
      * @return True if the specified port was added.
      */
-    private boolean findPaths(
-            PortInstance port,
-            Set<ReactionInstance> reactions,
-            Set<PortInstance> ports
-    ) {
+    private boolean findPaths(PortInstance port, Set<ReactionInstance> reactions, Set<PortInstance> ports) {
         if (ports.contains(port)) return false;
         boolean result = false;
         for (ReactionInstance d : port.getDependentReactions()) {
@@ -1036,9 +1011,7 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
      * @param references The variable references on one side of the connection.
      * @param connection The connection.
      */
-    private List<RuntimeRange<PortInstance>> listPortInstances(
-            List<VarRef> references, Connection connection
-    ) {
+    private List<RuntimeRange<PortInstance>> listPortInstances(List<VarRef> references, Connection connection) {
         List<RuntimeRange<PortInstance>> result = new ArrayList<>();
         List<RuntimeRange<PortInstance>> tails = new LinkedList<>();
         int count = 0;
@@ -1058,8 +1031,7 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
             // The reactor can be null only if there is an error in the code.
             // Skip this portRef so that diagram synthesis can complete.
             if (reactor != null) {
-                PortInstance portInstance = reactor.lookupPortInstance(
-                        (Port) portRef.getVariable());
+                PortInstance portInstance = reactor.lookupPortInstance((Port) portRef.getVariable());
 
                 Set<ReactorInstance> interleaved = new LinkedHashSet<>();
                 if (portRef.isInterleaved()) {
@@ -1068,8 +1040,7 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
                     // contained reactors.
                     interleaved.add(portInstance.parent);
                 }
-                RuntimeRange<PortInstance> range = new RuntimeRange.Port(
-                        portInstance, interleaved);
+                RuntimeRange<PortInstance> range = new RuntimeRange.Port(portInstance, interleaved);
                 // If this portRef is not the last one in the references list
                 // then we have to check whether the range can be incremented at
                 // the lowest two levels (port and container).  If not,
@@ -1102,7 +1073,7 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
             }
         }
         // Iterate over the tails.
-        while(tails.size() > 0) {
+        while (tails.size() > 0) {
             List<RuntimeRange<PortInstance>> moreTails = new LinkedList<>();
             count = 0;
             for (RuntimeRange<PortInstance> tail : tails) {

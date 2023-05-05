@@ -46,7 +46,8 @@ public enum TimeUnit {
     MILLI("msec", "ms", "msecs"),
     /** Seconds. */
     SECOND("sec", "s", "secs", "second", "seconds"),
-    /** Minute. */ // NOTE: Do not use MIN as the first entry. Common macro for minimum.
+    /** Minute. */
+    // NOTE: Do not use MIN as the first entry. Common macro for minimum.
     MINUTE("minute", "min", "mins", "minutes"),
     /** Hour. */
     HOUR("hour", "h", "hours"),
@@ -63,7 +64,6 @@ public enum TimeUnit {
         this.allNames = immutableSetOf(canonicalName, aliases);
     }
 
-
     /**
      * Returns the name that is preferred when displaying this unit.
      */
@@ -75,7 +75,6 @@ public enum TimeUnit {
     public boolean hasAlias(String name) {
         return allNames.contains(name);
     }
-
 
     /**
      * Returns the constant corresponding to the given name.
@@ -89,9 +88,9 @@ public enum TimeUnit {
             return null;
         }
         return Arrays.stream(values())
-                     .filter(it -> it.hasAlias(name))
-                     .findFirst()
-                     .orElseThrow(() -> new IllegalArgumentException("invalid name '" + name + "'"));
+                .filter(it -> it.hasAlias(name))
+                .findFirst()
+                .orElseThrow(() -> new IllegalArgumentException("invalid name '" + name + "'"));
     }
 
     /**

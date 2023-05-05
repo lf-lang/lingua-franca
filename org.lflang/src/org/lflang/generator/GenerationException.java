@@ -46,7 +46,6 @@ public class GenerationException extends RuntimeException { // note that this is
 
     public GenerationException(String message, Throwable cause) {
         this(null, message, cause);
-
     }
 
     public GenerationException(/* @Nullable */ EObject location, String message, Throwable cause) {
@@ -63,4 +62,3 @@ public class GenerationException extends RuntimeException { // note that this is
         return location;
     }
 }
-

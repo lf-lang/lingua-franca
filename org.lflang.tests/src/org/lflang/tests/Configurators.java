@@ -26,7 +26,6 @@ package org.lflang.tests;
 
 import org.lflang.TargetProperty;
 import org.lflang.TargetProperty.Platform;
-import org.lflang.generator.LFGeneratorContext.BuildParm;
 import org.lflang.tests.TestRegistry.TestCategory;
 
 /**
@@ -93,12 +92,12 @@ public class Configurators {
         // are not compatible with single-threaded execution.
         // ARDUINO and ZEPHYR have their own test suites, so we don't need to rerun.
         boolean excluded = category == TestCategory.CONCURRENT
-            || category == TestCategory.SERIALIZATION
-            || category == TestCategory.FEDERATED
-            || category == TestCategory.DOCKER_FEDERATED
-            || category == TestCategory.DOCKER
-            || category == TestCategory.ARDUINO
-            || category == TestCategory.ZEPHYR;
+                || category == TestCategory.SERIALIZATION
+                || category == TestCategory.FEDERATED
+                || category == TestCategory.DOCKER_FEDERATED
+                || category == TestCategory.DOCKER
+                || category == TestCategory.ARDUINO
+                || category == TestCategory.ZEPHYR;
 
         // SERIALIZATION and TARGET tests are excluded on Windows.
         excluded |= TestBase.isWindows() && (category == TestCategory.TARGET);

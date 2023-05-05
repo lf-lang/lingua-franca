@@ -90,7 +90,7 @@ spotless {
         mavenCentral()
     }
     // optional: limit format enforcement to just the files changed by this feature branch
-    ratchetFrom 'origin/master'
+    //ratchetFrom 'origin/master'
 
     format 'misc', {
         // define the files to apply `misc` to
@@ -110,10 +110,7 @@ spotless {
 
     java {
         target 'org.lflang*/src/**/*.java', 'buildSrc/**/*.java'
-        // The following is quoted from https://github.com/google/google-java-format
-        // "Note: There is no configurability as to the formatter's algorithm for formatting.
-        // This is a deliberate design decision to unify our code formatting on a single format."
-        googleJavaFormat(googleJavaFormatVersion).reflowLongStrings()
+        palantirJavaFormat()
         formatAnnotations()
     }
 }

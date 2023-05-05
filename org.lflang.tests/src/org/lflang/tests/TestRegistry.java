@@ -18,12 +18,10 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Stack;
 import java.util.TreeSet;
-
 import org.eclipse.emf.common.util.URI;
 import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.emf.ecore.resource.ResourceSet;
 import org.eclipse.xtext.xbase.lib.IteratorExtensions;
-
 import org.lflang.LFResourceProvider;
 import org.lflang.LFStandaloneSetup;
 import org.lflang.Target;
@@ -41,8 +39,7 @@ public class TestRegistry {
         /**
          * Registry that maps targets to maps from categories to sets of tests.
          */
-        protected final Map<Target,
-                Map<TestCategory, Set<LFTest>>> map = new HashMap<>();
+        protected final Map<Target, Map<TestCategory, Set<LFTest>>> map = new HashMap<>();
 
         /**
          * Create a new test map.
@@ -153,8 +150,9 @@ public class TestRegistry {
          * Whether we should compare coverage against other targets.
          */
         public final boolean isCommon;
+
         public final String path;
-        public final TestLevel level ;
+        public final TestLevel level;
 
         /**
          * Create a new test category.
@@ -202,11 +200,12 @@ public class TestRegistry {
     static {
         System.out.println("Indexing...");
         ResourceSet rs = new LFStandaloneSetup()
-            .createInjectorAndDoEMFRegistration()
-            .getInstance(LFResourceProvider.class).getResourceSet();
+                .createInjectorAndDoEMFRegistration()
+                .getInstance(LFResourceProvider.class)
+                .getResourceSet();
 
         // Prepare for the collection of tests per category.
-        for (TestCategory t: TestCategory.values()) {
+        for (TestCategory t : TestCategory.values()) {
             allTargets.put(t, new TreeSet<>());
         }
         // Populate the registry.
@@ -222,13 +221,12 @@ public class TestRegistry {
                 }
 
             } catch (IOException e) {
-                System.err.println(
-                        "ERROR: Caught exception while indexing tests for target " + target);
+                System.err.println("ERROR: Caught exception while indexing tests for target " + target);
                 e.printStackTrace();
             }
             // Record the tests for later use when reporting coverage.
-            Arrays.asList(TestCategory.values()).forEach(
-                    c -> allTargets.get(c).addAll(getRegisteredTests(target, c, false)));
+            Arrays.asList(TestCategory.values())
+                    .forEach(c -> allTargets.get(c).addAll(getRegisteredTests(target, c, false)));
         }
     }
 
@@ -248,8 +246,7 @@ public class TestRegistry {
      * @param copy Whether to return copies of the indexed tests instead of the indexed tests themselves.
      * @return A set of tests for the given target/category.
      */
-    public static Set<LFTest> getRegisteredTests(Target target,
-            TestCategory category, boolean copy) {
+    public static Set<LFTest> getRegisteredTests(Target target, TestCategory category, boolean copy) {
         if (copy) {
             Set<LFTest> copies = new TreeSet<>();
             for (LFTest test : registered.getTests(target, category)) {
@@ -284,16 +281,25 @@ public class TestRegistry {
         if (category.isCommon) {
             Set<LFTest> all = allTargets.get(category);
             s.append("\n").append(TestBase.THIN_LINE);
-            s.append("Covered: ").append(own.size()).append("/").append(all.size()).append("\n");
+            s.append("Covered: ")
+                    .append(own.size())
+                    .append("/")
+                    .append(all.size())
+                    .append("\n");
             s.append(TestBase.THIN_LINE);
             int missing = all.size() - own.size();
             if (missing > 0) {
-                all.stream().filter(test -> !own.contains(test))
+                all.stream()
+                        .filter(test -> !own.contains(test))
                         .forEach(test -> s.append("Missing: ").append(test).append("\n"));
             }
         } else {
             s.append("\n").append(TestBase.THIN_LINE);
-            s.append("Covered: ").append(own.size()).append("/").append(own.size()).append("\n");
+            s.append("Covered: ")
+                    .append(own.size())
+                    .append("/")
+                    .append(own.size())
+                    .append("\n");
             s.append(TestBase.THIN_LINE);
         }
         return s.toString();
@@ -348,8 +354,7 @@ public class TestRegistry {
          * that should be ignored.
          */
         @Override
-        public FileVisitResult preVisitDirectory(Path dir,
-                BasicFileAttributes attrs) {
+        public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) {
             for (String ignored : IGNORED_DIRECTORIES) {
                 if (dir.getFileName().toString().equalsIgnoreCase(ignored)) {
                     return SKIP_SUBTREE;
@@ -385,14 +390,14 @@ public class TestRegistry {
         public FileVisitResult visitFile(Path path, BasicFileAttributes attr) {
             if (attr.isRegularFile() && path.toString().endsWith(".lf")) {
                 // Try to parse the file.
-                Resource r = rs.getResource(URI.createFileURI(path.toFile().getAbsolutePath()),true);
+                Resource r = rs.getResource(URI.createFileURI(path.toFile().getAbsolutePath()), true);
                 // FIXME: issue warning if target doesn't match!
                 LFTest test = new LFTest(target, path);
 
                 Iterator<Reactor> reactors = IteratorExtensions.filter(r.getAllContents(), Reactor.class);
 
-                if (r.getErrors().isEmpty() && !IteratorExtensions.exists(reactors,
-                    it -> it.isMain() || it.isFederated())) {
+                if (r.getErrors().isEmpty()
+                        && !IteratorExtensions.exists(reactors, it -> it.isMain() || it.isFederated())) {
                     // If the test compiles but doesn't have a main reactor,
                     // _do not add the file_. We assume it is a library
                     // file.

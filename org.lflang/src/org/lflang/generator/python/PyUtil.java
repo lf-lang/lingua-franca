@@ -1,39 +1,34 @@
 /* Utilities for Python code generation. */
 
 /*************
-Copyright (c) 2019-2021, The University of California at Berkeley.
-
-Redistribution and use in source and binary forms, with or without modification,
-are permitted provided that the following conditions are met:
-
-1. Redistributions of source code must retain the above copyright notice,
-   this list of conditions and the following disclaimer.
-
-2. Redistributions in binary form must reproduce the above copyright notice,
-   this list of conditions and the following disclaimer in the documentation
-   and/or other materials provided with the distribution.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY
-EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
-MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL
-THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
-PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
-INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
-STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
-THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-***************/
-
+ * Copyright (c) 2019-2021, The University of California at Berkeley.
+ *
+ * Redistribution and use in source and binary forms, with or without modification,
+ * are permitted provided that the following conditions are met:
+ *
+ * 1. Redistributions of source code must retain the above copyright notice,
+ * this list of conditions and the following disclaimer.
+ *
+ * 2. Redistributions in binary form must reproduce the above copyright notice,
+ * this list of conditions and the following disclaimer in the documentation
+ * and/or other materials provided with the distribution.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY
+ * EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+ * MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL
+ * THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+ * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
+ * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
+ * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ ***************/
 package org.lflang.generator.python;
 
 import org.lflang.InferredType;
 import org.lflang.generator.ReactorInstance;
-import org.lflang.generator.GeneratorBase;
 import org.lflang.generator.c.CUtil;
 import org.lflang.lf.Expression;
-import org.lflang.lf.ParameterReference;
-import org.lflang.ASTUtils;
-
 
 /**
  * A collection of utilities for Python code generation.
@@ -98,41 +93,60 @@ public class PyUtil extends CUtil {
      */
     public static String pyBuildValueArgumentType(String type) {
         switch (type) {
-            case "int":                return "i";
-            case "string":             return "s";
-            case "char":               return "b";
-            case "short int":          return "h";
-            case "long":               return "l";
-            case "unsigned char":      return "B";
-            case "unsigned short int": return "H";
-            case "unsigned int":       return "I";
-            case "unsigned long":      return "k";
-            case "long long":          return "L";
-            case "interval_t":         return "L";
-            case "unsigned long long": return "K";
-            case "double":             return "d";
-            case "float":              return "f";
-            case "Py_complex":         return "D";
-            case "Py_complex*":        return "D";
-            case "Py_Object":          return "O";
-            case "Py_Object*":         return "O";
-            default:                   return "O";
+            case "int":
+                return "i";
+            case "string":
+                return "s";
+            case "char":
+                return "b";
+            case "short int":
+                return "h";
+            case "long":
+                return "l";
+            case "unsigned char":
+                return "B";
+            case "unsigned short int":
+                return "H";
+            case "unsigned int":
+                return "I";
+            case "unsigned long":
+                return "k";
+            case "long long":
+                return "L";
+            case "interval_t":
+                return "L";
+            case "unsigned long long":
+                return "K";
+            case "double":
+                return "d";
+            case "float":
+                return "f";
+            case "Py_complex":
+                return "D";
+            case "Py_complex*":
+                return "D";
+            case "Py_Object":
+                return "O";
+            case "Py_Object*":
+                return "O";
+            default:
+                return "O";
         }
     }
 
     public static String generateGILAcquireCode() {
-        return String.join("\n",
-            "// Acquire the GIL (Global Interpreter Lock) to be able to call Python APIs.",
-            "PyGILState_STATE gstate;",
-            "gstate = PyGILState_Ensure();"
-        );
+        return String.join(
+                "\n",
+                "// Acquire the GIL (Global Interpreter Lock) to be able to call Python APIs.",
+                "PyGILState_STATE gstate;",
+                "gstate = PyGILState_Ensure();");
     }
 
     public static String generateGILReleaseCode() {
-        return String.join("\n",
-            "/* Release the thread. No Python API allowed beyond this point. */",
-            "PyGILState_Release(gstate);"
-        );
+        return String.join(
+                "\n",
+                "/* Release the thread. No Python API allowed beyond this point. */",
+                "PyGILState_Release(gstate);");
     }
 
     /**

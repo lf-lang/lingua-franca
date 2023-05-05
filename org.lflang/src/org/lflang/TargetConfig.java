@@ -1,27 +1,27 @@
 /*************
-Copyright (c) 2019, The University of California at Berkeley.
-
-Redistribution and use in source and binary forms, with or without modification,
-are permitted provided that the following conditions are met:
-
-1. Redistributions of source code must retain the above copyright notice,
-   this list of conditions and the following disclaimer.
-
-2. Redistributions in binary form must reproduce the above copyright notice,
-   this list of conditions and the following disclaimer in the documentation
-   and/or other materials provided with the distribution.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
-ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR
-ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
-(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
-ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
-SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-***************/
+ * Copyright (c) 2019, The University of California at Berkeley.
+ *
+ * Redistribution and use in source and binary forms, with or without modification,
+ * are permitted provided that the following conditions are met:
+ *
+ * 1. Redistributions of source code must retain the above copyright notice,
+ * this list of conditions and the following disclaimer.
+ *
+ * 2. Redistributions in binary form must reproduce the above copyright notice,
+ * this list of conditions and the following disclaimer in the documentation
+ * and/or other materials provided with the distribution.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR
+ * ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+ * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+ * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
+ * ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+ * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ ***************/
 package org.lflang;
 
 import java.util.ArrayList;
@@ -32,7 +32,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Properties;
 import java.util.Set;
-
 import org.lflang.TargetProperty.BuildType;
 import org.lflang.TargetProperty.ClockSyncMode;
 import org.lflang.TargetProperty.CoordinationType;
@@ -73,11 +72,7 @@ public class TargetConfig {
      * @param target AST node of a target declaration.
      * @param errorReporter An error reporter to report problems.
      */
-    public TargetConfig(
-        Properties cliArgs,
-        TargetDecl target,
-        ErrorReporter errorReporter
-    ) {
+    public TargetConfig(Properties cliArgs, TargetDecl target, ErrorReporter errorReporter) {
         this(target);
         if (target.getConfig() != null) {
             List<KeyValuePair> pairs = target.getConfig().getPairs();
@@ -114,17 +109,14 @@ public class TargetConfig {
             this.tracing = new TracingOptions();
         }
         if (cliArgs.containsKey("scheduler")) {
-            this.schedulerType = SchedulerOption.valueOf(
-                cliArgs.getProperty("scheduler")
-            );
+            this.schedulerType = SchedulerOption.valueOf(cliArgs.getProperty("scheduler"));
             this.setByUser.add(TargetProperty.SCHEDULER);
         }
         if (cliArgs.containsKey("target-flags")) {
             this.compilerFlags.clear();
             if (!cliArgs.getProperty("target-flags").isEmpty()) {
-                this.compilerFlags.addAll(List.of(
-                    cliArgs.getProperty("target-flags").split(" ")
-                ));
+                this.compilerFlags.addAll(
+                        List.of(cliArgs.getProperty("target-flags").split(" ")));
             }
         }
         if (cliArgs.containsKey("runtime-version")) {
@@ -134,8 +126,7 @@ public class TargetConfig {
             this.externalRuntimePath = cliArgs.getProperty("external-runtime-path");
         }
         if (cliArgs.containsKey(TargetProperty.KEEPALIVE.description)) {
-            this.keepalive = Boolean.parseBoolean(
-                cliArgs.getProperty(TargetProperty.KEEPALIVE.description));
+            this.keepalive = Boolean.parseBoolean(cliArgs.getProperty(TargetProperty.KEEPALIVE.description));
         }
     }
 
@@ -263,8 +254,8 @@ public class TargetConfig {
      * Set the target platform config.
      * This tells the build system what platform-specific support
      * files it needs to incorporate at compile time.
-     * 
-     * This is now a wrapped class to account for overloaded definitions 
+     *
+     * This is now a wrapped class to account for overloaded definitions
      * of defining platform (either a string or dictionary of values)
      */
     public PlatformOptions platformOptions = new PlatformOptions();
@@ -322,7 +313,6 @@ public class TargetConfig {
      */
     public TracingOptions tracing = null;
 
-
     /**
      * If true, the resulting binary will output a graph visualizing all reaction dependencies.
      *
@@ -330,7 +320,6 @@ public class TargetConfig {
      * for debugging LF programs and helps to understand the dependencies inferred by the runtime.
      */
     public boolean exportDependencyGraph = false;
-
 
     /**
      * If true, the resulting binary will output a yaml file describing the whole reactor structure
@@ -370,7 +359,6 @@ public class TargetConfig {
          * Default is false.
          */
         public boolean localFederatesOn = false;
-
 
         /**
          * Interval at which clock synchronization is initiated by the RTI (will be passed
@@ -436,7 +424,7 @@ public class TargetConfig {
      * Settings related to Platform Options.
      */
     public static class PlatformOptions {
-        
+
         /**
          * The base platform we build our LF Files on. Should be set to AUTO by default unless developing for specific OS/Embedded Platform
          */
@@ -447,7 +435,6 @@ public class TargetConfig {
          * when we want to flash to an Arduino Nano 33 BLE board, we can use the string arduino:mbed_nano:nano33ble
          */
         public String board = null;
-
 
         /**
          * The string value used to determine the port on which to flash the compiled program (i.e. /dev/cu.usbmodem21301)
@@ -464,7 +451,7 @@ public class TargetConfig {
          * port values depending on the infrastructure you use to flash the boards.
          */
         public boolean flash = false;
-    }   
+    }
 
     /**
      * Settings related to tracing options.

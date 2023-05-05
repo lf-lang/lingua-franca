@@ -10,14 +10,15 @@ public enum SupportedSerializers {
     PROTO("proto");
 
     private String serializer;
+
     SupportedSerializers(String serializer) {
         this.serializer = serializer;
     }
-    
+
     public String getSerializer() {
         return serializer;
     }
-    
+
     public void setSerializer(String serializer) {
         this.serializer = serializer;
     }

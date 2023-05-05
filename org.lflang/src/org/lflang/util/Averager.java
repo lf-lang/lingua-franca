@@ -1,7 +1,6 @@
 package org.lflang.util;
 
 import java.util.Arrays;
-
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure1;
 
 /** Average asynchronously reported numbers and do something with them. */

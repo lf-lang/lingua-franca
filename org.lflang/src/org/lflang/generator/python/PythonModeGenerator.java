@@ -1,7 +1,6 @@
 package org.lflang.generator.python;
 
 import java.util.List;
-
 import org.eclipse.emf.ecore.util.EcoreUtil;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.lf.BuiltinTrigger;
@@ -50,9 +49,9 @@ public class PythonModeGenerator {
             var reactionBody = LfFactory.eINSTANCE.createCode();
             CodeBuilder code = new CodeBuilder();
             code.pr("# Reset the following state variables to their initial value.");
-            for (var state: reactor.getStateVars()) {
+            for (var state : reactor.getStateVars()) {
                 if (state.isReset()) {
-                    code.pr("self."+state.getName()+" = "+ PythonStateGenerator.generatePythonInitializer(state));
+                    code.pr("self." + state.getName() + " = " + PythonStateGenerator.generatePythonInitializer(state));
                 }
             }
             reactionBody.setBody(code.toString());
@@ -61,11 +60,11 @@ public class PythonModeGenerator {
             reactor.getReactions().add(0, baseReaction);
         }
 
-
         var reactorModes = reactor.getModes();
         if (!reactorModes.isEmpty()) {
             for (Mode mode : reactorModes) {
-                if (mode.getStateVars().isEmpty() || mode.getStateVars().stream().allMatch(s -> !s.isReset())) {
+                if (mode.getStateVars().isEmpty()
+                        || mode.getStateVars().stream().allMatch(s -> !s.isReset())) {
                     continue;
                 }
                 Reaction reaction = EcoreUtil.copy(baseReaction);
@@ -74,9 +73,10 @@ public class PythonModeGenerator {
                 var reactionBody = LfFactory.eINSTANCE.createCode();
                 CodeBuilder code = new CodeBuilder();
                 code.pr("# Reset the following state variables to their initial value.");
-                for (var state: mode.getStateVars()) {
+                for (var state : mode.getStateVars()) {
                     if (state.isReset()) {
-                        code.pr("self."+state.getName()+" = "+ PythonStateGenerator.generatePythonInitializer(state));
+                        code.pr("self." + state.getName() + " = "
+                                + PythonStateGenerator.generatePythonInitializer(state));
                     }
                 }
                 reactionBody.setBody(code.toString());
@@ -91,7 +91,6 @@ public class PythonModeGenerator {
                     // are no reactions in this mode.
                     mode.getReactions().add(reaction);
                 }
-
             }
         }
     }

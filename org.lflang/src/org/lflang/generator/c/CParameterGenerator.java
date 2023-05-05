@@ -1,14 +1,8 @@
 package org.lflang.generator.c;
 
-import java.util.List;
-import java.util.stream.Collectors;
-
-import org.lflang.InferredType;
-import org.lflang.generator.ParameterInstance;
 import org.lflang.ASTUtils;
 import org.lflang.generator.CodeBuilder;
-import org.lflang.lf.Assignment;
-import org.lflang.lf.Expression;
+import org.lflang.generator.ParameterInstance;
 import org.lflang.lf.Initializer;
 import org.lflang.lf.Parameter;
 import org.lflang.lf.Reactor;

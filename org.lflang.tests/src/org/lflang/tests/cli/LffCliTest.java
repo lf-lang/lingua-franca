@@ -26,43 +26,41 @@ package org.lflang.tests.cli;
 
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.MatcherAssert.assertThat;
 import static org.lflang.tests.TestUtils.TempDirBuilder.dirBuilder;
 import static org.lflang.tests.TestUtils.TempDirChecker.dirChecker;
 
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
-
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
-
 import org.lflang.LocalStrings;
-import org.lflang.tests.cli.CliToolTestFixture.ExecutionResult;
 import org.lflang.cli.Io;
 import org.lflang.cli.Lff;
+import org.lflang.tests.cli.CliToolTestFixture.ExecutionResult;
 
 /**
  * @author Clément Fournier
  */
 public class LffCliTest {
 
-    private static final String FILE_BEFORE_REFORMAT = """
+    private static final String FILE_BEFORE_REFORMAT =
+            """
         target Python;
         main   reactor {
             reaction(startup) {=
                =}
         }
         """;
-    private static final String FILE_AFTER_REFORMAT = """
+    private static final String FILE_AFTER_REFORMAT =
+            """
         target Python
-            
+
         main reactor {
             reaction(startup) {=  =}
         }
         """;
     LffTestFixture lffTester = new LffTestFixture();
-
 
     @Test
     public void testHelpArg() {
@@ -77,10 +75,8 @@ public class LffCliTest {
         ExecutionResult result = lffTester.run("--version");
         result.checkOk();
         result.checkNoErrorOutput();
-        result.checkStdOut(
-            equalTo("lff " + LocalStrings.VERSION + System.lineSeparator()));
+        result.checkStdOut(equalTo("lff " + LocalStrings.VERSION + System.lineSeparator()));
     }
-
 
     @Test
     public void testWrongCliArg() {
@@ -100,7 +96,6 @@ public class LffCliTest {
         dirChecker(tempDir).checkContentsOf("src/File.lf", equalTo(FILE_AFTER_REFORMAT));
     }
 
-
     @Test
     public void testFormatDirectory(@TempDir Path tempDir) throws IOException {
         dirBuilder(tempDir).file("src/File.lf", FILE_BEFORE_REFORMAT);
@@ -112,7 +107,6 @@ public class LffCliTest {
         dirChecker(tempDir).checkContentsOf("src/File.lf", equalTo(FILE_AFTER_REFORMAT));
     }
 
-
     @Test
     public void testFormatDirectoryVerbose(@TempDir Path tempDir) throws IOException {
         dirBuilder(tempDir).file("src/File.lf", FILE_BEFORE_REFORMAT);
@@ -121,8 +115,7 @@ public class LffCliTest {
 
         result.checkOk();
 
-        result.checkStdOut(containsString(
-            "Formatted src" + File.separator + "File.lf"));
+        result.checkStdOut(containsString("Formatted src" + File.separator + "File.lf"));
         dirChecker(tempDir).checkContentsOf("src/File.lf", equalTo(FILE_AFTER_REFORMAT));
     }
 
@@ -132,47 +125,36 @@ public class LffCliTest {
 
         result.checkFailed();
 
-        result.checkStdErr(containsString(
-            tempDir.resolve("nosuchdir") + ": No such file or directory."));
+        result.checkStdErr(containsString(tempDir.resolve("nosuchdir") + ": No such file or directory."));
     }
-
 
     @Test
     public void testOutputPathWithDirArg(@TempDir Path tempDir) throws IOException {
-        dirBuilder(tempDir)
-            .file("src/a/File.lf", FILE_BEFORE_REFORMAT)
-            .mkdirs("out/");
+        dirBuilder(tempDir).file("src/a/File.lf", FILE_BEFORE_REFORMAT).mkdirs("out/");
 
         ExecutionResult result = lffTester.run(tempDir, "src", "--output-path", "out");
 
         result.checkOk();
 
-        dirChecker(tempDir)
-            .checkContentsOf("out/a/File.lf", equalTo(FILE_AFTER_REFORMAT));
+        dirChecker(tempDir).checkContentsOf("out/a/File.lf", equalTo(FILE_AFTER_REFORMAT));
     }
 
     @Test
     public void testOutputPathWithFileArg(@TempDir Path tempDir) throws IOException {
-        dirBuilder(tempDir)
-            .file("src/a/File.lf", FILE_BEFORE_REFORMAT)
-            .mkdirs("out/");
+        dirBuilder(tempDir).file("src/a/File.lf", FILE_BEFORE_REFORMAT).mkdirs("out/");
 
         ExecutionResult result = lffTester.run(tempDir, "src/a/File.lf", "--output-path", "out");
 
         result.checkOk();
 
-        dirChecker(tempDir)
-            .checkContentsOf("out/File.lf", equalTo(FILE_AFTER_REFORMAT));
+        dirChecker(tempDir).checkContentsOf("out/File.lf", equalTo(FILE_AFTER_REFORMAT));
     }
 
-
     static class LffTestFixture extends CliToolTestFixture {
-
 
         @Override
         protected void runCliProgram(Io io, String[] args) {
             Lff.main(io, args);
         }
     }
-
 }

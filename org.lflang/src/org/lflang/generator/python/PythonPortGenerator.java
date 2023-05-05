@@ -1,18 +1,19 @@
 package org.lflang.generator.python;
 
-import org.lflang.lf.Input;
-import org.lflang.lf.Instantiation;
-import org.lflang.lf.Output;
-import org.lflang.lf.Port;
-import org.lflang.lf.Action;
-import org.lflang.lf.Reactor;
-import org.lflang.lf.ReactorDecl;
-import org.lflang.lf.VarRef;
+import static org.lflang.generator.c.CUtil.generateWidthVariable;
+
 import java.util.List;
 import org.lflang.ASTUtils;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.generator.c.CGenerator;
-import static org.lflang.generator.c.CUtil.generateWidthVariable;
+import org.lflang.lf.Action;
+import org.lflang.lf.Input;
+import org.lflang.lf.Instantiation;
+import org.lflang.lf.Output;
+import org.lflang.lf.Port;
+import org.lflang.lf.Reactor;
+import org.lflang.lf.ReactorDecl;
+import org.lflang.lf.VarRef;
 
 public class PythonPortGenerator {
     public static final String NONMULTIPORT_WIDTHSPEC = "-2";
@@ -25,10 +26,11 @@ public class PythonPortGenerator {
      * @param action The action itself.
      * @param decl The reactor decl that contains the action.
      */
-    public static void generateActionVariableToSendToPythonReaction(List<String> pyObjects,
-        Action action, ReactorDecl decl) {
+    public static void generateActionVariableToSendToPythonReaction(
+            List<String> pyObjects, Action action, ReactorDecl decl) {
         // Values passed to an action are always stored in the token->value.
-        // However, sometimes token might not be initialized. Therefore, this function has an internal check for NULL in case token is not initialized.
+        // However, sometimes token might not be initialized. Therefore, this function has an internal check for NULL in
+        // case token is not initialized.
         pyObjects.add(String.format("convert_C_action_to_py(%s)", action.getName()));
     }
 
@@ -42,16 +44,14 @@ public class PythonPortGenerator {
      * @param decl The reactor decl that contains the port.
      */
     public static String generatePortVariablesToSendToPythonReaction(
-        List<String> pyObjects,
-        VarRef port,
-        ReactorDecl decl
-    ) {
+            List<String> pyObjects, VarRef port, ReactorDecl decl) {
         if (port.getVariable() instanceof Input) {
             generateInputVariablesToSendToPythonReaction(pyObjects, (Input) port.getVariable(), decl);
             return "";
         } else {
             // port is an output of a contained reactor.
-            return generateVariablesForSendingToContainedReactors(pyObjects, port.getContainer(), (Port) port.getVariable());
+            return generateVariablesForSendingToContainedReactors(
+                    pyObjects, port.getContainer(), (Port) port.getVariable());
         }
     }
 
@@ -60,10 +60,7 @@ public class PythonPortGenerator {
      *  from the "self" struct.
      *  @param output The output port.
      */
-    public static void generateOutputVariablesToSendToPythonReaction(
-        List<String> pyObjects,
-        Output output
-    ) {
+    public static void generateOutputVariablesToSendToPythonReaction(List<String> pyObjects, Output output) {
         // Unfortunately, for the lf_set macros to work out-of-the-box for
         // multiports, we need an array of *pointers* to the output structs,
         // but what we have on the self struct is an array of output structs.
@@ -85,10 +82,7 @@ public class PythonPortGenerator {
      *  @param input The input port.
      */
     public static void generateInputVariablesToSendToPythonReaction(
-        List<String> pyObjects,
-        Input input,
-        ReactorDecl decl
-    ) {
+            List<String> pyObjects, Input input, ReactorDecl decl) {
         // Create the local variable whose name matches the input.getName().
         // If the input has not been declared mutable, then this is a pointer
         // to the upstream output. Otherwise, it is a copy of the upstream output,
@@ -121,31 +115,27 @@ public class PythonPortGenerator {
      *  @param port Input of the contained reactor.
      */
     public static String generateVariablesForSendingToContainedReactors(
-        List<String> pyObjects,
-        Instantiation definition,
-        Port port
-    ) {
+            List<String> pyObjects, Instantiation definition, Port port) {
         CodeBuilder code = new CodeBuilder();
         if (definition.getWidthSpec() != null) {
             String widthSpec = NONMULTIPORT_WIDTHSPEC;
             if (ASTUtils.isMultiport(port)) {
-                widthSpec = "self->_lf_"+definition.getName()+"[i]."+generateWidthVariable(port.getName());
+                widthSpec = "self->_lf_" + definition.getName() + "[i]." + generateWidthVariable(port.getName());
             }
             // Contained reactor is a bank.
             // Create a Python list
             code.pr(generatePythonListForContainedBank(definition.getName(), port, widthSpec));
-            pyObjects.add(definition.getName()+"_py_list");
-        }
-        else {
+            pyObjects.add(definition.getName() + "_py_list");
+        } else {
             if (ASTUtils.isMultiport(port)) {
-                pyObjects.add(generateConvertCPortToPy(definition.getName()+"."+port.getName()));
+                pyObjects.add(generateConvertCPortToPy(definition.getName() + "." + port.getName()));
             } else {
-                pyObjects.add(generateConvertCPortToPy(definition.getName()+"."+port.getName(), NONMULTIPORT_WIDTHSPEC));
+                pyObjects.add(
+                        generateConvertCPortToPy(definition.getName() + "." + port.getName(), NONMULTIPORT_WIDTHSPEC));
             }
         }
         return code.toString();
     }
-
 
     /**
      * Generate code that creates a Python list (i.e., []) for contained banks to be passed to Python reactions.
@@ -163,40 +153,40 @@ public class PythonPortGenerator {
      * @param widthSpec A string that should be -2 for non-multiports and the width expression for multiports.
      */
     public static String generatePythonListForContainedBank(String reactorName, Port port, String widthSpec) {
-        return String.join("\n",
-            "PyObject* "+reactorName+"_py_list = PyList_New("+generateWidthVariable(reactorName)+");",
-            "if("+reactorName+"_py_list == NULL) {",
-            "    lf_print_error(\"Could not create the list needed for "+reactorName+".\");",
-            "    if (PyErr_Occurred()) {",
-            "        PyErr_PrintEx(0);",
-            "        PyErr_Clear(); // this will reset the error indicator so we can run Python code again",
-            "    }",
-            "    /* Release the thread. No Python API allowed beyond this point. */",
-            "    PyGILState_Release(gstate);",
-            "    Py_FinalizeEx();",
-            "    exit(1);",
-            "}",
-            "for (int i = 0; i < "+generateWidthVariable(reactorName)+"; i++) {",
-            "    if (PyList_SetItem("+reactorName+"_py_list,",
-            "            i,",
-            "            "+generateConvertCPortToPy(reactorName + "[i]." + port.getName(), widthSpec),
-            "        ) != 0) {",
-            "        lf_print_error(\"Could not add elements to the list for "+reactorName+".\");",
-            "        if (PyErr_Occurred()) {",
-            "            PyErr_PrintEx(0);",
-            "            PyErr_Clear(); // this will reset the error indicator so we can run Python code again",
-            "        }",
-            "        /* Release the thread. No Python API allowed beyond this point. */",
-            "        PyGILState_Release(gstate);",
-            "        Py_FinalizeEx();",
-            "        exit(1);",
-            "    }",
-            "}"
-        );
+        return String.join(
+                "\n",
+                "PyObject* " + reactorName + "_py_list = PyList_New(" + generateWidthVariable(reactorName) + ");",
+                "if(" + reactorName + "_py_list == NULL) {",
+                "    lf_print_error(\"Could not create the list needed for " + reactorName + ".\");",
+                "    if (PyErr_Occurred()) {",
+                "        PyErr_PrintEx(0);",
+                "        PyErr_Clear(); // this will reset the error indicator so we can run Python code again",
+                "    }",
+                "    /* Release the thread. No Python API allowed beyond this point. */",
+                "    PyGILState_Release(gstate);",
+                "    Py_FinalizeEx();",
+                "    exit(1);",
+                "}",
+                "for (int i = 0; i < " + generateWidthVariable(reactorName) + "; i++) {",
+                "    if (PyList_SetItem(" + reactorName + "_py_list,",
+                "            i,",
+                "            " + generateConvertCPortToPy(reactorName + "[i]." + port.getName(), widthSpec),
+                "        ) != 0) {",
+                "        lf_print_error(\"Could not add elements to the list for " + reactorName + ".\");",
+                "        if (PyErr_Occurred()) {",
+                "            PyErr_PrintEx(0);",
+                "            PyErr_Clear(); // this will reset the error indicator so we can run Python code again",
+                "        }",
+                "        /* Release the thread. No Python API allowed beyond this point. */",
+                "        PyGILState_Release(gstate);",
+                "        Py_FinalizeEx();",
+                "        exit(1);",
+                "    }",
+                "}");
     }
 
     public static String generateAliasTypeDef(Reactor r, Port port, boolean isTokenType, String genericPortType) {
-        return "typedef "+genericPortType+" "+CGenerator.variableStructType(port, r, false)+";";
+        return "typedef " + genericPortType + " " + CGenerator.variableStructType(port, r, false) + ";";
     }
 
     private static String generateConvertCPortToPy(String port) {
@@ -216,22 +206,24 @@ public class PythonPortGenerator {
     public static String generatePythonPortVariableInReaction(VarRef port) {
         String containerName = port.getContainer().getName();
         String variableName = port.getVariable().getName();
-        String tryStatement = "try: "+containerName+"  # pylint: disable=used-before-assignment";
+        String tryStatement = "try: " + containerName + "  # pylint: disable=used-before-assignment";
         if (port.getContainer().getWidthSpec() != null) {
             // It's a bank
-            return String.join("\n",
-                tryStatement,
-                "except NameError: "+containerName+" = [None] * len("+containerName+"_"+variableName+")",
-                "for i in range(len("+containerName+"_"+variableName+")):",
-                "    if "+containerName+"[i] is None: "+containerName+"[i] = Make()",
-                "    "+containerName+"[i]."+variableName+" = "+containerName+"_"+variableName+"[i]"
-            );
+            return String.join(
+                    "\n",
+                    tryStatement,
+                    "except NameError: " + containerName + " = [None] * len(" + containerName + "_" + variableName
+                            + ")",
+                    "for i in range(len(" + containerName + "_" + variableName + ")):",
+                    "    if " + containerName + "[i] is None: " + containerName + "[i] = Make()",
+                    "    " + containerName + "[i]." + variableName + " = " + containerName + "_" + variableName
+                            + "[i]");
         } else {
-            return String.join("\n",
-                tryStatement,
-                "except NameError: "+containerName+" = Make()",
-                containerName+"."+variableName+" = "+containerName+"_"+variableName
-            );
+            return String.join(
+                    "\n",
+                    tryStatement,
+                    "except NameError: " + containerName + " = Make()",
+                    containerName + "." + variableName + " = " + containerName + "_" + variableName);
         }
     }
 }

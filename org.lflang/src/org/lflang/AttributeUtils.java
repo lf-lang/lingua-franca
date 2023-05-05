@@ -27,12 +27,10 @@ package org.lflang;
 
 import java.util.List;
 import java.util.Objects;
-
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.xtext.nodemodel.ICompositeNode;
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils;
 import org.eclipse.xtext.resource.XtextResource;
-
 import org.lflang.lf.Action;
 import org.lflang.lf.AttrParm;
 import org.lflang.lf.Attribute;
@@ -93,9 +91,9 @@ public class AttributeUtils {
     public static Attribute findAttributeByName(EObject node, String name) {
         List<Attribute> attrs = getAttributes(node);
         return attrs.stream()
-                    .filter(it -> it.getAttrName().equalsIgnoreCase(name)) // case-insensitive search (more user-friendly)
-                    .findFirst()
-                    .orElse(null);
+                .filter(it -> it.getAttrName().equalsIgnoreCase(name)) // case-insensitive search (more user-friendly)
+                .findFirst()
+                .orElse(null);
     }
 
     /**
@@ -144,12 +142,14 @@ public class AttributeUtils {
     public static String findAnnotationInComments(EObject object, String key) {
         if (!(object.eResource() instanceof XtextResource)) return null;
         ICompositeNode node = NodeModelUtils.findActualNodeFor(object);
-        return ASTUtils.getPrecedingComments(node, n -> true).flatMap(String::lines)
-            .filter(line -> line.contains(key))
-            .map(String::trim)
-            .map(it -> it.substring(it.indexOf(key) + key.length()))
-            .map(it -> it.endsWith("*/") ? it.substring(0, it.length() - "*/".length()) : it)
-            .findFirst().orElse(null);
+        return ASTUtils.getPrecedingComments(node, n -> true)
+                .flatMap(String::lines)
+                .filter(line -> line.contains(key))
+                .map(String::trim)
+                .map(it -> it.substring(it.indexOf(key) + key.length()))
+                .map(it -> it.endsWith("*/") ? it.substring(0, it.length() - "*/".length()) : it)
+                .findFirst()
+                .orElse(null);
     }
 
     /**
@@ -158,12 +158,14 @@ public class AttributeUtils {
      * Returns null if no such parameter is found.
      */
     public static String getAttributeParameter(Attribute attribute, String parameterName) {
-        return (attribute == null) ? null : attribute.getAttrParms().stream()
-            .filter(param -> Objects.equals(param.getName(), parameterName))
-            .map(AttrParm::getValue)
-            .map(StringUtil::removeQuotes)
-            .findFirst()
-            .orElse(null);
+        return (attribute == null)
+                ? null
+                : attribute.getAttrParms().stream()
+                        .filter(param -> Objects.equals(param.getName(), parameterName))
+                        .map(AttrParm::getValue)
+                        .map(StringUtil::removeQuotes)
+                        .findFirst()
+                        .orElse(null);
     }
 
     /**
@@ -228,7 +230,7 @@ public class AttributeUtils {
     /**
      * Return the declared icon of the node, as given by the @icon annotation.
      */
-    public static  String getIconPath(EObject node) {
+    public static String getIconPath(EObject node) {
         return getAttributeValue(node, "icon");
     }
 
@@ -247,5 +249,4 @@ public class AttributeUtils {
     public static boolean isEnclave(Instantiation node) {
         return getEnclaveAttribute(node) != null;
     }
-
 }

@@ -23,9 +23,7 @@ import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
-
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IResource;
 import org.eclipse.core.resources.IWorkspaceRoot;
@@ -35,7 +33,6 @@ import org.eclipse.core.runtime.IPath;
 import org.eclipse.emf.common.util.URI;
 import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.xtext.util.RuntimeIOException;
-
 import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
 
@@ -89,7 +86,10 @@ public class FileUtil {
         if (uri.isPlatform()) {
             IPath path = new org.eclipse.core.runtime.Path(uri.toPlatformString(true));
             if (path.segmentCount() == 1) {
-                return ResourcesPlugin.getWorkspace().getRoot().getProject(path.lastSegment()).getLocation();
+                return ResourcesPlugin.getWorkspace()
+                        .getRoot()
+                        .getProject(path.lastSegment())
+                        .getLocation();
             } else {
                 return ResourcesPlugin.getWorkspace().getRoot().getFile(path).getLocation();
             }
@@ -108,11 +108,11 @@ public class FileUtil {
     public static String toUnixString(Path path) {
         return path.toString().replace('\\', '/');
     }
-    
+
     /**
      * Parse the string as file location and return it as URI.
      * Supports URIs, plain file paths, and paths relative to a model.
-     * 
+     *
      * @param path the file location as string.
      * @param resource the model resource this file should be resolved relatively. May be null.
      * @return the (Java) URI or null if no file can be located.
@@ -121,7 +121,7 @@ public class FileUtil {
         // Check if path is URL
         try {
             var uri = new java.net.URI(path);
-            if(uri.getScheme() != null) { // check if path was meant to be a URI
+            if (uri.getScheme() != null) { // check if path was meant to be a URI
                 return uri;
             }
         } catch (Exception e) {
@@ -144,11 +144,22 @@ public class FileUtil {
                 try {
                     if (eURI.isFile()) {
                         sourceURI = new java.net.URI(eURI.toString());
-                        sourceURI = new java.net.URI(sourceURI.getScheme(), null,
-                                sourceURI.getPath().substring(0, sourceURI.getPath().lastIndexOf("/")), null);
+                        sourceURI = new java.net.URI(
+                                sourceURI.getScheme(),
+                                null,
+                                sourceURI
+                                        .getPath()
+                                        .substring(0, sourceURI.getPath().lastIndexOf("/")),
+                                null);
                     } else if (eURI.isPlatformResource()) {
-                        IResource iFile = ResourcesPlugin.getWorkspace().getRoot().findMember(eURI.toPlatformString(true));
-                        sourceURI = iFile != null ? iFile.getRawLocation().toFile().getParentFile().toURI() : null; 
+                        IResource iFile =
+                                ResourcesPlugin.getWorkspace().getRoot().findMember(eURI.toPlatformString(true));
+                        sourceURI = iFile != null
+                                ? iFile.getRawLocation()
+                                        .toFile()
+                                        .getParentFile()
+                                        .toURI()
+                                : null;
                     }
                     if (sourceURI != null) {
                         return sourceURI.resolve(path);
@@ -172,7 +183,8 @@ public class FileUtil {
      * would not be changed.
      * @throws IOException If the operation fails.
      */
-    public static void copyDirectoryContents(final Path srcDir, final Path dstDir, final boolean skipIfUnchanged) throws IOException {
+    public static void copyDirectoryContents(final Path srcDir, final Path dstDir, final boolean skipIfUnchanged)
+            throws IOException {
         try (Stream<Path> stream = Files.walk(srcDir)) {
             stream.forEach(source -> {
                 // Handling checked exceptions in lambda expressions is
@@ -205,8 +217,8 @@ public class FileUtil {
      * would not be changed.
      * @throws IOException If the operation fails.
      */
-    public static void copyDirectory(
-        final Path srcDir, final Path dstDir, final boolean skipIfUnchanged) throws IOException {
+    public static void copyDirectory(final Path srcDir, final Path dstDir, final boolean skipIfUnchanged)
+            throws IOException {
         copyDirectoryContents(srcDir, dstDir.resolve(srcDir.getFileName()), skipIfUnchanged);
     }
 
@@ -233,7 +245,7 @@ public class FileUtil {
      * would not be changed.
      * @throws IOException If the operation fails.
      */
-    public static void copyFile(Path srcFile, Path dstFile, boolean skipIfUnchanged)  throws IOException {
+    public static void copyFile(Path srcFile, Path dstFile, boolean skipIfUnchanged) throws IOException {
         BufferedInputStream stream = new BufferedInputStream(new FileInputStream(srcFile.toFile()));
         try (stream) {
             copyInputStream(stream, dstFile, skipIfUnchanged);
@@ -250,7 +262,7 @@ public class FileUtil {
      * @param dstFile The destination file path.
      * @throws IOException if copy fails.
      */
-    public static void copyFile(Path srcFile, Path dstFile)  throws IOException {
+    public static void copyFile(Path srcFile, Path dstFile) throws IOException {
         copyFile(srcFile, dstFile, false);
     }
 
@@ -263,11 +275,7 @@ public class FileUtil {
      * @param fileConfig The file configuration that specifies where look for the file.
      * @return The path to the file that was found, or null if it was not found.
      */
-    public static Path findAndCopyFile(
-        String file,
-        Path dstDir,
-        FileConfig fileConfig
-    ) {
+    public static Path findAndCopyFile(String file, Path dstDir, FileConfig fileConfig) {
         var path = Paths.get(file);
         var found = FileUtil.findInPackage(path, fileConfig);
         if (found != null) {
@@ -301,12 +309,11 @@ public class FileUtil {
      * @param errorReporter An error reporter to report problems.
      */
     public static void copyFilesOrDirectories(
-        List<String> entries,
-        Path dstDir,
-        FileConfig fileConfig,
-        ErrorReporter errorReporter,
-        boolean fileEntriesOnly
-    ) {
+            List<String> entries,
+            Path dstDir,
+            FileConfig fileConfig,
+            ErrorReporter errorReporter,
+            boolean fileEntriesOnly) {
         for (String fileOrDirectory : entries) {
             var path = Paths.get(fileOrDirectory);
             var found = FileUtil.findInPackage(path, fileConfig);
@@ -320,26 +327,19 @@ public class FileUtil {
                     System.out.println("Copied '" + fileOrDirectory + "' from the file system.");
                 } catch (IOException e) {
                     errorReporter.reportError(
-                        "Unable to copy '" + fileOrDirectory + "' from the file system. Reason: " + e.toString()
-                    );
+                            "Unable to copy '" + fileOrDirectory + "' from the file system. Reason: " + e.toString());
                 }
             } else {
                 try {
                     if (fileEntriesOnly) {
-                          copyFileFromClassPath(fileOrDirectory, dstDir, false);
+                        copyFileFromClassPath(fileOrDirectory, dstDir, false);
                     } else {
-                        FileUtil.copyFromClassPath(
-                            fileOrDirectory,
-                            dstDir,
-                            false,
-                            false
-                        );
+                        FileUtil.copyFromClassPath(fileOrDirectory, dstDir, false, false);
                         System.out.println("Copied '" + fileOrDirectory + "' from the class path.");
                     }
-                } catch(IOException e) {
+                } catch (IOException e) {
                     errorReporter.reportError(
-                        "Unable to copy '" + fileOrDirectory + "' from the class path. Reason: " + e.toString()
-                    );
+                            "Unable to copy '" + fileOrDirectory + "' from the class path. Reason: " + e.toString());
                 }
             }
         }
@@ -382,7 +382,8 @@ public class FileUtil {
      * not be changed.
      * @throws IOException If the operation fails.
      */
-    private static void copyInputStream(InputStream source, Path destination, boolean skipIfUnchanged) throws IOException {
+    private static void copyInputStream(InputStream source, Path destination, boolean skipIfUnchanged)
+            throws IOException {
         // Read the stream once and keep a copy of all bytes. This is required as a stream cannot be read twice.
         final var bytes = source.readAllBytes();
         final var parent = destination.getParent();
@@ -415,7 +416,8 @@ public class FileUtil {
      * not be changed.
      * @throws IOException If the operation failed.
      */
-    public static void copyFileFromClassPath(final String entry, final Path dstDir, final boolean skipIfUnchanged) throws IOException {
+    public static void copyFileFromClassPath(final String entry, final Path dstDir, final boolean skipIfUnchanged)
+            throws IOException {
         final URL resource = FileConfig.class.getResource(entry);
 
         if (resource == null) {
@@ -431,7 +433,7 @@ public class FileUtil {
             try {
                 Path path = Paths.get(FileLocator.toFileURL(resource).toURI());
                 copyFile(path, dstDir.resolve(path.getFileName()), skipIfUnchanged);
-            } catch(URISyntaxException e) {
+            } catch (URISyntaxException e) {
                 // This should never happen as toFileURL should always return a valid URL
                 throw new IOException("Unexpected error while resolving " + entry + " on the classpath");
             }
@@ -455,11 +457,8 @@ public class FileUtil {
      * @throws IOException If the operation failed.
      */
     public static void copyFromClassPath(
-        final String entry,
-        final Path dstDir,
-        final boolean skipIfUnchanged,
-        final boolean contentsOnly
-    ) throws IOException {
+            final String entry, final Path dstDir, final boolean skipIfUnchanged, final boolean contentsOnly)
+            throws IOException {
         final URL resource = FileConfig.class.getResource(entry);
 
         if (resource == null) {
@@ -485,7 +484,7 @@ public class FileUtil {
                 } else {
                     copyFile(path, dstDir.resolve(path.getFileName()), skipIfUnchanged);
                 }
-            } catch(URISyntaxException e) {
+            } catch (URISyntaxException e) {
                 // This should never happen as toFileURL should always return a valid URL
                 throw new IOException("Unexpected error while resolving " + entry + " on the classpath");
             }
@@ -498,9 +497,7 @@ public class FileUtil {
      * @throws IOException If the connection is faulty.
      */
     private static boolean isFileInJar(JarURLConnection connection) throws IOException {
-        return connection.getJarFile().stream().anyMatch(
-            it -> it.getName().equals(connection.getEntryName())
-        );
+        return connection.getJarFile().stream().anyMatch(it -> it.getName().equals(connection.getEntryName()));
     }
 
     /**
@@ -513,7 +510,8 @@ public class FileUtil {
      *      * not be changed.
      * @throws IOException If the operation fails.
      */
-    private static void copyFileFromJar(JarFile jar, String srcFile, Path dstDir, boolean skipIfUnchanged) throws IOException {
+    private static void copyFileFromJar(JarFile jar, String srcFile, Path dstDir, boolean skipIfUnchanged)
+            throws IOException {
         var entry = jar.getJarEntry(srcFile);
         var filename = Paths.get(entry.getName()).getFileName();
         InputStream is = jar.getInputStream(entry);
@@ -544,11 +542,8 @@ public class FileUtil {
      * @throws IOException If the given source cannot be copied.
      */
     private static boolean copyFromJar(
-        JarURLConnection connection,
-        Path dstDir,
-        final boolean skipIfUnchanged,
-        final boolean contentsOnly
-    ) throws IOException {
+            JarURLConnection connection, Path dstDir, final boolean skipIfUnchanged, final boolean contentsOnly)
+            throws IOException {
 
         if (copyFileFromJar(connection, dstDir, skipIfUnchanged)) {
             return true;
@@ -570,10 +565,9 @@ public class FileUtil {
      * @return
      * @throws IOException
      */
-    private static boolean copyDirectoryFromJar(JarURLConnection connection,
-        Path dstDir,
-        final boolean skipIfUnchanged,
-        final boolean contentsOnly) throws IOException {
+    private static boolean copyDirectoryFromJar(
+            JarURLConnection connection, Path dstDir, final boolean skipIfUnchanged, final boolean contentsOnly)
+            throws IOException {
         final JarFile jar = connection.getJarFile();
         final String source = connection.getEntryName();
 
@@ -612,11 +606,8 @@ public class FileUtil {
      * {@code false} if the connection entry is not a file and the copy operation was aborted.
      * @throws IOException If the operation failed.
      */
-    private static boolean copyFileFromJar(
-        JarURLConnection connection,
-        Path dstDir,
-        final boolean skipIfUnchanged
-    ) throws IOException {
+    private static boolean copyFileFromJar(JarURLConnection connection, Path dstDir, final boolean skipIfUnchanged)
+            throws IOException {
         final JarFile jar = connection.getJarFile();
         final String source = connection.getEntryName();
 
@@ -631,27 +622,25 @@ public class FileUtil {
     /**
      * Delete unused Files from Arduino-CLI based compilation.
      *
-     * Arduino-CLI (the build system) uses lazy compilation (i.e. compiles every file recursively from 
-     * a source directory). This does the work of CMake by explicitly deleting files that 
+     * Arduino-CLI (the build system) uses lazy compilation (i.e. compiles every file recursively from
+     * a source directory). This does the work of CMake by explicitly deleting files that
      * shouldn't get compiled by the CLI. Generally, we delete all CMake artifacts and multithreaded
      * support files (including semaphores and thread folders)
      *
-     * @param dir The folder to search for folders and files to delete. 
+     * @param dir The folder to search for folders and files to delete.
      * @throws IOException If the given folder and unneeded files cannot be deleted.
      */
     public static void arduinoDeleteHelper(Path dir, boolean threadingOn) throws IOException {
         deleteDirectory(dir.resolve("core/federated")); // TODO: Add Federated Support to Arduino
         deleteDirectory(dir.resolve("include/core/federated")); // TODO: Add Federated Support to Arduino
-        
+
         if (!threadingOn) {
             deleteDirectory(dir.resolve("core/threaded")); // No Threaded Support for Arduino
             deleteDirectory(dir.resolve("include/core/threaded")); // No Threaded Support for Arduino
             deleteDirectory(dir.resolve("core/platform/arduino_mbed")); // No Threaded Support for Arduino
-        } 
+        }
 
-        List<Path> allPaths = Files.walk(dir)
-                    .sorted(Comparator.reverseOrder())
-                    .toList();
+        List<Path> allPaths = Files.walk(dir).sorted(Comparator.reverseOrder()).toList();
         for (Path path : allPaths) {
             String toCheck = path.toString().toLowerCase();
             if (toCheck.contains("cmake")) {
@@ -661,25 +650,25 @@ public class FileUtil {
     }
 
     /**
-     * Helper function for getting the string representation of the relative path 
+     * Helper function for getting the string representation of the relative path
      * to take to get from one file (currPath) to get to the other (fileName).
      *
-     * Generally, this is useful for converting includes to have relative pathing when 
+     * Generally, this is useful for converting includes to have relative pathing when
      * you lack access to adding additional include paths when compiling.
-     * 
+     *
      * @param fileName File to search for.
      * @param currPath The current path to the file whose include statements we are modifying.
      * @param fileStringToFilePath Mapping of File Names to their paths.
      */
-    private static String fileNameMatchConverter(String fileName, Path currPath, Map<String, Path> fileStringToFilePath) 
-        throws NullPointerException {
+    private static String fileNameMatchConverter(String fileName, Path currPath, Map<String, Path> fileStringToFilePath)
+            throws NullPointerException {
         // First get the child file
         int lastPath = fileName.lastIndexOf(File.separator);
-        if (lastPath != -1){
-            fileName = fileName.substring(lastPath+1);
+        if (lastPath != -1) {
+            fileName = fileName.substring(lastPath + 1);
         }
         Path p = fileStringToFilePath.get(fileName);
-        if(p == null) {
+        if (p == null) {
             return "#include \"" + fileName + "\"";
         }
         String relativePath = currPath.getParent().relativize(p).toString();
@@ -697,21 +686,21 @@ public class FileUtil {
     /**
      * Convert all includes recursively inside files within a specified folder to relative links
      *
-     * @param dir The folder to search for includes to change. 
+     * @param dir The folder to search for includes to change.
      * @throws IOException If the given set of files cannot be relativized.
      */
     public static void relativeIncludeHelper(Path dir, Path includePath) throws IOException {
         System.out.println("Relativizing all includes in " + dir.toString());
         List<Path> includePaths = Files.walk(includePath)
-            .filter(Files::isRegularFile)
-            .filter(FileUtil::isCFile)
-            .sorted(Comparator.reverseOrder())
-            .toList();
+                .filter(Files::isRegularFile)
+                .filter(FileUtil::isCFile)
+                .sorted(Comparator.reverseOrder())
+                .toList();
         List<Path> srcPaths = Files.walk(dir)
-            .filter(Files::isRegularFile)
-            .filter(FileUtil::isCFile)
-            .sorted(Comparator.reverseOrder())
-            .toList();
+                .filter(Files::isRegularFile)
+                .filter(FileUtil::isCFile)
+                .sorted(Comparator.reverseOrder())
+                .toList();
         Map<String, Path> fileStringToFilePath = new HashMap<String, Path>();
         for (Path path : includePaths) {
             String fileName = path.getFileName().toString();
@@ -728,7 +717,7 @@ public class FileUtil {
             StringBuilder output = new StringBuilder();
             while (matcher.find()) {
                 output.append(fileContents, lastIndex, matcher.start())
-                    .append(fileNameMatchConverter(matcher.group(1), path, fileStringToFilePath));
+                        .append(fileNameMatchConverter(matcher.group(1), path, fileStringToFilePath));
                 lastIndex = matcher.end();
             }
             if (lastIndex < fileContents.length()) {
@@ -762,9 +751,8 @@ public class FileUtil {
     public static void deleteDirectory(Path dir) throws IOException {
         if (Files.isDirectory(dir)) {
             System.out.println("Cleaning " + dir);
-            List<Path> pathsToDelete = Files.walk(dir)
-                    .sorted(Comparator.reverseOrder())
-                    .toList();
+            List<Path> pathsToDelete =
+                    Files.walk(dir).sorted(Comparator.reverseOrder()).toList();
             for (Path path : pathsToDelete) {
                 Files.deleteIfExists(path);
             }
@@ -790,19 +778,16 @@ public class FileUtil {
             // Disregard root and interpret as relative path
             if (fileOrDirectory.isAbsolute()) {
                 relPath = Paths.get(
-                    String.valueOf(fileOrDirectory).replaceFirst(
-                        String.valueOf(fileOrDirectory.getRoot()),
-                        "")
-                );
+                        String.valueOf(fileOrDirectory).replaceFirst(String.valueOf(fileOrDirectory.getRoot()), ""));
             } else {
                 relPath = fileOrDirectory;
             }
 
             // Look relative to the source file and relative to the package root.
             var locations = List.of(fileConfig.srcPath, fileConfig.srcPkgPath);
-            var found = locations.stream().filter(
-                    loc -> Files.exists(loc.resolve(relPath))
-                ).findFirst();
+            var found = locations.stream()
+                    .filter(loc -> Files.exists(loc.resolve(relPath)))
+                    .findFirst();
             if (found.isPresent()) {
                 return found.get().resolve(relPath).toAbsolutePath();
             }
@@ -827,9 +812,10 @@ public class FileUtil {
         try {
             // Handle a bug that not everyone can reproduce in which a path originating in the Ecore model is a relative
             // path prefixed with a segment named "resource".
-            return ResourcesPlugin.getWorkspace().getRoot().findMember(org.eclipse.core.runtime.Path.fromOSString(
-                path.subpath(1, path.getNameCount()).toString()
-            ));
+            return ResourcesPlugin.getWorkspace()
+                    .getRoot()
+                    .findMember(org.eclipse.core.runtime.Path.fromOSString(
+                            path.subpath(1, path.getNameCount()).toString()));
         } catch (IllegalStateException e) {
             // We are outside of Eclipse.
         }

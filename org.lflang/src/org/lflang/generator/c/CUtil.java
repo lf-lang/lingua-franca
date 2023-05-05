@@ -1,29 +1,28 @@
 /* Utilities for C code generation. */
 
 /*************
-Copyright (c) 2019-2021, The University of California at Berkeley.
-
-Redistribution and use in source and binary forms, with or without modification,
-are permitted provided that the following conditions are met:
-
-1. Redistributions of source code must retain the above copyright notice,
-   this list of conditions and the following disclaimer.
-
-2. Redistributions in binary form must reproduce the above copyright notice,
-   this list of conditions and the following disclaimer in the documentation
-   and/or other materials provided with the distribution.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY
-EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
-MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL
-THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
-PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
-INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
-STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
-THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-***************/
-
+ * Copyright (c) 2019-2021, The University of California at Berkeley.
+ *
+ * Redistribution and use in source and binary forms, with or without modification,
+ * are permitted provided that the following conditions are met:
+ *
+ * 1. Redistributions of source code must retain the above copyright notice,
+ * this list of conditions and the following disclaimer.
+ *
+ * 2. Redistributions in binary form must reproduce the above copyright notice,
+ * this list of conditions and the following disclaimer in the documentation
+ * and/or other materials provided with the distribution.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY
+ * EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+ * MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL
+ * THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+ * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
+ * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
+ * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ ***************/
 package org.lflang.generator.c;
 
 import java.nio.file.Path;
@@ -32,13 +31,11 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
-
 import org.lflang.ASTUtils;
 import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
 import org.lflang.InferredType;
 import org.lflang.TargetConfig;
-
 import org.lflang.generator.ActionInstance;
 import org.lflang.generator.GeneratorCommandFactory;
 import org.lflang.generator.LFGeneratorContext;
@@ -85,9 +82,7 @@ public class CUtil {
      * @param runtimeIndex An optional index variable name to use to address runtime instances.
      */
     public static String actionRef(ActionInstance instance, String runtimeIndex) {
-        return reactorRef(instance.getParent(), runtimeIndex)
-                + "->_lf_"
-                + instance.getName();
+        return reactorRef(instance.getParent(), runtimeIndex) + "->_lf_" + instance.getName();
     }
 
     /**
@@ -188,8 +183,7 @@ public class CUtil {
             boolean includeChannelIndex,
             String runtimeIndex,
             String bankIndex,
-            String channelIndex
-    ) {
+            String channelIndex) {
         String channel = "";
         if (channelIndex == null) channelIndex = channelIndex(port);
         if (port.isMultiport() && includeChannelIndex) {
@@ -230,9 +224,7 @@ public class CUtil {
      * @param channelIndex A variable name to use to index the channel or null to
      *  use the default, the string returned by {@link CUtil#channelIndex(PortInstance)}.
      */
-    public static String portRef(
-            PortInstance port, String runtimeIndex, String bankIndex, String channelIndex
-    ) {
+    public static String portRef(PortInstance port, String runtimeIndex, String bankIndex, String channelIndex) {
         return portRef(port, false, true, runtimeIndex, bankIndex, channelIndex);
     }
 
@@ -257,9 +249,7 @@ public class CUtil {
      * @param channelIndex A variable name to use to index the channel or null to
      *  use the default, the string returned by {@link CUtil#channelIndex(PortInstance)}.
      */
-    public static String portRefName(
-            PortInstance port, String runtimeIndex, String bankIndex, String channelIndex
-    ) {
+    public static String portRefName(PortInstance port, String runtimeIndex, String bankIndex, String channelIndex) {
         return portRef(port, false, false, runtimeIndex, bankIndex, channelIndex);
     }
 
@@ -293,9 +283,7 @@ public class CUtil {
      * @param channelIndex A variable name to use to index the channel or null to
      *  use the default, the string returned by {@link CUtil#channelIndex(PortInstance)}.
      */
-    public static String portRefNested(
-            PortInstance port, String runtimeIndex, String bankIndex, String channelIndex
-    ) {
+    public static String portRefNested(PortInstance port, String runtimeIndex, String bankIndex, String channelIndex) {
         return portRef(port, true, true, runtimeIndex, bankIndex, channelIndex);
     }
 
@@ -332,8 +320,7 @@ public class CUtil {
      *  use the default, the string returned by {@link CUtil#channelIndex(PortInstance)}.
      */
     public static String portRefNestedName(
-            PortInstance port, String runtimeIndex, String bankIndex, String channelIndex
-    ) {
+            PortInstance port, String runtimeIndex, String bankIndex, String channelIndex) {
         return portRef(port, true, false, runtimeIndex, bankIndex, channelIndex);
     }
 
@@ -380,8 +367,7 @@ public class CUtil {
      * @param runtimeIndex An index into the array of self structs for the parent.
      */
     public static String reactionRef(ReactionInstance reaction, String runtimeIndex) {
-        return reactorRef(reaction.getParent(), runtimeIndex)
-                + "->_lf__reaction_" + reaction.index;
+        return reactorRef(reaction.getParent(), runtimeIndex) + "->_lf__reaction_" + reaction.index;
     }
 
     /**
@@ -540,9 +526,7 @@ public class CUtil {
      * @param runtimeIndex An optional index variable name to use to address runtime instances.
      */
     public static String triggerRef(TriggerInstance<? extends Variable> instance, String runtimeIndex) {
-        return reactorRef(instance.getParent(), runtimeIndex)
-                + "->_lf__"
-                + instance.getName();
+        return reactorRef(instance.getParent(), runtimeIndex) + "->_lf__" + instance.getName();
     }
 
     /**
@@ -568,7 +552,6 @@ public class CUtil {
     public static String triggerRefNested(PortInstance port, String runtimeIndex, String bankIndex) {
         return reactorRefNested(port.getParent(), runtimeIndex, bankIndex) + "." + port.getName() + "_trigger";
     }
-
 
     //////////////////////////////////////////////////////
     //// FIXME: Not clear what the strategy is with the following inner interface.
@@ -606,13 +589,12 @@ public class CUtil {
      * </ul>
      */
     public static void runBuildCommand(
-        FileConfig fileConfig,
-        TargetConfig targetConfig,
-        GeneratorCommandFactory commandFactory,
-        ErrorReporter errorReporter,
-        ReportCommandErrors reportCommandErrors,
-        LFGeneratorContext.Mode mode
-    ) {
+            FileConfig fileConfig,
+            TargetConfig targetConfig,
+            GeneratorCommandFactory commandFactory,
+            ErrorReporter errorReporter,
+            ReportCommandErrors reportCommandErrors,
+            LFGeneratorContext.Mode mode) {
         List<LFCommand> commands = getCommands(targetConfig.buildCommands, commandFactory, fileConfig.srcPath);
         // If the build command could not be found, abort.
         // An error has already been reported in createCommand.
@@ -622,10 +604,8 @@ public class CUtil {
             int returnCode = cmd.run();
             if (returnCode != 0 && mode != LFGeneratorContext.Mode.EPOCH) {
                 errorReporter.reportError(String.format(
-                    // FIXME: Why is the content of stderr not provided to the user in this error message?
-                    "Build command \"%s\" failed with error code %d.",
-                    targetConfig.buildCommands, returnCode
-                ));
+                        // FIXME: Why is the content of stderr not provided to the user in this error message?
+                        "Build command \"%s\" failed with error code %d.", targetConfig.buildCommands, returnCode));
                 return;
             }
             // For warnings (vs. errors), the return code is 0.
@@ -636,7 +616,6 @@ public class CUtil {
             }
         }
     }
-
 
     /**
      * Remove files in the bin directory that may have been created.
@@ -651,8 +630,7 @@ public class CUtil {
         fileConfig.resource.getAllContents().forEachRemaining(node -> {
             if (node instanceof Reactor r) {
                 if (r.isFederated()) {
-                    r.getInstantiations().forEach(inst -> federateNames
-                        .add(inst.getName()));
+                    r.getInstantiations().forEach(inst -> federateNames.add(inst.getName()));
                 }
             }
         });
@@ -660,8 +638,7 @@ public class CUtil {
             // Delete executable file or launcher script, if any.
             // Delete distribution file, if any.
             // Delete RTI file, if any.
-            if (f.equals(name) || f.equals(name + RTI_BIN_SUFFIX)
-                || f.equals(name + RTI_DISTRIBUTION_SCRIPT_SUFFIX)) {
+            if (f.equals(name) || f.equals(name + RTI_BIN_SUFFIX) || f.equals(name + RTI_DISTRIBUTION_SCRIPT_SUFFIX)) {
                 //noinspection ResultOfMethodCallIgnored
                 fileConfig.binPath.resolve(f).toFile().delete();
             }
@@ -706,10 +683,10 @@ public class CUtil {
      */
     private static List<LFCommand> getCommands(List<String> commands, GeneratorCommandFactory factory, Path dir) {
         return commands.stream()
-                       .map(cmd -> List.of(cmd.split("\\s+")))
-                       .filter(tokens -> tokens.size() > 0)
-                       .map(tokens -> factory.createCommand(tokens.get(0), tokens.subList(1, tokens.size()), dir))
-                       .collect(Collectors.toList());
+                .map(cmd -> List.of(cmd.split("\\s+")))
+                .filter(tokens -> tokens.size() > 0)
+                .map(tokens -> factory.createCommand(tokens.get(0), tokens.subList(1, tokens.size()), dir))
+                .collect(Collectors.toList());
     }
 
     /**

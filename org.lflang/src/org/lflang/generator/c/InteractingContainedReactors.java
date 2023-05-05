@@ -5,9 +5,7 @@ import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
-
 import org.lflang.ASTUtils;
-import org.lflang.federated.generator.FederateInstance;
 import org.lflang.lf.Input;
 import org.lflang.lf.Instantiation;
 import org.lflang.lf.Output;
@@ -24,7 +22,6 @@ import org.lflang.lf.VarRef;
  * @author Soroush Bateni
  * @author Hou Seng Wong
  */
-
 public class InteractingContainedReactors {
     /**
      * Data structure that for each instantiation of a contained
@@ -41,11 +38,8 @@ public class InteractingContainedReactors {
     // triggered by the port of the contained reactor. The list is empty if
     // the port does not trigger reactions but is read by the reaction or
     // is written to by the reaction.
-    LinkedHashMap<
-        Instantiation, LinkedHashMap<
-            Port, LinkedList<Integer>
-        >
-    > portsByContainedReactor = new LinkedHashMap<>();
+    LinkedHashMap<Instantiation, LinkedHashMap<Port, LinkedList<Integer>>> portsByContainedReactor =
+            new LinkedHashMap<>();
 
     /**
      * Scan the reactions of the specified reactor and record which ports are
@@ -88,8 +82,8 @@ public class InteractingContainedReactors {
                     addPort(source.getContainer(), (Output) source.getVariable());
                 }
             }
-        // Increment the reaction count even if not in the federate for consistency.
-        reactionCount++;
+            // Increment the reaction count even if not in the federate for consistency.
+            reactionCount++;
         }
     }
 
@@ -102,10 +96,8 @@ public class InteractingContainedReactors {
      */
     private List<Integer> addPort(Instantiation containedReactor, Port port) {
         // Get or create the entry for the containedReactor.
-        var containedReactorEntry = portsByContainedReactor.computeIfAbsent(
-            containedReactor,
-            k -> new LinkedHashMap<>()
-        );
+        var containedReactorEntry =
+                portsByContainedReactor.computeIfAbsent(containedReactor, k -> new LinkedHashMap<>());
         // Get or create the entry for the port.
         return containedReactorEntry.computeIfAbsent(port, k -> new LinkedList<>());
     }
@@ -152,4 +144,3 @@ public class InteractingContainedReactors {
         return new LinkedList<>();
     }
 }
-

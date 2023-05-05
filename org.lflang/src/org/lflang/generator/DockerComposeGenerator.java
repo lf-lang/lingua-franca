@@ -4,7 +4,6 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.stream.Collectors;
-
 import org.lflang.util.FileUtil;
 
 /**
@@ -33,7 +32,8 @@ public class DockerComposeGenerator {
             networks:
                 default:
                     name: "%s"
-            """.formatted(networkName);
+            """
+                .formatted(networkName);
     }
 
     /**
@@ -42,12 +42,13 @@ public class DockerComposeGenerator {
      */
     protected String generateDockerServices(List<DockerData> services) {
         return """
-            version: "3.9" 
+            version: "3.9"
             services:
             %s
-            """.formatted(services.stream().map(
-                data -> getServiceDescription(data)
-            ).collect(Collectors.joining("\n")));
+            """
+                .formatted(services.stream()
+                        .map(data -> getServiceDescription(data))
+                        .collect(Collectors.joining("\n")));
     }
 
     /**
@@ -61,7 +62,8 @@ public class DockerComposeGenerator {
             To return to the current working directory afterwards:
                 popd
             #####################################
-            """.formatted(path.getParent());
+            """
+                .formatted(path.getParent());
     }
 
     /**
@@ -73,7 +75,8 @@ public class DockerComposeGenerator {
                     build:
                         context: "%s"
                     container_name: "%s"
-            """.formatted(getServiceName(data), getBuildContext(data), getContainerName(data));
+            """
+                .formatted(getServiceName(data), getBuildContext(data), getContainerName(data));
     }
 
     /**
@@ -110,13 +113,9 @@ public class DockerComposeGenerator {
      * @param services A list of all the services to include.
      * @param networkName The name of the network to which docker will connect the services.
      */
-    public void writeDockerComposeFile(
-        List<DockerData> services,
-        String networkName
-    ) throws IOException {
-        var contents = String.join("\n",
-            this.generateDockerServices(services),
-            this.generateDockerNetwork(networkName));
+    public void writeDockerComposeFile(List<DockerData> services, String networkName) throws IOException {
+        var contents =
+                String.join("\n", this.generateDockerServices(services), this.generateDockerNetwork(networkName));
         FileUtil.writeToFile(contents, path);
         System.out.println(getUsageInstructions());
     }

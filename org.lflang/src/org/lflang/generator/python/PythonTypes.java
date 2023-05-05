@@ -3,11 +3,9 @@ package org.lflang.generator.python;
 import java.util.List;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-
 import org.lflang.InferredType;
 import org.lflang.generator.ReactorInstance;
 import org.lflang.generator.c.CTypes;
-import org.lflang.generator.c.CUtil;
 import org.lflang.lf.ParameterReference;
 
 public class PythonTypes extends CTypes {
@@ -35,8 +33,7 @@ public class PythonTypes extends CTypes {
         result = switch (result) {
             case "double" -> "float";
             case "string" -> "object";
-            default -> result;
-        };
+            default -> result;};
 
         var matcher = pointerPatternVariable.matcher(result);
         if (matcher.find()) {

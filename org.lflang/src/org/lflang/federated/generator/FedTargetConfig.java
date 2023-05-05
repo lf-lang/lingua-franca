@@ -2,12 +2,12 @@ package org.lflang.federated.generator;
 
 import static org.lflang.ASTUtils.convertToEmptyListIfNull;
 
+import org.eclipse.emf.ecore.resource.Resource;
 import org.lflang.ErrorReporter;
 import org.lflang.TargetConfig;
 import org.lflang.TargetProperty;
 import org.lflang.generator.GeneratorUtils;
 import org.lflang.generator.LFGeneratorContext;
-import org.eclipse.emf.ecore.resource.Resource;
 
 /**
  * Subclass of TargetConfig with a specialized constructor for creating configurations for federates.
@@ -24,21 +24,15 @@ public class FedTargetConfig extends TargetConfig {
     public FedTargetConfig(LFGeneratorContext context, Resource federateResource) {
         // Create target config based on the main .lf file
         super(
-            context.getArgs(),
-            GeneratorUtils.findTargetDecl(context.getFileConfig().resource),
-            context.getErrorReporter()
-        );
+                context.getArgs(),
+                GeneratorUtils.findTargetDecl(context.getFileConfig().resource),
+                context.getErrorReporter());
 
-        mergeImportedConfig(
-            federateResource,
-            context.getFileConfig().resource,
-            context.getErrorReporter()
-        );
+        mergeImportedConfig(federateResource, context.getFileConfig().resource, context.getErrorReporter());
 
         clearPropertiesToIgnore();
 
-        ((FedFileConfig)context.getFileConfig()).relativizePaths(this);
-
+        ((FedFileConfig) context.getFileConfig()).relativizePaths(this);
     }
 
     /**
@@ -48,10 +42,7 @@ public class FedTargetConfig extends TargetConfig {
      * @param mainResource The resource in which the federation (i.e., main reactor) is specified.
      * @param errorReporter An error reporter to use when problems are encountered.
      */
-    private void mergeImportedConfig(
-        Resource federateResource,
-        Resource mainResource,
-        ErrorReporter errorReporter) {
+    private void mergeImportedConfig(Resource federateResource, Resource mainResource, ErrorReporter errorReporter) {
         // If the federate is imported, then update the configuration based on target properties
         // in the imported file.
         if (!federateResource.equals(mainResource)) {
@@ -59,11 +50,7 @@ public class FedTargetConfig extends TargetConfig {
             var targetProperties = importedTargetDecl.getConfig();
             if (targetProperties != null) {
                 // Merge properties
-                TargetProperty.update(
-                    this,
-                    convertToEmptyListIfNull(targetProperties.getPairs()),
-                    errorReporter
-                );
+                TargetProperty.update(this, convertToEmptyListIfNull(targetProperties.getPairs()), errorReporter);
             }
         }
     }

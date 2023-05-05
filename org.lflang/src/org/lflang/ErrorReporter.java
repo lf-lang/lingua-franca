@@ -1,10 +1,8 @@
 package org.lflang;
 
 import java.nio.file.Path;
-
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.lsp4j.DiagnosticSeverity;
-
 import org.lflang.generator.Position;
 
 /**
@@ -24,7 +22,6 @@ public interface ErrorReporter {
      */
     String reportError(String message);
 
-
     /**
      * Report a warning.
      *
@@ -41,7 +38,6 @@ public interface ErrorReporter {
      */
     String reportInfo(String message);
 
-
     /**
      * Report an error on the specified parse tree object.
      *
@@ -50,7 +46,6 @@ public interface ErrorReporter {
      * @return a string that describes the error.
      */
     String reportError(EObject object, String message);
-
 
     /**
      * Report a warning on the specified parse tree object.
@@ -70,7 +65,6 @@ public interface ErrorReporter {
      */
     String reportInfo(EObject object, String message);
 
-
     /**
      * Report an error at the specified line within a file.
      *
@@ -81,7 +75,6 @@ public interface ErrorReporter {
      */
     String reportError(Path file, Integer line, String message);
 
-
     /**
      * Report a warning at the specified line within a file.
      *
@@ -91,7 +84,6 @@ public interface ErrorReporter {
      * @return a string that describes the warning.
      */
     String reportWarning(Path file, Integer line, String message);
-
 
     /**
      * Report an informational message at the specified line within a file.
@@ -112,14 +104,14 @@ public interface ErrorReporter {
      */
     default String report(Path file, DiagnosticSeverity severity, String message) {
         switch (severity) {
-        case Error:
-            return reportError(message);
-        case Warning:
-        case Hint:
-        case Information:
-            return reportInfo(message);
-        default:
-            return reportWarning(message);
+            case Error:
+                return reportError(message);
+            case Warning:
+            case Hint:
+            case Information:
+                return reportInfo(message);
+            default:
+                return reportWarning(message);
         }
     }
 
@@ -135,14 +127,14 @@ public interface ErrorReporter {
      */
     default String report(Path file, DiagnosticSeverity severity, String message, int line) {
         switch (severity) {
-        case Error:
-            return reportError(file, line, message);
-        case Warning:
-        case Hint:
-        case Information:
-            return reportInfo(file, line, message);
-        default:
-            return reportWarning(file, line, message);
+            case Error:
+                return reportError(file, line, message);
+            case Warning:
+            case Hint:
+            case Information:
+                return reportInfo(file, line, message);
+            default:
+                return reportWarning(file, line, message);
         }
     }
 

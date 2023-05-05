@@ -6,14 +6,11 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.emf.ecore.util.EcoreUtil;
 import org.eclipse.xtext.xbase.lib.IterableExtensions;
 import org.eclipse.xtext.xbase.lib.IteratorExtensions;
-import org.eclipse.xtext.xbase.lib.StringExtensions;
-
 import org.lflang.ASTUtils;
 import org.lflang.InferredType;
 import org.lflang.generator.DelayBodyGenerator;
@@ -23,7 +20,6 @@ import org.lflang.lf.ActionOrigin;
 import org.lflang.lf.Assignment;
 import org.lflang.lf.Code;
 import org.lflang.lf.Connection;
-import org.lflang.lf.Expression;
 import org.lflang.lf.Initializer;
 import org.lflang.lf.Input;
 import org.lflang.lf.Instantiation;
@@ -43,10 +39,10 @@ import org.lflang.lf.WidthSpec;
 import org.lflang.lf.WidthTerm;
 
 /**
- This class implements AST transformations for delayed connections.
- There are two types of delayed connections:
- 1) Connections with `after`-delays
- 2) Physical connections
+ * This class implements AST transformations for delayed connections.
+ * There are two types of delayed connections:
+ * 1) Connections with `after`-delays
+ * 2) Physical connections
  */
 public class DelayedConnectionTransformation implements AstTransformation {
 
@@ -77,7 +73,12 @@ public class DelayedConnectionTransformation implements AstTransformation {
      */
     private final LinkedHashSet<Reactor> delayClasses = new LinkedHashSet<>();
 
-    public DelayedConnectionTransformation(DelayBodyGenerator generator, TargetTypes targetTypes, Resource mainResource, boolean transformAfterDelays, boolean transformPhysicalConnections) {
+    public DelayedConnectionTransformation(
+            DelayBodyGenerator generator,
+            TargetTypes targetTypes,
+            Resource mainResource,
+            boolean transformAfterDelays,
+            boolean transformPhysicalConnections) {
         this.generator = generator;
         this.targetTypes = targetTypes;
         this.mainResource = mainResource;
@@ -108,17 +109,20 @@ public class DelayedConnectionTransformation implements AstTransformation {
         // Iterate over the connections in the tree.
         for (Reactor container : reactors) {
             for (Connection connection : ASTUtils.allConnections(container)) {
-                if ( transformAfterDelays && connection.getDelay() != null ||
-                    transformPhysicalConnection && connection.isPhysical()) {
+                if (transformAfterDelays && connection.getDelay() != null
+                        || transformPhysicalConnection && connection.isPhysical()) {
                     EObject parent = connection.eContainer();
                     // Assume all the types are the same, so just use the first on the right.
                     Type type = ((Port) connection.getRightPorts().get(0).getVariable()).getType();
                     Reactor delayClass = getDelayClass(type, connection.isPhysical());
-                    String generic = targetTypes.supportsGenerics()
-                        ? targetTypes.getTargetType(type) : null;
+                    String generic = targetTypes.supportsGenerics() ? targetTypes.getTargetType(type) : null;
 
-                    Instantiation delayInstance = getDelayInstance(delayClass, connection, generic,
-                        !generator.generateAfterDelaysWithVariableWidth(), connection.isPhysical());
+                    Instantiation delayInstance = getDelayInstance(
+                            delayClass,
+                            connection,
+                            generic,
+                            !generator.generateAfterDelaysWithVariableWidth(),
+                            connection.isPhysical());
 
                     // Stage the new connections for insertion into the tree.
                     List<Connection> connections = ASTUtils.convertToEmptyListIfNull(newConnections.get(parent));
@@ -152,17 +156,15 @@ public class DelayedConnectionTransformation implements AstTransformation {
             }
         });
         // Finally, insert the instances and, before doing so, assign them a unique name.
-        delayInstances.forEach((container, instantiations) ->
-            instantiations.forEach(instantiation -> {
-                if (container instanceof Reactor) {
-                    instantiation.setName(ASTUtils.getUniqueIdentifier((Reactor) container, "delay"));
-                    ((Reactor) container).getInstantiations().add(instantiation);
-                } else if (container instanceof Mode) {
-                    instantiation.setName(ASTUtils.getUniqueIdentifier((Reactor) container.eContainer(), "delay"));
-                    ((Mode) container).getInstantiations().add(instantiation);
-                }
-            })
-        );
+        delayInstances.forEach((container, instantiations) -> instantiations.forEach(instantiation -> {
+            if (container instanceof Reactor) {
+                instantiation.setName(ASTUtils.getUniqueIdentifier((Reactor) container, "delay"));
+                ((Reactor) container).getInstantiations().add(instantiation);
+            } else if (container instanceof Mode) {
+                instantiation.setName(ASTUtils.getUniqueIdentifier((Reactor) container.eContainer(), "delay"));
+                ((Mode) container).getInstantiations().add(instantiation);
+            }
+        }));
     }
 
     /**
@@ -172,8 +174,7 @@ public class DelayedConnectionTransformation implements AstTransformation {
      * @param connection The connection to reroute.
      * @param delayInstance The delay instance to route the connection through.
      */
-    private static List<Connection> rerouteViaDelay(Connection connection,
-        Instantiation delayInstance) {
+    private static List<Connection> rerouteViaDelay(Connection connection, Instantiation delayInstance) {
         List<Connection> connections = new ArrayList<>();
         Connection upstream = factory.createConnection();
         Connection downstream = factory.createConnection();
@@ -222,8 +223,12 @@ public class DelayedConnectionTransformation implements AstTransformation {
      *   These are used for implementing Physical Connections. If true
      *   we will accept zero delay on the connection.
      */
-    private static Instantiation getDelayInstance(Reactor delayClass,
-        Connection connection, String genericArg, Boolean defineWidthFromConnection, Boolean isPhysical) {
+    private static Instantiation getDelayInstance(
+            Reactor delayClass,
+            Connection connection,
+            String genericArg,
+            Boolean defineWidthFromConnection,
+            Boolean isPhysical) {
         Instantiation delayInstance = factory.createInstantiation();
         delayInstance.setReactorClass(delayClass);
         if (genericArg != null) {
@@ -261,7 +266,7 @@ public class DelayedConnectionTransformation implements AstTransformation {
             delayInstance.getParameters().add(assignment);
         }
 
-        delayInstance.setName("delay");  // This has to be overridden.
+        delayInstance.setName("delay"); // This has to be overridden.
         return delayInstance;
     }
 

@@ -36,16 +36,15 @@ public class FedConnectionInstance {
     SupportedSerializers serializer;
 
     public FedConnectionInstance(
-        SendRange srcRange,
-        RuntimeRange<PortInstance> dstRange,
-        int srcChannel,
-        int srcBank,
-        int dstChannel,
-        int dstBank,
-        FederateInstance srcFederate,
-        FederateInstance dstFederate,
-        SupportedSerializers serializer
-    ) {
+            SendRange srcRange,
+            RuntimeRange<PortInstance> dstRange,
+            int srcChannel,
+            int srcBank,
+            int dstChannel,
+            int dstBank,
+            FederateInstance srcFederate,
+            FederateInstance dstFederate,
+            SupportedSerializers serializer) {
         this.srcRange = srcRange;
         this.srcChannel = srcChannel;
         this.srcBank = srcBank;

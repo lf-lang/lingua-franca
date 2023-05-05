@@ -3,7 +3,6 @@ package org.lflang.generator;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
-
 import org.lflang.ASTUtils;
 import org.lflang.InferredType;
 import org.lflang.TimeValue;
@@ -33,37 +32,31 @@ import org.lflang.lf.Type;
  */
 public interface TargetTypes {
 
-
     /**
      * Return true if the target supports generics (i.e., parametric
      * polymorphism), false otherwise.
      */
     boolean supportsGenerics();
 
-
     /**
      * Return the type of time durations.
      */
     String getTargetTimeType();
-
 
     /**
      * Return the type of tags.
      */
     String getTargetTagType();
 
-
     /**
      * Return the type of fixed sized lists (or arrays).
      */
     String getTargetFixedSizeListType(String baseType, int size);
 
-
     /**
      * Return the type of variable sized lists (eg {@code std::vector<baseType>}).
      */
     String getTargetVariableSizeListType(String baseType);
-
 
     default String getTargetParamRef(ParameterReference expr, InferredType typeOrNull) {
         return escapeIdentifier(expr.getParameter().getName());
@@ -72,8 +65,7 @@ public interface TargetTypes {
     /** Translate the braced list expression into target language syntax. */
     default String getTargetBracedListExpr(BracedListExpression expr, InferredType typeOrNull) {
         InferredType t = typeOrNull == null ? InferredType.undefined() : typeOrNull;
-        return expr.getItems().stream().map(e -> getTargetExpr(e, t))
-            .collect(Collectors.joining(",", "{", "}"));
+        return expr.getItems().stream().map(e -> getTargetExpr(e, t)).collect(Collectors.joining(",", "{", "}"));
     }
 
     /**
@@ -122,7 +114,6 @@ public interface TargetTypes {
         throw new UnsupportedGeneratorFeatureException("Fixed size lists");
     }
 
-
     /**
      * Returns the expression that is used to replace a
      * missing expression in the source language. The expression
@@ -135,7 +126,6 @@ public interface TargetTypes {
     default String getMissingExpr(InferredType type) {
         throw new UnsupportedGeneratorFeatureException("Missing initializers");
     }
-
 
     /**
      * Returns a target type inferred from the type node, or the
@@ -175,7 +165,8 @@ public interface TargetTypes {
         } else if (type.isVariableSizeList) {
             return getTargetVariableSizeListType(type.baseType());
         } else if (!type.astType.getTypeArgs().isEmpty()) {
-            List<String> args = type.astType.getTypeArgs().stream().map(this::getTargetType).toList();
+            List<String> args =
+                    type.astType.getTypeArgs().stream().map(this::getTargetType).toList();
             return getGenericType(type.baseType(), args);
         }
         return type.toOriginalText();
@@ -236,14 +227,15 @@ public interface TargetTypes {
         if (single != null) {
             return getTargetExpr(single, inferredType);
         }
-        var targetValues = init.getExprs().stream().map(it -> getTargetExpr(it, inferredType)).collect(Collectors.toList());
+        var targetValues = init.getExprs().stream()
+                .map(it -> getTargetExpr(it, inferredType))
+                .collect(Collectors.toList());
         if (inferredType.isFixedSizeList) {
             return getFixedSizeListInitExpression(targetValues, inferredType.listSize, init.isBraces());
-        } else  {
+        } else {
             return getVariableSizeListInitExpression(targetValues, init.isBraces());
         }
     }
-
 
     /**
      * Returns the representation of the given expression in target code.

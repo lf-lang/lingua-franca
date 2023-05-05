@@ -19,25 +19,21 @@
  * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  ***************/
-
 package org.lflang.scoping;
 
 import com.google.common.base.Splitter;
 import com.google.inject.Inject;
 import com.google.inject.Provider;
-
 import java.util.LinkedHashSet;
 import java.util.Set;
-
 import org.eclipse.emf.common.util.URI;
 import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.xtext.EcoreUtil2;
 import org.eclipse.xtext.resource.IResourceDescription;
 import org.eclipse.xtext.scoping.impl.ImportUriGlobalScopeProvider;
 import org.eclipse.xtext.util.IResourceScopeCache;
-
-import org.lflang.lf.LfPackage;
 import org.lflang.LFResourceDescriptionStrategy;
+import org.lflang.lf.LfPackage;
 
 /**
  * Global scope provider that limits access to only those files that were
@@ -71,28 +67,27 @@ public class LFGlobalScopeProvider extends ImportUriGlobalScopeProvider {
      */
     @Override
     protected LinkedHashSet<URI> getImportedUris(Resource resource) {
-        return cache.get(IMPORTED_URIS, resource,
-                         new Provider<LinkedHashSet<URI>>() {
-                             /**
-                              * Collect unique URIs in case the cache is not populated yet.
-                              */
-                             @Override
-                             public LinkedHashSet<URI> get() {
-                                 var uniqueImportURIs = new LinkedHashSet<URI>(5);
-                                 collectImportUris(resource, uniqueImportURIs);
-                                 uniqueImportURIs.removeIf(uri -> !EcoreUtil2.isValidUri(resource, uri));
-                                 return uniqueImportURIs;
-                             }
+        return cache.get(IMPORTED_URIS, resource, new Provider<LinkedHashSet<URI>>() {
+            /**
+             * Collect unique URIs in case the cache is not populated yet.
+             */
+            @Override
+            public LinkedHashSet<URI> get() {
+                var uniqueImportURIs = new LinkedHashSet<URI>(5);
+                collectImportUris(resource, uniqueImportURIs);
+                uniqueImportURIs.removeIf(uri -> !EcoreUtil2.isValidUri(resource, uri));
+                return uniqueImportURIs;
+            }
 
-                             /**
-                              * Helper method to recursively collect unique URIs.
-                              */
-                             void collectImportUris(Resource resource, LinkedHashSet<URI> uniqueImportURIs) {
-                                 for (var imported : getImportedResources(resource, uniqueImportURIs)) {
-                                     collectImportUris(imported, uniqueImportURIs);
-                                 }
-                             }
-                         });
+            /**
+             * Helper method to recursively collect unique URIs.
+             */
+            void collectImportUris(Resource resource, LinkedHashSet<URI> uniqueImportURIs) {
+                for (var imported : getImportedResources(resource, uniqueImportURIs)) {
+                    collectImportUris(imported, uniqueImportURIs);
+                }
+            }
+        });
     }
 
     /**
@@ -138,7 +133,7 @@ public class LFGlobalScopeProvider extends ImportUriGlobalScopeProvider {
         for (var model : models) {
             var userData = model.getUserData(LFResourceDescriptionStrategy.INCLUDES);
             if (userData != null) {
-                for (String uri : SPLITTER.split(userData)) {// Attempt to resolve the URI
+                for (String uri : SPLITTER.split(userData)) { // Attempt to resolve the URI
                     var includedUri = this.resolve(uri, resource);
                     if (includedUri != null) {
                         try {
@@ -149,7 +144,6 @@ public class LFGlobalScopeProvider extends ImportUriGlobalScopeProvider {
                             System.err.println("Unable to import " + includedUri + ": " + e.getMessage());
                         }
                     }
-
                 }
             }
         }

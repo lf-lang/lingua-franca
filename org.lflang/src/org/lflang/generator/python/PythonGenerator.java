@@ -18,7 +18,6 @@
  * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  ***************/
-
 package org.lflang.generator.python;
 
 import java.io.File;
@@ -34,17 +33,14 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-
 import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.xtext.xbase.lib.Exceptions;
-
 import org.lflang.ASTUtils;
 import org.lflang.AttributeUtils;
 import org.lflang.Target;
 import org.lflang.TargetProperty;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.generator.CodeMap;
-
 import org.lflang.generator.GeneratorResult;
 import org.lflang.generator.IntegratedBuilder;
 import org.lflang.generator.LFGeneratorContext;
@@ -65,7 +61,6 @@ import org.lflang.lf.ReactorDecl;
 import org.lflang.util.FileUtil;
 import org.lflang.util.LFCommand;
 import org.lflang.util.StringUtil;
-
 
 /**
  * Generator for Python target. This class generates Python code defining each
@@ -95,22 +90,21 @@ public class PythonGenerator extends CGenerator {
     private final PythonTypes types;
 
     public PythonGenerator(LFGeneratorContext context) {
-        this(context,
-            new PythonTypes(),
-            new CCmakeGenerator(
-                context.getFileConfig(),
-                List.of("lib/python_action.c",
-                    "lib/python_port.c",
-                    "lib/python_tag.c",
-                    "lib/python_time.c",
-                    "lib/pythontarget.c"
-                ),
-                PythonGenerator::setUpMainTarget,
-                "install(TARGETS)" // No-op
-            )
-        );
+        this(
+                context,
+                new PythonTypes(),
+                new CCmakeGenerator(
+                        context.getFileConfig(),
+                        List.of(
+                                "lib/python_action.c",
+                                "lib/python_port.c",
+                                "lib/python_tag.c",
+                                "lib/python_time.c",
+                                "lib/pythontarget.c"),
+                        PythonGenerator::setUpMainTarget,
+                        "install(TARGETS)" // No-op
+                        ));
     }
-
 
     private PythonGenerator(LFGeneratorContext context, PythonTypes types, CCmakeGenerator cmakeGenerator) {
         super(context, false, types, cmakeGenerator, new PythonDelayBodyGenerator(types));
@@ -192,12 +186,8 @@ public class PythonGenerator extends CGenerator {
         // Instantiate generated classes
         pythonClassesInstantiation.pr(PythonReactorGenerator.generatePythonClassInstantiations(main, main));
 
-        return String.join("\n",
-                           pythonClasses.toString(),
-                           "",
-                           "# Instantiate classes",
-                           pythonClassesInstantiation.toString()
-        );
+        return String.join(
+                "\n", pythonClasses.toString(), "", "# Instantiate classes", pythonClassesInstantiation.toString());
     }
 
     /**
@@ -207,61 +197,55 @@ public class PythonGenerator extends CGenerator {
      * @return the code body
      */
     public String generatePythonCode(String pyModuleName) {
-        return String.join("\n",
-            "import os",
-            "import sys",
-            "sys.path.append(os.path.dirname(__file__))",
-            "# List imported names, but do not use pylint's --extension-pkg-allow-list option",
-            "# so that these names will be assumed present without having to compile and install.",
-            "# pylint: disable=no-name-in-module, import-error",
-            "from "+pyModuleName+" import (",
-            "    Tag, action_capsule_t, port_capsule, request_stop, schedule_copy, start",
-            ")",
-            "# pylint: disable=c-extension-no-member",
-            "import "+pyModuleName+" as lf",
-            "try:",
-            "    from LinguaFrancaBase.constants import BILLION, FOREVER, NEVER, instant_t, interval_t",
-            "    from LinguaFrancaBase.functions import (",
-            "        DAY, DAYS, HOUR, HOURS, MINUTE, MINUTES, MSEC, MSECS, NSEC, NSECS, SEC, SECS, USEC,",
-            "        USECS, WEEK, WEEKS",
-            "    )",
-            "    from LinguaFrancaBase.classes import Make",
-            "except ModuleNotFoundError:",
-            "    print(\"No module named 'LinguaFrancaBase'. \"",
-            "          \"Install using \\\"pip3 install LinguaFrancaBase\\\".\")",
-            "    sys.exit(1)",
-            "import copy",
-            "",
-            pythonPreamble.toString(),
-            "",
-            generatePythonReactorClasses(),
-            "",
-            PythonMainFunctionGenerator.generateCode()
-        );
+        return String.join(
+                "\n",
+                "import os",
+                "import sys",
+                "sys.path.append(os.path.dirname(__file__))",
+                "# List imported names, but do not use pylint's --extension-pkg-allow-list option",
+                "# so that these names will be assumed present without having to compile and install.",
+                "# pylint: disable=no-name-in-module, import-error",
+                "from " + pyModuleName + " import (",
+                "    Tag, action_capsule_t, port_capsule, request_stop, schedule_copy, start",
+                ")",
+                "# pylint: disable=c-extension-no-member",
+                "import " + pyModuleName + " as lf",
+                "try:",
+                "    from LinguaFrancaBase.constants import BILLION, FOREVER, NEVER, instant_t, interval_t",
+                "    from LinguaFrancaBase.functions import (",
+                "        DAY, DAYS, HOUR, HOURS, MINUTE, MINUTES, MSEC, MSECS, NSEC, NSECS, SEC, SECS, USEC,",
+                "        USECS, WEEK, WEEKS",
+                "    )",
+                "    from LinguaFrancaBase.classes import Make",
+                "except ModuleNotFoundError:",
+                "    print(\"No module named 'LinguaFrancaBase'. \"",
+                "          \"Install using \\\"pip3 install LinguaFrancaBase\\\".\")",
+                "    sys.exit(1)",
+                "import copy",
+                "",
+                pythonPreamble.toString(),
+                "",
+                generatePythonReactorClasses(),
+                "",
+                PythonMainFunctionGenerator.generateCode());
     }
 
     /**
      * Generate the necessary Python files.
      */
-    public Map<Path, CodeMap> generatePythonFiles(
-        String lfModuleName,
-        String pyModuleName,
-        String pyFileName
-    ) throws IOException {
+    public Map<Path, CodeMap> generatePythonFiles(String lfModuleName, String pyModuleName, String pyFileName)
+            throws IOException {
         Path filePath = fileConfig.getSrcGenPath().resolve(pyFileName);
         File file = filePath.toFile();
         Files.deleteIfExists(filePath);
         // Create the necessary directories
         if (!file.getParentFile().exists()) {
             if (!file.getParentFile().mkdirs()) {
-                throw new IOException(
-                    "Failed to create directories required for the Python code generator."
-                );
+                throw new IOException("Failed to create directories required for the Python code generator.");
             }
         }
         Map<Path, CodeMap> codeMaps = new HashMap<>();
-        codeMaps.put(filePath, CodeMap.fromGeneratedCode(
-            generatePythonCode(pyModuleName)));
+        codeMaps.put(filePath, CodeMap.fromGeneratedCode(generatePythonCode(pyModuleName)));
         FileUtil.writeToFile(codeMaps.get(filePath).getGeneratedCode(), filePath);
         return codeMaps;
     }
@@ -276,7 +260,7 @@ public class PythonGenerator extends CGenerator {
         code.prComment("Code generated by the Lingua Franca compiler from:");
         code.prComment("file:/" + FileUtil.toUnixString(fileConfig.srcFile));
         code.pr(PythonPreambleGenerator.generateCDefineDirectives(
-            targetConfig, fileConfig.getSrcGenPath(), hasModalReactors));
+                targetConfig, fileConfig.getSrcGenPath(), hasModalReactors));
         return code.toString();
     }
 
@@ -297,12 +281,14 @@ public class PythonGenerator extends CGenerator {
         }
         // Add the main reactor if it is defined
         if (this.mainDef != null) {
-            models.add((Model) ASTUtils.toDefinition(this.mainDef.getReactorClass()).eContainer());
+            models.add((Model)
+                    ASTUtils.toDefinition(this.mainDef.getReactorClass()).eContainer());
         }
         for (Model m : models) {
             pythonPreamble.pr(PythonPreambleGenerator.generatePythonPreambles(m.getPreambles()));
         }
-        return PythonPreambleGenerator.generateCIncludeStatements(targetConfig, targetLanguageIsCpp(), hasModalReactors);
+        return PythonPreambleGenerator.generateCIncludeStatements(
+                targetConfig, targetLanguageIsCpp(), hasModalReactors);
     }
 
     @Override
@@ -311,7 +297,7 @@ public class PythonGenerator extends CGenerator {
             this.processProtoFile(name);
             int dotIndex = name.lastIndexOf(".");
             String rootFilename = dotIndex > 0 ? name.substring(0, dotIndex) : name;
-            pythonPreamble.pr("import "+rootFilename+"_pb2 as "+rootFilename);
+            pythonPreamble.pr("import " + rootFilename + "_pb2 as " + rootFilename);
             protoNames.add(rootFilename);
         }
     }
@@ -327,8 +313,7 @@ public class PythonGenerator extends CGenerator {
     @Override
     public void processProtoFile(String filename) {
         LFCommand protoc = commandFactory.createCommand(
-            "protoc", List.of("--python_out="
-                                  + fileConfig.getSrcGenPath(), filename), fileConfig.srcPath);
+                "protoc", List.of("--python_out=" + fileConfig.getSrcGenPath(), filename), fileConfig.srcPath);
 
         if (protoc == null) {
             errorReporter.reportError("Processing .proto files requires libprotoc >= 3.6.1");
@@ -338,8 +323,7 @@ public class PythonGenerator extends CGenerator {
         if (returnCode == 0) {
             pythonRequiredModules.add("google-api-python-client");
         } else {
-            errorReporter.reportError(
-                "protoc returns error code " + returnCode);
+            errorReporter.reportError("protoc returns error code " + returnCode);
         }
     }
 
@@ -349,9 +333,7 @@ public class PythonGenerator extends CGenerator {
      * @param r The parsed reactor data structure.
      */
     @Override
-    public void generateAuxiliaryStructs(
-        CodeBuilder builder, Reactor r, boolean userFacing
-    ) {
+    public void generateAuxiliaryStructs(CodeBuilder builder, Reactor r, boolean userFacing) {
         for (Input input : ASTUtils.allInputs(r)) {
             generateAuxiliaryStructsForPort(builder, r, input);
         }
@@ -363,16 +345,12 @@ public class PythonGenerator extends CGenerator {
         }
     }
 
-    private void generateAuxiliaryStructsForPort(CodeBuilder builder, Reactor r,
-                                                 Port port) {
+    private void generateAuxiliaryStructsForPort(CodeBuilder builder, Reactor r, Port port) {
         boolean isTokenType = CUtil.isTokenType(ASTUtils.getInferredType(port), types);
-        builder.pr(port,
-                PythonPortGenerator.generateAliasTypeDef(r, port, isTokenType,
-                                                         genericPortType));
+        builder.pr(port, PythonPortGenerator.generateAliasTypeDef(r, port, isTokenType, genericPortType));
     }
 
-    private void generateAuxiliaryStructsForAction(CodeBuilder builder, Reactor r,
-                                                   Action action) {
+    private void generateAuxiliaryStructsForAction(CodeBuilder builder, Reactor r, Action action) {
         builder.pr(action, PythonActionGenerator.generateAliasTypeDef(r, action, genericActionType));
     }
 
@@ -401,12 +379,11 @@ public class PythonGenerator extends CGenerator {
             targetConfig.threading = false;
         }
         int cGeneratedPercentProgress = (IntegratedBuilder.VALIDATED_PERCENT_PROGRESS + 100) / 2;
-        code.pr(PythonPreambleGenerator.generateCIncludeStatements(targetConfig, targetLanguageIsCpp(), hasModalReactors));
-        super.doGenerate(resource, new SubContext(
-            context,
-            IntegratedBuilder.VALIDATED_PERCENT_PROGRESS,
-            cGeneratedPercentProgress
-        ));
+        code.pr(PythonPreambleGenerator.generateCIncludeStatements(
+                targetConfig, targetLanguageIsCpp(), hasModalReactors));
+        super.doGenerate(
+                resource,
+                new SubContext(context, IntegratedBuilder.VALIDATED_PERCENT_PROGRESS, cGeneratedPercentProgress));
 
         if (errorsOccurred()) {
             context.unsuccessfulFinish();
@@ -418,7 +395,8 @@ public class PythonGenerator extends CGenerator {
         // Don't generate code if there is no main reactor
         if (this.main != null) {
             try {
-                Map<Path, CodeMap> codeMapsForFederate = generatePythonFiles(lfModuleName, generatePythonModuleName(lfModuleName), generatePythonFileName(lfModuleName));
+                Map<Path, CodeMap> codeMapsForFederate = generatePythonFiles(
+                        lfModuleName, generatePythonModuleName(lfModuleName), generatePythonFileName(lfModuleName));
                 codeMaps.putAll(codeMapsForFederate);
                 copyTargetFiles();
                 new PythonValidator(fileConfig, errorReporter, codeMaps, protoNames).doValidate(context);
@@ -462,7 +440,8 @@ public class PythonGenerator extends CGenerator {
             super.generateReaction(src, reaction, r, reactionIndex);
             return;
         }
-        src.pr(PythonReactionGenerator.generateCReaction(reaction, reactor, reactionIndex, mainDef, errorReporter, types));
+        src.pr(PythonReactionGenerator.generateCReaction(
+                reaction, reactor, reactionIndex, mainDef, errorReporter, types));
     }
 
     /**
@@ -499,7 +478,7 @@ public class PythonGenerator extends CGenerator {
      * @see PythonMethodGenerator
      */
     @Override
-    protected void generateMethods(CodeBuilder src, ReactorDecl reactor) {    }
+    protected void generateMethods(CodeBuilder src, ReactorDecl reactor) {}
 
     /**
      * Generate C preambles defined by user for a given reactor
@@ -520,9 +499,7 @@ public class PythonGenerator extends CGenerator {
      * @param instance The reactor instance.
      */
     @Override
-    protected void generateReactorInstanceExtension(
-        ReactorInstance instance
-    ) {
+    protected void generateReactorInstanceExtension(ReactorInstance instance) {
         initializeTriggerObjects.pr(PythonReactionGenerator.generateCPythonReactionLinkers(instance, mainDef));
     }
 
@@ -534,22 +511,22 @@ public class PythonGenerator extends CGenerator {
      */
     @Override
     protected void generateSelfStructExtension(
-        CodeBuilder selfStructBody,
-        ReactorDecl decl,
-        CodeBuilder constructorCode
-    ) {
+            CodeBuilder selfStructBody, ReactorDecl decl, CodeBuilder constructorCode) {
         Reactor reactor = ASTUtils.toDefinition(decl);
         // Add the name field
         selfStructBody.pr("char *_lf_name;");
         int reactionIndex = 0;
         for (Reaction reaction : ASTUtils.allReactions(reactor)) {
             // Create a PyObject for each reaction
-            selfStructBody.pr("PyObject* "+ PythonReactionGenerator.generateCPythonReactionFunctionName(reactionIndex)+";");
+            selfStructBody.pr(
+                    "PyObject* " + PythonReactionGenerator.generateCPythonReactionFunctionName(reactionIndex) + ";");
             if (reaction.getStp() != null) {
-                selfStructBody.pr("PyObject* "+ PythonReactionGenerator.generateCPythonSTPFunctionName(reactionIndex)+";");
+                selfStructBody.pr(
+                        "PyObject* " + PythonReactionGenerator.generateCPythonSTPFunctionName(reactionIndex) + ";");
             }
             if (reaction.getDeadline() != null) {
-                selfStructBody.pr("PyObject* "+ PythonReactionGenerator.generateCPythonDeadlineFunctionName(reactionIndex)+";");
+                selfStructBody.pr("PyObject* "
+                        + PythonReactionGenerator.generateCPythonDeadlineFunctionName(reactionIndex) + ";");
             }
             reactionIndex++;
         }
@@ -559,11 +536,11 @@ public class PythonGenerator extends CGenerator {
     protected String getConflictingConnectionsInModalReactorsBody(String source, String dest) {
         // NOTE: Strangely, a newline is needed at the beginning or indentation
         // gets swallowed.
-        return String.join("\n",
-                           "\n# Generated forwarding reaction for connections with the same destination",
-                           "# but located in mutually exclusive modes.",
-                           dest + ".set(" + source + ".value)\n"
-        );
+        return String.join(
+                "\n",
+                "\n# Generated forwarding reaction for connections with the same destination",
+                "# but located in mutually exclusive modes.",
+                dest + ".set(" + source + ".value)\n");
     }
 
     @Override
@@ -583,8 +560,7 @@ public class PythonGenerator extends CGenerator {
     }
 
     private static String setUpMainTarget(boolean hasMain, String executableName, Stream<String> cSources) {
-        return (
-            """
+        return ("""
             set(CMAKE_POSITION_INDEPENDENT_CODE ON)
             add_compile_definitions(_LF_GARBAGE_COLLECTED)
             add_subdirectory(core)
@@ -595,8 +571,8 @@ public class PythonGenerator extends CGenerator {
                 ${LF_MAIN_TARGET}
                 MODULE
             """
-            + cSources.collect(Collectors.joining("\n    ", "    ", "\n"))
-            + """
+                        + cSources.collect(Collectors.joining("\n    ", "    ", "\n"))
+                        + """
             )
             if (MSVC)
                 set_target_properties(${LF_MAIN_TARGET} PROPERTIES LIBRARY_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR})
@@ -609,9 +585,9 @@ public class PythonGenerator extends CGenerator {
             include_directories(${Python_INCLUDE_DIRS})
             target_link_libraries(${LF_MAIN_TARGET} PRIVATE ${Python_LIBRARIES})
             target_compile_definitions(${LF_MAIN_TARGET} PUBLIC MODULE_NAME=<pyModuleName>)
-            """
-            ).replace("<pyModuleName>", generatePythonModuleName(executableName))
-            .replace("executableName", executableName);
+            """)
+                .replace("<pyModuleName>", generatePythonModuleName(executableName))
+                .replace("executableName", executableName);
         // The use of fileConfig.name will break federated execution, but that's fine
     }
 
@@ -659,24 +635,8 @@ public class PythonGenerator extends CGenerator {
     @Override
     protected void copyTargetFiles() throws IOException {
         super.copyTargetFiles();
-        FileUtil.copyFromClassPath(
-            "/lib/py/reactor-c-py/include",
-            fileConfig.getSrcGenPath(),
-            true,
-            false
-        );
-        FileUtil.copyFromClassPath(
-            "/lib/py/reactor-c-py/lib",
-            fileConfig.getSrcGenPath(),
-            true,
-            false
-        );
-        FileUtil.copyFromClassPath(
-            "/lib/py/reactor-c-py/LinguaFrancaBase",
-            fileConfig.getSrcGenPath(),
-            true,
-            false
-        );
+        FileUtil.copyFromClassPath("/lib/py/reactor-c-py/include", fileConfig.getSrcGenPath(), true, false);
+        FileUtil.copyFromClassPath("/lib/py/reactor-c-py/lib", fileConfig.getSrcGenPath(), true, false);
+        FileUtil.copyFromClassPath("/lib/py/reactor-c-py/LinguaFrancaBase", fileConfig.getSrcGenPath(), true, false);
     }
-
 }

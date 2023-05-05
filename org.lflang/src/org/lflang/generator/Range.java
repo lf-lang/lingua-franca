@@ -10,10 +10,9 @@ import java.util.regex.Pattern;
  */
 public class Range implements Comparable<Range> {
     public static final Pattern PATTERN = Pattern.compile(String.format(
-        "Range: \\[(?<start>%s), (?<end>%s)\\)",
-        Position.removeNamedCapturingGroups(Position.PATTERN),
-        Position.removeNamedCapturingGroups(Position.PATTERN)
-    ));
+            "Range: \\[(?<start>%s), (?<end>%s)\\)",
+            Position.removeNamedCapturingGroups(Position.PATTERN),
+            Position.removeNamedCapturingGroups(Position.PATTERN)));
 
     /** The start of the Range (INCLUSIVE). */
     private final Position start;
@@ -31,7 +30,7 @@ public class Range implements Comparable<Range> {
      * @param endExclusive the end of the range (exclusive)
      */
     public Range(Position startInclusive, Position endExclusive) {
-        assert startInclusive.compareTo(endExclusive) <= 0: "endExclusive cannot precede startInclusive";
+        assert startInclusive.compareTo(endExclusive) <= 0 : "endExclusive cannot precede startInclusive";
         start = startInclusive;
         end = endExclusive;
     }

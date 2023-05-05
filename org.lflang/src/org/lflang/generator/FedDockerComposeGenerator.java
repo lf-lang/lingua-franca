@@ -1,6 +1,5 @@
 package org.lflang.generator;
 
-
 import java.util.List;
 
 /**
@@ -35,8 +34,8 @@ public class FedDockerComposeGenerator extends DockerComposeGenerator {
                     hostname: "%s"
                     command: "-i 1 -n %s"
                     container_name: "%s-rti"
-            """.formatted(super.generateDockerServices(services),
-                this.rtiHost, services.size(), containerName);
+            """
+                .formatted(super.generateDockerServices(services), this.rtiHost, services.size(), containerName);
     }
 
     @Override
@@ -46,7 +45,8 @@ public class FedDockerComposeGenerator extends DockerComposeGenerator {
                     command: "-i 1"
                     depends_on:
                         - rti
-            """.formatted(super.getServiceDescription(data));
+            """
+                .formatted(super.getServiceDescription(data));
     }
 
     @Override

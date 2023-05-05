@@ -1,16 +1,16 @@
 /**
  * Copyright (c) 2019, The University of California at Berkeley.
- * 
+ *
  * Redistribution and use in source and binary forms, with or without modification,
  * are permitted provided that the following conditions are met:
- * 
+ *
  * 1. Redistributions of source code must retain the above copyright notice,
  * this list of conditions and the following disclaimer.
- * 
+ *
  * 2. Redistributions in binary form must reproduce the above copyright notice,
  * this list of conditions and the following disclaimer in the documentation
  * and/or other materials provided with the distribution.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY
  * EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
  * MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL
@@ -30,18 +30,18 @@ import java.util.HashMap;
  * Creates a new annotation if no annotation exists.
  */
 public class NodeAnnotations<T extends Object> {
-  private HashMap<T, NodeAnnotation> annotations = new HashMap<T, NodeAnnotation>();
-  
-  public NodeAnnotation get(final T node) {
-    NodeAnnotation annotation = this.annotations.get(node);
-    if (annotation == null) {
-        annotation = new NodeAnnotation();
-        this.annotations.put(node, annotation);
+    private HashMap<T, NodeAnnotation> annotations = new HashMap<T, NodeAnnotation>();
+
+    public NodeAnnotation get(final T node) {
+        NodeAnnotation annotation = this.annotations.get(node);
+        if (annotation == null) {
+            annotation = new NodeAnnotation();
+            this.annotations.put(node, annotation);
+        }
+        return annotation;
     }
-    return annotation;
-  }
-  
-  public NodeAnnotation put(final T node, final NodeAnnotation annotation) {
-    return this.annotations.put(node, annotation);
-  }
+
+    public NodeAnnotation put(final T node, final NodeAnnotation annotation) {
+        return this.annotations.put(node, annotation);
+    }
 }

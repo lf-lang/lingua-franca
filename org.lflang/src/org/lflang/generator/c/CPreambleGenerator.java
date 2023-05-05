@@ -1,13 +1,12 @@
 package org.lflang.generator.c;
 
-import java.nio.file.Path;
+import static org.lflang.util.StringUtil.addDoubleQuotes;
 
+import java.nio.file.Path;
 import org.lflang.TargetConfig;
 import org.lflang.TargetProperty.Platform;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.util.StringUtil;
-
-import static org.lflang.util.StringUtil.addDoubleQuotes;
 
 /**
  * Generates code for preambles for the C and CCpp target.
@@ -27,10 +26,7 @@ import static org.lflang.util.StringUtil.addDoubleQuotes;
  */
 public class CPreambleGenerator {
     /** Add necessary source files specific to the target language.  */
-    public static String generateIncludeStatements(
-        TargetConfig targetConfig,
-        boolean cppMode
-    ) {
+    public static String generateIncludeStatements(TargetConfig targetConfig, boolean cppMode) {
         var tracing = targetConfig.tracing;
         CodeBuilder code = new CodeBuilder();
         if (cppMode || targetConfig.platformOptions.platform == Platform.ARDUINO) {
@@ -38,9 +34,7 @@ public class CPreambleGenerator {
         }
         code.pr("#include <limits.h>");
         code.pr("#include \"include/core/platform.h\"");
-        CCoreFilesUtils.getCTargetHeader().forEach(
-            it -> code.pr("#include " + StringUtil.addDoubleQuotes(it))
-        );
+        CCoreFilesUtils.getCTargetHeader().forEach(it -> code.pr("#include " + StringUtil.addDoubleQuotes(it)));
         code.pr("#include \"include/core/reactor.h\"");
         code.pr("#include \"include/core/reactor_common.h\"");
         if (targetConfig.threading) {
@@ -53,7 +47,7 @@ public class CPreambleGenerator {
         code.pr("#include \"include/core/mixed_radix.h\"");
         code.pr("#include \"include/core/port.h\"");
         code.pr("int lf_reactor_c_main(int argc, const char* argv[]);");
-        if(targetConfig.fedSetupPreamble != null) {
+        if (targetConfig.fedSetupPreamble != null) {
             code.pr("#include \"include/core/federated/federate.h\"");
             code.pr("#include \"include/core/federated/net_common.h\"");
         }
@@ -64,10 +58,7 @@ public class CPreambleGenerator {
     }
 
     public static String generateDefineDirectives(
-        TargetConfig targetConfig,
-        Path srcGenPath,
-        boolean hasModalReactors
-    ) {
+            TargetConfig targetConfig, Path srcGenPath, boolean hasModalReactors) {
         int logLevel = targetConfig.logLevel.ordinal();
         var coordinationType = targetConfig.coordination;
         var tracing = targetConfig.tracing;

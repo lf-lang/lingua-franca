@@ -1,5 +1,6 @@
 package org.lflang.tests.lsp;
 
+import com.google.common.collect.ImmutableList;
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -17,8 +18,6 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
 
-import com.google.common.collect.ImmutableList;
-
 /**
  * Insert problems into integration tests.
  * @author Peter Donovan
@@ -28,25 +27,28 @@ class ErrorInserter {
 
     /** A basic error inserter builder on which more specific error inserters can be built. */
     private static final Builder BASE_ERROR_INSERTER = new Builder()
-        .insertCondition((s0, s1) -> Stream.of(s0, s1).allMatch(it -> Stream.of(";", "}", "{").anyMatch(it::endsWith)))
-        .insertCondition((s0, s1) -> !s1.trim().startsWith("else"))
-        .insertable("    0 = 1;").insertable("some_undeclared_var1524263 = 9;").insertable("        ++;");
+            .insertCondition((s0, s1) ->
+                    Stream.of(s0, s1).allMatch(it -> Stream.of(";", "}", "{").anyMatch(it::endsWith)))
+            .insertCondition((s0, s1) -> !s1.trim().startsWith("else"))
+            .insertable("    0 = 1;")
+            .insertable("some_undeclared_var1524263 = 9;")
+            .insertable("        ++;");
+
     public static final Builder C = BASE_ERROR_INSERTER
-        .replacer("lf_set(", "UNDEFINED_NAME2828376(")
-        .replacer("lf_schedule(", "undefined_name15291838(");
+            .replacer("lf_set(", "UNDEFINED_NAME2828376(")
+            .replacer("lf_schedule(", "undefined_name15291838(");
     public static final Builder CPP = BASE_ERROR_INSERTER
-        .replacer(".get", ".undefined_name15291838")
-        .replacer("std::", "undefined_name3286634::");
-    public static final Builder PYTHON_SYNTAX_ONLY = new Builder()
-        .insertable("        +++++;").insertable("        ..");
-    public static final Builder PYTHON = PYTHON_SYNTAX_ONLY
-        .replacer("print(", "undefined_name15291838(");
+            .replacer(".get", ".undefined_name15291838")
+            .replacer("std::", "undefined_name3286634::");
+    public static final Builder PYTHON_SYNTAX_ONLY =
+            new Builder().insertable("        +++++;").insertable("        ..");
+    public static final Builder PYTHON = PYTHON_SYNTAX_ONLY.replacer("print(", "undefined_name15291838(");
     public static final Builder RUST = BASE_ERROR_INSERTER
-        .replacer("println!", "undefined_name15291838!")
-        .replacer("ctx.", "undefined_name3286634.");
+            .replacer("println!", "undefined_name15291838!")
+            .replacer("ctx.", "undefined_name3286634.");
     public static final Builder TYPESCRIPT = BASE_ERROR_INSERTER
-        .replacer("requestErrorStop(", "not_an_attribute_of_util9764(")
-        .replacer("const ", "var ");
+            .replacer("requestErrorStop(", "not_an_attribute_of_util9764(")
+            .replacer("const ", "var ");
 
     /** An {@code AlteredTest} represents an altered version of what was a valid LF file. */
     static class AlteredTest implements Closeable {
@@ -55,10 +57,12 @@ class ErrorInserter {
         private static class OnceTrue {
             boolean beenTrue;
             Random random;
+
             private OnceTrue(Random random) {
                 this.beenTrue = false;
                 this.random = random;
             }
+
             private boolean get() {
                 if (beenTrue) return false;
                 return beenTrue = random.nextBoolean() && random.nextBoolean();
@@ -83,7 +87,7 @@ class ErrorInserter {
         private AlteredTest(Path originalTest, BiPredicate<String, String> insertCondition) throws IOException {
             this.badLines = new ArrayList<>();
             this.srcFile = originalTest;
-            this.lines = new LinkedList<>();  // Constant-time insertion during iteration is desired.
+            this.lines = new LinkedList<>(); // Constant-time insertion during iteration is desired.
             this.lines.addAll(Files.readAllLines(srcFile));
             this.insertCondition = it -> {
                 it.previous();
@@ -132,13 +136,12 @@ class ErrorInserter {
         public String toString() {
             int lengthOfPrefix = 6;
             StringBuilder ret = new StringBuilder(
-                lines.stream().mapToInt(String::length).reduce(0, Integer::sum)
-                + lines.size() * lengthOfPrefix
-            );
+                    lines.stream().mapToInt(String::length).reduce(0, Integer::sum) + lines.size() * lengthOfPrefix);
             for (int i = 0; i < lines.size(); i++) {
                 ret.append(badLines.contains(i) ? "-> " : "   ")
-                   .append(String.format("%1$2s ", i))
-                   .append(lines.get(i)).append("\n");
+                        .append(String.format("%1$2s ", i))
+                        .append(lines.get(i))
+                        .append("\n");
             }
             return ret.toString();
         }
@@ -193,10 +196,8 @@ class ErrorInserter {
             int lineNumber = 0;
             while (it.hasNext()) {
                 String current = it.next();
-                String uncommented = current.contains("//") ?
-                    current.substring(0, current.indexOf("//")) : current;
-                uncommented = uncommented.contains("#") ?
-                    uncommented.substring(0, uncommented.indexOf("#")) : current;
+                String uncommented = current.contains("//") ? current.substring(0, current.indexOf("//")) : current;
+                uncommented = uncommented.contains("#") ? uncommented.substring(0, uncommented.indexOf("#")) : current;
                 if (uncommented.contains("=}")) inCodeBlock = false;
                 if (inCodeBlock && alterer.apply(it, current)) badLines.add(lineNumber);
                 if (uncommented.contains("{=")) inCodeBlock = true;
@@ -218,6 +219,7 @@ class ErrorInserter {
         private static class Node<T> implements Iterable<T> {
             private final Node<T> previous;
             private final T item;
+
             private Node(Node<T> previous, T item) {
                 this.previous = previous;
                 this.item = item;
@@ -246,6 +248,7 @@ class ErrorInserter {
                 }
             }
         }
+
         private final Node<Function<String, String>> replacers;
         private final Node<String> insertables;
         private final BiPredicate<String, String> insertCondition;
@@ -257,10 +260,9 @@ class ErrorInserter {
 
         /** Construct a builder with the given replacers and insertables. */
         private Builder(
-            Node<Function<String, String>> replacers,
-            Node<String> insertables,
-            BiPredicate<String, String> insertCondition
-        ) {
+                Node<Function<String, String>> replacers,
+                Node<String> insertables,
+                BiPredicate<String, String> insertCondition) {
             this.replacers = replacers;
             this.insertables = insertables;
             this.insertCondition = insertCondition;
@@ -275,20 +277,16 @@ class ErrorInserter {
          */
         public Builder replacer(String phrase, String alternativePhrase) {
             return new Builder(
-                new Node<>(
-                    replacers,
-                    line -> {
+                    new Node<>(replacers, line -> {
                         int changeableEnd = line.length();
-                        for (String bad : new String[]{"#", "//", "\""}) {
+                        for (String bad : new String[] {"#", "//", "\""}) {
                             if (line.contains(bad)) changeableEnd = Math.min(changeableEnd, line.indexOf(bad));
                         }
                         return line.substring(0, changeableEnd).replace(phrase, alternativePhrase)
-                            + line.substring(changeableEnd);
-                    }
-                ),
-                insertables,
-                insertCondition
-            );
+                                + line.substring(changeableEnd);
+                    }),
+                    insertables,
+                    insertCondition);
         }
 
         /** Record that {@code} line may be inserted in order to introduce an error. */
@@ -307,11 +305,10 @@ class ErrorInserter {
         /** Get the error inserter generated by {@code this}. */
         public ErrorInserter get(Random random) {
             return new ErrorInserter(
-                random,
-                replacers == null ? ImmutableList.of() : ImmutableList.copyOf(replacers),
-                insertables == null ? ImmutableList.of() : ImmutableList.copyOf(insertables),
-                insertCondition
-            );
+                    random,
+                    replacers == null ? ImmutableList.of() : ImmutableList.copyOf(replacers),
+                    insertables == null ? ImmutableList.of() : ImmutableList.copyOf(insertables),
+                    insertCondition);
         }
     }
 
@@ -323,11 +320,10 @@ class ErrorInserter {
     private final BiPredicate<String, String> insertCondition;
 
     private ErrorInserter(
-        Random random,
-        ImmutableList<Function<String, String>> replacers,
-        ImmutableList<String> insertables,
-        BiPredicate<String, String> insertCondition
-    ) {
+            Random random,
+            ImmutableList<Function<String, String>> replacers,
+            ImmutableList<String> insertables,
+            BiPredicate<String, String> insertCondition) {
         this.random = random;
         this.replacers = replacers;
         this.insertables = insertables;

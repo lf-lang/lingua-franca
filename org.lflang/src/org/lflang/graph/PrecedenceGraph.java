@@ -1,42 +1,39 @@
 /*************
-Copyright (c) 2019, The University of California at Berkeley.
-
-Redistribution and use in source and binary forms, with or without modification,
-are permitted provided that the following conditions are met:
-
-1. Redistributions of source code must retain the above copyright notice,
-   this list of conditions and the following disclaimer.
-
-2. Redistributions in binary form must reproduce the above copyright notice,
-   this list of conditions and the following disclaimer in the documentation
-   and/or other materials provided with the distribution.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY
-EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
-MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL
-THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
-PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
-INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
-STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
-THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-***************/
-
+ * Copyright (c) 2019, The University of California at Berkeley.
+ *
+ * Redistribution and use in source and binary forms, with or without modification,
+ * are permitted provided that the following conditions are met:
+ *
+ * 1. Redistributions of source code must retain the above copyright notice,
+ * this list of conditions and the following disclaimer.
+ *
+ * 2. Redistributions in binary form must reproduce the above copyright notice,
+ * this list of conditions and the following disclaimer in the documentation
+ * and/or other materials provided with the distribution.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY
+ * EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+ * MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL
+ * THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+ * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
+ * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
+ * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ ***************/
 package org.lflang.graph;
 
+import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.Stack;
-
 import org.eclipse.xtext.xbase.lib.ListExtensions;
 
-import java.util.ArrayList;
-
-/** 
+/**
  * Elaboration of `DirectedGraph` that is capable of identifying strongly
  * connected components and topologically sorting its nodes.
- * 
+ *
  * @author Marten Lohstroh
  */
 public class PrecedenceGraph<T extends Object> extends DirectedGraph<T> {
@@ -59,23 +56,23 @@ public class PrecedenceGraph<T extends Object> extends DirectedGraph<T> {
      * topological sort.
      */
     private boolean isSorted = false;
-    
+
     /**
      * Index used in Tarjan's algorithm.
      */
     private int index = 0;
-    
+
     /**
      * After analysis has completed, this list contains all nodes in reverse
      * topological order.
      */
     private List<T> sortedNodes = new ArrayList<>();
-    
+
     /**
      * Stack used in Tarjan's algorithm.
      */
     private Stack<T> stack = new Stack<>();
-    
+
     /**
      * After analysis has completed, this list contains all all sets of nodes
      * that are part of the same strongly connected component.
@@ -103,12 +100,10 @@ public class PrecedenceGraph<T extends Object> extends DirectedGraph<T> {
         if (!this.isSorted) {
             // Cleanup.
             this.sortedNodes = new ArrayList<>();
-            this.nodes().forEach(
-                it -> {
-                    this.annotations.get(it).hasTempMark = false;
-                    this.annotations.get(it).hasPermMark = false;
-                }
-            );
+            this.nodes().forEach(it -> {
+                this.annotations.get(it).hasTempMark = false;
+                this.annotations.get(it).hasPermMark = false;
+            });
 
             // Start sorting.
             for (T node : this.nodes()) {
@@ -120,7 +115,7 @@ public class PrecedenceGraph<T extends Object> extends DirectedGraph<T> {
             this.isSorted = true;
         }
     }
-    
+
     /**
      * Recursively visit all nodes reachable from the given node; after all
      * those nodes have been visited add the current node to a list which will
@@ -143,10 +138,10 @@ public class PrecedenceGraph<T extends Object> extends DirectedGraph<T> {
         annotation.hasPermMark = true;
         this.sortedNodes.add(node);
     }
-    
+
     /**
      * Run Tarjan's algorithm for finding strongly connected components.
-     * After invoking this method, the detected cycles with be listed 
+     * After invoking this method, the detected cycles with be listed
      * in the class variable `cycles`.
      */
     public void detectCycles() {
@@ -154,8 +149,8 @@ public class PrecedenceGraph<T extends Object> extends DirectedGraph<T> {
             this.index = 0;
             this.stack = new Stack<>();
             this.cycles = new ArrayList<>();
-            this.nodes().forEach(it -> { 
-                this.annotations.get(it).index = -1; 
+            this.nodes().forEach(it -> {
+                this.annotations.get(it).index = -1;
             });
             for (T node : this.nodes()) {
                 if (this.annotations.get(node).index == -1) {
@@ -166,7 +161,7 @@ public class PrecedenceGraph<T extends Object> extends DirectedGraph<T> {
             stack = null;
         }
     }
-    
+
     /**
      * Report whether this graph has any cycles in it.
      */
@@ -174,7 +169,7 @@ public class PrecedenceGraph<T extends Object> extends DirectedGraph<T> {
         this.detectCycles();
         return this.cycles.size() > 0;
     }
-    
+
     /**
      * Return a list of strongly connected components that exist in this graph.
      */
@@ -182,10 +177,10 @@ public class PrecedenceGraph<T extends Object> extends DirectedGraph<T> {
         this.detectCycles();
         return this.cycles;
     }
-    
+
     /**
      * Traverse the graph to visit unvisited dependencies and determine
-     * whether they are part of a cycle. 
+     * whether they are part of a cycle.
      */
     public void strongConnect(T node) {
         NodeAnnotation annotation = this.annotations.get(node);
@@ -221,7 +216,7 @@ public class PrecedenceGraph<T extends Object> extends DirectedGraph<T> {
             }
         }
     }
-    
+
     /**
      * Return the nodes of this graph in reverse topological order. Each node
      * in the returned list is succeeded by the nodes that it depends on.
@@ -230,7 +225,7 @@ public class PrecedenceGraph<T extends Object> extends DirectedGraph<T> {
         this.sortNodes();
         return this.sortedNodes;
     }
-    
+
     /**
      * Return the nodes of this graph in reverse topological order. Each node
      * in the returned list is preceded by the nodes that it depends on.

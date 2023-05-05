@@ -1,10 +1,7 @@
 package org.lflang.generator;
 
-import java.io.File;
 import java.util.Properties;
-
 import org.eclipse.xtext.util.CancelIndicator;
-
 import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
 import org.lflang.TargetConfig;
@@ -83,8 +80,6 @@ public class SubContext implements LFGeneratorContext {
     @Override
     public void reportProgress(String message, int percentage) {
         containingContext.reportProgress(
-            message,
-            startPercentProgress * (100 - percentage) / 100 + endPercentProgress * percentage / 100
-        );
+                message, startPercentProgress * (100 - percentage) / 100 + endPercentProgress * percentage / 100);
     }
 }

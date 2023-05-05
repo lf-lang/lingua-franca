@@ -29,11 +29,8 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
-
 import org.eclipse.emf.ecore.EObject;
-
 import org.lflang.ErrorReporter;
 import org.lflang.TargetProperty.BuildType;
 
@@ -43,7 +40,6 @@ import org.lflang.TargetProperty.BuildType;
  * @author Clément Fournier - TU Dresden, INSA Rennes
  */
 public final class RustTargetConfig {
-
 
     /**
      * List of Cargo features of the generated crate to enable.
@@ -115,12 +111,10 @@ public final class RustTargetConfig {
         return profile;
     }
 
-
     /**
      * Set a build profile chosen based on a cmake profile.
      */
     public void setBuildType(BuildType profile) {
         this.profile = profile;
     }
-
 }

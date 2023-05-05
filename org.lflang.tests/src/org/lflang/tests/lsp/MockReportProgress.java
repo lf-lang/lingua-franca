@@ -10,6 +10,7 @@ import org.lflang.generator.IntegratedBuilder;
 public class MockReportProgress implements IntegratedBuilder.ReportProgress {
     private int previousPercentProgress;
     private boolean failed;
+
     public MockReportProgress() {
         previousPercentProgress = 0;
         failed = false;

@@ -1,16 +1,16 @@
 /**
  * Copyright (c) 2020, Kiel University.
- * 
+ *
  * Redistribution and use in source and binary forms, with or without modification,
  * are permitted provided that the following conditions are met:
- * 
+ *
  * 1. Redistributions of source code must retain the above copyright notice,
  *    this list of conditions and the following disclaimer.
- * 
+ *
  * 2. Redistributions in binary form must reproduce the above copyright notice,
  *    this list of conditions and the following disclaimer in the documentation
  *    and/or other materials provided with the distribution.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -37,9 +37,7 @@ public class ReactorFigureComponents {
 
     private final List<KRendering> figures;
 
-    public ReactorFigureComponents(KContainerRendering outer, 
-                                   KContainerRendering reactor,
-                                   List<KRendering> figures) {
+    public ReactorFigureComponents(KContainerRendering outer, KContainerRendering reactor, List<KRendering> figures) {
         super();
         this.outer = outer;
         this.reactor = reactor;
@@ -51,20 +49,17 @@ public class ReactorFigureComponents {
     public int hashCode() {
         final int prime = 31;
         int result = 1;
-        result = prime * result + ((this.outer== null) ? 0 : this.outer.hashCode());
-        result = prime * result + ((this.reactor== null) ? 0 : this.reactor.hashCode());
-        return prime * result + ((this.figures== null) ? 0 : this.figures.hashCode());
+        result = prime * result + ((this.outer == null) ? 0 : this.outer.hashCode());
+        result = prime * result + ((this.reactor == null) ? 0 : this.reactor.hashCode());
+        return prime * result + ((this.figures == null) ? 0 : this.figures.hashCode());
     }
 
     @Override
     @Pure
     public boolean equals(final Object obj) {
-        if (this == obj)
-            return true;
-        if (obj == null)
-            return false;
-        if (getClass() != obj.getClass())
-            return false;
+        if (this == obj) return true;
+        if (obj == null) return false;
+        if (getClass() != obj.getClass()) return false;
         ReactorFigureComponents other = (ReactorFigureComponents) obj;
         if (this.outer == null && other.outer != null) {
             return false;

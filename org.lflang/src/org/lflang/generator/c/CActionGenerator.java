@@ -1,7 +1,9 @@
 package org.lflang.generator.c;
 
-import java.util.List;
+import static org.lflang.generator.c.CGenerator.variableStructType;
+
 import java.util.ArrayList;
+import java.util.List;
 import org.lflang.ASTUtils;
 import org.lflang.Target;
 import org.lflang.generator.ActionInstance;
@@ -9,8 +11,7 @@ import org.lflang.generator.CodeBuilder;
 import org.lflang.generator.ReactorInstance;
 import org.lflang.lf.Action;
 import org.lflang.lf.Reactor;
-import org.lflang.lf.ReactorDecl;
-import static org.lflang.generator.c.CGenerator.variableStructType;
+
 /**
  * Generates code for actions (logical or physical) for the C and CCpp target.
  *
@@ -29,33 +30,31 @@ public class CActionGenerator {
      * for the offset and period fields.
      * @param instance The reactor.
      */
-    public static String generateInitializers(
-        ReactorInstance instance
-    ) {
+    public static String generateInitializers(ReactorInstance instance) {
         List<String> code = new ArrayList<>();
         for (ActionInstance action : instance.actions) {
             if (!action.isShutdown()) {
                 var triggerStructName = CUtil.reactorRef(action.getParent()) + "->_lf__" + action.getName();
                 var minDelay = action.getMinDelay();
                 var minSpacing = action.getMinSpacing();
-                var offsetInitializer = triggerStructName+".offset = " + CTypes.getInstance().getTargetTimeExpr(minDelay)
-                    + ";";
-                var periodInitializer = triggerStructName+".period = " + (minSpacing != null ?
-                    CTypes.getInstance().getTargetTimeExpr(minSpacing) :
-                                                                         CGenerator.UNDEFINED_MIN_SPACING) + ";";
+                var offsetInitializer =
+                        triggerStructName + ".offset = " + CTypes.getInstance().getTargetTimeExpr(minDelay) + ";";
+                var periodInitializer = triggerStructName + ".period = "
+                        + (minSpacing != null
+                                ? CTypes.getInstance().getTargetTimeExpr(minSpacing)
+                                : CGenerator.UNDEFINED_MIN_SPACING)
+                        + ";";
                 code.addAll(List.of(
-                    "// Initializing action "+action.getFullName(),
-                    offsetInitializer,
-                    periodInitializer
-                ));
+                        "// Initializing action " + action.getFullName(), offsetInitializer, periodInitializer));
 
                 var mode = action.getMode(false);
                 if (mode != null) {
                     var modeParent = mode.getParent();
-                    var modeRef = "&"+CUtil.reactorRef(modeParent)+"->_lf__modes["+modeParent.modes.indexOf(mode)+"];";
-                    code.add(triggerStructName+".mode = "+modeRef+";");
+                    var modeRef = "&" + CUtil.reactorRef(modeParent) + "->_lf__modes[" + modeParent.modes.indexOf(mode)
+                            + "];";
+                    code.add(triggerStructName + ".mode = " + modeRef + ";");
                 } else {
-                    code.add(triggerStructName+".mode = NULL;");
+                    code.add(triggerStructName + ".mode = NULL;");
                 }
             }
         }
@@ -74,17 +73,13 @@ public class CActionGenerator {
      * @param actionName The action name
      * @param payloadSize The code that returns the size of the action's payload in C.
      */
-    public static String generateTokenInitializer(
-        String selfStruct,
-        String actionName,
-        String payloadSize
-    ) {
-        return String.join("\n",
+    public static String generateTokenInitializer(String selfStruct, String actionName, String payloadSize) {
+        return String.join(
+                "\n",
                 "_lf_initialize_template((token_template_t*)",
-                "        &("+selfStruct+"->_lf__"+actionName+"),",
-                         payloadSize+");",
-            selfStruct+"->_lf__"+actionName+".status = absent;"
-        );
+                "        &(" + selfStruct + "->_lf__" + actionName + "),",
+                payloadSize + ");",
+                selfStruct + "->_lf__" + actionName + ".status = absent;");
     }
 
     /**
@@ -95,16 +90,12 @@ public class CActionGenerator {
      * @param body The content of the self struct
      * @param constructorCode The constructor code of the reactor
      */
-    public static void generateDeclarations(
-        Reactor reactor,
-        CodeBuilder body,
-        CodeBuilder constructorCode
-    ) {
+    public static void generateDeclarations(Reactor reactor, CodeBuilder body, CodeBuilder constructorCode) {
         for (Action action : ASTUtils.allActions(reactor)) {
             var actionName = action.getName();
-            body.pr(action, CGenerator.variableStructType(action, reactor, false)+" _lf_"+actionName+";");
+            body.pr(action, CGenerator.variableStructType(action, reactor, false) + " _lf_" + actionName + ";");
             // Initialize the trigger pointer in the action.
-            constructorCode.pr(action, "self->_lf_"+actionName+".trigger = &self->_lf__"+actionName+";");
+            constructorCode.pr(action, "self->_lf_" + actionName + ".trigger = &self->_lf__" + actionName + ";");
         }
     }
 
@@ -120,13 +111,7 @@ public class CActionGenerator {
      * @return The auxiliary struct for the port as a string
      */
     public static String generateAuxiliaryStruct(
-        Reactor r,
-        Action action,
-        Target target,
-        CTypes types,
-        CodeBuilder federatedExtension,
-        boolean userFacing
-    ) {
+            Reactor r, Action action, Target target, CTypes types, CodeBuilder federatedExtension, boolean userFacing) {
         var code = new CodeBuilder();
         code.pr("typedef struct {");
         code.indent();
@@ -134,14 +119,15 @@ public class CActionGenerator {
         // pointer to this struct can be cast to a (lf_action_base_t*) or to
         // (token_template_t*) to access these fields for any port.
         // IMPORTANT: These must match exactly the fields defined in port.h!!
-        code.pr(String.join("\n",
-                "token_type_t type;",  // From token_template_t
-                "lf_token_t* token;",  // From token_template_t
-                "size_t length;",      // From token_template_t
-                "bool is_present;",    // From lf_action_base_t
-                "bool has_value;",     // From lf_action_base_t
-                "trigger_t* trigger;"  // From lf_action_base_t
-        ));
+        code.pr(String.join(
+                "\n",
+                "token_type_t type;", // From token_template_t
+                "lf_token_t* token;", // From token_template_t
+                "size_t length;", // From token_template_t
+                "bool is_present;", // From lf_action_base_t
+                "bool has_value;", // From lf_action_base_t
+                "trigger_t* trigger;" // From lf_action_base_t
+                ));
         code.pr(valueDeclaration(action, target, types));
         code.pr(federatedExtension.toString());
         code.unindent();
@@ -160,18 +146,12 @@ public class CActionGenerator {
      * @param action The action.
      * @return A string providing the value field of the action struct.
      */
-    private static String valueDeclaration(
-        Action action,
-        Target target,
-        CTypes types
-    ) {
+    private static String valueDeclaration(Action action, Target target, CTypes types) {
         if (target == Target.Python) {
             return "PyObject* value;";
         }
         // Do not convert to lf_token_t* using lfTypeToTokenType because there
         // will be a separate field pointing to the token.
-        return action.getType() == null && target.requiresTypes ?
-               "" :
-               types.getTargetType(action) + " value;";
+        return action.getType() == null && target.requiresTypes ? "" : types.getTargetType(action) + " value;";
     }
 }

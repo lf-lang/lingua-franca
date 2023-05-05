@@ -7,13 +7,11 @@ import static org.junit.jupiter.api.Assertions.fail;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
-
 import org.eclipse.xtext.testing.InjectWith;
 import org.eclipse.xtext.testing.extensions.InjectionExtension;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-
 import org.lflang.Target;
 import org.lflang.ast.FormattingUtils;
 import org.lflang.ast.IsEqual;
@@ -54,20 +52,15 @@ public class RoundTripTests {
 
         assertThat(resultingModel.eResource().getErrors(), equalTo(emptyList()));
         Assertions.assertTrue(
-            new IsEqual(originalModel).doSwitch(resultingModel),
-            String.format(
-                "The reformatted version of %s was not equivalent to the original file.%n"
-                    + "Formatted file:%n%s%n%n",
-                file,
-                squishedTestCase
-            )
-        );
+                new IsEqual(originalModel).doSwitch(resultingModel),
+                String.format(
+                        "The reformatted version of %s was not equivalent to the original file.%n"
+                                + "Formatted file:%n%s%n%n",
+                        file, squishedTestCase));
         final String normalTestCase = FormattingUtils.render(originalModel);
         Assertions.assertEquals(
-            Files.readString(file).replaceAll("\\r\\n?", "\n"),
-            normalTestCase,
-            "File is not formatted properly, or formatter is bugged. Check " + file
-        );
+                Files.readString(file).replaceAll("\\r\\n?", "\n"),
+                normalTestCase,
+                "File is not formatted properly, or formatter is bugged. Check " + file);
     }
-
 }

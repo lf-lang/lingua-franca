@@ -1,16 +1,11 @@
 package org.lflang.generator;
 
-import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Properties;
-
 import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.xtext.generator.IFileSystemAccess2;
 import org.eclipse.xtext.generator.IGeneratorContext;
-import org.eclipse.xtext.util.RuntimeIOException;
-
 import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
 import org.lflang.TargetConfig;
@@ -68,7 +63,6 @@ public interface LFGeneratorContext extends IGeneratorContext {
         }
     }
 
-
     enum Mode {
         STANDALONE,
         EPOCH,
@@ -79,7 +73,7 @@ public interface LFGeneratorContext extends IGeneratorContext {
     }
 
     /**
-     * Return the mode of operation, which indicates how the compiler has been invoked 
+     * Return the mode of operation, which indicates how the compiler has been invoked
      * (e.g., from within Epoch, from the command line, or via a Language Server).
      */
     Mode getMode();
@@ -128,10 +122,7 @@ public interface LFGeneratorContext extends IGeneratorContext {
      * @param status The status of the result.
      * @param codeMaps The generated files and their corresponding code maps.
      */
-    default void finish(
-        GeneratorResult.Status status,
-        Map<Path, CodeMap> codeMaps
-    ) {
+    default void finish(GeneratorResult.Status status, Map<Path, CodeMap> codeMaps) {
         finish(new GeneratorResult(status, this, codeMaps));
     }
 
@@ -140,9 +131,9 @@ public interface LFGeneratorContext extends IGeneratorContext {
      */
     default void unsuccessfulFinish() {
         finish(
-            getCancelIndicator() != null && getCancelIndicator().isCanceled() ?
-            GeneratorResult.CANCELLED : GeneratorResult.FAILED
-        );
+                getCancelIndicator() != null && getCancelIndicator().isCanceled()
+                        ? GeneratorResult.CANCELLED
+                        : GeneratorResult.FAILED);
     }
 
     /**
@@ -154,10 +145,12 @@ public interface LFGeneratorContext extends IGeneratorContext {
      * @return The {@code LFGeneratorContext} that best describes the given {@code context} when
      * building {@code Resource}.
      */
-    static LFGeneratorContext lfGeneratorContextOf(Resource resource, IFileSystemAccess2 fsa, IGeneratorContext context) {
+    static LFGeneratorContext lfGeneratorContextOf(
+            Resource resource, IFileSystemAccess2 fsa, IGeneratorContext context) {
         if (context instanceof LFGeneratorContext) return (LFGeneratorContext) context;
 
-        if (resource.getURI().isPlatform()) return new MainContext(Mode.EPOCH, resource, fsa, context.getCancelIndicator());
+        if (resource.getURI().isPlatform())
+            return new MainContext(Mode.EPOCH, resource, fsa, context.getCancelIndicator());
 
         return new MainContext(Mode.LSP_FAST, resource, fsa, context.getCancelIndicator());
     }

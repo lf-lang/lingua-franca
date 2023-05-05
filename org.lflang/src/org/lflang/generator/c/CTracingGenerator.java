@@ -1,13 +1,12 @@
 package org.lflang.generator.c;
 
+import static org.lflang.util.StringUtil.addDoubleQuotes;
+
 import java.util.ArrayList;
 import java.util.List;
-
-import org.lflang.federated.generator.FederateInstance;
 import org.lflang.generator.ActionInstance;
 import org.lflang.generator.ReactorInstance;
 import org.lflang.generator.TimerInstance;
-import static org.lflang.util.StringUtil.addDoubleQuotes;
 
 /**
  * Generates C code to support tracing.
@@ -28,36 +27,34 @@ public class CTracingGenerator {
      *
      * @param instance The reactor instance.
      */
-    public static String generateTraceTableEntries(
-        ReactorInstance instance
-    ) {
+    public static String generateTraceTableEntries(ReactorInstance instance) {
         List<String> code = new ArrayList<>();
         var description = CUtil.getShortenedName(instance);
         var selfStruct = CUtil.reactorRef(instance);
-        code.add(registerTraceEvent(
-            selfStruct, "NULL",
-            "trace_reactor", description)
-        );
+        code.add(registerTraceEvent(selfStruct, "NULL", "trace_reactor", description));
         for (ActionInstance action : instance.actions) {
             code.add(registerTraceEvent(
-                selfStruct, getTrigger(selfStruct, action.getName()),
-                "trace_trigger", description + "." + action.getName())
-            );
+                    selfStruct,
+                    getTrigger(selfStruct, action.getName()),
+                    "trace_trigger",
+                    description + "." + action.getName()));
         }
         for (TimerInstance timer : instance.timers) {
             code.add(registerTraceEvent(
-                selfStruct, getTrigger(selfStruct, timer.getName()),
-                "trace_trigger", description + "." + timer.getName())
-            );
+                    selfStruct,
+                    getTrigger(selfStruct, timer.getName()),
+                    "trace_trigger",
+                    description + "." + timer.getName()));
         }
         return String.join("\n", code);
     }
 
     private static String registerTraceEvent(String obj, String trigger, String type, String description) {
-        return "_lf_register_trace_event("+obj+", "+trigger+", "+type+", "+addDoubleQuotes(description)+");";
+        return "_lf_register_trace_event(" + obj + ", " + trigger + ", " + type + ", " + addDoubleQuotes(description)
+                + ");";
     }
 
     private static String getTrigger(String obj, String triggerName) {
-        return "&("+obj+"->_lf__"+triggerName+")";
+        return "&(" + obj + "->_lf__" + triggerName + ")";
     }
 }

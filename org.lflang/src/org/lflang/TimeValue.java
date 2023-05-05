@@ -1,28 +1,27 @@
 /*************
-Copyright (c) 2019, The University of California at Berkeley.
-
-Redistribution and use in source and binary forms, with or without modification,
-are permitted provided that the following conditions are met:
-
-1. Redistributions of source code must retain the above copyright notice,
-   this list of conditions and the following disclaimer.
-
-2. Redistributions in binary form must reproduce the above copyright notice,
-   this list of conditions and the following disclaimer in the documentation
-   and/or other materials provided with the distribution.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
-ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED 
-WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE 
-DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR
-ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES 
-(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; 
-LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON 
-ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT 
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS 
-SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-***************/
-
+ * Copyright (c) 2019, The University of California at Berkeley.
+ *
+ * Redistribution and use in source and binary forms, with or without modification,
+ * are permitted provided that the following conditions are met:
+ *
+ * 1. Redistributions of source code must retain the above copyright notice,
+ * this list of conditions and the following disclaimer.
+ *
+ * 2. Redistributions in binary form must reproduce the above copyright notice,
+ * this list of conditions and the following disclaimer in the documentation
+ * and/or other materials provided with the distribution.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR
+ * ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+ * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+ * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
+ * ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+ * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ ***************/
 package org.lflang;
 
 /**
@@ -41,7 +40,6 @@ public final class TimeValue implements Comparable<TimeValue> {
      * A time value equal to zero.
      */
     public static final TimeValue ZERO = new TimeValue(0, null);
-
 
     /**
      * Primitive numerical representation of this time value,
@@ -81,7 +79,7 @@ public final class TimeValue implements Comparable<TimeValue> {
         }
         return false;
     }
-    
+
     public static int compare(TimeValue t1, TimeValue t2) {
         if (t1.isEarlierThan(t2)) {
             return -1;
@@ -91,28 +89,28 @@ public final class TimeValue implements Comparable<TimeValue> {
         }
         return 0;
     }
-    
+
     private static long makeNanosecs(long time, TimeUnit unit) {
         if (unit == null) {
             return time; // == 0, see constructor.
         }
         switch (unit) {
-        case NANO:
-            return time;
-        case MICRO:
-            return time * 1000;
-        case MILLI:
-            return time * 1_000_000;
-        case SECOND:
-            return time * 1_000_000_000;
-        case MINUTE:
-            return time * 60_000_000_000L;
-        case HOUR:
-            return time * 3_600_000_000_000L;
-        case DAY:
-            return time * 86_400_000_000_000L;
-        case WEEK:
-            return time * 604_800_016_558_522L;
+            case NANO:
+                return time;
+            case MICRO:
+                return time * 1000;
+            case MILLI:
+                return time * 1_000_000;
+            case SECOND:
+                return time * 1_000_000_000;
+            case MINUTE:
+                return time * 60_000_000_000L;
+            case HOUR:
+                return time * 3_600_000_000_000L;
+            case DAY:
+                return time * 86_400_000_000_000L;
+            case WEEK:
+                return time * 604_800_016_558_522L;
         }
         throw new AssertionError("unreachable");
     }
@@ -156,8 +154,7 @@ public final class TimeValue implements Comparable<TimeValue> {
      * Return a string representation of this time value.
      */
     public String toString() {
-        return unit != null ? time + " " + unit.getCanonicalName()
-                                     : Long.toString(time);
+        return unit != null ? time + " " + unit.getCanonicalName() : Long.toString(time);
     }
 
     /** Return the latest of both values. */
@@ -169,7 +166,7 @@ public final class TimeValue implements Comparable<TimeValue> {
     public static TimeValue min(TimeValue t1, TimeValue t2) {
         return t1.isEarlierThan(t2) ? t1 : t2;
     }
-    
+
     /**
      * Return the sum of this duration and the one represented by b.
      * <p>
@@ -200,5 +197,4 @@ public final class TimeValue implements Comparable<TimeValue> {
         var unitDivider = makeNanosecs(1, smallestUnit);
         return new TimeValue(sumOfNumbers / unitDivider, smallestUnit);
     }
-
 }

@@ -5,15 +5,12 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
 import java.util.function.Consumer;
-
 import org.eclipse.core.resources.IProject;
 import org.eclipse.core.resources.IResource;
 import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.emf.common.util.URI;
 import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.xtext.generator.IFileSystemAccess2;
-
-
 import org.lflang.generator.GeneratorUtils;
 import org.lflang.util.FileUtil;
 import org.lflang.util.LFCommand;
@@ -185,7 +182,6 @@ public abstract class FileConfig {
         return srcGenPath;
     }
 
-
     /**
      * Path representation of srcGenRoot, the root directory for generated
      * sources. This is the root, meaning that if the source file is x/y/Z.lf
@@ -296,9 +292,9 @@ public abstract class FileConfig {
      * Return an LFCommand instance that can be used to execute the program under compilation.
      */
     public LFCommand getCommand() {
-        String cmd = GeneratorUtils.isHostWindows() ?
-            getExecutable().toString() :
-            srcPkgPath.relativize(getExecutable()).toString();
+        String cmd = GeneratorUtils.isHostWindows()
+                ? getExecutable().toString()
+                : srcPkgPath.relativize(getExecutable()).toString();
         return LFCommand.get(cmd, List.of(), true, srcPkgPath);
     }
 

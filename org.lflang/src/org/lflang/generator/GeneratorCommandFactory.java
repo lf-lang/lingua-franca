@@ -1,35 +1,33 @@
 /*************
- Copyright (c) 2019-2021 TU Dresden
- Copyright (c) 2019-2021 UC Berkeley
-
- Redistribution and use in source and binary forms, with or without modification,
- are permitted provided that the following conditions are met:
-
- 1. Redistributions of source code must retain the above copyright notice,
- this list of conditions and the following disclaimer.
-
- 2. Redistributions in binary form must reproduce the above copyright notice,
- this list of conditions and the following disclaimer in the documentation
- and/or other materials provided with the distribution.
-
- THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY
- EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
- MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL
- THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
- SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
- PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
- INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
- STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
- THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * Copyright (c) 2019-2021 TU Dresden
+ * Copyright (c) 2019-2021 UC Berkeley
+ *
+ * Redistribution and use in source and binary forms, with or without modification,
+ * are permitted provided that the following conditions are met:
+ *
+ * 1. Redistributions of source code must retain the above copyright notice,
+ * this list of conditions and the following disclaimer.
+ *
+ * 2. Redistributions in binary form must reproduce the above copyright notice,
+ * this list of conditions and the following disclaimer in the documentation
+ * and/or other materials provided with the distribution.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY
+ * EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+ * MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL
+ * THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+ * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
+ * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
+ * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  ***************/
-
 package org.lflang.generator;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
 import java.util.Objects;
-
 import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
 import org.lflang.util.LFCommand;
@@ -53,10 +51,14 @@ public class GeneratorCommandFactory {
     }
 
     /// enable quiet mode (command output is not printed)
-    public void setQuiet() { quiet = true; }
+    public void setQuiet() {
+        quiet = true;
+    }
 
     /// enable verbose mode (command output is printed)
-    public void setVerbose() { quiet = false; }
+    public void setVerbose() {
+        quiet = false;
+    }
 
     /**
      * Create a LFCommand instance from a given command and an argument list.
@@ -72,7 +74,6 @@ public class GeneratorCommandFactory {
         return createCommand(cmd, args, null, true);
     }
 
-
     /**
      * Create a LFCommand instance from a given command, an argument list and a directory.
      *
@@ -86,7 +87,6 @@ public class GeneratorCommandFactory {
     public LFCommand createCommand(String cmd, List<String> args, boolean failOnError) {
         return createCommand(cmd, args, null, failOnError);
     }
-
 
     /**
      * Create a LFCommand instance from a given command, an argument list and a directory.
@@ -102,7 +102,6 @@ public class GeneratorCommandFactory {
     public LFCommand createCommand(String cmd, List<String> args, Path dir) {
         return createCommand(cmd, args, dir, true);
     }
-
 
     /**
      * Create a LFCommand instance from a given command, an argument list and a directory.
@@ -129,13 +128,14 @@ public class GeneratorCommandFactory {
             command.setEnvironmentVariable("LF_CURRENT_WORKING_DIRECTORY", dir.toString());
             command.setEnvironmentVariable("LF_SOURCE_DIRECTORY", fileConfig.srcPath.toString());
             command.setEnvironmentVariable("LF_PACKAGE_DIRECTORY", fileConfig.srcPkgPath.toString());
-            command.setEnvironmentVariable("LF_SOURCE_GEN_DIRECTORY", fileConfig.getSrcGenPath().toString());
+            command.setEnvironmentVariable(
+                    "LF_SOURCE_GEN_DIRECTORY", fileConfig.getSrcGenPath().toString());
             command.setEnvironmentVariable("LF_BIN_DIRECTORY", fileConfig.binPath.toString());
         } else {
             final String message =
-                "The command " + cmd + " could not be found in the current working directory or in your PATH. " +
-                    "Make sure that your PATH variable includes the directory where " + cmd + " is installed. " +
-                    "You can set PATH in ~/.bash_profile on Linux or Mac.";
+                    "The command " + cmd + " could not be found in the current working directory or in your PATH. "
+                            + "Make sure that your PATH variable includes the directory where "
+                            + cmd + " is installed. " + "You can set PATH in ~/.bash_profile on Linux or Mac.";
             if (failOnError) {
                 errorReporter.reportError(message);
             } else {

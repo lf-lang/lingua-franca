@@ -6,16 +6,14 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-
 import org.eclipse.emf.common.util.URI;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.lsp4j.Diagnostic;
 import org.eclipse.lsp4j.DiagnosticSeverity;
 import org.eclipse.lsp4j.PublishDiagnosticsParams;
 import org.eclipse.lsp4j.Range;
-import org.eclipse.xtext.nodemodel.util.NodeModelUtils;
 import org.eclipse.lsp4j.services.LanguageClient;
-
+import org.eclipse.xtext.nodemodel.util.NodeModelUtils;
 import org.lflang.ErrorReporter;
 
 /**
@@ -100,9 +98,8 @@ public class LanguageServerErrorReporter implements ErrorReporter {
 
     @Override
     public boolean getErrorsOccurred() {
-        return diagnostics.values().stream().anyMatch(
-            it -> it.stream().anyMatch(diagnostic -> diagnostic.getSeverity() == DiagnosticSeverity.Error)
-        );
+        return diagnostics.values().stream().anyMatch(it -> it.stream()
+                .anyMatch(diagnostic -> diagnostic.getSeverity() == DiagnosticSeverity.Error));
     }
 
     @Override
@@ -114,21 +111,18 @@ public class LanguageServerErrorReporter implements ErrorReporter {
     public String report(Path file, DiagnosticSeverity severity, String message, int line) {
         Optional<String> text = getLine(line - 1);
         return report(
-            file,
-            severity,
-            message,
-            Position.fromOneBased(line, 1),
-            Position.fromOneBased(line, 1 + (text.isEmpty() ? 0 : text.get().length()))
-        );
+                file,
+                severity,
+                message,
+                Position.fromOneBased(line, 1),
+                Position.fromOneBased(line, 1 + (text.isEmpty() ? 0 : text.get().length())));
     }
 
     @Override
     public String report(Path file, DiagnosticSeverity severity, String message, Position startPos, Position endPos) {
         if (file == null) file = getMainFile();
         diagnostics.putIfAbsent(file, new ArrayList<>());
-        diagnostics.get(file).add(new Diagnostic(
-            toRange(startPos, endPos), message, severity, "LF Language Server"
-        ));
+        diagnostics.get(file).add(new Diagnostic(toRange(startPos, endPos), message, severity, "LF Language Server"));
         return "" + severity + ": " + message;
     }
 
@@ -147,8 +141,7 @@ public class LanguageServerErrorReporter implements ErrorReporter {
     public void publishDiagnostics() {
         if (client == null) {
             System.err.println(
-                "WARNING: Cannot publish diagnostics because the language client has not yet been found."
-            );
+                    "WARNING: Cannot publish diagnostics because the language client has not yet been found.");
             return;
         }
         for (Path file : diagnostics.keySet()) {
@@ -196,8 +189,7 @@ public class LanguageServerErrorReporter implements ErrorReporter {
      */
     private Range toRange(Position p0, Position p1) {
         return new Range(
-            new org.eclipse.lsp4j.Position(p0.getZeroBasedLine(), p0.getZeroBasedColumn()),
-            new org.eclipse.lsp4j.Position(p1.getZeroBasedLine(), p1.getZeroBasedColumn())
-        );
+                new org.eclipse.lsp4j.Position(p0.getZeroBasedLine(), p0.getZeroBasedColumn()),
+                new org.eclipse.lsp4j.Position(p1.getZeroBasedLine(), p1.getZeroBasedColumn()));
     }
 }

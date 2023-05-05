@@ -4,12 +4,10 @@ import java.io.IOException;
 import java.util.Objects;
 import java.util.Properties;
 import java.util.function.Function;
-
 import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.xtext.generator.IFileSystemAccess2;
 import org.eclipse.xtext.util.CancelIndicator;
 import org.eclipse.xtext.util.RuntimeIOException;
-
 import org.lflang.DefaultErrorReporter;
 import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
@@ -24,12 +22,12 @@ import org.lflang.generator.IntegratedBuilder.ReportProgress;
  * @author Peter Donovan
  */
 public class MainContext implements LFGeneratorContext {
-    
+
     /**
      * This constructor will be set by the LF plugin, if the generator is running in Epoch.
      */
     public static Function<FileConfig, ErrorReporter> EPOCH_ERROR_REPORTER_CONSTRUCTOR = null;
-    
+
     /**
      * The indicator that shows whether this build
      * process is canceled.
@@ -47,6 +45,7 @@ public class MainContext implements LFGeneratorContext {
 
     /** The result of the code generation process. */
     private GeneratorResult result = null;
+
     private final Properties args;
     private final ErrorReporter errorReporter;
 
@@ -59,11 +58,15 @@ public class MainContext implements LFGeneratorContext {
      */
     public MainContext(Mode mode, Resource resource, IFileSystemAccess2 fsa, CancelIndicator cancelIndicator) {
         this(
-            mode, cancelIndicator, (message, completion) -> {}, new Properties(), resource, fsa,
-            (mode == Mode.EPOCH && EPOCH_ERROR_REPORTER_CONSTRUCTOR != null) ?
-                    EPOCH_ERROR_REPORTER_CONSTRUCTOR :
-                    fileConfig -> new DefaultErrorReporter()
-        );
+                mode,
+                cancelIndicator,
+                (message, completion) -> {},
+                new Properties(),
+                resource,
+                fsa,
+                (mode == Mode.EPOCH && EPOCH_ERROR_REPORTER_CONSTRUCTOR != null)
+                        ? EPOCH_ERROR_REPORTER_CONSTRUCTOR
+                        : fileConfig -> new DefaultErrorReporter());
     }
 
     /**
@@ -82,22 +85,23 @@ public class MainContext implements LFGeneratorContext {
      *                               error reporter for the given FileConfig.
      */
     public MainContext(
-        Mode mode,
-        CancelIndicator cancelIndicator,
-        ReportProgress reportProgress,
-        Properties args,
-        Resource resource,
-        IFileSystemAccess2 fsa,
-        Function<FileConfig, ErrorReporter> constructErrorReporter
-    ) {
+            Mode mode,
+            CancelIndicator cancelIndicator,
+            ReportProgress reportProgress,
+            Properties args,
+            Resource resource,
+            IFileSystemAccess2 fsa,
+            Function<FileConfig, ErrorReporter> constructErrorReporter) {
         this.mode = mode;
         this.cancelIndicator = cancelIndicator == null ? () -> false : cancelIndicator;
         this.reportProgress = reportProgress;
         this.args = args;
 
         try {
-            var useHierarchicalBin = args.containsKey("hierarchical-bin") && Boolean.parseBoolean(args.getProperty("hierarchical-bin"));
-            fileConfig = Objects.requireNonNull(LFGenerator.createFileConfig(resource, FileConfig.getSrcGenRoot(fsa), useHierarchicalBin));
+            var useHierarchicalBin =
+                    args.containsKey("hierarchical-bin") && Boolean.parseBoolean(args.getProperty("hierarchical-bin"));
+            fileConfig = Objects.requireNonNull(
+                    LFGenerator.createFileConfig(resource, FileConfig.getSrcGenRoot(fsa), useHierarchicalBin));
         } catch (IOException e) {
             throw new RuntimeIOException("Error during FileConfig instantiation", e);
         }
@@ -121,7 +125,6 @@ public class MainContext implements LFGeneratorContext {
     public Properties getArgs() {
         return args;
     }
-
 
     @Override
     public ErrorReporter getErrorReporter() {
@@ -163,8 +166,6 @@ public class MainContext implements LFGeneratorContext {
      * reflected in the target configuration.
      */
     public void loadTargetConfig() {
-        this.targetConfig = new TargetConfig(
-            args, GeneratorUtils.findTargetDecl(fileConfig.resource), errorReporter
-        );
+        this.targetConfig = new TargetConfig(args, GeneratorUtils.findTargetDecl(fileConfig.resource), errorReporter);
     }
 }

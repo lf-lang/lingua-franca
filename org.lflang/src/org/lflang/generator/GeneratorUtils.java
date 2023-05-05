@@ -4,14 +4,12 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
-
 import org.eclipse.core.resources.IResource;
 import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.emf.common.util.URI;
 import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.xtext.xbase.lib.IteratorExtensions;
-
 import org.lflang.ASTUtils;
 import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
@@ -55,31 +53,27 @@ public class GeneratorUtils {
      * should not be used elsewhere.
      */
     public static void accommodatePhysicalActionsIfPresent(
-        List<Resource> resources,
-        boolean setsKeepAliveOptionAutomatically,
-        TargetConfig targetConfig,
-        ErrorReporter errorReporter
-    ) {
+            List<Resource> resources,
+            boolean setsKeepAliveOptionAutomatically,
+            TargetConfig targetConfig,
+            ErrorReporter errorReporter) {
         if (!setsKeepAliveOptionAutomatically) {
             return;
         }
         for (Resource resource : resources) {
             for (Action action : findAll(resource, Action.class)) {
-                if (action.getOrigin() == ActionOrigin.PHYSICAL &&
-                    // Check if the user has explicitly set keepalive to false
-                    !targetConfig.setByUser.contains(TargetProperty.KEEPALIVE) &&
-                    !targetConfig.keepalive
-                ) {
+                if (action.getOrigin() == ActionOrigin.PHYSICAL
+                        &&
+                        // Check if the user has explicitly set keepalive to false
+                        !targetConfig.setByUser.contains(TargetProperty.KEEPALIVE)
+                        && !targetConfig.keepalive) {
                     // If not, set it to true
                     targetConfig.keepalive = true;
                     errorReporter.reportWarning(
-                        action,
-                        String.format(
-                            "Setting %s to true because of the physical action %s.",
-                            TargetProperty.KEEPALIVE.getDisplayName(),
-                            action.getName()
-                        )
-                    );
+                            action,
+                            String.format(
+                                    "Setting %s to true because of the physical action %s.",
+                                    TargetProperty.KEEPALIVE.getDisplayName(), action.getName()));
                     return;
                 }
             }
@@ -134,11 +128,7 @@ public class GeneratorUtils {
      * given resource.
      */
     public static LFResource getLFResource(
-        Resource resource,
-        Path srcGenBasePath,
-        LFGeneratorContext context,
-        ErrorReporter errorReporter
-    ) {
+            Resource resource, Path srcGenBasePath, LFGeneratorContext context, ErrorReporter errorReporter) {
         var target = ASTUtils.targetDecl(resource);
         KeyValuePairs config = target.getConfig();
         var targetConfig = new TargetConfig(target);
@@ -146,7 +136,8 @@ public class GeneratorUtils {
             List<KeyValuePair> pairs = config.getPairs();
             TargetProperty.set(targetConfig, pairs != null ? pairs : List.of(), errorReporter);
         }
-        FileConfig fc = LFGenerator.createFileConfig(resource, srcGenBasePath, context.getFileConfig().useHierarchicalBin);
+        FileConfig fc =
+                LFGenerator.createFileConfig(resource, srcGenBasePath, context.getFileConfig().useHierarchicalBin);
         return new LFResource(resource, fc, targetConfig);
     }
 
@@ -182,11 +173,7 @@ public class GeneratorUtils {
      * @return Whether it is possible to generate code.
      */
     public static boolean canGenerate(
-        Boolean errorsOccurred,
-        Instantiation mainDef,
-        ErrorReporter errorReporter,
-        LFGeneratorContext context
-    ) {
+            Boolean errorsOccurred, Instantiation mainDef, ErrorReporter errorReporter, LFGeneratorContext context) {
         // stop if there are any errors found in the program by doGenerate() in GeneratorBase
         if (errorsOccurred) {
             context.finish(GeneratorResult.FAILED);
@@ -194,7 +181,8 @@ public class GeneratorUtils {
         }
         // abort if there is no main reactor
         if (mainDef == null) {
-            errorReporter.reportInfo("INFO: The given Lingua Franca program does not define a main reactor. Therefore, no code was generated.");
+            errorReporter.reportInfo(
+                    "INFO: The given Lingua Franca program does not define a main reactor. Therefore, no code was generated.");
             context.finish(GeneratorResult.NOTHING);
             return false;
         }

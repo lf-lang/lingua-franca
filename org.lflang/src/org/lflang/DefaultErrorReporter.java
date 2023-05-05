@@ -1,8 +1,7 @@
 package org.lflang;
 
-import org.eclipse.emf.ecore.EObject;
-
 import java.nio.file.Path;
+import org.eclipse.emf.ecore.EObject;
 
 /**
  * Simple implementation of the ErrorReport interface that simply prints to

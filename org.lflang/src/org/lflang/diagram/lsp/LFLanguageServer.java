@@ -1,10 +1,9 @@
 package org.lflang.diagram.lsp;
 
-import org.eclipse.lsp4j.WorkDoneProgressCancelParams;
 import de.cau.cs.kieler.klighd.lsp.KGraphLanguageServerExtension;
-
 import org.eclipse.lsp4j.Hover;
 import org.eclipse.lsp4j.HoverParams;
+import org.eclipse.lsp4j.WorkDoneProgressCancelParams;
 import org.eclipse.xtext.ide.server.hover.IHoverService;
 import org.eclipse.xtext.util.CancelIndicator;
 
@@ -28,7 +27,7 @@ public class LFLanguageServer extends KGraphLanguageServerExtension {
         try {
             return super.hover(params, cancelIndicator);
         } catch (IndexOutOfBoundsException e) {
-            return IHoverService.EMPTY_HOVER;  // Fail silently
+            return IHoverService.EMPTY_HOVER; // Fail silently
         }
     }
 }

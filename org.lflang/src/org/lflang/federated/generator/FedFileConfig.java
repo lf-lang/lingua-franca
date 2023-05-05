@@ -1,16 +1,16 @@
 /*************
  * Copyright (c) 2019-2021, The University of California at Berkeley.
-
+ *
  * Redistribution and use in source and binary forms, with or without modification,
  * are permitted provided that the following conditions are met:
-
+ *
  * 1. Redistributions of source code must retain the above copyright notice,
  *    this list of conditions and the following disclaimer.
-
+ *
  * 2. Redistributions in binary form must reproduce the above copyright notice,
  *    this list of conditions and the following disclaimer in the documentation
  *    and/or other materials provided with the distribution.
-
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -22,7 +22,6 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  ***************/
-
 package org.lflang.federated.generator;
 
 import java.io.IOException;
@@ -30,9 +29,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
-
 import org.eclipse.emf.ecore.resource.Resource;
-
 import org.lflang.FileConfig;
 import org.lflang.util.FileUtil;
 
@@ -46,11 +43,7 @@ import org.lflang.util.FileUtil;
  */
 public class FedFileConfig extends FileConfig {
 
-    public FedFileConfig(
-        Resource resource,
-        Path srcGenBasePath,
-        boolean useHierarchicalBin
-    ) throws IOException {
+    public FedFileConfig(Resource resource, Path srcGenBasePath, boolean useHierarchicalBin) throws IOException {
         super(resource, srcGenBasePath, useHierarchicalBin);
     }
 
@@ -97,7 +90,9 @@ public class FedFileConfig extends FileConfig {
     /**
      * Return the path to the directory in which the executables of compiled federates are stored.
      */
-    public Path getFedBinPath() { return getFedGenPath().resolve("bin"); }
+    public Path getFedBinPath() {
+        return getFedGenPath().resolve("bin");
+    }
 
     @Override
     public void doClean() throws IOException {

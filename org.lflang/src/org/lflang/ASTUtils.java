@@ -25,6 +25,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 package org.lflang;
 
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Iterators;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -32,7 +35,6 @@ import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import java.util.function.Predicate;
 import java.util.regex.Matcher;
@@ -40,7 +42,6 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
-
 import org.eclipse.emf.common.util.EList;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.emf.ecore.EStructuralFeature;
@@ -61,8 +62,6 @@ import org.lflang.generator.InvalidSourceException;
 import org.lflang.generator.ReactorInstance;
 import org.lflang.lf.Action;
 import org.lflang.lf.Assignment;
-import org.lflang.lf.AttrParm;
-import org.lflang.lf.Attribute;
 import org.lflang.lf.Code;
 import org.lflang.lf.Connection;
 import org.lflang.lf.Element;
@@ -95,10 +94,6 @@ import org.lflang.lf.WidthSpec;
 import org.lflang.lf.WidthTerm;
 import org.lflang.util.StringUtil;
 
-import com.google.common.collect.HashMultimap;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Iterators;
-
 /**
  * A helper class for modifying and analyzing the AST.
  * @author Marten Lohstroh
@@ -124,14 +119,12 @@ public class ASTUtils {
      * A mapping from Reactor features to corresponding Mode features for collecting contained elements.
      */
     private static final Map<EStructuralFeature, EStructuralFeature> reactorModeFeatureMap = Map.of(
-            featurePackage.getReactor_Actions(),        featurePackage.getMode_Actions(),
-            featurePackage.getReactor_Connections(),    featurePackage.getMode_Connections(),
+            featurePackage.getReactor_Actions(), featurePackage.getMode_Actions(),
+            featurePackage.getReactor_Connections(), featurePackage.getMode_Connections(),
             featurePackage.getReactor_Instantiations(), featurePackage.getMode_Instantiations(),
-            featurePackage.getReactor_Reactions(),      featurePackage.getMode_Reactions(),
-            featurePackage.getReactor_StateVars(),      featurePackage.getMode_StateVars(),
-            featurePackage.getReactor_Timers(),         featurePackage.getMode_Timers()
-            );
-
+            featurePackage.getReactor_Reactions(), featurePackage.getMode_Reactions(),
+            featurePackage.getReactor_StateVars(), featurePackage.getMode_StateVars(),
+            featurePackage.getReactor_Timers(), featurePackage.getMode_Timers());
 
     /**
      * Get all reactors defined in the given resource.
@@ -139,10 +132,11 @@ public class ASTUtils {
      * @return An iterable over all reactors found in the resource
      */
     public static List<Reactor> getAllReactors(Resource resource) {
-        return StreamSupport.stream(IteratorExtensions.toIterable(resource.getAllContents()).spliterator(), false)
-                     .filter(Reactor.class::isInstance)
-                     .map(Reactor.class::cast)
-                     .collect(Collectors.toList());
+        return StreamSupport.stream(
+                        IteratorExtensions.toIterable(resource.getAllContents()).spliterator(), false)
+                .filter(Reactor.class::isInstance)
+                .map(Reactor.class::cast)
+                .collect(Collectors.toList());
     }
 
     /**
@@ -167,7 +161,8 @@ public class ASTUtils {
                         }
                     }
                 }
-                for (var con : ASTUtils.<Connection>collectElements(reactor, featurePackage.getReactor_Connections(), false, true)) {
+                for (var con : ASTUtils.<Connection>collectElements(
+                        reactor, featurePackage.getReactor_Connections(), false, true)) {
                     for (var port : con.getRightPorts()) {
                         allWriters.put(Tuples.pair(port.getContainer(), port.getVariable()), con);
                     }
@@ -187,13 +182,23 @@ public class ASTUtils {
                             }
                         }
                         // Conflicting connection can only be handled if..
-                        if (!writerModes.containsKey(null) && // no writer is on root level (outside of modes) and...
-                            writerModes.keySet().stream().map(writerModes::get).allMatch(writersInMode -> // all writers in a mode are either...
-                                writersInMode.size() == 1 || // the only writer or...
-                                writersInMode.stream().allMatch(w -> w instanceof Reaction) // all are reactions and hence ordered
-                            )) {
+                        if (!writerModes.containsKey(null)
+                                && // no writer is on root level (outside of modes) and...
+                                writerModes.keySet().stream()
+                                        .map(writerModes::get)
+                                        .allMatch(
+                                                writersInMode -> // all writers in a mode are either...
+                                                writersInMode.size() == 1
+                                                        || // the only writer or...
+                                                        writersInMode.stream()
+                                                                .allMatch(w -> w
+                                                                        instanceof
+                                                                        Reaction) // all are reactions and hence ordered
+                                                )) {
                             // Add connections to transform list
-                            writers.stream().filter(w -> w instanceof Connection).forEach(c -> transform.add((Connection) c));
+                            writers.stream()
+                                    .filter(w -> w instanceof Connection)
+                                    .forEach(c -> transform.add((Connection) c));
                         }
                     }
                 }
@@ -222,9 +227,7 @@ public class ASTUtils {
      */
     public static Reactor findMainReactor(Resource resource) {
         return IteratorExtensions.findFirst(
-                Iterators.filter(resource.getAllContents(), Reactor.class),
-                Reactor::isMain
-        );
+                Iterators.filter(resource.getAllContents(), Reactor.class), Reactor::isMain);
     }
 
     /**
@@ -291,16 +294,16 @@ public class ASTUtils {
         if (connection.getLeftPorts().size() > 1 || connection.getRightPorts().size() > 1) {
             return true;
         }
-        VarRef leftPort  = connection.getLeftPorts().get(0);
+        VarRef leftPort = connection.getLeftPorts().get(0);
         VarRef rightPort = connection.getRightPorts().get(0);
-        Instantiation leftContainer  = leftPort.getContainer();
+        Instantiation leftContainer = leftPort.getContainer();
         Instantiation rightContainer = rightPort.getContainer();
-        Port leftPortAsPort  = (Port) leftPort.getVariable();
+        Port leftPortAsPort = (Port) leftPort.getVariable();
         Port rightPortAsPort = (Port) rightPort.getVariable();
         return leftPortAsPort.getWidthSpec() != null
-            || leftContainer != null && leftContainer.getWidthSpec() != null
-            || rightPortAsPort.getWidthSpec() != null
-            || rightContainer != null && rightContainer.getWidthSpec() != null;
+                || leftContainer != null && leftContainer.getWidthSpec() != null
+                || rightPortAsPort.getWidthSpec() != null
+                || rightContainer != null && rightContainer.getWidthSpec() != null;
     }
 
     /**
@@ -374,7 +377,8 @@ public class ASTUtils {
 
     /** A list of all ports of {@code definition}, in an unspecified order. */
     public static List<Port> allPorts(Reactor definition) {
-        return Stream.concat(ASTUtils.allInputs(definition).stream(), ASTUtils.allOutputs(definition).stream()).toList();
+        return Stream.concat(ASTUtils.allInputs(definition).stream(), ASTUtils.allOutputs(definition).stream())
+                .toList();
     }
 
     /**
@@ -389,9 +393,8 @@ public class ASTUtils {
     }
 
     public static Stream<Reactor> allNestedClasses(Reactor definition) {
-        return new HashSet<>(ASTUtils.allInstantiations(definition)).stream()
-            .map(Instantiation::getReactorClass)
-            .map(ASTUtils::toDefinition);
+        return new HashSet<>(ASTUtils.allInstantiations(definition))
+                .stream().map(Instantiation::getReactorClass).map(ASTUtils::toDefinition);
     }
 
     /**
@@ -467,7 +470,7 @@ public class ASTUtils {
     public static List<Reactor> recursiveChildren(ReactorInstance r) {
         List<Reactor> ret = new ArrayList<>();
         ret.add(r.reactorDefinition);
-        for (var child: r.children) {
+        for (var child : r.children) {
             ret.addAll(recursiveChildren(child));
         }
         return ret;
@@ -509,7 +512,8 @@ public class ASTUtils {
      * @return A list of all elements of type T found
      */
     @SuppressWarnings("unchecked")
-    public static <T extends EObject> List<T> collectElements(Reactor definition, EStructuralFeature feature, boolean includeSuperClasses, boolean includeModes) {
+    public static <T extends EObject> List<T> collectElements(
+            Reactor definition, EStructuralFeature feature, boolean includeSuperClasses, boolean includeModes) {
         List<T> result = new ArrayList<>();
 
         if (includeSuperClasses) {
@@ -559,7 +563,8 @@ public class ASTUtils {
      * @param mode The mode containing the elements.
      * @param <T> The type of elements to add (e.g., Port, Timer, etc.)
      */
-    private static <T extends EObject> void insertModeElementsAtTextualPosition(List<T> list, List<T> elements, Mode mode) {
+    private static <T extends EObject> void insertModeElementsAtTextualPosition(
+            List<T> list, List<T> elements, Mode mode) {
         if (elements.isEmpty()) {
             return; // Nothing to add
         }
@@ -588,10 +593,7 @@ public class ASTUtils {
         list.addAll(idx, elements);
     }
 
-    public static <T extends EObject> Iterable<T> allElementsOfClass(
-        Resource resource,
-        Class<T> elementClass
-    ) {
+    public static <T extends EObject> Iterable<T> allElementsOfClass(Resource resource, Class<T> elementClass) {
         //noinspection StaticPseudoFunctionalStyleMethod
         return Iterables.filter(IteratorExtensions.toIterable(resource.getAllContents()), elementClass);
     }
@@ -715,11 +717,8 @@ public class ASTUtils {
      */
     public static Map<String, String> elementToStringMaps(Element value) {
         Map<String, String> elements = new HashMap<>();
-        for (var element: value.getKeyvalue().getPairs()) {
-            elements.put(
-                element.getName().trim(),
-                StringUtil.removeQuotes(elementToSingleString(element.getValue()))
-            );
+        for (var element : value.getKeyvalue().getPairs()) {
+            elements.put(element.getName().trim(), StringUtil.removeQuotes(elementToSingleString(element.getValue())));
         }
         return elements;
     }
@@ -755,11 +754,10 @@ public class ASTUtils {
      */
     private static Element toElement(String str, boolean addQuotes) {
         if (str == null) return null;
-        var strToReturn = addQuotes? StringUtil.addDoubleQuotes(str):str;
+        var strToReturn = addQuotes ? StringUtil.addDoubleQuotes(str) : str;
         Element e = LfFactory.eINSTANCE.createElement();
         e.setLiteral(strToReturn);
         return e;
-
     }
 
     /**
@@ -794,7 +792,7 @@ public class ASTUtils {
      */
     public static Element toElement(TimeValue tv) {
         Element e = LfFactory.eINSTANCE.createElement();
-        e.setTime((int)tv.time);
+        e.setTime((int) tv.time);
         if (tv.unit != null) {
             e.setUnit(tv.unit.toString());
         }
@@ -843,8 +841,7 @@ public class ASTUtils {
      */
     public static boolean isZero(String literal) {
         try {
-            if (literal != null &&
-                Integer.parseInt(literal) == 0) {
+            if (literal != null && Integer.parseInt(literal) == 0) {
                 return true;
             }
         } catch (NumberFormatException e) {
@@ -906,12 +903,12 @@ public class ASTUtils {
         return true;
     }
 
-	/**
+    /**
      * Report whether the given code is an integer number or not.
      * @param code AST node to inspect.
      * @return True if the given code is an integer, false otherwise.
      */
-	public static boolean isInteger(Code code) {
+    public static boolean isInteger(Code code) {
         return isInteger(toText(code));
     }
 
@@ -935,13 +932,13 @@ public class ASTUtils {
      * @return True if the argument denotes a valid time, false otherwise.
      */
     public static boolean isValidTime(Expression expr) {
-            if (expr instanceof ParameterReference) {
-                return isOfTimeType(((ParameterReference)expr).getParameter());
-            } else if (expr instanceof Time) {
-                return isValidTime((Time) expr);
-            } else if (expr instanceof Literal) {
-                return isZero(((Literal) expr).getLiteral());
-            }
+        if (expr instanceof ParameterReference) {
+            return isOfTimeType(((ParameterReference) expr).getParameter());
+        } else if (expr instanceof Time) {
+            return isValidTime((Time) expr);
+        } else if (expr instanceof Literal) {
+            return isZero(((Literal) expr).getLiteral());
+        }
         return false;
     }
 
@@ -953,8 +950,7 @@ public class ASTUtils {
     public static boolean isValidTime(Time t) {
         if (t == null) return false;
         String unit = t.getUnit();
-        return t.getInterval() == 0 ||
-               TimeUnit.isValidUnit(unit);
+        return t.getInterval() == 0 || TimeUnit.isValidUnit(unit);
     }
 
     /**
@@ -1083,8 +1079,6 @@ public class ASTUtils {
         return getInferredType(p.getType(), null);
     }
 
-
-
     /**
      * If the given string can be recognized as a floating-point number that has a leading decimal point,
      * prepend the string with a zero and return it. Otherwise, return the original string.
@@ -1133,7 +1127,7 @@ public class ASTUtils {
      */
     public static TimeValue getLiteralTimeValue(Expression expr) {
         if (expr instanceof Time) {
-            return toTimeValue((Time)expr);
+            return toTimeValue((Time) expr);
         } else if (expr instanceof Literal && isZero(((Literal) expr).getLiteral())) {
             return TimeValue.ZERO;
         } else {
@@ -1256,16 +1250,15 @@ public class ASTUtils {
 
             if (!belongsTo(parameter, instantiation)) {
                 throw new IllegalArgumentException("Parameter "
-                    + parameter.getName()
-                    + " is not a parameter of reactor instance "
-                    + instantiation.getName()
-                    + "."
-                );
+                        + parameter.getName()
+                        + " is not a parameter of reactor instance "
+                        + instantiation.getName()
+                        + ".");
             }
             // In case there is more than one assignment to this parameter, we need to
             // find the last one.
             Assignment lastAssignment = null;
-            for (Assignment assignment: instantiation.getParameters()) {
+            for (Assignment assignment : instantiation.getParameters()) {
                 if (assignment.getLhs().equals(parameter)) {
                     lastAssignment = assignment;
                 }
@@ -1273,19 +1266,19 @@ public class ASTUtils {
             if (lastAssignment != null) {
                 // Right hand side can be a list. Collect the entries.
                 List<Expression> result = new ArrayList<>();
-                for (Expression expr: lastAssignment.getRhs().getExprs()) {
+                for (Expression expr : lastAssignment.getRhs().getExprs()) {
                     if (expr instanceof ParameterReference) {
                         if (instantiations.size() > 1
-                            && instantiation.eContainer() != instantiations.get(1).getReactorClass()
-                        ) {
+                                && instantiation.eContainer()
+                                        != instantiations.get(1).getReactorClass()) {
                             throw new IllegalArgumentException("Reactor instance "
                                     + instantiation.getName()
                                     + " is not contained by instance "
                                     + instantiations.get(1).getName()
-                                    + "."
-                            );
+                                    + ".");
                         }
-                        result.addAll(initialValue(((ParameterReference)expr).getParameter(),
+                        result.addAll(initialValue(
+                                ((ParameterReference) expr).getParameter(),
                                 instantiations.subList(1, instantiations.size())));
                     } else {
                         result.add(expr);
@@ -1349,7 +1342,7 @@ public class ASTUtils {
     public static Integer initialValueInt(Parameter parameter, List<Instantiation> instantiations) {
         List<Expression> expressions = initialValue(parameter, instantiations);
         int result = 0;
-        for (Expression expr: expressions) {
+        for (Expression expr : expressions) {
             if (!(expr instanceof Literal)) {
                 return null;
             }
@@ -1397,7 +1390,7 @@ public class ASTUtils {
             return inferWidthFromConnections(spec, instantiations);
         }
         var result = 0;
-        for (WidthTerm term: spec.getTerms()) {
+        for (WidthTerm term : spec.getTerms()) {
             if (term.getParameter() != null) {
                 Integer termWidth = initialValueInt(term.getParameter(), instantiations);
                 if (termWidth != null) {
@@ -1448,9 +1441,7 @@ public class ASTUtils {
      * @throws IllegalArgumentException If an instantiation provided is not as
      *  given above or if the chain of instantiations is not nested.
      */
-    public static int inferPortWidth(
-        VarRef reference, Connection connection, List<Instantiation> instantiations
-    ) {
+    public static int inferPortWidth(VarRef reference, Connection connection, List<Instantiation> instantiations) {
         if (reference.getVariable() instanceof Port) {
             // If the port is given as a.b, then we want to prepend a to
             // the list of instantiations to determine the width of this port.
@@ -1484,7 +1475,8 @@ public class ASTUtils {
                         for (VarRef leftPort : connection.getLeftPorts()) {
                             if (leftPort == reference) {
                                 if (leftOrRight != 0) {
-                                    throw new InvalidSourceException("Multiple ports with variable width on a connection.");
+                                    throw new InvalidSourceException(
+                                            "Multiple ports with variable width on a connection.");
                                 }
                                 // Indicate that this port is on the left.
                                 leftOrRight = -1;
@@ -1501,7 +1493,8 @@ public class ASTUtils {
                         for (VarRef rightPort : connection.getRightPorts()) {
                             if (rightPort == reference) {
                                 if (leftOrRight != 0) {
-                                    throw new InvalidSourceException("Multiple ports with variable width on a connection.");
+                                    throw new InvalidSourceException(
+                                            "Multiple ports with variable width on a connection.");
                                 }
                                 // Indicate that this port is on the right.
                                 leftOrRight = 1;
@@ -1563,8 +1556,7 @@ public class ASTUtils {
     public static int widthSpecification(Instantiation instantiation) {
         int result = width(instantiation.getWidthSpec(), null);
         if (result < 0) {
-            throw new InvalidSourceException("Cannot determine width for the instance "
-                    + instantiation.getName());
+            throw new InvalidSourceException("Cannot determine width for the instance " + instantiation.getName());
         }
         return result;
     }
@@ -1586,8 +1578,8 @@ public class ASTUtils {
      * otherwise.
      */
     public static boolean isParameterized(StateVar s) {
-        return s.getInit() != null &&
-               IterableExtensions.exists(s.getInit().getExprs(), it -> it instanceof ParameterReference);
+        return s.getInit() != null
+                && IterableExtensions.exists(s.getInit().getExprs(), it -> it instanceof ParameterReference);
     }
 
     /**
@@ -1610,8 +1602,7 @@ public class ASTUtils {
      * @return The Reactor class definition or null if no definition is found.
      */
     public static Reactor toDefinition(ReactorDecl r) {
-        if (r == null)
-            return null;
+        if (r == null) return null;
         if (r instanceof Reactor) {
             return (Reactor) r;
         } else if (r instanceof ImportedReactor) {
@@ -1624,10 +1615,7 @@ public class ASTUtils {
      * Return all single-line or multi-line comments immediately preceding the
      * given EObject.
      */
-    public static Stream<String> getPrecedingComments(
-        ICompositeNode compNode,
-        Predicate<INode> filter
-    ) {
+    public static Stream<String> getPrecedingComments(ICompositeNode compNode, Predicate<INode> filter) {
         return getPrecedingCommentNodes(compNode, filter).map(INode::getText);
     }
 
@@ -1635,10 +1623,7 @@ public class ASTUtils {
      * Return all single-line or multi-line comments immediately preceding the
      * given EObject.
      */
-    public static Stream<INode> getPrecedingCommentNodes(
-        ICompositeNode compNode,
-        Predicate<INode> filter
-    ) {
+    public static Stream<INode> getPrecedingCommentNodes(ICompositeNode compNode, Predicate<INode> filter) {
         if (compNode == null) return Stream.of();
         List<INode> ret = new ArrayList<>();
         for (INode node : compNode.getAsTreeIterable()) {
@@ -1656,8 +1641,8 @@ public class ASTUtils {
     /** Return whether {@code node} is a comment. */
     public static boolean isComment(INode node) {
         return node instanceof HiddenLeafNode hlNode
-            && hlNode.getGrammarElement() instanceof TerminalRule tRule
-            && tRule.getName().endsWith("_COMMENT");
+                && hlNode.getGrammarElement() instanceof TerminalRule tRule
+                && tRule.getName().endsWith("_COMMENT");
     }
 
     /**
@@ -1680,9 +1665,8 @@ public class ASTUtils {
      * @param resource The resource to find the main reactor in.
      */
     public static void setMainName(Resource resource, String name) {
-        Reactor main = IteratorExtensions.findFirst(Iterators.filter(resource.getAllContents(), Reactor.class),
-            it -> it.isMain() || it.isFederated()
-        );
+        Reactor main = IteratorExtensions.findFirst(
+                Iterators.filter(resource.getAllContents(), Reactor.class), it -> it.isMain() || it.isFederated());
         if (main != null && StringExtensions.isNullOrEmpty(main.getName())) {
             main.setName(name);
         }

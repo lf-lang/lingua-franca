@@ -40,7 +40,6 @@ import org.lflang.lf.Time;
  */
 public interface LfExpressionVisitor<P, R> {
 
-
     R visitLiteral(Literal expr, P param);
 
     R visitBracedListExpr(BracedListExpression expr, P param);
@@ -156,5 +155,4 @@ public interface LfExpressionVisitor<P, R> {
             return codeExpr;
         }
     }
-
 }

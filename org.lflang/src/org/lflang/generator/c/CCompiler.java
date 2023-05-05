@@ -1,16 +1,16 @@
 /*************
  * Copyright (c) 2019-2021, The University of California at Berkeley.
-
+ *
  * Redistribution and use in source and binary forms, with or without modification,
  * are permitted provided that the following conditions are met:
-
+ *
  * 1. Redistributions of source code must retain the above copyright notice,
  *    this list of conditions and the following disclaimer.
-
+ *
  * 2. Redistributions in binary form must reproduce the above copyright notice,
  *    this list of conditions and the following disclaimer in the documentation
  *    and/or other materials provided with the distribution.
-
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -22,7 +22,6 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  ***************/
-
 package org.lflang.generator.c;
 
 import java.io.File;
@@ -33,7 +32,6 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Stream;
-
 import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
 import org.lflang.TargetConfig;
@@ -84,12 +82,7 @@ public class CCompiler {
      * @param cppMode Whether the generated code should be compiled as if it
      * were C++.
      */
-    public CCompiler(
-        TargetConfig targetConfig,
-        FileConfig fileConfig,
-        ErrorReporter errorReporter,
-        boolean cppMode
-    ) {
+    public CCompiler(TargetConfig targetConfig, FileConfig fileConfig, ErrorReporter errorReporter, boolean cppMode) {
         this.fileConfig = fileConfig;
         this.targetConfig = targetConfig;
         this.errorReporter = errorReporter;
@@ -104,10 +97,7 @@ public class CCompiler {
      *
      * @return true if compilation succeeds, false otherwise.
      */
-    public boolean runCCompiler(
-        GeneratorBase generator,
-        LFGeneratorContext context
-    ) throws IOException {
+    public boolean runCCompiler(GeneratorBase generator, LFGeneratorContext context) throws IOException {
         // Set the build directory to be "build"
         Path buildPath = fileConfig.getSrcGenPath().resolve("build");
         // Remove the previous build directory if it exists to
@@ -139,17 +129,17 @@ public class CCompiler {
 
         int cMakeReturnCode = compile.run(context.getCancelIndicator());
 
-        if (cMakeReturnCode != 0 &&
-                context.getMode() == LFGeneratorContext.Mode.STANDALONE &&
-                !outputContainsKnownCMakeErrors(compile.getErrors().toString())) {
+        if (cMakeReturnCode != 0
+                && context.getMode() == LFGeneratorContext.Mode.STANDALONE
+                && !outputContainsKnownCMakeErrors(compile.getErrors().toString())) {
             errorReporter.reportError(targetConfig.compiler + " failed with error code " + cMakeReturnCode);
         }
 
         // For warnings (vs. errors), the return code is 0.
         // But we still want to mark the IDE.
-        if (compile.getErrors().toString().length() > 0 &&
-                context.getMode() != LFGeneratorContext.Mode.STANDALONE &&
-                !outputContainsKnownCMakeErrors(compile.getErrors().toString())) {
+        if (compile.getErrors().toString().length() > 0
+                && context.getMode() != LFGeneratorContext.Mode.STANDALONE
+                && !outputContainsKnownCMakeErrors(compile.getErrors().toString())) {
             generator.reportCommandErrors(compile.getErrors().toString());
         }
 
@@ -160,23 +150,23 @@ public class CCompiler {
 
             makeReturnCode = build.run(context.getCancelIndicator());
 
-            if (makeReturnCode != 0 &&
-                    context.getMode() == LFGeneratorContext.Mode.STANDALONE &&
-                    !outputContainsKnownCMakeErrors(build.getErrors().toString())) {
+            if (makeReturnCode != 0
+                    && context.getMode() == LFGeneratorContext.Mode.STANDALONE
+                    && !outputContainsKnownCMakeErrors(build.getErrors().toString())) {
                 errorReporter.reportError(targetConfig.compiler + " failed with error code " + makeReturnCode);
             }
 
             // For warnings (vs. errors), the return code is 0.
             // But we still want to mark the IDE.
-            if (build.getErrors().toString().length() > 0 &&
-                    context.getMode() != LFGeneratorContext.Mode.STANDALONE &&
-                    !outputContainsKnownCMakeErrors(build.getErrors().toString())) {
+            if (build.getErrors().toString().length() > 0
+                    && context.getMode() != LFGeneratorContext.Mode.STANDALONE
+                    && !outputContainsKnownCMakeErrors(build.getErrors().toString())) {
                 generator.reportCommandErrors(build.getErrors().toString());
             }
 
-
             if (makeReturnCode == 0 && build.getErrors().toString().length() == 0) {
-                System.out.println("SUCCESS: Compiling generated code for " + fileConfig.name + " finished with no errors.");
+                System.out.println(
+                        "SUCCESS: Compiling generated code for " + fileConfig.name + " finished with no errors.");
             }
 
             if (targetConfig.platformOptions.platform == Platform.ZEPHYR && targetConfig.platformOptions.flash) {
@@ -189,11 +179,9 @@ public class CCompiler {
                     System.out.println("SUCCESS: Flashed application with west");
                 }
             }
-
         }
         return cMakeReturnCode == 0 && makeReturnCode == 0;
     }
-
 
     /**
      * Return a command to compile the specified C file using CMake.
@@ -203,21 +191,18 @@ public class CCompiler {
         // Set the build directory to be "build"
         Path buildPath = fileConfig.getSrcGenPath().resolve("build");
 
-        LFCommand command = commandFactory.createCommand(
-                "cmake", cmakeOptions(targetConfig, fileConfig),
-                buildPath);
+        LFCommand command = commandFactory.createCommand("cmake", cmakeOptions(targetConfig, fileConfig), buildPath);
         if (command == null) {
-            errorReporter.reportError(
-                "The C/CCpp target requires CMAKE >= " + CCmakeGenerator.MIN_CMAKE_VERSION
-                    + " to compile the generated code. " +
-                    "Auto-compiling can be disabled using the \"no-compile: true\" target property.");
+            errorReporter.reportError("The C/CCpp target requires CMAKE >= " + CCmakeGenerator.MIN_CMAKE_VERSION
+                    + " to compile the generated code. "
+                    + "Auto-compiling can be disabled using the \"no-compile: true\" target property.");
         }
         return command;
     }
 
     static Stream<String> cmakeCompileDefinitions(TargetConfig targetConfig) {
         return targetConfig.compileDefinitions.entrySet().stream()
-            .map(entry -> "-D" + entry.getKey() + "=" + entry.getValue());
+                .map(entry -> "-D" + entry.getKey() + "=" + entry.getValue());
     }
 
     private static List<String> cmakeOptions(TargetConfig targetConfig, FileConfig fileConfig) {
@@ -234,15 +219,12 @@ public class CCompiler {
             rootPath = rootPath.replaceAll("\\\\", "\\\\\\\\");
         }
         arguments.addAll(List.of(
-            "-DCMAKE_BUILD_TYPE=" + ((targetConfig.cmakeBuildType!=null) ? targetConfig.cmakeBuildType.toString() : "Release"),
-            "-DCMAKE_INSTALL_PREFIX=" + FileUtil.toUnixString(fileConfig.getOutPath()),
-            "-DCMAKE_INSTALL_BINDIR=" + FileUtil.toUnixString(
-                fileConfig.getOutPath().relativize(
-                    fileConfig.binPath
-                )
-            ),
-            "-DLF_FILE_SEPARATOR=\"" + maybeQuote + separator + maybeQuote + "\""
-        ));
+                "-DCMAKE_BUILD_TYPE="
+                        + ((targetConfig.cmakeBuildType != null) ? targetConfig.cmakeBuildType.toString() : "Release"),
+                "-DCMAKE_INSTALL_PREFIX=" + FileUtil.toUnixString(fileConfig.getOutPath()),
+                "-DCMAKE_INSTALL_BINDIR="
+                        + FileUtil.toUnixString(fileConfig.getOutPath().relativize(fileConfig.binPath)),
+                "-DLF_FILE_SEPARATOR=\"" + maybeQuote + separator + maybeQuote + "\""));
         // Add #define for source file directory.
         // Do not do this for federated programs because for those, the definition is put
         // into the cmake file (and fileConfig.srcPath is the wrong directory anyway).
@@ -267,10 +249,10 @@ public class CCompiler {
             return "Release";
         }
         switch (type) {
-        case TEST:
-            return "Debug";
-        default:
-            return type.toString();
+            case TEST:
+                return "Debug";
+            default:
+                return type.toString();
         }
     }
 
@@ -285,17 +267,21 @@ public class CCompiler {
         // Set the build directory to be "build"
         Path buildPath = fileConfig.getSrcGenPath().resolve("build");
         String cores = String.valueOf(Runtime.getRuntime().availableProcessors());
-        LFCommand command =  commandFactory.createCommand(
-                "cmake", List.of(
-                        "--build", ".", "--target", "install", "--parallel", cores, "--config",
-                        buildTypeToCmakeConfig(targetConfig.cmakeBuildType)
-                    ),
+        LFCommand command = commandFactory.createCommand(
+                "cmake",
+                List.of(
+                        "--build",
+                        ".",
+                        "--target",
+                        "install",
+                        "--parallel",
+                        cores,
+                        "--config",
+                        buildTypeToCmakeConfig(targetConfig.cmakeBuildType)),
                 buildPath);
         if (command == null) {
-            errorReporter.reportError(
-                "The C/CCpp target requires CMAKE >= 3.5 to compile the generated code. "
-                + "Auto-compiling can be disabled using the \"no-compile: true\" target property."
-            );
+            errorReporter.reportError("The C/CCpp target requires CMAKE >= 3.5 to compile the generated code. "
+                    + "Auto-compiling can be disabled using the \"no-compile: true\" target property.");
         }
         return command;
     }
@@ -312,16 +298,12 @@ public class CCompiler {
         String board = targetConfig.platformOptions.board;
         LFCommand cmd;
         if (board == null || board.startsWith("qemu")) {
-            cmd = commandFactory.createCommand(
-                "west", List.of("build", "-t", "run"), buildPath);
+            cmd = commandFactory.createCommand("west", List.of("build", "-t", "run"), buildPath);
         } else {
-            cmd = commandFactory.createCommand(
-                "west", List.of("flash"), buildPath);
+            cmd = commandFactory.createCommand("west", List.of("flash"), buildPath);
         }
         if (cmd == null) {
-            errorReporter.reportError(
-                "Could not create west flash command."
-            );
+            errorReporter.reportError("Could not create west flash command.");
         }
 
         return cmd;
@@ -347,13 +329,12 @@ public class CCompiler {
         if (CMakeOutput.contains("The CMAKE_C_COMPILER is set to a C++ compiler")) {
             // If so, print an appropriate error message
             if (targetConfig.compiler != null) {
-                errorReporter.reportError(
-                        "A C++ compiler was requested in the compiler target property."
-                                + " Use the CCpp or the Cpp target instead.");
+                errorReporter.reportError("A C++ compiler was requested in the compiler target property."
+                        + " Use the CCpp or the Cpp target instead.");
             } else {
                 errorReporter.reportError("\"A C++ compiler was detected."
-                       + " The C target works best with a C compiler."
-                       + " Use the CCpp or the Cpp target instead.\"");
+                        + " The C target works best with a C compiler."
+                        + " Use the CCpp or the Cpp target instead.\"");
             }
             return true;
         }
@@ -369,16 +350,12 @@ public class CCompiler {
      * @param noBinary If true, the compiler will create a .o output instead of a binary.
      *  If false, the compile command will produce a binary.
      */
-    public LFCommand compileCCommand(
-        String fileToCompile,
-        boolean noBinary
-    ) {
+    public LFCommand compileCCommand(String fileToCompile, boolean noBinary) {
         String cFilename = getTargetFileName(fileToCompile, cppMode, targetConfig);
 
-        Path relativeSrcPath = fileConfig.getOutPath().relativize(
-            fileConfig.getSrcGenPath().resolve(Paths.get(cFilename)));
-        Path relativeBinPath = fileConfig.getOutPath().relativize(
-            fileConfig.binPath.resolve(Paths.get(fileToCompile)));
+        Path relativeSrcPath =
+                fileConfig.getOutPath().relativize(fileConfig.getSrcGenPath().resolve(Paths.get(cFilename)));
+        Path relativeBinPath = fileConfig.getOutPath().relativize(fileConfig.binPath.resolve(Paths.get(fileToCompile)));
 
         // NOTE: we assume that any C compiler takes Unix paths as arguments.
         String relSrcPathString = FileUtil.toUnixString(relativeSrcPath);
@@ -391,15 +368,16 @@ public class CCompiler {
 
         ArrayList<String> compileArgs = new ArrayList<>();
         compileArgs.add(relSrcPathString);
-        for (String file: targetConfig.compileAdditionalSources) {
-            var relativePath = fileConfig.getOutPath().relativize(
-                fileConfig.getSrcGenPath().resolve(Paths.get(file)));
+        for (String file : targetConfig.compileAdditionalSources) {
+            var relativePath = fileConfig
+                    .getOutPath()
+                    .relativize(fileConfig.getSrcGenPath().resolve(Paths.get(file)));
             compileArgs.add(FileUtil.toUnixString(relativePath));
         }
         compileArgs.addAll(targetConfig.compileLibraries);
 
         // Add compile definitions
-        targetConfig.compileDefinitions.forEach((key,value) -> compileArgs.add("-D"+key+"="+value));
+        targetConfig.compileDefinitions.forEach((key, value) -> compileArgs.add("-D" + key + "=" + value));
 
         // Finally, add the compiler flags in target parameters (if any)
         compileArgs.addAll(targetConfig.compilerFlags);
@@ -420,9 +398,8 @@ public class CCompiler {
 
         LFCommand command = commandFactory.createCommand(targetConfig.compiler, compileArgs, fileConfig.getOutPath());
         if (command == null) {
-            errorReporter.reportError(
-                "The C/CCpp target requires GCC >= 7 to compile the generated code. " +
-                    "Auto-compiling can be disabled using the \"no-compile: true\" target property.");
+            errorReporter.reportError("The C/CCpp target requires GCC >= 7 to compile the generated code. "
+                    + "Auto-compiling can be disabled using the \"no-compile: true\" target property.");
         }
         return command;
     }

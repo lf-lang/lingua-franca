@@ -31,7 +31,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.function.Predicate;
-
 import org.hamcrest.BaseMatcher;
 import org.hamcrest.Description;
 import org.hamcrest.Matcher;
@@ -154,7 +153,8 @@ public class TestUtils {
          * The file should be a UTF-8 encoded text file. Return
          * this instance.
          */
-        public TempDirChecker checkContentsOf(String relativePath, Matcher<? super String> contentsMatcher) throws IOException {
+        public TempDirChecker checkContentsOf(String relativePath, Matcher<? super String> contentsMatcher)
+                throws IOException {
             Path relPath = Paths.get(relativePath);
             if (relPath.isAbsolute()) {
                 throw new IllegalArgumentException("Should be a relative path: " + relativePath);

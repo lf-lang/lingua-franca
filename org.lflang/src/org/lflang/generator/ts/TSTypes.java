@@ -1,7 +1,6 @@
 package org.lflang.generator.ts;
 
 import java.util.List;
-
 import org.lflang.ASTUtils;
 import org.lflang.TimeValue;
 import org.lflang.generator.TargetTypes;
@@ -12,9 +11,7 @@ public class TSTypes implements TargetTypes {
 
     private static TSTypes INSTANCE = new TSTypes();
 
-    private TSTypes() {
-
-    }
+    private TSTypes() {}
 
     @Override
     public String getTargetType(StateVar s) {

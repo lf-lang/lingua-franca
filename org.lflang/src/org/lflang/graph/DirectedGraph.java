@@ -1,33 +1,31 @@
 /*************
- Copyright (c) 2019, The University of California at Berkeley.
-
- Redistribution and use in source and binary forms, with or without modification,
- are permitted provided that the following conditions are met:
-
- 1. Redistributions of source code must retain the above copyright notice,
- this list of conditions and the following disclaimer.
-
- 2. Redistributions in binary form must reproduce the above copyright notice,
- this list of conditions and the following disclaimer in the documentation
- and/or other materials provided with the distribution.
-
- THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY
- EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
- MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL
- THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
- SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
- PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
- INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
- STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
- THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * Copyright (c) 2019, The University of California at Berkeley.
+ *
+ * Redistribution and use in source and binary forms, with or without modification,
+ * are permitted provided that the following conditions are met:
+ *
+ * 1. Redistributions of source code must retain the above copyright notice,
+ * this list of conditions and the following disclaimer.
+ *
+ * 2. Redistributions in binary form must reproduce the above copyright notice,
+ * this list of conditions and the following disclaimer in the documentation
+ * and/or other materials provided with the distribution.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY
+ * EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+ * MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL
+ * THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+ * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
+ * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
+ * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  ***************/
-
 package org.lflang.graph;
 
 import java.util.*;
 import java.util.Map.Entry;
 import java.util.stream.Collectors;
-
 import org.lflang.util.CollectionUtil;
 
 /**
@@ -54,7 +52,6 @@ public class DirectedGraph<T> implements Graph<T> {
      */
     private final Map<T, Set<T>> upstreamAdjacentNodes = new LinkedHashMap<>();
 
-
     /**
      * Mark the graph to have changed so that any cached analysis is refreshed
      * accordingly.
@@ -62,7 +59,6 @@ public class DirectedGraph<T> implements Graph<T> {
     protected void graphChanged() {
         // To be overridden by subclasses that perform analysis.
     }
-
 
     /**
      * Return true if this graph has the given node in it.
@@ -74,7 +70,6 @@ public class DirectedGraph<T> implements Graph<T> {
         return nodes().contains(node);
     }
 
-
     /**
      * Return all immediate upstream neighbors of a given node.
      *
@@ -83,7 +78,6 @@ public class DirectedGraph<T> implements Graph<T> {
     public Set<T> getUpstreamAdjacentNodes(T node) {
         return Collections.unmodifiableSet(this.upstreamAdjacentNodes.getOrDefault(node, Set.of()));
     }
-
 
     /**
      * Return all immediate downstream neighbors of a given node.
@@ -94,14 +88,12 @@ public class DirectedGraph<T> implements Graph<T> {
         return Collections.unmodifiableSet(this.downstreamAdjacentNodes.getOrDefault(node, Set.of()));
     }
 
-
     @Override
     public void addNode(T node) {
         this.graphChanged();
         this.upstreamAdjacentNodes.putIfAbsent(node, Set.of());
         this.downstreamAdjacentNodes.putIfAbsent(node, Set.of());
     }
-
 
     @Override
     public void removeNode(T node) {
@@ -112,7 +104,6 @@ public class DirectedGraph<T> implements Graph<T> {
         CollectionUtil.removeFromValues(this.upstreamAdjacentNodes, node);
         CollectionUtil.removeFromValues(this.downstreamAdjacentNodes, node);
     }
-
 
     /**
      * Add a new directed edge to the graph. The first argument is
@@ -131,7 +122,6 @@ public class DirectedGraph<T> implements Graph<T> {
         }
     }
 
-
     /**
      * Add new directed edges to the graph. The first argument is the
      * downstream node, the second argument a set of upstream nodes.
@@ -146,7 +136,6 @@ public class DirectedGraph<T> implements Graph<T> {
         }
     }
 
-
     /**
      * Remove a directed edge from the graph.
      *
@@ -157,9 +146,9 @@ public class DirectedGraph<T> implements Graph<T> {
     public void removeEdge(T sink, T source) {
         this.graphChanged();
         this.upstreamAdjacentNodes.computeIfPresent(sink, (k, upstream) -> CollectionUtil.minus(upstream, source));
-        this.downstreamAdjacentNodes.computeIfPresent(source, (k, downstream) -> CollectionUtil.minus(downstream, sink));
+        this.downstreamAdjacentNodes.computeIfPresent(
+                source, (k, downstream) -> CollectionUtil.minus(downstream, sink));
     }
-
 
     /**
      * Obtain a copy of this graph by creating an new instance and copying
@@ -175,7 +164,6 @@ public class DirectedGraph<T> implements Graph<T> {
         }
         return graph;
     }
-
 
     /**
      * For a given a two adjacency maps, copy missing edges from the first
@@ -206,7 +194,6 @@ public class DirectedGraph<T> implements Graph<T> {
         }
     }
 
-
     /**
      * Merge another directed graph into this one.
      *
@@ -217,7 +204,6 @@ public class DirectedGraph<T> implements Graph<T> {
         mirror(another.upstreamAdjacentNodes, this.upstreamAdjacentNodes);
         mirror(another.downstreamAdjacentNodes, this.downstreamAdjacentNodes);
     }
-
 
     /**
      * Return the set of nodes that have no neighbors listed in the given
@@ -234,7 +220,6 @@ public class DirectedGraph<T> implements Graph<T> {
         return independent;
     }
 
-
     /**
      * Return the root nodes of this graph.
      * Root nodes have no upstream neighbors.
@@ -242,7 +227,6 @@ public class DirectedGraph<T> implements Graph<T> {
     public Set<T> rootNodes() {
         return independentNodes(this.upstreamAdjacentNodes);
     }
-
 
     /**
      * Return the leaf nodes of this graph.
@@ -252,31 +236,26 @@ public class DirectedGraph<T> implements Graph<T> {
         return independentNodes(this.downstreamAdjacentNodes);
     }
 
-
     @Override
     public int nodeCount() {
         return downstreamAdjacentNodes.size();
     }
-
 
     @Override
     public int edgeCount() {
         return this.upstreamAdjacentNodes.values().stream().mapToInt(Set::size).sum();
     }
 
-
     @Override
     public Set<T> nodes() {
         return Collections.unmodifiableSet(this.downstreamAdjacentNodes.keySet());
     }
-
 
     public void clear() {
         this.graphChanged();
         this.downstreamAdjacentNodes.clear();
         this.upstreamAdjacentNodes.clear();
     }
-
 
     /**
      * Return a textual list of the nodes.
@@ -299,16 +278,16 @@ public class DirectedGraph<T> implements Graph<T> {
         dotRepresentation.append("    rankdir=LF;\n");
 
         Set<T> nodes = nodes();
-        for (T node: nodes) {
+        for (T node : nodes) {
             // Draw the node
-            dotRepresentation.append("    node_" + (node.toString().hashCode() & 0xfffffff)
-            + " [label=\""+ node.toString() +"\"]\n");
+            dotRepresentation.append(
+                    "    node_" + (node.toString().hashCode() & 0xfffffff) + " [label=\"" + node.toString() + "\"]\n");
 
             // Draw the edges
             Set<T> downstreamNodes = getDownstreamAdjacentNodes(node);
-            for (T downstreamNode: downstreamNodes) {
-                edges.append("    node_" + (node.toString().hashCode() & 0xfffffff)
-                                 + " -> node_" + (downstreamNode.toString().hashCode() & 0xfffffff) + "\n");
+            for (T downstreamNode : downstreamNodes) {
+                edges.append("    node_" + (node.toString().hashCode() & 0xfffffff) + " -> node_"
+                        + (downstreamNode.toString().hashCode() & 0xfffffff) + "\n");
             }
         }
 

@@ -1,24 +1,21 @@
 package org.lflang.generator;
 
 import java.nio.file.Path;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.NavigableMap;
 import java.util.Set;
 import java.util.TreeMap;
-import java.util.HashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
 import org.eclipse.emf.common.util.URI;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.xtext.nodemodel.INode;
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils;
 import org.eclipse.xtext.util.LineAndColumn;
-
 import org.lflang.lf.ParameterReference;
-import org.lflang.lf.impl.ParameterReferenceImpl;
 
 /**
  * Encapsulates data about the correspondence between
@@ -32,11 +29,10 @@ public class CodeMap {
         //  represent any serious effort to embed the string representation of this object in generated code
         //  without introducing a syntax error. Instead, it is done simply because it is easy.
         private static final Pattern PATTERN = Pattern.compile(String.format(
-            "/\\*Correspondence: (?<lfRange>%s) \\-> (?<generatedRange>%s) \\(verbatim=(?<verbatim>true|false); src=(?<path>%s)\\)\\*/",
-            Position.removeNamedCapturingGroups(Range.PATTERN),
-            Position.removeNamedCapturingGroups(Range.PATTERN),
-            ".*?"
-        ));
+                "/\\*Correspondence: (?<lfRange>%s) \\-> (?<generatedRange>%s) \\(verbatim=(?<verbatim>true|false); src=(?<path>%s)\\)\\*/",
+                Position.removeNamedCapturingGroups(Range.PATTERN),
+                Position.removeNamedCapturingGroups(Range.PATTERN),
+                ".*?"));
 
         private final Path path;
         private final Range lfRange;
@@ -92,9 +88,8 @@ public class CodeMap {
         @Override
         public String toString() {
             return String.format(
-                "/*Correspondence: %s -> %s (verbatim=%b; src=%s)*/",
-                lfRange.toString(), generatedRange.toString(), verbatim, path.toString()
-            );
+                    "/*Correspondence: %s -> %s (verbatim=%b; src=%s)*/",
+                    lfRange.toString(), generatedRange.toString(), verbatim, path.toString());
         }
 
         /**
@@ -114,11 +109,10 @@ public class CodeMap {
                 Range lfRange = Range.fromString(matcher.group("lfRange"));
                 Range generatedRange = Range.fromString(matcher.group("generatedRange"), relativeTo);
                 return new Correspondence(
-                    Path.of(matcher.group("path")),
-                    lfRange,
-                    generatedRange,
-                    Boolean.parseBoolean(matcher.group("verbatim"))
-                );
+                        Path.of(matcher.group("path")),
+                        lfRange,
+                        generatedRange,
+                        Boolean.parseBoolean(matcher.group("verbatim")));
             }
             throw new IllegalArgumentException(String.format("Could not parse %s as a Correspondence.", s));
         }
@@ -144,9 +138,8 @@ public class CodeMap {
             // to any LF code, and it need not be tagged at all.
             if (node == null) return representation;
             final LineAndColumn oneBasedLfLineAndColumn = NodeModelUtils.getLineAndColumn(node, node.getTotalOffset());
-            Position lfStart = Position.fromOneBased(
-                oneBasedLfLineAndColumn.getLine(), oneBasedLfLineAndColumn.getColumn()
-            );
+            Position lfStart =
+                    Position.fromOneBased(oneBasedLfLineAndColumn.getLine(), oneBasedLfLineAndColumn.getColumn());
             final URI uri = bestEffortGetEResource(astNode).getURI();
             if (uri == null) {
                 // no EResource, no correspondence can be found
@@ -155,11 +148,11 @@ public class CodeMap {
             final Path lfPath = Path.of(uri.isFile() ? uri.toFileString() : uri.path());
             if (verbatim) lfStart = lfStart.plus(node.getText().substring(0, indexOf(node.getText(), representation)));
             return new Correspondence(
-                lfPath,
-                new Range(lfStart, lfStart.plus(verbatim ? representation : node.getText())),
-                new Range(Position.ORIGIN, Position.displacementOf(representation)),
-                verbatim
-            ) + representation;
+                            lfPath,
+                            new Range(lfStart, lfStart.plus(verbatim ? representation : node.getText())),
+                            new Range(Position.ORIGIN, Position.displacementOf(representation)),
+                            verbatim)
+                    + representation;
         }
 
         /**
@@ -231,7 +224,9 @@ public class CodeMap {
         Iterator<String> it = internalGeneratedCode.lines().iterator();
         int zeroBasedLine = 0;
         while (it.hasNext()) {
-            generatedCode.append(processGeneratedLine(it.next(), zeroBasedLine++, map, isVerbatimByLfSourceByRange)).append('\n');
+            generatedCode
+                    .append(processGeneratedLine(it.next(), zeroBasedLine++, map, isVerbatimByLfSourceByRange))
+                    .append('\n');
         }
         return new CodeMap(generatedCode.toString(), map, isVerbatimByLfSourceByRange);
     }
@@ -274,9 +269,10 @@ public class CodeMap {
             return nearestEntry.getValue().getStartInclusive();
         }
         if (nearestEntry.getKey().contains(generatedFilePosition)) {
-            return nearestEntry.getValue().getStartInclusive().plus(
-                generatedFilePosition.minus(nearestEntry.getKey().getStartInclusive())
-            );
+            return nearestEntry
+                    .getValue()
+                    .getStartInclusive()
+                    .plus(generatedFilePosition.minus(nearestEntry.getKey().getStartInclusive()));
         }
         return Position.ORIGIN;
     }
@@ -302,10 +298,9 @@ public class CodeMap {
     /* ------------------------- PRIVATE METHODS ------------------------- */
 
     private CodeMap(
-        String generatedCode, Map<Path,
-        NavigableMap<Range, Range>> map,
-        Map<Path, Map<Range, Boolean>> isVerbatimByLfSourceByRange
-    ) {
+            String generatedCode,
+            Map<Path, NavigableMap<Range, Range>> map,
+            Map<Path, Map<Range, Boolean>> isVerbatimByLfSourceByRange) {
         this.generatedCode = generatedCode;
         this.map = map;
         this.isVerbatimByLfSourceByRange = isVerbatimByLfSourceByRange;
@@ -322,23 +317,21 @@ public class CodeMap {
      * Correspondences removed
      */
     private static String processGeneratedLine(
-        String line,
-        int zeroBasedLineIndex,
-        Map<Path, NavigableMap<Range, Range>> map,
-        Map<Path, Map<Range, Boolean>> isVerbatimByLfSourceByRange
-    ) {
+            String line,
+            int zeroBasedLineIndex,
+            Map<Path, NavigableMap<Range, Range>> map,
+            Map<Path, Map<Range, Boolean>> isVerbatimByLfSourceByRange) {
         Matcher matcher = Correspondence.PATTERN.matcher(line);
         StringBuilder cleanedLine = new StringBuilder();
         int lastEnd = 0;
         while (matcher.find()) {
             cleanedLine.append(line, lastEnd, matcher.start());
             Correspondence c = Correspondence.fromString(
-                matcher.group(),
-                Position.fromZeroBased(zeroBasedLineIndex, cleanedLine.length())
-            );
+                    matcher.group(), Position.fromZeroBased(zeroBasedLineIndex, cleanedLine.length()));
             if (!map.containsKey(c.path)) map.put(c.path, new TreeMap<>());
             map.get(c.path).put(c.generatedRange, c.lfRange);
-            if (!isVerbatimByLfSourceByRange.containsKey(c.path)) isVerbatimByLfSourceByRange.put(c.path, new HashMap<>());
+            if (!isVerbatimByLfSourceByRange.containsKey(c.path))
+                isVerbatimByLfSourceByRange.put(c.path, new HashMap<>());
             isVerbatimByLfSourceByRange.get(c.path).put(c.generatedRange, c.verbatim);
             lastEnd = matcher.end();
         }

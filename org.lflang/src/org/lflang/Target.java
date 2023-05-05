@@ -27,330 +27,341 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
-
 import org.lflang.lf.TargetDecl;
 
-/** 
+/**
  * Enumeration of targets and their associated properties. These classes are
  * written in Java, not Xtend, because the enum implementation in Xtend more
  * primitive. It is safer to use enums rather than string values since it allows
  * faulty references to be caught at compile time. Switch statements that take
  * as input an enum but do not have cases for all members of the enum are also
  * reported by Xtend with a warning message.
- * 
+ *
  * @author Marten Lohstroh
  */
 public enum Target {
-    C("C", true, Arrays.asList(
-                // List via: https://en.cppreference.com/w/c/keyword
-                "auto",
-                "break",
-                "case",
-                "char",
-                "const",
-                "continue",
-                "default",
-                "do",
-                "double",
-                "else",
-                "enum",
-                "extern",
-                "float",
-                "for",
-                "goto",
-                "if",
-                "inline", // (since C99)
-                "int",
-                "long",
-                "register",
-                "restrict", // (since C99)
-                "return",
-                "short",
-                "signed",
-                "sizeof",
-                "static",
-                "struct",
-                "switch",
-                "typedef",
-                "union",
-                "unsigned",
-                "void",
-                "volatile",
-                "while",
-                "_Alignas", // (since C11)
-                "_Alignof", // (since C11)
-                "_Atomic", // (since C11)
-                "_Bool", // (since C99)
-                "_Complex", // (since C99)
-                "_Generic", // (since C11)
-                "_Imaginary", // (since C99)
-                "_Noreturn", // (since C11)
-                "_Static_assert", // (since C11)
-                "_Thread_local" // (since C11)
-                )
-    ), 
-    CCPP("CCpp", true, Target.C.keywords), 
-    CPP("Cpp", true, "cpp", "Cpp", Arrays.asList(
-                // List via: https://en.cppreference.com/w/cpp/keyword
-                "alignas", // (since C++11)
-                "alignof", // (since C++11)
-                "and",
-                "and_eq",
-                "asm",
-                "atomic_cancel", // (TM TS)
-                "atomic_commit", // (TM TS)
-                "atomic_noexcept", // (TM TS)
-                "auto(1)",
-                "bitand",
-                "bitor",
-                "bool",
-                "break",
-                "case",
-                "catch",
-                "char",
-                "char8_t", // (since C++20)
-                "char16_t", // (since C++11)
-                "char32_t", // (since C++11)
-                "class(1)",
-                "compl",
-                "concept", // (since C++20)
-                "const",
-                "consteval", // (since C++20)
-                "constexpr", // (since C++11)
-                "constinit", // (since C++20)
-                "const_cast",
-                "continue",
-                "co_await", // (since C++20)
-                "co_return", // (since C++20)
-                "co_yield", // (since C++20)
-                "decltype", // (since C++11)
-                "default(1)",
-                "delete(1)",
-                "do",
-                "double",
-                "dynamic_cast",
-                "else",
-                "enum",
-                "explicit",
-                "export(1)(3)",
-                "extern(1)",
-                "false",
-                "float",
-                "for",
-                "friend",
-                "goto",
-                "if",
-                "inline(1)",
-                "int",
-                "long",
-                "mutable(1)",
-                "namespace",
-                "new",
-                "noexcept", // (since C++11)
-                "not",
-                "not_eq",
-                "nullptr", // (since C++11)
-                "operator",
-                "or",
-                "or_eq",
-                "private",
-                "protected",
-                "public",
-                "reflexpr", // (reflection TS)
-                "register(2)",
-                "reinterpret_cast",
-                "requires", // (since C++20)
-                "return",
-                "short",
-                "signed",
-                "sizeof(1)",
-                "static",
-                "static_assert", // (since C++11)
-                "static_cast",
-                "struct(1)",
-                "switch",
-                "synchronized", // (TM TS)
-                "template",
-                "this",
-                "thread_local", // (since C++11)
-                "throw",
-                "true",
-                "try",
-                "typedef",
-                "typeid",
-                "typename",
-                "union",
-                "unsigned",
-                "using(1)",
-                "virtual",
-                "void",
-                "volatile",
-                "wchar_t",
-                "while",
-                "xor",
-                "xor_eq"
-                )
-    ),
-    TS("TypeScript", false, "ts", "TS", Arrays.asList(
-                // List via: https://github.com/Microsoft/TypeScript/issues/2536 
-                // Reserved words
-                "break",
-                "case",
-                "catch",
-                "class",
-                "const",
-                "continue",
-                "debugger",
-                "default",
-                "delete",
-                "do",
-                "else",
-                "enum",
-                "export",
-                "extends",
-                "false",
-                "finally",
-                "for",
-                "function",
-                "if",
-                "import",
-                "in",
-                "instanceof",
-                "new",
-                "null",
-                "return",
-                "super",
-                "switch",
-                "this",
-                "throw",
-                "true",
-                "try",
-                "typeof",
-                "var",
-                "void",
-                "while",
-                "with",
-                
-                // Strict Mode Reserved Words
-                "as",
-                "implements",
-                "interface",
-                "let",
-                "package",
-                "private",
-                "protected",
-                "public",
-                "static",
-                "yield",
-                
-                // Contextual Keywords
-                "any",
-                "boolean",
-                "constructor",
-                "declare",
-                "get",
-                "module",
-                "require",
-                "number",
-                "set",
-                "string",
-                "symbol",
-                "type",
-                "from",
-                "of",
-                
-                // Reactor-TS specific keywords (other classes, which are less user-facing, have double underscores)
-                "TimeUnit",
-                "TimeValue",
-                "Present",
-                "Sched",
-                "Read",
-                "Write",
-                "ReadWrite"
-                )
-    ), 
-    Python("Python", false, Arrays.asList(
-            // List via: https://www.w3schools.com/python/python_ref_keywords.asp
-            // and https://en.cppreference.com/w/c/keyword (due to reliance on the C lib).
-            "and",
-            "as",
-            "assert",
-            "auto",
-            "break",
-            "case",
-            "char",
-            "class",
-            "const",
-            "continue",
-            "def",
-            "default",
-            "del",
-            "do",
-            "double",
-            "elif",
-            "else",
-            "enum",
-            "except",
-            "extern",
-            "False",
-            "finally",
-            "float",
-            "for",
-            "from",
-            "global",
-            "goto",
-            "if",
-            "import",
-            "inline", // (since C99)
-            "int",
-            "in",
-            "is",
-            "lambda",
-            "long",
-            "None",
-            "nonlocal",
-            "not",
-            "or",
-            "pass",
-            "raise",
-            "register",
-            "restrict", // (since C99)
-            "return",
-            "short",
-            "signed",
-            "sizeof",
-            "static",
-            "struct",
-            "switch",
-            "True",
-            "try",
-            "typedef",
-            "union",
-            "unsigned",
-            "void",
-            "volatile",
-            "while",
-            "with",
-            "yield",
-            "_Alignas", // (since C11)
-            "_Alignof", // (since C11)
-            "_Atomic", // (since C11)
-            "_Bool", // (since C99)
-            "_Complex", // (since C99)
-            "_Generic", // (since C11)
-            "_Imaginary", // (since C99)
-            "_Noreturn", // (since C11)
-            "_Static_assert", // (since C11)
-            "_Thread_local" // (since C11)
-            )
-    ),
-    Rust("Rust", true,
-         "rust", "Rust",
-         // In our Rust implementation, the only reserved keywords
-         // are those that are a valid expression. Others may be escaped
-         // with the syntax r#keyword.
-         Arrays.asList("self", "true", "false")
-    );
+    C(
+            "C",
+            true,
+            Arrays.asList(
+                    // List via: https://en.cppreference.com/w/c/keyword
+                    "auto",
+                    "break",
+                    "case",
+                    "char",
+                    "const",
+                    "continue",
+                    "default",
+                    "do",
+                    "double",
+                    "else",
+                    "enum",
+                    "extern",
+                    "float",
+                    "for",
+                    "goto",
+                    "if",
+                    "inline", // (since C99)
+                    "int",
+                    "long",
+                    "register",
+                    "restrict", // (since C99)
+                    "return",
+                    "short",
+                    "signed",
+                    "sizeof",
+                    "static",
+                    "struct",
+                    "switch",
+                    "typedef",
+                    "union",
+                    "unsigned",
+                    "void",
+                    "volatile",
+                    "while",
+                    "_Alignas", // (since C11)
+                    "_Alignof", // (since C11)
+                    "_Atomic", // (since C11)
+                    "_Bool", // (since C99)
+                    "_Complex", // (since C99)
+                    "_Generic", // (since C11)
+                    "_Imaginary", // (since C99)
+                    "_Noreturn", // (since C11)
+                    "_Static_assert", // (since C11)
+                    "_Thread_local" // (since C11)
+                    )),
+    CCPP("CCpp", true, Target.C.keywords),
+    CPP(
+            "Cpp",
+            true,
+            "cpp",
+            "Cpp",
+            Arrays.asList(
+                    // List via: https://en.cppreference.com/w/cpp/keyword
+                    "alignas", // (since C++11)
+                    "alignof", // (since C++11)
+                    "and",
+                    "and_eq",
+                    "asm",
+                    "atomic_cancel", // (TM TS)
+                    "atomic_commit", // (TM TS)
+                    "atomic_noexcept", // (TM TS)
+                    "auto(1)",
+                    "bitand",
+                    "bitor",
+                    "bool",
+                    "break",
+                    "case",
+                    "catch",
+                    "char",
+                    "char8_t", // (since C++20)
+                    "char16_t", // (since C++11)
+                    "char32_t", // (since C++11)
+                    "class(1)",
+                    "compl",
+                    "concept", // (since C++20)
+                    "const",
+                    "consteval", // (since C++20)
+                    "constexpr", // (since C++11)
+                    "constinit", // (since C++20)
+                    "const_cast",
+                    "continue",
+                    "co_await", // (since C++20)
+                    "co_return", // (since C++20)
+                    "co_yield", // (since C++20)
+                    "decltype", // (since C++11)
+                    "default(1)",
+                    "delete(1)",
+                    "do",
+                    "double",
+                    "dynamic_cast",
+                    "else",
+                    "enum",
+                    "explicit",
+                    "export(1)(3)",
+                    "extern(1)",
+                    "false",
+                    "float",
+                    "for",
+                    "friend",
+                    "goto",
+                    "if",
+                    "inline(1)",
+                    "int",
+                    "long",
+                    "mutable(1)",
+                    "namespace",
+                    "new",
+                    "noexcept", // (since C++11)
+                    "not",
+                    "not_eq",
+                    "nullptr", // (since C++11)
+                    "operator",
+                    "or",
+                    "or_eq",
+                    "private",
+                    "protected",
+                    "public",
+                    "reflexpr", // (reflection TS)
+                    "register(2)",
+                    "reinterpret_cast",
+                    "requires", // (since C++20)
+                    "return",
+                    "short",
+                    "signed",
+                    "sizeof(1)",
+                    "static",
+                    "static_assert", // (since C++11)
+                    "static_cast",
+                    "struct(1)",
+                    "switch",
+                    "synchronized", // (TM TS)
+                    "template",
+                    "this",
+                    "thread_local", // (since C++11)
+                    "throw",
+                    "true",
+                    "try",
+                    "typedef",
+                    "typeid",
+                    "typename",
+                    "union",
+                    "unsigned",
+                    "using(1)",
+                    "virtual",
+                    "void",
+                    "volatile",
+                    "wchar_t",
+                    "while",
+                    "xor",
+                    "xor_eq")),
+    TS(
+            "TypeScript",
+            false,
+            "ts",
+            "TS",
+            Arrays.asList(
+                    // List via: https://github.com/Microsoft/TypeScript/issues/2536
+                    // Reserved words
+                    "break",
+                    "case",
+                    "catch",
+                    "class",
+                    "const",
+                    "continue",
+                    "debugger",
+                    "default",
+                    "delete",
+                    "do",
+                    "else",
+                    "enum",
+                    "export",
+                    "extends",
+                    "false",
+                    "finally",
+                    "for",
+                    "function",
+                    "if",
+                    "import",
+                    "in",
+                    "instanceof",
+                    "new",
+                    "null",
+                    "return",
+                    "super",
+                    "switch",
+                    "this",
+                    "throw",
+                    "true",
+                    "try",
+                    "typeof",
+                    "var",
+                    "void",
+                    "while",
+                    "with",
+
+                    // Strict Mode Reserved Words
+                    "as",
+                    "implements",
+                    "interface",
+                    "let",
+                    "package",
+                    "private",
+                    "protected",
+                    "public",
+                    "static",
+                    "yield",
+
+                    // Contextual Keywords
+                    "any",
+                    "boolean",
+                    "constructor",
+                    "declare",
+                    "get",
+                    "module",
+                    "require",
+                    "number",
+                    "set",
+                    "string",
+                    "symbol",
+                    "type",
+                    "from",
+                    "of",
+
+                    // Reactor-TS specific keywords (other classes, which are less user-facing, have double underscores)
+                    "TimeUnit",
+                    "TimeValue",
+                    "Present",
+                    "Sched",
+                    "Read",
+                    "Write",
+                    "ReadWrite")),
+    Python(
+            "Python",
+            false,
+            Arrays.asList(
+                    // List via: https://www.w3schools.com/python/python_ref_keywords.asp
+                    // and https://en.cppreference.com/w/c/keyword (due to reliance on the C lib).
+                    "and",
+                    "as",
+                    "assert",
+                    "auto",
+                    "break",
+                    "case",
+                    "char",
+                    "class",
+                    "const",
+                    "continue",
+                    "def",
+                    "default",
+                    "del",
+                    "do",
+                    "double",
+                    "elif",
+                    "else",
+                    "enum",
+                    "except",
+                    "extern",
+                    "False",
+                    "finally",
+                    "float",
+                    "for",
+                    "from",
+                    "global",
+                    "goto",
+                    "if",
+                    "import",
+                    "inline", // (since C99)
+                    "int",
+                    "in",
+                    "is",
+                    "lambda",
+                    "long",
+                    "None",
+                    "nonlocal",
+                    "not",
+                    "or",
+                    "pass",
+                    "raise",
+                    "register",
+                    "restrict", // (since C99)
+                    "return",
+                    "short",
+                    "signed",
+                    "sizeof",
+                    "static",
+                    "struct",
+                    "switch",
+                    "True",
+                    "try",
+                    "typedef",
+                    "union",
+                    "unsigned",
+                    "void",
+                    "volatile",
+                    "while",
+                    "with",
+                    "yield",
+                    "_Alignas", // (since C11)
+                    "_Alignof", // (since C11)
+                    "_Atomic", // (since C11)
+                    "_Bool", // (since C99)
+                    "_Complex", // (since C99)
+                    "_Generic", // (since C11)
+                    "_Imaginary", // (since C99)
+                    "_Noreturn", // (since C11)
+                    "_Static_assert", // (since C11)
+                    "_Thread_local" // (since C11)
+                    )),
+    Rust(
+            "Rust",
+            true,
+            "rust",
+            "Rust",
+            // In our Rust implementation, the only reserved keywords
+            // are those that are a valid expression. Others may be escaped
+            // with the syntax r#keyword.
+            Arrays.asList("self", "true", "false"));
 
     /**
      * String representation of this target.
@@ -391,15 +402,18 @@ public enum Target {
      * @param classNamePrefix Prefix of names of Kotlin classes for the target language.
      * @param keywords        List of reserved strings in the target language.
      */
-    Target(String displayName, boolean requiresTypes, String packageName,
-           String classNamePrefix, Collection<String> keywords) {
+    Target(
+            String displayName,
+            boolean requiresTypes,
+            String packageName,
+            String classNamePrefix,
+            Collection<String> keywords) {
         this.displayName = displayName;
         this.requiresTypes = requiresTypes;
         this.keywords = Collections.unmodifiableSet(new LinkedHashSet<>(keywords));
         this.packageName = packageName;
         this.classNamePrefix = classNamePrefix;
     }
-
 
     /**
      * Private constructor for targets without packageName and classNamePrefix.
@@ -408,7 +422,6 @@ public enum Target {
         this(displayName, requiresTypes, "N/A", "N/A", keywords); // FIXME: prefix
     }
 
-
     /**
      * Return the target whose {@linkplain #getDisplayName() display name}
      * is the given string (modulo character case), or an empty
@@ -416,8 +429,8 @@ public enum Target {
      */
     public static Optional<Target> forName(String name) {
         return Arrays.stream(Target.values())
-                     .filter(it -> it.getDisplayName().equalsIgnoreCase(name))
-                     .findFirst();
+                .filter(it -> it.getDisplayName().equalsIgnoreCase(name))
+                .findFirst();
     }
 
     /**
@@ -488,17 +501,16 @@ public enum Target {
      */
     public boolean supportsMultiports() {
         switch (this) {
-        case C:
-        case CCPP:
-        case CPP:
-        case Python:
-        case Rust:
-        case TS:
-            return true;
+            case C:
+            case CCPP:
+            case CPP:
+            case Python:
+            case Rust:
+            case TS:
+                return true;
         }
         return false;
     }
-
 
     /**
      * Return true if the target supports widths of banks and
@@ -569,7 +581,6 @@ public enum Target {
         return null;
     }
 
-
     /**
      * Given a string and a list of candidate objects, return the first
      * candidate that matches, or null if no candidate matches.
@@ -583,7 +594,6 @@ public enum Target {
         return match(string, Arrays.asList(candidates));
     }
 
-
     /**
      * Return the target constant corresponding to given target
      * declaration among. Return a non-null result, will throw
@@ -593,8 +603,6 @@ public enum Target {
      */
     public static Target fromDecl(TargetDecl targetDecl) {
         String name = targetDecl.getName();
-        return Target.forName(name)
-                     .orElseThrow(() -> new RuntimeException("Invalid target name '" + name + "'"));
+        return Target.forName(name).orElseThrow(() -> new RuntimeException("Invalid target name '" + name + "'"));
     }
-
 }

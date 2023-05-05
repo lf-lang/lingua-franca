@@ -9,12 +9,10 @@ import java.util.Random;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Predicate;
-
-import org.eclipse.lsp4j.Diagnostic;
 import org.eclipse.emf.common.util.URI;
+import org.eclipse.lsp4j.Diagnostic;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
-
 import org.lflang.LFRuntimeModule;
 import org.lflang.LFStandaloneSetup;
 import org.lflang.Target;
@@ -37,15 +35,18 @@ class LspTests {
     private static final TestCategory[] EXCLUDED_CATEGORIES = {
         TestCategory.SERIALIZATION, TestCategory.DOCKER, TestCategory.DOCKER_FEDERATED
     };
+
     private static final Predicate<List<Diagnostic>> NOT_SUPPORTED = diagnosticsHaveKeyword("supported");
     private static final Predicate<List<Diagnostic>> MISSING_DEPENDENCY = diagnosticsHaveKeyword("libprotoc")
-        .or(diagnosticsHaveKeyword("protoc-c")).or(diagnosticsIncludeText("could not be found"));
+            .or(diagnosticsHaveKeyword("protoc-c"))
+            .or(diagnosticsIncludeText("could not be found"));
     /** The number of samples to take from each test category (with replacement) when doing validation tests. */
     private static final int SAMPLES_PER_CATEGORY_VALIDATION_TESTS = 3;
 
     /** The {@code IntegratedBuilder} instance whose behavior is to be tested. */
     private static final IntegratedBuilder builder = new LFStandaloneSetup(new LFRuntimeModule())
-        .createInjectorAndDoEMFRegistration().getInstance(IntegratedBuilder.class);
+            .createInjectorAndDoEMFRegistration()
+            .getInstance(IntegratedBuilder.class);
 
     /** Test for false negatives in Python syntax-only validation. */
     @Test
@@ -87,32 +88,32 @@ class LspTests {
         System.out.printf("Running validation tests for %s with random seed %d.%n", target.getDisplayName(), seed);
         Random random = new Random(seed);
         int i = SAMPLES_PER_CATEGORY_VALIDATION_TESTS;
-        while (i-- > 0) checkDiagnostics(
-            target,
-            alteredTest -> MISSING_DEPENDENCY.or(diagnostics -> alteredTest.getBadLines().stream().allMatch(
-                badLine -> {
-                    System.out.print("Expecting an error to be reported at line " + badLine + "...");
-                    boolean result = NOT_SUPPORTED.test(diagnostics) || diagnostics.stream().anyMatch(
-                        diagnostic -> diagnostic.getRange().getStart().getLine() == badLine
-                    );
-                    if (result) {
-                        System.out.println(" Success.");
-                    } else {
-                        System.out.println(" but the expected error could not be found.");
-                        System.out.printf(
-                            "%s failed. Content of altered version of %s:%n%s%n",
-                            alteredTest.getSrcFile(),
-                            alteredTest.getSrcFile(),
-                            TestBase.THIN_LINE
-                        );
-                        System.out.println(alteredTest + "\n" + TestBase.THIN_LINE);
-                    }
-                    return result;
-                }
-            )),
-            builder.get(random),
-            random
-        );
+        while (i-- > 0)
+            checkDiagnostics(
+                    target,
+                    alteredTest -> MISSING_DEPENDENCY.or(
+                            diagnostics -> alteredTest.getBadLines().stream().allMatch(badLine -> {
+                                System.out.print("Expecting an error to be reported at line " + badLine + "...");
+                                boolean result = NOT_SUPPORTED.test(diagnostics)
+                                        || diagnostics.stream()
+                                                .anyMatch(diagnostic -> diagnostic
+                                                                .getRange()
+                                                                .getStart()
+                                                                .getLine()
+                                                        == badLine);
+                                if (result) {
+                                    System.out.println(" Success.");
+                                } else {
+                                    System.out.println(" but the expected error could not be found.");
+                                    System.out.printf(
+                                            "%s failed. Content of altered version of %s:%n%s%n",
+                                            alteredTest.getSrcFile(), alteredTest.getSrcFile(), TestBase.THIN_LINE);
+                                    System.out.println(alteredTest + "\n" + TestBase.THIN_LINE);
+                                }
+                                return result;
+                            })),
+                    builder.get(random),
+                    random);
     }
 
     /**
@@ -127,11 +128,11 @@ class LspTests {
      * @throws IOException upon failure to write an altered copy of some test to storage.
      */
     private void checkDiagnostics(
-        Target target,
-        Function<AlteredTest, Predicate<List<Diagnostic>>> requirementGetter,
-        ErrorInserter alterer,
-        Random random
-    ) throws IOException {
+            Target target,
+            Function<AlteredTest, Predicate<List<Diagnostic>>> requirementGetter,
+            ErrorInserter alterer,
+            Random random)
+            throws IOException {
         MockLanguageClient client = new MockLanguageClient();
         LanguageServerErrorReporter.setClient(client);
         for (LFTest test : selectTests(target, random)) {
@@ -172,9 +173,9 @@ class LspTests {
 
     /** Return the non-excluded categories. */
     private Iterable<? extends TestCategory> selectedCategories() {
-        return () -> Arrays.stream(TestCategory.values()).filter(
-            category -> Arrays.stream(EXCLUDED_CATEGORIES).noneMatch(category::equals)
-        ).iterator();
+        return () -> Arrays.stream(TestCategory.values())
+                .filter(category -> Arrays.stream(EXCLUDED_CATEGORIES).noneMatch(category::equals))
+                .iterator();
     }
 
     /**
@@ -183,9 +184,9 @@ class LspTests {
      * @return The predicate, "X mentions {@code keyword}."
      */
     private static Predicate<List<Diagnostic>> diagnosticsHaveKeyword(String keyword) {
-        return diagnostics -> diagnostics.stream().anyMatch(
-            d -> Arrays.asList(d.getMessage().toLowerCase().split("\\b")).contains(keyword)
-        );
+        return diagnostics -> diagnostics.stream()
+                .anyMatch(d ->
+                        Arrays.asList(d.getMessage().toLowerCase().split("\\b")).contains(keyword));
     }
 
     /**
@@ -193,10 +194,10 @@ class LspTests {
      * @param requiredText A keyword that a list of diagnostics should be searched for.
      * @return The predicate, "X includes {@code requiredText}."
      */
-    private static Predicate<List<Diagnostic>> diagnosticsIncludeText(@SuppressWarnings("SameParameterValue") String requiredText) {
-        return diagnostics -> diagnostics.stream().anyMatch(
-            d -> d.getMessage().toLowerCase().contains(requiredText)
-        );
+    private static Predicate<List<Diagnostic>> diagnosticsIncludeText(
+            @SuppressWarnings("SameParameterValue") String requiredText) {
+        return diagnostics ->
+                diagnostics.stream().anyMatch(d -> d.getMessage().toLowerCase().contains(requiredText));
     }
 
     /**
@@ -206,11 +207,7 @@ class LspTests {
     private void runTest(Path test) {
         MockReportProgress reportProgress = new MockReportProgress();
         try {
-            builder.run(
-                URI.createFileURI(test.toString()),
-                false, reportProgress,
-                () -> false
-            );
+            builder.run(URI.createFileURI(test.toString()), false, reportProgress, () -> false);
         } catch (Exception e) {
             e.printStackTrace();
             throw e;

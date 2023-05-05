@@ -2,9 +2,7 @@ package org.lflang.generator;
 
 import java.nio.file.Path;
 import java.util.Map;
-
 import org.eclipse.lsp4j.DiagnosticSeverity;
-
 import org.lflang.ErrorReporter;
 
 /**
@@ -22,7 +20,8 @@ public class DiagnosticReporting {
     /**
      * A means of parsing the output of a validator.
      */
-    @FunctionalInterface public interface Strategy {
+    @FunctionalInterface
+    public interface Strategy {
         /**
          * Parse the validation output and report any errors
          * that it contains.
@@ -41,7 +40,9 @@ public class DiagnosticReporting {
      * @return The given data as a human-readable message.
      */
     public static String messageOf(String message, Path path, Position position) {
-        return String.format("%s [%s:%s:%s]", message, path.getFileName().toString(), position.getOneBasedLine(), position.getOneBasedColumn());
+        return String.format(
+                "%s [%s:%s:%s]",
+                message, path.getFileName().toString(), position.getOneBasedLine(), position.getOneBasedColumn());
     }
 
     /**

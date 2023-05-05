@@ -2,10 +2,8 @@ package org.lflang.federated.generator;
 
 import java.nio.file.Path;
 import java.util.Map;
-
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.lsp4j.DiagnosticSeverity;
-
 import org.lflang.ErrorReporter;
 import org.lflang.generator.CodeMap;
 import org.lflang.generator.Position;
@@ -69,13 +67,7 @@ public class LineAdjustingErrorReporter implements ErrorReporter {
     private String report(Path file, Integer line, String message, DiagnosticSeverity severity) {
         if (line == null) return report(file, severity, message);
         var position = Position.fromOneBased(line, Integer.MAX_VALUE);
-        return report(
-            file,
-            severity,
-            message,
-            Position.fromZeroBased(position.getZeroBasedLine(), 0),
-            position
-        );
+        return report(file, severity, message, Position.fromZeroBased(position.getZeroBasedLine(), 0), position);
     }
 
     @Override
@@ -89,32 +81,21 @@ public class LineAdjustingErrorReporter implements ErrorReporter {
     }
 
     @Override
-    public String report(
-        Path file,
-        DiagnosticSeverity severity,
-        String message,
-        Position startPos,
-        Position endPos
-    ) {
+    public String report(Path file, DiagnosticSeverity severity, String message, Position startPos, Position endPos) {
         String ret = null;
         if (codeMapMap.containsKey(file)) {
             var relevantMap = codeMapMap.get(file);
             for (Path lfSource : relevantMap.lfSourcePaths()) {
-                var adjustedRange = relevantMap.adjusted(
-                    lfSource,
-                    new Range(startPos, endPos)
-                );
+                var adjustedRange = relevantMap.adjusted(lfSource, new Range(startPos, endPos));
                 ret = parent.report(
-                    lfSource,
-                    severity,
-                    message,
-                    adjustedRange.getStartInclusive().equals(Position.ORIGIN) ?
-                        Position.fromZeroBased(
-                            adjustedRange.getEndExclusive().getZeroBasedLine(),
-                            0
-                        ) : adjustedRange.getStartInclusive(),
-                    adjustedRange.getEndExclusive()
-                );
+                        lfSource,
+                        severity,
+                        message,
+                        adjustedRange.getStartInclusive().equals(Position.ORIGIN)
+                                ? Position.fromZeroBased(
+                                        adjustedRange.getEndExclusive().getZeroBasedLine(), 0)
+                                : adjustedRange.getStartInclusive(),
+                        adjustedRange.getEndExclusive());
             }
         }
         if (ret == null) return severity == DiagnosticSeverity.Error ? reportError(message) : reportWarning(message);

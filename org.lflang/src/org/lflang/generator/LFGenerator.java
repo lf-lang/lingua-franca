@@ -1,15 +1,14 @@
 package org.lflang.generator;
 
+import com.google.inject.Inject;
 import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.nio.file.Path;
-
 import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.xtext.generator.AbstractGenerator;
 import org.eclipse.xtext.generator.IFileSystemAccess2;
 import org.eclipse.xtext.generator.IGeneratorContext;
 import org.eclipse.xtext.util.RuntimeIOException;
-
 import org.lflang.ASTUtils;
 import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
@@ -22,8 +21,6 @@ import org.lflang.generator.c.CGenerator;
 import org.lflang.generator.python.PyFileConfig;
 import org.lflang.generator.python.PythonGenerator;
 import org.lflang.scoping.LFGlobalScopeProvider;
-
-import com.google.inject.Inject;
 
 /**
  * Generates code from your model files on save.
@@ -54,8 +51,7 @@ public class LFGenerator extends AbstractGenerator {
      * @return A FileConfig object in Kotlin if the class can be found.
      * @throws IOException If the file config could not be created properly
      */
-    public static FileConfig createFileConfig(Resource resource, Path srcGenBasePath,
-                                        boolean useHierarchicalBin) {
+    public static FileConfig createFileConfig(Resource resource, Path srcGenBasePath, boolean useHierarchicalBin) {
 
         final Target target = Target.fromDecl(ASTUtils.targetDecl(resource));
         assert target != null;
@@ -69,26 +65,29 @@ public class LFGenerator extends AbstractGenerator {
                 return new FedFileConfig(resource, srcGenBasePath, useHierarchicalBin);
             }
             switch (target) {
-            case CCPP:
-            case C: return new CFileConfig(resource, srcGenBasePath, useHierarchicalBin);
-            case Python: return new PyFileConfig(resource, srcGenBasePath, useHierarchicalBin);
-            case CPP:
-            case Rust:
-            case TS:
-                String className = "org.lflang.generator." + target.packageName + "." + target.classNamePrefix + "FileConfig";
-                try {
-                    return (FileConfig) Class.forName(className)
-                                             .getDeclaredConstructor(Resource.class, Path.class, boolean.class)
-                                             .newInstance(resource, srcGenBasePath, useHierarchicalBin);
-                } catch (ReflectiveOperationException e) {
-                    throw new RuntimeException(
-                        "Exception instantiating " + className, e.getCause());
-                }
-            default:
-                throw new RuntimeException("Could not find FileConfig implementation for target " + target);
+                case CCPP:
+                case C:
+                    return new CFileConfig(resource, srcGenBasePath, useHierarchicalBin);
+                case Python:
+                    return new PyFileConfig(resource, srcGenBasePath, useHierarchicalBin);
+                case CPP:
+                case Rust:
+                case TS:
+                    String className =
+                            "org.lflang.generator." + target.packageName + "." + target.classNamePrefix + "FileConfig";
+                    try {
+                        return (FileConfig) Class.forName(className)
+                                .getDeclaredConstructor(Resource.class, Path.class, boolean.class)
+                                .newInstance(resource, srcGenBasePath, useHierarchicalBin);
+                    } catch (ReflectiveOperationException e) {
+                        throw new RuntimeException("Exception instantiating " + className, e.getCause());
+                    }
+                default:
+                    throw new RuntimeException("Could not find FileConfig implementation for target " + target);
             }
         } catch (IOException e) {
-            throw new RuntimeException("Unable to create FileConfig object for target " + target + ": " + e.getStackTrace());
+            throw new RuntimeException(
+                    "Unable to create FileConfig object for target " + target + ": " + e.getStackTrace());
         }
     }
 
@@ -103,13 +102,11 @@ public class LFGenerator extends AbstractGenerator {
             case C -> new CGenerator(context, false);
             case CCPP -> new CGenerator(context, true);
             case Python -> new PythonGenerator(context);
-            case CPP, TS, Rust ->
-                createKotlinBaseGenerator(target, context);
-            // If no case matched, then throw a runtime exception.
+            case CPP, TS, Rust -> createKotlinBaseGenerator(target, context);
+                // If no case matched, then throw a runtime exception.
             default -> throw new RuntimeException("Unexpected target!");
         };
     }
-
 
     /**
      * Create a code generator in Kotlin.
@@ -131,31 +128,31 @@ public class LFGenerator extends AbstractGenerator {
         String classPrefix = "org.lflang.generator." + target.packageName + "." + target.classNamePrefix;
         try {
             Class<?> generatorClass = Class.forName(classPrefix + "Generator");
-            Constructor<?> ctor = generatorClass
-                .getDeclaredConstructor(LFGeneratorContext.class, LFGlobalScopeProvider.class);
+            Constructor<?> ctor =
+                    generatorClass.getDeclaredConstructor(LFGeneratorContext.class, LFGlobalScopeProvider.class);
 
             return (GeneratorBase) ctor.newInstance(context, scopeProvider);
         } catch (ReflectiveOperationException e) {
             generatorErrorsOccurred = true;
-            context.getErrorReporter().reportError(
-                "The code generator for the " + target + " target could not be found. "
-                    + "This is likely because you built Epoch using "
-                    + "Eclipse. The " + target + " code generator is written in Kotlin "
-                    + "and, unfortunately, the plugin that Eclipse uses "
-                    + "for compiling Kotlin code is broken. "
-                    + "Please consider building Epoch using Maven.\n"
-                    + "For step-by-step instructions, see: "
-                    + "https://github.com/icyphy/lingua-franca/wiki/Running-Lingua-Franca-IDE-%28Epoch%29-with-Kotlin-based-Code-Generators-Enabled-%28without-Eclipse-Environment%29");
+            context.getErrorReporter()
+                    .reportError(
+                            "The code generator for the " + target + " target could not be found. "
+                                    + "This is likely because you built Epoch using "
+                                    + "Eclipse. The " + target + " code generator is written in Kotlin "
+                                    + "and, unfortunately, the plugin that Eclipse uses "
+                                    + "for compiling Kotlin code is broken. "
+                                    + "Please consider building Epoch using Maven.\n"
+                                    + "For step-by-step instructions, see: "
+                                    + "https://github.com/icyphy/lingua-franca/wiki/Running-Lingua-Franca-IDE-%28Epoch%29-with-Kotlin-based-Code-Generators-Enabled-%28without-Eclipse-Environment%29");
             return null;
         }
     }
 
     @Override
-    public void doGenerate(Resource resource, IFileSystemAccess2 fsa,
-            IGeneratorContext context) {
+    public void doGenerate(Resource resource, IFileSystemAccess2 fsa, IGeneratorContext context) {
         final LFGeneratorContext lfContext;
         if (context instanceof LFGeneratorContext) {
-            lfContext = (LFGeneratorContext)context;
+            lfContext = (LFGeneratorContext) context;
         } else {
             lfContext = LFGeneratorContext.lfGeneratorContextOf(resource, fsa, context);
         }

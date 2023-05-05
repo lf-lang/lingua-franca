@@ -11,12 +11,11 @@ import org.lflang.LFStandaloneSetup;
  */
 public class LFIdeSetup extends LFStandaloneSetup {
 
-	public LFIdeSetup() {
-		super(new LFRuntimeModule(), new LFIdeModule());
-	}
+    public LFIdeSetup() {
+        super(new LFRuntimeModule(), new LFIdeModule());
+    }
 
-	public static void doSetup() {
-		new LFIdeSetup().createInjectorAndDoEMFRegistration();
-	}
-
+    public static void doSetup() {
+        new LFIdeSetup().createInjectorAndDoEMFRegistration();
+    }
 }

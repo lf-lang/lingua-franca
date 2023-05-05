@@ -39,8 +39,7 @@ public final class StringUtil {
     /**
      * Matches the boundary of a camel-case word. That's a zero-length match.
      */
-    private static final Pattern CAMEL_WORD_BOUNDARY =
-        Pattern.compile("(?<![A-Z])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])");
+    private static final Pattern CAMEL_WORD_BOUNDARY = Pattern.compile("(?<![A-Z])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])");
 
     private StringUtil() {
         // utility class
@@ -53,10 +52,11 @@ public final class StringUtil {
      * (no whitespace).
      */
     public static String camelToSnakeCase(String str) {
-        return CAMEL_WORD_BOUNDARY.splitAsStream(str)
-                                  .filter(it -> !it.isEmpty())
-                                  .map(it -> it.toLowerCase(Locale.ROOT))
-                                  .collect(Collectors.joining("_"));
+        return CAMEL_WORD_BOUNDARY
+                .splitAsStream(str)
+                .filter(it -> !it.isEmpty())
+                .map(it -> it.toLowerCase(Locale.ROOT))
+                .collect(Collectors.joining("_"));
     }
 
     /**
@@ -92,12 +92,12 @@ public final class StringUtil {
 
     /**
      * Intelligently trim the white space in a code block.
-	 *
-	 * The leading whitespaces of the first non-empty
-	 * code line is considered as a common prefix across all code lines. If the
-	 * remaining code lines indeed start with this prefix, it removes the prefix
-	 * from the code line.
-	 *
+     *
+     * The leading whitespaces of the first non-empty
+     * code line is considered as a common prefix across all code lines. If the
+     * remaining code lines indeed start with this prefix, it removes the prefix
+     * from the code line.
+     *
      * For examples, this code
      * <pre>{@code
      *        int test = 4;
@@ -123,12 +123,10 @@ public final class StringUtil {
         StringBuilder buffer = new StringBuilder();
         boolean stillProcessingLeadingBlankLines = true;
         for (int i = 0; i < firstLineToConsider; i++) {
-            var endIndex = codeLines[i].contains("//") ?
-                codeLines[i].indexOf("//") : codeLines[i].length();
+            var endIndex = codeLines[i].contains("//") ? codeLines[i].indexOf("//") : codeLines[i].length();
             // The following will break Rust attributes in multiline code blocks
             // where they appear next to the opening {= brace.
-            endIndex = codeLines[i].contains("#") ?
-                Math.min(endIndex, codeLines[i].indexOf("#")) : endIndex;
+            endIndex = codeLines[i].contains("#") ? Math.min(endIndex, codeLines[i].indexOf("#")) : endIndex;
             String toAppend = codeLines[i].substring(0, endIndex).strip();
             if (!toAppend.isBlank()) buffer.append(toAppend).append("\n");
         }
@@ -158,7 +156,7 @@ public final class StringUtil {
     }
 
     public static String addDoubleQuotes(String str) {
-        return "\""+str+"\"";
+        return "\"" + str + "\"";
     }
 
     public static <T> String joinObjects(List<T> things, String delimiter) {

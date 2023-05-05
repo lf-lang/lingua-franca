@@ -11,7 +11,7 @@ You can work on the Lingua Franca code base in your favorite editor and build us
 Please refer to our handbook for specific instructions for setting up a development environment in [IntelliJ](https://www.lf-lang.org/docs/handbook/intellij) or [Eclipse](https://www.lf-lang.org/docs/handbook/eclipse-oomph).
 
 ### Writing tests
-An integral part of contributing code is writing tests. 
+An integral part of contributing code is writing tests.
 
 **Unit tests** for the compiler are located in the `org.lflang.tests` package and are implemented using the JUnit test framework. These tests are invoked using Gradle. For example, to run all the tests in the `org.lflang.tests.compiler` package, use the following command:
 ```
@@ -124,9 +124,9 @@ In Java, instances of collection classes may be read-only. They will throw an ex
 
 ```
 /* Assume the returned list is unmodifiable */
-List<String> contents = container.getListOfContents(); 
+List<String> contents = container.getListOfContents();
 /* You can iterate on the list, get an item, but not set/add/remove. To make local modifications, make a copy:*/
-contents = new ArrayList<>(contents); 
+contents = new ArrayList<>(contents);
 /* Now the list is modifiable, but changes do not affect the `container` object */
 contents.add("extra");
 

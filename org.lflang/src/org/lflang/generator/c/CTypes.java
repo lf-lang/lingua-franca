@@ -4,15 +4,12 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-
 import org.lflang.InferredType;
 import org.lflang.TimeUnit;
 import org.lflang.TimeValue;
 import org.lflang.generator.ReactorInstance;
 import org.lflang.generator.TargetTypes;
-import org.lflang.lf.Initializer;
 import org.lflang.lf.ParameterReference;
-import org.lflang.lf.Type;
 
 public class CTypes implements TargetTypes {
 
@@ -22,8 +19,7 @@ public class CTypes implements TargetTypes {
     static final Pattern arrayPattern = Pattern.compile("^\\s*(?:/\\*.*?\\*/)?\\s*(\\w+)\\s*\\[([0-9]*)]\\s*$");
     private static final CTypes INSTANCE = new CTypes();
 
-    public CTypes() {
-    }
+    public CTypes() {}
 
     @Override
     public boolean supportsGenerics() {
@@ -119,11 +115,7 @@ public class CTypes implements TargetTypes {
      * @param variableName The name of the variable.
      * @param initializer True to return a form usable in a static initializer.
      */
-    public String getVariableDeclaration(
-            InferredType type,
-            String variableName,
-            boolean initializer
-    ) {
+    public String getVariableDeclaration(InferredType type, String variableName, boolean initializer) {
         String t = TargetTypes.super.getTargetType(type);
         Matcher matcher = arrayPattern.matcher(t);
         String declaration = String.format("%s %s", t, variableName);
@@ -133,11 +125,9 @@ public class CTypes implements TargetTypes {
             // after the variable name. Also, in an initializer, it has to have
             // form [], and in a struct definition, it has to use *.
             if (matcher.group(2).equals("") && !initializer) {
-                declaration = String.format("%s* %s",
-                        matcher.group(1), variableName);
+                declaration = String.format("%s* %s", matcher.group(1), variableName);
             } else {
-                declaration = String.format("%s %s[%s]",
-                        matcher.group(1), variableName, matcher.group(2));
+                declaration = String.format("%s %s[%s]", matcher.group(1), variableName, matcher.group(2));
             }
         }
         return declaration;
@@ -151,7 +141,6 @@ public class CTypes implements TargetTypes {
     public static CTypes getInstance() {
         return INSTANCE;
     }
-
 
     public static CTypes generateParametersIn(ReactorInstance instance) {
         return new CTypes() {

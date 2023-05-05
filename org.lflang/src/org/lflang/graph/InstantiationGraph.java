@@ -24,12 +24,13 @@
  */
 package org.lflang.graph;
 
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Iterables;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
-
 import org.eclipse.emf.ecore.resource.Resource;
 import org.lflang.ASTUtils;
 import org.lflang.lf.Instantiation;
@@ -37,9 +38,6 @@ import org.lflang.lf.Model;
 import org.lflang.lf.Reactor;
 import org.lflang.lf.ReactorDecl;
 import org.lflang.util.IteratorUtil;
-
-import com.google.common.collect.HashMultimap;
-import com.google.common.collect.Iterables;
 
 /**
  * A graph with vertices that are Reactors (not ReactorInstances) and edges that denote
@@ -62,14 +60,12 @@ public class InstantiationGraph extends PrecedenceGraph<Reactor> {
     /**
      * A mapping from reactors to the sites of their instantiation.
      */
-    protected final HashMultimap<Reactor, Instantiation> reactorToInstantiation =
-        HashMultimap.create();
+    protected final HashMultimap<Reactor, Instantiation> reactorToInstantiation = HashMultimap.create();
 
     /**
      * A mapping from reactor classes to their declarations.
      */
-    protected final HashMultimap<Reactor, ReactorDecl> reactorToDecl =
-        HashMultimap.create();
+    protected final HashMultimap<Reactor, ReactorDecl> reactorToDecl = HashMultimap.create();
 
     /**
      * Return the instantiations that point to a given reactor definition.
@@ -110,11 +106,9 @@ public class InstantiationGraph extends PrecedenceGraph<Reactor> {
      * @param detectCycles Whether or not to detect cycles.
      */
     public InstantiationGraph(final Resource resource, final boolean detectCycles) {
-        final Iterable<Instantiation> instantiations = Iterables.filter(
-                IteratorUtil.asIterable(resource.getAllContents()),
-                Instantiation.class);
-        Optional<Reactor> main = IteratorUtil
-                .asFilteredStream(resource.getAllContents(), Reactor.class)
+        final Iterable<Instantiation> instantiations =
+                Iterables.filter(IteratorUtil.asIterable(resource.getAllContents()), Instantiation.class);
+        Optional<Reactor> main = IteratorUtil.asFilteredStream(resource.getAllContents(), Reactor.class)
                 .filter(reactor -> reactor.isMain() || reactor.isFederated())
                 .findFirst();
 

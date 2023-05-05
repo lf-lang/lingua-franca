@@ -28,17 +28,14 @@
 
 package org.lflang.cli;
 
+import com.google.inject.Binder;
+import com.google.inject.Module;
 import java.util.Objects;
-
 import org.eclipse.emf.ecore.EValidator;
 import org.eclipse.emf.ecore.impl.EValidatorRegistryImpl;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
-
 import org.lflang.ErrorReporter;
 import org.lflang.LFRuntimeModule;
-
-import com.google.inject.Binder;
-import com.google.inject.Module;
 
 /**
  * Module that is only available when running LFC as a
