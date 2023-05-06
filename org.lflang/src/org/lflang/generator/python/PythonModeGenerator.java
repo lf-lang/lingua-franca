@@ -1,7 +1,6 @@
 package org.lflang.generator.python;
 
 import java.util.List;
-
 import org.eclipse.emf.ecore.util.EcoreUtil;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.lf.BuiltinTrigger;
@@ -15,7 +14,6 @@ import org.lflang.lf.Reactor;
  * Helper class to handle modes in Python programs.
  *
  * @author Soroush Bateni
- *
  */
 public class PythonModeGenerator {
     /**
@@ -30,9 +28,8 @@ public class PythonModeGenerator {
     }
 
     /**
-     * Generate reset reactions that reset state variables in
-     * - the reactor, and,
-     * - the modes within the reactor.
+     * Generate reset reactions that reset state variables in - the reactor, and, - the modes within
+     * the reactor.
      *
      * @param reactor The reactor.
      */
@@ -44,15 +41,20 @@ public class PythonModeGenerator {
         Reaction baseReaction = LfFactory.eINSTANCE.createReaction();
         baseReaction.getTriggers().add(resetTrigger);
 
-        if (!reactor.getStateVars().isEmpty() && reactor.getStateVars().stream().anyMatch(s -> s.isReset())) {
+        if (!reactor.getStateVars().isEmpty()
+                && reactor.getStateVars().stream().anyMatch(s -> s.isReset())) {
             // Create a reaction body that resets all state variables (that are not in a mode)
             // to their initial value.
             var reactionBody = LfFactory.eINSTANCE.createCode();
             CodeBuilder code = new CodeBuilder();
             code.pr("# Reset the following state variables to their initial value.");
-            for (var state: reactor.getStateVars()) {
+            for (var state : reactor.getStateVars()) {
                 if (state.isReset()) {
-                    code.pr("self."+state.getName()+" = "+ PythonStateGenerator.generatePythonInitializer(state));
+                    code.pr(
+                            "self."
+                                    + state.getName()
+                                    + " = "
+                                    + PythonStateGenerator.generatePythonInitializer(state));
                 }
             }
             reactionBody.setBody(code.toString());
@@ -61,11 +63,11 @@ public class PythonModeGenerator {
             reactor.getReactions().add(0, baseReaction);
         }
 
-
         var reactorModes = reactor.getModes();
         if (!reactorModes.isEmpty()) {
             for (Mode mode : reactorModes) {
-                if (mode.getStateVars().isEmpty() || mode.getStateVars().stream().allMatch(s -> !s.isReset())) {
+                if (mode.getStateVars().isEmpty()
+                        || mode.getStateVars().stream().allMatch(s -> !s.isReset())) {
                     continue;
                 }
                 Reaction reaction = EcoreUtil.copy(baseReaction);
@@ -74,9 +76,13 @@ public class PythonModeGenerator {
                 var reactionBody = LfFactory.eINSTANCE.createCode();
                 CodeBuilder code = new CodeBuilder();
                 code.pr("# Reset the following state variables to their initial value.");
-                for (var state: mode.getStateVars()) {
+                for (var state : mode.getStateVars()) {
                     if (state.isReset()) {
-                        code.pr("self."+state.getName()+" = "+ PythonStateGenerator.generatePythonInitializer(state));
+                        code.pr(
+                                "self."
+                                        + state.getName()
+                                        + " = "
+                                        + PythonStateGenerator.generatePythonInitializer(state));
                     }
                 }
                 reactionBody.setBody(code.toString());
@@ -91,7 +97,6 @@ public class PythonModeGenerator {
                     // are no reactions in this mode.
                     mode.getReactions().add(reaction);
                 }
-
             }
         }
     }

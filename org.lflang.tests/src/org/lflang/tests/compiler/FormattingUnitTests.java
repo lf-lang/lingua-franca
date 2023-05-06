@@ -5,9 +5,7 @@ import org.eclipse.xtext.testing.extensions.InjectionExtension;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-
 import org.lflang.ast.FormattingUtils;
-import org.lflang.ast.IsEqual;
 import org.lflang.lf.Model;
 import org.lflang.tests.LFInjectorProvider;
 import org.lflang.tests.LfParsingUtil;
@@ -19,23 +17,22 @@ public class FormattingUnitTests {
     @Test
     public void testSimple() {
         assertFormatsTo(
-            """
+                """
                 target C
                 reactor Main{ }
                 """,
-            """
+                """
                 target C
-                            
+
                 reactor Main {
                 }
-                """
-        );
+                """);
     }
 
     @Test
     public void testAssignments() {
         assertFormatsTo(
-            """
+                """
                 target C
 
                 reactor Destination {
@@ -44,7 +41,7 @@ public class FormattingUnitTests {
                     state last_invoked: tag_t({= NEVER_TAG_INITIALIZER =})
                 }
                 """,
-            """
+                """
                 target C
 
                 reactor Destination {
@@ -52,14 +49,13 @@ public class FormattingUnitTests {
                     input in: int
                     state last_invoked: tag_t = {= NEVER_TAG_INITIALIZER =}
                 }
-                """
-        );
+                """);
     }
 
     @Test
     public void testState() {
         assertFormatsTo(
-            """
+                """
                 target Python
 
                 reactor Destination {
@@ -68,7 +64,7 @@ public class FormattingUnitTests {
                      state list_init(1,2) // this syntax is deprecated
                 }
                 """,
-            """
+                """
                 target Python
 
                 reactor Destination {
@@ -76,14 +72,13 @@ public class FormattingUnitTests {
                     state no_init: tag_t
                     state list_init(1, 2)  # this syntax is deprecated
                 }
-                """
-        );
+                """);
     }
 
     @Test
     public void testCppInits() {
         assertIsFormatted(
-            """
+                """
                 target Cpp
 
                 reactor Destination {
@@ -94,8 +89,7 @@ public class FormattingUnitTests {
                     state brace: std::vector<int>{1, 2}
                     state paren_list: std::vector<int>(1, 2)
                 }
-                """
-        );
+                """);
     }
 
     private void assertIsFormatted(String input) {
@@ -106,11 +100,8 @@ public class FormattingUnitTests {
         Model inputModel = LfParsingUtil.parseValidModel("test input", input);
         String formattedString = FormattingUtils.render(inputModel);
         Assertions.assertEquals(
-            expectedOutput,
-            formattedString,
-            "Formatted output is different from what was expected"
-        );
+                expectedOutput,
+                formattedString,
+                "Formatted output is different from what was expected");
     }
-
-
 }

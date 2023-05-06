@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
-
 import org.eclipse.lsp4j.Diagnostic;
 import org.eclipse.lsp4j.DiagnosticSeverity;
 import org.eclipse.lsp4j.MessageActionItem;
@@ -31,12 +30,15 @@ public class MockLanguageClient implements LanguageClient {
     public void publishDiagnostics(PublishDiagnosticsParams diagnostics) {
         receivedDiagnostics.addAll(diagnostics.getDiagnostics());
         for (Diagnostic d : diagnostics.getDiagnostics()) {
-            (
-                (d.getSeverity() == DiagnosticSeverity.Error || d.getSeverity() == DiagnosticSeverity.Warning) ?
-                System.err : System.out
-            ).println(
-                "Test client received diagnostic at line " + d.getRange().getStart().getLine() + ": " + d.getMessage()
-            );
+            ((d.getSeverity() == DiagnosticSeverity.Error
+                                    || d.getSeverity() == DiagnosticSeverity.Warning)
+                            ? System.err
+                            : System.out)
+                    .println(
+                            "Test client received diagnostic at line "
+                                    + d.getRange().getStart().getLine()
+                                    + ": "
+                                    + d.getMessage());
         }
     }
 
@@ -46,7 +48,8 @@ public class MockLanguageClient implements LanguageClient {
     }
 
     @Override
-    public CompletableFuture<MessageActionItem> showMessageRequest(ShowMessageRequestParams requestParams) {
+    public CompletableFuture<MessageActionItem> showMessageRequest(
+            ShowMessageRequestParams requestParams) {
         showMessage(requestParams);
         return null;
     }

@@ -1,9 +1,10 @@
 package org.lflang.generator;
 
+import com.google.inject.Inject;
+import com.google.inject.Provider;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Properties;
-
 import org.eclipse.emf.common.util.URI;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.emf.ecore.resource.Resource;
@@ -15,17 +16,12 @@ import org.eclipse.xtext.util.CancelIndicator;
 import org.eclipse.xtext.validation.CheckMode;
 import org.eclipse.xtext.validation.IResourceValidator;
 import org.eclipse.xtext.validation.Issue;
-
 import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
 import org.lflang.generator.LFGeneratorContext.Mode;
 
-import com.google.inject.Inject;
-import com.google.inject.Provider;
-
 /**
- * Manages Lingua Franca build processes that are requested
- * from the language server.
+ * Manages Lingua Franca build processes that are requested from the language server.
  *
  * @author Peter Donovan
  */
@@ -35,9 +31,7 @@ public class IntegratedBuilder {
     public static final int GENERATED_PERCENT_PROGRESS = 67;
     public static final int COMPILED_PERCENT_PROGRESS = 100;
 
-    /**
-     * A {@code ProgressReporter} reports the progress of a build.
-     */
+    /** A {@code ProgressReporter} reports the progress of a build. */
     public interface ReportProgress {
         void apply(String message, Integer percentage);
     }
@@ -46,41 +40,36 @@ public class IntegratedBuilder {
     //  document edits, even though the validator and code
     //  generator are invoked by Xtext in response to
     //  document edits.
-    /**
-     * A {@code ReportMethod} is a way of reporting issues.
-     */
+    /** A {@code ReportMethod} is a way of reporting issues. */
     private interface ReportMethod {
         void apply(Path file, Integer line, String message);
     }
 
     /* ---------------------- INJECTED DEPENDENCIES ---------------------- */
 
-    @Inject
-    private IResourceValidator validator;
-    @Inject
-    private GeneratorDelegate generator;
-    @Inject
-    private JavaIoFileSystemAccess fileAccess;
-    @Inject
-    private Provider<ResourceSet> resourceSetProvider;
+    @Inject private IResourceValidator validator;
+    @Inject private GeneratorDelegate generator;
+    @Inject private JavaIoFileSystemAccess fileAccess;
+    @Inject private Provider<ResourceSet> resourceSetProvider;
 
     /* ------------------------- PUBLIC METHODS -------------------------- */
 
     /**
      * Generates code from the Lingua Franca file {@code f}.
+     *
      * @param uri The URI of a Lingua Franca file.
      * @param mustComplete Whether the build must be taken to completion.
      * @return The result of the build.
      */
     public GeneratorResult run(
-        URI uri,
-        boolean mustComplete,
-        ReportProgress reportProgress,
-        CancelIndicator cancelIndicator
-    ) {
+            URI uri,
+            boolean mustComplete,
+            ReportProgress reportProgress,
+            CancelIndicator cancelIndicator) {
         fileAccess.setOutputPath(
-            FileConfig.findPackageRoot(Path.of(uri.path()), s -> {}).resolve(FileConfig.DEFAULT_SRC_GEN_DIR).toString()
-        );
+                FileConfig.findPackageRoot(Path.of(uri.path()), s -> {})
+                        .resolve(FileConfig.DEFAULT_SRC_GEN_DIR)
+                        .toString());
         List<EObject> parseRoots = getResource(uri).getContents();
         if (parseRoots.isEmpty()) return GeneratorResult.NOTHING;
         ErrorReporter errorReporter = new LanguageServerErrorReporter(parseRoots.get(0));
@@ -97,44 +86,49 @@ public class IntegratedBuilder {
 
     /**
      * Validates the Lingua Franca file {@code f}.
+     *
      * @param uri The URI of a Lingua Franca file.
      * @param errorReporter The error reporter.
      */
     private void validate(URI uri, ErrorReporter errorReporter) {
-        for (Issue issue : validator.validate(getResource(uri), CheckMode.ALL, CancelIndicator.NullImpl)) {
-            getReportMethod(errorReporter, issue.getSeverity()).apply(
-                Path.of(uri.path()), issue.getLineNumber(), issue.getMessage()
-            );
+        for (Issue issue :
+                validator.validate(getResource(uri), CheckMode.ALL, CancelIndicator.NullImpl)) {
+            getReportMethod(errorReporter, issue.getSeverity())
+                    .apply(Path.of(uri.path()), issue.getLineNumber(), issue.getMessage());
         }
     }
 
     /**
      * Generates code from the contents of {@code f}.
+     *
      * @param uri The URI of a Lingua Franca file.
      * @param mustComplete Whether the build must be taken to completion.
-     * @param cancelIndicator An indicator that returns true when the build is
-     *                        cancelled.
+     * @param cancelIndicator An indicator that returns true when the build is cancelled.
      * @return The result of the build.
      */
     private GeneratorResult doGenerate(
-        URI uri,
-        boolean mustComplete,
-        ReportProgress reportProgress,
-        CancelIndicator cancelIndicator
-    ) {
+            URI uri,
+            boolean mustComplete,
+            ReportProgress reportProgress,
+            CancelIndicator cancelIndicator) {
         var resource = getResource(uri);
-        LFGeneratorContext context = new MainContext(
-            mustComplete ? Mode.LSP_SLOW : LFGeneratorContext.Mode.LSP_MEDIUM,
-            cancelIndicator, reportProgress, new Properties(),
-            resource, fileAccess,
-            fileConfig -> new LanguageServerErrorReporter(resource.getContents().get(0))
-        );
+        LFGeneratorContext context =
+                new MainContext(
+                        mustComplete ? Mode.LSP_SLOW : LFGeneratorContext.Mode.LSP_MEDIUM,
+                        cancelIndicator,
+                        reportProgress,
+                        new Properties(),
+                        resource,
+                        fileAccess,
+                        fileConfig ->
+                                new LanguageServerErrorReporter(resource.getContents().get(0)));
         generator.generate(getResource(uri), fileAccess, context);
         return context.getResult();
     }
 
     /**
      * Returns the resource corresponding to {@code uri}.
+     *
      * @param uri The URI of a Lingua Franca file.
      * @return The resource corresponding to {@code uri}.
      */
@@ -143,11 +137,10 @@ public class IntegratedBuilder {
     }
 
     /**
-     * Returns the appropriate reporting method for the
-     * given {@code Severity}.
+     * Returns the appropriate reporting method for the given {@code Severity}.
+     *
      * @param severity An arbitrary {@code Severity}.
-     * @return The appropriate reporting method for
-     * {@code severity}.
+     * @return The appropriate reporting method for {@code severity}.
      */
     private ReportMethod getReportMethod(ErrorReporter errorReporter, Severity severity) {
         if (severity == Severity.ERROR) return errorReporter::reportError;

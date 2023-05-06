@@ -6,16 +6,14 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-
 import org.eclipse.emf.common.util.URI;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.lsp4j.Diagnostic;
 import org.eclipse.lsp4j.DiagnosticSeverity;
 import org.eclipse.lsp4j.PublishDiagnosticsParams;
 import org.eclipse.lsp4j.Range;
-import org.eclipse.xtext.nodemodel.util.NodeModelUtils;
 import org.eclipse.lsp4j.services.LanguageClient;
-
+import org.eclipse.xtext.nodemodel.util.NodeModelUtils;
 import org.lflang.ErrorReporter;
 
 /**
@@ -26,9 +24,8 @@ import org.lflang.ErrorReporter;
 public class LanguageServerErrorReporter implements ErrorReporter {
 
     /**
-     * The language client to which errors should be
-     * reported, if such a client is available.
-     * FIXME: This is a de facto global, and it is a hack.
+     * The language client to which errors should be reported, if such a client is available. FIXME:
+     * This is a de facto global, and it is a hack.
      */
     private static LanguageClient client;
 
@@ -40,11 +37,10 @@ public class LanguageServerErrorReporter implements ErrorReporter {
     /* ------------------------  CONSTRUCTORS  -------------------------- */
 
     /**
-     * Initialize a {@code DiagnosticAcceptor} for the
-     * document whose parse tree root node is
-     * {@code parseRoot}.
-     * @param parseRoot the root of the AST of the document
-     *                  for which this is an error reporter
+     * Initialize a {@code DiagnosticAcceptor} for the document whose parse tree root node is {@code
+     * parseRoot}.
+     *
+     * @param parseRoot the root of the AST of the document for which this is an error reporter
      */
     public LanguageServerErrorReporter(EObject parseRoot) {
         this.parseRoot = parseRoot;
@@ -100,9 +96,14 @@ public class LanguageServerErrorReporter implements ErrorReporter {
 
     @Override
     public boolean getErrorsOccurred() {
-        return diagnostics.values().stream().anyMatch(
-            it -> it.stream().anyMatch(diagnostic -> diagnostic.getSeverity() == DiagnosticSeverity.Error)
-        );
+        return diagnostics.values().stream()
+                .anyMatch(
+                        it ->
+                                it.stream()
+                                        .anyMatch(
+                                                diagnostic ->
+                                                        diagnostic.getSeverity()
+                                                                == DiagnosticSeverity.Error));
     }
 
     @Override
@@ -114,41 +115,48 @@ public class LanguageServerErrorReporter implements ErrorReporter {
     public String report(Path file, DiagnosticSeverity severity, String message, int line) {
         Optional<String> text = getLine(line - 1);
         return report(
-            file,
-            severity,
-            message,
-            Position.fromOneBased(line, 1),
-            Position.fromOneBased(line, 1 + (text.isEmpty() ? 0 : text.get().length()))
-        );
+                file,
+                severity,
+                message,
+                Position.fromOneBased(line, 1),
+                Position.fromOneBased(line, 1 + (text.isEmpty() ? 0 : text.get().length())));
     }
 
     @Override
-    public String report(Path file, DiagnosticSeverity severity, String message, Position startPos, Position endPos) {
+    public String report(
+            Path file,
+            DiagnosticSeverity severity,
+            String message,
+            Position startPos,
+            Position endPos) {
         if (file == null) file = getMainFile();
         diagnostics.putIfAbsent(file, new ArrayList<>());
-        diagnostics.get(file).add(new Diagnostic(
-            toRange(startPos, endPos), message, severity, "LF Language Server"
-        ));
+        diagnostics
+                .get(file)
+                .add(
+                        new Diagnostic(
+                                toRange(startPos, endPos),
+                                message,
+                                severity,
+                                "LF Language Server"));
         return "" + severity + ": " + message;
     }
 
     /**
      * Save a reference to the language client.
+     *
      * @param client the language client
      */
     public static void setClient(LanguageClient client) {
         LanguageServerErrorReporter.client = client;
     }
 
-    /**
-     * Publish diagnostics by forwarding them to the
-     * language client.
-     */
+    /** Publish diagnostics by forwarding them to the language client. */
     public void publishDiagnostics() {
         if (client == null) {
             System.err.println(
-                "WARNING: Cannot publish diagnostics because the language client has not yet been found."
-            );
+                    "WARNING: Cannot publish diagnostics because the language client has not yet"
+                            + " been found.");
             return;
         }
         for (Path file : diagnostics.keySet()) {
@@ -167,18 +175,17 @@ public class LanguageServerErrorReporter implements ErrorReporter {
     }
 
     /**
-     * Return the text of the document for which this is an
-     * error reporter.
-     * @return the text of the document for which this is an
-     * error reporter
+     * Return the text of the document for which this is an error reporter.
+     *
+     * @return the text of the document for which this is an error reporter
      */
     private String getText() {
         return NodeModelUtils.getNode(parseRoot).getText();
     }
 
     /**
-     * Return the line at index {@code line} in the
-     * document for which this is an error reporter.
+     * Return the line at index {@code line} in the document for which this is an error reporter.
+     *
      * @param line the zero-based line index
      * @return the line located at the given index
      */
@@ -187,17 +194,15 @@ public class LanguageServerErrorReporter implements ErrorReporter {
     }
 
     /**
-     * Return the Range that starts at {@code p0} and ends
-     * at {@code p1}.
+     * Return the Range that starts at {@code p0} and ends at {@code p1}.
+     *
      * @param p0 an arbitrary Position
      * @param p1 a Position that is greater than {@code p0}
-     * @return the Range that starts at {@code p0} and ends
-     * at {@code p1}
+     * @return the Range that starts at {@code p0} and ends at {@code p1}
      */
     private Range toRange(Position p0, Position p1) {
         return new Range(
-            new org.eclipse.lsp4j.Position(p0.getZeroBasedLine(), p0.getZeroBasedColumn()),
-            new org.eclipse.lsp4j.Position(p1.getZeroBasedLine(), p1.getZeroBasedColumn())
-        );
+                new org.eclipse.lsp4j.Position(p0.getZeroBasedLine(), p0.getZeroBasedColumn()),
+                new org.eclipse.lsp4j.Position(p1.getZeroBasedLine(), p1.getZeroBasedColumn()));
     }
 }

@@ -3,7 +3,11 @@ package org.lflang.tests;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.io.FileWriter;
+import com.google.inject.Inject;
+import com.google.inject.Injector;
+import com.google.inject.Provider;
+import java.io.BufferedWriter;
+import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.io.PrintWriter;
@@ -12,8 +16,6 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.io.File;
-import java.io.BufferedWriter;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -24,7 +26,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
-
 import org.eclipse.emf.common.util.URI;
 import org.eclipse.emf.ecore.resource.Resource.Diagnostic;
 import org.eclipse.emf.ecore.resource.ResourceSet;
@@ -37,7 +38,6 @@ import org.eclipse.xtext.util.RuntimeIOException;
 import org.eclipse.xtext.validation.CheckMode;
 import org.eclipse.xtext.validation.IResourceValidator;
 import org.junit.jupiter.api.extension.ExtendWith;
-
 import org.lflang.DefaultErrorReporter;
 import org.lflang.FileConfig;
 import org.lflang.LFRuntimeModule;
@@ -48,18 +48,11 @@ import org.lflang.generator.LFGenerator;
 import org.lflang.generator.LFGeneratorContext;
 import org.lflang.generator.LFGeneratorContext.BuildParm;
 import org.lflang.generator.MainContext;
-import org.lflang.generator.GeneratorCommandFactory;
 import org.lflang.tests.Configurators.Configurator;
 import org.lflang.tests.LFTest.Result;
 import org.lflang.tests.TestRegistry.TestCategory;
 import org.lflang.util.FileUtil;
 import org.lflang.util.LFCommand;
-import org.lflang.util.ArduinoUtil;
-
-
-import com.google.inject.Inject;
-import com.google.inject.Injector;
-import com.google.inject.Provider;
 
 /**
  * Base class for test classes that define JUnit tests.
@@ -70,15 +63,10 @@ import com.google.inject.Provider;
 @InjectWith(LFInjectorProvider.class)
 public abstract class TestBase {
 
-    @Inject
-    IResourceValidator validator;
-    @Inject
-    LFGenerator generator;
-    @Inject
-    JavaIoFileSystemAccess fileAccess;
-    @Inject
-    Provider<ResourceSet> resourceSetProvider;
-
+    @Inject IResourceValidator validator;
+    @Inject LFGenerator generator;
+    @Inject JavaIoFileSystemAccess fileAccess;
+    @Inject Provider<ResourceSet> resourceSetProvider;
 
     /** Reference to System.out. */
     private static final PrintStream out = System.out;
@@ -91,32 +79,38 @@ public abstract class TestBase {
 
     /** Content separator used in test output, 78 characters wide. */
     public static final String THIN_LINE =
-        "------------------------------------------------------------------------------" +
-            System.lineSeparator();
+            "------------------------------------------------------------------------------"
+                    + System.lineSeparator();
 
     /** Content separator used in test output, 78 characters wide. */
     public static final String THICK_LINE =
-        "==============================================================================" +
-            System.lineSeparator();
+            "=============================================================================="
+                    + System.lineSeparator();
 
     /** The targets for which to run the tests. */
     private final List<Target> targets;
 
     /**
      * An enumeration of test levels.
-     * @author Marten Lohstroh
      *
+     * @author Marten Lohstroh
      */
-    public enum TestLevel {VALIDATION, CODE_GEN, BUILD, EXECUTION}
+    public enum TestLevel {
+        VALIDATION,
+        CODE_GEN,
+        BUILD,
+        EXECUTION
+    }
 
     /**
      * Static function for converting a path to its associated test level.
+     *
      * @author Anirudh Rengarajan
      */
     public static TestLevel pathToLevel(Path path) {
-        while(path.getParent() != null) {
+        while (path.getParent() != null) {
             String name = path.getFileName().toString();
-            for (var category: TestCategory.values()) {
+            for (var category : TestCategory.values()) {
                 if (category.name().equalsIgnoreCase(name)) {
                     return category.level;
                 }
@@ -130,16 +124,20 @@ public abstract class TestBase {
      * A collection messages often used throughout the test package.
      *
      * @author Marten Lohstroh
-     *
      */
     public static class Message {
         /* Reasons for not running tests. */
         public static final String NO_WINDOWS_SUPPORT = "Not (yet) supported on Windows.";
-        public static final String NO_SINGLE_THREADED_SUPPORT = "Target does not support single-threaded execution.";
-        public static final String NO_FEDERATION_SUPPORT = "Target does not support federated execution.";
-        public static final String NO_ENCLAVE_SUPPORT = "Targeet does not support the enclave feature.";
-        public static final String NO_DOCKER_SUPPORT = "Target does not support the 'docker' property.";
-        public static final String NO_DOCKER_TEST_SUPPORT = "Docker tests are only supported on Linux.";
+        public static final String NO_SINGLE_THREADED_SUPPORT =
+                "Target does not support single-threaded execution.";
+        public static final String NO_FEDERATION_SUPPORT =
+                "Target does not support federated execution.";
+        public static final String NO_ENCLAVE_SUPPORT =
+                "Targeet does not support the enclave feature.";
+        public static final String NO_DOCKER_SUPPORT =
+                "Target does not support the 'docker' property.";
+        public static final String NO_DOCKER_TEST_SUPPORT =
+                "Docker tests are only supported on Linux.";
         public static final String NO_GENERICS_SUPPORT = "Target does not support generic types.";
 
         /* Descriptions of collections of tests. */
@@ -157,13 +155,16 @@ public abstract class TestBase {
         public static final String DESC_ARDUINO = "Running Arduino tests.";
         public static final String DESC_ZEPHYR = "Running Zephyr tests.";
         public static final String DESC_AS_CCPP = "Running C tests as CCpp.";
-        public static final String DESC_SINGLE_THREADED = "Run non-concurrent and non-federated tests with threading = off.";
-        public static final String DESC_SCHED_SWAPPING = "Running with non-default runtime scheduler ";
+        public static final String DESC_SINGLE_THREADED =
+                "Run non-concurrent and non-federated tests with threading = off.";
+        public static final String DESC_SCHED_SWAPPING =
+                "Running with non-default runtime scheduler ";
         public static final String DESC_ROS2 = "Running tests using ROS2.";
         public static final String DESC_MODAL = "Run modal reactor tests.";
 
         /* Missing dependency messages */
-        public static final String MISSING_DOCKER = "Executable 'docker' not found or 'docker' daemon thread not running";
+        public static final String MISSING_DOCKER =
+                "Executable 'docker' not found or 'docker' daemon thread not running";
         public static final String MISSING_ARDUINO_CLI = "Executable 'arduino-cli' not found";
     }
 
@@ -183,17 +184,17 @@ public abstract class TestBase {
      * Run selected tests for a given target and configurator up to the specified level.
      *
      * @param target The target to run tests for.
-     * @param selected A predicate that given a test category returns whether
-     * it should be included in this test run or not.
-     * @param configurator  A procedure for configuring the tests.
-     * @param copy Whether or not to work on copies of tests in the test.
-     * registry.
+     * @param selected A predicate that given a test category returns whether it should be included
+     *     in this test run or not.
+     * @param configurator A procedure for configuring the tests.
+     * @param copy Whether or not to work on copies of tests in the test. registry.
      */
-    protected final void runTestsAndPrintResults(Target target,
-                                                 Predicate<TestCategory> selected,
-                                                 TestLevel level,
-                                                 Configurator configurator,
-                                                 boolean copy) {
+    protected final void runTestsAndPrintResults(
+            Target target,
+            Predicate<TestCategory> selected,
+            TestLevel level,
+            Configurator configurator,
+            boolean copy) {
         var categories = Arrays.stream(TestCategory.values()).filter(selected).toList();
         for (var category : categories) {
             System.out.println(category.getHeader());
@@ -212,20 +213,19 @@ public abstract class TestBase {
      * Run tests in the given selection for all targets enabled in this class.
      *
      * @param description A string that describes the collection of tests.
-     * @param selected A predicate that given a test category returns whether
-     * it should be included in this test run or not.
+     * @param selected A predicate that given a test category returns whether it should be included
+     *     in this test run or not.
      * @param configurator A procedure for configuring the tests.
-     * @param copy Whether or not to work on copies of tests in the test.
-     * registry.
+     * @param copy Whether or not to work on copies of tests in the test. registry.
      */
-    protected void runTestsForTargets(String description,
-                                      Predicate<TestCategory> selected,
-                                      Configurator configurator,
-                                      TestLevel level,
-                                      boolean copy) {
+    protected void runTestsForTargets(
+            String description,
+            Predicate<TestCategory> selected,
+            Configurator configurator,
+            TestLevel level,
+            boolean copy) {
         for (Target target : this.targets) {
-            runTestsFor(List.of(target), description, selected,
-                        configurator, level, copy);
+            runTestsFor(List.of(target), description, selected, configurator, level, copy);
         }
     }
 
@@ -234,33 +234,32 @@ public abstract class TestBase {
      *
      * @param subset The subset of targets to run the selected tests for.
      * @param description A string that describes the collection of tests.
-     * @param selected A predicate that given a test category returns whether
-     * it should be included in this test run or not.
+     * @param selected A predicate that given a test category returns whether it should be included
+     *     in this test run or not.
      * @param configurator A procedure for configuring the tests.
-     * @param copy Whether to work on copies of tests in the test.
-     * registry.
+     * @param copy Whether to work on copies of tests in the test. registry.
      */
-    protected void runTestsFor(List<Target> subset,
-                               String description,
-                               Predicate<TestCategory> selected,
-                               Configurator configurator,
-                               TestLevel level,
-                               boolean copy) {
+    protected void runTestsFor(
+            List<Target> subset,
+            String description,
+            Predicate<TestCategory> selected,
+            Configurator configurator,
+            TestLevel level,
+            boolean copy) {
         for (Target target : subset) {
             printTestHeader(target, description);
             runTestsAndPrintResults(target, selected, level, configurator, copy);
         }
     }
 
-    /**
-     * Whether to enable threading.
-     */
+    /** Whether to enable threading. */
     protected boolean supportsSingleThreadedExecution() {
         return false;
     }
 
     /**
      * Determine whether the current platform is Windows.
+     *
      * @return true if the current platform is Windwos, false otherwise.
      */
     protected static boolean isWindows() {
@@ -268,8 +267,9 @@ public abstract class TestBase {
         return OS.contains("win");
     }
 
-     /**
+    /**
      * Determine whether the current platform is MacOS.
+     *
      * @return true if the current platform is MacOS, false otherwise.
      */
     protected static boolean isMac() {
@@ -279,6 +279,7 @@ public abstract class TestBase {
 
     /**
      * Determine whether the current platform is Linux.
+     *
      * @return true if the current platform is Linux, false otherwise.
      */
     protected static boolean isLinux() {
@@ -286,9 +287,7 @@ public abstract class TestBase {
         return OS.contains("linux");
     }
 
-    /**
-     * End output redirection.
-     */
+    /** End output redirection. */
     private static void restoreOutputs() {
         System.out.flush();
         System.err.flush();
@@ -306,23 +305,25 @@ public abstract class TestBase {
         System.setErr(new PrintStream(test.getOutputStream()));
     }
 
-
     /**
      * Run a test, print results on stderr.
      *
-     * @param test      Test case.
-     * @param testClass The test class that will execute the test. This is target-specific,
-     *                  it may provide some target-specific configuration. We pass a class
-     *                  and not a new instance because this method needs to ensure the object
-     *                  is properly injected, and so, it needs to control its entire lifecycle.
-     * @param level     Level to which to run the test.
+     * @param test Test case.
+     * @param testClass The test class that will execute the test. This is target-specific, it may
+     *     provide some target-specific configuration. We pass a class and not a new instance
+     *     because this method needs to ensure the object is properly injected, and so, it needs to
+     *     control its entire lifecycle.
+     * @param level Level to which to run the test.
      */
-    public static void runSingleTestAndPrintResults(LFTest test, Class<? extends TestBase> testClass, TestLevel level) {
-        Injector injector = new LFStandaloneSetup(new LFRuntimeModule()).createInjectorAndDoEMFRegistration();
+    public static void runSingleTestAndPrintResults(
+            LFTest test, Class<? extends TestBase> testClass, TestLevel level) {
+        Injector injector =
+                new LFStandaloneSetup(new LFRuntimeModule()).createInjectorAndDoEMFRegistration();
         TestBase runner;
         try {
             @SuppressWarnings("unchecked")
-            Constructor<? extends TestBase> constructor = (Constructor<? extends TestBase>) testClass.getConstructors()[0];
+            Constructor<? extends TestBase> constructor =
+                    (Constructor<? extends TestBase>) testClass.getConstructors()[0];
             runner = constructor.newInstance();
         } catch (InstantiationException | IllegalAccessException | InvocationTargetException e) {
             throw new IllegalStateException(e);
@@ -340,6 +341,7 @@ public abstract class TestBase {
 
     /**
      * Print a header that describes a collection of tests.
+     *
      * @param target The target for which the tests are being performed.
      * @param description A string the describes the collection of tests.
      */
@@ -355,8 +357,7 @@ public abstract class TestBase {
     }
 
     /**
-     * Iterate over given tests and evaluate their outcome, report errors if
-     * there are any.
+     * Iterate over given tests and evaluate their outcome, report errors if there are any.
      *
      * @param tests The tests to inspect the results of.
      */
@@ -379,17 +380,16 @@ public abstract class TestBase {
     }
 
     /**
-     * Configure a test by applying the given configurator and return a
-     * generator context. Also, if the given level is less than
-     * `TestLevel.BUILD`, add a `no-compile` flag to the generator context. If
-     * the configurator was not applied successfully, throw an AssertionError.
+     * Configure a test by applying the given configurator and return a generator context. Also, if
+     * the given level is less than `TestLevel.BUILD`, add a `no-compile` flag to the generator
+     * context. If the configurator was not applied successfully, throw an AssertionError.
      *
      * @param test the test to configure.
      * @param configurator The configurator to apply to the test.
-     * @param level The level of testing in which the generator context will be
-     * used.
+     * @param level The level of testing in which the generator context will be used.
      */
-    private void configure(LFTest test, Configurator configurator, TestLevel level) throws IOException, TestError {
+    private void configure(LFTest test, Configurator configurator, TestLevel level)
+            throws IOException, TestError {
         var props = new Properties();
         props.setProperty("hierarchical-bin", "true");
         addExtraLfcArgs(props);
@@ -406,20 +406,34 @@ public abstract class TestBase {
             System.out.println("Using default runtime.");
         }
 
-        var r = resourceSetProvider.get().getResource(
-            URI.createFileURI(test.getSrcPath().toFile().getAbsolutePath()),
-            true);
+        var r =
+                resourceSetProvider
+                        .get()
+                        .getResource(
+                                URI.createFileURI(test.getSrcPath().toFile().getAbsolutePath()),
+                                true);
 
         if (r.getErrors().size() > 0) {
-            String message = r.getErrors().stream().map(Diagnostic::toString).collect(Collectors.joining(System.lineSeparator()));
+            String message =
+                    r.getErrors().stream()
+                            .map(Diagnostic::toString)
+                            .collect(Collectors.joining(System.lineSeparator()));
             throw new TestError(message, Result.PARSE_FAIL);
         }
 
-        fileAccess.setOutputPath(FileConfig.findPackageRoot(test.getSrcPath(), s -> {}).resolve(FileConfig.DEFAULT_SRC_GEN_DIR).toString());
-        var context = new MainContext(
-            LFGeneratorContext.Mode.STANDALONE, CancelIndicator.NullImpl, (m, p) -> {}, props, r, fileAccess,
-            fileConfig -> new DefaultErrorReporter()
-        );
+        fileAccess.setOutputPath(
+                FileConfig.findPackageRoot(test.getSrcPath(), s -> {})
+                        .resolve(FileConfig.DEFAULT_SRC_GEN_DIR)
+                        .toString());
+        var context =
+                new MainContext(
+                        LFGeneratorContext.Mode.STANDALONE,
+                        CancelIndicator.NullImpl,
+                        (m, p) -> {},
+                        props,
+                        r,
+                        fileAccess,
+                        fileConfig -> new DefaultErrorReporter());
 
         test.configure(context);
 
@@ -427,7 +441,7 @@ public abstract class TestBase {
         if (level.compareTo(TestLevel.BUILD) < 0) {
             context.getArgs().setProperty("no-compile", "");
         }
-        
+
         // Reload in case target properties have changed.
         context.loadTargetConfig();
         // Update the test by applying the configuration. E.g., to carry out an AST transformation.
@@ -438,18 +452,22 @@ public abstract class TestBase {
         }
     }
 
-    /**
-     * Validate the given test. Throw an TestError if validation failed.
-     */
+    /** Validate the given test. Throw an TestError if validation failed. */
     private void validate(LFTest test) throws TestError {
         // Validate the resource and store issues in the test object.
         try {
             var context = test.getContext();
-            var issues = validator.validate(context.getFileConfig().resource,
-                                            CheckMode.ALL, context.getCancelIndicator());
+            var issues =
+                    validator.validate(
+                            context.getFileConfig().resource,
+                            CheckMode.ALL,
+                            context.getCancelIndicator());
             if (issues != null && !issues.isEmpty()) {
                 if (issues.stream().anyMatch(it -> it.getSeverity() == Severity.ERROR)) {
-                    String message = issues.stream().map(Objects::toString).collect(Collectors.joining(System.lineSeparator()));
+                    String message =
+                            issues.stream()
+                                    .map(Objects::toString)
+                                    .collect(Collectors.joining(System.lineSeparator()));
                     throw new TestError(message, Result.VALIDATE_FAIL);
                 }
             }
@@ -460,10 +478,7 @@ public abstract class TestBase {
         }
     }
 
-
-    /**
-     * Override to add some LFC arguments to all runs of this test class.
-     */
+    /** Override to add some LFC arguments to all runs of this test class. */
     protected void addExtraLfcArgs(Properties args) {
         args.setProperty("build-type", "Test");
         args.setProperty("logging", "Debug");
@@ -490,11 +505,9 @@ public abstract class TestBase {
         return test.getContext().getResult();
     }
 
-
     /**
-     * Given an indexed test, execute it and label the test as failing if it
-     * did not execute, took too long to execute, or executed but exited with
-     * an error code.
+     * Given an indexed test, execute it and label the test as failing if it did not execute, took
+     * too long to execute, or executed but exited with an error code.
      */
     private void execute(LFTest test) throws TestError {
         final var pb = getExecCommand(test);
@@ -506,8 +519,10 @@ public abstract class TestBase {
             var stdoutException = new AtomicReference<Throwable>(null);
             var stderrException = new AtomicReference<Throwable>(null);
 
-            stdout.setUncaughtExceptionHandler((thread, throwable) -> stdoutException.set(throwable));
-            stderr.setUncaughtExceptionHandler((thread, throwable) -> stderrException.set(throwable));
+            stdout.setUncaughtExceptionHandler(
+                    (thread, throwable) -> stdoutException.set(throwable));
+            stderr.setUncaughtExceptionHandler(
+                    (thread, throwable) -> stderrException.set(throwable));
 
             stderr.start();
             stdout.start();
@@ -533,10 +548,15 @@ public abstract class TestBase {
                 if (p.exitValue() != 0) {
                     String message = "Exit code: " + p.exitValue();
                     if (p.exitValue() == 139) {
-                        // The java ProcessBuilder and Process interface does not allow us to reliably retrieve stderr and stdout
-                        // from a process that segfaults. We can only print a message indicating that the putput is incomplete.
-                        message += System.lineSeparator() +
-                            "This exit code typically indicates a segfault. In this case, the execution output is likely missing or incomplete.";
+                        // The java ProcessBuilder and Process interface does not allow us to
+                        // reliably retrieve stderr and stdout
+                        // from a process that segfaults. We can only print a message indicating
+                        // that the putput is incomplete.
+                        message +=
+                                System.lineSeparator()
+                                        + "This exit code typically indicates a segfault. In this"
+                                        + " case, the execution output is likely missing or"
+                                        + " incomplete.";
                     }
                     throw new TestError(message, Result.TEST_FAIL);
                 }
@@ -549,7 +569,7 @@ public abstract class TestBase {
         }
     }
 
-    static public String stackTraceToString(Throwable t) {
+    public static String stackTraceToString(Throwable t) {
         StringWriter sw = new StringWriter();
         PrintWriter pw = new PrintWriter(sw);
         t.printStackTrace(pw);
@@ -559,12 +579,13 @@ public abstract class TestBase {
     }
 
     /** Bash script that is used to execute docker tests. */
-    static private String DOCKER_RUN_SCRIPT = """
+    private static String DOCKER_RUN_SCRIPT =
+            """
             #!/bin/bash
 
             # exit when any command fails
             set -e
-            
+
             docker compose -f "$1" rm -f
             docker compose -f "$1" up --build | tee docker_log.txt
             docker compose -f "$1" down --rmi local
@@ -583,15 +604,13 @@ public abstract class TestBase {
             exit 0
             """;
 
-    /**
-     * Path to a bash script containing DOCKER_RUN_SCRIPT.
-     */
+    /** Path to a bash script containing DOCKER_RUN_SCRIPT. */
     private static Path dockerRunScript = null;
 
     /**
      * Return the path to a bash script containing DOCKER_RUN_SCRIPT.
      *
-     * If the script does not yet exist, it is created.
+     * <p>If the script does not yet exist, it is created.
      */
     private Path getDockerRunScript() throws TestError {
         if (dockerRunScript != null) {
@@ -614,20 +633,19 @@ public abstract class TestBase {
         return dockerRunScript;
     }
 
-    /**
-     * Throws TestError if docker does not exist. Does nothing otherwise.
-     */
+    /** Throws TestError if docker does not exist. Does nothing otherwise. */
     private void checkDockerExists() throws TestError {
         if (LFCommand.get("docker", List.of()) == null) {
-            throw new TestError("Executable 'docker' not found" , Result.NO_EXEC_FAIL);
+            throw new TestError("Executable 'docker' not found", Result.NO_EXEC_FAIL);
         }
         if (LFCommand.get("docker-compose", List.of()) == null) {
-            throw new TestError("Executable 'docker-compose' not found" , Result.NO_EXEC_FAIL);
+            throw new TestError("Executable 'docker-compose' not found", Result.NO_EXEC_FAIL);
         }
     }
 
     /**
      * Return a ProcessBuilder used to test the docker execution.
+     *
      * @param test The test to get the execution command for.
      */
     private ProcessBuilder getDockerExecCommand(LFTest test) throws TestError {
@@ -639,6 +657,7 @@ public abstract class TestBase {
 
     /**
      * Return a preconfigured ProcessBuilder for executing the test program.
+     *
      * @param test The test to get the execution command for.
      */
     private ProcessBuilder getExecCommand(LFTest test) throws TestError {
@@ -647,13 +666,14 @@ public abstract class TestBase {
         var relativePathName = srcBasePath.relativize(test.getFileConfig().srcPath).toString();
 
         // special case to test docker file generation
-        if (relativePathName.equalsIgnoreCase(TestCategory.DOCKER.getPath()) ||
-            relativePathName.equalsIgnoreCase(TestCategory.DOCKER_FEDERATED.getPath())) {
+        if (relativePathName.equalsIgnoreCase(TestCategory.DOCKER.getPath())
+                || relativePathName.equalsIgnoreCase(TestCategory.DOCKER_FEDERATED.getPath())) {
             return getDockerExecCommand(test);
         } else {
             LFCommand command = test.getFileConfig().getCommand();
             if (command == null) {
-                throw new TestError("File: " + test.getFileConfig().getExecutable(), Result.NO_EXEC_FAIL);
+                throw new TestError(
+                        "File: " + test.getFileConfig().getExecutable(), Result.NO_EXEC_FAIL);
             }
             return new ProcessBuilder(command.command()).directory(command.directory());
         }
@@ -662,15 +682,16 @@ public abstract class TestBase {
     /**
      * Validate and run the given tests, using the specified configuratator and level.
      *
-     * While performing tests, this method prints a header that reaches completion
-     * once all tests have been run.
+     * <p>While performing tests, this method prints a header that reaches completion once all tests
+     * have been run.
      *
      * @param tests A set of tests to run.
      * @param configurator A procedure for configuring the tests.
      * @param level The level of testing.
      * @throws IOException If initial file configuration fails
      */
-    private void validateAndRun(Set<LFTest> tests, Configurator configurator, TestLevel level) throws IOException {
+    private void validateAndRun(Set<LFTest> tests, Configurator configurator, TestLevel level)
+            throws IOException {
         final var x = 78f / tests.size();
         var marks = 0;
         var done = 0;
@@ -690,8 +711,11 @@ public abstract class TestBase {
             } catch (TestError e) {
                 test.handleTestError(e);
             } catch (Throwable e) {
-                test.handleTestError(new TestError(
-                    "Unknown exception during test execution", Result.TEST_EXCEPTION, e));
+                test.handleTestError(
+                        new TestError(
+                                "Unknown exception during test execution",
+                                Result.TEST_EXCEPTION,
+                                e));
             } finally {
                 restoreOutputs();
             }

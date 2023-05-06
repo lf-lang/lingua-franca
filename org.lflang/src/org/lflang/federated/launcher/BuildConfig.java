@@ -4,24 +4,16 @@ import org.lflang.ErrorReporter;
 import org.lflang.federated.generator.FedFileConfig;
 import org.lflang.federated.generator.FederateInstance;
 
-/**
- * A collection of methods used for building target code for federates.
- */
+/** A collection of methods used for building target code for federates. */
 public abstract class BuildConfig {
 
-    /**
-     * The federate that this configuration applies to.
-     */
+    /** The federate that this configuration applies to. */
     protected final FederateInstance federate;
 
-    /**
-     * An error reporter to report problems.
-     */
+    /** An error reporter to report problems. */
     protected final ErrorReporter errorReporter;
 
-    /**
-     * The file configuration of the federation that the federate belongs to.
-     */
+    /** The file configuration of the federation that the federate belongs to. */
     protected final FedFileConfig fileConfig;
 
     /**
@@ -31,15 +23,14 @@ public abstract class BuildConfig {
      * @param fileConfig The file configuration of the federation that the federate belongs to.
      * @param errorReporter An error reporter to report problems.
      */
-    public BuildConfig(FederateInstance federate, FedFileConfig fileConfig, ErrorReporter errorReporter) {
+    public BuildConfig(
+            FederateInstance federate, FedFileConfig fileConfig, ErrorReporter errorReporter) {
         this.errorReporter = errorReporter;
         this.federate = federate;
         this.fileConfig = fileConfig;
     }
 
-    /**
-     * Return the compile command for the federate that this build configuration belongs to.
-     */
+    /** Return the compile command for the federate that this build configuration belongs to. */
     public String compileCommand() {
         throw new UnsupportedOperationException();
     }

@@ -33,15 +33,12 @@ import static org.lflang.tests.TestUtils.isDirectory;
 import static org.lflang.tests.TestUtils.isRegularFile;
 
 import com.google.inject.Injector;
-
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Properties;
-
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
-
 import org.lflang.LocalStrings;
 import org.lflang.cli.Io;
 import org.lflang.cli.Lfc;
@@ -56,14 +53,16 @@ public class LfcCliTest {
 
     LfcTestFixture lfcTester = new LfcTestFixture();
 
-    static final String LF_PYTHON_FILE = """
+    static final String LF_PYTHON_FILE =
+            """
         target Python
         main reactor {
             reaction(startup) {==}
         }
         """;
 
-    static final String JSON_STRING = """
+    static final String JSON_STRING =
+            """
         {
             "src": "src/File.lf",
             "out": "src",
@@ -88,57 +87,71 @@ public class LfcCliTest {
 
     @Test
     public void testHelpArg() {
-        lfcTester.run("--help", "--version")
-            .verify(result -> {
-                result.checkOk();
-                result.checkNoErrorOutput();
-                result.checkStdOut(containsString("Usage: lfc"));
-            });
+        lfcTester
+                .run("--help", "--version")
+                .verify(
+                        result -> {
+                            result.checkOk();
+                            result.checkNoErrorOutput();
+                            result.checkStdOut(containsString("Usage: lfc"));
+                        });
     }
 
     @Test
     public void testMutuallyExclusiveCliArgs() {
-        lfcTester.run("File.lf", "--json", JSON_STRING)
-            .verify(result -> {
-                result.checkStdErr(containsString(
-                            "are mutually exclusive (specify only one)"));
-                result.checkFailed();
-            });
+        lfcTester
+                .run("File.lf", "--json", JSON_STRING)
+                .verify(
+                        result -> {
+                            result.checkStdErr(
+                                    containsString("are mutually exclusive (specify only one)"));
+                            result.checkFailed();
+                        });
 
-        lfcTester.run("File.lf", "--json-file", "test.json")
-            .verify(result -> {
-                result.checkStdErr(containsString(
-                            "are mutually exclusive (specify only one)"));
-                result.checkFailed();
-            });
+        lfcTester
+                .run("File.lf", "--json-file", "test.json")
+                .verify(
+                        result -> {
+                            result.checkStdErr(
+                                    containsString("are mutually exclusive (specify only one)"));
+                            result.checkFailed();
+                        });
 
-        lfcTester.run("--json", JSON_STRING, "--json-file", "test.json")
-            .verify(result -> {
-                result.checkStdErr(containsString(
-                            "are mutually exclusive (specify only one)"));
-                result.checkFailed();
-            });
+        lfcTester
+                .run("--json", JSON_STRING, "--json-file", "test.json")
+                .verify(
+                        result -> {
+                            result.checkStdErr(
+                                    containsString("are mutually exclusive (specify only one)"));
+                            result.checkFailed();
+                        });
     }
 
     @Test
     public void testVersion() {
-        lfcTester.run("--version")
-            .verify(result -> {
-                result.checkOk();
-                result.checkNoErrorOutput();
-                result.checkStdOut(equalTo(
-                    "lfc " + LocalStrings.VERSION + System.lineSeparator()));
-            });
+        lfcTester
+                .run("--version")
+                .verify(
+                        result -> {
+                            result.checkOk();
+                            result.checkNoErrorOutput();
+                            result.checkStdOut(
+                                    equalTo(
+                                            "lfc "
+                                                    + LocalStrings.VERSION
+                                                    + System.lineSeparator()));
+                        });
     }
-
 
     @Test
     public void testWrongCliArg() {
-        lfcTester.run("--notanargument", "File.lf")
-            .verify(result -> {
-                result.checkStdErr(containsString("Unknown option: '--notanargument'"));
-                result.checkFailed();
-            });
+        lfcTester
+                .run("--notanargument", "File.lf")
+                .verify(
+                        result -> {
+                            result.checkStdErr(containsString("Unknown option: '--notanargument'"));
+                            result.checkFailed();
+                        });
     }
 
     @Test
@@ -148,68 +161,77 @@ public class LfcCliTest {
 
         // Invalid src file.
         fixture.run(tempDir, "unknown.lf")
-            .verify(result -> {
-                result.checkStdErr(containsString("No such file or directory."));
-                result.checkFailed();
-            });
+                .verify(
+                        result -> {
+                            result.checkStdErr(containsString("No such file or directory."));
+                            result.checkFailed();
+                        });
 
         // Invalid output path.
         fixture.run(tempDir, "--output-path", "unknown/output/path", "src/File.lf")
-            .verify(result -> {
-                result.checkStdErr(containsString("Output location does not exist."));
-                result.checkFailed();
-            });
+                .verify(
+                        result -> {
+                            result.checkStdErr(containsString("Output location does not exist."));
+                            result.checkFailed();
+                        });
 
         // Invalid build type.
         fixture.run(tempDir, "--build-type", "unknown-build-type", "src/File.lf")
-            .verify(result -> {
-                result.checkStdErr(containsString("Invalid build type."));
-                result.checkFailed();
-            });
+                .verify(
+                        result -> {
+                            result.checkStdErr(containsString("Invalid build type."));
+                            result.checkFailed();
+                        });
 
         // Invalid logging level.
         fixture.run(tempDir, "--logging", "unknown_level", "src/File.lf")
-            .verify(result -> {
-                result.checkStdErr(containsString("Invalid log level."));
-                result.checkFailed();
-            });
+                .verify(
+                        result -> {
+                            result.checkStdErr(containsString("Invalid log level."));
+                            result.checkFailed();
+                        });
 
         // Invalid RTI path.
         fixture.run(tempDir, "--rti", "unknown/rti/path", "src/File.lf")
-            .verify(result -> {
-                result.checkStdErr(containsString("Invalid RTI path."));
-                result.checkFailed();
-            });
+                .verify(
+                        result -> {
+                            result.checkStdErr(containsString("Invalid RTI path."));
+                            result.checkFailed();
+                        });
 
         // Invalid scheduler.
         fixture.run(tempDir, "--scheduler", "unknown-scheduler", "src/File.lf")
-            .verify(result -> {
-                result.checkStdErr(containsString("Invalid scheduler."));
-                result.checkFailed();
-            });
+                .verify(
+                        result -> {
+                            result.checkStdErr(containsString("Invalid scheduler."));
+                            result.checkFailed();
+                        });
 
         // Invalid workers.
         fixture.run(tempDir, "--workers", "notaninteger", "src/File.lf")
-            .verify(result -> {
-                result.checkStdErr(containsString("Invalid value for option '--workers'"));
-                result.checkStdErr(containsString("is not an int"));
-                result.checkFailed();
-            });
-
+                .verify(
+                        result -> {
+                            result.checkStdErr(
+                                    containsString("Invalid value for option '--workers'"));
+                            result.checkStdErr(containsString("is not an int"));
+                            result.checkFailed();
+                        });
     }
 
     @Test
     public void testGenInSrcDir(@TempDir Path tempDir) throws IOException {
         dirBuilder(tempDir).file("src/File.lf", LF_PYTHON_FILE);
 
-        lfcTester.run(tempDir, "src/File.lf", "--no-compile")
-            .verify(result -> {
-                result.checkOk();
-                dirChecker(tempDir)
-                    .check("src-gen", isDirectory())
-                    .check("bin", isDirectory())
-                    .check("src-gen/File/File.py", isRegularFile());
-            });
+        lfcTester
+                .run(tempDir, "src/File.lf", "--no-compile")
+                .verify(
+                        result -> {
+                            result.checkOk();
+                            dirChecker(tempDir)
+                                    .check("src-gen", isDirectory())
+                                    .check("bin", isDirectory())
+                                    .check("src-gen/File/File.py", isRegularFile());
+                        });
     }
 
     // Helper method for comparing argument values in tests testGeneratorArgs,
@@ -218,57 +240,81 @@ public class LfcCliTest {
         LfcOneShotTestFixture fixture = new LfcOneShotTestFixture();
 
         fixture.run(tempDir, args)
-            .verify(result -> {
-                // Don't validate execution because args are dummy args.
-                Properties properties = fixture.lfc.getGeneratorArgs();
-                assertEquals(properties.getProperty(BuildParm.BUILD_TYPE.getKey()), "Release");
-                assertEquals(properties.getProperty(BuildParm.CLEAN.getKey()), "true");
-                assertEquals(properties.getProperty(BuildParm.TARGET_COMPILER.getKey()), "gcc");
-                assertEquals(properties.getProperty(BuildParm.EXTERNAL_RUNTIME_PATH.getKey()), "src");
-                assertEquals(properties.getProperty(BuildParm.LOGGING.getKey()), "info");
-                assertEquals(properties.getProperty(BuildParm.LINT.getKey()), "true");
-                assertEquals(properties.getProperty(BuildParm.NO_COMPILE.getKey()), "true");
-                assertEquals(properties.getProperty(BuildParm.QUIET.getKey()), "true");
-                assertEquals(properties.getProperty(BuildParm.RTI.getKey()),
-                        "path" + File.separator + "to" + File.separator + "rti");
-                assertEquals(properties.getProperty(BuildParm.RUNTIME_VERSION.getKey()), "rs");
-                assertEquals(properties.getProperty(BuildParm.SCHEDULER.getKey()), "GEDF_NP");
-                assertEquals(properties.getProperty(BuildParm.THREADING.getKey()), "false");
-                assertEquals(properties.getProperty(BuildParm.WORKERS.getKey()), "1");
-            });
+                .verify(
+                        result -> {
+                            // Don't validate execution because args are dummy args.
+                            Properties properties = fixture.lfc.getGeneratorArgs();
+                            assertEquals(
+                                    properties.getProperty(BuildParm.BUILD_TYPE.getKey()),
+                                    "Release");
+                            assertEquals(properties.getProperty(BuildParm.CLEAN.getKey()), "true");
+                            assertEquals(
+                                    properties.getProperty(BuildParm.TARGET_COMPILER.getKey()),
+                                    "gcc");
+                            assertEquals(
+                                    properties.getProperty(
+                                            BuildParm.EXTERNAL_RUNTIME_PATH.getKey()),
+                                    "src");
+                            assertEquals(
+                                    properties.getProperty(BuildParm.LOGGING.getKey()), "info");
+                            assertEquals(properties.getProperty(BuildParm.LINT.getKey()), "true");
+                            assertEquals(
+                                    properties.getProperty(BuildParm.NO_COMPILE.getKey()), "true");
+                            assertEquals(properties.getProperty(BuildParm.QUIET.getKey()), "true");
+                            assertEquals(
+                                    properties.getProperty(BuildParm.RTI.getKey()),
+                                    "path" + File.separator + "to" + File.separator + "rti");
+                            assertEquals(
+                                    properties.getProperty(BuildParm.RUNTIME_VERSION.getKey()),
+                                    "rs");
+                            assertEquals(
+                                    properties.getProperty(BuildParm.SCHEDULER.getKey()),
+                                    "GEDF_NP");
+                            assertEquals(
+                                    properties.getProperty(BuildParm.THREADING.getKey()), "false");
+                            assertEquals(properties.getProperty(BuildParm.WORKERS.getKey()), "1");
+                        });
     }
 
     @Test
-    public void testGeneratorArgs(@TempDir Path tempDir)
-            throws IOException {
+    public void testGeneratorArgs(@TempDir Path tempDir) throws IOException {
         TempDirBuilder dir = dirBuilder(tempDir);
         dir.file("src/File.lf", LF_PYTHON_FILE);
         dir.mkdirs("path//to/rti");
 
         String[] args = {
             "src/File.lf",
-            "--output-path", "src",
-            "--build-type", "Release",
+            "--output-path",
+            "src",
+            "--build-type",
+            "Release",
             "--clean",
-            "--target-compiler", "gcc",
-            "--external-runtime-path", "src",
+            "--target-compiler",
+            "gcc",
+            "--external-runtime-path",
+            "src",
             "--federated",
-            "--logging", "info",
+            "--logging",
+            "info",
             "--lint",
             "--no-compile",
             "--quiet",
-            "--rti", "path/to/rti",
-            "--runtime-version", "rs",
-            "--scheduler", "GEDF_NP",
-            "--threading", "false",
-            "--workers", "1",
+            "--rti",
+            "path/to/rti",
+            "--runtime-version",
+            "rs",
+            "--scheduler",
+            "GEDF_NP",
+            "--threading",
+            "false",
+            "--workers",
+            "1",
         };
         verifyGeneratorArgs(tempDir, args);
     }
 
     @Test
-    public void testGeneratorArgsJsonString(@TempDir Path tempDir)
-            throws IOException {
+    public void testGeneratorArgsJsonString(@TempDir Path tempDir) throws IOException {
         TempDirBuilder dir = dirBuilder(tempDir);
         dir.file("src/File.lf", LF_PYTHON_FILE);
         dir.mkdirs("path/to/rti");
@@ -278,8 +324,7 @@ public class LfcCliTest {
     }
 
     @Test
-    public void testGeneratorArgsJsonFile(@TempDir Path tempDir)
-            throws IOException {
+    public void testGeneratorArgsJsonFile(@TempDir Path tempDir) throws IOException {
         TempDirBuilder dir = dirBuilder(tempDir);
         dir.file("src/File.lf", LF_PYTHON_FILE);
         dir.file("src/test.json", JSON_STRING);

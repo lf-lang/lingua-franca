@@ -4,7 +4,6 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.stream.Collectors;
-
 import org.lflang.util.FileUtil;
 
 /**
@@ -15,9 +14,7 @@ import org.lflang.util.FileUtil;
  */
 public class DockerComposeGenerator {
 
-    /**
-     * Path to the docker-compose.yml file.
-     */
+    /** Path to the docker-compose.yml file. */
     protected final Path path;
 
     public DockerComposeGenerator(LFGeneratorContext context) {
@@ -26,6 +23,7 @@ public class DockerComposeGenerator {
 
     /**
      * Return a string that represents the network portion of the docker-compose configuration.
+     *
      * @param networkName Name of the default network
      */
     protected String generateDockerNetwork(String networkName) {
@@ -33,26 +31,28 @@ public class DockerComposeGenerator {
             networks:
                 default:
                     name: "%s"
-            """.formatted(networkName);
+            """
+                .formatted(networkName);
     }
 
     /**
      * Return a string that represents the services portion of the docker-compose configuration.
+     *
      * @param services A list of docker data representing the services to render
      */
     protected String generateDockerServices(List<DockerData> services) {
         return """
-            version: "3.9" 
+            version: "3.9"
             services:
             %s
-            """.formatted(services.stream().map(
-                data -> getServiceDescription(data)
-            ).collect(Collectors.joining("\n")));
+            """
+                .formatted(
+                        services.stream()
+                                .map(data -> getServiceDescription(data))
+                                .collect(Collectors.joining("\n")));
     }
 
-    /**
-     * Return the command to build and run using the docker-compose configuration.
-     */
+    /** Return the command to build and run using the docker-compose configuration. */
     public String getUsageInstructions() {
         return """
             #####################################
@@ -61,44 +61,39 @@ public class DockerComposeGenerator {
             To return to the current working directory afterwards:
                 popd
             #####################################
-            """.formatted(path.getParent());
+            """
+                .formatted(path.getParent());
     }
 
-    /**
-     * Turn given docker data into a string.
-     */
+    /** Turn given docker data into a string. */
     protected String getServiceDescription(DockerData data) {
         return """
                 %s:
                     build:
                         context: "%s"
                     container_name: "%s"
-            """.formatted(getServiceName(data), getBuildContext(data), getContainerName(data));
+            """
+                .formatted(getServiceName(data), getBuildContext(data), getContainerName(data));
     }
 
-    /**
-     * Return the name of the service represented by the given data.
-     */
+    /** Return the name of the service represented by the given data. */
     protected String getServiceName(DockerData data) {
         return "main";
     }
 
-    /**
-     * Return the name of the service represented by the given data.
-     */
+    /** Return the name of the service represented by the given data. */
     protected String getBuildContext(DockerData data) {
         return ".";
     }
 
-    /**
-     * Return the name of the container for the given data.
-     */
+    /** Return the name of the container for the given data. */
     protected String getContainerName(DockerData data) {
         return data.serviceName;
     }
 
     /**
      * Write the docker-compose.yml file with a default network called "lf".
+     *
      * @param services A list of all the services.
      */
     public void writeDockerComposeFile(List<DockerData> services) throws IOException {
@@ -107,16 +102,17 @@ public class DockerComposeGenerator {
 
     /**
      * Write the docker-compose.yml file.
+     *
      * @param services A list of all the services to include.
      * @param networkName The name of the network to which docker will connect the services.
      */
-    public void writeDockerComposeFile(
-        List<DockerData> services,
-        String networkName
-    ) throws IOException {
-        var contents = String.join("\n",
-            this.generateDockerServices(services),
-            this.generateDockerNetwork(networkName));
+    public void writeDockerComposeFile(List<DockerData> services, String networkName)
+            throws IOException {
+        var contents =
+                String.join(
+                        "\n",
+                        this.generateDockerServices(services),
+                        this.generateDockerNetwork(networkName));
         FileUtil.writeToFile(contents, path);
         System.out.println(getUsageInstructions());
     }

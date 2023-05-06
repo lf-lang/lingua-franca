@@ -2,15 +2,14 @@ package org.lflang.diagram.lsp;
 
 import java.util.HashMap;
 import java.util.Map;
-
-import org.eclipse.lsp4j.jsonrpc.messages.Either;
 import org.eclipse.lsp4j.ProgressParams;
-import org.eclipse.lsp4j.services.LanguageClient;
-import org.eclipse.lsp4j.WorkDoneProgressCreateParams;
 import org.eclipse.lsp4j.WorkDoneProgressBegin;
+import org.eclipse.lsp4j.WorkDoneProgressCreateParams;
 import org.eclipse.lsp4j.WorkDoneProgressEnd;
 import org.eclipse.lsp4j.WorkDoneProgressNotification;
 import org.eclipse.lsp4j.WorkDoneProgressReport;
+import org.eclipse.lsp4j.jsonrpc.messages.Either;
+import org.eclipse.lsp4j.services.LanguageClient;
 import org.eclipse.xtext.util.CancelIndicator;
 
 /**
@@ -28,12 +27,12 @@ public class Progress {
     private final boolean cancellable;
 
     /**
-     * Initialize the {@code Progress} of a task titled {@code title} that is
-     * triggered via {@code client}.
+     * Initialize the {@code Progress} of a task titled {@code title} that is triggered via {@code
+     * client}.
+     *
      * @param client A language client through which a task was triggered.
      * @param title The title of the task.
-     * @param cancellable Whether the task tracked by {@code this} can be
-     * cancelled.
+     * @param cancellable Whether the task tracked by {@code this} can be cancelled.
      */
     public Progress(LanguageClient client, String title, boolean cancellable) {
         this.client = client;
@@ -44,28 +43,22 @@ public class Progress {
         client.createProgress(new WorkDoneProgressCreateParams(Either.forRight(token)));
     }
 
-    /**
-     * Cancel the task tracked by the {@code Progress} that has token
-     * {@code token}.
-     */
+    /** Cancel the task tracked by the {@code Progress} that has token {@code token}. */
     public static void cancel(int token) {
         if (cancellations.containsKey(token)) cancellations.put(token, true);
     }
 
     /**
-     * Returns the cancel indicator for the task tracked by this
-     * {@code Progress}.
-     * @return the cancel indicator for the task tracked by this
-     * {@code Progress}
+     * Returns the cancel indicator for the task tracked by this {@code Progress}.
+     *
+     * @return the cancel indicator for the task tracked by this {@code Progress}
      */
     public CancelIndicator getCancelIndicator() {
         if (cancellable) return () -> cancellations.get(token);
         return () -> false;
     }
 
-    /**
-     * Report that the task tracked by {@code this} is done.
-     */
+    /** Report that the task tracked by {@code this} is done. */
     public void begin() {
         WorkDoneProgressBegin begin = new WorkDoneProgressBegin();
         begin.setTitle(title);
@@ -76,6 +69,7 @@ public class Progress {
 
     /**
      * Report the progress of the task tracked by {@code this}.
+     *
      * @param message A message describing the progress of the task.
      */
     public void report(String message, Integer percentage) {
@@ -88,6 +82,7 @@ public class Progress {
 
     /**
      * Marks the task tracked by {@code this} as terminated.
+     *
      * @param message A message describing the outcome of the task.
      */
     public void end(String message) {
@@ -98,9 +93,11 @@ public class Progress {
 
     /**
      * Send the given progress notification to the client.
+     *
      * @param notification
      */
     private void notifyProgress(WorkDoneProgressNotification notification) {
-        client.notifyProgress(new ProgressParams(Either.forRight(token), Either.forLeft(notification)));
+        client.notifyProgress(
+                new ProgressParams(Either.forRight(token), Either.forLeft(notification)));
     }
 }

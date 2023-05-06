@@ -32,31 +32,22 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
 import java.nio.file.Path;
-import java.util.concurrent.Callable;
-import java.util.function.Consumer;
-
 import org.hamcrest.Matcher;
+import org.lflang.cli.Io;
 import org.opentest4j.AssertionFailedError;
 
-import org.lflang.cli.Io;
-
 /**
- * Test utilities for a CLI tool, eg {@link org.lflang.cli.Lfc},
- * {@link org.lflang.cli.Lff}.
+ * Test utilities for a CLI tool, eg {@link org.lflang.cli.Lfc}, {@link org.lflang.cli.Lff}.
  *
  * @author Clément Fournier
  */
 abstract class CliToolTestFixture {
 
-    /**
-     * Override to call the relevant main.
-     */
+    /** Override to call the relevant main. */
     protected abstract void runCliProgram(Io io, String[] args);
 
-
     /**
-     * Run the tool with the given arguments, in the system
-     * working directory.
+     * Run the tool with the given arguments, in the system working directory.
      *
      * @param args Arguments
      * @return The execution result
@@ -66,8 +57,7 @@ abstract class CliToolTestFixture {
     }
 
     /**
-     * Run the tool with the given arguments, in the given
-     * working directory.
+     * Run the tool with the given arguments, in the given working directory.
      *
      * @param wd working directory
      * @param args Arguments
@@ -77,11 +67,7 @@ abstract class CliToolTestFixture {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         ByteArrayOutputStream err = new ByteArrayOutputStream();
 
-        Io testIo = new Io(
-            new PrintStream(err),
-            new PrintStream(out),
-            wd
-        );
+        Io testIo = new Io(new PrintStream(err), new PrintStream(out), wd);
         int exitCode = testIo.fakeSystemExit(io -> runCliProgram(io, args));
 
         return new ExecutionResult(out, err, exitCode);
@@ -94,11 +80,7 @@ abstract class CliToolTestFixture {
      * @param err Error stream
      * @param exitCode Exit code of the process
      */
-    record ExecutionResult(
-        ByteArrayOutputStream out,
-        ByteArrayOutputStream err,
-        int exitCode
-    ) {
+    record ExecutionResult(ByteArrayOutputStream out, ByteArrayOutputStream err, int exitCode) {
 
         public String getOut() {
             return out.toString();
@@ -107,7 +89,6 @@ abstract class CliToolTestFixture {
         public String getErr() {
             return err.toString();
         }
-
 
         public void checkOk() {
             assertEquals(0, exitCode);
@@ -129,9 +110,7 @@ abstract class CliToolTestFixture {
             assertThat(getErr(), matcher);
         }
 
-        /**
-         * Use this method to wrap assertions.
-         */
+        /** Use this method to wrap assertions. */
         public void verify(ThrowingConsumer<ExecutionResult> actions) {
             try {
                 actions.accept(this);
@@ -150,7 +129,6 @@ abstract class CliToolTestFixture {
                 throw (AssertionFailedError) e;
             }
         }
-
 
         @FunctionalInterface
         interface ThrowingConsumer<T> {

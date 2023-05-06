@@ -26,7 +26,6 @@ package org.lflang.tests;
 
 import org.lflang.TargetProperty;
 import org.lflang.TargetProperty.Platform;
-import org.lflang.generator.LFGeneratorContext.BuildParm;
 import org.lflang.tests.TestRegistry.TestCategory;
 
 /**
@@ -42,8 +41,8 @@ public class Configurators {
     public interface Configurator {
 
         /**
-         * Apply a side effect to the given test case to change its default configuration.
-         * Return true if configuration succeeded, false otherwise.
+         * Apply a side effect to the given test case to change its default configuration. Return
+         * true if configuration succeeded, false otherwise.
          */
         boolean configure(LFTest test);
     }
@@ -51,10 +50,9 @@ public class Configurators {
     /**
      * Configure the given test to use single-threaded execution.
      *
-     * For targets that provide a threaded and an unthreaded runtime,
-     * this configures using the unthreaded runtime. For targets that
-     * do not distinguish threaded and unthreaded runtime, the number
-     * of workers is set to 1.
+     * <p>For targets that provide a threaded and an unthreaded runtime, this configures using the
+     * unthreaded runtime. For targets that do not distinguish threaded and unthreaded runtime, the
+     * number of workers is set to 1.
      *
      * @param test The test to configure.
      * @return True if successful, false otherwise.
@@ -84,21 +82,20 @@ public class Configurators {
         return true;
     }
 
-    /**
-     * Given a test category, return true if it is compatible with single-threaded execution.
-     */
+    /** Given a test category, return true if it is compatible with single-threaded execution. */
     public static boolean compatibleWithThreadingOff(TestCategory category) {
 
         // CONCURRENT, FEDERATED, DOCKER_FEDERATED, DOCKER
         // are not compatible with single-threaded execution.
         // ARDUINO and ZEPHYR have their own test suites, so we don't need to rerun.
-        boolean excluded = category == TestCategory.CONCURRENT
-            || category == TestCategory.SERIALIZATION
-            || category == TestCategory.FEDERATED
-            || category == TestCategory.DOCKER_FEDERATED
-            || category == TestCategory.DOCKER
-            || category == TestCategory.ARDUINO
-            || category == TestCategory.ZEPHYR;
+        boolean excluded =
+                category == TestCategory.CONCURRENT
+                        || category == TestCategory.SERIALIZATION
+                        || category == TestCategory.FEDERATED
+                        || category == TestCategory.DOCKER_FEDERATED
+                        || category == TestCategory.DOCKER
+                        || category == TestCategory.ARDUINO
+                        || category == TestCategory.ZEPHYR;
 
         // SERIALIZATION and TARGET tests are excluded on Windows.
         excluded |= TestBase.isWindows() && (category == TestCategory.TARGET);

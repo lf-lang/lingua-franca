@@ -27,9 +27,8 @@ package org.lflang.generator;
 import org.eclipse.emf.ecore.EObject;
 
 /**
- * An exception that indicates invalid source, which should
- * be reported to the user. This is an error, it should not
- * be used for warnings.
+ * An exception that indicates invalid source, which should be reported to the user. This is an
+ * error, it should not be used for warnings.
  *
  * @author Clément Fournier
  */

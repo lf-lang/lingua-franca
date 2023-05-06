@@ -4,8 +4,8 @@
 
 package org.lflang.formatting2;
 
+import com.google.inject.Inject;
 import java.util.List;
-
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.xtext.formatting2.FormatterRequest;
 import org.eclipse.xtext.formatting2.IFormatter2;
@@ -15,38 +15,32 @@ import org.eclipse.xtext.formatting2.regionaccess.internal.TextReplacement;
 import org.eclipse.xtext.util.CancelIndicator;
 import org.eclipse.xtext.validation.CheckMode;
 import org.eclipse.xtext.validation.IResourceValidator;
-
 import org.lflang.ast.FormattingUtils;
-
-import com.google.inject.Inject;
 
 public class LFFormatter implements IFormatter2 {
 
-    @Inject
-    private IResourceValidator validator;
+    @Inject private IResourceValidator validator;
 
     @Override
     public List<ITextReplacement> format(FormatterRequest request) {
         // TODO: Use a CancelIndicator that actually cancels?
         if (!request.getTextRegionAccess().getResource().getErrors().isEmpty()
-            || !validator.validate(
-                request.getTextRegionAccess().getResource(),
-                CheckMode.ALL,
-                CancelIndicator.NullImpl
-            ).isEmpty()
-        ) {
+                || !validator
+                        .validate(
+                                request.getTextRegionAccess().getResource(),
+                                CheckMode.ALL,
+                                CancelIndicator.NullImpl)
+                        .isEmpty()) {
             return List.of();
         }
         ITextSegment documentRegion = request.getTextRegionAccess().regionForDocument();
         List<EObject> documentContents = request.getTextRegionAccess().getResource().getContents();
         if (documentContents.isEmpty()) return List.of();
         return List.of(
-            new TextReplacement(
-                request.getTextRegionAccess(),
-                documentRegion.getOffset(),
-                documentRegion.getLength(),
-                FormattingUtils.render(documentContents.get(0))
-            )
-        );
+                new TextReplacement(
+                        request.getTextRegionAccess(),
+                        documentRegion.getOffset(),
+                        documentRegion.getLength(),
+                        FormattingUtils.render(documentContents.get(0))));
     }
 }

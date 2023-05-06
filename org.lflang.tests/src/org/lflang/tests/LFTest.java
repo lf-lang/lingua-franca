@@ -8,18 +8,15 @@ import java.io.OutputStream;
 import java.io.Reader;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-
 import org.eclipse.xtext.util.RuntimeIOException;
-
 import org.lflang.FileConfig;
 import org.lflang.Target;
 import org.lflang.generator.LFGeneratorContext;
 
 /**
  * Information about an indexed Lingua Franca test program.
- * 
- * @author Marten Lohstroh
  *
+ * @author Marten Lohstroh
  */
 public class LFTest implements Comparable<LFTest> {
 
@@ -73,15 +70,21 @@ public class LFTest implements Comparable<LFTest> {
         return compilationLog;
     }
 
-    public FileConfig getFileConfig() { return context.getFileConfig(); }
+    public FileConfig getFileConfig() {
+        return context.getFileConfig();
+    }
 
-    public LFGeneratorContext getContext() { return context; }
+    public LFGeneratorContext getContext() {
+        return context;
+    }
 
-    public Path getSrcPath() { return srcPath; }
+    public Path getSrcPath() {
+        return srcPath;
+    }
 
     /**
-     * Comparison implementation to allow for tests to be sorted (e.g., when added to a
-     * tree set) based on their path (relative to the root of the test directory).
+     * Comparison implementation to allow for tests to be sorted (e.g., when added to a tree set)
+     * based on their path (relative to the root of the test directory).
      */
     public int compareTo(LFTest t) {
         return this.relativePath.compareTo(t.relativePath);
@@ -89,6 +92,7 @@ public class LFTest implements Comparable<LFTest> {
 
     /**
      * Return true if the given object is an LFTest instance with a name identical to this test.
+     *
      * @param o The object to test for equality with respect to this one.
      * @return True if the given object is equal to this one, false otherwise.
      */
@@ -99,6 +103,7 @@ public class LFTest implements Comparable<LFTest> {
 
     /**
      * Return a string representing the name of this test.
+     *
      * @return The name of this test.
      */
     @Override
@@ -118,6 +123,7 @@ public class LFTest implements Comparable<LFTest> {
 
     /**
      * Report whether this test has failed.
+     *
      * @return True if the test has failed, false otherwise.
      */
     public boolean hasFailed() {
@@ -130,18 +136,22 @@ public class LFTest implements Comparable<LFTest> {
 
     /**
      * Compile a string that contains all collected errors and return it.
+     *
      * @return A string that contains all collected errors.
      */
     public void reportErrors() {
         if (this.hasFailed()) {
-            System.out.println("+---------------------------------------------------------------------------+");
+            System.out.println(
+                    "+---------------------------------------------------------------------------+");
             System.out.println("Failed: " + this);
-            System.out.println("-----------------------------------------------------------------------------");
+            System.out.println(
+                    "-----------------------------------------------------------------------------");
             System.out.println("Reason: " + this.result.message);
             printIfNotEmpty("Reported issues", this.issues.toString());
             printIfNotEmpty("Compilation output", this.compilationLog.toString());
             printIfNotEmpty("Execution output", this.execLog.toString());
-            System.out.println("+---------------------------------------------------------------------------+");
+            System.out.println(
+                    "+---------------------------------------------------------------------------+");
         }
     }
 
@@ -179,9 +189,7 @@ public class LFTest implements Comparable<LFTest> {
         }
     }
 
-    /**
-     * Enumeration of test outcomes.
-     */
+    /** Enumeration of test outcomes. */
     public enum Result {
         UNKNOWN("No information available."),
         CONFIG_FAIL("Could not apply configuration."),
@@ -194,13 +202,12 @@ public class LFTest implements Comparable<LFTest> {
         TEST_TIMEOUT("Test timed out."),
         TEST_PASS("Test passed.");
 
-        /**
-         * Description of the outcome.
-         */
+        /** Description of the outcome. */
         public final String message;
 
         /**
          * Private constructor.
+         *
          * @param message Description of the test outcome.
          */
         Result(String message) {
@@ -208,36 +215,31 @@ public class LFTest implements Comparable<LFTest> {
         }
     }
 
-
     /**
-     * Inner class for capturing streams during execution of a test, capable of
-     * recording output streams up until the moment that a test is interrupted
-     * upon timing out.
+     * Inner class for capturing streams during execution of a test, capable of recording output
+     * streams up until the moment that a test is interrupted upon timing out.
      *
      * @author Marten Lohstroh
-     *
      */
     public static final class ExecutionLogger {
 
         /**
-         * String buffer used to record the standard output and error
-         * streams from the input process.
+         * String buffer used to record the standard output and error streams from the input
+         * process.
          */
         StringBuffer buffer = new StringBuffer();
 
         /**
-         * Return a thread responsible for recording the standard output stream
-         * of the given process.
-         * A separate thread is used so that the activity can be preempted.
+         * Return a thread responsible for recording the standard output stream of the given
+         * process. A separate thread is used so that the activity can be preempted.
          */
         public Thread recordStdOut(Process process) {
             return recordStream(buffer, process.getInputStream());
         }
 
         /**
-         * Return a thread responsible for recording the error stream of the
-         * given process.
-         * A separate thread is used so that the activity can be preempted.
+         * Return a thread responsible for recording the error stream of the given process. A
+         * separate thread is used so that the activity can be preempted.
          */
         public Thread recordStdErr(Process process) {
             return recordStream(buffer, process.getErrorStream());
@@ -246,22 +248,22 @@ public class LFTest implements Comparable<LFTest> {
         /**
          * Return a thread responsible for recording the given stream.
          *
-         * @param builder     The builder to append to.
+         * @param builder The builder to append to.
          * @param inputStream The stream to read from.
          */
         private Thread recordStream(StringBuffer builder, InputStream inputStream) {
-            return new Thread(() -> {
-                try (Reader reader = new InputStreamReader(inputStream)) {
-                    int len;
-                    char[] buf = new char[1024];
-                    while ((len = reader.read(buf)) > 0) {
-                        builder.append(buf, 0, len);
-                    }
-                } catch (IOException e) {
-                    throw new RuntimeIOException(e);
-                }
-
-            });
+            return new Thread(
+                    () -> {
+                        try (Reader reader = new InputStreamReader(inputStream)) {
+                            int len;
+                            char[] buf = new char[1024];
+                            while ((len = reader.read(buf)) > 0) {
+                                builder.append(buf, 0, len);
+                            }
+                        } catch (IOException e) {
+                            throw new RuntimeIOException(e);
+                        }
+                    });
         }
 
         @Override
@@ -274,18 +276,17 @@ public class LFTest implements Comparable<LFTest> {
         }
     }
 
-
     /**
-     * Return a thread responsible for recording the standard output stream of the given process.
-     * A separate thread is used so that the activity can be preempted.
+     * Return a thread responsible for recording the standard output stream of the given process. A
+     * separate thread is used so that the activity can be preempted.
      */
     public Thread recordStdOut(Process process) {
         return execLog.recordStdOut(process);
     }
 
     /**
-     * Return a thread responsible for recording the error stream of the given process.
-     * A separate thread is used so that the activity can be preempted.
+     * Return a thread responsible for recording the error stream of the given process. A separate
+     * thread is used so that the activity can be preempted.
      */
     public Thread recordStdErr(Process process) {
         return execLog.recordStdErr(process);

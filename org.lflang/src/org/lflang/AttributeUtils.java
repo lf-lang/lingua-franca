@@ -27,12 +27,10 @@ package org.lflang;
 
 import java.util.List;
 import java.util.Objects;
-
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.xtext.nodemodel.ICompositeNode;
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils;
 import org.eclipse.xtext.resource.XtextResource;
-
 import org.lflang.lf.Action;
 import org.lflang.lf.AttrParm;
 import org.lflang.lf.Attribute;
@@ -56,8 +54,8 @@ import org.lflang.util.StringUtil;
 public class AttributeUtils {
 
     /**
-     * Return the attributes declared on the given node. Throws
-     * if the node does not support declaring attributes.
+     * Return the attributes declared on the given node. Throws if the node does not support
+     * declaring attributes.
      *
      * @throws IllegalArgumentException If the node cannot have attributes
      */
@@ -85,24 +83,27 @@ public class AttributeUtils {
     }
 
     /**
-     * Return the attribute with the given name
-     * if present, otherwise return null.
+     * Return the attribute with the given name if present, otherwise return null.
      *
      * @throws IllegalArgumentException If the node cannot have attributes
      */
     public static Attribute findAttributeByName(EObject node, String name) {
         List<Attribute> attrs = getAttributes(node);
         return attrs.stream()
-                    .filter(it -> it.getAttrName().equalsIgnoreCase(name)) // case-insensitive search (more user-friendly)
-                    .findFirst()
-                    .orElse(null);
+                .filter(
+                        it ->
+                                it.getAttrName()
+                                        .equalsIgnoreCase(name)) // case-insensitive search (more
+                // user-friendly)
+                .findFirst()
+                .orElse(null);
     }
 
     /**
      * Return the first argument specified for the attribute.
      *
-     * This should be used if the attribute is expected to have a single argument.
-     * If there is no argument, null is returned.
+     * <p>This should be used if the attribute is expected to have a single argument. If there is no
+     * argument, null is returned.
      */
     public static String getFirstArgumentValue(Attribute attr) {
         if (attr == null || attr.getAttrParms().isEmpty()) {
@@ -115,14 +116,15 @@ public class AttributeUtils {
      * Search for an attribute with the given name on the given AST node and return its first
      * argument as a String.
      *
-     * This should only be used on attributes that are expected to have a single argument.
+     * <p>This should only be used on attributes that are expected to have a single argument.
      *
-     * Returns null if the attribute is not found or if it does not have any arguments.
+     * <p>Returns null if the attribute is not found or if it does not have any arguments.
      */
     public static String getAttributeValue(EObject node, String attrName) {
         final var attr = findAttributeByName(node, attrName);
         String value = getFirstArgumentValue(attr);
-        // Attribute annotations in comments are deprecated, but we still check for then for backwards
+        // Attribute annotations in comments are deprecated, but we still check for then for
+        // backwards
         // compatibility
         if (value == null) {
             return findAnnotationInComments(node, "@" + attrName);
@@ -131,9 +133,10 @@ public class AttributeUtils {
     }
 
     /**
-     * Retrieve a specific annotation in a comment associated with the given model element in the AST.
+     * Retrieve a specific annotation in a comment associated with the given model element in the
+     * AST.
      *
-     * This will look for a comment. If one is found, it searches for the given annotation `key`.
+     * <p>This will look for a comment. If one is found, it searches for the given annotation `key`.
      * and extracts any string that follows the annotation marker.
      *
      * @param object the AST model element to search a comment for
@@ -144,32 +147,37 @@ public class AttributeUtils {
     public static String findAnnotationInComments(EObject object, String key) {
         if (!(object.eResource() instanceof XtextResource)) return null;
         ICompositeNode node = NodeModelUtils.findActualNodeFor(object);
-        return ASTUtils.getPrecedingComments(node, n -> true).flatMap(String::lines)
-            .filter(line -> line.contains(key))
-            .map(String::trim)
-            .map(it -> it.substring(it.indexOf(key) + key.length()))
-            .map(it -> it.endsWith("*/") ? it.substring(0, it.length() - "*/".length()) : it)
-            .findFirst().orElse(null);
+        return ASTUtils.getPrecedingComments(node, n -> true)
+                .flatMap(String::lines)
+                .filter(line -> line.contains(key))
+                .map(String::trim)
+                .map(it -> it.substring(it.indexOf(key) + key.length()))
+                .map(it -> it.endsWith("*/") ? it.substring(0, it.length() - "*/".length()) : it)
+                .findFirst()
+                .orElse(null);
     }
 
     /**
      * Return the parameter of the given attribute with the given name.
      *
-     * Returns null if no such parameter is found.
+     * <p>Returns null if no such parameter is found.
      */
     public static String getAttributeParameter(Attribute attribute, String parameterName) {
-        return (attribute == null) ? null : attribute.getAttrParms().stream()
-            .filter(param -> Objects.equals(param.getName(), parameterName))
-            .map(AttrParm::getValue)
-            .map(StringUtil::removeQuotes)
-            .findFirst()
-            .orElse(null);
+        return (attribute == null)
+                ? null
+                : attribute.getAttrParms().stream()
+                        .filter(param -> Objects.equals(param.getName(), parameterName))
+                        .map(AttrParm::getValue)
+                        .map(StringUtil::removeQuotes)
+                        .findFirst()
+                        .orElse(null);
     }
 
     /**
-     * Return the parameter of the given attribute with the given name and interpret it as a boolean.
+     * Return the parameter of the given attribute with the given name and interpret it as a
+     * boolean.
      *
-     * Returns null if no such parameter is found.
+     * <p>Returns null if no such parameter is found.
      */
     public static Boolean getBooleanAttributeParameter(Attribute attribute, String parameterName) {
         if (attribute == null || parameterName == null) {
@@ -183,8 +191,8 @@ public class AttributeUtils {
     }
 
     /**
-     * Return true if the specified node is an Input and has an {@code @sparse}
-     * attribute.
+     * Return true if the specified node is an Input and has an {@code @sparse} attribute.
+     *
      * @param node An AST node.
      */
     public static boolean isSparse(EObject node) {
@@ -194,16 +202,14 @@ public class AttributeUtils {
     /**
      * Return true if the reaction is unordered.
      *
-     * Currently, this is only used for synthesized reactions in the context of
-     * federated execution.
+     * <p>Currently, this is only used for synthesized reactions in the context of federated
+     * execution.
      */
     public static boolean isUnordered(Reaction reaction) {
         return findAttributeByName(reaction, "_unordered") != null;
     }
 
-    /**
-     * Return true if the reactor is marked to be a federate.
-     */
+    /** Return true if the reactor is marked to be a federate. */
     public static boolean isFederate(Reactor reactor) {
         return findAttributeByName(reactor, "_fed_config") != null;
     }
@@ -211,41 +217,34 @@ public class AttributeUtils {
     /**
      * Return true if the reaction is marked to have a C code body.
      *
-     * Currently, this is only used for synthesized reactions in the context of
-     * federated execution in Python.
+     * <p>Currently, this is only used for synthesized reactions in the context of federated
+     * execution in Python.
      */
     public static boolean hasCBody(Reaction reaction) {
         return findAttributeByName(reaction, "_c_body") != null;
     }
 
-    /**
-     * Return the declared label of the node, as given by the @label annotation.
-     */
+    /** Return the declared label of the node, as given by the @label annotation. */
     public static String getLabel(EObject node) {
         return getAttributeValue(node, "label");
     }
 
-    /**
-     * Return the declared icon of the node, as given by the @icon annotation.
-     */
-    public static  String getIconPath(EObject node) {
+    /** Return the declared icon of the node, as given by the @icon annotation. */
+    public static String getIconPath(EObject node) {
         return getAttributeValue(node, "icon");
     }
 
     /**
      * Return the {@code @enclave} attribute annotated on the given node.
      *
-     * Returns null if there is no such attribute.
+     * <p>Returns null if there is no such attribute.
      */
     public static Attribute getEnclaveAttribute(Instantiation node) {
         return findAttributeByName(node, "enclave");
     }
 
-    /**
-     * Return true if the specified instance has an {@code @enclave} attribute.
-     */
+    /** Return true if the specified instance has an {@code @enclave} attribute. */
     public static boolean isEnclave(Instantiation node) {
         return getEnclaveAttribute(node) != null;
     }
-
 }

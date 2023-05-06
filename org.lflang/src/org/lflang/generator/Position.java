@@ -4,14 +4,14 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * A position in a document, including line and
- * column. This position may be relative to some
+ * A position in a document, including line and column. This position may be relative to some
  * position other than the origin.
  *
  * @author Peter Donovan
  */
 public class Position implements Comparable<Position> {
-    public static final Pattern PATTERN = Pattern.compile("\\((?<line>[0-9]+), (?<column>[0-9]+)\\)");
+    public static final Pattern PATTERN =
+            Pattern.compile("\\((?<line>[0-9]+), (?<column>[0-9]+)\\)");
 
     public static final Position ORIGIN = Position.fromZeroBased(0, 0);
 
@@ -23,36 +23,33 @@ public class Position implements Comparable<Position> {
     /* ------------------------  CONSTRUCTORS  -------------------------- */
 
     /**
-     * Return the Position that describes the given
-     * zero-based line and column numbers.
+     * Return the Position that describes the given zero-based line and column numbers.
+     *
      * @param line the zero-based line number
      * @param column the zero-based column number
-     * @return a Position describing the position described
-     * by {@code line} and {@code column}.
+     * @return a Position describing the position described by {@code line} and {@code column}.
      */
     public static Position fromZeroBased(int line, int column) {
         return new Position(line, column);
     }
 
     /**
-     * Return the Position that describes the given
-     * one-based line and column numbers.
+     * Return the Position that describes the given one-based line and column numbers.
+     *
      * @param line the one-based line number
      * @param column the one-based column number
-     * @return a Position describing the position described
-     * by {@code line} and {@code column}.
+     * @return a Position describing the position described by {@code line} and {@code column}.
      */
     public static Position fromOneBased(int line, int column) {
         return new Position(line - 1, column - 1);
     }
 
     /**
-     * Return the Position that equals the displacement
-     * caused by {@code text}, assuming that {@code text}
-     * starts in column 0.
+     * Return the Position that equals the displacement caused by {@code text}, assuming that {@code
+     * text} starts in column 0.
+     *
      * @param text an arbitrary string
-     * @return the Position that equals the displacement
-     * caused by {@code text}
+     * @return the Position that equals the displacement caused by {@code text}
      */
     public static Position displacementOf(String text) {
         String[] lines = text.lines().toArray(String[]::new);
@@ -61,13 +58,11 @@ public class Position implements Comparable<Position> {
     }
 
     /**
-     * Return the Position that describes the same location
-     * in {@code content} as {@code offset}.
-     * @param offset a location, expressed as an offset from
-     *               the beginning of {@code content}
+     * Return the Position that describes the same location in {@code content} as {@code offset}.
+     *
+     * @param offset a location, expressed as an offset from the beginning of {@code content}
      * @param content the content of a document
-     * @return the Position that describes the same location
-     * in {@code content} as {@code offset}
+     * @return the Position that describes the same location in {@code content} as {@code offset}
      */
     public static Position fromOffset(int offset, String content) {
         int lineNumber = 0;
@@ -82,8 +77,8 @@ public class Position implements Comparable<Position> {
     }
 
     /**
-     * Create a new Position with the given line and column
-     * numbers.
+     * Create a new Position with the given line and column numbers.
+     *
      * @param line the zero-based line number
      * @param column the zero-based column number
      */
@@ -98,67 +93,63 @@ public class Position implements Comparable<Position> {
     /* -----------------------  PUBLIC METHODS  ------------------------- */
 
     /**
-     * Return the one-based line number described by this
-     * {@code Position}.
-     * @return the one-based line number described by this
-     * {@code Position}
+     * Return the one-based line number described by this {@code Position}.
+     *
+     * @return the one-based line number described by this {@code Position}
      */
     public int getOneBasedLine() {
         return line + 1;
     }
 
     /**
-     * Return the one-based column number described by this
-     * {@code Position}.
-     * @return the one-based column number described by this
-     * {@code Position}
+     * Return the one-based column number described by this {@code Position}.
+     *
+     * @return the one-based column number described by this {@code Position}
      */
     public int getOneBasedColumn() {
         return column + 1;
     }
 
     /**
-     * Return the zero-based line number described by this
-     * {@code Position}.
-     * @return the zero-based line number described by this
-     * {@code Position}
+     * Return the zero-based line number described by this {@code Position}.
+     *
+     * @return the zero-based line number described by this {@code Position}
      */
     public int getZeroBasedLine() {
         return line;
     }
 
     /**
-     * Return the zero-based column number described by this
-     * {@code Position}.
-     * @return the zero-based column number described by this
-     * {@code Position}
+     * Return the zero-based column number described by this {@code Position}.
+     *
+     * @return the zero-based column number described by this {@code Position}
      */
     public int getZeroBasedColumn() {
         return column;
     }
 
     /**
-     * Return the Position that equals the displacement of
-     * ((text whose displacement equals {@code this})
-     * concatenated with {@code text}). Note that this is
-     * not necessarily equal to
-     * ({@code this} + displacementOf(text)).
+     * Return the Position that equals the displacement of ((text whose displacement equals {@code
+     * this}) concatenated with {@code text}). Note that this is not necessarily equal to ({@code
+     * this} + displacementOf(text)).
+     *
      * @param text an arbitrary string
-     * @return the Position that equals the displacement
-     * caused by {@code text}
+     * @return the Position that equals the displacement caused by {@code text}
      */
     public Position plus(String text) {
-        text += "\n";  // Turn line separators into line terminators.
+        text += "\n"; // Turn line separators into line terminators.
         String[] lines = text.lines().toArray(String[]::new);
         if (lines.length == 0) return this; // OK not to copy because Positions are immutable
         int lastLineLength = lines[lines.length - 1].length();
-        return new Position(line + lines.length - 1, lines.length > 1 ? lastLineLength : column + lastLineLength);
+        return new Position(
+                line + lines.length - 1,
+                lines.length > 1 ? lastLineLength : column + lastLineLength);
     }
 
     /**
-     * Return the sum of this and another {@code Position}.
-     * The result has meaning because Positions are
-     * relative.
+     * Return the sum of this and another {@code Position}. The result has meaning because Positions
+     * are relative.
+     *
      * @param other another {@code Position}
      * @return the sum of this and {@code other}
      */
@@ -167,9 +158,9 @@ public class Position implements Comparable<Position> {
     }
 
     /**
-     * Return the difference of this and another {@code
-     * Position}. The result has meaning because
+     * Return the difference of this and another {@code Position}. The result has meaning because
      * Positions are relative.
+     *
      * @param other another {@code Position}
      * @return the difference of this and {@code other}
      */
@@ -178,9 +169,8 @@ public class Position implements Comparable<Position> {
     }
 
     /**
-     * Compare two positions according to their order of
-     * appearance in a document (first according to line,
-     * then according to column).
+     * Compare two positions according to their order of appearance in a document (first according
+     * to line, then according to column).
      */
     @Override
     public int compareTo(Position o) {
@@ -202,18 +192,17 @@ public class Position implements Comparable<Position> {
 
     /**
      * Return the Position represented by {@code s}.
-     * @param s a String that represents a Position,
-     *          formatted like the output of
-     *          {@code Position::toString}.
+     *
+     * @param s a String that represents a Position, formatted like the output of {@code
+     *     Position::toString}.
      * @return the Position represented by {@code s}
      */
     public static Position fromString(String s) {
         Matcher matcher = PATTERN.matcher(s);
         if (matcher.matches()) {
             return Position.fromZeroBased(
-                Integer.parseInt(matcher.group("line")),
-                Integer.parseInt(matcher.group("column"))
-            );
+                    Integer.parseInt(matcher.group("line")),
+                    Integer.parseInt(matcher.group("column")));
         }
         throw new IllegalArgumentException(String.format("Could not parse %s as a Position.", s));
     }
@@ -224,14 +213,14 @@ public class Position implements Comparable<Position> {
     }
 
     /**
-     * Remove the names from the named capturing groups
-     * that appear in {@code regex}.
+     * Remove the names from the named capturing groups that appear in {@code regex}.
+     *
      * @param regex an arbitrary regular expression
-     * @return a string representation of {@code regex}
-     * with the names removed from the named capturing
-     * groups
+     * @return a string representation of {@code regex} with the names removed from the named
+     *     capturing groups
      */
-    public static String removeNamedCapturingGroups(Pattern regex) {  // FIXME: Does this belong here?
+    public static String removeNamedCapturingGroups(
+            Pattern regex) { // FIXME: Does this belong here?
         return regex.toString().replaceAll("\\(\\?<\\w+>", "(");
     }
 }

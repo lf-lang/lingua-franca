@@ -22,7 +22,11 @@ public class TestError extends Exception {
         this(null, result, null);
     }
 
-    public Result getResult() {return result;}
+    public Result getResult() {
+        return result;
+    }
 
-    public Throwable getException() {return exception;}
+    public Throwable getException() {
+        return exception;
+    }
 }

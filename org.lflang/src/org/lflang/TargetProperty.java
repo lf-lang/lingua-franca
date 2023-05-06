@@ -1,30 +1,31 @@
 /*************
-Copyright (c) 2019, The University of California at Berkeley.
-
-Redistribution and use in source and binary forms, with or without modification,
-are permitted provided that the following conditions are met:
-
-1. Redistributions of source code must retain the above copyright notice,
-   this list of conditions and the following disclaimer.
-
-2. Redistributions in binary form must reproduce the above copyright notice,
-   this list of conditions and the following disclaimer in the documentation
-   and/or other materials provided with the distribution.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
-ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR
-ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
-(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
-ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
-SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-***************/
+ * Copyright (c) 2019, The University of California at Berkeley.
+ *
+ * Redistribution and use in source and binary forms, with or without modification,
+ * are permitted provided that the following conditions are met:
+ *
+ * 1. Redistributions of source code must retain the above copyright notice,
+ * this list of conditions and the following disclaimer.
+ *
+ * 2. Redistributions in binary form must reproduce the above copyright notice,
+ * this list of conditions and the following disclaimer in the documentation
+ * and/or other materials provided with the distribution.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR
+ * ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+ * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+ * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
+ * ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+ * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ ***************/
 
 package org.lflang;
 
+import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Arrays;
@@ -33,7 +34,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
-
 import org.eclipse.xtext.util.RuntimeIOException;
 import org.lflang.TargetConfig.DockerOptions;
 import org.lflang.TargetConfig.PlatformOptions;
@@ -51,28 +51,26 @@ import org.lflang.util.FileUtil;
 import org.lflang.util.StringUtil;
 import org.lflang.validation.LFValidator;
 
-import com.google.common.collect.ImmutableList;
-
 /**
- * A target properties along with a type and a list of supporting targets
- * that supports it, as well as a function for configuration updates.
+ * A target properties along with a type and a list of supporting targets that supports it, as well
+ * as a function for configuration updates.
  *
  * @author Marten Lohstroh
  */
 public enum TargetProperty {
-    /**
-     * Directive to allow including OpenSSL libraries and process HMAC authentication.
-     */
-    AUTH("auth", PrimitiveType.BOOLEAN,
+    /** Directive to allow including OpenSSL libraries and process HMAC authentication. */
+    AUTH(
+            "auth",
+            PrimitiveType.BOOLEAN,
             Arrays.asList(Target.C, Target.CCPP),
-         (config) -> ASTUtils.toElement(config.auth),
-         (config, value, err) -> {
+            (config) -> ASTUtils.toElement(config.auth),
+            (config, value, err) -> {
                 config.auth = ASTUtils.toBoolean(value);
             }),
-    /**
-     * Directive to let the generator use the custom build command.
-     */
-    BUILD("build", UnionType.STRING_OR_STRING_ARRAY,
+    /** Directive to let the generator use the custom build command. */
+    BUILD(
+            "build",
+            UnionType.STRING_OR_STRING_ARRAY,
             Arrays.asList(Target.C, Target.CCPP),
             (config) -> ASTUtils.toElement(config.buildCommands),
             (config, value, err) -> {
@@ -80,34 +78,40 @@ public enum TargetProperty {
             }),
 
     /**
-     * Directive to specify the target build type such as 'Release' or 'Debug'.
-     * This is also used in the Rust target to select a Cargo profile.
+     * Directive to specify the target build type such as 'Release' or 'Debug'. This is also used in
+     * the Rust target to select a Cargo profile.
      */
-    BUILD_TYPE("build-type", UnionType.BUILD_TYPE_UNION,
+    BUILD_TYPE(
+            "build-type",
+            UnionType.BUILD_TYPE_UNION,
             Arrays.asList(Target.C, Target.CCPP, Target.CPP, Target.Rust),
             (config) -> ASTUtils.toElement(config.cmakeBuildType.toString()),
             (config, value, err) -> {
-                config.cmakeBuildType = (BuildType) UnionType.BUILD_TYPE_UNION
-                        .forName(ASTUtils.elementToSingleString(value));
+                config.cmakeBuildType =
+                        (BuildType)
+                                UnionType.BUILD_TYPE_UNION.forName(
+                                        ASTUtils.elementToSingleString(value));
                 // set it there too, because the default is different.
                 config.rust.setBuildType(config.cmakeBuildType);
             }),
 
-    /**
-     * Directive to let the federate execution handle clock synchronization in software.
-     */
-    CLOCK_SYNC("clock-sync", UnionType.CLOCK_SYNC_UNION,
-               Arrays.asList(Target.C, Target.CCPP, Target.Python),
-               (config) -> ASTUtils.toElement(config.clockSync.toString()),
-               (config, value, err) -> {
-                    config.clockSync = (ClockSyncMode) UnionType.CLOCK_SYNC_UNION
-                        .forName(ASTUtils.elementToSingleString(value));
-               }),
-    /**
-     * Key-value pairs giving options for clock synchronization.
-     */
-    CLOCK_SYNC_OPTIONS("clock-sync-options",
-            DictionaryType.CLOCK_SYNC_OPTION_DICT, Arrays.asList(Target.C, Target.CCPP, Target.Python),
+    /** Directive to let the federate execution handle clock synchronization in software. */
+    CLOCK_SYNC(
+            "clock-sync",
+            UnionType.CLOCK_SYNC_UNION,
+            Arrays.asList(Target.C, Target.CCPP, Target.Python),
+            (config) -> ASTUtils.toElement(config.clockSync.toString()),
+            (config, value, err) -> {
+                config.clockSync =
+                        (ClockSyncMode)
+                                UnionType.CLOCK_SYNC_UNION.forName(
+                                        ASTUtils.elementToSingleString(value));
+            }),
+    /** Key-value pairs giving options for clock synchronization. */
+    CLOCK_SYNC_OPTIONS(
+            "clock-sync-options",
+            DictionaryType.CLOCK_SYNC_OPTION_DICT,
+            Arrays.asList(Target.C, Target.CCPP, Target.Python),
             (config) -> {
                 Element e = LfFactory.eINSTANCE.createElement();
                 KeyValuePairs kvp = LfFactory.eINSTANCE.createKeyValuePairs();
@@ -122,14 +126,17 @@ public enum TargetProperty {
                             pair.setValue(ASTUtils.toElement(config.clockSyncOptions.collectStats));
                             break;
                         case LOCAL_FEDERATES_ON:
-                            pair.setValue(ASTUtils.toElement(config.clockSyncOptions.localFederatesOn));
+                            pair.setValue(
+                                    ASTUtils.toElement(config.clockSyncOptions.localFederatesOn));
                             break;
                         case PERIOD:
-                            if (config.clockSyncOptions.period == null) continue; // don't set if null
+                            if (config.clockSyncOptions.period == null)
+                                continue; // don't set if null
                             pair.setValue(ASTUtils.toElement(config.clockSyncOptions.period));
                             break;
                         case TEST_OFFSET:
-                            if (config.clockSyncOptions.testOffset == null) continue; // don't set if null
+                            if (config.clockSyncOptions.testOffset == null)
+                                continue; // don't set if null
                             pair.setValue(ASTUtils.toElement(config.clockSyncOptions.testOffset));
                             break;
                         case TRIALS:
@@ -144,32 +151,31 @@ public enum TargetProperty {
             },
             (config, value, err) -> {
                 for (KeyValuePair entry : value.getKeyvalue().getPairs()) {
-                    ClockSyncOption option = (ClockSyncOption) DictionaryType.CLOCK_SYNC_OPTION_DICT
-                            .forName(entry.getName());
+                    ClockSyncOption option =
+                            (ClockSyncOption)
+                                    DictionaryType.CLOCK_SYNC_OPTION_DICT.forName(entry.getName());
                     switch (option) {
                         case ATTENUATION:
-                            config.clockSyncOptions.attenuation = ASTUtils
-                                    .toInteger(entry.getValue());
+                            config.clockSyncOptions.attenuation =
+                                    ASTUtils.toInteger(entry.getValue());
                             break;
                         case COLLECT_STATS:
-                            config.clockSyncOptions.collectStats = ASTUtils
-                                    .toBoolean(entry.getValue());
+                            config.clockSyncOptions.collectStats =
+                                    ASTUtils.toBoolean(entry.getValue());
                             break;
                         case LOCAL_FEDERATES_ON:
-                            config.clockSyncOptions.localFederatesOn = ASTUtils
-                                    .toBoolean(entry.getValue());
+                            config.clockSyncOptions.localFederatesOn =
+                                    ASTUtils.toBoolean(entry.getValue());
                             break;
                         case PERIOD:
-                            config.clockSyncOptions.period = ASTUtils
-                                    .toTimeValue(entry.getValue());
+                            config.clockSyncOptions.period = ASTUtils.toTimeValue(entry.getValue());
                             break;
                         case TEST_OFFSET:
-                            config.clockSyncOptions.testOffset = ASTUtils
-                                    .toTimeValue(entry.getValue());
+                            config.clockSyncOptions.testOffset =
+                                    ASTUtils.toTimeValue(entry.getValue());
                             break;
                         case TRIALS:
-                            config.clockSyncOptions.trials = ASTUtils
-                                    .toInteger(entry.getValue());
+                            config.clockSyncOptions.trials = ASTUtils.toInteger(entry.getValue());
                             break;
                         default:
                             break;
@@ -178,13 +184,14 @@ public enum TargetProperty {
             }),
 
     /**
-     * Directive to specify a cmake to be included by the generated build
-     * systems.
+     * Directive to specify a cmake to be included by the generated build systems.
      *
-     * This gives full control over the C/C++ build as any cmake parameters
-     * can be adjusted in the included file.
+     * <p>This gives full control over the C/C++ build as any cmake parameters can be adjusted in
+     * the included file.
      */
-    CMAKE_INCLUDE("cmake-include", UnionType.FILE_OR_FILE_ARRAY,
+    CMAKE_INCLUDE(
+            "cmake-include",
+            UnionType.FILE_OR_FILE_ARRAY,
             Arrays.asList(Target.CPP, Target.C, Target.CCPP),
             (config) -> ASTUtils.toElement(config.cmakeIncludes),
             (config, value, err) -> {
@@ -197,19 +204,20 @@ public enum TargetProperty {
             (config, value, err) -> {
                 config.cmakeIncludes.addAll(ASTUtils.elementToListOfStrings(value));
             }),
-    /**
-     * Directive to specify the target compiler.
-     */
-    COMPILER("compiler", PrimitiveType.STRING, Target.ALL,
+    /** Directive to specify the target compiler. */
+    COMPILER(
+            "compiler",
+            PrimitiveType.STRING,
+            Target.ALL,
             (config) -> ASTUtils.toElement(config.compiler),
             (config, value, err) -> {
                 config.compiler = ASTUtils.elementToSingleString(value);
             }),
 
-    /**
-     * Directive to specify compile-time definitions.
-     */
-    COMPILE_DEFINITIONS("compile-definitions", StringDictionaryType.COMPILE_DEFINITION,
+    /** Directive to specify compile-time definitions. */
+    COMPILE_DEFINITIONS(
+            "compile-definitions",
+            StringDictionaryType.COMPILE_DEFINITION,
             Arrays.asList(Target.C, Target.CCPP, Target.Python),
             (config) -> ASTUtils.toElement(config.compileDefinitions),
             (config, value, err) -> {
@@ -217,15 +225,17 @@ public enum TargetProperty {
             }),
 
     /**
-     * Directive to generate a Dockerfile. This is either a boolean,
-     * true or false, or a dictionary of options.
+     * Directive to generate a Dockerfile. This is either a boolean, true or false, or a dictionary
+     * of options.
      */
-    DOCKER("docker", UnionType.DOCKER_UNION,
+    DOCKER(
+            "docker",
+            UnionType.DOCKER_UNION,
             Arrays.asList(Target.C, Target.CCPP, Target.Python, Target.TS),
             (config) -> {
                 if (config.dockerOptions == null) {
                     return null;
-                } else if(config.dockerOptions.equals(new DockerOptions())) {
+                } else if (config.dockerOptions.equals(new DockerOptions())) {
                     // default configuration
                     return ASTUtils.toElement(true);
                 } else {
@@ -251,10 +261,11 @@ public enum TargetProperty {
             (config, value, err) -> setDockerProperty(config, value)),
 
     /**
-     * Directive for specifying a path to an external runtime to be used for the
-     * compiled binary.
+     * Directive for specifying a path to an external runtime to be used for the compiled binary.
      */
-    EXTERNAL_RUNTIME_PATH("external-runtime-path", PrimitiveType.STRING,
+    EXTERNAL_RUNTIME_PATH(
+            "external-runtime-path",
+            PrimitiveType.STRING,
             List.of(Target.CPP),
             (config) -> ASTUtils.toElement(config.externalRuntimePath),
             (config, value, err) -> {
@@ -262,20 +273,24 @@ public enum TargetProperty {
             }),
 
     /**
-     * Directive to let the execution engine allow logical time to elapse
-     * faster than physical time.
+     * Directive to let the execution engine allow logical time to elapse faster than physical time.
      */
-    FAST("fast", PrimitiveType.BOOLEAN, Target.ALL,
+    FAST(
+            "fast",
+            PrimitiveType.BOOLEAN,
+            Target.ALL,
             (config) -> ASTUtils.toElement(config.fastMode),
             (config, value, err) -> {
                 config.fastMode = ASTUtils.toBoolean(value);
             }),
 
     /**
-     * Directive to stage particular files on the class path to be
-     * processed by the code generator.
+     * Directive to stage particular files on the class path to be processed by the code generator.
      */
-    FILES("files", UnionType.FILE_OR_FILE_ARRAY, List.of(Target.C, Target.CCPP, Target.Python),
+    FILES(
+            "files",
+            UnionType.FILE_OR_FILE_ARRAY,
+            List.of(Target.C, Target.CCPP, Target.Python),
             (config) -> ASTUtils.toElement(config.files),
             (config, value, err) -> {
                 config.files = ASTUtils.elementToListOfStrings(value);
@@ -288,36 +303,40 @@ public enum TargetProperty {
                 config.files.addAll(ASTUtils.elementToListOfStrings(value));
             }),
 
-    /**
-     * Flags to be passed on to the target compiler.
-     */
-    FLAGS("flags", UnionType.STRING_OR_STRING_ARRAY,
+    /** Flags to be passed on to the target compiler. */
+    FLAGS(
+            "flags",
+            UnionType.STRING_OR_STRING_ARRAY,
             Arrays.asList(Target.C, Target.CCPP),
             (config) -> ASTUtils.toElement(config.compilerFlags),
             (config, value, err) -> {
                 config.compilerFlags = ASTUtils.elementToListOfStrings(value);
             }),
 
-    /**
-     * Directive to specify the coordination mode
-     */
-    COORDINATION("coordination", UnionType.COORDINATION_UNION,
+    /** Directive to specify the coordination mode */
+    COORDINATION(
+            "coordination",
+            UnionType.COORDINATION_UNION,
             Arrays.asList(Target.C, Target.CCPP, Target.Python),
             (config) -> ASTUtils.toElement(config.coordination.toString()),
             (config, value, err) -> {
-                config.coordination = (CoordinationType) UnionType.COORDINATION_UNION
-                        .forName(ASTUtils.elementToSingleString(value));
+                config.coordination =
+                        (CoordinationType)
+                                UnionType.COORDINATION_UNION.forName(
+                                        ASTUtils.elementToSingleString(value));
             },
             (config, value, err) -> {
-                config.coordination = (CoordinationType) UnionType.COORDINATION_UNION
-                        .forName(ASTUtils.elementToSingleString(value));
+                config.coordination =
+                        (CoordinationType)
+                                UnionType.COORDINATION_UNION.forName(
+                                        ASTUtils.elementToSingleString(value));
             }),
 
-    /**
-     * Key-value pairs giving options for clock synchronization.
-     */
-    COORDINATION_OPTIONS("coordination-options",
-            DictionaryType.COORDINATION_OPTION_DICT, Arrays.asList(Target.C, Target.CCPP, Target.Python, Target.TS),
+    /** Key-value pairs giving options for clock synchronization. */
+    COORDINATION_OPTIONS(
+            "coordination-options",
+            DictionaryType.COORDINATION_OPTION_DICT,
+            Arrays.asList(Target.C, Target.CCPP, Target.Python, Target.TS),
             (config) -> {
                 Element e = LfFactory.eINSTANCE.createElement();
                 KeyValuePairs kvp = LfFactory.eINSTANCE.createKeyValuePairs();
@@ -326,8 +345,11 @@ public enum TargetProperty {
                     pair.setName(opt.toString());
                     switch (opt) {
                         case ADVANCE_MESSAGE_INTERVAL:
-                            if (config.coordinationOptions.advance_message_interval == null) continue;
-                            pair.setValue(ASTUtils.toElement(config.coordinationOptions.advance_message_interval));
+                            if (config.coordinationOptions.advance_message_interval == null)
+                                continue;
+                            pair.setValue(
+                                    ASTUtils.toElement(
+                                            config.coordinationOptions.advance_message_interval));
                             break;
                     }
                     kvp.getPairs().add(pair);
@@ -338,12 +360,14 @@ public enum TargetProperty {
             },
             (config, value, err) -> {
                 for (KeyValuePair entry : value.getKeyvalue().getPairs()) {
-                    CoordinationOption option = (CoordinationOption) DictionaryType.COORDINATION_OPTION_DICT
-                            .forName(entry.getName());
+                    CoordinationOption option =
+                            (CoordinationOption)
+                                    DictionaryType.COORDINATION_OPTION_DICT.forName(
+                                            entry.getName());
                     switch (option) {
                         case ADVANCE_MESSAGE_INTERVAL:
-                            config.coordinationOptions.advance_message_interval = ASTUtils
-                                    .toTimeValue(entry.getValue());
+                            config.coordinationOptions.advance_message_interval =
+                                    ASTUtils.toTimeValue(entry.getValue());
                             break;
                         default:
                             break;
@@ -351,54 +375,62 @@ public enum TargetProperty {
                 }
             },
             (config, value, err) -> {
-             for (KeyValuePair entry : value.getKeyvalue().getPairs()) {
-                 CoordinationOption option = (CoordinationOption) DictionaryType.COORDINATION_OPTION_DICT
-                     .forName(entry.getName());
-                 switch (option) {
-                 case ADVANCE_MESSAGE_INTERVAL:
-                     config.coordinationOptions.advance_message_interval = ASTUtils
-                         .toTimeValue(entry.getValue());
-                     break;
-                 default:
-                     break;
-                 }
-             }
+                for (KeyValuePair entry : value.getKeyvalue().getPairs()) {
+                    CoordinationOption option =
+                            (CoordinationOption)
+                                    DictionaryType.COORDINATION_OPTION_DICT.forName(
+                                            entry.getName());
+                    switch (option) {
+                        case ADVANCE_MESSAGE_INTERVAL:
+                            config.coordinationOptions.advance_message_interval =
+                                    ASTUtils.toTimeValue(entry.getValue());
+                            break;
+                        default:
+                            break;
+                    }
+                }
             }),
 
     /**
-     * Directive to let the execution engine remain active also if there
-     * are no more events in the event queue.
+     * Directive to let the execution engine remain active also if there are no more events in the
+     * event queue.
      */
-    KEEPALIVE("keepalive", PrimitiveType.BOOLEAN, Target.ALL,
+    KEEPALIVE(
+            "keepalive",
+            PrimitiveType.BOOLEAN,
+            Target.ALL,
             (config) -> ASTUtils.toElement(config.keepalive),
             (config, value, err) -> {
                 config.keepalive = ASTUtils.toBoolean(value);
             }),
 
-    /**
-     * Directive to specify the grain at which to report log messages during execution.
-     */
-    LOGGING("logging", UnionType.LOGGING_UNION, Target.ALL,
+    /** Directive to specify the grain at which to report log messages during execution. */
+    LOGGING(
+            "logging",
+            UnionType.LOGGING_UNION,
+            Target.ALL,
             (config) -> ASTUtils.toElement(config.logLevel.toString()),
             (config, value, err) -> {
-                config.logLevel = (LogLevel) UnionType.LOGGING_UNION
-                        .forName(ASTUtils.elementToSingleString(value));
+                config.logLevel =
+                        (LogLevel)
+                                UnionType.LOGGING_UNION.forName(
+                                        ASTUtils.elementToSingleString(value));
             }),
 
-    /**
-     * Directive to not invoke the target compiler.
-     */
-    NO_COMPILE("no-compile", PrimitiveType.BOOLEAN,
+    /** Directive to not invoke the target compiler. */
+    NO_COMPILE(
+            "no-compile",
+            PrimitiveType.BOOLEAN,
             Arrays.asList(Target.C, Target.CPP, Target.CCPP, Target.Python),
             (config) -> ASTUtils.toElement(config.noCompile),
             (config, value, err) -> {
                 config.noCompile = ASTUtils.toBoolean(value);
             }),
 
-    /**
-     * Directive to disable validation of reactor rules at runtime.
-     */
-    NO_RUNTIME_VALIDATION("no-runtime-validation", PrimitiveType.BOOLEAN,
+    /** Directive to disable validation of reactor rules at runtime. */
+    NO_RUNTIME_VALIDATION(
+            "no-runtime-validation",
+            PrimitiveType.BOOLEAN,
             Arrays.asList(Target.CPP),
             (config) -> ASTUtils.toElement(config.noRuntimeValidation),
             (config, value, err) -> {
@@ -406,10 +438,13 @@ public enum TargetProperty {
             }),
 
     /**
-     * Directive to specify the platform for cross code generation. This is either a string of the platform
-     * or a dictionary of options that includes the string name. 
+     * Directive to specify the platform for cross code generation. This is either a string of the
+     * platform or a dictionary of options that includes the string name.
      */
-    PLATFORM("platform", UnionType.PLATFORM_STRING_OR_DICTIONARY, Target.ALL,
+    PLATFORM(
+            "platform",
+            UnionType.PLATFORM_STRING_OR_DICTIONARY,
+            Target.ALL,
             (config) -> {
                 Element e = LfFactory.eINSTANCE.createElement();
                 KeyValuePairs kvp = LfFactory.eINSTANCE.createKeyValuePairs();
@@ -418,7 +453,8 @@ public enum TargetProperty {
                     pair.setName(opt.toString());
                     switch (opt) {
                         case NAME:
-                            pair.setValue(ASTUtils.toElement(config.platformOptions.platform.toString()));
+                            pair.setValue(
+                                    ASTUtils.toElement(config.platformOptions.platform.toString()));
                             break;
                         case BAUDRATE:
                             pair.setValue(ASTUtils.toElement(config.platformOptions.baudRate));
@@ -442,35 +478,47 @@ public enum TargetProperty {
             (config, value, err) -> {
                 if (value.getLiteral() != null) {
                     config.platformOptions = new PlatformOptions();
-                    config.platformOptions.platform = (Platform) UnionType.PLATFORM_UNION
-                        .forName(ASTUtils.elementToSingleString(value));
+                    config.platformOptions.platform =
+                            (Platform)
+                                    UnionType.PLATFORM_UNION.forName(
+                                            ASTUtils.elementToSingleString(value));
                 } else {
-                    config.platformOptions= new PlatformOptions();
+                    config.platformOptions = new PlatformOptions();
                     for (KeyValuePair entry : value.getKeyvalue().getPairs()) {
-                        PlatformOption option = (PlatformOption) DictionaryType.PLATFORM_DICT
-                                .forName(entry.getName());
+                        PlatformOption option =
+                                (PlatformOption)
+                                        DictionaryType.PLATFORM_DICT.forName(entry.getName());
                         switch (option) {
                             case NAME:
-                                Platform p = (Platform) UnionType.PLATFORM_UNION
-                                    .forName(ASTUtils.elementToSingleString(entry.getValue()));
-                                if(p == null) {
-                                    String s = "Unidentified Platform Type, LF supports the following platform types: " + Arrays.asList(Platform.values()).toString();
+                                Platform p =
+                                        (Platform)
+                                                UnionType.PLATFORM_UNION.forName(
+                                                        ASTUtils.elementToSingleString(
+                                                                entry.getValue()));
+                                if (p == null) {
+                                    String s =
+                                            "Unidentified Platform Type, LF supports the following"
+                                                    + " platform types: "
+                                                    + Arrays.asList(Platform.values()).toString();
                                     err.reportError(s);
                                     throw new AssertionError(s);
                                 }
                                 config.platformOptions.platform = p;
                                 break;
                             case BAUDRATE:
-                                config.platformOptions.baudRate = ASTUtils.toInteger(entry.getValue());
+                                config.platformOptions.baudRate =
+                                        ASTUtils.toInteger(entry.getValue());
                                 break;
                             case BOARD:
-                                config.platformOptions.board = ASTUtils.elementToSingleString(entry.getValue());
+                                config.platformOptions.board =
+                                        ASTUtils.elementToSingleString(entry.getValue());
                                 break;
                             case FLASH:
                                 config.platformOptions.flash = ASTUtils.toBoolean(entry.getValue());
                                 break;
                             case PORT:
-                                config.platformOptions.port = ASTUtils.elementToSingleString(entry.getValue());
+                                config.platformOptions.port =
+                                        ASTUtils.elementToSingleString(entry.getValue());
                                 break;
                             default:
                                 break;
@@ -480,93 +528,96 @@ public enum TargetProperty {
             }),
 
     /**
-     * Directive for specifying .proto files that need to be compiled and their
-     * code included in the sources.
+     * Directive for specifying .proto files that need to be compiled and their code included in the
+     * sources.
      */
-    PROTOBUFS("protobufs", UnionType.FILE_OR_FILE_ARRAY,
+    PROTOBUFS(
+            "protobufs",
+            UnionType.FILE_OR_FILE_ARRAY,
             Arrays.asList(Target.C, Target.CCPP, Target.TS, Target.Python),
             (config) -> ASTUtils.toElement(config.protoFiles),
             (config, value, err) -> {
                 config.protoFiles = ASTUtils.elementToListOfStrings(value);
             }),
 
+    /** Directive to specify that ROS2 specific code is generated, */
+    ROS2(
+            "ros2",
+            PrimitiveType.BOOLEAN,
+            List.of(Target.CPP),
+            (config) -> ASTUtils.toElement(config.ros2),
+            (config, value, err) -> {
+                config.ros2 = ASTUtils.toBoolean(value);
+            }),
 
-    /**
-     * Directive to specify that ROS2 specific code is generated,
-     */
-    ROS2("ros2", PrimitiveType.BOOLEAN,
-         List.of(Target.CPP),
-         (config) -> ASTUtils.toElement(config.ros2),
-         (config, value, err) -> {
-             config.ros2 = ASTUtils.toBoolean(value);
-    }),
+    /** Directive to specify additional ROS2 packages that this LF program depends on. */
+    ROS2_DEPENDENCIES(
+            "ros2-dependencies",
+            ArrayType.STRING_ARRAY,
+            List.of(Target.CPP),
+            (config) -> ASTUtils.toElement(config.ros2Dependencies),
+            (config, value, err) -> {
+                config.ros2Dependencies = ASTUtils.elementToListOfStrings(value);
+            }),
 
-    /**
-     * Directive to specify additional ROS2 packages that this LF program depends on.
-     */
-    ROS2_DEPENDENCIES("ros2-dependencies", ArrayType.STRING_ARRAY,
-        List.of(Target.CPP),
-                      (config) -> ASTUtils.toElement(config.ros2Dependencies),
-                      (config, value, err) -> {
-            config.ros2Dependencies = ASTUtils.elementToListOfStrings(value);
-    }),
-
-    /**
-     * Directive for specifying a specific version of the reactor runtime library.
-     */
-    RUNTIME_VERSION("runtime-version", PrimitiveType.STRING,
+    /** Directive for specifying a specific version of the reactor runtime library. */
+    RUNTIME_VERSION(
+            "runtime-version",
+            PrimitiveType.STRING,
             Arrays.asList(Target.CPP),
             (config) -> ASTUtils.toElement(config.runtimeVersion),
             (config, value, err) -> {
                 config.runtimeVersion = ASTUtils.elementToSingleString(value);
             }),
 
-
-    /**
-     * Directive for specifying a specific runtime scheduler, if supported.
-     */
-    SCHEDULER("scheduler", UnionType.SCHEDULER_UNION,
+    /** Directive for specifying a specific runtime scheduler, if supported. */
+    SCHEDULER(
+            "scheduler",
+            UnionType.SCHEDULER_UNION,
             Arrays.asList(Target.C, Target.CCPP, Target.Python),
             (config) -> ASTUtils.toElement(config.schedulerType.toString()),
             (config, value, err) -> {
-                config.schedulerType = (SchedulerOption) UnionType.SCHEDULER_UNION
-                        .forName(ASTUtils.elementToSingleString(value));
+                config.schedulerType =
+                        (SchedulerOption)
+                                UnionType.SCHEDULER_UNION.forName(
+                                        ASTUtils.elementToSingleString(value));
             }),
 
-    /**
-     * Directive to specify that all code is generated in a single file.
-     */
-    SINGLE_FILE_PROJECT("single-file-project", PrimitiveType.BOOLEAN,
+    /** Directive to specify that all code is generated in a single file. */
+    SINGLE_FILE_PROJECT(
+            "single-file-project",
+            PrimitiveType.BOOLEAN,
             List.of(Target.Rust),
             (config) -> ASTUtils.toElement(config.singleFileProject),
             (config, value, err) -> {
                 config.singleFileProject = ASTUtils.toBoolean(value);
             }),
 
-    /**
-     * Directive to indicate whether the runtime should use multi-threading.
-     */
-    THREADING("threading", PrimitiveType.BOOLEAN,
-              List.of(Target.C, Target.CCPP, Target.Python),
-              (config) -> ASTUtils.toElement(config.threading),
-              (config, value, err) -> {
-                  config.threading = ASTUtils.toBoolean(value);
-              }),
+    /** Directive to indicate whether the runtime should use multi-threading. */
+    THREADING(
+            "threading",
+            PrimitiveType.BOOLEAN,
+            List.of(Target.C, Target.CCPP, Target.Python),
+            (config) -> ASTUtils.toElement(config.threading),
+            (config, value, err) -> {
+                config.threading = ASTUtils.toBoolean(value);
+            }),
 
-    /**
-     * Directive to specify the number of worker threads used by the runtime.
-     */
-    WORKERS("workers", PrimitiveType.NON_NEGATIVE_INTEGER,
+    /** Directive to specify the number of worker threads used by the runtime. */
+    WORKERS(
+            "workers",
+            PrimitiveType.NON_NEGATIVE_INTEGER,
             List.of(Target.C, Target.CCPP, Target.Python, Target.CPP, Target.Rust),
             (config) -> ASTUtils.toElement(config.workers),
             (config, value, err) -> {
                 config.workers = ASTUtils.toInteger(value);
             }),
 
-    /**
-     * Directive to specify the execution timeout.
-     */
-    TIMEOUT("timeout", PrimitiveType.TIME_VALUE, Target.ALL,
+    /** Directive to specify the execution timeout. */
+    TIMEOUT(
+            "timeout",
+            PrimitiveType.TIME_VALUE,
+            Target.ALL,
             (config) -> ASTUtils.toElement(config.timeout),
             (config, value, err) -> {
                 config.timeout = ASTUtils.toTimeValue(value);
@@ -575,10 +626,10 @@ public enum TargetProperty {
                 config.timeout = ASTUtils.toTimeValue(value);
             }),
 
-    /**
-     * Directive to enable tracing.
-     */
-    TRACING("tracing", UnionType.TRACING_UNION,
+    /** Directive to enable tracing. */
+    TRACING(
+            "tracing",
+            UnionType.TRACING_UNION,
             Arrays.asList(Target.C, Target.CCPP, Target.CPP, Target.Python),
             (config) -> {
                 if (config.tracing == null) {
@@ -594,8 +645,8 @@ public enum TargetProperty {
                         pair.setName(opt.toString());
                         switch (opt) {
                             case TRACE_FILE_NAME:
-                                 if (config.tracing.traceFileName == null) continue;
-                                 pair.setValue(ASTUtils.toElement(config.tracing.traceFileName));
+                                if (config.tracing.traceFileName == null) continue;
+                                pair.setValue(ASTUtils.toElement(config.tracing.traceFileName));
                         }
                         kvp.getPairs().add(pair);
                     }
@@ -614,14 +665,16 @@ public enum TargetProperty {
                 } else {
                     config.tracing = new TracingOptions();
                     for (KeyValuePair entry : value.getKeyvalue().getPairs()) {
-                        TracingOption option = (TracingOption) DictionaryType.TRACING_DICT
-                            .forName(entry.getName());
+                        TracingOption option =
+                                (TracingOption)
+                                        DictionaryType.TRACING_DICT.forName(entry.getName());
                         switch (option) {
-                        case TRACE_FILE_NAME:
-                            config.tracing.traceFileName = ASTUtils.elementToSingleString(entry.getValue());
-                            break;
-                        default:
-                            break;
+                            case TRACE_FILE_NAME:
+                                config.tracing.traceFileName =
+                                        ASTUtils.elementToSingleString(entry.getValue());
+                                break;
+                            default:
+                                break;
                         }
                     }
                 }
@@ -630,92 +683,97 @@ public enum TargetProperty {
     /**
      * Directive to let the runtime export its internal dependency graph.
      *
-     * This is a debugging feature and currently only used for C++ and Rust programs.
+     * <p>This is a debugging feature and currently only used for C++ and Rust programs.
      */
-    EXPORT_DEPENDENCY_GRAPH("export-dependency-graph", PrimitiveType.BOOLEAN,
-                           List.of(Target.CPP, Target.Rust),
-                           (config) -> ASTUtils.toElement(config.exportDependencyGraph),
-                           (config, value, err) -> {
-        config.exportDependencyGraph = ASTUtils.toBoolean(value);
-    }),
+    EXPORT_DEPENDENCY_GRAPH(
+            "export-dependency-graph",
+            PrimitiveType.BOOLEAN,
+            List.of(Target.CPP, Target.Rust),
+            (config) -> ASTUtils.toElement(config.exportDependencyGraph),
+            (config, value, err) -> {
+                config.exportDependencyGraph = ASTUtils.toBoolean(value);
+            }),
 
     /**
      * Directive to let the runtime export the program structure to a yaml file.
      *
-     * This is a debugging feature and currently only used for C++ programs.
+     * <p>This is a debugging feature and currently only used for C++ programs.
      */
-    EXPORT_TO_YAML("export-to-yaml", PrimitiveType.BOOLEAN,
-                           List.of(Target.CPP),
-                           (config) -> ASTUtils.toElement(config.exportToYaml),
-                           (config, value, err) -> {
-                               config.exportToYaml = ASTUtils.toBoolean(value);
-                           }),
+    EXPORT_TO_YAML(
+            "export-to-yaml",
+            PrimitiveType.BOOLEAN,
+            List.of(Target.CPP),
+            (config) -> ASTUtils.toElement(config.exportToYaml),
+            (config, value, err) -> {
+                config.exportToYaml = ASTUtils.toBoolean(value);
+            }),
 
     /**
-     * List of module files to link into the crate as top-level.
-     * For instance, a {@code target Rust { rust-modules: [ "foo.rs" ] }}
-     * will cause the file to be copied into the generated project,
-     * and the generated `main.rs` will include it with a `mod foo;`.
-     * If one of the paths is a directory, it must contain a `mod.rs`
-     * file, and all its contents are copied.
+     * List of module files to link into the crate as top-level. For instance, a {@code target Rust
+     * { rust-modules: [ "foo.rs" ] }} will cause the file to be copied into the generated project,
+     * and the generated `main.rs` will include it with a `mod foo;`. If one of the paths is a
+     * directory, it must contain a `mod.rs` file, and all its contents are copied.
      */
-    RUST_INCLUDE("rust-include",
-                 UnionType.FILE_OR_FILE_ARRAY,
-                 List.of(Target.Rust),
-                 (config) -> {
-                    // do not check paths here, and simply copy the absolute path over
-                    List<Path> paths = config.rust.getRustTopLevelModules();
-                    if (paths.isEmpty()) return null;
-                    else if (paths.size() == 1) {
-                        return ASTUtils.toElement(paths.get(0).toString());
-                    } else {
-                        Element e = LfFactory.eINSTANCE.createElement();
-                        Array arr = LfFactory.eINSTANCE.createArray();
-                        for (Path p : paths) {
-                            arr.getElements().add(ASTUtils.toElement(p.toString()));
-                        }
-                        e.setArray(arr);
-                        return e;
+    RUST_INCLUDE(
+            "rust-include",
+            UnionType.FILE_OR_FILE_ARRAY,
+            List.of(Target.Rust),
+            (config) -> {
+                // do not check paths here, and simply copy the absolute path over
+                List<Path> paths = config.rust.getRustTopLevelModules();
+                if (paths.isEmpty()) return null;
+                else if (paths.size() == 1) {
+                    return ASTUtils.toElement(paths.get(0).toString());
+                } else {
+                    Element e = LfFactory.eINSTANCE.createElement();
+                    Array arr = LfFactory.eINSTANCE.createArray();
+                    for (Path p : paths) {
+                        arr.getElements().add(ASTUtils.toElement(p.toString()));
                     }
-                 },
-                (config, value, err) -> {
-                    Path referencePath;
-                    try {
-                        referencePath = FileUtil.toPath(value.eResource().getURI()).toAbsolutePath();
-                    } catch (IOException e) {
-                        err.reportError(value, "Invalid path? " + e.getMessage());
-                        throw new RuntimeIOException(e);
+                    e.setArray(arr);
+                    return e;
+                }
+            },
+            (config, value, err) -> {
+                Path referencePath;
+                try {
+                    referencePath = FileUtil.toPath(value.eResource().getURI()).toAbsolutePath();
+                } catch (IOException e) {
+                    err.reportError(value, "Invalid path? " + e.getMessage());
+                    throw new RuntimeIOException(e);
+                }
+
+                // we'll resolve relative paths to check that the files
+                // are as expected.
+
+                if (value.getLiteral() != null) {
+                    Path resolved =
+                            referencePath.resolveSibling(
+                                    StringUtil.removeQuotes(value.getLiteral()));
+
+                    config.rust.addAndCheckTopLevelModule(resolved, value, err);
+                } else if (value.getArray() != null) {
+                    for (Element element : value.getArray().getElements()) {
+                        String literal = StringUtil.removeQuotes(element.getLiteral());
+                        Path resolved = referencePath.resolveSibling(literal);
+                        config.rust.addAndCheckTopLevelModule(resolved, element, err);
                     }
+                }
+            }),
 
-                    // we'll resolve relative paths to check that the files
-                    // are as expected.
-
-                    if (value.getLiteral() != null) {
-                        Path resolved = referencePath.resolveSibling(StringUtil.removeQuotes(value.getLiteral()));
-
-                        config.rust.addAndCheckTopLevelModule(resolved, value, err);
-                    } else if (value.getArray() != null) {
-                        for (Element element : value.getArray().getElements()) {
-                            String literal = StringUtil.removeQuotes(element.getLiteral());
-                            Path resolved = referencePath.resolveSibling(literal);
-                            config.rust.addAndCheckTopLevelModule(resolved, element, err);
-                        }
-                    }
-                }),
-
-    /**
-     * Directive for specifying Cargo features of the generated
-     * program to enable.
-     */
-    CARGO_FEATURES("cargo-features", ArrayType.STRING_ARRAY,
-                   List.of(Target.Rust),
-                   (config) -> ASTUtils.toElement(config.rust.getCargoFeatures()),
-                   (config, value, err) -> {
-        config.rust.setCargoFeatures(ASTUtils.elementToListOfStrings(value));
-    }),
+    /** Directive for specifying Cargo features of the generated program to enable. */
+    CARGO_FEATURES(
+            "cargo-features",
+            ArrayType.STRING_ARRAY,
+            List.of(Target.Rust),
+            (config) -> ASTUtils.toElement(config.rust.getCargoFeatures()),
+            (config, value, err) -> {
+                config.rust.setCargoFeatures(ASTUtils.elementToListOfStrings(value));
+            }),
 
     /**
      * Dependency specifications for Cargo. This property looks like this:
+     *
      * <pre>{@code
      * cargo-dependencies: {
      *    // Name-of-the-crate: "version"
@@ -738,44 +796,44 @@ public enum TargetProperty {
      * }
      * }</pre>
      */
-    CARGO_DEPENDENCIES("cargo-dependencies",
-                       CargoDependenciesPropertyType.INSTANCE,
-                       List.of(Target.Rust),
-                       (config) -> {
-                            var deps = config.rust.getCargoDependencies();
-                            if (deps.size() == 0) return null;
-                            else {
-                                Element e = LfFactory.eINSTANCE.createElement();
-                                KeyValuePairs kvp = LfFactory.eINSTANCE.createKeyValuePairs();
-                                for (var ent : deps.entrySet()) {
-                                    KeyValuePair pair = LfFactory.eINSTANCE.createKeyValuePair();
-                                    pair.setName(ent.getKey());
-                                    pair.setValue(CargoDependencySpec.extractSpec(ent.getValue()));
-                                    kvp.getPairs().add(pair);
-                                }
-                                e.setKeyvalue(kvp);
-                                return e;
-                            }
-                       },
-                       (config, value, err) -> {
-                            config.rust.setCargoDependencies(CargoDependencySpec.parseAll(value));
-    }),
+    CARGO_DEPENDENCIES(
+            "cargo-dependencies",
+            CargoDependenciesPropertyType.INSTANCE,
+            List.of(Target.Rust),
+            (config) -> {
+                var deps = config.rust.getCargoDependencies();
+                if (deps.size() == 0) return null;
+                else {
+                    Element e = LfFactory.eINSTANCE.createElement();
+                    KeyValuePairs kvp = LfFactory.eINSTANCE.createKeyValuePairs();
+                    for (var ent : deps.entrySet()) {
+                        KeyValuePair pair = LfFactory.eINSTANCE.createKeyValuePair();
+                        pair.setName(ent.getKey());
+                        pair.setValue(CargoDependencySpec.extractSpec(ent.getValue()));
+                        kvp.getPairs().add(pair);
+                    }
+                    e.setKeyvalue(kvp);
+                    return e;
+                }
+            },
+            (config, value, err) -> {
+                config.rust.setCargoDependencies(CargoDependencySpec.parseAll(value));
+            }),
 
     /**
-     * Directs the C or Python target to include the associated C file used for
-     * setting up federated execution before processing the first tag.
+     * Directs the C or Python target to include the associated C file used for setting up federated
+     * execution before processing the first tag.
      */
-    FED_SETUP("_fed_setup", PrimitiveType.FILE,
-              Arrays.asList(Target.C, Target.CCPP, Target.Python),
-              (config) -> ASTUtils.toElement(config.fedSetupPreamble),
-              (config, value, err) ->
-                  config.fedSetupPreamble = StringUtil.removeQuotes(ASTUtils.elementToSingleString(value))
-    )
-    ;
+    FED_SETUP(
+            "_fed_setup",
+            PrimitiveType.FILE,
+            Arrays.asList(Target.C, Target.CCPP, Target.Python),
+            (config) -> ASTUtils.toElement(config.fedSetupPreamble),
+            (config, value, err) ->
+                    config.fedSetupPreamble =
+                            StringUtil.removeQuotes(ASTUtils.elementToSingleString(value)));
 
-    /**
-     * Update {@code config}.dockerOptions based on value.
-     */
+    /** Update {@code config}.dockerOptions based on value. */
     private static void setDockerProperty(TargetConfig config, Element value) {
         if (value.getLiteral() != null) {
             if (ASTUtils.toBoolean(value)) {
@@ -786,11 +844,12 @@ public enum TargetProperty {
         } else {
             config.dockerOptions = new DockerOptions();
             for (KeyValuePair entry : value.getKeyvalue().getPairs()) {
-                DockerOption option = (DockerOption) DictionaryType.DOCKER_DICT
-                        .forName(entry.getName());
+                DockerOption option =
+                        (DockerOption) DictionaryType.DOCKER_DICT.forName(entry.getName());
                 switch (option) {
                     case FROM:
-                        config.dockerOptions.from = ASTUtils.elementToSingleString(entry.getValue());
+                        config.dockerOptions.from =
+                                ASTUtils.elementToSingleString(entry.getValue());
                         break;
                     default:
                         break;
@@ -799,34 +858,27 @@ public enum TargetProperty {
         }
     }
 
-    /**
-     * String representation of this target property.
-     */
+    /** String representation of this target property. */
     public final String description;
 
     /**
-     * List of targets that support this property. If a property is used for
-     * a target that does not support it, a warning reported during
-     * validation.
+     * List of targets that support this property. If a property is used for a target that does not
+     * support it, a warning reported during validation.
      */
     public final List<Target> supportedBy;
 
-    /**
-     * The type of values that can be assigned to this property.
-     */
+    /** The type of values that can be assigned to this property. */
     public final TargetPropertyType type;
 
     /**
-     * Function that given a configuration object and an Element AST node
-     * sets the configuration. It is assumed that validation already
-     * occurred, so this code should be straightforward.
+     * Function that given a configuration object and an Element AST node sets the configuration. It
+     * is assumed that validation already occurred, so this code should be straightforward.
      */
     public final PropertyParser setter;
 
     /**
-     * Function that given a configuration object and an Element AST node
-     * sets the configuration. It is assumed that validation already
-     * occurred, so this code should be straightforward.
+     * Function that given a configuration object and an Element AST node sets the configuration. It
+     * is assumed that validation already occurred, so this code should be straightforward.
      */
     public final PropertyParser updater;
 
@@ -834,8 +886,8 @@ public enum TargetProperty {
     private interface PropertyParser {
 
         /**
-         * Parse the given element into the given target config.
-         * May use the error reporter to report format errors.
+         * Parse the given element into the given target config. May use the error reporter to
+         * report format errors.
          */
         void parseIntoTargetConfig(TargetConfig config, Element element, ErrorReporter err);
     }
@@ -846,8 +898,8 @@ public enum TargetProperty {
     private interface PropertyGetter {
 
         /**
-         * Read this property from the target config and build an element which represents it for the AST.
-         * May return null if the given value of this property is the same as the default.
+         * Read this property from the target config and build an element which represents it for
+         * the AST. May return null if the given value of this property is the same as the default.
          */
         Element getPropertyElement(TargetConfig config);
     }
@@ -856,15 +908,16 @@ public enum TargetProperty {
      * Private constructor for target properties.
      *
      * @param description String representation of this property.
-     * @param type        The type that values assigned to this property
-     *                    should conform to.
+     * @param type The type that values assigned to this property should conform to.
      * @param supportedBy List of targets that support this property.
-     * @param setter      Function for configuration updates.
+     * @param setter Function for configuration updates.
      */
-    TargetProperty(String description, TargetPropertyType type,
-                   List<Target> supportedBy,
-                   PropertyGetter getter,
-                   PropertyParser setter) {
+    TargetProperty(
+            String description,
+            TargetPropertyType type,
+            List<Target> supportedBy,
+            PropertyGetter getter,
+            PropertyParser setter) {
         this.description = description;
         this.type = type;
         this.supportedBy = supportedBy;
@@ -874,21 +927,22 @@ public enum TargetProperty {
     }
 
     /**
-     * Private constructor for target properties. This will take an additional
-     * `updater`, which will be used to merge target properties from imported resources.
+     * Private constructor for target properties. This will take an additional `updater`, which will
+     * be used to merge target properties from imported resources.
      *
      * @param description String representation of this property.
-     * @param type        The type that values assigned to this property
-     *                    should conform to.
+     * @param type The type that values assigned to this property should conform to.
      * @param supportedBy List of targets that support this property.
-     * @param setter      Function for setting configuration values.
-     * @param updater     Function for updating configuration values.
+     * @param setter Function for setting configuration values.
+     * @param updater Function for updating configuration values.
      */
-    TargetProperty(String description, TargetPropertyType type,
-                   List<Target> supportedBy,
-                   PropertyGetter getter,
-                   PropertyParser setter,
-                   PropertyParser updater) {
+    TargetProperty(
+            String description,
+            TargetPropertyType type,
+            List<Target> supportedBy,
+            PropertyGetter getter,
+            PropertyParser setter,
+            PropertyParser updater) {
         this.description = description;
         this.type = type;
         this.supportedBy = supportedBy;
@@ -898,10 +952,9 @@ public enum TargetProperty {
     }
 
     /**
-     * Return the name of the property in lingua franca. This
-     * is suitable for use as a key in a target properties block.
-     * It may be an invalid identifier in other languages (may
-     * contains dashes {@code -}).
+     * Return the name of the property in lingua franca. This is suitable for use as a key in a
+     * target properties block. It may be an invalid identifier in other languages (may contains
+     * dashes {@code -}).
      */
     public String getDisplayName() {
         return description;
@@ -910,27 +963,30 @@ public enum TargetProperty {
     /**
      * Set the given configuration using the given target properties.
      *
-     * @param config     The configuration object to update.
+     * @param config The configuration object to update.
      * @param properties AST node that holds all the target properties.
-     * @param err        Error reporter on which property format errors will be reported
+     * @param err Error reporter on which property format errors will be reported
      */
     public static void set(TargetConfig config, List<KeyValuePair> properties, ErrorReporter err) {
-        properties.forEach(property ->  {
-            TargetProperty p = forName(property.getName());
-            if (p != null) {
-                // Mark the specified target property as set by the user
-                config.setByUser.add(p);
-                try {
-                    p.setter.parseIntoTargetConfig(config, property.getValue(), err);
-                } catch (InvalidLfSourceException e) {
-                    err.reportError(e.getNode(), e.getProblem());
-                }
-            }
-        });
+        properties.forEach(
+                property -> {
+                    TargetProperty p = forName(property.getName());
+                    if (p != null) {
+                        // Mark the specified target property as set by the user
+                        config.setByUser.add(p);
+                        try {
+                            p.setter.parseIntoTargetConfig(config, property.getValue(), err);
+                        } catch (InvalidLfSourceException e) {
+                            err.reportError(e.getNode(), e.getProblem());
+                        }
+                    }
+                });
     }
 
     /**
-     * Extracts all properties as a list of key-value pairs from a TargetConfig. Only extracts properties explicitly set by user.
+     * Extracts all properties as a list of key-value pairs from a TargetConfig. Only extracts
+     * properties explicitly set by user.
+     *
      * @param config The TargetConfig to extract from.
      * @return The extracted properties.
      */
@@ -940,17 +996,17 @@ public enum TargetProperty {
             KeyValuePair kv = LfFactory.eINSTANCE.createKeyValuePair();
             kv.setName(p.toString());
             kv.setValue(p.getter.getPropertyElement(config));
-            if (kv.getValue() != null)
-                res.add(kv);
+            if (kv.getValue() != null) res.add(kv);
         }
         return res;
     }
 
     /**
      * Constructs a TargetDecl by extracting the fields of the given TargetConfig.
-     * @param target  The target to generate for.
-     * @param config  The TargetConfig to extract from.
-     * @return        A generated TargetDecl.
+     *
+     * @param target The target to generate for.
+     * @param config The TargetConfig to extract from.
+     * @return A generated TargetDecl.
      */
     public static TargetDecl extractTargetDecl(Target target, TargetConfig config) {
         TargetDecl decl = LfFactory.eINSTANCE.createTargetDecl();
@@ -966,46 +1022,48 @@ public enum TargetProperty {
     /**
      * Update the given configuration using the given target properties.
      *
-     * @param config     The configuration object to update.
+     * @param config The configuration object to update.
      * @param properties AST node that holds all the target properties.
      */
-    public static void update(TargetConfig config, List<KeyValuePair> properties, ErrorReporter err) {
-        properties.forEach(property ->  {
-            TargetProperty p = forName(property.getName());
-            if (p != null) {
-                // Mark the specified target property as set by the user
-                config.setByUser.add(p);
-                p.updater.parseIntoTargetConfig(config, property.getValue(), err);
-            }
-        });
+    public static void update(
+            TargetConfig config, List<KeyValuePair> properties, ErrorReporter err) {
+        properties.forEach(
+                property -> {
+                    TargetProperty p = forName(property.getName());
+                    if (p != null) {
+                        // Mark the specified target property as set by the user
+                        config.setByUser.add(p);
+                        p.updater.parseIntoTargetConfig(config, property.getValue(), err);
+                    }
+                });
     }
 
     /**
-     * Update one of the target properties, given by 'propertyName'.
-     * For convenience, a list of target properties (e.g., taken from
-     * a file or resource) can be passed without any filtering. This
-     * function will do nothing if the list of target properties doesn't
-     * include the property given by 'propertyName'.
+     * Update one of the target properties, given by 'propertyName'. For convenience, a list of
+     * target properties (e.g., taken from a file or resource) can be passed without any filtering.
+     * This function will do nothing if the list of target properties doesn't include the property
+     * given by 'propertyName'.
      *
-     * @param config     The target config to apply the update to.
-     * @param property   The target property.
+     * @param config The target config to apply the update to.
+     * @param property The target property.
      * @param properties AST node that holds all the target properties.
-     * @param err        Error reporter on which property format errors will be reported
+     * @param err Error reporter on which property format errors will be reported
      */
-    public static void updateOne(TargetConfig config, TargetProperty property, List<KeyValuePair> properties, ErrorReporter err) {
+    public static void updateOne(
+            TargetConfig config,
+            TargetProperty property,
+            List<KeyValuePair> properties,
+            ErrorReporter err) {
         properties.stream()
-            .filter(p -> p.getName().equals(property.getDisplayName()))
-            .findFirst()
-            .map(KeyValuePair::getValue)
-            .ifPresent(value -> property.updater.parseIntoTargetConfig(
-                config,
-                value,
-                err
-            ));
+                .filter(p -> p.getName().equals(property.getDisplayName()))
+                .findFirst()
+                .map(KeyValuePair::getValue)
+                .ifPresent(value -> property.updater.parseIntoTargetConfig(config, value, err));
     }
 
     /**
      * Return the entry that matches the given string.
+     *
      * @param name The string to match against.
      */
     public static TargetProperty forName(String name) {
@@ -1021,9 +1079,7 @@ public enum TargetProperty {
         return Arrays.asList(TargetProperty.values());
     }
 
-    /**
-     * Return the description.
-     */
+    /** Return the description. */
     @Override
     public String toString() {
         return this.description;
@@ -1032,11 +1088,11 @@ public enum TargetProperty {
     // Inner classes for the various supported types.
 
     /**
-     * Dictionary type that allows for keys that will be interpreted as strings
-     * and string values.
+     * Dictionary type that allows for keys that will be interpreted as strings and string values.
      */
     public enum StringDictionaryType implements TargetPropertyType {
         COMPILE_DEFINITION();
+
         @Override
         public boolean validate(Element e) {
             if (e.getKeyvalue() != null) {
@@ -1059,24 +1115,19 @@ public enum TargetProperty {
                     PrimitiveType.STRING.check(val, name + "." + key, v);
                 }
             }
-
         }
     }
 
-    /**
-     * Interface for dictionary elements. It associates an entry with a type.
-     */
+    /** Interface for dictionary elements. It associates an entry with a type. */
     public interface DictionaryElement {
 
         TargetPropertyType getType();
     }
 
     /**
-     * A dictionary type with a predefined set of possible keys and assignable
-     * types.
+     * A dictionary type with a predefined set of possible keys and assignable types.
      *
      * @author Marten Lohstroh
-     *
      */
     public enum DictionaryType implements TargetPropertyType {
         CLOCK_SYNC_OPTION_DICT(Arrays.asList(ClockSyncOption.values())),
@@ -1085,14 +1136,11 @@ public enum TargetProperty {
         COORDINATION_OPTION_DICT(Arrays.asList(CoordinationOption.values())),
         TRACING_DICT(Arrays.asList(TracingOption.values()));
 
-        /**
-         * The keys and assignable types that are allowed in this dictionary.
-         */
+        /** The keys and assignable types that are allowed in this dictionary. */
         public List<DictionaryElement> options;
 
         /**
-         * A dictionary type restricted to sets of predefined keys and types of
-         * values.
+         * A dictionary type restricted to sets of predefined keys and types of values.
          *
          * @param options The dictionary elements allowed by this type.
          */
@@ -1101,8 +1149,7 @@ public enum TargetProperty {
         }
 
         /**
-         * Return the dictionary element of which the key matches the given
-         * string.
+         * Return the dictionary element of which the key matches the given string.
          *
          * @param name The string to match against.
          * @return The matching dictionary element (or null if there is none).
@@ -1112,8 +1159,7 @@ public enum TargetProperty {
         }
 
         /**
-         * Recursively check that the passed in element conforms to the rules of
-         * this dictionary.
+         * Recursively check that the passed in element conforms to the rules of this dictionary.
          */
         @Override
         public void check(Element e, String name, LFValidator v) {
@@ -1124,25 +1170,23 @@ public enum TargetProperty {
                 for (KeyValuePair pair : kv.getPairs()) {
                     String key = pair.getName();
                     Element val = pair.getValue();
-                    Optional<DictionaryElement> match = this.options.stream()
-                            .filter(element -> key.equalsIgnoreCase(element.toString())).findAny();
+                    Optional<DictionaryElement> match =
+                            this.options.stream()
+                                    .filter(element -> key.equalsIgnoreCase(element.toString()))
+                                    .findAny();
                     if (match.isPresent()) {
                         // Make sure the type is correct, too.
                         TargetPropertyType type = match.get().getType();
                         type.check(val, name + "." + key, v);
                     } else {
                         // No match found; report error.
-                        TargetPropertyType.produceError(name,
-                                this.toString(), v);
+                        TargetPropertyType.produceError(name, this.toString(), v);
                     }
                 }
             }
         }
 
-        /**
-         * Return true if the given element represents a dictionary, false
-         * otherwise.
-         */
+        /** Return true if the given element represents a dictionary, false otherwise. */
         @Override
         public boolean validate(Element e) {
             if (e.getKeyvalue() != null) {
@@ -1151,13 +1195,12 @@ public enum TargetProperty {
             return false;
         }
 
-        /**
-         * Return a human-readable description of this type.
-         */
+        /** Return a human-readable description of this type. */
         @Override
         public String toString() {
             return "a dictionary with one or more of the following keys: "
-                    + options.stream().map(option -> option.toString())
+                    + options.stream()
+                            .map(option -> option.toString())
                             .collect(Collectors.joining(", "));
         }
     }
@@ -1165,38 +1208,25 @@ public enum TargetProperty {
      * A type that can assume one of several types.
      *
      * @author Marten Lohstroh
-     *
      */
     public enum UnionType implements TargetPropertyType {
-        STRING_OR_STRING_ARRAY(
-                Arrays.asList(PrimitiveType.STRING, ArrayType.STRING_ARRAY),
-                null),
+        STRING_OR_STRING_ARRAY(Arrays.asList(PrimitiveType.STRING, ArrayType.STRING_ARRAY), null),
         PLATFORM_STRING_OR_DICTIONARY(
-                Arrays.asList(PrimitiveType.STRING, DictionaryType.PLATFORM_DICT),
-                null),
-        FILE_OR_FILE_ARRAY(
-                Arrays.asList(PrimitiveType.FILE, ArrayType.FILE_ARRAY), null),
+                Arrays.asList(PrimitiveType.STRING, DictionaryType.PLATFORM_DICT), null),
+        FILE_OR_FILE_ARRAY(Arrays.asList(PrimitiveType.FILE, ArrayType.FILE_ARRAY), null),
         BUILD_TYPE_UNION(Arrays.asList(BuildType.values()), null),
-        COORDINATION_UNION(Arrays.asList(CoordinationType.values()),
-                CoordinationType.CENTRALIZED),
+        COORDINATION_UNION(Arrays.asList(CoordinationType.values()), CoordinationType.CENTRALIZED),
         SCHEDULER_UNION(Arrays.asList(SchedulerOption.values()), SchedulerOption.getDefault()),
         LOGGING_UNION(Arrays.asList(LogLevel.values()), LogLevel.INFO),
         PLATFORM_UNION(Arrays.asList(Platform.values()), Platform.AUTO),
-        CLOCK_SYNC_UNION(Arrays.asList(ClockSyncMode.values()),
-                ClockSyncMode.INIT),
-        DOCKER_UNION(Arrays.asList(PrimitiveType.BOOLEAN, DictionaryType.DOCKER_DICT),
-                null),
-        TRACING_UNION(Arrays.asList(PrimitiveType.BOOLEAN, DictionaryType.TRACING_DICT),
-                null);
+        CLOCK_SYNC_UNION(Arrays.asList(ClockSyncMode.values()), ClockSyncMode.INIT),
+        DOCKER_UNION(Arrays.asList(PrimitiveType.BOOLEAN, DictionaryType.DOCKER_DICT), null),
+        TRACING_UNION(Arrays.asList(PrimitiveType.BOOLEAN, DictionaryType.TRACING_DICT), null);
 
-        /**
-         * The constituents of this type union.
-         */
+        /** The constituents of this type union. */
         public final List<Enum<?>> options;
 
-        /**
-         * The default type, if there is one.
-         */
+        /** The default type, if there is one. */
         private final Enum<?> defaultOption;
 
         /**
@@ -1211,8 +1241,7 @@ public enum TargetProperty {
         }
 
         /**
-         * Return the type among those in this type union that matches the given
-         * name.
+         * Return the type among those in this type union that matches the given name.
          *
          * @param name The string to match against.
          * @return The matching dictionary element (or null if there is none).
@@ -1221,10 +1250,7 @@ public enum TargetProperty {
             return Target.match(name, options);
         }
 
-        /**
-         * Recursively check that the passed in element conforms to the rules of
-         * this union.
-         */
+        /** Recursively check that the passed in element conforms to the rules of this union. */
         @Override
         public void check(Element e, String name, LFValidator v) {
             Optional<Enum<?>> match = this.match(e);
@@ -1247,26 +1273,28 @@ public enum TargetProperty {
         }
 
         /**
-         * Internal method for matching a given element against the allowable
-         * types.
+         * Internal method for matching a given element against the allowable types.
          *
          * @param e AST node that represents the value of a target property.
          * @return The matching type wrapped in an Optional object.
          */
         private Optional<Enum<?>> match(Element e) {
-            return this.options.stream().filter(option -> {
-                if (option instanceof TargetPropertyType) {
-                    return ((TargetPropertyType) option).validate(e);
-                } else {
-                    return ASTUtils.elementToSingleString(e)
-                            .equalsIgnoreCase(option.toString());
-                }
-            }).findAny();
+            return this.options.stream()
+                    .filter(
+                            option -> {
+                                if (option instanceof TargetPropertyType) {
+                                    return ((TargetPropertyType) option).validate(e);
+                                } else {
+                                    return ASTUtils.elementToSingleString(e)
+                                            .equalsIgnoreCase(option.toString());
+                                }
+                            })
+                    .findAny();
         }
 
         /**
-         * Return true if this union has an option that matches the given
-         * element.
+         * Return true if this union has an option that matches the given element.
+         *
          * @param e The element to match against this type.
          */
         @Override
@@ -1278,35 +1306,35 @@ public enum TargetProperty {
         }
 
         /**
-         * Return a human-readable description of this type. If three is a
-         * default option, then indicate it.
+         * Return a human-readable description of this type. If three is a default option, then
+         * indicate it.
          */
         @Override
         public String toString() {
-            return "one of the following: " + options.stream().map(option -> {
-                if (option == this.defaultOption) {
-                    return option.toString() + " (default)";
-                } else {
-                    return option.toString();
-                }
-            }).collect(Collectors.joining(", "));
+            return "one of the following: "
+                    + options.stream()
+                            .map(
+                                    option -> {
+                                        if (option == this.defaultOption) {
+                                            return option.toString() + " (default)";
+                                        } else {
+                                            return option.toString();
+                                        }
+                                    })
+                            .collect(Collectors.joining(", "));
         }
-
     }
 
     /**
      * An array type of which the elements confirm to a given type.
      *
      * @author Marten Lohstroh
-     *
      */
     public enum ArrayType implements TargetPropertyType {
         STRING_ARRAY(PrimitiveType.STRING),
         FILE_ARRAY(PrimitiveType.FILE);
 
-        /**
-         * Type parameter of this array type.
-         */
+        /** Type parameter of this array type. */
         public TargetPropertyType type;
 
         /**
@@ -1319,8 +1347,8 @@ public enum TargetProperty {
         }
 
         /**
-         * Check that the passed in element represents an array and ensure that
-         * its elements are all of the correct type.
+         * Check that the passed in element represents an array and ensure that its elements are all
+         * of the correct type.
          */
         @Override
         public void check(Element e, String name, LFValidator v) {
@@ -1335,9 +1363,7 @@ public enum TargetProperty {
             }
         }
 
-        /**
-         * Return true of the given element is an array.
-         */
+        /** Return true of the given element is an array. */
         @Override
         public boolean validate(Element e) {
             if (e.getArray() != null) {
@@ -1346,9 +1372,7 @@ public enum TargetProperty {
             return false;
         }
 
-        /**
-         * Return a human-readable description of this type.
-         */
+        /** Return a human-readable description of this type. */
         @Override
         public String toString() {
             return "an array of which each element is " + this.type.toString();
@@ -1356,8 +1380,8 @@ public enum TargetProperty {
     }
 
     /**
-     * Enumeration of Cmake build types. These are also mapped
-     * to Cargo profiles for the Rust target (see {@link org.lflang.generator.rust.RustTargetConfig})
+     * Enumeration of Cmake build types. These are also mapped to Cargo profiles for the Rust target
+     * (see {@link org.lflang.generator.rust.RustTargetConfig})
      *
      * @author Christian Menard
      */
@@ -1368,21 +1392,15 @@ public enum TargetProperty {
         REL_WITH_DEB_INFO("RelWithDebInfo"),
         MIN_SIZE_REL("MinSizeRel");
 
-        /**
-         * Alias used in toString method.
-         */
+        /** Alias used in toString method. */
         private final String alias;
 
-        /**
-         * Private constructor for Cmake build types.
-         */
+        /** Private constructor for Cmake build types. */
         BuildType(String alias) {
             this.alias = alias;
         }
 
-        /**
-         * Return the alias.
-         */
+        /** Return the alias. */
         @Override
         public String toString() {
             return this.alias;
@@ -1395,34 +1413,32 @@ public enum TargetProperty {
      * @author Marten Lohstroh
      */
     public enum CoordinationType {
-        CENTRALIZED, DECENTRALIZED;
+        CENTRALIZED,
+        DECENTRALIZED;
 
-        /**
-         * Return the name in lower case.
-         */
+        /** Return the name in lower case. */
         @Override
         public String toString() {
             return this.name().toLowerCase();
         }
     }
 
-
     /**
      * Enumeration of clock synchronization modes.
      *
-     * - OFF: The clock synchronization is universally off.
-     * - STARTUP: Clock synchronization occurs at startup only.
-     * - ON: Clock synchronization occurs at startup and at runtime.
+     * <p>- OFF: The clock synchronization is universally off. - STARTUP: Clock synchronization
+     * occurs at startup only. - ON: Clock synchronization occurs at startup and at runtime.
      *
      * @author Edward A. Lee
      */
     public enum ClockSyncMode {
-        OFF, INIT, ON; // TODO Discuss initial in now a mode keyword (same as startup) and cannot be used as target property value, thus changed it to init
+        OFF,
+        INIT,
+        ON; // TODO Discuss initial in now a mode keyword (same as startup) and cannot be used as
+        // target property value, thus changed it to init
         // FIXME I could not test if this change breaks anything
 
-        /**
-         * Return the name in lower case.
-         */
+        /** Return the name in lower case. */
         @Override
         public String toString() {
             return this.name().toLowerCase();
@@ -1437,8 +1453,7 @@ public enum TargetProperty {
     public interface TargetPropertyType {
 
         /**
-         * Return true if the the given Element is a valid instance of this
-         * type.
+         * Return true if the the given Element is a valid instance of this type.
          *
          * @param e The Element to validate.
          * @return True if the element conforms to this type, false otherwise.
@@ -1446,102 +1461,103 @@ public enum TargetProperty {
         public boolean validate(Element e);
 
         /**
-         * Check (recursively) the given Element against its associated type(s)
-         * and add found problems to the given list of errors.
+         * Check (recursively) the given Element against its associated type(s) and add found
+         * problems to the given list of errors.
          *
-         * @param e    The Element to type check.
+         * @param e The Element to type check.
          * @param name The name of the target property.
-         * @param v    A reference to the validator to report errors to.
+         * @param v A reference to the validator to report errors to.
          */
         public void check(Element e, String name, LFValidator v);
 
         /**
          * Helper function to produce an error during type checking.
          *
-         * @param name        The description of the target property.
+         * @param name The description of the target property.
          * @param description The description of the type.
-         * @param v           A reference to the validator to report errors to.
+         * @param v A reference to the validator to report errors to.
          */
-        public static void produceError(String name, String description,
-                LFValidator v) {
-            v.getTargetPropertyErrors().add("Target property '" + name
-                    + "' is required to be " + description + ".");
+        public static void produceError(String name, String description, LFValidator v) {
+            v.getTargetPropertyErrors()
+                    .add("Target property '" + name + "' is required to be " + description + ".");
         }
     }
 
     /**
-     * Primitive types for target properties, each with a description used in
-     * error messages and predicate used for validating values.
+     * Primitive types for target properties, each with a description used in error messages and
+     * predicate used for validating values.
      *
      * @author Marten Lohstroh
      */
     public enum PrimitiveType implements TargetPropertyType {
-        BOOLEAN("'true' or 'false'",
-                v -> ASTUtils.elementToSingleString(v).equalsIgnoreCase("true")
-                        || ASTUtils.elementToSingleString(v).equalsIgnoreCase("false")),
-        INTEGER("an integer", v -> {
-            try {
-                Integer.parseInt(ASTUtils.elementToSingleString(v));
-            } catch (NumberFormatException e) {
-                return false;
-            }
-            return true;
-        }),
-        NON_NEGATIVE_INTEGER("a non-negative integer", v -> {
-            try {
-                int result = Integer.parseInt(ASTUtils.elementToSingleString(v));
-                if (result < 0)
-                    return false;
-            } catch (NumberFormatException e) {
-                return false;
-            }
-            return true;
-        }),
-        TIME_VALUE("a time value with units", v ->
-            v.getKeyvalue() == null && v.getArray() == null
-                && v.getLiteral() == null && v.getId() == null
-                && (v.getTime() == 0 || v.getUnit() != null)),
-        STRING("a string", v -> v.getLiteral() != null && !isCharLiteral(v.getLiteral()) || v.getId() != null),
+        BOOLEAN(
+                "'true' or 'false'",
+                v ->
+                        ASTUtils.elementToSingleString(v).equalsIgnoreCase("true")
+                                || ASTUtils.elementToSingleString(v).equalsIgnoreCase("false")),
+        INTEGER(
+                "an integer",
+                v -> {
+                    try {
+                        Integer.parseInt(ASTUtils.elementToSingleString(v));
+                    } catch (NumberFormatException e) {
+                        return false;
+                    }
+                    return true;
+                }),
+        NON_NEGATIVE_INTEGER(
+                "a non-negative integer",
+                v -> {
+                    try {
+                        int result = Integer.parseInt(ASTUtils.elementToSingleString(v));
+                        if (result < 0) return false;
+                    } catch (NumberFormatException e) {
+                        return false;
+                    }
+                    return true;
+                }),
+        TIME_VALUE(
+                "a time value with units",
+                v ->
+                        v.getKeyvalue() == null
+                                && v.getArray() == null
+                                && v.getLiteral() == null
+                                && v.getId() == null
+                                && (v.getTime() == 0 || v.getUnit() != null)),
+        STRING(
+                "a string",
+                v -> v.getLiteral() != null && !isCharLiteral(v.getLiteral()) || v.getId() != null),
         FILE("a path to a file", STRING.validator);
 
-        /**
-         * A description of this type, featured in error messages.
-         */
+        /** A description of this type, featured in error messages. */
         private final String description;
 
-        /**
-         * A predicate for determining whether a given Element conforms to this
-         * type.
-         */
+        /** A predicate for determining whether a given Element conforms to this type. */
         public final Predicate<Element> validator;
 
         /**
          * Private constructor to create a new primitive type.
-         * @param description A textual description of the type that should
-         * start with "a/an".
-         * @param validator A predicate that returns true if a given Element
-         * conforms to this type.
+         *
+         * @param description A textual description of the type that should start with "a/an".
+         * @param validator A predicate that returns true if a given Element conforms to this type.
          */
-        private PrimitiveType(String description,
-                Predicate<Element> validator) {
+        private PrimitiveType(String description, Predicate<Element> validator) {
             this.description = description;
             this.validator = validator;
         }
 
-        /**
-         * Return true if the the given Element is a valid instance of this type.
-         */
+        /** Return true if the the given Element is a valid instance of this type. */
         public boolean validate(Element e) {
             return this.validator.test(e);
         }
 
         /**
-         * Check (recursively) the given Element against its associated type(s)
-         * and add found problems to the given list of errors.
+         * Check (recursively) the given Element against its associated type(s) and add found
+         * problems to the given list of errors.
          *
-         * @param e      The element to type check.
-         * @param name   The name of the target property.
-         * @param v      The LFValidator to append errors to.
+         * @param e The element to type check.
+         * @param name The name of the target property.
+         * @param v The LFValidator to append errors to.
          */
         public void check(Element e, String name, LFValidator v) {
             if (!this.validate(e)) {
@@ -1563,24 +1579,20 @@ public enum TargetProperty {
             */
         }
 
-        /**
-         * Return a textual description of this type.
-         */
+        /** Return a textual description of this type. */
         @Override
         public String toString() {
             return this.description;
         }
 
-
         private static boolean isCharLiteral(String s) {
-            return s.length() > 2
-                && '\'' == s.charAt(0)
-                && '\'' == s.charAt(s.length() - 1);
+            return s.length() > 2 && '\'' == s.charAt(0) && '\'' == s.charAt(s.length() - 1);
         }
     }
 
     /**
      * Clock synchronization options.
+     *
      * @author Marten Lohstroh
      */
     public enum ClockSyncOption implements DictionaryElement {
@@ -1600,18 +1612,13 @@ public enum TargetProperty {
             this.type = type;
         }
 
-
-        /**
-         * Return the description of this dictionary element.
-         */
+        /** Return the description of this dictionary element. */
         @Override
         public String toString() {
             return this.description;
         }
 
-        /**
-         * Return the type associated with this dictionary element.
-         */
+        /** Return the type associated with this dictionary element. */
         public TargetPropertyType getType() {
             return this.type;
         }
@@ -1619,6 +1626,7 @@ public enum TargetProperty {
 
     /**
      * Docker options.
+     *
      * @author Edward A. Lee
      */
     public enum DockerOption implements DictionaryElement {
@@ -1633,25 +1641,21 @@ public enum TargetProperty {
             this.type = type;
         }
 
-        /**
-         * Return the description of this dictionary element.
-         */
+        /** Return the description of this dictionary element. */
         @Override
         public String toString() {
             return this.description;
         }
 
-        /**
-         * Return the type associated with this dictionary element.
-         */
+        /** Return the type associated with this dictionary element. */
         public TargetPropertyType getType() {
             return this.type;
         }
     }
 
-
     /**
      * Platform options.
+     *
      * @author Anirudh Rengarajan
      */
     public enum PlatformOption implements DictionaryElement {
@@ -1670,18 +1674,13 @@ public enum TargetProperty {
             this.type = type;
         }
 
-
-        /**
-         * Return the description of this dictionary element.
-         */
+        /** Return the description of this dictionary element. */
         @Override
         public String toString() {
             return this.description;
         }
 
-        /**
-         * Return the type associated with this dictionary element.
-         */
+        /** Return the type associated with this dictionary element. */
         public TargetPropertyType getType() {
             return this.type;
         }
@@ -1689,6 +1688,7 @@ public enum TargetProperty {
 
     /**
      * Coordination options.
+     *
      * @author Edward A. Lee
      */
     public enum CoordinationOption implements DictionaryElement {
@@ -1703,18 +1703,13 @@ public enum TargetProperty {
             this.type = type;
         }
 
-
-        /**
-         * Return the description of this dictionary element.
-         */
+        /** Return the description of this dictionary element. */
         @Override
         public String toString() {
             return this.description;
         }
 
-        /**
-         * Return the type associated with this dictionary element.
-         */
+        /** Return the type associated with this dictionary element. */
         public TargetPropertyType getType() {
             return this.type;
         }
@@ -1722,23 +1717,24 @@ public enum TargetProperty {
 
     /**
      * Log levels in descending order of severity.
+     *
      * @author Marten Lohstroh
      */
     public enum LogLevel {
-        ERROR, WARN, INFO, LOG, DEBUG;
+        ERROR,
+        WARN,
+        INFO,
+        LOG,
+        DEBUG;
 
-        /**
-         * Return the name in lower case.
-         */
+        /** Return the name in lower case. */
         @Override
         public String toString() {
             return this.name().toLowerCase();
         }
     }
 
-    /**
-     * Enumeration of supported platforms
-     */
+    /** Enumeration of supported platforms */
     public enum Platform {
         AUTO,
         ARDUINO,
@@ -1749,24 +1745,22 @@ public enum TargetProperty {
         WINDOWS("Windows");
 
         String cMakeName;
+
         Platform() {
             this.cMakeName = this.toString();
         }
+
         Platform(String cMakeName) {
             this.cMakeName = cMakeName;
         }
 
-        /**
-         * Return the name in lower case.
-         */
+        /** Return the name in lower case. */
         @Override
         public String toString() {
             return this.name().toLowerCase();
         }
 
-        /**
-         * Get the CMake name for the platform.
-         */
+        /** Get the CMake name for the platform. */
         public String getcMakeName() {
             return this.cMakeName;
         }
@@ -1774,23 +1768,24 @@ public enum TargetProperty {
 
     /**
      * Supported schedulers.
+     *
      * @author Soroush Bateni
      */
     public enum SchedulerOption {
-        NP(false),         // Non-preemptive
-        ADAPTIVE(false, List.of(
-            Path.of("scheduler_adaptive.c"),
-            Path.of("worker_assignments.h"),
-            Path.of("worker_states.h"),
-            Path.of("data_collection.h")
-        )),
-        GEDF_NP(true),    // Global EDF non-preemptive
+        NP(false), // Non-preemptive
+        ADAPTIVE(
+                false,
+                List.of(
+                        Path.of("scheduler_adaptive.c"),
+                        Path.of("worker_assignments.h"),
+                        Path.of("worker_states.h"),
+                        Path.of("data_collection.h"))),
+        GEDF_NP(true), // Global EDF non-preemptive
         GEDF_NP_CI(true); // Global EDF non-preemptive with chain ID
-        // PEDF_NP(true);    // Partitioned EDF non-preemptive (FIXME: To be re-added in a future PR)
+        // PEDF_NP(true);    // Partitioned EDF non-preemptive (FIXME: To be re-added in a future
+        // PR)
 
-        /**
-         * Indicate whether or not the scheduler prioritizes reactions by deadline.
-         */
+        /** Indicate whether or not the scheduler prioritizes reactions by deadline. */
         private final boolean prioritizesDeadline;
 
         /** Relative paths to files required by this scheduler. */
@@ -1805,16 +1800,15 @@ public enum TargetProperty {
             this.relativePaths = relativePaths;
         }
 
-        /**
-         * Return true if the scheduler prioritizes reactions by deadline.
-         */
+        /** Return true if the scheduler prioritizes reactions by deadline. */
         public boolean prioritizesDeadline() {
             return this.prioritizesDeadline;
         }
 
         public List<Path> getRelativePaths() {
-            return relativePaths != null ? ImmutableList.copyOf(relativePaths) :
-                   List.of(Path.of("scheduler_" + this + ".c"));
+            return relativePaths != null
+                    ? ImmutableList.copyOf(relativePaths)
+                    : List.of(Path.of("scheduler_" + this + ".c"));
         }
 
         public static SchedulerOption getDefault() {
@@ -1824,6 +1818,7 @@ public enum TargetProperty {
 
     /**
      * Tracing options.
+     *
      * @author Edward A. Lee
      */
     public enum TracingOption implements DictionaryElement {
@@ -1838,20 +1833,15 @@ public enum TargetProperty {
             this.type = type;
         }
 
-        /**
-         * Return the description of this dictionary element.
-         */
+        /** Return the description of this dictionary element. */
         @Override
         public String toString() {
             return this.description;
         }
 
-        /**
-         * Return the type associated with this dictionary element.
-         */
+        /** Return the type associated with this dictionary element. */
         public TargetPropertyType getType() {
             return this.type;
         }
     }
-
 }

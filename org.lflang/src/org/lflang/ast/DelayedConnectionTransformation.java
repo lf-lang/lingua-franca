@@ -6,14 +6,11 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.emf.ecore.util.EcoreUtil;
 import org.eclipse.xtext.xbase.lib.IterableExtensions;
 import org.eclipse.xtext.xbase.lib.IteratorExtensions;
-import org.eclipse.xtext.xbase.lib.StringExtensions;
-
 import org.lflang.ASTUtils;
 import org.lflang.InferredType;
 import org.lflang.generator.DelayBodyGenerator;
@@ -23,7 +20,6 @@ import org.lflang.lf.ActionOrigin;
 import org.lflang.lf.Assignment;
 import org.lflang.lf.Code;
 import org.lflang.lf.Connection;
-import org.lflang.lf.Expression;
 import org.lflang.lf.Initializer;
 import org.lflang.lf.Input;
 import org.lflang.lf.Instantiation;
@@ -43,21 +39,15 @@ import org.lflang.lf.WidthSpec;
 import org.lflang.lf.WidthTerm;
 
 /**
- This class implements AST transformations for delayed connections.
- There are two types of delayed connections:
- 1) Connections with `after`-delays
- 2) Physical connections
+ * This class implements AST transformations for delayed connections. There are two types of delayed
+ * connections: 1) Connections with `after`-delays 2) Physical connections
  */
 public class DelayedConnectionTransformation implements AstTransformation {
 
-    /**
-     * The Lingua Franca factory for creating new AST nodes.
-     */
+    /** The Lingua Franca factory for creating new AST nodes. */
     public static final LfFactory factory = ASTUtils.factory;
 
-    /**
-     * A code generator used to insert reaction bodies for the generated delay reactors.
-     */
+    /** A code generator used to insert reaction bodies for the generated delay reactors. */
     private final DelayBodyGenerator generator;
 
     /**
@@ -65,19 +55,20 @@ public class DelayedConnectionTransformation implements AstTransformation {
      */
     private final TargetTypes targetTypes;
 
-    /**
-     * The Eclipse eCore view of the main LF file.
-     */
+    /** The Eclipse eCore view of the main LF file. */
     private final Resource mainResource;
 
     private boolean transformAfterDelays = false;
     private boolean transformPhysicalConnection = false;
-    /**
-     * Collection of generated delay classes.
-     */
+    /** Collection of generated delay classes. */
     private final LinkedHashSet<Reactor> delayClasses = new LinkedHashSet<>();
 
-    public DelayedConnectionTransformation(DelayBodyGenerator generator, TargetTypes targetTypes, Resource mainResource, boolean transformAfterDelays, boolean transformPhysicalConnections) {
+    public DelayedConnectionTransformation(
+            DelayBodyGenerator generator,
+            TargetTypes targetTypes,
+            Resource mainResource,
+            boolean transformAfterDelays,
+            boolean transformPhysicalConnections) {
         this.generator = generator;
         this.targetTypes = targetTypes;
         this.mainResource = mainResource;
@@ -85,17 +76,16 @@ public class DelayedConnectionTransformation implements AstTransformation {
         this.transformPhysicalConnection = transformPhysicalConnections;
     }
 
-    /**
-     * Transform all after delay connections by inserting generated delay reactors.
-     */
+    /** Transform all after delay connections by inserting generated delay reactors. */
     @Override
     public void applyTransformation(List<Reactor> reactors) {
         insertGeneratedDelays(reactors);
     }
 
     /**
-     * Find connections in the given resource that have a delay associated with them,
-     * and reroute them via a generated delay reactor.
+     * Find connections in the given resource that have a delay associated with them, and reroute
+     * them via a generated delay reactor.
+     *
      * @param reactors A list of reactors to apply the transformation to.
      */
     private void insertGeneratedDelays(List<Reactor> reactors) {
@@ -108,27 +98,34 @@ public class DelayedConnectionTransformation implements AstTransformation {
         // Iterate over the connections in the tree.
         for (Reactor container : reactors) {
             for (Connection connection : ASTUtils.allConnections(container)) {
-                if ( transformAfterDelays && connection.getDelay() != null ||
-                    transformPhysicalConnection && connection.isPhysical()) {
+                if (transformAfterDelays && connection.getDelay() != null
+                        || transformPhysicalConnection && connection.isPhysical()) {
                     EObject parent = connection.eContainer();
                     // Assume all the types are the same, so just use the first on the right.
                     Type type = ((Port) connection.getRightPorts().get(0).getVariable()).getType();
                     Reactor delayClass = getDelayClass(type, connection.isPhysical());
-                    String generic = targetTypes.supportsGenerics()
-                        ? targetTypes.getTargetType(type) : null;
+                    String generic =
+                            targetTypes.supportsGenerics() ? targetTypes.getTargetType(type) : null;
 
-                    Instantiation delayInstance = getDelayInstance(delayClass, connection, generic,
-                        !generator.generateAfterDelaysWithVariableWidth(), connection.isPhysical());
+                    Instantiation delayInstance =
+                            getDelayInstance(
+                                    delayClass,
+                                    connection,
+                                    generic,
+                                    !generator.generateAfterDelaysWithVariableWidth(),
+                                    connection.isPhysical());
 
                     // Stage the new connections for insertion into the tree.
-                    List<Connection> connections = ASTUtils.convertToEmptyListIfNull(newConnections.get(parent));
+                    List<Connection> connections =
+                            ASTUtils.convertToEmptyListIfNull(newConnections.get(parent));
                     connections.addAll(rerouteViaDelay(connection, delayInstance));
                     newConnections.put(parent, connections);
                     // Stage the original connection for deletion from the tree.
                     oldConnections.add(connection);
 
                     // Stage the newly created delay reactor instance for insertion
-                    List<Instantiation> instances = ASTUtils.convertToEmptyListIfNull(delayInstances.get(parent));
+                    List<Instantiation> instances =
+                            ASTUtils.convertToEmptyListIfNull(delayInstances.get(parent));
                     instances.add(delayInstance);
                     delayInstances.put(parent, instances);
                 }
@@ -136,44 +133,53 @@ public class DelayedConnectionTransformation implements AstTransformation {
         }
 
         // Remove old connections; insert new ones.
-        oldConnections.forEach(connection -> {
-            var container = connection.eContainer();
-            if (container instanceof Reactor) {
-                ((Reactor) container).getConnections().remove(connection);
-            } else if (container instanceof Mode) {
-                ((Mode) container).getConnections().remove(connection);
-            }
-        });
-        newConnections.forEach((container, connections) -> {
-            if (container instanceof Reactor) {
-                ((Reactor) container).getConnections().addAll(connections);
-            } else if (container instanceof Mode) {
-                ((Mode) container).getConnections().addAll(connections);
-            }
-        });
+        oldConnections.forEach(
+                connection -> {
+                    var container = connection.eContainer();
+                    if (container instanceof Reactor) {
+                        ((Reactor) container).getConnections().remove(connection);
+                    } else if (container instanceof Mode) {
+                        ((Mode) container).getConnections().remove(connection);
+                    }
+                });
+        newConnections.forEach(
+                (container, connections) -> {
+                    if (container instanceof Reactor) {
+                        ((Reactor) container).getConnections().addAll(connections);
+                    } else if (container instanceof Mode) {
+                        ((Mode) container).getConnections().addAll(connections);
+                    }
+                });
         // Finally, insert the instances and, before doing so, assign them a unique name.
-        delayInstances.forEach((container, instantiations) ->
-            instantiations.forEach(instantiation -> {
-                if (container instanceof Reactor) {
-                    instantiation.setName(ASTUtils.getUniqueIdentifier((Reactor) container, "delay"));
-                    ((Reactor) container).getInstantiations().add(instantiation);
-                } else if (container instanceof Mode) {
-                    instantiation.setName(ASTUtils.getUniqueIdentifier((Reactor) container.eContainer(), "delay"));
-                    ((Mode) container).getInstantiations().add(instantiation);
-                }
-            })
-        );
+        delayInstances.forEach(
+                (container, instantiations) ->
+                        instantiations.forEach(
+                                instantiation -> {
+                                    if (container instanceof Reactor) {
+                                        instantiation.setName(
+                                                ASTUtils.getUniqueIdentifier(
+                                                        (Reactor) container, "delay"));
+                                        ((Reactor) container)
+                                                .getInstantiations()
+                                                .add(instantiation);
+                                    } else if (container instanceof Mode) {
+                                        instantiation.setName(
+                                                ASTUtils.getUniqueIdentifier(
+                                                        (Reactor) container.eContainer(), "delay"));
+                                        ((Mode) container).getInstantiations().add(instantiation);
+                                    }
+                                }));
     }
 
     /**
-     * Take a connection and reroute it via an instance of a generated delay
-     * reactor. This method returns a list to new connections to substitute
-     * the original one.
+     * Take a connection and reroute it via an instance of a generated delay reactor. This method
+     * returns a list to new connections to substitute the original one.
+     *
      * @param connection The connection to reroute.
      * @param delayInstance The delay instance to route the connection through.
      */
-    private static List<Connection> rerouteViaDelay(Connection connection,
-        Instantiation delayInstance) {
+    private static List<Connection> rerouteViaDelay(
+            Connection connection, Instantiation delayInstance) {
         List<Connection> connections = new ArrayList<>();
         Connection upstream = factory.createConnection();
         Connection downstream = factory.createConnection();
@@ -198,32 +204,31 @@ public class DelayedConnectionTransformation implements AstTransformation {
     }
 
     /**
-     * Create a new instance delay instances using the given reactor class.
-     * The supplied time value is used to override the default interval (which
-     * is zero).
-     * If the target supports parametric polymorphism, then a single class may
-     * be used for each instantiation, in which case a non-empty string must
-     * be supplied to parameterize the instance.
-     * A default name ("delay") is assigned to the instantiation, but this
-     * name must be overridden at the call site, where checks can be done to
-     * avoid name collisions in the container in which the instantiation is
-     * to be placed. Such checks (or modifications of the AST) are not
-     * performed in this method in order to avoid causing concurrent
-     * modification exceptions.
+     * Create a new instance delay instances using the given reactor class. The supplied time value
+     * is used to override the default interval (which is zero). If the target supports parametric
+     * polymorphism, then a single class may be used for each instantiation, in which case a
+     * non-empty string must be supplied to parameterize the instance. A default name ("delay") is
+     * assigned to the instantiation, but this name must be overridden at the call site, where
+     * checks can be done to avoid name collisions in the container in which the instantiation is to
+     * be placed. Such checks (or modifications of the AST) are not performed in this method in
+     * order to avoid causing concurrent modification exceptions.
+     *
      * @param delayClass The class to create an instantiation for
      * @param connection The connection to create a delay instantiation foe
-     * @param genericArg A string that denotes the appropriate type parameter,
-     *  which should be null or empty if the target does not support generics.
-     * @param defineWidthFromConnection If this is true and if the connection
-     *  is a wide connection, then instantiate a bank of delays where the width
-     *  is given by ports involved in the connection. Otherwise, the width will
-     *  be  unspecified indicating a variable length.
-     *  @param isPhysical Is this a delay instance using a physical action.
-     *   These are used for implementing Physical Connections. If true
-     *   we will accept zero delay on the connection.
+     * @param genericArg A string that denotes the appropriate type parameter, which should be null
+     *     or empty if the target does not support generics.
+     * @param defineWidthFromConnection If this is true and if the connection is a wide connection,
+     *     then instantiate a bank of delays where the width is given by ports involved in the
+     *     connection. Otherwise, the width will be unspecified indicating a variable length.
+     * @param isPhysical Is this a delay instance using a physical action. These are used for
+     *     implementing Physical Connections. If true we will accept zero delay on the connection.
      */
-    private static Instantiation getDelayInstance(Reactor delayClass,
-        Connection connection, String genericArg, Boolean defineWidthFromConnection, Boolean isPhysical) {
+    private static Instantiation getDelayInstance(
+            Reactor delayClass,
+            Connection connection,
+            String genericArg,
+            Boolean defineWidthFromConnection,
+            Boolean isPhysical) {
         Instantiation delayInstance = factory.createInstantiation();
         delayInstance.setReactorClass(delayClass);
         if (genericArg != null) {
@@ -236,9 +241,11 @@ public class DelayedConnectionTransformation implements AstTransformation {
         if (ASTUtils.hasMultipleConnections(connection)) {
             WidthSpec widthSpec = factory.createWidthSpec();
             if (defineWidthFromConnection) {
-                // Add all left ports of the connection to the WidthSpec of the generated delay instance.
+                // Add all left ports of the connection to the WidthSpec of the generated delay
+                // instance.
                 // This allows the code generator to later infer the width from the involved ports.
-                // We only consider the left ports here, as they could be part of a broadcast. In this case, we want
+                // We only consider the left ports here, as they could be part of a broadcast. In
+                // this case, we want
                 // to delay the ports first, and then broadcast the output of the delays.
                 for (VarRef port : connection.getLeftPorts()) {
                     WidthTerm term = factory.createWidthTerm();
@@ -261,16 +268,16 @@ public class DelayedConnectionTransformation implements AstTransformation {
             delayInstance.getParameters().add(assignment);
         }
 
-        delayInstance.setName("delay");  // This has to be overridden.
+        delayInstance.setName("delay"); // This has to be overridden.
         return delayInstance;
     }
 
     /**
-     * Return a synthesized AST node that represents the definition of a delay
-     * reactor. Depending on whether the target supports generics, either this
-     * method will synthesize a generic definition and keep returning it upon
-     * subsequent calls, or otherwise, it will synthesize a new definition for
-     * each new type it hasn't yet created a compatible delay reactor for.
+     * Return a synthesized AST node that represents the definition of a delay reactor. Depending on
+     * whether the target supports generics, either this method will synthesize a generic definition
+     * and keep returning it upon subsequent calls, or otherwise, it will synthesize a new
+     * definition for each new type it hasn't yet created a compatible delay reactor for.
+     *
      * @param type The type the delay class must be compatible with.
      * @param isPhysical Is this delay reactor using a physical action.
      */
@@ -386,20 +393,22 @@ public class DelayedConnectionTransformation implements AstTransformation {
     }
 
     /**
-     * Store the given reactor in the collection of generated delay classes
-     * and insert it in the AST under the top-level reactor's node.
+     * Store the given reactor in the collection of generated delay classes and insert it in the AST
+     * under the top-level reactor's node.
      */
     private void addDelayClass(Reactor generatedDelay) {
         // Record this class, so it can be reused.
         delayClasses.add(generatedDelay);
         // And hook it into the AST.
-        EObject node = IteratorExtensions.findFirst(mainResource.getAllContents(), Model.class::isInstance);
+        EObject node =
+                IteratorExtensions.findFirst(
+                        mainResource.getAllContents(), Model.class::isInstance);
         ((Model) node).getReactors().add(generatedDelay);
     }
 
     /**
-     * Return the generated delay reactor that corresponds to the given class
-     * name if it had been created already, `null` otherwise.
+     * Return the generated delay reactor that corresponds to the given class name if it had been
+     * created already, `null` otherwise.
      */
     private Reactor findDelayClass(String className) {
         return IterableExtensions.findFirst(delayClasses, it -> it.getName().equals(className));

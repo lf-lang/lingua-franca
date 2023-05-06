@@ -40,7 +40,6 @@ import org.lflang.lf.Time;
  */
 public interface LfExpressionVisitor<P, R> {
 
-
     R visitLiteral(Literal expr, P param);
 
     R visitBracedListExpr(BracedListExpression expr, P param);
@@ -61,7 +60,8 @@ public interface LfExpressionVisitor<P, R> {
      * @param <R> Return type of the visitor
      * @return The return value of the visitor
      */
-    static <P, R> R dispatch(Expression e, P arg, LfExpressionVisitor<? super P, ? extends R> visitor) {
+    static <P, R> R dispatch(
+            Expression e, P arg, LfExpressionVisitor<? super P, ? extends R> visitor) {
         if (e instanceof Literal) {
             return visitor.visitLiteral((Literal) e, arg);
         } else if (e instanceof BracedListExpression) {
@@ -109,8 +109,8 @@ public interface LfExpressionVisitor<P, R> {
     }
 
     /**
-     * A visitor that deep copies the expression. Can be extended
-     * to replace certain expressions during the copy.
+     * A visitor that deep copies the expression. Can be extended to replace certain expressions
+     * during the copy.
      *
      * @param <P> Parameter type
      */
@@ -156,5 +156,4 @@ public interface LfExpressionVisitor<P, R> {
             return codeExpr;
         }
     }
-
 }

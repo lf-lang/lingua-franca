@@ -4,33 +4,30 @@
 
 package org.lflang;
 
-
-import org.eclipse.xtext.util.Modules2;
-
 import com.google.inject.Guice;
 import com.google.inject.Injector;
 import com.google.inject.Module;
+import org.eclipse.xtext.util.Modules2;
 
 /**
- * Initialization support for running Xtext languages without
- * Equinox extension registry.
+ * Initialization support for running Xtext languages without Equinox extension registry.
  *
- * See {@link LFRuntimeModule}, the base Guice module for LF services.
+ * <p>See {@link LFRuntimeModule}, the base Guice module for LF services.
  */
 public class LFStandaloneSetup extends LFStandaloneSetupGenerated {
 
-	private final Module module;
+    private final Module module;
 
-	public LFStandaloneSetup() {
-		this.module = new LFRuntimeModule();
-	}
+    public LFStandaloneSetup() {
+        this.module = new LFRuntimeModule();
+    }
 
-	public LFStandaloneSetup(Module... modules) {
-		this.module = Modules2.mixin(modules);
-	}
+    public LFStandaloneSetup(Module... modules) {
+        this.module = Modules2.mixin(modules);
+    }
 
-	@Override
-	public Injector createInjector() {
-		return Guice.createInjector(this.module);
-	}
+    @Override
+    public Injector createInjector() {
+        return Guice.createInjector(this.module);
+    }
 }

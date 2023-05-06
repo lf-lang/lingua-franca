@@ -3,9 +3,5 @@
  */
 package org.lflang.ide;
 
-
-/**
- * Use this class to register ide components.
- */
-public class LFIdeModule extends AbstractLFIdeModule {
-}
+/** Use this class to register ide components. */
+public class LFIdeModule extends AbstractLFIdeModule {}

@@ -20,7 +20,7 @@ With Java (>= 11), you should also be able to use the provided Eclipse IDE produ
 
 However, to compile the generated code and to create a binary (which is done by default), each target language in Lingua Franca has an additional set of requirements, which are listed in this section. We also include a list of tested operating systems in the format of a compact table below.
 
-**Note:** Compiling the generated code is generally automatically done in the Eclipse IDE or while using the `lfc` command line tool. This default behavior can be disabled, however, using the [no-compile](https://github.com/icyphy/lingua-franca/wiki/target-specification#no-compile) target property in your Lingua Franca program or by using the `-n` argument for the `lfc` command line tool (see [Command Line Tools](https://github.com/icyphy/lingua-franca/wiki/Command-Line-Tools)). 
+**Note:** Compiling the generated code is generally automatically done in the Eclipse IDE or while using the `lfc` command line tool. This default behavior can be disabled, however, using the [no-compile](https://github.com/icyphy/lingua-franca/wiki/target-specification#no-compile) target property in your Lingua Franca program or by using the `-n` argument for the `lfc` command line tool (see [Command Line Tools](https://github.com/icyphy/lingua-franca/wiki/Command-Line-Tools)).
 
 
 ### Supported Operating Systems
@@ -34,7 +34,7 @@ However, to compile the generated code and to create a binary (which is done by 
 ### Dependencies
 
 **C:**
-  - A C compiler (e.g., gcc >= 7, clang, or MSVC >= 14.20) 
+  - A C compiler (e.g., gcc >= 7, clang, or MSVC >= 14.20)
   - CMAKE >= 3.13 (follow https://cmake.org/install/ for installation instructions)
   - **Windows Only:** Visual Studio >= 2019 and Windows SDK >= 10.0.18362.0
   - **Programs using Protocol Buffers:** protoc-c 1.3.3 - see https://github.com/icyphy/lingua-franca/wiki/Protobufs.

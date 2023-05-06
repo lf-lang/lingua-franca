@@ -8,25 +8,25 @@ import org.eclipse.xtext.parser.antlr.ISyntaxErrorMessageProvider;
 import org.eclipse.xtext.resource.IDefaultResourceDescriptionStrategy;
 import org.eclipse.xtext.scoping.IGlobalScopeProvider;
 import org.eclipse.xtext.validation.INamesAreUniqueValidationHelper;
-
 import org.lflang.formatting2.LFFormatter;
 import org.lflang.scoping.LFGlobalScopeProvider;
 import org.lflang.validation.LFNamesAreUniqueValidationHelper;
 
 /**
- * Binds services that are available both when running LFC
- * standalone, and when running within the IDE.
+ * Binds services that are available both when running LFC standalone, and when running within the
+ * IDE.
+ *
  * <ul>
- * <li>LfIdeModule overrides this module with additional
- * bindings when running in the IDE.
- * <li>{@code org.lflang.lfc.LFStandaloneModule} overrides this module when
- * running LFC standalone.
+ *   <li>LfIdeModule overrides this module with additional bindings when running in the IDE.
+ *   <li>{@code org.lflang.lfc.LFStandaloneModule} overrides this module when running LFC
+ *       standalone.
  * </ul>
  */
 public class LFRuntimeModule extends AbstractLFRuntimeModule {
 
     /** Establish a binding to our custom resource description strategy. */
-    public Class<? extends IDefaultResourceDescriptionStrategy> bindIDefaultResourceDescriptionStrategy() {
+    public Class<? extends IDefaultResourceDescriptionStrategy>
+            bindIDefaultResourceDescriptionStrategy() {
         return LFResourceDescriptionStrategy.class;
     }
 
@@ -40,7 +40,7 @@ public class LFRuntimeModule extends AbstractLFRuntimeModule {
     public Class<? extends INamesAreUniqueValidationHelper> bindNamesAreUniqueValidationHelper() {
         return LFNamesAreUniqueValidationHelper.class;
     }
-    
+
     public Class<? extends ISyntaxErrorMessageProvider> bindISyntaxErrorMessageProvider() {
         return LFSyntaxErrorMessageProvider.class;
     }

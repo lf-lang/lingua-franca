@@ -16,8 +16,9 @@ public class CDelayBodyGenerator implements DelayBodyGenerator {
     }
 
     /**
-     * Generate code for the body of a reaction that takes an input and
-     * schedules an action with the value of that input.
+     * Generate code for the body of a reaction that takes an input and schedules an action with the
+     * value of that input.
+     *
      * @param action The action to schedule
      * @param port The port to read from
      */
@@ -25,17 +26,14 @@ public class CDelayBodyGenerator implements DelayBodyGenerator {
     public String generateDelayBody(Action action, VarRef port) {
         var ref = ASTUtils.generateVarRef(port);
         return CReactionGenerator.generateDelayBody(
-            ref,
-            action.getName(),
-            CUtil.isTokenType(getInferredType(action), types)
-        );
+                ref, action.getName(), CUtil.isTokenType(getInferredType(action), types));
     }
 
     /**
-     * Generate code for the body of a reaction that is triggered by the
-     * given action and writes its value to the given port. This realizes
-     * the receiving end of a logical delay specified with the 'after'
-     * keyword.
+     * Generate code for the body of a reaction that is triggered by the given action and writes its
+     * value to the given port. This realizes the receiving end of a logical delay specified with
+     * the 'after' keyword.
+     *
      * @param action The action that triggers the reaction
      * @param port The port to write to.
      */
@@ -43,11 +41,10 @@ public class CDelayBodyGenerator implements DelayBodyGenerator {
     public String generateForwardBody(Action action, VarRef port) {
         var outputName = ASTUtils.generateVarRef(port);
         return CReactionGenerator.generateForwardBody(
-            outputName,
-            types.getTargetType(action),
-            action.getName(),
-            CUtil.isTokenType(getInferredType(action), types)
-        );
+                outputName,
+                types.getTargetType(action),
+                action.getName(),
+                CUtil.isTokenType(getInferredType(action), types));
     }
 
     @Override

@@ -1,15 +1,14 @@
 package org.lflang.tests.compiler;
 
 import java.util.List;
-
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.lflang.DefaultErrorReporter;
 import org.lflang.ErrorReporter;
 import org.lflang.generator.PortInstance;
-import org.lflang.generator.RuntimeRange;
 import org.lflang.generator.ReactionInstance;
 import org.lflang.generator.ReactorInstance;
+import org.lflang.generator.RuntimeRange;
 import org.lflang.generator.SendRange;
 import org.lflang.lf.LfFactory;
 import org.lflang.lf.Port;
@@ -20,29 +19,29 @@ public class PortInstanceTests {
 
     private ErrorReporter reporter = new DefaultErrorReporter();
     private static LfFactory factory = LfFactory.eINSTANCE;
-    
+
     @Test
     public void createRange() throws Exception {
         Reactor main = factory.createReactor();
         ReactorInstance maini = new ReactorInstance(main, reporter);
-        
+
         ReactorInstance a = newReactor("A", maini);
         ReactorInstance b = newReactor("B", maini);
         ReactorInstance c = newReactor("C", maini);
-        
+
         PortInstance p = newOutputPort("p", a);
         PortInstance q = newInputPort("q", b);
         PortInstance r = newInputPort("r", c);
 
         Assertions.assertEquals(".A.p", p.getFullName());
-        
+
         connect(p, q);
         connect(p, r);
-        
+
         List<SendRange> sr = p.eventualDestinations();
         // Destinations should be empty because there are no reactions.
         Assertions.assertEquals("[]", sr.toString());
-        
+
         // Clear caches to make a mutation.
         maini.clearCaches();
         newReaction(q);
@@ -55,7 +54,7 @@ public class PortInstanceTests {
         // Re-retrieve destinations.
         sr = p.eventualDestinations();
         Assertions.assertEquals("[.A.p(0,1)->[.B.q(0,1), .C.r(0,1)]]", sr.toString());
-        
+
         // Now test multiports.
         p.setWidth(3);
         r.setWidth(2);
@@ -64,7 +63,7 @@ public class PortInstanceTests {
         maini.clearCaches();
         connect(p, 0, 1, q, 0, 1);
         connect(p, 1, 2, r, 0, 2);
-        
+
         // Re-retrieve destinations.
         sr = p.eventualDestinations();
         Assertions.assertEquals("[.A.p(0,1)->[.B.q(0,1)], .A.p(1,2)->[.C.r(0,2)]]", sr.toString());
@@ -80,7 +79,7 @@ public class PortInstanceTests {
         connect(v, 0, 2, q, 0, 2);
         connect(p, 0, 1, q, 2, 1);
         connect(p, 1, 2, r, 0, 2);
-        
+
         sr = p.eventualDestinations();
         Assertions.assertEquals("[.A.p(0,1)->[.B.q(2,1)], .A.p(1,2)->[.C.r(0,2)]]", sr.toString());
 
@@ -93,7 +92,9 @@ public class PortInstanceTests {
         connect(p, s);
 
         sr = p.eventualDestinations();
-        Assertions.assertEquals("[.A.p(0,1)->[.B.q(2,1), .E.s(0,1)], .A.p(1,2)->[.C.r(0,2), .E.s(1,2)]]", sr.toString());
+        Assertions.assertEquals(
+                "[.A.p(0,1)->[.B.q(2,1), .E.s(0,1)], .A.p(1,2)->[.C.r(0,2), .E.s(1,2)]]",
+                sr.toString());
 
         // Add hierarchical reactors that further split the ranges.
         maini.clearCaches();
@@ -109,18 +110,21 @@ public class PortInstanceTests {
 
         sr = p.eventualDestinations();
         // FIXME: Multicast destinations should be able to be reported in arbitrary order.
-        Assertions.assertEquals("[.A.p(0,1)->[.E.F.t(0,1), .E.s(0,1), .B.q(2,1)], .A.p(1,2)->[.E.G.u(0,2), .E.s(1,2), .C.r(0,2)]]", sr.toString());
+        Assertions.assertEquals(
+                "[.A.p(0,1)->[.E.F.t(0,1), .E.s(0,1), .B.q(2,1)], .A.p(1,2)->[.E.G.u(0,2),"
+                        + " .E.s(1,2), .C.r(0,2)]]",
+                sr.toString());
     }
-    
+
     @Test
     public void multiportDestination() throws Exception {
         Reactor main = factory.createReactor();
         ReactorInstance maini = new ReactorInstance(main, reporter);
-        
+
         ReactorInstance a = newReactor("A", maini);
         ReactorInstance b = newReactor("B", maini);
         b.setWidth(4);
-        
+
         PortInstance p = newOutputPort("p", a);
         PortInstance q = newInputPort("q", b);
 
@@ -134,27 +138,25 @@ public class PortInstanceTests {
         newReaction(q);
         sr = p.eventualDestinations();
         Assertions.assertEquals("[.A.p(0,1)->[.B.q(0,4)]]", sr.toString());
-}
-    
-    /**
-     * Clear connections. This recursively clears them for all contained reactors.
-     */
+    }
+
+    /** Clear connections. This recursively clears them for all contained reactors. */
     protected void clearConnections(ReactorInstance r) {
-        for (PortInstance p: r.inputs) {
+        for (PortInstance p : r.inputs) {
             p.getDependentPorts().clear();
         }
-        for (PortInstance p: r.outputs) {
+        for (PortInstance p : r.outputs) {
             p.getDependentPorts().clear();
         }
-        for (ReactorInstance child: r.children) {
+        for (ReactorInstance child : r.children) {
             clearConnections(child);
         }
     }
 
     /**
-     * Simple connection of two ports. This should be used only
-     * for connections that would be allowed in the syntax (i.e., no
-     * cross-hierarchy connections), but this is not checked. 
+     * Simple connection of two ports. This should be used only for connections that would be
+     * allowed in the syntax (i.e., no cross-hierarchy connections), but this is not checked.
+     *
      * @param src The sending port.
      * @param dst The receiving port.
      */
@@ -163,18 +165,21 @@ public class PortInstanceTests {
         RuntimeRange<PortInstance> dstRange = new RuntimeRange.Port(dst);
         ReactorInstance.connectPortInstances(srcRange, dstRange, null);
     }
-    
+
     /**
-     * Connection between multiports. This should be used only
-     * for connections that would be allowed in the syntax (i.e., no
-     * cross-hierarchy connections), but this is not checked. 
+     * Connection between multiports. This should be used only for connections that would be allowed
+     * in the syntax (i.e., no cross-hierarchy connections), but this is not checked.
+     *
      * @param src The sending port.
      * @param dst The receiving port.
      */
     protected void connect(
-            PortInstance src, int srcStart, int srcWidth,
-            PortInstance dst, int dstStart, int dstWidth
-    ) {
+            PortInstance src,
+            int srcStart,
+            int srcWidth,
+            PortInstance dst,
+            int dstStart,
+            int dstWidth) {
         RuntimeRange<PortInstance> srcRange = new RuntimeRange.Port(src, srcStart, srcWidth, null);
         RuntimeRange<PortInstance> dstRange = new RuntimeRange.Port(dst, dstStart, dstWidth, null);
         ReactorInstance.connectPortInstances(srcRange, dstRange, null);
@@ -191,7 +196,7 @@ public class PortInstanceTests {
         container.inputs.add(pi);
         return pi;
     }
-    
+
     protected PortInstance newOutputPort(String name, ReactorInstance container) {
         PortInstance pi = newPort(name, container);
         container.outputs.add(pi);
@@ -200,12 +205,14 @@ public class PortInstanceTests {
 
     /**
      * Return a new reaction triggered by the specified port.
+     *
      * @param trigger The triggering port.
      */
     protected ReactionInstance newReaction(PortInstance trigger) {
         Reaction r = factory.createReaction();
-        ReactionInstance result = new ReactionInstance(
-                r, trigger.getParent(), false, trigger.getDependentReactions().size());
+        ReactionInstance result =
+                new ReactionInstance(
+                        r, trigger.getParent(), false, trigger.getDependentReactions().size());
         trigger.getDependentReactions().add(result);
         trigger.getParent().reactions.add(result);
         return result;

@@ -1,16 +1,16 @@
 /*************
  * Copyright (c) 2019-2020, The University of California at Berkeley.
-
+ *
  * Redistribution and use in source and binary forms, with or without modification,
  * are permitted provided that the following conditions are met:
-
+ *
  * 1. Redistributions of source code must retain the above copyright notice,
  *    this list of conditions and the following disclaimer.
-
+ *
  * 2. Redistributions in binary form must reproduce the above copyright notice,
  *    this list of conditions and the following disclaimer in the documentation
  *    and/or other materials provided with the distribution.
-
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -24,23 +24,23 @@
  ***************/
 package org.lflang.generator;
 
+import com.google.common.base.Objects;
+import com.google.common.collect.Iterables;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.LinkedHashSet;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
 import org.eclipse.core.resources.IMarker;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.emf.ecore.util.EcoreUtil;
 import org.eclipse.xtext.xbase.lib.IterableExtensions;
 import org.eclipse.xtext.xbase.lib.IteratorExtensions;
-
 import org.lflang.ASTUtils;
 import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
@@ -53,18 +53,13 @@ import org.lflang.lf.Connection;
 import org.lflang.lf.Instantiation;
 import org.lflang.lf.LfFactory;
 import org.lflang.lf.Mode;
-
 import org.lflang.lf.Reaction;
 import org.lflang.lf.Reactor;
 import org.lflang.util.FileUtil;
 import org.lflang.validation.AbstractLFValidator;
 
-import com.google.common.base.Objects;
-import com.google.common.collect.Iterables;
-
 /**
- * Generator base class for specifying core functionality
- * that all code generators should have.
+ * Generator base class for specifying core functionality that all code generators should have.
  *
  * @author Edward A. Lee
  * @author Marten Lohstroh
@@ -77,9 +72,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
     ////////////////////////////////////////////
     //// Public fields.
 
-    /**
-     * The main (top-level) reactor instance.
-     */
+    /** The main (top-level) reactor instance. */
     public ReactorInstance main;
 
     /** An error reporter for reporting any errors or warnings during the code generation */
@@ -88,95 +81,82 @@ public abstract class GeneratorBase extends AbstractLFValidator {
     ////////////////////////////////////////////
     //// Protected fields.
 
-    /**
-     * The current target configuration.
-     */
+    /** The current target configuration. */
     protected final TargetConfig targetConfig;
 
-    public TargetConfig getTargetConfig() { return this.targetConfig;}
+    public TargetConfig getTargetConfig() {
+        return this.targetConfig;
+    }
 
     public final LFGeneratorContext context;
 
-    /**
-     * A factory for compiler commands.
-     */
+    /** A factory for compiler commands. */
     protected GeneratorCommandFactory commandFactory;
 
-    public GeneratorCommandFactory getCommandFactory() { return commandFactory; }
+    public GeneratorCommandFactory getCommandFactory() {
+        return commandFactory;
+    }
 
     /**
-     * Definition of the main (top-level) reactor.
-     * This is an automatically generated AST node for the top-level
-     * reactor.
+     * Definition of the main (top-level) reactor. This is an automatically generated AST node for
+     * the top-level reactor.
      */
     protected Instantiation mainDef;
-    public Instantiation getMainDef() { return mainDef; }
+
+    public Instantiation getMainDef() {
+        return mainDef;
+    }
 
     /**
-     * A list of Reactor definitions in the main resource, including non-main
-     * reactors defined in imported resources. These are ordered in the list in
-     * such a way that each reactor is preceded by any reactor that it instantiates
-     * using a command like `foo = new Foo();`
+     * A list of Reactor definitions in the main resource, including non-main reactors defined in
+     * imported resources. These are ordered in the list in such a way that each reactor is preceded
+     * by any reactor that it instantiates using a command like `foo = new Foo();`
      */
     protected List<Reactor> reactors = new ArrayList<>();
 
-    /**
-     * The set of resources referenced reactor classes reside in.
-     */
+    /** The set of resources referenced reactor classes reside in. */
     protected Set<LFResource> resources = new LinkedHashSet<>(); // FIXME: Why do we need this?
 
     /**
-     * Graph that tracks dependencies between instantiations.
-     * This is a graph where each node is a Reactor (not a ReactorInstance)
-     * and an arc from Reactor A to Reactor B means that B contains an instance of A, constructed with a statement
-     * like `a = new A();`  After creating the graph,
-     * sort the reactors in topological order and assign them to the reactors class variable.
-     * Hence, after this method returns, `this.reactors` will be a list of Reactors such that any
-     * reactor is preceded in the list by reactors that it instantiates.
+     * Graph that tracks dependencies between instantiations. This is a graph where each node is a
+     * Reactor (not a ReactorInstance) and an arc from Reactor A to Reactor B means that B contains
+     * an instance of A, constructed with a statement like `a = new A();` After creating the graph,
+     * sort the reactors in topological order and assign them to the reactors class variable. Hence,
+     * after this method returns, `this.reactors` will be a list of Reactors such that any reactor
+     * is preceded in the list by reactors that it instantiates.
      */
     protected InstantiationGraph instantiationGraph;
 
     /**
-     * The set of unordered reactions. An unordered reaction is one that does
-     * not have any dependency on other reactions in the containing reactor,
-     * and where no other reaction in the containing reactor depends on it.
-     * There is currently no way in the syntax of LF to make a reaction
-     * unordered, deliberately, because it can introduce unexpected
-     * nondeterminacy. However, certain automatically generated reactions are
-     * known to be safe to be unordered because they do not interact with the
-     * state of the containing reactor. To make a reaction unordered, when
-     * the Reaction instance is created, add that instance to this set.
+     * The set of unordered reactions. An unordered reaction is one that does not have any
+     * dependency on other reactions in the containing reactor, and where no other reaction in the
+     * containing reactor depends on it. There is currently no way in the syntax of LF to make a
+     * reaction unordered, deliberately, because it can introduce unexpected nondeterminacy.
+     * However, certain automatically generated reactions are known to be safe to be unordered
+     * because they do not interact with the state of the containing reactor. To make a reaction
+     * unordered, when the Reaction instance is created, add that instance to this set.
      */
     protected Set<Reaction> unorderedReactions = null;
 
-    /**
-     * Map from reactions to bank indices
-     */
-    protected Map<Reaction,Integer> reactionBankIndices = null;
+    /** Map from reactions to bank indices */
+    protected Map<Reaction, Integer> reactionBankIndices = null;
 
-    /**
-     * Indicates whether the current Lingua Franca program
-     * contains model reactors.
-     */
+    /** Indicates whether the current Lingua Franca program contains model reactors. */
     public boolean hasModalReactors = false;
 
     /**
-     * Indicates whether the program has any deadlines and thus
-     * needs to propagate deadlines through the reaction instance graph
+     * Indicates whether the program has any deadlines and thus needs to propagate deadlines through
+     * the reaction instance graph
      */
     public boolean hasDeadlines = false;
 
     // //////////////////////////////////////////
     // // Private fields.
 
-    /**
-     * A list ot AST transformations to apply before code generation
-     */
+    /** A list ot AST transformations to apply before code generation */
     private final List<AstTransformation> astTransformations = new ArrayList<>();
 
-    /**
-     * Create a new GeneratorBase object.
-     */
+    /** Create a new GeneratorBase object. */
     public GeneratorBase(LFGeneratorContext context) {
         this.context = context;
         this.targetConfig = context.getTargetConfig();
@@ -187,7 +167,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
     /**
      * Register an AST transformation to be applied to the AST.
      *
-     * The transformations will be applied in the order that they are registered in.
+     * <p>The transformations will be applied in the order that they are registered in.
      */
     protected void registerTransformation(AstTransformation transformation) {
         astTransformations.add(transformation);
@@ -197,12 +177,13 @@ public abstract class GeneratorBase extends AbstractLFValidator {
     // // Code generation functions to override for a concrete code generator.
 
     /**
-     * If there is a main or federated reactor, then create a synthetic Instantiation
-     * for that top-level reactor and set the field mainDef to refer to it.
+     * If there is a main or federated reactor, then create a synthetic Instantiation for that
+     * top-level reactor and set the field mainDef to refer to it.
      */
     private void createMainInstantiation() {
         // Find the main reactor and create an AST node for its instantiation.
-        Iterable<EObject> nodes = IteratorExtensions.toIterable(context.getFileConfig().resource.getAllContents());
+        Iterable<EObject> nodes =
+                IteratorExtensions.toIterable(context.getFileConfig().resource.getAllContents());
         for (Reactor reactor : Iterables.filter(nodes, Reactor.class)) {
             if (reactor.isMain()) {
                 // Creating a definition for the main reactor because there isn't one.
@@ -216,19 +197,21 @@ public abstract class GeneratorBase extends AbstractLFValidator {
     /**
      * Generate code from the Lingua Franca model contained by the specified resource.
      *
-     * This is the main entry point for code generation. This base class finds all
-     * reactor class definitions, including any reactors defined in imported .lf files
-     * (except any main reactors in those imported files), and adds them to the
-     * {@link GeneratorBase#reactors reactors} list. If errors occur during
-     * generation, then a subsequent call to errorsOccurred() will return true.
+     * <p>This is the main entry point for code generation. This base class finds all reactor class
+     * definitions, including any reactors defined in imported .lf files (except any main reactors
+     * in those imported files), and adds them to the {@link GeneratorBase#reactors reactors} list.
+     * If errors occur during generation, then a subsequent call to errorsOccurred() will return
+     * true.
+     *
      * @param resource The resource containing the source code.
-     * @param context Context relating to invocation of the code generator.
-     * In standalone mode, this object is also used to relay CLI arguments.
+     * @param context Context relating to invocation of the code generator. In standalone mode, this
+     *     object is also used to relay CLI arguments.
      */
     public void doGenerate(Resource resource, LFGeneratorContext context) {
 
         // FIXME: the signature can be reduced to only take context.
-        // The constructor also need not take a file config because this is tied to the context as well.
+        // The constructor also need not take a file config because this is tied to the context as
+        // well.
         cleanIfNeeded(context);
 
         printInfo(context.getMode());
@@ -242,15 +225,18 @@ public abstract class GeneratorBase extends AbstractLFValidator {
         createMainInstantiation();
 
         // Check if there are any conflicting main reactors elsewhere in the package.
-        if (Objects.equal(context.getMode(), LFGeneratorContext.Mode.STANDALONE) && mainDef != null) {
+        if (Objects.equal(context.getMode(), LFGeneratorContext.Mode.STANDALONE)
+                && mainDef != null) {
             for (String conflict : new MainConflictChecker(context.getFileConfig()).conflicts) {
-                errorReporter.reportError(this.mainDef.getReactorClass(), "Conflicting main reactor in " + conflict);
+                errorReporter.reportError(
+                        this.mainDef.getReactorClass(), "Conflicting main reactor in " + conflict);
             }
         }
 
         // Configure the command factory
         commandFactory.setVerbose();
-        if (Objects.equal(context.getMode(), LFGeneratorContext.Mode.STANDALONE) && context.getArgs().containsKey("quiet")) {
+        if (Objects.equal(context.getMode(), LFGeneratorContext.Mode.STANDALONE)
+                && context.getArgs().containsKey("quiet")) {
             commandFactory.setQuiet();
         }
 
@@ -265,17 +251,30 @@ public abstract class GeneratorBase extends AbstractLFValidator {
         setReactorsAndInstantiationGraph(context.getMode());
 
         List<Resource> allResources = GeneratorUtils.getResources(reactors);
-        resources.addAll(allResources.stream()  // FIXME: This filter reproduces the behavior of the method it replaces. But why must it be so complicated? Why are we worried about weird corner cases like this?
-            .filter(it -> !Objects.equal(it, context.getFileConfig().resource) || mainDef != null && it == mainDef.getReactorClass().eResource())
-            .map(it -> GeneratorUtils.getLFResource(it, context.getFileConfig().getSrcGenBasePath(), context, errorReporter))
-            .toList()
-        );
+        resources.addAll(
+                allResources.stream() // FIXME: This filter reproduces the behavior of the method it
+                        // replaces. But why must it be so complicated? Why are we worried
+                        // about weird corner cases like this?
+                        .filter(
+                                it ->
+                                        !Objects.equal(it, context.getFileConfig().resource)
+                                                || mainDef != null
+                                                        && it
+                                                                == mainDef.getReactorClass()
+                                                                        .eResource())
+                        .map(
+                                it ->
+                                        GeneratorUtils.getLFResource(
+                                                it,
+                                                context.getFileConfig().getSrcGenBasePath(),
+                                                context,
+                                                errorReporter))
+                        .toList());
         GeneratorUtils.accommodatePhysicalActionsIfPresent(
-            allResources,
-            getTarget().setsKeepAliveOptionAutomatically(),
-            targetConfig,
-            errorReporter
-        );
+                allResources,
+                getTarget().setsKeepAliveOptionAutomatically(),
+                targetConfig,
+                errorReporter);
         // FIXME: Should the GeneratorBase pull in `files` from imported
         // resources?
 
@@ -283,7 +282,8 @@ public abstract class GeneratorBase extends AbstractLFValidator {
             transformation.applyTransformation(reactors);
         }
 
-        // Transform connections that reside in mutually exclusive modes and are otherwise conflicting
+        // Transform connections that reside in mutually exclusive modes and are otherwise
+        // conflicting
         // This should be done before creating the instantiation graph
         transformConflictingConnectionsInModalReactors();
 
@@ -297,10 +297,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
         additionalPostProcessingForModes();
     }
 
-    /**
-     * Check if a clean was requested from the standalone compiler and perform
-     * the clean step.
-     */
+    /** Check if a clean was requested from the standalone compiler and perform the clean step. */
     protected void cleanIfNeeded(LFGeneratorContext context) {
         if (context.getArgs().containsKey("clean")) {
             try {
@@ -312,27 +309,33 @@ public abstract class GeneratorBase extends AbstractLFValidator {
     }
 
     /**
-     * Create a new instantiation graph. This is a graph where each node is a Reactor (not a ReactorInstance)
-     * and an arc from Reactor A to Reactor B means that B contains an instance of A, constructed with a statement
-     * like `a = new A();`  After creating the graph,
-     * sort the reactors in topological order and assign them to the reactors class variable.
-     * Hence, after this method returns, `this.reactors` will be a list of Reactors such that any
-     * reactor is preceded in the list by reactors that it instantiates.
+     * Create a new instantiation graph. This is a graph where each node is a Reactor (not a
+     * ReactorInstance) and an arc from Reactor A to Reactor B means that B contains an instance of
+     * A, constructed with a statement like `a = new A();` After creating the graph, sort the
+     * reactors in topological order and assign them to the reactors class variable. Hence, after
+     * this method returns, `this.reactors` will be a list of Reactors such that any reactor is
+     * preceded in the list by reactors that it instantiates.
      */
     protected void setReactorsAndInstantiationGraph(LFGeneratorContext.Mode mode) {
         // Build the instantiation graph .
         instantiationGraph = new InstantiationGraph(context.getFileConfig().resource, false);
 
-        // Topologically sort the reactors such that all of a reactor's instantiation dependencies occur earlier in
-        // the sorted list of reactors. This helps the code generator output code in the correct order.
-        // For example if `reactor Foo {bar = new Bar()}` then the definition of `Bar` has to be generated before
+        // Topologically sort the reactors such that all of a reactor's instantiation dependencies
+        // occur earlier in
+        // the sorted list of reactors. This helps the code generator output code in the correct
+        // order.
+        // For example if `reactor Foo {bar = new Bar()}` then the definition of `Bar` has to be
+        // generated before
         // the definition of `Foo`.
         reactors = instantiationGraph.nodesInTopologicalOrder();
 
-        // If there is no main reactor or if all reactors in the file need to be validated, then make sure the reactors
+        // If there is no main reactor or if all reactors in the file need to be validated, then
+        // make sure the reactors
         // list includes even reactors that are not instantiated anywhere.
         if (mainDef == null || Objects.equal(mode, LFGeneratorContext.Mode.LSP_MEDIUM)) {
-            Iterable<EObject> nodes = IteratorExtensions.toIterable(context.getFileConfig().resource.getAllContents());
+            Iterable<EObject> nodes =
+                    IteratorExtensions.toIterable(
+                            context.getFileConfig().resource.getAllContents());
             for (Reactor r : IterableExtensions.filter(nodes, Reactor.class)) {
                 if (!reactors.contains(r)) {
                     reactors.add(r);
@@ -344,7 +347,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
     /**
      * Copy user specific files to the src-gen folder.
      *
-     * This should be overridden by the target generators.
+     * <p>This should be overridden by the target generators.
      *
      * @param targetConfig The targetConfig to read the `files` from.
      * @param fileConfig The fileConfig used to make the copy and resolve paths.
@@ -355,8 +358,9 @@ public abstract class GeneratorBase extends AbstractLFValidator {
     }
 
     /**
-     * Return true if errors occurred in the last call to doGenerate().
-     * This will return true if any of the reportError methods was called.
+     * Return true if errors occurred in the last call to doGenerate(). This will return true if any
+     * of the reportError methods was called.
+     *
      * @return True if errors occurred.
      */
     public boolean errorsOccurred() {
@@ -369,15 +373,14 @@ public abstract class GeneratorBase extends AbstractLFValidator {
     public abstract TargetTypes getTargetTypes();
 
     /**
-     * Mark the reaction unordered. An unordered reaction is one that does not
-     * have any dependency on other reactions in the containing reactor, and
-     * where no other reaction in the containing reactor depends on it. There
-     * is currently no way in the syntax of LF to make a reaction unordered,
-     * deliberately, because it can introduce unexpected nondeterminacy.
-     * However, certain automatically generated reactions are known to be safe
-     * to be unordered because they do not interact with the state of the
-     * containing reactor. To make a reaction unordered, when the Reaction
-     * instance is created, add that instance to this set.
+     * Mark the reaction unordered. An unordered reaction is one that does not have any dependency
+     * on other reactions in the containing reactor, and where no other reaction in the containing
+     * reactor depends on it. There is currently no way in the syntax of LF to make a reaction
+     * unordered, deliberately, because it can introduce unexpected nondeterminacy. However, certain
+     * automatically generated reactions are known to be safe to be unordered because they do not
+     * interact with the state of the containing reactor. To make a reaction unordered, when the
+     * Reaction instance is created, add that instance to this set.
+     *
      * @param reaction The reaction to make unordered.
      */
     public void makeUnordered(Reaction reaction) {
@@ -388,11 +391,11 @@ public abstract class GeneratorBase extends AbstractLFValidator {
     }
 
     /**
-     * Mark the specified reaction to belong to only the specified
-     * bank index. This is needed because reactions cannot declare
-     * a specific bank index as an effect or trigger. Reactions that
-     * send messages between federates, including absent messages,
-     * need to be specific to a bank member.
+     * Mark the specified reaction to belong to only the specified bank index. This is needed
+     * because reactions cannot declare a specific bank index as an effect or trigger. Reactions
+     * that send messages between federates, including absent messages, need to be specific to a
+     * bank member.
+     *
      * @param reaction The reaction.
      * @param bankIndex The bank index, or -1 if there is no bank.
      */
@@ -408,6 +411,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
 
     /**
      * Return the reaction bank index.
+     *
      * @see #setReactionBankIndex(Reaction reaction, int bankIndex)
      * @param reaction The reaction.
      * @return The reaction bank index, if one has been set, and -1 otherwise.
@@ -422,20 +426,22 @@ public abstract class GeneratorBase extends AbstractLFValidator {
     // // Protected methods.
 
     /**
-     * Checks whether modal reactors are present and require appropriate code generation.
-     * This will set the hasModalReactors variable.
+     * Checks whether modal reactors are present and require appropriate code generation. This will
+     * set the hasModalReactors variable.
+     *
      * @param isSupported indicates if modes are supported by this code generation.
      */
     protected void checkModalReactorSupport(boolean isSupported) {
         if (hasModalReactors && !isSupported) {
-            errorReporter.reportError("The currently selected code generation or " +
-                                      "target configuration does not support modal reactors!");
+            errorReporter.reportError(
+                    "The currently selected code generation or "
+                            + "target configuration does not support modal reactors!");
         }
     }
 
     /**
-     * Finds and transforms connections into forwarding reactions iff the connections have the same destination as other
-     * connections or reaction in mutually exclusive modes.
+     * Finds and transforms connections into forwarding reactions iff the connections have the same
+     * destination as other connections or reaction in mutually exclusive modes.
      */
     private void transformConflictingConnectionsInModalReactors() {
         for (LFResource r : resources) {
@@ -444,13 +450,18 @@ public abstract class GeneratorBase extends AbstractLFValidator {
                 var factory = LfFactory.eINSTANCE;
                 for (Connection connection : transform) {
                     // Currently only simple transformations are supported
-                    if (connection.isPhysical() || connection.getDelay() != null || connection.isIterated() ||
-                        connection.getLeftPorts().size() > 1 || connection.getRightPorts().size() > 1
-                    ) {
-                        errorReporter.reportError(connection, "Cannot transform connection in modal reactor. Connection uses currently not supported features.");
+                    if (connection.isPhysical()
+                            || connection.getDelay() != null
+                            || connection.isIterated()
+                            || connection.getLeftPorts().size() > 1
+                            || connection.getRightPorts().size() > 1) {
+                        errorReporter.reportError(
+                                connection,
+                                "Cannot transform connection in modal reactor. Connection uses"
+                                        + " currently not supported features.");
                     } else {
                         var reaction = factory.createReaction();
-                        ((Mode)connection.eContainer()).getReactions().add(reaction);
+                        ((Mode) connection.eContainer()).getReactions().add(reaction);
 
                         var sourceRef = connection.getLeftPorts().get(0);
                         var destRef = connection.getRightPorts().get(0);
@@ -458,10 +469,16 @@ public abstract class GeneratorBase extends AbstractLFValidator {
                         reaction.getEffects().add(destRef);
 
                         var code = factory.createCode();
-                        var source = (sourceRef.getContainer() != null ?
-                                sourceRef.getContainer().getName() + "." : "") + sourceRef.getVariable().getName();
-                        var dest = (destRef.getContainer() != null ?
-                                destRef.getContainer().getName() + "." : "") + destRef.getVariable().getName();
+                        var source =
+                                (sourceRef.getContainer() != null
+                                                ? sourceRef.getContainer().getName() + "."
+                                                : "")
+                                        + sourceRef.getVariable().getName();
+                        var dest =
+                                (destRef.getContainer() != null
+                                                ? destRef.getContainer().getName() + "."
+                                                : "")
+                                        + destRef.getVariable().getName();
                         code.setBody(getConflictingConnectionsInModalReactorsBody(source, dest));
                         reaction.setCode(code);
 
@@ -472,29 +489,26 @@ public abstract class GeneratorBase extends AbstractLFValidator {
         }
     }
     /**
-     * Return target code for forwarding reactions iff the connections have the
-     * same destination as other connections or reaction in mutually exclusive modes.
+     * Return target code for forwarding reactions iff the connections have the same destination as
+     * other connections or reaction in mutually exclusive modes.
      *
-     * This method needs to be overridden in target specific code generators that
-     * support modal reactors.
+     * <p>This method needs to be overridden in target specific code generators that support modal
+     * reactors.
      */
     protected String getConflictingConnectionsInModalReactorsBody(String source, String dest) {
-        errorReporter.reportError("The currently selected code generation " +
-                                  "is missing an implementation for conflicting " +
-                                  "transforming connections in modal reactors.");
+        errorReporter.reportError(
+                "The currently selected code generation "
+                        + "is missing an implementation for conflicting "
+                        + "transforming connections in modal reactors.");
         return "MODAL MODELS NOT SUPPORTED";
     }
 
-    /**
-     * Hook for additional post-processing of the model.
-     */
+    /** Hook for additional post-processing of the model. */
     protected void additionalPostProcessingForModes() {
         // Do nothing
     }
 
-    /**
-     * Parsed error message from a compiler is returned here.
-     */
+    /** Parsed error message from a compiler is returned here. */
     public static class ErrorFileAndLine {
         public String filepath = null;
         public String line = "1";
@@ -504,33 +518,38 @@ public abstract class GeneratorBase extends AbstractLFValidator {
 
         @Override
         public String toString() {
-          return (isError ? "Error" : "Non-error") + " at " + line + ":" + character + " of file " + filepath + ": " + message;
+            return (isError ? "Error" : "Non-error")
+                    + " at "
+                    + line
+                    + ":"
+                    + character
+                    + " of file "
+                    + filepath
+                    + ": "
+                    + message;
         }
     }
 
     /**
-     * Given a line of text from the output of a compiler, return
-     * an instance of ErrorFileAndLine if the line is recognized as
-     * the first line of an error message. Otherwise, return null.
-     * This base class simply returns null.
-     * @param line A line of output from a compiler or other external
-     * tool that might generate errors.
-     * @return If the line is recognized as the start of an error message,
-     * then return a class containing the path to the file on which the
-     * error occurred (or null if there is none), the line number (or the
-     * string "1" if there is none), the character position (or the string
-     * "0" if there is none), and the message (or an empty string if there
-     * is none).
+     * Given a line of text from the output of a compiler, return an instance of ErrorFileAndLine if
+     * the line is recognized as the first line of an error message. Otherwise, return null. This
+     * base class simply returns null.
+     *
+     * @param line A line of output from a compiler or other external tool that might generate
+     *     errors.
+     * @return If the line is recognized as the start of an error message, then return a class
+     *     containing the path to the file on which the error occurred (or null if there is none),
+     *     the line number (or the string "1" if there is none), the character position (or the
+     *     string "0" if there is none), and the message (or an empty string if there is none).
      */
     protected ErrorFileAndLine parseCommandOutput(String line) {
         return null;
     }
 
     /**
-     * Parse the specified string for command errors that can be reported
-     * using marks in the Eclipse IDE. In this class, we attempt to parse
-     * the messages to look for file and line information, thereby generating
-     * marks on the appropriate lines. This should not be called in standalone
+     * Parse the specified string for command errors that can be reported using marks in the Eclipse
+     * IDE. In this class, we attempt to parse the messages to look for file and line information,
+     * thereby generating marks on the appropriate lines. This should not be called in standalone
      * mode.
      *
      * @param stderr The output on standard error of executing a command.
@@ -555,8 +574,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
                 if (message.length() > 0) {
                     if (severity == IMarker.SEVERITY_ERROR)
                         errorReporter.reportError(path, lineNumber, message.toString());
-                    else
-                        errorReporter.reportWarning(path, lineNumber, message.toString());
+                    else errorReporter.reportWarning(path, lineNumber, message.toString());
 
                     if (!Objects.equal(originalPath.toFile(), path.toFile())) {
                         // Report an error also in the top-level resource.
@@ -564,11 +582,13 @@ public abstract class GeneratorBase extends AbstractLFValidator {
                         // statements to find which one matches and mark all the
                         // import statements down the chain. But what a pain!
                         if (severity == IMarker.SEVERITY_ERROR) {
-                            errorReporter.reportError(originalPath, 1, "Error in imported file: " + path);
+                            errorReporter.reportError(
+                                    originalPath, 1, "Error in imported file: " + path);
                         } else {
-                            errorReporter.reportWarning(originalPath, 1, "Warning in imported file: " + path);
+                            errorReporter.reportWarning(
+                                    originalPath, 1, "Warning in imported file: " + path);
                         }
-                     }
+                    }
                 }
                 if (parsed.isError) {
                     severity = IMarker.SEVERITY_ERROR;
@@ -618,7 +638,8 @@ public abstract class GeneratorBase extends AbstractLFValidator {
                 if (severity == IMarker.SEVERITY_ERROR) {
                     errorReporter.reportError(originalPath, 1, "Error in imported file: " + path);
                 } else {
-                    errorReporter.reportWarning(originalPath, 1, "Warning in imported file: " + path);
+                    errorReporter.reportWarning(
+                            originalPath, 1, "Warning in imported file: " + path);
                 }
             }
         }
@@ -628,23 +649,22 @@ public abstract class GeneratorBase extends AbstractLFValidator {
     // // Private functions
 
     /**
-     * Print to stdout information about what source file is being generated,
-     * what mode the generator is in, and where the generated sources are to be put.
+     * Print to stdout information about what source file is being generated, what mode the
+     * generator is in, and where the generated sources are to be put.
      */
     public void printInfo(LFGeneratorContext.Mode mode) {
-        System.out.println("Generating code for: " + context.getFileConfig().resource.getURI().toString());
+        System.out.println(
+                "Generating code for: " + context.getFileConfig().resource.getURI().toString());
         System.out.println("******** mode: " + mode);
-        System.out.println("******** generated sources: " + context.getFileConfig().getSrcGenPath());
+        System.out.println(
+                "******** generated sources: " + context.getFileConfig().getSrcGenPath());
     }
 
-    /**
-     * Get the buffer type used for network messages
-     */
-    public String getNetworkBufferType() { return ""; }
+    /** Get the buffer type used for network messages */
+    public String getNetworkBufferType() {
+        return "";
+    }
 
-    /**
-     * Return the Targets enum for the current target
-     */
+    /** Return the Targets enum for the current target */
     public abstract Target getTarget();
-
 }

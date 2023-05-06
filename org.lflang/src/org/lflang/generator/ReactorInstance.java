@@ -1,32 +1,31 @@
 /** A data structure for a reactor instance. */
 
 /*************
-Copyright (c) 2019-2022, The University of California at Berkeley.
-
-Redistribution and use in source and binary forms, with or without modification,
-are permitted provided that the following conditions are met:
-
-1. Redistributions of source code must retain the above copyright notice,
-   this list of conditions and the following disclaimer.
-
-2. Redistributions in binary form must reproduce the above copyright notice,
-   this list of conditions and the following disclaimer in the documentation
-   and/or other materials provided with the distribution.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY
-EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
-MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL
-THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
-PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
-INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
-STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
-THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-***************/
+ * Copyright (c) 2019-2022, The University of California at Berkeley.
+ *
+ * Redistribution and use in source and binary forms, with or without modification,
+ * are permitted provided that the following conditions are met:
+ *
+ * 1. Redistributions of source code must retain the above copyright notice,
+ * this list of conditions and the following disclaimer.
+ *
+ * 2. Redistributions in binary form must reproduce the above copyright notice,
+ * this list of conditions and the following disclaimer in the documentation
+ * and/or other materials provided with the distribution.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY
+ * EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+ * MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL
+ * THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+ * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
+ * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
+ * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ ***************/
 
 package org.lflang.generator;
 
-import static org.lflang.ASTUtils.belongsTo;
 import static org.lflang.ASTUtils.getLiteralTimeValue;
 
 import java.util.ArrayList;
@@ -38,9 +37,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-
-import org.eclipse.emf.ecore.util.EcoreUtil;
-
 import org.lflang.ASTUtils;
 import org.lflang.AttributeUtils;
 import org.lflang.ErrorReporter;
@@ -55,7 +51,6 @@ import org.lflang.lf.Expression;
 import org.lflang.lf.Initializer;
 import org.lflang.lf.Input;
 import org.lflang.lf.Instantiation;
-import org.lflang.lf.LfFactory;
 import org.lflang.lf.Mode;
 import org.lflang.lf.Output;
 import org.lflang.lf.Parameter;
@@ -69,23 +64,19 @@ import org.lflang.lf.VarRef;
 import org.lflang.lf.Variable;
 import org.lflang.lf.WidthSpec;
 
-
 /**
- * Representation of a compile-time instance of a reactor.
- * If the reactor is instantiated as a bank of reactors, or if any
- * of its parents is instantiated as a bank of reactors, then one instance
- * of this ReactorInstance class represents all the runtime instances within
- * these banks.  The {@link #getTotalWidth()} method returns the number of such
- * runtime instances, which is the product of the bank width of this reactor
- * instance and the bank widths of all of its parents.
- * There is exactly one instance of this ReactorInstance class for each
- * graphical rendition of a reactor in the diagram view.
+ * Representation of a compile-time instance of a reactor. If the reactor is instantiated as a bank
+ * of reactors, or if any of its parents is instantiated as a bank of reactors, then one instance of
+ * this ReactorInstance class represents all the runtime instances within these banks. The {@link
+ * #getTotalWidth()} method returns the number of such runtime instances, which is the product of
+ * the bank width of this reactor instance and the bank widths of all of its parents. There is
+ * exactly one instance of this ReactorInstance class for each graphical rendition of a reactor in
+ * the diagram view.
  *
- * For the main reactor, which has no parent, once constructed,
- * this object represents the entire Lingua Franca program.
- * If the program has causality loops (a programming error), then
- * {@link #hasCycles()} will return true and {@link #getCycles()} will
- * return the ports and reaction instances involved in the cycles.
+ * <p>For the main reactor, which has no parent, once constructed, this object represents the entire
+ * Lingua Franca program. If the program has causality loops (a programming error), then {@link
+ * #hasCycles()} will return true and {@link #getCycles()} will return the ports and reaction
+ * instances involved in the cycles.
  *
  * @author Marten Lohstroh
  * @author Edward A. Lee
@@ -94,6 +85,7 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
 
     /**
      * Create a new instantiation hierarchy that starts with the given top-level reactor.
+     *
      * @param reactor The top-level reactor.
      * @param reporter The error reporter.
      */
@@ -102,8 +94,9 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
     }
 
     /**
-     * Create a new instantiation hierarchy that starts with the given top-level reactor
-     * but only creates contained reactors up to the specified depth.
+     * Create a new instantiation hierarchy that starts with the given top-level reactor but only
+     * creates contained reactors up to the specified depth.
+     *
      * @param reactor The top-level reactor.
      * @param reporter The error reporter.
      * @param desiredDepth The depth to which to go, or -1 to construct the full hierarchy.
@@ -113,9 +106,9 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
     }
 
     /**
-     * Create a new instantiation with the specified parent.
-     * This constructor is here to allow for unit tests.
-     * It should not be used for any other purpose.
+     * Create a new instantiation with the specified parent. This constructor is here to allow for
+     * unit tests. It should not be used for any other purpose.
+     *
      * @param reactor The top-level reactor.
      * @param parent The parent reactor instance.
      * @param reporter The error reporter.
@@ -131,9 +124,8 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
     public List<ActionInstance> actions = new ArrayList<>();
 
     /**
-     * The contained reactor instances, in order of declaration.
-     * For banks of reactors, this includes both the bank definition
-     * Reactor (which has bankIndex == -2) followed by each of the
+     * The contained reactor instances, in order of declaration. For banks of reactors, this
+     * includes both the bank definition Reactor (which has bankIndex == -2) followed by each of the
      * bank members (which have bankIndex >= 0).
      */
     public final List<ReactorInstance> children = new ArrayList<>();
@@ -169,18 +161,16 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
     //// Public methods.
 
     /**
-     * Assign levels to all reactions within the same root as this
-     * reactor. The level of a reaction r is equal to the length of the
-     * longest chain of reactions that must have the opportunity to
-     * execute before r at each logical tag. This fails and returns
-     * false if a causality cycle exists.
+     * Assign levels to all reactions within the same root as this reactor. The level of a reaction
+     * r is equal to the length of the longest chain of reactions that must have the opportunity to
+     * execute before r at each logical tag. This fails and returns false if a causality cycle
+     * exists.
      *
-     * This method uses a variant of Kahn's algorithm, which is linear
-     * in V + E, where V is the number of vertices (reactions) and E
-     * is the number of edges (dependencies between reactions).
+     * <p>This method uses a variant of Kahn's algorithm, which is linear in V + E, where V is the
+     * number of vertices (reactions) and E is the number of edges (dependencies between reactions).
      *
-     * @return An empty graph if successful and otherwise a graph
-     *  with runtime reaction instances that form cycles.
+     * @return An empty graph if successful and otherwise a graph with runtime reaction instances
+     *     that form cycles.
      */
     public ReactionInstanceGraph assignLevels() {
         if (depth != 0) return root().assignLevels();
@@ -191,10 +181,11 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
     }
 
     /**
-     * This function assigns/propagates deadlines through the Reaction Instance Graph.
-     * It performs Kahn`s algorithm in reverse, starting from the leaf nodes and
-     * propagates deadlines upstream. To reduce cost, it should only be invoked when
-     * there are user-specified deadlines in the program.
+     * This function assigns/propagates deadlines through the Reaction Instance Graph. It performs
+     * Kahn`s algorithm in reverse, starting from the leaf nodes and propagates deadlines upstream.
+     * To reduce cost, it should only be invoked when there are user-specified deadlines in the
+     * program.
+     *
      * @return
      */
     public ReactionInstanceGraph assignDeadlines() {
@@ -207,8 +198,9 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
     }
 
     /**
-     * Return the instance of a child rector created by the specified
-     * definition or null if there is none.
+     * Return the instance of a child rector created by the specified definition or null if there is
+     * none.
+     *
      * @param definition The definition of the child reactor ("new" statement).
      */
     public ReactorInstance getChildReactorInstance(Instantiation definition) {
@@ -221,19 +213,20 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
     }
 
     /**
-     * Clear any cached data in this reactor and its children.
-     * This is useful if a mutation has been realized.
+     * Clear any cached data in this reactor and its children. This is useful if a mutation has been
+     * realized.
      */
     public void clearCaches() {
         clearCaches(true);
     }
 
     /**
-     * Clear any cached data in this reactor and its children.
-     * This is useful if a mutation has been realized.
-     * @param includingRuntimes If false, leave the runtime instances of reactions intact.
-     *  This is useful for federated execution where levels are computed using
-     *  the top-level connections, but then those connections are discarded.
+     * Clear any cached data in this reactor and its children. This is useful if a mutation has been
+     * realized.
+     *
+     * @param includingRuntimes If false, leave the runtime instances of reactions intact. This is
+     *     useful for federated execution where levels are computed using the top-level connections,
+     *     but then those connections are discarded.
      */
     public void clearCaches(boolean includingRuntimes) {
         if (includingRuntimes) cachedReactionLoopGraph = null;
@@ -253,9 +246,9 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
     }
 
     /**
-     * Return the set of ReactionInstance and PortInstance that form causality
-     * loops in the topmost parent reactor in the instantiation hierarchy. This will return an
-     * empty set if there are no causality loops.
+     * Return the set of ReactionInstance and PortInstance that form causality loops in the topmost
+     * parent reactor in the instantiation hierarchy. This will return an empty set if there are no
+     * causality loops.
      */
     public Set<NamedInstance<?>> getCycles() {
         if (depth != 0) return root().getCycles();
@@ -280,7 +273,7 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
             for (ReactionInstance r : reactions) {
                 for (TriggerInstance<? extends Variable> p : r.effects) {
                     if (p instanceof PortInstance) {
-                        findPaths((PortInstance)p, reactions, ports);
+                        findPaths((PortInstance) p, reactions, ports);
                     }
                 }
             }
@@ -293,10 +286,11 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
 
     /**
      * Return the specified input by name or null if there is no such input.
+     *
      * @param name The input name.
      */
     public PortInstance getInput(String name) {
-        for (PortInstance port: inputs) {
+        for (PortInstance port : inputs) {
             if (port.getName().equals(name)) {
                 return port;
             }
@@ -305,8 +299,9 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
     }
 
     /**
-     * Override the base class to append [i_d], where d is the depth,
-     * if this reactor is in a bank of reactors.
+     * Override the base class to append [i_d], where d is the depth, if this reactor is in a bank
+     * of reactors.
+     *
      * @return The name of this instance.
      */
     @Override
@@ -316,24 +311,24 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
 
     /**
      * @see NamedInstance#uniqueID()
-     *
-     * Append `_main` to the name of the main reactor to allow instantiations
-     * within that reactor to have the same name.
+     *     <p>Append `_main` to the name of the main reactor to allow instantiations within that
+     *     reactor to have the same name.
      */
     @Override
     public String uniqueID() {
-       if (this.isMainOrFederated()) {
-          return super.uniqueID() + "_main";
-       }
-       return super.uniqueID();
+        if (this.isMainOrFederated()) {
+            return super.uniqueID() + "_main";
+        }
+        return super.uniqueID();
     }
 
     /**
      * Return the specified output by name or null if there is no such output.
+     *
      * @param name The output name.
      */
     public PortInstance getOutput(String name) {
-        for (PortInstance port: outputs) {
+        for (PortInstance port : outputs) {
             if (port.getName().equals(name)) {
                 return port;
             }
@@ -342,12 +337,13 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
     }
 
     /**
-     * Return a parameter matching the specified name if the reactor has one
-     * and otherwise return null.
+     * Return a parameter matching the specified name if the reactor has one and otherwise return
+     * null.
+     *
      * @param name The parameter name.
      */
     public ParameterInstance getParameter(String name) {
-        for (ParameterInstance parameter: parameters) {
+        for (ParameterInstance parameter : parameters) {
             if (parameter.getName().equals(name)) {
                 return parameter;
             }
@@ -355,39 +351,33 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
         return null;
     }
 
-    /**
-     * Return the startup trigger or null if not used in any reaction.
-     */
+    /** Return the startup trigger or null if not used in any reaction. */
     public TriggerInstance<BuiltinTriggerVariable> getStartupTrigger() {
         return builtinTriggers.get(BuiltinTrigger.STARTUP);
     }
 
-    /**
-     * Return the shutdown trigger or null if not used in any reaction.
-     */
+    /** Return the shutdown trigger or null if not used in any reaction. */
     public TriggerInstance<BuiltinTriggerVariable> getShutdownTrigger() {
         return builtinTriggers.get(BuiltinTrigger.SHUTDOWN);
     }
 
     /**
-     * If this reactor is a bank or any of its parents is a bank,
-     * return the total number of runtime instances, which is the product
-     * of the widths of all the parents.
-     * Return -1 if the width cannot be determined.
+     * If this reactor is a bank or any of its parents is a bank, return the total number of runtime
+     * instances, which is the product of the widths of all the parents. Return -1 if the width
+     * cannot be determined.
      */
     public int getTotalWidth() {
         return getTotalWidth(0);
     }
 
     /**
-     * If this reactor is a bank or any of its parents is a bank,
-     * return the total number of runtime instances, which is the product
-     * of the widths of all the parents.
-     * Return -1 if the width cannot be determined.
-     * @param atDepth The depth at which to determine the width.
-     *  Use 0 to get the total number of instances.
-     *  Use 1 to get the number of instances within a single top-level
-     *  bank member (this is useful for federates).
+     * If this reactor is a bank or any of its parents is a bank, return the total number of runtime
+     * instances, which is the product of the widths of all the parents. Return -1 if the width
+     * cannot be determined.
+     *
+     * @param atDepth The depth at which to determine the width. Use 0 to get the total number of
+     *     instances. Use 1 to get the number of instances within a single top-level bank member
+     *     (this is useful for federates).
      */
     public int getTotalWidth(int atDepth) {
         if (width <= 0) return -1;
@@ -403,8 +393,8 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
     }
 
     /**
-     * Return the trigger instances (input ports, timers, and actions
-     * that trigger reactions) belonging to this reactor instance.
+     * Return the trigger instances (input ports, timers, and actions that trigger reactions)
+     * belonging to this reactor instance.
      */
     public Set<TriggerInstance<? extends Variable>> getTriggers() {
         // FIXME: Cache this.
@@ -416,9 +406,8 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
     }
 
     /**
-     * Return the trigger instances (input ports, timers, and actions
-     * that trigger reactions) together the ports that the reaction reads
-     * but that don't trigger it.
+     * Return the trigger instances (input ports, timers, and actions that trigger reactions)
+     * together the ports that the reaction reads but that don't trigger it.
      *
      * @return The trigger instances belonging to this reactor instance.
      */
@@ -432,22 +421,18 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
         return triggers;
     }
 
-    /**
-     * Return true if the top-level parent of this reactor has causality cycles.
-     */
+    /** Return true if the top-level parent of this reactor has causality cycles. */
     public boolean hasCycles() {
         return assignLevels().nodeCount() != 0;
     }
 
     /**
-     * Given a parameter definition for this reactor, return the initial integer
-     * value of the parameter. If the parameter is overridden when instantiating
-     * this reactor or any of its containing reactors, use that value.
-     * Otherwise, use the default value in the reactor definition.
-     * If the parameter cannot be found or its value is not an integer, return null.
+     * Given a parameter definition for this reactor, return the initial integer value of the
+     * parameter. If the parameter is overridden when instantiating this reactor or any of its
+     * containing reactors, use that value. Otherwise, use the default value in the reactor
+     * definition. If the parameter cannot be found or its value is not an integer, return null.
      *
      * @param parameter The parameter definition (a syntactic object in the AST).
-     *
      * @return An integer value or null.
      */
     public Integer initialIntParameterValue(Parameter parameter) {
@@ -458,25 +443,25 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
         return LfExpressionVisitor.dispatch(e, this, ParameterInliner.INSTANCE);
     }
 
-
-    private static final class ParameterInliner extends LfExpressionVisitor.LfExpressionDeepCopyVisitor<ReactorInstance> {
+    private static final class ParameterInliner
+            extends LfExpressionVisitor.LfExpressionDeepCopyVisitor<ReactorInstance> {
         static final ParameterInliner INSTANCE = new ParameterInliner();
 
         @Override
         public Expression visitParameterRef(ParameterReference expr, ReactorInstance instance) {
             if (!ASTUtils.belongsTo(expr.getParameter(), instance.definition)) {
-                throw new IllegalArgumentException("Parameter "
-                    + expr.getParameter().getName()
-                    + " is not a parameter of reactor instance "
-                    + instance.getName()
-                    + "."
-                );
+                throw new IllegalArgumentException(
+                        "Parameter "
+                                + expr.getParameter().getName()
+                                + " is not a parameter of reactor instance "
+                                + instance.getName()
+                                + ".");
             }
 
             Optional<Assignment> assignment =
-                instance.definition.getParameters().stream()
-                    .filter(it -> it.getLhs().equals(expr.getParameter()))
-                    .findAny(); // There is at most one
+                    instance.definition.getParameters().stream()
+                            .filter(it -> it.getLhs().equals(expr.getParameter()))
+                            .findAny(); // There is at most one
 
             if (assignment.isPresent()) {
                 // replace the parameter with its value.
@@ -499,12 +484,11 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
     }
 
     /**
-     * Return a list of Instantiation objects for evaluating parameter
-     * values.  The first object in the list is the AST Instantiation
-     * that created this reactor instance, the second is the AST instantiation
-     * that created the containing reactor instance, and so on until there
-     * are no more containing reactor instances. This will return an empty
-     * list if this reactor instance is at the top level (is main).
+     * Return a list of Instantiation objects for evaluating parameter values. The first object in
+     * the list is the AST Instantiation that created this reactor instance, the second is the AST
+     * instantiation that created the containing reactor instance, and so on until there are no more
+     * containing reactor instances. This will return an empty list if this reactor instance is at
+     * the top level (is main).
      */
     public List<Instantiation> instantiations() {
         if (_instantiations == null) {
@@ -521,6 +505,7 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
 
     /**
      * Returns true if this is a bank of reactors.
+     *
      * @return true if a reactor is a bank, false otherwise
      */
     public boolean isBank() {
@@ -529,6 +514,7 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
 
     /**
      * Returns whether this is a main or federated reactor.
+     *
      * @return true if reactor definition is marked as main or federated, false otherwise.
      */
     public boolean isMainOrFederated() {
@@ -537,8 +523,9 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
     }
 
     /**
-     * Return true if the specified reactor instance is either equal to this
-     * reactor instance or a parent of it.
+     * Return true if the specified reactor instance is either equal to this reactor instance or a
+     * parent of it.
+     *
      * @param r The reactor instance.
      */
     public boolean isParent(ReactorInstance r) {
@@ -554,11 +541,12 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
     //// Methods for finding instances in this reactor given an AST node.
 
     /**
-     * Return the action instance within this reactor
-     * instance corresponding to the specified action reference.
+     * Return the action instance within this reactor instance corresponding to the specified action
+     * reference.
+     *
      * @param action The action as an AST node.
-     * @return The corresponding action instance or null if the
-     *  action does not belong to this reactor.
+     * @return The corresponding action instance or null if the action does not belong to this
+     *     reactor.
      */
     public ActionInstance lookupActionInstance(Action action) {
         for (ActionInstance actionInstance : actions) {
@@ -570,9 +558,9 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
     }
 
     /**
-     * Given a parameter definition, return the parameter instance
-     * corresponding to that definition, or null if there is
-     * no such instance.
+     * Given a parameter definition, return the parameter instance corresponding to that definition,
+     * or null if there is no such instance.
+     *
      * @param parameter The parameter definition (a syntactic object in the AST).
      * @return A parameter instance, or null if there is none.
      */
@@ -586,9 +574,9 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
     }
 
     /**
-     * Given a port definition, return the port instance
-     * corresponding to that definition, or null if there is
-     * no such instance.
+     * Given a port definition, return the port instance corresponding to that definition, or null
+     * if there is no such instance.
+     *
      * @param port The port definition (a syntactic object in the AST).
      * @return A port instance, or null if there is none.
      */
@@ -609,9 +597,9 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
     }
 
     /**
-     * Given a reference to a port belonging to this reactor
-     * instance, return the port instance.
+     * Given a reference to a port belonging to this reactor instance, return the port instance.
      * Return null if there is no such instance.
+     *
      * @param reference The port reference.
      * @return A port instance, or null if there is none.
      */
@@ -632,11 +620,12 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
     }
 
     /**
-     * Return the reaction instance within this reactor
-     * instance corresponding to the specified reaction.
+     * Return the reaction instance within this reactor instance corresponding to the specified
+     * reaction.
+     *
      * @param reaction The reaction as an AST node.
-     * @return The corresponding reaction instance or null if the
-     *  reaction does not belong to this reactor.
+     * @return The corresponding reaction instance or null if the reaction does not belong to this
+     *     reactor.
      */
     public ReactionInstance lookupReactionInstance(Reaction reaction) {
         for (ReactionInstance reactionInstance : reactions) {
@@ -648,10 +637,8 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
     }
 
     /**
-     * Return the reactor instance within this reactor
-     * that has the specified instantiation. Note that this
-     * may be a bank of reactors. Return null if there
-     * is no such reactor instance.
+     * Return the reactor instance within this reactor that has the specified instantiation. Note
+     * that this may be a bank of reactors. Return null if there is no such reactor instance.
      */
     public ReactorInstance lookupReactorInstance(Instantiation instantiation) {
         for (ReactorInstance reactorInstance : children) {
@@ -663,11 +650,12 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
     }
 
     /**
-     * Return the timer instance within this reactor
-     * instance corresponding to the specified timer reference.
+     * Return the timer instance within this reactor instance corresponding to the specified timer
+     * reference.
+     *
      * @param timer The timer as an AST node.
-     * @return The corresponding timer instance or null if the
-     *  timer does not belong to this reactor.
+     * @return The corresponding timer instance or null if the timer does not belong to this
+     *     reactor.
      */
     public TimerInstance lookupTimerInstance(Timer timer) {
         for (TimerInstance timerInstance : timers) {
@@ -678,11 +666,12 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
         return null;
     }
 
-    /** Returns the mode instance within this reactor
-     *  instance corresponding to the specified mode reference.
-     *  @param mode The mode as an AST node.
-     *  @return The corresponding mode instance or null if the
-     *   mode does not belong to this reactor.
+    /**
+     * Returns the mode instance within this reactor instance corresponding to the specified mode
+     * reference.
+     *
+     * @param mode The mode as an AST node.
+     * @return The corresponding mode instance or null if the mode does not belong to this reactor.
      */
     public ModeInstance lookupModeInstance(Mode mode) {
         for (ModeInstance modeInstance : modes) {
@@ -693,9 +682,7 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
         return null;
     }
 
-    /**
-     * Return a descriptive string.
-     */
+    /** Return a descriptive string. */
     @Override
     public String toString() {
         return "ReactorInstance " + getFullName();
@@ -704,8 +691,8 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
     /**
      * Assuming that the given expression denotes a valid time, return a time value.
      *
-     * If the value is given as a parameter reference, this will look up the
-     * precise time value assigned to this reactor instance.
+     * <p>If the value is given as a parameter reference, this will look up the precise time value
+     * assigned to this reactor instance.
      */
     public TimeValue getTimeValue(Expression expr) {
         Expression resolved = resolveParameters(expr);
@@ -719,14 +706,14 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
     protected ErrorReporter reporter; // FIXME: This accumulates a lot of redundant references
 
     /** The map of used built-in triggers. */
-    protected Map<BuiltinTrigger, TriggerInstance<BuiltinTriggerVariable>> builtinTriggers = new HashMap<>();
+    protected Map<BuiltinTrigger, TriggerInstance<BuiltinTriggerVariable>> builtinTriggers =
+            new HashMap<>();
 
     /**
-     * The LF syntax does not currently support declaring reactions unordered,
-     * but unordered reactions are created in the AST transformations handling
-     * federated communication and after delays. Unordered reactions can execute
-     * in any order and concurrently even though they are in the same reactor.
-     * FIXME: Remove this when the language provides syntax.
+     * The LF syntax does not currently support declaring reactions unordered, but unordered
+     * reactions are created in the AST transformations handling federated communication and after
+     * delays. Unordered reactions can execute in any order and concurrently even though they are in
+     * the same reactor. FIXME: Remove this when the language provides syntax.
      */
     protected Set<Reaction> unorderedReactions = new LinkedHashSet<>();
 
@@ -737,11 +724,9 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
     //// Protected methods.
 
     /**
-     * Create all the reaction instances of this reactor instance
-     * and record the dependencies and antidependencies
-     * between ports, actions, and timers and reactions.
-     * This also records the dependencies between reactions
-     * that follows from the order in which they are defined.
+     * Create all the reaction instances of this reactor instance and record the dependencies and
+     * antidependencies between ports, actions, and timers and reactions. This also records the
+     * dependencies between reactions that follows from the order in which they are defined.
      */
     protected void createReactionInstances() {
         List<Reaction> reactions = ASTUtils.allReactions(reactorDefinition);
@@ -754,8 +739,9 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
                     unorderedReactions.add(reaction);
                 }
                 // Create the reaction instance.
-                var reactionInstance = new ReactionInstance(reaction, this,
-                    unorderedReactions.contains(reaction), count++);
+                var reactionInstance =
+                        new ReactionInstance(
+                                reaction, this, unorderedReactions.contains(reaction), count++);
 
                 // Add the reaction instance to the map of reactions for this
                 // reactor.
@@ -764,19 +750,20 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
         }
     }
 
-    /**
-     * Returns the built-in trigger or create a new one if none exists.
-     */
-    protected TriggerInstance<BuiltinTriggerVariable> getOrCreateBuiltinTrigger(BuiltinTriggerRef trigger) {
-        return builtinTriggers.computeIfAbsent(trigger.getType(), ref -> TriggerInstance.builtinTrigger(trigger, this));
+    /** Returns the built-in trigger or create a new one if none exists. */
+    protected TriggerInstance<BuiltinTriggerVariable> getOrCreateBuiltinTrigger(
+            BuiltinTriggerRef trigger) {
+        return builtinTriggers.computeIfAbsent(
+                trigger.getType(), ref -> TriggerInstance.builtinTrigger(trigger, this));
     }
 
     ////////////////////////////////////////
     //// Private constructors
 
     /**
-     * Create a runtime instance from the specified definition
-     * and with the specified parent that instantiated it.
+     * Create a runtime instance from the specified definition and with the specified parent that
+     * instantiated it.
+     *
      * @param definition The instantiation statement in the AST.
      * @param parent The parent, or null for the main rector.
      * @param reporter An error reporter.
@@ -804,7 +791,7 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
                     currentParent = currentParent.parent;
                 }
             }
-        } while(currentParent != null);
+        } while (currentParent != null);
 
         this.recursive = foundSelfAsParent;
         if (recursive) {
@@ -814,7 +801,8 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
         // If the reactor definition is null, give up here. Otherwise, diagram generation
         // will fail an NPE.
         if (reactorDefinition == null) {
-            reporter.reportError(definition, "Reactor instantiation has no matching reactor definition.");
+            reporter.reportError(
+                    definition, "Reactor instantiation has no matching reactor definition.");
             return;
         }
 
@@ -840,12 +828,7 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
             // Instantiate children for this reactor instance.
             // While doing this, assign an index offset to each.
             for (Instantiation child : ASTUtils.allInstantiations(reactorDefinition)) {
-                var childInstance = new ReactorInstance(
-                    child,
-                    this,
-                    reporter,
-                    desiredDepth
-                );
+                var childInstance = new ReactorInstance(child, this, reporter, desiredDepth);
                 this.children.add(childInstance);
             }
 
@@ -885,38 +868,35 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
     /**
      * Connect the given left port range to the given right port range.
      *
-     * NOTE: This method is public to enable its use in unit tests.
-     * Otherwise, it should be private. This is why it is defined here,
-     * in the section labeled "Private methods."
+     * <p>NOTE: This method is public to enable its use in unit tests. Otherwise, it should be
+     * private. This is why it is defined here, in the section labeled "Private methods."
      *
      * @param src The source range.
      * @param dst The destination range.
      * @param connection The connection establishing this relationship.
      */
     public static void connectPortInstances(
-            RuntimeRange<PortInstance> src,
-            RuntimeRange<PortInstance> dst,
-            Connection connection
-    ) {
+            RuntimeRange<PortInstance> src, RuntimeRange<PortInstance> dst, Connection connection) {
         SendRange range = new SendRange(src, dst, src._interleaved, connection);
         src.instance.dependentPorts.add(range);
         dst.instance.dependsOnPorts.add(src);
     }
 
     /**
-     * Populate connectivity information in the port instances.
-     * Note that this can only happen _after_ the children and port instances have been created.
-     * Unfortunately, we have to do some complicated things here
-     * to support multiport-to-multiport, multiport-to-bank,
-     * and bank-to-multiport communication.  The principle being followed is:
-     * in each connection statement, for each port instance on the left,
-     * connect to the next available port on the right.
+     * Populate connectivity information in the port instances. Note that this can only happen
+     * _after_ the children and port instances have been created. Unfortunately, we have to do some
+     * complicated things here to support multiport-to-multiport, multiport-to-bank, and
+     * bank-to-multiport communication. The principle being followed is: in each connection
+     * statement, for each port instance on the left, connect to the next available port on the
+     * right.
      */
     private void establishPortConnections() {
         for (Connection connection : ASTUtils.allConnections(reactorDefinition)) {
-            List<RuntimeRange<PortInstance>> leftPorts = listPortInstances(connection.getLeftPorts(), connection);
+            List<RuntimeRange<PortInstance>> leftPorts =
+                    listPortInstances(connection.getLeftPorts(), connection);
             Iterator<RuntimeRange<PortInstance>> srcRanges = leftPorts.iterator();
-            List<RuntimeRange<PortInstance>> rightPorts = listPortInstances(connection.getRightPorts(), connection);
+            List<RuntimeRange<PortInstance>> rightPorts =
+                    listPortInstances(connection.getRightPorts(), connection);
             Iterator<RuntimeRange<PortInstance>> dstRanges = rightPorts.iterator();
 
             // Check for empty lists.
@@ -933,13 +913,14 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
             RuntimeRange<PortInstance> src = srcRanges.next();
             RuntimeRange<PortInstance> dst = dstRanges.next();
 
-            while(true) {
+            while (true) {
                 if (dst.width == src.width) {
                     connectPortInstances(src, dst, connection);
                     if (!dstRanges.hasNext()) {
                         if (srcRanges.hasNext()) {
                             // Should not happen (checked by the validator).
-                            reporter.reportWarning(connection,
+                            reporter.reportWarning(
+                                    connection,
                                     "Source is wider than the destination. Outputs will be lost.");
                         }
                         break;
@@ -950,8 +931,10 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
                         } else {
                             if (dstRanges.hasNext()) {
                                 // Should not happen (checked by the validator).
-                                reporter.reportWarning(connection,
-                                        "Destination is wider than the source. Inputs will be missing.");
+                                reporter.reportWarning(
+                                        connection,
+                                        "Destination is wider than the source. Inputs will be"
+                                                + " missing.");
                             }
                             break;
                         }
@@ -964,7 +947,8 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
                     src = src.tail(dst.width);
                     if (!dstRanges.hasNext()) {
                         // Should not happen (checked by the validator).
-                        reporter.reportWarning(connection,
+                        reporter.reportWarning(
+                                connection,
                                 "Source is wider than the destination. Outputs will be lost.");
                         break;
                     }
@@ -977,8 +961,10 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
                         if (connection.isIterated()) {
                             srcRanges = leftPorts.iterator();
                         } else {
-                            reporter.reportWarning(connection,
-                                    "Destination is wider than the source. Inputs will be missing.");
+                            reporter.reportWarning(
+                                    connection,
+                                    "Destination is wider than the source. Inputs will be"
+                                            + " missing.");
                             break;
                         }
                     }
@@ -989,16 +975,13 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
     }
 
     /**
-     * If path exists from the specified port to any reaction in the specified
-     * set of reactions, then add the specified port and all ports along the path
-     * to the specified set of ports.
+     * If path exists from the specified port to any reaction in the specified set of reactions,
+     * then add the specified port and all ports along the path to the specified set of ports.
+     *
      * @return True if the specified port was added.
      */
     private boolean findPaths(
-            PortInstance port,
-            Set<ReactionInstance> reactions,
-            Set<PortInstance> ports
-    ) {
+            PortInstance port, Set<ReactionInstance> reactions, Set<PortInstance> ports) {
         if (ports.contains(port)) return false;
         boolean result = false;
         for (ReactionInstance d : port.getDependentReactions()) {
@@ -1019,26 +1002,24 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
     }
 
     /**
-     * Given a list of port references, as found on either side of a connection,
-     * return a list of the port instance ranges referenced. These may be multiports,
-     * and may be ports of a contained bank (a port representing ports of the bank
-     * members) so the returned list includes ranges of banks and channels.
+     * Given a list of port references, as found on either side of a connection, return a list of
+     * the port instance ranges referenced. These may be multiports, and may be ports of a contained
+     * bank (a port representing ports of the bank members) so the returned list includes ranges of
+     * banks and channels.
      *
-     * If a given port reference has the form `interleaved(b.m)`, where `b` is
-     * a bank and `m` is a multiport, then the corresponding range in the returned
-     * list is marked interleaved.
+     * <p>If a given port reference has the form `interleaved(b.m)`, where `b` is a bank and `m` is
+     * a multiport, then the corresponding range in the returned list is marked interleaved.
      *
-     * For example, if `b` and `m` have width 2, without the interleaved keyword,
-     * the returned range represents the sequence `[b0.m0, b0.m1, b1.m0, b1.m1]`.
-     * With the interleaved marking, the returned range represents the sequence
-     * `[b0.m0, b1.m0, b0.m1, b1.m1]`. Both ranges will have width 4.
+     * <p>For example, if `b` and `m` have width 2, without the interleaved keyword, the returned
+     * range represents the sequence `[b0.m0, b0.m1, b1.m0, b1.m1]`. With the interleaved marking,
+     * the returned range represents the sequence `[b0.m0, b1.m0, b0.m1, b1.m1]`. Both ranges will
+     * have width 4.
      *
      * @param references The variable references on one side of the connection.
      * @param connection The connection.
      */
     private List<RuntimeRange<PortInstance>> listPortInstances(
-            List<VarRef> references, Connection connection
-    ) {
+            List<VarRef> references, Connection connection) {
         List<RuntimeRange<PortInstance>> result = new ArrayList<>();
         List<RuntimeRange<PortInstance>> tails = new LinkedList<>();
         int count = 0;
@@ -1058,8 +1039,8 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
             // The reactor can be null only if there is an error in the code.
             // Skip this portRef so that diagram synthesis can complete.
             if (reactor != null) {
-                PortInstance portInstance = reactor.lookupPortInstance(
-                        (Port) portRef.getVariable());
+                PortInstance portInstance =
+                        reactor.lookupPortInstance((Port) portRef.getVariable());
 
                 Set<ReactorInstance> interleaved = new LinkedHashSet<>();
                 if (portRef.isInterleaved()) {
@@ -1068,8 +1049,7 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
                     // contained reactors.
                     interleaved.add(portInstance.parent);
                 }
-                RuntimeRange<PortInstance> range = new RuntimeRange.Port(
-                        portInstance, interleaved);
+                RuntimeRange<PortInstance> range = new RuntimeRange.Port(portInstance, interleaved);
                 // If this portRef is not the last one in the references list
                 // then we have to check whether the range can be incremented at
                 // the lowest two levels (port and container).  If not,
@@ -1102,7 +1082,7 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
             }
         }
         // Iterate over the tails.
-        while(tails.size() > 0) {
+        while (tails.size() > 0) {
             List<RuntimeRange<PortInstance>> moreTails = new LinkedList<>();
             count = 0;
             for (RuntimeRange<PortInstance> tail : tails) {
@@ -1128,8 +1108,8 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
     }
 
     /**
-     * If this is a bank of reactors, set the width.
-     * It will be set to -1 if it cannot be determined.
+     * If this is a bank of reactors, set the width. It will be set to -1 if it cannot be
+     * determined.
      */
     private void setInitialWidth() {
         WidthSpec widthSpec = definition.getWidthSpec();
@@ -1143,25 +1123,24 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
     //////////////////////////////////////////////////////
     //// Private fields.
 
-    /**
-     * Cached set of reactions and ports that form a causality loop.
-     */
+    /** Cached set of reactions and ports that form a causality loop. */
     private Set<NamedInstance<?>> cachedCycles;
 
-    /**
-     * Cached reaction graph containing reactions that form a causality loop.
-     */
+    /** Cached reaction graph containing reactions that form a causality loop. */
     private ReactionInstanceGraph cachedReactionLoopGraph = null;
 
     /**
-     * Return true if this is a generated delay reactor that originates from
-     * an "after" delay on a connection.
+     * Return true if this is a generated delay reactor that originates from an "after" delay on a
+     * connection.
      *
      * @return True if this is a generated delay, false otherwise.
      */
     public boolean isGeneratedDelay() {
         // FIXME: hacky string matching again...
-        if (this.definition.getReactorClass().getName().contains(DelayBodyGenerator.GEN_DELAY_CLASS_NAME)) {
+        if (this.definition
+                .getReactorClass()
+                .getName()
+                .contains(DelayBodyGenerator.GEN_DELAY_CLASS_NAME)) {
             return true;
         }
         return false;

@@ -1,27 +1,22 @@
 package org.lflang.cli;
 
-
+import com.google.inject.Inject;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Properties;
-
-import picocli.CommandLine.Command;
-import picocli.CommandLine.Option;
 import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.xtext.generator.GeneratorDelegate;
 import org.eclipse.xtext.generator.JavaIoFileSystemAccess;
 import org.eclipse.xtext.util.CancelIndicator;
-
 import org.lflang.ASTUtils;
 import org.lflang.FileConfig;
 import org.lflang.TargetProperty.UnionType;
-
 import org.lflang.generator.LFGeneratorContext;
 import org.lflang.generator.LFGeneratorContext.BuildParm;
 import org.lflang.generator.MainContext;
-
-import com.google.inject.Inject;
+import picocli.CommandLine.Command;
+import picocli.CommandLine.Option;
 
 /**
  * Standalone version of the Lingua Franca compiler (lfc).
@@ -31,110 +26,97 @@ import com.google.inject.Inject;
  * @author Atharva Patil
  */
 @Command(
-    name = "lfc",
-    // Enable usageHelp (--help) and versionHelp (--version) options.
-    mixinStandardHelpOptions = true,
-    versionProvider = VersionProvider.class)
+        name = "lfc",
+        // Enable usageHelp (--help) and versionHelp (--version) options.
+        mixinStandardHelpOptions = true,
+        versionProvider = VersionProvider.class)
 public class Lfc extends CliBase {
-    /**
-     * Injected code generator.
-     */
-    @Inject
-    private GeneratorDelegate generator;
+    /** Injected code generator. */
+    @Inject private GeneratorDelegate generator;
 
-    /**
-     * Injected file access object.
-     */
-    @Inject
-    private JavaIoFileSystemAccess fileAccess;
+    /** Injected file access object. */
+    @Inject private JavaIoFileSystemAccess fileAccess;
 
     /*
      * Supported CLI options.
      */
 
-    @Option(
-        names = "--build-type",
-        description = "The build type to use.")
+    @Option(names = "--build-type", description = "The build type to use.")
     private String buildType;
 
     @Option(
-        names = {"-c", "--clean"},
-        arity = "0",
-        description = "Clean before building.")
+            names = {"-c", "--clean"},
+            arity = "0",
+            description = "Clean before building.")
     private boolean clean;
 
-    @Option(
-        names = "--target-compiler",
-        description = "Target compiler to invoke.")
+    @Option(names = "--target-compiler", description = "Target compiler to invoke.")
     private String targetCompiler;
 
     @Option(
-        names = "--external-runtime-path",
-        description = "Specify an external runtime library to be used by the"
-                    + " compiled binary.")
+            names = "--external-runtime-path",
+            description =
+                    "Specify an external runtime library to be used by the" + " compiled binary.")
     private Path externalRuntimePath;
 
     @Option(
-        names = {"-f", "--federated"},
-        arity = "0",
-        description = "Treat main reactor as federated.")
+            names = {"-f", "--federated"},
+            arity = "0",
+            description = "Treat main reactor as federated.")
     private boolean federated;
 
-    @Option(
-        names = "--logging",
-        description = "The logging level to use by the generated binary")
+    @Option(names = "--logging", description = "The logging level to use by the generated binary")
     private String logging;
 
     @Option(
-        names = {"-l", "--lint"},
-        arity = "0",
-        description = "Enable linting of generated code.")
+            names = {"-l", "--lint"},
+            arity = "0",
+            description = "Enable linting of generated code.")
     private boolean lint;
 
     @Option(
-        names = {"-n", "--no-compile"},
-        arity = "0",
-        description = "Do not invoke target compiler.")
+            names = {"-n", "--no-compile"},
+            arity = "0",
+            description = "Do not invoke target compiler.")
     private boolean noCompile;
 
     @Option(
-        names = {"-q", "--quiet"},
-        arity = "0",
-        description = 
-            "Suppress output of the target compiler and other commands")
+            names = {"-q", "--quiet"},
+            arity = "0",
+            description = "Suppress output of the target compiler and other commands")
     private boolean quiet;
 
     @Option(
-        names = {"-r", "--rti"},
-        description = "Specify the location of the RTI.")
+            names = {"-r", "--rti"},
+            description = "Specify the location of the RTI.")
     private Path rti;
 
     @Option(
-        names = "--runtime-version",
-        description = "Specify the version of the runtime library used for"
-                    + " compiling LF programs.")
+            names = "--runtime-version",
+            description =
+                    "Specify the version of the runtime library used for"
+                            + " compiling LF programs.")
     private String runtimeVersion;
 
     @Option(
-        names = {"-s", "--scheduler"},
-        description = "Specify the runtime scheduler (if supported).")
+            names = {"-s", "--scheduler"},
+            description = "Specify the runtime scheduler (if supported).")
     private String scheduler;
 
     @Option(
-        names = {"-t", "--threading"},
-        paramLabel = "<true/false>",
-        description = "Specify whether the runtime should use multi-threading"
-                    + " (true/false).")
+            names = {"-t", "--threading"},
+            paramLabel = "<true/false>",
+            description =
+                    "Specify whether the runtime should use multi-threading" + " (true/false).")
     private String threading;
 
     @Option(
-        names = {"-w", "--workers"},
-        description = "Specify the default number of worker threads.")
+            names = {"-w", "--workers"},
+            description = "Specify the default number of worker threads.")
     private Integer workers;
 
     /**
-     * Main function of the stand-alone compiler.
-     * Caution: this will invoke System.exit.
+     * Main function of the stand-alone compiler. Caution: this will invoke System.exit.
      *
      * @param args CLI arguments
      */
@@ -152,9 +134,7 @@ public class Lfc extends CliBase {
         cliMain("lfc", Lfc.class, io, args);
     }
 
-    /**
-     * Load the resource, validate it, and, invoke the code generator.
-     */
+    /** Load the resource, validate it, and, invoke the code generator. */
     @Override
     public void doRun() {
         List<Path> paths = getInputPaths();
@@ -170,11 +150,8 @@ public class Lfc extends CliBase {
         }
     }
 
-    /**
-     * Invoke the code generator on the given validated file paths.
-     */
-    private void invokeGenerator(
-            List<Path> files, Path root, Properties properties) {
+    /** Invoke the code generator on the given validated file paths. */
+    private void invokeGenerator(List<Path> files, Path root, Properties properties) {
         for (Path path : files) {
             path = toAbsolutePath(path);
             String outputPath = getActualOutputPath(root, path).toString();
@@ -182,24 +159,28 @@ public class Lfc extends CliBase {
 
             final Resource resource = getResource(path);
             if (resource == null) {
-                reporter.printFatalErrorAndExit(path 
-                    + " is not an LF file. Use the .lf file extension to"
-                    + " denote LF files.");
+                reporter.printFatalErrorAndExit(
+                        path
+                                + " is not an LF file. Use the .lf file extension to"
+                                + " denote LF files.");
             } else if (federated) {
                 if (!ASTUtils.makeFederated(resource)) {
-                    reporter.printError(
-                        "Unable to change main reactor to federated reactor.");
+                    reporter.printError("Unable to change main reactor to federated reactor.");
                 }
             }
 
             validateResource(resource);
             exitIfCollectedErrors();
 
-            LFGeneratorContext context = new MainContext(
-                LFGeneratorContext.Mode.STANDALONE, CancelIndicator.NullImpl,
-                (m, p) -> {}, properties, resource, this.fileAccess,
-                fileConfig -> errorReporter
-            );
+            LFGeneratorContext context =
+                    new MainContext(
+                            LFGeneratorContext.Mode.STANDALONE,
+                            CancelIndicator.NullImpl,
+                            (m, p) -> {},
+                            properties,
+                            resource,
+                            this.fileAccess,
+                            fileConfig -> errorReporter);
 
             try {
                 this.generator.generate(resource, this.fileAccess, context);
@@ -219,15 +200,14 @@ public class Lfc extends CliBase {
         if (root != null) {
             return root.resolve("src-gen");
         } else {
-            Path pkgRoot = FileConfig.findPackageRoot(
-                path, reporter::printWarning);
+            Path pkgRoot = FileConfig.findPackageRoot(path, reporter::printWarning);
             return pkgRoot.resolve("src-gen");
         }
     }
 
     /**
-     * Filter the command-line arguments needed by the code generator, and
-     * return them as properties.
+     * Filter the command-line arguments needed by the code generator, and return them as
+     * properties.
      *
      * @return Properties for the code generator.
      */
@@ -237,8 +217,7 @@ public class Lfc extends CliBase {
         if (buildType != null) {
             // Validate build type.
             if (UnionType.BUILD_TYPE_UNION.forName(buildType) == null) {
-                reporter.printFatalErrorAndExit(
-                    buildType + ": Invalid build type.");
+                reporter.printFatalErrorAndExit(buildType + ": Invalid build type.");
             }
             props.setProperty(BuildParm.BUILD_TYPE.getKey(), buildType);
         }
@@ -248,8 +227,8 @@ public class Lfc extends CliBase {
         }
 
         if (externalRuntimePath != null) {
-            props.setProperty(BuildParm.EXTERNAL_RUNTIME_PATH.getKey(),
-                    externalRuntimePath.toString());
+            props.setProperty(
+                    BuildParm.EXTERNAL_RUNTIME_PATH.getKey(), externalRuntimePath.toString());
         }
 
         if (lint) {
@@ -259,8 +238,7 @@ public class Lfc extends CliBase {
         if (logging != null) {
             // Validate log level.
             if (UnionType.LOGGING_UNION.forName(logging) == null) {
-                reporter.printFatalErrorAndExit(
-                    logging + ": Invalid log level.");
+                reporter.printFatalErrorAndExit(logging + ": Invalid log level.");
             }
             props.setProperty(BuildParm.LOGGING.getKey(), logging);
         }
@@ -280,8 +258,7 @@ public class Lfc extends CliBase {
         if (rti != null) {
             // Validate RTI path.
             if (!Files.exists(io.getWd().resolve(rti))) {
-                reporter.printFatalErrorAndExit(
-                    rti + ": Invalid RTI path.");
+                reporter.printFatalErrorAndExit(rti + ": Invalid RTI path.");
             }
             props.setProperty(BuildParm.RTI.getKey(), rti.toString());
         }
@@ -293,8 +270,7 @@ public class Lfc extends CliBase {
         if (scheduler != null) {
             // Validate scheduler.
             if (UnionType.SCHEDULER_UNION.forName(scheduler) == null) {
-                reporter.printFatalErrorAndExit(
-                    scheduler + ": Invalid scheduler.");
+                reporter.printFatalErrorAndExit(scheduler + ": Invalid scheduler.");
             }
             props.setProperty(BuildParm.SCHEDULER.getKey(), scheduler);
         }
@@ -306,7 +282,7 @@ public class Lfc extends CliBase {
         if (workers != null) {
             props.setProperty(BuildParm.WORKERS.getKey(), workers.toString());
         }
-        
+
         return props;
     }
 }

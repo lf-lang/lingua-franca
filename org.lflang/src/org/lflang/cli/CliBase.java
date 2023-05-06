@@ -1,26 +1,21 @@
 package org.lflang.cli;
 
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParseException;
+import com.google.gson.JsonParser;
+import com.google.inject.Inject;
+import com.google.inject.Injector;
+import com.google.inject.Provider;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Arrays;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map.Entry;
-import java.util.Properties;
 import java.util.Set;
 import java.util.stream.Collectors;
-
-import picocli.CommandLine;
-import picocli.CommandLine.ArgGroup;
-import picocli.CommandLine.Command;
-import picocli.CommandLine.Model.CommandSpec;
-import picocli.CommandLine.Option;
-import picocli.CommandLine.Parameters;
-import picocli.CommandLine.Spec;
-
 import org.eclipse.emf.common.util.URI;
 import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.emf.ecore.resource.ResourceSet;
@@ -28,18 +23,16 @@ import org.eclipse.xtext.util.CancelIndicator;
 import org.eclipse.xtext.validation.CheckMode;
 import org.eclipse.xtext.validation.IResourceValidator;
 import org.eclipse.xtext.validation.Issue;
-
 import org.lflang.ErrorReporter;
 import org.lflang.LFRuntimeModule;
 import org.lflang.LFStandaloneSetup;
 import org.lflang.util.FileUtil;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
-import com.google.gson.JsonParseException;
-import com.google.inject.Inject;
-import com.google.inject.Injector;
-import com.google.inject.Provider;
+import picocli.CommandLine;
+import picocli.CommandLine.ArgGroup;
+import picocli.CommandLine.Model.CommandSpec;
+import picocli.CommandLine.Option;
+import picocli.CommandLine.Parameters;
+import picocli.CommandLine.Spec;
 
 /**
  * Base class for standalone CLI applications.
@@ -51,81 +44,56 @@ import com.google.inject.Provider;
  */
 public abstract class CliBase implements Runnable {
     /**
-     * Models a command specification, including the options, positional
-     * parameters and subcommands supported by the command.
+     * Models a command specification, including the options, positional parameters and subcommands
+     * supported by the command.
      */
     @Spec CommandSpec spec;
 
-    /**
-     * Options and parameters present in both Lfc and Lff.
-     */
+    /** Options and parameters present in both Lfc and Lff. */
     static class MutuallyExclusive {
-         @Parameters(
-         arity = "1..",
-         paramLabel = "FILES",
-         description = "Paths to one or more Lingua Franca programs.")
-             protected List<Path> files;
+        @Parameters(
+                arity = "1..",
+                paramLabel = "FILES",
+                description = "Paths to one or more Lingua Franca programs.")
+        protected List<Path> files;
 
-         @Option(
-         names="--json",
-         description="JSON object containing CLI arguments.")
-             private String jsonString;
+        @Option(names = "--json", description = "JSON object containing CLI arguments.")
+        private String jsonString;
 
-         @Option(
-         names="--json-file",
-         description="JSON file containing CLI arguments.")
-             private Path jsonFile;
-     }
+        @Option(names = "--json-file", description = "JSON file containing CLI arguments.")
+        private Path jsonFile;
+    }
 
-     @ArgGroup(exclusive = true, multiplicity = "1")
-     MutuallyExclusive topLevelArg;
+    @ArgGroup(exclusive = true, multiplicity = "1")
+    MutuallyExclusive topLevelArg;
 
-     @Option(
-     names = {"-o", "--output-path"},
-     defaultValue = "",
-     fallbackValue = "",
-     description = "Specify the root output directory.")
-         private Path outputPath;
+    @Option(
+            names = {"-o", "--output-path"},
+            defaultValue = "",
+            fallbackValue = "",
+            description = "Specify the root output directory.")
+    private Path outputPath;
 
-    /**
-     * Used to collect all errors that happen during validation/generation.
-     */
-    @Inject
-    protected IssueCollector issueCollector;
+    /** Used to collect all errors that happen during validation/generation. */
+    @Inject protected IssueCollector issueCollector;
 
-    /**
-     * Used to report error messages at the end.
-     */
-    @Inject
-    protected ReportingBackend reporter;
+    /** Used to report error messages at the end. */
+    @Inject protected ReportingBackend reporter;
 
-    /**
-     * Used to report error messages at the end.
-     */
-    @Inject
-    protected ErrorReporter errorReporter;
+    /** Used to report error messages at the end. */
+    @Inject protected ErrorReporter errorReporter;
 
-    /**
-     * IO context of this run.
-     */
-    @Inject
-    protected Io io;
-    
-    /**
-     * Injected resource provider.
-     */
-    @Inject
-    private Provider<ResourceSet> resourceSetProvider;
-    
-    /**
-     * Injected resource validator.
-     */
-    @Inject
-    private IResourceValidator validator;
+    /** IO context of this run. */
+    @Inject protected Io io;
+
+    /** Injected resource provider. */
+    @Inject private Provider<ResourceSet> resourceSetProvider;
+
+    /** Injected resource validator. */
+    @Inject private IResourceValidator validator;
 
     protected static void cliMain(
-            String toolName, Class<? extends CliBase> toolClass,
-            Io io, String[] args) {
+            String toolName, Class<? extends CliBase> toolClass, Io io, String[] args) {
         // Injector used to obtain Main instance.
         final Injector injector = getInjector(toolName, io);
         // Main instance.
@@ -135,26 +103,26 @@ public abstract class CliBase implements Runnable {
     }
 
     public void doExecute(Io io, String[] args) {
-        CommandLine cmd = new CommandLine(this)
-            .setOut(new PrintWriter(io.getOut()))
-            .setErr(new PrintWriter(io.getErr()));
+        CommandLine cmd =
+                new CommandLine(this)
+                        .setOut(new PrintWriter(io.getOut()))
+                        .setErr(new PrintWriter(io.getErr()));
         int exitCode = cmd.execute(args);
         io.callSystemExit(exitCode);
     }
 
     /**
-     * The entrypoint of Picocli applications - the first method called when 
-     * CliBase, which implements the Runnable interface, is instantiated.
-     */ 
+     * The entrypoint of Picocli applications - the first method called when CliBase, which
+     * implements the Runnable interface, is instantiated.
+     */
     public void run() {
         // If args are given in a json file, store its contents in jsonString.
         if (topLevelArg.jsonFile != null) {
             try {
-                topLevelArg.jsonString = new String(Files.readAllBytes(
-                        io.getWd().resolve(topLevelArg.jsonFile)));
+                topLevelArg.jsonString =
+                        new String(Files.readAllBytes(io.getWd().resolve(topLevelArg.jsonFile)));
             } catch (IOException e) {
-                reporter.printFatalErrorAndExit(
-                        "No such file: " + topLevelArg.jsonFile);
+                reporter.printFatalErrorAndExit("No such file: " + topLevelArg.jsonFile);
             }
         }
         // If args are given in a json string, unpack them and re-run
@@ -165,7 +133,7 @@ public abstract class CliBase implements Runnable {
             // Execute application on unpacked args.
             CommandLine cmd = spec.commandLine();
             cmd.execute(args);
-        // If args are already unpacked, invoke tool-specific logic.
+            // If args are already unpacked, invoke tool-specific logic.
         } else {
             doRun();
         }
@@ -178,19 +146,14 @@ public abstract class CliBase implements Runnable {
     public abstract void doRun();
 
     public static Injector getInjector(String toolName, Io io) {
-        final ReportingBackend reporter 
-            = new ReportingBackend(io, toolName + ": ");
+        final ReportingBackend reporter = new ReportingBackend(io, toolName + ": ");
 
         // Injector used to obtain Main instance.
-        return new LFStandaloneSetup(
-            new LFRuntimeModule(),
-            new LFStandaloneModule(reporter, io)
-        ).createInjectorAndDoEMFRegistration();
+        return new LFStandaloneSetup(new LFRuntimeModule(), new LFStandaloneModule(reporter, io))
+                .createInjectorAndDoEMFRegistration();
     }
 
-    /**
-     * Resolve to an absolute path, in the given {@link #io} context.
-     */
+    /** Resolve to an absolute path, in the given {@link #io} context. */
     protected Path toAbsolutePath(Path other) {
         return io.getWd().resolve(other).toAbsolutePath();
     }
@@ -201,14 +164,12 @@ public abstract class CliBase implements Runnable {
      * @return Validated input paths.
      */
     protected List<Path> getInputPaths() {
-        List<Path> paths = topLevelArg.files.stream()
-            .map(io.getWd()::resolve)
-            .collect(Collectors.toList());
+        List<Path> paths =
+                topLevelArg.files.stream().map(io.getWd()::resolve).collect(Collectors.toList());
 
         for (Path path : paths) {
             if (!Files.exists(path)) {
-                reporter.printFatalErrorAndExit(
-                    path + ": No such file or directory.");
+                reporter.printFatalErrorAndExit(path + ": No such file or directory.");
             }
         }
 
@@ -225,22 +186,17 @@ public abstract class CliBase implements Runnable {
         if (!outputPath.toString().isEmpty()) {
             root = io.getWd().resolve(outputPath).normalize();
             if (!Files.exists(root)) { // FIXME: Create it instead?
-                reporter.printFatalErrorAndExit(
-                    root + ": Output location does not exist.");
+                reporter.printFatalErrorAndExit(root + ": Output location does not exist.");
             }
             if (!Files.isDirectory(root)) {
-                reporter.printFatalErrorAndExit(
-                    root + ": Output location is not a directory.");
+                reporter.printFatalErrorAndExit(root + ": Output location is not a directory.");
             }
         }
 
         return root;
     }
 
-    /**
-     * If some errors were collected, print them and abort execution.
-     * Otherwise, return.
-     */
+    /** If some errors were collected, print them and abort execution. Otherwise, return. */
     protected void exitIfCollectedErrors() {
         if (issueCollector.getErrorsOccurred()) {
             // if there are errors, don't print warnings.
@@ -255,6 +211,7 @@ public abstract class CliBase implements Runnable {
 
     /**
      * If any errors were collected, print them, then return them.
+     *
      * @return A list of collected errors.
      */
     public List<LfIssue> printErrorsIfAny() {
@@ -264,16 +221,16 @@ public abstract class CliBase implements Runnable {
     }
 
     /**
-     * Validates a given resource. If issues arise during validation,
-     * these are recorded using the issue collector.
+     * Validates a given resource. If issues arise during validation, these are recorded using the
+     * issue collector.
      *
      * @param resource The resource to validate.
      */
     public void validateResource(Resource resource) {
         assert resource != null;
 
-        List<Issue> issues = this.validator.validate(
-            resource, CheckMode.ALL, CancelIndicator.NullImpl);
+        List<Issue> issues =
+                this.validator.validate(resource, CheckMode.ALL, CancelIndicator.NullImpl);
 
         for (Issue issue : issues) {
             // Issues may also relate to imported resources.
@@ -287,15 +244,15 @@ public abstract class CliBase implements Runnable {
                 }
             }
             issueCollector.accept(
-                new LfIssue(
-                    issue.getMessage(),
-                    issue.getSeverity(),
-                    issue.getLineNumber(),
-                    issue.getColumn(),
-                    issue.getLineNumberEnd(),
-                    issue.getColumnEnd(),
-                    issue.getLength(),
-                    path));
+                    new LfIssue(
+                            issue.getMessage(),
+                            issue.getSeverity(),
+                            issue.getLineNumber(),
+                            issue.getColumn(),
+                            issue.getLineNumberEnd(),
+                            issue.getColumnEnd(),
+                            issue.getLength(),
+                            path));
         }
     }
 
@@ -322,14 +279,12 @@ public abstract class CliBase implements Runnable {
         try {
             jsonObject = JsonParser.parseString(jsonString).getAsJsonObject();
         } catch (JsonParseException e) {
-            reporter.printFatalErrorAndExit(
-                    String.format("Invalid JSON string:%n %s", jsonString));
+            reporter.printFatalErrorAndExit(String.format("Invalid JSON string:%n %s", jsonString));
         }
         // Append input paths.
         JsonElement src = jsonObject.get("src");
         if (src == null) {
-            reporter.printFatalErrorAndExit(
-                    "JSON Parse Exception: field \"src\" not found.");
+            reporter.printFatalErrorAndExit("JSON Parse Exception: field \"src\" not found.");
         }
         argsList.add(src.getAsString());
         // Append output path if given.
@@ -343,11 +298,9 @@ public abstract class CliBase implements Runnable {
         JsonElement properties = jsonObject.get("properties");
         if (properties != null) {
             // Get the remaining properties.
-            Set<Entry<String, JsonElement>> entrySet = properties
-                .getAsJsonObject()
-                .entrySet();
+            Set<Entry<String, JsonElement>> entrySet = properties.getAsJsonObject().entrySet();
             // Append the remaining properties to the args array.
-            for(Entry<String,JsonElement> entry : entrySet) {
+            for (Entry<String, JsonElement> entry : entrySet) {
                 String property = entry.getKey();
                 String value = entry.getValue().getAsString();
 

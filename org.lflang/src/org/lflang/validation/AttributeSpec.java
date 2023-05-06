@@ -1,16 +1,16 @@
 /*************
  * Copyright (c) 2019-2022, The University of California at Berkeley.
-
+ *
  * Redistribution and use in source and binary forms, with or without modification,
  * are permitted provided that the following conditions are met:
-
+ *
  * 1. Redistributions of source code must retain the above copyright notice,
  *    this list of conditions and the following disclaimer.
-
+ *
  * 2. Redistributions in binary form must reproduce the above copyright notice,
  *    this list of conditions and the following disclaimer in the documentation
  *    and/or other materials provided with the distribution.
-
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -31,7 +31,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
-
 import org.lflang.ASTUtils;
 import org.lflang.lf.AttrParm;
 import org.lflang.lf.Attribute;
@@ -40,6 +39,7 @@ import org.lflang.util.StringUtil;
 
 /**
  * Specification of the structure of an attribute annotation.
+ *
  * @author Clément Fournier
  * @author Shaokai Lin
  */
@@ -62,10 +62,7 @@ public class AttributeSpec {
         }
     }
 
-    /**
-     * Check that the attribute conforms to this spec and whether
-     * attr has the correct name.
-     */
+    /** Check that the attribute conforms to this spec and whether attr has the correct name. */
     public void check(LFValidator validator, Attribute attr) {
         Set<String> seen;
         // If there is just one parameter, it is required to be named "value".
@@ -76,12 +73,14 @@ public class AttributeSpec {
             // then the user has provided @attr("value"),
             // which is a shorthand for @attr(value="value").
             if (paramSpecByName == null) {
-                validator.error("Attribute doesn't take a parameter.", Literals.ATTRIBUTE__ATTR_NAME);
+                validator.error(
+                        "Attribute doesn't take a parameter.", Literals.ATTRIBUTE__ATTR_NAME);
                 return;
             }
             AttrParamSpec valueSpec = paramSpecByName.get(VALUE_ATTR);
             if (valueSpec == null) {
-                validator.error("Attribute doesn't have a 'value' parameter.", Literals.ATTR_PARM__NAME);
+                validator.error(
+                        "Attribute doesn't have a 'value' parameter.", Literals.ATTR_PARM__NAME);
                 return;
             }
 
@@ -96,19 +95,20 @@ public class AttributeSpec {
         if (paramSpecByName != null) {
             Map<String, AttrParamSpec> missingParams = new HashMap<>(paramSpecByName);
             missingParams.keySet().removeAll(seen);
-            missingParams.forEach((name, paramSpec) -> {
-                if (!paramSpec.isOptional) {
-                    validator.error("Missing required attribute parameter '" + name + "'.", Literals.ATTRIBUTE__ATTR_PARMS);
-                }
-            });
+            missingParams.forEach(
+                    (name, paramSpec) -> {
+                        if (!paramSpec.isOptional) {
+                            validator.error(
+                                    "Missing required attribute parameter '" + name + "'.",
+                                    Literals.ATTRIBUTE__ATTR_PARMS);
+                        }
+                    });
         }
     }
 
     /**
-     * Check whether the attribute parameters are named, whether
-     * these names are known, and whether the named parameters
-     * conform to the param spec (whether the param has the
-     * right type, etc.).
+     * Check whether the attribute parameters are named, whether these names are known, and whether
+     * the named parameters conform to the param spec (whether the param has the right type, etc.).
      *
      * @param validator The current validator in use.
      * @param attr The attribute being checked.
@@ -119,18 +119,21 @@ public class AttributeSpec {
         if (attr.getAttrParms() != null) {
             for (AttrParm parm : attr.getAttrParms()) {
                 if (paramSpecByName == null) {
-                    validator.error("Attribute does not take parameters.", Literals.ATTRIBUTE__ATTR_NAME);
+                    validator.error(
+                            "Attribute does not take parameters.", Literals.ATTRIBUTE__ATTR_NAME);
                     break;
                 }
                 if (parm.getName() == null) {
-                    validator.error("Missing name for attribute parameter.", Literals.ATTRIBUTE__ATTR_NAME);
+                    validator.error(
+                            "Missing name for attribute parameter.", Literals.ATTRIBUTE__ATTR_NAME);
                     continue;
                 }
 
                 AttrParamSpec parmSpec = paramSpecByName.get(parm.getName());
                 if (parmSpec == null) {
-                    validator.error("\"" + parm.getName() + "\"" + " is an unknown attribute parameter.",
-                                    Literals.ATTRIBUTE__ATTR_NAME);
+                    validator.error(
+                            "\"" + parm.getName() + "\"" + " is an unknown attribute parameter.",
+                            Literals.ATTRIBUTE__ATTR_NAME);
                     continue;
                 }
                 // Check whether a parameter conforms to its spec.
@@ -154,45 +157,52 @@ public class AttributeSpec {
         // Currently, only String, Int, Boolean, Float, and target language are supported.
         public void check(LFValidator validator, AttrParm parm) {
             switch (type) {
-            case STRING -> {
-                if (!StringUtil.hasQuotes(parm.getValue())) {
-                    validator.error("Incorrect type: \"" + parm.getName() + "\""
-                            + " should have type String.",
-                        Literals.ATTRIBUTE__ATTR_NAME);
+                case STRING -> {
+                    if (!StringUtil.hasQuotes(parm.getValue())) {
+                        validator.error(
+                                "Incorrect type: \""
+                                        + parm.getName()
+                                        + "\""
+                                        + " should have type String.",
+                                Literals.ATTRIBUTE__ATTR_NAME);
+                    }
                 }
-            }
-            case INT -> {
-                if (!ASTUtils.isInteger(parm.getValue())) {
-                    validator.error(
-                        "Incorrect type: \"" + parm.getName() + "\""
-                            + " should have type Int.",
-                        Literals.ATTRIBUTE__ATTR_NAME);
+                case INT -> {
+                    if (!ASTUtils.isInteger(parm.getValue())) {
+                        validator.error(
+                                "Incorrect type: \""
+                                        + parm.getName()
+                                        + "\""
+                                        + " should have type Int.",
+                                Literals.ATTRIBUTE__ATTR_NAME);
+                    }
                 }
-            }
-            case BOOLEAN -> {
-                if (!ASTUtils.isBoolean(parm.getValue())) {
-                    validator.error(
-                        "Incorrect type: \"" + parm.getName() + "\""
-                            + " should have type Boolean.",
-                        Literals.ATTRIBUTE__ATTR_NAME);
+                case BOOLEAN -> {
+                    if (!ASTUtils.isBoolean(parm.getValue())) {
+                        validator.error(
+                                "Incorrect type: \""
+                                        + parm.getName()
+                                        + "\""
+                                        + " should have type Boolean.",
+                                Literals.ATTRIBUTE__ATTR_NAME);
+                    }
                 }
-            }
-            case FLOAT -> {
-                if (!ASTUtils.isFloat(parm.getValue())) {
-                    validator.error(
-                        "Incorrect type: \"" + parm.getName() + "\""
-                            + " should have type Float.",
-                        Literals.ATTRIBUTE__ATTR_NAME);
+                case FLOAT -> {
+                    if (!ASTUtils.isFloat(parm.getValue())) {
+                        validator.error(
+                                "Incorrect type: \""
+                                        + parm.getName()
+                                        + "\""
+                                        + " should have type Float.",
+                                Literals.ATTRIBUTE__ATTR_NAME);
+                    }
                 }
-            }
-            default -> throw new IllegalArgumentException("unexpected type");
+                default -> throw new IllegalArgumentException("unexpected type");
             }
         }
     }
 
-    /**
-     * The type of attribute parameters currently supported.
-     */
+    /** The type of attribute parameters currently supported. */
     enum AttrParamType {
         STRING,
         INT,
@@ -206,25 +216,33 @@ public class AttributeSpec {
      */
     static {
         // @label("value")
-        ATTRIBUTE_SPECS_BY_NAME.put("label", new AttributeSpec(
-            List.of(new AttrParamSpec(VALUE_ATTR, AttrParamType.STRING, false))
-        ));
+        ATTRIBUTE_SPECS_BY_NAME.put(
+                "label",
+                new AttributeSpec(
+                        List.of(new AttrParamSpec(VALUE_ATTR, AttrParamType.STRING, false))));
         // @sparse
         ATTRIBUTE_SPECS_BY_NAME.put("sparse", new AttributeSpec(null));
         // @icon("value")
-        ATTRIBUTE_SPECS_BY_NAME.put("icon", new AttributeSpec(
-            List.of(new AttrParamSpec(VALUE_ATTR, AttrParamType.STRING, false))
-        ));
+        ATTRIBUTE_SPECS_BY_NAME.put(
+                "icon",
+                new AttributeSpec(
+                        List.of(new AttrParamSpec(VALUE_ATTR, AttrParamType.STRING, false))));
         // @enclave(each=boolean)
-        ATTRIBUTE_SPECS_BY_NAME.put("enclave", new AttributeSpec(
-            List.of(new AttrParamSpec(EACH_ATTR, AttrParamType.BOOLEAN, true))
-        ));
+        ATTRIBUTE_SPECS_BY_NAME.put(
+                "enclave",
+                new AttributeSpec(
+                        List.of(new AttrParamSpec(EACH_ATTR, AttrParamType.BOOLEAN, true))));
 
         // attributes that are used internally only by the federated code generation
         ATTRIBUTE_SPECS_BY_NAME.put("_unordered", new AttributeSpec(null));
-        ATTRIBUTE_SPECS_BY_NAME.put("_fed_config", new AttributeSpec(
-            List.of(new AttrParamSpec(AttributeSpec.NETWORK_MESSAGE_ACTIONS,
-                                      AttrParamType.STRING, false))));
+        ATTRIBUTE_SPECS_BY_NAME.put(
+                "_fed_config",
+                new AttributeSpec(
+                        List.of(
+                                new AttrParamSpec(
+                                        AttributeSpec.NETWORK_MESSAGE_ACTIONS,
+                                        AttrParamType.STRING,
+                                        false))));
         ATTRIBUTE_SPECS_BY_NAME.put("_c_body", new AttributeSpec(null));
     }
 }

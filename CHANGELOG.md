@@ -1,5 +1,5 @@
 # Changelog
- 
+
 ## [v0.4.0](https://github.com/lf-lang/lingua-franca/tree/v0.4.0) (2023-03-01)
 
 **Highlights**
@@ -207,7 +207,7 @@ This release includes substantial changes under the hood and brings a lot of new
 - Fix problem with merging of reaction plans [\#28](https://github.com/lf-lang/reactor-rs/pull/28) ([oowekyala](https://github.com/oowekyala))
 
 
- 
+
 ## [v0.3.0](https://github.com/lf-lang/lingua-franca/tree/v0.3.0) (2022-07-22)
 
 **Highlights**
@@ -309,7 +309,7 @@ This release adds broader support for methods (C and Python), syntax for annotat
 - Increased coverage of unit tests in bank.ts, multiport.ts and port.ts [\#100](https://github.com/lf-lang/reactor-ts/pull/100) ([goekberk](https://github.com/goekberk))
 
 
- 
+
 ## [v0.2.1](https://github.com/lf-lang/lingua-franca/tree/v0.2.1) (2022-06-01)
 
 **Highlights:**
@@ -373,7 +373,7 @@ This release includes bug fixes related to IDE tooling and federated execution. 
 - Do not create the temporary dependency link if a connection between f… [\#1085](https://github.com/lf-lang/lingua-franca/pull/1085) ([edwardalee](https://github.com/edwardalee))
 - Replace Value with Expression in the grammar [\#1023](https://github.com/lf-lang/lingua-franca/pull/1023) ([cmnrd](https://github.com/cmnrd))
 - Scale back LSP tests [\#944](https://github.com/lf-lang/lingua-franca/pull/944) ([petervdonovan](https://github.com/petervdonovan))
- 
+
 ## [v0.2.0](https://github.com/lf-lang/lingua-franca/tree/v0.2.0) (2022-05-01)
 
 **Highlights:**
@@ -415,7 +415,7 @@ This release brings the minimum version requirement of Java to 17, which is a lo
 - Java configuration bumped to version 17 [\#1094](https://github.com/lf-lang/lingua-franca/pull/1094) ([lhstrh](https://github.com/lhstrh))
 - Add validation tests for ports in main or federated reactor [\#1091](https://github.com/lf-lang/lingua-franca/pull/1091) ([housengw](https://github.com/housengw))
 - Update and add federated execution tests for TypeScript target [\#1062](https://github.com/lf-lang/lingua-franca/pull/1062) ([hokeun](https://github.com/hokeun))
- 
+
 ## [v0.1.0](https://github.com/lf-lang/lingua-franca/tree/v0.1.0) (2022-04-11)
 
 **Highlights:**
@@ -631,7 +631,7 @@ The `lfc` command line application is suitable for:
 #### System Requirements
 - Java 11 or up ([download from Oracle](https://www.oracle.com/java/technologies/javase-jdk11-downloads.html))
 - Various target-specific dependencies, documented [here](https://github.com/icyphy/lingua-franca/blob/7473ae1549c2b2aeed8f5469675f328d3984cb2c/REQUIREMENTS.md)
- 
+
 #### IDE Features
 - code generation
 - diagram synthesis

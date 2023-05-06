@@ -29,11 +29,8 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
-
 import org.eclipse.emf.ecore.EObject;
-
 import org.lflang.ErrorReporter;
 import org.lflang.TargetProperty.BuildType;
 
@@ -44,25 +41,16 @@ import org.lflang.TargetProperty.BuildType;
  */
 public final class RustTargetConfig {
 
-
-    /**
-     * List of Cargo features of the generated crate to enable.
-     */
+    /** List of Cargo features of the generated crate to enable. */
     private List<String> cargoFeatures = new ArrayList<>();
 
-    /**
-     * Map of Cargo dependency to dependency properties.
-     */
+    /** Map of Cargo dependency to dependency properties. */
     private Map<String, CargoDependencySpec> cargoDependencies = new HashMap<>();
 
-    /**
-     * List of top-level modules, those are absolute paths.
-     */
+    /** List of top-level modules, those are absolute paths. */
     private final List<Path> rustTopLevelModules = new ArrayList<>();
 
-    /**
-     * Cargo profile, default is debug (corresponds to cargo dev profile).
-     */
+    /** Cargo profile, default is debug (corresponds to cargo dev profile). */
     private BuildType profile = BuildType.DEBUG;
 
     public void setCargoFeatures(List<String> cargoFeatures) {
@@ -93,34 +81,26 @@ public final class RustTargetConfig {
         return cargoFeatures;
     }
 
-    /**
-     * Returns a map of cargo dependencies.
-     */
+    /** Returns a map of cargo dependencies. */
     public Map<String, CargoDependencySpec> getCargoDependencies() {
         return cargoDependencies;
     }
 
     /**
-     * Returns the list of top-level module files to include in main.rs.
-     * Those files were checked to exists previously.
+     * Returns the list of top-level module files to include in main.rs. Those files were checked to
+     * exists previously.
      */
     public List<Path> getRustTopLevelModules() {
         return rustTopLevelModules;
     }
 
-    /**
-     * The build type to use. Corresponds to a Cargo profile.
-     */
+    /** The build type to use. Corresponds to a Cargo profile. */
     public BuildType getBuildType() {
         return profile;
     }
 
-
-    /**
-     * Set a build profile chosen based on a cmake profile.
-     */
+    /** Set a build profile chosen based on a cmake profile. */
     public void setBuildType(BuildType profile) {
         this.profile = profile;
     }
-
 }

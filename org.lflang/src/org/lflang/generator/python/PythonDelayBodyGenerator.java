@@ -1,8 +1,6 @@
 package org.lflang.generator.python;
 
-
 import org.lflang.ASTUtils;
-import org.lflang.federated.generator.FedASTUtils;
 import org.lflang.generator.c.CDelayBodyGenerator;
 import org.lflang.generator.c.CUtil;
 import org.lflang.lf.Action;
@@ -16,8 +14,9 @@ public class PythonDelayBodyGenerator extends CDelayBodyGenerator {
     }
 
     /**
-     * Generate code for the body of a reaction that takes an input and
-     * schedules an action with the value of that input.
+     * Generate code for the body of a reaction that takes an input and schedules an action with the
+     * value of that input.
+     *
      * @param action The action to schedule
      * @param port The port to read from
      */
@@ -28,36 +27,40 @@ public class PythonDelayBodyGenerator extends CDelayBodyGenerator {
         // Note that the action.type set by the base class is actually
         // the port type.
         if (isTokenType) {
-            return String.join("\n",
-                "if ("+ref+"->is_present) {",
-                "    // Put the whole token on the event queue, not just the payload.",
-                "    // This way, the length and element_size are transported.",
-                "    lf_schedule_token("+action.getName()+", 0, "+ref+"->token);",
-                "}"
-            );
+            return String.join(
+                    "\n",
+                    "if (" + ref + "->is_present) {",
+                    "    // Put the whole token on the event queue, not just the payload.",
+                    "    // This way, the length and element_size are transported.",
+                    "    lf_schedule_token(" + action.getName() + ", 0, " + ref + "->token);",
+                    "}");
         } else {
-            return String.join("\n",
-                "// Create a token.",
-                "#if NUMBER_OF_WORKERS > 0",
-                "// Need to lock the mutex first.",
-                "lf_mutex_lock(&mutex);",
-                "#endif",
-                "lf_token_t* t = _lf_new_token((token_type_t*)"+action.getName()+", self->_lf_"+ref+"->value, 1);",
-                "#if NUMBER_OF_WORKERS > 0",
-                "lf_mutex_unlock(&mutex);",
-                "#endif",
-                "",
-                "// Pass the token along",
-                "lf_schedule_token("+action.getName()+", 0, t);"
-            );
+            return String.join(
+                    "\n",
+                    "// Create a token.",
+                    "#if NUMBER_OF_WORKERS > 0",
+                    "// Need to lock the mutex first.",
+                    "lf_mutex_lock(&mutex);",
+                    "#endif",
+                    "lf_token_t* t = _lf_new_token((token_type_t*)"
+                            + action.getName()
+                            + ", self->_lf_"
+                            + ref
+                            + "->value, 1);",
+                    "#if NUMBER_OF_WORKERS > 0",
+                    "lf_mutex_unlock(&mutex);",
+                    "#endif",
+                    "",
+                    "// Pass the token along",
+                    "lf_schedule_token(" + action.getName() + ", 0, t);");
         }
     }
 
     /**
-     * Generate code for the body of a reaction that is triggered by the
-     * given action and writes its value to the given port. This realizes
-     * the receiving end of a logical delay specified with the 'after'
-     * keyword.
+     * Generate code for the body of a reaction that is triggered by the given action and writes its
+     * value to the given port. This realizes the receiving end of a logical delay specified with
+     * the 'after' keyword.
+     *
      * @param action The action that triggers the reaction
      * @param port The port to write to.
      */
@@ -67,7 +70,7 @@ public class PythonDelayBodyGenerator extends CDelayBodyGenerator {
         if (CUtil.isTokenType(ASTUtils.getInferredType(action), types)) {
             return super.generateForwardBody(action, port);
         } else {
-            return "lf_set("+outputName+", "+action.getName()+"->token->value);";
+            return "lf_set(" + outputName + ", " + action.getName() + "->token->value);";
         }
     }
 

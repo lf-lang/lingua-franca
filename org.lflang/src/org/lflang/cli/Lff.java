@@ -8,13 +8,11 @@ import java.nio.file.Path;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.List;
-
-import picocli.CommandLine.Command;
-import picocli.CommandLine.Option;
 import org.eclipse.emf.ecore.resource.Resource;
-
 import org.lflang.ast.FormattingUtils;
 import org.lflang.util.FileUtil;
+import picocli.CommandLine.Command;
+import picocli.CommandLine.Option;
 
 /**
  * Standalone version of the Lingua Franca formatter (lff). Based on lfc.
@@ -25,48 +23,44 @@ import org.lflang.util.FileUtil;
  * @author Atharva Patil
  */
 @Command(
-    name = "lff",
-    // Enable usageHelp (--help) and versionHelp (--version) options.
-    mixinStandardHelpOptions = true,
-    versionProvider = VersionProvider.class)
+        name = "lff",
+        // Enable usageHelp (--help) and versionHelp (--version) options.
+        mixinStandardHelpOptions = true,
+        versionProvider = VersionProvider.class)
 public class Lff extends CliBase {
 
-    /**
-     * Supported CLI options for Lff.
-     */
+    /** Supported CLI options for Lff. */
     @Option(
-        names = {"-d", "--dry-run"},
-        description = "Send the formatted file contents to stdout"
-                        + " without writing to the file system.")
+            names = {"-d", "--dry-run"},
+            description =
+                    "Send the formatted file contents to stdout"
+                            + " without writing to the file system.")
     private boolean dryRun = false;
 
     @Option(
-        names = {"-w", "--wrap"},
-        description = "Causes the formatter to line wrap the files to a"
-                        + " specified length.",
-        defaultValue = "" + FormattingUtils.DEFAULT_LINE_LENGTH,
-        fallbackValue = "" + FormattingUtils.DEFAULT_LINE_LENGTH)
+            names = {"-w", "--wrap"},
+            description = "Causes the formatter to line wrap the files to a" + " specified length.",
+            defaultValue = "" + FormattingUtils.DEFAULT_LINE_LENGTH,
+            fallbackValue = "" + FormattingUtils.DEFAULT_LINE_LENGTH)
     private int lineLength;
 
     @Option(
-        names = "--no-recurse",
-        description = "Do not format files in subdirectories of the"
-            + " specified paths.")
+            names = "--no-recurse",
+            description = "Do not format files in subdirectories of the" + " specified paths.")
     private boolean noRecurse = false;
 
     @Option(
-        names = {"-v", "--verbose"},
-        description = "Print more details on files affected.")
+            names = {"-v", "--verbose"},
+            description = "Print more details on files affected.")
     private boolean verbose = false;
 
     @Option(
-        names = {"--ignore-errors"},
-        description = "Ignore validation errors in files and format them anyway.")
+            names = {"--ignore-errors"},
+            description = "Ignore validation errors in files and format them anyway.")
     private boolean ignoreErrors = false;
 
     /**
-     * Main function of the formatter.
-     * Caution: this will invoke System.exit.
+     * Main function of the formatter. Caution: this will invoke System.exit.
      *
      * @param args CLI arguments
      */
@@ -84,9 +78,7 @@ public class Lff extends CliBase {
         cliMain("lff", Lff.class, io, args);
     }
 
-    /**
-     * Validates all paths and invokes the formatter on the input paths.
-     */
+    /** Validates all paths and invokes the formatter on the input paths. */
     @Override
     public void doRun() {
         List<Path> paths = getInputPaths();
@@ -111,22 +103,23 @@ public class Lff extends CliBase {
     private void formatAllFiles(List<Path> paths, Path outputRoot) {
         for (Path relativePath : paths) {
             if (verbose) {
-                reporter.printInfo("Formatting "
-                        + io.getWd().relativize(relativePath) + ":");
+                reporter.printInfo("Formatting " + io.getWd().relativize(relativePath) + ":");
             }
 
             Path path = toAbsolutePath(relativePath);
             if (Files.isDirectory(path) && !noRecurse) {
                 // Walk the contents of this directory.
                 try {
-                    Files.walkFileTree(path, new SimpleFileVisitor<>() {
-                        @Override
-                        public FileVisitResult visitFile(
-                                Path file, BasicFileAttributes attrs) {
-                            formatSingleFile(file, path, outputRoot);
-                            return FileVisitResult.CONTINUE;
-                        }
-                    });
+                    Files.walkFileTree(
+                            path,
+                            new SimpleFileVisitor<>() {
+                                @Override
+                                public FileVisitResult visitFile(
+                                        Path file, BasicFileAttributes attrs) {
+                                    formatSingleFile(file, path, outputRoot);
+                                    return FileVisitResult.CONTINUE;
+                                }
+                            });
                 } catch (IOException e) {
                     reporter.printError("IO error: " + e);
                 }
@@ -142,9 +135,10 @@ public class Lff extends CliBase {
      */
     private void formatSingleFile(Path path, Path inputRoot, Path outputRoot) {
         path = path.normalize();
-        Path outputPath = outputRoot == null
-            ? path // Format in place.
-            : outputRoot.resolve(inputRoot.relativize(path)).normalize();
+        Path outputPath =
+                outputRoot == null
+                        ? path // Format in place.
+                        : outputRoot.resolve(inputRoot.relativize(path)).normalize();
 
         final Resource resource = getResource(path);
         // Skip file if not an LF file.
@@ -160,7 +154,7 @@ public class Lff extends CliBase {
             exitIfCollectedErrors();
         }
         final String formattedFileContents =
-            FormattingUtils.render(resource.getContents().get(0), lineLength);
+                FormattingUtils.render(resource.getContents().get(0), lineLength);
 
         if (dryRun) {
             io.getOut().print(formattedFileContents);
@@ -172,11 +166,11 @@ public class Lff extends CliBase {
                     // Only happens if a subdirectory is named with
                     // ".lf" at the end.
                     reporter.printFatalErrorAndExit(
-                        "Error writing to "
-                        + outputPath
-                        + ": file already exists. Make sure that no file or"
-                        + " directory within provided input paths have the"
-                        + " same relative paths.");
+                            "Error writing to "
+                                    + outputPath
+                                    + ": file already exists. Make sure that no file or"
+                                    + " directory within provided input paths have the"
+                                    + " same relative paths.");
                 }
             }
         }
@@ -191,7 +185,7 @@ public class Lff extends CliBase {
         if (verbose) {
             String msg = "Formatted " + io.getWd().relativize(path);
             if (path != outputPath) {
-              msg += " -> " + io.getWd().relativize(outputPath);
+                msg += " -> " + io.getWd().relativize(outputPath);
             }
             reporter.printInfo(msg);
         }

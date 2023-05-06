@@ -8,11 +8,9 @@ import org.lflang.tests.RuntimeTest;
 /**
  * Collection of tests for the TypeScript target.
  *
- * Even though all tests are implemented in the base class, we override them
- * here so that each test can be easily invoked individually from IDEs with
- * JUnit support like Eclipse and IntelliJ.
- * This is typically done by right-clicking on the name of the test method and
- * then clicking "Run".
+ * <p>Even though all tests are implemented in the base class, we override them here so that each
+ * test can be easily invoked individually from IDEs with JUnit support like Eclipse and IntelliJ.
+ * This is typically done by right-clicking on the name of the test method and then clicking "Run".
  *
  * @author Marten Lohstroh
  */

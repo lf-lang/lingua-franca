@@ -46,7 +46,8 @@ public enum TimeUnit {
     MILLI("msec", "ms", "msecs"),
     /** Seconds. */
     SECOND("sec", "s", "secs", "second", "seconds"),
-    /** Minute. */ // NOTE: Do not use MIN as the first entry. Common macro for minimum.
+    /** Minute. */
+    // NOTE: Do not use MIN as the first entry. Common macro for minimum.
     MINUTE("minute", "min", "mins", "minutes"),
     /** Hour. */
     HOUR("hour", "h", "hours"),
@@ -63,10 +64,7 @@ public enum TimeUnit {
         this.allNames = immutableSetOf(canonicalName, aliases);
     }
 
-
-    /**
-     * Returns the name that is preferred when displaying this unit.
-     */
+    /** Returns the name that is preferred when displaying this unit. */
     public String getCanonicalName() {
         return canonicalName;
     }
@@ -76,10 +74,8 @@ public enum TimeUnit {
         return allNames.contains(name);
     }
 
-
     /**
-     * Returns the constant corresponding to the given name.
-     * The comparison is case-sensitive.
+     * Returns the constant corresponding to the given name. The comparison is case-sensitive.
      *
      * @return Null if the parameter is null, otherwise a non-null constant
      * @throws IllegalArgumentException If the name doesn't correspond to any constant
@@ -89,15 +85,12 @@ public enum TimeUnit {
             return null;
         }
         return Arrays.stream(values())
-                     .filter(it -> it.hasAlias(name))
-                     .findFirst()
-                     .orElseThrow(() -> new IllegalArgumentException("invalid name '" + name + "'"));
+                .filter(it -> it.hasAlias(name))
+                .findFirst()
+                .orElseThrow(() -> new IllegalArgumentException("invalid name '" + name + "'"));
     }
 
-    /**
-     * Returns true if the parameter is null, or it is the
-     * alias of a valid time unit.
-     */
+    /** Returns true if the parameter is null, or it is the alias of a valid time unit. */
     public static boolean isValidUnit(String name) {
         if (name == null) {
             return false;
@@ -105,11 +98,11 @@ public enum TimeUnit {
         return Arrays.stream(values()).anyMatch(it -> it.hasAlias(name));
     }
 
-    /**
-     * Returns a list of all possible aliases for time values.
-     */
+    /** Returns a list of all possible aliases for time values. */
     public static List<String> list() {
-        return Arrays.stream(values()).flatMap(it -> it.allNames.stream()).collect(Collectors.toList());
+        return Arrays.stream(values())
+                .flatMap(it -> it.allNames.stream())
+                .collect(Collectors.toList());
     }
 
     @Override

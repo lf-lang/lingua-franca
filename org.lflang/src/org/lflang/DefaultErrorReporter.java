@@ -1,13 +1,9 @@
 package org.lflang;
 
+import java.nio.file.Path;
 import org.eclipse.emf.ecore.EObject;
 
-import java.nio.file.Path;
-
-/**
- * Simple implementation of the ErrorReport interface that simply prints to
- * standard out.
- */
+/** Simple implementation of the ErrorReport interface that simply prints to standard out. */
 public class DefaultErrorReporter implements ErrorReporter {
 
     private boolean errorsOccurred = false;

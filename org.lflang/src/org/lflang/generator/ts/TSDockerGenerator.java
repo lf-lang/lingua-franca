@@ -15,15 +15,14 @@ public class TSDockerGenerator extends DockerGenerator {
         super(context);
     }
 
-    /**
-    * Return the content of the docker file for [tsFileName].
-    */
+    /** Return the content of the docker file for [tsFileName]. */
     public String generateDockerFileContent() {
         return """
         |FROM node:alpine
         |WORKDIR /linguafranca/$name
         |COPY . .
         |ENTRYPOINT ["node", "dist/%s.js"]
-        """.formatted(context.getFileConfig().name);
+        """
+                .formatted(context.getFileConfig().name);
     }
 }

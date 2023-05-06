@@ -1,27 +1,27 @@
 /*************
-Copyright (c) 2020, The University of California at Berkeley.
-
-Redistribution and use in source and binary forms, with or without modification,
-are permitted provided that the following conditions are met:
-
-1. Redistributions of source code must retain the above copyright notice,
-   this list of conditions and the following disclaimer.
-
-2. Redistributions in binary form must reproduce the above copyright notice,
-   this list of conditions and the following disclaimer in the documentation
-   and/or other materials provided with the distribution.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
-ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED 
-WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE 
-DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR
-ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES 
-(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; 
-LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON 
-ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT 
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS 
-SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-***************/
+ * Copyright (c) 2020, The University of California at Berkeley.
+ *
+ * Redistribution and use in source and binary forms, with or without modification,
+ * are permitted provided that the following conditions are met:
+ *
+ * 1. Redistributions of source code must retain the above copyright notice,
+ * this list of conditions and the following disclaimer.
+ *
+ * 2. Redistributions in binary form must reproduce the above copyright notice,
+ * this list of conditions and the following disclaimer in the documentation
+ * and/or other materials provided with the distribution.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR
+ * ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+ * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+ * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
+ * ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+ * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ ***************/
 
 package org.lflang.scoping;
 
@@ -29,50 +29,42 @@ import static java.util.Collections.emptyList;
 import static org.lflang.ASTUtils.*;
 
 import com.google.inject.Inject;
-
 import java.util.ArrayList;
-
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.emf.ecore.EReference;
 import org.eclipse.xtext.naming.SimpleNameProvider;
 import org.eclipse.xtext.scoping.IScope;
 import org.eclipse.xtext.scoping.Scopes;
 import org.eclipse.xtext.scoping.impl.SelectableBasedScope;
-
 import org.lflang.lf.Assignment;
 import org.lflang.lf.Connection;
 import org.lflang.lf.Deadline;
 import org.lflang.lf.Import;
 import org.lflang.lf.ImportedReactor;
 import org.lflang.lf.Instantiation;
+import org.lflang.lf.LfPackage;
+import org.lflang.lf.Mode;
 import org.lflang.lf.Model;
 import org.lflang.lf.Reaction;
 import org.lflang.lf.Reactor;
 import org.lflang.lf.ReactorDecl;
 import org.lflang.lf.VarRef;
-import org.lflang.lf.LfPackage;
-import org.lflang.lf.Mode;
 
 /**
- * This class enforces custom rules. In particular, it resolves references to
- * parameters, ports, actions, and timers. Ports can be referenced across at
- * most one level of hierarchy. Parameters, actions, and timers can be
- * referenced locally, within the reactor.
+ * This class enforces custom rules. In particular, it resolves references to parameters, ports,
+ * actions, and timers. Ports can be referenced across at most one level of hierarchy. Parameters,
+ * actions, and timers can be referenced locally, within the reactor.
  *
  * @author Marten Lohstroh
  * @see <a href="https://www.eclipse.org/Xtext/documentation/303_runtime_concepts.html#scoping"></a>
  */
 public class LFScopeProviderImpl extends AbstractLFScopeProvider {
 
-    @Inject
-    private SimpleNameProvider nameProvider;
+    @Inject private SimpleNameProvider nameProvider;
 
-    @Inject
-    private LFGlobalScopeProvider scopeProvider;
+    @Inject private LFGlobalScopeProvider scopeProvider;
 
-    /**
-     * Enumerate of the kinds of references.
-     */
+    /** Enumerate of the kinds of references. */
     enum RefType {
         NULL,
         TRIGGER,
@@ -84,10 +76,9 @@ public class LFScopeProviderImpl extends AbstractLFScopeProvider {
     }
 
     /**
-     * Depending on the provided context, construct the appropriate scope
-     * for the given reference.
+     * Depending on the provided context, construct the appropriate scope for the given reference.
      *
-     * @param context   The AST node in which a to-be-resolved reference occurs.
+     * @param context The AST node in which a to-be-resolved reference occurs.
      * @param reference The reference to resolve.
      */
     @Override
@@ -107,23 +98,26 @@ public class LFScopeProviderImpl extends AbstractLFScopeProvider {
     }
 
     /**
-     * Filter out candidates that do not originate from the file listed in
-     * this particular import statement.
+     * Filter out candidates that do not originate from the file listed in this particular import
+     * statement.
      */
     protected IScope getScopeForImportedReactor(ImportedReactor context, EReference reference) {
         String importURI = ((Import) context.eContainer()).getImportURI();
-        var importedURI = scopeProvider.resolve(importURI == null ? "" : importURI, context.eResource());
+        var importedURI =
+                scopeProvider.resolve(importURI == null ? "" : importURI, context.eResource());
         if (importedURI != null) {
             var uniqueImportURIs = scopeProvider.getImportedUris(context.eResource());
-            var descriptions = scopeProvider.getResourceDescriptions(context.eResource(), uniqueImportURIs);
+            var descriptions =
+                    scopeProvider.getResourceDescriptions(context.eResource(), uniqueImportURIs);
             var description = descriptions.getResourceDescription(importedURI);
-            return SelectableBasedScope.createScope(IScope.NULLSCOPE, description, null, reference.getEReferenceType(), false);
+            return SelectableBasedScope.createScope(
+                    IScope.NULLSCOPE, description, null, reference.getEReferenceType(), false);
         }
         return Scopes.scopeFor(emptyList());
     }
 
     /**
-     * @param obj       Instantiation or Reactor that has a ReactorDecl to resolve.
+     * @param obj Instantiation or Reactor that has a ReactorDecl to resolve.
      * @param reference The reference to link to a ReactorDecl node.
      */
     protected IScope getScopeForReactorDecl(EObject obj, EReference reference) {
@@ -131,10 +125,10 @@ public class LFScopeProviderImpl extends AbstractLFScopeProvider {
         // Find the local Model
         Model model = null;
         EObject container = obj;
-        while(model == null && container != null) {
+        while (model == null && container != null) {
             container = container.eContainer();
             if (container instanceof Model) {
-                model = (Model)container;
+                model = (Model) container;
             }
         }
         if (model == null) {
@@ -165,10 +159,10 @@ public class LFScopeProviderImpl extends AbstractLFScopeProvider {
             if (defn != null) {
                 return Scopes.scopeFor(allParameters(defn));
             }
-
         }
         if (reference == LfPackage.Literals.ASSIGNMENT__RHS) {
-            return Scopes.scopeFor(((Reactor) assignment.eContainer().eContainer()).getParameters());
+            return Scopes.scopeFor(
+                    ((Reactor) assignment.eContainer().eContainer()).getParameters());
         }
         return Scopes.scopeFor(emptyList());
     }
@@ -201,14 +195,14 @@ public class LFScopeProviderImpl extends AbstractLFScopeProvider {
                         var defn = toDefinition(instance.getReactorClass());
                         if (defn != null && instance.getName().equals(instanceName.toString())) {
                             switch (type) {
-                            case TRIGGER:
-                            case SOURCE:
-                            case CLEFT:
-                                return Scopes.scopeFor(allOutputs(defn));
-                            case EFFECT:
-                            case DEADLINE:
-                            case CRIGHT:
-                                return Scopes.scopeFor(allInputs(defn));
+                                case TRIGGER:
+                                case SOURCE:
+                                case CLEFT:
+                                    return Scopes.scopeFor(allOutputs(defn));
+                                case EFFECT:
+                                case DEADLINE:
+                                case CRIGHT:
+                                    return Scopes.scopeFor(allInputs(defn));
                             }
                         }
                     }
@@ -217,36 +211,38 @@ public class LFScopeProviderImpl extends AbstractLFScopeProvider {
             } else {
                 // Resolve local reference
                 switch (type) {
-                case TRIGGER: {
-                    var candidates = new ArrayList<EObject>();
-                    if (mode != null) {
-                        candidates.addAll(mode.getActions());
-                        candidates.addAll(mode.getTimers());
-                    }
-                    candidates.addAll(allInputs(reactor));
-                    candidates.addAll(allActions(reactor));
-                    candidates.addAll(allTimers(reactor));
-                    return Scopes.scopeFor(candidates);
-                }
-                case SOURCE:
-                    return super.getScope(variable, reference);
-                case EFFECT: {
-                    var candidates = new ArrayList<EObject>();
-                    if (mode != null) {
-                        candidates.addAll(mode.getActions());
-                        candidates.addAll(reactor.getModes());
-                    }
-                    candidates.addAll(allOutputs(reactor));
-                    candidates.addAll(allActions(reactor));
-                    return Scopes.scopeFor(candidates);
-                }
-                case DEADLINE:
-                case CLEFT:
-                    return Scopes.scopeFor(allInputs(reactor));
-                case CRIGHT:
-                    return Scopes.scopeFor(allOutputs(reactor));
-                default:
-                    return Scopes.scopeFor(emptyList());
+                    case TRIGGER:
+                        {
+                            var candidates = new ArrayList<EObject>();
+                            if (mode != null) {
+                                candidates.addAll(mode.getActions());
+                                candidates.addAll(mode.getTimers());
+                            }
+                            candidates.addAll(allInputs(reactor));
+                            candidates.addAll(allActions(reactor));
+                            candidates.addAll(allTimers(reactor));
+                            return Scopes.scopeFor(candidates);
+                        }
+                    case SOURCE:
+                        return super.getScope(variable, reference);
+                    case EFFECT:
+                        {
+                            var candidates = new ArrayList<EObject>();
+                            if (mode != null) {
+                                candidates.addAll(mode.getActions());
+                                candidates.addAll(reactor.getModes());
+                            }
+                            candidates.addAll(allOutputs(reactor));
+                            candidates.addAll(allActions(reactor));
+                            return Scopes.scopeFor(candidates);
+                        }
+                    case DEADLINE:
+                    case CLEFT:
+                        return Scopes.scopeFor(allInputs(reactor));
+                    case CRIGHT:
+                        return Scopes.scopeFor(allOutputs(reactor));
+                    default:
+                        return Scopes.scopeFor(emptyList());
                 }
             }
         } else { // Resolve instance

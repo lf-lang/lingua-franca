@@ -2,13 +2,12 @@ package org.lflang.tests.compiler;
 
 import java.util.Arrays;
 import java.util.List;
-
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.lflang.generator.MixedRadixInt;
 
 public class MixedRadixIntTest {
-    
+
     // Constants used many times below.
     List<Integer> radixes = Arrays.asList(2, 3, 4, 5);
     List<Integer> digits = Arrays.asList(1, 2, 3, 4);
@@ -17,8 +16,8 @@ public class MixedRadixIntTest {
     public void create() throws Exception {
         MixedRadixInt num = new MixedRadixInt(digits, radixes, null);
         Assertions.assertEquals("1%2, 2%3, 3%4, 4%5", num.toString());
-        Assertions.assertEquals(1 + 2*2 + 3*6 + 4*24, num.get());
-        
+        Assertions.assertEquals(1 + 2 * 2 + 3 * 6 + 4 * 24, num.get());
+
         List<Integer> altDigits = List.of(1, 2, 1);
         MixedRadixInt altNum = new MixedRadixInt(altDigits, radixes, null);
         Assertions.assertEquals(11, altNum.get());
@@ -28,7 +27,7 @@ public class MixedRadixIntTest {
     public void createWithInfinity() throws Exception {
         List<Integer> radixes = List.of(2, 3, 4, 10000);
         MixedRadixInt num = new MixedRadixInt(digits, radixes, null);
-        Assertions.assertEquals(1 + 2*2 + 3*6 + 4*24, num.get());
+        Assertions.assertEquals(1 + 2 * 2 + 3 * 6 + 4 * 24, num.get());
     }
 
     @Test
@@ -42,25 +41,25 @@ public class MixedRadixIntTest {
         }
         Assertions.assertTrue(false, "Expected exception did not occur.");
     }
-    
+
     @Test
     public void createWithNullAndSet() throws Exception {
         MixedRadixInt num = new MixedRadixInt(null, radixes, null);
         Assertions.assertEquals(0, num.get());
         Assertions.assertEquals("0%2", num.toString());
-        num.set(1 + 2*2 + 3*6 + 4*24);
-        Assertions.assertEquals(1 + 2*2 + 3*6 + 4*24, num.get());
+        num.set(1 + 2 * 2 + 3 * 6 + 4 * 24);
+        Assertions.assertEquals(1 + 2 * 2 + 3 * 6 + 4 * 24, num.get());
         int mag = num.magnitude();
-        Assertions.assertEquals(1 + 2*2 + 3*6 + 4*24, mag);
+        Assertions.assertEquals(1 + 2 * 2 + 3 * 6 + 4 * 24, mag);
         num.increment(); // wrap to zero.
         Assertions.assertEquals(0, num.get());
         Assertions.assertEquals(0, num.magnitude());
-        
+
         num = new MixedRadixInt(null, radixes, null);
         num.setMagnitude(mag);
         Assertions.assertEquals(mag, num.magnitude());
     }
-    
+
     @Test
     public void testPermutation() throws Exception {
         List<Integer> radixes = Arrays.asList(2, 5);
@@ -73,7 +72,7 @@ public class MixedRadixIntTest {
         num.increment();
         Assertions.assertEquals(7, num.get());
         Assertions.assertEquals(8, num.magnitude());
-        
+
         num = new MixedRadixInt(null, radixes, permutation);
         num.setMagnitude(8);
         Assertions.assertEquals(8, num.magnitude());
@@ -86,7 +85,7 @@ public class MixedRadixIntTest {
         Assertions.assertEquals(15, num.get());
         Assertions.assertEquals(7, num.get(1));
         Assertions.assertEquals(15, num.magnitude());
-        
+
         permutation = Arrays.asList(1, 0, 2);
         num = new MixedRadixInt(digits, radixes, permutation);
         num.increment();
@@ -98,7 +97,7 @@ public class MixedRadixIntTest {
         Assertions.assertEquals(18, num.magnitude());
         Assertions.assertEquals(17, num.get());
     }
-    
+
     @Test
     public void testIncrement() throws Exception {
         List<Integer> radixes = Arrays.asList(2, 3);

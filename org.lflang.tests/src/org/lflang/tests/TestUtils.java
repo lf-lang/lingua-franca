@@ -31,7 +31,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.function.Predicate;
-
 import org.hamcrest.BaseMatcher;
 import org.hamcrest.Description;
 import org.hamcrest.Matcher;
@@ -67,9 +66,7 @@ public class TestUtils {
         return pathMatcher("exists", Files::exists);
     }
 
-    /**
-     * Builder for a directory. Useful to create a fake LF project.
-     */
+    /** Builder for a directory. Useful to create a fake LF project. */
     public static class TempDirBuilder {
 
         private final Path curDir;
@@ -120,9 +117,7 @@ public class TestUtils {
         }
     }
 
-    /**
-     * Builder for a directory. Useful to create a fake LF project.
-     */
+    /** Builder for a directory. Useful to create a fake LF project. */
     public static class TempDirChecker {
 
         private final Path curDir;
@@ -150,11 +145,11 @@ public class TestUtils {
         }
 
         /**
-         * Check the contents of the file match the matcher.
-         * The file should be a UTF-8 encoded text file. Return
-         * this instance.
+         * Check the contents of the file match the matcher. The file should be a UTF-8 encoded text
+         * file. Return this instance.
          */
-        public TempDirChecker checkContentsOf(String relativePath, Matcher<? super String> contentsMatcher) throws IOException {
+        public TempDirChecker checkContentsOf(
+                String relativePath, Matcher<? super String> contentsMatcher) throws IOException {
             Path relPath = Paths.get(relativePath);
             if (relPath.isAbsolute()) {
                 throw new IllegalArgumentException("Should be a relative path: " + relativePath);
@@ -165,7 +160,8 @@ public class TestUtils {
             return this;
         }
 
-        public TempDirChecker check(String relativePath, Matcher<? super Path> pathMatcher) throws IOException {
+        public TempDirChecker check(String relativePath, Matcher<? super Path> pathMatcher)
+                throws IOException {
             Path relPath = Paths.get(relativePath);
             if (relPath.isAbsolute()) {
                 throw new IllegalArgumentException("Should be a relative path: " + relativePath);

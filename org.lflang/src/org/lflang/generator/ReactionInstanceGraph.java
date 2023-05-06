@@ -1,28 +1,28 @@
 /** A graph that represents causality cycles formed by reaction instances. */
 
 /*************
-Copyright (c) 2021, The University of California at Berkeley.
-
-Redistribution and use in source and binary forms, with or without modification,
-are permitted provided that the following conditions are met:
-
-1. Redistributions of source code must retain the above copyright notice,
-   this list of conditions and the following disclaimer.
-
-2. Redistributions in binary form must reproduce the above copyright notice,
-   this list of conditions and the following disclaimer in the documentation
-   and/or other materials provided with the distribution.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY
-EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
-MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL
-THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
-PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
-INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
-STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
-THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-***************/
+ * Copyright (c) 2021, The University of California at Berkeley.
+ *
+ * Redistribution and use in source and binary forms, with or without modification,
+ * are permitted provided that the following conditions are met:
+ *
+ * 1. Redistributions of source code must retain the above copyright notice,
+ * this list of conditions and the following disclaimer.
+ *
+ * 2. Redistributions in binary form must reproduce the above copyright notice,
+ * this list of conditions and the following disclaimer in the documentation
+ * and/or other materials provided with the distribution.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY
+ * EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+ * MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL
+ * THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+ * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
+ * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
+ * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ ***************/
 
 package org.lflang.generator;
 
@@ -31,27 +31,24 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
-
 import org.lflang.generator.ReactionInstance.Runtime;
 import org.lflang.generator.c.CUtil;
 import org.lflang.graph.PrecedenceGraph;
 import org.lflang.lf.Variable;
 
 /**
- * This class analyzes the dependencies between reaction runtime instances.
- * For each ReactionInstance, there may be more than one runtime instance because
- * the ReactionInstance may be nested within one or more banks.
- * In the worst case, of these runtime instances may have distinct dependencies,
- * and hence distinct levels in the graph. Moreover, some of these instances
- * may be involved in cycles while others are not.
+ * This class analyzes the dependencies between reaction runtime instances. For each
+ * ReactionInstance, there may be more than one runtime instance because the ReactionInstance may be
+ * nested within one or more banks. In the worst case, of these runtime instances may have distinct
+ * dependencies, and hence distinct levels in the graph. Moreover, some of these instances may be
+ * involved in cycles while others are not.
  *
- * Upon construction of this class, the runtime instances are created if necessary,
- * stored each ReactionInstance, and assigned levels (maximum number of
- * upstream reaction instances), deadlines, and single dominating reactions.
+ * <p>Upon construction of this class, the runtime instances are created if necessary, stored each
+ * ReactionInstance, and assigned levels (maximum number of upstream reaction instances), deadlines,
+ * and single dominating reactions.
  *
- * After creation, the resulting graph will be empty unless there are causality
- * cycles, in which case, the resulting graph is a graph of runtime reaction
- * instances that form cycles.
+ * <p>After creation, the resulting graph will be empty unless there are causality cycles, in which
+ * case, the resulting graph is a graph of runtime reaction instances that form cycles.
  *
  * @author Marten Lohstroh
  * @author Edward A. Lee
@@ -59,8 +56,8 @@ import org.lflang.lf.Variable;
 public class ReactionInstanceGraph extends PrecedenceGraph<ReactionInstance.Runtime> {
 
     /**
-     * Create a new graph by traversing the maps in the named instances
-     * embedded in the hierarchy of the program.
+     * Create a new graph by traversing the maps in the named instances embedded in the hierarchy of
+     * the program.
      */
     public ReactionInstanceGraph(ReactorInstance main) {
         this.main = main;
@@ -70,17 +67,14 @@ public class ReactionInstanceGraph extends PrecedenceGraph<ReactionInstance.Runt
     ///////////////////////////////////////////////////////////
     //// Public fields
 
-    /**
-     * The main reactor instance that this graph is associated with.
-     */
+    /** The main reactor instance that this graph is associated with. */
     public final ReactorInstance main;
 
     ///////////////////////////////////////////////////////////
     //// Public methods
 
     /**
-     * Rebuild this graph by clearing and repeating the traversal that
-     * adds all the nodes and edges.
+     * Rebuild this graph by clearing and repeating the traversal that adds all the nodes and edges.
      */
     public void rebuild() {
         this.clear();
@@ -99,10 +93,7 @@ public class ReactionInstanceGraph extends PrecedenceGraph<ReactionInstance.Runt
             // throw new InvalidSourceException("Reactions form a cycle!");
         }
     }
-    /**
-     * This function rebuilds the graph and propagates and assigns deadlines
-     * to all reactions.
-     */
+    /** This function rebuilds the graph and propagates and assigns deadlines to all reactions. */
     public void rebuildAndAssignDeadlines() {
         this.clear();
         addNodesAndEdges(main);
@@ -118,12 +109,10 @@ public class ReactionInstanceGraph extends PrecedenceGraph<ReactionInstance.Runt
         return numReactionsPerLevel.toArray(new Integer[0]);
     }
 
-    /**
-     * Return the max breadth of the reaction dependency graph
-     */
+    /** Return the max breadth of the reaction dependency graph */
     public int getBreadth() {
         var maxBreadth = 0;
-        for (Integer breadth: numReactionsPerLevel ) {
+        for (Integer breadth : numReactionsPerLevel) {
             if (breadth > maxBreadth) {
                 maxBreadth = breadth;
             }
@@ -135,8 +124,9 @@ public class ReactionInstanceGraph extends PrecedenceGraph<ReactionInstance.Runt
     //// Protected methods
 
     /**
-     * Add to the graph edges between the given reaction and all the reactions
-     * that depend on the specified port.
+     * Add to the graph edges between the given reaction and all the reactions that depend on the
+     * specified port.
+     *
      * @param port The port that the given reaction has as an effect.
      * @param reaction The reaction to relate downstream reactions to.
      */
@@ -145,12 +135,12 @@ public class ReactionInstanceGraph extends PrecedenceGraph<ReactionInstance.Runt
         List<Runtime> srcRuntimes = reaction.getRuntimeInstances();
         List<SendRange> eventualDestinations = port.eventualDestinations();
 
-        int srcDepth = (port.isInput())? 2 : 1;
+        int srcDepth = (port.isInput()) ? 2 : 1;
 
         for (SendRange sendRange : eventualDestinations) {
             for (RuntimeRange<PortInstance> dstRange : sendRange.destinations) {
 
-                int dstDepth = (dstRange.instance.isOutput())? 2 : 1;
+                int dstDepth = (dstRange.instance.isOutput()) ? 2 : 1;
                 MixedRadixInt dstRangePosition = dstRange.startMR();
                 int dstRangeCount = 0;
 
@@ -164,12 +154,16 @@ public class ReactionInstanceGraph extends PrecedenceGraph<ReactionInstance.Runt
                         List<Runtime> dstRuntimes = dstReaction.getRuntimeInstances();
                         Runtime srcRuntime = srcRuntimes.get(srcIndex);
                         Runtime dstRuntime = dstRuntimes.get(dstIndex);
-                        // Only add this dependency if the reactions are not in modes at all or in the same mode or in modes of separate reactors
-                        // This allows modes to break cycles since modes are always mutually exclusive.
-                        if (srcRuntime.getReaction().getMode(true) == null ||
-                                dstRuntime.getReaction().getMode(true) == null ||
-                                srcRuntime.getReaction().getMode(true) == dstRuntime.getReaction().getMode(true) ||
-                                srcRuntime.getReaction().getParent() != dstRuntime.getReaction().getParent()) {
+                        // Only add this dependency if the reactions are not in modes at all or in
+                        // the same mode or in modes of separate reactors
+                        // This allows modes to break cycles since modes are always mutually
+                        // exclusive.
+                        if (srcRuntime.getReaction().getMode(true) == null
+                                || dstRuntime.getReaction().getMode(true) == null
+                                || srcRuntime.getReaction().getMode(true)
+                                        == dstRuntime.getReaction().getMode(true)
+                                || srcRuntime.getReaction().getParent()
+                                        != dstRuntime.getReaction().getParent()) {
                             addEdge(dstRuntime, srcRuntime);
                         }
 
@@ -203,8 +197,8 @@ public class ReactionInstanceGraph extends PrecedenceGraph<ReactionInstance.Runt
     }
 
     /**
-     * Build the graph by adding nodes and edges based on the given reactor
-     * instance.
+     * Build the graph by adding nodes and edges based on the given reactor instance.
+     *
      * @param reactor The reactor on the basis of which to add nodes and edges.
      */
     protected void addNodesAndEdges(ReactorInstance reactor) {
@@ -226,9 +220,12 @@ public class ReactionInstanceGraph extends PrecedenceGraph<ReactionInstance.Runt
                     List<Runtime> previousRuntimes = previousReaction.getRuntimeInstances();
                     int count = 0;
                     for (Runtime runtime : runtimes) {
-                        // Only add the reaction order edge if previous reaction is outside of a mode or both are in the same mode
-                        // This allows modes to break cycles since modes are always mutually exclusive.
-                        if (runtime.getReaction().getMode(true) == null || runtime.getReaction().getMode(true) == reaction.getMode(true)) {
+                        // Only add the reaction order edge if previous reaction is outside of a
+                        // mode or both are in the same mode
+                        // This allows modes to break cycles since modes are always mutually
+                        // exclusive.
+                        if (runtime.getReaction().getMode(true) == null
+                                || runtime.getReaction().getMode(true) == reaction.getMode(true)) {
                             this.addEdge(runtime, previousRuntimes.get(count));
                             count++;
                         }
@@ -242,7 +239,7 @@ public class ReactionInstanceGraph extends PrecedenceGraph<ReactionInstance.Runt
             // will be downstream of those upstream reactions.
             for (TriggerInstance<? extends Variable> effect : reaction.effects) {
                 if (effect instanceof PortInstance) {
-                    addDownstreamReactions((PortInstance)effect, reaction);
+                    addDownstreamReactions((PortInstance) effect, reaction);
                 }
             }
         }
@@ -256,8 +253,8 @@ public class ReactionInstanceGraph extends PrecedenceGraph<ReactionInstance.Runt
     //// Private fields
 
     /**
-     * Number of reactions per level, represented as a list of
-     * integers where the indices are the levels.
+     * Number of reactions per level, represented as a list of integers where the indices are the
+     * levels.
      */
     private List<Integer> numReactionsPerLevel = new ArrayList<>(List.of(0));
 
@@ -265,14 +262,13 @@ public class ReactionInstanceGraph extends PrecedenceGraph<ReactionInstance.Runt
     //// Private methods
 
     /**
-     * Analyze the dependencies between reactions and assign each reaction
-     * instance a level. This method removes nodes from this graph as it
-     * assigns levels. Any remaining nodes are part of causality cycles.
+     * Analyze the dependencies between reactions and assign each reaction instance a level. This
+     * method removes nodes from this graph as it assigns levels. Any remaining nodes are part of
+     * causality cycles.
      *
-     * This procedure is based on Kahn's algorithm for topological sorting.
-     * Rather than establishing a total order, we establish a partial order.
-     * In this order, the level of each reaction is the least upper bound of
-     * the levels of the reactions it depends on.
+     * <p>This procedure is based on Kahn's algorithm for topological sorting. Rather than
+     * establishing a total order, we establish a partial order. In this order, the level of each
+     * reaction is the least upper bound of the levels of the reactions it depends on.
      */
     private void assignLevels() {
         List<ReactionInstance.Runtime> start = new ArrayList<>(rootNodes());
@@ -316,10 +312,9 @@ public class ReactionInstanceGraph extends PrecedenceGraph<ReactionInstance.Runt
     }
 
     /**
-     * This function assigns inferred deadlines to all the reactions in the graph.
-     * It is modeled after `assignLevels` but it starts at the leaf nodes and uses
-     * Kahns algorithm to build a reverse topologically sorted graph
-     *
+     * This function assigns inferred deadlines to all the reactions in the graph. It is modeled
+     * after `assignLevels` but it starts at the leaf nodes and uses Kahns algorithm to build a
+     * reverse topologically sorted graph
      */
     private void assignInferredDeadlines() {
         List<ReactionInstance.Runtime> start = new ArrayList<>(leafNodes());
@@ -374,9 +369,7 @@ public class ReactionInstanceGraph extends PrecedenceGraph<ReactionInstance.Runt
         }
     }
 
-    /**
-     * Return the DOT (GraphViz) representation of the graph.
-     */
+    /** Return the DOT (GraphViz) representation of the graph. */
     @Override
     public String toDOT() {
         var dotRepresentation = new CodeBuilder();
@@ -384,7 +377,7 @@ public class ReactionInstanceGraph extends PrecedenceGraph<ReactionInstance.Runt
 
         // Start the digraph with a left-write rank
         dotRepresentation.pr(
-        """
+                """
         digraph {
             rankdir=LF;
             graph [compound=True, rank=LR, rankdir=LR];
@@ -394,11 +387,7 @@ public class ReactionInstanceGraph extends PrecedenceGraph<ReactionInstance.Runt
 
         var nodes = nodes();
         // Group nodes by levels
-        var groupedNodes =
-            nodes.stream()
-                 .collect(
-                     Collectors.groupingBy(it -> it.level)
-                 );
+        var groupedNodes = nodes.stream().collect(Collectors.groupingBy(it -> it.level));
 
         dotRepresentation.indent();
         // For each level
@@ -409,20 +398,33 @@ public class ReactionInstanceGraph extends PrecedenceGraph<ReactionInstance.Runt
 
             // Get the nodes at the current level
             var currentLevelNodes = groupedNodes.get(level);
-            for (var node: currentLevelNodes) {
+            for (var node : currentLevelNodes) {
                 // Draw the node
-                var label = CUtil.getName(node.getReaction().getParent().reactorDefinition) + "." + node.getReaction().getName();
+                var label =
+                        CUtil.getName(node.getReaction().getParent().reactorDefinition)
+                                + "."
+                                + node.getReaction().getName();
                 // Need a positive number to name the nodes in GraphViz
                 var labelHashCode = label.hashCode() & 0xfffffff;
-                dotRepresentation.pr("    node_" + labelHashCode  + " [label=\""+ label +"\"];");
+                dotRepresentation.pr("    node_" + labelHashCode + " [label=\"" + label + "\"];");
 
                 // Draw the edges
                 var downstreamNodes = getDownstreamAdjacentNodes(node);
-                for (var downstreamNode: downstreamNodes) {
-                    var downstreamLabel =  CUtil.getName(downstreamNode.getReaction().getParent().reactorDefinition) + "." + downstreamNode.getReaction().getName();
-                    edges.append("    node_" + labelHashCode + " -> node_" +
-                                     (downstreamLabel.hashCode() & 0xfffffff) + ";\n"
-                    );
+                for (var downstreamNode : downstreamNodes) {
+                    var downstreamLabel =
+                            CUtil.getName(
+                                            downstreamNode
+                                                    .getReaction()
+                                                    .getParent()
+                                                    .reactorDefinition)
+                                    + "."
+                                    + downstreamNode.getReaction().getName();
+                    edges.append(
+                            "    node_"
+                                    + labelHashCode
+                                    + " -> node_"
+                                    + (downstreamLabel.hashCode() & 0xfffffff)
+                                    + ";\n");
                 }
             }
             // Close the subgraph

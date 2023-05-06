@@ -34,48 +34,40 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * Representation of a permuted mixed radix (PMR) integer.
- * A mixed radix number is a number representation where each digit can have
- * a distinct radix. The radixes are given by a list of numbers, r0, r1, ... , rn,
- * where r0 is the radix of the lowest-order digit and rn is the radix of the
- * highest order digit that has a specified radix.
+ * Representation of a permuted mixed radix (PMR) integer. A mixed radix number is a number
+ * representation where each digit can have a distinct radix. The radixes are given by a list of
+ * numbers, r0, r1, ... , rn, where r0 is the radix of the lowest-order digit and rn is the radix of
+ * the highest order digit that has a specified radix.
  *
- * A PMR is a mixed radix number that, when incremented,
- * increments the digits in the order given by the permutation matrix.
- * For an ordinary mixed radix number, the permutation matrix is
- * [0, 1, ..., n-1]. The permutation matrix may be any permutation of
- * these digits, [d0, d1, ..., dn-1], in which case, when incremented,
- * the d0 digit will be incremented first. If it overflows, it will be
- * set to 0 and the d1 digit will be incremented. If it overflows, the
- * next digit is incremented.  If the last digit overflows, then the
- * number wraps around so that all digits become zero.
- * 
- * This implementation realizes a finite set of numbers, where incrementing
- * past the end of the range wraps around to the beginning. As a consequence,
- * the increment() function from any starting point is guaranteed to eventually
- * cover all possible values.
- * 
- * The {@link #toString()} method gives a string representation of the number
- * where each digit is represented by the string "d%r", where d is the digit
- * and r is the radix. For example, the number "1%2, 2%3, 1%4" has value 11,
- * 1 + (2*2) + (1*2*3).
- * 
+ * <p>A PMR is a mixed radix number that, when incremented, increments the digits in the order given
+ * by the permutation matrix. For an ordinary mixed radix number, the permutation matrix is [0, 1,
+ * ..., n-1]. The permutation matrix may be any permutation of these digits, [d0, d1, ..., dn-1], in
+ * which case, when incremented, the d0 digit will be incremented first. If it overflows, it will be
+ * set to 0 and the d1 digit will be incremented. If it overflows, the next digit is incremented. If
+ * the last digit overflows, then the number wraps around so that all digits become zero.
+ *
+ * <p>This implementation realizes a finite set of numbers, where incrementing past the end of the
+ * range wraps around to the beginning. As a consequence, the increment() function from any starting
+ * point is guaranteed to eventually cover all possible values.
+ *
+ * <p>The {@link #toString()} method gives a string representation of the number where each digit is
+ * represented by the string "d%r", where d is the digit and r is the radix. For example, the number
+ * "1%2, 2%3, 1%4" has value 11, 1 + (2*2) + (1*2*3).
+ *
  * @author Edward A. Lee
  */
 public class MixedRadixInt {
-    
+
     /**
-     * Create a mixed radix number with the specified digits and radixes,
-     * which are given low-order digits first.
-     * If there is one more digit than radixes, throw an exception.
+     * Create a mixed radix number with the specified digits and radixes, which are given low-order
+     * digits first. If there is one more digit than radixes, throw an exception.
+     *
      * @param digits The digits, or null to get a zero-valued number.
      * @param radixes The radixes.
      * @param permutation The permutation matrix, or null for the default permutation.
      */
-    public MixedRadixInt(
-            List<Integer> digits, List<Integer> radixes, List<Integer> permutation
-    ) {
-        if (radixes == null 
+    public MixedRadixInt(List<Integer> digits, List<Integer> radixes, List<Integer> permutation) {
+        if (radixes == null
                 || (digits != null && digits.size() > radixes.size())
                 || (permutation != null && permutation.size() != radixes.size())
                 || radixes.contains(0)) {
@@ -94,31 +86,29 @@ public class MixedRadixInt {
             for (int p : permutation) {
                 if (p < 0 || p >= radixes.size() || indices.contains(p)) {
                     throw new IllegalArgumentException(
-                            "Permutation list is required to be a permutation of [0, 1, ... , n-1].");
+                            "Permutation list is required to be a permutation of [0, 1, ... ,"
+                                    + " n-1].");
                 }
                 indices.add(p);
             }
             this.permutation = permutation;
         }
     }
-    
-    /**
-     * A zero-valued mixed radix number with just one digit will radix 1.
-     */
-    public final static MixedRadixInt ZERO = new MixedRadixInt(null, List.of(1), null);
+
+    /** A zero-valued mixed radix number with just one digit will radix 1. */
+    public static final MixedRadixInt ZERO = new MixedRadixInt(null, List.of(1), null);
 
     //////////////////////////////////////////////////////////
     //// Public methods
 
-    /**
-     * Get the value as an integer.
-     */
+    /** Get the value as an integer. */
     public int get() {
         return get(0);
     }
-    
+
     /**
      * Get the value as an integer after dropping the first n digits.
+     *
      * @param n The number of digits to drop.
      */
     public int get(int n) {
@@ -133,20 +123,15 @@ public class MixedRadixInt {
         return result;
     }
 
-    /**
-     * Return the digits. This is assured of returning as many
-     * digits as there are radixes.
-     */
+    /** Return the digits. This is assured of returning as many digits as there are radixes. */
     public List<Integer> getDigits() {
         while (digits.size() < radixes.size()) {
             digits.add(0);
         }
         return digits;
     }
-    
-    /**
-     * Return the permutation list.
-     */
+
+    /** Return the permutation list. */
     public List<Integer> getPermutation() {
         if (permutation == null) {
             // Construct a default permutation.
@@ -157,19 +142,16 @@ public class MixedRadixInt {
         }
         return permutation;
     }
-        
-    /**
-     * Return the radixes.
-     */
+
+    /** Return the radixes. */
     public List<Integer> getRadixes() {
         return radixes;
     }
-    
+
     /**
-     * Increment the number by one, using the permutation vector to
-     * determine the order in which the digits are incremented.
-     * If an overflow occurs, then a radix-infinity digit will be added
-     * to the digits array if there isn't one there already.
+     * Increment the number by one, using the permutation vector to determine the order in which the
+     * digits are incremented. If an overflow occurs, then a radix-infinity digit will be added to
+     * the digits array if there isn't one there already.
      */
     public void increment() {
         int i = 0;
@@ -187,11 +169,11 @@ public class MixedRadixInt {
             }
         }
     }
-    
+
     /**
-     * Return the magnitude of this PMR, which is defined to be the number
-     * of times that increment() would need to invoked starting with zero
-     * before the value returned by {@link #get()} would be reached.
+     * Return the magnitude of this PMR, which is defined to be the number of times that increment()
+     * would need to invoked starting with zero before the value returned by {@link #get()} would be
+     * reached.
      */
     public int magnitude() {
         int factor = 1;
@@ -204,17 +186,17 @@ public class MixedRadixInt {
         }
         return result;
     }
-        
+
     /**
-     * Return the number of digits in this mixed radix number.
-     * This is the size of the radixes list.
+     * Return the number of digits in this mixed radix number. This is the size of the radixes list.
      */
     public int numDigits() {
         return radixes.size();
     }
-    
+
     /**
      * Set the value of this number to equal that of the specified integer.
+     *
      * @param v The ordinary integer value of this number.
      */
     public void set(int v) {
@@ -230,11 +212,12 @@ public class MixedRadixInt {
             temp = temp / radix;
         }
     }
-    
+
     /**
-     * Set the magnitude of this number to equal that of the specified integer,
-     * which is the number of times that increment must be invoked from zero
-     * for the value returned by {@link #get()} to equal v.
+     * Set the magnitude of this number to equal that of the specified integer, which is the number
+     * of times that increment must be invoked from zero for the value returned by {@link #get()} to
+     * equal v.
+     *
      * @param v The new magnitude of this number.
      */
     public void setMagnitude(int v) {
@@ -246,17 +229,17 @@ public class MixedRadixInt {
             temp = temp / radixes.get(p);
         }
     }
-    
+
     /**
-     * Give a string representation of the number, where each digit is
-     * represented as n%r, where r is the radix.
+     * Give a string representation of the number, where each digit is represented as n%r, where r
+     * is the radix.
      */
     @Override
     public String toString() {
         List<String> pieces = new LinkedList<String>();
         Iterator<Integer> radixIterator = radixes.iterator();
         for (int digit : digits) {
-            if (! radixIterator.hasNext()) {
+            if (!radixIterator.hasNext()) {
                 pieces.add(digit + "%infinity");
             } else {
                 pieces.add(digit + "%" + radixIterator.next());

@@ -3,11 +3,9 @@ package org.lflang.generator.python;
 import java.util.List;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-
 import org.lflang.InferredType;
 import org.lflang.generator.ReactorInstance;
 import org.lflang.generator.c.CTypes;
-import org.lflang.generator.c.CUtil;
 import org.lflang.lf.ParameterReference;
 
 public class PythonTypes extends CTypes {
@@ -22,21 +20,22 @@ public class PythonTypes extends CTypes {
     }
 
     /**
-     * This generator inherits types from the CGenerator.
-     * This function reverts them back to Python types
-     * For example, the types double is converted to float,
-     * the * for pointer types is removed, etc.
+     * This generator inherits types from the CGenerator. This function reverts them back to Python
+     * types For example, the types double is converted to float, the * for pointer types is
+     * removed, etc.
+     *
      * @param type The type
      * @return The Python equivalent of a C type
      */
     public String getPythonType(InferredType type) {
         var result = super.getTargetType(type);
 
-        result = switch (result) {
-            case "double" -> "float";
-            case "string" -> "object";
-            default -> result;
-        };
+        result =
+                switch (result) {
+                    case "double" -> "float";
+                    case "string" -> "object";
+                    default -> result;
+                };
 
         var matcher = pointerPatternVariable.matcher(result);
         if (matcher.find()) {
@@ -52,7 +51,8 @@ public class PythonTypes extends CTypes {
     }
 
     @Override
-    public String getFixedSizeListInitExpression(List<String> contents, int listSize, boolean withBraces) {
+    public String getFixedSizeListInitExpression(
+            List<String> contents, int listSize, boolean withBraces) {
         return contents.stream().collect(Collectors.joining(", ", "[ ", " ]"));
     }
 

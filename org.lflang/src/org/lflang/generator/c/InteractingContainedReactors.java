@@ -5,9 +5,7 @@ import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
-
 import org.lflang.ASTUtils;
-import org.lflang.federated.generator.FederateInstance;
 import org.lflang.lf.Input;
 import org.lflang.lf.Instantiation;
 import org.lflang.lf.Output;
@@ -24,16 +22,13 @@ import org.lflang.lf.VarRef;
  * @author Soroush Bateni
  * @author Hou Seng Wong
  */
-
 public class InteractingContainedReactors {
     /**
-     * Data structure that for each instantiation of a contained
-     * reactor. This provides a set of input and output ports that trigger
-     * reactions of the container, are read by a reaction of the
-     * container, or that receive data from a reaction of the container.
-     * For each port, this provides a list of reaction indices that
-     * are triggered by the port, or an empty list if there are no
-     * reactions triggered by the port.
+     * Data structure that for each instantiation of a contained reactor. This provides a set of
+     * input and output ports that trigger reactions of the container, are read by a reaction of the
+     * container, or that receive data from a reaction of the container. For each port, this
+     * provides a list of reaction indices that are triggered by the port, or an empty list if there
+     * are no reactions triggered by the port.
      */
     // This horrible data structure is a collection, indexed by instantiation
     // of a contained reactor, of lists, indexed by ports of the contained reactor
@@ -41,15 +36,12 @@ public class InteractingContainedReactors {
     // triggered by the port of the contained reactor. The list is empty if
     // the port does not trigger reactions but is read by the reaction or
     // is written to by the reaction.
-    LinkedHashMap<
-        Instantiation, LinkedHashMap<
-            Port, LinkedList<Integer>
-        >
-    > portsByContainedReactor = new LinkedHashMap<>();
+    LinkedHashMap<Instantiation, LinkedHashMap<Port, LinkedList<Integer>>> portsByContainedReactor =
+            new LinkedHashMap<>();
 
     /**
-     * Scan the reactions of the specified reactor and record which ports are
-     * referenced by reactions and which reactions are triggered by such ports.
+     * Scan the reactions of the specified reactor and record which ports are referenced by
+     * reactions and which reactions are triggered by such ports.
      */
     public InteractingContainedReactors(Reactor reactor) {
         var reactionCount = 0;
@@ -72,7 +64,10 @@ public class InteractingContainedReactors {
                     // If an trigger is an output, then it must be an output
                     // of a contained reactor.
                     if (triggerAsVarRef.getVariable() instanceof Output) {
-                        var list = addPort(triggerAsVarRef.getContainer(), (Output) triggerAsVarRef.getVariable());
+                        var list =
+                                addPort(
+                                        triggerAsVarRef.getContainer(),
+                                        (Output) triggerAsVarRef.getVariable());
                         list.add(reactionCount);
                     }
                 }
@@ -88,40 +83,39 @@ public class InteractingContainedReactors {
                     addPort(source.getContainer(), (Output) source.getVariable());
                 }
             }
-        // Increment the reaction count even if not in the federate for consistency.
-        reactionCount++;
+            // Increment the reaction count even if not in the federate for consistency.
+            reactionCount++;
         }
     }
 
     /**
-     * Return or create the list to which reactions triggered by the specified port
-     * are to be added. This also records that the port is referenced by the
-     * container's reactions.
+     * Return or create the list to which reactions triggered by the specified port are to be added.
+     * This also records that the port is referenced by the container's reactions.
+     *
      * @param containedReactor The contained reactor.
      * @param port The port.
      */
     private List<Integer> addPort(Instantiation containedReactor, Port port) {
         // Get or create the entry for the containedReactor.
-        var containedReactorEntry = portsByContainedReactor.computeIfAbsent(
-            containedReactor,
-            k -> new LinkedHashMap<>()
-        );
+        var containedReactorEntry =
+                portsByContainedReactor.computeIfAbsent(
+                        containedReactor, k -> new LinkedHashMap<>());
         // Get or create the entry for the port.
         return containedReactorEntry.computeIfAbsent(port, k -> new LinkedList<>());
     }
 
     /**
-     * Return the set of contained reactors that have ports that are referenced
-     * by reactions of the container reactor.
+     * Return the set of contained reactors that have ports that are referenced by reactions of the
+     * container reactor.
      */
     public Set<Instantiation> containedReactors() {
         return portsByContainedReactor.keySet();
     }
 
     /**
-     * Return the set of ports of the specified contained reactor that are
-     * referenced by reactions of the container reactor. Return an empty
-     * set if there are none.
+     * Return the set of ports of the specified contained reactor that are referenced by reactions
+     * of the container reactor. Return an empty set if there are none.
+     *
      * @param containedReactor The contained reactor.
      */
     public Set<Port> portsOfInstance(Instantiation containedReactor) {
@@ -136,8 +130,9 @@ public class InteractingContainedReactors {
     }
 
     /**
-     * Return the indices of the reactions triggered by the specified port
-     * of the specified contained reactor or an empty list if there are none.
+     * Return the indices of the reactions triggered by the specified port of the specified
+     * contained reactor or an empty list if there are none.
+     *
      * @param containedReactor The contained reactor.
      * @param port The port.
      */
@@ -152,4 +147,3 @@ public class InteractingContainedReactors {
         return new LinkedList<>();
     }
 }
-

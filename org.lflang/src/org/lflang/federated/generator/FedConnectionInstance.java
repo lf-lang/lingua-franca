@@ -9,9 +9,8 @@ import org.lflang.lf.Connection;
 /**
  * Class representing a federated connection.
  *
- * This is an undocumented class written by a previous contributor who is no longer active.
- * It merely serves as a record, presumably to make it easier to pass around information
- * around.
+ * <p>This is an undocumented class written by a previous contributor who is no longer active. It
+ * merely serves as a record, presumably to make it easier to pass around information around.
  *
  * @author Soroush Bateni
  */
@@ -36,16 +35,15 @@ public class FedConnectionInstance {
     SupportedSerializers serializer;
 
     public FedConnectionInstance(
-        SendRange srcRange,
-        RuntimeRange<PortInstance> dstRange,
-        int srcChannel,
-        int srcBank,
-        int dstChannel,
-        int dstBank,
-        FederateInstance srcFederate,
-        FederateInstance dstFederate,
-        SupportedSerializers serializer
-    ) {
+            SendRange srcRange,
+            RuntimeRange<PortInstance> dstRange,
+            int srcChannel,
+            int srcBank,
+            int dstChannel,
+            int dstBank,
+            FederateInstance srcFederate,
+            FederateInstance dstFederate,
+            SupportedSerializers serializer) {
         this.srcRange = srcRange;
         this.srcChannel = srcChannel;
         this.srcBank = srcBank;

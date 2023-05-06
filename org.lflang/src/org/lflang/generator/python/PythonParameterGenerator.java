@@ -1,22 +1,11 @@
 package org.lflang.generator.python;
 
 import java.util.ArrayList;
-import java.util.LinkedList;
 import java.util.List;
-import java.util.stream.Collectors;
-
-import com.google.common.base.Objects;
-
 import org.lflang.ASTUtils;
-import org.lflang.InferredType;
-import org.lflang.generator.GeneratorBase;
 import org.lflang.generator.ParameterInstance;
-import org.lflang.lf.Expression;
-import org.lflang.lf.ParameterReference;
-import org.lflang.lf.ReactorDecl;
-import org.lflang.lf.Assignment;
 import org.lflang.lf.Parameter;
-
+import org.lflang.lf.ReactorDecl;
 
 public class PythonParameterGenerator {
     /**
@@ -33,18 +22,24 @@ public class PythonParameterGenerator {
             if (!types.getTargetType(param).equals("PyObject*")) {
                 // If type is given, use it
                 String type = types.getPythonType(ASTUtils.getInferredType(param));
-                lines.add("self._"+param.getName()+":"+type+" = "+generatePythonInitializer(param));
+                lines.add(
+                        "self._"
+                                + param.getName()
+                                + ":"
+                                + type
+                                + " = "
+                                + generatePythonInitializer(param));
             } else {
                 // If type is not given, just pass along the initialization
-                lines.add("self._"+param.getName()+" = "+generatePythonInitializer(param));
+                lines.add("self._" + param.getName() + " = " + generatePythonInitializer(param));
             }
         }
         // Handle parameters that are set in instantiation
-        lines.addAll(List.of(
-            "# Handle parameters that are set in instantiation",
-            "self.__dict__.update(kwargs)",
-            ""
-        ));
+        lines.addAll(
+                List.of(
+                        "# Handle parameters that are set in instantiation",
+                        "self.__dict__.update(kwargs)",
+                        ""));
         return String.join("\n", lines);
     }
 
@@ -58,23 +53,25 @@ public class PythonParameterGenerator {
         List<String> lines = new ArrayList<>();
         for (Parameter param : getAllParameters(decl)) {
             if (!param.getName().equals("bank_index")) {
-                lines.addAll(List.of(
-                    "",
-                    "@property",
-                    "def "+param.getName()+"(self):",
-                    "    return self._"+param.getName()+" # pylint: disable=no-member",
-                    ""
-                ));
+                lines.addAll(
+                        List.of(
+                                "",
+                                "@property",
+                                "def " + param.getName() + "(self):",
+                                "    return self._"
+                                        + param.getName()
+                                        + " # pylint: disable=no-member",
+                                ""));
             }
         }
         // Create a special property for bank_index
-        lines.addAll(List.of(
-            "",
-            "@property",
-            "def bank_index(self):",
-            "    return self._bank_index # pylint: disable=no-member",
-            ""
-        ));
+        lines.addAll(
+                List.of(
+                        "",
+                        "@property",
+                        "def bank_index(self):",
+                        "    return self._bank_index # pylint: disable=no-member",
+                        ""));
         lines.add("\n");
         return String.join("\n", lines);
     }
@@ -100,11 +97,10 @@ public class PythonParameterGenerator {
     }
 
     /**
-     * Return a Python expression that can be used to initialize the specified
-     * parameter instance. If the parameter initializer refers to other
-     * parameters, then those parameter references are replaced with
-     * accesses to the Python reactor instance class of the parents of
-     * those parameters.
+     * Return a Python expression that can be used to initialize the specified parameter instance.
+     * If the parameter initializer refers to other parameters, then those parameter references are
+     * replaced with accesses to the Python reactor instance class of the parents of those
+     * parameters.
      *
      * @param p The parameter instance to create initializer for
      * @return Initialization code
@@ -113,5 +109,4 @@ public class PythonParameterGenerator {
         PythonTypes pyTypes = PythonTypes.generateParametersIn(p.getParent().getParent());
         return pyTypes.getTargetInitializer(p.getActualValue(), p.getDefinition().getType());
     }
-
 }
