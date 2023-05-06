@@ -137,7 +137,7 @@ public class LinguaFrancaValidationTest {
 
         Model model_error_1 = parser.parse("""
                 target Cpp;
-                main reactor Preamble {
+                reactor Preamble {
                 }
             """);
 
@@ -145,7 +145,7 @@ public class LinguaFrancaValidationTest {
                 target Cpp;
                 reactor Preamble {
                 }
-                main reactor Main {
+                main reactor {
                 }
             """);
 
@@ -281,7 +281,7 @@ public class LinguaFrancaValidationTest {
     public void disallowUnderscoreReactorDef() throws Exception {
         String testCase = """
                 target TypeScript;
-                main reactor __Foo {
+                reactor __Foo {
                 }
             """;
         validator.assertError(parseWithoutError(testCase), LfPackage.eINSTANCE.getReactor(), null,
@@ -808,6 +808,41 @@ public class LinguaFrancaValidationTest {
                             String.format("The %s qualifier has no meaning for the %s target. It should be removed.", visibility, target.name()));
                     }
                 }
+            }
+        }
+    }
+
+    @Test
+    public void testInheritanceSupport() throws Exception {
+        for (Target target : Target.values()) {
+            Model model = parseWithoutError("""
+                    target %s
+                    reactor A{}
+                    reactor B extends A{}
+                """.formatted(target));
+
+            if (target.supportsInheritance()) {
+                validator.assertNoIssues(model);
+            } else {
+                validator.assertError(model, LfPackage.eINSTANCE.getReactor(), null,
+                    "The " + target.getDisplayName() + " target does not support reactor inheritance.");
+            }
+        }
+    }
+
+    @Test
+    public void testFederationSupport() throws Exception {
+        for (Target target : Target.values()) {
+            Model model = parseWithoutError("""
+                    target %s
+                    federated reactor {}
+                """.formatted(target));
+
+            if (target.supportsFederated()) {
+                validator.assertNoIssues(model);
+            } else {
+                validator.assertError(model, LfPackage.eINSTANCE.getReactor(), null,
+                    "The " + target.getDisplayName() + " target does not support federated execution.");
             }
         }
     }
