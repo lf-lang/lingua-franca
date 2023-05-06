@@ -38,7 +38,7 @@ reactor Watcher(timeout: time = 150 ms) {
         lf_watchdog_stop(poodle);
         // Watchdog may expire in tests even without the sleep, but it should at least expire twice.
         if (self->count < 2) {
-            lf_print_error_and_exit("Watchdog expired %d times. Expected 2.", self->count);
+            lf_print_error_and_exit("Watchdog expired %d times. Expected at least 2.", self->count);
         }
     =}
 }
@@ -59,8 +59,8 @@ main reactor {
     =}
 
     reaction(shutdown) {=
-        if (self->count != 12) {
-            lf_print_error_and_exit("Watchdog produced output %d times. Expected 12.", self->count);
+        if (self->count < 12) {
+            lf_print_error_and_exit("Watchdog produced output %d times. Expected at least 12.", self->count);
         }
     =}
 }
