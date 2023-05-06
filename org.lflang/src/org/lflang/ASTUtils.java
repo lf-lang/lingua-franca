@@ -81,6 +81,7 @@ import org.lflang.lf.Output;
 import org.lflang.lf.Parameter;
 import org.lflang.lf.ParameterReference;
 import org.lflang.lf.Port;
+import org.lflang.lf.Preamble;
 import org.lflang.lf.Reaction;
 import org.lflang.lf.Reactor;
 import org.lflang.lf.ReactorDecl;
@@ -375,6 +376,18 @@ public class ASTUtils {
     /** A list of all ports of {@code definition}, in an unspecified order. */
     public static List<Port> allPorts(Reactor definition) {
         return Stream.concat(ASTUtils.allInputs(definition).stream(), ASTUtils.allOutputs(definition).stream()).toList();
+    }
+
+    /**
+     * Given a reactor class, return a list of all its preambles,
+     * which includes preambles of base classes that it extends.
+     * If the base classes include a cycle, where X extends Y and Y extends X,
+     * then return only the input defined in the base class.
+     * The returned list may be empty.
+     * @param definition Reactor class definition.
+     */
+    public static List<Preamble> allPreambles(Reactor definition) {
+        return ASTUtils.collectElements(definition, featurePackage.getReactor_Preambles());
     }
 
     /**

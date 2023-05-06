@@ -1078,7 +1078,7 @@ public class CGenerator extends GeneratorBase {
      * @param reactor The given reactor
      */
     protected void generateUserPreamblesForReactor(Reactor reactor, CodeBuilder src) {
-        for (Preamble p : convertToEmptyListIfNull(reactor.getPreambles())) {
+        for (Preamble p : ASTUtils.allPreambles(reactor)) {
             src.pr("// *********** From the preamble, verbatim:");
             src.prSourceLineNumber(p.getCode());
             src.pr(toText(p.getCode()));
