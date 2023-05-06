@@ -1983,8 +1983,11 @@ public class CGenerator extends GeneratorBase {
         var guard = "TOP_LEVEL_PREAMBLE_" + reactor.eContainer().hashCode() + "_H";
         builder.pr("#ifndef " + guard);
         builder.pr("#define " + guard);
+        // Reactors that are instantiated by the specified reactor need to have
+        // their file-level preambles included.  This needs to also include file-level
+        // preambles of base classes of those reactors.
         Stream.concat(Stream.of(reactor), ASTUtils.allNestedClasses(reactor))
-            .flatMap(it -> ((Model) it.eContainer()).getPreambles().stream())
+            .flatMap(it -> ASTUtils.allFileLevelPreambles(it).stream())
             .collect(Collectors.toSet())
             .forEach(it -> builder.pr(toText(it.getCode())));
         for (String file : targetConfig.protoFiles) {

@@ -401,6 +401,11 @@ public class ASTUtils {
         return ASTUtils.collectElements(definition, featurePackage.getReactor_Instantiations());
     }
 
+    /**
+     * Given a reactor class, return a stream of reactor classes that it instantiates.
+     * @param definition Reactor class definition.
+     * @return A stream of reactor classes.
+     */
     public static Stream<Reactor> allNestedClasses(Reactor definition) {
         return new HashSet<>(ASTUtils.allInstantiations(definition)).stream()
             .map(Instantiation::getReactorClass)
@@ -498,6 +503,19 @@ public class ASTUtils {
      */
     public static LinkedHashSet<Reactor> superClasses(Reactor reactor) {
         return superClasses(reactor, new LinkedHashSet<>());
+    }
+
+    /**
+     * Return all the file-level preambles in the files that define the
+     * specified class and its superclasses in deepest-first order.
+     * Duplicates are removed. If there are no file-level preambles,
+     * then return an empty list.
+     * If a cycle is found, where X extends Y and Y extends X, or if
+     * a superclass is declared that is not found, then return null.
+     * @param reactor The specified reactor.
+     */
+    public static LinkedHashSet<Preamble> allFileLevelPreambles(Reactor reactor) {
+        return allFileLevelPreambles(reactor, new LinkedHashSet<>());
     }
 
     /**
@@ -1778,6 +1796,34 @@ public class ASTUtils {
             result.addAll(baseExtends);
             result.add(r);
         }
+        return result;
+    }
+
+    /**
+     * Return all the file-level preambles in the files that define the
+     * specified class and its superclasses in deepest-first order.
+     * Duplicates are removed. If there are no file-level preambles,
+     * then return an empty list.
+     * If a cycle is found, where X extends Y and Y extends X, or if
+     * a superclass is declared that is not found, then return null.
+     * @param reactor The specified reactor.
+     * @param extensions A set of reactors extending the specified reactor
+     *  (used to detect circular extensions).
+     */
+    private static LinkedHashSet<Preamble> allFileLevelPreambles(Reactor reactor, Set<Reactor> extensions) {
+        LinkedHashSet<Preamble> result = new LinkedHashSet<>();
+        for (ReactorDecl superDecl : convertToEmptyListIfNull(reactor.getSuperClasses())) {
+            Reactor r = toDefinition(superDecl);
+            if (r == reactor || r == null) return null;
+            // If r is in the extensions, then we have a circular inheritance structure.
+            if (extensions.contains(r)) return null;
+            extensions.add(r);
+            LinkedHashSet<Preamble> basePreambles = allFileLevelPreambles(r, extensions);
+            extensions.remove(r);
+            if (basePreambles == null) return null;
+            result.addAll(basePreambles);
+        }
+        result.addAll(((Model) reactor.eContainer()).getPreambles());
         return result;
     }
 
