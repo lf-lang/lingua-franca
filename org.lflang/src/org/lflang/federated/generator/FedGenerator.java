@@ -145,7 +145,7 @@ public class FedGenerator {
 
         // Find all the connections between federates.
         // For each connection between federates, replace it in the
-        // AST with an action (which inherits the delay) and four reactions.
+        // AST with an action (which inherits the delay) and three reactions.
         // The action will be physical for physical connections and logical
         // for logical connections.
         replaceFederateConnectionsWithProxies(federation, resource);
