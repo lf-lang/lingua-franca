@@ -533,10 +533,20 @@ public class CExtension implements FedTargetExtension {
         size_t numSenderReactions = %1$s;
         """.formatted(numOfNetworkSenderControlReactions));
 
+
+        int numOfSTAAOffsets = federate.stpOffsets.size();
+        code.pr(CExtensionUtils.surroundWithIfFederatedDecentralized("""
+            staa_t* staa_lst[%1$s];
+            size_t staa_lst_size = %1$s;
+        """.formatted(numOfSTAAOffsets)));
+        
+
         code.pr(generateSerializationPreamble(federate, fileConfig));
 
         code.pr(generateExecutablePreamble(federate, rtiConfig, errorReporter));
         
+        code.pr(generateSTAAInitialization(federate, rtiConfig, errorReporter));
+
         code.pr(generateInitializeTriggers(federate, errorReporter));
 
         code.pr(CExtensionUtils.generateFederateNeighborStructure(federate));
@@ -569,6 +579,7 @@ public class CExtension implements FedTargetExtension {
         federatedReactor.setName(federate.name);
         var main = new ReactorInstance(federatedReactor, errorReporter, -1);
         code.pr(CExtensionUtils.initializeTriggersForNetworkActions(federate, main, errorReporter));
+        code.pr("staa_initialization(); \\");
         //code.pr(CExtensionUtils.initializeTriggersForControlReactions(federate, main, errorReporter));
         //code.pr(CExtensionUtils.networkInputReactions(federate, main));
         //code.pr(CExtensionUtils.portAbsentReaction(federate, main));
@@ -598,6 +609,23 @@ public class CExtension implements FedTargetExtension {
 
         return """
             void _lf_executable_preamble() {
+            %s
+            }
+            """.formatted(code.toString().indent(4).stripTrailing());
+    }
+
+     /**
+     * Generate code for an executed preamble.
+     *
+     */
+    private String generateSTAAInitialization(FederateInstance federate, RtiConfig rtiConfig, ErrorReporter errorReporter) {
+        CodeBuilder code = new CodeBuilder();
+        code.pr(CExtensionUtils.surroundWithIfFederatedDecentralized(CExtensionUtils.stpStructs(federate, errorReporter)));
+        
+        //code.pr(CExtensionUtils.allocateTriggersForFederate(federate));
+
+        return """
+            void staa_initialization() {
             %s
             }
             """.formatted(code.toString().indent(4).stripTrailing());

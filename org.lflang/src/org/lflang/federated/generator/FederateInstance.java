@@ -310,6 +310,23 @@ public class FederateInstance { // why does this not extend ReactorInstance?
     public HashSet<SupportedSerializers> enabledSerializers = new HashSet<>();
 
     /**
+     * Keep a unique list of enabled serializers
+     */
+    public List<TimeValue> stpOffsets = new ArrayList<>();
+
+    public Set<Long> currentSTPOffsets = new HashSet<>();
+
+    /**
+     * Keep a map of STP values to a list of network actions
+     */
+    public HashMap<TimeValue, List<Action>> stpToNetworkActionMap = new HashMap<>(); 
+
+    /**
+     * Keep a map of network actions to their associated instantiations
+     */
+    public HashMap<Action, Instantiation> networkActionToInstantiation = new HashMap<>(); 
+
+    /**
      * Return true if the specified EObject should be included in the code
      * generated for this federate.
      *
@@ -669,6 +686,7 @@ public class FederateInstance { // why does this not extend ReactorInstance?
      * An error reporter
      */
     private final ErrorReporter errorReporter;
+
     
     /**
      * Find the nearest (shortest) path to a physical action trigger from this

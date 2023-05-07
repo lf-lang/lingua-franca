@@ -180,7 +180,6 @@ public class FedASTUtils {
             errorReporter
         );
 
-        TimeValue maxSTP = findMaxSTP(connection, coordination);
     }
 
     public static int networkMessageActionID = 0;
@@ -298,6 +297,25 @@ public class FedASTUtils {
         // Keep track of this action in the destination federate.
         connection.dstFederate.networkMessageActions.add(networkAction);
 
+
+        TimeValue maxSTP = findMaxSTP(connection, coordination);
+
+        if(!connection.dstFederate.currentSTPOffsets.contains(maxSTP.time)) {
+            connection.dstFederate.currentSTPOffsets.add(maxSTP.time);
+            connection.dstFederate.stpOffsets.add(maxSTP);
+            connection.dstFederate.stpToNetworkActionMap.put(maxSTP, new ArrayList<>());
+        } else {
+            // TODO: Find more efficient way to reuse timevalues
+            for(var offset: connection.dstFederate.stpOffsets){
+                if(maxSTP.time == offset.time) {
+                    maxSTP = offset;
+                    break;
+                }
+            }
+        }
+
+        connection.dstFederate.stpToNetworkActionMap.get(maxSTP).add(networkAction);
+
         // Add the action definition to the parent reactor.
         receiver.getActions().add(networkAction);
 
@@ -368,6 +386,7 @@ public class FedASTUtils {
         connection.dstFederate.networkConnections.add(receiverFromReaction);
         connection.dstFederate.networkReceiverInstantiations.add(networkInstance);
         connection.dstFederate.networkPortToInstantiation.put(connection.getDestinationPortInstance(), networkInstance);
+        connection.dstFederate.networkActionToInstantiation.put(networkAction, networkInstance);
         //System.out.println(connection.getSourcePortInstance());
 
         if (

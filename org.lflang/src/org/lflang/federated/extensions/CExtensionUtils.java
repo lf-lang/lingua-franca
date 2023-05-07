@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.regex.Pattern;
@@ -103,6 +104,45 @@ public class CExtensionUtils {
             for (String trigger : triggers) {
                 code.pr("_lf_action_table[" + (actionTableCount++) + "] = (lf_action_base_t*)&"
                             + trigger + "; \\");
+            }
+        }
+        return code.getCode();
+    }
+
+    /**
+     * Generate C code that holds a sorted list of STP structs by time.
+     *
+     * For decentralized execution, on every logical timestep, a thread will iterate through 
+     * each staa struct, wait for the designated offset time, and set the associated port status to absent
+     * if it isn't known.
+     * @param federate The federate.
+     * @param main The main reactor that contains the federate (used to lookup references).
+     * @return
+     */
+    public static String stpStructs(FederateInstance federate, ErrorReporter errorReporter) {
+        CodeBuilder code = new CodeBuilder();
+        Collections.sort(federate.stpOffsets, (d1, d2) -> {
+            return (int) (d1.time - d2.time);
+        });
+        if (!federate.stpOffsets.isEmpty()) {
+            // Create a static array of trigger_t pointers.
+            // networkMessageActions is a list of Actions, but we
+            // need a list of trigger struct names for ActionInstances.
+            // There should be exactly one ActionInstance in the
+            // main reactor for each Action.
+            for (int i = 0; i < federate.stpOffsets.size(); ++i) {
+                // Find the corresponding ActionInstance.
+                List<Action> networkActions = federate.stpToNetworkActionMap.get(federate.stpOffsets.get(i));
+                
+                code.pr("staa_lst[" + i + "] = (staa_t*) malloc(sizeof(staa_t));");
+                code.pr("staa_lst[" + i + "]->STAA = " + CTypes.getInstance().getTargetTimeExpr(federate.stpOffsets.get(i)) + ";");
+                code.pr("staa_lst[" + i + "]->numActions = " + networkActions.size() + ";");
+                code.pr("staa_lst[" + i + "]->actions = (lf_action_base_t**) malloc(sizeof(lf_action_base_t*) * " + networkActions.size() + ");");
+                var tableCount = 0;
+                for(Action action: networkActions){
+                    code.pr("staa_lst[" + i + "]->actions[" + (tableCount++) + "] = _lf_action_table["
+                            + federate.networkMessageActions.indexOf(action) + "];");
+                }
             }
         }
         return code.getCode();
