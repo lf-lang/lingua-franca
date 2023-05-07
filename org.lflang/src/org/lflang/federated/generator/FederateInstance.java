@@ -27,6 +27,7 @@ package org.lflang.federated.generator;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -69,8 +70,10 @@ import org.lflang.lf.Timer;
 import org.lflang.lf.TriggerRef;
 import org.lflang.lf.VarRef;
 import org.lflang.lf.Variable;
+import org.lflang.util.Pair;
 
 import com.google.common.base.Objects;
+
 
 
 /**
@@ -227,7 +230,7 @@ public class FederateInstance { // why does this not extend ReactorInstance?
     public List<Action> networkInputControlReactionsTriggers = new ArrayList<>();
     
     /**
-     * The trigger that triggers the output control reaction of this
+     * The triggers that trigger the output control reactions of this
      * federate.
      * 
      * The network output control reactions send a PORT_ABSENT message for a network output port,
@@ -235,7 +238,7 @@ public class FederateInstance { // why does this not extend ReactorInstance?
      * be present on the given network port, allowing input control reactions on those federates
      * to stop blocking.
      */
-    public Variable networkOutputControlReactionsTrigger = null;
+    public List<Action> networkOutputControlReactionsTriggers = new ArrayList<>();
     
     /**
      * Indicates whether the federate is remote or local
@@ -253,11 +256,29 @@ public class FederateInstance { // why does this not extend ReactorInstance?
     public List<Reaction> networkSenderReactions = new ArrayList<>();
 
     /**
+     * List of generated network control reactions (network sender) that belong to this federate instance.
+     */
+    public List<Reaction> networkSenderControlReactions = new ArrayList<>();
+    
+
+    /**
      * List of generated network reactors (network input and outputs) that
      * belong to this federate instance.
      */
     public List<Reactor> networkReactors = new ArrayList<>();
 
+
+    /**
+     * List of relative dependencies between network input and output reactions belonging to
+     * the same federate that have zero logical delay between them.
+     */
+    public List<Pair<PortInstance, PortInstance>> networkReactionDependencyPairs = new ArrayList<>();
+
+    /**
+     * Mapping from a port instance of a connection to its associated network reaction. We populate
+     * this map as we process connections as a means of annotating intra-federate dependencies
+     */
+    public Map<PortInstance, Instantiation> networkPortToInstantiation = new HashMap<>();
 
     /**
      * List of generated network connections (network input and outputs) that
@@ -271,6 +292,7 @@ public class FederateInstance { // why does this not extend ReactorInstance?
      * belong to this federate instance.
      */
     public List<Instantiation> networkSenderInstantiations = new ArrayList<>();
+
     /**
      * List of generated network instantiations (network input and outputs) that
      * belong to this federate instance.
