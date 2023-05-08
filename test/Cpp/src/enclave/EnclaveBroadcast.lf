@@ -1,4 +1,6 @@
-target Cpp{timeout: 1 sec}
+target Cpp {
+    timeout: 1 sec
+}
 
 reactor Source {
     output out: unsigned
@@ -31,7 +33,7 @@ reactor Sink(bank_index: size_t = 0) {
 main reactor {
     @enclave
     source = new Source()
-    @enclave(each=true)
+    @enclave(each = true)
     sink = new[4] Sink()
     (source.out)+ -> sink.in
 }
