@@ -63,9 +63,7 @@ class CppConnectionGenerator(private val reactor: Reactor) {
         with(connection) {
             if (requiresConnectionClass) {
                 if (hasMultipleConnections) {
-                    // We use an std::list here as connections currently cannot be safely moved and std::vector requires
-                    // objects to be movable.
-                    "std::list<${connection.cppType}> ${connection.name};"
+                    "std::vector<std::unique_ptr<${connection.cppType}>> ${connection.name};"
                 } else {
                     "${connection.cppType} ${connection.name};"
                 }

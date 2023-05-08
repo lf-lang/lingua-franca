@@ -26,6 +26,7 @@ package org.lflang.generator.cpp
 
 import org.lflang.*
 import org.lflang.generator.PrependOperator
+import org.lflang.generator.cpp.CppConnectionGenerator.Companion.cppType
 import org.lflang.generator.cpp.CppConnectionGenerator.Companion.isEnclaveConnection
 import org.lflang.generator.cpp.CppConnectionGenerator.Companion.name
 import org.lflang.generator.cpp.CppConnectionGenerator.Companion.requiresConnectionClass
@@ -172,7 +173,7 @@ class CppAssembleMethodGenerator(private val reactor: Reactor) {
      * complex logic for finding the actual type, we return a decltype statement and let the C++ compiler do the job.
      */
     private val VarRef.portType: String
-        get() = "reactor::Port<${dataType}>*"
+        get() = "reactor::Port<typename ${dataType}>*"
 
     private fun declareMultiportConnection(c: Connection, idx: Int): String {
         // It should be safe to assume that all ports have the same type. Thus we just pick the
@@ -192,6 +193,7 @@ class CppAssembleMethodGenerator(private val reactor: Reactor) {
             ${" |"..c.leftPorts.joinWithLn { addAllPortsToVector(it, "__lf_left_ports_$idx") }}
                 |std::vector<$portType> __lf_right_ports_$idx;
             ${" |"..c.rightPorts.joinWithLn { addAllPortsToVector(it, "__lf_right_ports_$idx") }}
+                |${c.name}.reserve(std::max(__lf_left_ports_$idx.size(), __lf_right_ports_$idx.size()));
                 |lfutil::bind_multiple_ports<$portType>(__lf_left_ports_$idx, __lf_right_ports_$idx, ${c.isIterated},
             ${" |"..c.getConnectionLambda(portType)}
                 |);
@@ -203,17 +205,18 @@ class CppAssembleMethodGenerator(private val reactor: Reactor) {
         return when {
             isEnclaveConnection     -> """
                     [this]($portType left, $portType right, std::size_t idx) {
-                      $name.emplace_back("$name" + std::to_string(idx), right->environment()${if (delay != null) ", ${delay.toCppTime()}" else ""});
-                      $name.back().bind_upstream_port(left);
-                      $name.back().bind_downstream_port(right);
+                      $name.push_back(std::make_unique<$cppType>(
+                          "$name" + std::to_string(idx), right->environment()${if (delay != null) ", ${delay.toCppTime()}" else ""}));
+                      $name.back()->bind_upstream_port(left);
+                      $name.back()->bind_downstream_port(right);
                     }
                 """.trimIndent()
 
             requiresConnectionClass -> """
                     [this]($portType left, $portType right, std::size_t idx) {
-                      $name.emplace_back("$name" + std::to_string(idx), this, ${delay.toCppTime()});
-                      $name.back().bind_upstream_port(left);
-                      $name.back().bind_downstream_port(right);
+                      $name.push_back(std::make_unique<$cppType>("$name" + std::to_string(idx), this, ${delay.toCppTime()})});
+                      $name.back()->bind_upstream_port(left);
+                      $name.back()->bind_downstream_port(right);
                     }
                 """.trimIndent()
 

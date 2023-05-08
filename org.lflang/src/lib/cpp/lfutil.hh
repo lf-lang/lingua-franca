@@ -27,8 +27,6 @@
 #include <reactor-cpp/reactor-cpp.hh>
 #include <reactor-cpp/logging.hh>
 
-#include <list>
-
 namespace lfutil {
 
 template<class T>
