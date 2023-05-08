@@ -41,21 +41,19 @@ class CppConnectionGenerator(private val reactor: Reactor) {
 
         val Connection.isEnclaveConnection: Boolean
             get() {
-                if (leftPorts.size == 1 && rightPorts.size == 1) {
-                    val leftIsEnclave = leftPorts[0].container?.isEnclave == true
-                    val rightIsEnclave = rightPorts[0].container?.isEnclave == true
-                    return when {
-                        leftIsEnclave && rightIsEnclave   -> true
-                        !leftIsEnclave && !rightIsEnclave -> false
-                        else                              -> TODO("Connections between enclaves and normal reactors are not supported")
-                    }
-                }
+                var foundEnclave = false
+                var allEnclave = true
                 for (port in leftPorts + rightPorts) {
                     if (port.container?.isEnclave == true) {
-                        TODO("Enclaves can only be used in simple connections")
+                        foundEnclave = true
+                    } else {
+                        allEnclave = false
                     }
                 }
-                return false
+                if (foundEnclave && !allEnclave) {
+                    TODO("Connections between enclaves and normal reactors are not supported")
+                }
+                return foundEnclave
             }
 
         val Connection.requiresConnectionClass: Boolean get() = isPhysical || delay != null || isEnclaveConnection;
@@ -71,10 +69,12 @@ class CppConnectionGenerator(private val reactor: Reactor) {
     private fun generateDecleration(connection: Connection): String? =
         with(connection) {
             if (requiresConnectionClass) {
-                when {
-                    hasMultipleConnections && isEnclaveConnection  -> "std::list<${connection.cppType}> ${connection.name};"
-                    hasMultipleConnections && !isEnclaveConnection -> "std::vector<${connection.cppType}> ${connection.name};"
-                    else                                           -> "${connection.cppType} ${connection.name};"
+                if (hasMultipleConnections) {
+                    // We use an std::list here as connections currently cannot be safely moved and std::vector requires
+                    // objects to be movable.
+                    "std::list<${connection.cppType}> ${connection.name};"
+                } else {
+                    "${connection.cppType} ${connection.name};"
                 }
             } else null
         }

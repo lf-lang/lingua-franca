@@ -186,47 +186,38 @@ class CppAssembleMethodGenerator(private val reactor: Reactor) {
         // within a bank, then we normally iterate over all banks in an outer loop and over all ports in an inner loop. However,
         // if the connection is an interleaved connection, than we change the order on the right side and iterate over ports before banks.
         return with(PrependOperator) {
-            if (!c.requiresConnectionClass) {
-                """
-                    |// connection $idx
-                    |std::vector<$portType> __lf_left_ports_$idx;
-                ${" |"..c.leftPorts.joinWithLn { addAllPortsToVector(it, "__lf_left_ports_$idx") }}
-                    |std::vector<$portType> __lf_right_ports_$idx;
-                ${" |"..c.rightPorts.joinWithLn { addAllPortsToVector(it, "__lf_right_ports_$idx") }}
-                    |lfutil::bind_multiple_ports(__lf_left_ports_$idx, __lf_right_ports_$idx, ${c.isIterated});
-                """.trimMargin()
-            } else if (!c.isEnclaveConnection) {
-                """
-                    |// connection $idx
-                    |std::vector<$portType> __lf_left_ports_$idx;
-                ${" |"..c.leftPorts.joinWithLn { addAllPortsToVector(it, "__lf_left_ports_$idx") }}
-                    |${c.name}.reserve(__lf_left_ports_$idx.size());
-                    |for(size_t __lf_idx{0}; __lf_idx < __lf_left_ports_$idx.size(); __lf_idx++) {
-                    |  ${c.name}.emplace_back("${c.name}" + std::to_string(__lf_idx), this, ${c.delay.toCppTime()});
-                    |  ${c.name}.back().bind_upstream_port(__lf_left_ports_$idx[__lf_idx]);
-                    |}
-                    |std::vector<reactor::Connection<$dataType>*> __lf_connection_pointers_$idx;
-                    |for (auto& connection : ${c.name}) {
-                    |  __lf_connection_pointers_$idx.push_back(&connection);
-                    |}
-                    |std::vector<$portType> __lf_right_ports_$idx;
-                ${" |"..c.rightPorts.joinWithLn { addAllPortsToVector(it, "__lf_right_ports_$idx") }}
-                    |lfutil::bind_multiple_connections_with_ports(__lf_connection_pointers_$idx, __lf_right_ports_$idx, ${c.isIterated});
-                """.trimMargin()
-            } else {
-                """
-                    |// connection $idx
-                    |std::vector<$portType> __lf_left_ports_$idx;
-                ${" |"..c.leftPorts.joinWithLn { addAllPortsToVector(it, "__lf_left_ports_$idx") }}
-                    |std::vector<$portType> __lf_right_ports_$idx;
-                ${" |"..c.rightPorts.joinWithLn { addAllPortsToVector(it, "__lf_right_ports_$idx") }}
-                    |for(size_t __lf_idx{0}; __lf_idx < std::min(__lf_right_ports_$idx.size(), __lf_left_ports_$idx.size()); __lf_idx++) {
-                    |  ${c.name}.emplace_back("${c.name}" + std::to_string(__lf_idx), __lf_right_ports_$idx[__lf_idx]->environment()${if(c.delay != null) ", ${c.delay.toCppTime()}" else ""});
-                    |  ${c.name}.back().bind_upstream_port(__lf_left_ports_$idx[__lf_idx]);
-                    |  ${c.name}.back().bind_downstream_port(__lf_right_ports_$idx[__lf_idx]);
-                    |}
-                """.trimMargin()
-            }
+            """
+                |// connection $idx
+                |std::vector<$portType> __lf_left_ports_$idx;
+            ${" |"..c.leftPorts.joinWithLn { addAllPortsToVector(it, "__lf_left_ports_$idx") }}
+                |std::vector<$portType> __lf_right_ports_$idx;
+            ${" |"..c.rightPorts.joinWithLn { addAllPortsToVector(it, "__lf_right_ports_$idx") }}
+                |lfutil::bind_multiple_ports<$portType>(__lf_left_ports_$idx, __lf_right_ports_$idx, ${c.isIterated},
+            ${" |"..c.getConnectionLambda(portType)}
+                |);
+            """.trimMargin()
+        }
+    }
+
+    private fun Connection.getConnectionLambda(portType: String): String {
+        return when {
+            isEnclaveConnection     -> """
+                    [this]($portType left, $portType right, std::size_t idx) {
+                      $name.emplace_back("$name" + std::to_string(idx), right->environment()${if (delay != null) ", ${delay.toCppTime()}" else ""});
+                      $name.back().bind_upstream_port(left);
+                      $name.back().bind_downstream_port(right);
+                    }
+                """.trimIndent()
+
+            requiresConnectionClass -> """
+                    [this]($portType left, $portType right, std::size_t idx) {
+                      $name.emplace_back("$name" + std::to_string(idx), this, ${delay.toCppTime()});
+                      $name.back().bind_upstream_port(left);
+                      $name.back().bind_downstream_port(right);
+                    }
+                """.trimIndent()
+
+            else                    -> "[]($portType left, $portType right, [[maybe_unused]]std::size_t idx) {  left->bind_to(right); }"
         }
     }
 
