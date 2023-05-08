@@ -35,7 +35,6 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import org.eclipse.emf.ecore.EObject;
 import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.xtext.xbase.lib.Exceptions;
 
@@ -56,7 +55,6 @@ import org.lflang.generator.c.CCmakeGenerator;
 import org.lflang.generator.c.CGenerator;
 import org.lflang.generator.c.CUtil;
 import org.lflang.lf.Action;
-import org.lflang.lf.Code;
 import org.lflang.lf.Input;
 import org.lflang.lf.Model;
 import org.lflang.lf.Output;
@@ -661,20 +659,23 @@ public class PythonGenerator extends CGenerator {
     @Override
     protected void copyTargetFiles() throws IOException {
         super.copyTargetFiles();
-        FileUtil.copyDirectoryFromClassPath(
+        FileUtil.copyFromClassPath(
             "/lib/py/reactor-c-py/include",
-            fileConfig.getSrcGenPath().resolve("include"),
-            true
+            fileConfig.getSrcGenPath(),
+            true,
+            false
         );
-        FileUtil.copyDirectoryFromClassPath(
+        FileUtil.copyFromClassPath(
             "/lib/py/reactor-c-py/lib",
-            fileConfig.getSrcGenPath().resolve("lib"),
-            true
+            fileConfig.getSrcGenPath(),
+            true,
+            false
         );
-        FileUtil.copyDirectoryFromClassPath(
+        FileUtil.copyFromClassPath(
             "/lib/py/reactor-c-py/LinguaFrancaBase",
-            fileConfig.getSrcGenPath().resolve("LinguaFrancaBase"),
-            true
+            fileConfig.getSrcGenPath(),
+            true,
+            false
         );
     }
 
