@@ -41,19 +41,12 @@ class CppConnectionGenerator(private val reactor: Reactor) {
 
         val Connection.isEnclaveConnection: Boolean
             get() {
-                var foundEnclave = false
-                var allEnclave = true
                 for (port in leftPorts + rightPorts) {
                     if (port.container?.isEnclave == true) {
-                        foundEnclave = true
-                    } else {
-                        allEnclave = false
+                        return true
                     }
                 }
-                if (foundEnclave && !allEnclave) {
-                    TODO("Connections between enclaves and normal reactors are not supported")
-                }
-                return foundEnclave
+                return false
             }
 
         val Connection.requiresConnectionClass: Boolean get() = isPhysical || delay != null || isEnclaveConnection;
