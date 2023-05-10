@@ -180,9 +180,6 @@ class CppAssembleMethodGenerator(private val reactor: Reactor) {
         // first left port to determine the type of the entire connection
         val portType = c.leftPorts[0].portType
 
-        val leftPort = c.leftPorts[0].variable as Port
-        val dataType = leftPort.inferredType.cppType
-
         // Generate code which adds all left hand ports and all right hand ports to a vector each. If we are handling multiports
         // within a bank, then we normally iterate over all banks in an outer loop and over all ports in an inner loop. However,
         // if the connection is an interleaved connection, than we change the order on the right side and iterate over ports before banks.
@@ -193,7 +190,7 @@ class CppAssembleMethodGenerator(private val reactor: Reactor) {
             ${" |"..c.leftPorts.joinWithLn { addAllPortsToVector(it, "__lf_left_ports_$idx") }}
                 |std::vector<$portType> __lf_right_ports_$idx;
             ${" |"..c.rightPorts.joinWithLn { addAllPortsToVector(it, "__lf_right_ports_$idx") }}
-                |${c.name}.reserve(std::max(__lf_left_ports_$idx.size(), __lf_right_ports_$idx.size()));
+            ${" |"..if (c.requiresConnectionClass) "{c.name}.reserve(std::max(__lf_left_ports_$idx.size(), __lf_right_ports_$idx.size()))" else ""}
                 |lfutil::bind_multiple_ports<$portType>(__lf_left_ports_$idx, __lf_right_ports_$idx, ${c.isIterated},
             ${" |"..c.getConnectionLambda(portType)}
                 |);
