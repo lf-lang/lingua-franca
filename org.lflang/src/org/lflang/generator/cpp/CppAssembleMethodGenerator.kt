@@ -190,7 +190,7 @@ class CppAssembleMethodGenerator(private val reactor: Reactor) {
             ${" |"..c.leftPorts.joinWithLn { addAllPortsToVector(it, "__lf_left_ports_$idx") }}
                 |std::vector<$portType> __lf_right_ports_$idx;
             ${" |"..c.rightPorts.joinWithLn { addAllPortsToVector(it, "__lf_right_ports_$idx") }}
-            ${" |"..if (c.requiresConnectionClass) "{c.name}.reserve(std::max(__lf_left_ports_$idx.size(), __lf_right_ports_$idx.size()))" else ""}
+            ${" |"..if (c.requiresConnectionClass) "${c.name}.reserve(std::max(__lf_left_ports_$idx.size(), __lf_right_ports_$idx.size()));" else ""}
                 |lfutil::bind_multiple_ports<$portType>(__lf_left_ports_$idx, __lf_right_ports_$idx, ${c.isIterated},
             ${" |"..c.getConnectionLambda(portType)}
                 |);
