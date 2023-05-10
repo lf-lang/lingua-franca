@@ -1,12 +1,12 @@
 /**
  * This example demonstrates a very simple blink program that will turn on and
  * off an LED on the Arduino Board with a 50% duty cycle switching every
- * half-second.
+ * half-second for the SAM family of Arduino boards.
  */
 target C {
     platform: {
         name: "arduino",
-        board: "arduino:sam:arduino_due_x",
+        board: "arduino:sam:arduino_due_x"
     }
 }
 

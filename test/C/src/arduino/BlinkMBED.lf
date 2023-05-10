@@ -1,7 +1,7 @@
 /**
  * This example demonstrates a very simple blink program that will turn on and
  * off an LED on the Arduino Board with a 50% duty cycle switching every
- * half-second.
+ * half-second for the MBED family of Arduino boards.
  */
 target C {
     platform: {
