@@ -211,7 +211,7 @@ class CppAssembleMethodGenerator(private val reactor: Reactor) {
 
             requiresConnectionClass -> """
                     [this]($portType left, $portType right, std::size_t idx) {
-                      $name.push_back(std::make_unique<$cppType>("$name" + std::to_string(idx), this, ${delay.toCppTime()})});
+                      $name.push_back(std::make_unique<$cppType>("$name" + std::to_string(idx), this, ${delay.toCppTime()}));
                       $name.back()->bind_upstream_port(left);
                       $name.back()->bind_downstream_port(right);
                     }
