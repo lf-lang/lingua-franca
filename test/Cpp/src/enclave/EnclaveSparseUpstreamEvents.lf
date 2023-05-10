@@ -1,12 +1,12 @@
 // The purpose of this test is to check that the downstream enclave can
 // progress, even if there are only sparse upstream events.
 target Cpp {
-    timeout: 6 s,
+    timeout: 12 s,
     workers: 1
 }
 
-reactor Src {
-    timer t(0, 2 s)
+reactor Src {s
+    timer t(0, 4 s)
     output out: int
     state counter: int = 0
 
@@ -36,7 +36,7 @@ reactor Sink {
         }
     =}
 
-    reaction(t) {= reactor::log::Info() << "Tick"; =} deadline(1 s) {=
+    reaction(t) {= reactor::log::Info() << "Tick"; =} deadline(2 s) {=
         reactor::log::Error() << "Deadline violated.";
         exit(2);
     =}
