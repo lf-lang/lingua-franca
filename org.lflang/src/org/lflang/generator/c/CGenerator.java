@@ -37,7 +37,6 @@ import static org.lflang.util.StringUtil.addDoubleQuotes;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
@@ -426,8 +425,6 @@ public class CGenerator extends GeneratorBase {
                     "LF programs with a CCpp target are currently not supported on Windows. " +
                     "Exiting code generation."
                 );
-                // FIXME: The incompatibility between our C runtime code and the
-                //  Visual Studio compiler is extensive.
                 return false;
             }
         }
@@ -610,7 +607,9 @@ public class CGenerator extends GeneratorBase {
                     GeneratorResult.Status.COMPILED, null
                 );
             }
-            System.out.println("Compiled binary is in " + fileConfig.binPath);
+            if (!errorsOccurred()){
+                System.out.println("Compiled binary is in " + fileConfig.binPath);
+            }
         } else {
             context.finish(GeneratorResult.GENERATED_NO_EXECUTABLE.apply(context, null));
         }
@@ -803,9 +802,15 @@ public class CGenerator extends GeneratorBase {
                     break;
                 }
             }
-            // Copy the user files and cmake-includes to the src-gen path of the main .lf file
             if (lfResource != null) {
+                // Copy the user files and cmake-includes to the src-gen path of the main .lf file
                 copyUserFiles(lfResource.getTargetConfig(), lfResource.getFileConfig());
+                // Merge the CMake includes from the imported file into the target config
+                lfResource.getTargetConfig().cmakeIncludes.forEach(incl -> {
+                    if (!this.targetConfig.cmakeIncludes.contains(incl)) {
+                        this.targetConfig.cmakeIncludes.add(incl);
+                    }
+                });
             }
         }
     }
@@ -818,56 +823,18 @@ public class CGenerator extends GeneratorBase {
      * @param fileConfig The fileConfig used to make the copy and resolve paths.
      */
     @Override
-    public void copyUserFiles(TargetConfig targetConfig, FileConfig fileConfig) {
+    protected void copyUserFiles(TargetConfig targetConfig, FileConfig fileConfig) {
         super.copyUserFiles(targetConfig, fileConfig);
-        // Make sure the target directory exists.
-        var targetDir = this.fileConfig.getSrcGenPath();
-        try {
-            Files.createDirectories(targetDir);
-        } catch (IOException e) {
-            //noinspection ThrowableNotThrown,ResultOfMethodCallIgnored
-            Exceptions.sneakyThrow(e);
-        }
+        // Must use class variable to determine destination!
+        var destination = this.fileConfig.getSrcGenPath();
 
-        for (String filename : targetConfig.fileNames) {
-            var relativeFileName = CUtil.copyFileOrResource(
-                    filename,
-                    fileConfig.srcFile.getParent(),
-                    targetDir);
-            if (StringExtensions.isNullOrEmpty(relativeFileName)) {
-                errorReporter.reportError(
-                    "Failed to find file " + filename + " specified in the" +
-                    " files target property."
-                );
-            } else {
-                targetConfig.filesNamesWithoutPath.add(
-                    relativeFileName
-                );
-            }
-        }
+        FileUtil.copyFilesOrDirectories(targetConfig.cmakeIncludes, destination, fileConfig, errorReporter, true);
 
-        for (String filename : targetConfig.cmakeIncludes) {
-            var relativeCMakeIncludeFileName =
-                CUtil.copyFileOrResource(
-                    filename,
-                    fileConfig.srcFile.getParent(),
-                    targetDir);
-            // Check if the file exists
-            if (StringExtensions.isNullOrEmpty(relativeCMakeIncludeFileName)) {
-                errorReporter.reportError(
-                    "Failed to find cmake-include file " + filename
-                );
-            } else {
-                this.targetConfig.cmakeIncludesWithoutPath.add(
-                    relativeCMakeIncludeFileName
-                );
-            }
-        }
-
+        // FIXME: Unclear what the following does, but it does not appear to belong here.
         if (!StringExtensions.isNullOrEmpty(targetConfig.fedSetupPreamble)) {
             try {
                 FileUtil.copyFile(fileConfig.srcFile.getParent().resolve(targetConfig.fedSetupPreamble),
-                                  targetDir.resolve(targetConfig.fedSetupPreamble));
+                                  destination.resolve(targetConfig.fedSetupPreamble));
             } catch (IOException e) {
                 errorReporter.reportError("Failed to find _fed_setup file " + targetConfig.fedSetupPreamble);
             }
@@ -914,10 +881,11 @@ public class CGenerator extends GeneratorBase {
     /** Generate user-visible header files for all reactors instantiated. */
     private void generateHeaders() throws IOException {
         FileUtil.deleteDirectory(fileConfig.getIncludePath());
-        FileUtil.copyDirectoryFromClassPath(
+        FileUtil.copyFromClassPath(
             fileConfig.getRuntimeIncludePath(),
             fileConfig.getIncludePath(),
-            false
+            false,
+            true
         );
         for (Reactor r : reactors) {
             CReactorHeaderFileGenerator.doGenerate(
@@ -935,7 +903,7 @@ public class CGenerator extends GeneratorBase {
                 },
                 this::generateTopLevelPreambles);
         }
-        FileUtil.copyDirectory(fileConfig.getIncludePath(), fileConfig.getSrcGenPath().resolve("include"), false);
+        FileUtil.copyDirectoryContents(fileConfig.getIncludePath(), fileConfig.getSrcGenPath().resolve("include"), false);
     }
 
     /**
@@ -991,36 +959,39 @@ public class CGenerator extends GeneratorBase {
         Path dest = fileConfig.getSrcGenPath();
         if (targetConfig.platformOptions.platform == Platform.ARDUINO) dest = dest.resolve("src");
         if (coreLib != null) {
-            FileUtil.copyDirectory(Path.of(coreLib), dest, true);
+            FileUtil.copyDirectoryContents(Path.of(coreLib), dest, true);
         } else {
-            FileUtil.copyDirectoryFromClassPath(
+            FileUtil.copyFromClassPath(
                 "/lib/c/reactor-c/core",
-                dest.resolve("core"),
-                true
+                dest,
+                true,
+                false
             );
-            FileUtil.copyDirectoryFromClassPath(
+            FileUtil.copyFromClassPath(
                 "/lib/c/reactor-c/lib",
-                dest.resolve("lib"),
-                true
+                dest,
+                true,
+                false
             );
         }
 
         // For the Zephyr target, copy default config and board files.
         if (targetConfig.platformOptions.platform == Platform.ZEPHYR) {
-            FileUtil.copyDirectoryFromClassPath(
+            FileUtil.copyFromClassPath(
                 "/lib/platform/zephyr/boards",
-                fileConfig.getSrcGenPath().resolve("boards"),
+                fileConfig.getSrcGenPath(),
+                false,
                 false
             );
             FileUtil.copyFileFromClassPath(
                 "/lib/platform/zephyr/prj_lf.conf",
-                fileConfig.getSrcGenPath().resolve("prj_lf.conf"),
+                fileConfig.getSrcGenPath(),
                 true
             );
 
             FileUtil.copyFileFromClassPath(
                 "/lib/platform/zephyr/Kconfig",
-                fileConfig.getSrcGenPath().resolve("Kconfig"),
+                fileConfig.getSrcGenPath(),
                 true
             );
         }
@@ -1107,7 +1078,7 @@ public class CGenerator extends GeneratorBase {
      * @param reactor The given reactor
      */
     protected void generateUserPreamblesForReactor(Reactor reactor, CodeBuilder src) {
-        for (Preamble p : convertToEmptyListIfNull(reactor.getPreambles())) {
+        for (Preamble p : ASTUtils.allPreambles(reactor)) {
             src.pr("// *********** From the preamble, verbatim:");
             src.prSourceLineNumber(p.getCode());
             src.pr(toText(p.getCode()));
@@ -2012,8 +1983,11 @@ public class CGenerator extends GeneratorBase {
         var guard = "TOP_LEVEL_PREAMBLE_" + reactor.eContainer().hashCode() + "_H";
         builder.pr("#ifndef " + guard);
         builder.pr("#define " + guard);
+        // Reactors that are instantiated by the specified reactor need to have
+        // their file-level preambles included.  This needs to also include file-level
+        // preambles of base classes of those reactors.
         Stream.concat(Stream.of(reactor), ASTUtils.allNestedClasses(reactor))
-            .flatMap(it -> ((Model) it.eContainer()).getPreambles().stream())
+            .flatMap(it -> ASTUtils.allFileLevelPreambles(it).stream())
             .collect(Collectors.toSet())
             .forEach(it -> builder.pr(toText(it.getCode())));
         for (String file : targetConfig.protoFiles) {
