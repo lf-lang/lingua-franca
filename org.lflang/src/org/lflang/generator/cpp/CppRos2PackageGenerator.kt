@@ -1,12 +1,13 @@
 package org.lflang.generator.cpp
 
 import org.lflang.generator.PrependOperator
+import org.lflang.joinLn
 import org.lflang.joinWithLn
 import org.lflang.toUnixString
 import java.nio.file.Path
 
 /** A C++ code generator for creating the required files for defining a ROS2 package. */
-class CppRos2PackageGenerator(generator: CppGenerator, private val nodeName: String) {
+class CppRos2PackageGenerator(generator: CppGenerator) {
     private val fileConfig = generator.fileConfig
     private val targetConfig = generator.targetConfig
     val reactorCppSuffix = targetConfig.runtimeVersion ?: "default"
@@ -45,7 +46,7 @@ class CppRos2PackageGenerator(generator: CppGenerator, private val nodeName: Str
         """.trimMargin()
     }
 
-    fun generatePackageCmake(sources: List<Path>): String {
+    fun generatePackageCmake(sources: List<Path>, nodeNames: List<String>): String {
         // Resolve path to the cmake include files if any was provided
         val includeFiles = targetConfig.cmakeIncludes?.map { fileConfig.srcPath.resolve(it).toUnixString() }
 
@@ -68,31 +69,33 @@ class CppRos2PackageGenerator(generator: CppGenerator, private val nodeName: Str
                 |# Invoke find_package() for all build and buildtool dependencies.
                 |find_package(ament_cmake_auto REQUIRED)
                 |ament_auto_find_build_dependencies()
+                ${ nodeNames.map {
+                    """
+                    |ament_auto_add_library($it SHARED
+                    |  src/$it.cc
+                ${" |    "..sources.joinWithLn { "src/$it" }}
+                    |)
+                    |ament_target_dependencies($it ${dependencies.joinToString(" ")})
+                    |target_include_directories($it PUBLIC
+                    |    "$S{LF_SRC_PKG_PATH}/src"
+                    |    "$S{PROJECT_SOURCE_DIR}/src/"
+                    |    "$S{PROJECT_SOURCE_DIR}/src/__include__"
+                    |)
+                    |target_link_libraries($it $reactorCppName)
+                    |
+                    |rclcpp_components_register_node($it
+                    |  PLUGIN $it
+                    |  EXECUTABLE ${it}_exe
+                    |)
+                    |if(MSVC)
+                    |  target_compile_options($it PRIVATE /W4)
+                    |else()
+                    |  target_compile_options($it PRIVATE -Wall -Wextra -pedantic)
+                    |endif()
+                    """
+                }.joinLn()}
                 |
-                |set(LF_MAIN_TARGET ${fileConfig.name})
                 |
-                |ament_auto_add_library($S{LF_MAIN_TARGET} SHARED
-                |    src/$nodeName.cc
-            ${" |    "..sources.joinWithLn { "src/$it" }}
-                |)
-                |ament_target_dependencies($S{LF_MAIN_TARGET} ${dependencies.joinToString(" ")})
-                |target_include_directories($S{LF_MAIN_TARGET} PUBLIC
-                |    "$S{LF_SRC_PKG_PATH}/src"
-                |    "$S{PROJECT_SOURCE_DIR}/src/"
-                |    "$S{PROJECT_SOURCE_DIR}/src/__include__"
-                |)
-                |target_link_libraries($S{LF_MAIN_TARGET} $reactorCppName)
-                |
-                |rclcpp_components_register_node($S{LF_MAIN_TARGET}
-                |  PLUGIN "$nodeName"
-                |  EXECUTABLE $S{LF_MAIN_TARGET}_exe
-                |)
-                |
-                |if(MSVC)
-                |  target_compile_options($S{LF_MAIN_TARGET} PRIVATE /W4)
-                |else()
-                |  target_compile_options($S{LF_MAIN_TARGET} PRIVATE -Wall -Wextra -pedantic)
-                |endif()
                 |
                 |ament_auto_package()
                 |

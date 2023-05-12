@@ -4,14 +4,14 @@ import org.lflang.TargetConfig
 import org.lflang.lf.Reactor
 import org.lflang.toUnixString
 
-/** A C++ code generator for creating a ROS2 node from a main reactor definition */
+/** A C++ code generator for creating a ROS2 node from reactor definition */
 class CppRos2NodeGenerator(
-    private val main: Reactor,
+    private val reactor: Reactor,
     private val targetConfig: TargetConfig,
     private val fileConfig: CppFileConfig
 ) {
 
-    val nodeName = "${fileConfig.name}Node"
+    val nodeName = "${reactor.name}Node"
 
     fun generateHeader(): String {
         return """
@@ -20,17 +20,17 @@ class CppRos2NodeGenerator(
             |#include <rclcpp/rclcpp.hpp>
             |#include "reactor-cpp/reactor-cpp.hh"
             |
-            |#include "${fileConfig.getReactorHeaderPath(main).toUnixString()}"
+            |#include "${fileConfig.getReactorHeaderPath(reactor).toUnixString()}"
             |
             |rclcpp::Node* lf_node{nullptr};
             |
             |class $nodeName : public rclcpp::Node {
             |private:
             |  std::unique_ptr<reactor::Environment> lf_env;
-            |  std::unique_ptr<${main.name}> lf_main_reactor;
+            |  std::unique_ptr<${reactor.name}> lf_reactor;
             |
-            |  // main thread of the LF execution
-            |  std::thread lf_main_thread;
+            |  // thread of the LF execution
+            |  std::thread lf_thread;
             |  // an additional thread that we use for waiting for LF termination
             |  // and then shutting down the LF node
             |  std::thread lf_shutdown_thread;
@@ -51,7 +51,7 @@ class CppRos2NodeGenerator(
             |#include <thread>
             |
             |void $nodeName::wait_for_lf_shutdown() {
-            |  lf_main_thread.join();
+            |  lf_thread.join();
             |  this->get_node_options().context()->shutdown("LF execution terminated");
             |}
             |
@@ -68,13 +68,13 @@ class CppRos2NodeGenerator(
             |  lf_env = std::make_unique<reactor::Environment>(workers, fast, lf_timeout);
             |
             |  // instantiate the main reactor
-            |  lf_main_reactor = std::make_unique<${main.name}> ("${main.name}", lf_env.get(), ${main.name}::Parameters{});
+            |  lf_reactor = std::make_unique<${reactor.name}> ("${reactor.name}", lf_env.get(), ${reactor.name}::Parameters{});
             |
             |  // assemble reactor program
             |  lf_env->assemble();
             |
             |  // start execution
-            |  lf_main_thread = lf_env->startup();
+            |  lf_thread = lf_env->startup();
             |  lf_shutdown_thread = std::thread([this] { wait_for_lf_shutdown(); });
             |}
             |

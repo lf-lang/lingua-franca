@@ -248,4 +248,20 @@ public class AttributeUtils {
         return getEnclaveAttribute(node) != null;
     }
 
+  /**
+   * Return the {@code @federate} attribute annotated on the given node.
+   *
+   * <p>Returns null if there is no such attribute.
+   */
+  public static Attribute getFederateAttribute(Instantiation node) {
+    return findAttributeByName(node, "federate");
+  }
+
+  /**
+   * Return true if the specified instance has an {@code @federate} attribute. TODO: this needs some
+   * other name bec of c target federate
+   */
+  public static boolean isFederate(Instantiation node) {
+    return getFederateAttribute(node) != null;
+  }
 }

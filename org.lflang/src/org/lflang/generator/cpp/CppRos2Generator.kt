@@ -1,6 +1,8 @@
 package org.lflang.generator.cpp
 
+import org.lflang.AttributeUtils
 import org.lflang.generator.LFGeneratorContext
+import org.lflang.reactor
 import org.lflang.util.FileUtil
 import java.nio.file.Path
 
@@ -9,24 +11,33 @@ class CppRos2Generator(generator: CppGenerator) : CppPlatformGenerator(generator
 
     override val srcGenPath: Path = generator.fileConfig.srcGenPath.resolve("src")
     private val packagePath: Path = generator.fileConfig.srcGenPath
-    private val nodeGenerator = CppRos2NodeGenerator(mainReactor, targetConfig, fileConfig);
-    private val packageGenerator = CppRos2PackageGenerator(generator, nodeGenerator.nodeName)
+    private val nodeGenerators : MutableList<CppRos2NodeGenerator> = mutableListOf(CppRos2NodeGenerator(mainReactor, targetConfig, fileConfig))
+    private val packageGenerator = CppRos2PackageGenerator(generator)
 
     override fun generatePlatformFiles() {
-        FileUtil.writeToFile(
-            nodeGenerator.generateHeader(),
-            packagePath.resolve("include").resolve("${nodeGenerator.nodeName}.hh"),
-            true
-        )
-        FileUtil.writeToFile(
-            nodeGenerator.generateSource(),
-            packagePath.resolve("src").resolve("${nodeGenerator.nodeName}.cc"),
-            true
-        )
+        mainReactor.instantiations.forEach{
+            if (AttributeUtils.isFederate(it)) {
+                nodeGenerators.add(
+                    CppRos2NodeGenerator(it.reactor, targetConfig, fileConfig))
+            }
+        }
+
+        for (nodeGen in nodeGenerators) {
+            FileUtil.writeToFile(
+                nodeGen.generateHeader(),
+                packagePath.resolve("include").resolve("${nodeGen.nodeName}.hh"),
+                true
+            )
+            FileUtil.writeToFile(
+                nodeGen.generateSource(),
+                packagePath.resolve("src").resolve("${nodeGen.nodeName}.cc"),
+                true
+            )
+        }
 
         FileUtil.writeToFile(packageGenerator.generatePackageXml(), packagePath.resolve("package.xml"), true)
         FileUtil.writeToFile(
-            packageGenerator.generatePackageCmake(generator.cppSources),
+            packageGenerator.generatePackageCmake(generator.cppSources, nodeGenerators.map { it.nodeName }),
             packagePath.resolve("CMakeLists.txt"),
             true
         )

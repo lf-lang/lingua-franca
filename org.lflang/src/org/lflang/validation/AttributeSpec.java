@@ -220,6 +220,9 @@ public class AttributeSpec {
             List.of(new AttrParamSpec(EACH_ATTR, AttrParamType.BOOLEAN, true))
         ));
 
+        ATTRIBUTE_SPECS_BY_NAME.put("federate",
+          new AttributeSpec(List.of(new AttrParamSpec(EACH_ATTR, AttrParamType.BOOLEAN, true))));
+
         // attributes that are used internally only by the federated code generation
         ATTRIBUTE_SPECS_BY_NAME.put("_unordered", new AttributeSpec(null));
         ATTRIBUTE_SPECS_BY_NAME.put("_fed_config", new AttributeSpec(
