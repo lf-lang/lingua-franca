@@ -58,6 +58,7 @@ import org.lflang.Target;
 import org.lflang.TargetConfig;
 import org.lflang.TargetProperty;
 import org.lflang.TargetProperty.Platform;
+import org.lflang.TargetProperty.PlatformOption;
 
 import org.lflang.federated.extensions.CExtensionUtils;
 
@@ -1965,9 +1966,13 @@ public class CGenerator extends GeneratorBase {
 
         if (targetConfig.platformOptions.platform == Platform.ZEPHYR && targetConfig.platformOptions.userThreads >= 0) {
             targetConfig.compileDefinitions.put(
-                "USER_THREADS",
+                PlatformOption.USER_THREADS.name(),
                 String.valueOf(targetConfig.platformOptions.userThreads)
             );
+        }
+
+        if (targetConfig.platformOptions.platform != Platform.ZEPHYR && targetConfig.platformOptions.userThreads >= 0) {
+            System.out.println("Specifying user threads is only for the Zephyr platform. This option will be ignored.");
         }
 
         if (targetConfig.threading) {  // FIXME: This logic is duplicated in CMake
