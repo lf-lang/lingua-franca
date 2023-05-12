@@ -5,7 +5,7 @@ target Cpp {
     workers: 1
 }
 
-reactor Src {s
+reactor Src {
     timer t(0, 4 s)
     output out: int
     state counter: int = 0
