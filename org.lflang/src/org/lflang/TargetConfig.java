@@ -173,13 +173,6 @@ public class TargetConfig {
     public List<String> cmakeIncludes = new ArrayList<>();
 
     /**
-     * List of cmake-includes from the cmake-include target property with no path info.
-     * Useful for copying them to remote machines. This is needed because
-     * target cmake-includes can be resources with resource paths.
-     */
-    public List<String> cmakeIncludesWithoutPath = new ArrayList<>();
-
-    /**
      * The compiler to invoke, unless a build command has been specified.
      */
     public String compiler = "";
@@ -237,14 +230,7 @@ public class TargetConfig {
     /**
      * List of files to be copied to src-gen.
      */
-    public List<String> fileNames = new ArrayList<>();
-
-    /**
-     * List of file names from the files target property with no path info.
-     * Useful for copying them to remote machines. This is needed because
-     * target files can be resources with resource paths.
-     */
-    public List<String> filesNamesWithoutPath = new ArrayList<>();
+    public List<String> files = new ArrayList<>();
 
     /**
      * If true, configure the execution environment to keep executing if there
