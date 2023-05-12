@@ -432,7 +432,7 @@ public enum TargetProperty {
                         case PORT:
                             pair.setValue(ASTUtils.toElement(config.platformOptions.port));
                             break;
-                        case USERTHREADS:
+                        case USER_THREADS:
                             pair.setValue(ASTUtils.toElement(config.platformOptions.userThreads));
                             break;
                     }
@@ -475,7 +475,7 @@ public enum TargetProperty {
                             case PORT:
                                 config.platformOptions.port = ASTUtils.elementToSingleString(entry.getValue());
                                 break;
-                            case USERTHREADS:
+                            case USER_THREADS:
                                 config.platformOptions.userThreads = ASTUtils.toInteger(entry.getValue());
                                 break;
                             default:
@@ -1666,7 +1666,7 @@ public enum TargetProperty {
         BOARD("board", PrimitiveType.STRING),
         FLASH("flash", PrimitiveType.BOOLEAN),
         PORT("port", PrimitiveType.STRING),
-        USERTHREADS("user_threads", PrimitiveType.NON_NEGATIVE_INTEGER);
+        USER_THREADS("user-threads", PrimitiveType.NON_NEGATIVE_INTEGER);
 
         public final PrimitiveType type;
 
