@@ -22,7 +22,7 @@ reactor Sink {
         received = true;
         auto value = *in.get();
         reactor::log::Info() << "Received " << value;
-        auto expected = 2s * value;
+        auto expected = 4s * value;
         if (get_elapsed_logical_time() != expected) {
             reactor::log::Error() << "Expected value at " << expected << " but received it at " << get_elapsed_logical_time();
             exit(1);

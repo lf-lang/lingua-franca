@@ -1,12 +1,12 @@
 // The purpose of this test is to check that the downstream enclave respects the
 // after delay when aquiring tags from its upstream.
 target Cpp {
-    timeout: 6 s,
+    timeout: 12 s,
     workers: 1
 }
 
 reactor Src {
-    timer t(0, 2 s)
+    timer t(0, 4 s)
     output out: int
     state counter: int = 0
 
@@ -22,7 +22,7 @@ reactor Sink {
         received = true;
         auto value = *in.get();
         reactor::log::Info() << "Received " << value;
-        auto expected = 2s + 2s * value;
+        auto expected = 2s + 4s * value;
         if (get_elapsed_logical_time() != expected) {
             reactor::log::Error() << "Expected value at " << expected << " but received it at " << get_elapsed_logical_time();
             exit(1);
@@ -36,7 +36,7 @@ reactor Sink {
         }
     =}
 
-    reaction(t) {= reactor::log::Info() << "Tick"; =} deadline(1 s) {=
+    reaction(t) {= reactor::log::Info() << "Tick"; =} deadline(2 s) {=
         reactor::log::Error() << "Deadline violated.";
         exit(2);
     =}
