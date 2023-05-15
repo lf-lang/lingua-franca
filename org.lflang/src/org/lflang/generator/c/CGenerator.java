@@ -1943,8 +1943,7 @@ public class CGenerator extends GeneratorBase {
         }
 
         if (targetConfig.platformOptions.platform != Platform.ZEPHYR && targetConfig.platformOptions.userThreads >= 0) {
-            System.out.println("Specifying user threads is only for the Zephyr platform. This option will be ignored.");
-        }
+            errorReporter.reportWarning("Specifying user threads is only for the Zephyr platform. This option will be ignored.");        }
 
         if (targetConfig.threading) {  // FIXME: This logic is duplicated in CMake
             pickScheduler();
