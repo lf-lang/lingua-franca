@@ -24,6 +24,8 @@
 
 package org.lflang.generator.cpp
 
+import org.lflang.generator.cpp.CppInstanceGenerator.Companion.enclaveWrapperClassName
+import org.lflang.generator.cpp.CppInstanceGenerator.Companion.isEnclave
 import org.lflang.inferredType
 import org.lflang.isBank
 import org.lflang.isMultiport
@@ -34,7 +36,6 @@ class CppPortGenerator(private val reactor: Reactor) {
 
     companion object {
         private val VarRef.isMultiport get() = (variable as? Port)?.isMultiport == true
-        private val VarRef.isInBank get() = container?.isBank == true
 
         /**
          * Return the C++ type of a port reference.
@@ -44,11 +45,16 @@ class CppPortGenerator(private val reactor: Reactor) {
          * statement and let the C++ compiler do the job.
          */
         val VarRef.dataType: String
-            get() = when {
-                isInBank && isMultiport  -> "std::remove_reference<decltype(${container.name}[0]->${variable.name}[0])>::type::value_type"
-                isInBank && !isMultiport -> "std::remove_reference<decltype(${container.name}[0]->${variable.name})>::type::value_type"
-                !isInBank && isMultiport -> "std::remove_reference<decltype($name[0])>::type::value_type"
-                else                     -> "std::remove_reference<decltype($name)>::type::value_type"
+            get() {
+                val variableRef = when {
+                    this == null                             -> ""
+                    container == null                        -> this.name
+                    container.isBank && container.isEnclave  -> "${container.name}[0]->__lf_instance->${variable.name}"
+                    container.isBank && !container.isEnclave -> "${container.name}[0]->${variable.name}"
+                    else                                     -> this.name
+                }
+                val multiportRef = if (isMultiport) "$variableRef[0]" else variableRef
+                return "std::remove_reference<decltype($multiportRef)>::type::value_type"
             }
     }
 
@@ -62,7 +68,7 @@ class CppPortGenerator(private val reactor: Reactor) {
     }
 
     /** Get the C++ type for the receiving port. */
-    val Port.cppType: String
+    private val Port.cppType: String
         get() {
             val portType = when (this) {
                 is Input  -> "reactor::Input"

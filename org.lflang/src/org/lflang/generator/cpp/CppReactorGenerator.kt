@@ -187,8 +187,8 @@ class CppReactorGenerator(private val reactor: Reactor, fileConfig: CppFileConfi
             ${" |  "..instances.generateInitializers()}
             ${" |  "..timers.generateInitializers()}
             ${" |  "..actions.generateInitializers()}
-            ${" |  "..connections.generateInitializers()}
             ${" |  "..reactions.generateReactionViewInitializers()}
+            ${" |  "..connections.generateInitializers()}
                 |{
             ${" |  "..ports.generateConstructorInitializers()}
             ${" |  "..instances.generateConstructorInitializers()}

@@ -63,12 +63,13 @@ class LFScope {
   void request_stop() const { return environment()->sync_shutdown(); }
 };
 
-template<class T>
+template<class PortPtr>
 void bind_multiple_ports(
-    std::vector<reactor::Port<T>*>& left_ports,
-    std::vector<reactor::Port<T>*>& right_ports,
-    bool repeat_left) {
-
+    std::vector<PortPtr>& left_ports,
+    std::vector<PortPtr>& right_ports,
+    bool repeat_left,
+    std::function<void(PortPtr, PortPtr, std::size_t)> connect)
+{
   if (repeat_left) {
     auto l_size = left_ports.size();
     auto r_size = right_ports.size();
@@ -92,50 +93,14 @@ void bind_multiple_ports(
                          << "Not all ports will be connected!";
   }
 
+  std::size_t idx{0};
   while (left_it != left_ports.end() && right_it != right_ports.end()) {
     auto left = *left_it;
     auto right = *right_it;
-    left->bind_to(right);
+    connect(left, right, idx);
     left_it++;
     right_it++;
-  }
-}
-
-template<class T>
-void bind_multiple_connections_with_ports(
-    std::vector<reactor::Connection<T>*>& connections,
-    std::vector<reactor::Port<T>*>& ports,
-    bool repeat_left) {
-
-  if (repeat_left) {
-    auto l_size = connections.size();
-    auto r_size = ports.size();
-    // divide and round up
-    auto repetitions = r_size / l_size + (r_size % l_size != 0);
-    // repeat repetitions-1 times
-    connections.reserve(repetitions * l_size);
-    for (std::size_t i{1}; i < repetitions; i++) {
-      std::copy_n(connections.begin(), l_size, std::back_inserter(connections));
-    }
-  }
-
-  auto left_it = connections.begin();
-  auto right_it = ports.begin();
-
-  if (connections.size() < ports.size()) {
-    reactor::log::Warn() << "There are more right ports than left ports. "
-                         << "Not all ports will be connected!";
-  } else if (connections.size() > ports.size()) {
-    reactor::log::Warn() << "There are more left ports than right ports. "
-                         << "Not all ports will be connected!";
-  }
-
-  while (left_it != connections.end() && right_it != ports.end()) {
-    auto left = *left_it;
-    auto right = *right_it;
-    left->bind_downstream_port(right);
-    left_it++;
-    right_it++;
+    idx++;
   }
 }
 
