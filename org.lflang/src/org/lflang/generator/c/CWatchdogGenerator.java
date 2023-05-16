@@ -62,7 +62,7 @@ public class CWatchdogGenerator {
         : ASTUtils.allWatchdogs(ASTUtils.toDefinition(instance.getDefinition().getReactorClass()))) {
       var watchdogField = reactorRef + "->_lf_watchdog_" + watchdog.getName();
       temp.pr(String.join("\n",
-          "_lf_watchdogs[_lf_watchdog_number_count++] = &" + watchdogField + ";",
+          "_lf_watchdogs[watchdog_number++] = &" + watchdogField + ";",
           watchdogField + ".min_expiration = "
               + CTypes.getInstance().getTargetTimeExpr(instance.getTimeValue(watchdog.getTimeout()))
               + ";",
@@ -78,7 +78,7 @@ public class CWatchdogGenerator {
     if (foundOne) {
       code.pr(temp.toString());
     }
-    code.pr("SUPPRESS_UNUSED_WARNING(_lf_watchdog_number);");
+    code.pr("SUPPRESS_UNUSED_WARNING(_lf_watchdog_count);");
     return watchdogCount;
   }
 
@@ -152,7 +152,7 @@ public class CWatchdogGenerator {
           "// No watchdogs found.",
           "typedef void watchdog_t;",
           "watchdog_t* _lf_watchdogs = NULL;",
-          "int _lf_watchdog_number = 0;"
+          "int _lf_watchdog_count = 0;"
       );
     }
     return String.join(
@@ -160,7 +160,7 @@ public class CWatchdogGenerator {
         List.of(
             "// Array of pointers to watchdog structs.",
             "watchdog_t* _lf_watchdogs[" + count + "];",
-            "int _lf_watchdog_number = " + count + ";"
+            "int _lf_watchdog_count = " + count + ";"
         )
     );
   }

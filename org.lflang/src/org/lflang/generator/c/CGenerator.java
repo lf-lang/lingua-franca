@@ -642,8 +642,8 @@ public class CGenerator extends GeneratorBase {
                 "SUPPRESS_UNUSED_WARNING(_lf_timer_triggers_count);",
                 "int bank_index;",
                 "SUPPRESS_UNUSED_WARNING(bank_index);",
-                "int _lf_watchdog_number_count = 0;",
-                "SUPPRESS_UNUSED_WARNING(_lf_watchdog_number_count);"));
+                "int watchdog_number = 0;",
+                "SUPPRESS_UNUSED_WARNING(watchdog_number);"));
             // Add counters for modal initialization
             initializeTriggerObjects.pr(CModesGenerator.generateModalInitalizationCounters(hasModalReactors));
 
