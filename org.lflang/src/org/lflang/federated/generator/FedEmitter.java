@@ -52,7 +52,7 @@ public class FedEmitter {
                                + fileConfig.getSrcPath());
 
         Path lfFilePath = fileConfig.getSrcPath().resolve(
-            fedName + ".lf");
+            "__" + fedName + ".lf");
 
         String federateCode = String.join(
             "\n",
