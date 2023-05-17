@@ -24,13 +24,8 @@ jobs:
       image: zephyrprojectrtos/zephyr-build:v0.24.13
       options: -u root --entrypoint /bin/sh 
     steps:
-      - name: Install Java 17, Maven and set JAVA_HOME
-        run: |
-          sudo apt-get update
-          sudo apt-get upgrade -y
-          sudo apt-get install -y openjdk-19-jdk
-          sudo apt-get install -y maven
-          echo "JAVA_HOME_19_X64=/usr/lib/jvm/java-19-openjdk-amd64" >> $GITHUB_ENV
+      - name: Prepare build environment
+        uses: ./.github/actions/prepare-build-env
       - name: Initialize zephyr
         run: |
           west init /workdir/zephyrproject --mr v3.2.0
