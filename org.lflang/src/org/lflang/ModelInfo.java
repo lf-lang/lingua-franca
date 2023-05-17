@@ -11,15 +11,15 @@ are permitted provided that the following conditions are met:
    this list of conditions and the following disclaimer in the documentation
    and/or other materials provided with the distribution.
 
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
-ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED 
-WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE 
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
 DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR
-ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES 
-(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; 
-LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON 
-ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT 
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS 
+ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
+ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ***************/
 
@@ -28,6 +28,7 @@ package org.lflang;
 import static org.eclipse.xtext.xbase.lib.IterableExtensions.filter;
 import static org.eclipse.xtext.xbase.lib.IteratorExtensions.toIterable;
 
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
@@ -81,7 +82,7 @@ public class ModelInfo {
      * interval.
      */
     public Set<Deadline> overflowingDeadlines;
-    
+
     /**
      * The set of STP offsets that use a too-large constant to specify their time
      * interval.
@@ -136,6 +137,23 @@ public class ModelInfo {
         // Perform C-specific traversals.
         if (target == Target.C) {
             this.collectOverflowingNodes();
+        }
+
+        checkCaseInsensitiveNameCollisions(model, reporter);
+    }
+
+    public void checkCaseInsensitiveNameCollisions(Model model, ErrorReporter reporter) {
+        var reactorNames = new HashSet<>();
+        var bad = new ArrayList<>();
+        for (var reactor : model.getReactors()) {
+            var lowerName = reactor.getName().toLowerCase();
+            if (reactorNames.contains(lowerName)) bad.add(lowerName);
+            reactorNames.add(lowerName);
+        }
+        for (var badName : bad) {
+            model.getReactors().stream().filter(it -> it.getName()
+                .toLowerCase().equals(badName))
+                .forEach(it -> reporter.reportError(it, "Multiple reactors have the same name up to case differences."));
         }
     }
 
@@ -223,7 +241,7 @@ public class ModelInfo {
                             // Check for overflow in the referenced parameter.
                             overflow = detectOverflow(visited, ((ParameterReference)expr).getParameter()) || overflow;
                         } else {
-                            // The right-hand side of the assignment is a 
+                            // The right-hand side of the assignment is a
                             // constant; check whether it is too large.
                             if (isTooLarge(ASTUtils.getLiteralTimeValue(expr))) {
                                 this.overflowingAssignments.add(assignment);
