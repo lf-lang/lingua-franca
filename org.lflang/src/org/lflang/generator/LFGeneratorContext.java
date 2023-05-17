@@ -1,15 +1,12 @@
 package org.lflang.generator;
 
-import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Properties;
 
 import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.xtext.generator.IFileSystemAccess2;
 import org.eclipse.xtext.generator.IGeneratorContext;
-import org.eclipse.xtext.util.RuntimeIOException;
 
 import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
@@ -37,6 +34,7 @@ public interface LFGeneratorContext extends IGeneratorContext {
         LINT("Enable or disable linting of generated code."),
         NO_COMPILE("Do not invoke target compiler."),
         OUTPUT_PATH("Specify the root output directory."),
+        PRINT_STATISTICS("Instruct the runtime to collect and print statistics."),
         QUIET("Suppress output of the target compiler and other commands"),
         RTI("Specify the location of the RTI."),
         RUNTIME_VERSION("Specify the version of the runtime library used for compiling LF programs."),
