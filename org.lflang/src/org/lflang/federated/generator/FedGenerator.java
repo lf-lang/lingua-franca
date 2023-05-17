@@ -286,7 +286,7 @@ public class FedGenerator {
             final int id = i;
             compileThreadPool.execute(() -> {
                 Resource res = rs.getResource(URI.createFileURI(
-                    fileConfig.getSrcPath().resolve(fed.name + ".lf").toAbsolutePath().toString()
+                    FedEmitter.lfFilePath(fileConfig, fed).toAbsolutePath().toString()
                 ), true);
                 FileConfig subFileConfig = LFGenerator.createFileConfig(res, fileConfig.getSrcGenPath(), true);
                 ErrorReporter subContextErrorReporter = new LineAdjustingErrorReporter(threadSafeErrorReporter, lf2lfCodeMapMap);

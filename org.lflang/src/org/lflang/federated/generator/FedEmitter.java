@@ -51,9 +51,6 @@ public class FedEmitter {
                                + " in directory "
                                + fileConfig.getSrcPath());
 
-        Path lfFilePath = fileConfig.getSrcPath().resolve(
-            "__" + fedName + ".lf");
-
         String federateCode = String.join(
             "\n",
             new FedTargetEmitter().generateTarget(context, numOfFederates, federate, fileConfig, errorReporter, rtiConfig),
@@ -67,11 +64,17 @@ public class FedEmitter {
             )
         );
         Map<Path, CodeMap> codeMapMap = new HashMap<>();
+        var lfFilePath = lfFilePath(fileConfig, federate);
         try (var srcWriter = Files.newBufferedWriter(lfFilePath)) {
             var codeMap = CodeMap.fromGeneratedCode(federateCode);
             codeMapMap.put(lfFilePath, codeMap);
             srcWriter.write(codeMap.getGeneratedCode());
         }
         return codeMapMap;
+    }
+
+    public static Path lfFilePath(FedFileConfig fileConfig, FederateInstance federate) {
+        return fileConfig.getSrcPath().resolve(
+            "__" + federate.name + ".lf");
     }
 }
