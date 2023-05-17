@@ -881,12 +881,17 @@ public class CGenerator extends GeneratorBase {
     /** Generate user-visible header files for all reactors instantiated. */
     private void generateHeaders() throws IOException {
         FileUtil.deleteDirectory(fileConfig.getIncludePath());
-        FileUtil.copyFromClassPath(
-            fileConfig.getRuntimeIncludePath(),
-            fileConfig.getIncludePath(),
-            false,
-            true
-        );
+        var core = LFGeneratorContext.BuildParm.EXTERNAL_RUNTIME_PATH.getValue(context);
+        if (core != null) {
+            FileUtil.copyDirectoryContents(Path.of(core).resolve("include"), fileConfig.getIncludePath(), true);
+        } else {
+            FileUtil.copyFromClassPath(
+                fileConfig.getRuntimeIncludePath(),
+                fileConfig.getIncludePath(),
+                false,
+                true
+            );
+        }
         for (Reactor r : reactors) {
             CReactorHeaderFileGenerator.doGenerate(
                 types, r, fileConfig,
@@ -959,7 +964,8 @@ public class CGenerator extends GeneratorBase {
         Path dest = fileConfig.getSrcGenPath();
         if (targetConfig.platformOptions.platform == Platform.ARDUINO) dest = dest.resolve("src");
         if (coreLib != null) {
-            FileUtil.copyDirectoryContents(Path.of(coreLib), dest, true);
+            FileUtil.copyDirectory(Path.of(coreLib).resolve("core"), dest, true);
+            FileUtil.copyDirectory(Path.of(coreLib).resolve("lib"), dest, true);
         } else {
             FileUtil.copyFromClassPath(
                 "/lib/c/reactor-c/core",

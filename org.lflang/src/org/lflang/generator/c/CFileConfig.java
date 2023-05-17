@@ -6,6 +6,7 @@ import java.nio.file.Path;
 import org.eclipse.emf.ecore.resource.Resource;
 
 import org.lflang.FileConfig;
+import org.lflang.generator.LFGeneratorContext;
 
 public class CFileConfig extends FileConfig {
     private final Path includePath;
