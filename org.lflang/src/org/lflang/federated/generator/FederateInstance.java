@@ -107,9 +107,10 @@ public class FederateInstance { // why does this not extend ReactorInstance?
             // If the instantiation is in a bank, then we have to append
             // the bank index to the name.
             if (instantiation.getWidthSpec() != null) {
-                this.name = instantiation.getName() + "__" + bankIndex;
+                this.name = "federate__" + instantiation.getName() + "__" + bankIndex;
+            } else {
+                this.name = "federate__" + instantiation.getName();
             }
-            name = "federate__" + name;
         }
     }
 
