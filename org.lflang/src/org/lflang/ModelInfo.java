@@ -28,6 +28,7 @@ package org.lflang;
 import static org.eclipse.xtext.xbase.lib.IterableExtensions.filter;
 import static org.eclipse.xtext.xbase.lib.IteratorExtensions.toIterable;
 
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
@@ -47,6 +48,7 @@ import org.lflang.lf.Parameter;
 import org.lflang.lf.ParameterReference;
 import org.lflang.lf.Reactor;
 import org.lflang.lf.STP;
+import org.lflang.util.FileUtil;
 
 
 /**
@@ -146,15 +148,19 @@ public class ModelInfo {
         var reactorNames = new HashSet<>();
         var bad = new ArrayList<>();
         for (var reactor : model.getReactors()) {
-            var lowerName = reactor.getName().toLowerCase();
+            var lowerName = getName(reactor).toLowerCase();
             if (reactorNames.contains(lowerName)) bad.add(lowerName);
             reactorNames.add(lowerName);
         }
         for (var badName : bad) {
-            model.getReactors().stream().filter(it -> it.getName()
-                .toLowerCase().equals(badName))
+            model.getReactors().stream()
+                .filter(it -> getName(it).toLowerCase().equals(badName))
                 .forEach(it -> reporter.reportError(it, "Multiple reactors have the same name up to case differences."));
         }
+    }
+
+    private String getName(Reactor r) {
+        return r.getName() == null ? r.getName() : FileUtil.nameWithoutExtension(Path.of(model.eResource().getURI().toFileString()));
     }
 
     public Set<NamedInstance<?>> topologyCycles() {
