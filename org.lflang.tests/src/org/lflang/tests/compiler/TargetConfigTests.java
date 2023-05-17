@@ -94,7 +94,7 @@ class TargetConfigTests {
         generator.doGenerate(resource, fileAccess, context);
 
         String lfSrc = Files.readAllLines(
-            ((FedFileConfig)context.getFileConfig()).getSrcPath().resolve("a.lf")
+            ((FedFileConfig)context.getFileConfig()).getSrcPath().resolve("__a.lf")
         ).stream().reduce("\n", String::concat);
         Model federate = parser.parse(lfSrc);
         assertHasTargetProperty(federate, "tracing");
