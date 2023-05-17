@@ -160,7 +160,7 @@ public class ModelInfo {
     }
 
     private String getName(Reactor r) {
-        return r.getName() == null ? r.getName() : FileUtil.nameWithoutExtension(Path.of(model.eResource().getURI().toFileString()));
+        return r.getName() != null ? r.getName() : FileUtil.nameWithoutExtension(Path.of(model.eResource().getURI().toFileString()));
     }
 
     public Set<NamedInstance<?>> topologyCycles() {
