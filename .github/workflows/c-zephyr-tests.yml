@@ -24,8 +24,6 @@ jobs:
       image: zephyrprojectrtos/zephyr-build:v0.24.13
       options: -u root --entrypoint /bin/sh 
     steps:
-      - name: Prepare build environment
-        uses: ./.github/actions/prepare-build-env
       - name: Initialize zephyr
         run: |
           west init /workdir/zephyrproject --mr v3.2.0
