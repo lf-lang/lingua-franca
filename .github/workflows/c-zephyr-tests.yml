@@ -28,9 +28,9 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get upgrade -y
-          sudo apt-get install -y openjdk-17-jdk
+          sudo apt-get install -y openjdk-19-jdk
           sudo apt-get install -y maven
-          echo "JAVA_HOME_17_X64=/usr/lib/jvm/java-17-openjdk-amd64" >> $GITHUB_ENV
+          echo "JAVA_HOME_19_X64=/usr/lib/jvm/java-19-openjdk-amd64" >> $GITHUB_ENV
       - name: Initialize zephyr
         run: |
           west init /workdir/zephyrproject --mr v3.2.0
