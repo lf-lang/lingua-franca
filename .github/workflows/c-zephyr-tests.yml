@@ -28,6 +28,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get upgrade -y
+          sudo apt-get install curl #Only used for SSH debugging. Remove after
           sudo apt-get install -y openjdk-17-jdk
           sudo apt-get install -y maven
           echo "JAVA_HOME_17_X64=/usr/lib/jvm/java-17-openjdk-amd64" >> $GITHUB_ENV
