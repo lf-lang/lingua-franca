@@ -74,7 +74,6 @@ public class FedEmitter {
     }
 
     public static Path lfFilePath(FedFileConfig fileConfig, FederateInstance federate) {
-        return fileConfig.getSrcPath().resolve(
-            "__" + federate.name + ".lf");
+        return fileConfig.getSrcPath().resolve(federate.name + ".lf");
     }
 }

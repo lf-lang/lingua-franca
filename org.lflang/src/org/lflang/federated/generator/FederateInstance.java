@@ -25,7 +25,6 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 package org.lflang.federated.generator;
 
-import java.io.File;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -40,17 +39,13 @@ import org.eclipse.emf.ecore.EObject;
 
 import org.lflang.ASTUtils;
 import org.lflang.ErrorReporter;
-import org.lflang.FileConfig;
-import org.lflang.Target;
 import org.lflang.TargetConfig;
 import org.lflang.TimeValue;
 import org.lflang.federated.serialization.SupportedSerializers;
 import org.lflang.generator.ActionInstance;
-import org.lflang.generator.GeneratorUtils;
 import org.lflang.generator.PortInstance;
 import org.lflang.generator.ReactionInstance;
 import org.lflang.generator.ReactorInstance;
-import org.lflang.generator.SubContext;
 import org.lflang.generator.TriggerInstance;
 import org.lflang.lf.Action;
 import org.lflang.lf.ActionOrigin;
@@ -109,12 +104,12 @@ public class FederateInstance { // why does this not extend ReactorInstance?
         this.targetConfig = targetConfig;
 
         if (instantiation != null) {
-            this.name = "__" + instantiation.getName();
             // If the instantiation is in a bank, then we have to append
             // the bank index to the name.
             if (instantiation.getWidthSpec() != null) {
                 this.name = instantiation.getName() + "__" + bankIndex;
             }
+            name = "federate__" + name;
         }
     }
 

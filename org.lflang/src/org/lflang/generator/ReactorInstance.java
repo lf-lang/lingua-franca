@@ -323,7 +323,7 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
     @Override
     public String uniqueID() {
        if (this.isMainOrFederated()) {
-           if (reactorDefinition.isFederated()) return "__" + super.uniqueID() + "_main";
+           if (reactorDefinition.isFederated() && !super.uniqueID().startsWith("federate__")) return "federate__" + super.uniqueID() + "_main";
            return super.uniqueID() + "_main";
        }
        return super.uniqueID();
