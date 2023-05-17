@@ -26,8 +26,8 @@ jobs:
     steps:
       - name: Install Java 17, Maven and set JAVA_HOME
         run: |
-          rm -rf /etc/ssl/certs/java
-          mkdir /etc/ssl/certs/java
+          sudo dpkg --purge --force-depends ca-certificates-java
+          sudo apt-get install ca-certificates-java
           sudo apt-get update
           sudo apt-get upgrade -y
           sudo apt-get install -y openjdk-17-jdk
