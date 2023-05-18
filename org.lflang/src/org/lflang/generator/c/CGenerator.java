@@ -1067,7 +1067,7 @@ public class CGenerator extends GeneratorBase {
         var constructorCode = new CodeBuilder();
         generateAuxiliaryStructs(header, reactor, false);
         // The following must go before the self struct so the #include watchdog.h ends up in the header.
-        CWatchdogGenerator.generateWatchdogs(src, header, reactor);
+        CWatchdogGenerator.generateWatchdogs(src, header, reactor, errorReporter);
         generateSelfStruct(header, reactor, constructorCode);
         generateMethods(src, reactor);
         generateReactions(src, reactor);

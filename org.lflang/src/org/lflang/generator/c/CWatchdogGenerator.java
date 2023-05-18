@@ -10,6 +10,7 @@ package org.lflang.generator.c;
 
 import java.util.List;
 import org.lflang.ASTUtils;
+import org.lflang.ErrorReporter;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.generator.ReactorInstance;
 import org.lflang.lf.Mode;
@@ -91,12 +92,14 @@ public class CWatchdogGenerator {
    * @param header The place to put header code
    * @param decl The reactor declaration
    */
-  protected static void generateWatchdogs(CodeBuilder src, CodeBuilder header, ReactorDecl decl) {
+  protected static void generateWatchdogs(
+      CodeBuilder src, CodeBuilder header, ReactorDecl decl, ErrorReporter errorReporter
+  ) {
     var reactor = ASTUtils.toDefinition(decl);
     if (hasWatchdogs(reactor)) {
       header.pr("#include \"core/threaded/watchdog.h\"");
       for (Watchdog watchdog : ASTUtils.allWatchdogs(reactor)) {
-        src.pr(generateWatchdogFunction(watchdog, decl));
+        src.pr(generateWatchdogFunction(watchdog, decl, errorReporter));
       }
     }
   }
@@ -174,7 +177,11 @@ public class CWatchdogGenerator {
    * @param watchdog The wotchdog
    * @param decl The declaration for the reactor that has the watchdog
    */
-  private static String generateInitializationForWatchdog(Watchdog watchdog, ReactorDecl decl) {
+  private static String generateInitializationForWatchdog(
+      Watchdog watchdog,
+      ReactorDecl decl,
+      ErrorReporter errorReporter
+  ) {
     Reactor reactor = ASTUtils.toDefinition(decl);
 
     // Construct the reactionInitialization code to go into
@@ -219,14 +226,12 @@ public class CWatchdogGenerator {
                     ? "history_transition"
                     : "reset_transition")
                     + ";");
+          } else {
+               errorReporter.reportError(
+                   watchdog,
+                   "In generateInitializationForWatchdog(): " + name + " not a valid mode of this reactor."
+               );
           }
-          // FIXME: include error reporter
-          // else {
-          //     errorReporter.reportError(
-          //         watchdog,
-          //         "In generateWatchdog(): " + name + " not a valid mode of this reactor."
-          //     );
-          // }
         }
       }
     }
@@ -265,10 +270,12 @@ public class CWatchdogGenerator {
 
 
   /** Generate the watchdog handler function. */
-  private static String generateWatchdogFunction(Watchdog watchdog, ReactorDecl decl) {
+  private static String generateWatchdogFunction(
+      Watchdog watchdog, ReactorDecl decl, ErrorReporter errorReporter
+  ) {
     return generateFunction(
         generateWatchdogFunctionHeader(watchdog, decl),
-        generateInitializationForWatchdog(watchdog, decl),
+        generateInitializationForWatchdog(watchdog, decl, errorReporter),
         watchdog);
   }
 
