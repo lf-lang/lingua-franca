@@ -1,0 +1,15 @@
+target C {
+    timeout: 2 sec,
+    fast: true
+}
+
+import Source from "MultiportToBank.lf"
+
+import Destination from "MultiportToBank.lf"
+
+main reactor(width: int = 0) {
+    a = new Source(width = width)
+    b = new[width] Destination()
+    a.out -> b.in
+}
+
