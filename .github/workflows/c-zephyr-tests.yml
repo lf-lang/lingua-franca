@@ -21,8 +21,6 @@ jobs:
   run:
     runs-on: ubuntu-latest
     steps:
-      - name: Setup Zephyr
-        uses: ./.github/actions/setup-zephyr
       - name: Check out lingua-franca repository
         uses: actions/checkout@v3
         with:
@@ -32,6 +30,8 @@ jobs:
           fetch-depth: 0
       - name: Prepare build environment
         uses: ./.github/actions/prepare-build-env
+      - name: Setup Zephyr
+        uses: ./.github/actions/setup-zephyr
       - name: Check out specific ref of reactor-c
         uses: actions/checkout@v3
         with:
