@@ -20,25 +20,9 @@ on:
 jobs:
   run:
     runs-on: ubuntu-latest
-    container:
-      image: zephyrprojectrtos/zephyr-build:v0.26.4
-      options: -u root --entrypoint /bin/sh 
     steps:
-      - name: Install Java 17, Maven and set JAVA_HOME
-        run: |
-          sudo apt-get update
-          sudo apt-get upgrade -y
-          sudo apt-get install curl #Only used for SSH debugging. Remove after
-          sudo apt-get install -y openjdk-17-jdk
-          sudo apt-get install -y maven
-          echo "JAVA_HOME_17_X64=/usr/lib/jvm/java-17-openjdk-amd64" >> $GITHUB_ENV
-      - name: Initialize zephyr
-        run: |
-          west init /workdir/zephyrproject --mr v3.2.0
-          cd /workdir/zephyrproject
-          west update
-          echo "ZEPHYR_BASE=/workdir/zephyrproject/zephyr" >> $GITHUB_ENV
-          echo "ZEPHYR_SDK_INSTALL_DIR=/opt/toolchains/zephyr-sdk-0.16.1/" >> $GITHUB_ENV
+      - name: Setup Zephyr
+        uses: ./.github/actions/setup-zephyr
       - name: Check out lingua-franca repository
         uses: actions/checkout@v3
         with:
@@ -46,10 +30,6 @@ jobs:
           submodules: true
           ref: ${{ inputs.compiler-ref }}
           fetch-depth: 0
-      - name: Try to get around git safe issues
-        run: |
-          git config --global --add safe.directory '/__w/lingua-franca/lingua-franca'
-          git config --global --add safe.directory '/__w/reactor-c/reactor-c'
       - name: Prepare build environment
         uses: ./.github/actions/prepare-build-env
       - name: Check out specific ref of reactor-c
@@ -59,8 +39,6 @@ jobs:
           path: org.lflang/src/lib/c/reactor-c
           ref: ${{ inputs.runtime-ref }}
         if: ${{ inputs.runtime-ref }}
-      - name: SSH debugging
-        uses: lhotari/action-upterm@v1
       - name: Perform Zephyr tests for C target with default scheduler
         run: |
           ./gradlew test --tests org.lflang.tests.runtime.CZephyrTest.buildZephyrTests
