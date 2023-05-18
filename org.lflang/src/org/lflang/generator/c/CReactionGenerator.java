@@ -923,7 +923,7 @@ public class CReactionGenerator {
      */
     public static String generateLfTriggerStartupReactions(int startupReactionCount, boolean hasModalReactors) {
         var s = new StringBuilder();
-        s.append("void _lf_trigger_startup_reactions() {");
+        s.append("void _lf_trigger_startup_reactions(environment_t *env) {");
         if (startupReactionCount > 0) {
             s.append("\n");
             if (hasModalReactors) {
@@ -934,7 +934,7 @@ public class CReactionGenerator {
                     "                // Skip reactions in modes",
                     "                continue;",
                     "            }",
-                    "            _lf_trigger_reaction(_lf_startup_reactions[i], -1);",
+                    "            _lf_trigger_reaction(env, _lf_startup_reactions[i], -1);",
                     "        }",
                     "    }",
                     "    _lf_handle_mode_startup_reset_reactions(",
@@ -946,7 +946,7 @@ public class CReactionGenerator {
                 s.append(String.join("\n",
                     "    for (int i = 0; i < _lf_startup_reactions_size; i++) {",
                     "        if (_lf_startup_reactions[i] != NULL) {",
-                    "            _lf_trigger_reaction(_lf_startup_reactions[i], -1);",
+                    "            _lf_trigger_reaction(env, _lf_startup_reactions[i], -1);",
                     "        }",
                     "    }"
                 ));
@@ -962,7 +962,7 @@ public class CReactionGenerator {
      */
     public static String generateLfTriggerShutdownReactions(int shutdownReactionCount, boolean hasModalReactors) {
         var s = new StringBuilder();
-        s.append("bool _lf_trigger_shutdown_reactions() {\n");
+        s.append("bool _lf_trigger_shutdown_reactions(environment_t *env) {\n");
         if (shutdownReactionCount > 0) {
             if (hasModalReactors) {
                 s.append(String.join("\n",
@@ -972,17 +972,17 @@ public class CReactionGenerator {
                     "                // Skip reactions in modes",
                     "                continue;",
                     "            }",
-                    "            _lf_trigger_reaction(_lf_shutdown_reactions[i], -1);",
+                    "            _lf_trigger_reaction(env, _lf_shutdown_reactions[i], -1);", // FIXME: Enclaves hack
                     "        }",
                     "    }",
-                    "    _lf_handle_mode_shutdown_reactions(_lf_shutdown_reactions, _lf_shutdown_reactions_size);",
+                    "    _lf_handle_mode_shutdown_reactions(env, _lf_shutdown_reactions_size);",
                     "    return true;"
                 ));
             } else {
                 s.append(String.join("\n",
                     "    for (int i = 0; i < _lf_shutdown_reactions_size; i++) {",
                     "        if (_lf_shutdown_reactions[i] != NULL) {",
-                    "            _lf_trigger_reaction(_lf_shutdown_reactions[i], -1);",
+                    "            _lf_trigger_reaction(env, _lf_shutdown_reactions[i], -1);", //FIXME: Enclaves hack
                     "        }",
                     "    }",
                     "    return true;"
