@@ -41,7 +41,7 @@ jobs:
         if: ${{ inputs.runtime-ref }}
       - name: Perform Zephyr tests for C target with default scheduler
         run: |
-          ./gradlew test --tests org.lflang.tests.runtime.CZephyrTest.buildZephyrTests
+          ./gradlew test --tests org.lflang.tests.runtime.CZephyrTest.*
           # util/RunZephyrTests.sh test/C/src-gen
       # - name: Setup upterm session
       #   uses: lhotari/action-upterm@v1
