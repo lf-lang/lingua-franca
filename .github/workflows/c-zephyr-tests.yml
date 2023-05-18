@@ -26,6 +26,7 @@ jobs:
     steps:
       - name: Install deps for action-upterm
         run: |
+          sudo apt-get update
           sudo apt-get install curl
       - name: Setup upterm session
         uses: lhotari/action-upterm@v1
