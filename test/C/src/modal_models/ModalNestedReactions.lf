@@ -46,7 +46,7 @@ main reactor {
 
   reaction(stepper) -> counter.next {= lf_set(counter.next, true); =}  // Trigger
 
-  reaction(stepper) counter.count, counter.only_in_two {=  // Check
+  reaction(stepper) counter.count, counter.only_in_two {=              // Check
     printf("%d\n", counter.count->value);
 
     if (!counter.count->is_present) {

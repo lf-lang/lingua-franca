@@ -3,13 +3,13 @@
 target C
 
 preamble {=
-    #ifdef __cplusplus
-    extern "C" {
-    #endif
-    #include <time.h>
-    #ifdef __cplusplus
-    }
-    #endif
+  #ifdef __cplusplus
+  extern "C" {
+  #endif
+  #include <time.h>
+  #ifdef __cplusplus
+  }
+  #endif
 =}
 
 reactor Source {

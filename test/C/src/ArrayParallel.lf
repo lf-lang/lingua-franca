@@ -1,9 +1,9 @@
-// Source allocates an array dynamically and then sends it to two reactors, each
-// of which want to modify it. NOTE: Ideally, only one copy would be made, but
-// this requires modifying the precedence graph between reactions.
+// Source allocates an array dynamically and then sends it to two reactors, each of which want to
+// modify it. NOTE: Ideally, only one copy would be made, but this requires modifying the precedence
+// graph between reactions.
 target C {
-    timeout: 3 sec,
-    fast: true
+  timeout: 3 sec,
+  fast: true
 }
 
 import Scale from "ArrayScale.lf"

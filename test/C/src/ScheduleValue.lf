@@ -4,14 +4,14 @@ target C {
 }
 
 preamble {=
-    #ifdef __cplusplus
-    extern "C" {
-    #endif
-    #include <string.h>
-    #include <stdlib.h>
-    #ifdef __cplusplus
-    }
-    #endif
+  #ifdef __cplusplus
+  extern "C" {
+  #endif
+  #include <string.h>
+  #include <stdlib.h>
+  #ifdef __cplusplus
+  }
+  #endif
 =}
 
 main reactor ScheduleValue {

@@ -6,30 +6,30 @@
  * @author Steven Wong <housengw@berkeley.edu>
  */
 target Python {
-    timeout: 2 sec
+  timeout: 2 sec
 }
 
 reactor A {
-    input in_
+  input in_
 
-    reaction(startup) {= print("Hello World!") =}
+  reaction(startup) {= print("Hello World!") =}
 
-    reaction(in_) {= print("Got it") =}
+  reaction(in_) {= print("Got it") =}
 
-    reaction(shutdown) {= lf_request_stop() =}
+  reaction(shutdown) {= lf_request_stop() =}
 }
 
 reactor B {
-    output out
-    timer t(1 sec)
+  output out
+  timer t(1 sec)
 
-    reaction(t) -> out {= out.set(1) =}
+  reaction(t) -> out {= out.set(1) =}
 
-    reaction(shutdown) {= lf_request_stop() =}
+  reaction(shutdown) {= lf_request_stop() =}
 }
 
 federated reactor {
-    a = new A()
-    b = new B()
-    b.out -> a.in_
+  a = new A()
+  b = new B()
+  b.out -> a.in_
 }

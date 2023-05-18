@@ -1,47 +1,46 @@
-// Test reacting to and reading outputs from a contained reactor in various
-// permutations.
+// Test reacting to and reading outputs from a contained reactor in various permutations.
 target TypeScript
 
 reactor Contained {
-    output out: number
+  output out: number
 
-    reaction(startup) -> out {= out = 42; =}
+  reaction(startup) -> out {= out = 42; =}
 }
 
 main reactor ReadOutputOfContainedReactor {
-    c = new Contained()
-    state count: number = 0
+  c = new Contained()
+  state count: number = 0
 
-    reaction(startup) c.out {=
-        console.log("Startup reaction reading output of contained reactor: " + c.out);
-        if (c.out != 42) {
-            util.requestErrorStop("FAILURE: expected 42.")
-        }
-        count++;
-    =}
+  reaction(startup) c.out {=
+    console.log("Startup reaction reading output of contained reactor: " + c.out);
+    if (c.out != 42) {
+        util.requestErrorStop("FAILURE: expected 42.")
+    }
+    count++;
+  =}
 
-    reaction(c.out) {=
-        console.log("Reading output of contained reactor: " + c.out);
-        if (c.out != 42) {
-            util.requestErrorStop("FAILURE: expected 42.")
-        }
-        count++;
-    =}
+  reaction(c.out) {=
+    console.log("Reading output of contained reactor: " + c.out);
+    if (c.out != 42) {
+        util.requestErrorStop("FAILURE: expected 42.")
+    }
+    count++;
+  =}
 
-    reaction(startup, c.out) {=
-        console.log("Alternate triggering reading output of contained reactor: " + c.out);
-        if (c.out != 42) {
-            util.requestErrorStop("FAILURE: expected 42.")
-        }
-        count++;
-    =}
+  reaction(startup, c.out) {=
+    console.log("Alternate triggering reading output of contained reactor: " + c.out);
+    if (c.out != 42) {
+        util.requestErrorStop("FAILURE: expected 42.")
+    }
+    count++;
+  =}
 
-    reaction(shutdown) {=
-        if (count != 3) {
-            console.log("Count is: " + count)
-            util.requestErrorStop("FAILURE: One of the reactions failed to trigger.")
-        } else {
-            console.log("Test passes.");
-        }
-    =}
+  reaction(shutdown) {=
+    if (count != 3) {
+        console.log("Count is: " + count)
+        util.requestErrorStop("FAILURE: One of the reactions failed to trigger.")
+    } else {
+        console.log("Test passes.");
+    }
+  =}
 }

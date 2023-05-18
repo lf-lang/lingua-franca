@@ -1,37 +1,37 @@
 target Cpp {
-    timeout: 5 sec,
-    fast: true
+  timeout: 5 sec,
+  fast: true
 }
 
 import Count from "lib/Count.lf"
 
 reactor CountContainer {
-    output out: int
-    c1 = new Count()
-    c1.c -> out
+  output out: int
+  c1 = new Count()
+  c1.c -> out
 }
 
 main reactor {
-    state count: int = 1
-    state received: bool = false
+  state count: int = 1
+  state received: bool = false
 
-    s = new CountContainer()
+  s = new CountContainer()
 
-    reaction(s.out) {=
-        if (s.out.is_present()){
-            reactor::log::Info() << "Received " << *s.out.get();
-            if(count != *s.out.get()){
-                reactor::log::Error() << "Expected " << count;
-            }
-            received = true;
+  reaction(s.out) {=
+    if (s.out.is_present()){
+        reactor::log::Info() << "Received " << *s.out.get();
+        if(count != *s.out.get()){
+            reactor::log::Error() << "Expected " << count;
         }
-        count++;
-    =}
+        received = true;
+    }
+    count++;
+  =}
 
-    reaction(shutdown) {=
-        if(!received) {
-            reactor::log::Error() << "No inputs present.";
-            exit(1);
-        }
-    =}
+  reaction(shutdown) {=
+    if(!received) {
+        reactor::log::Error() << "No inputs present.";
+        exit(1);
+    }
+  =}
 }
