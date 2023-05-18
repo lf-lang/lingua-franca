@@ -40,6 +40,7 @@ import org.lflang.TargetProperty.LogLevel;
 import org.lflang.TargetProperty.Platform;
 import org.lflang.TargetProperty.SchedulerOption;
 import org.lflang.TargetProperty.UnionType;
+import org.lflang.generator.LFGeneratorContext.BuildParm;
 import org.lflang.generator.rust.RustTargetConfig;
 import org.lflang.lf.KeyValuePair;
 import org.lflang.lf.TargetDecl;
@@ -136,6 +137,9 @@ public class TargetConfig {
         if (cliArgs.containsKey(TargetProperty.KEEPALIVE.description)) {
             this.keepalive = Boolean.parseBoolean(
                 cliArgs.getProperty(TargetProperty.KEEPALIVE.description));
+        }
+        if (cliArgs.containsKey(BuildParm.PRINT_STATISTICS.getKey())) {
+            this.printStatistics = true;
         }
     }
 
@@ -268,6 +272,11 @@ public class TargetConfig {
      * of defining platform (either a string or dictionary of values)
      */
     public PlatformOptions platformOptions = new PlatformOptions();
+
+    /**
+     * If true, instruct the runtime to collect and print execution statistics.
+     */
+    public boolean printStatistics = false;
 
     /**
      * List of proto files to be processed by the code generator.

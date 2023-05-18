@@ -76,6 +76,7 @@ public class LfcCliTest {
                 "logging": "info",
                 "lint": true,
                 "no-compile": true,
+                "print-statistics": true,
                 "quiet": true,
                 "rti": "path/to/rti",
                 "runtime-version": "rs",
@@ -228,6 +229,7 @@ public class LfcCliTest {
                 assertEquals(properties.getProperty(BuildParm.LOGGING.getKey()), "info");
                 assertEquals(properties.getProperty(BuildParm.LINT.getKey()), "true");
                 assertEquals(properties.getProperty(BuildParm.NO_COMPILE.getKey()), "true");
+                assertEquals(properties.getProperty(BuildParm.PRINT_STATISTICS.getKey()), "true");
                 assertEquals(properties.getProperty(BuildParm.QUIET.getKey()), "true");
                 assertEquals(properties.getProperty(BuildParm.RTI.getKey()),
                         "path" + File.separator + "to" + File.separator + "rti");
@@ -256,6 +258,7 @@ public class LfcCliTest {
             "--logging", "info",
             "--lint",
             "--no-compile",
+            "--print-statistics",
             "--quiet",
             "--rti", "path/to/rti",
             "--runtime-version", "rs",
