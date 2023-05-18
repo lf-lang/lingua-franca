@@ -20,23 +20,7 @@ on:
 jobs:
   run:
     runs-on: ubuntu-latest
-    container:
-      image: zephyrprojectrtos/zephyr-build:v0.24.13
-      options: -u root --entrypoint /bin/sh 
     steps:
-      - name: Install Java 17, Maven and set JAVA_HOME
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y openjdk-17-jdk
-          sudo apt-get install -y maven
-          echo "JAVA_HOME_17_X64=/usr/lib/jvm/java-17-openjdk-amd64" >> $GITHUB_ENV
-      - name: Initialize zephyr
-        run: |
-          west init /workdir/zephyrproject --mr v3.2.0
-          cd /workdir/zephyrproject
-          west update
-          echo "ZEPHYR_BASE=/workdir/zephyrproject/zephyr" >> $GITHUB_ENV
-          echo "ZEPHYR_SDK_INSTALL_DIR=/opt/toolchains/zephyr-sdk-0.15.2/" >> $GITHUB_ENV
       - name: Check out lingua-franca repository
         uses: actions/checkout@v3
         with:
@@ -44,12 +28,10 @@ jobs:
           submodules: true
           ref: ${{ inputs.compiler-ref }}
           fetch-depth: 0
-      - name: Try to get around git safe issues
-        run: |
-          git config --global --add safe.directory '/__w/lingua-franca/lingua-franca'
-          git config --global --add safe.directory '/__w/reactor-c/reactor-c'
       - name: Prepare build environment
         uses: ./.github/actions/prepare-build-env
+      - name: Setup Zephyr
+        uses: ./.github/actions/setup-zephyr
       - name: Check out specific ref of reactor-c
         uses: actions/checkout@v3
         with:

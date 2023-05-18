@@ -28,7 +28,6 @@ import static org.lflang.ASTUtils.allActions;
 import static org.lflang.ASTUtils.allPorts;
 import static org.lflang.ASTUtils.allReactions;
 import static org.lflang.ASTUtils.allStateVars;
-import static org.lflang.ASTUtils.convertToEmptyListIfNull;
 import static org.lflang.ASTUtils.getInferredType;
 import static org.lflang.ASTUtils.isInitialized;
 import static org.lflang.ASTUtils.toDefinition;
@@ -51,6 +50,7 @@ import org.eclipse.xtext.xbase.lib.IterableExtensions;
 import org.eclipse.xtext.xbase.lib.StringExtensions;
 
 import org.lflang.ASTUtils;
+import org.lflang.generator.CodeMap;
 import org.lflang.generator.DockerComposeGenerator;
 import org.lflang.FileConfig;
 import org.lflang.Target;
@@ -1035,10 +1035,10 @@ public class CGenerator extends GeneratorBase {
         generateUserPreamblesForReactor(reactor, src);
         generateReactorClassBody(reactor, header, src);
         header.pr("#endif // " + guardMacro);
-        FileUtil.writeToFile(header.toString(), fileConfig.getSrcGenPath().resolve(headerName), true);
+        FileUtil.writeToFile(CodeMap.fromGeneratedCode(header.toString()).getGeneratedCode(), fileConfig.getSrcGenPath().resolve(headerName), true);
         var extension = targetConfig.platformOptions.platform == Platform.ARDUINO ? ".ino" :
             CCppMode ? ".cpp" : ".c";
-        FileUtil.writeToFile(src.toString(), fileConfig.getSrcGenPath().resolve(CUtil.getName(reactor) + extension), true);
+        FileUtil.writeToFile(CodeMap.fromGeneratedCode(src.toString()).getGeneratedCode(), fileConfig.getSrcGenPath().resolve(CUtil.getName(reactor) + extension), true);
     }
 
     protected void generateReactorClassHeaders(Reactor reactor, String headerName, CodeBuilder header, CodeBuilder src) {
