@@ -323,7 +323,7 @@ public class CReactionGenerator {
                 String.join("\n",
                     DISABLE_REACTION_INITIALIZATION_MARKER,
                     "self->_lf_"+outputName+".value = ("+targetType+")self->_lf__"+actionName+".tmplt.token->value;",
-                    "_lf_replace_template_token((token_template_t*)&self->_lf_"+outputName+", (lf_token_t*)self->_lf__"+actionName+".tmplt.token);",
+                    "_lf_replace_template_token(&_lf_environment, (token_template_t*)&self->_lf_"+outputName+", (lf_token_t*)self->_lf__"+actionName+".tmplt.token);", //FIXME: Enclaves step1 hack
                     "self->_lf_"+outputName+".is_present = true;"
                 ) :
                 "lf_set("+outputName+", "+actionName+"->value);";
@@ -492,7 +492,7 @@ public class CReactionGenerator {
             "// Set the fields of the action struct to match the current trigger.",
             action.getName()+"->is_present = (bool)self->_lf__"+action.getName()+".status;",
             action.getName()+"->has_value = ("+tokenPointer+" != NULL && "+tokenPointer+"->value != NULL);",
-            "_lf_replace_template_token((token_template_t*)"+action.getName()+", "+tokenPointer+");")
+            "_lf_replace_template_token(self->base.environment, (token_template_t*)"+action.getName()+", "+tokenPointer+");") //FIXME: Enclaves step1 hack
         );
         // Set the value field only if there is a type.
         if (!type.isUndefined()) {

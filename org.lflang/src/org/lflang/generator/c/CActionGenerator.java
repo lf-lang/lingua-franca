@@ -43,10 +43,12 @@ public class CActionGenerator {
                 var periodInitializer = triggerStructName+".period = " + (minSpacing != null ?
                     CTypes.getInstance().getTargetTimeExpr(minSpacing) :
                                                                          CGenerator.UNDEFINED_MIN_SPACING) + ";";
+                var parentInitializer = triggerStructName+".parent = (void *) " + CUtil.reactorRef(action.getParent()) + ";";
                 code.addAll(List.of(
                     "// Initializing action "+action.getFullName(),
                     offsetInitializer,
-                    periodInitializer
+                    periodInitializer,
+                    parentInitializer
                 ));
 
                 var mode = action.getMode(false);
@@ -80,7 +82,7 @@ public class CActionGenerator {
         String payloadSize
     ) {
         return String.join("\n",
-                "_lf_initialize_template((token_template_t*)",
+                "_lf_initialize_template(&_lf_environment, (token_template_t*)", //FIXME: Enclaves step 1 hack
                 "        &("+selfStruct+"->_lf__"+actionName+"),",
                          payloadSize+");",
             selfStruct+"->_lf__"+actionName+".status = absent;"

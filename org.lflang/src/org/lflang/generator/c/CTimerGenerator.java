@@ -54,6 +54,7 @@ public class CTimerGenerator {
      *
      * @param timerCount The total number of timers in the program
      */
+    //FIXME: The _lf_environment parameter is added as a hack to get step1 of enclaves support working
     public static String generateLfInitializeTimer(int timerCount) {
         return String.join("\n",
             "void _lf_initialize_timers() {",
@@ -61,7 +62,7 @@ public class CTimerGenerator {
             """
                 for (int i = 0; i < _lf_timer_triggers_size; i++) {
                     if (_lf_timer_triggers[i] != NULL) {
-                        _lf_initialize_timer(_lf_timer_triggers[i]);
+                        _lf_initialize_timer(&_lf_environment, _lf_timer_triggers[i]);
                     }
                 }""".indent(4).stripTrailing() :
             "",
