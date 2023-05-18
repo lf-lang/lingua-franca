@@ -12,7 +12,7 @@ runs:
         wget -O - https://github.com/zephyrproject-rtos/sdk-ng/releases/download/v0.15.2/sha256.sum | shasum --check --ignore-missing
         sudo tar xf zephyr-sdk-0.15.2_linux-x86_64.tar.gz --directory /opt/
         cd /opt/zephyr-sdk-0.15.2
-        sudo ./setup.sh
+        sudo ./setup.sh all
       shell: bash
     - name: Download and install Zephyr RTOS
       run: |
