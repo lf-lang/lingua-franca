@@ -43,8 +43,8 @@ jobs:
         run: |
           ./gradlew test --tests org.lflang.tests.runtime.CZephyrTest.buildZephyrTests
           # util/RunZephyrTests.sh test/C/src-gen
-      - name: Setup upterm session
-        uses: lhotari/action-upterm@v1
+      # - name: Setup upterm session
+      #   uses: lhotari/action-upterm@v1
       - name: Report to CodeCov
         uses: codecov/codecov-action@v3.1.1
         with:
