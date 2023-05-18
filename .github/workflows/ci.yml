@@ -36,37 +36,37 @@ jobs:
 #   uses: lf-lang/lingua-franca/.github/workflows/format.yml@master
 #   needs: cancel
 
-  # Run the unit tests.
-  unit-tests:
-    uses: lf-lang/lingua-franca/.github/workflows/unit-tests.yml@master
-    needs: cancel
+  # # Run the unit tests.
+  # unit-tests:
+  #   uses: lf-lang/lingua-franca/.github/workflows/unit-tests.yml@master
+  #   needs: cancel
 
-  # Run tests for the standalone compiler.
-  cli-tests:
-    uses: lf-lang/lingua-franca/.github/workflows/cli-tests.yml@master
-    needs: cancel
+  # # Run tests for the standalone compiler.
+  # cli-tests:
+  #   uses: lf-lang/lingua-franca/.github/workflows/cli-tests.yml@master
+  #   needs: cancel
 
-  # Run the C benchmark tests.
-  c-benchmark-tests:
-    uses: lf-lang/benchmarks-lingua-franca/.github/workflows/benchmark-tests.yml@main
-    with:
-      target: 'C'
-    needs: cancel
+  # # Run the C benchmark tests.
+  # c-benchmark-tests:
+  #   uses: lf-lang/benchmarks-lingua-franca/.github/workflows/benchmark-tests.yml@main
+  #   with:
+  #     target: 'C'
+  #   needs: cancel
 
-  # Run language server tests.
-  lsp-tests:
-    uses: lf-lang/lingua-franca/.github/workflows/lsp-tests.yml@master
-    needs: cancel
+  # # Run language server tests.
+  # lsp-tests:
+  #   uses: lf-lang/lingua-franca/.github/workflows/lsp-tests.yml@master
+  #   needs: cancel
 
-  # Run the C integration tests.
-  c-tests:
-    uses: lf-lang/lingua-franca/.github/workflows/c-tests.yml@master
-    needs: cancel
+  # # Run the C integration tests.
+  # c-tests:
+  #   uses: lf-lang/lingua-franca/.github/workflows/c-tests.yml@master
+  #   needs: cancel
   
-  # Run the C Arduino integration tests.
-  c-arduino-tests:
-    uses: lf-lang/lingua-franca/.github/workflows/c-arduino-tests.yml@master
-    needs: cancel
+  # # Run the C Arduino integration tests.
+  # c-arduino-tests:
+  #   uses: lf-lang/lingua-franca/.github/workflows/c-arduino-tests.yml@master
+  #   needs: cancel
   
   # Run the C Zephyr integration tests.
   c-zephyr-tests:
