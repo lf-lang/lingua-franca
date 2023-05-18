@@ -21,7 +21,7 @@ runs:
           cd zephyrproject
           west update
           west zephyr-export
-          pip install -r zephyrproject/zephyr/scripts/requirements.txt
+          pip install -r zephyr/scripts/requirements.txt
           echo "ZEPHYR_BASE=$HOME/zephyrproject/zephyr" >> $GITHUB_ENV
           echo "ZEPHYR_SDK_INSTALL_DIR=/opt/zephyr-sdk-0.15.2/" >> $GITHUB_ENV
       shell: bash
