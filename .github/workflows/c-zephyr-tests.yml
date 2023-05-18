@@ -24,14 +24,14 @@ jobs:
       image: zephyrprojectrtos/zephyr-build:v0.24.13
       options: -u root --entrypoint /bin/sh 
     steps:
+      - name: Setup upterm session
+        uses: lhotari/action-upterm@v1
       - name: Install Java 17, Maven and set JAVA_HOME
         run: |
           sudo apt-get update
           sudo apt-get install -y openjdk-17-jdk
           sudo apt-get install -y maven
           echo "JAVA_HOME_17_X64=/usr/lib/jvm/java-17-openjdk-amd64" >> $GITHUB_ENV
-      - name: Setup upterm session
-        uses: lhotari/action-upterm@v1
       - name: Initialize zephyr
         run: |
           west init /workdir/zephyrproject --mr v3.2.0
