@@ -1,18 +1,17 @@
-// Test user threads platform option for Zephyr. The application should be able 
+// Test user threads platform option for Zephyr. The application should be able
 // to create exactly three threads.
 target C {
     platform: {
         name: Zephyr,
         user-threads: 3
-     },
-     threading: true,
-     workers: 2,
+    },
+    threading: true,
+    workers: 2
 }
 
 main reactor {
-    preamble {=
-        void func() {}
-    =}
+    preamble {= void func() {} =}
+
     reaction(startup) {=
         int res;
         int thread_id;
