@@ -1,5 +1,4 @@
-// Tests that rust keywords may be used as identifiers in LF and are properly
-// escaped by the emitter
+// Tests that rust keywords may be used as identifiers in LF and are properly escaped by the emitter
 target Rust
 
 reactor box {

@@ -113,9 +113,7 @@ main reactor {
         history_processor.discard.set(True)
     =}
 
-    reaction(reset_processor.converted) {=
-        print(f"Reset: {reset_processor.converted.value}")
-    =}
+    reaction(reset_processor.converted) {= print(f"Reset: {reset_processor.converted.value}") =}
 
     reaction(history_processor.converted) {=
         print(f"History: {history_processor.converted.value}")

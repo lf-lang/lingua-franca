@@ -1,6 +1,5 @@
-// Source produces a dynamically allocated array, which it passes to Print. The
-// ownership semantics of values ensure that the array is automatically deleted
-// if it does have no owner.
+// Source produces a dynamically allocated array, which it passes to Print. The ownership semantics
+// of values ensure that the array is automatically deleted if it does have no owner.
 target Cpp
 
 reactor Source {

@@ -1,13 +1,12 @@
 /**
- * This test showcases the infrastructure that is built into the CCpp target
- * that can automatically serialize and deserialize ROS2 messages (with a
- * shared_ptr type) in federated programs.
+ * This test showcases the infrastructure that is built into the CCpp target that can automatically
+ * serialize and deserialize ROS2 messages (with a shared_ptr type) in federated programs.
  *
- * This test contains a sender-receiver federated program in which the 'sender'
- * federate sends a std_msgs::msg::Int32 message to the 'receiver' federate.
+ * This test contains a sender-receiver federated program in which the 'sender' federate sends a
+ * std_msgs::msg::Int32 message to the 'receiver' federate.
  *
- * To run this test, make sure that your terminal is properly sourced for ROS2.
- * See https://docs.ros.org/en/foxy/Tutorials/Configuring-ROS2-Environment.html.
+ * To run this test, make sure that your terminal is properly sourced for ROS2. See
+ * https://docs.ros.org/en/foxy/Tutorials/Configuring-ROS2-Environment.html.
  *
  * Then you can use lfc to compile this program:
  *

@@ -1,6 +1,6 @@
 /**
- * A test for the timeout functionality in Lingua Franca. This variant tests
- * timeout at (0,0) and uses the threaded runtime.
+ * A test for the timeout functionality in Lingua Franca. This variant tests timeout at (0,0) and
+ * uses the threaded runtime.
  *
  * @author Soroush Bateni
  */

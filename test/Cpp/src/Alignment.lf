@@ -1,5 +1,4 @@
-// This test checks that the downstream reaction is not invoked more than once
-// at a logical time.
+// This test checks that the downstream reaction is not invoked more than once at a logical time.
 target Cpp {
     logging: LOG,
     timeout: 1 sec,

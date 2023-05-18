@@ -1,6 +1,5 @@
-// Source has an array as a parameter, the elements of which it passes to Print.
-// The length of the array has to also be a parameter because C arrays do not
-// encode their own length.
+// Source has an array as a parameter, the elements of which it passes to Print. The length of the
+// array has to also be a parameter because C arrays do not encode their own length.
 target C
 
 reactor Source(sequence: int[] = {0, 1, 2}, n_sequence: int = 3) {

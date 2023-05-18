@@ -1,5 +1,5 @@
-// Test that two simultaneous inputs that trigger a reaction trigger it only
-// once. Correct output for this 2, 4, 6, 8, etc.
+// Test that two simultaneous inputs that trigger a reaction trigger it only once. Correct output
+// for this 2, 4, 6, 8, etc.
 target Cpp {
     timeout: 10 sec,
     fast: true

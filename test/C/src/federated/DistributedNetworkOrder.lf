@@ -1,10 +1,9 @@
 /**
  * This is a test for send_timed_message, which is an internal API.
  *
- * This test sends a second message at time 5 msec that has the same intended
- * tag as a message that it had previously sent at time 0 msec. This results in
- * a warning, but the message microstep is incremented and correctly received
- * one microstep later.
+ * This test sends a second message at time 5 msec that has the same intended tag as a message that
+ * it had previously sent at time 0 msec. This results in a warning, but the message microstep is
+ * incremented and correctly received one microstep later.
  *
  * @author Soroush Bateni
  */

@@ -1,6 +1,6 @@
 /**
- * Check whether the internally generated network and control reactions
- * introduce a cycle or not. The failure for this test is not being compiled.
+ * Check whether the internally generated network and control reactions introduce a cycle or not.
+ * The failure for this test is not being compiled.
  * @author Edward A. Lee
  */
 target C

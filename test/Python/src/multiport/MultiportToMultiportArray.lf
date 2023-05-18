@@ -1,5 +1,4 @@
-# Check multiport output to multiport input. Destination port is wider than
-# sending port.
+# Check multiport output to multiport input. Destination port is wider than sending port.
 target Python {
     timeout: 2 sec,
     fast: true

@@ -1,5 +1,5 @@
-// Tests that the default build profile is dev. A proxy for checking this is to
-// check that debug assertions are enabled.
+// Tests that the default build profile is dev. A proxy for checking this is to check that debug
+// assertions are enabled.
 target Rust
 
 main reactor {

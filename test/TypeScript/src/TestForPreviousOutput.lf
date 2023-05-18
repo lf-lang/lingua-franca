@@ -1,5 +1,5 @@
-// This tests the mechanism for testing whether a previous reaction has produced
-// a given output. The output should always be 42.
+// This tests the mechanism for testing whether a previous reaction has produced a given output. The
+// output should always be 42.
 target TypeScript
 
 reactor Source {

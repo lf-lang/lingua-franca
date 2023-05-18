@@ -1,6 +1,5 @@
-// In TypeScript this test is almost exactly the same as ArrayAsType. Source
-// produces a dynamically allocated array, which it passes to Print. Reference
-// counting ensures that the array is freed.
+// In TypeScript this test is almost exactly the same as ArrayAsType. Source produces a dynamically
+// allocated array, which it passes to Print. Reference counting ensures that the array is freed.
 target TypeScript
 
 reactor Source {

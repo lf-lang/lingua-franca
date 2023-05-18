@@ -1,5 +1,5 @@
-// Source produces a statically allocated array, which it passes to Print. The
-// destination references the array directly.
+// Source produces a statically allocated array, which it passes to Print. The destination
+// references the array directly.
 target Cpp
 
 reactor Source {

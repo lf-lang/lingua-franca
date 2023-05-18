@@ -1,7 +1,6 @@
 /**
- * Test that cmake-include in a federated program works correctly. Both
- * federates should see FOO = 3.14. The failure for this test is failure to
- * compile.
+ * Test that cmake-include in a federated program works correctly. Both federates should see FOO =
+ * 3.14. The failure for this test is failure to compile.
  */
 target C {
     timeout: 0 sec,

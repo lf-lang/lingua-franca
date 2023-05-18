@@ -1,6 +1,6 @@
 /**
- * Test that a rapidly produced logical action in an upstream federate can be
- * properly handled in a long chain of federates.
+ * Test that a rapidly produced logical action in an upstream federate can be properly handled in a
+ * long chain of federates.
  */
 target C {
     timeout: 1 msec

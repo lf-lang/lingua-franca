@@ -1,11 +1,9 @@
-// This illustrates a very strange bug that showed up and has now been fixed.
-// This test ensures it does not reappear. At logical time zero, the two Print
-// reactors used to be fired twice each at the same logical time. They should
-// only be fired once. This behavior was oddly eliminated by either of the
-// following actions, neither of which should affect this behavior:
+// This illustrates a very strange bug that showed up and has now been fixed. This test ensures it
+// does not reappear. At logical time zero, the two Print reactors used to be fired twice each at
+// the same logical time. They should only be fired once. This behavior was oddly eliminated by
+// either of the following actions, neither of which should affect this behavior:
 // * Removing the startup reaction in Print.
-// * Sending only position, not velocity from Ball. (copied from the c version
-// of the test)
+// * Sending only position, not velocity from Ball. (copied from the c version of the test)
 target Cpp {
     timeout: 5 sec,
     fast: true

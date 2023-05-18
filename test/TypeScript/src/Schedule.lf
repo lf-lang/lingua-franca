@@ -1,5 +1,4 @@
-// TypeScript translated example from Schedule section of the C Reactor Target
-// wiki page.
+// TypeScript translated example from Schedule section of the C Reactor Target wiki page.
 target TypeScript
 
 reactor ScheduleLogicalAction {

@@ -1,5 +1,4 @@
-// Test reacting to and reading outputs from a contained reactor bank with a
-// multiport
+// Test reacting to and reading outputs from a contained reactor bank with a multiport
 target Cpp
 
 reactor Contained(bank_index: size_t = 0) {

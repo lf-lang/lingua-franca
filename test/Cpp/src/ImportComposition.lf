@@ -1,8 +1,7 @@
 /**
  * @author Maiko Brants TU Dresden
  *
- * This tests the ability to import a reactor definition that itself imports a
- * reactor definition.
+ * This tests the ability to import a reactor definition that itself imports a reactor definition.
  *
  * modeled after the C version of this test
  */

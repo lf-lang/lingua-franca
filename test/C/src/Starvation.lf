@@ -1,6 +1,6 @@
 /**
- * Test that the starvation functionality in absence of the "keepalive: true"
- * target property indeed works as expected.
+ * Test that the starvation functionality in absence of the "keepalive: true" target property indeed
+ * works as expected.
  *
  * @author Soroush Bateni
  */

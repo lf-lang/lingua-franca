@@ -1,7 +1,7 @@
 /**
- * Test a distributed system where a federation receives messages only over
- * connections that are marked 'physical' (using the ~> arrow) with an after
- * delay. The receiver verifies that the after delay is correctly imposed.
+ * Test a distributed system where a federation receives messages only over connections that are
+ * marked 'physical' (using the ~> arrow) with an after delay. The receiver verifies that the after
+ * delay is correctly imposed.
  *
  * @author Edward A. Lee
  * @author Soroush Bateni
@@ -46,6 +46,5 @@ reactor Print {
 federated reactor at localhost {
     c = new Count(offset = 200 msec, period = 0)
     p = new Print()
-    // Indicating a 'physical' connection with a 400 msec after delay.
-    c.out ~> p.in after 400 msec
+    c.out ~> p.in after 400 msec  // Indicating a 'physical' connection with a 400 msec after delay.
 }

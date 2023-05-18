@@ -1,6 +1,6 @@
 /**
- * Tests that when a timeout coincides with a scheduled event, all scheduled
- * reactions are properly executed (in addition to the shutdown ones).
+ * Tests that when a timeout coincides with a scheduled event, all scheduled reactions are properly
+ * executed (in addition to the shutdown ones).
  */
 target Rust {
     timeout: 50 msec

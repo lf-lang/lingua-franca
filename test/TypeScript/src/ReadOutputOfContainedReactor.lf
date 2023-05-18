@@ -1,5 +1,4 @@
-// Test reacting to and reading outputs from a contained reactor in various
-// permutations.
+// Test reacting to and reading outputs from a contained reactor in various permutations.
 target TypeScript
 
 reactor Contained {

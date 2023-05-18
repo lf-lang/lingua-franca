@@ -1,6 +1,5 @@
 /**
- * This tests a feedback loop with physical actions and centralized
- * coordination.
+ * This tests a feedback loop with physical actions and centralized coordination.
  *
  * @author Edward A. Lee
  */

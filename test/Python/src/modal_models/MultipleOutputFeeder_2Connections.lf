@@ -1,8 +1,8 @@
 /**
  * Modal Reactor Test.
  *
- * Tests if connections in the same reactor that have the same destination work
- * if they are located in separate modes.
+ * Tests if connections in the same reactor that have the same destination work if they are located
+ * in separate modes.
  */
 target Python {
     fast: false,
@@ -66,9 +66,7 @@ main reactor {
 
     modal.count -> test.events
 
-    # Trigger mode change
-    reaction(stepper) -> modal.next {= modal.next.set(True) =}
+    reaction(stepper) -> modal.next {= modal.next.set(True) =}  # Trigger mode change
 
-    # Print
-    reaction(modal.count) {= print(modal.count.value) =}
+    reaction(modal.count) {= print(modal.count.value) =}        # Print
 }

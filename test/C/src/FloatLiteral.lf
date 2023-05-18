@@ -1,7 +1,6 @@
 target C
 
-// This test verifies that floating-point literals are handled correctly.
-main reactor {
+main reactor {  // This test verifies that floating-point literals are handled correctly.
     preamble {=
         #include <math.h>
     =}

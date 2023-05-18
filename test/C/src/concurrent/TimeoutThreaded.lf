@@ -1,6 +1,5 @@
 /**
- * A test for the timeout functionality in Lingua Franca. This version of the
- * test is threaded.
+ * A test for the timeout functionality in Lingua Franca. This version of the test is threaded.
  *
  * @author Soroush Bateni
  */

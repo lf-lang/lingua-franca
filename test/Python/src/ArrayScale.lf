@@ -1,7 +1,6 @@
-# Source produces a dynamically allocated array, which it passes to Scale. Scale
-# requests a writable copy, which, instead of copying, it just gets ownership of
-# the original array. It modifies it and passes it to Print. It gets freed after
-# Print is done with it.
+# Source produces a dynamically allocated array, which it passes to Scale. Scale requests a writable
+# copy, which, instead of copying, it just gets ownership of the original array. It modifies it and
+# passes it to Print. It gets freed after Print is done with it.
 target Python
 
 import Print, Source from "ArrayPrint.lf"

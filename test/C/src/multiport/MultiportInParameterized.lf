@@ -1,5 +1,5 @@
-// This is a version of the Threaded test that uses a multiport input at the
-// destination. Its purpose is to test multiport inputs.
+// This is a version of the Threaded test that uses a multiport input at the destination. Its
+// purpose is to test multiport inputs.
 target C {
     timeout: 2 sec,
     fast: true
@@ -60,7 +60,6 @@ main reactor {
     a.out -> t2.in
     a.out -> t3.in
     a.out -> t4.in
-    // I.e.: t1.out -> b.in[0]; t2.out -> b.in[1]; t3.out -> b.in[2]; dt4.out ->
-    // b.in[3];
+    // I.e.: t1.out -> b.in[0]; t2.out -> b.in[1]; t3.out -> b.in[2]; dt4.out -> b.in[3];
     t1.out, t2.out, t3.out, t4.out -> b.in
 }

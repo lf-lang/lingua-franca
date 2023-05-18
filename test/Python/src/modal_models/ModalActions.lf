@@ -1,6 +1,6 @@
 /**
- * Modal Reactor Test. Tests actions, their suspension during mode inactivity
- * and continuation of delays with history transitions.
+ * Modal Reactor Test. Tests actions, their suspension during mode inactivity and continuation of
+ * delays with history transitions.
  */
 target Python {
     fast: false,
@@ -90,6 +90,5 @@ main reactor {
     modal.action2_exec
         -> test.events
 
-    # Trigger mode change
-    reaction(stepper) -> modal.next {= modal.next.set(True) =}
+    reaction(stepper) -> modal.next {= modal.next.set(True) =}  # Trigger mode change
 }

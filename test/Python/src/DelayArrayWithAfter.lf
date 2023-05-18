@@ -1,5 +1,4 @@
-# This tests transport of dynamically allocated arrays over connections with
-# 'after'.
+# This tests transport of dynamically allocated arrays over connections with 'after'.
 target Python {
     timeout: 5 sec,
     fast: true

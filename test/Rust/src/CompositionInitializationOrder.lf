@@ -1,5 +1,4 @@
-// This test asserts the relative execution order of startup reactions within a
-// composite reactor.
+// This test asserts the relative execution order of startup reactions within a composite reactor.
 target Rust
 
 main reactor CompositionInitializationOrder {

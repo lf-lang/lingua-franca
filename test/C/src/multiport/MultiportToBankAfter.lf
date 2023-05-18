@@ -1,5 +1,4 @@
-// Check multiport output to bank of recipients where the width of the bank is
-// inferred.
+// Check multiport output to bank of recipients where the width of the bank is inferred.
 target C {
     timeout: 2 sec,
     fast: true

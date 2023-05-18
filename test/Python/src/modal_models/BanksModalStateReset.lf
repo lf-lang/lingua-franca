@@ -1,7 +1,4 @@
-/**
- * Modal Reactor Test. Tests reset of state variables in modes with banks of
- * reactors.
- */
+/** Modal Reactor Test. Tests reset of state variables in modes with banks of reactors. */
 target Python {
     fast: false,
     timeout: 4 sec
@@ -48,8 +45,7 @@ main reactor {
     reset2.count2
         -> test.events
 
-    # Trigger mode change (separately because of #1278)
-    reaction(stepper) -> reset1.next {=
+    reaction(stepper) -> reset1.next {=  # Trigger mode change (separately because of #1278)
         for i in range(len(reset1)):
             reset1[i].next.set(True)
     =}

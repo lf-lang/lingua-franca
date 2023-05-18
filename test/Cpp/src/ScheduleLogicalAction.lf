@@ -1,8 +1,8 @@
 /**
  * @author Maiko Brants TU Dresden
  *
- * This checks that a logical action is scheduled the specified logical time
- * after the current logical time.
+ * This checks that a logical action is scheduled the specified logical time after the current
+ * logical time.
  *
  * Modeled after the C version of this test.
  */

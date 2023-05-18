@@ -1,5 +1,5 @@
-// This tests actions with payloads by delaying an input by a fixed amount. This
-// is a start at handling dynamic memory allocation for such actions.
+// This tests actions with payloads by delaying an input by a fixed amount. This is a start at
+// handling dynamic memory allocation for such actions.
 target TypeScript
 
 reactor Delay(delay: time = 100 msec) {

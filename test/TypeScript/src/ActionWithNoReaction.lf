@@ -1,6 +1,5 @@
-// This checks that action can be created even if there is no reaction. This
-// test passes merely by compiling and executing without a segfault. Its other
-// functionality is tested by other tests.
+// This checks that action can be created even if there is no reaction. This test passes merely by
+// compiling and executing without a segfault. Its other functionality is tested by other tests.
 target TypeScript {
     fast: true,
     timeout: 3 sec

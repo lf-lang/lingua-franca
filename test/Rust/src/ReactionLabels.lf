@@ -1,5 +1,5 @@
-// There was a bug whereby reaction labels mess up generated code. Labels are
-// used as debug info by the runtime.
+// There was a bug whereby reaction labels mess up generated code. Labels are used as debug info by
+// the runtime.
 target Rust
 
 main reactor {

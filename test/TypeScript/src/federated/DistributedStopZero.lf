@@ -1,6 +1,6 @@
 /**
- * Test for util.requestStop() in federated execution with centralized
- * coordination at tag ((0 secs, 0 nsecs), 0).
+ * Test for util.requestStop() in federated execution with centralized coordination at tag ((0 secs,
+ * 0 nsecs), 0).
  *
  * @author Soroush Bateni
  * @author Byeong-gil Jun

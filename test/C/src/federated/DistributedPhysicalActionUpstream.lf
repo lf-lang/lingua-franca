@@ -1,6 +1,6 @@
 /**
- * Test that a rapidly produced physical action in an upstream federate can be
- * properly handled in federated execution.
+ * Test that a rapidly produced physical action in an upstream federate can be properly handled in
+ * federated execution.
  */
 target C {
     timeout: 10 secs,

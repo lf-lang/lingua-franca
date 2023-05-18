@@ -1,6 +1,5 @@
 /**
- * Test for lf_request_stop() at tag (0,0). This version uses the threaded
- * runtime.
+ * Test for lf_request_stop() at tag (0,0). This version uses the threaded runtime.
  *
  * @author Soroush Bateni
  */

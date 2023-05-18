@@ -1,6 +1,6 @@
 /**
- * Test for lf_request_stop() at tag (0,0). This also tests for logically
- * simultaneous calls to lf_request_stop().
+ * Test for lf_request_stop() at tag (0,0). This also tests for logically simultaneous calls to
+ * lf_request_stop().
  *
  * @author Soroush Bateni
  */

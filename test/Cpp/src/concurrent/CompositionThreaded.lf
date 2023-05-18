@@ -1,5 +1,4 @@
-// This test connects a simple counting source to tester that checks against its
-// own count.
+// This test connects a simple counting source to tester that checks against its own count.
 target Cpp {
     fast: true,
     timeout: 10 sec

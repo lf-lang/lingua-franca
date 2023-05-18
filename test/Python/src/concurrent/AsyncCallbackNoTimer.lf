@@ -1,11 +1,11 @@
 /**
- * Test asynchronous callbacks that trigger a physical action. This test creates
- * a concurrent Python thread that schedule a physical action twice.
+ * Test asynchronous callbacks that trigger a physical action. This test creates a concurrent Python
+ * thread that schedule a physical action twice.
  *
- * There are no timers in this test to drive the logical time forward. This is
- * important in the Python target since the user Python threads should be
- * allowed to execute independently of the underlying C core runtime, without
- * the C runtime polling the Python context with a reaction to a timer.
+ * There are no timers in this test to drive the logical time forward. This is important in the
+ * Python target since the user Python threads should be allowed to execute independently of the
+ * underlying C core runtime, without the C runtime polling the Python context with a reaction to a
+ * timer.
  */
 target Python {
     timeout: 2 sec

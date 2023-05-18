@@ -83,6 +83,5 @@ main reactor {
 
     modal.mode_switch, modal.count0, modal.count1, modal.count2 -> test.events
 
-    # Trigger mode change
-    reaction(stepper) -> modal.next {= modal.next.set(True) =}
+    reaction(stepper) -> modal.next {= modal.next.set(True) =}  # Trigger mode change
 }

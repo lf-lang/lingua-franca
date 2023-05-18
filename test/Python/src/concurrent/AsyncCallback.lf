@@ -1,7 +1,6 @@
 /**
- * Test asynchronous callbacks that trigger a physical action. This test
- * periodically creates a concurrent Python thread that schedule a physical
- * action twice.
+ * Test asynchronous callbacks that trigger a physical action. This test periodically creates a
+ * concurrent Python thread that schedule a physical action twice.
  */
 target Python {
     timeout: 2 sec

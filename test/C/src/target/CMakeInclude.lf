@@ -1,6 +1,5 @@
 /**
- * Test that cmake-include is working correctly. The failure for this test is
- * failure to compile.
+ * Test that cmake-include is working correctly. The failure for this test is failure to compile.
  */
 target C {
     cmake-include: [

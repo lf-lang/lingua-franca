@@ -1,6 +1,6 @@
 /**
- * This tests for the situation where a reactor extends two other reactors that
- * each extend a common reactor.
+ * This tests for the situation where a reactor extends two other reactors that each extend a common
+ * reactor.
  * @author{Edward A. Lee}
  */
 target C {
@@ -27,9 +27,7 @@ reactor A extends B, C {
     input a: int
     output out: int
 
-    reaction(a, b, c, d) -> out {=
-        lf_set(out, a->value + b->value + c->value + d->value);
-    =}
+    reaction(a, b, c, d) -> out {= lf_set(out, a->value + b->value + c->value + d->value); =}
 }
 
 main reactor {

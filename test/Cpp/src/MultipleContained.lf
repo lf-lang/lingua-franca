@@ -1,5 +1,4 @@
-// Test that a reaction can react to and send two multiple ports of a contained
-// reactor.
+// Test that a reaction can react to and send two multiple ports of a contained reactor.
 target Cpp
 
 reactor Contained {

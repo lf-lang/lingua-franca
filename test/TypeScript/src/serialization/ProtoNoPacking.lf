@@ -1,12 +1,10 @@
 /**
- * This example creates a Protocol Buffer message and passes it to another
- * reactor without packing and unpacking. This demonstrates that local
- * communication, within one shared-memory machine, need not incur the overhead
- * of packing and unpacking.
+ * This example creates a Protocol Buffer message and passes it to another reactor without packing
+ * and unpacking. This demonstrates that local communication, within one shared-memory machine, need
+ * not incur the overhead of packing and unpacking.
  *
  * To run this example first install the protocol buffers compiler from
- * https://github.com/protocolbuffers/protobuf. It is also available from
- * homebrew on a Mac via
+ * https://github.com/protocolbuffers/protobuf. It is also available from homebrew on a Mac via
  *
  * $ brew install protobuf
  *

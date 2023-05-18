@@ -1,7 +1,4 @@
-/**
- * Modal Reactor Test. Checks disabling of reactions indirectly nested in an
- * inactive mode
- */
+/** Modal Reactor Test. Checks disabling of reactions indirectly nested in an inactive mode */
 target Python {
     fast: false,
     timeout: 2 sec
