@@ -1,7 +1,8 @@
 target C
 
 reactor Hello<T> {
-    state count: T(0)
+    state count: T = 0
+
     reaction(startup) {=
         self->count = self->count + 1;
         printf("Hello World %d\n", (int) self->count);
@@ -9,5 +10,5 @@ reactor Hello<T> {
 }
 
 main reactor Template {
-   hello = new Hello<double>();
+    hello = new Hello<double>()
 }
