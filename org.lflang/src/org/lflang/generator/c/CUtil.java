@@ -456,7 +456,7 @@ public class CUtil {
      *  default, the string returned by {@link CUtil#bankIndex(ReactorInstance)}.
      */
     public static String reactorRefNested(ReactorInstance reactor, String runtimeIndex, String bankIndex) {
-        String result = reactorRef(reactor.getParent(), runtimeIndex) + "->_lf_" + reactor.tpr.getName();
+        String result = reactorRef(reactor.getParent(), runtimeIndex) + "->_lf_" + reactor.getName();
         if (reactor.isBank()) {
             // Need the bank index not the runtimeIndex.
             if (bankIndex == null) bankIndex = bankIndex(reactor);

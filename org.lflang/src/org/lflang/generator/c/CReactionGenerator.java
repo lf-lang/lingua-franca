@@ -208,7 +208,7 @@ public class CReactionGenerator {
             var containedReactorType = ReactorInstance.getReactorInstance(ASTUtils.toDefinition(containedReactor.getReactorClass()), containedReactor.getName());
             String array = "";
             if (containedReactor.getWidthSpec() != null) {
-                String containedReactorWidthVar = generateWidthVariable(containedReactorType.tpr.getName());
+                String containedReactorWidthVar = generateWidthVariable(containedReactor.getName());
                 code.pr("int "+containedReactorWidthVar+" = self->_lf_"+containedReactorWidthVar+";");
                 // Windows does not support variables in arrays declared on the stack,
                 // so we use the maximum size over all bank members.
@@ -356,7 +356,6 @@ public class CReactionGenerator {
         var reactorInstance = ReactorInstance.getReactorInstance(ASTUtils.toDefinition(definition.getReactorClass()), definition.getName());
         String inputStructType = CGenerator.variableStructType(input, reactorInstance.tpr, false);
         String defName = reactorInstance.getName();
-        String subName = reactorInstance.tpr.getName();
         String defWidth = generateWidthVariable(defName);
         String inputName = input.getName();
         String inputWidth = generateWidthVariable(inputName);
@@ -367,12 +366,12 @@ public class CReactionGenerator {
                 // Contained reactor is a bank.
                 builder.pr(String.join("\n",
                     "for (int bankIndex = 0; bankIndex < self->_lf_"+defWidth+"; bankIndex++) {",
-                    "    "+defName+"[bankIndex]."+inputName+" = &(self->_lf_"+subName+"[bankIndex]."+inputName+");",
+                    "    "+defName+"[bankIndex]."+inputName+" = &(self->_lf_"+defName+"[bankIndex]."+inputName+");",
                     "}"
                 ));
             } else {
                 // Contained reactor is not a bank.
-                builder.pr(defName+"."+inputName+" = &(self->_lf_"+subName+"."+inputName+");");
+                builder.pr(defName+"."+inputName+" = &(self->_lf_"+defName+"."+inputName+");");
             }
         } else {
             // Contained reactor's input is a multiport.
@@ -385,14 +384,14 @@ public class CReactionGenerator {
             if (definition.getWidthSpec() != null) {
                 builder.pr(String.join("\n",
                     "for (int _i = 0; _i < self->_lf_"+defWidth+"; _i++) {",
-                    "    "+defName+"[_i]."+inputName+" = self->_lf_"+subName+"[_i]."+inputName+";",
-                    "    "+defName+"[_i]."+inputWidth+" = self->_lf_"+subName+"[_i]."+inputWidth+";",
+                    "    "+defName+"[_i]."+inputName+" = self->_lf_"+defName+"[_i]."+inputName+";",
+                    "    "+defName+"[_i]."+inputWidth+" = self->_lf_"+defName+"[_i]."+inputWidth+";",
                     "}"
                 ));
             } else {
                 builder.pr(String.join("\n",
-                    defName+"."+inputName+" = self->_lf_"+subName+"."+inputName+";",
-                    defName+"."+inputWidth+" = self->_lf_"+subName+"."+inputWidth+";"
+                    defName+"."+inputName+" = self->_lf_"+defName+"."+inputName+";",
+                    defName+"."+inputWidth+" = self->_lf_"+defName+"."+inputWidth+";"
                 ));
             }
         }
@@ -429,9 +428,8 @@ public class CReactionGenerator {
                 structBuilder = new CodeBuilder();
                 structs.put(port.getContainer(), structBuilder);
             }
-            String reactorName = ReactorInstance.getReactorInstance(ASTUtils.toDefinition(port.getContainer().getReactorClass()), port.getContainer().getName()).tpr.getName();
             String subName = ReactorInstance.getReactorInstance(ASTUtils.toDefinition(port.getContainer().getReactorClass()), port.getContainer().getName()).getName();
-            String reactorWidth = generateWidthVariable(reactorName);
+            String reactorWidth = generateWidthVariable(subName);
             String outputName = output.getName();
             String outputWidth = generateWidthVariable(outputName);
             // First define the struct containing the output value and indicator
@@ -452,21 +450,21 @@ public class CReactionGenerator {
                 // Output is in a bank.
                 builder.pr(String.join("\n",
                     "for (int i = 0; i < "+reactorWidth+"; i++) {",
-                    "    "+subName+"[i]."+outputName+" = self->_lf_"+reactorName+"[i]."+outputName+";",
+                    "    "+subName+"[i]."+outputName+" = self->_lf_"+subName+"[i]."+outputName+";",
                     "}"
                 ));
                 if (ASTUtils.isMultiport(output)) {
                     builder.pr(String.join("\n",
                         "for (int i = 0; i < "+reactorWidth+"; i++) {",
-                        "    "+subName+"[i]."+outputWidth+" = self->_lf_"+reactorName+"[i]."+outputWidth+";",
+                        "    "+subName+"[i]."+outputWidth+" = self->_lf_"+subName+"[i]."+outputWidth+";",
                         "}"
                     ));
                 }
             } else {
                  // Output is not in a bank.
-                builder.pr(subName+"."+outputName+" = self->_lf_"+reactorName+"."+outputName+";");
+                builder.pr(subName+"."+outputName+" = self->_lf_"+subName+"."+outputName+";");
                 if (ASTUtils.isMultiport(output)) {
-                    builder.pr(subName+"."+outputWidth+" = self->_lf_"+reactorName+"."+outputWidth+";");
+                    builder.pr(subName+"."+outputWidth+" = self->_lf_"+subName+"."+outputWidth+";");
                 }
             }
         }

@@ -1282,7 +1282,7 @@ public class CGenerator extends GeneratorBase {
             constructorCode.pr(String.join("\n",
                 "// Set the _width variable for all cases. This will be -2",
                 "// if the reactor is not a bank of reactors.",
-                "self->_lf_"+containedReactorType.tpr.getName()+"_width = "+width+";"
+                "self->_lf_"+containedReactor.getName()+"_width = "+width+";"
             ));
 
             // Generate one struct for each contained reactor that interacts.
@@ -1323,10 +1323,10 @@ public class CGenerator extends GeneratorBase {
                     var reactorIndex = "";
                     if (containedReactor.getWidthSpec() != null) {
                         reactorIndex = "[reactor_index]";
-                        constructorCode.pr("for (int reactor_index = 0; reactor_index < self->_lf_"+containedReactorType.tpr.getName()+"_width; reactor_index++) {");
+                        constructorCode.pr("for (int reactor_index = 0; reactor_index < self->_lf_"+containedReactor.getName()+"_width; reactor_index++) {");
                         constructorCode.indent();
                     }
-                    var portOnSelf = "self->_lf_"+containedReactorType.tpr.getName()+reactorIndex+"."+port.getName();
+                    var portOnSelf = "self->_lf_"+containedReactor.getName()+reactorIndex+"."+port.getName();
 
                     constructorCode.pr(
                         port,
@@ -1371,8 +1371,8 @@ public class CGenerator extends GeneratorBase {
             }
             body.unindent();
             body.pr(String.join("\n",
-                "} _lf_"+containedReactorType.tpr.getName()+array+";",
-                "int _lf_"+containedReactorType.tpr.getName()+"_width;"
+                "} _lf_"+containedReactor.getName()+array+";",
+                "int _lf_"+containedReactor.getName()+"_width;"
             ));
         }
     }
