@@ -29,6 +29,9 @@ jobs:
           fetch-depth: 0
       - name: Prepare build environment
         uses: ./.github/actions/prepare-build-env
+      - name: Install RTI
+        uses: ./.github/actions/install-rti
+        if: ${{ runner.os == 'macOS' || runner.os == 'Linux' }}
       - name: Setup Python
         uses: actions/setup-python@v4
         with:
