@@ -121,7 +121,7 @@ public class CReactorHeaderFileGenerator {
                     it.getAlias(),
                     CReactionGenerator.maxContainedReactorBankWidth(
                         reactor.r().getInstantiations().stream()
-                            .filter(instantiation -> ASTUtils.toDefinition(instantiation.getReactorClass()).equals(it.r))
+                            .filter(instantiation -> new TypeParameterizedReactor(instantiation).equals(it.r))
                             .findAny().orElseThrow(),
                         null, 0, mainDef),
                     "self->_lf_"+it.container.getName()+"_width",
