@@ -1935,15 +1935,15 @@ public class CGenerator extends GeneratorBase {
             targetConfig.noCompile = true;
         }
 
-        if (targetConfig.platformOptions.platform == Platform.ZEPHYR && targetConfig.platformOptions.userThreads >= 0) {
+        if (targetConfig.platformOptions.platform == Platform.ZEPHYR && targetConfig.threading 
+            && targetConfig.platformOptions.userThreads >= 0) {
             targetConfig.compileDefinitions.put(
                 PlatformOption.USER_THREADS.name(),
                 String.valueOf(targetConfig.platformOptions.userThreads)
             );
+        } else if (targetConfig.platformOptions.userThreads > 0) {
+            errorReporter.reportWarning("Specifying user threads is only for threaded Lingua Franca on the Zephyr platform. This option will be ignored.");
         }
-
-        if (targetConfig.platformOptions.platform != Platform.ZEPHYR && targetConfig.platformOptions.userThreads > 0) {
-            errorReporter.reportWarning("Specifying user threads is only for the Zephyr platform. This option will be ignored.");        }
 
         if (targetConfig.threading) {  // FIXME: This logic is duplicated in CMake
             pickScheduler();
