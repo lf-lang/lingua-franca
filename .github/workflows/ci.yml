@@ -117,7 +117,6 @@ jobs:
   # Run the TypeScript integration tests.
   ts-tests:
     uses: lf-lang/lingua-franca/.github/workflows/ts-tests.yml@debug-ts-in-ci
-    uses: lf-lang/lingua-franca/.github/workflows/ts-tests.yml@master
     needs: cancel
 
   # Run the serialization tests
