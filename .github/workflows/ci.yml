@@ -99,7 +99,7 @@ jobs:
 
   # Run the Python integration tests.
   py-tests:
-    uses: lf-lang/lingua-franca/.github/workflows/py-tests.yml@master
+    uses: lf-lang/lingua-franca/.github/workflows/py-tests.yml@fix-ts-federated-tests
     needs: cancel
 
   # Run the Rust integration tests.
@@ -116,10 +116,10 @@ jobs:
 
   # Run the TypeScript integration tests.
   ts-tests:
-    uses: lf-lang/lingua-franca/.github/workflows/ts-tests.yml@master
+    uses: lf-lang/lingua-franca/.github/workflows/ts-tests.yml@fix-ts-federated-tests
     needs: cancel
 
   # Run the serialization tests
   serialization-tests:
-    uses: lf-lang/lingua-franca/.github/workflows/serialization-tests.yml@master
+    uses: lf-lang/lingua-franca/.github/workflows/serialization-tests.yml@fix-ts-federated-tests
     needs: cancel
