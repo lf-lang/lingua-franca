@@ -62,7 +62,7 @@ public class CZephyrTest extends RuntimeTest {
         super.runTestsFor(List.of(Target.C),
             Message.DESC_GENERIC,
             TestCategory.GENERIC::equals,
-            Configurators::makeZephyrCompatible,
+            Configurators::makeZephyrCompatibleUnthreaded,
             TestLevel.BUILD,
             false);
     }

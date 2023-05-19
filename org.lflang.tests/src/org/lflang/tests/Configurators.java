@@ -65,7 +65,7 @@ public class Configurators {
         return true;
     }
 
-    public static boolean makeZephyrCompatible(LFTest test) {
+    public static boolean makeZephyrCompatibleUnthreaded(LFTest test) {
         test.getContext().getArgs().setProperty("tracing", "false");
         test.getContext().getTargetConfig().threading = false;
         test.getContext().getTargetConfig().setByUser.add(TargetProperty.THREADING);
@@ -74,6 +74,15 @@ public class Configurators {
         test.getContext().getTargetConfig().platformOptions.board = "qemu_cortex_a53";
         return true;
     }
+
+    public static boolean makeZephyrCompatible(LFTest test) {
+        test.getContext().getArgs().setProperty("tracing", "false");
+        test.getContext().getTargetConfig().platformOptions.platform = Platform.ZEPHYR;
+        test.getContext().getTargetConfig().platformOptions.flash = false;
+        test.getContext().getTargetConfig().platformOptions.board = "qemu_cortex_a53";
+        return true;
+    }
+
     /**
      * Make no changes to the configuration.
      *
