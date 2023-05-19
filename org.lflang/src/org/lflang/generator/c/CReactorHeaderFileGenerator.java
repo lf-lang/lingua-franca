@@ -94,8 +94,8 @@ public class CReactorHeaderFileGenerator {
     }
 
     private static String reactionParameters(CTypes types, Reaction r, TypeParameterizedReactor tpr) {
-        return Stream.concat(Stream.of(userFacingSelfType(tpr) + "* self"), inputVarRefStream(r)
-            .map(tv -> tpr.getName().toLowerCase() + "_" + tv.getVariable().getName() + "_t* " + tv.getVariable().getName()))
+        return Stream.concat(Stream.of(userFacingSelfType(tpr) + "* self"), portVariableStream(r, tpr)
+            .map(tv -> tpr.getName().toLowerCase() + "_" + tv.getName() + "_t* " + tv.getName()))
             .collect(Collectors.joining(", "));
     }
 
@@ -107,13 +107,6 @@ public class CReactorHeaderFileGenerator {
 
     private static String getApiSelfStruct(TypeParameterizedReactor tpr) {
         return "(" + userFacingSelfType(tpr) + "*) (((char*) self) + sizeof(self_base_t))";
-    }
-
-    /** Return a string representation of the parameters of the reaction function of {@code r}. */
-    private static String reactionParameters(Reaction r, TypeParameterizedReactor tpr) {
-        return Stream.concat(Stream.of(userFacingSelfType(tpr) + "* self"), portVariableStream(r, tpr)
-            .map(it -> it.getType(true) + " " + it.getName()))
-            .collect(Collectors.joining(", "));
     }
 
     /** Generate initialization code that is needed if {@code r} is not inlined. */

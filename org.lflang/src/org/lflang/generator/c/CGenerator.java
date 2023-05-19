@@ -1069,7 +1069,7 @@ public class CGenerator extends GeneratorBase {
             src.pr("}");
             header.pr("}");
         }
-        src.pr("#include \"include/" + headerName + "\"");
+        src.pr("#include \"" + headerName + "\"");
         tpr.typeArgs().forEach((literal, concreteType) -> src.pr(
             "#if defined " + literal + "\n" +
                 "#undef " + literal + "\n" +
