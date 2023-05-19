@@ -10,11 +10,18 @@ target C {
 
 import Sender from "../lib/LoopedActionSender.lf"
 
-reactor Receiver(take_a_break_after: int(10), break_interval: time(400 msec)) {
+preamble {=
+    #include <stdio.h>
+=}
+
+reactor Receiver(
+    take_a_break_after: int = 10,
+    break_interval: time = 400 msec
+) {
     input in: int
-    state received_messages: int(0)
-    state total_received_messages: int(0)
-    state breaks: int(0)
+    state received_messages: int = 0
+    state total_received_messages: int = 0
+    state breaks: int = 0
     timer t(0, 1 msec)  // This will impact the performance
 
     // but forces the logical time to advance Comment this line for a more

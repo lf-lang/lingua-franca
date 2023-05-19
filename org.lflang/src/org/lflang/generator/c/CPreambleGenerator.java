@@ -36,6 +36,8 @@ public class CPreambleGenerator {
         if (cppMode || targetConfig.platformOptions.platform == Platform.ARDUINO) {
             code.pr("extern \"C\" {");
         }
+        code.pr("#include <limits.h>");
+        code.pr("#include \"include/core/platform.h\"");
         CCoreFilesUtils.getCTargetHeader().forEach(
             it -> code.pr("#include " + StringUtil.addDoubleQuotes(it))
         );

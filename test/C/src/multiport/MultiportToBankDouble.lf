@@ -5,6 +5,10 @@ target C {
     fast: true
 }
 
+preamble {=
+    #include <stdio.h>
+=}
+
 reactor Source {
     output[3] out: int  // Connected to a bank of Destination reactors
 
@@ -24,9 +28,9 @@ reactor Source {
     =}
 }
 
-reactor Destination(bank_index: int(0)) {
+reactor Destination(bank_index: int = 0) {
     input in: int
-    state received: bool(false)
+    state received: bool = false
 
     reaction(in) {=
         printf("Destination %d received %d.\n", self->bank_index, in->value);

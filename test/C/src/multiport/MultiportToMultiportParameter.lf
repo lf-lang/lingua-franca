@@ -4,10 +4,14 @@ target C {
     fast: true
 }
 
-reactor Source(width: int(1)) {
+preamble {=
+    #include <stdio.h>
+=}
+
+reactor Source(width: int = 1) {
     timer t(0, 200 msec)
     output[width] out: int
-    state s: int(0)
+    state s: int = 0
 
     reaction(t) -> out {=
         for(int i = 0; i < out_width; i++) {
@@ -19,8 +23,8 @@ reactor Source(width: int(1)) {
     =}
 }
 
-reactor Destination(width: int(1)) {
-    state s: int(6)
+reactor Destination(width: int = 1) {
+    state s: int = 6
     input[width] in: int  // Width is one larger than that of the source.
 
     reaction(in) {=
@@ -45,7 +49,7 @@ reactor Destination(width: int(1)) {
     =}
 }
 
-main reactor(width: int(4)) {
+main reactor(width: int = 4) {
     a = new Source(width = width)
     b = new Destination(width = width)
     a.out -> b.in

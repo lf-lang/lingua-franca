@@ -256,6 +256,14 @@ public class ASTUtils {
     }
 
     /**
+     * Return the target of the file in which the given node lives.
+     */
+    public static Target getTarget(EObject object) {
+        TargetDecl targetDecl = targetDecl(object.eResource());
+        return Target.fromDecl(targetDecl);
+    }
+
+    /**
      * Add a new target property to the given resource.
      *
      * This also creates a config object if the resource does not yey have one.
@@ -367,8 +375,9 @@ public class ASTUtils {
         return ASTUtils.collectElements(definition, featurePackage.getReactor_Inputs());
     }
 
+    /** A list of all ports of {@code definition}, in an unspecified order. */
     public static List<Port> allPorts(Reactor definition) {
-        return Stream.concat(ASTUtils.allInputs(definition).stream(), ASTUtils.allOutputs(definition).stream()).toList();
+        return Stream.concat(ASTUtils.allInputs(definition).stream(), ASTUtils.allOutputs(definition).stream()).collect(Collectors.toList());
     }
 
     /**
@@ -404,6 +413,12 @@ public class ASTUtils {
             reporter,
             0
         )).collect(Collectors.toList());
+    }
+
+    public static Stream<Reactor> allNestedClasses(Reactor definition) {
+        return new HashSet<>(ASTUtils.allInstantiations(definition)).stream()
+            .map(Instantiation::getReactorClass)
+            .map(ASTUtils::toDefinition);
     }
 
     /**

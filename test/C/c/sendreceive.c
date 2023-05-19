@@ -1,3 +1,5 @@
+#include <stdio.h>
+
 #include "../include/IntPrint/Print.h"
 #include "../include/IntPrint/Check.h"
 #include "../include/api/set.h"

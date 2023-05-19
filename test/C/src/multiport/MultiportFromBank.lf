@@ -5,7 +5,11 @@ target C {
     fast: true
 }
 
-reactor Source(check_override: int(0), bank_index: int(0)) {
+preamble {=
+    #include <stdio.h>
+=}
+
+reactor Source(check_override: int = 0, bank_index: int = 0) {
     output out: int
 
     reaction(startup) -> out {=
@@ -13,9 +17,9 @@ reactor Source(check_override: int(0), bank_index: int(0)) {
     =}
 }
 
-reactor Destination(port_width: int(3)) {
+reactor Destination(port_width: int = 3) {
     input[port_width] in: int
-    state received: bool(false)
+    state received: bool = false
 
     reaction(in) {=
         for (int i = 0; i < in_width; i++) {
@@ -37,7 +41,7 @@ reactor Destination(port_width: int(3)) {
     =}
 }
 
-main reactor MultiportFromBank(width: int(4)) {
+main reactor MultiportFromBank(width: int = 4) {
     a = new[width] Source(check_override = 1)
     b = new Destination(port_width = width)
     a.out -> b.in

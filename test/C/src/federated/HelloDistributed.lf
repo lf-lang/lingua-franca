@@ -7,6 +7,11 @@
  */
 target C
 
+preamble {=
+    #include <stdio.h>
+    #include <string.h>
+=}
+
 reactor Source {
     output out: string
 
@@ -19,7 +24,7 @@ reactor Source {
 
 reactor Destination {
     input in: string
-    state received: bool(false)
+    state received: bool = false
 
     reaction(startup) {= lf_print("Destination started."); =}
 

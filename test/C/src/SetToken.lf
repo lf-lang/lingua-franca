@@ -1,6 +1,10 @@
 // Illustration of lf_set_token() in the wiki.
 target C
 
+preamble {=
+    #include <stdio.h>
+=}
+
 reactor Source {
     output out: int*
     logical action a: int
@@ -10,7 +14,7 @@ reactor Source {
     reaction(a) -> out {= lf_set_token(out, a->token); =}
 }
 
-reactor Print(expected: int(42)) {  // expected parameter is for testing.
+reactor Print(expected: int = 42) {  // expected parameter is for testing.
     input in: int*
 
     reaction(in) {=

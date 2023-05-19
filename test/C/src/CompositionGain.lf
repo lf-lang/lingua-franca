@@ -1,6 +1,10 @@
 // This tests send data through a contained reactor.
 target C
 
+preamble {=
+    #include <stdio.h>
+=}
+
 reactor Gain {
     input gainin: int
     output y: int

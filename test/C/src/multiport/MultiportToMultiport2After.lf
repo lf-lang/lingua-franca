@@ -1,7 +1,11 @@
 // Test multiport to multiport connections. See also MultiportToMultiport.
 target C
 
-reactor Source(width: int(2)) {
+preamble {=
+    #include <stdio.h>
+=}
+
+reactor Source(width: int = 2) {
     output[width] out: int
 
     reaction(startup) -> out {=
@@ -11,7 +15,7 @@ reactor Source(width: int(2)) {
     =}
 }
 
-reactor Destination(width: int(2)) {
+reactor Destination(width: int = 2) {
     input[width] in: int
 
     reaction(in) {=

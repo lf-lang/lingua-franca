@@ -6,7 +6,7 @@ target Rust {
 main reactor Timers {
     timer t(0, 1 sec)
     timer t2(0, 2 sec)
-    state counter: i32(0)
+    state counter: i32 = 0
 
     reaction(t2) {= self.counter += 2; =}
 

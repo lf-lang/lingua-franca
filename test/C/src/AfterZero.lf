@@ -5,6 +5,10 @@ target C {
     timeout: 3 sec
 }
 
+preamble {=
+    #include <stdio.h>
+=}
+
 reactor foo {
     input x: int
     output y: int
@@ -13,8 +17,8 @@ reactor foo {
 }
 
 reactor print {
-    state expected_time: time(0)
-    state received: int(0)
+    state expected_time: time = 0
+    state received: int = 0
     input x: int
 
     reaction(x) {=

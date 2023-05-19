@@ -1086,7 +1086,9 @@ public class CReactionGenerator {
     private static Code getCode(CTypes types, Reaction r, TypeParameterizedReactor tpr) {
         if (r.getCode() != null) return r.getCode();
         Code ret = LfFactory.eINSTANCE.createCode();
-        ret.setBody(r.getName() + "( " + CReactorHeaderFileGenerator.reactionArguments(types, r, tpr) + " );");
+        ret.setBody(
+            CReactorHeaderFileGenerator.nonInlineInitialization(r, tpr) + "\n"
+                + r.getName() + "( " + CReactorHeaderFileGenerator.reactionArguments(r, tpr) + " );");
         return ret;
     }
 

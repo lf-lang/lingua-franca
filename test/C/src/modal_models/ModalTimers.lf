@@ -6,6 +6,10 @@ target C {
 
 import TraceTesting from "util/TraceTesting.lf"
 
+preamble {=
+    #include <stdio.h>
+=}
+
 reactor Modal {
     input next: bool
 
@@ -49,7 +53,7 @@ main reactor {
     test = new TraceTesting(
         events_size = 3,
         trace_size = 77,
-        trace = (  // keep-format
+        trace = {  // keep-format
             0,0,0,1,1,0,0,
             750000000,0,0,1,1,0,0,
             250000000,1,1,0,1,0,0,
@@ -61,7 +65,7 @@ main reactor {
             0,0,1,0,1,1,1,
             750000000,0,1,0,1,1,1,
             250000000,1,1,0,1,0,1
-        ),
+        },
         training = false
     )
 

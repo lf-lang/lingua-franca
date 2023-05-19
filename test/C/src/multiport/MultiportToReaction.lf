@@ -4,9 +4,13 @@ target C {
     fast: true
 }
 
-reactor Source(width: int(1)) {
+preamble {=
+    #include <stdio.h>
+=}
+
+reactor Source(width: int = 1) {
     timer t(0, 200 msec)
-    state s: int(0)
+    state s: int = 0
     output[width] out: int
 
     reaction(t) -> out {=
@@ -18,7 +22,7 @@ reactor Source(width: int(1)) {
 }
 
 main reactor MultiportToReaction {
-    state s: int(6)
+    state s: int = 6
     b = new Source(width = 4)
 
     reaction(b.out) {=

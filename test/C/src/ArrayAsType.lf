@@ -2,6 +2,10 @@
 // destination references the array directly.
 target C
 
+preamble {=
+    #include <stdio.h>
+=}
+
 reactor Source {
     output out: int[3]
 
@@ -13,7 +17,7 @@ reactor Source {
     =}
 }
 
-reactor Print(scale: int(1)) {  // The scale parameter is just for testing.
+reactor Print(scale: int = 1) {  // The scale parameter is just for testing.
     input in: int[3]
 
     reaction(in) {=

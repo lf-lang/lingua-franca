@@ -39,6 +39,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
@@ -48,7 +49,6 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import org.eclipse.emf.ecore.EObject;
 import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.xtext.xbase.lib.Exceptions;
 import org.eclipse.xtext.xbase.lib.IterableExtensions;
@@ -388,9 +388,9 @@ public class CGenerator extends GeneratorBase {
         this(
             context,
             ccppMode,
-            new CTypes(context.getErrorReporter()),
+            new CTypes(),
             new CCmakeGenerator(context.getFileConfig(), List.of()),
-            new CDelayBodyGenerator(new CTypes(context.getErrorReporter()))
+            new CDelayBodyGenerator(new CTypes())
         );
     }
 
@@ -467,112 +467,77 @@ public class CGenerator extends GeneratorBase {
         var cFilename = CCompiler.getTargetFileName(lfModuleName, this.CCppMode, targetConfig);
         var targetFile = fileConfig.getSrcGenPath() + File.separator + cFilename;
         try {
-                generateCodeFor(lfModuleName);
+            generateCodeFor(lfModuleName);
+            copyTargetFiles();
+            generateHeaders();
+            code.writeToFile(targetFile);
+        } catch (IOException e) {
+            //noinspection ThrowableNotThrown,ResultOfMethodCallIgnored
+            Exceptions.sneakyThrow(e);
+        }
 
+        // Create docker file.
+        if (targetConfig.dockerOptions != null && mainDef != null) {
+            try {
+                var dockerData = getDockerGenerator(context).generateDockerData();
+                dockerData.writeDockerFile();
+                (new DockerComposeGenerator(context)).writeDockerComposeFile(List.of(dockerData));
+            } catch (IOException e) {
+                throw new RuntimeException("Error while writing Docker files", e);
+            }
+        }
 
-                String srcPrefix = targetConfig.platformOptions.platform == Platform.ARDUINO ? "src/" : "";
-
-                // Copy the core lib
-                FileUtil.copyDirectoryFromClassPath(
-                    "/lib/c/reactor-c/core",
-                    fileConfig.getSrcGenPath().resolve(srcPrefix + "core"),
-                    true
-                );
-                // Copy the C target files
-                copyTargetFiles();
-
-                // For the Zephyr target, copy default config and board files.
-                if (targetConfig.platformOptions.platform == Platform.ZEPHYR) {
-                    FileUtil.copyDirectoryFromClassPath(
-                        "/lib/platform/zephyr/boards",
-                        fileConfig.getSrcGenPath().resolve("boards"),
-                        false
-                    );
-                    FileUtil.copyFileFromClassPath(
-                        "/lib/platform/zephyr/prj_lf.conf",
-                        fileConfig.getSrcGenPath().resolve("prj_lf.conf"),
-                        true
-                    );
-
-                    FileUtil.copyFileFromClassPath(
-                        "/lib/platform/zephyr/Kconfig",
-                        fileConfig.getSrcGenPath().resolve("Kconfig"),
-                        true
-                    );
-                }
-
-                generateHeaders();
-
-                // Write the generated code
-                code.writeToFile(targetFile);
+        // If cmake is requested, generate the CMakeLists.txt
+        if (targetConfig.platformOptions.platform != Platform.ARDUINO) {
+            var cmakeFile = fileConfig.getSrcGenPath() + File.separator + "CMakeLists.txt";
+            var sources = allTypeParameterizedReactors()
+                .map(CUtil::getName)
+                .map(it -> it + (CCppMode ? ".cpp" : ".c"))
+                .collect(Collectors.toCollection(ArrayList::new));
+            sources.add(cFilename);
+            var cmakeCode = cmakeGenerator.generateCMakeCode(
+                sources,
+                lfModuleName,
+                errorReporter,
+                CCppMode,
+                mainDef != null,
+                cMakeExtras,
+                targetConfig
+            );
+            try {
+                cmakeCode.writeToFile(cmakeFile);
             } catch (IOException e) {
                 //noinspection ThrowableNotThrown,ResultOfMethodCallIgnored
                 Exceptions.sneakyThrow(e);
             }
-
-            // Create docker file.
-            if (targetConfig.dockerOptions != null && mainDef != null) {
-                try {
-                    var dockerData = getDockerGenerator(context).generateDockerData();
-                    dockerData.writeDockerFile();
-                    new DockerComposeGenerator(context).writeDockerComposeFile(List.of(dockerData));
-                } catch (IOException e) {
-                    throw new RuntimeException("Error while writing Docker files", e);
-                }
+        } else {
+            try {
+                Path include = fileConfig.getSrcGenPath().resolve("include/");
+                Path src = fileConfig.getSrcGenPath().resolve("src/");
+                FileUtil.arduinoDeleteHelper(src, targetConfig.threading);
+                FileUtil.relativeIncludeHelper(src, include);
+                FileUtil.relativeIncludeHelper(include, include);
+            } catch (IOException e) {
+                //noinspection ThrowableNotThrown,ResultOfMethodCallIgnored
+                Exceptions.sneakyThrow(e);
             }
-
-            // If cmake is requested, generate the CMakeLists.txt
-            if (targetConfig.platformOptions.platform != Platform.ARDUINO) {
-                var cmakeFile = fileConfig.getSrcGenPath() + File.separator + "CMakeLists.txt";
-                var sources = new HashSet<>(ASTUtils.recursiveChildren(main)).stream()
-                    .map(ReactorInstance::getTypeParameterizedReactor)
-                    .map(CUtil::getName).map(it -> it + (CCppMode ? ".cpp" : ".c"))
-                    .collect(Collectors.toList());
-                sources.add(cFilename);
-                var cmakeCode = cmakeGenerator.generateCMakeCode(
-                    sources,
-                    lfModuleName,
-                    errorReporter,
-                    CCppMode,
-                    mainDef != null,
-                    cMakeExtras,
-                    targetConfig
+            if (!targetConfig.noCompile) {
+                ArduinoUtil arduinoUtil = new ArduinoUtil(context, commandFactory, errorReporter);
+                arduinoUtil.buildArduino(fileConfig, targetConfig);
+                context.finish(
+                    GeneratorResult.Status.COMPILED, null
                 );
-                try {
-                    cmakeCode.writeToFile(cmakeFile);
-                } catch (IOException e) {
-                    //noinspection ThrowableNotThrown,ResultOfMethodCallIgnored
-                    Exceptions.sneakyThrow(e);
-                }
             } else {
-                try {
-                    Path include = fileConfig.getSrcGenPath().resolve("include/");
-                    Path src = fileConfig.getSrcGenPath().resolve("src/");
-                    FileUtil.arduinoDeleteHelper(src, targetConfig.threading);
-                    FileUtil.relativeIncludeHelper(src, include);
-                    FileUtil.relativeIncludeHelper(include, include);
-                } catch (IOException e) {
-                    //noinspection ThrowableNotThrown,ResultOfMethodCallIgnored
-                    Exceptions.sneakyThrow(e);
-                }
-
-                if (!targetConfig.noCompile) {
-                    ArduinoUtil arduinoUtil = new ArduinoUtil(context, commandFactory, errorReporter);
-                    arduinoUtil.buildArduino(fileConfig, targetConfig);
-                    context.finish(
-                        GeneratorResult.Status.COMPILED, null
-                    );
-                } else {
-                    System.out.println("********");
-                    System.out.println("To compile your program, run the following command to see information about the board you plugged in:\n\n\tarduino-cli board list\n\nGrab the FQBN and PORT from the command and run the following command in the generated sources directory:\n\n\tarduino-cli compile -b <FQBN> --build-property compiler.c.extra_flags='-DLF_UNTHREADED -DPLATFORM_ARDUINO -DINITIAL_EVENT_QUEUE_SIZE=10 -DINITIAL_REACT_QUEUE_SIZE=10' --build-property compiler.cpp.extra_flags='-DLF_UNTHREADED -DPLATFORM_ARDUINO -DINITIAL_EVENT_QUEUE_SIZE=10 -DINITIAL_REACT_QUEUE_SIZE=10' .\n\nTo flash/upload your generated sketch to the board, run the following command in the generated sources directory:\n\n\tarduino-cli upload -b <FQBN> -p <PORT>\n");
-                    // System.out.println("For a list of all boards installed on your computer, you can use the following command:\n\n\tarduino-cli board listall\n");
-                    context.finish(
-                        GeneratorResult.GENERATED_NO_EXECUTABLE.apply(context, null)
-                    );
-                }
-                GeneratorUtils.refreshProject(resource, context.getMode());
-                return;
+                System.out.println("********");
+                System.out.println("To compile your program, run the following command to see information about the board you plugged in:\n\n\tarduino-cli board list\n\nGrab the FQBN and PORT from the command and run the following command in the generated sources directory:\n\n\tarduino-cli compile -b <FQBN> --build-property compiler.c.extra_flags='-DLF_UNTHREADED -DPLATFORM_ARDUINO -DINITIAL_EVENT_QUEUE_SIZE=10 -DINITIAL_REACT_QUEUE_SIZE=10' --build-property compiler.cpp.extra_flags='-DLF_UNTHREADED -DPLATFORM_ARDUINO -DINITIAL_EVENT_QUEUE_SIZE=10 -DINITIAL_REACT_QUEUE_SIZE=10' .\n\nTo flash/upload your generated sketch to the board, run the following command in the generated sources directory:\n\n\tarduino-cli upload -b <FQBN> -p <PORT>\n");
+                // System.out.println("For a list of all boards installed on your computer, you can use the following command:\n\n\tarduino-cli board listall\n");
+                context.finish(
+                    GeneratorResult.GENERATED_NO_EXECUTABLE.apply(context, null)
+                );
             }
+            GeneratorUtils.refreshProject(resource, context.getMode());
+            return;
+        }
 
         // Dump the additional compile definitions to a file to keep the generated project
         // self-contained. In this way, third-party build tools like PlatformIO, west, arduino-cli can
@@ -962,14 +927,35 @@ public class CGenerator extends GeneratorBase {
         }
     }
 
+    private record TypeParameterizedReactorWithDecl(TypeParameterizedReactor tpr, ReactorDecl decl) {}
+
+    /** Generate user-visible header files for all reactors instantiated. */
     private void generateHeaders() throws IOException {
-        // Cannot delete existing header files directory because this would create a race condition in fed-gen
+        FileUtil.deleteDirectory(fileConfig.getIncludePath());
         FileUtil.copyDirectoryFromClassPath(
             fileConfig.getRuntimeIncludePath(),
             fileConfig.getIncludePath(),
             false
         );
-        CReactorHeaderFileGenerator.doGenerate(types, this.main.tpr, fileConfig, this::generateAuxiliaryStructs, this::generateTopLevelPreambles);
+        for (TypeParameterizedReactor tpr :
+            (Iterable<TypeParameterizedReactor>) () -> allTypeParameterizedReactors().iterator()
+        ) {
+            CReactorHeaderFileGenerator.doGenerate(
+                types, tpr, fileConfig,
+                (builder, rr, userFacing) -> {
+                    generateAuxiliaryStructs(builder, tpr, userFacing);
+                    if (userFacing) {
+                        ASTUtils.allChildInstances(tpr.r(), errorReporter).stream()
+                            .map(it -> new TypeParameterizedReactorWithDecl(it.tpr, it.reactorDeclaration)).collect(Collectors.toSet()).forEach(it -> {
+                                ASTUtils.allPorts(it.tpr.r())
+                                    .forEach(p -> builder.pr(CPortGenerator.generateAuxiliaryStruct(
+                                        it.tpr, p, getTarget(), errorReporter, types, new CodeBuilder(), true, it.decl()
+                                    )));
+                            });
+                    }
+                },
+                this::generateTopLevelPreambles);
+        }
         FileUtil.copyDirectory(fileConfig.getIncludePath(), fileConfig.getSrcGenPath().resolve("include"), false);
     }
 
@@ -1022,14 +1008,44 @@ public class CGenerator extends GeneratorBase {
      * Copy target-specific header file to the src-gen directory.
      */
     protected void copyTargetFiles() throws IOException {
+        // Copy the core lib
+        String coreLib = LFGeneratorContext.BuildParm.EXTERNAL_RUNTIME_PATH.getValue(context);
+        Path dest = fileConfig.getSrcGenPath();
+        if (targetConfig.platformOptions.platform == Platform.ARDUINO) dest = dest.resolve("src");
+        if (coreLib != null) {
+            FileUtil.copyDirectory(Path.of(coreLib), dest, true);
+        } else {
+            FileUtil.copyDirectoryFromClassPath(
+                "/lib/c/reactor-c/core",
+                dest.resolve("core"),
+                true
+            );
+            FileUtil.copyDirectoryFromClassPath(
+                "/lib/c/reactor-c/lib",
+                dest.resolve("lib"),
+                true
+            );
+        }
 
-        String srcPrefix = targetConfig.platformOptions.platform == Platform.ARDUINO ? "src/" : "";
+        // For the Zephyr target, copy default config and board files.
+        if (targetConfig.platformOptions.platform == Platform.ZEPHYR) {
+            FileUtil.copyDirectoryFromClassPath(
+                "/lib/platform/zephyr/boards",
+                fileConfig.getSrcGenPath().resolve("boards"),
+                false
+            );
+            FileUtil.copyFileFromClassPath(
+                "/lib/platform/zephyr/prj_lf.conf",
+                fileConfig.getSrcGenPath().resolve("prj_lf.conf"),
+                true
+            );
 
-        FileUtil.copyDirectoryFromClassPath(
-            "/lib/c/reactor-c/lib",
-            fileConfig.getSrcGenPath().resolve(srcPrefix + "lib"),
-            false
-        );
+            FileUtil.copyFileFromClassPath(
+                "/lib/platform/zephyr/Kconfig",
+                fileConfig.getSrcGenPath().resolve("Kconfig"),
+                true
+            );
+        }
     }
 
     ////////////////////////////////////////////
@@ -1064,10 +1080,9 @@ public class CGenerator extends GeneratorBase {
         generateReactorClassBody(tpr, header, src);
         header.pr("#endif // " + guardMacro);
         FileUtil.writeToFile(header.toString(), fileConfig.getSrcGenPath().resolve(headerName), true);
-        var extension = targetConfig.platformOptions.platform == Platform.ARDUINO ? ".ino"
-            : CCppMode ? ".cpp" : ".c";
-        FileUtil.writeToFile(src.toString(), fileConfig.getSrcGenPath().resolve(
-            CUtil.getName(tpr) + extension), true);
+        var extension = targetConfig.platformOptions.platform == Platform.ARDUINO ? ".ino" :
+            CCppMode ? ".cpp" : ".c";
+        FileUtil.writeToFile(src.toString(), fileConfig.getSrcGenPath().resolve(CUtil.getName(tpr) + extension), true);
     }
 
     protected void generateReactorClassHeaders(TypeParameterizedReactor tpr, String headerName, CodeBuilder header, CodeBuilder src) {
@@ -1078,14 +1093,12 @@ public class CGenerator extends GeneratorBase {
         header.pr("#include \"include/core/reactor.h\"");
         src.pr("#include \"include/api/api.h\"");
         src.pr("#include \"include/api/set.h\"");
-        src.pr("#include \"include/api/generics.h\"");
-        src.pr("#include \"include/utils/type_converter.h\"");
         generateIncludes(tpr);
         if (CCppMode) {
             src.pr("}");
             header.pr("}");
         }
-        src.pr("#include \"" + headerName + "\"");
+        src.pr("#include \"include/" + headerName + "\"");
         tpr.typeArgs().forEach((literal, concreteType) -> src.pr(
             "#if defined " + literal + "\n" +
                 "#undef " + literal + "\n" +
@@ -1159,14 +1172,14 @@ public class CGenerator extends GeneratorBase {
         // port or action is late due to network
         // latency, etc..
         var federatedExtension = new CodeBuilder();
-        federatedExtension.pr("""
+        federatedExtension.pr(String.format("""
             #ifdef FEDERATED
             #ifdef FEDERATED_DECENTRALIZED
             %s intended_tag;
             #endif
             %s physical_time_of_arrival;
             #endif
-            """.formatted(types.getTargetTagType(), types.getTargetTimeType())
+            """, types.getTargetTagType(), types.getTargetTimeType())
         );
         for (Port p : allPorts(tpr.r())) {
             builder.pr(CPortGenerator.generateAuxiliaryStruct(
@@ -1176,7 +1189,8 @@ public class CGenerator extends GeneratorBase {
                 errorReporter,
                 types,
                 federatedExtension,
-                userFacing
+                userFacing,
+                null
             ));
         }
         // The very first item on this struct needs to be
@@ -1855,7 +1869,7 @@ public class CGenerator extends GeneratorBase {
             var selfRef = CUtil.reactorRef(reaction.getParent())+"->_lf__reaction_"+reaction.index;
             if (reaction.declaredDeadline != null) {
                 var deadline = reaction.declaredDeadline.maxDelay;
-                initializeTriggerObjects.pr(selfRef+".deadline = "+GeneratorBase.timeInTargetLanguage(deadline)+";");
+                initializeTriggerObjects.pr(selfRef+".deadline = "+types.getTargetTimeExpr(deadline)+";");
             } else { // No deadline.
                 initializeTriggerObjects.pr(selfRef+".deadline = NEVER;");
             }
@@ -2017,15 +2031,15 @@ public class CGenerator extends GeneratorBase {
     /**
      * Generate top-level preamble code.
      */
-    protected String generateTopLevelPreambles(EObject reactor) {
+    protected String generateTopLevelPreambles(Reactor reactor) {
         CodeBuilder builder = new CodeBuilder();
-        var mainModel = (Model) reactor.eContainer();
-        var guard = "TOP_LEVEL_PREAMBLE_" + mainModel.hashCode() + "_H";
+        var guard = "TOP_LEVEL_PREAMBLE_" + reactor.eContainer().hashCode() + "_H";
         builder.pr("#ifndef " + guard);
         builder.pr("#define " + guard);
-        for (Preamble p : mainModel.getPreambles()) {
-            builder.pr(toText(p.getCode()));
-        }
+        Stream.concat(Stream.of(reactor), ASTUtils.allNestedClasses(reactor))
+            .flatMap(it -> ((Model) it.eContainer()).getPreambles().stream())
+            .collect(Collectors.toSet())
+            .forEach(it -> builder.pr(toText(it.getCode())));
         for (String file : targetConfig.protoFiles) {
             var dotIndex = file.lastIndexOf(".");
             var rootFilename = file;
@@ -2129,5 +2143,11 @@ public class CGenerator extends GeneratorBase {
         for (ReactorInstance child : r.children) {
             generateSelfStructs(child);
         }
+    }
+
+    private Stream<TypeParameterizedReactor> allTypeParameterizedReactors() {
+        return ASTUtils.recursiveChildren(main).stream()
+            .map(it -> it.tpr)
+            .distinct();
     }
 }
