@@ -49,7 +49,7 @@ public class CTriggerObjectsGenerator {
         int startTimeStepIsPresentCount
     ) {
         var code = new CodeBuilder();
-        code.pr("void _lf_initialize_trigger_objects() {");
+        code.pr("void _lf_initialize_trigger_objects(environment_t* env) {");
         code.indent();
         // Initialize the LF clock.
         code.pr(String.join("\n",
@@ -74,12 +74,12 @@ public class CTriggerObjectsGenerator {
             // Allocate the initial (before mutations) array of pointers to _is_present fields.
             code.pr(String.join("\n",
                 "// Create the array that will contain pointers to is_present fields to reset on each step.",
-                "_lf_is_present_fields_size = "+startTimeStepIsPresentCount+";",
-                "_lf_is_present_fields = (bool**)calloc("+startTimeStepIsPresentCount+", sizeof(bool*));",
-                "if (_lf_is_present_fields == NULL) lf_print_error_and_exit(" + addDoubleQuotes("Out of memory!") + ");",
-                "_lf_is_present_fields_abbreviated = (bool**)calloc("+startTimeStepIsPresentCount+", sizeof(bool*));",
-                "if (_lf_is_present_fields_abbreviated == NULL) lf_print_error_and_exit(" + addDoubleQuotes("Out of memory!") + ");",
-                "_lf_is_present_fields_abbreviated_size = 0;"
+                "env->_lf_is_present_fields_size = "+startTimeStepIsPresentCount+";",
+                "env->_lf_is_present_fields = (bool**)calloc("+startTimeStepIsPresentCount+", sizeof(bool*));",
+                "if (env->_lf_is_present_fields == NULL) lf_print_error_and_exit(" + addDoubleQuotes("Out of memory!") + ");",
+                "env->_lf_is_present_fields_abbreviated = (bool**)calloc("+startTimeStepIsPresentCount+", sizeof(bool*));",
+                "if (env->_lf_is_present_fields_abbreviated == NULL) lf_print_error_and_exit(" + addDoubleQuotes("Out of memory!") + ");",
+                "env->_lf_is_present_fields_abbreviated_size = 0;"
             ));
         }
 
@@ -171,7 +171,7 @@ public class CTriggerObjectsGenerator {
             "                        .num_reactions_per_level = &num_reactions_per_level[0],",
             "                        .num_reactions_per_level_size = (size_t) "+numReactionsPerLevel.length+"};",
             "lf_sched_init(",
-            "    &_lf_environment,", // FIXME: Hack for enclaves step1
+            "    env,", // FIXME: Hack for enclaves step1
             "    (size_t)_lf_number_of_workers,",
             "    &sched_params",
             ");"

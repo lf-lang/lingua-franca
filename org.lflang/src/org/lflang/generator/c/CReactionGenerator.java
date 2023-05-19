@@ -323,7 +323,7 @@ public class CReactionGenerator {
                 String.join("\n",
                     DISABLE_REACTION_INITIALIZATION_MARKER,
                     "self->_lf_"+outputName+".value = ("+targetType+")self->_lf__"+actionName+".tmplt.token->value;",
-                    "_lf_replace_template_token(&_lf_environment, (token_template_t*)&self->_lf_"+outputName+", (lf_token_t*)self->_lf__"+actionName+".tmplt.token);", //FIXME: Enclaves step1 hack
+                    "_lf_replace_template_token(selv->base.environment, (token_template_t*)&self->_lf_"+outputName+", (lf_token_t*)self->_lf__"+actionName+".tmplt.token);", //FIXME: Enclaves step1 hack
                     "self->_lf_"+outputName+".is_present = true;"
                 ) :
                 "lf_set("+outputName+", "+actionName+"->value);";
@@ -567,7 +567,7 @@ public class CReactionGenerator {
                 inputName+"->value = NULL;", // Prevent payload from being freed.
                 "if ("+inputName+"->is_present) {",
                 "    "+inputName+"->length = "+inputName+"->token->length;",
-                "    "+inputName+"->token = lf_writable_copy((lf_port_base_t*)self->_lf_"+inputName+");",
+                "    "+inputName+"->token = lf_writable_copy(self->base.environment, (lf_port_base_t*)self->_lf_"+inputName+");",
                 "    "+inputName+"->value = ("+types.getTargetType(inputType)+")"+inputName+"->token->value;",
                 "} else {",
                 "    "+inputName+"->length = 0;",
@@ -590,7 +590,7 @@ public class CReactionGenerator {
                 "    if ("+inputName+"[i]->is_present) {",
                 "        "+inputName+"[i]->length = "+inputName+"[i]->token->length;",
                 "        token_template_t* _lf_input = (token_template_t*)self->_lf_"+inputName+"[i];",
-                "        "+inputName+"[i]->token = lf_writable_copy((lf_port_base_t*)_lf_input);",
+                "        "+inputName+"[i]->token = lf_writable_copy(self->base.environment, (lf_port_base_t*)_lf_input);",
                 "        "+inputName+"[i]->value = ("+types.getTargetType(inputType)+")"+inputName+"[i]->token->value;",
                 "    } else {",
                 "        "+inputName+"[i]->length = 0;",

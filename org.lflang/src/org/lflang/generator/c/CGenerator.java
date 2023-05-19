@@ -1493,11 +1493,11 @@ public class CGenerator extends GeneratorBase {
                     var portRef = CUtil.portRefNested(port);
                     var con = (port.isMultiport()) ? "->" : ".";
 
-                    temp.pr("_lf_is_present_fields["+startTimeStepIsPresentCount+" + count] = &"+portRef+con+"is_present;");
+                    temp.pr("env->_lf_is_present_fields["+startTimeStepIsPresentCount+" + count] = &"+portRef+con+"is_present;");
                     // Intended_tag is only applicable to ports in federated execution.
                     temp.pr(
                         CExtensionUtils.surroundWithIfFederatedDecentralized(
-                        "_lf_intended_tag_fields["+startTimeStepIsPresentCount+" + count] = &"+portRef+con+"intended_tag;"
+                        "env->_lf_intended_tag_fields["+startTimeStepIsPresentCount+" + count] = &"+portRef+con+"intended_tag;"
                         )
                     );
 
@@ -1524,7 +1524,7 @@ public class CGenerator extends GeneratorBase {
 
             temp.pr(String.join("\n",
                 "// Add action "+action.getFullName()+" to array of is_present fields.",
-                "_lf_is_present_fields["+startTimeStepIsPresentCount+"] ",
+                "env->_lf_is_present_fields["+startTimeStepIsPresentCount+"] ",
                 "        = &"+containerSelfStructName+"->_lf_"+action.getName()+".is_present;"
             ));
 
@@ -1562,7 +1562,7 @@ public class CGenerator extends GeneratorBase {
                         foundOne = true;
                         temp.pr("// Add port "+output.getFullName()+" to array of is_present fields.");
                         temp.startChannelIteration(output);
-                        temp.pr("_lf_is_present_fields["+startTimeStepIsPresentCount+" + count] = &"+CUtil.portRef(output)+".is_present;");
+                        temp.pr("env->_lf_is_present_fields["+startTimeStepIsPresentCount+" + count] = &"+CUtil.portRef(output)+".is_present;");
 
                         // Intended_tag is only applicable to ports in federated execution with decentralized coordination.
                         temp.pr(
