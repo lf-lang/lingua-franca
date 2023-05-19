@@ -90,18 +90,12 @@ public class CReactorHeaderFileGenerator {
     }
 
     private static void appendSignature(CodeBuilder builder, CTypes types, Reaction r, TypeParameterizedReactor tpr) {
-        if (r.getName() != null) builder.pr("void " + r.getName() + "(" + reactionParameters(types, r, tpr) + ");");
+        if (r.getName() != null) builder.pr("void " + r.getName() + "(" + reactionParameters(r, tpr) + ");");
     }
 
-    private static String reactionParameters(CTypes types, Reaction r, TypeParameterizedReactor tpr) {
+    private static String reactionParameters(Reaction r, TypeParameterizedReactor tpr) {
         return Stream.concat(Stream.of(userFacingSelfType(tpr) + "* self"), portVariableStream(r, tpr)
-            .map(tv -> tpr.getName().toLowerCase() + "_" + tv.getName() + "_t* " + tv.getName()))
-            .collect(Collectors.joining(", "));
-    }
-
-    public static String reactionArguments(CTypes types, Reaction r, TypeParameterizedReactor tpr) {
-        return Stream.concat(Stream.of(getApiSelfStruct(tpr)), inputVarRefStream(r)
-                .map(it -> String.format("((%s*) %s)", CGenerator.variableStructType(it.getVariable(), tpr, true), it.getVariable().getName())))
+            .map(tv -> tv.getType(true) + tv.getName()))
             .collect(Collectors.joining(", "));
     }
 
@@ -146,12 +140,12 @@ public class CReactorHeaderFileGenerator {
     }
 
     /** Return a stream of all ports referenced by the signature of {@code r}. */
-    private static Stream<PortVariable> portVariableStream(Reaction r, TypeParameterizedReactor reactor) {
+    private static Stream<PortVariable> portVariableStream(Reaction r, TypeParameterizedReactor reactorOfReaction) {
         return varRefStream(r)
             .map(it -> it.getVariable() instanceof TypedVariable tv ?
                 new PortVariable(
                     tv,
-                    reactor,
+                    it.getContainer() != null ? new TypeParameterizedReactor(it.getContainer()) : reactorOfReaction,
                     it.getContainer())
                 : null)
             .filter(Objects::nonNull);
@@ -160,7 +154,7 @@ public class CReactorHeaderFileGenerator {
     /**
      * A variable that refers to a port.
      * @param tv The variable of the variable reference.
-     * @param r The reactor that contains the port.
+     * @param r The reactor in which the port is being used.
      * @param container The {@code Instantiation} referenced in the obtaining of {@code tv}, if
      * applicable; {@code null} otherwise.
      */
