@@ -8,7 +8,6 @@
 target C
 
 preamble {=
-    #include <stdio.h>
     #include <string.h>
 =}
 

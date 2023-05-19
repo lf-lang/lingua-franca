@@ -17,7 +17,6 @@ preamble {=
     #ifdef __cplusplus
     extern "C" {
     #endif
-    #include <stdio.h>
     #include "platform.h"
     #ifdef __cplusplus
     }

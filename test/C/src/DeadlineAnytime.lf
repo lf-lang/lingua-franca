@@ -1,10 +1,6 @@
 // Test whether the lf_check_deadline function works.
 target C
 
-preamble {=
-    #include <stdio.h>
-=}
-
 reactor A {
     state i: int
     logical action a

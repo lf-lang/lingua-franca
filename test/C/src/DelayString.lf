@@ -6,7 +6,6 @@ preamble {=
     #ifdef __cplusplus
     extern "C" {
     #endif
-    #include <stdio.h>
     #include <string.h>
     #ifdef __cplusplus
     }
@@ -28,7 +27,6 @@ reactor DelayString2(delay: time = 100 msec) {
 
 reactor Test {
     input in: string
-    state start_time: time = 0
 
     reaction(in) {=
         printf("Received: %s.\n", in->value);

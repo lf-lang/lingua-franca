@@ -38,7 +38,6 @@ import org.lflang.scoping.LFGlobalScopeProvider
 import org.lflang.util.FileUtil
 import java.nio.file.Files
 import java.nio.file.Path
-import java.nio.file.StandardCopyOption
 import java.util.*
 
 private const val NO_NPM_MESSAGE = "The TypeScript target requires npm >= 6.14.4. " +
@@ -61,8 +60,10 @@ class TSGenerator(
 
 
     val fileConfig: TSFileConfig = context.fileConfig as TSFileConfig
+    private var devMode = false
 
     companion object {
+
         /** Path to the TS lib directory (relative to class path)  */
         const val LIB_PATH = "/lib/ts"
 
@@ -70,7 +71,9 @@ class TSGenerator(
          * Names of the configuration files to check for and copy to the generated
          * source package root if they cannot be found in the source directory.
          */
-        val CONFIG_FILES = arrayOf("package.json", "tsconfig.json", "babel.config.js", ".eslintrc.json")
+        val CONFIG_FILES = arrayOf("package.json", "tsconfig.json", ".eslintrc.json")
+
+        const val RUNTIME_URL = "git://github.com/lf-lang/reactor-ts.git"
 
         fun timeInTargetLanguage(value: TimeValue): String {
             return if (value.unit != null) {
@@ -145,14 +148,16 @@ class TSGenerator(
                 println("No .proto files have been imported. Skipping protocol buffer compilation.")
             }
             val parsingContext = SubContext(context, COLLECTED_DEPENDENCIES_PERCENT_PROGRESS, 100)
-            if (
-                !context.cancelIndicator.isCanceled
-                && passesChecks(TSValidator(fileConfig, errorReporter, codeMaps), parsingContext)
-            ) {
+            val validator = TSValidator(fileConfig, errorReporter, codeMaps)
+            if (!context.cancelIndicator.isCanceled) {
                 if (context.mode == LFGeneratorContext.Mode.LSP_MEDIUM) {
+                    if (!passesChecks(validator, parsingContext)) {
+                        context.unsuccessfulFinish();
+                        return;
+                    }
                     context.finish(GeneratorResult.GENERATED_NO_EXECUTABLE.apply(context, codeMaps))
                 } else {
-                    compile(resource, parsingContext)
+                    compile(validator, resource, parsingContext)
                     concludeCompilation(context, codeMaps)
                 }
             } else {
@@ -182,14 +187,18 @@ class TSGenerator(
         val manifest = fileConfig.srcGenPath.resolve("package.json");
         val rtRegex = Regex("(\"@lf-lang/reactor-ts\")(.+)")
         if (rtPath != null) rtPath = formatRuntimePath(rtPath)
-        // FIXME: do better CLI arg validation upstream
-        // https://github.com/lf-lang/lingua-franca/issues/1429
+        if (rtPath != null || rtVersion != null) {
+            devMode = true;
+        }
         manifest.toFile().forEachLine {
             var line = it.replace("\"LinguaFrancaDefault\"", "\"${fileConfig.name}\"");
+            if (line.contains(rtRegex) && line.contains(RUNTIME_URL)) {
+                devMode = true;
+            }
             if (rtPath != null) {
                 line = line.replace(rtRegex, "$1: \"$rtPath\",")
             } else if (rtVersion != null) {
-                line = line.replace(rtRegex, "$1: \"git://github.com/lf-lang/reactor-ts.git#$rtVersion\",")
+                line = line.replace(rtRegex, "$1: \"$RUNTIME_URL#$rtVersion\",")
             }
             sb.appendLine(line)
         }
@@ -211,19 +220,13 @@ class TSGenerator(
      * as the source file, copy a default version from $LIB_PATH/.
      */
     private fun copyConfigFiles() {
+        FileUtil.copyFromClassPath(LIB_PATH, fileConfig.srcGenPath, true, true)
         for (configFile in CONFIG_FILES) {
-            val configFileDest = fileConfig.srcGenPath.resolve(configFile)
-            val configFileInSrc = fileConfig.srcPath.resolve(configFile)
-            if (configFileInSrc.toFile().exists()) {
-                println("Copying $configFileInSrc to $configFileDest")
-                Files.createDirectories(configFileDest.parent)
-                Files.copy(configFileInSrc, configFileDest, StandardCopyOption.REPLACE_EXISTING)
+            var override = FileUtil.findAndCopyFile(configFile, fileConfig.srcGenPath, fileConfig);
+            if (override != null) {
+                System.out.println("Using user-provided '" + override + "'");
             } else {
-                println(
-                    "No '" + configFile + "' exists in " + fileConfig.srcPath +
-                            ". Using default configuration."
-                )
-                FileUtil.copyFileFromClassPath("$LIB_PATH/$configFile", configFileDest)
+                System.out.println("Using default '" + configFile + "'");
             }
         }
     }
@@ -263,13 +266,13 @@ class TSGenerator(
 
     }
 
-    private fun compile(resource: Resource, parsingContext: LFGeneratorContext) {
+    private fun compile(validator: TSValidator, resource: Resource, parsingContext: LFGeneratorContext) {
 
         GeneratorUtils.refreshProject(resource, parsingContext.mode)
 
         if (parsingContext.cancelIndicator.isCanceled) return
         parsingContext.reportProgress("Transpiling to JavaScript...", 70)
-        transpile(parsingContext.cancelIndicator)
+        transpile(validator, parsingContext.cancelIndicator)
 
         if (parsingContext.cancelIndicator.isCanceled) return
     }
@@ -309,6 +312,7 @@ class TSGenerator(
             errorReporter.reportWarning(
                 "Falling back on npm. To prevent an accumulation of replicated dependencies, " +
                         "it is highly recommended to install pnpm globally (npm install -g pnpm).")
+
             val npmInstall = commandFactory.createCommand("npm", if (production) listOf("install", "--production") else listOf("install"), path)
 
             if (npmInstall == null) {
@@ -325,6 +329,19 @@ class TSGenerator(
                         "\nFor installation instructions, see: https://www.npmjs.com/get-npm")
                 return
             }
+
+            // If reactor-ts is pulled from GitHub and building is done using npm,
+            // first build reactor-ts (pnpm does this automatically).
+            if (devMode) {
+                val rtPath = path.resolve("node_modules").resolve("@lf-lang").resolve("reactor-ts")
+                val buildRuntime = commandFactory.createCommand("npm", listOf("run", "prepublish"), rtPath)
+                if (buildRuntime.run(context.cancelIndicator) != 0) {
+                    errorReporter.reportError(
+                        GeneratorUtils.findTargetDecl(resource),
+                        "ERROR: unable to build runtime in dev mode: " + buildRuntime.errors.toString())
+                }
+            }
+
             installProtoBufsIfNeeded(false, path, context.cancelIndicator)
         }
     }
@@ -397,19 +414,19 @@ class TSGenerator(
     /**
      * Transpile TypeScript to JavaScript.
      */
-    private fun transpile(cancelIndicator: CancelIndicator) {
+    private fun transpile(validator: TSValidator, cancelIndicator: CancelIndicator) {
         println("Compiling")
-        val babel = commandFactory.createCommand("npm", listOf("run", "build"), fileConfig.srcGenPkgPath)
+        val tsc = commandFactory.createCommand("npm", listOf("run", "build"), fileConfig.srcGenPkgPath)
 
-        if (babel == null) {
+        if (tsc == null) {
             errorReporter.reportError(NO_NPM_MESSAGE)
             return
         }
 
-        if (babel.run(cancelIndicator) == 0) {
+        if (validator.run(tsc, cancelIndicator) == 0) {
             println("SUCCESS (compiling generated TypeScript code)")
         } else {
-            errorReporter.reportError("Compiler failed with the following errors:\n${babel.errors}")
+            errorReporter.reportError("Compiler failed with the following errors:\n${tsc.errors}")
         }
     }
 

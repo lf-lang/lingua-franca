@@ -1,9 +1,5 @@
 target C
 
-preamble {=
-    #include <stdio.h>
-=}
-
 reactor Destination {
     input x: int
     input y: int

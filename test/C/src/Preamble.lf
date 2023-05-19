@@ -3,10 +3,6 @@ target C {
     fast: true
 }
 
-preamble {=
-    #include <stdio.h>
-=}
-
 main reactor Preamble {
     preamble {=
         #include <stdlib.h>

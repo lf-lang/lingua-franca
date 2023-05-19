@@ -5,10 +5,6 @@ target C {
     fast: true
 }
 
-preamble {=
-    #include <stdio.h>
-=}
-
 reactor Source {
     output out: int[]
     state iteration: int = 1

@@ -1,14 +1,6 @@
 target C {
-    threading: false,
-    platform: {
-        name: Zephyr,
-        board: qemu_cortex_m3
-    }
+    platform: "Zephyr"
 }
-
-preamble {=
-    #include <stdio.h>
-=}
 
 main reactor {
     reaction(startup) {= printf("Hello World!\n"); =}

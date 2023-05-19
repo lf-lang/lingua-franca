@@ -6,10 +6,6 @@ target C {
     files: ["../../c"]
 }
 
-preamble {=
-    #include <stdio.h>
-=}
-
 reactor Source(width: int = 1) {
     timer t(0, 200 msec)
     state s: int = 0

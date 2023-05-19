@@ -2,10 +2,6 @@
 // itself imports a reactor definition.
 target C
 
-preamble {=
-    #include <stdio.h>
-=}
-
 reactor ImportedAgain {
     input x: int
 

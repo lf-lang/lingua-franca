@@ -3,10 +3,6 @@ target C {
     timeout: 1 sec
 }
 
-preamble {=
-    #include <stdio.h>
-=}
-
 reactor Detector {
     input trigger: int
     state cnt: int = 0

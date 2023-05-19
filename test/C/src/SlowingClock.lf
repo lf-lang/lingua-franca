@@ -9,10 +9,6 @@ target C {
     fast: true
 }
 
-preamble {=
-    #include <stdio.h>
-=}
-
 main reactor SlowingClock {
     logical action a(100 msec)
     state interval: time = 100 msec

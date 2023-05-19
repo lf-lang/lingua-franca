@@ -2,10 +2,6 @@
 // destination references the array directly.
 target C
 
-preamble {=
-    #include <stdio.h>
-=}
-
 reactor Source {
     output out: int[3]
 

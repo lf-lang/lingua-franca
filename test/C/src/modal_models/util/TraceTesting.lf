@@ -1,10 +1,6 @@
 /** Utility reactor to record and test execution traces. */
 target C
 
-preamble {=
-    #include <stdio.h>
-=}
-
 reactor TraceTesting(
     events_size: int = 0,
     trace_size: int = 0,

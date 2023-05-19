@@ -5,7 +5,6 @@ target C {
 }
 
 preamble {=
-    #include <stdio.h>
     #include "hello.h"
 =}
 

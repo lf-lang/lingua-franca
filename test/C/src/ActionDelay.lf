@@ -1,10 +1,6 @@
 // Test logical action with delay.
 target C
 
-preamble {=
-    #include <stdio.h>
-=}
-
 reactor GeneratedDelay {
     input y_in: int
     output y_out: int

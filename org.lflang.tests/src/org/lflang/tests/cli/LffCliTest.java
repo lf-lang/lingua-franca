@@ -30,6 +30,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.lflang.tests.TestUtils.TempDirBuilder.dirBuilder;
 import static org.lflang.tests.TestUtils.TempDirChecker.dirChecker;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
 
@@ -76,7 +77,8 @@ public class LffCliTest {
         ExecutionResult result = lffTester.run("--version");
         result.checkOk();
         result.checkNoErrorOutput();
-        result.checkStdOut(equalTo("lff " + LocalStrings.VERSION + "\n"));
+        result.checkStdOut(
+            equalTo("lff " + LocalStrings.VERSION + System.lineSeparator()));
     }
 
 
@@ -119,7 +121,8 @@ public class LffCliTest {
 
         result.checkOk();
 
-        result.checkStdOut(containsString("Formatted src/File.lf"));
+        result.checkStdOut(containsString(
+            "Formatted src" + File.separator + "File.lf"));
         dirChecker(tempDir).checkContentsOf("src/File.lf", equalTo(FILE_AFTER_REFORMAT));
     }
 
@@ -130,7 +133,7 @@ public class LffCliTest {
         result.checkFailed();
 
         result.checkStdErr(containsString(
-            tempDir.resolve("nosuchdir") + ": No such file or directory"));
+            tempDir.resolve("nosuchdir") + ": No such file or directory."));
     }
 
 

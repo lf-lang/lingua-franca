@@ -81,7 +81,6 @@ task generateXtextLanguage(type: JavaExec) {
     }*/
 }
 processResources.dependsOn(generateXtextLanguage)
-generateXtext.dependsOn(generateXtextLanguage)
 clean.dependsOn(cleanGenerateXtextLanguage)
 eclipse.classpath.plusConfigurations += [configurations.mwe2]
 
@@ -175,12 +174,6 @@ task buildAll() {
     mainClassName = 'org.lflang.cli.Lfc'
 }
 
-// define buildLfc as an alias to buildAll
-task buildLfc {
-    dependsOn buildAll
-    doFirst({{logger.warn("The buildLfc task is deprecated! Please use buildAll instead.")}})
-}
-
 task jarCliTools(type: ShadowJar) {
     manifest {
         attributes('Main-Class': 'org.lflang.cli.Lfc')
@@ -239,7 +232,7 @@ task generateLanguageDiagramServer {
     }
 
     shadowJar {
-        classifier = 'lds'
+        archiveClassifier = 'lds'
         
         // Handling of service loader registrations via META-INF/services/*
         mergeServiceFiles()

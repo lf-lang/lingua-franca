@@ -3,10 +3,6 @@ target C {
     files: ["../../c"]
 }
 
-preamble {=
-    #include <stdio.h>
-=}
-
 reactor Timer(m: time = 0, n: time = 0) {
     output out: int
     timer t(m, n)

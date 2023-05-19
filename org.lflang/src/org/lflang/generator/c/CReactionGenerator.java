@@ -38,7 +38,7 @@ import org.lflang.util.StringUtil;
 
 public class CReactionGenerator {
     protected static String DISABLE_REACTION_INITIALIZATION_MARKER
-        = "// **** Do not include initialization code in this reaction.";  // FIXME: Such markers should not exist
+        = "// **** Do not include initialization code in this reaction.";  // FIXME: Such markers should not exist (#1687)
 
     /**
      * Generate necessary initialization code inside the body of the reaction that belongs to reactor decl.

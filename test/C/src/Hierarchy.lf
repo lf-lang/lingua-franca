@@ -1,10 +1,6 @@
 // Test data transport across hierarchy.
 target C
 
-preamble {=
-    #include <stdio.h>
-=}
-
 reactor Source {
     output out: int
     timer t

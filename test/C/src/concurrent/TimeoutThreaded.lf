@@ -10,10 +10,6 @@ target C {
 
 import Sender from "../lib/LoopedActionSender.lf"
 
-preamble {=
-    #include <stdio.h>
-=}
-
 reactor Consumer {
     input in: int
     state success: bool = false
@@ -32,6 +28,7 @@ reactor Consumer {
     =}
 
     reaction(shutdown) {=
+        tag_t current_tag = lf_tag();
         printf("Shutdown invoked at tag (%lld, %u).\n", current_tag.time - lf_time_start(), current_tag.microstep);
         if (lf_tag_compare(current_tag,
             (tag_t) { .time = MSEC(11) + lf_time_start(), .microstep = 0}) == 0 &&
@@ -39,7 +36,7 @@ reactor Consumer {
             printf("SUCCESS: successfully enforced timeout.\n");
         } else {
             fprintf(stderr,"ERROR: Shutdown invoked at tag (%llu, %d). Failed to enforce timeout.\n",
-                            current_tag.time - start_time, current_tag.microstep);
+                            current_tag.time - lf_time_start(), current_tag.microstep);
             exit(1);
         }
     =}

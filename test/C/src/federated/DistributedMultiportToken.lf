@@ -5,16 +5,6 @@ target C {
     coordination: centralized
 }
 
-preamble {=
-    #ifdef __cplusplus
-    extern "C" {
-    #endif
-    #include <stdio.h>
-    #ifdef __cplusplus
-    }
-    #endif
-=}
-
 reactor Source {
     output[4] out: char*
     timer t(0, 200 msec)

@@ -3,12 +3,9 @@ target C {
         name: Zephyr,
         board: qemu_cortex_m3
     },
-    threading: false
+    threading: false,
+    timeout: 10 sec
 }
-
-preamble {=
-    #include <stdio.h>
-=}
 
 main reactor {
     timer t(0, 1 sec)

@@ -30,11 +30,11 @@ jobs:
     uses: lf-lang/lingua-franca/.github/workflows/build-trace-tools.yml@master
     needs: cancel
 
-  # Check that automatic code formatting works.
-  # TODO: Uncomment after fed-gen is merged.
-  # format:
-  #   uses: lf-lang/lingua-franca/.github/workflows/format.yml@master
-  #   needs: cancel
+# Check that automatic code formatting works.
+# TODO: Uncomment after fed-gen is merged.
+# format:
+#   uses: lf-lang/lingua-franca/.github/workflows/format.yml@master
+#   needs: cancel
 
   # Run the unit tests.
   unit-tests:
@@ -51,8 +51,6 @@ jobs:
     uses: lf-lang/benchmarks-lingua-franca/.github/workflows/benchmark-tests.yml@main
     with:
       target: 'C'
-      benchmarks-ref: 'c-separate-gen-files'
-      compiler-ref: bodyless-reactions
     needs: cancel
 
   # Run language server tests.

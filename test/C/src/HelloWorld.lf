@@ -6,10 +6,6 @@ target C {
     build-type: Debug
 }
 
-preamble {=
-    #include <stdio.h>
-=}
-
 reactor HelloWorld2 {
     state success: bool = false
 

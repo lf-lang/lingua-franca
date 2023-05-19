@@ -5,10 +5,6 @@ target C {
     fast: false
 }
 
-preamble {=
-    #include <stdio.h>
-=}
-
 main reactor GetTime {
     timer t(0, 1 sec)
 

@@ -15,10 +15,6 @@ target C {
 
 import Count from "../lib/Count.lf"
 
-preamble {=
-    #include <stdio.h>
-=}
-
 reactor ImportantActuator {
     input in: int
     state success: int = 0

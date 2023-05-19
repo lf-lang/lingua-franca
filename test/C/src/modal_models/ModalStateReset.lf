@@ -6,10 +6,6 @@ target C {
 
 import TraceTesting from "util/TraceTesting.lf"
 
-preamble {=
-    #include <stdio.h>
-=}
-
 reactor Modal {
     input next: bool
 

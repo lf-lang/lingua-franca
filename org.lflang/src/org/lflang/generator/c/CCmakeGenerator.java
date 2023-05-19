@@ -25,6 +25,7 @@
 
 package org.lflang.generator.c;
 
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
@@ -131,7 +132,7 @@ public class CCmakeGenerator {
                 cMakeCode.pr("set(BOARD qemu_cortex_m3)");
             }
             cMakeCode.pr("# We require Zephyr version 3.2.0");
-            cMakeCode.pr("find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE} EXACT 3.2.0)");
+            cMakeCode.pr("find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE} 3.2.0)");
             cMakeCode.newLine();
         }
 
@@ -313,8 +314,8 @@ public class CCmakeGenerator {
         cMakeCode.newLine();
 
         // Add the include file
-        for (String includeFile : targetConfig.cmakeIncludesWithoutPath) {
-            cMakeCode.pr("include(\""+includeFile+"\")");
+        for (String includeFile : targetConfig.cmakeIncludes) {
+            cMakeCode.pr("include(\""+ Path.of(includeFile).getFileName()+"\")");
         }
         cMakeCode.newLine();
 

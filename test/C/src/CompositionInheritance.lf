@@ -5,10 +5,6 @@ target C {
     timeout: 10 sec
 }
 
-preamble {=
-    #include <stdio.h>
-=}
-
 reactor Source(period: time = 2 sec) {
     input foo: int
     output y: int

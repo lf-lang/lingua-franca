@@ -276,16 +276,16 @@ public enum TargetProperty {
      * processed by the code generator.
      */
     FILES("files", UnionType.FILE_OR_FILE_ARRAY, List.of(Target.C, Target.CCPP, Target.Python),
-            (config) -> ASTUtils.toElement(config.fileNames),
+            (config) -> ASTUtils.toElement(config.files),
             (config, value, err) -> {
-                config.fileNames = ASTUtils.elementToListOfStrings(value);
+                config.files = ASTUtils.elementToListOfStrings(value);
             },
             // FIXME: This merging of lists is potentially dangerous since
             // the incoming list of files can belong to a .lf file that is
             // located in a different location, and keeping just filename
             // strings like this without absolute paths is incorrect.
             (config, value, err) -> {
-                config.fileNames.addAll(ASTUtils.elementToListOfStrings(value));
+                config.files.addAll(ASTUtils.elementToListOfStrings(value));
             }),
 
     /**
@@ -383,10 +383,6 @@ public enum TargetProperty {
             (config, value, err) -> {
                 config.logLevel = (LogLevel) UnionType.LOGGING_UNION
                         .forName(ASTUtils.elementToSingleString(value));
-            },
-            (config, value, err) -> {
-                config.logLevel = (LogLevel) UnionType.LOGGING_UNION
-                    .forName(ASTUtils.elementToSingleString(value));
             }),
 
     /**
@@ -482,6 +478,16 @@ public enum TargetProperty {
                     }
                 }
             }),
+
+    /**
+     * Directive to instruct the runtime to collect and print execution statistics.
+     */
+    PRINT_STATISTICS("print-statistics", PrimitiveType.BOOLEAN,
+        Arrays.asList(Target.CPP),
+        (config) -> ASTUtils.toElement(config.printStatistics),
+        (config, value, err) -> {
+            config.printStatistics = ASTUtils.toBoolean(value);
+        }),
 
     /**
      * Directive for specifying .proto files that need to be compiled and their

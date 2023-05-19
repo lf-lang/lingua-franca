@@ -7,7 +7,6 @@ target C {
 
 preamble {=
     #include "hello.h"
-    #include <stdio.h>
 =}
 
 reactor Source {
