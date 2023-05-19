@@ -34,6 +34,7 @@ import org.lflang.lf.Timer;
 import org.lflang.lf.TriggerRef;
 import org.lflang.lf.VarRef;
 import org.lflang.lf.Variable;
+import org.lflang.lf.Watchdog;
 import org.lflang.util.StringUtil;
 
 public class CReactionGenerator {
@@ -191,12 +192,13 @@ public class CReactionGenerator {
                             reactionInitialization,
                             fieldsForStructsForContainedReactors,
                             effect.getContainer(),
-                            (Input) variable
-                        );
+                            (Input) variable);
+                    } else if (variable instanceof Watchdog) {
+                        reactionInitialization.pr(generateWatchdogVariablesInReaction(effect));
                     } else {
                         errorReporter.reportError(
                             reaction,
-                            "In generateReaction(): effect is neither an input nor an output."
+                            "In generateReaction(): effect is not an input, output, or watchdog."
                         );
                     }
                 }
@@ -661,6 +663,21 @@ public class CReactionGenerator {
     }
 
     /**
+     * Generate into the specified string builder the code to initialize local variables for watchdogs
+     * in a reaction function from the "self" struct.
+     *
+     * @param effect The effect declared by the reaction. This must refer to a watchdog.
+     */
+    public static String generateWatchdogVariablesInReaction(VarRef effect) {
+        Watchdog watchdog = (Watchdog) effect.getVariable();
+        String watchdogName = watchdog.getName();
+        return String.join(
+            "\n",
+             List.of("watchdog_t* " + watchdogName + " = &(self->_lf_watchdog_" + watchdogName + ");")
+        );
+    }
+
+    /**
      * Generate the fields of the self struct and statements for the constructor
      * to create and initialize a reaction_t struct for each reaction in the
      * specified reactor and a trigger_t struct for each trigger (input, action,
@@ -822,6 +839,11 @@ public class CReactionGenerator {
         for (Input input : ASTUtils.allInputs(tpr.r())) {
             createTriggerT(body, input, triggerMap, constructorCode, types);
         }
+
+        // Next handle watchdogs.
+        for (Watchdog watchdog : ASTUtils.allWatchdogs(tpr.r())) {
+            createTriggerT(body, watchdog, triggerMap, constructorCode, types);
+        }
     }
 
     /**
@@ -829,9 +851,9 @@ public class CReactionGenerator {
      * reaction_t pointers pointing to reactions triggered by this variable,
      * and initialize the pointers in the array in the constructor.
      * @param body The place to write the self struct entries.
-     * @param variable The trigger variable (Timer, Action, or Input).
-     * @param triggerMap A map from Variables to a list of the reaction indices
-     *  triggered by the variable.
+     * @param variable The trigger variable (Timer, Action, Watchdog, or Input).
+     * @param triggerMap A map from Variables to a list of the reaction indices triggered by the
+     * variable.
      * @param constructorCode The place to write the constructor code.
      */
     private static void createTriggerT(
@@ -1159,7 +1181,14 @@ public class CReactionGenerator {
         return generateFunctionHeader(functionName);
     }
 
-    private static String generateFunctionHeader(String functionName) {
+    /**
+     * Return the start of a function declaration for a function that takes
+     * a `void*` argument and returns void.
+     *
+     * @param functionName
+     * @return
+     */
+    public static String generateFunctionHeader(String functionName) {
         return "void " + functionName + "(void* instance_args)";
     }
 }

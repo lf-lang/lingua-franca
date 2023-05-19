@@ -66,8 +66,8 @@ import org.lflang.lf.ReactorDecl;
 import org.lflang.lf.Timer;
 import org.lflang.lf.VarRef;
 import org.lflang.lf.Variable;
+import org.lflang.lf.Watchdog;
 import org.lflang.lf.WidthSpec;
-
 
 /**
  * Representation of a compile-time instance of a reactor.
@@ -148,6 +148,9 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
 
     /** List of reaction instances for this reactor instance. */
     public final List<ReactionInstance> reactions = new ArrayList<>();
+
+    /** List of watchdog instances for this reactor instance. */
+    public final List<WatchdogInstance> watchdogs = new ArrayList<>();
 
     /** The timer instances belonging to this reactor instance. */
     public final List<TimerInstance> timers = new ArrayList<>();
@@ -807,6 +810,21 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
      */
     protected TriggerInstance<BuiltinTriggerVariable> getOrCreateBuiltinTrigger(BuiltinTriggerRef trigger) {
         return builtinTriggers.computeIfAbsent(trigger.getType(), ref -> TriggerInstance.builtinTrigger(trigger, this));
+    }
+
+    /** Create all the watchdog instances of this reactor instance. */
+    protected void createWatchdogInstances() {
+        List<Watchdog> watchdogs = ASTUtils.allWatchdogs(reactorDefinition);
+        if (watchdogs != null) {
+            for (Watchdog watchdog : watchdogs) {
+                // Create the watchdog instance.
+                var watchdogInstance = new WatchdogInstance(watchdog, this);
+
+                // Add the watchdog instance to the list of watchdogs for this
+                // reactor.
+                this.watchdogs.add(watchdogInstance);
+            }
+        }
     }
 
     ////////////////////////////////////////
