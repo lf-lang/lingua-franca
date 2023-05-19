@@ -913,8 +913,8 @@ public class CGenerator extends GeneratorBase {
                 (builder, rr, userFacing) -> {
                     generateAuxiliaryStructs(builder, tpr, userFacing);
                     if (userFacing) {
-                        ASTUtils.allChildInstances(tpr.r(), errorReporter).stream()
-                            .map(it -> new TypeParameterizedReactorWithDecl(it.tpr, it.reactorDeclaration)).collect(Collectors.toSet()).forEach(it -> {
+                        tpr.r().getInstantiations().stream()
+                            .map(it -> new TypeParameterizedReactorWithDecl(new TypeParameterizedReactor(it), it.getReactorClass())).collect(Collectors.toSet()).forEach(it -> {
                                 ASTUtils.allPorts(it.tpr.r())
                                     .forEach(p -> builder.pr(CPortGenerator.generateAuxiliaryStruct(
                                         it.tpr, p, getTarget(), errorReporter, types, new CodeBuilder(), true, it.decl()

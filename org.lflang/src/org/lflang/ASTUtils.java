@@ -419,15 +419,6 @@ public class ASTUtils {
         return set;
     }
 
-    public static List<ReactorInstance> allChildInstances(Reactor definition, ErrorReporter reporter) {
-        return allInstantiations(definition).stream().map(it -> new ReactorInstance(
-            it,
-            null,
-            reporter,
-            0
-        )).collect(Collectors.toList());
-    }
-
     /*
      * Given a reactor class, return a stream of reactor classes that it instantiates.
      * @param definition Reactor class definition.
