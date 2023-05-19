@@ -664,7 +664,7 @@ public class CTriggerObjectsGenerator {
                         code.startScopedRangeBlock(sendingRange, sr, sb, sc, sendingRange.instance.isInput());
                         // Syntax is slightly different for a multiport output vs. single port.
                         var connector = (port.isMultiport())? "->" : ".";
-                        code.pr(CUtil.portRefNested(port, sr, sb, sc)+connector+"num_destinations = "+sendingRange.getNumberOfDestinationReactors()+";");
+                        code.pr(CUtil.portRefNested(port, sr, sb, sc)+connector+"_base.num_destinations = "+sendingRange.getNumberOfDestinationReactors()+";");
 
                         // Initialize token types.
                         var type = ASTUtils.getInferredType(port.getDefinition());
@@ -716,7 +716,7 @@ public class CTriggerObjectsGenerator {
             for (SendRange sendingRange : output.eventualDestinations()) {
                 code.pr("// For reference counting, set num_destinations for port " + output.getFullName() + ".");
                 code.startScopedRangeBlock(sendingRange, sr, sb, sc, sendingRange.instance.isInput());
-                code.pr(CUtil.portRef(output, sr, sb, sc)+".num_destinations = "+sendingRange.getNumberOfDestinationReactors()+";");
+                code.pr(CUtil.portRef(output, sr, sb, sc)+"._base.num_destinations = "+sendingRange.getNumberOfDestinationReactors()+";");
                 code.endScopedRangeBlock(sendingRange);
             }
         }
