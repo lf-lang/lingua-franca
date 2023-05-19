@@ -114,18 +114,4 @@ if [ "${OSTYPE}" = "msys" ]; then
 fi
 
 jar_path="$(get_jar_path)"
-
-if [ ! -f "${jar_path}" ] || ! "${find_cmd}" "${base}" \
-        -path "${src_pkg_path}" \
-        -prune -o \
-        -type f \
-        -newer "${jar_path}" \
-        -exec false {} +; then
-	# Rebuild.
-    1>&2 echo "Jar file is missing or out-of-date; starting rebuild..."
-	"${base}/gradlew" ${flags} -p "${base}" buildAll
-	# Update the timestamp in case the jar was not touched by Gradle.
-    touch -c -- "${jar_path}"
-else
-    echo "Already up-to-date."
-fi
+"${base}/gradlew" ${flags} -p "${base}" buildAll

@@ -43,7 +43,7 @@ public abstract class DockerGenerator {
         var dockerFilePath = context.getFileConfig().getSrcGenPath().resolve("Dockerfile");
         var dockerFileContent = generateDockerFileContent();
 
-        return new DockerData(name, dockerFilePath, dockerFileContent);
+        return new DockerData(name.replace("_", ""), dockerFilePath, dockerFileContent);
     }
 
     public static DockerGenerator dockerGeneratorFactory(LFGeneratorContext context) {
