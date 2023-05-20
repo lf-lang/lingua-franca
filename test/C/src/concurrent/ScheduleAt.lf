@@ -76,7 +76,7 @@ reactor Scheduler {
 
     reaction(startup) -> act {=
         for (int i=0; i < 16; i++) {
-            _lf_schedule_at_tag(act->trigger,
+            _lf_schedule_at_tag(act->_base.trigger,
                 (tag_t) { .time = self->times[i] + lf_time_logical(), .microstep = self->microstep_delay_list[i]},
                 NULL);
         }
