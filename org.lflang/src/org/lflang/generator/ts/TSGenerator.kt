@@ -334,7 +334,7 @@ class TSGenerator(
             // first build reactor-ts (pnpm does this automatically).
             if (devMode) {
                 val rtPath = path.resolve("node_modules").resolve("@lf-lang").resolve("reactor-ts")
-                val buildRuntime = commandFactory.createCommand("npm", listOf("run", "prepublish"), rtPath)
+                val buildRuntime = commandFactory.createCommand("npm", listOf("run", "build"), rtPath)
                 if (buildRuntime.run(context.cancelIndicator) != 0) {
                     errorReporter.reportError(
                         GeneratorUtils.findTargetDecl(resource),
