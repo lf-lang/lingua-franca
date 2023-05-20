@@ -1078,11 +1078,7 @@ public class CGenerator extends GeneratorBase {
         }
         src.pr("#include \"include/" + CReactorHeaderFileGenerator.outputPath(tpr) + "\"");
         src.pr("#include \"" + headerName + "\"");
-        tpr.typeArgs().forEach((literal, concreteType) -> src.pr(
-            "#if defined " + literal + "\n" +
-                "#undef " + literal + "\n" +
-                "#endif // " + literal + "\n" +
-                "#define " + literal + " " + ASTUtils.toOriginalText(concreteType)));
+        tpr.doDefines(src);
         ASTUtils.allIncludes(tpr.r()).stream().map(name -> "#include \""
             + name + ".h\"").forEach(header::pr);
     }

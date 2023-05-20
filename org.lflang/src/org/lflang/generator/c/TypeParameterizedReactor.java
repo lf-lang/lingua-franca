@@ -6,6 +6,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 import org.lflang.ASTUtils;
+import org.lflang.generator.CodeBuilder;
 import org.lflang.lf.Instantiation;
 import org.lflang.lf.Reactor;
 import org.lflang.lf.Type;
@@ -30,6 +31,14 @@ public record TypeParameterizedReactor(Reactor r, Map<String, Type> typeArgs) {
     public String getName() {
         // FIXME: Types that are not just a single token need to be escaped or hashed
         return r.getName() + typeArgs.values().stream().map(ASTUtils::toOriginalText).collect(Collectors.joining("_"));
+    }
+
+    public void doDefines(CodeBuilder b) {
+        typeArgs.forEach((literal, concreteType) -> b.pr(
+            "#if defined " + literal + "\n" +
+                "#undef " + literal + "\n" +
+                "#endif // " + literal + "\n" +
+                "#define " + literal + " " + ASTUtils.toOriginalText(concreteType)));
     }
 
     @Override

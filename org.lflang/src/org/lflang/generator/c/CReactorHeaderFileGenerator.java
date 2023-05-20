@@ -45,6 +45,7 @@ public class CReactorHeaderFileGenerator {
         appendIncludeGuard(builder, tpr);
         builder.pr(topLevelPreamble);
         appendPoundIncludes(builder);
+        tpr.doDefines(builder);
         appendSelfStruct(builder, types, tpr);
         generator.generate(builder, tpr, true);
         for (Reaction reaction : tpr.r().getReactions()) {
