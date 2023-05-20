@@ -102,7 +102,7 @@ public class TSExtension implements FedTargetExtension {
             fast: false,
             federateID: %d,
             federationID: "Unidentified Federation",
-            keepAlive: false,
+            keepAlive: true,
             minOutputDelay: %s,
             networkMessageActions: [%s],
             rtiHost: "%s",
