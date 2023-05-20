@@ -375,7 +375,7 @@ public class ASTUtils {
 
     /** A list of all ports of {@code definition}, in an unspecified order. */
     public static List<Port> allPorts(Reactor definition) {
-        return Stream.concat(ASTUtils.allInputs(definition).stream(), ASTUtils.allOutputs(definition).stream()).collect(Collectors.toList());
+        return Stream.concat(ASTUtils.allInputs(definition).stream(), ASTUtils.allOutputs(definition).stream()).toList();
     }
 
     /**

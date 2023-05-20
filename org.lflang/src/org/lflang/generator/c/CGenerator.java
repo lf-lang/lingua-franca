@@ -37,9 +37,7 @@ import static org.lflang.util.StringUtil.addDoubleQuotes;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -88,7 +86,6 @@ import org.lflang.lf.ActionOrigin;
 import org.lflang.lf.Input;
 import org.lflang.lf.Instantiation;
 import org.lflang.lf.Mode;
-import org.lflang.lf.Model;
 import org.lflang.lf.Port;
 import org.lflang.lf.Preamble;
 import org.lflang.lf.Reaction;
@@ -100,8 +97,6 @@ import org.lflang.lf.Variable;
 import org.lflang.util.ArduinoUtil;
 import org.lflang.util.FileUtil;
 
-import com.google.common.base.Objects;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 
 /**
@@ -492,7 +487,7 @@ public class CGenerator extends GeneratorBase {
             var sources = allTypeParameterizedReactors()
                 .map(CUtil::getName)
                 .map(it -> it + (CCppMode ? ".cpp" : ".c"))
-                .collect(Collectors.toCollection(ArrayList::new));
+                .toList();
             sources.add(cFilename);
             var cmakeCode = cmakeGenerator.generateCMakeCode(
                 sources,
@@ -916,9 +911,9 @@ public class CGenerator extends GeneratorBase {
             CReactorHeaderFileGenerator.doGenerate(
                 types, tpr, fileConfig,
                 (builder, rr, userFacing) -> {
-                    generateAuxiliaryStructs(builder, tpr, userFacing);
+                    generateAuxiliaryStructs(builder, rr, userFacing);
                     if (userFacing) {
-                        tpr.r().getInstantiations().stream()
+                        rr.r().getInstantiations().stream()
                             .map(it -> new TypeParameterizedReactorWithDecl(new TypeParameterizedReactor(it), it.getReactorClass())).collect(Collectors.toSet()).forEach(it -> {
                                 ASTUtils.allPorts(it.tpr.r())
                                     .forEach(p -> builder.pr(CPortGenerator.generateAuxiliaryStruct(
