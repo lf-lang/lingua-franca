@@ -60,6 +60,7 @@ import org.lflang.lf.TypeParm;
 import org.lflang.lf.TypedVariable;
 import org.lflang.lf.VarRef;
 import org.lflang.lf.Variable;
+import org.lflang.lf.Watchdog;
 import org.lflang.lf.WidthSpec;
 import org.lflang.lf.WidthTerm;
 import org.lflang.lf.util.LfSwitch;
@@ -319,7 +320,6 @@ public class IsEqual extends LfSwitch<Boolean> {
             .conclusion;
     }
 
-
     @Override
     public Boolean casePreamble(Preamble object) {
         return new ComparisonMachine<>(object, Preamble.class)
@@ -493,6 +493,16 @@ public class IsEqual extends LfSwitch<Boolean> {
         return new ComparisonMachine<>(object, ArraySpec.class)
             .equalAsObjects(ArraySpec::isOfVariableLength)
             .equalAsObjects(ArraySpec::getLength)
+            .conclusion;
+    }
+
+    @Override
+    public Boolean caseWatchdog(Watchdog object) {
+        return new ComparisonMachine<>(object, Watchdog.class)
+            .equalAsObjects(Watchdog::getName)
+            .equivalent(Watchdog::getTimeout)
+            .listsEquivalent(Watchdog::getEffects)
+            .equivalent(Watchdog::getCode)
             .conclusion;
     }
 

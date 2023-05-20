@@ -87,6 +87,7 @@ Reactor:
         | (outputs+=Output)
         | (timers+=Timer)
         | (actions+=Action)
+        | (watchdogs+=Watchdog)
         | (instantiations+=Instantiation)
         | (connections+=Connection)
         | (reactions+=Reaction)
@@ -174,6 +175,7 @@ Mode:
         (stateVars+=StateVar) |
         (timers+=Timer) |
         (actions+=Action) |
+        (watchdogs+=Watchdog) |
         (instantiations+=Instantiation) |
         (connections+=Connection) |
         (reactions+=Reaction)
@@ -213,6 +215,11 @@ BuiltinTriggerRef:
 Deadline:
     'deadline' '(' delay=Expression ')' code=Code;
 
+Watchdog:
+    'watchdog' name=ID '(' timeout=Expression ')'
+    ('->' effects+=VarRefOrModeTransition (',' effects+=VarRefOrModeTransition)*)?
+    code=Code;
+    
 STP:
     'STP' '(' value=Expression ')' code=Code;
 
@@ -273,7 +280,7 @@ TypedVariable:
 ;
 
 Variable:
-    TypedVariable | Timer | Mode;
+    TypedVariable | Timer | Mode | Watchdog;
 
 VarRef:
     (variable=[Variable] | container=[Instantiation] '.' variable=[Variable]
@@ -457,7 +464,7 @@ SignedFloat:
 // Just escaping with \ is not a good idea because then every \ has to be escaped \\.
 // Perhaps the string EQUALS_BRACE could become '=}'?
 Code:
-    //{Code} '{=' (tokens+=Token)* '=}'
+    // {Code} '{=' (tokens+=Token)* '=}'
     {Code} '{=' body=Body '=}'
 ;
 
@@ -504,7 +511,8 @@ Token:
     'mutable' | 'input' | 'output' | 'timer' | 'action' | 'reaction' |
     'startup' | 'shutdown' | 'after' | 'deadline' | 'mutation' | 'preamble' |
     'new' | 'federated' | 'at' | 'as' | 'from' | 'widthof' | 'const' | 'method' |
-    'interleaved' | 'mode' | 'initial' | 'reset' | 'history' | 'named' |
+    'interleaved' | 'mode' | 'initial' | 'reset' | 'history' | 'watchdog' | 'named' |
+
     // Other terminals
     NEGINT | TRUE | FALSE |
     // Action origins
