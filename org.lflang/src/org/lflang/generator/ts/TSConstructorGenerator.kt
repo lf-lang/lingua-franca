@@ -59,7 +59,6 @@ class TSConstructorGenerator(
                     |        }
                     |        federateConfig.federationID = __federationID;
                     |        federateConfig.fast = __fast;
-                    |        federateConfig.keepAlive = __keepAlive;
                     |        super(federateConfig, success, fail);
                     """.trimMargin()
             } else {
