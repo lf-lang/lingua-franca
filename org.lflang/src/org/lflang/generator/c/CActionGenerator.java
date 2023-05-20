@@ -140,8 +140,8 @@ public class CActionGenerator {
                 "lf_token_t* token;",  // From token_template_t
                 "size_t length;",      // From token_template_t
                 "bool is_present;",    // From lf_port_or_action_t
-                "self_base_t* parent;",// From lf_port_or_action_t
                 "lf_action_internal_t _base;", // internal substruct
+                "self_base_t* parent;",// From lf_port_or_action_t
                 "bool has_value;"      // From lf_action_base_t
         ));
         code.pr(valueDeclaration(action, target, types));

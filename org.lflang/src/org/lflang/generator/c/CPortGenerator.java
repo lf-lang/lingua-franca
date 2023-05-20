@@ -77,8 +77,7 @@ public class CPortGenerator {
                 "token_type_t type;",  // From token_template_t
                 "lf_token_t* token;",  // From token_template_t
                 "size_t length;",      // From token_template_t
-                "bool is_present;",    // From lf_port_or_action_t
-                "self_base_t* parent;",// From lf_port_or_action_t
+                "bool is_present;",
                 "lf_port_internal_t _base;"
         ));
         code.pr(valueDeclaration(port, target, errorReporter, types));
