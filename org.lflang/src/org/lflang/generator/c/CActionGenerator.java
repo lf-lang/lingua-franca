@@ -105,6 +105,7 @@ public class CActionGenerator {
             body.pr(action, CGenerator.variableStructType(action, reactor, false)+" _lf_"+actionName+";");
             // Initialize the trigger pointer in the action.
             constructorCode.pr(action, "self->_lf_"+actionName+"._base.trigger = &self->_lf__"+actionName+";");
+            constructorCode.pr(action, "self->_lf_"+actionName+".parent = (self_base_t*)self;");
         }
     }
 
