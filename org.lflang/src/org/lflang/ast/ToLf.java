@@ -76,6 +76,7 @@ import org.lflang.lf.TypedVariable;
 import org.lflang.lf.VarRef;
 import org.lflang.lf.Variable;
 import org.lflang.lf.Visibility;
+import org.lflang.lf.Watchdog;
 import org.lflang.lf.WidthSpec;
 import org.lflang.lf.WidthTerm;
 import org.lflang.lf.util.LfSwitch;
@@ -393,6 +394,7 @@ public class ToLf extends LfSwitch<MalleableString> {
     //     | (outputs+=Output)
     //     | (timers+=Timer)
     //     | (actions+=Action)
+    //     | (watchdogs+=Watchdog)
     //     | (instantiations+=Instantiation)
     //     | (connections+=Connection)
     //     | (reactions+=Reaction)
@@ -410,6 +412,7 @@ public class ToLf extends LfSwitch<MalleableString> {
                 object.getOutputs(),
                 object.getTimers(),
                 object.getActions(),
+                object.getWatchdogs(),
                 object.getInstantiations(),
                 object.getConnections(),
                 object.getStateVars()),
@@ -657,6 +660,40 @@ public class ToLf extends LfSwitch<MalleableString> {
   }
 
   @Override
+  public MalleableString caseWatchdog(Watchdog object) {
+    // 'watchdog' name=ID '(' timeout=Expression ')'
+    // ('->' effects+=VarRefOrModeTransition (',' effects+=VarRefOrModeTransition)*)?
+    // code=Code;
+
+    Builder msb = new Builder();
+    msb.append("watchdog ");
+    msb.append(object.getName());
+    msb.append(list(true, object.getTimeout()));
+
+    if (!object.getEffects().isEmpty()) {
+      List<Mode> allModes = ASTUtils.allModes(ASTUtils.getEnclosingReactor(object));
+      msb.append(" -> ", " ->\n")
+          .append(
+              object.getEffects().stream()
+                  .map(
+                      varRef ->
+                          (allModes.stream()
+                                  .anyMatch(
+                                      m -> m.getName().equals(varRef.getVariable().getName())))
+                              ? new Builder()
+                                  .append(varRef.getTransition())
+                                  .append("(")
+                                  .append(doSwitch(varRef))
+                                  .append(")")
+                                  .get()
+                              : doSwitch(varRef))
+                  .collect(new Joiner(", ")));
+    }
+    msb.append(" ").append(doSwitch(object.getCode()));
+    return msb.get();
+  }
+
+  @Override
   public MalleableString caseSTP(STP object) {
     // 'STP' '(' value=Expression ')' code=Code
     return handler(object, "STP", STP::getValue, STP::getCode);
@@ -844,9 +881,8 @@ public class ToLf extends LfSwitch<MalleableString> {
   }
 
   /**
-   * Return true if the initializer should be output with an equals initializer.
-   * Old-style assignments with parentheses are also output that
-   * way to help with the transition.
+   * Return true if the initializer should be output with an equals initializer. Old-style
+   * assignments with parentheses are also output that way to help with the transition.
    */
   private boolean shouldOutputAsAssignment(Initializer init) {
     return init.isAssign()
@@ -881,7 +917,6 @@ public class ToLf extends LfSwitch<MalleableString> {
     }
     return list(", ", prefix, suffix, false, false, init.getExprs());
   }
-
 
   @Override
   public MalleableString caseParameter(Parameter object) {
