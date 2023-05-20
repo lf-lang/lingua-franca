@@ -207,7 +207,7 @@ public class CReactionGenerator {
         // Before the reaction initialization,
         // generate the structs used for communication to and from contained reactors.
         for (Instantiation containedReactor : fieldsForStructsForContainedReactors.keySet()) {
-            var containedReactorType = ReactorInstance.getReactorInstance(ASTUtils.toDefinition(containedReactor.getReactorClass()), containedReactor.getName());
+            var containedReactorType = ReactorInstance.getReactorInstance(containedReactor);
             String array = "";
             if (containedReactor.getWidthSpec() != null) {
                 String containedReactorWidthVar = generateWidthVariable(containedReactor.getName());
@@ -355,7 +355,7 @@ public class CReactionGenerator {
             structBuilder = new CodeBuilder();
             structs.put(definition, structBuilder);
         }
-        var reactorInstance = ReactorInstance.getReactorInstance(ASTUtils.toDefinition(definition.getReactorClass()), definition.getName());
+        var reactorInstance = ReactorInstance.getReactorInstance(definition);
         String inputStructType = CGenerator.variableStructType(input, reactorInstance.tpr, false);
         String defName = reactorInstance.getName();
         String defWidth = generateWidthVariable(defName);
@@ -423,14 +423,14 @@ public class CReactionGenerator {
         } else {
             // port is an output of a contained reactor.
             Output output = (Output) port.getVariable();
-            String portStructType = CGenerator.variableStructType(output, ReactorInstance.getReactorInstance(ASTUtils.toDefinition(port.getContainer().getReactorClass()), port.getContainer().getName()).getTypeParameterizedReactor(), false);
+            String portStructType = CGenerator.variableStructType(output, ReactorInstance.getReactorInstance(port.getContainer()).getTypeParameterizedReactor(), false);
 
             CodeBuilder structBuilder = structs.get(port.getContainer());
             if (structBuilder == null) {
                 structBuilder = new CodeBuilder();
                 structs.put(port.getContainer(), structBuilder);
             }
-            String subName = ReactorInstance.getReactorInstance(ASTUtils.toDefinition(port.getContainer().getReactorClass()), port.getContainer().getName()).getName();
+            String subName = ReactorInstance.getReactorInstance(port.getContainer()).getName();
             String reactorWidth = generateWidthVariable(subName);
             String outputName = output.getName();
             String outputWidth = generateWidthVariable(outputName);
@@ -645,8 +645,7 @@ public class CReactionGenerator {
             String outputStructType = (effect.getContainer() == null) ?
                 CGenerator.variableStructType(output, tpr, false)
                 :
-                    CGenerator.variableStructType(output, ReactorInstance.getReactorInstance(
-                        ASTUtils.toDefinition(effect.getContainer().getReactorClass()), effect.getContainer().getName()).getTypeParameterizedReactor(), false);
+                    CGenerator.variableStructType(output, ReactorInstance.getReactorInstance(effect.getContainer()).getTypeParameterizedReactor(), false);
             if (!ASTUtils.isMultiport(output)) {
                 // Output port is not a multiport.
                 return outputStructType+"* "+outputName+" = &self->_lf_"+outputName+";";

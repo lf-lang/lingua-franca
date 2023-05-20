@@ -26,7 +26,6 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 package org.lflang.generator;
 
-import static org.lflang.ASTUtils.belongsTo;
 import static org.lflang.ASTUtils.getLiteralTimeValue;
 
 import java.util.ArrayList;
@@ -170,7 +169,7 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
     public TypeParameterizedReactor tpr;
 
     /** HashMap containing {@link ReactorInstance} against <code>hashCode</code> achievable from Reactor */
-    private static final HashMap<Integer, ReactorInstance> gReactorInstancesMap = new HashMap<>();
+    private static final HashMap<Instantiation, ReactorInstance> gReactorInstancesMap = new HashMap<>();
 
     //////////////////////////////////////////////////////
     //// Static methods.
@@ -181,15 +180,12 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
      * @param defName definition Name for the specified Reactor
      * */
     public static void mapReactorInstance(Reactor reactor, ReactorInstance reactorInstance, final String defName) {
-        gReactorInstancesMap.put(computeHash(reactor, defName), reactorInstance);
+        gReactorInstancesMap.put(reactorInstance.definition, reactorInstance);
     }
 
-    /** Get {@link ReactorInstance} for supplied {@link Reactor}
-     * @param reactor The reactor
-     * @param defName definition Name for the specified reactor
-     * */
-    public static ReactorInstance getReactorInstance(Reactor reactor, final String defName) {
-        return gReactorInstancesMap.get(computeHash(reactor, defName));
+    /** Get {@link ReactorInstance} for supplied {@link Reactor} */
+    public static ReactorInstance getReactorInstance(Instantiation i) {
+        return gReactorInstancesMap.get(i);
     }
 
     /** Clears out the cache of ReactorInstance for next LF processing */

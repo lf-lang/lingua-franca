@@ -411,7 +411,7 @@ public class ASTUtils {
         var set = new HashSet<String>();
         for (var i : allInstantiations(r))
         {
-            set.add(CUtil.getName(ReactorInstance.getReactorInstance(ASTUtils.toDefinition(i.getReactorClass()), i.getName()).tpr));
+            set.add(CUtil.getName(ReactorInstance.getReactorInstance(i).tpr));
         }
         return set;
     }
