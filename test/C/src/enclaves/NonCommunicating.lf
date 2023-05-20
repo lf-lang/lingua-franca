@@ -1,0 +1,26 @@
+target C {
+    scheduler: NP
+};
+
+reactor Slow {
+    timer t(0, 100 msec)
+
+    reaction(t) {=
+        lf_sleep(MSEC(50));
+    =}
+}
+
+reactor Fast {
+    timer t(0, 20 msec)
+
+    reaction(t) {=
+
+    =} deadline(10 msec) {=
+        lf_print_error_and_exit("Fast Reactor was stalled");
+    =}
+}
+
+main reactor {
+    s = new Slow()
+    f = new Fast()
+}

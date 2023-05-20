@@ -1,0 +1,37 @@
+target C;
+
+reactor Sender {
+    output out:int
+
+    timer t(0, 50 msec)
+    state cnt:int(0)
+    reaction(t) -> out {=
+        lf_set(out, self->cnt++);
+    =}
+}
+
+reactor Receiver {
+    input in: int
+    state last:time_t(0)
+    state cnt:int(0)
+
+    reaction(in) {=
+        time_t now = lf_time_logical_elapsed();
+        if (now - self->last != MSEC(50)) {
+            lf_print_error_and_exit("now=%lli last=%lli", now, self->last);
+        } 
+        if (self->cnt++ != in->value) {
+            lf_print_error_and_exit("recv=%u exp=%u", in->value, self->cnt);
+        }
+
+        self->last = now;
+    =}
+}
+
+
+main reactor {
+    sender = new Sender()
+    receiver = new Receiver()
+
+    sender.out -> receiver.in after 50 msec
+}

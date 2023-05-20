@@ -376,6 +376,8 @@ public class CGenerator extends GeneratorBase {
         // Register the delayed connection transformation to be applied by GeneratorBase.
         // transform both after delays and physical connections
         registerTransformation(new DelayedConnectionTransformation(delayBodyGenerator, types, fileConfig.resource, true, true));
+
+        // TODO: Register the enclaved connection transformation to be applied by generatorBase
     }
 
     public CGenerator(LFGeneratorContext context, boolean ccppMode) {
@@ -659,9 +661,6 @@ public class CGenerator extends GeneratorBase {
                 code.pr("#include \"" + targetConfig.fedSetupPreamble + "\"");
                 if (targetLanguageIsCpp()) code.pr("}");
             }
-
-            // If there are timers, create a table of timers to be initialized.
-            code.pr(CTimerGenerator.generateDeclarations(timerCount));
 
             // If there are startup reactions, create a table of triggers.
             code.pr(CReactionGenerator.generateBuiltinTriggersTable(startupReactionCount, "startup"));
@@ -1684,7 +1683,7 @@ public class CGenerator extends GeneratorBase {
         // and outputs (the "self" struct).
         initializeTriggerObjects.pr(CUtil.reactorRefName(instance)+"["+CUtil.runtimeIndex(instance)+"] = new_"+CUtil.getName(reactorClass)+"();");
         // FIXME: Following line is a temporary hack for enclaves while we use a single global environment.
-        initializeTriggerObjects.pr(CUtil.reactorRefName(instance)+"["+CUtil.runtimeIndex(instance)+"]->base.environment = &_lf_environment;");
+        // initializeTriggerObjects.pr(CUtil.reactorRefName(instance)+"["+CUtil.runtimeIndex(instance)+"]->base.environment = env;");
         // Generate code to initialize the "self" struct in the
         // _lf_initialize_trigger_objects function.
         generateTraceTableEntries(instance);

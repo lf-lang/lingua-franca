@@ -172,7 +172,7 @@ public class CTriggerObjectsGenerator {
             "                        .num_reactions_per_level_size = (size_t) "+numReactionsPerLevel.length+"};",
             "lf_sched_init(",
             "    env,", // FIXME: Hack for enclaves step1
-            "    (size_t)_lf_number_of_workers,",
+            "    env->num_workers,", // FIXME: Need better way of setting this
             "    &sched_params",
             ");"
         ));
@@ -680,7 +680,7 @@ public class CTriggerObjectsGenerator {
                             var indirection = (port.isMultiport())? "" : "&";
                             code.startChannelIteration(port);
                             code.pr(String.join("\n",
-                                    "_lf_initialize_template(&_lf_environment, (token_template_t*)", //FIXME: enclaves step 1 hack
+                                    "_lf_initialize_template(env, (token_template_t*)",
                                     "        "+indirection+"("+CUtil.portRefNested(port, sr, sb, sc)+"),",
                                              size+");"
                             ));
@@ -799,7 +799,7 @@ public class CTriggerObjectsGenerator {
                 var size = (rootType.equals("void")) ? "0" : "sizeof("+rootType+")";
                 code.startChannelIteration(output);
                 code.pr(String.join("\n",
-                        "_lf_initialize_template(&_lf_environment, (token_template_t*)", // FIXME: Enclaves step1 hack
+                        "_lf_initialize_template(env, (token_template_t*)",
                         "        &("+CUtil.portRef(output)+"),",
                                  size+");"
                 ));
