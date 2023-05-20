@@ -37,6 +37,7 @@ import static org.lflang.util.StringUtil.addDoubleQuotes;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -487,7 +488,7 @@ public class CGenerator extends GeneratorBase {
             var sources = allTypeParameterizedReactors()
                 .map(CUtil::getName)
                 .map(it -> it + (CCppMode ? ".cpp" : ".c"))
-                .toList();
+                .collect(Collectors.toCollection(ArrayList::new));
             sources.add(cFilename);
             var cmakeCode = cmakeGenerator.generateCMakeCode(
                 sources,
