@@ -32,7 +32,6 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.LinkedHashMap;
 import java.util.List;
 
 import org.lflang.ASTUtils;
@@ -49,7 +48,6 @@ import org.lflang.federated.generator.FederateInstance;
 import org.lflang.federated.launcher.RtiConfig;
 import org.lflang.federated.serialization.FedROS2CPPSerialization;
 import org.lflang.generator.CodeBuilder;
-import org.lflang.generator.GeneratorUtils;
 import org.lflang.generator.LFGeneratorContext;
 import org.lflang.generator.ReactionInstance;
 import org.lflang.generator.ReactorInstance;
@@ -505,6 +503,7 @@ public class CExtension implements FedTargetExtension {
             includes.pr("#ifdef __cplusplus\n"
                 + "}\n"
                 + "#endif");
+            includes.pr(generateSerializationIncludes(federate, fileConfig));
         }
 
         return includes.toString();
@@ -537,8 +536,6 @@ public class CExtension implements FedTargetExtension {
         size_t _lf_action_table_size = %1$s;
         """.formatted(numOfNetworkActions));
 
-        code.pr(generateSerializationPreamble(federate, fileConfig));
-
         code.pr(generateExecutablePreamble(federate, rtiConfig, errorReporter));
 
         code.pr(generateInitializeTriggers(federate, errorReporter));
@@ -551,8 +548,8 @@ public class CExtension implements FedTargetExtension {
     /**
      * Generate preamble code needed for enabled serializers of the federate.
      */
-    protected String generateSerializationPreamble(FederateInstance federate, FedFileConfig fileConfig) {
-        return CExtensionUtils.generateSerializationPreamble(federate, fileConfig);
+    protected String generateSerializationIncludes(FederateInstance federate, FedFileConfig fileConfig) {
+        return CExtensionUtils.generateSerializationIncludes(federate, fileConfig);
     }
 
     /**
