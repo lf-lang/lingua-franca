@@ -1,5 +1,5 @@
 # Main workflow for testing the Lingua Franca compiler.
-name: CI
+name: TypeScript
 
 on:
   # Trigger this workflow on push events, but only on master.

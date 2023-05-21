@@ -1,11 +1,13 @@
 # Main workflow for testing the Lingua Franca compiler.
-name: CI
+name: Non-target-specific
 
 on:
   # Trigger this workflow on push events, but only on master.
   push:
     branches:
     - master
+  # Trigger this workflow also on pull_request events, but ignore the 'nightly' branch.
+  pull_request:
     paths-ignore:
     - 'org.lflang/src/org/lflang/generator/c/**'
     - 'org.lflang/src/org/lflang/generator/cpp/**'
