@@ -10,15 +10,10 @@ on:
   pull_request:
     branches-ignore:
       - 'nightly'
-    paths-ignore:
-    - 'org.lflang/src/org/lflang/generator/cpp/**'
-    - 'org.lflang/src/org/lflang/generator/python/**'
-    - 'org.lflang/src/org/lflang/generator/rust/**'
-    - 'org.lflang/src/org/lflang/generator/ts/**'
-    - 'org.lflang/src/lib/cpp/**'
-    - 'org.lflang/src/lib/py/**'
-    - 'org.lflang/src/lib/rs/**'
-    - 'org.lflang/src/lib/ts/**'
+    paths:
+    - 'org.lflang/src/org/lflang/generator/c/**'
+    - 'org.lflang/src/lib/c/**'
+    - 'org.lflang/src/lib/platform/**'
 
 env:
   # 2020.11
