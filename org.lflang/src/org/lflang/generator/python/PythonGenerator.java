@@ -660,13 +660,13 @@ public class PythonGenerator extends CGenerator {
     protected void copyTargetFiles() throws IOException {
         super.copyTargetFiles();
         FileUtil.copyFromClassPath(
-            "/lib/py/reactor-c-py/include",
+            "/lib/c/reactor-c/python/include",
             fileConfig.getSrcGenPath(),
             true,
             false
         );
         FileUtil.copyFromClassPath(
-            "/lib/py/reactor-c-py/lib",
+            "/lib/c/reactor-c/python/lib",
             fileConfig.getSrcGenPath(),
             true,
             false
