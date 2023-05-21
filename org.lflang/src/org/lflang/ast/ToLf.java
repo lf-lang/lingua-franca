@@ -219,7 +219,11 @@ public class ToLf extends LfSwitch<MalleableString> {
             .map(String::stripTrailing)
             .collect(Collectors.joining("\n"));
     MalleableString singleLineRepresentation =
-        MalleableString.anyOf(String.format("{= %s =}", content.strip()));
+        new Builder()
+            .append("{= ")
+            .append(content.strip())
+            .append(" =}")
+            .get();
     MalleableString multilineRepresentation =
         new Builder()
             .append(String.format("{=%n"))
