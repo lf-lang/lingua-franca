@@ -1,0 +1,80 @@
+# Main workflow for testing the Lingua Franca compiler.
+name: CI
+
+on:
+  # Trigger this workflow on push events, but only on master.
+  push:
+    branches:
+      - master
+  # Trigger this workflow also on pull_request events, but ignore the 'nightly' branch.
+  pull_request:
+    branches-ignore:
+      - 'nightly'
+    paths-ignore:
+    - 'org.lflang/src/org/lflang/generator/cpp/**'
+    - 'org.lflang/src/org/lflang/generator/python/**'
+    - 'org.lflang/src/org/lflang/generator/rust/**'
+    - 'org.lflang/src/org/lflang/generator/ts/**'
+    - 'org.lflang/src/lib/cpp/**'
+    - 'org.lflang/src/lib/py/**'
+    - 'org.lflang/src/lib/rs/**'
+    - 'org.lflang/src/lib/ts/**'
+
+env:
+  # 2020.11
+  vcpkgGitRef: 0bf3923f9fab4001c00f0f429682a0853b5749e0
+
+jobs:
+  # Cancel previous workflow runs.
+  cancel:
+    uses: lf-lang/lingua-franca/.github/workflows/cancel.yml@master
+
+# Check that automatic code formatting works.
+# TODO: Uncomment after fed-gen is merged.
+# format:
+#   uses: lf-lang/lingua-franca/.github/workflows/format.yml@master
+#   needs: cancel
+
+  # Run the unit tests.
+  unit-tests:
+    uses: lf-lang/lingua-franca/.github/workflows/unit-tests.yml@master
+    needs: cancel
+
+  # Run the C benchmark tests.
+  c-benchmark-tests:
+    uses: lf-lang/benchmarks-lingua-franca/.github/workflows/benchmark-tests.yml@main
+    with:
+      target: 'C'
+    needs: cancel
+
+  # Run the C integration tests.
+  c-tests:
+    uses: lf-lang/lingua-franca/.github/workflows/c-tests.yml@master
+    needs: cancel
+
+  # Run the C Arduino integration tests.
+  c-arduino-tests:
+    uses: lf-lang/lingua-franca/.github/workflows/c-arduino-tests.yml@master
+    needs: cancel
+
+  # Run the C Zephyr integration tests.
+  c-zephyr-tests:
+    uses: lf-lang/lingua-franca/.github/workflows/c-zephyr-tests.yml@master
+    needs: cancel
+
+  # Run the CCpp integration tests.
+  ccpp-tests:
+    uses: lf-lang/lingua-franca/.github/workflows/c-tests.yml@master
+    with:
+      use-cpp: true
+    needs: cancel
+
+  # Run the Python integration tests.
+  py-tests:
+      uses: lf-lang/lingua-franca/.github/workflows/py-tests.yml@master
+      needs: cancel
+
+  # Run the serialization tests
+  serialization-tests:
+    uses: lf-lang/lingua-franca/.github/workflows/serialization-tests.yml@master
+    needs: cancel
