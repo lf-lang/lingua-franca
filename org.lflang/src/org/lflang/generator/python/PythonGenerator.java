@@ -666,7 +666,7 @@ public class PythonGenerator extends CGenerator {
             false
         );
         FileUtil.copyFromClassPath(
-            "/lib/py/c/reactor-c/python/lib",
+            "/lib/c/reactor-c/python/lib",
             fileConfig.getSrcGenPath(),
             true,
             false
