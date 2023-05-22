@@ -36,6 +36,7 @@ import static org.lflang.util.StringUtil.addDoubleQuotes;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
@@ -538,10 +539,33 @@ public class CGenerator extends GeneratorBase {
         try {
             String compileDefs = targetConfig.compileDefinitions.keySet().stream()
                                                                 .map(key -> key + "=" + targetConfig.compileDefinitions.get(key))
-                                                                .collect(Collectors.joining("\n"));
+                                                                .collect(Collectors.joining("\n")) + "\n";
             FileUtil.writeToFile(
                 compileDefs,
                 Path.of(fileConfig.getSrcGenPath() + File.separator + "CompileDefinitions.txt")
+            );
+        } catch (IOException e) {
+            Exceptions.sneakyThrow(e);
+        }
+
+        // Create a .vscode/settings.json file in the target directory so that VSCode can
+        // immediately compile the generated code.
+        try {
+            String compileDefs = targetConfig.compileDefinitions.keySet().stream()
+                .map(key -> "\"-D" + key + "=" + targetConfig.compileDefinitions.get(key) + "\"")
+                .collect(Collectors.joining(",\n"));
+            String settings = "{\n"
+                + "\"cmake.configureArgs\": [\n"
+                + compileDefs
+                + "\n]\n}\n";
+            Path vscodePath = Path.of(fileConfig.getSrcGenPath() + File.separator + ".vscode");
+            if (!Files.exists(vscodePath))
+            Files.createDirectory(vscodePath);
+            FileUtil.writeToFile(
+                settings,
+                Path.of(fileConfig.getSrcGenPath()
+                    + File.separator + ".vscode"
+                    + File.separator + "settings.json")
             );
         } catch (IOException e) {
             Exceptions.sneakyThrow(e);
