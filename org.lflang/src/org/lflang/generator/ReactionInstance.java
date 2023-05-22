@@ -416,18 +416,18 @@ public class ReactionInstance extends NamedInstance<Reaction> {
         
     /**
      * Return an array of runtime instances of this reaction in a
-     * **natural order**, defined as follows.  The position within the
+     * <i>natural order</i>, defined as follows.  The position within the
      * returned list of the runtime instance is given by a mixed-radix
      * number where the low-order digit is the bank index within the
-     * container reactor (or 0 if it is not a bank), the second low order
-     * digit is the bank index of the container's container (or 0 if
+     * container reactor (or {@code 0} if it is not a bank), the second low order
+     * digit is the bank index of the container's container (or {@code 0} if
      * it is not a bank), etc., until the container that is directly
      * contained by the top level (the top-level reactor need not be
-     * included because its index is always 0).
+     * included because its index is always {@code 0}).
      * 
      * The size of the returned array is the product of the widths of all of the
-     * container ReactorInstance objects. If none of these is a bank,
-     * then the size will be 1.
+     * container {@link ReactorInstance} objects. If none of these is a bank,
+     * then the size will be {@code 1}.
      *     
      * This method creates this array the first time it is called, but then
      * holds on to it.  The array is used by {@link ReactionInstanceGraph}
