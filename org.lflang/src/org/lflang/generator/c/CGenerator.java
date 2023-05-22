@@ -780,8 +780,11 @@ public class CGenerator extends GeneratorBase {
      * Look at the 'reactor' eResource.
      * If it is an imported .lf file, incorporate it into the current
      * program in the following manner:
-     * - Merge its target property with `targetConfig`
-     * - If there are any preambles, add them to the preambles of the reactor.
+     * <ul>
+     * <li>Merge its target property with {@code targetConfig}</li>
+     * <li>If there are any preambles, add them to the preambles of the reactor.</li>
+     * </ul>
+     *
      */
     private void inspectReactorEResource(ReactorDecl reactor) {
         // If the reactor is imported, look at the
@@ -841,9 +844,11 @@ public class CGenerator extends GeneratorBase {
      *
      * Imported reactors' original .lf file is
      * incorporated in the following manner:
-     * - If there are any cmake-include files, add them to the current list
-     *  of cmake-include files.
-     * - If there are any preambles, add them to the preambles of the reactor.
+     * <ul>
+     * <li>If there are any cmake-include files, add them to the current list
+     * of cmake-include files.</li>
+     * <li>If there are any preambles, add them to the preambles of the reactor.</li>
+     * </ul>
      */
     private void generateReactorDefinitions() throws IOException {
         var generatedReactors = new LinkedHashSet<TypeParameterizedReactor>();
@@ -923,9 +928,11 @@ public class CGenerator extends GeneratorBase {
      *
      * Imported reactors' original .lf file is
      * incorporated in the following manner:
-     * - If there are any cmake-include files, add them to the current list
-     *  of cmake-include files.
-     * - If there are any preambles, add them to the preambles of the reactor.
+     * <ul>
+     * <li>If there are any cmake-include files, add them to the current list
+     * of cmake-include files.</li>
+     * <li>If there are any preambles, add them to the preambles of the reactor.</li>
+     * </ul>
      *
      * @param reactor Used to extract children from
      */

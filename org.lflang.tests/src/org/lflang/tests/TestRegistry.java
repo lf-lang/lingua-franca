@@ -110,16 +110,18 @@ public class TestRegistry {
      * insensitive.
      *
      * For example, the following files will all map to THREADED:
-     * - C/threaded/Foo.lf
-     * - C/THREADED/Foo.lf
-     * - C/Threaded/Foo.lf
-     * - C/foo/threaded/Bar.lf
-     * - C/foo/bar/threaded/Threaded.lf
-     * - C/federated/threaded/bar.lf
-     * but the following will not:
-     * - C/Foo.lf (maps to COMMON)
-     * - C/Threaded.lf (maps to COMMON)
-     * - C/threaded/federated/foo.lf (maps to FEDERATED)
+     * <ul>
+     * <li>C/threaded/Foo.lf</li>
+     * <li>C/THREADED/Foo.lf</li>
+     * <li>C/Threaded/Foo.lf</li>
+     * <li>C/foo/threaded/Bar.lf</li>
+     * <li>C/foo/bar/threaded/Threaded.lf</li>
+     * <li>C/federated/threaded/bar.lf
+     * but the following will not:</li>
+     * <li>C/Foo.lf (maps to COMMON)</li>
+     * <li>C/Threaded.lf (maps to COMMON)</li>
+     * <li>C/threaded/federated/foo.lf (maps to FEDERATED)</li>
+     * </ul>
      *
      * @author Marten Lohstroh
      */

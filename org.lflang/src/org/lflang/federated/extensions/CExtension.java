@@ -62,10 +62,12 @@ import org.lflang.lf.VarRef;
  * An extension class to the CGenerator that enables certain federated
  * functionalities. Currently, this class offers the following features:
  *
- * - Allocating and initializing C structures for federated communication -
- * Creating status field for network input ports that help the receiver logic in
+ * <ul>
+ * <li>Allocating and initializing C structures for federated communication</li>
+ * <li>Creating status field for network input ports that help the receiver logic in
  * federate.c communicate the status of a network input port with network input
- * control reactions.
+ * control reactions.</li>
+ * </ul>
  *
  * @author {Soroush Bateni <soroush@berkeley.edu>}
  * @author {Hou Seng Wong <housengw@berkeley.edu>}
