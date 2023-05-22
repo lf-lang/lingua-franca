@@ -137,7 +137,7 @@ public class PythonGenerator extends CGenerator {
      *       FEDERATED_GENERIC_EXTENSION
      *   } generic_port_instance_struct;
      *
-     * See reactor-c-py/lib/pythontarget.h for details.
+     * See reactor-c/python/lib/pythontarget.h for details.
      */
     String genericPortType = "generic_port_instance_struct";
 
@@ -153,7 +153,7 @@ public class PythonGenerator extends CGenerator {
      * FEDERATED_CAPSULE_EXTENSION
      * } generic_action_instance_struct;
      *
-     * See reactor-c-py/lib/pythontarget.h for details.
+     * See reactor-c/python/lib/pythontarget.h for details.
      */
     String genericActionType = "generic_action_instance_struct";
 
@@ -672,7 +672,7 @@ public class PythonGenerator extends CGenerator {
             false
         );
         FileUtil.copyFromClassPath(
-            "/lib/py/reactor-c-py/LinguaFrancaBase",
+            "/lib/py/lf-python-support/LinguaFrancaBase",
             fileConfig.getSrcGenPath(),
             true,
             false
