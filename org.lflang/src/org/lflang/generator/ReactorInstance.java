@@ -26,7 +26,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 package org.lflang.generator;
 
-import static org.lflang.ASTUtils.getLiteralTimeValue;
+import static org.lflang.ast.ASTUtils.getLiteralTimeValue;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -38,7 +38,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
-import org.lflang.ASTUtils;
+import org.lflang.ast.ASTUtils;
 import org.lflang.AttributeUtils;
 import org.lflang.ErrorReporter;
 import org.lflang.TimeValue;

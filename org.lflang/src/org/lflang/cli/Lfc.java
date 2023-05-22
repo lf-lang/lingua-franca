@@ -13,14 +13,13 @@ import org.eclipse.xtext.generator.GeneratorDelegate;
 import org.eclipse.xtext.generator.JavaIoFileSystemAccess;
 import org.eclipse.xtext.util.CancelIndicator;
 
-import org.lflang.ASTUtils;
+import org.lflang.ast.ASTUtils;
 import org.lflang.FileConfig;
 import org.lflang.TargetProperty.UnionType;
 
 import org.lflang.generator.LFGeneratorContext;
 import org.lflang.generator.LFGeneratorContext.BuildParm;
 import org.lflang.generator.MainContext;
-import org.lflang.generator.ReactorInstance;
 
 import com.google.inject.Inject;
 

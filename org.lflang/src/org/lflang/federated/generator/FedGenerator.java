@@ -28,7 +28,7 @@ import org.eclipse.xtext.resource.XtextResourceSet;
 import org.eclipse.xtext.util.RuntimeIOException;
 import org.eclipse.xtext.xbase.lib.Exceptions;
 
-import org.lflang.ASTUtils;
+import org.lflang.ast.ASTUtils;
 import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
 import org.lflang.LFStandaloneSetup;

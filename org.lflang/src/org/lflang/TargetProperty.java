@@ -38,6 +38,7 @@ import org.eclipse.xtext.util.RuntimeIOException;
 import org.lflang.TargetConfig.DockerOptions;
 import org.lflang.TargetConfig.PlatformOptions;
 import org.lflang.TargetConfig.TracingOptions;
+import org.lflang.ast.ASTUtils;
 import org.lflang.generator.InvalidLfSourceException;
 import org.lflang.generator.rust.CargoDependencySpec;
 import org.lflang.generator.rust.CargoDependencySpec.CargoDependenciesPropertyType;
@@ -407,7 +408,7 @@ public enum TargetProperty {
 
     /**
      * Directive to specify the platform for cross code generation. This is either a string of the platform
-     * or a dictionary of options that includes the string name. 
+     * or a dictionary of options that includes the string name.
      */
     PLATFORM("platform", UnionType.PLATFORM_STRING_OR_DICTIONARY, Target.ALL,
             (config) -> {

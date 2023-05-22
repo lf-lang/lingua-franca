@@ -1,6 +1,6 @@
 package org.lflang.generator.c;
 
-import org.lflang.ASTUtils;
+import org.lflang.ast.ASTUtils;
 import org.lflang.AttributeUtils;
 import org.lflang.ErrorReporter;
 import org.lflang.Target;

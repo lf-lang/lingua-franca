@@ -4,9 +4,8 @@ import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.stream.Collectors;
 
-import org.lflang.ASTUtils;
+import org.lflang.ast.ASTUtils;
 import org.lflang.AttributeUtils;
 import org.lflang.ErrorReporter;
 import org.lflang.Target;

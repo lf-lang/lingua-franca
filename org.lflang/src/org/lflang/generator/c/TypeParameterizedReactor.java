@@ -5,7 +5,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import org.lflang.ASTUtils;
+import org.lflang.ast.ASTUtils;
 import org.lflang.InferredType;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.lf.Instantiation;

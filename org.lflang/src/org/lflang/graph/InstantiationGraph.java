@@ -31,7 +31,7 @@ import java.util.Optional;
 import java.util.Set;
 
 import org.eclipse.emf.ecore.resource.Resource;
-import org.lflang.ASTUtils;
+import org.lflang.ast.ASTUtils;
 import org.lflang.lf.Instantiation;
 import org.lflang.lf.Model;
 import org.lflang.lf.Reactor;

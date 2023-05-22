@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Stream;
 
-import org.lflang.ASTUtils;
+import org.lflang.ast.ASTUtils;
 import org.lflang.ErrorReporter;
 import org.lflang.lf.Input;
 import org.lflang.lf.Instantiation;

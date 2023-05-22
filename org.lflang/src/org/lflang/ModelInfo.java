@@ -36,6 +36,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
+import org.lflang.ast.ASTUtils;
 import org.lflang.generator.NamedInstance;
 import org.lflang.generator.ReactorInstance;
 import org.lflang.graph.InstantiationGraph;

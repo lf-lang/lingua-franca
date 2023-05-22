@@ -23,7 +23,7 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-package org.lflang;
+package org.lflang.ast;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -54,10 +54,13 @@ import org.eclipse.xtext.util.Tuples;
 import org.eclipse.xtext.xbase.lib.IterableExtensions;
 import org.eclipse.xtext.xbase.lib.IteratorExtensions;
 import org.eclipse.xtext.xbase.lib.StringExtensions;
-import org.lflang.ast.ToText;
+
+import org.lflang.InferredType;
+import org.lflang.Target;
+import org.lflang.TimeUnit;
+import org.lflang.TimeValue;
 import org.lflang.generator.CodeMap;
 import org.lflang.generator.InvalidSourceException;
-import org.lflang.generator.NamedInstance;
 import org.lflang.generator.ReactorInstance;
 import org.lflang.generator.c.CUtil;
 import org.lflang.generator.c.TypeParameterizedReactor;

@@ -20,7 +20,7 @@ import org.eclipse.xtext.nodemodel.ICompositeNode;
 import org.eclipse.xtext.nodemodel.INode;
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils;
 import org.eclipse.xtext.xbase.lib.StringExtensions;
-import org.lflang.ASTUtils;
+
 import org.lflang.Target;
 import org.lflang.ast.MalleableString.Builder;
 import org.lflang.ast.MalleableString.Joiner;

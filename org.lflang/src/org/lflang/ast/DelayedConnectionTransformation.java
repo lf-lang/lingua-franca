@@ -12,9 +12,7 @@ import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.emf.ecore.util.EcoreUtil;
 import org.eclipse.xtext.xbase.lib.IterableExtensions;
 import org.eclipse.xtext.xbase.lib.IteratorExtensions;
-import org.eclipse.xtext.xbase.lib.StringExtensions;
 
-import org.lflang.ASTUtils;
 import org.lflang.InferredType;
 import org.lflang.generator.DelayBodyGenerator;
 import org.lflang.generator.TargetTypes;
@@ -23,7 +21,6 @@ import org.lflang.lf.ActionOrigin;
 import org.lflang.lf.Assignment;
 import org.lflang.lf.Code;
 import org.lflang.lf.Connection;
-import org.lflang.lf.Expression;
 import org.lflang.lf.Initializer;
 import org.lflang.lf.Input;
 import org.lflang.lf.Instantiation;

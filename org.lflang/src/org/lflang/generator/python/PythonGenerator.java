@@ -38,7 +38,7 @@ import java.util.stream.Stream;
 import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.xtext.xbase.lib.Exceptions;
 
-import org.lflang.ASTUtils;
+import org.lflang.ast.ASTUtils;
 import org.lflang.AttributeUtils;
 import org.lflang.Target;
 import org.lflang.TargetProperty;

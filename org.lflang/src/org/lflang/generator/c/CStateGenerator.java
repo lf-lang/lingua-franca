@@ -1,6 +1,6 @@
 package org.lflang.generator.c;
 
-import org.lflang.ASTUtils;
+import org.lflang.ast.ASTUtils;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.generator.ModeInstance;
 import org.lflang.generator.ReactorInstance;

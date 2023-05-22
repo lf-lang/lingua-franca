@@ -28,11 +28,8 @@ package org.lflang.generator.python;
 
 import org.lflang.InferredType;
 import org.lflang.generator.ReactorInstance;
-import org.lflang.generator.GeneratorBase;
 import org.lflang.generator.c.CUtil;
 import org.lflang.lf.Expression;
-import org.lflang.lf.ParameterReference;
-import org.lflang.ASTUtils;
 
 
 /**

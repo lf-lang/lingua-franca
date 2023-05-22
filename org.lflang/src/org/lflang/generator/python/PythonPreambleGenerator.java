@@ -3,7 +3,7 @@ package org.lflang.generator.python;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
-import org.lflang.ASTUtils;
+import org.lflang.ast.ASTUtils;
 import org.lflang.TargetConfig;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.generator.c.CPreambleGenerator;

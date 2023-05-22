@@ -2,7 +2,7 @@ package org.lflang.generator.c;
 
 import java.util.List;
 
-import org.lflang.ASTUtils;
+import org.lflang.ast.ASTUtils;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.generator.ReactionInstance;
 import org.lflang.generator.ReactorInstance;

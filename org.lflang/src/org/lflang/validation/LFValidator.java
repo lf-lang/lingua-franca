@@ -26,13 +26,13 @@
  ***************/
 package org.lflang.validation;
 
-import static org.lflang.ASTUtils.inferPortWidth;
-import static org.lflang.ASTUtils.isGeneric;
-import static org.lflang.ASTUtils.isInteger;
-import static org.lflang.ASTUtils.isOfTimeType;
-import static org.lflang.ASTUtils.isZero;
-import static org.lflang.ASTUtils.toDefinition;
-import static org.lflang.ASTUtils.toOriginalText;
+import static org.lflang.ast.ASTUtils.inferPortWidth;
+import static org.lflang.ast.ASTUtils.isGeneric;
+import static org.lflang.ast.ASTUtils.isInteger;
+import static org.lflang.ast.ASTUtils.isOfTimeType;
+import static org.lflang.ast.ASTUtils.isZero;
+import static org.lflang.ast.ASTUtils.toDefinition;
+import static org.lflang.ast.ASTUtils.toOriginalText;
 
 import java.io.File;
 import java.io.IOException;
@@ -56,7 +56,7 @@ import org.eclipse.xtext.nodemodel.util.NodeModelUtils;
 import org.eclipse.xtext.validation.Check;
 import org.eclipse.xtext.validation.CheckType;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
-import org.lflang.ASTUtils;
+import org.lflang.ast.ASTUtils;
 import org.lflang.AttributeUtils;
 import org.lflang.InferredType;
 import org.lflang.ModelInfo;
@@ -74,7 +74,6 @@ import org.lflang.lf.Attribute;
 import org.lflang.lf.BracedListExpression;
 import org.lflang.lf.BuiltinTrigger;
 import org.lflang.lf.BuiltinTriggerRef;
-import org.lflang.lf.CodeExpr;
 import org.lflang.lf.Connection;
 import org.lflang.lf.Deadline;
 import org.lflang.lf.Expression;

@@ -2,7 +2,7 @@ package org.lflang.tests.runtime;
 
 import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.Test;
-import org.lflang.ASTUtils;
+import org.lflang.ast.ASTUtils;
 import org.lflang.Target;
 import org.lflang.tests.TestBase;
 import org.lflang.tests.TestRegistry.TestCategory;

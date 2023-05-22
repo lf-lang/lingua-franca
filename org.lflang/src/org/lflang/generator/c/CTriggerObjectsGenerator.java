@@ -10,10 +10,9 @@ import static org.lflang.util.StringUtil.joinObjects;
 
 import java.util.Arrays;
 import java.util.HashSet;
-import java.util.LinkedHashMap;
 import java.util.stream.Collectors;
 
-import org.lflang.ASTUtils;
+import org.lflang.ast.ASTUtils;
 import org.lflang.AttributeUtils;
 import org.lflang.TargetConfig;
 
@@ -685,7 +684,7 @@ public class CTriggerObjectsGenerator {
                             ));
                             code.endChannelIteration(port);
                         }
-                        
+
                         code.endScopedRangeBlock(sendingRange);
                     }
                 }

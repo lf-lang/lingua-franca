@@ -1,8 +1,8 @@
 package org.lflang.generator.c;
 
-import static org.lflang.ASTUtils.allMethods;
+import static org.lflang.ast.ASTUtils.allMethods;
 
-import org.lflang.ASTUtils;
+import org.lflang.ast.ASTUtils;
 import org.lflang.InferredType;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.lf.Method;

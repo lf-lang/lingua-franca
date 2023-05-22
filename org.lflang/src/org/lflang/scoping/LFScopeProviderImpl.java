@@ -26,7 +26,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 package org.lflang.scoping;
 
 import static java.util.Collections.emptyList;
-import static org.lflang.ASTUtils.*;
+import static org.lflang.ast.ASTUtils.*;
 
 import com.google.inject.Inject;
 

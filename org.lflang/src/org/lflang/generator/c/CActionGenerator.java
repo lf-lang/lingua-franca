@@ -2,7 +2,7 @@ package org.lflang.generator.c;
 
 import java.util.List;
 import java.util.ArrayList;
-import org.lflang.ASTUtils;
+import org.lflang.ast.ASTUtils;
 import org.lflang.Target;
 import org.lflang.generator.ActionInstance;
 import org.lflang.generator.CodeBuilder;

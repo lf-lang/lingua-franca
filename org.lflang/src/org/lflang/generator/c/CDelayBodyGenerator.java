@@ -1,8 +1,8 @@
 package org.lflang.generator.c;
 
-import static org.lflang.ASTUtils.getInferredType;
+import static org.lflang.ast.ASTUtils.getInferredType;
 
-import org.lflang.ASTUtils;
+import org.lflang.ast.ASTUtils;
 import org.lflang.generator.DelayBodyGenerator;
 import org.lflang.lf.Action;
 import org.lflang.lf.VarRef;
