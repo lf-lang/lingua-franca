@@ -149,9 +149,9 @@ public class CActionGenerator {
      * For the specified action, return a declaration for action struct to
      * contain the value of the action. An action of
      * type int[10], for example, will result in this:
-     * ```
+     * <pre><code>
      *     int* value;
-     * ```
+     * </code></pre>
      * This will return an empty string for an action with no type.
      * @param tpr {@link TypeParameterizedReactor}
      * @param action The action.

@@ -136,7 +136,7 @@ public class CUtil {
     }
 
     /**
-     * Return the name of the reactor. A '_main` is appended to the name if the
+     * Return the name of the reactor. A {@code _main} is appended to the name if the
      * reactor is main (to allow for instantiations that have the same name as
      * the main reactor or the .lf file).
      */
