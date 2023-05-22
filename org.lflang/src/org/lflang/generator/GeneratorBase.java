@@ -116,7 +116,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
      * A list of Reactor definitions in the main resource, including non-main
      * reactors defined in imported resources. These are ordered in the list in
      * such a way that each reactor is preceded by any reactor that it instantiates
-     * using a command like `foo = new Foo();`
+     * using a command like {@code foo = new Foo();}
      */
     protected List<Reactor> reactors = new ArrayList<>();
 
@@ -129,9 +129,9 @@ public abstract class GeneratorBase extends AbstractLFValidator {
      * Graph that tracks dependencies between instantiations.
      * This is a graph where each node is a Reactor (not a ReactorInstance)
      * and an arc from Reactor A to Reactor B means that B contains an instance of A, constructed with a statement
-     * like `a = new A();`  After creating the graph,
+     * like {@code a = new A();}  After creating the graph,
      * sort the reactors in topological order and assign them to the reactors class variable.
-     * Hence, after this method returns, `this.reactors` will be a list of Reactors such that any
+     * Hence, after this method returns, {@code this.reactors} will be a list of Reactors such that any
      * reactor is preceded in the list by reactors that it instantiates.
      */
     protected InstantiationGraph instantiationGraph;
@@ -321,9 +321,9 @@ public abstract class GeneratorBase extends AbstractLFValidator {
     /**
      * Create a new instantiation graph. This is a graph where each node is a Reactor (not a ReactorInstance)
      * and an arc from Reactor A to Reactor B means that B contains an instance of A, constructed with a statement
-     * like `a = new A();`  After creating the graph,
+     * like {@code a = new A();}  After creating the graph,
      * sort the reactors in topological order and assign them to the reactors class variable.
-     * Hence, after this method returns, `this.reactors` will be a list of Reactors such that any
+     * Hence, after this method returns, {@code this.reactors} will be a list of Reactors such that any
      * reactor is preceded in the list by reactors that it instantiates.
      */
     protected void setReactorsAndInstantiationGraph(LFGeneratorContext.Mode mode) {
@@ -332,7 +332,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
 
         // Topologically sort the reactors such that all of a reactor's instantiation dependencies occur earlier in
         // the sorted list of reactors. This helps the code generator output code in the correct order.
-        // For example if `reactor Foo {bar = new Bar()}` then the definition of {@code Bar} has to be generated before
+        // For example if {@code reactor Foo {bar = new Bar()}} then the definition of {@code Bar} has to be generated before
         // the definition of {@code Foo}.
         reactors = instantiationGraph.nodesInTopologicalOrder();
 

@@ -156,7 +156,7 @@ public class LFCommand {
     /**
      * Execute the command.
      * <p>
-     * Executing a process directly with `processBuilder.start()` could
+     * Executing a process directly with {@code processBuilder.start()} could
      * lead to a deadlock as the subprocess blocks when output or error
      * buffers are full. This method ensures that output and error messages
      * are continuously read and forwards them to the system output and

@@ -966,7 +966,7 @@ public class CTriggerObjectsGenerator {
      * to a contained reactor, then generate code to allocate
      * memory to store the data produced by those reactions.
      * The allocated memory is pointed to by a field called
-     * `_lf_containername.portname` on the self struct of the reactor.
+     * {@code _lf_containername.portname} on the self struct of the reactor.
      * @param reactor The reactor.
      */
     private static String deferredAllocationForEffectsOnInputs(

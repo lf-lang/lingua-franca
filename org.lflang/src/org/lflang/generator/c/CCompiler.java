@@ -304,7 +304,7 @@ public class CCompiler {
      * Return a flash/emulate command using west.
      * If board is null (defaults to qemu_cortex_m3) or qemu_*
      * Return a flash command which runs the target as an emulation
-     * If ordinary target, return `west flash`
+     * If ordinary target, return {@code west flash}
      */
     public LFCommand buildWestFlashCommand() {
         // Set the build directory to be "build"
@@ -414,7 +414,7 @@ public class CCompiler {
         }
 
         // If there is no main reactor, then use the -c flag to prevent linking from occurring.
-        // FIXME: we could add a `-c` flag to {@code lfc} to make this explicit in stand-alone mode.
+        // FIXME: we could add a {@code -c} flag to {@code lfc} to make this explicit in stand-alone mode.
         //  Then again, I think this only makes sense when we can do linking.
         if (noBinary) {
             compileArgs.add("-c"); // FIXME: revisit

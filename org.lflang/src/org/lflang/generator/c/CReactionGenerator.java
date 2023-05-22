@@ -1179,7 +1179,7 @@ public class CReactionGenerator {
 
     /**
      * Return the start of a function declaration for a function that takes
-     * a `void*` argument and returns void.
+     * a {@code void*} argument and returns void.
      *
      * @param functionName
      * @return

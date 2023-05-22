@@ -457,7 +457,7 @@ public class PythonGenerator extends CGenerator {
     protected void generateReaction(CodeBuilder src, Reaction reaction, TypeParameterizedReactor tpr, int reactionIndex) {
         Reactor reactor = ASTUtils.toDefinition(tpr.reactor());
 
-        // Reactions marked with a `@_c_body` attribute are generated in C
+        // Reactions marked with a {@code @_c_body} attribute are generated in C
         if (AttributeUtils.hasCBody(reaction)) {
             super.generateReaction(src, reaction, tpr, reactionIndex);
             return;

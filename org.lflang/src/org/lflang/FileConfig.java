@@ -116,12 +116,12 @@ public abstract class FileConfig {
     // private fields
 
     /**
-     * The parent of the directory designated for placing generated sources into (`./src-gen` by default). Additional
+     * The parent of the directory designated for placing generated sources into ({@code ./src-gen} by default). Additional
      * directories (such as {@code bin} or {@code build}) should be created as siblings of the directory for generated sources,
      * which means that such directories should be created relative to the path assigned to this class variable.
      * <p>
      * The generated source directory is specified in the IDE (Project Properties->LF->Compiler->Output Folder). When
-     * invoking the standalone compiler, the output path is specified directly using the `-o` or `--output-path` option.
+     * invoking the standalone compiler, the output path is specified directly using the {@code -o} or {@code --output-path} option.
      */
     private final Path outPath;
 
@@ -163,12 +163,12 @@ public abstract class FileConfig {
     }
 
     /**
-     * The parent of the directory designated for placing generated sources into (`./src-gen` by default). Additional
+     * The parent of the directory designated for placing generated sources into ({@code ./src-gen} by default). Additional
      * directories (such as {@code bin} or {@code build}) should be created as siblings of the directory for generated sources,
      * which means that such directories should be created relative to the path assigned to this class variable.
      * <p>
      * The generated source directory is specified in the IDE (Project Properties->LF->Compiler->Output Folder). When
-     * invoking the standalone compiler, the output path is specified directly using the `-o` or `--output-path` option.
+     * invoking the standalone compiler, the output path is specified directly using the {@code -o} or {@code --output-path} option.
      */
     public Path getOutPath() {
         return outPath;

@@ -49,12 +49,12 @@ import com.google.common.collect.Iterables;
  * confusing and subtle distinction here between an "instantiation"
  * and an "instance". They are not the same thing at all. An
  * "instantiation" is an AST node representing a statement like
- * `a = new A();`. This can result in many instances of reactor
+ * {@code a = new A();}. This can result in many instances of reactor
  * class A (if the containing reactor class is instantiated multiple times).
  *
  * In addition to the graph, this class keeps track of the instantiations
  * that induce the dependencies. These can be retrieved using the method
- * `getInstantiations(Reactor)`.
+ * {@code getInstantiations(Reactor)}.
  *
  * @author Marten Lohstroh
  */

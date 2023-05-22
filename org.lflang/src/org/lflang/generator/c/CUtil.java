@@ -208,7 +208,7 @@ public class CUtil {
      * port's parent.  This is used when an input port triggers a reaction
      * in the port's parent or when an output port is written to by
      * a reaction in the port's parent.
-     * This is equivalent to calling `portRef(port, false, true, null, null)`.
+     * This is equivalent to calling {@code portRef(port, false, true, null, null)}.
      * @param port An instance of the port to be referenced.
      */
     public static String portRef(PortInstance port) {
@@ -221,7 +221,7 @@ public class CUtil {
      * This is used when an input port triggers a reaction
      * in the port's parent or when an output port is written to by
      * a reaction in the port's parent.
-     * This is equivalent to calling `portRef(port, false, true, bankIndex, channelIndex)`.
+     * This is equivalent to calling {@code portRef(port, false, true, bankIndex, channelIndex)}.
      * @param port An instance of the port to be referenced.
      * @param runtimeIndex A variable name to use to index the runtime instance or
      *  null to use the default, the string returned by {@link CUtil#runtimeIndex(ReactorInstance)}.
@@ -269,7 +269,7 @@ public class CUtil {
      * is written to by a reaction in the parent of the port's parent,
      * or when an output port triggers a reaction in the parent of the
      * port's parent. This is equivalent to calling
-     * `portRef(port, true, true, null, null, null)`.
+     * {@code portRef(port, true, true, null, null, null)}.
      *
      * @param port The port.
      */
@@ -283,7 +283,7 @@ public class CUtil {
      * is written to by a reaction in the parent of the port's parent,
      * or when an output port triggers a reaction in the parent of the
      * port's parent. This is equivalent to calling
-     * `portRef(port, true, true, runtimeIndex, bankIndex, channelIndex)`.
+     * {@code portRef(port, true, true, runtimeIndex, bankIndex, channelIndex)}.
      *
      * @param port The port.
      * @param runtimeIndex A variable name to use to index the runtime instance or
@@ -306,7 +306,7 @@ public class CUtil {
      * is written to by a reaction in the parent of the port's parent,
      * or when an output port triggers a reaction in the parent of the
      * port's parent.
-     * This is equivalent to calling `portRef(port, true, false, null, null, null)`.
+     * This is equivalent to calling {@code portRef(port, true, false, null, null, null)}.
      *
      * @param port The port.
      */
@@ -321,7 +321,7 @@ public class CUtil {
      * is written to by a reaction in the parent of the port's parent,
      * or when an output port triggers a reaction in the parent of the
      * port's parent. This is equivalent to calling
-     * `portRefNested(port, true, false, runtimeIndex, bankIndex, channelIndex)`.
+     * {@code portRefNested(port, true, false, runtimeIndex, bankIndex, channelIndex)}.
      *
      * @param port The port.
      * @param runtimeIndex A variable name to use to index the runtime instance or

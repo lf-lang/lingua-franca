@@ -380,7 +380,7 @@ public class PythonReactionGenerator {
         code.pr(nameOfSelfStruct+"->_lf_name = \""+instance.uniqueID()+"_lf\";");
 
         for (ReactionInstance reaction : instance.reactions) {
-            // Reactions marked with a `@_c_body` attribute are generated in C
+            // Reactions marked with a {@code @_c_body} attribute are generated in C
             if (AttributeUtils.hasCBody(reaction.getDefinition())) continue;
             // Create a PyObject for each reaction
             code.pr(generateCPythonReactionLinker(instance, reaction, nameOfSelfStruct));
@@ -479,7 +479,7 @@ public class PythonReactionGenerator {
      * @param reaction The reaction of reactor
      */
     public static String generatePythonReaction(Reactor reactor, Reaction reaction, int reactionIndex) {
-        // Reactions marked with a `@_c_body` attribute are generated in C
+        // Reactions marked with a {@code @_c_body} attribute are generated in C
         if (AttributeUtils.hasCBody(reaction))  return "";
 
         CodeBuilder code = new CodeBuilder();

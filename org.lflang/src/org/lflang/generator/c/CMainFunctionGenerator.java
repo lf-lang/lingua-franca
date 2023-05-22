@@ -22,7 +22,7 @@ public class CMainFunctionGenerator {
      * Generate the code that is the entry point
      * of the program.
      *
-     * Ideally, this code would belong to its own `main.c`
+     * Ideally, this code would belong to its own {@code main.c}
      * file, but it currently lives in the same file
      * as all the code generated for reactors.
      */

@@ -482,7 +482,7 @@ public class CExtension implements FedTargetExtension {
         RtiConfig rtiConfig,
         ErrorReporter errorReporter
     ) throws IOException {
-        // Put the C preamble in a `include/_federate.name + _preamble.h` file
+        // Put the C preamble in a {@code include/_federate.name + _preamble.h} file
         String cPreamble = makePreamble(federate, fileConfig, rtiConfig, errorReporter);
         String relPath = getPreamblePath(federate);
         Path fedPreamblePath = fileConfig.getSrcPath().resolve(relPath);

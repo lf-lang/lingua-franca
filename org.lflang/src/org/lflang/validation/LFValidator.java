@@ -1259,7 +1259,7 @@ public class LFValidator extends BaseLFValidator {
                         error("Parameterized widths are not supported by this target.", Literals.WIDTH_SPEC__TERMS);
                     }
                 } else if (term.getPort() != null) {
-                    // Widths given with `widthof()` are not supported (yet?).
+                    // Widths given with {@code widthof()} are not supported (yet?).
                     // This feature is currently only used for after delays.
                     error("widthof is not supported.", Literals.WIDTH_SPEC__TERMS);
                 } else if (term.getCode() != null) {
