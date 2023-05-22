@@ -105,7 +105,7 @@ public class CWatchdogGenerator {
   /**
    * Generate watchdog definitions in the reactor's self struct.
    * @param body The place to put the definitions
-   * @param tpr The reactor declaration
+   * @param tpr The concrete reactor class
    * @param constructorCode The place to put initialization code.
    */
   protected static void generateWatchdogStruct(
@@ -172,7 +172,7 @@ public class CWatchdogGenerator {
    * Generate necessary initialization code inside the body of a watchdog handler.
    *
    * @param watchdog The wotchdog
-   * @param tpr The declaration for the reactor that has the watchdog
+   * @param tpr The concrete reactor class that has the watchdog
    */
   private static String generateInitializationForWatchdog(
       Watchdog watchdog,

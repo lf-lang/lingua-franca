@@ -23,7 +23,6 @@ public record TypeParameterizedReactor(Reactor reactor, Map<String, Type> typeAr
         this(ASTUtils.toDefinition(i.getReactorClass()), addTypeArgs(i, ASTUtils.toDefinition(i.getReactorClass())));
     }
 
-
     private static Map<String, Type> addTypeArgs(Instantiation instantiation, Reactor r) {
         HashMap<String, Type> ret = new HashMap<>();
         if (instantiation.getTypeArgs() != null) {
