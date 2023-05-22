@@ -23,7 +23,7 @@ public class CStateGenerator {
         CodeBuilder code = new CodeBuilder();
         for (StateVar stateVar : ASTUtils.allStateVars(reactor.r())) {
             code.prSourceLineNumber(stateVar);
-            code.pr(CUtil.getConcreteType(reactor, types.getTargetType(stateVar)) + " " + stateVar.getName() + ";");
+            code.pr(types.getTargetType(reactor.resolveType(ASTUtils.getInferredType(stateVar))) + " " + stateVar.getName() + ";");
         }
         return code.toString();
     }
@@ -93,7 +93,7 @@ public class CStateGenerator {
             return "";
         }
         var modeRef = "&"+CUtil.reactorRef(mode.getParent())+"->_lf__modes["+mode.getParent().modes.indexOf(mode)+"]";
-        var type = CUtil.getConcreteType(instance.tpr, types.getTargetType(ASTUtils.getInferredType(stateVar)));
+        var type = types.getTargetType(instance.tpr.resolveType(ASTUtils.getInferredType(stateVar)));
 
         if (ASTUtils.isOfTimeType(stateVar) ||
             ASTUtils.isParameterized(stateVar) &&

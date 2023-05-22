@@ -6,6 +6,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 import org.lflang.ASTUtils;
+import org.lflang.InferredType;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.lf.Instantiation;
 import org.lflang.lf.Reactor;
@@ -45,6 +46,11 @@ public record TypeParameterizedReactor(Reactor r, Map<String, Type> typeArgs) {
         if (t.getCode() == null) return t;
         var arg = typeArgs.get(t.getCode().getBody());
         if (arg != null) return arg;
+        return t;
+    }
+
+    public InferredType resolveType(InferredType t) {
+        if (t.astType.getCode() != null) return InferredType.fromAST(resolveType(t.astType));
         return t;
     }
 

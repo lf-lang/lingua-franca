@@ -1771,14 +1771,13 @@ public class CGenerator extends GeneratorBase {
             // Skip this step if the action is not in use.
             if (action.getParent().getTriggers().contains(action)
             ) {
-                var type = getInferredType(action.getDefinition());
+                var type = reactor.tpr.resolveType(getInferredType(action.getDefinition()));
                 var payloadSize = "0";
                 if (!type.isUndefined()) {
                     var typeStr = types.getTargetType(type);
                     if (CUtil.isTokenType(type, types)) {
                         typeStr = CUtil.rootType(typeStr);
                     }
-                    typeStr = CUtil.getConcreteType(reactor.tpr, typeStr);
                     if (typeStr != null && !typeStr.equals("") && !typeStr.equals("void")) {
                         payloadSize = "sizeof("+typeStr+")";
                     }

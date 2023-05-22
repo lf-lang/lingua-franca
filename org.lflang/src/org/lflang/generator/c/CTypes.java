@@ -125,7 +125,7 @@ public class CTypes implements TargetTypes {
             String variableName,
             boolean initializer
     ) {
-        String t = CUtil.getConcreteType(tpr, TargetTypes.super.getTargetType(type));
+        String t = TargetTypes.super.getTargetType(tpr.resolveType(type));
         Matcher matcher = arrayPattern.matcher(t);
         String declaration = String.format("%s %s", t, variableName);
         if (matcher.find()) {

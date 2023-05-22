@@ -47,7 +47,7 @@ public class CParameterGenerator {
         CodeBuilder code = new CodeBuilder();
         for (Parameter parameter : ASTUtils.allParameters(reactor.r())) {
             code.prSourceLineNumber(parameter);
-            code.pr(CUtil.getConcreteType(reactor, types.getTargetType(parameter)) + " " + parameter.getName() + ";");
+            code.pr(types.getTargetType(reactor.resolveType(ASTUtils.getInferredType(parameter))) + " " + parameter.getName() + ";");
         }
         return code.toString();
     }

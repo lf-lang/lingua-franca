@@ -171,6 +171,6 @@ public class CActionGenerator {
         // will be a separate field pointing to the token.
         return action.getType() == null && target.requiresTypes ?
                "" :
-               CUtil.getConcreteType(tpr, types.getTargetType(action)) + " value;";
+               types.getTargetType(tpr.resolveType(action.getType())) + " value;";
     }
 }

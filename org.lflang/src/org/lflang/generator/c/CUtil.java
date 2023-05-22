@@ -781,31 +781,6 @@ public class CUtil {
         return new Pair<>(str.substring(0, starIdx), str.substring(starIdx));
     }
 
-    /**
-     * Given a <code>type</code> we need to check if the type is Generic Type literal and if
-     * it is we need to find the corresponding concrete type
-     *
-     * @param tpr {@link TypeParameterizedReactor}
-     * @param type Actual typename
-     */
-    public static String getConcreteType(TypeParameterizedReactor tpr, final String type) {
-        if (tpr == null)
-            return type;
-
-        var wrapper = new Object() {
-            String concreteType = "";
-            final Pair<String, String> inPair = separateTokensFromTypes(type);
-        };
-        tpr.typeArgs().forEach((literal, concreteType) -> {
-            if (wrapper.inPair.getFirst().equals(literal))
-            {
-                wrapper.concreteType = String.valueOf(concreteType.getId());
-            }
-        });
-
-        return wrapper.concreteType.isEmpty() ? type : wrapper.concreteType + wrapper.inPair.getSecond();
-    }
-
     public static String generateWidthVariable(String var) {
         return var + "_width";
     }
