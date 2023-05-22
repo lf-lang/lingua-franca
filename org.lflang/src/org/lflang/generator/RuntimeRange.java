@@ -36,10 +36,11 @@ import java.util.Set;
  * (port channels, reactors, reactions, etc.). This class and its derived classes
  * have the most detailed information about the structure of a Lingua Franca
  * program.  There are three levels of detail:
- * 
- * * The abstract syntax tree (AST).
- * * The compile-time instance graph (CIG).
- * * The runtime instance graph (RIG).
+ * <ul>
+ *   <li>The abstract syntax tree (AST).</li>
+ *   <li>The compile-time instance graph (CIG).</li>
+ *   <li>The runtime instance graph (RIG).</li>
+ * </ul>
  * 
  * In the AST, each reactor class is represented once.
  * In the CIG, each reactor class is represented as many times as it is
@@ -340,38 +341,35 @@ public class RuntimeRange<T extends NamedInstance<?>> implements Comparable<Runt
     
     /**
      * Return a set of identifiers for runtime instances of a parent of this
-     * RuntimeRange's instance n levels above this RuntimeRange's instance. If n == 1, for
+     * {@link RuntimeRange}'s instance {@code n} levels above this {@link RuntimeRange}'s instance. If {@code n == 1}, for
      * example, then this return the identifiers for the parent ReactorInstance.
      * 
-     * This returns a list of **natural identifiers**,
+     * This returns a list of <i>natural identifiers</i>,
      * as defined below, for the instances within the range.
      * 
      * The resulting list can be used to count the number of distinct
-     * runtime instances of this RuntimeRange's instance (using n == 0) or any of its parents that
+     * runtime instances of this RuntimeRange's instance (using {@code n == 0}) or any of its parents that
      * lie within the range and to provide an index into an array of runtime
      * instances.
      * 
-     * Each **natural identifier** is the integer value of a mixed-radix number
+     * Each <i>natural identifier</i> is the integer value of a mixed-radix number
      * defined as follows:
-     * 
-     * * The low-order digit is the index of the runtime instance of i
-     *   within its container. If the NamedInstance
-     *   is a PortInstance, this will be the multiport channel or 0 if it is not a
+     * <ul>
+     *   <li>The low-order digit is the index of the runtime instance of {@code i} within its container.
+     *   If the {@link NamedInstance} is a {@code PortInstance}, this will be the multiport channel or {@code 0} if it is not a
      *   multiport. If the NamedInstance is a ReactorInstance, then it will be the bank
-     *   index or 0 if the reactor is not a bank.  The radix for this digit will be
+     *   index or {@code 0} if the reactor is not a bank.  The radix for this digit will be
      *   the multiport width or bank width or 1 if the NamedInstance is neither a
-     *   multiport nor a bank.
-     *   
-     * * The next digit will be the bank index of the container of the specified
-     *   NamedInstance or 0 if it is not a bank.
-     *   
-     * * The remaining digits will be bank indices of containers up to but not
-     *   including the top-level reactor (there is no point in including the top-level
-     *   reactor because it is never a bank).
-     *   
-     * Each index that is returned can be used as an index into an array of
-     * runtime instances that is assumed to be in a **natural order**.
-     * 
+     *   multiport nor a bank.</li>
+     * <li>The next digit will be the bank index of the container of the specified
+     * {@link NamedInstance} or {@code 0} if it is not a bank.</li>
+     * <li>The remaining digits will be bank indices of containers up to but not
+     * including the top-level reactor (there is no point in including the top-level
+     * reactor because it is never a bank).</li>
+     * <li>Each index that is returned can be used as an index into an array of
+     * runtime instances that is assumed to be in a <i>natural order</i>.</li>
+     * </ul>
+     *
      * @param n The number of levels up of the parent. This is required to be
      *  less than the depth of this RuntimeRange's instance or an exception will be thrown.
      */
