@@ -134,12 +134,12 @@ public class AttributeUtils {
     /**
      * Retrieve a specific annotation in a comment associated with the given model element in the AST.
      *
-     * This will look for a comment. If one is found, it searches for the given annotation `key`.
+     * This will look for a comment. If one is found, it searches for the given annotation {@code key}.
      * and extracts any string that follows the annotation marker.
      *
      * @param object the AST model element to search a comment for
      * @param key the specific annotation key to be extracted
-     * @return `null` if no JavaDoc style comment was found or if it does not contain the given key.
+     * @return {@code null} if no JavaDoc style comment was found or if it does not contain the given key.
      *     The string immediately following the annotation marker otherwise.
      */
     public static String findAnnotationInComments(EObject object, String key) {

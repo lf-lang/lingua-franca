@@ -34,7 +34,7 @@ import org.eclipse.xtext.xbase.lib.ListExtensions;
 import java.util.ArrayList;
 
 /** 
- * Elaboration of `DirectedGraph` that is capable of identifying strongly
+ * Elaboration of {@code DirectedGraph} that is capable of identifying strongly
  * connected components and topologically sorting its nodes.
  * 
  * @author Marten Lohstroh
@@ -147,7 +147,7 @@ public class PrecedenceGraph<T extends Object> extends DirectedGraph<T> {
     /**
      * Run Tarjan's algorithm for finding strongly connected components.
      * After invoking this method, the detected cycles with be listed 
-     * in the class variable `cycles`.
+     * in the class variable {@code cycles}.
      */
     public void detectCycles() {
         if (!this.cycleAnalysisDone) {

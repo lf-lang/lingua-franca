@@ -276,7 +276,7 @@ public class LFCommand {
      * This will check first if the command can actually be found and executed. If the command is not found, null is
      * returned. In order to find the command, different methods are applied in the following order:
      * <p>
-     * 1. Check if the given command `cmd` is an executable file within `dir`.
+     * 1. Check if the given command {@code cmd} is an executable file within {@code dir}.
      * 2. If the above fails 'which <cmd>' (or 'where <cmd>' on Windows) is executed to see if the command is available
      * on the PATH.
      * 3. If both points above fail, a third attempt is started using bash to indirectly execute the command (see below

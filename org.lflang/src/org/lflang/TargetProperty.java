@@ -886,7 +886,7 @@ public enum TargetProperty {
 
     /**
      * Private constructor for target properties. This will take an additional
-     * `updater`, which will be used to merge target properties from imported resources.
+     * {@code updater}, which will be used to merge target properties from imported resources.
      *
      * @param description String representation of this property.
      * @param type        The type that values assigned to this property

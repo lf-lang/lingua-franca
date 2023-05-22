@@ -173,7 +173,7 @@ public class CModesGenerator {
         }
 
     /**
-     * Generate code to call `_lf_process_mode_changes`.
+     * Generate code to call {@code _lf_process_mode_changes}.
      *
      * @param hasModalReactors True if there is modal model reactors, false otherwise
      * @param modalStateResetCount The number of modal model state resets
@@ -200,7 +200,7 @@ public class CModesGenerator {
     }
 
     /**
-     * Generate code to call `_lf_initialize_modes`.
+     * Generate code to call {@code _lf_initialize_modes}.
      *
      * @param hasModalReactors True if there is modal model reactors, false otherwise
      */

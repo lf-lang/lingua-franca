@@ -279,7 +279,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
             targetConfig,
             errorReporter
         );
-        // FIXME: Should the GeneratorBase pull in `files` from imported
+        // FIXME: Should the GeneratorBase pull in {@code files} from imported
         // resources?
 
         for (AstTransformation transformation : astTransformations) {
@@ -332,8 +332,8 @@ public abstract class GeneratorBase extends AbstractLFValidator {
 
         // Topologically sort the reactors such that all of a reactor's instantiation dependencies occur earlier in
         // the sorted list of reactors. This helps the code generator output code in the correct order.
-        // For example if `reactor Foo {bar = new Bar()}` then the definition of `Bar` has to be generated before
-        // the definition of `Foo`.
+        // For example if `reactor Foo {bar = new Bar()}` then the definition of {@code Bar} has to be generated before
+        // the definition of {@code Foo}.
         reactors = instantiationGraph.nodesInTopologicalOrder();
 
         // If there is no main reactor or if all reactors in the file need to be validated, then make sure the reactors
@@ -353,7 +353,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
      *
      * This should be overridden by the target generators.
      *
-     * @param targetConfig The targetConfig to read the `files` from.
+     * @param targetConfig The targetConfig to read the {@code files} from.
      * @param fileConfig The fileConfig used to make the copy and resolve paths.
      */
     protected void copyUserFiles(TargetConfig targetConfig, FileConfig fileConfig) {

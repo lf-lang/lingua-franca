@@ -895,7 +895,7 @@ public class ASTUtils {
     /**
      * Report whether the given literal is zero or not.
      * @param literal AST node to inspect.
-     * @return True if the given literal denotes the constant `0`, false
+     * @return True if the given literal denotes the constant {@code 0}, false
      * otherwise.
      */
     public static boolean isZero(String literal) {
@@ -914,7 +914,7 @@ public class ASTUtils {
      * Report whether the given expression is zero or not.
      *
      * @param expr AST node to inspect.
-     * @return True if the given value denotes the constant `0`, false otherwise.
+     * @return True if the given value denotes the constant {@code 0}, false otherwise.
      */
     public static boolean isZero(Expression expr) {
         if (expr instanceof Literal) {

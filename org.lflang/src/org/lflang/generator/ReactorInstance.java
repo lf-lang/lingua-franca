@@ -319,7 +319,7 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
     /**
      * @see NamedInstance#uniqueID()
      *
-     * Append `_main` to the name of the main reactor to allow instantiations
+     * Append {@code _main} to the name of the main reactor to allow instantiations
      * within that reactor to have the same name.
      */
     @Override
@@ -1047,11 +1047,11 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
      * and may be ports of a contained bank (a port representing ports of the bank
      * members) so the returned list includes ranges of banks and channels.
      *
-     * If a given port reference has the form `interleaved(b.m)`, where `b` is
-     * a bank and `m` is a multiport, then the corresponding range in the returned
+     * If a given port reference has the form `interleaved(b.m)`, where {@code b} is
+     * a bank and {@code m} is a multiport, then the corresponding range in the returned
      * list is marked interleaved.
      *
-     * For example, if `b` and `m` have width 2, without the interleaved keyword,
+     * For example, if {@code b} and {@code m} have width 2, without the interleaved keyword,
      * the returned range represents the sequence `[b0.m0, b0.m1, b1.m0, b1.m1]`.
      * With the interleaved marking, the returned range represents the sequence
      * `[b0.m0, b1.m0, b0.m1, b1.m1]`. Both ranges will have width 4.

@@ -152,7 +152,7 @@ public class LFValidator extends BaseLFValidator {
         checkName(action.getName(), Literals.VARIABLE__NAME);
         if (action.getOrigin() == ActionOrigin.NONE) {
             error(
-                "Action must have modifier `logical` or `physical`.",
+                "Action must have modifier {@code logical} or {@code physical}.",
                 Literals.ACTION__ORIGIN
             );
         }

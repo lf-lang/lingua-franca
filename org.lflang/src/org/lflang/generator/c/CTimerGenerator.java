@@ -50,7 +50,7 @@ public class CTimerGenerator {
     }
 
     /**
-     * Generate code to call `_lf_initialize_timer` on each timer.
+     * Generate code to call {@code _lf_initialize_timer} on each timer.
      *
      * @param timerCount The total number of timers in the program
      */

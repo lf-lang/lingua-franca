@@ -414,7 +414,7 @@ public class CCompiler {
         }
 
         // If there is no main reactor, then use the -c flag to prevent linking from occurring.
-        // FIXME: we could add a `-c` flag to `lfc` to make this explicit in stand-alone mode.
+        // FIXME: we could add a `-c` flag to {@code lfc} to make this explicit in stand-alone mode.
         //  Then again, I think this only makes sense when we can do linking.
         if (noBinary) {
             compileArgs.add("-c"); // FIXME: revisit
