@@ -1270,7 +1270,7 @@ public class CGenerator extends GeneratorBase {
         var contained = new InteractingContainedReactors(tpr.r());
         // Next generate the relevant code.
         for (Instantiation containedReactor : contained.containedReactors()) {
-            var containedReactorType = ReactorInstance.getReactorInstance(containedReactor);
+            var containedTpr = new TypeParameterizedReactor(containedReactor);
             // First define an _width variable in case it is a bank.
             var array = "";
             var width = -2;
@@ -1298,12 +1298,12 @@ public class CGenerator extends GeneratorBase {
                     // to be malloc'd at initialization.
                     if (!ASTUtils.isMultiport(port)) {
                         // Not a multiport.
-                        body.pr(port, variableStructType(port, containedReactorType.tpr, false)+" "+port.getName()+";");
+                        body.pr(port, variableStructType(port, containedTpr, false)+" "+port.getName()+";");
                     } else {
                         // Is a multiport.
                         // Memory will be malloc'd in initialization.
                         body.pr(port, String.join("\n",
-                            variableStructType(port, containedReactorType.tpr, false)+"** "+port.getName()+";",
+                            variableStructType(port, containedTpr, false)+"** "+port.getName()+";",
                             "int "+port.getName()+"_width;"
                         ));
                     }
@@ -1313,13 +1313,13 @@ public class CGenerator extends GeneratorBase {
                     // self struct of the container.
                     if (!ASTUtils.isMultiport(port)) {
                         // Not a multiport.
-                        body.pr(port, variableStructType(port, containedReactorType.tpr, false)+"* "+port.getName()+";");
+                        body.pr(port, variableStructType(port, containedTpr, false)+"* "+port.getName()+";");
                     } else {
                         // Is a multiport.
                         // Here, we will use an array of pointers.
                         // Memory will be malloc'd in initialization.
                         body.pr(port, String.join("\n",
-                            variableStructType(port, containedReactorType.tpr, false)+"** "+port.getName()+";",
+                            variableStructType(port, containedTpr, false)+"** "+port.getName()+";",
                             "int "+port.getName()+"_width;"
                         ));
                     }

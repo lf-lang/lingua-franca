@@ -167,39 +167,6 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
 
     public TypeParameterizedReactor tpr;
 
-    /** HashMap containing {@link ReactorInstance} against <code>hashCode</code> achievable from Reactor */
-    private static final HashMap<Instantiation, ReactorInstance> gReactorInstancesMap = new HashMap<>();
-
-    //////////////////////////////////////////////////////
-    //// Static methods.
-
-    /** Map {@link ReactorInstance} against achievable hashcode from {@link Reactor}
-     * @param reactor The Reactor
-     * @param reactorInstance The ReactorInstance for the specified Reactor
-     * @param defName definition Name for the specified Reactor
-     * */
-    public static void mapReactorInstance(Reactor reactor, ReactorInstance reactorInstance, final String defName) {
-        gReactorInstancesMap.put(reactorInstance.definition, reactorInstance);
-    }
-
-    /** Get {@link ReactorInstance} for supplied {@link Reactor} */
-    public static ReactorInstance getReactorInstance(Instantiation i) {
-        return gReactorInstancesMap.get(i);
-    }
-
-    /** Clears out the cache of ReactorInstance for next LF processing */
-    public static void clearReactorInstanceMap() {
-        gReactorInstancesMap.clear();
-    }
-
-    /** Calculates Unique HashCode for the <code>key</code> of <code>ReactorInstanceMap</code>
-     * @param r The reactor
-     * @param n definition Name for the Reactor
-     * */
-    private static Integer computeHash(Reactor r, final String n) {
-        return Math.abs(r.hashCode() * 37 + r.getTypeParms().hashCode() + n.hashCode());
-    }
-
     //////////////////////////////////////////////////////
     //// Public methods.
 
@@ -843,9 +810,6 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
         this.reactorDeclaration = definition.getReactorClass();
         this.reactorDefinition = ASTUtils.toDefinition(reactorDeclaration);
         this.tpr = new TypeParameterizedReactor(definition);
-
-        // Add ReactorInstance against achievable hashcode from Reactor
-        ReactorInstance.mapReactorInstance(ASTUtils.toDefinition(definition.getReactorClass()), this, definition.getName());
 
         // check for recursive instantiation
         var currentParent = parent;
