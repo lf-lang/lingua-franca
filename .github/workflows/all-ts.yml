@@ -2,6 +2,7 @@
 name: TypeScript
 
 on:
+  workflow_dispatch: # Allow the workflow to be triggered manually.
   # Trigger this workflow on push events, but only on master.
   push:
     branches:

@@ -2,14 +2,15 @@
 name: C
 
 on:
+  workflow_dispatch: # Allow the workflow to be triggered manually.
   # Trigger this workflow on push events, but only on master.
   push:
     branches:
-      - master
+    - master
   # Trigger this workflow also on pull_request events, but ignore the 'nightly' branch.
   pull_request:
     branches-ignore:
-      - 'nightly'
+    - 'nightly'
     paths:
     - 'org.lflang/src/org/lflang/generator/c/**'
     - 'org.lflang/src/lib/c/**'
