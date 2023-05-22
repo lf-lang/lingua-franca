@@ -543,7 +543,7 @@ public class ReactionInstance extends NamedInstance<Reaction> {
      * of the containing reactors are w0, w1, and w2, and
      * we are interested in the instance at bank indexes
      * b0, b1, and b2.  That instance is in this array at
-     * location given by the **natural ordering**, which
+     * location given by the <strong>natural ordering</strong>, which
      * is the mixed radix number b2%w2; b1%w1.
      */
     private List<Runtime> runtimeInstances;

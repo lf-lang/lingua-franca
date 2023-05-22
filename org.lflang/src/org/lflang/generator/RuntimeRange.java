@@ -273,7 +273,7 @@ public class RuntimeRange<T extends NamedInstance<?>> implements Comparable<Runt
     }
     
     /**
-     * Return the list of **natural identifiers** for the runtime instances
+     * Return the list of <strong>natural identifiers</strong> for the runtime instances
      * in this range.  Each returned identifier is an integer representation
      * of the mixed-radix number [d0, ... , dn] with radices [w0, ... , wn],
      * where d0 is the bank or channel index of this RuntimeRange's instance, which

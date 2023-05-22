@@ -178,7 +178,7 @@ public class CTriggerObjectsGenerator {
     }
 
     /**
-     * * Set the reaction priorities based on dependency analysis.
+     * Set the reaction priorities based on dependency analysis.
      *
      * @param reactor The reactor on which to do this.
      */
@@ -191,7 +191,7 @@ public class CTriggerObjectsGenerator {
     }
 
     /**
-     * * Set the reaction priorities based on dependency analysis.
+     * Set the reaction priorities based on dependency analysis.
      *
      * @param reactor The reactor on which to do this.
      * @param builder Where to write the code.
