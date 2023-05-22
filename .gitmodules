@@ -10,6 +10,6 @@
 [submodule "org.lflang/src/lib/rs/reactor-rs"]
 	path = org.lflang/src/lib/rs/reactor-rs
 	url = https://github.com/lf-lang/reactor-rs
-[submodule "org.lflang/src/lib/lf-python-support"]
-	path = org.lflang/src/lib/lf-python-support
+[submodule "org.lflang/src/lib/py/lf-python-support"]
+	path = org.lflang/src/lib/py/lf-python-support
 	url = https://github.com/lf-lang/lf-python-support.git
