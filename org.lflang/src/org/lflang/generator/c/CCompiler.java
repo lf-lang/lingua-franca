@@ -333,9 +333,11 @@ public class CCompiler {
      * is shown.
      *
      * Errors currently detected:
-     * - C++ compiler used to compile C files: This error shows up as
-     *  '#error "The CMAKE_C_COMPILER is set to a C++ compiler"' in
-     *  the 'CMakeOutput' string.
+     * <ul>
+     * <li>C++ compiler used to compile C files: This error shows up as
+     * &#39;#error &quot;The CMAKE_C_COMPILER is set to a C++ compiler&quot;&#39; in
+     * the &#39;CMakeOutput&#39; string.</li>
+     * </ul>
      *
      * @param CMakeOutput The captured output from CMake.
      * @return true if the provided 'CMakeOutput' contains a known error.
