@@ -50,7 +50,7 @@ public record TypeParameterizedReactor(Reactor r, Map<String, Type> typeArgs) {
     }
 
     public InferredType resolveType(InferredType t) {
-        if (t.astType.getCode() != null) return InferredType.fromAST(resolveType(t.astType));
+        if (t.astType != null && t.astType.getCode() != null) return InferredType.fromAST(resolveType(t.astType));
         return t;
     }
 
