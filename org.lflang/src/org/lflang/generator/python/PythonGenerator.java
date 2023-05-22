@@ -35,7 +35,6 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import org.eclipse.emf.ecore.EObject;
 import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.xtext.xbase.lib.Exceptions;
 
@@ -56,7 +55,6 @@ import org.lflang.generator.c.CCmakeGenerator;
 import org.lflang.generator.c.CGenerator;
 import org.lflang.generator.c.CUtil;
 import org.lflang.lf.Action;
-import org.lflang.lf.Code;
 import org.lflang.lf.Input;
 import org.lflang.lf.Model;
 import org.lflang.lf.Output;
@@ -139,7 +137,7 @@ public class PythonGenerator extends CGenerator {
      *       FEDERATED_GENERIC_EXTENSION
      *   } generic_port_instance_struct;
      *
-     * See reactor-c-py/lib/pythontarget.h for details.
+     * See reactor-c/python/lib/pythontarget.h for details.
      */
     String genericPortType = "generic_port_instance_struct";
 
@@ -155,7 +153,7 @@ public class PythonGenerator extends CGenerator {
      * FEDERATED_CAPSULE_EXTENSION
      * } generic_action_instance_struct;
      *
-     * See reactor-c-py/lib/pythontarget.h for details.
+     * See reactor-c/python/lib/pythontarget.h for details.
      */
     String genericActionType = "generic_action_instance_struct";
 
@@ -661,20 +659,23 @@ public class PythonGenerator extends CGenerator {
     @Override
     protected void copyTargetFiles() throws IOException {
         super.copyTargetFiles();
-        FileUtil.copyDirectoryFromClassPath(
-            "/lib/py/reactor-c-py/include",
-            fileConfig.getSrcGenPath().resolve("include"),
-            true
+        FileUtil.copyFromClassPath(
+            "/lib/c/reactor-c/python/include",
+            fileConfig.getSrcGenPath(),
+            true,
+            false
         );
-        FileUtil.copyDirectoryFromClassPath(
-            "/lib/py/reactor-c-py/lib",
-            fileConfig.getSrcGenPath().resolve("lib"),
-            true
+        FileUtil.copyFromClassPath(
+            "/lib/c/reactor-c/python/lib",
+            fileConfig.getSrcGenPath(),
+            true,
+            false
         );
-        FileUtil.copyDirectoryFromClassPath(
-            "/lib/py/reactor-c-py/LinguaFrancaBase",
-            fileConfig.getSrcGenPath().resolve("LinguaFrancaBase"),
-            true
+        FileUtil.copyFromClassPath(
+            "/lib/py/lf-python-support/LinguaFrancaBase",
+            fileConfig.getSrcGenPath(),
+            true,
+            false
         );
     }
 

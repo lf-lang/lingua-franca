@@ -1,16 +1,16 @@
 /*************
  * Copyright (c) 2019-2020, The University of California at Berkeley.
-
+ *
  * Redistribution and use in source and binary forms, with or without modification,
  * are permitted provided that the following conditions are met:
-
+ *
  * 1. Redistributions of source code must retain the above copyright notice,
  *    this list of conditions and the following disclaimer.
-
+ *
  * 2. Redistributions in binary form must reproduce the above copyright notice,
  *    this list of conditions and the following disclaimer in the documentation
  *    and/or other materials provided with the distribution.
-
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -166,6 +166,9 @@ public abstract class GeneratorBase extends AbstractLFValidator {
      */
     public boolean hasDeadlines = false;
 
+    /** Indicates whether the program has any watchdogs. This is used to check for support. */
+    public boolean hasWatchdogs = false;
+
     // //////////////////////////////////////////
     // // Private fields.
 
@@ -294,6 +297,10 @@ public abstract class GeneratorBase extends AbstractLFValidator {
         // Check for existence and support of modes
         hasModalReactors = IterableExtensions.exists(reactors, it -> !it.getModes().isEmpty());
         checkModalReactorSupport(false);
+
+        // Check for the existence and support of watchdogs
+        hasWatchdogs = IterableExtensions.exists(reactors, it -> !it.getWatchdogs().isEmpty());
+        checkWatchdogSupport(targetConfig.threading && getTarget() == Target.C);
         additionalPostProcessingForModes();
     }
 
@@ -350,7 +357,8 @@ public abstract class GeneratorBase extends AbstractLFValidator {
      * @param fileConfig The fileConfig used to make the copy and resolve paths.
      */
     protected void copyUserFiles(TargetConfig targetConfig, FileConfig fileConfig) {
-        FileUtil.copyFiles(targetConfig.files, this.context.getFileConfig().getSrcGenPath(), fileConfig, errorReporter);
+        var dst = this.context.getFileConfig().getSrcGenPath();
+        FileUtil.copyFilesOrDirectories(targetConfig.files, dst, fileConfig, errorReporter, false);
     }
 
     /**
@@ -428,13 +436,27 @@ public abstract class GeneratorBase extends AbstractLFValidator {
     protected void checkModalReactorSupport(boolean isSupported) {
         if (hasModalReactors && !isSupported) {
             errorReporter.reportError("The currently selected code generation or " +
-                                      "target configuration does not support modal reactors!");
+                    "target configuration does not support modal reactors!");
         }
     }
 
     /**
-     * Finds and transforms connections into forwarding reactions iff the connections have the same destination as other
-     * connections or reaction in mutually exclusive modes.
+     * Check whether watchdogs are present and are supported.
+     *
+     * @param isSupported indicates whether or not this is a supported target and whether or not it
+     * is
+     * a threaded runtime.
+     */
+    protected void checkWatchdogSupport(boolean isSupported) {
+        if (hasWatchdogs && !isSupported) {
+            errorReporter.reportError(
+                "Watchdogs are currently only supported for threaded programs in the C target.");
+        }
+    }
+
+    /**
+     * Finds and transforms connections into forwarding reactions iff the connections have the same
+     * destination as other connections or reaction in mutually exclusive modes.
      */
     private void transformConflictingConnectionsInModalReactors() {
         for (LFResource r : resources) {
@@ -470,6 +492,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
             }
         }
     }
+
     /**
      * Return target code for forwarding reactions iff the connections have the
      * same destination as other connections or reaction in mutually exclusive modes.
@@ -645,5 +668,4 @@ public abstract class GeneratorBase extends AbstractLFValidator {
      * Return the Targets enum for the current target
      */
     public abstract Target getTarget();
-
 }
