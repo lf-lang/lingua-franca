@@ -12,7 +12,12 @@ import org.lflang.lf.Instantiation;
 import org.lflang.lf.Reactor;
 import org.lflang.lf.Type;
 
-public record TypeParameterizedReactor(Reactor r, Map<String, Type> typeArgs) {
+/**
+ * A reactor class combined with concrete type arguments bound to its type parameters.
+ * @param reactor The syntactic reactor class definition
+ * @param typeArgs The type arguments associated with this particular variant of the reactor class.
+ */
+public record TypeParameterizedReactor(Reactor reactor, Map<String, Type> typeArgs) {
 
     public TypeParameterizedReactor(Instantiation i) {
         this(ASTUtils.toDefinition(i.getReactorClass()), addTypeArgs(i, ASTUtils.toDefinition(i.getReactorClass())));
@@ -29,11 +34,13 @@ public record TypeParameterizedReactor(Reactor r, Map<String, Type> typeArgs) {
         return ret;
     }
 
+    /** Return the name of the reactor given its type arguments. */
     public String getName() {
         // FIXME: Types that are not just a single token need to be escaped or hashed
-        return r.getName() + typeArgs.values().stream().map(ASTUtils::toOriginalText).collect(Collectors.joining("_"));
+        return reactor.getName() + typeArgs.values().stream().map(ASTUtils::toOriginalText).collect(Collectors.joining("_"));
     }
 
+    /** #define type names as concrete types. */
     public void doDefines(CodeBuilder b) {
         typeArgs.forEach((literal, concreteType) -> b.pr(
             "#if defined " + literal + "\n" +
@@ -42,6 +49,7 @@ public record TypeParameterizedReactor(Reactor r, Map<String, Type> typeArgs) {
                 "#define " + literal + " " + ASTUtils.toOriginalText(concreteType)));
     }
 
+    /** Resolve type arguments if the given type is defined in terms of generics. */
     public Type resolveType(Type t) {
         if (t.getId() != null && typeArgs.get(t.getId()) != null) return typeArgs.get(t.getId());
         if (t.getCode() == null) return t;
@@ -50,6 +58,7 @@ public record TypeParameterizedReactor(Reactor r, Map<String, Type> typeArgs) {
         return t;
     }
 
+    /** Resolve type arguments if the given type is defined in terms of generics. */
     public InferredType resolveType(InferredType t) {
         if (t.astType == null) return t;
         return InferredType.fromAST(resolveType(t.astType));
@@ -57,11 +66,11 @@ public record TypeParameterizedReactor(Reactor r, Map<String, Type> typeArgs) {
 
     @Override
     public int hashCode() {
-        return Math.abs(r.hashCode() * 31 + typeArgs.hashCode());
+        return Math.abs(reactor.hashCode() * 31 + typeArgs.hashCode());
     }
 
     @Override
     public boolean equals(Object obj) {
-        return obj instanceof TypeParameterizedReactor other && r.equals(other.r) && typeArgs.equals(other.typeArgs);
+        return obj instanceof TypeParameterizedReactor other && reactor.equals(other.reactor) && typeArgs.equals(other.typeArgs);
     }
 }
