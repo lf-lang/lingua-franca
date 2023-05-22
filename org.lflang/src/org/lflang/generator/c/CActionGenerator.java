@@ -8,8 +8,7 @@ import org.lflang.generator.ActionInstance;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.generator.ReactorInstance;
 import org.lflang.lf.Action;
-import org.lflang.lf.Reactor;
-import org.lflang.lf.ReactorDecl;
+
 import static org.lflang.generator.c.CGenerator.variableStructType;
 /**
  * Generates code for actions (logical or physical) for the C and CCpp target.
@@ -98,7 +97,7 @@ public class CActionGenerator {
         CodeBuilder body,
         CodeBuilder constructorCode
     ) {
-        for (Action action : ASTUtils.allActions(tpr.r())) {
+        for (Action action : ASTUtils.allActions(tpr.reactor())) {
             var actionName = action.getName();
             body.pr(action, CGenerator.variableStructType(action, tpr, false)+" _lf_"+actionName+";");
             // Initialize the trigger pointer in the action.

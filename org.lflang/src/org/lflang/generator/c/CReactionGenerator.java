@@ -126,7 +126,7 @@ public class CReactionGenerator {
             // No triggers are given, which means react to any input.
             // Declare an argument for every input.
             // NOTE: this does not include contained outputs.
-            for (Input input : tpr.r().getInputs()) {
+            for (Input input : tpr.reactor().getInputs()) {
                 reactionInitialization.pr(generateInputVariablesInReaction(input, tpr, types));
             }
         }
@@ -161,7 +161,7 @@ public class CReactionGenerator {
                     }
                 } else if (effect.getVariable() instanceof Mode) {
                     // Mode change effect
-                    int idx = ASTUtils.allModes(tpr.r()).indexOf((Mode)effect.getVariable());
+                    int idx = ASTUtils.allModes(tpr.reactor()).indexOf((Mode)effect.getVariable());
                     String name = effect.getVariable().getName();
                     if (idx >= 0) {
                         reactionInitialization.pr(
@@ -701,7 +701,7 @@ public class CReactionGenerator {
         var startupReactions = new LinkedHashSet<Integer>();
         var shutdownReactions = new LinkedHashSet<Integer>();
         var resetReactions = new LinkedHashSet<Integer>();
-        for (Reaction reaction : ASTUtils.allReactions(tpr.r())) {
+        for (Reaction reaction : ASTUtils.allReactions(tpr.reactor())) {
             // Create the reaction_t struct.
             body.pr(reaction, "reaction_t _lf__reaction_"+reactionCount+";");
 
@@ -771,7 +771,7 @@ public class CReactionGenerator {
                 "self->_lf__reaction_"+reactionCount+".STP_handler = "+STPFunctionPointer+";",
                 "self->_lf__reaction_"+reactionCount+".name = "+addDoubleQuotes("?")+";",
                 reaction.eContainer() instanceof Mode ?
-                "self->_lf__reaction_"+reactionCount+".mode = &self->_lf__modes["+tpr.r().getModes().indexOf((Mode) reaction.eContainer())+"];" :
+                "self->_lf__reaction_"+reactionCount+".mode = &self->_lf__modes["+tpr.reactor().getModes().indexOf((Mode) reaction.eContainer())+"];" :
                 "self->_lf__reaction_"+reactionCount+".mode = NULL;"
             ));
             // Increment the reactionCount even if the reaction is not in the federate
@@ -781,7 +781,7 @@ public class CReactionGenerator {
 
         // Next, create and initialize the trigger_t objects.
         // Start with the timers.
-        for (Timer timer : ASTUtils.allTimers(tpr.r())) {
+        for (Timer timer : ASTUtils.allTimers(tpr.reactor())) {
             createTriggerT(body, timer, triggerMap, constructorCode, types);
             // Since the self struct is allocated using calloc, there is no need to set falsy fields.
             constructorCode.pr("self->_lf__"+timer.getName()+".is_timer = true;");
@@ -802,7 +802,7 @@ public class CReactionGenerator {
         }
 
         // Next handle actions.
-        for (Action action : ASTUtils.allActions(tpr.r())) {
+        for (Action action : ASTUtils.allActions(tpr.reactor())) {
             createTriggerT(body, action, triggerMap, constructorCode, types);
             var isPhysical = "true";
             if (action.getOrigin().equals(ActionOrigin.LOGICAL)) {
@@ -832,12 +832,12 @@ public class CReactionGenerator {
         }
 
         // Next handle inputs.
-        for (Input input : ASTUtils.allInputs(tpr.r())) {
+        for (Input input : ASTUtils.allInputs(tpr.reactor())) {
             createTriggerT(body, input, triggerMap, constructorCode, types);
         }
 
         // Next handle watchdogs.
-        for (Watchdog watchdog : ASTUtils.allWatchdogs(tpr.r())) {
+        for (Watchdog watchdog : ASTUtils.allWatchdogs(tpr.reactor())) {
             createTriggerT(body, watchdog, triggerMap, constructorCode, types);
         }
     }
@@ -1092,7 +1092,7 @@ public class CReactionGenerator {
                 generateDeadlineFunctionHeader(tpr, reactionIndex),
                 init, reaction.getDeadline().getCode()));
         }
-        CMethodGenerator.generateMacroUndefsForMethods(tpr.r(), code);
+        CMethodGenerator.generateMacroUndefsForMethods(tpr.reactor(), code);
         code.pr(
             "#include " + StringUtil.addDoubleQuotes(
                 CCoreFilesUtils.getCTargetSetUndefHeader()));

@@ -141,8 +141,8 @@ public class CUtil {
      * the main reactor or the .lf file).
      */
     public static String getName(TypeParameterizedReactor reactor) {
-        String name = reactor.r().getName().toLowerCase() + reactor.hashCode();
-        if (reactor.r().isMain()) {
+        String name = reactor.reactor().getName().toLowerCase() + reactor.hashCode();
+        if (reactor.reactor().isMain()) {
             return name + "_main";
         }
         return name;
@@ -510,7 +510,7 @@ public class CUtil {
      * @return The type of a self struct for the specified reactor class.
      */
     public static String selfType(TypeParameterizedReactor reactor) {
-        if (reactor.r().isMain()) {
+        if (reactor.reactor().isMain()) {
             return "_" + CUtil.getName(reactor) + "_main_self_t";
         }
         return "_" + CUtil.getName(reactor) + "_self_t";

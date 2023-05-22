@@ -1,16 +1,9 @@
 package org.lflang.generator.c;
 
-import java.util.LinkedList;
-
 import org.lflang.ASTUtils;
-import org.lflang.InferredType;
 import org.lflang.generator.CodeBuilder;
-import org.lflang.generator.GeneratorBase;
 import org.lflang.generator.ModeInstance;
 import org.lflang.generator.ReactorInstance;
-import org.lflang.lf.Expression;
-import org.lflang.lf.ParameterReference;
-import org.lflang.lf.Reactor;
 import org.lflang.lf.StateVar;
 
 public class CStateGenerator {
@@ -21,7 +14,7 @@ public class CStateGenerator {
      */
     public static String generateDeclarations(TypeParameterizedReactor reactor, CTypes types) {
         CodeBuilder code = new CodeBuilder();
-        for (StateVar stateVar : ASTUtils.allStateVars(reactor.r())) {
+        for (StateVar stateVar : ASTUtils.allStateVars(reactor.reactor())) {
             code.prSourceLineNumber(stateVar);
             code.pr(types.getTargetType(reactor.resolveType(ASTUtils.getInferredType(stateVar))) + " " + stateVar.getName() + ";");
         }

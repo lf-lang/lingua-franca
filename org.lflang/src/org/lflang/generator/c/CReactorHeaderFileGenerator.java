@@ -16,7 +16,6 @@ import org.lflang.lf.Reaction;
 import org.lflang.lf.Reactor;
 import org.lflang.lf.StateVar;
 import org.lflang.lf.TriggerRef;
-import org.lflang.lf.Type;
 import org.lflang.lf.TypedVariable;
 import org.lflang.lf.VarRef;
 import org.lflang.util.FileUtil;
@@ -31,13 +30,13 @@ public class CReactorHeaderFileGenerator {
 
     /** Return the path to the user-visible header file that would be generated for {@code r}. */
     public static Path outputPath(TypeParameterizedReactor tpr) {
-        return Path.of(Path.of(tpr.r().eResource().getURI().toFileString())
+        return Path.of(Path.of(tpr.reactor().eResource().getURI().toFileString())
                 .getFileName().toString().replaceFirst("[.][^.]+$", ""))
             .resolve(tpr.getName() + ".h");
     }
 
     public static void doGenerate(CTypes types, TypeParameterizedReactor tpr, CFileConfig fileConfig, GenerateAuxiliaryStructs generator, Function<Reactor, String> topLevelPreamble) throws IOException {
-        String contents = generateHeaderFile(types, tpr, generator, topLevelPreamble.apply(tpr.r()));
+        String contents = generateHeaderFile(types, tpr, generator, topLevelPreamble.apply(tpr.reactor()));
         FileUtil.writeToFile(contents, fileConfig.getIncludePath().resolve(outputPath(tpr)));
     }
     private static String generateHeaderFile(CTypes types, TypeParameterizedReactor tpr, GenerateAuxiliaryStructs generator, String topLevelPreamble) {
@@ -48,7 +47,7 @@ public class CReactorHeaderFileGenerator {
         tpr.doDefines(builder);
         appendSelfStruct(builder, types, tpr);
         generator.generate(builder, tpr, true);
-        for (Reaction reaction : tpr.r().getReactions()) {
+        for (Reaction reaction : tpr.reactor().getReactions()) {
             appendSignature(builder, types, reaction, tpr);
         }
         builder.pr("#endif");
@@ -80,10 +79,10 @@ public class CReactorHeaderFileGenerator {
 
     private static void appendSelfStruct(CodeBuilder builder, CTypes types, TypeParameterizedReactor tpr) {
         builder.pr("typedef struct " + userFacingSelfType(tpr) + "{");
-        for (Parameter p : tpr.r().getParameters()) {
+        for (Parameter p : tpr.reactor().getParameters()) {
             builder.pr(types.getTargetType(p) + " " + p.getName() + ";");
         }
-        for (StateVar s : tpr.r().getStateVars()) {
+        for (StateVar s : tpr.reactor().getStateVars()) {
             builder.pr(types.getTargetType(s) + " " + s.getName() + ";");
         }
         builder.pr("int end[0]; // placeholder; MSVC does not compile empty structs");
@@ -108,7 +107,7 @@ public class CReactorHeaderFileGenerator {
     public static String nonInlineInitialization(Reaction r, TypeParameterizedReactor reactor) {
         var mainDef = LfFactory.eINSTANCE.createInstantiation();
         mainDef.setName(reactor.getName());
-        mainDef.setReactorClass(ASTUtils.findMainReactor(reactor.r().eResource()));
+        mainDef.setReactorClass(ASTUtils.findMainReactor(reactor.reactor().eResource()));
         return portVariableStream(r, reactor)
             .map(it -> it.container == null ? "" : it.getWidth() == null ?
                 String.format("%s %s = (%s) %s;", it.getType(false), it.getAlias(), it.getType(false), it.getRvalue())
@@ -121,7 +120,7 @@ public class CReactorHeaderFileGenerator {
                     it.getType(true).replaceFirst("\\*", ""),
                     it.getAlias(),
                     CReactionGenerator.maxContainedReactorBankWidth(
-                        reactor.r().getInstantiations().stream()
+                        reactor.reactor().getInstantiations().stream()
                             .filter(instantiation -> new TypeParameterizedReactor(instantiation).equals(it.r))
                             .findAny().orElseThrow(),
                         null, 0, mainDef),
@@ -164,7 +163,7 @@ public class CReactorHeaderFileGenerator {
             var typeName = container == null ?
                 CGenerator.variableStructType(tv, r, userFacing)
                 : CPortGenerator.localPortName(container.getReactorClass(), getName());
-            var isMultiport = ASTUtils.isMultiport(ASTUtils.allPorts(r.r()).stream()
+            var isMultiport = ASTUtils.isMultiport(ASTUtils.allPorts(r.reactor()).stream()
                     .filter(it -> it.getName().equals(tv.getName()))
                     .findAny().orElseThrow());
             return typeName + "*" + (getWidth() != null ? "*" : "") + (isMultiport ? "*" : "");

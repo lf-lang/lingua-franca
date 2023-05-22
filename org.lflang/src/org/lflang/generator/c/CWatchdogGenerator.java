@@ -16,7 +16,6 @@ import org.lflang.generator.ReactorInstance;
 import org.lflang.lf.Mode;
 import org.lflang.lf.ModeTransition;
 import org.lflang.lf.Reactor;
-import org.lflang.lf.ReactorDecl;
 import org.lflang.lf.VarRef;
 import org.lflang.lf.Variable;
 import org.lflang.lf.Watchdog;
@@ -95,9 +94,9 @@ public class CWatchdogGenerator {
   protected static void generateWatchdogs(
       CodeBuilder src, CodeBuilder header, TypeParameterizedReactor tpr, ErrorReporter errorReporter
   ) {
-    if (hasWatchdogs(tpr.r())) {
+    if (hasWatchdogs(tpr.reactor())) {
       header.pr("#include \"core/threaded/watchdog.h\"");
-      for (Watchdog watchdog : ASTUtils.allWatchdogs(tpr.r())) {
+      for (Watchdog watchdog : ASTUtils.allWatchdogs(tpr.reactor())) {
         src.pr(generateWatchdogFunction(watchdog, tpr, errorReporter));
       }
     }
@@ -112,7 +111,7 @@ public class CWatchdogGenerator {
   protected static void generateWatchdogStruct(
       CodeBuilder body, TypeParameterizedReactor tpr, CodeBuilder constructorCode) {
 
-    for (Watchdog watchdog : ASTUtils.allWatchdogs(tpr.r())) {
+    for (Watchdog watchdog : ASTUtils.allWatchdogs(tpr.reactor())) {
       String watchdogName = watchdog.getName();
 
       body.pr(watchdog, "watchdog_t _lf_watchdog_" + watchdogName + ";");
@@ -207,7 +206,7 @@ public class CWatchdogGenerator {
         Variable variable = effect.getVariable();
         if (variable instanceof Mode) {
           // Mode change effect
-          int idx = ASTUtils.allModes(tpr.r()).indexOf((Mode) effect.getVariable());
+          int idx = ASTUtils.allModes(tpr.reactor()).indexOf((Mode) effect.getVariable());
           String name = effect.getVariable().getName();
           if (idx >= 0) {
             watchdogInitialization.pr(

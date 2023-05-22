@@ -9,9 +9,7 @@ import org.lflang.generator.PortInstance;
 import org.lflang.lf.Input;
 import org.lflang.lf.Output;
 import org.lflang.lf.Port;
-import org.lflang.lf.Reactor;
 import org.lflang.lf.ReactorDecl;
-import org.lflang.lf.Type;
 
 import static org.lflang.generator.c.CGenerator.variableStructType;
 
@@ -213,7 +211,7 @@ public class CPortGenerator {
         CodeBuilder body,
         CodeBuilder constructorCode
     ) {
-        for (Input input : ASTUtils.allInputs(tpr.r())) {
+        for (Input input : ASTUtils.allInputs(tpr.reactor())) {
             var inputName = input.getName();
             if (ASTUtils.isMultiport(input)) {
                 body.pr(input, String.join("\n",
@@ -251,7 +249,7 @@ public class CPortGenerator {
         CodeBuilder body,
         CodeBuilder constructorCode
     ) {
-        for (Output output : ASTUtils.allOutputs(tpr.r())) {
+        for (Output output : ASTUtils.allOutputs(tpr.reactor())) {
             // If the port is a multiport, create an array to be allocated
             // at instantiation.
             var outputName = output.getName();

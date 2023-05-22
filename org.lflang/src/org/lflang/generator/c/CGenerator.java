@@ -888,7 +888,7 @@ public class CGenerator extends GeneratorBase {
                     }
                 });
                 if (!copy.isEmpty()) { // If we found some templated-types update the tpr with new map
-                    child.tpr = new TypeParameterizedReactor(child.tpr.r(), copy);
+                    child.tpr = new TypeParameterizedReactor(child.tpr.reactor(), copy);
                 }
                 resolveTemplatedTypes(child, child.tpr);
             }
@@ -914,9 +914,9 @@ public class CGenerator extends GeneratorBase {
                 (builder, rr, userFacing) -> {
                     generateAuxiliaryStructs(builder, rr, userFacing);
                     if (userFacing) {
-                        rr.r().getInstantiations().stream()
+                        rr.reactor().getInstantiations().stream()
                             .map(it -> new TypeParameterizedReactorWithDecl(new TypeParameterizedReactor(it), it.getReactorClass())).collect(Collectors.toSet()).forEach(it -> {
-                                ASTUtils.allPorts(it.tpr.r())
+                                ASTUtils.allPorts(it.tpr.reactor())
                                     .forEach(p -> builder.pr(CPortGenerator.generateAuxiliaryStruct(
                                         it.tpr, p, getTarget(), errorReporter, types, new CodeBuilder(), true, it.decl()
                                     )));
@@ -1049,8 +1049,8 @@ public class CGenerator extends GeneratorBase {
         header.pr("#ifndef " + guardMacro);
         header.pr("#define " + guardMacro);
         generateReactorClassHeaders(tpr, headerName, header, src);
-        header.pr(generateTopLevelPreambles(tpr.r()));
-        generateUserPreamblesForReactor(tpr.r(), src);
+        header.pr(generateTopLevelPreambles(tpr.reactor()));
+        generateUserPreamblesForReactor(tpr.reactor(), src);
         generateReactorClassBody(tpr, header, src);
         header.pr("#endif // " + guardMacro);
         FileUtil.writeToFile(CodeMap.fromGeneratedCode(header.toString()).getGeneratedCode(), fileConfig.getSrcGenPath().resolve(headerName), true);
@@ -1075,7 +1075,7 @@ public class CGenerator extends GeneratorBase {
         src.pr("#include \"include/" + CReactorHeaderFileGenerator.outputPath(tpr) + "\"");
         src.pr("#include \"" + headerName + "\"");
         tpr.doDefines(src);
-        ASTUtils.allIncludes(tpr.r()).stream().map(name -> "#include \""
+        ASTUtils.allIncludes(tpr.reactor()).stream().map(name -> "#include \""
             + name + ".h\"").forEach(header::pr);
     }
 
@@ -1154,7 +1154,7 @@ public class CGenerator extends GeneratorBase {
             #endif
             """, types.getTargetTagType(), types.getTargetTimeType())
         );
-        for (Port p : allPorts(tpr.r())) {
+        for (Port p : allPorts(tpr.reactor())) {
             builder.pr(CPortGenerator.generateAuxiliaryStruct(
                 tpr,
                 p,
@@ -1169,7 +1169,7 @@ public class CGenerator extends GeneratorBase {
         // The very first item on this struct needs to be
         // a trigger_t* because the struct will be cast to (trigger_t*)
         // by the lf_schedule() functions to get to the trigger.
-        for (Action action : allActions(tpr.r())) {
+        for (Action action : allActions(tpr.reactor())) {
             builder.pr(CActionGenerator.generateAuxiliaryStruct(
                 tpr,
                 action,
@@ -1188,7 +1188,7 @@ public class CGenerator extends GeneratorBase {
      *  go into the constructor.
      */
     private void generateSelfStruct(CodeBuilder builder, TypeParameterizedReactor tpr, CodeBuilder constructorCode) {
-        var reactor = toDefinition(tpr.r());
+        var reactor = toDefinition(tpr.reactor());
         var selfType = CUtil.selfType(tpr);
 
         // Construct the typedef for the "self" struct.
@@ -1267,7 +1267,7 @@ public class CGenerator extends GeneratorBase {
     ) {
         // The contents of the struct will be collected first so that
         // we avoid duplicate entries and then the struct will be constructed.
-        var contained = new InteractingContainedReactors(tpr.r());
+        var contained = new InteractingContainedReactors(tpr.reactor());
         // Next generate the relevant code.
         for (Instantiation containedReactor : contained.containedReactors()) {
             var containedTpr = new TypeParameterizedReactor(containedReactor);
@@ -1403,7 +1403,7 @@ public class CGenerator extends GeneratorBase {
      */
     public void generateReactions(CodeBuilder src, TypeParameterizedReactor tpr) {
         var reactionIndex = 0;
-        var reactor = ASTUtils.toDefinition(tpr.r());
+        var reactor = ASTUtils.toDefinition(tpr.reactor());
         for (Reaction reaction : allReactions(reactor)) {
             generateReaction(src, reaction, tpr, reactionIndex);
             // Increment reaction index even if the reaction is not in the federate

@@ -62,8 +62,6 @@ import org.lflang.lf.Output;
 import org.lflang.lf.Port;
 import org.lflang.lf.Reaction;
 import org.lflang.lf.Reactor;
-import org.lflang.lf.ReactorDecl;
-import org.lflang.lf.Type;
 import org.lflang.util.FileUtil;
 import org.lflang.util.LFCommand;
 import org.lflang.util.StringUtil;
@@ -354,13 +352,13 @@ public class PythonGenerator extends CGenerator {
     public void generateAuxiliaryStructs(
         CodeBuilder builder, TypeParameterizedReactor tpr, boolean userFacing
     ) {
-        for (Input input : ASTUtils.allInputs(tpr.r())) {
+        for (Input input : ASTUtils.allInputs(tpr.reactor())) {
             generateAuxiliaryStructsForPort(builder, tpr, input);
         }
-        for (Output output : ASTUtils.allOutputs(tpr.r())) {
+        for (Output output : ASTUtils.allOutputs(tpr.reactor())) {
             generateAuxiliaryStructsForPort(builder, tpr, output);
         }
-        for (Action action : ASTUtils.allActions(tpr.r())) {
+        for (Action action : ASTUtils.allActions(tpr.reactor())) {
             generateAuxiliaryStructsForAction(builder, tpr, action);
         }
     }
@@ -457,7 +455,7 @@ public class PythonGenerator extends CGenerator {
      */
     @Override
     protected void generateReaction(CodeBuilder src, Reaction reaction, TypeParameterizedReactor tpr, int reactionIndex) {
-        Reactor reactor = ASTUtils.toDefinition(tpr.r());
+        Reactor reactor = ASTUtils.toDefinition(tpr.reactor());
 
         // Reactions marked with a `@_c_body` attribute are generated in C
         if (AttributeUtils.hasCBody(reaction)) {

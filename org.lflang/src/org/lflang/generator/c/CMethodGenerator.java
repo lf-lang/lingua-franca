@@ -5,10 +5,8 @@ import static org.lflang.ASTUtils.allMethods;
 import org.lflang.ASTUtils;
 import org.lflang.InferredType;
 import org.lflang.generator.CodeBuilder;
-import org.lflang.generator.ReactorInstance;
 import org.lflang.lf.Method;
 import org.lflang.lf.Reactor;
-import org.lflang.lf.ReactorDecl;
 
 /**
  * Collection of functions to generate C code to declare methods.
@@ -26,7 +24,7 @@ public class CMethodGenerator {
         TypeParameterizedReactor tpr,
         CodeBuilder body
     ) {
-        for (Method method : allMethods(tpr.r())) {
+        for (Method method : allMethods(tpr.reactor())) {
             var functionName = methodFunctionName(tpr, method);
             // If the method has no arguments. Do not pass it any variadic arguments.
             if (method.getArguments().size() > 0) {
@@ -103,7 +101,7 @@ public class CMethodGenerator {
             CodeBuilder code,
             CTypes types
     ) {
-        var reactor = tpr.r();
+        var reactor = tpr.reactor();
         code.prComment("***** Start of method declarations.");
         signatures(tpr, code, types);
         generateMacrosForMethods(tpr, code);
@@ -127,7 +125,7 @@ public class CMethodGenerator {
         CodeBuilder body,
         CTypes types
     ) {
-        Reactor reactor = tpr.r();
+        Reactor reactor = tpr.reactor();
         for (Method method : allMethods(reactor)) {
             body.pr(generateMethodSignature(method, tpr, types) + ";");
         }
