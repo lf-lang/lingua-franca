@@ -98,6 +98,12 @@ public class Lfc extends CliBase {
     private boolean noCompile;
 
     @Option(
+        names = {"--print-statistics"},
+        arity = "0",
+        description = "Instruct the runtime to collect and print statistics.")
+    private boolean printStatistics;
+
+    @Option(
         names = {"-q", "--quiet"},
         arity = "0",
         description = 
@@ -263,6 +269,10 @@ public class Lfc extends CliBase {
                     logging + ": Invalid log level.");
             }
             props.setProperty(BuildParm.LOGGING.getKey(), logging);
+        }
+
+        if(printStatistics) {
+            props.setProperty(BuildParm.PRINT_STATISTICS.getKey(), "true");
         }
 
         if (noCompile) {

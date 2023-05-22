@@ -480,6 +480,16 @@ public enum TargetProperty {
             }),
 
     /**
+     * Directive to instruct the runtime to collect and print execution statistics.
+     */
+    PRINT_STATISTICS("print-statistics", PrimitiveType.BOOLEAN,
+        Arrays.asList(Target.CPP),
+        (config) -> ASTUtils.toElement(config.printStatistics),
+        (config, value, err) -> {
+            config.printStatistics = ASTUtils.toBoolean(value);
+        }),
+
+    /**
      * Directive for specifying .proto files that need to be compiled and their
      * code included in the sources.
      */

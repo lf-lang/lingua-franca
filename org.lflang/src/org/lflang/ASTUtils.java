@@ -32,7 +32,6 @@ import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import java.util.function.Predicate;
 import java.util.regex.Matcher;
@@ -61,8 +60,6 @@ import org.lflang.generator.InvalidSourceException;
 import org.lflang.generator.ReactorInstance;
 import org.lflang.lf.Action;
 import org.lflang.lf.Assignment;
-import org.lflang.lf.AttrParm;
-import org.lflang.lf.Attribute;
 import org.lflang.lf.Code;
 import org.lflang.lf.Connection;
 import org.lflang.lf.Element;
@@ -92,6 +89,7 @@ import org.lflang.lf.Timer;
 import org.lflang.lf.Type;
 import org.lflang.lf.VarRef;
 import org.lflang.lf.Variable;
+import org.lflang.lf.Watchdog;
 import org.lflang.lf.WidthSpec;
 import org.lflang.lf.WidthTerm;
 import org.lflang.util.StringUtil;
@@ -263,7 +261,6 @@ public class ASTUtils {
 
     /**
      * Add a new target property to the given resource.
-     *
      * This also creates a config object if the resource does not yey have one.
      *
      * @param resource The resource to modify
@@ -292,11 +289,11 @@ public class ASTUtils {
         if (connection.getLeftPorts().size() > 1 || connection.getRightPorts().size() > 1) {
             return true;
         }
-        VarRef leftPort  = connection.getLeftPorts().get(0);
+        VarRef leftPort = connection.getLeftPorts().get(0);
         VarRef rightPort = connection.getRightPorts().get(0);
-        Instantiation leftContainer  = leftPort.getContainer();
+        Instantiation leftContainer = leftPort.getContainer();
         Instantiation rightContainer = rightPort.getContainer();
-        Port leftPortAsPort  = (Port) leftPort.getVariable();
+        Port leftPortAsPort = (Port) leftPort.getVariable();
         Port rightPortAsPort = (Port) rightPort.getVariable();
         return leftPortAsPort.getWidthSpec() != null
             || leftContainer != null && leftContainer.getWidthSpec() != null
@@ -451,6 +448,16 @@ public class ASTUtils {
     }
 
     /**
+     * Given a reactor class, return a list of all its watchdogs.
+     *
+     * @param definition Reactor class definition
+     * @return List<Watchdog>
+     */
+    public static List<Watchdog> allWatchdogs(Reactor definition) {
+        return ASTUtils.collectElements(definition, featurePackage.getReactor_Watchdogs());
+    }
+
+    /**
      * Given a reactor class, return a list of all its state variables,
      * which includes state variables of base classes that it extends.
      * This also includes reactions in modes, returning a flattened
@@ -485,7 +492,7 @@ public class ASTUtils {
     public static List<Reactor> recursiveChildren(ReactorInstance r) {
         List<Reactor> ret = new ArrayList<>();
         ret.add(r.reactorDefinition);
-        for (var child: r.children) {
+        for (var child : r.children) {
             ret.addAll(recursiveChildren(child));
         }
         return ret;
@@ -790,7 +797,6 @@ public class ASTUtils {
         Element e = LfFactory.eINSTANCE.createElement();
         e.setLiteral(strToReturn);
         return e;
-
     }
 
     /**
@@ -937,12 +943,12 @@ public class ASTUtils {
         return true;
     }
 
-	/**
+    /**
      * Report whether the given code is an integer number or not.
      * @param code AST node to inspect.
      * @return True if the given code is an integer, false otherwise.
      */
-	public static boolean isInteger(Code code) {
+    public static boolean isInteger(Code code) {
         return isInteger(toText(code));
     }
 
@@ -966,13 +972,13 @@ public class ASTUtils {
      * @return True if the argument denotes a valid time, false otherwise.
      */
     public static boolean isValidTime(Expression expr) {
-            if (expr instanceof ParameterReference) {
-                return isOfTimeType(((ParameterReference)expr).getParameter());
-            } else if (expr instanceof Time) {
-                return isValidTime((Time) expr);
-            } else if (expr instanceof Literal) {
-                return isZero(((Literal) expr).getLiteral());
-            }
+        if (expr instanceof ParameterReference) {
+            return isOfTimeType(((ParameterReference) expr).getParameter());
+        } else if (expr instanceof Time) {
+            return isValidTime((Time) expr);
+        } else if (expr instanceof Literal) {
+            return isZero(((Literal) expr).getLiteral());
+        }
         return false;
     }
 
@@ -1021,7 +1027,7 @@ public class ASTUtils {
      * can be inferred: "time" and "timeList". Return the
      * "undefined" type if neither can be inferred.
      *
-     * @param type     Explicit type declared on the declaration
+     * @param type Explicit type declared on the declaration
      * @param init The initializer expression
      * @return The inferred type, or "undefined" if none could be inferred.
      */
@@ -1113,8 +1119,6 @@ public class ASTUtils {
     public static InferredType getInferredType(Port p) {
         return getInferredType(p.getType(), null);
     }
-
-
 
     /**
      * If the given string can be recognized as a floating-point number that has a leading decimal point,

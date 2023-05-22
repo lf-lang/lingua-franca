@@ -57,7 +57,7 @@ public class PythonExtension extends CExtension {
     protected void generateCMakeInclude(FederateInstance federate, FedFileConfig fileConfig) throws IOException {}
 
     @Override
-    protected String generateSerializationPreamble(FederateInstance federate, FedFileConfig fileConfig) {
+    protected String generateSerializationIncludes(FederateInstance federate, FedFileConfig fileConfig) {
         CodeBuilder code = new CodeBuilder();
         for (SupportedSerializers serialization : federate.enabledSerializers) {
             switch (serialization) {
