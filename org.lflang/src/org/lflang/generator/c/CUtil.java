@@ -152,23 +152,24 @@ public class CUtil {
      * Return a reference to the specified port.
      *
      * The returned string will have one of the following forms:
+     * <ul>
+     * <li>{@code selfStructs[k]->_lf_portName}</li>
+     * <li>{@code selfStructs[k]->_lf_portName}</li>
+     * <li>{@code selfStructs[k]->_lf_portName[i]}</li>
+     * <li>{@code selfStructs[k]->_lf_parent.portName}</li>
+     * <li>{@code selfStructs[k]->_lf_parent.portName[i]}</li>
+     * <li>{@code selfStructs[k]->_lf_parent[j].portName}</li>
+     * <li>{@code selfStructs[k]->_lf_parent[j].portName[i]}</li>
+     * </ul>
      *
-     * * selfStructs[k]->_lf_portName
-     * * selfStructs[k]->_lf_portName
-     * * selfStructs[k]->_lf_portName[i]
-     * * selfStructs[k]->_lf_parent.portName
-     * * selfStructs[k]->_lf_parent.portName[i]
-     * * selfStructs[k]->_lf_parent[j].portName
-     * * selfStructs[k]->_lf_parent[j].portName[i]
-     *
-     * where k is the runtime index of either the port's parent
-     * or the port's parent's parent, the latter when isNested is true.
-     * The index j is present if the parent is a bank, and
-     * the index i is present if the port is a multiport.
+     * where {@code k} is the runtime index of either the port's parent
+     * or the port's parent's parent, the latter when isNested is {@code true}.
+     * The index {@code j} is present if the parent is a bank, and
+     * the index {@code i} is present if the port is a multiport.
      *
      * The first two forms are used if isNested is false,
      * and the remaining four are used if isNested is true.
-     * Set isNested to true when referencing a port belonging
+     * Set {@code isNested} to {@code true} when referencing a port belonging
      * to a contained reactor.
      *
      * @param port The port.
