@@ -1,16 +1,16 @@
 /**
- * Test watchdog. This test starts a watchdog timer of 150ms every 100ms. Half
+ * Test watchdog. This test starts a watchdog timer of 1500ms every 1s. Half
  * the time, it then sleeps after starting the watchdog so that the watchdog
- * expires. There should be a total of five watchdog expirations.
+ * expires. There should be a total of two watchdog expirations.
  * @author Benjamin Asch
  * @author Edward A. Lee
  */
 target C {
-    timeout: 1100 ms
+    timeout: 11000 ms
 }
 
-reactor Watcher(timeout: time = 150 ms) {
-    timer t(100 ms, 100 ms)  // Offset ameliorates startup time.
+reactor Watcher(timeout: time = 1500 ms) {
+    timer t(1s, 1s)  // Offset ameliorates startup time.
     // Period has to be smaller than watchdog timeout. Produced if the watchdog
     // triggers.
     output d: int
@@ -54,7 +54,7 @@ main reactor {
         self->count++;
         if (self->count % 4 == 0) {
             lf_print(">>>>>> Taking a long time to process that output!");
-            lf_sleep(MSEC(160));
+            lf_sleep(MSEC(1600));
         }
     =}
 
