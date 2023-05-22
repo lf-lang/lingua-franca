@@ -1421,9 +1421,11 @@ public enum TargetProperty {
     /**
      * Enumeration of clock synchronization modes.
      *
-     * - OFF: The clock synchronization is universally off.
-     * - STARTUP: Clock synchronization occurs at startup only.
-     * - ON: Clock synchronization occurs at startup and at runtime.
+     * <ul>
+     * <li>OFF: The clock synchronization is universally off.</li>
+     * <li>STARTUP: Clock synchronization occurs at startup only.</li>
+     * <li>ON: Clock synchronization occurs at startup and at runtime.</li>
+     * </ul>
      *
      * @author Edward A. Lee
      */
