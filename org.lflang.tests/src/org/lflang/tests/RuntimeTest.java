@@ -11,7 +11,7 @@ import org.lflang.tests.TestRegistry.TestCategory;
 
 /**
  * A collection of JUnit tests to perform on a given set of targets.
- * 
+ *
  * @author Marten Lohstroh
  *
  */
@@ -135,12 +135,23 @@ public abstract class RuntimeTest extends TestBase {
     @Test
     public void runModalTests() {
         runTestsForTargets(Message.DESC_MODAL,
-                           TestCategory.MODAL_MODELS::equals, Configurators::noChanges,
-                           TestLevel.EXECUTION,
-                           false);
+            TestCategory.MODAL_MODELS::equals, Configurators::noChanges,
+            TestLevel.EXECUTION,
+            false);
     }
 
-    /** 
+    /**
+     * Run the tests for non-inlined reaction bodies.
+     */
+    @Test
+    public void runNoInliningTests() {
+        runTestsForTargets(Message.DESC_MODAL,
+            TestCategory.NO_INLINING::equals, Configurators::noChanges,
+            TestLevel.EXECUTION,
+            false);
+    }
+
+    /**
       * Run docker tests, provided that the platform is Linux and the target supports Docker.
       * Skip if platform is not Linux or target does not support Docker.
       */
@@ -154,7 +165,7 @@ public abstract class RuntimeTest extends TestBase {
                            false);
     }
 
-    /** 
+    /**
       * Run federated docker tests, provided that the platform is Linux, the target supports Docker,
       * and the target supports federated execution. If any of these requirements are not met, skip
       * the tests.

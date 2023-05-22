@@ -33,7 +33,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-import org.lflang.ASTUtils;
 import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
 import org.lflang.InferredType;
@@ -141,9 +140,9 @@ public class CUtil {
      * reactor is main (to allow for instantiations that have the same name as
      * the main reactor or the .lf file).
      */
-    public static String getName(Reactor reactor) {
-        String name = reactor.getName().toLowerCase() + reactor.hashCode();
-        if (reactor.isMain()) {
+    public static String getName(TypeParameterizedReactor reactor) {
+        String name = reactor.reactor().getName().toLowerCase() + reactor.hashCode();
+        if (reactor.reactor().isMain()) {
             return name + "_main";
         }
         return name;
@@ -510,8 +509,8 @@ public class CUtil {
      * @param reactor The reactor class.
      * @return The type of a self struct for the specified reactor class.
      */
-    public static String selfType(Reactor reactor) {
-        if (reactor.isMain()) {
+    public static String selfType(TypeParameterizedReactor reactor) {
+        if (reactor.reactor().isMain()) {
             return "_" + CUtil.getName(reactor) + "_main_self_t";
         }
         return "_" + CUtil.getName(reactor) + "_self_t";
@@ -519,7 +518,7 @@ public class CUtil {
 
     /** Construct a unique type for the "self" struct of the class of the given reactor. */
     public static String selfType(ReactorInstance instance) {
-        return selfType(ASTUtils.toDefinition(instance.getDefinition().getReactorClass()));
+        return selfType(instance.tpr);
     }
 
     /**
@@ -743,7 +742,7 @@ public class CUtil {
                         if (term.getParameter() != null) {
                             result.add(getTargetReference(term.getParameter()));
                         } else {
-                            result.add("" + term.getWidth());
+                            result.add(String.valueOf(term.getWidth()));
                         }
                     }
                 }
@@ -762,8 +761,8 @@ public class CUtil {
     public static boolean isTokenType(InferredType type, CTypes types) {
         if (type.isUndefined()) return false;
         // This is a hacky way to do this. It is now considered to be a bug (#657)
-        String targetType = types.getVariableDeclaration(type, "", false);
-        return type.isVariableSizeList || targetType.trim().endsWith("*");
+        return type.isVariableSizeList || type.astType != null && (!type.astType.getStars().isEmpty() ||
+            type.astType.getCode() != null && type.astType.getCode().getBody().stripTrailing().endsWith("*"));
     }
 
     public static String generateWidthVariable(String var) {

@@ -26,7 +26,6 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 package org.lflang.generator;
 
-import static org.lflang.ASTUtils.belongsTo;
 import static org.lflang.ASTUtils.getLiteralTimeValue;
 
 import java.util.ArrayList;
@@ -44,6 +43,7 @@ import org.lflang.AttributeUtils;
 import org.lflang.ErrorReporter;
 import org.lflang.TimeValue;
 import org.lflang.generator.TriggerInstance.BuiltinTriggerVariable;
+import org.lflang.generator.c.TypeParameterizedReactor;
 import org.lflang.lf.Action;
 import org.lflang.lf.Assignment;
 import org.lflang.lf.BuiltinTrigger;
@@ -53,7 +53,6 @@ import org.lflang.lf.Expression;
 import org.lflang.lf.Initializer;
 import org.lflang.lf.Input;
 import org.lflang.lf.Instantiation;
-import org.lflang.lf.LfFactory;
 import org.lflang.lf.Mode;
 import org.lflang.lf.Output;
 import org.lflang.lf.Parameter;
@@ -165,6 +164,8 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
 
     /** Indicator that this reactor has itself as a parent, an error condition. */
     public final boolean recursive;
+
+    public TypeParameterizedReactor tpr;
 
     //////////////////////////////////////////////////////
     //// Public methods.
@@ -799,15 +800,16 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
      * @param reporter An error reporter.
      * @param desiredDepth The depth to which to expand the hierarchy.
      */
-    private ReactorInstance(
-            Instantiation definition,
-            ReactorInstance parent,
-            ErrorReporter reporter,
-            int desiredDepth) {
+    public ReactorInstance(
+        Instantiation definition,
+        ReactorInstance parent,
+        ErrorReporter reporter,
+        int desiredDepth) {
         super(definition, parent);
         this.reporter = reporter;
         this.reactorDeclaration = definition.getReactorClass();
         this.reactorDefinition = ASTUtils.toDefinition(reactorDeclaration);
+        this.tpr = new TypeParameterizedReactor(definition);
 
         // check for recursive instantiation
         var currentParent = parent;
@@ -894,6 +896,10 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
                 mode.setupTranstions();
             }
         }
+    }
+
+    public TypeParameterizedReactor getTypeParameterizedReactor() {
+        return this.tpr;
     }
 
     //////////////////////////////////////////////////////
@@ -1178,9 +1184,6 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
      */
     public boolean isGeneratedDelay() {
         // FIXME: hacky string matching again...
-        if (this.definition.getReactorClass().getName().contains(DelayBodyGenerator.GEN_DELAY_CLASS_NAME)) {
-            return true;
-        }
-        return false;
+        return this.definition.getReactorClass().getName().contains(DelayBodyGenerator.GEN_DELAY_CLASS_NAME);
     }
 }

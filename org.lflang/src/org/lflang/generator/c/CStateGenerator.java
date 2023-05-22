@@ -1,29 +1,22 @@
 package org.lflang.generator.c;
 
-import java.util.LinkedList;
-
 import org.lflang.ASTUtils;
-import org.lflang.InferredType;
 import org.lflang.generator.CodeBuilder;
-import org.lflang.generator.GeneratorBase;
 import org.lflang.generator.ModeInstance;
 import org.lflang.generator.ReactorInstance;
-import org.lflang.lf.Expression;
-import org.lflang.lf.ParameterReference;
-import org.lflang.lf.Reactor;
 import org.lflang.lf.StateVar;
 
 public class CStateGenerator {
     /**
      * Generate code for state variables of a reactor in the form "stateVar.type stateVar.name;"
-     * @param reactor The reactor
+     * @param reactor {@link TypeParameterizedReactor}
      * @param types A helper object for types
      */
-    public static String generateDeclarations(Reactor reactor, CTypes types) {
+    public static String generateDeclarations(TypeParameterizedReactor reactor, CTypes types) {
         CodeBuilder code = new CodeBuilder();
-        for (StateVar stateVar : ASTUtils.allStateVars(reactor)) {
+        for (StateVar stateVar : ASTUtils.allStateVars(reactor.reactor())) {
             code.prSourceLineNumber(stateVar);
-            code.pr(types.getTargetType(stateVar) + " " + stateVar.getName() + ";");
+            code.pr(types.getTargetType(reactor.resolveType(ASTUtils.getInferredType(stateVar))) + " " + stateVar.getName() + ";");
         }
         return code.toString();
     }
@@ -35,10 +28,10 @@ public class CStateGenerator {
      * this way, and there is no way to tell whether the type of the array
      * is a struct.
      *
-     * @param instance
-     * @param stateVar
-     * @param mode
-     * @return
+     * @param instance {@link ReactorInstance}
+     * @param stateVar {@link StateVar}
+     * @param mode {@link ModeInstance}
+     * @return String
      */
     public static String generateInitializer(
         ReactorInstance instance,
@@ -48,7 +41,7 @@ public class CStateGenerator {
         CTypes types
     ) {
         var initExpr = getInitializerExpr(stateVar, instance);
-        String baseInitializer = generateBaseInitializer(selfRef, stateVar, initExpr, types);
+        String baseInitializer = generateBaseInitializer(instance.tpr, selfRef, stateVar, initExpr, types);
         String modalReset = generateModalReset(instance, selfRef, stateVar, initExpr, mode, types);
         return String.join("\n",
             baseInitializer,
@@ -57,6 +50,7 @@ public class CStateGenerator {
     }
 
     private static String generateBaseInitializer(
+        TypeParameterizedReactor tpr,
         String selfRef,
         StateVar stateVar,
         String initExpr,
@@ -68,7 +62,7 @@ public class CStateGenerator {
         ) {
             return selfRef + "->" + stateVar.getName() + " = " + initExpr + ";";
         } else {
-            var declaration = types.getVariableDeclaration(
+            var declaration = types.getVariableDeclaration(tpr,
                 ASTUtils.getInferredType(stateVar),
                 "_initial", true);
             return String.join("\n",
@@ -92,7 +86,7 @@ public class CStateGenerator {
             return "";
         }
         var modeRef = "&"+CUtil.reactorRef(mode.getParent())+"->_lf__modes["+mode.getParent().modes.indexOf(mode)+"]";
-        var type = types.getTargetType(ASTUtils.getInferredType(stateVar));
+        var type = types.getTargetType(instance.tpr.resolveType(ASTUtils.getInferredType(stateVar)));
 
         if (ASTUtils.isOfTimeType(stateVar) ||
             ASTUtils.isParameterized(stateVar) &&
@@ -104,7 +98,7 @@ public class CStateGenerator {
         } else {
             CodeBuilder code = new CodeBuilder();
             var source = "_initial";
-            var declaration = types.getVariableDeclaration(
+            var declaration = types.getVariableDeclaration(instance.tpr,
                 ASTUtils.getInferredType(stateVar),
                 source, true);
             code.pr("{ // For scoping");

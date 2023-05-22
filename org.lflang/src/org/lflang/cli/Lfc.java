@@ -20,6 +20,7 @@ import org.lflang.TargetProperty.UnionType;
 import org.lflang.generator.LFGeneratorContext;
 import org.lflang.generator.LFGeneratorContext.BuildParm;
 import org.lflang.generator.MainContext;
+import org.lflang.generator.ReactorInstance;
 
 import com.google.inject.Inject;
 
@@ -106,7 +107,7 @@ public class Lfc extends CliBase {
     @Option(
         names = {"-q", "--quiet"},
         arity = "0",
-        description = 
+        description =
             "Suppress output of the target compiler and other commands")
     private boolean quiet;
 
@@ -188,7 +189,7 @@ public class Lfc extends CliBase {
 
             final Resource resource = getResource(path);
             if (resource == null) {
-                reporter.printFatalErrorAndExit(path 
+                reporter.printFatalErrorAndExit(path
                     + " is not an LF file. Use the .lf file extension to"
                     + " denote LF files.");
             } else if (federated) {
@@ -316,7 +317,7 @@ public class Lfc extends CliBase {
         if (workers != null) {
             props.setProperty(BuildParm.WORKERS.getKey(), workers.toString());
         }
-        
+
         return props;
     }
 }

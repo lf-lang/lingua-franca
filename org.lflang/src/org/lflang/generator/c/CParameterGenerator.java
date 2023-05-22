@@ -1,17 +1,10 @@
 package org.lflang.generator.c;
 
-import java.util.List;
-import java.util.stream.Collectors;
-
-import org.lflang.InferredType;
 import org.lflang.generator.ParameterInstance;
 import org.lflang.ASTUtils;
 import org.lflang.generator.CodeBuilder;
-import org.lflang.lf.Assignment;
-import org.lflang.lf.Expression;
 import org.lflang.lf.Initializer;
 import org.lflang.lf.Parameter;
-import org.lflang.lf.Reactor;
 
 /**
  * Generates C code to declare and initialize parameters.
@@ -40,14 +33,14 @@ public class CParameterGenerator {
 
     /**
      * Generate code for parameters variables of a reactor in the form "parameter.type parameter.name;"
-     * @param reactor The reactor
+     * @param reactor {@link TypeParameterizedReactor}
      * @param types A helper class for types
      */
-    public static String generateDeclarations(Reactor reactor, CTypes types) {
+    public static String generateDeclarations(TypeParameterizedReactor reactor, CTypes types) {
         CodeBuilder code = new CodeBuilder();
-        for (Parameter parameter : ASTUtils.allParameters(reactor)) {
+        for (Parameter parameter : ASTUtils.allParameters(reactor.reactor())) {
             code.prSourceLineNumber(parameter);
-            code.pr(types.getTargetType(parameter) + " " + parameter.getName() + ";");
+            code.pr(types.getTargetType(reactor.resolveType(ASTUtils.getInferredType(parameter))) + " " + parameter.getName() + ";");
         }
         return code.toString();
     }
