@@ -761,8 +761,7 @@ public class CUtil {
     public static boolean isTokenType(InferredType type, CTypes types) {
         if (type.isUndefined()) return false;
         // This is a hacky way to do this. It is now considered to be a bug (#657)
-        String targetType = types.getVariableDeclaration(null, type, "", false);
-        return type.isVariableSizeList || targetType.trim().endsWith("*");
+        return type.isVariableSizeList || !type.astType.getStars().isEmpty();
     }
 
     public static String generateWidthVariable(String var) {
