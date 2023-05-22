@@ -717,6 +717,7 @@ public class CTriggerObjectsGenerator {
                 code.pr("// For reference counting, set num_destinations for port " + output.getFullName() + ".");
                 code.startScopedRangeBlock(sendingRange, sr, sb, sc, sendingRange.instance.isInput());
                 code.pr(CUtil.portRef(output, sr, sb, sc)+"._base.num_destinations = "+sendingRange.getNumberOfDestinationReactors()+";");
+                code.pr(CUtil.portRef(output, sr, sb, sc)+"._base.source_reactor = (self_base_t*)"+CUtil.reactorRef(reactor, sb)+";");
                 code.endScopedRangeBlock(sendingRange);
             }
         }

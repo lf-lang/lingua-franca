@@ -242,6 +242,10 @@ public class CPortGenerator {
                     "self->_lf_"+inputName+" = &self->_lf_default__"+inputName+";"
                 ));
             }
+            constructorCode.pr(input, String.join("\n",
+                "// Set the default source reactor pointer",
+                "self->_lf_default__"+inputName+"._base.source_reactor = (self_base_t*)self;"
+            ));
         }
     }
 
