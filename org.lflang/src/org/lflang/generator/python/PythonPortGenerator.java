@@ -65,7 +65,7 @@ public class PythonPortGenerator {
         Output output
     ) {
         // Unfortunately, for the lf_set macros to work out-of-the-box for
-        // multiports, we need an array of *pointers* to the output structs,
+        // multiports, we need an array of <strong>pointers</strong> to the output structs,
         // but what we have on the self struct is an array of output structs.
         // So we have to handle multiports specially here a construct that
         // array of pointers.
