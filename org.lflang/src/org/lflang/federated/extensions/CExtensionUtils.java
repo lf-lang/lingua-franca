@@ -40,11 +40,10 @@ public class CExtensionUtils {
      * Generate C code that allocates sufficient memory for the following two
      * critical data structures that support network control reactions:
      * <ul>
-     * <li>triggers_for_network_input_control_reactions: These are triggers that
-     * are
-     * used at runtime to insert network input control reactions into the
-     * reaction queue.</li>
-     * <li>trigger_for_network_output_control_reactions: Triggers for
+     *   <li>{@code triggers_for_network_input_control_reactions}: These are triggers that
+     *      are used at runtime to insert network input control reactions into the
+     *      reaction queue.</li>
+     *   <li>{@code trigger_for_network_output_control_reactions}: Triggers for
      * network output control reactions, which are unique per each output port.
      * There could be multiple network output control reactions for each
      * network
