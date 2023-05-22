@@ -58,4 +58,9 @@ public record TypeParameterizedReactor(Reactor r, Map<String, Type> typeArgs) {
     public int hashCode() {
         return Math.abs(r.hashCode() * 31 + typeArgs.hashCode());
     }
+
+    @Override
+    public boolean equals(Object obj) {
+        return obj instanceof TypeParameterizedReactor other && r.equals(other.r) && typeArgs.equals(other.typeArgs);
+    }
 }
