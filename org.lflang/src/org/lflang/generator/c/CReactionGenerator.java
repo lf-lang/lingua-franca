@@ -16,7 +16,6 @@ import org.lflang.InferredType;
 import org.lflang.TargetConfig;
 import org.lflang.federated.extensions.CExtensionUtils;
 import org.lflang.generator.CodeBuilder;
-import org.lflang.generator.ReactorInstance;
 import org.lflang.lf.Action;
 import org.lflang.lf.ActionOrigin;
 import org.lflang.lf.BuiltinTriggerRef;

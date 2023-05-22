@@ -41,6 +41,12 @@ public record TypeParameterizedReactor(Reactor r, Map<String, Type> typeArgs) {
                 "#define " + literal + " " + ASTUtils.toOriginalText(concreteType)));
     }
 
+    public Type resolveType(Type t) {
+        var arg = typeArgs.get(t.getCode().getBody());
+        if (arg != null) return arg;
+        return t;
+    }
+
     @Override
     public int hashCode() {
         return Math.abs(r.hashCode() * 31 + typeArgs.hashCode());

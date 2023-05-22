@@ -45,6 +45,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.eclipse.emf.common.util.EList;
 import org.eclipse.emf.common.util.TreeIterator;
@@ -65,6 +66,7 @@ import org.lflang.TimeValue;
 import org.lflang.federated.serialization.SupportedSerializers;
 import org.lflang.federated.validation.FedValidator;
 import org.lflang.generator.NamedInstance;
+import org.lflang.generator.c.TypeParameterizedReactor;
 import org.lflang.lf.Action;
 import org.lflang.lf.ActionOrigin;
 import org.lflang.lf.Assignment;
@@ -255,7 +257,10 @@ public class LFValidator extends BaseLFValidator {
         // we leave type compatibility that language's compiler or interpreter.
         if (isCBasedTarget()) {
             Type type = (Type) null;
-            for (VarRef port : connection.getLeftPorts()) {
+            for (VarRef port : (Iterable<? extends VarRef>) () -> Stream.concat(
+                        connection.getLeftPorts().stream(),
+                        connection.getRightPorts().stream()
+                    ).iterator()) {
                 // If the variable is not a port, then there is some other
                 // error. Avoid a class cast exception.
                 if (port.getVariable() instanceof Port) {
@@ -264,22 +269,11 @@ public class LFValidator extends BaseLFValidator {
                     } else {
                         // Unfortunately, xtext does not generate a suitable equals()
                         // method for AST types, so we have to manually check the types.
-//                        if (!sameType(type, ((Port) port.getVariable()).getType())) {
-//                            error("Types do not match.", Literals.CONNECTION__LEFT_PORTS);
-//                        }
-                    }
-                }
-            }
-            for (VarRef port : connection.getRightPorts()) {
-                // If the variable is not a port, then there is some other
-                // error. Avoid a class cast exception.
-                if (port.getVariable() instanceof Port) {
-                    if (type == null) {
-                        type = ((Port) port.getVariable()).getType();
-                    } else {
-//                        if (!sameType(type, type = ((Port) port.getVariable()).getType())) {
-//                            error("Types do not match.", Literals.CONNECTION__RIGHT_PORTS);
-//                        }
+                        var portType = ((Port) port.getVariable()).getType();
+                        portType = port.getContainer() == null ? portType : new TypeParameterizedReactor(port.getContainer()).resolveType(portType);
+                        if (!sameType(type, portType)) {
+                            error("Types do not match.", Literals.CONNECTION__LEFT_PORTS);
+                        }
                     }
                 }
             }
