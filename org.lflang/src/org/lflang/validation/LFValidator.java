@@ -267,8 +267,6 @@ public class LFValidator extends BaseLFValidator {
                     if (type == null) {
                         type = ((Port) port.getVariable()).getType();
                     } else {
-                        // Unfortunately, xtext does not generate a suitable equals()
-                        // method for AST types, so we have to manually check the types.
                         var portType = ((Port) port.getVariable()).getType();
                         portType = port.getContainer() == null ? portType : new TypeParameterizedReactor(port.getContainer()).resolveType(portType);
                         if (!sameType(type, portType)) {

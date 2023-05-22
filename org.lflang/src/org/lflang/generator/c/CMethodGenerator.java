@@ -56,7 +56,7 @@ public class CMethodGenerator {
      * This function will have a first argument that is a void* pointing to
      * the self struct, followed by any arguments given in its definition.
      * @param method The method.
-     * @param tpr The reactor declaration.
+     * @param tpr The concrete reactor class.
      * @param types The C-specific type conversion functions.
      */
     public static String generateMethod(

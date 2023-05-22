@@ -348,7 +348,7 @@ public class PythonGenerator extends CGenerator {
     /**
      * Generate the aliases for inputs, outputs, and struct type definitions for
      * actions of the specified reactor in the specified federate.
-     * @param tpr The parsed reactor data structure.
+     * @param tpr The concrete reactor class.
      */
     @Override
     public void generateAuxiliaryStructs(

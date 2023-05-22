@@ -402,8 +402,8 @@ public class ASTUtils {
     }
 
     /**
-     * Given a reactor Class, returns a set of include names for
-     * interacting reactors which includes all instantiations of base class that it extends
+     * Given a reactor Class, return a set of include names for
+     * interacting reactors which includes all instantiations of base class that it extends.
      *
      * @param r Reactor Class
      * */

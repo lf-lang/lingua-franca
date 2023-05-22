@@ -280,7 +280,7 @@ public class CWatchdogGenerator {
    * Return the start of a C function definition for a watchdog.
    *
    * @param watchdog The watchdog
-   * @param tpr The reactor declaration
+   * @param tpr The concrete reactor class
    * @return The function name for the watchdog function.
    */
   private static String generateWatchdogFunctionHeader(Watchdog watchdog, TypeParameterizedReactor tpr) {
@@ -292,7 +292,7 @@ public class CWatchdogGenerator {
    * Return the name of the watchdog expiration handler function.
    *
    * @param watchdog The watchdog
-   * @param tpr The reactor with the watchdog
+   * @param tpr The concrete reactor class that has the watchdog
    * @return Name of the watchdog handler function
    */
   private static String watchdogFunctionName(Watchdog watchdog, TypeParameterizedReactor tpr) {
