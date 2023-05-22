@@ -2,6 +2,7 @@ package org.lflang.generator.cpp
 
 import org.lflang.AttributeUtils
 import org.lflang.generator.LFGeneratorContext
+import org.lflang.lf.Instantiation
 import org.lflang.reactor
 import org.lflang.util.FileUtil
 import java.nio.file.Path
@@ -15,11 +16,16 @@ class CppRos2Generator(generator: CppGenerator) : CppPlatformGenerator(generator
     private val packageGenerator = CppRos2PackageGenerator(generator)
 
     override fun generatePlatformFiles() {
-        mainReactor.instantiations.forEach{
-            if (AttributeUtils.isFederate(it)) {
-                nodeGenerators.add(
-                    CppRos2NodeGenerator(it.reactor, targetConfig, fileConfig))
+        val reactorsToSearch : MutableList<org.lflang.lf.Reactor> = mutableListOf(mainReactor)
+        while (reactorsToSearch.isNotEmpty()) {
+            reactorsToSearch[0].instantiations.forEach {
+                reactorsToSearch.add(it.reactor)
+                if (AttributeUtils.isFederate(it)) {
+                    nodeGenerators.add(
+                        CppRos2NodeGenerator(it.reactor, targetConfig, fileConfig))
+                }
             }
+            reactorsToSearch.removeFirst()
         }
 
         for (nodeGen in nodeGenerators) {
