@@ -42,6 +42,7 @@ public record TypeParameterizedReactor(Reactor r, Map<String, Type> typeArgs) {
     }
 
     public Type resolveType(Type t) {
+        if (t.getCode() == null) return t;
         var arg = typeArgs.get(t.getCode().getBody());
         if (arg != null) return arg;
         return t;
