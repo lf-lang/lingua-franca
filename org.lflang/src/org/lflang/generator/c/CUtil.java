@@ -478,7 +478,9 @@ public class CUtil {
      * by {@link #bankIndexName(ReactorInstance)} if the parent is a bank.
      * The returned expression, when evaluated, will yield the following value:
      *
+     * <pre>
      *     d0 + w0 * (d1 + w1 * ( ... (dn-1 + wn-1 * dn) ... )
+     * </pre>
      *
      * @param reactor The reactor.
      */

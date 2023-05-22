@@ -115,7 +115,7 @@ public class PythonReactorGenerator {
 
         if (instance.getWidth() > 0) {
             // For each reactor instance, create a list regardless of whether it is a bank or not.
-            // Non-bank reactor instances will be a list of size 1.         var reactorClass = instance.definition.reactorClass
+            // Non-bank reactor instances will be a list of size 1.
             String fullName = instance.getFullName();
             code.pr(String.join("\n",
                 "# Start initializing "+fullName+" of class "+className,

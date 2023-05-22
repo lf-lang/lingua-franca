@@ -68,29 +68,16 @@ class LinguaFrancaASTUtilsTest {
      */
     @Test
     public void initializedState() throws Exception {
-// Java 17:
-//        Model model = parser.parse("""
-//            target Cpp;
-//            main reactor Foo {
-//                state a();
-//                state b:int(3);
-//                state c:int[](1,2,3);
-//                state d(1 sec);
-//                state e(1 sec, 2 sec, 3 sec);
-//            }
-//        """);
-// Java 11:
-        Model model = parser.parse(String.join(
-            System.getProperty("line.separator"),
-            "target Cpp;",
-            "main reactor {",
-            "    state a();",
-            "    state b:int(3);",
-            "    state c:int[](1,2,3);",
-            "    state d(1 sec);",
-            "    state e(1 sec, 2 sec, 3 sec);",
-            "}"
-        ));
+        Model model = parser.parse("""
+            target Cpp;
+            main reactor Foo {
+                state a();
+                state b:int(3);
+                state c:int[](1,2,3);
+                state d(1 sec);
+                state e(1 sec, 2 sec, 3 sec);
+            }
+        """);
 
 
 
@@ -111,29 +98,16 @@ class LinguaFrancaASTUtilsTest {
      */
     @Test
     public void uninitializedState() throws Exception {
-// Java 17:
-//        Model model = parser.parse("""
-//            target Cpp;
-//            main reactor Foo {
-//                state a;
-//                state b:int;
-//                state c:int[];
-//                state d:time;
-//                state e:time[];
-//            }
-//        '''
-// Java 11:
-        Model model = parser.parse(String.join(
-            System.getProperty("line.separator"),
-            "target Cpp;",
-            "main reactor {",
-            "    state a;",
-            "    state b:int;",
-            "    state c:int[];",
-            "    state d:time;",
-            "    state e:time;",
-            "}"
-        ));
+        Model model = parser.parse("""
+            target Cpp;
+            main reactor Foo {
+                state a;
+                state b:int;
+                state c:int[];
+                state d:time;
+                state e:time[];
+            }
+        """
 
         Assertions.assertNotNull(model);
         Assertions.assertTrue(model.eResource().getErrors().isEmpty(),
@@ -167,34 +141,18 @@ class LinguaFrancaASTUtilsTest {
      @Test
      public void initialValue() throws Exception {
 
-// Java 17:
-//        Model model = parser.parse("""
-//            target C;
-//            reactor A(x:int(1)) {}
-//            reactor B(y:int(2)) {
-//                a1 = new A(x = y);
-//                a2 = new A(x = -1);
-//            }
-//            reactor C(z:int(3)) {
-//                b1 = new B(y = z);
-//                b2 = new B(y = -2);
-//            }
-//        """
-// Java 11:
-
-        Model model = parser.parse(String.join(
-            System.getProperty("line.separator"),
-            "target C;",
-            "reactor A(x:int(1)) {}",
-            "reactor B(y:int(2)) {",
-            "    a1 = new A(x = y);",
-            "    a2 = new A(x = -1);",
-            "}",
-            "reactor C(z:int(3)) {",
-            "    b1 = new B(y = z);",
-            "    b2 = new B(y = -2);",
-            "}"
-        ));
+       Model model = parser.parse("""
+           target C;
+           reactor A(x:int(1)) {}
+           reactor B(y:int(2)) {
+               a1 = new A(x = y);
+               a2 = new A(x = -1);
+           }
+           reactor C(z:int(3)) {
+               b1 = new B(y = z);
+               b2 = new B(y = -2);
+           }
+       """
 
         Assertions.assertNotNull(model);
         Assertions.assertTrue(model.eResource().getErrors().isEmpty(),
