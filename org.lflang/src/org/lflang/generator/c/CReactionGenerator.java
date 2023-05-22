@@ -318,6 +318,26 @@ public class CReactionGenerator {
                 "lf_schedule_copy("+actionName+", 0, &"+ref+"->value, 1);  // Length is 1.";
     }
 
+    public static String generateEnclavedConnectionDelayBody(String ref, String actionName, boolean isTokenType) {
+        // Note that the action.type set by the base class is actually
+        // the port type.
+        return isTokenType ?
+            "lf_print_error_and_exit(\"Enclaved connection not implemented for token types\")"
+             :
+            String.join("\n",
+            "// Calculate the tag at which the event shall be inserted in the destination environment",
+            "tag_t target_tag = lf_delay_tag(self->source_environment->curren_tag, act->trigger->offset);",
+                "token_template_t* template = (token_template_t*)action;",
+                "lf_critical_section_enter(self->destination_environment);",
+                "lf_token_t* token = _lf_initialize_token(template, length);",
+                "memcpy(token->value, value, template->type.element_size * length);",
+                "// Schedule event to the destination environment.",
+                "trigger_handle_t result = _lf_schedule_at_tag(self->destination_environment, action->trigger, tag, token);",
+                "// Notify the main thread in case it is waiting for physical time to elapse.",
+                "lf_notify_of_event(env);",
+                "lf_critical_section_exit(self->destination_length);");
+    }
+
     public static String generateForwardBody(String outputName, String targetType, String actionName, boolean isTokenType) {
         return isTokenType ?
                 String.join("\n",

@@ -51,6 +51,7 @@ import org.eclipse.xtext.xbase.lib.IterableExtensions;
 import org.eclipse.xtext.xbase.lib.StringExtensions;
 
 import org.lflang.ASTUtils;
+import org.lflang.ast.EnclavedConnectionTransformation;
 import org.lflang.generator.DockerComposeGenerator;
 import org.lflang.FileConfig;
 import org.lflang.Target;
@@ -365,7 +366,8 @@ public class CGenerator extends GeneratorBase {
         boolean CCppMode,
         CTypes types,
         CCmakeGenerator cmakeGenerator,
-        DelayBodyGenerator delayBodyGenerator
+        DelayBodyGenerator delayConnectionBodyGenerator,
+        DelayBodyGenerator enclavedConnectionBodyGenerator
     ) {
         super(context);
         this.fileConfig = (CFileConfig) context.getFileConfig();
@@ -375,7 +377,8 @@ public class CGenerator extends GeneratorBase {
 
         // Register the delayed connection transformation to be applied by GeneratorBase.
         // transform both after delays and physical connections
-        registerTransformation(new DelayedConnectionTransformation(delayBodyGenerator, types, fileConfig.resource, true, true));
+        registerTransformation(new EnclavedConnectionTransformation(enclavedConnectionBodyGenerator, types, fileConfig.resource, true, true));
+        registerTransformation(new DelayedConnectionTransformation(delayConnectionBodyGenerator, types, fileConfig.resource, true, true));
 
         // TODO: Register the enclaved connection transformation to be applied by generatorBase
     }
@@ -386,7 +389,8 @@ public class CGenerator extends GeneratorBase {
             ccppMode,
             new CTypes(),
             new CCmakeGenerator(context.getFileConfig(), List.of()),
-            new CDelayBodyGenerator(new CTypes())
+            new CDelayBodyGenerator(new CTypes()),
+            new CEnclavedConnectionBodyGenerator(new CTypes())
         );
     }
 

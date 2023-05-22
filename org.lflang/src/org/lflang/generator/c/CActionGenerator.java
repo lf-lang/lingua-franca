@@ -82,7 +82,7 @@ public class CActionGenerator {
         String payloadSize
     ) {
         return String.join("\n",
-                "_lf_initialize_template(env, (token_template_t*)",
+                "_lf_initialize_template((token_template_t*)",
                 "        &("+selfStruct+"->_lf__"+actionName+"),",
                          payloadSize+");",
             selfStruct+"->_lf__"+actionName+".status = absent;"

@@ -680,7 +680,7 @@ public class CTriggerObjectsGenerator {
                             var indirection = (port.isMultiport())? "" : "&";
                             code.startChannelIteration(port);
                             code.pr(String.join("\n",
-                                    "_lf_initialize_template(env, (token_template_t*)",
+                                "_lf_initialize_template((token_template_t*)",
                                     "        "+indirection+"("+CUtil.portRefNested(port, sr, sb, sc)+"),",
                                              size+");"
                             ));
