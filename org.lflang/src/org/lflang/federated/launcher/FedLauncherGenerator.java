@@ -291,7 +291,7 @@ public class FedLauncherGenerator {
             "",
             "# Create a random 48-byte text ID for this federation.",
             "# The likelihood of two federations having the same ID is 1/16,777,216 (1/2^24).",
-            "FEDERATION_ID={@code openssl rand -hex 24}",
+            "FEDERATION_ID=`openssl rand -hex 24`",
             "echo \"Federate " + fileConfig.name + " in Federation ID '$FEDERATION_ID'\"",
             "# Launch the federates:"
         );
