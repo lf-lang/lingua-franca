@@ -107,7 +107,7 @@ class LinguaFrancaASTUtilsTest {
                 state d:time;
                 state e:time[];
             }
-        """
+        """);
 
         Assertions.assertNotNull(model);
         Assertions.assertTrue(model.eResource().getErrors().isEmpty(),
@@ -152,7 +152,7 @@ class LinguaFrancaASTUtilsTest {
                b1 = new B(y = z);
                b2 = new B(y = -2);
            }
-       """
+       """);
 
         Assertions.assertNotNull(model);
         Assertions.assertTrue(model.eResource().getErrors().isEmpty(),
