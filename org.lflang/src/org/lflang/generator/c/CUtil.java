@@ -53,7 +53,6 @@ import org.lflang.lf.Variable;
 import org.lflang.lf.WidthTerm;
 import org.lflang.util.FileUtil;
 import org.lflang.util.LFCommand;
-import org.lflang.util.Pair;
 
 /**
  * A collection of utilities for C code generation.
@@ -764,21 +763,6 @@ public class CUtil {
         // This is a hacky way to do this. It is now considered to be a bug (#657)
         String targetType = types.getVariableDeclaration(null, type, "", false);
         return type.isVariableSizeList || targetType.trim().endsWith("*");
-    }
-
-    /**
-     * Given a String <code>str</code> separate the Typename from tokens (* OR [])
-     *
-     * @param str Input String
-     * @return {@link Pair} of Typename and Tokens
-     * */
-    public static Pair<String, String> separateTokensFromTypes(String str) {
-        var starIdx = str.indexOf("*");
-        if (starIdx == -1) {
-            var idx = str.indexOf("[");
-            return idx == -1 ? new Pair<>(str, "") : new Pair<>(str.substring(0, idx), str.substring(idx));
-        }
-        return new Pair<>(str.substring(0, starIdx), str.substring(starIdx));
     }
 
     public static String generateWidthVariable(String var) {
