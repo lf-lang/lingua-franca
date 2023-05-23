@@ -16,11 +16,13 @@ reactor Fast {
     reaction(t) {=
 
     =} deadline(10 msec) {=
-        lf_print_error_and_exit("Fast Reactor was stalled");
+        time_t lag = lf_time_physical() - lf_time_logical();
+        lf_print_error_and_exit("Fast Reactor was stalled lag=" PRINTF_TIME, lag);
     =}
 }
 
 main reactor {
     s = new Slow()
+    @enclave
     f = new Fast()
 }
