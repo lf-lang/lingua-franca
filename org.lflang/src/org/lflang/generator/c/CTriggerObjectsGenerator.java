@@ -665,6 +665,7 @@ public class CTriggerObjectsGenerator {
                         // Syntax is slightly different for a multiport output vs. single port.
                         var connector = (port.isMultiport())? "->" : ".";
                         code.pr(CUtil.portRefNested(port, sr, sb, sc)+connector+"_base.num_destinations = "+sendingRange.getNumberOfDestinationReactors()+";");
+                        code.pr(CUtil.portRefNested(port, sr, sb, sc)+connector+"_base.source_reactor = (self_base_t*)"+CUtil.reactorRef(reaction.getParent(), sb)+";");
 
                         // Initialize token types.
                         var type = ASTUtils.getInferredType(port.getDefinition());
