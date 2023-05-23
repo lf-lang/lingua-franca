@@ -71,9 +71,9 @@ public class CTriggerObjectsGenerator {
 
         // Create arrays of counters for managing pointer arrays of startup, shutdown, reset and triggers
         code.pr(String.join("\n",
-            "int startup_reaction_count[_num_enclaves] = {0};",
-            "int shutdown_reaction_count[_num_enclaves] = {0};",
-            "int reset_reaction_count[_num_enclaves] = {0};",
+            "int startup_reactions_count[_num_enclaves] = {0};",
+            "int shutdown_reactions_count[_num_enclaves] = {0};",
+            "int reset_reactions_count[_num_enclaves] = {0};",
             "int timer_triggers_count[_num_enclaves] = {0};"
             ));
 
