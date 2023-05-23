@@ -377,7 +377,7 @@ public class CGenerator extends GeneratorBase {
 
         // Register the delayed connection transformation to be applied by GeneratorBase.
         // transform both after delays and physical connections
-        registerTransformation(new EnclavedConnectionTransformation(enclavedConnectionBodyGenerator, types, fileConfig.resource, true, true));
+//        registerTransformation(new EnclavedConnectionTransformation(enclavedConnectionBodyGenerator, types, fileConfig.resource, true, true));
         registerTransformation(new DelayedConnectionTransformation(delayConnectionBodyGenerator, types, fileConfig.resource, true, true));
 
         // TODO: Register the enclaved connection transformation to be applied by generatorBase
@@ -637,15 +637,8 @@ public class CGenerator extends GeneratorBase {
         // Note that any main reactors in imported files are ignored.
         // Skip generation if there are cycles.
         if (main != null) {
+            code.pr(new CEnvironmentFunctionGenerator().generateCode(main));
             initializeTriggerObjects.pr(String.join("\n",
-                "int _lf_startup_reactions_count = 0;",
-                "SUPPRESS_UNUSED_WARNING(_lf_startup_reactions_count);",
-                "int _lf_shutdown_reactions_count = 0;",
-                "SUPPRESS_UNUSED_WARNING(_lf_shutdown_reactions_count);",
-                "int _lf_reset_reactions_count = 0;",
-                "SUPPRESS_UNUSED_WARNING(_lf_reset_reactions_count);",
-                "int _lf_timer_triggers_count = 0;",
-                "SUPPRESS_UNUSED_WARNING(_lf_timer_triggers_count);",
                 "int bank_index;",
                 "SUPPRESS_UNUSED_WARNING(bank_index);"
             ));
@@ -689,8 +682,7 @@ public class CGenerator extends GeneratorBase {
                 initializeTriggerObjects,
                 startTimeStep,
                 types,
-                lfModuleName,
-                startTimeStepIsPresentCount
+                lfModuleName
             ));
 
             // Generate function to trigger startup reactions for all reactors.
@@ -1496,11 +1488,15 @@ public class CGenerator extends GeneratorBase {
                     var portRef = CUtil.portRefNested(port);
                     var con = (port.isMultiport()) ? "->" : ".";
 
-                    temp.pr("env->_lf_is_present_fields["+startTimeStepIsPresentCount+" + count] = &"+portRef+con+"is_present;");
+                    temp.pr(
+                        CUtil.getEnvironmentStruct(instance)+
+                            "._lf_is_present_fields[] = &"+portRef+con+"is_present;");
                     // Intended_tag is only applicable to ports in federated execution.
                     temp.pr(
                         CExtensionUtils.surroundWithIfFederatedDecentralized(
-                        "env->_lf_intended_tag_fields["+startTimeStepIsPresentCount+" + count] = &"+portRef+con+"intended_tag;"
+                            CUtil.getEnvironmentStruct(instance) +
+                        "._lf_intended_tag_fields[is_present_fields_count["+CUtil.getEnvironmentId(instance)+"]++] = &"+portRef+con+"intended_tag;"
+
                         )
                     );
 
@@ -1527,7 +1523,7 @@ public class CGenerator extends GeneratorBase {
 
             temp.pr(String.join("\n",
                 "// Add action "+action.getFullName()+" to array of is_present fields.",
-                "env->_lf_is_present_fields["+startTimeStepIsPresentCount+"] ",
+                CUtil.getEnvironmentStruct(instance) + "._lf_is_present_fields[is_present_fields_count["+CUtil.getEnvironmentId(instance)+"]++] ",
                 "        = &"+containerSelfStructName+"->_lf_"+action.getName()+".is_present;"
             ));
 
@@ -1538,13 +1534,12 @@ public class CGenerator extends GeneratorBase {
                                 "// Add action " + action.getFullName()
                                     + " to array of intended_tag fields.",
                                 "_lf_intended_tag_fields["
-                                    + startTimeStepIsPresentCount + "] ",
+                                    + "is_present_fields_count["+CUtil.getEnvironmentId(instance)+"]++]",
                                 "        = &" + containerSelfStructName
                                     + "->_lf_" + action.getName()
                                     + ".intended_tag;"
                     )));
 
-            startTimeStepIsPresentCount += action.getParent().getTotalWidth();
             temp.endScopedBlock();
         }
         if (foundOne) startTimeStep.pr(temp.toString());
@@ -1686,8 +1681,7 @@ public class CGenerator extends GeneratorBase {
         // Generate the instance self struct containing parameters, state variables,
         // and outputs (the "self" struct).
         initializeTriggerObjects.pr(CUtil.reactorRefName(instance)+"["+CUtil.runtimeIndex(instance)+"] = new_"+CUtil.getName(reactorClass)+"();");
-        // FIXME: Following line is a temporary hack for enclaves while we use a single global environment.
-        // initializeTriggerObjects.pr(CUtil.reactorRefName(instance)+"["+CUtil.runtimeIndex(instance)+"]->base.environment = env;");
+         initializeTriggerObjects.pr(CUtil.reactorRefName(instance)+"["+CUtil.runtimeIndex(instance)+"]->base.environment = &envs["+CUtil.getEnvironmentId(instance)+"];");
         // Generate code to initialize the "self" struct in the
         // _lf_initialize_trigger_objects function.
         generateTraceTableEntries(instance);

@@ -11,6 +11,7 @@ import static org.lflang.util.StringUtil.joinObjects;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.stream.Collectors;
 
 import org.lflang.ASTUtils;
@@ -45,11 +46,10 @@ public class CTriggerObjectsGenerator {
         CodeBuilder initializeTriggerObjects,
         CodeBuilder startTimeStep,
         CTypes types,
-        String lfModuleName,
-        int startTimeStepIsPresentCount
+        String lfModuleName
     ) {
         var code = new CodeBuilder();
-        code.pr("void _lf_initialize_trigger_objects(environment_t* env) {");
+        code.pr("void _lf_initialize_trigger_objects() {");
         code.indent();
         // Initialize the LF clock.
         code.pr(String.join("\n",
@@ -69,38 +69,17 @@ public class CTriggerObjectsGenerator {
             )); // .lft is for Lingua Franca trace
         }
 
-        // Create the table to initialize is_present fields to false between time steps.
-        if (startTimeStepIsPresentCount > 0) {
-            // Allocate the initial (before mutations) array of pointers to _is_present fields.
-            code.pr(String.join("\n",
-                "// Create the array that will contain pointers to is_present fields to reset on each step.",
-                "env->_lf_is_present_fields_size = "+startTimeStepIsPresentCount+";",
-                "env->_lf_is_present_fields = (bool**)calloc("+startTimeStepIsPresentCount+", sizeof(bool*));",
-                "if (env->_lf_is_present_fields == NULL) lf_print_error_and_exit(" + addDoubleQuotes("Out of memory!") + ");",
-                "env->_lf_is_present_fields_abbreviated = (bool**)calloc("+startTimeStepIsPresentCount+", sizeof(bool*));",
-                "if (env->_lf_is_present_fields_abbreviated == NULL) lf_print_error_and_exit(" + addDoubleQuotes("Out of memory!") + ");",
-                "env->_lf_is_present_fields_abbreviated_size = 0;"
+        // Create arrays of counters for managing pointer arrays of startup, shutdown, reset and triggers
+        code.pr(String.join("\n",
+            "int startup_reaction_count[_num_enclaves] = {0};",
+            "int shutdown_reaction_count[_num_enclaves] = {0};",
+            "int reset_reaction_count[_num_enclaves] = {0};",
+            "int timer_triggers_count[_num_enclaves] = {0};",
+            "int is_present_fields_count[_num_enclaves] = {0};"
             ));
-        }
 
         // Create the table to initialize intended tag fields to 0 between time
         // steps.
-        if (startTimeStepIsPresentCount > 0) {
-            // Allocate the initial (before mutations) array of pointers to
-            // intended_tag fields.
-            // There is a 1-1 map between structs containing is_present and
-            // intended_tag fields,
-            // thus, we reuse startTimeStepIsPresentCount as the counter.
-            code.pr(String.join("\n",
-                                CExtensionUtils.surroundWithIfFederatedDecentralized("""
-                                // Create the array that will contain pointers to intended_tag fields to reset on each step.
-                                _lf_intended_tag_fields_size = %s;
-                                _lf_intended_tag_fields = (tag_t**)malloc(_lf_intended_tag_fields_size * sizeof(tag_t*));
-                                """.formatted(startTimeStepIsPresentCount)
-                                )
-            ));
-        }
-
 
         code.pr(initializeTriggerObjects.toString());
 
@@ -129,7 +108,7 @@ public class CTriggerObjectsGenerator {
         code.pr(setReactionPriorities(
             main
         ));
-        code.pr(generateSchedulerInitializer(
+        code.pr(generateSchedulerInitializerMain(
             main,
             targetConfig
         ));
@@ -151,7 +130,7 @@ public class CTriggerObjectsGenerator {
     /**
     * Generate code to initialize the scheduler for the threaded C runtime.
     */
-    public static String generateSchedulerInitializer(
+    public static String generateSchedulerInitializerMain(
         ReactorInstance main,
         TargetConfig targetConfig
     ) {
@@ -163,20 +142,35 @@ public class CTriggerObjectsGenerator {
         var numReactionsPerLevelJoined = Arrays.stream(numReactionsPerLevel)
                 .map(String::valueOf)
                 .collect(Collectors.joining(", "));
+        // FIXME: We want to calculate levels for each enclave independently
         code.pr(String.join("\n",
             "// Initialize the scheduler",
             "size_t num_reactions_per_level["+numReactionsPerLevel.length+"] = ",
             "    {" + numReactionsPerLevelJoined + "};",
             "sched_params_t sched_params = (sched_params_t) {",
             "                        .num_reactions_per_level = &num_reactions_per_level[0],",
-            "                        .num_reactions_per_level_size = (size_t) "+numReactionsPerLevel.length+"};",
+            "                        .num_reactions_per_level_size = (size_t) "+numReactionsPerLevel.length+"};"
+        ));
+
+        for (ReactorInstance enclave: CUtil.getEnclaves(main)) {
+            code.pr(generateSchedulerInitializerEnclave(enclave, targetConfig));
+        }
+
+        return code.toString();
+    }
+
+    // FIXME: Probably we want some enclaveConfig handed off
+    public static String generateSchedulerInitializerEnclave(
+        ReactorInstance enclave,
+        TargetConfig targetConfig
+    ) {
+        return String.join("\n",
             "lf_sched_init(",
-            "    env,", // FIXME: Hack for enclaves step1
-            "    env->num_workers,", // FIXME: Need better way of setting this
+            "    &"+CUtil.getEnvironmentStruct(enclave)+",", // FIXME: Hack for enclaves step1
+            "    "+CUtil.getEnvironmentStruct(enclave)+".num_workers,", // FIXME: Need better way of setting this
             "    &sched_params",
             ");"
-        ));
-        return code.toString();
+        );
     }
 
     /**

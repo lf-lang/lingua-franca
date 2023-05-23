@@ -173,14 +173,15 @@ public class EnclavedConnectionTransformation implements AstTransformation {
             Parameter topDelay = createDelayParameter(enclaveClass.getInputs().get(0).getName() + "_delay");
             ParameterReference paramRef = factory.createParameterReference();
             paramRef.setParameter(topDelay);
-            connInst.getParameters().add(paramRef);
+//            connInst.getParameters().add(paramRef);
 
 
             topDelay.setName("delay");
-            topConn.getLeftPorts().add(inRef);
-            topConn.getRightPorts().add(connInst.get);
+//            topConn.getLeftPorts().add(inRef);
+//            topConn.getRightPorts().add(connInst.get);
 
         }
+        return enclaveClass;
     }
 
     private Reactor createEnclaveConnectionClass(Input input) {

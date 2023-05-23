@@ -25,6 +25,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 package org.lflang;
 
+import static org.lflang.AttributeUtils.isEnclave;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -1880,4 +1882,5 @@ public class ASTUtils {
         fedAttr.setAttrName(name);
         reaction.getAttributes().add(fedAttr);
     }
+
 }

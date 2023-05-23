@@ -21,15 +21,17 @@ public class CTimerGenerator {
         var offset = CTypes.getInstance().getTargetTimeExpr(timer.getOffset());
         var period = CTypes.getInstance().getTargetTimeExpr(timer.getPeriod());
         var mode = timer.getMode(false);
+        var envId = CUtil.getEnvironmentId(timer.getParent());
         var modeRef = mode != null ?
             "&"+CUtil.reactorRef(mode.getParent())+"->_lf__modes["+mode.getParent().modes.indexOf(mode)+"];" :
             "NULL";
 
         return String.join("\n", List.of(
-            "// Initializing timer "+timer.getFullName()+".",
+            "// Initiaizing timer "+timer.getFullName()+".",
             triggerStructName+".offset = "+offset+";",
             triggerStructName+".period = "+period+";",
-            "_lf_timer_triggers[_lf_timer_triggers_count++] = &"+triggerStructName+";",
+            "// Associate timer with the environment of its parent",
+            "envs["+envId+"]._lf_timer_triggers[timer_triggers_count["+envId+"]++] = &"+triggerStructName+";",
             triggerStructName+".mode = "+modeRef+";"
         ));
     }
@@ -39,7 +41,6 @@ public class CTimerGenerator {
      *
      * @param timerCount The total number of timers in the program
      */
-    //FIXME: The _lf_environment parameter is added as a hack to get step1 of enclaves support working
     public static String generateLfInitializeTimer(int timerCount) {
         return String.join("\n",
             "void _lf_initialize_timers(environment_t *env) {",
