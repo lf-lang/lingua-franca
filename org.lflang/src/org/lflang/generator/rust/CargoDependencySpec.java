@@ -31,7 +31,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
-import org.lflang.ASTUtils;
+import org.lflang.ast.ASTUtils;
 import org.lflang.TargetProperty;
 import org.lflang.TargetProperty.TargetPropertyType;
 import org.lflang.generator.InvalidLfSourceException;

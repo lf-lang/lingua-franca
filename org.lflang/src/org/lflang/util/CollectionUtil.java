@@ -81,7 +81,7 @@ public class CollectionUtil {
      * not just as a key, but it also needs to be removed
      * from the neighbors sets of any other keys that may contain it.
      *
-     * @param map           A *modifiable* map
+     * @param map           A modifiable map
      * @param valueToRemove Value to remove
      */
     public static <K, V> void removeFromValues(Map<K, Set<V>> map, V valueToRemove) {

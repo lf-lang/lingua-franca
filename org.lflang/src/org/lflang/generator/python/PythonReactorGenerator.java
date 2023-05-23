@@ -2,10 +2,8 @@ package org.lflang.generator.python;
 
 import java.util.ArrayList;
 import java.util.List;
-import org.lflang.ASTUtils;
-import org.lflang.federated.generator.FederateInstance;
+import org.lflang.ast.ASTUtils;
 import org.lflang.generator.CodeBuilder;
-import org.lflang.generator.DelayBodyGenerator;
 import org.lflang.generator.ParameterInstance;
 import org.lflang.generator.ReactorInstance;
 import org.lflang.lf.Reaction;
@@ -117,7 +115,7 @@ public class PythonReactorGenerator {
 
         if (instance.getWidth() > 0) {
             // For each reactor instance, create a list regardless of whether it is a bank or not.
-            // Non-bank reactor instances will be a list of size 1.         var reactorClass = instance.definition.reactorClass
+            // Non-bank reactor instances will be a list of size 1.
             String fullName = instance.getFullName();
             code.pr(String.join("\n",
                 "# Start initializing "+fullName+" of class "+className,

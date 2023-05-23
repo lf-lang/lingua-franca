@@ -34,7 +34,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 
-import org.lflang.ASTUtils;
+import org.lflang.ast.ASTUtils;
 import org.lflang.ErrorReporter;
 import org.lflang.InferredType;
 import org.lflang.Target;
@@ -62,10 +62,12 @@ import org.lflang.lf.VarRef;
  * An extension class to the CGenerator that enables certain federated
  * functionalities. Currently, this class offers the following features:
  *
- * - Allocating and initializing C structures for federated communication -
- * Creating status field for network input ports that help the receiver logic in
+ * <ul>
+ * <li>Allocating and initializing C structures for federated communication</li>
+ * <li>Creating status field for network input ports that help the receiver logic in
  * federate.c communicate the status of a network input port with network input
- * control reactions.
+ * control reactions.</li>
+ * </ul>
  *
  * @author {Soroush Bateni <soroush@berkeley.edu>}
  * @author {Hou Seng Wong <housengw@berkeley.edu>}
@@ -480,7 +482,7 @@ public class CExtension implements FedTargetExtension {
         RtiConfig rtiConfig,
         ErrorReporter errorReporter
     ) throws IOException {
-        // Put the C preamble in a `include/_federate.name + _preamble.h` file
+        // Put the C preamble in a {@code include/_federate.name + _preamble.h} file
         String cPreamble = makePreamble(federate, fileConfig, rtiConfig, errorReporter);
         String relPath = getPreamblePath(federate);
         Path fedPreamblePath = fileConfig.getSrcPath().resolve(relPath);

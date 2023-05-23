@@ -38,7 +38,7 @@ import java.util.stream.Stream;
 import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.xtext.xbase.lib.Exceptions;
 
-import org.lflang.ASTUtils;
+import org.lflang.ast.ASTUtils;
 import org.lflang.AttributeUtils;
 import org.lflang.Target;
 import org.lflang.TargetProperty;
@@ -457,7 +457,7 @@ public class PythonGenerator extends CGenerator {
     protected void generateReaction(CodeBuilder src, Reaction reaction, TypeParameterizedReactor tpr, int reactionIndex) {
         Reactor reactor = ASTUtils.toDefinition(tpr.reactor());
 
-        // Reactions marked with a `@_c_body` attribute are generated in C
+        // Reactions marked with a {@code @_c_body} attribute are generated in C
         if (AttributeUtils.hasCBody(reaction)) {
             super.generateReaction(src, reaction, tpr, reactionIndex);
             return;
@@ -621,12 +621,12 @@ public class PythonGenerator extends CGenerator {
     }
 
     /**
-     * Generate a (`key`, `val`) tuple pair for the `define_macros` field
+     * Generate a ({@code key}, {@code val}) tuple pair for the {@code define_macros} field
      * of the Extension class constructor from setuptools.
      *
      * @param key The key of the macro entry
      * @param val The value of the macro entry
-     * @return A (`key`, `val`) tuple pair as String
+     * @return A ({@code key}, {@code val}) tuple pair as String
      */
     private static String generateMacroEntry(String key, String val) {
         return "(" + StringUtil.addDoubleQuotes(key) + ", " + StringUtil.addDoubleQuotes(val) + ")";
@@ -635,7 +635,7 @@ public class PythonGenerator extends CGenerator {
     /**
      * Generate the name of the python module.
      *
-     * Ideally, this function would belong in a class like `PyFileConfig`
+     * Ideally, this function would belong in a class like {@code PyFileConfig}
      * that specifies all the paths to the generated code.
      *
      * @param lfModuleName The name of the LF module.
@@ -646,9 +646,9 @@ public class PythonGenerator extends CGenerator {
     }
 
     /**
-     * Generate the python file name given an `lfModuleName`.
+     * Generate the python file name given an {@code lfModuleName}.
      *
-     * Ideally, this function would belong in a class like `PyFileConfig`
+     * Ideally, this function would belong in a class like {@code PyFileConfig}
      * that specifies all the paths to the generated code.
      *
      * @param lfModuleName The name of the LF module

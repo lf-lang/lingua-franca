@@ -58,7 +58,7 @@ public interface LFGeneratorContext extends IGeneratorContext {
         }
 
         /**
-         * Return the value corresponding to this parameter or `null` if there is none.
+         * Return the value corresponding to this parameter or {@code null} if there is none.
          * @param context The context passed to the code generator.
          */
         public String getValue(LFGeneratorContext context) {

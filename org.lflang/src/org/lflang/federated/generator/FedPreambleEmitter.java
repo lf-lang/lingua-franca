@@ -1,11 +1,10 @@
 package org.lflang.federated.generator;
 
-import static org.lflang.ASTUtils.toText;
+import static org.lflang.ast.ASTUtils.toText;
 
 import java.io.IOException;
-import java.util.LinkedHashMap;
 
-import org.lflang.ASTUtils;
+import org.lflang.ast.ASTUtils;
 import org.lflang.ErrorReporter;
 import org.lflang.federated.extensions.FedTargetExtensionFactory;
 import org.lflang.federated.launcher.RtiConfig;

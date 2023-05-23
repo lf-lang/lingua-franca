@@ -1,20 +1,11 @@
 package org.lflang.generator.python;
 
 import java.util.ArrayList;
-import java.util.LinkedList;
 import java.util.List;
-import java.util.stream.Collectors;
 
-import com.google.common.base.Objects;
-
-import org.lflang.ASTUtils;
-import org.lflang.InferredType;
-import org.lflang.generator.GeneratorBase;
+import org.lflang.ast.ASTUtils;
 import org.lflang.generator.ParameterInstance;
-import org.lflang.lf.Expression;
-import org.lflang.lf.ParameterReference;
 import org.lflang.lf.ReactorDecl;
-import org.lflang.lf.Assignment;
 import org.lflang.lf.Parameter;
 
 

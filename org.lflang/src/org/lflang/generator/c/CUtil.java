@@ -139,7 +139,7 @@ public class CUtil {
     }
 
     /**
-     * Return the name of the reactor. A '_main` is appended to the name if the
+     * Return the name of the reactor. A {@code _main} is appended to the name if the
      * reactor is main (to allow for instantiations that have the same name as
      * the main reactor or the .lf file).
      */
@@ -155,23 +155,24 @@ public class CUtil {
      * Return a reference to the specified port.
      *
      * The returned string will have one of the following forms:
+     * <ul>
+     * <li>{@code selfStructs[k]->_lf_portName}</li>
+     * <li>{@code selfStructs[k]->_lf_portName}</li>
+     * <li>{@code selfStructs[k]->_lf_portName[i]}</li>
+     * <li>{@code selfStructs[k]->_lf_parent.portName}</li>
+     * <li>{@code selfStructs[k]->_lf_parent.portName[i]}</li>
+     * <li>{@code selfStructs[k]->_lf_parent[j].portName}</li>
+     * <li>{@code selfStructs[k]->_lf_parent[j].portName[i]}</li>
+     * </ul>
      *
-     * * selfStructs[k]->_lf_portName
-     * * selfStructs[k]->_lf_portName
-     * * selfStructs[k]->_lf_portName[i]
-     * * selfStructs[k]->_lf_parent.portName
-     * * selfStructs[k]->_lf_parent.portName[i]
-     * * selfStructs[k]->_lf_parent[j].portName
-     * * selfStructs[k]->_lf_parent[j].portName[i]
-     *
-     * where k is the runtime index of either the port's parent
-     * or the port's parent's parent, the latter when isNested is true.
-     * The index j is present if the parent is a bank, and
-     * the index i is present if the port is a multiport.
+     * where {@code k} is the runtime index of either the port's parent
+     * or the port's parent's parent, the latter when isNested is {@code true}.
+     * The index {@code j} is present if the parent is a bank, and
+     * the index {@code i} is present if the port is a multiport.
      *
      * The first two forms are used if isNested is false,
      * and the remaining four are used if isNested is true.
-     * Set isNested to true when referencing a port belonging
+     * Set {@code isNested} to {@code true} when referencing a port belonging
      * to a contained reactor.
      *
      * @param port The port.
@@ -210,7 +211,7 @@ public class CUtil {
      * port's parent.  This is used when an input port triggers a reaction
      * in the port's parent or when an output port is written to by
      * a reaction in the port's parent.
-     * This is equivalent to calling `portRef(port, false, true, null, null)`.
+     * This is equivalent to calling {@code portRef(port, false, true, null, null)}.
      * @param port An instance of the port to be referenced.
      */
     public static String portRef(PortInstance port) {
@@ -223,7 +224,7 @@ public class CUtil {
      * This is used when an input port triggers a reaction
      * in the port's parent or when an output port is written to by
      * a reaction in the port's parent.
-     * This is equivalent to calling `portRef(port, false, true, bankIndex, channelIndex)`.
+     * This is equivalent to calling {@code portRef(port, false, true, bankIndex, channelIndex)}.
      * @param port An instance of the port to be referenced.
      * @param runtimeIndex A variable name to use to index the runtime instance or
      *  null to use the default, the string returned by {@link CUtil#runtimeIndex(ReactorInstance)}.
@@ -271,7 +272,7 @@ public class CUtil {
      * is written to by a reaction in the parent of the port's parent,
      * or when an output port triggers a reaction in the parent of the
      * port's parent. This is equivalent to calling
-     * `portRef(port, true, true, null, null, null)`.
+     * {@code portRef(port, true, true, null, null, null)}.
      *
      * @param port The port.
      */
@@ -285,7 +286,7 @@ public class CUtil {
      * is written to by a reaction in the parent of the port's parent,
      * or when an output port triggers a reaction in the parent of the
      * port's parent. This is equivalent to calling
-     * `portRef(port, true, true, runtimeIndex, bankIndex, channelIndex)`.
+     * {@code portRef(port, true, true, runtimeIndex, bankIndex, channelIndex)}.
      *
      * @param port The port.
      * @param runtimeIndex A variable name to use to index the runtime instance or
@@ -308,7 +309,7 @@ public class CUtil {
      * is written to by a reaction in the parent of the port's parent,
      * or when an output port triggers a reaction in the parent of the
      * port's parent.
-     * This is equivalent to calling `portRef(port, true, false, null, null, null)`.
+     * This is equivalent to calling {@code portRef(port, true, false, null, null, null)}.
      *
      * @param port The port.
      */
@@ -323,7 +324,7 @@ public class CUtil {
      * is written to by a reaction in the parent of the port's parent,
      * or when an output port triggers a reaction in the parent of the
      * port's parent. This is equivalent to calling
-     * `portRefNested(port, true, false, runtimeIndex, bankIndex, channelIndex)`.
+     * {@code portRefNested(port, true, false, runtimeIndex, bankIndex, channelIndex)}.
      *
      * @param port The port.
      * @param runtimeIndex A variable name to use to index the runtime instance or
@@ -480,7 +481,9 @@ public class CUtil {
      * by {@link #bankIndexName(ReactorInstance)} if the parent is a bank.
      * The returned expression, when evaluated, will yield the following value:
      *
+     * <pre>
      *     d0 + w0 * (d1 + w1 * ( ... (dn-1 + wn-1 * dn) ... )
+     * </pre>
      *
      * @param reactor The reactor.
      */

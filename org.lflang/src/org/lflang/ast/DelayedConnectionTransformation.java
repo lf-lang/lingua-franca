@@ -12,9 +12,7 @@ import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.emf.ecore.util.EcoreUtil;
 import org.eclipse.xtext.xbase.lib.IterableExtensions;
 import org.eclipse.xtext.xbase.lib.IteratorExtensions;
-import org.eclipse.xtext.xbase.lib.StringExtensions;
 
-import org.lflang.ASTUtils;
 import org.lflang.InferredType;
 import org.lflang.generator.DelayBodyGenerator;
 import org.lflang.generator.TargetTypes;
@@ -23,7 +21,6 @@ import org.lflang.lf.ActionOrigin;
 import org.lflang.lf.Assignment;
 import org.lflang.lf.Code;
 import org.lflang.lf.Connection;
-import org.lflang.lf.Expression;
 import org.lflang.lf.Initializer;
 import org.lflang.lf.Input;
 import org.lflang.lf.Instantiation;
@@ -45,7 +42,7 @@ import org.lflang.lf.WidthTerm;
 /**
  This class implements AST transformations for delayed connections.
  There are two types of delayed connections:
- 1) Connections with `after`-delays
+ 1) Connections with {@code after}-delays
  2) Physical connections
  */
 public class DelayedConnectionTransformation implements AstTransformation {
@@ -399,7 +396,7 @@ public class DelayedConnectionTransformation implements AstTransformation {
 
     /**
      * Return the generated delay reactor that corresponds to the given class
-     * name if it had been created already, `null` otherwise.
+     * name if it had been created already, {@code null} otherwise.
      */
     private Reactor findDelayClass(String className) {
         return IterableExtensions.findFirst(delayClasses, it -> it.getName().equals(className));

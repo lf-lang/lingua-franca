@@ -317,7 +317,7 @@ public class ReactionInstanceGraph extends PrecedenceGraph<ReactionInstance.Runt
 
     /**
      * This function assigns inferred deadlines to all the reactions in the graph.
-     * It is modeled after `assignLevels` but it starts at the leaf nodes and uses
+     * It is modeled after {@code assignLevels} but it starts at the leaf nodes and uses
      * Kahns algorithm to build a reverse topologically sorted graph
      *
      */

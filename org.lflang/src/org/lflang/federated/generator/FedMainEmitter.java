@@ -1,22 +1,13 @@
 package org.lflang.federated.generator;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.eclipse.emf.ecore.EObject;
 
-import org.lflang.ASTUtils;
+import org.lflang.ast.ASTUtils;
 import org.lflang.ErrorReporter;
 import org.lflang.ast.FormattingUtils;
-import org.lflang.generator.CodeBuilder;
-import org.lflang.generator.ReactorInstance;
-import org.lflang.lf.Instantiation;
 import org.lflang.lf.Reactor;
 import org.lflang.lf.Variable;
 

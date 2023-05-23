@@ -37,7 +37,22 @@ public class CTimerGenerator {
     }
 
     /**
-     * Generate code to call `_lf_initialize_timer` on each timer.
+     * Generate code to declare the timer table.
+     *
+     * @param timerCount The total number of timers in the program
+     */
+    public static String generateDeclarations(int timerCount) {
+        return String.join("\n", List.of(
+                    "// Array of pointers to timer triggers to be scheduled in _lf_initialize_timers().",
+                    (timerCount > 0 ?
+                    "trigger_t* _lf_timer_triggers["+timerCount+"]" :
+                    "trigger_t** _lf_timer_triggers = NULL") + ";",
+                    "int _lf_timer_triggers_size = "+timerCount+";"
+                ));
+    }
+
+    /**
+     * Generate code to call {@code _lf_initialize_timer} on each timer.
      *
      * @param timerCount The total number of timers in the program
      */

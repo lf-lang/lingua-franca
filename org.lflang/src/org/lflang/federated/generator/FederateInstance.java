@@ -37,7 +37,7 @@ import java.util.stream.Stream;
 
 import org.eclipse.emf.ecore.EObject;
 
-import org.lflang.ASTUtils;
+import org.lflang.ast.ASTUtils;
 import org.lflang.ErrorReporter;
 import org.lflang.TargetConfig;
 import org.lflang.TimeValue;

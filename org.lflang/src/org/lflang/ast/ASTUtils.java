@@ -23,7 +23,7 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-package org.lflang;
+package org.lflang.ast;
 
 import static org.lflang.AttributeUtils.isEnclave;
 
@@ -56,10 +56,13 @@ import org.eclipse.xtext.util.Tuples;
 import org.eclipse.xtext.xbase.lib.IterableExtensions;
 import org.eclipse.xtext.xbase.lib.IteratorExtensions;
 import org.eclipse.xtext.xbase.lib.StringExtensions;
-import org.lflang.ast.ToText;
+
+import org.lflang.InferredType;
+import org.lflang.Target;
+import org.lflang.TimeUnit;
+import org.lflang.TimeValue;
 import org.lflang.generator.CodeMap;
 import org.lflang.generator.InvalidSourceException;
-import org.lflang.generator.NamedInstance;
 import org.lflang.generator.ReactorInstance;
 import org.lflang.generator.c.CUtil;
 import org.lflang.generator.c.TypeParameterizedReactor;
@@ -894,7 +897,7 @@ public class ASTUtils {
     /**
      * Report whether the given literal is zero or not.
      * @param literal AST node to inspect.
-     * @return True if the given literal denotes the constant `0`, false
+     * @return True if the given literal denotes the constant {@code 0}, false
      * otherwise.
      */
     public static boolean isZero(String literal) {
@@ -913,7 +916,7 @@ public class ASTUtils {
      * Report whether the given expression is zero or not.
      *
      * @param expr AST node to inspect.
-     * @return True if the given value denotes the constant `0`, false otherwise.
+     * @return True if the given value denotes the constant {@code 0}, false otherwise.
      */
     public static boolean isZero(Expression expr) {
         if (expr instanceof Literal) {
@@ -1228,69 +1231,54 @@ public class ASTUtils {
     }
 
     /**
-     * Given a parameter, return its initial value.
-     * The initial value is a list of instances of Expressions.
+     *  Given a parameter, return its initial value.
+     *  The initial value is a list of instances of Expressions.
      *
-     * If the instantiations argument is null or an empty list, then the
-     * value returned is simply the default value given when the parameter
-     * is defined.
+     *  If the instantiations argument is null or an empty list, then the
+     *  value returned is simply the default value given when the parameter
+     *  is defined.
      *
-     * If a list of instantiations is given, then the first instantiation
-     * is required to be an instantiation of the reactor class that is
-     * parameterized by the parameter. I.e.,
-     * ```
-     *     parameter.eContainer == instantiations.get(0).reactorClass
-     * ```
-     * If a second instantiation is given, then it is required to be an instantiation of a
-     * reactor class that contains the first instantiation.  That is,
-     * ```
-     *     instantiations.get(0).eContainer == instantiations.get(1).reactorClass
-     * ```
-     * More generally, for all 0 <= i < instantiations.size - 1,
-     * ```
-     *     instantiations.get(i).eContainer == instantiations.get(i + 1).reactorClass
-     * ```
-     * If any of these conditions is not satisfied, then an IllegalArgumentException
-     * will be thrown.
-     *
-     * Note that this chain of reactions cannot be inferred from the parameter because
-     * in each of the predicates above, there may be more than one instantiation that
-     * can appear on the right hand side of the predicate.
-     *
-     * For example, consider the following program:
-     * ```
-     *     reactor A(x:int(1)) {}
-     *     reactor B(y:int(2)) {
-     *         a1 = new A(x = y);
-     *         a2 = new A(x = -1);
-     *     }
-     *     reactor C(z:int(3)) {
-     *         b1 = new B(y = z);
-     *         b2 = new B(y = -2);
-     *     }
-     * ```
-     * Notice that there are a total of four instances of reactor class A.
-     * Then
-     * ```
-     *     initialValue(x, null) returns 1
-     *     initialValue(x, [a1]) returns 2
-     *     initialValue(x, [a2]) returns -1
-     *     initialValue(x, [a1, b1]) returns 3
-     *     initialValue(x, [a2, b1]) returns -1
-     *     initialValue(x, [a1, b2]) returns -2
-     *     initialValue(x, [a2, b2]) returns -1
-     * ```
-     * (Actually, in each of the above cases, the returned value is a list with
-     * one entry, a Literal, e.g. ["1"]).
-     *
-     * There are two instances of reactor class B.
-     * ```
-     *     initialValue(y, null) returns 2
-     *     initialValue(y, [a1]) throws an IllegalArgumentException
-     *     initialValue(y, [b1]) returns 3
-     *     initialValue(y, [b2]) returns -2
-     * ```
-     *
+     *  If a list of instantiations is given, then the first instantiation
+     *  is required to be an instantiation of the reactor class that is
+     *  parameterized by the parameter. I.e.,
+     *  <pre><code>     <span class="hljs-keyword">parameter</span>.eContainer <span class="hljs-comment">== instantiations.get(0).reactorClass</span>
+     * </code></pre><p> If a second instantiation is given, then it is required to be an instantiation of a
+     *  reactor class that contains the first instantiation.  That is,</p>
+     * <pre><code>     instantiations.<span class="hljs-keyword">get</span>(<span class="hljs-number">0</span>).eContainer == instantiations.<span class="hljs-keyword">get</span>(<span class="hljs-number">1</span>).reactorClass
+     * </code></pre><p> More generally, for all 0 &lt;= i &lt; instantiations.size - 1,</p>
+     * <pre><code>     instantiations.get(i)<span class="hljs-selector-class">.eContainer</span> == instantiations.get(<span class="hljs-selector-tag">i</span> + <span class="hljs-number">1</span>).reactorClass
+     * </code></pre><p> If any of these conditions is not satisfied, then an IllegalArgumentException
+     *  will be thrown.</p>
+     * <p> Note that this chain of reactions cannot be inferred from the parameter because
+     *  in each of the predicates above, there may be more than one instantiation that
+     *  can appear on the right hand side of the predicate.</p>
+     * <p> For example, consider the following program:</p>
+     * <pre><code>     reactor A(x:int(<span class="hljs-number">1</span>)) {}
+     *      reactor <span class="hljs-keyword">B(y:int(2)) </span>{
+     *          <span class="hljs-built_in">a1</span> = new A(x = y)<span class="hljs-comment">;</span>
+     *          <span class="hljs-built_in">a2</span> = new A(x = -<span class="hljs-number">1</span>)<span class="hljs-comment">;</span>
+     *      }
+     *      reactor C(z:int(<span class="hljs-number">3</span>)) {
+     *          <span class="hljs-keyword">b1 </span>= new <span class="hljs-keyword">B(y </span>= z)<span class="hljs-comment">;</span>
+     *          <span class="hljs-keyword">b2 </span>= new <span class="hljs-keyword">B(y </span>= -<span class="hljs-number">2</span>)<span class="hljs-comment">;</span>
+     *      }
+     * </code></pre><p> Notice that there are a total of four instances of reactor class A.
+     *  Then</p>
+     * <pre><code>     initialValue(<span class="hljs-name">x</span>, null) returns <span class="hljs-number">1</span>
+     *      initialValue(<span class="hljs-name">x</span>, [a1]) returns <span class="hljs-number">2</span>
+     *      initialValue(<span class="hljs-name">x</span>, [a2]) returns <span class="hljs-number">-1</span>
+     *      initialValue(<span class="hljs-name">x</span>, [a1, b1]) returns <span class="hljs-number">3</span>
+     *      initialValue(<span class="hljs-name">x</span>, [a2, b1]) returns <span class="hljs-number">-1</span>
+     *      initialValue(<span class="hljs-name">x</span>, [a1, b2]) returns <span class="hljs-number">-2</span>
+     *      initialValue(<span class="hljs-name">x</span>, [a2, b2]) returns <span class="hljs-number">-1</span>
+     * </code></pre><p> (Actually, in each of the above cases, the returned value is a list with
+     *  one entry, a Literal, e.g. [&quot;1&quot;]).</p>
+     * <p> There are two instances of reactor class B.</p>
+     * <pre><code>     initialValue(<span class="hljs-name">y</span>, null) returns <span class="hljs-number">2</span>
+     *      initialValue(<span class="hljs-name">y</span>, [a1]) throws an IllegalArgumentException
+     *      initialValue(<span class="hljs-name">y</span>, [b1]) returns <span class="hljs-number">3</span>
+     *      initialValue(<span class="hljs-name">y</span>, [b2]) returns <span class="hljs-number">-2</span>
+     * </code></pre>
      * @param parameter The parameter.
      * @param instantiations The (optional) list of instantiations.
      *

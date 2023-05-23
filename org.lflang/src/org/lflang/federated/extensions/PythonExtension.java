@@ -28,7 +28,7 @@ package org.lflang.federated.extensions;
 
 import java.io.IOException;
 
-import org.lflang.ASTUtils;
+import org.lflang.ast.ASTUtils;
 import org.lflang.ErrorReporter;
 import org.lflang.InferredType;
 import org.lflang.TargetProperty.CoordinationType;

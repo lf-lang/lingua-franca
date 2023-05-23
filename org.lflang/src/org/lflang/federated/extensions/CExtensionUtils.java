@@ -8,7 +8,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.regex.Pattern;
 
-import org.lflang.ASTUtils;
+import org.lflang.ast.ASTUtils;
 import org.lflang.InferredType;
 import org.lflang.TargetConfig.ClockSyncOptions;
 import org.lflang.TargetProperty;
@@ -39,15 +39,16 @@ public class CExtensionUtils {
     /**
      * Generate C code that allocates sufficient memory for the following two
      * critical data structures that support network control reactions:
-     * - triggers_for_network_input_control_reactions: These are triggers that
-     * are
-     * used at runtime to insert network input control reactions into the
-     * reaction queue.
-     * - trigger_for_network_output_control_reactions: Triggers for
+     * <ul>
+     *   <li>{@code triggers_for_network_input_control_reactions}: These are triggers that
+     *      are used at runtime to insert network input control reactions into the
+     *      reaction queue.</li>
+     *   <li>{@code trigger_for_network_output_control_reactions}: Triggers for
      * network output control reactions, which are unique per each output port.
      * There could be multiple network output control reactions for each
      * network
-     * output port if it is connected to multiple downstream federates.
+     * output port if it is connected to multiple downstream federates.</li>
+     * </ul>
      *
      * @param federate The top-level federate instance
      * @return A string that allocates memory for the aforementioned three

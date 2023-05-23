@@ -24,14 +24,14 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 package org.lflang.generator.c;
 
-import static org.lflang.ASTUtils.allActions;
-import static org.lflang.ASTUtils.allPorts;
-import static org.lflang.ASTUtils.allReactions;
-import static org.lflang.ASTUtils.allStateVars;
-import static org.lflang.ASTUtils.getInferredType;
-import static org.lflang.ASTUtils.isInitialized;
-import static org.lflang.ASTUtils.toDefinition;
-import static org.lflang.ASTUtils.toText;
+import static org.lflang.ast.ASTUtils.allActions;
+import static org.lflang.ast.ASTUtils.allPorts;
+import static org.lflang.ast.ASTUtils.allReactions;
+import static org.lflang.ast.ASTUtils.allStateVars;
+import static org.lflang.ast.ASTUtils.getInferredType;
+import static org.lflang.ast.ASTUtils.isInitialized;
+import static org.lflang.ast.ASTUtils.toDefinition;
+import static org.lflang.ast.ASTUtils.toText;
 import static org.lflang.util.StringUtil.addDoubleQuotes;
 
 import java.io.File;
@@ -53,7 +53,7 @@ import org.eclipse.xtext.xbase.lib.Exceptions;
 import org.eclipse.xtext.xbase.lib.IterableExtensions;
 import org.eclipse.xtext.xbase.lib.StringExtensions;
 
-import org.lflang.ASTUtils;
+import org.lflang.ast.ASTUtils;
 import org.lflang.generator.CodeMap;
 import org.lflang.generator.DockerComposeGenerator;
 import org.lflang.FileConfig;
@@ -107,154 +107,123 @@ import com.google.common.collect.Iterables;
  * Generator for C target. This class generates C code defining each reactor
  * class given in the input .lf file and imported .lf files. The generated code
  * has the following components:
- *
- * * A typedef for inputs, outputs, and actions of each reactor class. These
- *   define the types of the variables that reactions use to access inputs and
- *   action values and to set output values.
- *
- * * A typedef for a "self" struct for each reactor class. One instance of this
- *   struct will be created for each reactor instance. See below for details.
- *
- * * A function definition for each reaction in each reactor class. These
- *   functions take an instance of the self struct as an argument.
- *
- * * A constructor function for each reactor class. This is used to create
- *   a new instance of the reactor.
- *
- * After these, the main generated function is `_lf_initialize_trigger_objects()`.
+ * <ul>
+ * <li>A typedef for inputs, outputs, and actions of each reactor class. These
+ * define the types of the variables that reactions use to access inputs and
+ * action values and to set output values.</li>
+ * <li>A typedef for a &quot;self&quot; struct for each reactor class. One instance of this
+ * struct will be created for each reactor instance. See below for details.</li>
+ * <li>A function definition for each reaction in each reactor class. These
+ * functions take an instance of the self struct as an argument.</li>
+ * <li>A constructor function for each reactor class. This is used to create
+ * a new instance of the reactor.
+ * After these, the main generated function is <code>_lf_initialize_trigger_objects()</code>.
  * This function creates the instances of reactors (using their constructors)
  * and makes connections between them.
- *
- * A few other smaller functions are also generated.
- *
- * ## Self Struct
- *
- * The "self" struct has fields for each of the following:
- *
- * * parameter: the field name and type match the parameter.
- * * state: the field name and type match the state.
- * * action: the field name prepends the action name with "_lf_".
- *   A second field for the action is also created to house the trigger_t object.
- *   That second field prepends the action name with "_lf__".
- * * output: the field name prepends the output name with "_lf_".
- * * input:  the field name prepends the output name with "_lf_".
- *   A second field for the input is also created to house the trigger_t object.
- *   That second field prepends the input name with "_lf__".
- *
+ * A few other smaller functions are also generated.<h2 id="self-struct">Self Struct</h2>
+ * The &quot;self&quot; struct has fields for each of the following:</li>
+ * <li>parameter: the field name and type match the parameter.</li>
+ * <li>state: the field name and type match the state.</li>
+ * <li>action: the field name prepends the action name with &quot;<em>lf</em>&quot;.
+ * A second field for the action is also created to house the trigger_t object.
+ * That second field prepends the action name with &quot;_lf__&quot;.</li>
+ * <li>output: the field name prepends the output name with &quot;<em>lf</em>&quot;.</li>
+ * <li>input:  the field name prepends the output name with &quot;<em>lf</em>&quot;.
+ * A second field for the input is also created to house the trigger_t object.
+ * That second field prepends the input name with &quot;_lf__&quot;.
  * If, in addition, the reactor contains other reactors and reacts to their outputs,
  * then there will be a struct within the self struct for each such contained reactor.
- * The name of that self struct will be the name of the contained reactor prepended with "_lf_".
+ * The name of that self struct will be the name of the contained reactor prepended with &quot;<em>lf</em>&quot;.
  * That inside struct will contain pointers the outputs of the contained reactors
  * that are read together with pointers to booleans indicating whether those outputs are present.
- *
  * If, in addition, the reactor has a reaction to shutdown, then there will be a pointer to
  * trigger_t object (see reactor.h) for the shutdown event and an action struct named
- * _lf_shutdown on the self struct.
- *
- * ## Reaction Functions
- *
+ * _lf_shutdown on the self struct.<h2 id="reaction-functions">Reaction Functions</h2>
  * For each reaction in a reactor class, this generator will produce a C function
- * that expects a pointer to an instance of the "self" struct as an argument.
+ * that expects a pointer to an instance of the &quot;self&quot; struct as an argument.
  * This function will contain verbatim the C code specified in the reaction, but
  * before that C code, the generator inserts a few lines of code that extract from the
  * self struct the variables that that code has declared it will use. For example, if
- * the reaction declares that it is triggered by or uses an input named "x" of type
- * int, the function will contain a line like this:
- * ```
- *     r_x_t* x = self->_lf_x;
- * ```
- * where `r` is the full name of the reactor class and the struct type `r_x_t`
- * has fields `is_present` and `value`, where the type of `value` matches the port type.
+ * the reaction declares that it is triggered by or uses an input named &quot;x&quot; of type
+ * int, the function will contain a line like this:<pre><code>  r_x_t* x = <span class="hljs-keyword">self</span>-&gt;_lf_x;
+ * </code></pre>where <code>r</code> is the full name of the reactor class and the struct type <code>r_x_t</code>
+ * has fields <code>is_present</code> and <code>value</code>, where the type of <code>value</code> matches the port type.
  * If the programmer fails to declare that it uses x, then the absence of the
- * above code will trigger a compile error when the verbatim code attempts to read `x`.
- *
- * ## Constructor
- *
+ * above code will trigger a compile error when the verbatim code attempts to read <code>x</code>.<h2 id="constructor">Constructor</h2>
  * For each reactor class, this generator will create a constructor function named
- * `new_r`, where `r` is the reactor class name. This function will malloc and return
- * a pointer to an instance of the "self" struct.  This struct initially represents
+ * <code>new_r</code>, where <code>r</code> is the reactor class name. This function will malloc and return
+ * a pointer to an instance of the &quot;self&quot; struct.  This struct initially represents
  * an unconnected reactor. To establish connections between reactors, additional
  * information needs to be inserted (see below). The self struct is made visible
- * to the body of a reaction as a variable named "self".  The self struct contains the
- * following:
- *
- * * Parameters: For each parameter `p` of the reactor, there will be a field `p`
- *   with the type and value of the parameter. So C code in the body of a reaction
- *   can access parameter values as `self->p`.
- *
- * * State variables: For each state variable `s` of the reactor, there will be a field `s`
- *   with the type and value of the state variable. So C code in the body of a reaction
- *   can access state variables as `self->s`.
- *
+ * to the body of a reaction as a variable named &quot;self&quot;.  The self struct contains the
+ * following:</li>
+ * <li>Parameters: For each parameter <code>p</code> of the reactor, there will be a field <code>p</code>
+ * with the type and value of the parameter. So C code in the body of a reaction
+ * can access parameter values as <code>self-&gt;p</code>.</li>
+ * <li>State variables: For each state variable <code>s</code> of the reactor, there will be a field <code>s</code>
+ * with the type and value of the state variable. So C code in the body of a reaction
+ * can access state variables as <code>self-&gt;s</code>.
  * The self struct also contains various fields that the user is not intended to
- * use. The names of these fields begin with at least two underscores. They are:
- *
- * * Outputs: For each output named `out`, there will be a field `_lf_out` that is
- *   a struct containing a value field whose type matches that of the output.
- *   The output value is stored here. That struct also has a field `is_present`
- *   that is a boolean indicating whether the output has been set.
- *   This field is reset to false at the start of every time
- *   step. There is also a field `num_destinations` whose value matches the
- *   number of downstream reactors that use this variable. This field must be
- *   set when connections are made or changed. It is used to determine for
- *   a mutable input destination whether a copy needs to be made.
- *
- * * Inputs: For each input named `in` of type T, there is a field named `_lf_in`
- *   that is a pointer struct with a value field of type T. The struct pointed
- *   to also has an `is_present` field of type bool that indicates whether the
- *   input is present.
- *
- * * Outputs of contained reactors: If a reactor reacts to outputs of a
- *   contained reactor `r`, then the self struct will contain a nested struct
- *   named `_lf_r` that has fields pointing to those outputs. For example,
- *   if `r` has an output `out` of type T, then there will be field in `_lf_r`
- *   named `out` that points to a struct containing a value field
- *   of type T and a field named `is_present` of type bool.
- *
- * * Inputs of contained reactors: If a reactor sends to inputs of a
- *   contained reactor `r`, then the self struct will contain a nested struct
- *   named `_lf_r` that has fields for storing the values provided to those
- *   inputs. For example, if R has an input `in` of type T, then there will
- *   be field in _lf_R named `in` that is a struct with a value field
- *   of type T and a field named `is_present` of type bool.
- *
- * * Actions: If the reactor has an action a (logical or physical), then there
- *   will be a field in the self struct named `_lf_a` and another named `_lf__a`.
- *   The type of the first is specific to the action and contains a `value`
- *   field with the type and value of the action (if it has a value). That
- *   struct also has a `has_value` field, an `is_present` field, and a
- *   `token` field (which is NULL if the action carries no value).
- *   The `_lf__a` field is of type trigger_t.
- *   That struct contains various things, including an array of reactions
- *   sensitive to this trigger and a lf_token_t struct containing the value of
- *   the action, if it has a value.  See reactor.h in the C library for
- *   details.
- *
- * * Reactions: Each reaction will have several fields in the self struct.
- *   Each of these has a name that begins with `_lf__reaction_i`, where i is
- *   the number of the reaction, starting with 0. The fields are:
- *   * _lf__reaction_i: The struct that is put onto the reaction queue to
- *     execute the reaction (see reactor.h in the C library).
- *
- *  * Timers: For each timer t, there is are two fields in the self struct:
- *    * _lf__t: The trigger_t struct for this timer (see reactor.h).
- *    * _lf__t_reactions: An array of reactions (pointers to the
- *      reaction_t structs on this self struct) sensitive to this timer.
- *
- * * Triggers: For each Timer, Action, Input, and Output of a contained
- *   reactor that triggers reactions, there will be a trigger_t struct
- *   on the self struct with name `_lf__t`, where t is the name of the trigger.
- *
- * ## Connections Between Reactors
- *
+ * use. The names of these fields begin with at least two underscores. They are:</li>
+ * <li>Outputs: For each output named <code>out</code>, there will be a field <code>_lf_out</code> that is
+ * a struct containing a value field whose type matches that of the output.
+ * The output value is stored here. That struct also has a field <code>is_present</code>
+ * that is a boolean indicating whether the output has been set.
+ * This field is reset to false at the start of every time
+ * step. There is also a field <code>num_destinations</code> whose value matches the
+ * number of downstream reactors that use this variable. This field must be
+ * set when connections are made or changed. It is used to determine for
+ * a mutable input destination whether a copy needs to be made.</li>
+ * <li>Inputs: For each input named <code>in</code> of type T, there is a field named <code>_lf_in</code>
+ * that is a pointer struct with a value field of type T. The struct pointed
+ * to also has an <code>is_present</code> field of type bool that indicates whether the
+ * input is present.</li>
+ * <li>Outputs of contained reactors: If a reactor reacts to outputs of a
+ * contained reactor <code>r</code>, then the self struct will contain a nested struct
+ * named <code>_lf_r</code> that has fields pointing to those outputs. For example,
+ * if <code>r</code> has an output <code>out</code> of type T, then there will be field in <code>_lf_r</code>
+ * named <code>out</code> that points to a struct containing a value field
+ * of type T and a field named <code>is_present</code> of type bool.</li>
+ * <li>Inputs of contained reactors: If a reactor sends to inputs of a
+ * contained reactor <code>r</code>, then the self struct will contain a nested struct
+ * named <code>_lf_r</code> that has fields for storing the values provided to those
+ * inputs. For example, if R has an input <code>in</code> of type T, then there will
+ * be field in _lf_R named <code>in</code> that is a struct with a value field
+ * of type T and a field named <code>is_present</code> of type bool.</li>
+ * <li>Actions: If the reactor has an action a (logical or physical), then there
+ * will be a field in the self struct named <code>_lf_a</code> and another named <code>_lf__a</code>.
+ * The type of the first is specific to the action and contains a <code>value</code>
+ * field with the type and value of the action (if it has a value). That
+ * struct also has a <code>has_value</code> field, an <code>is_present</code> field, and a
+ * <code>token</code> field (which is NULL if the action carries no value).
+ * The <code>_lf__a</code> field is of type trigger_t.
+ * That struct contains various things, including an array of reactions
+ * sensitive to this trigger and a lf_token_t struct containing the value of
+ * the action, if it has a value.  See reactor.h in the C library for
+ * details.</li>
+ * <li>Reactions: Each reaction will have several fields in the self struct.
+ * Each of these has a name that begins with <code>_lf__reaction_i</code>, where i is
+ * the number of the reaction, starting with 0. The fields are:<ul>
+ * <li>_lf__reaction_i: The struct that is put onto the reaction queue to
+ * execute the reaction (see reactor.h in the C library).</li>
+ * <li>Timers: For each timer t, there is are two fields in the self struct:<ul>
+ * <li>_lf__t: The trigger_t struct for this timer (see reactor.h).</li>
+ * <li>_lf__t_reactions: An array of reactions (pointers to the
+ * reaction_t structs on this self struct) sensitive to this timer.</li>
+ * </ul>
+ * </li>
+ * </ul>
+ * </li>
+ * <li>Triggers: For each Timer, Action, Input, and Output of a contained
+ * reactor that triggers reactions, there will be a trigger_t struct
+ * on the self struct with name <code>_lf__t</code>, where t is the name of the trigger.<h2 id="connections-between-reactors">Connections Between Reactors</h2>
  * Establishing connections between reactors involves two steps.
  * First, each destination (e.g. an input port) must have pointers to
  * the source (the output port). As explained above, for an input named
- * `in`, the field `_lf_in->value` is a pointer to the output data being read.
- * In addition, `_lf_in->is_present` is a pointer to the corresponding
- * `out->is_present` field of the output reactor's self struct.
- *
- * In addition, the `reaction_i` struct on the self struct has a `triggers`
+ * <code>in</code>, the field <code>_lf_in-&gt;value</code> is a pointer to the output data being read.
+ * In addition, <code>_lf_in-&gt;is_present</code> is a pointer to the corresponding
+ * <code>out-&gt;is_present</code> field of the output reactor&#39;s self struct.
+ * In addition, the <code>reaction_i</code> struct on the self struct has a <code>triggers</code>
  * field that records all the trigger_t structs for ports and actions
  * that are triggered by the i-th reaction. The triggers field is
  * an array of arrays of pointers to trigger_t structs.
@@ -268,34 +237,30 @@ import com.google.common.collect.Iterables;
  * reaction_i struct gives the length of the triggered_sizes and
  * (outer) triggers arrays. The num_outputs field is equal to the
  * total number of single ports and multiport channels that the reaction
- * writes to.
- *
- * ## Runtime Tables
- *
+ * writes to.<h2 id="runtime-tables">Runtime Tables</h2>
  * This generator creates an populates the following tables used at run time.
- * These tables may have to be resized and adjusted when mutations occur.
- *
- * * _lf_is_present_fields: An array of pointers to booleans indicating whether an
- *   event is present. The _lf_start_time_step() function in reactor_common.c uses
- *   this to mark every event absent at the start of a time step. The size of this
- *   table is contained in the variable _lf_is_present_fields_size.
- *    * This table is accompanied by another list, _lf_is_present_fields_abbreviated,
- *      which only contains the is_present fields that have been set to true in the
- *      current tag. This list can allow a performance improvement if most ports are
- *      seldom present because only fields that have been set to true need to be
- *      reset to false.
- *
- * * _lf_shutdown_triggers: An array of pointers to trigger_t structs for shutdown
- *   reactions. The length of this table is in the _lf_shutdown_triggers_size
- *   variable.
- *
- * * _lf_timer_triggers: An array of pointers to trigger_t structs for timers that
- *   need to be started when the program runs. The length of this table is in the
- *   _lf_timer_triggers_size variable.
- *
- * * _lf_action_table: For a federated execution, each federate will have this table
- *   that maps port IDs to the corresponding action struct, which can be cast to
- *   action_base_t.
+ * These tables may have to be resized and adjusted when mutations occur.</li>
+ * <li>_lf_is_present_fields: An array of pointers to booleans indicating whether an
+ * event is present. The _lf_start_time_step() function in reactor_common.c uses
+ * this to mark every event absent at the start of a time step. The size of this
+ * table is contained in the variable _lf_is_present_fields_size.<ul>
+ * <li>This table is accompanied by another list, _lf_is_present_fields_abbreviated,
+ * which only contains the is_present fields that have been set to true in the
+ * current tag. This list can allow a performance improvement if most ports are
+ * seldom present because only fields that have been set to true need to be
+ * reset to false.</li>
+ * </ul>
+ * </li>
+ * <li>_lf_shutdown_triggers: An array of pointers to trigger_t structs for shutdown
+ * reactions. The length of this table is in the _lf_shutdown_triggers_size
+ * variable.</li>
+ * <li>_lf_timer_triggers: An array of pointers to trigger_t structs for timers that
+ * need to be started when the program runs. The length of this table is in the
+ * _lf_timer_triggers_size variable.</li>
+ * <li>_lf_action_table: For a federated execution, each federate will have this table
+ * that maps port IDs to the corresponding action struct, which can be cast to
+ * action_base_t.</li>
+ * </ul>
  *
  * @author Edward A. Lee
  * @author Marten Lohstroh
@@ -802,8 +767,11 @@ public class CGenerator extends GeneratorBase {
      * Look at the 'reactor' eResource.
      * If it is an imported .lf file, incorporate it into the current
      * program in the following manner:
-     * - Merge its target property with `targetConfig`
-     * - If there are any preambles, add them to the preambles of the reactor.
+     * <ul>
+     * <li>Merge its target property with {@code targetConfig}</li>
+     * <li>If there are any preambles, add them to the preambles of the reactor.</li>
+     * </ul>
+     *
      */
     private void inspectReactorEResource(ReactorDecl reactor) {
         // If the reactor is imported, look at the
@@ -833,8 +801,8 @@ public class CGenerator extends GeneratorBase {
     }
 
     /**
-     * Copy all files or directories listed in the target property `files`, `cmake-include`,
-     * and `_fed_setup` into the src-gen folder of the main .lf file
+     * Copy all files or directories listed in the target property {@code files}, {@code cmake-include},
+     * and {@code _fed_setup} into the src-gen folder of the main .lf file
      *
      * @param targetConfig The targetConfig to read the target properties from.
      * @param fileConfig The fileConfig used to make the copy and resolve paths.
@@ -863,9 +831,11 @@ public class CGenerator extends GeneratorBase {
      *
      * Imported reactors' original .lf file is
      * incorporated in the following manner:
-     * - If there are any cmake-include files, add them to the current list
-     *  of cmake-include files.
-     * - If there are any preambles, add them to the preambles of the reactor.
+     * <ul>
+     * <li>If there are any cmake-include files, add them to the current list
+     * of cmake-include files.</li>
+     * <li>If there are any preambles, add them to the preambles of the reactor.</li>
+     * </ul>
      */
     private void generateReactorDefinitions() throws IOException {
         var generatedReactors = new LinkedHashSet<TypeParameterizedReactor>();
@@ -883,7 +853,7 @@ public class CGenerator extends GeneratorBase {
      *
      * @param reactorInstance The Reactor Class
      * @param parentTpr {@link TypeParameterizedReactor} of Parent
-     * */
+     */
     private void resolveTemplatedTypes(ReactorInstance reactorInstance, TypeParameterizedReactor parentTpr) {
         for (var child : reactorInstance.children) {
             if (parentTpr.typeArgs() != null) {
@@ -945,9 +915,11 @@ public class CGenerator extends GeneratorBase {
      *
      * Imported reactors' original .lf file is
      * incorporated in the following manner:
-     * - If there are any cmake-include files, add them to the current list
-     *  of cmake-include files.
-     * - If there are any preambles, add them to the preambles of the reactor.
+     * <ul>
+     * <li>If there are any cmake-include files, add them to the current list
+     * of cmake-include files.</li>
+     * <li>If there are any preambles, add them to the preambles of the reactor.</li>
+     * </ul>
      *
      * @param reactor Used to extract children from
      */
@@ -1039,17 +1011,19 @@ public class CGenerator extends GeneratorBase {
      * Generate a reactor class definition for the specified federate.
      * A class definition has four parts:
      *
-     * * Preamble code, if any, specified in the Lingua Franca file.
-     * * A "self" struct type definition (see the class documentation above).
-     * * A function for each reaction.
-     * * A constructor for creating an instance.
-     *  for deleting an instance.
+     * <ul>
+     * <li>Preamble code, if any, specified in the Lingua Franca file.</li>
+     * <li>A &quot;self&quot; struct type definition (see the class documentation above).</li>
+     * <li>A function for each reaction.</li>
+     * <li>A constructor for creating an instance.
+     * for deleting an instance.</li>
+     * </ul>
      *
-     * If the reactor is the main reactor, then
+     * <p>If the reactor is the main reactor, then
      * the generated code may be customized. Specifically,
      * if the main reactor has reactions, these reactions
      * will not be generated if they are triggered by or send
-     * data to contained reactors that are not in the federate.
+     * data to contained reactors that are not in the federate.</p>
      */
     private void generateReactorClass(TypeParameterizedReactor tpr) throws IOException {
         // FIXME: Currently we're not reusing definitions for declarations that point to the same definition.

@@ -26,7 +26,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 package org.lflang.generator;
 
-import static org.lflang.ASTUtils.getLiteralTimeValue;
+import static org.lflang.ast.ASTUtils.getLiteralTimeValue;
 import static org.lflang.AttributeUtils.isEnclave;
 
 import java.util.ArrayList;
@@ -39,7 +39,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
-import org.lflang.ASTUtils;
+import org.lflang.ast.ASTUtils;
 import org.lflang.AttributeUtils;
 import org.lflang.ErrorReporter;
 import org.lflang.TimeValue;
@@ -197,7 +197,7 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
 
     /**
      * This function assigns/propagates deadlines through the Reaction Instance Graph.
-     * It performs Kahn`s algorithm in reverse, starting from the leaf nodes and
+     * It performs Kahn's algorithm in reverse, starting from the leaf nodes and
      * propagates deadlines upstream. To reduce cost, it should only be invoked when
      * there are user-specified deadlines in the program.
      * @return
@@ -322,7 +322,7 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
     /**
      * @see NamedInstance#uniqueID()
      *
-     * Append `_main` to the name of the main reactor to allow instantiations
+     * Append {@code _main} to the name of the main reactor to allow instantiations
      * within that reactor to have the same name.
      */
     @Override
@@ -1054,14 +1054,14 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
      * and may be ports of a contained bank (a port representing ports of the bank
      * members) so the returned list includes ranges of banks and channels.
      *
-     * If a given port reference has the form `interleaved(b.m)`, where `b` is
-     * a bank and `m` is a multiport, then the corresponding range in the returned
+     * If a given port reference has the form {@code interleaved(b.m)}, where {@code b} is
+     * a bank and {@code m} is a multiport, then the corresponding range in the returned
      * list is marked interleaved.
      *
-     * For example, if `b` and `m` have width 2, without the interleaved keyword,
-     * the returned range represents the sequence `[b0.m0, b0.m1, b1.m0, b1.m1]`.
+     * For example, if {@code b} and {@code m} have width 2, without the interleaved keyword,
+     * the returned range represents the sequence {@code [b0.m0, b0.m1, b1.m0, b1.m1]}.
      * With the interleaved marking, the returned range represents the sequence
-     * `[b0.m0, b1.m0, b0.m1, b1.m1]`. Both ranges will have width 4.
+     * {@code [b0.m0, b1.m0, b0.m1, b1.m1]}. Both ranges will have width 4.
      *
      * @param references The variable references on one side of the connection.
      * @param connection The connection.

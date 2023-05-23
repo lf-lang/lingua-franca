@@ -32,7 +32,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
-import org.lflang.ASTUtils;
+import org.lflang.ast.ASTUtils;
 import org.lflang.TimeValue;
 import org.lflang.lf.Action;
 import org.lflang.lf.BuiltinTriggerRef;
@@ -52,7 +52,7 @@ import org.lflang.lf.Variable;
  * inner class {@link ReactionInstance.Runtime}.  Each runtime instance has a "level", which is
  * its depth an acyclic precedence graph representing the dependencies between
  * reactions at a tag.
- *  
+ *
  * @author Edward A. Lee
  * @author Marten Lohstroh
  */
@@ -69,15 +69,15 @@ public class ReactionInstance extends NamedInstance<Reaction> {
      * first reaction, 1 for the second, etc.).
      */
     public ReactionInstance(
-            Reaction definition, 
-            ReactorInstance parent, 
-            boolean isUnordered, 
+            Reaction definition,
+            ReactorInstance parent,
+            boolean isUnordered,
             int index
     ) {
         super(definition, parent);
         this.index = index;
         this.isUnordered = isUnordered;
-        
+
         // If the reaction body starts with the magic string
         // UNORDERED_REACTION_MARKER, then mark it unordered,
         // overriding the argument.
@@ -85,7 +85,7 @@ public class ReactionInstance extends NamedInstance<Reaction> {
         if (body.contains(UNORDERED_REACTION_MARKER)) {
             this.isUnordered = true;
         }
-        
+
         // Identify the dependencies for this reaction.
         // First handle the triggers.
         for (TriggerRef trigger : definition.getTriggers()) {
@@ -102,7 +102,7 @@ public class ReactionInstance extends NamedInstance<Reaction> {
                         this.triggers.add(portInstance);
                     } else if (((VarRef)trigger).getContainer() != null) {
                         // Port belongs to a contained reactor or bank.
-                        ReactorInstance containedReactor 
+                        ReactorInstance containedReactor
                                 = parent.lookupReactorInstance(((VarRef)trigger).getContainer());
                         if (containedReactor != null) {
                             portInstance = containedReactor.lookupPortInstance((Port)variable);
@@ -135,7 +135,7 @@ public class ReactionInstance extends NamedInstance<Reaction> {
             Variable variable = source.getVariable();
             if (variable instanceof Port) {
                 var portInstance = parent.lookupPortInstance((Port)variable);
-                
+
                 // If the trigger is the port of a contained bank, then the
                 // portInstance will be null and we have to instead search for
                 // each port instance in the bank.
@@ -157,7 +157,7 @@ public class ReactionInstance extends NamedInstance<Reaction> {
                 }
             }
         }
-        
+
         // Finally, handle the effects.
         for (VarRef effect : definition.getEffects()) {
             Variable variable = effect.getVariable();
@@ -191,7 +191,7 @@ public class ReactionInstance extends NamedInstance<Reaction> {
     //////////////////////////////////////////////////////
     //// Public fields.
 
-    /** 
+    /**
      * Indicates the chain this reaction is a part of. It is constructed
      * through a bit-wise or among all upstream chains. Each fork in the
      * dependency graph setting a new, unused bit to true in order to
@@ -216,7 +216,7 @@ public class ReactionInstance extends NamedInstance<Reaction> {
     // "sources" are only the inputs a reaction reads without being
     // triggered by them. The name "reads" used here would be a better
     // choice in the grammar.
-    
+
     /**
      * Deadline for this reaction instance, if declared.
      */
@@ -269,7 +269,7 @@ public class ReactionInstance extends NamedInstance<Reaction> {
         dependsOnReactionsCache = null;
         if (includingRuntimes) runtimeInstances = null;
     }
-    
+
     /**
      * Return the set of immediate downstream reactions, which are reactions
      * that receive data produced by this reaction plus
@@ -280,13 +280,13 @@ public class ReactionInstance extends NamedInstance<Reaction> {
         // Cache the result.
         if (dependentReactionsCache != null) return dependentReactionsCache;
         dependentReactionsCache = new LinkedHashSet<>();
-        
+
         // First, add the next lexical reaction, if appropriate.
         if (!isUnordered && parent.reactions.size() > index + 1) {
             // Find the next reaction in the parent's reaction list.
             dependentReactionsCache.add(parent.reactions.get(index + 1));
         }
-        
+
         // Next, add reactions that get data from this one via a port.
         for (TriggerInstance<? extends Variable> effect : effects) {
             if (effect instanceof PortInstance) {
@@ -302,7 +302,7 @@ public class ReactionInstance extends NamedInstance<Reaction> {
         }
         return dependentReactionsCache;
     }
-    
+
     /**
      * Return the set of immediate upstream reactions, which are reactions
      * that send data to this one plus at most one reaction in the same
@@ -313,7 +313,7 @@ public class ReactionInstance extends NamedInstance<Reaction> {
         // Cache the result.
         if (dependsOnReactionsCache != null) return dependsOnReactionsCache;
         dependsOnReactionsCache = new LinkedHashSet<>();
-        
+
         // First, add the previous lexical reaction, if appropriate.
         if (!isUnordered && index > 0) {
             // Find the previous ordered reaction in the parent's reaction list.
@@ -326,7 +326,7 @@ public class ReactionInstance extends NamedInstance<Reaction> {
                 dependsOnReactionsCache.add(parent.reactions.get(index - 1));
             }
         }
-        
+
         // Next, add reactions that send data to this one.
         for (TriggerInstance<? extends Variable> source : sources) {
             if (source instanceof PortInstance) {
@@ -358,7 +358,7 @@ public class ReactionInstance extends NamedInstance<Reaction> {
         }
         return result;
     }
-    
+
     /**
      * Return a set of deadlines that runtime instances of this reaction have.
      * A ReactionInstance may have more than one deadline if it lies within.
@@ -370,7 +370,7 @@ public class ReactionInstance extends NamedInstance<Reaction> {
         }
         return result;
     }
-        
+
 
     /**
      * Return a list of levels that runtime instances of this reaction have.
@@ -389,7 +389,7 @@ public class ReactionInstance extends NamedInstance<Reaction> {
         }
         return result;
     }
-    
+
     /**
      * Return a list of the deadlines that runtime instances of this reaction have.
      * The size of this list is the total number of runtime instances.
@@ -406,28 +406,28 @@ public class ReactionInstance extends NamedInstance<Reaction> {
 
     /**
      * Return the name of this reaction, which is 'reaction_n',
-     * where n is replaced by the reaction index. 
+     * where n is replaced by the reaction index.
      * @return The name of this reaction.
      */
     @Override
     public String getName() {
         return "reaction_" + this.index;
     }
-        
+
     /**
      * Return an array of runtime instances of this reaction in a
-     * **natural order**, defined as follows.  The position within the
+     * <i>natural order</i>, defined as follows.  The position within the
      * returned list of the runtime instance is given by a mixed-radix
      * number where the low-order digit is the bank index within the
-     * container reactor (or 0 if it is not a bank), the second low order
-     * digit is the bank index of the container's container (or 0 if
+     * container reactor (or {@code 0} if it is not a bank), the second low order
+     * digit is the bank index of the container's container (or {@code 0} if
      * it is not a bank), etc., until the container that is directly
      * contained by the top level (the top-level reactor need not be
-     * included because its index is always 0).
+     * included because its index is always {@code 0}).
      * 
      * The size of the returned array is the product of the widths of all of the
-     * container ReactorInstance objects. If none of these is a bank,
-     * then the size will be 1.
+     * container {@link ReactorInstance} objects. If none of these is a bank,
+     * then the size will be {@code 1}.
      *     
      * This method creates this array the first time it is called, but then
      * holds on to it.  The array is used by {@link ReactionInstanceGraph}
@@ -464,7 +464,7 @@ public class ReactionInstance extends NamedInstance<Reaction> {
         clearCaches(false);
         portInstance.clearCaches();
     }
-    
+
     /**
      * Return a descriptive string.
      */
@@ -500,7 +500,7 @@ public class ReactionInstance extends NamedInstance<Reaction> {
                     return false;
                 }).map(c -> c.actions.get(0).getMinDelay())
                   .min(TimeValue::compare);
-                
+
                 if (afters.isPresent()) {
                     if (let == null) {
                         let = afters.get();
@@ -532,7 +532,7 @@ public class ReactionInstance extends NamedInstance<Reaction> {
 
     /** Cache of the set of upstream reactions. */
     private Set<ReactionInstance> dependsOnReactionsCache;
-    
+
     /**
      * Array of runtime instances of this reaction.
      * This has length 1 unless the reaction is contained
@@ -543,7 +543,7 @@ public class ReactionInstance extends NamedInstance<Reaction> {
      * of the containing reactors are w0, w1, and w2, and
      * we are interested in the instance at bank indexes
      * b0, b1, and b2.  That instance is in this array at
-     * location given by the **natural ordering**, which
+     * location given by the <strong>natural ordering</strong>, which
      * is the mixed radix number b2%w2; b1%w1.
      */
     private List<Runtime> runtimeInstances;
@@ -563,7 +563,7 @@ public class ReactionInstance extends NamedInstance<Reaction> {
         /** ID ranging from 0 to parent.getTotalWidth() - 1. */
         public int id;
         public int level;
-        
+
         public ReactionInstance getReaction() {
             return ReactionInstance.this;
         }

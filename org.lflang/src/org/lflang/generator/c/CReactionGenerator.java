@@ -10,7 +10,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.lflang.ASTUtils;
+import org.lflang.ast.ASTUtils;
 import org.lflang.ErrorReporter;
 import org.lflang.InferredType;
 import org.lflang.TargetConfig;
@@ -1188,7 +1188,7 @@ public class CReactionGenerator {
 
     /**
      * Return the start of a function declaration for a function that takes
-     * a `void*` argument and returns void.
+     * a {@code void*} argument and returns void.
      *
      * @param functionName
      * @return

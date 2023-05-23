@@ -57,8 +57,8 @@ public abstract class FileConfig {
      * The directory that is the root of the package in which the .lf source file resides. This path is determined
      * differently depending on whether the compiler is invoked through the IDE or from the command line. In the former
      * case, the package is the project root that the source resides in. In the latter case, it is the parent directory
-     * of the nearest `src` directory up the hierarchy, if there is one, or just the `outPath` if there is none. It is
-     * recommended to always keep the sources in a `src` directory regardless of the workflow, in which case the
+     * of the nearest {@code src} directory up the hierarchy, if there is one, or just the {@code outPath} if there is none. It is
+     * recommended to always keep the sources in a {@code src} directory regardless of the workflow, in which case the
      * output behavior will be identical irrespective of the way the compiler is invoked.
      */
     public final Path srcPkgPath;
@@ -116,12 +116,12 @@ public abstract class FileConfig {
     // private fields
 
     /**
-     * The parent of the directory designated for placing generated sources into (`./src-gen` by default). Additional
-     * directories (such as `bin` or `build`) should be created as siblings of the directory for generated sources,
+     * The parent of the directory designated for placing generated sources into ({@code ./src-gen} by default). Additional
+     * directories (such as {@code bin} or {@code build}) should be created as siblings of the directory for generated sources,
      * which means that such directories should be created relative to the path assigned to this class variable.
      * <p>
      * The generated source directory is specified in the IDE (Project Properties->LF->Compiler->Output Folder). When
-     * invoking the standalone compiler, the output path is specified directly using the `-o` or `--output-path` option.
+     * invoking the standalone compiler, the output path is specified directly using the {@code -o} or {@code --output-path} option.
      */
     private final Path outPath;
 
@@ -163,12 +163,12 @@ public abstract class FileConfig {
     }
 
     /**
-     * The parent of the directory designated for placing generated sources into (`./src-gen` by default). Additional
-     * directories (such as `bin` or `build`) should be created as siblings of the directory for generated sources,
+     * The parent of the directory designated for placing generated sources into ({@code ./src-gen} by default). Additional
+     * directories (such as {@code bin} or {@code build}) should be created as siblings of the directory for generated sources,
      * which means that such directories should be created relative to the path assigned to this class variable.
      * <p>
      * The generated source directory is specified in the IDE (Project Properties->LF->Compiler->Output Folder). When
-     * invoking the standalone compiler, the output path is specified directly using the `-o` or `--output-path` option.
+     * invoking the standalone compiler, the output path is specified directly using the {@code -o} or {@code --output-path} option.
      */
     public Path getOutPath() {
         return outPath;

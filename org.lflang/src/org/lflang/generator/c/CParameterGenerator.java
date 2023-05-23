@@ -1,7 +1,7 @@
 package org.lflang.generator.c;
 
 import org.lflang.generator.ParameterInstance;
-import org.lflang.ASTUtils;
+import org.lflang.ast.ASTUtils;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.lf.Initializer;
 import org.lflang.lf.Parameter;

@@ -304,7 +304,7 @@ public class CCompiler {
      * Return a flash/emulate command using west.
      * If board is null (defaults to qemu_cortex_m3) or qemu_*
      * Return a flash command which runs the target as an emulation
-     * If ordinary target, return `west flash`
+     * If ordinary target, return {@code west flash}
      */
     public LFCommand buildWestFlashCommand() {
         // Set the build directory to be "build"
@@ -333,9 +333,11 @@ public class CCompiler {
      * is shown.
      *
      * Errors currently detected:
-     * - C++ compiler used to compile C files: This error shows up as
-     *  '#error "The CMAKE_C_COMPILER is set to a C++ compiler"' in
-     *  the 'CMakeOutput' string.
+     * <ul>
+     * <li>C++ compiler used to compile C files: This error shows up as
+     * &#39;#error &quot;The CMAKE_C_COMPILER is set to a C++ compiler&quot;&#39; in
+     * the &#39;CMakeOutput&#39; string.</li>
+     * </ul>
      *
      * @param CMakeOutput The captured output from CMake.
      * @return true if the provided 'CMakeOutput' contains a known error.
@@ -412,7 +414,7 @@ public class CCompiler {
         }
 
         // If there is no main reactor, then use the -c flag to prevent linking from occurring.
-        // FIXME: we could add a `-c` flag to `lfc` to make this explicit in stand-alone mode.
+        // FIXME: we could add a {@code -c} flag to {@code lfc} to make this explicit in stand-alone mode.
         //  Then again, I think this only makes sense when we can do linking.
         if (noBinary) {
             compileArgs.add("-c"); // FIXME: revisit
