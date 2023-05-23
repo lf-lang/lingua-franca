@@ -5,7 +5,6 @@ import org.eclipse.xtext.testing.extensions.InjectionExtension;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-
 import org.lflang.ast.IsEqual;
 import org.lflang.lf.Model;
 import org.lflang.tests.LFInjectorProvider;
@@ -15,10 +14,10 @@ import org.lflang.tests.LfParsingUtil;
 @InjectWith(LFInjectorProvider.class)
 public class EquivalenceUnitTests {
 
-    @Test
-    public void testSimple() {
-        assertSelfEquivalence(
-            """
+  @Test
+  public void testSimple() {
+    assertSelfEquivalence(
+        """
                 target C
 
                 reactor Destination {
@@ -26,14 +25,13 @@ public class EquivalenceUnitTests {
                     input in: int
                     state last_invoked: tag_t({= NEVER_TAG_INITIALIZER =})
                 }
-                """
-        );
-    }
+                """);
+  }
 
-    @Test
-    public void testCodeExprEqItselfModuloIndent() {
-        assertEquivalent(
-            """
+  @Test
+  public void testCodeExprEqItselfModuloIndent() {
+    assertEquivalent(
+        """
                 target C
                 reactor Destination {
                     state s: tag_t({=
@@ -41,67 +39,56 @@ public class EquivalenceUnitTests {
                     =})
                 }
                 """,
-            """
+        """
                 target C
                 reactor Destination {
                     state s: tag_t({= NEVER_TAG_INITIALIZER =})
                 }
-                """
-        );
-    }
+                """);
+  }
 
-    @Test
-    public void testInitializerParensAreIrrelevantInAssignment() {
-        assertEquivalent(
-            """
+  @Test
+  public void testInitializerParensAreIrrelevantInAssignment() {
+    assertEquivalent(
+        """
                 target C
                 reactor A(a: int(0)) {}
                 main reactor {
                     a = new A(a = 1)
                 }
                 """,
-            """
+        """
                 target C
                 reactor A(a: int(0)) {}
                 main reactor {
                     a = new A(a = (1)) // mind the parens here.
                 }
-                """
-        );
-    }
+                """);
+  }
 
-    private void assertSelfEquivalence(String input) {
-        Model inputModel = LfParsingUtil.parseValidModel("test input", input);
-        // need to parse twice otherwise they are trivially equivalent
-        // because they're the same object.
-        Model otherModel = LfParsingUtil.parseValidModel("other", input);
+  private void assertSelfEquivalence(String input) {
+    Model inputModel = LfParsingUtil.parseValidModel("test input", input);
+    // need to parse twice otherwise they are trivially equivalent
+    // because they're the same object.
+    Model otherModel = LfParsingUtil.parseValidModel("other", input);
 
-        // test equivalence of the models.
-        Assertions.assertTrue(
-            new IsEqual(inputModel).doSwitch(otherModel),
-            String.format(
-                "Model is not equivalent to itself. Source:%n%s",
-                input
-            )
-        );
-    }
+    // test equivalence of the models.
+    Assertions.assertTrue(
+        new IsEqual(inputModel).doSwitch(otherModel),
+        String.format("Model is not equivalent to itself. Source:%n%s", input));
+  }
 
-    private void assertEquivalent(String input, String other) {
-        Model inputModel = LfParsingUtil.parseValidModel("test input", input);
-        Model outputModel = LfParsingUtil.parseValidModel("other", other);
+  private void assertEquivalent(String input, String other) {
+    Model inputModel = LfParsingUtil.parseValidModel("test input", input);
+    Model outputModel = LfParsingUtil.parseValidModel("other", other);
 
-        // test equivalence of the models.
-        Assertions.assertTrue(
-            new IsEqual(inputModel).doSwitch(outputModel),
-            String.format(
-                "The reformatted model is not equivalent to the original file.%n"
-                    + "Input file:%n%s%n%n"
-                    + "Comparand file:%n%s%n%n",
-                input,
-                other
-            )
-        );
-    }
-
-
+    // test equivalence of the models.
+    Assertions.assertTrue(
+        new IsEqual(inputModel).doSwitch(outputModel),
+        String.format(
+            "The reformatted model is not equivalent to the original file.%n"
+                + "Input file:%n%s%n%n"
+                + "Comparand file:%n%s%n%n",
+            input, other));
+  }
 }

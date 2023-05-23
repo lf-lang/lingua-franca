@@ -31,9 +31,9 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
-import org.lflang.ASTUtils;
 import org.lflang.TargetProperty;
 import org.lflang.TargetProperty.TargetPropertyType;
+import org.lflang.ast.ASTUtils;
 import org.lflang.generator.InvalidLfSourceException;
 import org.lflang.lf.Array;
 import org.lflang.lf.Element;
@@ -202,14 +202,12 @@ public class CargoDependencySpec {
               pair.getValue(), "Expected string literal for key '" + name + "'");
         }
         switch (name) {
-        case "version" -> version = literal;
-        case "git" -> gitRepo = literal;
-        case "rev" -> rev = literal;
-        case "tag" -> tag = literal;
-        case "path" -> localPath = literal;
-        default -> throw new InvalidLfSourceException(pair,
-                                                      "Unknown key: '" + name
-                                                          + "'");
+          case "version" -> version = literal;
+          case "git" -> gitRepo = literal;
+          case "rev" -> rev = literal;
+          case "tag" -> tag = literal;
+          case "path" -> localPath = literal;
+          default -> throw new InvalidLfSourceException(pair, "Unknown key: '" + name + "'");
         }
       }
       if (isRuntimeCrate || version != null || localPath != null || gitRepo != null) {

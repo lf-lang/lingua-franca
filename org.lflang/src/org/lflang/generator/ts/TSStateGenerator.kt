@@ -1,6 +1,6 @@
 package org.lflang.generator.ts
 
-import org.lflang.ASTUtils
+import org.lflang.ast.ASTUtils
 import org.lflang.generator.getTargetInitializer
 import org.lflang.lf.StateVar
 import java.util.*
