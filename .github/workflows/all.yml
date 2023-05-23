@@ -2,8 +2,7 @@
 name: CI
 
 on:
-  workflow_dispatch: # Allow the workflow to be triggered manually.
-  # Trigger this workflow on push events, but only on master.
+  workflow_dispatch:
   push:
     branches:
       - master
