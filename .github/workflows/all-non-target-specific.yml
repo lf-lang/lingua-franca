@@ -1,4 +1,3 @@
-# Main workflow for testing the Lingua Franca compiler.
 name: Non-target-specific
 
 on:
