@@ -67,12 +67,12 @@ public class CEnvironmentFunctionGenerator {
             code.pr(
                 "environment_init(&"+CUtil.getEnvironmentStruct(enclave) +
                     ","+CUtil.getEnvironmentId(enclave) +
-                    ","+CUtil.numWorkersInEnclave(enclave) +
-                    ","+CUtil.numTimerTriggersInEnclave(enclave) +
-                    ","+CUtil.numStartupReactionsInEnclave(enclave) +
-                    ","+CUtil.numShutdownReactionsInEnclave(enclave) +
-                    ","+CUtil.numResetReactionsInEnclave(enclave)+
-                    ","+CUtil.numIsPresentFieldsInEnclave(enclave)+
+                    ","+enclave.enclaveInfo.numWorkers +
+                    ","+enclave.enclaveInfo.numTimerTriggers+
+                    ","+enclave.enclaveInfo.numStartupReactions +
+                    ","+enclave.enclaveInfo.numShutdownReactions +
+                    ","+enclave.enclaveInfo.numResetReactions +
+                    ","+enclave.enclaveInfo.numIsPresentFields +
                     ");"
             );
         }

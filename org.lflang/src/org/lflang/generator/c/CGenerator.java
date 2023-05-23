@@ -28,7 +28,6 @@ import static org.lflang.ASTUtils.allActions;
 import static org.lflang.ASTUtils.allPorts;
 import static org.lflang.ASTUtils.allReactions;
 import static org.lflang.ASTUtils.allStateVars;
-import static org.lflang.ASTUtils.convertToEmptyListIfNull;
 import static org.lflang.ASTUtils.getInferredType;
 import static org.lflang.ASTUtils.isInitialized;
 import static org.lflang.ASTUtils.toDefinition;
@@ -39,9 +38,11 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -52,7 +53,6 @@ import org.eclipse.xtext.xbase.lib.IterableExtensions;
 import org.eclipse.xtext.xbase.lib.StringExtensions;
 
 import org.lflang.ASTUtils;
-import org.lflang.ast.EnclavedConnectionTransformation;
 import org.lflang.generator.CodeMap;
 import org.lflang.generator.DockerComposeGenerator;
 import org.lflang.FileConfig;
@@ -88,7 +88,6 @@ import org.lflang.lf.ActionOrigin;
 import org.lflang.lf.Input;
 import org.lflang.lf.Instantiation;
 import org.lflang.lf.Mode;
-import org.lflang.lf.Model;
 import org.lflang.lf.Port;
 import org.lflang.lf.Preamble;
 import org.lflang.lf.Reaction;
@@ -99,6 +98,7 @@ import org.lflang.lf.Variable;
 import org.lflang.util.ArduinoUtil;
 import org.lflang.util.FileUtil;
 
+import com.google.common.base.Objects;
 import com.google.common.collect.Iterables;
 
 /**
@@ -334,7 +334,6 @@ public class CGenerator extends GeneratorBase {
      * Count of the number of is_present fields of the self struct that
      * need to be reinitialized in _lf_start_time_step().
      */
-    protected int startTimeStepIsPresentCount = 0;
 
     ////////////////////////////////////////////
     //// Private fields
@@ -652,7 +651,6 @@ public class CGenerator extends GeneratorBase {
     private void generateCodeFor(
         String lfModuleName
     ) throws IOException {
-        startTimeStepIsPresentCount = 0;
         code.pr(generateDirectives());
         code.pr(new CMainFunctionGenerator(targetConfig).generateCode());
         // Generate code for each reactor.
@@ -1476,11 +1474,19 @@ public class CGenerator extends GeneratorBase {
      * counts and mark outputs absent between time steps. This function puts the code
      * into startTimeStep.
      */
+    /**
+     * Generate code to set up the tables used in _lf_start_time_step to decrement reference
+     * counts and mark outputs absent between time steps. This function puts the code
+     * into startTimeStep.
+     */
     private void generateStartTimeStep(ReactorInstance instance) {
         // Avoid generating dead code if nothing is relevant.
         var foundOne = false;
         var temp = new CodeBuilder();
         var containerSelfStructName = CUtil.reactorRef(instance);
+        var enclave = CUtil.getClosestEnclave(instance);
+        var enclaveInfo = enclave.enclaveInfo;
+        var enclaveStruct = CUtil.getEnvironmentStruct(enclave);
 
         // Handle inputs that get sent data from a reaction rather than from
         // another contained reactor and reactions that are triggered by an
@@ -1500,7 +1506,7 @@ public class CGenerator extends GeneratorBase {
 
                     temp.pr("// Add port "+port.getFullName()+" to array of is_present fields.");
 
-                    if (!instance.equals(port.getParent())) {
+                    if (!Objects.equal(port.getParent(), instance)) {
                         // The port belongs to contained reactor, so we also have
                         // iterate over the instance bank members.
                         temp.startScopedBlock();
@@ -1513,21 +1519,17 @@ public class CGenerator extends GeneratorBase {
                     var portRef = CUtil.portRefNested(port);
                     var con = (port.isMultiport()) ? "->" : ".";
 
-                    temp.pr(
-                        CUtil.getEnvironmentStruct(instance)+
-                            "._lf_is_present_fields[] = &"+portRef+con+"is_present;");
+                    temp.pr(enclaveStruct+"._lf_is_present_fields["+enclaveInfo.numIsPresentFields+" + count] = &"+portRef+con+"is_present;");
                     // Intended_tag is only applicable to ports in federated execution.
                     temp.pr(
                         CExtensionUtils.surroundWithIfFederatedDecentralized(
-                            CUtil.getEnvironmentStruct(instance) +
-                        "._lf_intended_tag_fields[is_present_fields_count["+CUtil.getEnvironmentId(instance)+"]++] = &"+portRef+con+"intended_tag;"
-
+                            enclaveStruct+"._lf_intended_tag_fields["+enclaveInfo.numIsPresentFields+" + count] = &"+portRef+con+"intended_tag;"
                         )
                     );
 
-                    startTimeStepIsPresentCount += port.getWidth() * port.getParent().getTotalWidth();
+                    enclaveInfo.numIsPresentFields += port.getWidth() * port.getParent().getTotalWidth();
 
-                    if (port.getParent() != instance) {
+                    if (!Objects.equal(port.getParent(), instance)) {
                         temp.pr("count++;");
                         temp.endScopedBlock();
                         temp.endScopedBlock();
@@ -1548,7 +1550,7 @@ public class CGenerator extends GeneratorBase {
 
             temp.pr(String.join("\n",
                 "// Add action "+action.getFullName()+" to array of is_present fields.",
-                CUtil.getEnvironmentStruct(instance) + "._lf_is_present_fields[is_present_fields_count["+CUtil.getEnvironmentId(instance)+"]++] ",
+                enclaveStruct+"._lf_is_present_fields["+enclaveInfo.numIsPresentFields+"] ",
                 "        = &"+containerSelfStructName+"->_lf_"+action.getName()+".is_present;"
             ));
 
@@ -1556,15 +1558,16 @@ public class CGenerator extends GeneratorBase {
             temp.pr(
                 CExtensionUtils.surroundWithIfFederatedDecentralized(
                     String.join("\n",
-                                "// Add action " + action.getFullName()
-                                    + " to array of intended_tag fields.",
-                                "_lf_intended_tag_fields["
-                                    + "is_present_fields_count["+CUtil.getEnvironmentId(instance)+"]]",
-                                "        = &" + containerSelfStructName
-                                    + "->_lf_" + action.getName()
-                                    + ".intended_tag;"
+                        "// Add action " + action.getFullName()
+                            + " to array of intended_tag fields.",
+                        enclaveStruct+"._lf_intended_tag_fields["
+                            + enclaveInfo.numIsPresentFields + "] ",
+                        "        = &" + containerSelfStructName
+                            + "->_lf_" + action.getName()
+                            + ".intended_tag;"
                     )));
 
+            enclaveInfo.numIsPresentFields += action.getParent().getTotalWidth();
             temp.endScopedBlock();
         }
         if (foundOne) startTimeStep.pr(temp.toString());
@@ -1585,14 +1588,14 @@ public class CGenerator extends GeneratorBase {
                         foundOne = true;
                         temp.pr("// Add port "+output.getFullName()+" to array of is_present fields.");
                         temp.startChannelIteration(output);
-                        temp.pr("env->_lf_is_present_fields["+startTimeStepIsPresentCount+" + count] = &"+CUtil.portRef(output)+".is_present;");
+                        temp.pr(enclaveStruct+"._lf_is_present_fields["+enclaveInfo.numIsPresentFields+" + count] = &"+CUtil.portRef(output)+".is_present;");
 
                         // Intended_tag is only applicable to ports in federated execution with decentralized coordination.
                         temp.pr(
                             CExtensionUtils.surroundWithIfFederatedDecentralized(
                                 String.join("\n",
-                                            "// Add port "+output.getFullName()+" to array of intended_tag fields.",
-                                                "_lf_intended_tag_fields["+startTimeStepIsPresentCount+" + count] = &"+CUtil.portRef(output)+".intended_tag;"
+                                    "// Add port "+output.getFullName()+" to array of intended_tag fields.",
+                                    enclaveStruct+"._lf_intended_tag_fields["+enclaveInfo.numIsPresentFields+" + count] = &"+CUtil.portRef(output)+".intended_tag;"
                                 )));
 
                         temp.pr("count++;");
@@ -1600,7 +1603,7 @@ public class CGenerator extends GeneratorBase {
                         temp.endChannelIteration(output);
                     }
                 }
-                startTimeStepIsPresentCount += channelCount * child.getTotalWidth();
+                enclaveInfo.numIsPresentFields += channelCount * child.getTotalWidth();
                 temp.endScopedBlock();
                 temp.endScopedBlock();
             }

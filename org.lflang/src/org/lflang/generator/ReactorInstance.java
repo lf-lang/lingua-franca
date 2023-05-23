@@ -28,6 +28,7 @@ package org.lflang.generator;
 
 import static org.lflang.ASTUtils.belongsTo;
 import static org.lflang.ASTUtils.getLiteralTimeValue;
+import static org.lflang.AttributeUtils.isEnclave;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -53,7 +54,6 @@ import org.lflang.lf.Expression;
 import org.lflang.lf.Initializer;
 import org.lflang.lf.Input;
 import org.lflang.lf.Instantiation;
-import org.lflang.lf.LfFactory;
 import org.lflang.lf.Mode;
 import org.lflang.lf.Output;
 import org.lflang.lf.Parameter;
@@ -166,6 +166,8 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
     /** Indicator that this reactor has itself as a parent, an error condition. */
     public final boolean recursive;
 
+    // An enclave object if this ReactorInstance is an enclave. null if not
+    public EnclaveInfo enclaveInfo = null;
     //////////////////////////////////////////////////////
     //// Public methods.
 
@@ -808,6 +810,10 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
         this.reporter = reporter;
         this.reactorDeclaration = definition.getReactorClass();
         this.reactorDefinition = ASTUtils.toDefinition(reactorDeclaration);
+
+        if (isEnclave(definition)) {
+            enclaveInfo = new EnclaveInfo(this);
+        }
 
         // check for recursive instantiation
         var currentParent = parent;
