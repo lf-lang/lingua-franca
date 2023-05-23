@@ -31,7 +31,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.function.Predicate;
-
 import org.hamcrest.BaseMatcher;
 import org.hamcrest.Description;
 import org.hamcrest.Matcher;
@@ -41,139 +40,136 @@ import org.hamcrest.Matcher;
  */
 public class TestUtils {
 
-    private static Matcher<Path> pathMatcher(String description, Predicate<Path> predicate) {
-        return new BaseMatcher<>() {
-            @Override
-            public boolean matches(Object item) {
-                return item instanceof Path && predicate.test((Path) item);
-            }
+  private static Matcher<Path> pathMatcher(String description, Predicate<Path> predicate) {
+    return new BaseMatcher<>() {
+      @Override
+      public boolean matches(Object item) {
+        return item instanceof Path && predicate.test((Path) item);
+      }
 
-            @Override
-            public void describeTo(Description describer) {
-                describer.appendText(description);
-            }
-        };
+      @Override
+      public void describeTo(Description describer) {
+        describer.appendText(description);
+      }
+    };
+  }
+
+  public static Matcher<Path> isDirectory() {
+    return pathMatcher("is a directory", Files::isDirectory);
+  }
+
+  public static Matcher<Path> isRegularFile() {
+    return pathMatcher("is a regular file", Files::isRegularFile);
+  }
+
+  public static Matcher<Path> exists() {
+    return pathMatcher("exists", Files::exists);
+  }
+
+  /** Builder for a directory. Useful to create a fake LF project. */
+  public static class TempDirBuilder {
+
+    private final Path curDir;
+
+    private TempDirBuilder(Path path) {
+      this.curDir = path;
+      if (!Files.isDirectory(path)) {
+        throw new IllegalArgumentException("Not a directory: " + path);
+      }
     }
 
-    public static Matcher<Path> isDirectory() {
-        return pathMatcher("is a directory", Files::isDirectory);
+    public static TempDirBuilder dirBuilder(Path path) {
+      return new TempDirBuilder(path);
     }
 
-    public static Matcher<Path> isRegularFile() {
-        return pathMatcher("is a regular file", Files::isRegularFile);
+    /** Create a directory at the given path. Return a new temp dir builder for that subdir. */
+    public TempDirBuilder cd(String relativePath) throws IOException {
+      Path relPath = Paths.get(relativePath);
+      if (relPath.isAbsolute()) {
+        throw new IllegalArgumentException("Should be a relative path: " + relativePath);
+      }
+      Path dir = curDir.resolve(relPath);
+      Files.createDirectories(dir);
+      return new TempDirBuilder(dir);
     }
 
-    public static Matcher<Path> exists() {
-        return pathMatcher("exists", Files::exists);
+    /** Create a directory at the given path. Return this instance. */
+    public TempDirBuilder mkdirs(String relativePath) throws IOException {
+      Path relPath = Paths.get(relativePath);
+      if (relPath.isAbsolute()) {
+        throw new IllegalArgumentException("Should be a relative path: " + relativePath);
+      }
+      Path dir = curDir.resolve(relPath);
+      Files.createDirectories(dir);
+      return this;
+    }
+
+    /** Create a file in the given subpath. Return this instance. */
+    public TempDirBuilder file(String relativePath, String contents) throws IOException {
+      Path relPath = Paths.get(relativePath);
+      if (relPath.isAbsolute()) {
+        throw new IllegalArgumentException("Should be a relative path: " + relativePath);
+      }
+      Path filePath = curDir.resolve(relPath);
+      Files.createDirectories(filePath.getParent());
+      Files.writeString(filePath, contents);
+      return this;
+    }
+  }
+
+  /** Builder for a directory. Useful to create a fake LF project. */
+  public static class TempDirChecker {
+
+    private final Path curDir;
+
+    private TempDirChecker(Path path) {
+      this.curDir = path;
+      if (!Files.isDirectory(path)) {
+        throw new IllegalArgumentException("Not a directory: " + path);
+      }
+    }
+
+    public static TempDirChecker dirChecker(Path path) {
+      return new TempDirChecker(path);
+    }
+
+    /** Create a directory at the given path. Return a new temp dir builder for that subdir. */
+    public TempDirBuilder cd(String relativePath) throws IOException {
+      Path relPath = Paths.get(relativePath);
+      if (relPath.isAbsolute()) {
+        throw new IllegalArgumentException("Should be a relative path: " + relativePath);
+      }
+      Path dir = curDir.resolve(relPath);
+      Files.createDirectories(dir);
+      return new TempDirBuilder(dir);
     }
 
     /**
-     * Builder for a directory. Useful to create a fake LF project.
+     * Check the contents of the file match the matcher. The file should be a UTF-8 encoded text
+     * file. Return this instance.
      */
-    public static class TempDirBuilder {
+    public TempDirChecker checkContentsOf(
+        String relativePath, Matcher<? super String> contentsMatcher) throws IOException {
+      Path relPath = Paths.get(relativePath);
+      if (relPath.isAbsolute()) {
+        throw new IllegalArgumentException("Should be a relative path: " + relativePath);
+      }
+      Path filePath = curDir.resolve(relPath);
 
-        private final Path curDir;
-
-        private TempDirBuilder(Path path) {
-            this.curDir = path;
-            if (!Files.isDirectory(path)) {
-                throw new IllegalArgumentException("Not a directory: " + path);
-            }
-        }
-
-        public static TempDirBuilder dirBuilder(Path path) {
-            return new TempDirBuilder(path);
-        }
-
-        /** Create a directory at the given path. Return a new temp dir builder for that subdir. */
-        public TempDirBuilder cd(String relativePath) throws IOException {
-            Path relPath = Paths.get(relativePath);
-            if (relPath.isAbsolute()) {
-                throw new IllegalArgumentException("Should be a relative path: " + relativePath);
-            }
-            Path dir = curDir.resolve(relPath);
-            Files.createDirectories(dir);
-            return new TempDirBuilder(dir);
-        }
-
-        /** Create a directory at the given path. Return this instance. */
-        public TempDirBuilder mkdirs(String relativePath) throws IOException {
-            Path relPath = Paths.get(relativePath);
-            if (relPath.isAbsolute()) {
-                throw new IllegalArgumentException("Should be a relative path: " + relativePath);
-            }
-            Path dir = curDir.resolve(relPath);
-            Files.createDirectories(dir);
-            return this;
-        }
-
-        /** Create a file in the given subpath. Return this instance. */
-        public TempDirBuilder file(String relativePath, String contents) throws IOException {
-            Path relPath = Paths.get(relativePath);
-            if (relPath.isAbsolute()) {
-                throw new IllegalArgumentException("Should be a relative path: " + relativePath);
-            }
-            Path filePath = curDir.resolve(relPath);
-            Files.createDirectories(filePath.getParent());
-            Files.writeString(filePath, contents);
-            return this;
-        }
+      assertThat(Files.readString(filePath), contentsMatcher);
+      return this;
     }
 
-    /**
-     * Builder for a directory. Useful to create a fake LF project.
-     */
-    public static class TempDirChecker {
+    public TempDirChecker check(String relativePath, Matcher<? super Path> pathMatcher)
+        throws IOException {
+      Path relPath = Paths.get(relativePath);
+      if (relPath.isAbsolute()) {
+        throw new IllegalArgumentException("Should be a relative path: " + relativePath);
+      }
+      Path filePath = curDir.resolve(relPath);
 
-        private final Path curDir;
-
-        private TempDirChecker(Path path) {
-            this.curDir = path;
-            if (!Files.isDirectory(path)) {
-                throw new IllegalArgumentException("Not a directory: " + path);
-            }
-        }
-
-        public static TempDirChecker dirChecker(Path path) {
-            return new TempDirChecker(path);
-        }
-
-        /** Create a directory at the given path. Return a new temp dir builder for that subdir. */
-        public TempDirBuilder cd(String relativePath) throws IOException {
-            Path relPath = Paths.get(relativePath);
-            if (relPath.isAbsolute()) {
-                throw new IllegalArgumentException("Should be a relative path: " + relativePath);
-            }
-            Path dir = curDir.resolve(relPath);
-            Files.createDirectories(dir);
-            return new TempDirBuilder(dir);
-        }
-
-        /**
-         * Check the contents of the file match the matcher.
-         * The file should be a UTF-8 encoded text file. Return
-         * this instance.
-         */
-        public TempDirChecker checkContentsOf(String relativePath, Matcher<? super String> contentsMatcher) throws IOException {
-            Path relPath = Paths.get(relativePath);
-            if (relPath.isAbsolute()) {
-                throw new IllegalArgumentException("Should be a relative path: " + relativePath);
-            }
-            Path filePath = curDir.resolve(relPath);
-
-            assertThat(Files.readString(filePath), contentsMatcher);
-            return this;
-        }
-
-        public TempDirChecker check(String relativePath, Matcher<? super Path> pathMatcher) throws IOException {
-            Path relPath = Paths.get(relativePath);
-            if (relPath.isAbsolute()) {
-                throw new IllegalArgumentException("Should be a relative path: " + relativePath);
-            }
-            Path filePath = curDir.resolve(relPath);
-
-            assertThat(filePath, pathMatcher);
-            return this;
-        }
+      assertThat(filePath, pathMatcher);
+      return this;
     }
+  }
 }

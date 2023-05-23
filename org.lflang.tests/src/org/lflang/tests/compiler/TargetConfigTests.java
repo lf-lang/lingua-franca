@@ -12,7 +12,6 @@ import org.eclipse.xtext.testing.util.ParseHelper;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-
 import org.lflang.federated.generator.FedFileConfig;
 import org.lflang.generator.GeneratorUtils;
 import org.lflang.generator.LFGenerator;
@@ -24,79 +23,81 @@ import org.lflang.tests.LFInjectorProvider;
 @ExtendWith(InjectionExtension.class)
 @InjectWith(LFInjectorProvider.class)
 
-/**
- * Tests for checking that target properties adequately translate into the target configuration.
- */
+/** Tests for checking that target properties adequately translate into the target configuration. */
 class TargetConfigTests {
 
-    @Inject
-    ParseHelper<Model> parser;
+  @Inject ParseHelper<Model> parser;
 
-    @Inject
-    LFGenerator generator;
+  @Inject LFGenerator generator;
 
-    @Inject
-    JavaIoFileSystemAccess fileAccess;
+  @Inject JavaIoFileSystemAccess fileAccess;
 
-    @Inject
-    Provider<ResourceSet> resourceSetProvider;
+  @Inject Provider<ResourceSet> resourceSetProvider;
 
-    private void assertHasTargetProperty(Model model, String name) {
-        Assertions.assertNotNull(model);
-        Assertions.assertTrue(
-            model.getTarget().getConfig().getPairs().stream().anyMatch(
-                p -> p.getName().equals(name)
-            )
-        );
-    }
+  private void assertHasTargetProperty(Model model, String name) {
+    Assertions.assertNotNull(model);
+    Assertions.assertTrue(
+        model.getTarget().getConfig().getPairs().stream().anyMatch(p -> p.getName().equals(name)));
+  }
 
-    /**
-     * Check that tracing target property affects the target configuration.
-     * @throws Exception
-     */
-    @Test
-    public void testParsing() throws Exception {
-        assertHasTargetProperty(parser.parse("""
+  /**
+   * Check that tracing target property affects the target configuration.
+   *
+   * @throws Exception
+   */
+  @Test
+  public void testParsing() throws Exception {
+    assertHasTargetProperty(
+        parser.parse(
+            """
             target C {
               tracing: true
             }
-            """), "tracing");
-    }
+            """),
+        "tracing");
+  }
 
-    /**
-     * Check that when a federation has the "tracing" target property set, the generated federates
-     * will also have it set.
-     * @throws Exception
-     */
-    @Test
-    public void testFederation() throws Exception {
-        fileAccess.setOutputPath("src-gen");
+  /**
+   * Check that when a federation has the "tracing" target property set, the generated federates
+   * will also have it set.
+   *
+   * @throws Exception
+   */
+  @Test
+  public void testFederation() throws Exception {
+    fileAccess.setOutputPath("src-gen");
 
-        Model federation = parser.parse("""
+    Model federation =
+        parser.parse(
+            """
             target C {
               tracing: true
             }
             reactor Foo {
-            
+
             }
             federated reactor {
                 a = new Foo()
                 b = new Foo()
             }
-            """, URI.createFileURI("tmp/src/Federation.lf"), resourceSetProvider.get());
-        assertHasTargetProperty(federation, "tracing");
+            """,
+            URI.createFileURI("tmp/src/Federation.lf"),
+            resourceSetProvider.get());
+    assertHasTargetProperty(federation, "tracing");
 
-        var resource = federation.eResource();
-        var context = new MainContext(Mode.STANDALONE, resource, fileAccess, () -> false);
+    var resource = federation.eResource();
+    var context = new MainContext(Mode.STANDALONE, resource, fileAccess, () -> false);
 
-        if (GeneratorUtils.isHostWindows()) return;
+    if (GeneratorUtils.isHostWindows()) return;
 
-        generator.doGenerate(resource, fileAccess, context);
+    generator.doGenerate(resource, fileAccess, context);
 
-        String lfSrc = Files.readAllLines(
-            ((FedFileConfig)context.getFileConfig()).getSrcPath().resolve("federate__a.lf")
-        ).stream().reduce("\n", String::concat);
-        Model federate = parser.parse(lfSrc);
-        assertHasTargetProperty(federate, "tracing");
-    }
+    String lfSrc =
+        Files.readAllLines(
+                ((FedFileConfig) context.getFileConfig()).getSrcPath().resolve("federate__a.lf"))
+            .stream()
+            .reduce("\n", String::concat);
+    Model federate = parser.parse(lfSrc);
+    assertHasTargetProperty(federate, "tracing");
+  }
 }
