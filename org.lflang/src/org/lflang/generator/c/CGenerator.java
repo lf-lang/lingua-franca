@@ -660,14 +660,17 @@ public class CGenerator extends GeneratorBase {
         // Note that any main reactors in imported files are ignored.
         // Skip generation if there are cycles.
         if (main != null) {
-            code.pr(new CEnvironmentFunctionGenerator().generateCode(main));
+            initializeTriggerObjects.pr(CModesGenerator.generateModalInitalizationCounters(hasModalReactors));
+            var envFuncGen = new CEnvironmentFunctionGenerator(main);
+
+
+            code.pr(envFuncGen.generateDeclarations());
             initializeTriggerObjects.pr(String.join("\n",
                 "int bank_index;",
                 "SUPPRESS_UNUSED_WARNING(bank_index);",
                 "int watchdog_number = 0;",
                 "SUPPRESS_UNUSED_WARNING(watchdog_number);"));
             // Add counters for modal initialization
-            initializeTriggerObjects.pr(CModesGenerator.generateModalInitalizationCounters(hasModalReactors));
 
             // Create an array of arrays to store all self structs.
             // This is needed because connections cannot be established until
@@ -676,6 +679,8 @@ public class CGenerator extends GeneratorBase {
             // reactors, which are arbitarily far away in the program graph.
             generateSelfStructs(main);
             generateReactorInstance(main);
+
+            code.pr(envFuncGen.generateDefinitions());
 
             if (targetConfig.fedSetupPreamble != null) {
                 if (targetLanguageIsCpp()) code.pr("extern \"C\" {");

@@ -9,13 +9,19 @@ import org.lflang.generator.ReactorInstance;
 public class CEnvironmentFunctionGenerator {
 
 
-    public String generateCode(ReactorInstance main) {
+    public CEnvironmentFunctionGenerator(ReactorInstance main) {
         this.enclaves = CUtil.getEnclaves(main);
-
+    }
+    public String generateDeclarations() {
         CodeBuilder code = new CodeBuilder();
         code.pr(generateEnvironmentInclude());
         code.pr(generateEnvironmentEnum());
         code.pr(generateEnvironmentArray());
+        return code.toString();
+    }
+
+    public String generateDefinitions() {
+        CodeBuilder code = new CodeBuilder();
         code.pr(generateCreateEnvironments());
         code.pr(generateGetEnvironments());
         return code.toString();

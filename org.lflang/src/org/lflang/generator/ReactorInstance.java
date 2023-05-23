@@ -811,7 +811,7 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
         this.reactorDeclaration = definition.getReactorClass();
         this.reactorDefinition = ASTUtils.toDefinition(reactorDeclaration);
 
-        if (isEnclave(definition)) {
+        if (isEnclave(definition) || this.isMainOrFederated()) {
             enclaveInfo = new EnclaveInfo(this);
         }
 
