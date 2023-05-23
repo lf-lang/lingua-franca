@@ -47,7 +47,6 @@ class CppPortGenerator(private val reactor: Reactor) {
         val VarRef.dataType: String
             get() {
                 val variableRef = when {
-                    this == null                             -> ""
                     container == null                        -> this.name
                     container.isBank && container.isEnclave  -> "${container.name}[0]->__lf_instance->${variable.name}"
                     container.isBank && !container.isEnclave -> "${container.name}[0]->${variable.name}"

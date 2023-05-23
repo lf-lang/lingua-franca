@@ -1,10 +1,8 @@
 package org.lflang.generator.ts
 
 import org.lflang.ErrorReporter
-import org.lflang.ASTUtils
-import org.lflang.federated.generator.FederateInstance
+import org.lflang.ast.ASTUtils
 import org.lflang.generator.PrependOperator
-import org.lflang.generator.getTargetTimeExpr
 import org.lflang.isBank
 import org.lflang.isMultiport
 import org.lflang.joinWithCommas
@@ -12,7 +10,7 @@ import org.lflang.lf.*
 import org.lflang.lf.Timer
 import org.lflang.toText
 import kotlin.collections.HashSet
-import java.util.StringJoiner 
+import java.util.StringJoiner
 import java.util.LinkedList
 
 

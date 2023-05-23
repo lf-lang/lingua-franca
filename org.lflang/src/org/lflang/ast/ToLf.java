@@ -20,7 +20,6 @@ import org.eclipse.xtext.nodemodel.ICompositeNode;
 import org.eclipse.xtext.nodemodel.INode;
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils;
 import org.eclipse.xtext.xbase.lib.StringExtensions;
-import org.lflang.ASTUtils;
 import org.lflang.Target;
 import org.lflang.ast.MalleableString.Builder;
 import org.lflang.ast.MalleableString.Joiner;
@@ -219,11 +218,7 @@ public class ToLf extends LfSwitch<MalleableString> {
             .map(String::stripTrailing)
             .collect(Collectors.joining("\n"));
     MalleableString singleLineRepresentation =
-        new Builder()
-            .append("{= ")
-            .append(content.strip())
-            .append(" =}")
-            .get();
+        new Builder().append("{= ").append(content.strip()).append(" =}").get();
     MalleableString multilineRepresentation =
         new Builder()
             .append(String.format("{=%n"))

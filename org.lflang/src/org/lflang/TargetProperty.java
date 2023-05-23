@@ -38,6 +38,7 @@ import org.eclipse.xtext.util.RuntimeIOException;
 import org.lflang.TargetConfig.DockerOptions;
 import org.lflang.TargetConfig.PlatformOptions;
 import org.lflang.TargetConfig.TracingOptions;
+import org.lflang.ast.ASTUtils;
 import org.lflang.generator.InvalidLfSourceException;
 import org.lflang.generator.rust.CargoDependencySpec;
 import org.lflang.generator.rust.CargoDependencySpec.CargoDependenciesPropertyType;
@@ -692,8 +693,8 @@ public enum TargetProperty {
   /**
    * List of module files to link into the crate as top-level. For instance, a {@code target Rust {
    * rust-modules: [ "foo.rs" ] }} will cause the file to be copied into the generated project, and
-   * the generated `main.rs` will include it with a `mod foo;`. If one of the paths is a directory,
-   * it must contain a `mod.rs` file, and all its contents are copied.
+   * the generated {@code main.rs} will include it with a {@code mod foo;}. If one of the paths is a
+   * directory, it must contain a {@code mod.rs} file, and all its contents are copied.
    */
   RUST_INCLUDE(
       "rust-include",
@@ -903,8 +904,8 @@ public enum TargetProperty {
   }
 
   /**
-   * Private constructor for target properties. This will take an additional `updater`, which will
-   * be used to merge target properties from imported resources.
+   * Private constructor for target properties. This will take an additional {@code updater}, which
+   * will be used to merge target properties from imported resources.
    *
    * @param description String representation of this property.
    * @param type The type that values assigned to this property should conform to.
@@ -1394,8 +1395,11 @@ public enum TargetProperty {
   /**
    * Enumeration of clock synchronization modes.
    *
-   * <p>- OFF: The clock synchronization is universally off. - STARTUP: Clock synchronization occurs
-   * at startup only. - ON: Clock synchronization occurs at startup and at runtime.
+   * <ul>
+   *   <li>OFF: The clock synchronization is universally off.
+   *   <li>STARTUP: Clock synchronization occurs at startup only.
+   *   <li>ON: Clock synchronization occurs at startup and at runtime.
+   * </ul>
    *
    * @author Edward A. Lee
    */

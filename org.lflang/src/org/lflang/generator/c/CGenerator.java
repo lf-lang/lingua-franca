@@ -24,14 +24,14 @@
 
 package org.lflang.generator.c;
 
-import static org.lflang.ASTUtils.allActions;
-import static org.lflang.ASTUtils.allPorts;
-import static org.lflang.ASTUtils.allReactions;
-import static org.lflang.ASTUtils.allStateVars;
-import static org.lflang.ASTUtils.getInferredType;
-import static org.lflang.ASTUtils.isInitialized;
-import static org.lflang.ASTUtils.toDefinition;
-import static org.lflang.ASTUtils.toText;
+import static org.lflang.ast.ASTUtils.allActions;
+import static org.lflang.ast.ASTUtils.allPorts;
+import static org.lflang.ast.ASTUtils.allReactions;
+import static org.lflang.ast.ASTUtils.allStateVars;
+import static org.lflang.ast.ASTUtils.getInferredType;
+import static org.lflang.ast.ASTUtils.isInitialized;
+import static org.lflang.ast.ASTUtils.toDefinition;
+import static org.lflang.ast.ASTUtils.toText;
 import static org.lflang.util.StringUtil.addDoubleQuotes;
 
 import com.google.common.collect.Iterables;
@@ -39,9 +39,11 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.HashSet;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -49,13 +51,13 @@ import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.xtext.xbase.lib.Exceptions;
 import org.eclipse.xtext.xbase.lib.IterableExtensions;
 import org.eclipse.xtext.xbase.lib.StringExtensions;
-import org.lflang.ASTUtils;
 import org.lflang.FileConfig;
 import org.lflang.Target;
 import org.lflang.TargetConfig;
 import org.lflang.TargetProperty;
 import org.lflang.TargetProperty.Platform;
 import org.lflang.TargetProperty.PlatformOption;
+import org.lflang.ast.ASTUtils;
 import org.lflang.ast.DelayedConnectionTransformation;
 import org.lflang.federated.extensions.CExtensionUtils;
 import org.lflang.generator.ActionInstance;
@@ -87,6 +89,7 @@ import org.lflang.lf.Reaction;
 import org.lflang.lf.Reactor;
 import org.lflang.lf.ReactorDecl;
 import org.lflang.lf.StateVar;
+import org.lflang.lf.Type;
 import org.lflang.lf.Variable;
 import org.lflang.util.ArduinoUtil;
 import org.lflang.util.FileUtil;
@@ -95,164 +98,153 @@ import org.lflang.util.FileUtil;
  * Generator for C target. This class generates C code defining each reactor class given in the
  * input .lf file and imported .lf files. The generated code has the following components:
  *
- * <p>* A typedef for inputs, outputs, and actions of each reactor class. These define the types of
- * the variables that reactions use to access inputs and action values and to set output values.
- *
- * <p>* A typedef for a "self" struct for each reactor class. One instance of this struct will be
- * created for each reactor instance. See below for details.
- *
- * <p>* A function definition for each reaction in each reactor class. These functions take an
- * instance of the self struct as an argument.
- *
- * <p>* A constructor function for each reactor class. This is used to create a new instance of the
- * reactor.
- *
- * <p>After these, the main generated function is `_lf_initialize_trigger_objects()`. This function
- * creates the instances of reactors (using their constructors) and makes connections between them.
- *
- * <p>A few other smaller functions are also generated.
- *
- * <p>## Self Struct
- *
- * <p>The "self" struct has fields for each of the following:
- *
- * <p>* parameter: the field name and type match the parameter. * state: the field name and type
- * match the state. * action: the field name prepends the action name with "_lf_". A second field
- * for the action is also created to house the trigger_t object. That second field prepends the
- * action name with "_lf__". * output: the field name prepends the output name with "_lf_". * input:
- * the field name prepends the output name with "_lf_". A second field for the input is also created
- * to house the trigger_t object. That second field prepends the input name with "_lf__".
- *
- * <p>If, in addition, the reactor contains other reactors and reacts to their outputs, then there
- * will be a struct within the self struct for each such contained reactor. The name of that self
- * struct will be the name of the contained reactor prepended with "_lf_". That inside struct will
- * contain pointers the outputs of the contained reactors that are read together with pointers to
- * booleans indicating whether those outputs are present.
- *
- * <p>If, in addition, the reactor has a reaction to shutdown, then there will be a pointer to
- * trigger_t object (see reactor.h) for the shutdown event and an action struct named _lf_shutdown
- * on the self struct.
- *
- * <p>## Reaction Functions
- *
- * <p>For each reaction in a reactor class, this generator will produce a C function that expects a
- * pointer to an instance of the "self" struct as an argument. This function will contain verbatim
- * the C code specified in the reaction, but before that C code, the generator inserts a few lines
- * of code that extract from the self struct the variables that that code has declared it will use.
- * For example, if the reaction declares that it is triggered by or uses an input named "x" of type
- * int, the function will contain a line like this: ``` r_x_t* x = self->_lf_x; ``` where `r` is the
- * full name of the reactor class and the struct type `r_x_t` has fields `is_present` and `value`,
- * where the type of `value` matches the port type. If the programmer fails to declare that it uses
- * x, then the absence of the above code will trigger a compile error when the verbatim code
- * attempts to read `x`.
- *
- * <p>## Constructor
- *
- * <p>For each reactor class, this generator will create a constructor function named `new_r`, where
- * `r` is the reactor class name. This function will malloc and return a pointer to an instance of
- * the "self" struct. This struct initially represents an unconnected reactor. To establish
- * connections between reactors, additional information needs to be inserted (see below). The self
- * struct is made visible to the body of a reaction as a variable named "self". The self struct
- * contains the following:
- *
- * <p>* Parameters: For each parameter `p` of the reactor, there will be a field `p` with the type
- * and value of the parameter. So C code in the body of a reaction can access parameter values as
- * `self->p`.
- *
- * <p>* State variables: For each state variable `s` of the reactor, there will be a field `s` with
- * the type and value of the state variable. So C code in the body of a reaction can access state
- * variables as `self->s`.
- *
- * <p>The self struct also contains various fields that the user is not intended to use. The names
- * of these fields begin with at least two underscores. They are:
- *
- * <p>* Outputs: For each output named `out`, there will be a field `_lf_out` that is a struct
- * containing a value field whose type matches that of the output. The output value is stored here.
- * That struct also has a field `is_present` that is a boolean indicating whether the output has
- * been set. This field is reset to false at the start of every time step. There is also a field
- * `num_destinations` whose value matches the number of downstream reactors that use this variable.
- * This field must be set when connections are made or changed. It is used to determine for a
- * mutable input destination whether a copy needs to be made.
- *
- * <p>* Inputs: For each input named `in` of type T, there is a field named `_lf_in` that is a
- * pointer struct with a value field of type T. The struct pointed to also has an `is_present` field
- * of type bool that indicates whether the input is present.
- *
- * <p>* Outputs of contained reactors: If a reactor reacts to outputs of a contained reactor `r`,
- * then the self struct will contain a nested struct named `_lf_r` that has fields pointing to those
- * outputs. For example, if `r` has an output `out` of type T, then there will be field in `_lf_r`
- * named `out` that points to a struct containing a value field of type T and a field named
- * `is_present` of type bool.
- *
- * <p>* Inputs of contained reactors: If a reactor sends to inputs of a contained reactor `r`, then
- * the self struct will contain a nested struct named `_lf_r` that has fields for storing the values
- * provided to those inputs. For example, if R has an input `in` of type T, then there will be field
- * in _lf_R named `in` that is a struct with a value field of type T and a field named `is_present`
- * of type bool.
- *
- * <p>* Actions: If the reactor has an action a (logical or physical), then there will be a field in
- * the self struct named `_lf_a` and another named `_lf__a`. The type of the first is specific to
- * the action and contains a `value` field with the type and value of the action (if it has a
- * value). That struct also has a `has_value` field, an `is_present` field, and a `token` field
- * (which is NULL if the action carries no value). The `_lf__a` field is of type trigger_t. That
- * struct contains various things, including an array of reactions sensitive to this trigger and a
- * lf_token_t struct containing the value of the action, if it has a value. See reactor.h in the C
- * library for details.
- *
- * <p>* Reactions: Each reaction will have several fields in the self struct. Each of these has a
- * name that begins with `_lf__reaction_i`, where i is the number of the reaction, starting with 0.
- * The fields are: * _lf__reaction_i: The struct that is put onto the reaction queue to execute the
- * reaction (see reactor.h in the C library).
- *
- * <p>* Timers: For each timer t, there is are two fields in the self struct: * _lf__t: The
- * trigger_t struct for this timer (see reactor.h). * _lf__t_reactions: An array of reactions
- * (pointers to the reaction_t structs on this self struct) sensitive to this timer.
- *
- * <p>* Triggers: For each Timer, Action, Input, and Output of a contained reactor that triggers
- * reactions, there will be a trigger_t struct on the self struct with name `_lf__t`, where t is the
- * name of the trigger.
- *
- * <p>## Connections Between Reactors
- *
- * <p>Establishing connections between reactors involves two steps. First, each destination (e.g. an
- * input port) must have pointers to the source (the output port). As explained above, for an input
- * named `in`, the field `_lf_in->value` is a pointer to the output data being read. In addition,
- * `_lf_in->is_present` is a pointer to the corresponding `out->is_present` field of the output
- * reactor's self struct.
- *
- * <p>In addition, the `reaction_i` struct on the self struct has a `triggers` field that records
- * all the trigger_t structs for ports and actions that are triggered by the i-th reaction. The
- * triggers field is an array of arrays of pointers to trigger_t structs. The length of the outer
- * array is the number of output channels (single ports plus multiport widths) that the reaction
- * effects plus the number of input port channels of contained reactors that it effects. Each inner
- * array has a length equal to the number of final destinations of that output channel or input
- * channel. The reaction_i struct has an array triggered_sizes that indicates the sizes of these
- * inner arrays. The num_outputs field of the reaction_i struct gives the length of the
- * triggered_sizes and (outer) triggers arrays. The num_outputs field is equal to the total number
- * of single ports and multiport channels that the reaction writes to.
- *
- * <p>## Runtime Tables
- *
- * <p>This generator creates an populates the following tables used at run time. These tables may
- * have to be resized and adjusted when mutations occur.
- *
- * <p>* _lf_is_present_fields: An array of pointers to booleans indicating whether an event is
- * present. The _lf_start_time_step() function in reactor_common.c uses this to mark every event
- * absent at the start of a time step. The size of this table is contained in the variable
- * _lf_is_present_fields_size. * This table is accompanied by another list,
- * _lf_is_present_fields_abbreviated, which only contains the is_present fields that have been set
- * to true in the current tag. This list can allow a performance improvement if most ports are
- * seldom present because only fields that have been set to true need to be reset to false.
- *
- * <p>* _lf_shutdown_triggers: An array of pointers to trigger_t structs for shutdown reactions. The
- * length of this table is in the _lf_shutdown_triggers_size variable.
- *
- * <p>* _lf_timer_triggers: An array of pointers to trigger_t structs for timers that need to be
- * started when the program runs. The length of this table is in the _lf_timer_triggers_size
- * variable.
- *
- * <p>* _lf_action_table: For a federated execution, each federate will have this table that maps
- * port IDs to the corresponding action struct, which can be cast to action_base_t.
+ * <ul>
+ *   <li>A typedef for inputs, outputs, and actions of each reactor class. These define the types of
+ *       the variables that reactions use to access inputs and action values and to set output
+ *       values.
+ *   <li>A typedef for a &quot;self&quot; struct for each reactor class. One instance of this struct
+ *       will be created for each reactor instance. See below for details.
+ *   <li>A function definition for each reaction in each reactor class. These functions take an
+ *       instance of the self struct as an argument.
+ *   <li>A constructor function for each reactor class. This is used to create a new instance of the
+ *       reactor. After these, the main generated function is <code>_lf_initialize_trigger_objects()
+ *       </code>. This function creates the instances of reactors (using their constructors) and
+ *       makes connections between them. A few other smaller functions are also generated.
+ *       <h2 id="self-struct">Self Struct</h2>
+ *       The &quot;self&quot; struct has fields for each of the following:
+ *   <li>parameter: the field name and type match the parameter.
+ *   <li>state: the field name and type match the state.
+ *   <li>action: the field name prepends the action name with &quot;<em>lf</em>&quot;. A second
+ *       field for the action is also created to house the trigger_t object. That second field
+ *       prepends the action name with &quot;_lf__&quot;.
+ *   <li>output: the field name prepends the output name with &quot;<em>lf</em>&quot;.
+ *   <li>input: the field name prepends the output name with &quot;<em>lf</em>&quot;. A second field
+ *       for the input is also created to house the trigger_t object. That second field prepends the
+ *       input name with &quot;_lf__&quot;. If, in addition, the reactor contains other reactors and
+ *       reacts to their outputs, then there will be a struct within the self struct for each such
+ *       contained reactor. The name of that self struct will be the name of the contained reactor
+ *       prepended with &quot;<em>lf</em>&quot;. That inside struct will contain pointers the
+ *       outputs of the contained reactors that are read together with pointers to booleans
+ *       indicating whether those outputs are present. If, in addition, the reactor has a reaction
+ *       to shutdown, then there will be a pointer to trigger_t object (see reactor.h) for the
+ *       shutdown event and an action struct named _lf_shutdown on the self struct.
+ *       <h2 id="reaction-functions">Reaction Functions</h2>
+ *       For each reaction in a reactor class, this generator will produce a C function that expects
+ *       a pointer to an instance of the &quot;self&quot; struct as an argument. This function will
+ *       contain verbatim the C code specified in the reaction, but before that C code, the
+ *       generator inserts a few lines of code that extract from the self struct the variables that
+ *       that code has declared it will use. For example, if the reaction declares that it is
+ *       triggered by or uses an input named &quot;x&quot; of type int, the function will contain a
+ *       line like this:
+ *       <pre><code>  r_x_t* x = <span class="hljs-keyword">self</span>-&gt;_lf_x;
+ * </code></pre>
+ *       where <code>r</code> is the full name of the reactor class and the struct type <code>r_x_t
+ *       </code> has fields <code>is_present</code> and <code>value</code>, where the type of <code>
+ *       value</code> matches the port type. If the programmer fails to declare that it uses x, then
+ *       the absence of the above code will trigger a compile error when the verbatim code attempts
+ *       to read <code>x</code>.
+ *       <h2 id="constructor">Constructor</h2>
+ *       For each reactor class, this generator will create a constructor function named <code>new_r
+ *       </code>, where <code>r</code> is the reactor class name. This function will malloc and
+ *       return a pointer to an instance of the &quot;self&quot; struct. This struct initially
+ *       represents an unconnected reactor. To establish connections between reactors, additional
+ *       information needs to be inserted (see below). The self struct is made visible to the body
+ *       of a reaction as a variable named &quot;self&quot;. The self struct contains the following:
+ *   <li>Parameters: For each parameter <code>p</code> of the reactor, there will be a field <code>p
+ *       </code> with the type and value of the parameter. So C code in the body of a reaction can
+ *       access parameter values as <code>self-&gt;p</code>.
+ *   <li>State variables: For each state variable <code>s</code> of the reactor, there will be a
+ *       field <code>s</code> with the type and value of the state variable. So C code in the body
+ *       of a reaction can access state variables as <code>self-&gt;s</code>. The self struct also
+ *       contains various fields that the user is not intended to use. The names of these fields
+ *       begin with at least two underscores. They are:
+ *   <li>Outputs: For each output named <code>out</code>, there will be a field <code>_lf_out</code>
+ *       that is a struct containing a value field whose type matches that of the output. The output
+ *       value is stored here. That struct also has a field <code>is_present</code> that is a
+ *       boolean indicating whether the output has been set. This field is reset to false at the
+ *       start of every time step. There is also a field <code>num_destinations</code> whose value
+ *       matches the number of downstream reactors that use this variable. This field must be set
+ *       when connections are made or changed. It is used to determine for a mutable input
+ *       destination whether a copy needs to be made.
+ *   <li>Inputs: For each input named <code>in</code> of type T, there is a field named <code>_lf_in
+ *       </code> that is a pointer struct with a value field of type T. The struct pointed to also
+ *       has an <code>is_present</code> field of type bool that indicates whether the input is
+ *       present.
+ *   <li>Outputs of contained reactors: If a reactor reacts to outputs of a contained reactor <code>
+ *       r</code>, then the self struct will contain a nested struct named <code>_lf_r</code> that
+ *       has fields pointing to those outputs. For example, if <code>r</code> has an output <code>
+ *       out</code> of type T, then there will be field in <code>_lf_r</code> named <code>out</code>
+ *       that points to a struct containing a value field of type T and a field named <code>
+ *       is_present</code> of type bool.
+ *   <li>Inputs of contained reactors: If a reactor sends to inputs of a contained reactor <code>r
+ *       </code>, then the self struct will contain a nested struct named <code>_lf_r</code> that
+ *       has fields for storing the values provided to those inputs. For example, if R has an input
+ *       <code>in</code> of type T, then there will be field in _lf_R named <code>in</code> that is
+ *       a struct with a value field of type T and a field named <code>is_present</code> of type
+ *       bool.
+ *   <li>Actions: If the reactor has an action a (logical or physical), then there will be a field
+ *       in the self struct named <code>_lf_a</code> and another named <code>_lf__a</code>. The type
+ *       of the first is specific to the action and contains a <code>value</code> field with the
+ *       type and value of the action (if it has a value). That struct also has a <code>has_value
+ *       </code> field, an <code>is_present</code> field, and a <code>token</code> field (which is
+ *       NULL if the action carries no value). The <code>_lf__a</code> field is of type trigger_t.
+ *       That struct contains various things, including an array of reactions sensitive to this
+ *       trigger and a lf_token_t struct containing the value of the action, if it has a value. See
+ *       reactor.h in the C library for details.
+ *   <li>Reactions: Each reaction will have several fields in the self struct. Each of these has a
+ *       name that begins with <code>_lf__reaction_i</code>, where i is the number of the reaction,
+ *       starting with 0. The fields are:
+ *       <ul>
+ *         <li>_lf__reaction_i: The struct that is put onto the reaction queue to execute the
+ *             reaction (see reactor.h in the C library).
+ *         <li>Timers: For each timer t, there is are two fields in the self struct:
+ *             <ul>
+ *               <li>_lf__t: The trigger_t struct for this timer (see reactor.h).
+ *               <li>_lf__t_reactions: An array of reactions (pointers to the reaction_t structs on
+ *                   this self struct) sensitive to this timer.
+ *             </ul>
+ *       </ul>
+ *   <li>Triggers: For each Timer, Action, Input, and Output of a contained reactor that triggers
+ *       reactions, there will be a trigger_t struct on the self struct with name <code>_lf__t
+ *       </code>, where t is the name of the trigger.
+ *       <h2 id="connections-between-reactors">Connections Between Reactors</h2>
+ *       Establishing connections between reactors involves two steps. First, each destination (e.g.
+ *       an input port) must have pointers to the source (the output port). As explained above, for
+ *       an input named <code>in</code>, the field <code>_lf_in-&gt;value</code> is a pointer to the
+ *       output data being read. In addition, <code>_lf_in-&gt;is_present</code> is a pointer to the
+ *       corresponding <code>out-&gt;is_present</code> field of the output reactor&#39;s self
+ *       struct. In addition, the <code>reaction_i</code> struct on the self struct has a <code>
+ *       triggers</code> field that records all the trigger_t structs for ports and actions that are
+ *       triggered by the i-th reaction. The triggers field is an array of arrays of pointers to
+ *       trigger_t structs. The length of the outer array is the number of output channels (single
+ *       ports plus multiport widths) that the reaction effects plus the number of input port
+ *       channels of contained reactors that it effects. Each inner array has a length equal to the
+ *       number of final destinations of that output channel or input channel. The reaction_i struct
+ *       has an array triggered_sizes that indicates the sizes of these inner arrays. The
+ *       num_outputs field of the reaction_i struct gives the length of the triggered_sizes and
+ *       (outer) triggers arrays. The num_outputs field is equal to the total number of single ports
+ *       and multiport channels that the reaction writes to.
+ *       <h2 id="runtime-tables">Runtime Tables</h2>
+ *       This generator creates an populates the following tables used at run time. These tables may
+ *       have to be resized and adjusted when mutations occur.
+ *   <li>_lf_is_present_fields: An array of pointers to booleans indicating whether an event is
+ *       present. The _lf_start_time_step() function in reactor_common.c uses this to mark every
+ *       event absent at the start of a time step. The size of this table is contained in the
+ *       variable _lf_is_present_fields_size.
+ *       <ul>
+ *         <li>This table is accompanied by another list, _lf_is_present_fields_abbreviated, which
+ *             only contains the is_present fields that have been set to true in the current tag.
+ *             This list can allow a performance improvement if most ports are seldom present
+ *             because only fields that have been set to true need to be reset to false.
+ *       </ul>
+ *   <li>_lf_shutdown_triggers: An array of pointers to trigger_t structs for shutdown reactions.
+ *       The length of this table is in the _lf_shutdown_triggers_size variable.
+ *   <li>_lf_timer_triggers: An array of pointers to trigger_t structs for timers that need to be
+ *       started when the program runs. The length of this table is in the _lf_timer_triggers_size
+ *       variable.
+ *   <li>_lf_action_table: For a federated execution, each federate will have this table that maps
+ *       port IDs to the corresponding action struct, which can be cast to action_base_t.
+ * </ul>
  *
  * @author Edward A. Lee
  * @author Marten Lohstroh
@@ -297,10 +289,10 @@ public class CGenerator extends GeneratorBase {
   ////////////////////////////////////////////
   //// Private fields
   /** Extra lines that need to go into the generated CMakeLists.txt. */
-  private String cMakeExtras = "";
+  private final String cMakeExtras = "";
 
   /** Place to collect code to execute at the start of a time step. */
-  private CodeBuilder startTimeStep = new CodeBuilder();
+  private final CodeBuilder startTimeStep = new CodeBuilder();
 
   /**
    * Count of the number of token pointers that need to have their reference count decremented in
@@ -445,11 +437,10 @@ public class CGenerator extends GeneratorBase {
     if (targetConfig.platformOptions.platform != Platform.ARDUINO) {
       var cmakeFile = fileConfig.getSrcGenPath() + File.separator + "CMakeLists.txt";
       var sources =
-          new HashSet<>(ASTUtils.recursiveChildren(main))
-              .stream()
-                  .map(CUtil::getName)
-                  .map(it -> it + (CCppMode ? ".cpp" : ".c"))
-                  .collect(Collectors.toList());
+          allTypeParameterizedReactors()
+              .map(CUtil::getName)
+              .map(it -> it + (CCppMode ? ".cpp" : ".c"))
+              .collect(Collectors.toCollection(ArrayList::new));
       sources.add(cFilename);
       var cmakeCode =
           cmakeGenerator.generateCMakeCode(
@@ -477,7 +468,6 @@ public class CGenerator extends GeneratorBase {
         //noinspection ThrowableNotThrown,ResultOfMethodCallIgnored
         Exceptions.sneakyThrow(e);
       }
-
       if (!targetConfig.noCompile) {
         ArduinoUtil arduinoUtil = new ArduinoUtil(context, commandFactory, errorReporter);
         arduinoUtil.buildArduino(fileConfig, targetConfig);
@@ -722,9 +712,9 @@ public class CGenerator extends GeneratorBase {
       // from the federation and close any open sockets.
       code.pr(
           """
-                #ifndef FEDERATED
-                void terminate_execution() {}
-                #endif""");
+                 #ifndef FEDERATED
+                 void terminate_execution() {}
+                 #endif""");
 
       // Generate functions for modes
       code.pr(CModesGenerator.generateLfInitializeModes(hasModalReactors));
@@ -777,8 +767,12 @@ public class CGenerator extends GeneratorBase {
 
   /**
    * Look at the 'reactor' eResource. If it is an imported .lf file, incorporate it into the current
-   * program in the following manner: - Merge its target property with `targetConfig` - If there are
-   * any preambles, add them to the preambles of the reactor.
+   * program in the following manner:
+   *
+   * <ul>
+   *   <li>Merge its target property with {@code targetConfig}
+   *   <li>If there are any preambles, add them to the preambles of the reactor.
+   * </ul>
    */
   private void inspectReactorEResource(ReactorDecl reactor) {
     // If the reactor is imported, look at the
@@ -812,8 +806,8 @@ public class CGenerator extends GeneratorBase {
   }
 
   /**
-   * Copy all files or directories listed in the target property `files`, `cmake-include`, and
-   * `_fed_setup` into the src-gen folder of the main .lf file
+   * Copy all files or directories listed in the target property {@code files}, {@code
+   * cmake-include}, and {@code _fed_setup} into the src-gen folder of the main .lf file
    *
    * @param targetConfig The targetConfig to read the target properties from.
    * @param fileConfig The fileConfig used to make the copy and resolve paths.
@@ -841,70 +835,96 @@ public class CGenerator extends GeneratorBase {
   }
 
   /**
-   * Generate code for defining all reactors that belong to the federate, including all the child
-   * reactors down the hierarchy. Duplicate Duplicates are avoided.
+   * Generate code for defining all instantiated reactors.
    *
-   * <p>Imported reactors' original .lf file is incorporated in the following manner: - If there are
-   * any cmake-include files, add them to the current list of cmake-include files. - If there are
-   * any preambles, add them to the preambles of the reactor.
+   * <p>Imported reactors' original .lf file is incorporated in the following manner:
+   *
+   * <ul>
+   *   <li>If there are any cmake-include files, add them to the current list of cmake-include
+   *       files.
+   *   <li>If there are any preambles, add them to the preambles of the reactor.
+   * </ul>
    */
   private void generateReactorDefinitions() throws IOException {
-    var generatedReactors = new LinkedHashSet<Reactor>();
+    var generatedReactors = new LinkedHashSet<TypeParameterizedReactor>();
     if (this.main != null) {
+      resolveTemplatedTypes(this.main, this.main.tpr);
       generateReactorChildren(this.main, generatedReactors);
+      generateReactorClass(this.main.getTypeParameterizedReactor());
     }
+    // do not generate code for reactors that are not instantiated
+  }
 
-    if (this.mainDef != null) {
-      generateReactorClass(ASTUtils.toDefinition(this.mainDef.getReactorClass()));
-    }
-
-    if (mainDef == null) {
-      // Generate code for each reactor that was not instantiated in main or its children.
-      for (Reactor r : reactors) {
-        // Get the declarations for reactors that are instantiated somewhere.
-        // A declaration is either a reactor definition or an import statement.;
-        var declarations = this.instantiationGraph.getDeclarations(r);
-        // If the reactor has no instantiations and there is no main reactor, then
-        // generate code for it anyway (at a minimum, this means that the compiler is invoked
-        // so that reaction bodies are checked).
-        if (declarations.isEmpty()) {
-          generateReactorClass(r);
+  /**
+   * Recursively Resolve all Templated Types of child Reactors to their respective concrete types
+   *
+   * @param reactorInstance The Reactor Class
+   * @param parentTpr {@link TypeParameterizedReactor} of Parent
+   */
+  private void resolveTemplatedTypes(
+      ReactorInstance reactorInstance, TypeParameterizedReactor parentTpr) {
+    for (var child : reactorInstance.children) {
+      if (parentTpr.typeArgs() != null) {
+        Map<String, Type> copy = new HashMap<>();
+        child
+            .tpr
+            .typeArgs()
+            .forEach(
+                (literal, typename) -> {
+                  var type = typename.getId();
+                  if (parentTpr.typeArgs().containsKey(type)) {
+                    var basicType = parentTpr.typeArgs().get(type);
+                    copy.put(literal, basicType);
+                  } else {
+                    // Typename is not inherited from Parent Reactor. Keep As Is!
+                    copy.put(literal, typename);
+                  }
+                });
+        if (!copy.isEmpty()) { // If we found some templated-types update the tpr with new map
+          child.tpr = new TypeParameterizedReactor(child.tpr.reactor(), copy);
         }
+        resolveTemplatedTypes(child, child.tpr);
       }
     }
   }
+
+  private record TypeParameterizedReactorWithDecl(TypeParameterizedReactor tpr, ReactorDecl decl) {}
 
   /** Generate user-visible header files for all reactors instantiated. */
   private void generateHeaders() throws IOException {
     FileUtil.deleteDirectory(fileConfig.getIncludePath());
     FileUtil.copyFromClassPath(
         fileConfig.getRuntimeIncludePath(), fileConfig.getIncludePath(), false, true);
-    for (Reactor r : reactors) {
+    for (TypeParameterizedReactor tpr :
+        (Iterable<TypeParameterizedReactor>) () -> allTypeParameterizedReactors().iterator()) {
       CReactorHeaderFileGenerator.doGenerate(
           types,
-          r,
+          tpr,
           fileConfig,
           (builder, rr, userFacing) -> {
             generateAuxiliaryStructs(builder, rr, userFacing);
             if (userFacing) {
-              ASTUtils.allInstantiations(r).stream()
-                  .map(Instantiation::getReactorClass)
+              rr.reactor().getInstantiations().stream()
+                  .map(
+                      it ->
+                          new TypeParameterizedReactorWithDecl(
+                              new TypeParameterizedReactor(it), it.getReactorClass()))
                   .collect(Collectors.toSet())
                   .forEach(
                       it -> {
-                        ASTUtils.allPorts(ASTUtils.toDefinition(it))
+                        ASTUtils.allPorts(it.tpr.reactor())
                             .forEach(
                                 p ->
                                     builder.pr(
                                         CPortGenerator.generateAuxiliaryStruct(
-                                            ASTUtils.toDefinition(it),
+                                            it.tpr,
                                             p,
                                             getTarget(),
                                             errorReporter,
                                             types,
                                             new CodeBuilder(),
                                             true,
-                                            it)));
+                                            it.decl())));
                       });
             }
           },
@@ -917,20 +937,26 @@ public class CGenerator extends GeneratorBase {
   /**
    * Generate code for the children of 'reactor' that belong to 'federate'. Duplicates are avoided.
    *
-   * <p>Imported reactors' original .lf file is incorporated in the following manner: - If there are
-   * any cmake-include files, add them to the current list of cmake-include files. - If there are
-   * any preambles, add them to the preambles of the reactor.
+   * <p>Imported reactors' original .lf file is incorporated in the following manner:
+   *
+   * <ul>
+   *   <li>If there are any cmake-include files, add them to the current list of cmake-include
+   *       files.
+   *   <li>If there are any preambles, add them to the preambles of the reactor.
+   * </ul>
    *
    * @param reactor Used to extract children from
    */
   private void generateReactorChildren(
-      ReactorInstance reactor, LinkedHashSet<Reactor> generatedReactors) throws IOException {
+      ReactorInstance reactor, LinkedHashSet<TypeParameterizedReactor> generatedReactors)
+      throws IOException {
     for (ReactorInstance r : reactor.children) {
-      if (r.reactorDeclaration != null && !generatedReactors.contains(r.reactorDefinition)) {
-        generatedReactors.add(r.reactorDefinition);
+      var newTpr = r.tpr;
+      if (r.reactorDeclaration != null && !generatedReactors.contains(newTpr)) {
+        generatedReactors.add(newTpr);
         generateReactorChildren(r, generatedReactors);
         inspectReactorEResource(r.reactorDeclaration);
-        generateReactorClass(r.reactorDefinition);
+        generateReactorClass(newTpr);
       }
     }
   }
@@ -985,29 +1011,30 @@ public class CGenerator extends GeneratorBase {
    * Generate a reactor class definition for the specified federate. A class definition has four
    * parts:
    *
-   * <p>* Preamble code, if any, specified in the Lingua Franca file. * A "self" struct type
-   * definition (see the class documentation above). * A function for each reaction. * A constructor
-   * for creating an instance. for deleting an instance.
+   * <ul>
+   *   <li>Preamble code, if any, specified in the Lingua Franca file.
+   *   <li>A &quot;self&quot; struct type definition (see the class documentation above).
+   *   <li>A function for each reaction.
+   *   <li>A constructor for creating an instance. for deleting an instance.
+   * </ul>
    *
    * <p>If the reactor is the main reactor, then the generated code may be customized. Specifically,
    * if the main reactor has reactions, these reactions will not be generated if they are triggered
    * by or send data to contained reactors that are not in the federate.
-   *
-   * @param reactor The parsed reactor data structure.
    */
-  private void generateReactorClass(Reactor reactor) throws IOException {
+  private void generateReactorClass(TypeParameterizedReactor tpr) throws IOException {
     // FIXME: Currently we're not reusing definitions for declarations that point to the same
     // definition.
     CodeBuilder header = new CodeBuilder();
     CodeBuilder src = new CodeBuilder();
-    final String headerName = CUtil.getName(reactor) + ".h";
+    final String headerName = CUtil.getName(tpr) + ".h";
     var guardMacro = headerName.toUpperCase().replace(".", "_");
     header.pr("#ifndef " + guardMacro);
     header.pr("#define " + guardMacro);
-    generateReactorClassHeaders(reactor, headerName, header, src);
-    header.pr(generateTopLevelPreambles(reactor));
-    generateUserPreamblesForReactor(reactor, src);
-    generateReactorClassBody(reactor, header, src);
+    generateReactorClassHeaders(tpr, headerName, header, src);
+    header.pr(generateTopLevelPreambles(tpr.reactor()));
+    generateUserPreamblesForReactor(tpr.reactor(), src);
+    generateReactorClassBody(tpr, header, src);
     header.pr("#endif // " + guardMacro);
     FileUtil.writeToFile(
         CodeMap.fromGeneratedCode(header.toString()).getGeneratedCode(),
@@ -1019,12 +1046,12 @@ public class CGenerator extends GeneratorBase {
             : CCppMode ? ".cpp" : ".c";
     FileUtil.writeToFile(
         CodeMap.fromGeneratedCode(src.toString()).getGeneratedCode(),
-        fileConfig.getSrcGenPath().resolve(CUtil.getName(reactor) + extension),
+        fileConfig.getSrcGenPath().resolve(CUtil.getName(tpr) + extension),
         true);
   }
 
   protected void generateReactorClassHeaders(
-      Reactor reactor, String headerName, CodeBuilder header, CodeBuilder src) {
+      TypeParameterizedReactor tpr, String headerName, CodeBuilder header, CodeBuilder src) {
     if (CCppMode) {
       src.pr("extern \"C\" {");
       header.pr("extern \"C\" {");
@@ -1032,36 +1059,37 @@ public class CGenerator extends GeneratorBase {
     header.pr("#include \"include/core/reactor.h\"");
     src.pr("#include \"include/api/api.h\"");
     src.pr("#include \"include/api/set.h\"");
-    generateIncludes(reactor);
+    generateIncludes(tpr);
     if (CCppMode) {
       src.pr("}");
       header.pr("}");
     }
-    src.pr("#include \"include/" + CReactorHeaderFileGenerator.outputPath(reactor) + "\"");
+    src.pr("#include \"include/" + CReactorHeaderFileGenerator.outputPath(tpr) + "\"");
     src.pr("#include \"" + headerName + "\"");
-    ASTUtils.allNestedClasses(reactor)
-        .map(CUtil::getName)
+    tpr.doDefines(src);
+    ASTUtils.allIncludes(tpr.reactor()).stream()
         .map(name -> "#include \"" + name + ".h\"")
         .forEach(header::pr);
   }
 
-  private void generateReactorClassBody(Reactor reactor, CodeBuilder header, CodeBuilder src) {
+  private void generateReactorClassBody(
+      TypeParameterizedReactor tpr, CodeBuilder header, CodeBuilder src) {
     // Some of the following methods create lines of code that need to
     // go into the constructor.  Collect those lines of code here:
     var constructorCode = new CodeBuilder();
-    generateAuxiliaryStructs(header, reactor, false);
+    generateAuxiliaryStructs(header, tpr, false);
     // The following must go before the self struct so the #include watchdog.h ends up in the
     // header.
-    CWatchdogGenerator.generateWatchdogs(src, header, reactor, errorReporter);
-    generateSelfStruct(header, reactor, constructorCode);
-    generateMethods(src, reactor);
-    generateReactions(src, reactor);
-    generateConstructor(src, header, reactor, constructorCode);
+    CWatchdogGenerator.generateWatchdogs(src, header, tpr, errorReporter);
+    generateSelfStruct(header, tpr, constructorCode);
+    generateMethods(src, tpr);
+    generateReactions(src, tpr);
+    generateConstructor(src, header, tpr, constructorCode);
   }
 
   /** Generate methods for {@code reactor}. */
-  protected void generateMethods(CodeBuilder src, ReactorDecl reactor) {
-    CMethodGenerator.generateMethods(reactor, src, types);
+  protected void generateMethods(CodeBuilder src, TypeParameterizedReactor tpr) {
+    CMethodGenerator.generateMethods(tpr, src, types);
   }
 
   /**
@@ -1081,23 +1109,27 @@ public class CGenerator extends GeneratorBase {
   /**
    * Generate a constructor for the specified reactor in the specified federate.
    *
-   * @param reactor The parsed reactor data structure.
+   * @param tpr The parsed reactor data structure.
    * @param constructorCode Lines of code previously generated that need to go into the constructor.
    */
   protected void generateConstructor(
-      CodeBuilder src, CodeBuilder header, Reactor reactor, CodeBuilder constructorCode) {
-    header.pr(CConstructorGenerator.generateConstructorPrototype(reactor));
-    src.pr(CConstructorGenerator.generateConstructor(reactor, constructorCode.toString()));
+      CodeBuilder src,
+      CodeBuilder header,
+      TypeParameterizedReactor tpr,
+      CodeBuilder constructorCode) {
+    header.pr(CConstructorGenerator.generateConstructorPrototype(tpr));
+    src.pr(CConstructorGenerator.generateConstructor(tpr, constructorCode.toString()));
   }
 
-  protected void generateIncludes(Reactor r) {
-    code.pr("#include \"" + CUtil.getName(r) + ".h\"");
+  protected void generateIncludes(TypeParameterizedReactor tpr) {
+    code.pr("#include \"" + CUtil.getName(tpr) + ".h\"");
   }
 
   /**
    * Generate the struct type definitions for inputs, outputs, and actions of the specified reactor.
    */
-  protected void generateAuxiliaryStructs(CodeBuilder builder, Reactor r, boolean userFacing) {
+  protected void generateAuxiliaryStructs(
+      CodeBuilder builder, TypeParameterizedReactor tpr, boolean userFacing) {
     // In the case where there are incoming
     // p2p logical connections in decentralized
     // federated execution, there will be an
@@ -1107,59 +1139,59 @@ public class CGenerator extends GeneratorBase {
     // latency, etc..
     var federatedExtension = new CodeBuilder();
     federatedExtension.pr(
-        """
-            #ifdef FEDERATED
-            #ifdef FEDERATED_DECENTRALIZED
-            %s intended_tag;
-            #endif
-            %s physical_time_of_arrival;
-            #endif
+        String.format(
             """
-            .formatted(types.getTargetTagType(), types.getTargetTimeType()));
-    for (Port p : allPorts(r)) {
+             #ifdef FEDERATED
+             #ifdef FEDERATED_DECENTRALIZED
+             %s intended_tag;
+             #endif
+             %s physical_time_of_arrival;
+             #endif
+             """,
+            types.getTargetTagType(), types.getTargetTimeType()));
+    for (Port p : allPorts(tpr.reactor())) {
       builder.pr(
           CPortGenerator.generateAuxiliaryStruct(
-              r, p, getTarget(), errorReporter, types, federatedExtension, userFacing, null));
+              tpr, p, getTarget(), errorReporter, types, federatedExtension, userFacing, null));
     }
     // The very first item on this struct needs to be
     // a trigger_t* because the struct will be cast to (trigger_t*)
     // by the lf_schedule() functions to get to the trigger.
-    for (Action action : allActions(r)) {
+    for (Action action : allActions(tpr.reactor())) {
       builder.pr(
           CActionGenerator.generateAuxiliaryStruct(
-              r, action, getTarget(), types, federatedExtension, userFacing));
+              tpr, action, getTarget(), types, federatedExtension, userFacing));
     }
   }
 
   /**
    * Generate the self struct type definition for the specified reactor in the specified federate.
    *
-   * @param decl The parsed reactor data structure.
    * @param constructorCode Place to put lines of code that need to go into the constructor.
    */
   private void generateSelfStruct(
-      CodeBuilder builder, ReactorDecl decl, CodeBuilder constructorCode) {
-    var reactor = toDefinition(decl);
-    var selfType = CUtil.selfType(ASTUtils.toDefinition(decl));
+      CodeBuilder builder, TypeParameterizedReactor tpr, CodeBuilder constructorCode) {
+    var reactor = toDefinition(tpr.reactor());
+    var selfType = CUtil.selfType(tpr);
 
     // Construct the typedef for the "self" struct.
     // Create a type name for the self struct.
     var body = new CodeBuilder();
 
     // Extensions can add functionality to the CGenerator
-    generateSelfStructExtension(body, decl, constructorCode);
+    generateSelfStructExtension(body, reactor, constructorCode);
 
     // Next handle parameters.
-    body.pr(CParameterGenerator.generateDeclarations(reactor, types));
+    body.pr(CParameterGenerator.generateDeclarations(tpr, types));
 
     // Next handle states.
-    body.pr(CStateGenerator.generateDeclarations(reactor, types));
+    body.pr(CStateGenerator.generateDeclarations(tpr, types));
 
     // Next handle actions.
-    CActionGenerator.generateDeclarations(reactor, body, constructorCode);
+    CActionGenerator.generateDeclarations(tpr, body, constructorCode);
 
     // Next handle inputs and outputs.
-    CPortGenerator.generateDeclarations(reactor, decl, body, constructorCode);
+    CPortGenerator.generateDeclarations(tpr, reactor, body, constructorCode);
 
     // If there are contained reactors that either receive inputs
     // from reactions of this reactor or produce outputs that trigger
@@ -1168,13 +1200,13 @@ public class CGenerator extends GeneratorBase {
     // struct has a place to hold the data produced by this reactor's
     // reactions and a place to put pointers to data produced by
     // the contained reactors.
-    generateInteractingContainedReactors(reactor, body, constructorCode);
+    generateInteractingContainedReactors(tpr, body, constructorCode);
 
     // Next, generate the fields needed for each reaction.
-    CReactionGenerator.generateReactionAndTriggerStructs(body, reactor, constructorCode, types);
+    CReactionGenerator.generateReactionAndTriggerStructs(body, tpr, constructorCode, types);
 
     // Generate the fields needed for each watchdog.
-    CWatchdogGenerator.generateWatchdogStruct(body, decl, constructorCode);
+    CWatchdogGenerator.generateWatchdogStruct(body, tpr, constructorCode);
 
     // Next, generate fields for modes
     CModesGenerator.generateDeclarations(reactor, body, constructorCode);
@@ -1200,18 +1232,18 @@ public class CGenerator extends GeneratorBase {
    * the data produced by the container reactor's reactions and a place to put pointers to data
    * produced by the contained reactors.
    *
-   * @param reactor The reactor.
+   * @param tpr {@link TypeParameterizedReactor}
    * @param body The place to put the struct definition for the contained reactors.
    * @param constructorCode The place to put matching code that goes in the container's constructor.
    */
   private void generateInteractingContainedReactors(
-      Reactor reactor, CodeBuilder body, CodeBuilder constructorCode) {
+      TypeParameterizedReactor tpr, CodeBuilder body, CodeBuilder constructorCode) {
     // The contents of the struct will be collected first so that
     // we avoid duplicate entries and then the struct will be constructed.
-    var contained = new InteractingContainedReactors(reactor);
+    var contained = new InteractingContainedReactors(tpr.reactor());
     // Next generate the relevant code.
     for (Instantiation containedReactor : contained.containedReactors()) {
-      Reactor containedReactorType = ASTUtils.toDefinition(containedReactor.getReactorClass());
+      var containedTpr = new TypeParameterizedReactor(containedReactor);
       // First define an _width variable in case it is a bank.
       var array = "";
       var width = -2;
@@ -1223,7 +1255,7 @@ public class CGenerator extends GeneratorBase {
       }
       // NOTE: The following needs to be done for each instance
       // so that the width can be parameter, not in the constructor.
-      // Here, we conservatively use a width that is the largest of all isntances.
+      // Here, we conservatively use a width that is the largest of all instances.
       constructorCode.pr(
           String.join(
               "\n",
@@ -1241,8 +1273,7 @@ public class CGenerator extends GeneratorBase {
           if (!ASTUtils.isMultiport(port)) {
             // Not a multiport.
             body.pr(
-                port,
-                variableStructType(port, containedReactorType, false) + " " + port.getName() + ";");
+                port, variableStructType(port, containedTpr, false) + " " + port.getName() + ";");
           } else {
             // Is a multiport.
             // Memory will be malloc'd in initialization.
@@ -1250,10 +1281,7 @@ public class CGenerator extends GeneratorBase {
                 port,
                 String.join(
                     "\n",
-                    variableStructType(port, containedReactorType, false)
-                        + "** "
-                        + port.getName()
-                        + ";",
+                    variableStructType(port, containedTpr, false) + "** " + port.getName() + ";",
                     "int " + port.getName() + "_width;"));
           }
         } else {
@@ -1263,11 +1291,7 @@ public class CGenerator extends GeneratorBase {
           if (!ASTUtils.isMultiport(port)) {
             // Not a multiport.
             body.pr(
-                port,
-                variableStructType(port, containedReactorType, false)
-                    + "* "
-                    + port.getName()
-                    + ";");
+                port, variableStructType(port, containedTpr, false) + "* " + port.getName() + ";");
           } else {
             // Is a multiport.
             // Here, we will use an array of pointers.
@@ -1276,10 +1300,7 @@ public class CGenerator extends GeneratorBase {
                 port,
                 String.join(
                     "\n",
-                    variableStructType(port, containedReactorType, false)
-                        + "** "
-                        + port.getName()
-                        + ";",
+                    variableStructType(port, containedTpr, false) + "** " + port.getName() + ";",
                     "int " + port.getName() + "_width;"));
           }
           body.pr(port, "trigger_t " + port.getName() + "_trigger;");
@@ -1357,11 +1378,11 @@ public class CGenerator extends GeneratorBase {
    * self struct
    *
    * @param body The body of the self struct
-   * @param decl The reactor declaration for the self struct
+   * @param reactor The reactor declaration for the self struct
    * @param constructorCode Code that is executed when the reactor is instantiated
    */
   protected void generateSelfStructExtension(
-      CodeBuilder body, ReactorDecl decl, CodeBuilder constructorCode) {
+      CodeBuilder body, Reactor reactor, CodeBuilder constructorCode) {
     // Do nothing
   }
 
@@ -1370,13 +1391,13 @@ public class CGenerator extends GeneratorBase {
    * that is a void* pointing to a struct that contains parameters, state variables, inputs
    * (triggering or not), actions (triggering or produced), and outputs.
    *
-   * @param r The reactor.
+   * @param tpr The reactor.
    */
-  public void generateReactions(CodeBuilder src, Reactor r) {
+  public void generateReactions(CodeBuilder src, TypeParameterizedReactor tpr) {
     var reactionIndex = 0;
-    var reactor = ASTUtils.toDefinition(r);
+    var reactor = ASTUtils.toDefinition(tpr.reactor());
     for (Reaction reaction : allReactions(reactor)) {
-      generateReaction(src, reaction, r, reactionIndex);
+      generateReaction(src, reaction, tpr, reactionIndex);
       // Increment reaction index even if the reaction is not in the federate
       // so that across federates, the reaction indices are consistent.
       reactionIndex++;
@@ -1389,15 +1410,15 @@ public class CGenerator extends GeneratorBase {
    * (triggering or not), actions (triggering or produced), and outputs.
    *
    * @param reaction The reaction.
-   * @param r The reactor.
+   * @param tpr The reactor.
    * @param reactionIndex The position of the reaction within the reactor.
    */
   protected void generateReaction(
-      CodeBuilder src, Reaction reaction, Reactor r, int reactionIndex) {
+      CodeBuilder src, Reaction reaction, TypeParameterizedReactor tpr, int reactionIndex) {
     src.pr(
         CReactionGenerator.generateReaction(
             reaction,
-            r,
+            tpr,
             reactionIndex,
             mainDef,
             errorReporter,
@@ -1669,8 +1690,9 @@ public class CGenerator extends GeneratorBase {
    * specified reactor class. This is required to be the same as the type name returned by {@link
    * #variableStructType(TriggerInstance)}.
    */
-  public static String variableStructType(Variable variable, Reactor reactor, boolean userFacing) {
-    return (userFacing ? reactor.getName().toLowerCase() : CUtil.getName(reactor))
+  public static String variableStructType(
+      Variable variable, TypeParameterizedReactor tpr, boolean userFacing) {
+    return (userFacing ? tpr.getName().toLowerCase() : CUtil.getName(tpr))
         + "_"
         + variable.getName()
         + "_t";
@@ -1679,16 +1701,13 @@ public class CGenerator extends GeneratorBase {
   /**
    * Construct a unique type for the struct of the specified instance (port or action). This is
    * required to be the same as the type name returned by {@link #variableStructType(Variable,
-   * Reactor, boolean)}.
+   * TypeParameterizedReactor, boolean)}.
    *
    * @param portOrAction The port or action instance.
    * @return The name of the self struct.
    */
   public static String variableStructType(TriggerInstance<?> portOrAction) {
-    return CUtil.getName(portOrAction.getParent().reactorDefinition)
-        + "_"
-        + portOrAction.getName()
-        + "_t";
+    return CUtil.getName(portOrAction.getParent().tpr) + "_" + portOrAction.getName() + "_t";
   }
 
   /**
@@ -1720,7 +1739,7 @@ public class CGenerator extends GeneratorBase {
             + "["
             + CUtil.runtimeIndex(instance)
             + "] = new_"
-            + CUtil.getName(reactorClass)
+            + CUtil.getName(instance.tpr)
             + "();");
     // Generate code to initialize the "self" struct in the
     // _lf_initialize_trigger_objects function.
@@ -1786,7 +1805,7 @@ public class CGenerator extends GeneratorBase {
     for (ActionInstance action : reactor.actions) {
       // Skip this step if the action is not in use.
       if (action.getParent().getTriggers().contains(action)) {
-        var type = getInferredType(action.getDefinition());
+        var type = reactor.tpr.resolveType(getInferredType(action.getDefinition()));
         var payloadSize = "0";
         if (!type.isUndefined()) {
           var typeStr = types.getTargetType(type);
@@ -1900,7 +1919,8 @@ public class CGenerator extends GeneratorBase {
             String.join(
                 "\n",
                 "static "
-                    + types.getVariableDeclaration(parameter.type, temporaryVariableName, true)
+                    + types.getVariableDeclaration(
+                        instance.tpr, parameter.type, temporaryVariableName, true)
                     + " = "
                     + initializer
                     + ";",
@@ -1959,7 +1979,8 @@ public class CGenerator extends GeneratorBase {
   // Perform set up that does not generate code
   protected void setUpGeneralParameters() {
     accommodatePhysicalActionsIfPresent();
-    targetConfig.compileDefinitions.put("LOG_LEVEL", targetConfig.logLevel.ordinal() + "");
+    targetConfig.compileDefinitions.put(
+        "LOG_LEVEL", String.valueOf(targetConfig.logLevel.ordinal()));
     targetConfig.compileAdditionalSources.addAll(CCoreFilesUtils.getCTargetSrc());
     // Create the main reactor instance if there is a main reactor.
     createMainReactorInstance();
@@ -2144,5 +2165,9 @@ public class CGenerator extends GeneratorBase {
     for (ReactorInstance child : r.children) {
       generateSelfStructs(child);
     }
+  }
+
+  private Stream<TypeParameterizedReactor> allTypeParameterizedReactors() {
+    return ASTUtils.recursiveChildren(main).stream().map(it -> it.tpr).distinct();
   }
 }
