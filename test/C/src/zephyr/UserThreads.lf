@@ -10,20 +10,26 @@ target C {
 }
 
 main reactor {
-    preamble {= void func() {} =}
+    preamble {= 
+        void func(void* arg) {
+            lf_print("Hello from user thread");
+        } 
+
+        lf_thread_t thread_ids[3];
+    =}
+
 
     reaction(startup) {=
         int res;
-        int thread_id;
 
         for (int i = 0; i < 3; i++) {
-            res = lf_thread_create(&thread_id, &func, NULL);
+            res = lf_thread_create(&thread_ids[i], &func, NULL);
             if (res != 0) {
                 lf_print_error_and_exit("Could not create thread");
             }
         }
 
-        res = lf_thread_create(&thread_id, &func, NULL);
+        res = lf_thread_create(&thread_ids[i], &func, NULL);
         if (res == 0) {
             lf_print_error_and_exit("Could create more threads than specified.");
         } else {
