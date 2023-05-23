@@ -25,36 +25,36 @@ public class CReactorHeaderFileGenerator {
 
     /** Functional interface for generating auxiliary structs such as port structs. */
     public interface GenerateAuxiliaryStructs {
-        void generate(CodeBuilder b, Reactor r, boolean userFacing);
+        void generate(CodeBuilder b, TypeParameterizedReactor r, boolean userFacing);
     }
 
     /** Return the path to the user-visible header file that would be generated for {@code r}. */
-    public static Path outputPath(Reactor r) {
-        return Path.of(Path.of(r.eResource().getURI().toFileString())
+    public static Path outputPath(TypeParameterizedReactor tpr) {
+        return Path.of(Path.of(tpr.reactor().eResource().getURI().toFileString())
                 .getFileName().toString().replaceFirst("[.][^.]+$", ""))
-            .resolve(r.getName() + ".h");
+            .resolve(tpr.getName() + ".h");
     }
 
-    /** Generate the user-visible header file for {@code r}. */
-    public static void doGenerate(CTypes types, Reactor r, CFileConfig fileConfig, GenerateAuxiliaryStructs generator, Function<Reactor, String> topLevelPreamble) throws IOException {
-        String contents = generateHeaderFile(types, r, generator, topLevelPreamble.apply(r));
-        FileUtil.writeToFile(contents, fileConfig.getIncludePath().resolve(outputPath(r)));
+    public static void doGenerate(CTypes types, TypeParameterizedReactor tpr, CFileConfig fileConfig, GenerateAuxiliaryStructs generator, Function<Reactor, String> topLevelPreamble) throws IOException {
+        String contents = generateHeaderFile(types, tpr, generator, topLevelPreamble.apply(tpr.reactor()));
+        FileUtil.writeToFile(contents, fileConfig.getIncludePath().resolve(outputPath(tpr)));
     }
-    private static String generateHeaderFile(CTypes types, Reactor r, GenerateAuxiliaryStructs generator, String topLevelPreamble) {
+    private static String generateHeaderFile(CTypes types, TypeParameterizedReactor tpr, GenerateAuxiliaryStructs generator, String topLevelPreamble) {
         CodeBuilder builder = new CodeBuilder();
-        appendIncludeGuard(builder, r);
+        appendIncludeGuard(builder, tpr);
         builder.pr(topLevelPreamble);
         appendPoundIncludes(builder);
-        appendSelfStruct(builder, types, r);
-        generator.generate(builder, r, true);
-        for (Reaction reaction : r.getReactions()) {
-            appendSignature(builder, reaction, r);
+        tpr.doDefines(builder);
+        appendSelfStruct(builder, types, tpr);
+        generator.generate(builder, tpr, true);
+        for (Reaction reaction : tpr.reactor().getReactions()) {
+            appendSignature(builder, types, reaction, tpr);
         }
         builder.pr("#endif");
         return builder.getCode();
     }
 
-    private static void appendIncludeGuard(CodeBuilder builder, Reactor r) {
+    private static void appendIncludeGuard(CodeBuilder builder, TypeParameterizedReactor r) {
         String macro = CUtil.getName(r) + "_H";
         builder.pr("#ifndef " + macro);
         builder.pr("#define " + macro);
@@ -73,39 +73,41 @@ public class CReactorHeaderFileGenerator {
             """);
     }
 
-    /** The type name of the user-facing version of the self struct. */
-    private static String userFacingSelfType(Reactor r) {
-        return r.getName().toLowerCase() + "_self_t";
+    private static String userFacingSelfType(TypeParameterizedReactor tpr) {
+        return tpr.getName().toLowerCase() + "_self_t";
     }
 
-    private static void appendSelfStruct(CodeBuilder builder, CTypes types, Reactor r) {
-        builder.pr("typedef struct " + userFacingSelfType(r) + "{");
-        for (Parameter p : r.getParameters()) {
+    private static void appendSelfStruct(CodeBuilder builder, CTypes types, TypeParameterizedReactor tpr) {
+        builder.pr("typedef struct " + userFacingSelfType(tpr) + "{");
+        for (Parameter p : tpr.reactor().getParameters()) {
             builder.pr(types.getTargetType(p) + " " + p.getName() + ";");
         }
-        for (StateVar s : r.getStateVars()) {
+        for (StateVar s : tpr.reactor().getStateVars()) {
             builder.pr(types.getTargetType(s) + " " + s.getName() + ";");
         }
         builder.pr("int end[0]; // placeholder; MSVC does not compile empty structs");
-        builder.pr("} " + userFacingSelfType(r) + ";");
+        builder.pr("} " + userFacingSelfType(tpr) + ";");
     }
 
-    /** Generate the signature of the reaction function of {@code r}. */
-    private static void appendSignature(CodeBuilder builder, Reaction r, Reactor reactor) {
-        if (r.getName() != null) builder.pr("void " + r.getName() + "(" + reactionParameters(r, reactor) + ");");
+    private static void appendSignature(CodeBuilder builder, CTypes types, Reaction r, TypeParameterizedReactor tpr) {
+        if (r.getName() != null) builder.pr("void " + r.getName() + "(" + reactionParameters(r, tpr) + ");");
     }
-    /** Return a string representation of the parameters of the reaction function of {@code r}. */
-    private static String reactionParameters(Reaction r, Reactor reactor) {
-        return Stream.concat(Stream.of(userFacingSelfType(reactor) + "* self"), portVariableStream(r, reactor)
-            .map(it -> it.getType(true) + " " + it.getName()))
+
+    private static String reactionParameters(Reaction r, TypeParameterizedReactor tpr) {
+        return Stream.concat(Stream.of(userFacingSelfType(tpr) + "* self"), portVariableStream(r, tpr)
+            .map(tv -> tv.getType(true) + tv.getName()))
             .collect(Collectors.joining(", "));
     }
 
+    private static String getApiSelfStruct(TypeParameterizedReactor tpr) {
+        return "(" + userFacingSelfType(tpr) + "*) (((char*) self) + sizeof(self_base_t))";
+    }
+
     /** Generate initialization code that is needed if {@code r} is not inlined. */
-    public static String nonInlineInitialization(Reaction r, Reactor reactor) {
+    public static String nonInlineInitialization(Reaction r, TypeParameterizedReactor reactor) {
         var mainDef = LfFactory.eINSTANCE.createInstantiation();
         mainDef.setName(reactor.getName());
-        mainDef.setReactorClass(ASTUtils.findMainReactor(reactor.eResource()));
+        mainDef.setReactorClass(ASTUtils.findMainReactor(reactor.reactor().eResource()));
         return portVariableStream(r, reactor)
             .map(it -> it.container == null ? "" : it.getWidth() == null ?
                 String.format("%s %s = (%s) %s;", it.getType(false), it.getAlias(), it.getType(false), it.getRvalue())
@@ -118,8 +120,8 @@ public class CReactorHeaderFileGenerator {
                     it.getType(true).replaceFirst("\\*", ""),
                     it.getAlias(),
                     CReactionGenerator.maxContainedReactorBankWidth(
-                        reactor.getInstantiations().stream()
-                            .filter(instantiation -> ASTUtils.toDefinition(instantiation.getReactorClass()).equals(it.r))
+                        reactor.reactor().getInstantiations().stream()
+                            .filter(instantiation -> new TypeParameterizedReactor(instantiation).equals(it.r))
                             .findAny().orElseThrow(),
                         null, 0, mainDef),
                     "self->_lf_"+it.container.getName()+"_width",
@@ -131,24 +133,19 @@ public class CReactorHeaderFileGenerator {
     }
 
     /** Return a string representation of the arguments passed to the function for {@code r}. */
-    public static String reactionArguments(Reaction r, Reactor reactor) {
+    public static String reactionArguments(Reaction r, TypeParameterizedReactor reactor) {
         return Stream.concat(Stream.of(getApiSelfStruct(reactor)), portVariableStream(r, reactor)
                 .map(it -> String.format("((%s) %s)", it.getType(true), it.getAlias())))
             .collect(Collectors.joining(", "));
     }
 
-    /** Return code for extracting the user-facing part of the self struct from the self struct. */
-    private static String getApiSelfStruct(Reactor reactor) {
-        return "(" + userFacingSelfType(reactor) + "*) (((char*) self) + sizeof(self_base_t))";
-    }
-
     /** Return a stream of all ports referenced by the signature of {@code r}. */
-    private static Stream<PortVariable> portVariableStream(Reaction r, Reactor defaultReactorClass) {
+    private static Stream<PortVariable> portVariableStream(Reaction r, TypeParameterizedReactor reactorOfReaction) {
         return varRefStream(r)
             .map(it -> it.getVariable() instanceof TypedVariable tv ?
                 new PortVariable(
                     tv,
-                    ASTUtils.toDefinition(it.getContainer() == null ? defaultReactorClass : it.getContainer().getReactorClass()),
+                    it.getContainer() != null ? new TypeParameterizedReactor(it.getContainer()) : reactorOfReaction,
                     it.getContainer())
                 : null)
             .filter(Objects::nonNull);
@@ -157,16 +154,16 @@ public class CReactorHeaderFileGenerator {
     /**
      * A variable that refers to a port.
      * @param tv The variable of the variable reference.
-     * @param r The reactor that contains the port.
+     * @param r The reactor in which the port is being used.
      * @param container The {@code Instantiation} referenced in the obtaining of {@code tv}, if
      * applicable; {@code null} otherwise.
      */
-    private record PortVariable(TypedVariable tv, Reactor r, Instantiation container) {
+    private record PortVariable(TypedVariable tv, TypeParameterizedReactor r, Instantiation container) {
         String getType(boolean userFacing) {
             var typeName = container == null ?
                 CGenerator.variableStructType(tv, r, userFacing)
                 : CPortGenerator.localPortName(container.getReactorClass(), getName());
-            var isMultiport = ASTUtils.isMultiport(ASTUtils.allPorts(r).stream()
+            var isMultiport = ASTUtils.isMultiport(ASTUtils.allPorts(r.reactor()).stream()
                     .filter(it -> it.getName().equals(tv.getName()))
                     .findAny().orElseThrow());
             return typeName + "*" + (getWidth() != null ? "*" : "") + (isMultiport ? "*" : "");

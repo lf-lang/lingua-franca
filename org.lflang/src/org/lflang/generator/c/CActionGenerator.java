@@ -8,8 +8,7 @@ import org.lflang.generator.ActionInstance;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.generator.ReactorInstance;
 import org.lflang.lf.Action;
-import org.lflang.lf.Reactor;
-import org.lflang.lf.ReactorDecl;
+
 import static org.lflang.generator.c.CGenerator.variableStructType;
 /**
  * Generates code for actions (logical or physical) for the C and CCpp target.
@@ -92,19 +91,17 @@ public class CActionGenerator {
     /**
      * Generate the declarations of actions in the self struct
      *
-     * @param reactor The reactor to generate declarations for
-     * @param decl The reactor's declaration
      * @param body The content of the self struct
      * @param constructorCode The constructor code of the reactor
      */
     public static void generateDeclarations(
-        Reactor reactor,
+        TypeParameterizedReactor tpr,
         CodeBuilder body,
         CodeBuilder constructorCode
     ) {
-        for (Action action : ASTUtils.allActions(reactor)) {
+        for (Action action : ASTUtils.allActions(tpr.reactor())) {
             var actionName = action.getName();
-            body.pr(action, CGenerator.variableStructType(action, reactor, false)+" _lf_"+actionName+";");
+            body.pr(action, CGenerator.variableStructType(action, tpr, false)+" _lf_"+actionName+";");
             // Initialize the trigger pointer in the action.
             constructorCode.pr(action, "self->_lf_"+actionName+".trigger = &self->_lf__"+actionName+";");
         }
@@ -114,7 +111,6 @@ public class CActionGenerator {
      * Generate the struct type definitions for the action of the
      * reactor
      *
-     * @param decl The reactor declaration
      * @param action The action to generate the struct for
      * @param target The target of the code generation (C, CCpp or Python)
      * @param types The helper object for types related stuff
@@ -122,7 +118,7 @@ public class CActionGenerator {
      * @return The auxiliary struct for the port as a string
      */
     public static String generateAuxiliaryStruct(
-        Reactor r,
+        TypeParameterizedReactor tpr,
         Action action,
         Target target,
         CTypes types,
@@ -144,10 +140,10 @@ public class CActionGenerator {
                 "bool has_value;",     // From lf_action_base_t
                 "trigger_t* trigger;"  // From lf_action_base_t
         ));
-        code.pr(valueDeclaration(action, target, types));
+        code.pr(valueDeclaration(tpr, action, target, types));
         code.pr(federatedExtension.toString());
         code.unindent();
-        code.pr("} " + variableStructType(action, r, userFacing) + ";");
+        code.pr("} " + variableStructType(action, tpr, userFacing) + ";");
         return code.toString();
     }
 
@@ -159,10 +155,12 @@ public class CActionGenerator {
      *     int* value;
      * ```
      * This will return an empty string for an action with no type.
+     * @param tpr {@link TypeParameterizedReactor}
      * @param action The action.
      * @return A string providing the value field of the action struct.
      */
     private static String valueDeclaration(
+        TypeParameterizedReactor tpr,
         Action action,
         Target target,
         CTypes types
@@ -174,6 +172,6 @@ public class CActionGenerator {
         // will be a separate field pointing to the token.
         return action.getType() == null && target.requiresTypes ?
                "" :
-               types.getTargetType(action) + " value;";
+               types.getTargetType(tpr.resolveType(action.getType())) + " value;";
     }
 }

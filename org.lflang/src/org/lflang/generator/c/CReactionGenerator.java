@@ -29,7 +29,6 @@ import org.lflang.lf.Output;
 import org.lflang.lf.Port;
 import org.lflang.lf.Reaction;
 import org.lflang.lf.Reactor;
-import org.lflang.lf.ReactorDecl;
 import org.lflang.lf.Timer;
 import org.lflang.lf.TriggerRef;
 import org.lflang.lf.VarRef;
@@ -45,19 +44,17 @@ public class CReactionGenerator {
      * Generate necessary initialization code inside the body of the reaction that belongs to reactor decl.
      * @param body The body of the reaction. Used to check for the DISABLE_REACTION_INITIALIZATION_MARKER.
      * @param reaction The initialization code will be generated for this specific reaction
-     * @param decl The reactor that has the reaction
+     * @param tpr The reactor that has the reaction
      * @param reactionIndex The index of the reaction relative to other reactions in the reactor, starting from 0
      */
     public static String generateInitializationForReaction(String body,
                                                            Reaction reaction,
-                                                           Reactor decl,
+                                                           TypeParameterizedReactor tpr,
                                                            int reactionIndex,
                                                            CTypes types,
                                                            ErrorReporter errorReporter,
                                                            Instantiation mainDef,
                                                            boolean requiresTypes) {
-        Reactor reactor = ASTUtils.toDefinition(decl);
-
         // Construct the reactionInitialization code to go into
         // the body of the function before the verbatim code.
         CodeBuilder reactionInitialization = new CodeBuilder();
@@ -65,7 +62,7 @@ public class CReactionGenerator {
         CodeBuilder code = new CodeBuilder();
 
         // Define the "self" struct.
-        String structType = CUtil.selfType(decl);
+        String structType = CUtil.selfType(tpr);
         // A null structType means there are no inputs, state,
         // or anything else. No need to declare it.
         if (structType != null) {
@@ -113,12 +110,12 @@ public class CReactionGenerator {
                         reactionInitialization,
                         fieldsForStructsForContainedReactors,
                         triggerAsVarRef,
-                        decl,
+                        tpr,
                         types);
                 } else if (triggerAsVarRef.getVariable() instanceof Action) {
                     reactionInitialization.pr(generateActionVariablesInReaction(
                         (Action) triggerAsVarRef.getVariable(),
-                        decl,
+                        tpr,
                         types
                     ));
                     actionsAsTriggers.add((Action) triggerAsVarRef.getVariable());
@@ -129,20 +126,20 @@ public class CReactionGenerator {
             // No triggers are given, which means react to any input.
             // Declare an argument for every input.
             // NOTE: this does not include contained outputs.
-            for (Input input : reactor.getInputs()) {
-                reactionInitialization.pr(generateInputVariablesInReaction(input, decl, types));
+            for (Input input : tpr.reactor().getInputs()) {
+                reactionInitialization.pr(generateInputVariablesInReaction(input, tpr, types));
             }
         }
         // Define argument for non-triggering inputs.
         for (VarRef src : ASTUtils.convertToEmptyListIfNull(reaction.getSources())) {
             if (src.getVariable() instanceof Port) {
-                generatePortVariablesInReaction(reactionInitialization, fieldsForStructsForContainedReactors, src, decl, types);
+                generatePortVariablesInReaction(reactionInitialization, fieldsForStructsForContainedReactors, src, tpr, types);
             } else if (src.getVariable() instanceof Action) {
                 // It's a bit odd to read but not be triggered by an action, but
                 // OK, I guess we allow it.
                 reactionInitialization.pr(generateActionVariablesInReaction(
                     (Action) src.getVariable(),
-                    decl,
+                    tpr,
                     types
                 ));
                 actionsAsTriggers.add((Action) src.getVariable());
@@ -160,11 +157,11 @@ public class CReactionGenerator {
                     // It is an action, not an output.
                     // If it has already appeared as trigger, do not redefine it.
                     if (!actionsAsTriggers.contains(effect.getVariable())) {
-                        reactionInitialization.pr(CGenerator.variableStructType(variable, decl, false)+"* "+variable.getName()+" = &self->_lf_"+variable.getName()+";");
+                        reactionInitialization.pr(CGenerator.variableStructType(variable, tpr, false)+"* "+variable.getName()+" = &self->_lf_"+variable.getName()+";");
                     }
                 } else if (effect.getVariable() instanceof Mode) {
                     // Mode change effect
-                    int idx = ASTUtils.allModes(reactor).indexOf((Mode)effect.getVariable());
+                    int idx = ASTUtils.allModes(tpr.reactor()).indexOf((Mode)effect.getVariable());
                     String name = effect.getVariable().getName();
                     if (idx >= 0) {
                         reactionInitialization.pr(
@@ -184,7 +181,7 @@ public class CReactionGenerator {
                     if (variable instanceof Output) {
                         reactionInitialization.pr(generateOutputVariablesInReaction(
                             effect,
-                            decl,
+                            tpr,
                             errorReporter,
                             requiresTypes
                         ));
@@ -196,7 +193,7 @@ public class CReactionGenerator {
                             effect.getContainer(),
                             (Input) variable);
                     } else if (variable instanceof Watchdog) {
-                        reactionInitialization.pr(generateWatchdogVariablesInReaction(effect, decl));
+                        reactionInitialization.pr(generateWatchdogVariablesInReaction(effect));
                     } else {
                         errorReporter.reportError(
                             reaction,
@@ -219,7 +216,7 @@ public class CReactionGenerator {
             }
             code.pr(String.join("\n",
                 "struct "+containedReactor.getName()+" {",
-                "    "+fieldsForStructsForContainedReactors.get(containedReactor)+"",
+                "    "+fieldsForStructsForContainedReactors.get(containedReactor),
                 "} "+containedReactor.getName()+array+";"
             ));
         }
@@ -376,7 +373,7 @@ public class CReactionGenerator {
             structBuilder = new CodeBuilder();
             structs.put(definition, structBuilder);
         }
-        String inputStructType = CGenerator.variableStructType(input, ASTUtils.toDefinition(definition.getReactorClass()), false);
+        String inputStructType = CGenerator.variableStructType(input, new TypeParameterizedReactor(definition), false);
         String defName = definition.getName();
         String defWidth = generateWidthVariable(defName);
         String inputName = input.getName();
@@ -435,23 +432,23 @@ public class CReactionGenerator {
         CodeBuilder builder,
         Map<Instantiation,CodeBuilder> structs,
         VarRef port,
-        Reactor r,
+        TypeParameterizedReactor tpr,
         CTypes types
     ) {
         if (port.getVariable() instanceof Input) {
-            builder.pr(generateInputVariablesInReaction((Input) port.getVariable(), r, types));
+            builder.pr(generateInputVariablesInReaction((Input) port.getVariable(), tpr, types));
         } else {
             // port is an output of a contained reactor.
             Output output = (Output) port.getVariable();
-            String portStructType = CGenerator.variableStructType(output, ASTUtils.toDefinition(port.getContainer().getReactorClass()), false);
+            String portStructType = CGenerator.variableStructType(output, new TypeParameterizedReactor(port.getContainer()), false);
 
             CodeBuilder structBuilder = structs.get(port.getContainer());
             if (structBuilder == null) {
                 structBuilder = new CodeBuilder();
                 structs.put(port.getContainer(), structBuilder);
             }
-            String reactorName = port.getContainer().getName();
-            String reactorWidth = generateWidthVariable(reactorName);
+            String subName = port.getContainer().getName();
+            String reactorWidth = generateWidthVariable(subName);
             String outputName = output.getName();
             String outputWidth = generateWidthVariable(outputName);
             // First define the struct containing the output value and indicator
@@ -472,21 +469,21 @@ public class CReactionGenerator {
                 // Output is in a bank.
                 builder.pr(String.join("\n",
                     "for (int i = 0; i < "+reactorWidth+"; i++) {",
-                    "    "+reactorName+"[i]."+outputName+" = self->_lf_"+reactorName+"[i]."+outputName+";",
+                    "    "+subName+"[i]."+outputName+" = self->_lf_"+subName+"[i]."+outputName+";",
                     "}"
                 ));
                 if (ASTUtils.isMultiport(output)) {
                     builder.pr(String.join("\n",
                         "for (int i = 0; i < "+reactorWidth+"; i++) {",
-                        "    "+reactorName+"[i]."+outputWidth+" = self->_lf_"+reactorName+"[i]."+outputWidth+";",
+                        "    "+subName+"[i]."+outputWidth+" = self->_lf_"+subName+"[i]."+outputWidth+";",
                         "}"
                     ));
                 }
             } else {
                  // Output is not in a bank.
-                builder.pr(reactorName+"."+outputName+" = self->_lf_"+reactorName+"."+outputName+";");
+                builder.pr(subName+"."+outputName+" = self->_lf_"+subName+"."+outputName+";");
                 if (ASTUtils.isMultiport(output)) {
-                    builder.pr(reactorName+"."+outputWidth+" = self->_lf_"+reactorName+"."+outputWidth+";");
+                    builder.pr(subName+"."+outputWidth+" = self->_lf_"+subName+"."+outputWidth+";");
                 }
             }
         }
@@ -497,10 +494,10 @@ public class CReactionGenerator {
      */
     private static String generateActionVariablesInReaction(
         Action action,
-        Reactor r,
+        TypeParameterizedReactor tpr,
         CTypes types
     ) {
-        String structType = CGenerator.variableStructType(action, r, false);
+        String structType = CGenerator.variableStructType(action, tpr, false);
         // If the action has a type, create variables for accessing the value.
         InferredType type = ASTUtils.getInferredType(action);
         // Pointer to the lf_token_t sent as the payload in the trigger.
@@ -537,14 +534,14 @@ public class CReactionGenerator {
      *  initialize local variables for the specified input port
      *  in a reaction function from the "self" struct.
      *  @param input The input statement from the AST.
-     *  @param r The reactor.
+     *  @param tpr The reactor.
      */
     private static String generateInputVariablesInReaction(
         Input input,
-        Reactor r,
+        TypeParameterizedReactor tpr,
         CTypes types
     ) {
-        String structType = CGenerator.variableStructType(input, r, false);
+        String structType = CGenerator.variableStructType(input, tpr, false);
         InferredType inputType = ASTUtils.getInferredType(input);
         CodeBuilder builder = new CodeBuilder();
         String inputName = input.getName();
@@ -645,11 +642,11 @@ public class CReactionGenerator {
      * initialize local variables for outputs in a reaction function
      * from the "self" struct.
      * @param effect The effect declared by the reaction. This must refer to an output.
-     * @param r The reactor containing the reaction.
+     * @param tpr The reactor containing the reaction.
      */
     public static String generateOutputVariablesInReaction(
         VarRef effect,
-        Reactor r,
+        TypeParameterizedReactor tpr,
         ErrorReporter errorReporter,
         boolean requiresTypes
     ) {
@@ -663,9 +660,9 @@ public class CReactionGenerator {
             // The container of the output may be a contained reactor or
             // the reactor containing the reaction.
             String outputStructType = (effect.getContainer() == null) ?
-                    CGenerator.variableStructType(output, r, false)
-                    :
-                    CGenerator.variableStructType(output, ASTUtils.toDefinition(effect.getContainer().getReactorClass()), false);
+                CGenerator.variableStructType(output, tpr, false)
+                :
+                    CGenerator.variableStructType(output, new TypeParameterizedReactor(effect.getContainer()), false);
             if (!ASTUtils.isMultiport(output)) {
                 // Output port is not a multiport.
                 return outputStructType+"* "+outputName+" = &self->_lf_"+outputName+";";
@@ -686,9 +683,8 @@ public class CReactionGenerator {
      * in a reaction function from the "self" struct.
      *
      * @param effect The effect declared by the reaction. This must refer to a watchdog.
-     * @param decl The reactor containing the reaction or the import statement.
      */
-    public static String generateWatchdogVariablesInReaction(VarRef effect, ReactorDecl decl) {
+    public static String generateWatchdogVariablesInReaction(VarRef effect) {
         Watchdog watchdog = (Watchdog) effect.getVariable();
         String watchdogName = watchdog.getName();
         return String.join(
@@ -703,12 +699,12 @@ public class CReactionGenerator {
      * specified reactor and a trigger_t struct for each trigger (input, action,
      * timer, or output of a contained reactor).
      * @param body The place to put the code for the self struct.
-     * @param reactor The reactor.
+     * @param tpr {@link TypeParameterizedReactor}
      * @param constructorCode The place to put the constructor code.
      */
     public static void generateReactionAndTriggerStructs(
         CodeBuilder body,
-        Reactor reactor,
+        TypeParameterizedReactor tpr,
         CodeBuilder constructorCode,
         CTypes types
     ) {
@@ -725,15 +721,14 @@ public class CReactionGenerator {
         var startupReactions = new LinkedHashSet<Integer>();
         var shutdownReactions = new LinkedHashSet<Integer>();
         var resetReactions = new LinkedHashSet<Integer>();
-        for (Reaction reaction : ASTUtils.allReactions(reactor)) {
+        for (Reaction reaction : ASTUtils.allReactions(tpr.reactor())) {
             // Create the reaction_t struct.
             body.pr(reaction, "reaction_t _lf__reaction_"+reactionCount+";");
 
             // Create the map of triggers to reactions.
             for (TriggerRef trigger : reaction.getTriggers()) {
                 // trigger may not be a VarRef (it could be "startup" or "shutdown").
-                if (trigger instanceof VarRef) {
-                    var triggerAsVarRef = (VarRef) trigger;
+                if (trigger instanceof VarRef triggerAsVarRef) {
                     var reactionList = triggerMap.get(triggerAsVarRef.getVariable());
                     if (reactionList == null) {
                         reactionList = new LinkedList<>();
@@ -768,7 +763,7 @@ public class CReactionGenerator {
             var deadlineFunctionPointer = "NULL";
             if (reaction.getDeadline() != null) {
                 // The following has to match the name chosen in generateReactions
-                var deadlineFunctionName = generateDeadlineFunctionName(reactor, reactionCount);
+                var deadlineFunctionName = generateDeadlineFunctionName(tpr, reactionCount);
                 deadlineFunctionPointer = "&" + deadlineFunctionName;
             }
 
@@ -776,7 +771,7 @@ public class CReactionGenerator {
             var STPFunctionPointer = "NULL";
             if (reaction.getStp() != null) {
                 // The following has to match the name chosen in generateReactions
-                var STPFunctionName = generateStpFunctionName(reactor, reactionCount);
+                var STPFunctionName = generateStpFunctionName(tpr, reactionCount);
                 STPFunctionPointer = "&" + STPFunctionName;
             }
 
@@ -790,14 +785,14 @@ public class CReactionGenerator {
             // self->_lf__reaction_"+reactionCount+".is_STP_violated = false;
             constructorCode.pr(reaction, String.join("\n",
                 "self->_lf__reaction_"+reactionCount+".number = "+reactionCount+";",
-                "self->_lf__reaction_"+reactionCount+".function = "+CReactionGenerator.generateReactionFunctionName(reactor, reactionCount)+";",
+                "self->_lf__reaction_"+reactionCount+".function = "+CReactionGenerator.generateReactionFunctionName(tpr, reactionCount)+";",
                 "self->_lf__reaction_"+reactionCount+".self = self;",
                 "self->_lf__reaction_"+reactionCount+".deadline_violation_handler = "+deadlineFunctionPointer+";",
                 "self->_lf__reaction_"+reactionCount+".STP_handler = "+STPFunctionPointer+";",
                 "self->_lf__reaction_"+reactionCount+".name = "+addDoubleQuotes("?")+";",
-                (reaction.eContainer() instanceof Mode ?
-                "self->_lf__reaction_"+reactionCount+".mode = &self->_lf__modes["+reactor.getModes().indexOf((Mode) reaction.eContainer())+"];" :
-                "self->_lf__reaction_"+reactionCount+".mode = NULL;")
+                reaction.eContainer() instanceof Mode ?
+                "self->_lf__reaction_"+reactionCount+".mode = &self->_lf__modes["+tpr.reactor().getModes().indexOf((Mode) reaction.eContainer())+"];" :
+                "self->_lf__reaction_"+reactionCount+".mode = NULL;"
             ));
             // Increment the reactionCount even if the reaction is not in the federate
             // so that reaction indices are consistent across federates.
@@ -806,7 +801,7 @@ public class CReactionGenerator {
 
         // Next, create and initialize the trigger_t objects.
         // Start with the timers.
-        for (Timer timer : ASTUtils.allTimers(reactor)) {
+        for (Timer timer : ASTUtils.allTimers(tpr.reactor())) {
             createTriggerT(body, timer, triggerMap, constructorCode, types);
             // Since the self struct is allocated using calloc, there is no need to set falsy fields.
             constructorCode.pr("self->_lf__"+timer.getName()+".is_timer = true;");
@@ -827,7 +822,7 @@ public class CReactionGenerator {
         }
 
         // Next handle actions.
-        for (Action action : ASTUtils.allActions(reactor)) {
+        for (Action action : ASTUtils.allActions(tpr.reactor())) {
             createTriggerT(body, action, triggerMap, constructorCode, types);
             var isPhysical = "true";
             if (action.getOrigin().equals(ActionOrigin.LOGICAL)) {
@@ -846,9 +841,9 @@ public class CReactionGenerator {
             // self->_lf__"+action.getName()+".is_timer = false;
             constructorCode.pr(String.join("\n",
                 "self->_lf__" + action.getName() + ".is_physical = " + isPhysical + ";",
-                (!(action.getPolicy() == null || action.getPolicy().isEmpty()) ?
+                !(action.getPolicy() == null || action.getPolicy().isEmpty()) ?
                     "self->_lf__" + action.getName() + ".policy = " + action.getPolicy() + ";" :
-                    ""),
+                    "",
                 // Need to set the element_size in the trigger_t and the action struct.
                 "self->_lf__" + action.getName() + ".tmplt.type.element_size = " + elementSize
                     + ";",
@@ -857,12 +852,12 @@ public class CReactionGenerator {
         }
 
         // Next handle inputs.
-        for (Input input : ASTUtils.allInputs(reactor)) {
+        for (Input input : ASTUtils.allInputs(tpr.reactor())) {
             createTriggerT(body, input, triggerMap, constructorCode, types);
         }
 
         // Next handle watchdogs.
-        for (Watchdog watchdog : ASTUtils.allWatchdogs(reactor)) {
+        for (Watchdog watchdog : ASTUtils.allWatchdogs(tpr.reactor())) {
             createTriggerT(body, watchdog, triggerMap, constructorCode, types);
         }
     }
@@ -1062,12 +1057,12 @@ public class CReactionGenerator {
      *  a struct that contains parameters, state variables, inputs (triggering or not),
      *  actions (triggering or produced), and outputs.
      *  @param reaction The reaction.
-     *  @param r The reactor.
+     *  @param tpr The reactor.
      *  @param reactionIndex The position of the reaction within the reactor.
      */
     public static String generateReaction(
         Reaction reaction,
-        Reactor r,
+        TypeParameterizedReactor tpr,
         int reactionIndex,
         Instantiation mainDef,
         ErrorReporter errorReporter,
@@ -1076,9 +1071,9 @@ public class CReactionGenerator {
         boolean requiresType
     ) {
         var code = new CodeBuilder();
-        var body = ASTUtils.toText(getCode(types, reaction, r));
+        var body = ASTUtils.toText(getCode(types, reaction, tpr));
         String init = generateInitializationForReaction(
-                        body, reaction, ASTUtils.toDefinition(r), reactionIndex,
+                        body, reaction, tpr, reactionIndex,
                         types, errorReporter, mainDef,
                         requiresType);
 
@@ -1086,40 +1081,39 @@ public class CReactionGenerator {
             "#include " + StringUtil.addDoubleQuotes(
                 CCoreFilesUtils.getCTargetSetHeader()));
 
-        CMethodGenerator.generateMacrosForMethods(ASTUtils.toDefinition(r), code);
+        CMethodGenerator.generateMacrosForMethods(tpr, code);
         code.pr(generateFunction(
-            generateReactionFunctionHeader(r, reactionIndex),
-            init, getCode(types, reaction, r)
+            generateReactionFunctionHeader(tpr, reactionIndex),
+            init, getCode(types, reaction, tpr)
         ));
         // Now generate code for the late function, if there is one
         // Note that this function can only be defined on reactions
         // in federates that have inputs from a logical connection.
         if (reaction.getStp() != null) {
             code.pr(generateFunction(
-                generateStpFunctionHeader(r, reactionIndex),
+                generateStpFunctionHeader(tpr, reactionIndex),
                 init, reaction.getStp().getCode()));
         }
 
         // Now generate code for the deadline violation function, if there is one.
         if (reaction.getDeadline() != null) {
             code.pr(generateFunction(
-                generateDeadlineFunctionHeader(r, reactionIndex),
+                generateDeadlineFunctionHeader(tpr, reactionIndex),
                 init, reaction.getDeadline().getCode()));
         }
-        CMethodGenerator.generateMacroUndefsForMethods(ASTUtils.toDefinition(r), code);
+        CMethodGenerator.generateMacroUndefsForMethods(tpr.reactor(), code);
         code.pr(
             "#include " + StringUtil.addDoubleQuotes(
                 CCoreFilesUtils.getCTargetSetUndefHeader()));
         return code.toString();
     }
 
-    private static Code getCode(CTypes types, Reaction r, ReactorDecl container) {
+    private static Code getCode(CTypes types, Reaction r, TypeParameterizedReactor tpr) {
         if (r.getCode() != null) return r.getCode();
         Code ret = LfFactory.eINSTANCE.createCode();
-        var reactor = ASTUtils.toDefinition(container);
         ret.setBody(
-            CReactorHeaderFileGenerator.nonInlineInitialization(r, reactor) + "\n"
-                + r.getName() + "( " + CReactorHeaderFileGenerator.reactionArguments(r, reactor) + " );");
+            CReactorHeaderFileGenerator.nonInlineInitialization(r, tpr) + "\n"
+                + r.getName() + "( " + CReactorHeaderFileGenerator.reactionArguments(r, tpr) + " );");
         return ret;
     }
 
@@ -1137,58 +1131,58 @@ public class CReactionGenerator {
 
     /**
      * Returns the name of the deadline function for reaction.
-     * @param r The reactor with the deadline
+     * @param tpr The reactor with the deadline
      * @param reactionIndex The number assigned to this reaction deadline
      */
-    public static String generateDeadlineFunctionName(Reactor r, int reactionIndex) {
-        return CUtil.getName(r).toLowerCase() + "_deadline_function" + reactionIndex;
+    public static String generateDeadlineFunctionName(TypeParameterizedReactor tpr, int reactionIndex) {
+        return CUtil.getName(tpr).toLowerCase() + "_deadline_function" + reactionIndex;
     }
 
     /**
      * Return the function name for specified reaction of the
      * specified reactor.
-     * @param reactor The reactor
+     * @param tpr The reactor
      * @param reactionIndex The reaction index.
      * @return The function name for the reaction.
      */
-    public static String generateReactionFunctionName(Reactor reactor, int reactionIndex) {
-        return CUtil.getName(reactor).toLowerCase() + "reaction_function_" + reactionIndex;
+    public static String generateReactionFunctionName(TypeParameterizedReactor tpr, int reactionIndex) {
+        return CUtil.getName(tpr).toLowerCase() + "reaction_function_" + reactionIndex;
     }
 
     /**
      * Returns the name of the stp function for reaction.
-     * @param r The reactor with the stp
+     * @param tpr The reactor with the stp
      * @param reactionIndex The number assigned to this reaction deadline
      */
-    public static String generateStpFunctionName(Reactor r, int reactionIndex) {
-        return CUtil.getName(r).toLowerCase() + "_STP_function" + reactionIndex;
+    public static String generateStpFunctionName(TypeParameterizedReactor tpr, int reactionIndex) {
+        return CUtil.getName(tpr).toLowerCase() + "_STP_function" + reactionIndex;
     }
 
     /** Return the top level C function header for the deadline function numbered "reactionIndex" in "r"
-     *  @param r The reactor declaration
+     *  @param tpr The reactor declaration
      *  @param reactionIndex The reaction index.
      *  @return The function name for the deadline function.
      */
-    public static String generateDeadlineFunctionHeader(Reactor r,
+    public static String generateDeadlineFunctionHeader(TypeParameterizedReactor tpr,
                                                         int reactionIndex) {
-        String functionName = generateDeadlineFunctionName(r, reactionIndex);
+        String functionName = generateDeadlineFunctionName(tpr, reactionIndex);
         return generateFunctionHeader(functionName);
     }
 
     /** Return the top level C function header for the reaction numbered "reactionIndex" in "r"
-     *  @param r The reactor declaration
+     *  @param tpr The reactor declaration
      *  @param reactionIndex The reaction index.
      *  @return The function name for the reaction.
      */
-    public static String generateReactionFunctionHeader(Reactor r,
+    public static String generateReactionFunctionHeader(TypeParameterizedReactor tpr,
                                                         int reactionIndex) {
-        String functionName = generateReactionFunctionName(r, reactionIndex);
+        String functionName = generateReactionFunctionName(tpr, reactionIndex);
         return generateFunctionHeader(functionName);
     }
 
-    public static String generateStpFunctionHeader(Reactor r,
+    public static String generateStpFunctionHeader(TypeParameterizedReactor tpr,
                                                    int reactionIndex) {
-        String functionName = generateStpFunctionName(r, reactionIndex);
+        String functionName = generateStpFunctionName(tpr, reactionIndex);
         return generateFunctionHeader(functionName);
     }
 

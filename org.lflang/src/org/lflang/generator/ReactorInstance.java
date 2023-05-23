@@ -26,7 +26,6 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 package org.lflang.generator;
 
-import static org.lflang.ASTUtils.belongsTo;
 import static org.lflang.ASTUtils.getLiteralTimeValue;
 import static org.lflang.AttributeUtils.isEnclave;
 
@@ -45,6 +44,7 @@ import org.lflang.AttributeUtils;
 import org.lflang.ErrorReporter;
 import org.lflang.TimeValue;
 import org.lflang.generator.TriggerInstance.BuiltinTriggerVariable;
+import org.lflang.generator.c.TypeParameterizedReactor;
 import org.lflang.lf.Action;
 import org.lflang.lf.Assignment;
 import org.lflang.lf.BuiltinTrigger;
@@ -168,6 +168,8 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
 
     // An enclave object if this ReactorInstance is an enclave. null if not
     public EnclaveInfo enclaveInfo = null;
+    public TypeParameterizedReactor tpr;
+
     //////////////////////////////////////////////////////
     //// Public methods.
 
@@ -801,15 +803,16 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
      * @param reporter An error reporter.
      * @param desiredDepth The depth to which to expand the hierarchy.
      */
-    private ReactorInstance(
-            Instantiation definition,
-            ReactorInstance parent,
-            ErrorReporter reporter,
-            int desiredDepth) {
+    public ReactorInstance(
+        Instantiation definition,
+        ReactorInstance parent,
+        ErrorReporter reporter,
+        int desiredDepth) {
         super(definition, parent);
         this.reporter = reporter;
         this.reactorDeclaration = definition.getReactorClass();
         this.reactorDefinition = ASTUtils.toDefinition(reactorDeclaration);
+        this.tpr = new TypeParameterizedReactor(definition);
 
         if (isEnclave(definition) || this.isMainOrFederated()) {
             enclaveInfo = new EnclaveInfo(this);
@@ -900,6 +903,10 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
                 mode.setupTranstions();
             }
         }
+    }
+
+    public TypeParameterizedReactor getTypeParameterizedReactor() {
+        return this.tpr;
     }
 
     //////////////////////////////////////////////////////
@@ -1184,9 +1191,6 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
      */
     public boolean isGeneratedDelay() {
         // FIXME: hacky string matching again...
-        if (this.definition.getReactorClass().getName().contains(DelayBodyGenerator.GEN_DELAY_CLASS_NAME)) {
-            return true;
-        }
-        return false;
+        return this.definition.getReactorClass().getName().contains(DelayBodyGenerator.GEN_DELAY_CLASS_NAME);
     }
 }

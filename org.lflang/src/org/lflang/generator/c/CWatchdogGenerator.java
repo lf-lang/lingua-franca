@@ -16,7 +16,6 @@ import org.lflang.generator.ReactorInstance;
 import org.lflang.lf.Mode;
 import org.lflang.lf.ModeTransition;
 import org.lflang.lf.Reactor;
-import org.lflang.lf.ReactorDecl;
 import org.lflang.lf.VarRef;
 import org.lflang.lf.Variable;
 import org.lflang.lf.Watchdog;
@@ -90,16 +89,15 @@ public class CWatchdogGenerator {
    *
    * @param src The place to put the code
    * @param header The place to put header code
-   * @param decl The reactor declaration
+   * @param tpr The reactor declaration
    */
   protected static void generateWatchdogs(
-      CodeBuilder src, CodeBuilder header, ReactorDecl decl, ErrorReporter errorReporter
+      CodeBuilder src, CodeBuilder header, TypeParameterizedReactor tpr, ErrorReporter errorReporter
   ) {
-    var reactor = ASTUtils.toDefinition(decl);
-    if (hasWatchdogs(reactor)) {
+    if (hasWatchdogs(tpr.reactor())) {
       header.pr("#include \"core/threaded/watchdog.h\"");
-      for (Watchdog watchdog : ASTUtils.allWatchdogs(reactor)) {
-        src.pr(generateWatchdogFunction(watchdog, decl, errorReporter));
+      for (Watchdog watchdog : ASTUtils.allWatchdogs(tpr.reactor())) {
+        src.pr(generateWatchdogFunction(watchdog, tpr, errorReporter));
       }
     }
   }
@@ -107,20 +105,19 @@ public class CWatchdogGenerator {
   /**
    * Generate watchdog definitions in the reactor's self struct.
    * @param body The place to put the definitions
-   * @param decl The reactor declaration
+   * @param tpr The concrete reactor class
    * @param constructorCode The place to put initialization code.
    */
   protected static void generateWatchdogStruct(
-      CodeBuilder body, ReactorDecl decl, CodeBuilder constructorCode) {
-    var reactor = ASTUtils.toDefinition(decl);
+      CodeBuilder body, TypeParameterizedReactor tpr, CodeBuilder constructorCode) {
 
-    for (Watchdog watchdog : ASTUtils.allWatchdogs(reactor)) {
+    for (Watchdog watchdog : ASTUtils.allWatchdogs(tpr.reactor())) {
       String watchdogName = watchdog.getName();
 
       body.pr(watchdog, "watchdog_t _lf_watchdog_" + watchdogName + ";");
 
       // watchdog function name
-      var watchdogFunctionName = watchdogFunctionName(watchdog, decl);
+      var watchdogFunctionName = watchdogFunctionName(watchdog, tpr);
       // Set values of watchdog_t struct in the reactor's constructor.
       constructorCode.pr(
           watchdog,
@@ -175,14 +172,13 @@ public class CWatchdogGenerator {
    * Generate necessary initialization code inside the body of a watchdog handler.
    *
    * @param watchdog The wotchdog
-   * @param decl The declaration for the reactor that has the watchdog
+   * @param tpr The concrete reactor class that has the watchdog
    */
   private static String generateInitializationForWatchdog(
       Watchdog watchdog,
-      ReactorDecl decl,
+      TypeParameterizedReactor tpr,
       ErrorReporter errorReporter
   ) {
-    Reactor reactor = ASTUtils.toDefinition(decl);
 
     // Construct the reactionInitialization code to go into
     // the body of the function before the verbatim code.
@@ -191,7 +187,7 @@ public class CWatchdogGenerator {
     CodeBuilder code = new CodeBuilder();
 
     // Define the "self" struct.
-    String structType = CUtil.selfType(reactor);
+    String structType = CUtil.selfType(tpr);
     // A null structType means there are no inputs, state,
     // or anything else. No need to declare it.
     if (structType != null) {
@@ -210,7 +206,7 @@ public class CWatchdogGenerator {
         Variable variable = effect.getVariable();
         if (variable instanceof Mode) {
           // Mode change effect
-          int idx = ASTUtils.allModes(reactor).indexOf((Mode) effect.getVariable());
+          int idx = ASTUtils.allModes(tpr.reactor()).indexOf((Mode) effect.getVariable());
           String name = effect.getVariable().getName();
           if (idx >= 0) {
             watchdogInitialization.pr(
@@ -271,11 +267,11 @@ public class CWatchdogGenerator {
 
   /** Generate the watchdog handler function. */
   private static String generateWatchdogFunction(
-      Watchdog watchdog, ReactorDecl decl, ErrorReporter errorReporter
+      Watchdog watchdog, TypeParameterizedReactor tpr, ErrorReporter errorReporter
   ) {
     return generateFunction(
-        generateWatchdogFunctionHeader(watchdog, decl),
-        generateInitializationForWatchdog(watchdog, decl, errorReporter),
+        generateWatchdogFunctionHeader(watchdog, tpr),
+        generateInitializationForWatchdog(watchdog, tpr, errorReporter),
         watchdog);
   }
 
@@ -283,11 +279,11 @@ public class CWatchdogGenerator {
    * Return the start of a C function definition for a watchdog.
    *
    * @param watchdog The watchdog
-   * @param decl The reactor declaration
+   * @param tpr The concrete reactor class
    * @return The function name for the watchdog function.
    */
-  private static String generateWatchdogFunctionHeader(Watchdog watchdog, ReactorDecl decl) {
-    String functionName = watchdogFunctionName(watchdog, decl);
+  private static String generateWatchdogFunctionHeader(Watchdog watchdog, TypeParameterizedReactor tpr) {
+    String functionName = watchdogFunctionName(watchdog, tpr);
     return CReactionGenerator.generateFunctionHeader(functionName);
   }
 
@@ -295,11 +291,11 @@ public class CWatchdogGenerator {
    * Return the name of the watchdog expiration handler function.
    *
    * @param watchdog The watchdog
-   * @param decl The reactor with the watchdog
+   * @param tpr The concrete reactor class that has the watchdog
    * @return Name of the watchdog handler function
    */
-  private static String watchdogFunctionName(Watchdog watchdog, ReactorDecl decl) {
-    return decl.getName().toLowerCase()
+  private static String watchdogFunctionName(Watchdog watchdog, TypeParameterizedReactor tpr) {
+    return tpr.getName().toLowerCase()
         + "_"
         + watchdog.getName().toLowerCase()
         + "_watchdog_function";

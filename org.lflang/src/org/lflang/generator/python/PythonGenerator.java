@@ -54,6 +54,7 @@ import org.lflang.generator.TargetTypes;
 import org.lflang.generator.c.CCmakeGenerator;
 import org.lflang.generator.c.CGenerator;
 import org.lflang.generator.c.CUtil;
+import org.lflang.generator.c.TypeParameterizedReactor;
 import org.lflang.lf.Action;
 import org.lflang.lf.Input;
 import org.lflang.lf.Model;
@@ -61,7 +62,6 @@ import org.lflang.lf.Output;
 import org.lflang.lf.Port;
 import org.lflang.lf.Reaction;
 import org.lflang.lf.Reactor;
-import org.lflang.lf.ReactorDecl;
 import org.lflang.util.FileUtil;
 import org.lflang.util.LFCommand;
 import org.lflang.util.StringUtil;
@@ -346,34 +346,34 @@ public class PythonGenerator extends CGenerator {
     /**
      * Generate the aliases for inputs, outputs, and struct type definitions for
      * actions of the specified reactor in the specified federate.
-     * @param r The parsed reactor data structure.
+     * @param tpr The concrete reactor class.
      */
     @Override
     public void generateAuxiliaryStructs(
-        CodeBuilder builder, Reactor r, boolean userFacing
+        CodeBuilder builder, TypeParameterizedReactor tpr, boolean userFacing
     ) {
-        for (Input input : ASTUtils.allInputs(r)) {
-            generateAuxiliaryStructsForPort(builder, r, input);
+        for (Input input : ASTUtils.allInputs(tpr.reactor())) {
+            generateAuxiliaryStructsForPort(builder, tpr, input);
         }
-        for (Output output : ASTUtils.allOutputs(r)) {
-            generateAuxiliaryStructsForPort(builder, r, output);
+        for (Output output : ASTUtils.allOutputs(tpr.reactor())) {
+            generateAuxiliaryStructsForPort(builder, tpr, output);
         }
-        for (Action action : ASTUtils.allActions(r)) {
-            generateAuxiliaryStructsForAction(builder, r, action);
+        for (Action action : ASTUtils.allActions(tpr.reactor())) {
+            generateAuxiliaryStructsForAction(builder, tpr, action);
         }
     }
 
-    private void generateAuxiliaryStructsForPort(CodeBuilder builder, Reactor r,
+    private void generateAuxiliaryStructsForPort(CodeBuilder builder, TypeParameterizedReactor tpr,
                                                  Port port) {
         boolean isTokenType = CUtil.isTokenType(ASTUtils.getInferredType(port), types);
         builder.pr(port,
-                PythonPortGenerator.generateAliasTypeDef(r, port, isTokenType,
+                PythonPortGenerator.generateAliasTypeDef(tpr, port, isTokenType,
                                                          genericPortType));
     }
 
-    private void generateAuxiliaryStructsForAction(CodeBuilder builder, Reactor r,
+    private void generateAuxiliaryStructsForAction(CodeBuilder builder, TypeParameterizedReactor tpr,
                                                    Action action) {
-        builder.pr(action, PythonActionGenerator.generateAliasTypeDef(r, action, genericActionType));
+        builder.pr(action, PythonActionGenerator.generateAliasTypeDef(tpr, action, genericActionType));
     }
 
     /**
@@ -450,19 +450,19 @@ public class PythonGenerator extends CGenerator {
      *  a struct that contains parameters, state variables, inputs (triggering or not),
      *  actions (triggering or produced), and outputs.
      *  @param reaction The reaction.
-     *  @param r The reactor.
+     *  @param tpr The reactor.
      *  @param reactionIndex The position of the reaction within the reactor.
      */
     @Override
-    protected void generateReaction(CodeBuilder src, Reaction reaction, Reactor r, int reactionIndex) {
-        Reactor reactor = ASTUtils.toDefinition(r);
+    protected void generateReaction(CodeBuilder src, Reaction reaction, TypeParameterizedReactor tpr, int reactionIndex) {
+        Reactor reactor = ASTUtils.toDefinition(tpr.reactor());
 
         // Reactions marked with a `@_c_body` attribute are generated in C
         if (AttributeUtils.hasCBody(reaction)) {
-            super.generateReaction(src, reaction, r, reactionIndex);
+            super.generateReaction(src, reaction, tpr, reactionIndex);
             return;
         }
-        src.pr(PythonReactionGenerator.generateCReaction(reaction, reactor, reactionIndex, mainDef, errorReporter, types));
+        src.pr(PythonReactionGenerator.generateCReaction(reaction, tpr, reactor, reactionIndex, mainDef, errorReporter, types));
     }
 
     /**
@@ -499,7 +499,7 @@ public class PythonGenerator extends CGenerator {
      * @see PythonMethodGenerator
      */
     @Override
-    protected void generateMethods(CodeBuilder src, ReactorDecl reactor) {    }
+    protected void generateMethods(CodeBuilder src, TypeParameterizedReactor reactor) {    }
 
     /**
      * Generate C preambles defined by user for a given reactor
@@ -511,6 +511,12 @@ public class PythonGenerator extends CGenerator {
     @Override
     protected void generateUserPreamblesForReactor(Reactor reactor, CodeBuilder src) {
         // Do nothing
+    }
+
+    @Override
+    protected void generateReactorClassHeaders(TypeParameterizedReactor tpr, String headerName, CodeBuilder header, CodeBuilder src) {
+        header.pr(PythonPreambleGenerator.generateCIncludeStatements(targetConfig, targetLanguageIsCpp(), hasModalReactors));
+        super.generateReactorClassHeaders(tpr, headerName, header, src);
     }
 
     /**
@@ -529,16 +535,15 @@ public class PythonGenerator extends CGenerator {
     /**
      * This function is provided to allow extensions of the CGenerator to append the structure of the self struct
      * @param selfStructBody The body of the self struct
-     * @param decl The reactor declaration for the self struct
+     * @param reactor The reactor declaration for the self struct
      * @param constructorCode Code that is executed when the reactor is instantiated
      */
     @Override
     protected void generateSelfStructExtension(
         CodeBuilder selfStructBody,
-        ReactorDecl decl,
+        Reactor reactor,
         CodeBuilder constructorCode
     ) {
-        Reactor reactor = ASTUtils.toDefinition(decl);
         // Add the name field
         selfStructBody.pr("char *_lf_name;");
         int reactionIndex = 0;
