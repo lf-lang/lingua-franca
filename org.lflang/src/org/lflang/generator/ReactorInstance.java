@@ -163,6 +163,8 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
   /** Indicator that this reactor has itself as a parent, an error condition. */
   public final boolean recursive;
 
+  // An enclave object if this ReactorInstance is an enclave. null if not
+  public EnclaveInfo enclaveInfo = null;
   public TypeParameterizedReactor tpr;
 
   //////////////////////////////////////////////////////
