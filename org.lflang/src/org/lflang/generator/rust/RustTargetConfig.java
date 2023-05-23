@@ -29,11 +29,8 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
-
 import org.eclipse.emf.ecore.EObject;
-
 import org.lflang.ErrorReporter;
 import org.lflang.TargetProperty.BuildType;
 
@@ -44,83 +41,66 @@ import org.lflang.TargetProperty.BuildType;
  */
 public final class RustTargetConfig {
 
+  /** List of Cargo features of the generated crate to enable. */
+  private List<String> cargoFeatures = new ArrayList<>();
 
-    /**
-     * List of Cargo features of the generated crate to enable.
-     */
-    private List<String> cargoFeatures = new ArrayList<>();
+  /** Map of Cargo dependency to dependency properties. */
+  private Map<String, CargoDependencySpec> cargoDependencies = new HashMap<>();
 
-    /**
-     * Map of Cargo dependency to dependency properties.
-     */
-    private Map<String, CargoDependencySpec> cargoDependencies = new HashMap<>();
+  /** List of top-level modules, those are absolute paths. */
+  private final List<Path> rustTopLevelModules = new ArrayList<>();
 
-    /**
-     * List of top-level modules, those are absolute paths.
-     */
-    private final List<Path> rustTopLevelModules = new ArrayList<>();
+  /** Cargo profile, default is debug (corresponds to cargo dev profile). */
+  private BuildType profile = BuildType.DEBUG;
 
-    /**
-     * Cargo profile, default is debug (corresponds to cargo dev profile).
-     */
-    private BuildType profile = BuildType.DEBUG;
+  public void setCargoFeatures(List<String> cargoFeatures) {
+    this.cargoFeatures = cargoFeatures;
+  }
 
-    public void setCargoFeatures(List<String> cargoFeatures) {
-        this.cargoFeatures = cargoFeatures;
+  public void setCargoDependencies(Map<String, CargoDependencySpec> cargoDependencies) {
+    this.cargoDependencies = cargoDependencies;
+  }
+
+  public void addAndCheckTopLevelModule(Path path, EObject errorOwner, ErrorReporter err) {
+    String fileName = path.getFileName().toString();
+    if (!Files.exists(path)) {
+      err.reportError(errorOwner, "File not found");
+    } else if (Files.isRegularFile(path) && !fileName.endsWith(".rs")) {
+      err.reportError(errorOwner, "Not a rust file");
+    } else if (fileName.equals("main.rs")) {
+      err.reportError(errorOwner, "Cannot use 'main.rs' as a module name (reserved)");
+    } else if (fileName.equals("reactors") || fileName.equals("reactors.rs")) {
+      err.reportError(errorOwner, "Cannot use 'reactors' as a module name (reserved)");
+    } else if (Files.isDirectory(path) && !Files.exists(path.resolve("mod.rs"))) {
+      err.reportError(errorOwner, "Cannot find module descriptor in directory");
     }
+    this.rustTopLevelModules.add(path);
+  }
 
-    public void setCargoDependencies(Map<String, CargoDependencySpec> cargoDependencies) {
-        this.cargoDependencies = cargoDependencies;
-    }
+  public List<String> getCargoFeatures() {
+    return cargoFeatures;
+  }
 
-    public void addAndCheckTopLevelModule(Path path, EObject errorOwner, ErrorReporter err) {
-        String fileName = path.getFileName().toString();
-        if (!Files.exists(path)) {
-            err.reportError(errorOwner, "File not found");
-        } else if (Files.isRegularFile(path) && !fileName.endsWith(".rs")) {
-            err.reportError(errorOwner, "Not a rust file");
-        } else if (fileName.equals("main.rs")) {
-            err.reportError(errorOwner, "Cannot use 'main.rs' as a module name (reserved)");
-        } else if (fileName.equals("reactors") || fileName.equals("reactors.rs")) {
-            err.reportError(errorOwner, "Cannot use 'reactors' as a module name (reserved)");
-        } else if (Files.isDirectory(path) && !Files.exists(path.resolve("mod.rs"))) {
-            err.reportError(errorOwner, "Cannot find module descriptor in directory");
-        }
-        this.rustTopLevelModules.add(path);
-    }
+  /** Returns a map of cargo dependencies. */
+  public Map<String, CargoDependencySpec> getCargoDependencies() {
+    return cargoDependencies;
+  }
 
-    public List<String> getCargoFeatures() {
-        return cargoFeatures;
-    }
+  /**
+   * Returns the list of top-level module files to include in main.rs. Those files were checked to
+   * exists previously.
+   */
+  public List<Path> getRustTopLevelModules() {
+    return rustTopLevelModules;
+  }
 
-    /**
-     * Returns a map of cargo dependencies.
-     */
-    public Map<String, CargoDependencySpec> getCargoDependencies() {
-        return cargoDependencies;
-    }
+  /** The build type to use. Corresponds to a Cargo profile. */
+  public BuildType getBuildType() {
+    return profile;
+  }
 
-    /**
-     * Returns the list of top-level module files to include in main.rs.
-     * Those files were checked to exists previously.
-     */
-    public List<Path> getRustTopLevelModules() {
-        return rustTopLevelModules;
-    }
-
-    /**
-     * The build type to use. Corresponds to a Cargo profile.
-     */
-    public BuildType getBuildType() {
-        return profile;
-    }
-
-
-    /**
-     * Set a build profile chosen based on a cmake profile.
-     */
-    public void setBuildType(BuildType profile) {
-        this.profile = profile;
-    }
-
+  /** Set a build profile chosen based on a cmake profile. */
+  public void setBuildType(BuildType profile) {
+    this.profile = profile;
+  }
 }

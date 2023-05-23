@@ -24,22 +24,18 @@
 
 package org.lflang.tests.runtime;
 
-import java.util.Properties;
-
 import org.lflang.Target;
 import org.lflang.tests.RuntimeTest;
 
-/**
- *
- */
+/** */
 public class RustTest extends RuntimeTest {
 
-    public RustTest() {
-        super(Target.Rust);
-    }
+  public RustTest() {
+    super(Target.Rust);
+  }
 
-    @Override
-    protected boolean supportsGenericTypes() {
-        return true;
-    }
+  @Override
+  protected boolean supportsGenericTypes() {
+    return true;
+  }
 }
