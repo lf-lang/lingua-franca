@@ -964,38 +964,36 @@ public class CReactionGenerator {
     /**
      * Generate the _lf_trigger_startup_reactions function.
      */
-    public static String generateLfTriggerStartupReactions(int startupReactionCount, boolean hasModalReactors) {
+    public static String generateLfTriggerStartupReactions(boolean hasModalReactors) {
         var s = new StringBuilder();
         s.append("void _lf_trigger_startup_reactions(environment_t *env) {");
-        if (startupReactionCount > 0) {
-            s.append("\n");
-            if (hasModalReactors) {
-                s.append(String.join("\n",
-                    "    for (int i = 0; i < env->_lf_startup_reactions_size; i++) {",
-                    "        if (env->_lf_startup_reactions[i] != NULL) {",
-                    "            if (env->_lf_startup_reactions[i]->mode != NULL) {",
-                    "                // Skip reactions in modes",
-                    "                continue;",
-                    "            }",
-                    "            _lf_trigger_reaction(env, env->_lf_startup_reactions[i], -1);",
-                    "        }",
-                    "    }",
-                    "    _lf_handle_mode_startup_reset_reactions(",
-                    "        env->_lf_startup_reactions, env->_lf_startup_reactions_size,",
-                    "        NULL, 0,",
-                    "        _lf_modal_reactor_states, _lf_modal_reactor_states_size);"
-                ));
-            } else {
-                s.append(String.join("\n",
-                    "    for (int i = 0; i < env->_lf_startup_reactions_size; i++) {",
-                    "        if (env->_lf_startup_reactions[i] != NULL) {",
-                    "            _lf_trigger_reaction(env, env->_lf_startup_reactions[i], -1);",
-                    "        }",
-                    "    }"
-                ));
-            }
-            s.append("\n");
+        s.append("\n");
+        if (hasModalReactors) {
+            s.append(String.join("\n",
+                "    for (int i = 0; i < env->_lf_startup_reactions_size; i++) {",
+                "        if (env->_lf_startup_reactions[i] != NULL) {",
+                "            if (env->_lf_startup_reactions[i]->mode != NULL) {",
+                "                // Skip reactions in modes",
+                "                continue;",
+                "            }",
+                "            _lf_trigger_reaction(env, env->_lf_startup_reactions[i], -1);",
+                "        }",
+                "    }",
+                "    _lf_handle_mode_startup_reset_reactions(",
+                "        env->_lf_startup_reactions, env->_lf_startup_reactions_size,",
+                "        NULL, 0,",
+                "        _lf_modal_reactor_states, _lf_modal_reactor_states_size);"
+            ));
+        } else {
+            s.append(String.join("\n",
+                "    for (int i = 0; i < env->_lf_startup_reactions_size; i++) {",
+                "        if (env->_lf_startup_reactions[i] != NULL) {",
+                "            _lf_trigger_reaction(env, env->_lf_startup_reactions[i], -1);",
+                "        }",
+                "    }"
+            ));
         }
+        s.append("\n");
         s.append("}\n");
         return s.toString();
     }
@@ -1043,7 +1041,6 @@ public class CReactionGenerator {
      * Generate the _lf_handle_mode_triggered_reactions function.
      */
     public static String generateLfModeTriggeredReactions(
-            int startupReactionCount,
             int resetReactionCount,
             boolean hasModalReactors
     ) {
@@ -1053,16 +1050,8 @@ public class CReactionGenerator {
         var s = new StringBuilder();
         s.append("void _lf_handle_mode_triggered_reactions() {\n");
         s.append("    _lf_handle_mode_startup_reset_reactions(\n");
-        if (startupReactionCount > 0) {
-            s.append("        _lf_startup_reactions, _lf_startup_reactions_size,\n");
-        } else {
-            s.append("        NULL, 0,\n");
-        }
-        if (resetReactionCount > 0) {
-            s.append("        _lf_reset_reactions, _lf_reset_reactions_size,\n");
-        } else {
-            s.append("        NULL, 0,\n");
-        }
+        s.append("        _lf_startup_reactions, _lf_startup_reactions_size,\n");
+        s.append("        _lf_reset_reactions, _lf_reset_reactions_size,\n");
         s.append("        _lf_modal_reactor_states, _lf_modal_reactor_states_size);\n");
         s.append("}\n");
         return s.toString();

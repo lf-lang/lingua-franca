@@ -41,17 +41,14 @@ public class CTimerGenerator {
      *
      * @param timerCount The total number of timers in the program
      */
-    public static String generateLfInitializeTimer(int timerCount) {
+    public static String generateLfInitializeTimer() {
         return String.join("\n",
             "void _lf_initialize_timers(environment_t *env) {",
-            timerCount > 0 ?
-            """
-                for (int i = 0; i < env->_lf_timer_triggers_size; i++) {
-                    if (env->_lf_timer_triggers[i] != NULL) {
-                        _lf_initialize_timer(env, env->_lf_timer_triggers[i]);
-                    }
-                }""".indent(4).stripTrailing() :
-            "",
+            "   for (int i = 0; i < env->_lf_timer_triggers_size; i++) {",
+            "       if (env->_lf_timer_triggers[i] != NULL) {",
+            "            _lf_initialize_timer(env, env->_lf_timer_triggers[i]);",
+            "        }",
+            "    }",
             "}"
         );
     }

@@ -348,8 +348,6 @@ public class CGenerator extends GeneratorBase {
     /** Count of the number of token pointers that need to have their
      *  reference count decremented in _lf_start_time_step().
      */
-    private int timerCount = 0;
-    private int startupReactionCount = 0;
     private int shutdownReactionCount = 0;
     private int resetReactionCount = 0;
     private int modalReactorCount = 0;
@@ -709,10 +707,10 @@ public class CGenerator extends GeneratorBase {
             ));
 
             // Generate function to trigger startup reactions for all reactors.
-            code.pr(CReactionGenerator.generateLfTriggerStartupReactions(startupReactionCount, hasModalReactors));
+            code.pr(CReactionGenerator.generateLfTriggerStartupReactions(hasModalReactors));
 
             // Generate function to schedule timers for all reactors.
-            code.pr(CTimerGenerator.generateLfInitializeTimer(timerCount));
+            code.pr(CTimerGenerator.generateLfInitializeTimer());
 
             // Generate a function that will either do nothing
             // (if there is only one federate or the coordination
@@ -752,7 +750,6 @@ public class CGenerator extends GeneratorBase {
                 modalStateResetCount
             ));
             code.pr(CReactionGenerator.generateLfModeTriggeredReactions(
-                startupReactionCount,
                 resetReactionCount,
                 hasModalReactors
             ));
@@ -1437,6 +1434,10 @@ public class CGenerator extends GeneratorBase {
     private void recordBuiltinTriggers(ReactorInstance instance) {
         // For each reaction instance, allocate the arrays that will be used to
         // trigger downstream reactions.
+
+        var enclaveInfo = CUtil.getClosestEnclave(instance).enclaveInfo;
+        var enclaveStruct = CUtil.getEnvironmentStruct(instance);
+        var enclaveId = CUtil.getEnvironmentId(instance);
         for (ReactionInstance reaction : instance.reactions) {
             var reactor = reaction.getParent();
             var temp = new CodeBuilder();
@@ -1448,13 +1449,13 @@ public class CGenerator extends GeneratorBase {
             // of a contained reactor.  Also, handle startup and shutdown triggers.
             for (TriggerInstance<?> trigger : reaction.triggers) {
                 if (trigger.isStartup()) {
-                    temp.pr("_lf_startup_reactions[_lf_startup_reactions_count++] = &"+reactionRef+";");
-                    startupReactionCount += reactor.getTotalWidth();
+                    temp.pr(enclaveStruct+"._lf_startup_reactions[startup_reactions_count["+enclaveId+"]++] = &"+reactionRef+";");
+                    enclaveInfo.numStartupReactions+= reactor.getTotalWidth();
                     foundOne = true;
                 } else if (trigger.isShutdown()) {
-                    temp.pr("_lf_shutdown_reactions[_lf_shutdown_reactions_count++] = &"+reactionRef+";");
+                    temp.pr(enclaveStruct+"._lf_shutdown_reactions[shutdown_reactions_count["+enclaveId+"]++] = &"+reactionRef+";");
                     foundOne = true;
-                    shutdownReactionCount += reactor.getTotalWidth();
+                    enclaveInfo.numShutdownReactions += reactor.getTotalWidth();
 
                     if (targetConfig.tracing != null) {
                         var description = CUtil.getShortenedName(reactor);
@@ -1465,8 +1466,8 @@ public class CGenerator extends GeneratorBase {
                         ));
                     }
                 } else if (trigger.isReset()) {
-                    temp.pr("_lf_reset_reactions[_lf_reset_reactions_count++] = &"+reactionRef+";");
-                    resetReactionCount += reactor.getTotalWidth();
+                    temp.pr(enclaveStruct+"._lf_reset_reactions[reset_reactions_count["+enclaveId+"]++] = &"+reactionRef+";");
+                    enclaveInfo.numResetReactions += reactor.getTotalWidth();
                     foundOne = true;
                 }
             }
@@ -1629,7 +1630,7 @@ public class CGenerator extends GeneratorBase {
         for (TimerInstance timer : instance.timers) {
             if (!timer.isStartup()) {
                 initializeTriggerObjects.pr(CTimerGenerator.generateInitializer(timer));
-                timerCount += timer.getParent().getTotalWidth();
+                CUtil.getClosestEnclave(instance).enclaveInfo.numTimerTriggers += timer.getParent().getTotalWidth();
             }
         }
     }
