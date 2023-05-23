@@ -29,7 +29,6 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
 import org.lflang.Target;
 import org.lflang.tests.runtime.CCppTest;
 import org.lflang.tests.runtime.CTest;
@@ -39,55 +38,55 @@ import org.lflang.tests.runtime.RustTest;
 import org.lflang.tests.runtime.TypeScriptTest;
 
 /**
- * Execute a single test case. Use it with the gradle task
- * {@code gradle runSingleTest --args test/Python/src/Minimal.lf}
+ * Execute a single test case. Use it with the gradle task {@code gradle runSingleTest --args
+ * test/Python/src/Minimal.lf}
  *
  * @author Clément Fournier
  */
 public class RunSingleTestMain {
 
+  private static final Pattern TEST_FILE_PATTERN =
+      Pattern.compile("(test/(\\w+))/src/([^/]++/)*(\\w+.lf)");
 
-    private static final Pattern TEST_FILE_PATTERN = Pattern.compile("(test/(\\w+))/src/([^/]++/)*(\\w+.lf)");
-
-    public static void main(String[] args) throws FileNotFoundException {
-        if (args.length != 1) {
-            throw new IllegalArgumentException("Expected 1 path to an LF file");
-        }
-        var path = Paths.get(args[0]);
-        if (!Files.exists(path)) {
-            throw new FileNotFoundException("No such test file: " + path);
-        }
-
-        Matcher matcher = TEST_FILE_PATTERN.matcher(args[0]);
-        if (!matcher.matches()) {
-            throw new FileNotFoundException("Not a test: " + path);
-        }
-
-        Target target = Target.forName(matcher.group(2)).get();
-
-        Class<? extends TestBase> testClass = getTestInstance(target);
-
-        LFTest testCase = new LFTest(target, path.toAbsolutePath());
-
-        TestBase.runSingleTestAndPrintResults(testCase, testClass, TestBase.pathToLevel(path));
+  public static void main(String[] args) throws FileNotFoundException {
+    if (args.length != 1) {
+      throw new IllegalArgumentException("Expected 1 path to an LF file");
+    }
+    var path = Paths.get(args[0]);
+    if (!Files.exists(path)) {
+      throw new FileNotFoundException("No such test file: " + path);
     }
 
-    private static Class<? extends TestBase> getTestInstance(Target target) {
-        switch (target) {
-        case C:
-            return CTest.class;
-        case CCPP:
-            return CCppTest.class;
-        case CPP:
-            return CppTest.class;
-        case TS:
-            return TypeScriptTest.class;
-        case Python:
-            return PythonTest.class;
-        case Rust:
-            return RustTest.class;
-        default:
-            throw new IllegalArgumentException();
-        }
+    Matcher matcher = TEST_FILE_PATTERN.matcher(args[0]);
+    if (!matcher.matches()) {
+      throw new FileNotFoundException("Not a test: " + path);
     }
+
+    Target target = Target.forName(matcher.group(2)).get();
+
+    Class<? extends TestBase> testClass = getTestInstance(target);
+
+    LFTest testCase = new LFTest(target, path.toAbsolutePath());
+
+    TestBase.runSingleTestAndPrintResults(testCase, testClass, TestBase.pathToLevel(path));
+  }
+
+  private static Class<? extends TestBase> getTestInstance(Target target) {
+    switch (target) {
+      case C:
+        return CTest.class;
+      case CCPP:
+        return CCppTest.class;
+      case CPP:
+        return CppTest.class;
+      case TS:
+        return TypeScriptTest.class;
+      case Python:
+        return PythonTest.class;
+      case Rust:
+        return RustTest.class;
+      default:
+        throw new IllegalArgumentException();
+    }
+  }
 }

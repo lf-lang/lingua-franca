@@ -36,137 +36,133 @@ import java.util.stream.Collectors;
  */
 public final class StringUtil {
 
-    /**
-     * Matches the boundary of a camel-case word. That's a zero-length match.
-     */
-    private static final Pattern CAMEL_WORD_BOUNDARY =
-        Pattern.compile("(?<![A-Z])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])");
+  /** Matches the boundary of a camel-case word. That's a zero-length match. */
+  private static final Pattern CAMEL_WORD_BOUNDARY =
+      Pattern.compile("(?<![A-Z])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])");
 
-    private StringUtil() {
-        // utility class
+  private StringUtil() {
+    // utility class
+  }
+
+  /**
+   * Convert a string in Camel case to snake case. E.g. {@code MinimalReactor} will be converted to
+   * {@code minimal_reactor}. The string is assumed to be a single camel case identifier (no
+   * whitespace).
+   */
+  public static String camelToSnakeCase(String str) {
+    return CAMEL_WORD_BOUNDARY
+        .splitAsStream(str)
+        .filter(it -> !it.isEmpty())
+        .map(it -> it.toLowerCase(Locale.ROOT))
+        .collect(Collectors.joining("_"));
+  }
+
+  /**
+   * If the given string is surrounded by single or double quotes, returns what's inside the quotes.
+   * Otherwise returns the same string.
+   *
+   * <p>Returns null if the parameter is null.
+   */
+  public static String removeQuotes(String str) {
+    if (str == null) {
+      return null;
     }
-
-    /**
-     * Convert a string in Camel case to snake case. E.g.
-     * `MinimalReactor` will be converted to `minimal_reactor`.
-     * The string is assumed to be a single camel case identifier
-     * (no whitespace).
-     */
-    public static String camelToSnakeCase(String str) {
-        return CAMEL_WORD_BOUNDARY.splitAsStream(str)
-                                  .filter(it -> !it.isEmpty())
-                                  .map(it -> it.toLowerCase(Locale.ROOT))
-                                  .collect(Collectors.joining("_"));
+    if (str.length() < 2) {
+      return str;
     }
+    if (hasQuotes(str)) {
+      return str.substring(1, str.length() - 1);
+    }
+    return str;
+  }
 
-    /**
-     * If the given string is surrounded by single or double
-     * quotes, returns what's inside the quotes. Otherwise
-     * returns the same string.
-     *
-     * <p>Returns null if the parameter is null.
-     */
-    public static String removeQuotes(String str) {
-        if (str == null) {
-            return null;
+  /** Return true if the given string is surrounded by single or double quotes, */
+  public static boolean hasQuotes(String str) {
+    if (str == null) {
+      return false;
+    }
+    return str.startsWith("\"") && str.endsWith("\"") || str.startsWith("'") && str.endsWith("'");
+  }
+
+  /**
+   * Intelligently trim the white space in a code block.
+   *
+   * <p>The leading whitespaces of the first non-empty code line is considered as a common prefix
+   * across all code lines. If the remaining code lines indeed start with this prefix, it removes
+   * the prefix from the code line.
+   *
+   * <p>For examples, this code
+   *
+   * <pre>{@code
+   * int test = 4;
+   * if (test == 42) {
+   *     printf("Hello\n");
+   * }
+   * }</pre>
+   *
+   * will be trimmed to this:
+   *
+   * <pre>{@code
+   * int test = 4;
+   * if (test == 42) {
+   *     printf("Hello\n");
+   * }
+   * }</pre>
+   *
+   * @param code the code block to be trimmed
+   * @param firstLineToConsider The first line not to ignore.
+   * @return trimmed code block
+   */
+  public static String trimCodeBlock(String code, int firstLineToConsider) {
+    String[] codeLines = code.split("(\r\n?)|\n");
+    int prefix = getWhitespacePrefix(code, firstLineToConsider);
+    StringBuilder buffer = new StringBuilder();
+    boolean stillProcessingLeadingBlankLines = true;
+    for (int i = 0; i < firstLineToConsider; i++) {
+      var endIndex =
+          codeLines[i].contains("//") ? codeLines[i].indexOf("//") : codeLines[i].length();
+      // The following will break Rust attributes in multiline code blocks
+      // where they appear next to the opening {= brace.
+      endIndex =
+          codeLines[i].contains("#") ? Math.min(endIndex, codeLines[i].indexOf("#")) : endIndex;
+      String toAppend = codeLines[i].substring(0, endIndex).strip();
+      if (!toAppend.isBlank()) buffer.append(toAppend).append("\n");
+    }
+    for (int i = firstLineToConsider; i < codeLines.length; i++) {
+      final String line = codeLines[i];
+      if (!line.isBlank()) stillProcessingLeadingBlankLines = false;
+      if (stillProcessingLeadingBlankLines) continue;
+      if (!line.isBlank()) buffer.append(line.substring(prefix));
+      buffer.append("\n");
+    }
+    return buffer.toString().stripTrailing();
+  }
+
+  private static int getWhitespacePrefix(String code, int firstLineToConsider) {
+    String[] codeLines = code.split("(\r\n?)|\n");
+    int minLength = Integer.MAX_VALUE;
+    for (int j = firstLineToConsider; j < codeLines.length; j++) {
+      String line = codeLines[j];
+      for (var i = 0; i < line.length(); i++) {
+        if (!Character.isWhitespace(line.charAt(i))) {
+          minLength = Math.min(minLength, i);
+          break;
         }
-        if (str.length() < 2) {
-            return str;
-        }
-        if (hasQuotes(str)) {
-            return str.substring(1, str.length() - 1);
-        }
-        return str;
+      }
     }
+    return minLength == Integer.MAX_VALUE ? 0 : minLength;
+  }
 
-    /**
-     * Return true if the given string is surrounded by single or double
-     * quotes,
-     */
-    public static boolean hasQuotes(String str) {
-        if (str == null) {
-            return false;
-        }
-        return str.startsWith("\"") && str.endsWith("\"") || str.startsWith("'") && str.endsWith("'");
-    }
+  public static String addDoubleQuotes(String str) {
+    return "\"" + str + "\"";
+  }
 
-    /**
-     * Intelligently trim the white space in a code block.
-	 *
-	 * The leading whitespaces of the first non-empty
-	 * code line is considered as a common prefix across all code lines. If the
-	 * remaining code lines indeed start with this prefix, it removes the prefix
-	 * from the code line.
-	 *
-     * For examples, this code
-     * <pre>{@code
-     *        int test = 4;
-     *        if (test == 42) {
-     *            printf("Hello\n");
-     *        }
-     * }</pre>
-     * will be trimmed to this:
-     * <pre>{@code
-     * int test = 4;
-     * if (test == 42) {
-     *     printf("Hello\n");
-     * }
-     * }</pre>
-     *
-     * @param code the code block to be trimmed
-     * @param firstLineToConsider The first line not to ignore.
-     * @return trimmed code block
-     */
-    public static String trimCodeBlock(String code, int firstLineToConsider) {
-        String[] codeLines = code.split("(\r\n?)|\n");
-        int prefix = getWhitespacePrefix(code, firstLineToConsider);
-        StringBuilder buffer = new StringBuilder();
-        boolean stillProcessingLeadingBlankLines = true;
-        for (int i = 0; i < firstLineToConsider; i++) {
-            var endIndex = codeLines[i].contains("//") ?
-                codeLines[i].indexOf("//") : codeLines[i].length();
-            // The following will break Rust attributes in multiline code blocks
-            // where they appear next to the opening {= brace.
-            endIndex = codeLines[i].contains("#") ?
-                Math.min(endIndex, codeLines[i].indexOf("#")) : endIndex;
-            String toAppend = codeLines[i].substring(0, endIndex).strip();
-            if (!toAppend.isBlank()) buffer.append(toAppend).append("\n");
-        }
-        for (int i = firstLineToConsider; i < codeLines.length; i++) {
-            final String line = codeLines[i];
-            if (!line.isBlank()) stillProcessingLeadingBlankLines = false;
-            if (stillProcessingLeadingBlankLines) continue;
-            if (!line.isBlank()) buffer.append(line.substring(prefix));
-            buffer.append("\n");
-        }
-        return buffer.toString().stripTrailing();
-    }
+  public static <T> String joinObjects(List<T> things, String delimiter) {
+    return things.stream().map(T::toString).collect(Collectors.joining(delimiter));
+  }
 
-    private static int getWhitespacePrefix(String code, int firstLineToConsider) {
-        String[] codeLines = code.split("(\r\n?)|\n");
-        int minLength = Integer.MAX_VALUE;
-        for (int j = firstLineToConsider; j < codeLines.length; j++) {
-            String line = codeLines[j];
-            for (var i = 0; i < line.length(); i++) {
-                if (!Character.isWhitespace(line.charAt(i))) {
-                    minLength = Math.min(minLength, i);
-                    break;
-                }
-            }
-        }
-        return minLength == Integer.MAX_VALUE ? 0 : minLength;
-    }
-
-    public static String addDoubleQuotes(String str) {
-        return "\""+str+"\"";
-    }
-
-    public static <T> String joinObjects(List<T> things, String delimiter) {
-        return things.stream().map(T::toString).collect(Collectors.joining(delimiter));
-    }
-
-    /** Normalize end-of-line sequences to the Linux style. */
-    public static String normalizeEol(String s) {
-        return s.replaceAll("(\\r\\n?)|\\n", "\n");
-    }
+  /** Normalize end-of-line sequences to the Linux style. */
+  public static String normalizeEol(String s) {
+    return s.replaceAll("(\\r\\n?)|\\n", "\n");
+  }
 }
