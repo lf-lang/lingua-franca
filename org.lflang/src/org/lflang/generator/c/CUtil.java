@@ -33,6 +33,7 @@ import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
+import java.util.Queue;
 import java.util.stream.Collectors;
 
 import org.lflang.ASTUtils;
@@ -824,10 +825,20 @@ public class CUtil {
     }
 
     // Given an instance, e.g. the main reactor, return a list of all enclaves in the program
-    public static List<ReactorInstance> getEnclaves(ReactorInstance inst) {
+    public static List<ReactorInstance> getEnclaves(ReactorInstance root) {
         List<ReactorInstance> enclaves = new ArrayList<>();
-        if (inst.isMainOrFederated() || isEnclave(inst.getDefinition())) {
-            enclaves.add(inst);
+        Queue<ReactorInstance> queue = new LinkedList<>();
+        queue.add(root);
+
+        while (!queue.isEmpty()) {
+            ReactorInstance inst = queue.poll();
+            if (inst.isMainOrFederated() || isEnclave(inst.getDefinition())) {
+                enclaves.add(inst);
+            }
+
+            for (ReactorInstance child : inst.children) {
+                queue.add(child);
+            }
         }
         return enclaves;
     }
