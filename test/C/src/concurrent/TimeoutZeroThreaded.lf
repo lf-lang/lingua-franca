@@ -5,7 +5,8 @@
  * @author Soroush Bateni
  */
 target C {
-    timeout: 0 sec
+    timeout: 0 sec,
+    logging: Debug
 }
 
 import Sender from "../lib/LoopedActionSender.lf"

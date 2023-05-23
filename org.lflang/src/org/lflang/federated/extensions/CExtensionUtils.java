@@ -20,7 +20,6 @@ import org.lflang.federated.launcher.RtiConfig;
 import org.lflang.federated.serialization.FedROS2CPPSerialization;
 import org.lflang.federated.serialization.SupportedSerializers;
 import org.lflang.generator.CodeBuilder;
-import org.lflang.generator.GeneratorBase;
 import org.lflang.generator.ReactorInstance;
 import org.lflang.generator.c.CTypes;
 import org.lflang.generator.c.CUtil;
@@ -547,7 +546,7 @@ public class CExtensionUtils {
     /**
      * Generate preamble code needed for enabled serializers of the federate.
      */
-    public static String generateSerializationPreamble(
+    public static String generateSerializationIncludes(
         FederateInstance federate,
         FedFileConfig fileConfig
     ) {

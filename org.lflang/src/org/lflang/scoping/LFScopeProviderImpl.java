@@ -11,15 +11,15 @@ are permitted provided that the following conditions are met:
    this list of conditions and the following disclaimer in the documentation
    and/or other materials provided with the distribution.
 
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
-ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED 
-WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE 
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
 DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR
-ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES 
-(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; 
-LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON 
-ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT 
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS 
+ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
+ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ***************/
 
@@ -45,19 +45,18 @@ import org.lflang.lf.Deadline;
 import org.lflang.lf.Import;
 import org.lflang.lf.ImportedReactor;
 import org.lflang.lf.Instantiation;
+import org.lflang.lf.LfPackage;
+import org.lflang.lf.Mode;
 import org.lflang.lf.Model;
 import org.lflang.lf.Reaction;
 import org.lflang.lf.Reactor;
 import org.lflang.lf.ReactorDecl;
 import org.lflang.lf.VarRef;
-import org.lflang.lf.LfPackage;
-import org.lflang.lf.Mode;
 
 /**
- * This class enforces custom rules. In particular, it resolves references to
- * parameters, ports, actions, and timers. Ports can be referenced across at
- * most one level of hierarchy. Parameters, actions, and timers can be
- * referenced locally, within the reactor.
+ * This class enforces custom rules. In particular, it resolves references to parameters, ports,
+ * actions, and timers. Ports can be referenced across at most one level of hierarchy. Parameters,
+ * actions, and timers can be referenced locally, within the reactor.
  *
  * @author Marten Lohstroh
  * @see <a href="https://www.eclipse.org/Xtext/documentation/303_runtime_concepts.html#scoping"></a>
@@ -78,6 +77,7 @@ public class LFScopeProviderImpl extends AbstractLFScopeProvider {
         TRIGGER,
         SOURCE,
         EFFECT,
+        WATCHDOG,
         DEADLINE,
         CLEFT,
         CRIGHT
@@ -165,7 +165,6 @@ public class LFScopeProviderImpl extends AbstractLFScopeProvider {
             if (defn != null) {
                 return Scopes.scopeFor(allParameters(defn));
             }
-
         }
         if (reference == LfPackage.Literals.ASSIGNMENT__RHS) {
             return Scopes.scopeFor(((Reactor) assignment.eContainer().eContainer()).getParameters());
@@ -226,6 +225,7 @@ public class LFScopeProviderImpl extends AbstractLFScopeProvider {
                     candidates.addAll(allInputs(reactor));
                     candidates.addAll(allActions(reactor));
                     candidates.addAll(allTimers(reactor));
+                    candidates.addAll(allWatchdogs(reactor));
                     return Scopes.scopeFor(candidates);
                 }
                 case SOURCE:
@@ -238,8 +238,11 @@ public class LFScopeProviderImpl extends AbstractLFScopeProvider {
                     }
                     candidates.addAll(allOutputs(reactor));
                     candidates.addAll(allActions(reactor));
+                    candidates.addAll(allWatchdogs(reactor));
                     return Scopes.scopeFor(candidates);
                 }
+                case WATCHDOG:
+                    return Scopes.scopeFor(allWatchdogs(reactor));
                 case DEADLINE:
                 case CLEFT:
                     return Scopes.scopeFor(allInputs(reactor));

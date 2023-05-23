@@ -37,6 +37,7 @@ import static org.lflang.util.StringUtil.addDoubleQuotes;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
@@ -52,6 +53,7 @@ import org.eclipse.xtext.xbase.lib.StringExtensions;
 
 import org.lflang.ASTUtils;
 import org.lflang.ast.EnclavedConnectionTransformation;
+import org.lflang.generator.CodeMap;
 import org.lflang.generator.DockerComposeGenerator;
 import org.lflang.FileConfig;
 import org.lflang.Target;
@@ -97,7 +99,6 @@ import org.lflang.lf.Variable;
 import org.lflang.util.ArduinoUtil;
 import org.lflang.util.FileUtil;
 
-import com.google.common.base.Objects;
 import com.google.common.collect.Iterables;
 
 /**
@@ -306,6 +307,7 @@ import com.google.common.collect.Iterables;
  */
 @SuppressWarnings("StaticPseudoFunctionalStyleMethod")
 public class CGenerator extends GeneratorBase {
+
     // Regular expression pattern for compiler error messages with resource
     // and line number information. The first match will a resource URI in the
     // form of "file:/path/file.lf". The second match will be a line number.
@@ -353,6 +355,7 @@ public class CGenerator extends GeneratorBase {
     private int resetReactionCount = 0;
     private int modalReactorCount = 0;
     private int modalStateResetCount = 0;
+    private int watchdogCount = 0;
 
     // Indicate whether the generator is in Cpp mode or not
     private final boolean CCppMode;
@@ -403,7 +406,7 @@ public class CGenerator extends GeneratorBase {
         // keepalive is set to true, unless the user has explicitly set it to false.
         for (Resource resource : GeneratorUtils.getResources(reactors)) {
             for (Action action : ASTUtils.allElementsOfClass(resource, Action.class)) {
-                if (Objects.equal(action.getOrigin(), ActionOrigin.PHYSICAL)) {
+                if (ActionOrigin.PHYSICAL.equals(action.getOrigin())) {
                     // If the unthreaded runtime is not requested by the user, use the threaded runtime instead
                     // because it is the only one currently capable of handling asynchronous events.
                     if (!targetConfig.threading && !targetConfig.setByUser.contains(TargetProperty.THREADING)) {
@@ -543,10 +546,33 @@ public class CGenerator extends GeneratorBase {
         try {
             String compileDefs = targetConfig.compileDefinitions.keySet().stream()
                                                                 .map(key -> key + "=" + targetConfig.compileDefinitions.get(key))
-                                                                .collect(Collectors.joining("\n"));
+                                                                .collect(Collectors.joining("\n")) + "\n";
             FileUtil.writeToFile(
                 compileDefs,
                 Path.of(fileConfig.getSrcGenPath() + File.separator + "CompileDefinitions.txt")
+            );
+        } catch (IOException e) {
+            Exceptions.sneakyThrow(e);
+        }
+
+        // Create a .vscode/settings.json file in the target directory so that VSCode can
+        // immediately compile the generated code.
+        try {
+            String compileDefs = targetConfig.compileDefinitions.keySet().stream()
+                .map(key -> "\"-D" + key + "=" + targetConfig.compileDefinitions.get(key) + "\"")
+                .collect(Collectors.joining(",\n"));
+            String settings = "{\n"
+                + "\"cmake.configureArgs\": [\n"
+                + compileDefs
+                + "\n]\n}\n";
+            Path vscodePath = Path.of(fileConfig.getSrcGenPath() + File.separator + ".vscode");
+            if (!Files.exists(vscodePath))
+            Files.createDirectory(vscodePath);
+            FileUtil.writeToFile(
+                settings,
+                Path.of(fileConfig.getSrcGenPath()
+                    + File.separator + ".vscode"
+                    + File.separator + "settings.json")
             );
         } catch (IOException e) {
             Exceptions.sneakyThrow(e);
@@ -594,7 +620,6 @@ public class CGenerator extends GeneratorBase {
             } catch (IOException e) {
                 Exceptions.sneakyThrow(e);
             }
-
         }
 
         // If a build directive has been given, invoke it now.
@@ -640,8 +665,9 @@ public class CGenerator extends GeneratorBase {
             code.pr(new CEnvironmentFunctionGenerator().generateCode(main));
             initializeTriggerObjects.pr(String.join("\n",
                 "int bank_index;",
-                "SUPPRESS_UNUSED_WARNING(bank_index);"
-            ));
+                "SUPPRESS_UNUSED_WARNING(bank_index);",
+                "int watchdog_number = 0;",
+                "SUPPRESS_UNUSED_WARNING(watchdog_number);"));
             // Add counters for modal initialization
             initializeTriggerObjects.pr(CModesGenerator.generateModalInitalizationCounters(hasModalReactors));
 
@@ -667,6 +693,9 @@ public class CGenerator extends GeneratorBase {
 
             // If there are reset reactions, create a table of triggers.
             code.pr(CReactionGenerator.generateBuiltinTriggersTable(resetReactionCount, "reset"));
+
+            // If there are watchdogs, create a table of triggers.
+            code.pr(CWatchdogGenerator.generateWatchdogTable(watchdogCount));
 
             // If there are modes, create a table of mode state to be checked for transitions.
             code.pr(CModesGenerator.generateModeStatesTable(
@@ -944,7 +973,6 @@ public class CGenerator extends GeneratorBase {
         }
     }
 
-
     /**
      * Copy target-specific header file to the src-gen directory.
      */
@@ -952,7 +980,9 @@ public class CGenerator extends GeneratorBase {
         // Copy the core lib
         String coreLib = LFGeneratorContext.BuildParm.EXTERNAL_RUNTIME_PATH.getValue(context);
         Path dest = fileConfig.getSrcGenPath();
-        if (targetConfig.platformOptions.platform == Platform.ARDUINO) dest = dest.resolve("src");
+      if (targetConfig.platformOptions.platform == Platform.ARDUINO) {
+        dest = dest.resolve("src");
+      }
         if (coreLib != null) {
             FileUtil.copyDirectoryContents(Path.of(coreLib), dest, true);
         } else {
@@ -994,6 +1024,7 @@ public class CGenerator extends GeneratorBase {
 
     ////////////////////////////////////////////
     //// Code generators.
+
     /**
      * Generate a reactor class definition for the specified federate.
      * A class definition has four parts:
@@ -1024,10 +1055,10 @@ public class CGenerator extends GeneratorBase {
         generateUserPreamblesForReactor(reactor, src);
         generateReactorClassBody(reactor, header, src);
         header.pr("#endif // " + guardMacro);
-        FileUtil.writeToFile(header.toString(), fileConfig.getSrcGenPath().resolve(headerName), true);
+        FileUtil.writeToFile(CodeMap.fromGeneratedCode(header.toString()).getGeneratedCode(), fileConfig.getSrcGenPath().resolve(headerName), true);
         var extension = targetConfig.platformOptions.platform == Platform.ARDUINO ? ".ino" :
             CCppMode ? ".cpp" : ".c";
-        FileUtil.writeToFile(src.toString(), fileConfig.getSrcGenPath().resolve(CUtil.getName(reactor) + extension), true);
+        FileUtil.writeToFile(CodeMap.fromGeneratedCode(src.toString()).getGeneratedCode(), fileConfig.getSrcGenPath().resolve(CUtil.getName(reactor) + extension), true);
     }
 
     protected void generateReactorClassHeaders(Reactor reactor, String headerName, CodeBuilder header, CodeBuilder src) {
@@ -1055,6 +1086,8 @@ public class CGenerator extends GeneratorBase {
         // go into the constructor.  Collect those lines of code here:
         var constructorCode = new CodeBuilder();
         generateAuxiliaryStructs(header, reactor, false);
+        // The following must go before the self struct so the #include watchdog.h ends up in the header.
+        CWatchdogGenerator.generateWatchdogs(src, header, reactor, errorReporter);
         generateSelfStruct(header, reactor, constructorCode);
         generateMethods(src, reactor);
         generateReactions(src, reactor);
@@ -1196,6 +1229,9 @@ public class CGenerator extends GeneratorBase {
             constructorCode,
             types
         );
+
+        // Generate the fields needed for each watchdog.
+        CWatchdogGenerator.generateWatchdogStruct(body, decl, constructorCode);
 
         // Next, generate fields for modes
         CModesGenerator.generateDeclarations(reactor, body, constructorCode);
@@ -1444,8 +1480,6 @@ public class CGenerator extends GeneratorBase {
         }
     }
 
-
-
     /**
      * Generate code to set up the tables used in _lf_start_time_step to decrement reference
      * counts and mark outputs absent between time steps. This function puts the code
@@ -1475,7 +1509,7 @@ public class CGenerator extends GeneratorBase {
 
                     temp.pr("// Add port "+port.getFullName()+" to array of is_present fields.");
 
-                    if (!Objects.equal(port.getParent(), instance)) {
+                    if (!instance.equals(port.getParent())) {
                         // The port belongs to contained reactor, so we also have
                         // iterate over the instance bank members.
                         temp.startScopedBlock();
@@ -1690,6 +1724,7 @@ public class CGenerator extends GeneratorBase {
         initializeOutputMultiports(instance);
         initializeInputMultiports(instance);
         recordBuiltinTriggers(instance);
+        watchdogCount += CWatchdogGenerator.generateInitializeWatchdogs(initializeTriggerObjects, instance);
 
         // Next, initialize the "self" struct with state variables.
         // These values may be expressions that refer to the parameter values defined above.
@@ -1898,7 +1933,7 @@ public class CGenerator extends GeneratorBase {
     }
 
     /**
-     *
+     * Get the Docker generator.
      * @param context
      * @return
      */
@@ -2038,6 +2073,7 @@ public class CGenerator extends GeneratorBase {
 
     ////////////////////////////////////////////
     //// Private methods.
+
     /** Returns the Target enum for this generator */
     @Override
     public Target getTarget() {
@@ -2078,7 +2114,6 @@ public class CGenerator extends GeneratorBase {
                 }
             }
         }
-
     }
 
     /**

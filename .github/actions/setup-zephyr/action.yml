@@ -1,0 +1,35 @@
+name: Install Zephyr and dependencies (Linux only)
+description: Install Zephyr and dependencies (Linux only)
+runs:
+  using: "composite"
+  steps:
+    - name: Dependencies
+      run: | 
+        sudo apt-get update && sudo apt-get upgrade
+        sudo apt-get install -y --no-install-recommends git cmake ninja-build gperf \
+            ccache dfu-util device-tree-compiler wget \
+            python3-dev python3-pip python3-setuptools python3-tk python3-wheel xz-utils file \
+            make gcc gcc-multilib g++-multilib libsdl2-dev libmagic1
+      shell: bash
+    - name: Install West
+      run: pip install west
+      shell: bash
+    - name: Install Zephyr SDK
+      run : |
+        wget -q https://github.com/zephyrproject-rtos/sdk-ng/releases/download/v0.15.2/zephyr-sdk-0.15.2_linux-x86_64.tar.gz
+        wget -O - https://github.com/zephyrproject-rtos/sdk-ng/releases/download/v0.15.2/sha256.sum | shasum --check --ignore-missing
+        sudo tar xf zephyr-sdk-0.15.2_linux-x86_64.tar.gz --directory /opt/
+        cd /opt/zephyr-sdk-0.15.2
+        sudo ./setup.sh -t all -h -c
+      shell: bash
+    - name: Download and install Zephyr RTOS
+      run: |
+          cd $HOME
+          west init zephyrproject --mr v3.2.0
+          cd zephyrproject
+          west update
+          west zephyr-export
+          pip install -r zephyr/scripts/requirements.txt
+          echo "ZEPHYR_BASE=$HOME/zephyrproject/zephyr" >> $GITHUB_ENV
+          echo "ZEPHYR_SDK_INSTALL_DIR=/opt/zephyr-sdk-0.15.2/" >> $GITHUB_ENV
+      shell: bash
