@@ -92,7 +92,7 @@ class LspTests {
    */
   private void targetLanguageValidationTest(Target target, ErrorInserter.Builder builder)
       throws IOException {
-    long seed = new Random().nextLong();
+    long seed = 2290053266328212836L;//new Random().nextLong();
     System.out.printf(
         "Running validation tests for %s with random seed %d.%n", target.getDisplayName(), seed);
     Random random = new Random(seed);

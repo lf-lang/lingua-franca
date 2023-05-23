@@ -19,6 +19,7 @@ reactor Print {
 
   reaction(x) {=
     self.received+=1
+        +++++;
     elapsed_time = lf.time.logical_elapsed()
     print("Result is " + str(x.value))
     if x.value != 84:
