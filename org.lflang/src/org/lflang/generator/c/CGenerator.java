@@ -1432,7 +1432,7 @@ public class CGenerator extends GeneratorBase {
         if (trigger.isStartup()) {
           temp.pr(
               enclaveStruct
-                  + "._lf_startup_reactions[startup_reactions_count["
+                  + "._lf_startup_reactions[startup_reaction_count["
                   + enclaveId
                   + "]++] = &"
                   + reactionRef
@@ -1442,7 +1442,7 @@ public class CGenerator extends GeneratorBase {
         } else if (trigger.isShutdown()) {
           temp.pr(
               enclaveStruct
-                  + "._lf_shutdown_reactions[shutdown_reactions_count["
+                  + "._lf_shutdown_reactions[shutdown_reaction_count["
                   + enclaveId
                   + "]++] = &"
                   + reactionRef
@@ -1466,7 +1466,7 @@ public class CGenerator extends GeneratorBase {
         } else if (trigger.isReset()) {
           temp.pr(
               enclaveStruct
-                  + "._lf_reset_reactions[reset_reactions_count["
+                  + "._lf_reset_reactions[reset_reaction_count["
                   + enclaveId
                   + "]++] = &"
                   + reactionRef
