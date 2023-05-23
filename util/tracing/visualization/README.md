@@ -4,12 +4,13 @@
 between federates and the RTI in a sequence-diagram-like format.
 To enable `fedsd`, `tracing` target property should be set to `true`.
 
-# Installing
-
-`fedsd` is installed by calling `make install` under `lingua_franca/util/tracing`.
 This utility starts by transforming each `.lft` file into a `.csv` file, by
 internally running `trace_to_csv`. It then aggregates the data from all `.csv`
 files to do the matching and draw the sequence diagram.
+# Installing
+
+`fedsd` is installed by calling `make install` under `lingua_franca/util/tracing`.
+
 
 # Running
 
@@ -22,12 +23,15 @@ enable tracing, by adding the option `-t`:
 $ RTI -n <number_of_federates> -t
 ```
 
-Once the federation stopped executiong, run `fedsd` on all generated `.lft` files:
+For convenience, the RTI and all federates should be launched from the same directory.
+
+
+Once the federation stopped executing, run `fedsd` on all generated `.lft` files:
 ```
 $ fedsd *.lft
 ```
 
-The output is an html file named `trace_svg.html` that contains the sequence of interactions
+The output is an html file named `trace_svg.html` (in the current directory) that contains the sequence of interactions
 between the federates and the RTI.
 
 
