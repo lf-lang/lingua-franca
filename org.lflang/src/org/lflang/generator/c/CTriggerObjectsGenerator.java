@@ -90,10 +90,11 @@ public class CTriggerObjectsGenerator {
     code.pr(setReactionPriorities(main));
     code.pr(generateSchedulerInitializerMain(main, targetConfig));
 
+    // FIXME: This is a little hack since we know top-level/main is always first (has index 0)
     code.pr(
         """
         #ifdef EXECUTABLE_PREAMBLE
-        _lf_executable_preamble();
+        _lf_executable_preamble(&envs[0]);
         #endif
         """);
 
