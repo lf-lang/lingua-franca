@@ -334,7 +334,7 @@ public class FedGenerator {
    * @param context Context of the build process.
    */
   private void processCLIArguments(LFGeneratorContext context) {
-    if (context.getArgs().containsKey("rti")) {
+    if (context.getArgs().containsKey(BuildParm.RTI.getKey())) {
       setFederationRTIProperties(context);
     }
   }

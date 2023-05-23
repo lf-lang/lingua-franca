@@ -48,6 +48,7 @@ import org.lflang.Target;
 import org.lflang.TargetConfig;
 import org.lflang.ast.ASTUtils;
 import org.lflang.ast.AstTransformation;
+import org.lflang.generator.LFGeneratorContext.BuildParm;
 import org.lflang.graph.InstantiationGraph;
 import org.lflang.lf.Connection;
 import org.lflang.lf.Instantiation;
@@ -236,7 +237,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
     // Configure the command factory
     commandFactory.setVerbose();
     if (Objects.equal(context.getMode(), LFGeneratorContext.Mode.STANDALONE)
-        && context.getArgs().containsKey("quiet")) {
+        && context.getArgs().containsKey(BuildParm.QUIET.getKey())) {
       commandFactory.setQuiet();
     }
 
@@ -294,7 +295,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
 
   /** Check if a clean was requested from the standalone compiler and perform the clean step. */
   protected void cleanIfNeeded(LFGeneratorContext context) {
-    if (context.getArgs().containsKey("clean")) {
+    if (context.getArgs().containsKey(BuildParm.CLEAN.getKey())) {
       try {
         context.getFileConfig().doClean();
       } catch (IOException e) {
