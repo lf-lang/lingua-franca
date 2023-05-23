@@ -685,15 +685,6 @@ public class CGenerator extends GeneratorBase {
                 if (targetLanguageIsCpp()) code.pr("}");
             }
 
-            // If there are startup reactions, create a table of triggers.
-            code.pr(CReactionGenerator.generateBuiltinTriggersTable(startupReactionCount, "startup"));
-
-            // If there are shutdown reactions, create a table of triggers.
-            code.pr(CReactionGenerator.generateBuiltinTriggersTable(shutdownReactionCount, "shutdown"));
-
-            // If there are reset reactions, create a table of triggers.
-            code.pr(CReactionGenerator.generateBuiltinTriggersTable(resetReactionCount, "reset"));
-
             // If there are watchdogs, create a table of triggers.
             code.pr(CWatchdogGenerator.generateWatchdogTable(watchdogCount));
 
@@ -1536,7 +1527,7 @@ public class CGenerator extends GeneratorBase {
 
                     startTimeStepIsPresentCount += port.getWidth() * port.getParent().getTotalWidth();
 
-                    if (!Objects.equal(port.getParent(), instance)) {
+                    if (port.getParent() != instance) {
                         temp.pr("count++;");
                         temp.endScopedBlock();
                         temp.endScopedBlock();
@@ -1568,7 +1559,7 @@ public class CGenerator extends GeneratorBase {
                                 "// Add action " + action.getFullName()
                                     + " to array of intended_tag fields.",
                                 "_lf_intended_tag_fields["
-                                    + "is_present_fields_count["+CUtil.getEnvironmentId(instance)+"]++]",
+                                    + "is_present_fields_count["+CUtil.getEnvironmentId(instance)+"]]",
                                 "        = &" + containerSelfStructName
                                     + "->_lf_" + action.getName()
                                     + ".intended_tag;"

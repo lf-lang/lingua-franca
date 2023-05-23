@@ -971,25 +971,25 @@ public class CReactionGenerator {
             s.append("\n");
             if (hasModalReactors) {
                 s.append(String.join("\n",
-                    "    for (int i = 0; i < _lf_startup_reactions_size; i++) {",
-                    "        if (_lf_startup_reactions[i] != NULL) {",
-                    "            if (_lf_startup_reactions[i]->mode != NULL) {",
+                    "    for (int i = 0; i < env->_lf_startup_reactions_size; i++) {",
+                    "        if (env->_lf_startup_reactions[i] != NULL) {",
+                    "            if (env->_lf_startup_reactions[i]->mode != NULL) {",
                     "                // Skip reactions in modes",
                     "                continue;",
                     "            }",
-                    "            _lf_trigger_reaction(env, _lf_startup_reactions[i], -1);",
+                    "            _lf_trigger_reaction(env, env->_lf_startup_reactions[i], -1);",
                     "        }",
                     "    }",
                     "    _lf_handle_mode_startup_reset_reactions(",
-                    "        _lf_startup_reactions, _lf_startup_reactions_size,",
+                    "        env->_lf_startup_reactions, env->_lf_startup_reactions_size,",
                     "        NULL, 0,",
                     "        _lf_modal_reactor_states, _lf_modal_reactor_states_size);"
                 ));
             } else {
                 s.append(String.join("\n",
-                    "    for (int i = 0; i < _lf_startup_reactions_size; i++) {",
-                    "        if (_lf_startup_reactions[i] != NULL) {",
-                    "            _lf_trigger_reaction(env, _lf_startup_reactions[i], -1);",
+                    "    for (int i = 0; i < env->_lf_startup_reactions_size; i++) {",
+                    "        if (env->_lf_startup_reactions[i] != NULL) {",
+                    "            _lf_trigger_reaction(env, env->_lf_startup_reactions[i], -1);",
                     "        }",
                     "    }"
                 ));
