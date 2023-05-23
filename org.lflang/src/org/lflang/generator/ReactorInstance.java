@@ -163,8 +163,6 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
   /** Indicator that this reactor has itself as a parent, an error condition. */
   public final boolean recursive;
 
-  // An enclave object if this ReactorInstance is an enclave. null if not
-  public EnclaveInfo enclaveInfo = null;
   public TypeParameterizedReactor tpr;
 
   //////////////////////////////////////////////////////
@@ -799,7 +797,6 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
     this.reactorDeclaration = definition.getReactorClass();
     this.reactorDefinition = ASTUtils.toDefinition(reactorDeclaration);
     this.tpr = new TypeParameterizedReactor(definition);
-
     if (isEnclave(definition) || this.isMainOrFederated()) {
       enclaveInfo = new EnclaveInfo(this);
     }

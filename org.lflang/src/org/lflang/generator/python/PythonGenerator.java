@@ -112,7 +112,7 @@ public class PythonGenerator extends CGenerator {
         types,
         cmakeGenerator,
         new PythonDelayBodyGenerator(types),
-        null); // FIXME: What to pass to Pyhton?
+        null); // FIXME: What to pass to Python?
     this.targetConfig.compiler = "gcc";
     this.targetConfig.compilerFlags = new ArrayList<>();
     this.targetConfig.linkerFlags = "";
