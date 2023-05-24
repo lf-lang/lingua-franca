@@ -17,25 +17,25 @@ jobs:
 
   # Run the C tests.
   c-tests:
-    if: !github.event.pull_request.draft
+    if: ${{ !github.event.pull_request.draft  }}
     uses: ./.github/workflows/only-c.yml
 
   # Run the C++ tests.
   cpp-tests:
-    if: !github.event.pull_request.draft
+    if: ${{ !github.event.pull_request.draft  }}
     uses: ./.github/workflows/only-cpp.yml
 
   # Run the Python tests.
   py-tests:
-    if: !github.event.pull_request.draft
+    if: ${{ !github.event.pull_request.draft  }}
     uses: ./.github/workflows/only-py.yml
 
   # Run the Rust tests.
   rs-tests:
-    if: !github.event.pull_request.draft
+    if: ${{ !github.event.pull_request.draft  }}
     uses: ./.github/workflows/only-rs.yml
 
   # Run the TypeScript tests.
   ts-tests:
-    if: !github.event.pull_request.draft
+    if: ${{ !github.event.pull_request.draft  }}
     uses: ./.github/workflows/only-ts.yml

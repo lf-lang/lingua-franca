@@ -34,14 +34,14 @@ jobs:
     if: ${{ github.event_name == 'workflow_call' || github.event.pull_request.draft }}
     uses: ./.github/workflows/c-tests.yml
     with:
-      all-platforms: ${{ !github.event.pull_request.draft }}
+      all-platforms: ${{ !github.event.pull_request.draft  }}
 
   # Run the C Arduino integration tests.
   c-arduino-tests:
     if: ${{ github.event_name == 'workflow_call' || github.event.pull_request.draft }}
     uses: ./.github/workflows/c-arduino-tests.yml
     with:
-      all-platforms: ${{ !github.event.pull_request.draft }}
+      all-platforms: ${{ !github.event.pull_request.draft  }}
 
   # Run the C Zephyr integration tests.
   c-zephyr-tests:
@@ -54,4 +54,4 @@ jobs:
     uses: ./.github/workflows/c-tests.yml
     with:
       use-cpp: true
-      all-platforms: ${{ !github.event.pull_request.draft }}
+      all-platforms: ${{ !github.event.pull_request.draft  }}

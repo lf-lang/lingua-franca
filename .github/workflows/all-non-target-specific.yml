@@ -17,10 +17,10 @@ jobs:
 
   # Run the non-target-specific tests.
   non-target-specific:
-    if: !github.event.pull_request.draft
+    if: ${{ !github.event.pull_request.draft  }}
     uses: ./.github/workflows/non-target-specific.yml
 
   # Run the non-target-specific tests.
   non-target-specific-extended:
-    if: !github.event.pull_request.draft
+    if: ${{ !github.event.pull_request.draft  }}
     uses: ./.github/workflows/non-target-specific-extended.yml

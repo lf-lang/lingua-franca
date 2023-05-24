@@ -31,11 +31,9 @@ jobs:
     if: ${{ github.event_name == 'workflow_call' || github.event.pull_request.draft }}
     uses: ./.github/workflows/cpp-tests.yml
     with:
-      all-platforms: ${{ !github.event.pull_request.draft }}
+      all-platforms: ${{ !github.event.pull_request.draft  }}
 
   # Run the C++ integration tests on ROS2.
   cpp-ros2-tests:
     if: ${{ github.event_name == 'workflow_call' || github.event.pull_request.draft }}
     uses: ./.github/workflows/cpp-ros2-tests.yml
-    with:
-      all-platforms: ${{ !github.event.pull_request.draft }}
