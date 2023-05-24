@@ -3,6 +3,12 @@ name: C++
 on:
   workflow_dispatch:
   workflow_call:
+  pull_request:
+    branches-ignore:
+      - 'nightly'
+    paths:
+    - 'org.lflang/src/org/lflang/generator/cpp/**'
+    - 'org.lflang/src/lib/cpp/**'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}

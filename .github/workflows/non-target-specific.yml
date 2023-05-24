@@ -1,13 +1,10 @@
-name: TypeScript-based tests
+name: Non-target-specific tests
 
 on:
   workflow_dispatch:
   pull_request:
     branches-ignore:
-      - 'nightly'
-    paths:
-    - 'org.lflang/src/org/lflang/generator/ts/**'
-    - 'org.lflang/src/lib/ts/**'
+    - 'nightly'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -18,15 +15,10 @@ env:
   vcpkgGitRef: 0bf3923f9fab4001c00f0f429682a0853b5749e0
 
 jobs:
-  # Cancel previous workflow runs.
-  cancel:
-    uses: ./.github/workflows/cancel.yml
-
-  ts-tests:
-    uses: ./.github/workflows/only-ts.yml
-    needs: cancel
+  # Run the unit tests.
+  unit-tests:
+    uses: ./.github/workflows/unit-tests.yml
 
   # Run the serialization tests
   serialization-tests:
     uses: ./.github/workflows/serialization-tests.yml
-    needs: cancel

@@ -3,6 +3,13 @@ name: C
 on:
   workflow_dispatch:
   workflow_call:
+  pull_request:
+    branches-ignore:
+    - 'nightly'
+    paths:
+    - 'org.lflang/src/org/lflang/generator/c/**'
+    - 'org.lflang/src/lib/c/**'
+    - 'org.lflang/src/lib/platform/**'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}

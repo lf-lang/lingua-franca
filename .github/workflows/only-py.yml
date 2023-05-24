@@ -3,6 +3,12 @@ name: Python
 on:
   workflow_dispatch:
   workflow_call:
+  pull_request:
+    branches-ignore:
+      - 'nightly'
+    paths:
+    - 'org.lflang/src/org/lflang/generator/python/**'
+    - 'org.lflang/src/lib/py/**'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
