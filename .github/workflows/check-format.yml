@@ -1,4 +1,4 @@
-name: Test the automatic code formatting task
+name: Check if all files are formatted correctly with spotless
 
 on:
   workflow_call:

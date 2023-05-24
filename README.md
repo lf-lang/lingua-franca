@@ -19,5 +19,3 @@ Lingua Franca (LF) is a polyglot coordination language for concurrent and possib
 See [lf-lang.org](https://lf-lang.org) for installation instructions and documentation. See also the [wiki](https://github.com/icyphy/lingua-franca/wiki) for further information on ongoing projects.
 
 See our [Publications and Presentations](https://www.lf-lang.org/publications-and-presentations).
-
-
