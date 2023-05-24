@@ -11,7 +11,7 @@ on:
     - 'org.lflang/src/lib/rs/**'
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ github.event.pull_request.draft }}
   cancel-in-progress: ${{ github.ref != 'refs/heads/master' }}
 
 env:
@@ -21,12 +21,14 @@ env:
 jobs:
   # Run the Rust integration tests.
   rs-tests:
+    if: ${{ github.event_name == 'workflow_call' || github.event.pull_request.draft }}
     uses: ./.github/workflows/rs-tests.yml
     with:
       all-platforms: ${{ !github.event.pull_request.draft }}
 
   # Run the Rust benchmark tests.
   rs-benchmark-tests:
+    if: ${{ github.event_name == 'workflow_call' || github.event.pull_request.draft }}
     uses: lf-lang/benchmarks-lingua-franca/.github/workflows/benchmark-tests.yml@main
     with:
       target: 'Rust'

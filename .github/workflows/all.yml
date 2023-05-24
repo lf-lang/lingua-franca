@@ -1,0 +1,55 @@
+# Main workflow for testing the Lingua Franca compiler.
+name: CI
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - master
+  pull_request:
+    types: [synchronize, opened, reopened, ready_for_review]
+
+env:
+  # 2020.11
+  vcpkgGitRef: 0bf3923f9fab4001c00f0f429682a0853b5749e0
+
+jobs:
+
+  check-format:
+    if: !github.event.pull_request.draft
+    uses: ./.github/workflows/check-format.yml
+
+  # Run the non-target-specific tests.
+  non-target-specific:
+    if: !github.event.pull_request.draft
+    uses: ./.github/workflows/non-target-specific.yml
+
+  # Run the non-target-specific tests.
+  non-target-specific-extended:
+    if: !github.event.pull_request.draft
+    uses: ./.github/workflows/non-target-specific-extended.yml
+
+  # Run the C tests.
+  c-tests:
+    if: !github.event.pull_request.draft
+    uses: ./.github/workflows/only-c.yml
+
+  # Run the C++ tests.
+  cpp-tests:
+    if: !github.event.pull_request.draft
+    uses: ./.github/workflows/only-cpp.yml
+
+  # Run the Python tests.
+  py-tests:
+    if: !github.event.pull_request.draft
+    uses: ./.github/workflows/only-py.yml
+
+  # Run the Rust tests.
+  rs-tests:
+    if: !github.event.pull_request.draft
+    uses: ./.github/workflows/only-rs.yml
+
+  # Run the TypeScript tests.
+  ts-tests:
+    if: !github.event.pull_request.draft
+    uses: ./.github/workflows/only-ts.yml

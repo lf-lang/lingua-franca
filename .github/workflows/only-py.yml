@@ -11,7 +11,7 @@ on:
     - 'org.lflang/src/lib/py/**'
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ github.event.pull_request.draft }}
   cancel-in-progress: ${{ github.ref != 'refs/heads/master' }}
 
 env:
@@ -22,5 +22,6 @@ jobs:
     # Run the Python integration tests.
     py-tests:
       uses: ./.github/workflows/py-tests.yml
+      if: ${{ github.event_name == 'workflow_call' || github.event.pull_request.draft }}
       with:
         all-platforms: ${{ !github.event.pull_request.draft }}

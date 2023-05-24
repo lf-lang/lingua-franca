@@ -11,8 +11,10 @@ on:
     - 'org.lflang/src/lib/c/**'
     - 'org.lflang/src/lib/platform/**'
 
+
+
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ github.event.pull_request.draft }}
   cancel-in-progress: ${{ github.ref != 'refs/heads/master' }}
 
 env:
@@ -22,28 +24,33 @@ env:
 jobs:
   # Run the C benchmark tests.
   c-benchmark-tests:
+    if: ${{ github.event_name == 'workflow_call' || github.event.pull_request.draft }}
     uses: lf-lang/benchmarks-lingua-franca/.github/workflows/benchmark-tests.yml@main
     with:
       target: 'C'
 
   # Run the C integration tests.
   c-tests:
+    if: ${{ github.event_name == 'workflow_call' || github.event.pull_request.draft }}
     uses: ./.github/workflows/c-tests.yml
     with:
       all-platforms: ${{ !github.event.pull_request.draft }}
 
   # Run the C Arduino integration tests.
   c-arduino-tests:
+    if: ${{ github.event_name == 'workflow_call' || github.event.pull_request.draft }}
     uses: ./.github/workflows/c-arduino-tests.yml
     with:
       all-platforms: ${{ !github.event.pull_request.draft }}
 
   # Run the C Zephyr integration tests.
   c-zephyr-tests:
+    if: ${{ github.event_name == 'workflow_call' || github.event.pull_request.draft }}
     uses: ./.github/workflows/c-zephyr-tests.yml
 
   # Run the CCpp integration tests.
   ccpp-tests:
+    if: ${{ github.event_name == 'workflow_call' || github.event.pull_request.draft }}
     uses: ./.github/workflows/c-tests.yml
     with:
       use-cpp: true
