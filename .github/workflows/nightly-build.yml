@@ -6,10 +6,6 @@ on:
     - cron: '0 5 * * *'
   workflow_dispatch:
 
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: ${{ github.ref != 'refs/heads/master' }}
-
 jobs:
   build:
     uses: ./.github/workflows/build.yml

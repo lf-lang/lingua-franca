@@ -26,26 +26,19 @@ env:
   vcpkgGitRef: 0bf3923f9fab4001c00f0f429682a0853b5749e0
 
 jobs:
-  # Cancel previous workflow runs.
-  cancel:
-    uses: ./.github/workflows/cancel.yml
 
   # Test the Gradle build.
   build:
     uses: ./.github/workflows/build.yml
-    needs: cancel
 
   # Build the tools used for processing execution traces
   build-tracing-tools:
     uses: ./.github/workflows/build-trace-tools.yml
-    needs: cancel
 
   # Run tests for the standalone compiler.
   cli-tests:
     uses: ./.github/workflows/cli-tests.yml
-    needs: cancel
 
   # Run language server tests.
   lsp-tests:
     uses: ./.github/workflows/lsp-tests.yml
-    needs: cancel
