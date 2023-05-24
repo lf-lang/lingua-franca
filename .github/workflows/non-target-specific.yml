@@ -18,6 +18,8 @@ jobs:
   # Run the unit tests.
   unit-tests:
     uses: ./.github/workflows/unit-tests.yml
+    with:
+      all-platforms: ${{ !github.event.pull_request.draft }}
 
   # Run the serialization tests
   serialization-tests:
