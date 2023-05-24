@@ -845,7 +845,7 @@ public class CTriggerObjectsGenerator {
         code.pr(
             String.join(
                 "\n",
-                "_lf_initialize_template(env, (token_template_t*)",
+                "_lf_initialize_template((token_template_t*)",
                 "        &(" + CUtil.portRef(output) + "),",
                 size + ");"));
         code.endChannelIteration(output);

@@ -688,7 +688,7 @@ public class CReactionGenerator {
               "    " + inputName + "->length = " + inputName + "->token->length;",
               "    "
                   + inputName
-                  + "->token = lf_writable_copy(self->base.environment, (lf_port_base_t*)self->_lf_"
+                  + "->token = lf_writable_copy((lf_port_base_t*)self->_lf_"
                   + inputName
                   + ");",
               "    "
@@ -729,7 +729,7 @@ public class CReactionGenerator {
                   + "[i];",
               "        "
                   + inputName
-                  + "[i]->token = lf_writable_copy(self->base.environment,"
+                  + "[i]->token = lf_writable_copy("
                   + " (lf_port_base_t*)_lf_input);",
               "        "
                   + inputName
