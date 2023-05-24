@@ -9,7 +9,10 @@ on:
     - 'org.lflang/src/org/lflang/generator/c/**'
     - 'org.lflang/src/lib/c/**'
     - 'org.lflang/src/lib/platform/**'
-    - '**'  # Delete me
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/master' }}
 
 env:
   # 2020.11

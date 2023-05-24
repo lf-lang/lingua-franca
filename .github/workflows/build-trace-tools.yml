@@ -3,6 +3,10 @@ name: Build the tools for processing execution traces
 on:
   workflow_call:
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/master' }}
+
 jobs:
   run:
     strategy:
