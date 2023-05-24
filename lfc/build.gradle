@@ -1,35 +1,14 @@
 plugins {
-  id 'org.jetbrains.kotlin.jvm' version "${kotlinVersion}"
-  id 'java-library'
+    id 'java'
+    id 'application'
 }
 
 sourceSets {
   main {
     java {
-       srcDirs = ['src', 'src-gen']
-    }
-    kotlin {
-       srcDirs = ['src', 'src-gen']
-    }
-    resources {
-       srcDirs = ['src-gen', 'src']
-       include 'lib/'
-       include 'org/lflang/LF.xtextbin'
-       include 'org/lflang/parser/antlr/internal/InternalLF.tokens'
+       srcDirs = ['src']
     }
   }
-}
-
-compileKotlin {
-    destinationDir = compileJava.destinationDir
-    kotlinOptions {
-        jvmTarget = kotlinJvmTarget
-    }
-}
-compileTestKotlin {
-    kotlinOptions {
-        jvmTarget = kotlinJvmTarget
-    }
 }
 
 repositories {
@@ -62,32 +41,12 @@ dependencies {
         exclude group: 'org.eclipse.platform', module: 'org.eclipse.swt'
     }
     implementation group: 'info.picocli', name: 'picocli', version: picocliVersion
+    implementation project(':org.lflang')
 }
 
-configurations {
-    mwe2 {
-        extendsFrom implementation
-    }
+application {
+    mainClass = 'org.lflang.cli.Lfc'
+    tasks.run.workingDir = rootProject.projectDir
 }
 
-dependencies {
-    mwe2 'org.eclipse.emf:org.eclipse.emf.mwe2.launch'
-    mwe2 "org.eclipse.xtext:org.eclipse.xtext.common.types:${xtextVersion}"
-    mwe2 "org.eclipse.xtext:org.eclipse.xtext.xtext.generator:${xtextVersion}"
-}
-
-tasks.register('generateXtextLanguage', JavaExec) {
-    main = 'org.eclipse.emf.mwe2.launch.runtime.Mwe2Launcher'
-    classpath = configurations.mwe2
-    inputs.file "src/org/lflang/GenerateLinguaFranca.mwe2"
-    inputs.file "src/org/lflang/LinguaFranca.xtext"
-    outputs.dir "src-gen"
-    args += "src/org/lflang/GenerateLinguaFranca.mwe2"
-    args += "-p"
-    args += "rootPath=/${projectDir}/.."
-}
-
-compileJava.dependsOn(generateXtextLanguage)
-compileKotlin.dependsOn(generateXtextLanguage)
-processResources.dependsOn(generateXtextLanguage)
-clean.dependsOn(cleanGenerateXtextLanguage)
+build.finalizedBy installDist
