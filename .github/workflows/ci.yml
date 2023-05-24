@@ -31,7 +31,7 @@ jobs:
     needs: cancel
 
   check-format:
-    uses: lf-lang/lingua-franca/.github/workflows/check-format.yml@ci-check-formatting
+    uses: lf-lang/lingua-franca/.github/workflows/check-format.yml@master
     needs: cancel
 
   # Run the unit tests.
