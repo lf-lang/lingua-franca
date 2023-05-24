@@ -22,9 +22,12 @@ jobs:
   # Run the Rust integration tests.
   rs-tests:
     uses: ./.github/workflows/rs-tests.yml
+    with:
+      all-platforms: ${{ !github.event.pull_request.draft }}
 
   # Run the Rust benchmark tests.
   rs-benchmark-tests:
     uses: lf-lang/benchmarks-lingua-franca/.github/workflows/benchmark-tests.yml@main
     with:
       target: 'Rust'
+      all-platforms: ${{ !github.event.pull_request.draft }}

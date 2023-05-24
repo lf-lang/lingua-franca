@@ -22,3 +22,5 @@ jobs:
     # Run the Python integration tests.
     py-tests:
       uses: ./.github/workflows/py-tests.yml
+      with:
+        all-platforms: ${{ !github.event.pull_request.draft }}

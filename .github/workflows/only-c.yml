@@ -29,10 +29,14 @@ jobs:
   # Run the C integration tests.
   c-tests:
     uses: ./.github/workflows/c-tests.yml
+    with:
+      all-platforms: ${{ !github.event.pull_request.draft }}
 
   # Run the C Arduino integration tests.
   c-arduino-tests:
     uses: ./.github/workflows/c-arduino-tests.yml
+    with:
+      all-platforms: ${{ !github.event.pull_request.draft }}
 
   # Run the C Zephyr integration tests.
   c-zephyr-tests:
@@ -43,3 +47,4 @@ jobs:
     uses: ./.github/workflows/c-tests.yml
     with:
       use-cpp: true
+      all-platforms: ${{ !github.event.pull_request.draft }}

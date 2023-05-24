@@ -12,6 +12,10 @@ on:
       reactor-c-py-ref:
         required: false
         type: string
+      all-platforms:
+        required: false
+        default: true
+        type: boolean
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -21,7 +25,7 @@ jobs:
   run:
     strategy:
       matrix:
-        platform: [ubuntu-latest, macos-latest, windows-latest]
+        platform: ${{ (inputs.all-platforms && fromJSON('["ubuntu-latest", "macos-latest", "windows-latest"]')) || 'ubuntu-latest' }}
     runs-on: ${{ matrix.platform }}
     steps:
       - name: Check out lingua-franca repository

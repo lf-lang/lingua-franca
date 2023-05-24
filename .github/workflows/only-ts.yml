@@ -22,3 +22,5 @@ jobs:
   # Run the TypeScript integration tests.
   ts-tests:
     uses: ./.github/workflows/ts-tests.yml
+    with:
+      all-platforms: ${{ !github.event.pull_request.draft }}
