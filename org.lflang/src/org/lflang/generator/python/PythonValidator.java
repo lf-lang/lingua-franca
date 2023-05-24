@@ -271,7 +271,9 @@ public class PythonValidator extends org.lflang.generator.Validator {
                       lfFile,
                       DiagnosticSeverity.Error,
                       main.group().replace("*** ", "").replace("Sorry: ", ""),
-                      map.adjusted(lfFile, Position.fromOneBased(line, map.firstNonWhitespace(line))).getOneBasedLine());
+                      map.adjusted(
+                              lfFile, Position.fromOneBased(line, map.firstNonWhitespace(line)))
+                          .getOneBasedLine());
                 }
               }
             }
