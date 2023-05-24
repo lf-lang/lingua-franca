@@ -1,0 +1,23 @@
+name: C++
+
+on:
+  workflow_dispatch:
+
+env:
+  # 2020.11
+  vcpkgGitRef: 0bf3923f9fab4001c00f0f429682a0853b5749e0
+
+jobs:
+  # Run the C++ benchmark tests.
+  cpp-benchmark-tests:
+    uses: lf-lang/benchmarks-lingua-franca/.github/workflows/benchmark-tests.yml@main
+    with:
+      target: 'Cpp'
+
+  # Run the C++ integration tests.
+  cpp-tests:
+    uses: lf-lang/lingua-franca/.github/workflows/cpp-tests.yml
+
+  # Run the C++ integration tests on ROS2.
+  cpp-ros2-tests:
+    uses: lf-lang/lingua-franca/.github/workflows/cpp-ros2-tests.yml

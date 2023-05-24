@@ -1,0 +1,19 @@
+name: Rust
+
+on:
+  workflow_dispatch:
+
+env:
+  # 2020.11
+  vcpkgGitRef: 0bf3923f9fab4001c00f0f429682a0853b5749e0
+
+jobs:
+  # Run the Rust integration tests.
+  rs-tests:
+    uses: lf-lang/lingua-franca/.github/workflows/rs-tests.yml
+
+  # Run the Rust benchmark tests.
+  rs-benchmark-tests:
+    uses: lf-lang/benchmarks-lingua-franca/.github/workflows/benchmark-tests.yml@main
+    with:
+      target: 'Rust'

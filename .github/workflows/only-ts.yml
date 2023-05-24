@@ -1,0 +1,13 @@
+name: Rust
+
+on:
+  workflow_dispatch:
+
+env:
+  # 2020.11
+  vcpkgGitRef: 0bf3923f9fab4001c00f0f429682a0853b5749e0
+
+jobs:
+  # Run the TypeScript integration tests.
+  ts-tests:
+    uses: lf-lang/lingua-franca/.github/workflows/ts-tests.yml
