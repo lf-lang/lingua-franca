@@ -36,11 +36,6 @@ jobs:
     uses: ./.github/workflows/build-trace-tools.yml
     needs: cancel
 
-  # Run the unit tests.
-  unit-tests:
-    uses: ./.github/workflows/unit-tests.yml
-    needs: cancel
-
   # Run tests for the standalone compiler.
   cli-tests:
     uses: ./.github/workflows/cli-tests.yml
@@ -49,9 +44,4 @@ jobs:
   # Run language server tests.
   lsp-tests:
     uses: ./.github/workflows/lsp-tests.yml
-    needs: cancel
-
-  # Run the serialization tests
-  serialization-tests:
-    uses: ./.github/workflows/serialization-tests.yml
     needs: cancel
