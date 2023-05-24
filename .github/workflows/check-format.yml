@@ -1,4 +1,4 @@
-name: Check if all files are formatted correctly with spotless
+name: Spotless check
 
 on:
   workflow_call:
