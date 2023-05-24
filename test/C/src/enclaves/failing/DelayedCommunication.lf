@@ -1,4 +1,6 @@
-target C
+target C {
+    timeout: 2 sec
+}
 
 reactor Sender {
     output out: int

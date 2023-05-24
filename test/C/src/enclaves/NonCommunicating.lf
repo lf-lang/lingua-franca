@@ -1,5 +1,6 @@
 target C {
-    scheduler: NP
+    scheduler: NP,
+    timeout: 1 sec
 }
 
 reactor Slow {
