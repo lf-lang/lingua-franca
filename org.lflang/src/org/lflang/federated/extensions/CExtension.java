@@ -622,7 +622,7 @@ public class CExtension implements FedTargetExtension {
     code.pr(CExtensionUtils.allocateTriggersForFederate(federate));
 
     return """
-            void _lf_executable_preamble(enviroment* env) {
+            void _lf_executable_preamble(environment_t* env) {
             %s
             }
             """
@@ -748,7 +748,7 @@ public class CExtension implements FedTargetExtension {
               "// physical connections. The thread will live until all connections",
               "// have been established.",
               "lf_thread_create(&_fed.inbound_p2p_handling_thread_id,"
-                  + " handle_p2p_connections_from_federates, NULL);"));
+                  + " handle_p2p_connections_from_federates, env);"));
     }
 
     for (FederateInstance remoteFederate : federate.outboundP2PConnections) {
