@@ -1,4 +1,4 @@
-name: TypeScript
+name: TypeScript-based tests
 
 on:
   workflow_dispatch:

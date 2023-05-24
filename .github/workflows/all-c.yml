@@ -1,4 +1,4 @@
-name: C
+name: C-based tests
 
 on:
   workflow_dispatch:

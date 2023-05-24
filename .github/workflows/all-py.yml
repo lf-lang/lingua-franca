@@ -1,4 +1,4 @@
-name: Python
+name: Python-based tests
 
 on:
   workflow_dispatch:

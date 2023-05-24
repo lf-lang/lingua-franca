@@ -1,4 +1,4 @@
-name: Cpp
+name: Cpp-based tests 
 
 on:
   workflow_dispatch:
