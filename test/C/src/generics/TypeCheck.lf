@@ -1,5 +1,6 @@
 /** Check that two reactors that use generics can be connected together. */
 target C {
+    timeout: 3 sec,
     fast: true
 }
 
