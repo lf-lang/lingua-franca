@@ -216,6 +216,7 @@ public class LFValidator extends BaseLFValidator {
     }
   }
 
+  /** Resolve the port type if it is known. */
   private Type portTypeIfResolvable(VarRef port) {
     var portType = ((Port) port.getVariable()).getType();
     return port.getContainer() == null
