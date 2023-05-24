@@ -27,6 +27,7 @@ package org.lflang.generator.rust
 
 import org.lflang.*
 import org.lflang.TargetProperty.BuildType
+import org.lflang.ast.ASTUtils
 import org.lflang.generator.*
 import org.lflang.inBlock
 import org.lflang.indexInContainer
@@ -34,12 +35,10 @@ import org.lflang.inferredType
 import org.lflang.isBank
 import org.lflang.isInput
 import org.lflang.isLogical
-import org.lflang.isMultiport
 import org.lflang.lf.*
 import org.lflang.lf.Timer
 import java.nio.file.Path
 import java.util.*
-import kotlin.text.capitalize
 
 private typealias Ident = String
 const val PARALLEL_RT_FEATURE = "parallel-runtime"

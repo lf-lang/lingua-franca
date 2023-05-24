@@ -24,7 +24,7 @@
 
 package org.lflang.generator.rust
 
-import org.lflang.ASTUtils.toText
+import org.lflang.ast.ASTUtils.toText
 import org.lflang.InferredType
 import org.lflang.TimeValue
 import org.lflang.generator.TargetCode
