@@ -18,23 +18,23 @@ env:
 jobs:
   # Cancel previous workflow runs.
   cancel:
-    uses: lf-lang/lingua-franca/.github/workflows/cancel.yml
+    uses: ./.github/workflows/cancel.yml
 
   # Run the unit tests.
   unit-tests:
-    uses: lf-lang/lingua-franca/.github/workflows/unit-tests.yml
+    uses: ./.github/workflows/unit-tests.yml
     needs: cancel
 
   c-tests:
-    uses: lf-lang/lingua-franca/.github/workflows/only-c.yml
+    uses: ./.github/workflows/only-c.yml
     needs: cancel
 
   # Run the Python integration tests.
   py-tests:
-    uses: lf-lang/lingua-franca/.github/workflows/py-tests.yml
+    uses: ./.github/workflows/py-tests.yml
     needs: cancel
 
   # Run the serialization tests
   serialization-tests:
-    uses: lf-lang/lingua-franca/.github/workflows/serialization-tests.yml
+    uses: ./.github/workflows/serialization-tests.yml
     needs: cancel

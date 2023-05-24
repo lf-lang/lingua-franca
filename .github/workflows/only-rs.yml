@@ -2,6 +2,7 @@ name: Rust
 
 on:
   workflow_dispatch:
+  workflow_call:
 
 env:
   # 2020.11
@@ -10,7 +11,7 @@ env:
 jobs:
   # Run the Rust integration tests.
   rs-tests:
-    uses: lf-lang/lingua-franca/.github/workflows/rs-tests.yml
+    uses: ./.github/workflows/rs-tests.yml
 
   # Run the Rust benchmark tests.
   rs-benchmark-tests:

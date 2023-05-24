@@ -2,6 +2,7 @@ name: C
 
 on:
   workflow_dispatch:
+  workflow_call:
 
 env:
   # 2020.11
@@ -16,18 +17,18 @@ jobs:
 
   # Run the C integration tests.
   c-tests:
-    uses: lf-lang/lingua-franca/.github/workflows/c-tests.yml
+    uses: ./.github/workflows/c-tests.yml
 
   # Run the C Arduino integration tests.
   c-arduino-tests:
-    uses: lf-lang/lingua-franca/.github/workflows/c-arduino-tests.yml
+    uses: ./.github/workflows/c-arduino-tests.yml
 
   # Run the C Zephyr integration tests.
   c-zephyr-tests:
-    uses: lf-lang/lingua-franca/.github/workflows/c-zephyr-tests.yml
+    uses: ./.github/workflows/c-zephyr-tests.yml
 
   # Run the CCpp integration tests.
   ccpp-tests:
-    uses: lf-lang/lingua-franca/.github/workflows/c-tests.yml
+    uses: ./.github/workflows/c-tests.yml
     with:
       use-cpp: true

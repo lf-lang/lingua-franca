@@ -16,13 +16,13 @@ env:
 jobs:
   # Cancel previous workflow runs.
   cancel:
-    uses: lf-lang/lingua-franca/.github/workflows/cancel.yml
+    uses: ./.github/workflows/cancel.yml
 
   rs-tests:
-    uses: lf-lang/lingua-franca/.github/workflows/only-rs.yml
+    uses: ./.github/workflows/only-rs.yml
     needs: cancel
 
   # Run the serialization tests
   serialization-tests:
-    uses: lf-lang/lingua-franca/.github/workflows/serialization-tests.yml
+    uses: ./.github/workflows/serialization-tests.yml
     needs: cancel

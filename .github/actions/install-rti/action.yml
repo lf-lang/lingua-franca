@@ -2,7 +2,6 @@ name: Install RTI
 description: Build and install
 runs:
   using: "composite"
-  steps: 
+  steps:
     - run: .github/actions/install-rti/install.sh
       shell: bash
-      

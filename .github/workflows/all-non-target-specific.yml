@@ -23,34 +23,34 @@ env:
 jobs:
   # Cancel previous workflow runs.
   cancel:
-    uses: lf-lang/lingua-franca/.github/workflows/cancel.yml@master
+    uses: ./.github/workflows/cancel.yml
 
   # Test the Gradle build.
   build:
-    uses: lf-lang/lingua-franca/.github/workflows/build.yml@master
+    uses: ./.github/workflows/build.yml
     needs: cancel
 
   # Build the tools used for processing execution traces
   build-tracing-tools:
-    uses: lf-lang/lingua-franca/.github/workflows/build-trace-tools.yml@master
+    uses: ./.github/workflows/build-trace-tools.yml
     needs: cancel
 
   # Run the unit tests.
   unit-tests:
-    uses: lf-lang/lingua-franca/.github/workflows/unit-tests.yml@master
+    uses: ./.github/workflows/unit-tests.yml
     needs: cancel
 
   # Run tests for the standalone compiler.
   cli-tests:
-    uses: lf-lang/lingua-franca/.github/workflows/cli-tests.yml@master
+    uses: ./.github/workflows/cli-tests.yml
     needs: cancel
 
   # Run language server tests.
   lsp-tests:
-    uses: lf-lang/lingua-franca/.github/workflows/lsp-tests.yml@master
+    uses: ./.github/workflows/lsp-tests.yml
     needs: cancel
 
   # Run the serialization tests
   serialization-tests:
-    uses: lf-lang/lingua-franca/.github/workflows/serialization-tests.yml@master
+    uses: ./.github/workflows/serialization-tests.yml
     needs: cancel

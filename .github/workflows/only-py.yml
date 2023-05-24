@@ -2,6 +2,7 @@ name: Python
 
 on:
   workflow_dispatch:
+  workflow_call:
 
 env:
   # 2020.11
@@ -10,4 +11,4 @@ env:
 jobs:
     # Run the Python integration tests.
     py-tests:
-      uses: lf-lang/lingua-franca/.github/workflows/py-tests.yml
+      uses: ./.github/workflows/py-tests.yml
