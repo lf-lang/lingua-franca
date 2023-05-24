@@ -1,0 +1,40 @@
+name: C
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches-ignore:
+    - 'nightly'
+    paths:
+    - 'org.lflang/src/org/lflang/generator/c/**'
+    - 'org.lflang/src/lib/c/**'
+    - 'org.lflang/src/lib/platform/**'
+
+env:
+  # 2020.11
+  vcpkgGitRef: 0bf3923f9fab4001c00f0f429682a0853b5749e0
+
+jobs:
+  # Run the C benchmark tests.
+  c-benchmark-tests:
+    uses: lf-lang/benchmarks-lingua-franca/.github/workflows/benchmark-tests.yml@main
+    with:
+      target: 'C'
+
+  # Run the C integration tests.
+  c-tests:
+    uses: lf-lang/lingua-franca/.github/workflows/c-tests.yml@master
+
+  # Run the C Arduino integration tests.
+  c-arduino-tests:
+    uses: lf-lang/lingua-franca/.github/workflows/c-arduino-tests.yml@master
+
+  # Run the C Zephyr integration tests.
+  c-zephyr-tests:
+    uses: lf-lang/lingua-franca/.github/workflows/c-zephyr-tests.yml@master
+
+  # Run the CCpp integration tests.
+  ccpp-tests:
+    uses: lf-lang/lingua-franca/.github/workflows/c-tests.yml@master
+    with:
+      use-cpp: true
