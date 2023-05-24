@@ -13,7 +13,7 @@ reactor Count(offset: time = 0, period: time = 1 sec) {
 }
 
 reactor TestCount<T>(start: int = 1, num_inputs: int = 1) {
-    state count: int = 0
+    state count: int = start
     state inputs_received: int = 0
     input in: T
 
@@ -39,6 +39,6 @@ reactor TestCount<T>(start: int = 1, num_inputs: int = 1) {
 
 main reactor {
     count = new Count<int>()
-    testcount = new TestCount<int>()
+    testcount = new TestCount<int>(num_inputs = 4)
     count.out -> testcount.in
 }
