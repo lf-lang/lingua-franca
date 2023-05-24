@@ -16,104 +16,36 @@ jobs:
   cancel:
     uses: ./.github/workflows/cancel.yml
 
-  # Test the Gradle build.
-  build:
-    uses: ./.github/workflows/build.yml
-    needs: cancel
-
-  # Build the tools used for processing execution traces
-  build-tracing-tools:
-    uses: ./.github/workflows/build-trace-tools.yml
-    needs: cancel
-
   check-format:
     uses: ./.github/workflows/check-format.yml
     needs: cancel
 
-  # Run the unit tests.
-  unit-tests:
-    uses: ./.github/workflows/unit-tests.yml
+  # Run the non-target-specific tests.
+  non-target-specific:
+    uses: ./.github/workflows/all-non-target-specific.yml
     needs: cancel
 
-  # Run tests for the standalone compiler.
-  cli-tests:
-    uses: ./.github/workflows/cli-tests.yml
-    needs: cancel
-
-  # Run the C benchmark tests.
-  c-benchmark-tests:
-    uses: lf-lang/benchmarks-lingua-franca/.github/workflows/benchmark-tests.yml@main
-    with:
-      target: 'C'
-    needs: cancel
-
-  # Run language server tests.
-  lsp-tests:
-    uses: ./.github/workflows/lsp-tests.yml
-    needs: cancel
-
-  # Run the C integration tests.
+  # Run the C tests.
   c-tests:
-    uses: ./.github/workflows/c-tests.yml
+    uses: ./.github/workflows/only-c.yml
     needs: cancel
 
-  # Run the C Arduino integration tests.
-  c-arduino-tests:
-    uses: ./.github/workflows/c-arduino-tests.yml
-    needs: cancel
-
-  # Run the C Zephyr integration tests.
-  c-zephyr-tests:
-    uses: ./.github/workflows/c-zephyr-tests.yml
-    needs: cancel
-
-  # Run the CCpp integration tests.
-  ccpp-tests:
-    uses: ./.github/workflows/c-tests.yml
-    with:
-      use-cpp: true
-    needs: cancel
-
-  # Run the C++ benchmark tests.
-  cpp-benchmark-tests:
-    uses: lf-lang/benchmarks-lingua-franca/.github/workflows/benchmark-tests.yml@main
-    with:
-      target: 'Cpp'
-    needs: cancel
-
-  # Run the C++ integration tests.
+  # Run the C++ tests.
   cpp-tests:
-    uses: ./.github/workflows/cpp-tests.yml
+    uses: ./.github/workflows/only-cpp.yml
     needs: cancel
 
-  # Run the C++ integration tests on ROS2.
-  cpp-ros2-tests:
-    uses: ./.github/workflows/cpp-ros2-tests.yml
-    needs: cancel
-
-  # Run the Python integration tests.
+  # Run the Python tests.
   py-tests:
-    uses: ./.github/workflows/py-tests.yml
+    uses: ./.github/workflows/only-py.yml
     needs: cancel
 
-  # Run the Rust integration tests.
+  # Run the Rust tests.
   rs-tests:
-    uses: ./.github/workflows/rs-tests.yml
+    uses: ./.github/workflows/only-rs.yml
     needs: cancel
 
-  # Run the Rust benchmark tests.
-  rs-benchmark-tests:
-    uses: lf-lang/benchmarks-lingua-franca/.github/workflows/benchmark-tests.yml@main
-    with:
-      target: 'Rust'
-    needs: cancel
-
-  # Run the TypeScript integration tests.
+  # Run the TypeScript tests.
   ts-tests:
-    uses: ./.github/workflows/ts-tests.yml
-    needs: cancel
-
-  # Run the serialization tests
-  serialization-tests:
-    uses: ./.github/workflows/serialization-tests.yml
+    uses: ./.github/workflows/only-ts.yml
     needs: cancel
