@@ -1,5 +1,4 @@
-# Main workflow for testing the Lingua Franca compiler.
-name: CI
+name: Non-target-specific
 
 on:
   workflow_dispatch:
@@ -12,6 +11,10 @@ on:
 env:
   # 2020.11
   vcpkgGitRef: 0bf3923f9fab4001c00f0f429682a0853b5749e0
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ github.event_path }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/master' }}
 
 jobs:
 

@@ -10,10 +10,6 @@ on:
     - 'org.lflang/src/org/lflang/generator/rust/**'
     - 'org.lflang/src/lib/rs/**'
 
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}-${{ github.event.pull_request.draft }}
-  cancel-in-progress: ${{ github.ref != 'refs/heads/master' }}
-
 env:
   # 2020.11
   vcpkgGitRef: 0bf3923f9fab4001c00f0f429682a0853b5749e0
