@@ -77,17 +77,3 @@ compileJava.dependsOn(generateXtextLanguage)
 compileKotlin.dependsOn(generateXtextLanguage)
 processResources.dependsOn(generateXtextLanguage)
 clean.dependsOn(cleanGenerateXtextLanguage)
-
-dependencies {
-    testImplementation "org.junit.jupiter:junit-jupiter-api:$jupiterVersion"
-    testImplementation "org.junit.jupiter:junit-jupiter-engine:$jupiterVersion"
-    testImplementation "org.junit.platform:junit-platform-commons:$jUnitPlatformVersion"
-    testImplementation "org.junit.platform:junit-platform-engine:$jUnitPlatformVersion"
-    testImplementation "org.opentest4j:opentest4j:$openTest4jVersion"
-    testImplementation "org.eclipse.xtext:org.eclipse.xtext.testing:$xtextVersion"
-    testImplementation "org.eclipse.xtext:org.eclipse.xtext.xbase.testing:$xtextVersion"
-}
-
-test {
-    useJUnitPlatform()
-}

@@ -1,21 +1,10 @@
 plugins {
     id 'org.lflang.java-library-conventions'
     id 'org.lflang.kotlin-conventions'
-    id 'java-test-fixtures'
 }
 
 dependencies {
     api "info.picocli:picocli:$picocliVersion"
 
     api project(':org.lflang:core')
-}
-
-dependencies {
-    testFixturesImplementation "org.junit.jupiter:junit-jupiter-api:$jupiterVersion"
-    testFixturesImplementation "org.junit.jupiter:junit-jupiter-engine:$jupiterVersion"
-    testFixturesImplementation "org.junit.platform:junit-platform-commons:$jUnitPlatformVersion"
-    testFixturesImplementation "org.junit.platform:junit-platform-engine:$jUnitPlatformVersion"
-    testFixturesImplementation "org.opentest4j:opentest4j:$openTest4jVersion"
-    testFixturesImplementation "org.eclipse.xtext:org.eclipse.xtext.testing:$xtextVersion"
-    testFixturesImplementation "org.eclipse.xtext:org.eclipse.xtext.xbase.testing:$xtextVersion"
 }

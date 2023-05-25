@@ -1,11 +1,8 @@
 plugins {
-    id 'org.lflang.java-application-conventions'
+    id 'java-test-fixtures'
 }
 
 dependencies {
-    implementation project(':org.lflang:cli:base')
-
-    testImplementation(testFixtures(project(":org.lflang:cli:base")))
     testImplementation "org.junit.jupiter:junit-jupiter-api:$jupiterVersion"
     testImplementation "org.junit.jupiter:junit-jupiter-engine:$jupiterVersion"
     testImplementation "org.junit.platform:junit-platform-commons:$jUnitPlatformVersion"
@@ -13,11 +10,14 @@ dependencies {
     testImplementation "org.opentest4j:opentest4j:$openTest4jVersion"
     testImplementation "org.eclipse.xtext:org.eclipse.xtext.testing:$xtextVersion"
     testImplementation "org.eclipse.xtext:org.eclipse.xtext.xbase.testing:$xtextVersion"
-}
 
-application {
-    mainClass = 'org.lflang.cli.Lff'
-    tasks.run.workingDir = rootProject.projectDir
+    testFixturesImplementation "org.junit.jupiter:junit-jupiter-api:$jupiterVersion"
+    testFixturesImplementation "org.junit.jupiter:junit-jupiter-engine:$jupiterVersion"
+    testFixturesImplementation "org.junit.platform:junit-platform-commons:$jUnitPlatformVersion"
+    testFixturesImplementation "org.junit.platform:junit-platform-engine:$jUnitPlatformVersion"
+    testFixturesImplementation "org.opentest4j:opentest4j:$openTest4jVersion"
+    testFixturesImplementation "org.eclipse.xtext:org.eclipse.xtext.testing:$xtextVersion"
+    testFixturesImplementation "org.eclipse.xtext:org.eclipse.xtext.xbase.testing:$xtextVersion"
 }
 
 test {
