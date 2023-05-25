@@ -12,6 +12,7 @@
 **/build/
 **/test-bin/
 **/src-gen/
+**/test-gen/
 **/fed-gen/
 **/xtend-gen/
 # Created by https://www.toptal.com/developers/gitignore/api/intellij,gradle,eclipse,maven,visualstudiocode

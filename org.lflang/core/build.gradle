@@ -12,6 +12,11 @@ sourceSets {
        srcDirs = ['src/main/resources', 'src-gen']
     }
   }
+  test {
+    java {
+      srcDirs = ['src/test/java', 'test-gen']
+    }
+  }
 }
 
 dependencies {
@@ -33,6 +38,14 @@ dependencies {
         exclude group: 'org.eclipse.platform', module: 'org.eclipse.swt.*'
         exclude group: 'org.eclipse.platform', module: 'org.eclipse.swt'
     }
+
+    testImplementation "org.junit.jupiter:junit-jupiter-api:$jupiterVersion"
+    testImplementation "org.junit.jupiter:junit-jupiter-engine:$jupiterVersion"
+    testImplementation "org.junit.platform:junit-platform-commons:$jUnitPlatformVersion"
+    testImplementation "org.junit.platform:junit-platform-engine:$jUnitPlatformVersion"
+    testImplementation "org.opentest4j:opentest4j:$openTest4jVersion"
+    testImplementation "org.eclipse.xtext:org.eclipse.xtext.testing:$xtextVersion"
+    testImplementation "org.eclipse.xtext:org.eclipse.xtext.xbase.testing:$xtextVersion"
 }
 
 configurations {
@@ -48,7 +61,7 @@ dependencies {
 }
 
 tasks.register('generateXtextLanguage', JavaExec) {
-    main = 'org.eclipse.emf.mwe2.launch.runtime.Mwe2Launcher'
+    mainClass = 'org.eclipse.emf.mwe2.launch.runtime.Mwe2Launcher'
     classpath = configurations.mwe2
     inputs.file "src/main/java/org/lflang/GenerateLinguaFranca.mwe2"
     inputs.file "src/main/java/org/lflang/LinguaFranca.xtext"
@@ -64,3 +77,17 @@ compileJava.dependsOn(generateXtextLanguage)
 compileKotlin.dependsOn(generateXtextLanguage)
 processResources.dependsOn(generateXtextLanguage)
 clean.dependsOn(cleanGenerateXtextLanguage)
+
+dependencies {
+    testImplementation "org.junit.jupiter:junit-jupiter-api:$jupiterVersion"
+    testImplementation "org.junit.jupiter:junit-jupiter-engine:$jupiterVersion"
+    testImplementation "org.junit.platform:junit-platform-commons:$jUnitPlatformVersion"
+    testImplementation "org.junit.platform:junit-platform-engine:$jUnitPlatformVersion"
+    testImplementation "org.opentest4j:opentest4j:$openTest4jVersion"
+    testImplementation "org.eclipse.xtext:org.eclipse.xtext.testing:$xtextVersion"
+    testImplementation "org.eclipse.xtext:org.eclipse.xtext.xbase.testing:$xtextVersion"
+}
+
+test {
+    useJUnitPlatform()
+}

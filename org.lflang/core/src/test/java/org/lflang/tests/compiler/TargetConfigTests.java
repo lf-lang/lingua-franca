@@ -71,7 +71,8 @@ class TargetConfigTests {
         parser.parse(
             """
             target C {
-              tracing: true
+              tracing: true,
+              no-compile: true
             }
             reactor Foo {
 
