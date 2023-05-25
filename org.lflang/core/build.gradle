@@ -76,6 +76,8 @@ tasks.register('generateXtextLanguage', JavaExec) {
     inputs.file "src/main/java/org/lflang/GenerateLinguaFranca.mwe2"
     inputs.file "src/main/java/org/lflang/LinguaFranca.xtext"
     outputs.dir "src-gen"
+    outputs.dir "model"
+    outputs.file ".antlr-generator-3.2.0-patch.jar"
     args += "src/main/java/org/lflang/GenerateLinguaFranca.mwe2"
     args += "-p"
     args += "rootPath=/${projectDir}/.."
