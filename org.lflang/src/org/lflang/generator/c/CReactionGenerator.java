@@ -1145,26 +1145,27 @@ public class CReactionGenerator {
       s.append(
           String.join(
               "\n",
-              "    for (int i = 0; i < env->_lf_startup_reactions_size; i++) {",
-              "        if (env->_lf_startup_reactions[i] != NULL) {",
-              "            if (env->_lf_startup_reactions[i]->mode != NULL) {",
+              "    for (int i = 0; i < env->startup_reactions_size; i++) {",
+              "        if (env->startup_reactions[i] != NULL) {",
+              "            if (env->startup_reactions[i]->mode != NULL) {",
               "                // Skip reactions in modes",
               "                continue;",
               "            }",
-              "            _lf_trigger_reaction(env, env->_lf_startup_reactions[i], -1);",
+              "            _lf_trigger_reaction(env, env->startup_reactions[i], -1);",
               "        }",
               "    }",
               "    _lf_handle_mode_startup_reset_reactions(",
-              "        env->_lf_startup_reactions, env->_lf_startup_reactions_size,",
+              "        env,",
+              "        env->startup_reactions, env->startup_reactions_size,",
               "        NULL, 0,",
-              "        _lf_modal_reactor_states, _lf_modal_reactor_states_size);"));
+              "        env->modes->modal_reactor_states, env->modes->modal_reactor_states_size);"));
     } else {
       s.append(
           String.join(
               "\n",
-              "    for (int i = 0; i < env->_lf_startup_reactions_size; i++) {",
-              "        if (env->_lf_startup_reactions[i] != NULL) {",
-              "            _lf_trigger_reaction(env, env->_lf_startup_reactions[i], -1);",
+              "    for (int i = 0; i < env->startup_reactions_size; i++) {",
+              "        if (env->startup_reactions[i] != NULL) {",
+              "            _lf_trigger_reaction(env, env->startup_reactions[i], -1);",
               "        }",
               "    }"));
     }
@@ -1183,26 +1184,26 @@ public class CReactionGenerator {
         s.append(
             String.join(
                 "\n",
-                "    for (int i = 0; i < _lf_shutdown_reactions_size; i++) {",
-                "        if (_lf_shutdown_reactions[i] != NULL) {",
-                "            if (_lf_shutdown_reactions[i]->mode != NULL) {",
+                "    for (int i = 0; i < shutdown_reactions_size; i++) {",
+                "        if (shutdown_reactions[i] != NULL) {",
+                "            if (shutdown_reactions[i]->mode != NULL) {",
                 "                // Skip reactions in modes",
                 "                continue;",
                 "            }",
-                "            _lf_trigger_reaction(env, _lf_shutdown_reactions[i], -1);", // FIXME:
+                "            _lf_trigger_reaction(env, shutdown_reactions[i], -1);", // FIXME:
                 // Enclaves
                 // hack
                 "        }",
                 "    }",
-                "    _lf_handle_mode_shutdown_reactions(env, _lf_shutdown_reactions_size);",
+                "    _lf_handle_mode_shutdown_reactions(env, shutdown_reactions_size);",
                 "    return true;"));
       } else {
         s.append(
             String.join(
                 "\n",
-                "    for (int i = 0; i < _lf_shutdown_reactions_size; i++) {",
-                "        if (_lf_shutdown_reactions[i] != NULL) {",
-                "            _lf_trigger_reaction(env, _lf_shutdown_reactions[i], -1);", // FIXME:
+                "    for (int i = 0; i < shutdown_reactions_size; i++) {",
+                "        if (shutdown_reactions[i] != NULL) {",
+                "            _lf_trigger_reaction(env, shutdown_reactions[i], -1);", // FIXME:
                 // Enclaves
                 // hack
                 "        }",
@@ -1224,11 +1225,11 @@ public class CReactionGenerator {
       return "";
     }
     var s = new StringBuilder();
-    s.append("void _lf_handle_mode_triggered_reactions() {\n");
+    s.append("void _lf_handle_mode_triggered_reactions(environment_t* env) {\n");
     s.append("    _lf_handle_mode_startup_reset_reactions(\n");
-    s.append("        _lf_startup_reactions, _lf_startup_reactions_size,\n");
-    s.append("        _lf_reset_reactions, _lf_reset_reactions_size,\n");
-    s.append("        _lf_modal_reactor_states, _lf_modal_reactor_states_size);\n");
+    s.append("        env, env->startup_reactions, env->startup_reactions_size,\n");
+    s.append("        env->reset_reactions, env->reset_reactions_size,\n");
+    s.append("        env->modes->modal_reactor_states, env->modes->modal_reactor_states_size);\n");
     s.append("}\n");
     return s.toString();
   }

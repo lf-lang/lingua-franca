@@ -227,20 +227,20 @@ import org.lflang.util.FileUtil;
  *       <h2 id="runtime-tables">Runtime Tables</h2>
  *       This generator creates an populates the following tables used at run time. These tables may
  *       have to be resized and adjusted when mutations occur.
- *   <li>_lf_is_present_fields: An array of pointers to booleans indicating whether an event is
+ *   <li>is_present_fields: An array of pointers to booleans indicating whether an event is
  *       present. The _lf_start_time_step() function in reactor_common.c uses this to mark every
  *       event absent at the start of a time step. The size of this table is contained in the
- *       variable _lf_is_present_fields_size.
+ *       variable is_present_fields_size.
  *       <ul>
- *         <li>This table is accompanied by another list, _lf_is_present_fields_abbreviated, which
+ *         <li>This table is accompanied by another list, is_present_fields_abbreviated, which
  *             only contains the is_present fields that have been set to true in the current tag.
  *             This list can allow a performance improvement if most ports are seldom present
  *             because only fields that have been set to true need to be reset to false.
  *       </ul>
  *   <li>_lf_shutdown_triggers: An array of pointers to trigger_t structs for shutdown reactions.
  *       The length of this table is in the _lf_shutdown_triggers_size variable.
- *   <li>_lf_timer_triggers: An array of pointers to trigger_t structs for timers that need to be
- *       started when the program runs. The length of this table is in the _lf_timer_triggers_size
+ *   <li>timer_triggers: An array of pointers to trigger_t structs for timers that need to be
+ *       started when the program runs. The length of this table is in the timer_triggers_size
  *       variable.
  *   <li>_lf_action_table: For a federated execution, each federate will have this table that maps
  *       port IDs to the corresponding action struct, which can be cast to action_base_t.
@@ -616,8 +616,6 @@ public class CGenerator extends GeneratorBase {
     // Note that any main reactors in imported files are ignored.
     // Skip generation if there are cycles.
     if (main != null) {
-      initializeTriggerObjects.pr(
-          CModesGenerator.generateModalInitalizationCounters(hasModalReactors));
       var envFuncGen = new CEnvironmentFunctionGenerator(main);
 
       code.pr(envFuncGen.generateDeclarations());
@@ -1432,7 +1430,7 @@ public class CGenerator extends GeneratorBase {
         if (trigger.isStartup()) {
           temp.pr(
               enclaveStruct
-                  + "._lf_startup_reactions[startup_reaction_count["
+                  + ".startup_reactions[startup_reaction_count["
                   + enclaveId
                   + "]++] = &"
                   + reactionRef
@@ -1442,7 +1440,7 @@ public class CGenerator extends GeneratorBase {
         } else if (trigger.isShutdown()) {
           temp.pr(
               enclaveStruct
-                  + "._lf_shutdown_reactions[shutdown_reaction_count["
+                  + ".shutdown_reactions[shutdown_reaction_count["
                   + enclaveId
                   + "]++] = &"
                   + reactionRef
@@ -1466,7 +1464,7 @@ public class CGenerator extends GeneratorBase {
         } else if (trigger.isReset()) {
           temp.pr(
               enclaveStruct
-                  + "._lf_reset_reactions[reset_reaction_count["
+                  + ".reset_reactions[reset_reaction_count["
                   + enclaveId
                   + "]++] = &"
                   + reactionRef
@@ -1529,7 +1527,7 @@ public class CGenerator extends GeneratorBase {
 
           temp.pr(
               enclaveStruct
-                  + "._lf_is_present_fields["
+                  + ".is_present_fields["
                   + enclaveInfo.numIsPresentFields
                   + " + count] = &"
                   + portRef
@@ -1571,7 +1569,7 @@ public class CGenerator extends GeneratorBase {
           String.join(
               "\n",
               "// Add action " + action.getFullName() + " to array of is_present fields.",
-              enclaveStruct + "._lf_is_present_fields[" + enclaveInfo.numIsPresentFields + "] ",
+              enclaveStruct + ".is_present_fields[" + enclaveInfo.numIsPresentFields + "] ",
               "        = &"
                   + containerSelfStructName
                   + "->_lf_"
@@ -1618,7 +1616,7 @@ public class CGenerator extends GeneratorBase {
             temp.startChannelIteration(output);
             temp.pr(
                 enclaveStruct
-                    + "._lf_is_present_fields["
+                    + ".is_present_fields["
                     + enclaveInfo.numIsPresentFields
                     + " + count] = &"
                     + CUtil.portRef(output)
@@ -1655,7 +1653,7 @@ public class CGenerator extends GeneratorBase {
    * For each timer in the given reactor, generate initialization code for the offset and period
    * fields.
    *
-   * <p>This method will also populate the global _lf_timer_triggers array, which is used to start
+   * <p>This method will also populate the global timer_triggers array, which is used to start
    * all timers at the start of execution.
    *
    * @param instance A reactor instance.

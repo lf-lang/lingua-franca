@@ -87,6 +87,8 @@ public class CEnvironmentFunctionGenerator {
               + enclave.enclaveInfo.numResetReactions
               + ","
               + enclave.enclaveInfo.numIsPresentFields
+              + ","
+              + enclave.enclaveInfo.numModalReactors
               + ");");
     }
     code.unindent();

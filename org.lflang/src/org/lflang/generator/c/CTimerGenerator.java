@@ -39,7 +39,7 @@ public class CTimerGenerator {
             "// Associate timer with the environment of its parent",
             "envs["
                 + envId
-                + "]._lf_timer_triggers[timer_triggers_count["
+                + "].timer_triggers[timer_triggers_count["
                 + envId
                 + "]++] = &"
                 + triggerStructName
@@ -58,10 +58,10 @@ public class CTimerGenerator {
         List.of(
             "// Array of pointers to timer triggers to be scheduled in _lf_initialize_timers().",
             (timerCount > 0
-                    ? "trigger_t* _lf_timer_triggers[" + timerCount + "]"
-                    : "trigger_t** _lf_timer_triggers = NULL")
+                    ? "trigger_t* timer_triggers[" + timerCount + "]"
+                    : "trigger_t** timer_triggers = NULL")
                 + ";",
-            "int _lf_timer_triggers_size = " + timerCount + ";"));
+            "int timer_triggers_size = " + timerCount + ";"));
   }
 
   /**
@@ -73,9 +73,9 @@ public class CTimerGenerator {
     return String.join(
         "\n",
         "void _lf_initialize_timers(environment_t *env) {",
-        "   for (int i = 0; i < env->_lf_timer_triggers_size; i++) {",
-        "       if (env->_lf_timer_triggers[i] != NULL) {",
-        "            _lf_initialize_timer(env, env->_lf_timer_triggers[i]);",
+        "   for (int i = 0; i < env->timer_triggers_size; i++) {",
+        "       if (env->timer_triggers[i] != NULL) {",
+        "            _lf_initialize_timer(env, env->timer_triggers[i]);",
         "        }",
         "    }",
         "}");
