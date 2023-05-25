@@ -6,13 +6,13 @@ plugins {
 sourceSets {
   main {
     java {
-       srcDirs = ['src', 'src-gen']
+       srcDirs = ['src/main/java', 'src-gen']
     }
     kotlin {
-       srcDirs = ['src', 'src-gen']
+       srcDirs = ['src/main/java', 'src-gen']
     }
     resources {
-       srcDirs = ['src-gen', 'src']
+       srcDirs = ['src-gen', '../src/']
        include 'lib/'
        include 'org/lflang/LF.xtextbin'
        include 'org/lflang/parser/antlr/internal/InternalLF.tokens'
@@ -79,10 +79,10 @@ dependencies {
 tasks.register('generateXtextLanguage', JavaExec) {
     main = 'org.eclipse.emf.mwe2.launch.runtime.Mwe2Launcher'
     classpath = configurations.mwe2
-    inputs.file "src/org/lflang/GenerateLinguaFranca.mwe2"
-    inputs.file "src/org/lflang/LinguaFranca.xtext"
+    inputs.file "src/main/java/org/lflang/GenerateLinguaFranca.mwe2"
+    inputs.file "src/main/java/org/lflang/LinguaFranca.xtext"
     outputs.dir "src-gen"
-    args += "src/org/lflang/GenerateLinguaFranca.mwe2"
+    args += "src/main/java/org/lflang/GenerateLinguaFranca.mwe2"
     args += "-p"
     args += "rootPath=/${projectDir}/.."
 }

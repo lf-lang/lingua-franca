@@ -41,7 +41,7 @@ dependencies {
         exclude group: 'org.eclipse.platform', module: 'org.eclipse.swt'
     }
     implementation group: 'info.picocli', name: 'picocli', version: picocliVersion
-    implementation project(':org.lflang')
+    implementation project(':org.lflang:core')
 }
 
 application {
