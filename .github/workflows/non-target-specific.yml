@@ -3,6 +3,9 @@ name: Non-target-specific tests
 on:
   workflow_dispatch:
   workflow_call:
+    inputs:
+      all:
+        type: boolean
   pull_request:
     branches-ignore:
     - 'nightly'
@@ -14,10 +17,12 @@ env:
 jobs:
   # Run the unit tests.
   unit-tests:
+    if: ${{ inputs.all || github.event.pull_request.draft }}
     uses: ./.github/workflows/unit-tests.yml
     with:
       all-platforms: ${{ !github.event.pull_request.draft  }}
 
   # Run the serialization tests
   serialization-tests:
+    if: ${{ inputs.all || github.event.pull_request.draft }}
     uses: ./.github/workflows/serialization-tests.yml

@@ -3,6 +3,9 @@ name: C
 on:
   workflow_dispatch:
   workflow_call:
+    inputs:
+      all:
+        type: boolean
   pull_request:
     branches-ignore:
     - 'nightly'
@@ -18,33 +21,33 @@ env:
 jobs:
   # Run the C benchmark tests.
   c-benchmark-tests:
-    if: ${{ github.event_name == 'workflow_dispatch' || github.event.pull_request.draft }}
+    if: ${{ inputs.all || github.event.pull_request.draft }}
     uses: lf-lang/benchmarks-lingua-franca/.github/workflows/benchmark-tests.yml@main
     with:
       target: 'C'
 
   # Run the C integration tests.
   c-tests:
-    if: ${{ github.event_name == 'workflow_dispatch' || github.event.pull_request.draft }}
+    if: ${{ inputs.all || github.event.pull_request.draft }}
     uses: ./.github/workflows/c-tests.yml
     with:
       all-platforms: ${{ !github.event.pull_request.draft  }}
 
   # Run the C Arduino integration tests.
   c-arduino-tests:
-    if: ${{ github.event_name == 'workflow_dispatch' || github.event.pull_request.draft }}
+    if: ${{ inputs.all || github.event.pull_request.draft }}
     uses: ./.github/workflows/c-arduino-tests.yml
     with:
       all-platforms: ${{ !github.event.pull_request.draft  }}
 
   # Run the C Zephyr integration tests.
   c-zephyr-tests:
-    if: ${{ github.event_name == 'workflow_dispatch' || github.event.pull_request.draft }}
+    if: ${{ inputs.all || github.event.pull_request.draft }}
     uses: ./.github/workflows/c-zephyr-tests.yml
 
   # Run the CCpp integration tests.
   ccpp-tests:
-    if: ${{ github.event_name == 'workflow_dispatch' || github.event.pull_request.draft }}
+    if: ${{ inputs.all || github.event.pull_request.draft }}
     uses: ./.github/workflows/c-tests.yml
     with:
       use-cpp: true

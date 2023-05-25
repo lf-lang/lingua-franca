@@ -3,6 +3,9 @@ name: C++
 on:
   workflow_dispatch:
   workflow_call:
+    inputs:
+      all:
+        type: boolean
   pull_request:
     branches-ignore:
       - 'nightly'
@@ -17,19 +20,19 @@ env:
 jobs:
   # Run the C++ benchmark tests.
   cpp-benchmark-tests:
-    if: ${{ github.event_name == 'workflow_dispatch' || github.event.pull_request.draft }}
+    if: ${{ inputs.all || github.event.pull_request.draft }}
     uses: lf-lang/benchmarks-lingua-franca/.github/workflows/benchmark-tests.yml@main
     with:
       target: 'Cpp'
 
   # Run the C++ integration tests.
   cpp-tests:
-    if: ${{ github.event_name == 'workflow_dispatch' || github.event.pull_request.draft }}
+    if: ${{ inputs.all || github.event.pull_request.draft }}
     uses: ./.github/workflows/cpp-tests.yml
     with:
       all-platforms: ${{ !github.event.pull_request.draft  }}
 
   # Run the C++ integration tests on ROS2.
   cpp-ros2-tests:
-    if: ${{ github.event_name == 'workflow_dispatch' || github.event.pull_request.draft }}
+    if: ${{ inputs.all || github.event.pull_request.draft }}
     uses: ./.github/workflows/cpp-ros2-tests.yml

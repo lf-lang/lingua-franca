@@ -3,6 +3,9 @@ name: Python
 on:
   workflow_dispatch:
   workflow_call:
+    inputs:
+      all:
+        type: boolean
   pull_request:
     branches-ignore:
       - 'nightly'
@@ -18,6 +21,6 @@ jobs:
     # Run the Python integration tests.
     py-tests:
       uses: ./.github/workflows/py-tests.yml
-      if: ${{ github.event_name == 'workflow_dispatch' || github.event.pull_request.draft }}
+      if: ${{ inputs.all || github.event.pull_request.draft }}
       with:
         all-platforms: ${{ !github.event.pull_request.draft  }}

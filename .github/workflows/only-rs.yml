@@ -3,6 +3,9 @@ name: Rust
 on:
   workflow_dispatch:
   workflow_call:
+    inputs:
+      all:
+        type: boolean
   pull_request:
     branches-ignore:
       - 'nightly'
@@ -17,14 +20,14 @@ env:
 jobs:
   # Run the Rust integration tests.
   rs-tests:
-    if: ${{ github.event_name == 'workflow_dispatch' || github.event.pull_request.draft }}
+    if: ${{ inputs.all || github.event.pull_request.draft }}
     uses: ./.github/workflows/rs-tests.yml
     with:
       all-platforms: ${{ !github.event.pull_request.draft  }}
 
   # Run the Rust benchmark tests.
   rs-benchmark-tests:
-    if: ${{ github.event_name == 'workflow_dispatch' || github.event.pull_request.draft }}
+    if: ${{ inputs.all || github.event.pull_request.draft }}
     uses: lf-lang/benchmarks-lingua-franca/.github/workflows/benchmark-tests.yml@main
     with:
       target: 'Rust'
