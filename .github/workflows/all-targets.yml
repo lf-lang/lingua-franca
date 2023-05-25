@@ -1,4 +1,4 @@
-name: Target-specific
+name: CI (target-specific)
 
 on:
   workflow_dispatch:
