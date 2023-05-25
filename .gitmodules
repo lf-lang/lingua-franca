@@ -8,5 +8,5 @@
 	path = org.lflang/core/src/main/resources/lib/rs/reactor-rs
 	url = https://github.com/lf-lang/reactor-rs
 [submodule "org.lflang/src/lib/py/lf-python-support"]
-	path = org.lflang/core/src/main/resources/lib/py/lf-python-support/lf-python-support
+	path = org.lflang/core/src/main/resources/lib/py/lf-python-support
 	url = https://github.com/lf-lang/lf-python-support.git
