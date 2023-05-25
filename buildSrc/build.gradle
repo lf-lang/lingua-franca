@@ -14,4 +14,5 @@ dependencies {
     implementation group: 'com.diffplug.spotless', name: 'spotless-lib-extra', version: spotlessLibVersion
 
     implementation "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion"
+    implementation "com.diffplug.spotless:spotless-plugin-gradle:$spotlessVersion"
 }

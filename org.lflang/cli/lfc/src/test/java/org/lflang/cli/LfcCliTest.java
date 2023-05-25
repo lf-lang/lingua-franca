@@ -39,9 +39,9 @@ import java.nio.file.Path;
 import java.util.Properties;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
-import org.lflang.generator.LFGeneratorContext.BuildParm;
-import org.lflang.cli.TestUtils.TempDirBuilder;
 import org.lflang.LocalStrings;
+import org.lflang.cli.TestUtils.TempDirBuilder;
+import org.lflang.generator.LFGeneratorContext.BuildParm;
 
 /**
  * @author Clément Fournier

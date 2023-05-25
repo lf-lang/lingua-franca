@@ -53,27 +53,22 @@ public final class LfFormatStep {
 
     /** Run the formatter on the given file and return the resulting process handle. */
     private Process runFormatter(File file) throws IOException {
-      final Path resourcePath = projectRoot.resolve(Path.of("org.lflang", "src", "org", "lflang"));
-      final ResourceBundle properties =
-          ResourceBundle.getBundle(
-              "StringsBundle",
-              Locale.getDefault(),
-              new URLClassLoader(new URL[] {resourcePath.toUri().toURL()}));
       final Path lffPath =
           Path.of(
               "org.lflang",
+              "cli",
+              "lff",
               "build",
-              "libs",
-              String.format("org.lflang-%s.jar", properties.getString("VERSION")));
+              "install",
+              "lff",
+              "bin",
+              "lff");
       // It looks silly to invoke Java from Java, but it is necessary in
       // order to break the circularity of needing the program to be built
       // in order for it to be built.
       return new ProcessBuilder(
               List.of(
-                  "java",
-                  "-cp",
                   lffPath.toString(),
-                  "org.lflang.cli.Lff",
                   "--dry-run",
                   file.getAbsoluteFile().toString()))
           .start();
