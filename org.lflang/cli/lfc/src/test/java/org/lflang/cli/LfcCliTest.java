@@ -22,15 +22,15 @@
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package org.lflang.tests.cli;
+package org.lflang.cli;
 
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.lflang.tests.TestUtils.TempDirBuilder.dirBuilder;
-import static org.lflang.tests.TestUtils.TempDirChecker.dirChecker;
-import static org.lflang.tests.TestUtils.isDirectory;
-import static org.lflang.tests.TestUtils.isRegularFile;
+import static org.lflang.cli.TestUtils.TempDirBuilder.dirBuilder;
+import static org.lflang.cli.TestUtils.TempDirChecker.dirChecker;
+import static org.lflang.cli.TestUtils.isDirectory;
+import static org.lflang.cli.TestUtils.isRegularFile;
 
 import com.google.inject.Injector;
 import java.io.File;
@@ -39,11 +39,9 @@ import java.nio.file.Path;
 import java.util.Properties;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
-import org.lflang.LocalStrings;
-import org.lflang.cli.Io;
-import org.lflang.cli.Lfc;
 import org.lflang.generator.LFGeneratorContext.BuildParm;
-import org.lflang.tests.TestUtils.TempDirBuilder;
+import org.lflang.cli.TestUtils.TempDirBuilder;
+import org.lflang.LocalStrings;
 
 /**
  * @author Clément Fournier

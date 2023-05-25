@@ -22,12 +22,12 @@
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package org.lflang.tests.cli;
+package org.lflang.cli;
 
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
-import static org.lflang.tests.TestUtils.TempDirBuilder.dirBuilder;
-import static org.lflang.tests.TestUtils.TempDirChecker.dirChecker;
+import static org.lflang.cli.TestUtils.TempDirBuilder.dirBuilder;
+import static org.lflang.cli.TestUtils.TempDirChecker.dirChecker;
 
 import java.io.File;
 import java.io.IOException;
@@ -35,9 +35,7 @@ import java.nio.file.Path;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.lflang.LocalStrings;
-import org.lflang.cli.Io;
-import org.lflang.cli.Lff;
-import org.lflang.tests.cli.CliToolTestFixture.ExecutionResult;
+import org.lflang.cli.CliToolTestFixture.ExecutionResult;
 
 /**
  * @author Clément Fournier

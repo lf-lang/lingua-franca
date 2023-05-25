@@ -22,7 +22,7 @@
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package org.lflang.tests;
+package org.lflang.cli;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 

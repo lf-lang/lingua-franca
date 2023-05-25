@@ -21,17 +21,12 @@
  * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
  * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package org.lflang.tests.cli
+package org.lflang.cli
 
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.lflang.LFRuntimeModule
 import org.lflang.LFStandaloneSetup
-import org.lflang.cli.AnsiColors
-import org.lflang.cli.Io
-import org.lflang.cli.LFStandaloneModule
-import org.lflang.cli.Lfc
-import org.lflang.cli.ReportingBackend
 import org.opentest4j.AssertionFailedError
 import java.io.ByteArrayOutputStream
 import java.io.PrintStream
@@ -124,7 +119,8 @@ class LfcIssueReportingTest {
 
         val packageName = loader.packageName.replace('.', '/')
         // relative to root of gradle project
-        val basePath = "org.lflang.tests/resources/$packageName/"
+        // TODO This should load the resources and copy them to a temp directory instead of reading directly
+        val basePath = "src/test/resources/$packageName/"
         val lfFile = Paths.get("$basePath/$fileBaseName.lf")
         val expectedPath = Paths.get("$basePath/$fileBaseName.stderr")
 
@@ -155,6 +151,6 @@ class LfcIssueReportingTest {
         trim().replace(Regex("\\s+\\R"), "\n")
             // Replace file path with placeholder. File path is not
             // rendered the same on linux and windows (forward/backward slash)
-            .replace(lfFile.toString(), "%%%PATH.lf%%%")
+            .replace("%%%PATH.lf%%%", lfFile.toString())
 
 }
