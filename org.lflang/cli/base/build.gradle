@@ -1,0 +1,25 @@
+plugins {
+    id 'org.jetbrains.kotlin.jvm' version "${kotlinVersion}"
+    id 'java-library'
+}
+
+compileKotlin {
+    kotlinOptions {
+        jvmTarget = kotlinJvmTarget
+    }
+}
+compileTestKotlin {
+    kotlinOptions {
+        jvmTarget = kotlinJvmTarget
+    }
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    api "info.picocli:picocli:$picocliVersion"
+
+    api project(':org.lflang:core')
+}

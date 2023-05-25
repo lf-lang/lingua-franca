@@ -15,7 +15,6 @@ sourceSets {
 }
 
 compileKotlin {
-    destinationDir = compileJava.destinationDir
     kotlinOptions {
         jvmTarget = kotlinJvmTarget
     }
@@ -35,27 +34,24 @@ repositories {
 }
 
 dependencies {
-    implementation "org.eclipse.xtext:org.eclipse.xtext:${xtextVersion}"
-    implementation "org.eclipse.xtext:org.eclipse.xtext.xbase.lib:${xtextVersion}"
-    implementation "org.eclipse.xtext:org.eclipse.xtext.ide:${xtextVersion}"
-    // https://mvnrepository.com/artifact/org.eclipse.platform/org.eclipse.core.resources
-    implementation group: 'org.eclipse.platform', name: 'org.eclipse.core.resources', version: "${resourcesVersion}"
-    // https://mvnrepository.com/artifact/org.eclipse.emf/org.eclipse.emf.mwe2.launch
-    implementation group: 'org.eclipse.emf', name: 'org.eclipse.emf.mwe2.launch', version: "${mwe2LaunchVersion}"
-    // https://mvnrepository.com/artifact/org.eclipse.lsp4j/org.eclipse.lsp4j
-    implementation group: 'org.eclipse.lsp4j', name: 'org.eclipse.lsp4j', version: "${lsp4jVersion}"
-    implementation group: 'com.fasterxml.jackson.core', name: 'jackson-core', version: '2.12.4'
-    implementation group: 'com.fasterxml.jackson.core', name: 'jackson-annotations', version: '2.12.4'
-    implementation group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: '2.12.4'
-    implementation ("de.cau.cs.kieler.klighd:de.cau.cs.kieler.klighd.lsp:${klighdVersion}") {
+    api "org.eclipse.xtext:org.eclipse.xtext:$xtextVersion"
+    api "org.eclipse.xtext:org.eclipse.xtext.xbase.lib:$xtextVersion"
+    api "org.eclipse.xtext:org.eclipse.xtext.ide:$xtextVersion"
+
+    implementation "org.eclipse.emf:org.eclipse.emf.mwe2.launch:$mwe2LaunchVersion"
+
+    implementation "com.fasterxml.jackson.core:jackson-core:$fasterxmlVersion"
+    implementation "com.fasterxml.jackson.core:jackson-annotations:$fasterxmlVersion"
+    implementation "com.fasterxml.jackson.core:jackson-databind:$fasterxmlVersion"
+
+    implementation ("de.cau.cs.kieler.klighd:de.cau.cs.kieler.klighd.lsp:$klighdVersion") {
         exclude group: 'org.eclipse.platform', module: 'org.eclipse.swt.*'
         exclude group: 'org.eclipse.platform', module: 'org.eclipse.swt'
     }
-    implementation ("de.cau.cs.kieler.klighd:de.cau.cs.kieler.klighd.standalone:${klighdVersion}") {
+    implementation ("de.cau.cs.kieler.klighd:de.cau.cs.kieler.klighd.standalone:$klighdVersion") {
         exclude group: 'org.eclipse.platform', module: 'org.eclipse.swt.*'
         exclude group: 'org.eclipse.platform', module: 'org.eclipse.swt'
     }
-    implementation group: 'info.picocli', name: 'picocli', version: picocliVersion
 }
 
 configurations {
