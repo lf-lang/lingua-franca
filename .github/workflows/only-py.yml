@@ -18,6 +18,6 @@ jobs:
     # Run the Python integration tests.
     py-tests:
       uses: ./.github/workflows/py-tests.yml
-      if: ${{ github.event_name == 'workflow_call' || github.event.pull_request.draft }}
+      if: ${{ github.event_name == 'workflow_dispatch' || github.event.pull_request.draft }}
       with:
         all-platforms: ${{ !github.event.pull_request.draft  }}

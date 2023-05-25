@@ -25,30 +25,30 @@ jobs:
 
   # Test the Gradle build.
   build:
-    if: ${{ github.event_name == 'workflow_call' || github.event.pull_request.draft }}
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.pull_request.draft }}
     uses: ./.github/workflows/build.yml
 
   # Build the tools used for processing execution traces
   build-tracing-tools:
-    if: ${{ github.event_name == 'workflow_call' || github.event.pull_request.draft }}
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.pull_request.draft }}
     uses: ./.github/workflows/build-trace-tools.yml
     with:
       all-platforms: ${{ !github.event.pull_request.draft  }}
 
   check-format:
-    if: ${{ github.event_name == 'workflow_call' || github.event.pull_request.draft }}
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.pull_request.draft }}
     uses: ./.github/workflows/check-format.yml
 
   # Run tests for the standalone compiler.
   cli-tests:
-    if: ${{ github.event_name == 'workflow_call' || github.event.pull_request.draft }}
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.pull_request.draft }}
     uses: ./.github/workflows/cli-tests.yml
     with:
       all-platforms: ${{ !github.event.pull_request.draft  }}
 
   # Run language server tests.
   lsp-tests:
-    if: ${{ github.event_name == 'workflow_call' || github.event.pull_request.draft }}
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.pull_request.draft }}
     uses: ./.github/workflows/lsp-tests.yml
     with:
       all-platforms: ${{ !github.event.pull_request.draft  }}
