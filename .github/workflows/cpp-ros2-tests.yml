@@ -11,10 +11,10 @@ on:
         type: string
 
 jobs:
-  run:
+  cpp-ros2:
     runs-on: ubuntu-latest
     steps:
-      - name: Check out lingual-franca repository
+      - name: Check out lingua-franca repository
         uses: actions/checkout@v3
         with:
           repository: lf-lang/lingua-franca

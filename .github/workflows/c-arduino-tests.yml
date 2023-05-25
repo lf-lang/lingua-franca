@@ -22,7 +22,7 @@ on:
         type: boolean
 
 jobs:
-  run:
+  c-arduino:
     strategy:
       matrix:
         platform: ${{ (inputs.all-platforms && fromJSON('["ubuntu-latest", "macos-latest"]')) || fromJSON('["ubuntu-latest"]') }}

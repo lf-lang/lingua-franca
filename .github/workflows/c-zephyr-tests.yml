@@ -18,7 +18,7 @@ on:
         type: string
 
 jobs:
-  run:
+  c-zephyr:
     runs-on: ubuntu-latest
     steps:
       - name: Check out lingua-franca repository
