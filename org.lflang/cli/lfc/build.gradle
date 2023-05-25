@@ -1,0 +1,23 @@
+plugins {
+    id 'java'
+    id 'application'
+}
+
+repositories {
+    mavenCentral()
+    // TODO Replace this unofficial maven repository as soon as Klighd is released to maven central in the future.
+    maven {
+        url "https://rtsys.informatik.uni-kiel.de/~kieler/files/repo/"
+    }
+}
+
+dependencies {
+    implementation project(':org.lflang:cli:base')
+}
+
+application {
+    mainClass = 'org.lflang.cli.Lfc'
+    tasks.run.workingDir = rootProject.projectDir
+}
+
+assemble.finalizedBy installDist
