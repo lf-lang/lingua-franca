@@ -9,10 +9,7 @@ sourceSets {
        srcDirs = ['src/main/java', 'src-gen']
     }
     resources {
-       srcDirs = ['src-gen', '../src/']
-       include 'lib/'
-       include 'org/lflang/LF.xtextbin'
-       include 'org/lflang/parser/antlr/internal/InternalLF.tokens'
+       srcDirs = ['src/main/resources', 'src-gen']
     }
   }
 }
