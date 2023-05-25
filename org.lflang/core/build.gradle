@@ -8,9 +8,6 @@ sourceSets {
     java {
        srcDirs = ['src/main/java', 'src-gen']
     }
-    kotlin {
-       srcDirs = ['src/main/java', 'src-gen']
-    }
     resources {
        srcDirs = ['src-gen', '../src/']
        include 'lib/'
