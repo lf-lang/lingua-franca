@@ -1,21 +1,6 @@
 plugins {
-    id 'org.jetbrains.kotlin.jvm' version "${kotlinVersion}"
-    id 'java-library'
-}
-
-compileKotlin {
-    kotlinOptions {
-        jvmTarget = kotlinJvmTarget
-    }
-}
-compileTestKotlin {
-    kotlinOptions {
-        jvmTarget = kotlinJvmTarget
-    }
-}
-
-repositories {
-    mavenCentral()
+    id 'org.lflang.java-library-conventions'
+    id 'org.lflang.kotlin-conventions'
 }
 
 dependencies {

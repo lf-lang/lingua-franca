@@ -1,6 +1,6 @@
 plugins {
-  id 'org.jetbrains.kotlin.jvm' version "${kotlinVersion}"
-  id 'java-library'
+  id 'org.lflang.java-library-conventions'
+  id 'org.lflang.kotlin-conventions'
 }
 
 sourceSets {
@@ -12,25 +12,6 @@ sourceSets {
        srcDirs = ['src/main/resources', 'src-gen']
     }
   }
-}
-
-compileKotlin {
-    kotlinOptions {
-        jvmTarget = kotlinJvmTarget
-    }
-}
-compileTestKotlin {
-    kotlinOptions {
-        jvmTarget = kotlinJvmTarget
-    }
-}
-
-repositories {
-    mavenCentral()
-    // TODO Replace this unofficial maven repository as soon as Klighd is released to maven central in the future.
-    maven {
-        url "https://rtsys.informatik.uni-kiel.de/~kieler/files/repo/"
-    }
 }
 
 dependencies {

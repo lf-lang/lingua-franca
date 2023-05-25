@@ -1,0 +1,6 @@
+plugins {
+    id 'org.lflang.java-conventions'
+    id 'application'
+}
+
+assemble.finalizedBy installDist
