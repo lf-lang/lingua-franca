@@ -73,7 +73,6 @@ import org.lflang.generator.LFResource;
 import org.lflang.generator.ParameterInstance;
 import org.lflang.generator.PortInstance;
 import org.lflang.generator.ReactionInstance;
-import org.lflang.generator.ReactionInstance.Runtime;
 import org.lflang.generator.ReactorInstance;
 import org.lflang.generator.TargetTypes;
 import org.lflang.generator.TimerInstance;
