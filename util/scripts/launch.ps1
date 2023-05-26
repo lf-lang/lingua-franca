@@ -26,14 +26,7 @@ if ($null -eq $tool) {
 
 # This script is in $base\util\scripts
 $base="$PSScriptRoot\..\..\"
-script="${base}/org.lflang/cli/${tool}/build/install/${tool}/bin/${tool}"
-
-
-
-# check if we can find the script
-if (-not (Test-Path $script)) {
-   throw "Could not find ${tool}! Did you build the repository? Please run './gradlew.bat assemble' or './gradlew.bat build' and try again."
-}
+$gradlew="${base}/gradlew.bat"
 
 # invoke script
-& $script $args
+& "${gradlew}" -p "${base}" "org.lflang:cli:${tool}:run" --args "$@"

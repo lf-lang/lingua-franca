@@ -67,11 +67,7 @@ else
   exit 2
 fi
 
-script="${base}/org.lflang/cli/${tool}/build/install/${tool}/bin/${tool}"
-
-if [[ ! -f "${script}" ]]; then
-    fatal_error "Could not find ${tool}! Did you build the repository? Please run './gradlew assemble' or './gradlew build' and try again."
-fi
+gradlew="${base}/gradlew"
 
 # Launch the tool.
-"$script" "$@"
+"${gradlew}" -p "${base}" "org.lflang:cli:${tool}:run" --args "$@"

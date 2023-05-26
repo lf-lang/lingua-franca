@@ -11,5 +11,5 @@ dependencies {
 
 application {
     mainClass = 'org.lflang.cli.Lfc'
-    tasks.run.workingDir = rootProject.projectDir
+    tasks.run.workingDir = System.getProperty("user.dir")
 }
