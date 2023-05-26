@@ -7,7 +7,6 @@ import com.google.gson.JsonParser;
 import com.google.inject.Inject;
 import com.google.inject.Injector;
 import com.google.inject.Provider;
-
 import java.io.BufferedInputStream;
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -186,8 +185,7 @@ public abstract class CliBase implements Runnable {
       if (line == null) return List.of();
       return List.of(Path.of(line));
     } else {
-      paths =
-          topLevelArg.files.stream().map(io.getWd()::resolve).collect(Collectors.toList());
+      paths = topLevelArg.files.stream().map(io.getWd()::resolve).collect(Collectors.toList());
     }
 
     for (Path path : paths) {

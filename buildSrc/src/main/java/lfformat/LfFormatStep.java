@@ -1,23 +1,15 @@
 package lfformat;
 
-import com.diffplug.spotless.FormatterFunc;
 import com.diffplug.spotless.FormatterStep;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.io.OutputStream;
 import java.io.OutputStreamWriter;
-import java.io.PrintWriter;
-import java.io.Reader;
-import java.io.Serializable;
 import java.io.Writer;
-import java.lang.ProcessBuilder.Redirect;
 import java.net.URL;
 import java.net.URLClassLoader;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Locale;
@@ -41,6 +33,7 @@ public final class LfFormatStep {
     // The use of the static keyword here is a workaround for serialization difficulties.
     /** The path to the lingua-franca repository. */
     private static Path projectRoot;
+
     private static Step instance;
 
     private static Process formatter;
@@ -56,16 +49,19 @@ public final class LfFormatStep {
 
     private Step() throws IOException {
       initializeFormatter();
-      Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-        try {
-          writer.close();
-          formatter.waitFor();
-          reader.close();
-          error.close();
-        } catch (IOException | InterruptedException e) {
-          throw new RuntimeException(e);
-        }
-      }));
+      Runtime.getRuntime()
+          .addShutdownHook(
+              new Thread(
+                  () -> {
+                    try {
+                      writer.close();
+                      formatter.waitFor();
+                      reader.close();
+                      error.close();
+                    } catch (IOException | InterruptedException e) {
+                      throw new RuntimeException(e);
+                    }
+                  }));
     }
 
     @Override
@@ -114,14 +110,14 @@ public final class LfFormatStep {
       error = new BufferedReader(new InputStreamReader(formatter.getErrorStream()));
     }
 
-//    /** Run the formatter on the given file and return the resulting process handle. */
-//    private Process runFormatter(File file) throws IOException {
-//      // It looks silly to invoke Java from Java, but it is necessary in
-//      // order to break the circularity of needing the program to be built
-//      // in order for it to be built.
-//      var formatter = getFormatter();
-//      return formatter;
-//    }
+    //    /** Run the formatter on the given file and return the resulting process handle. */
+    //    private Process runFormatter(File file) throws IOException {
+    //      // It looks silly to invoke Java from Java, but it is necessary in
+    //      // order to break the circularity of needing the program to be built
+    //      // in order for it to be built.
+    //      var formatter = getFormatter();
+    //      return formatter;
+    //    }
 
     @SuppressWarnings("NullableProblems")
     @Override
