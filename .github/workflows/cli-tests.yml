@@ -1,0 +1,36 @@
+name: CLI tests
+
+on:
+  workflow_call:
+
+jobs:
+  run:
+    strategy:
+      matrix:
+        platform: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.platform }}
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: true
+          fetch-depth: 0
+      - name: Prepare build environment
+      - name: Test lfc bash scripts (Linux or macOS only)
+        run: |
+          .github/scripts/test-lfc.sh
+        if: ${{ runner.os == 'macOS' || runner.os == 'Linux' }}
+      - name: Test lff bash scripts (Linux or macOS only)
+        run: |
+          .github/scripts/test-lff.sh
+        if: ${{ runner.os == 'macOS' || runner.os == 'Linux' }}
+      - name: Test lfc PowerShell script (Windows only)
+        run: |
+          ./gradlew buildAll
+          bin/lfc.ps1 --help
+        if: ${{ runner.os == 'Windows' }}
+      - name: Test lff PowerShell script (Windows only)
+        run: |
+          ./gradlew buildAll
+          bin/lff.ps1 --help
+        if: ${{ runner.os == 'Windows' }}
+

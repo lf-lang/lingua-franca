@@ -23,6 +23,10 @@ jobs:
   # Test the Gradle build.
   build:
     uses: lf-lang/lingua-franca/.github/workflows/build.yml@gradle
+    needs: cancel-  # Run tests for the standalone compiler.
+
+  cli-tests:
+    uses: lf-lang/lingua-franca/.github/workflows/cli-tests.yml@gradle
     needs: cancel
 
   # Build the tools used for processing execution traces
