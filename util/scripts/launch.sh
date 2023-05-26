@@ -43,12 +43,10 @@ function fatal_error() {
     exit 1
 }
 
-rel_path="lib/scripts"
 abs_path="$(find_dir "$0")"
 
 if [[ "${abs_path}" ]]; then
     base=`dirname $(dirname ${abs_path})`
-    source "${base}/${rel_path}/include.sh"
 else
     fatal_error "Unable to determine absolute path to $0."
 fi
@@ -56,9 +54,9 @@ fi
 
 
 if [[ "$0" == *lfc ]]; then
-  main_class="org.lflang.cli.Lfc"
+  tool="lfc"
 elif [[ "$0" == *lff ]]; then
-  main_class="org.lflang.cli.Lff"
+  tool="lff"
 else
   known_commands="[lfc, lff]"
   echo \
@@ -69,5 +67,11 @@ else
   exit 2
 fi
 
-# Launch the compiler.
-run_cli_tool_with_args "$@"
+script="${base}/org.lflang/cli/${tool}/build/install/${tool}/bin/${tool}"
+
+if [[ ! -f "${script}" ]]; then
+    fatal_error "Could not find ${tool}! Did you build the repository? Please run './gradlew assemble' or './gradlew build' and try again."
+fi
+
+# Launch the tool.
+"$script" "$@"

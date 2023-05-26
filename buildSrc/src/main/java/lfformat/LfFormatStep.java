@@ -46,7 +46,7 @@ public final class LfFormatStep {
       }
       int returnCode = p.waitFor();
       if (returnCode != 0) {
-        throw new RuntimeException("Failed to reformat file.");
+        throw new RuntimeException("Failed to reformat file. Exit code: " + returnCode + " Output: " + output.toString());
       }
       return output.toString();
     }
