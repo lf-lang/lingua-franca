@@ -1,6 +1,13 @@
 plugins {
     id 'java-test-fixtures'
+    id 'jacoco'
 }
+
+jacoco {
+    toolVersion = jacocoVersion
+}
+
+
 
 dependencies {
     testImplementation "org.junit.jupiter:junit-jupiter-api:$jupiterVersion"
@@ -25,5 +32,26 @@ test {
     testLogging {
         events "passed", "skipped", "failed"
         showStandardStreams = true
+    }
+}
+
+jacocoTestReport {
+    reports {
+        xml.required = true
+        csv.required = false
+        html.destination file("${buildDir}/reports/html/jacoco")
+        xml.destination file("${buildDir}/reports/xml/jacoco")
+    }
+
+    afterEvaluate {
+        classDirectories.setFrom(files(classDirectories.files.collect {
+            fileTree(dir: it,
+                    exclude: ['**/org/lflang/services/**',
+                              '**/org/lflang/lf/**',
+                              '**/org/lflang/serializer/**',
+                              '**/org/lflang/parser/antlr/**'
+                    ]
+            )
+        }))
     }
 }

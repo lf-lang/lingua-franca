@@ -30,11 +30,6 @@ jobs:
     uses: lf-lang/lingua-franca/.github/workflows/build-trace-tools.yml@master
     needs: cancel
 
-  # Run tests for the standalone compiler.
-  cli-tests:
-    uses: lf-lang/lingua-franca/.github/workflows/cli-tests.yml@master
-    needs: cancel
-
   # Run the C benchmark tests.
   c-benchmark-tests:
     uses: lf-lang/benchmarks-lingua-franca/.github/workflows/benchmark-tests.yml@main
