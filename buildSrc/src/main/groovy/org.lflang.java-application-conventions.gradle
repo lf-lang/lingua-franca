@@ -2,6 +2,10 @@ plugins {
     id 'org.lflang.java-conventions'
     id 'application'
     id 'org.lflang.test-conventions'
+    id "org.lflang.distribution-conventions"
 }
 
-assemble.finalizedBy installDist
+tasks.withType(Tar) {
+    compression = Compression.GZIP
+    archiveExtension = 'tar.gz'
+}

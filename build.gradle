@@ -2,6 +2,7 @@ import lfformat.LfFormatStep
 
 plugins {
     id "com.diffplug.spotless"
+    id "org.lflang.distribution-conventions"
 }
 
 spotless {
@@ -24,3 +25,15 @@ spotless {
 }
 
 spotlessLinguaFranca.dependsOn(":org.lflang:cli:lff:installDist")
+
+
+distributions {
+    clitools {
+        distributionBaseName.set("lf-cli")
+        contents {
+          from tasks.getByPath(':org.lflang:cli:lfc:installDist').outputs
+          from tasks.getByPath(':org.lflang:cli:lff:installDist').outputs
+          duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+        }
+    }
+}
