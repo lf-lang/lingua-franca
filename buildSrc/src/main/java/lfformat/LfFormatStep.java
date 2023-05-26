@@ -9,12 +9,15 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
+import java.io.PrintWriter;
 import java.io.Reader;
 import java.io.Serializable;
 import java.io.Writer;
 import java.lang.ProcessBuilder.Redirect;
 import java.net.URL;
 import java.net.URLClassLoader;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Locale;
@@ -28,16 +31,17 @@ public final class LfFormatStep {
   private LfFormatStep() {}
 
   /** Return a {@code FormatterStep} for LF code. */
-  public static FormatterStep create(File projectRoot) {
+  public static FormatterStep create(File projectRoot) throws IOException {
     Step.projectRoot = projectRoot.toPath();
-    return new Step();
+    return Step.getInstance();
   }
 
   /** Implement LF-specific formatting functionality. */
-  public static class Step implements FormatterStep {
+  private static class Step implements FormatterStep {
     // The use of the static keyword here is a workaround for serialization difficulties.
     /** The path to the lingua-franca repository. */
     private static Path projectRoot;
+    private static Step instance;
 
     private static Process formatter;
     private static Writer writer;
@@ -45,18 +49,36 @@ public final class LfFormatStep {
     private static BufferedReader reader;
     private static BufferedReader error;
 
+    public static Step getInstance() throws IOException {
+      if (instance == null) instance = new Step();
+      return instance;
+    }
+
+    private Step() throws IOException {
+      initializeFormatter();
+      Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+        try {
+          writer.close();
+          formatter.waitFor();
+          reader.close();
+          error.close();
+        } catch (IOException | InterruptedException e) {
+          throw new RuntimeException(e);
+        }
+      }));
+    }
+
     @Override
     public String format(
         @SuppressWarnings("NullableProblems") String rawUnix,
         @SuppressWarnings("NullableProblems") File file)
         throws IOException, InterruptedException {
       StringBuilder output = new StringBuilder();
-      getFormatter();
       try {
         writer.write(file.getAbsoluteFile().toString().strip() + "\n");
         writer.flush();
       } catch (IOException e) {
-        getFormatter().waitFor();
+        formatter.waitFor();
         error.lines().forEach(System.out::println);
         formatter = null;
         throw new RuntimeException("Failed to format " + file + ".\nPlease ensure that this file passes validator checks.");
@@ -70,8 +92,7 @@ public final class LfFormatStep {
       return output.toString();
     }
 
-    private static Process getFormatter() throws IOException {
-      if (formatter != null) return formatter;
+    private void initializeFormatter() throws IOException {
       final Path lffPath =
           Path.of(
               "org.lflang",
@@ -91,7 +112,6 @@ public final class LfFormatStep {
       writer = new BufferedWriter(new OutputStreamWriter(formatter.getOutputStream()));
       reader = new BufferedReader(new InputStreamReader(formatter.getInputStream()));
       error = new BufferedReader(new InputStreamReader(formatter.getErrorStream()));
-      return formatter;
     }
 
 //    /** Run the formatter on the given file and return the resulting process handle. */
