@@ -16,15 +16,15 @@ spotless {
         endWithNewline()
     }
 
-    format 'linguaFranca', {
-        addStep(LfFormatStep.create(project.projectDir))
-        target 'test/*/src/**/*.lf' // you have to set the target manually
-        targetExclude 'test/**/failing/**'
-    }
+//    format 'linguaFranca', {
+//        addStep(LfFormatStep.create(project.projectDir))
+//        target 'test/*/src/**/*.lf' // you have to set the target manually
+//        targetExclude 'test/**/failing/**'
+//    }
 
 }
 
-spotlessLinguaFranca.dependsOn(":org.lflang:cli:lff:installDist")
+//spotlessLinguaFranca.dependsOn(":org.lflang:cli:lff:installDist")
 
 
 distributions {
