@@ -34,6 +34,7 @@ test {
     testLogging {
         events "passed", "skipped", "failed"
         showStandardStreams = true
+        exceptionFormat "full"
     }
     maxParallelForks = Runtime.runtime.availableProcessors().intdiv(2) ?: 1
 
@@ -66,6 +67,9 @@ jacocoTestReport {
 
 
 tasks.register('integration', Test) {
+    filter {
+        setFailOnNoMatchingTests(false)
+    }
     if (System.getProperty('integrationInclude') != null) {
         filter {
             includeTestsMatching System.getProperty('integrationInclude')
@@ -78,10 +82,15 @@ tasks.register('integration', Test) {
     testLogging {
         events "passed", "skipped", "failed"
         showStandardStreams = true
+        exceptionFormat "full"
     }
     // Pass the scheduler and runtime property on to the Java VM
     systemProperty 'scheduler', System.getProperty('scheduler')
     systemProperty 'runtime', System.getProperty('runtime')
+
+    filter {
+        setFailOnNoMatchingTests(false)
+    }
 
     failFast = true
 
