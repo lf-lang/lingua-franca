@@ -29,7 +29,12 @@ spotlessLinguaFranca.dependsOn(":org.lflang:cli:lff:installDist")
 
 distributions {
     clitools {
-        distributionBaseName.set("lf-cli")
+        distributionBaseName = "lf-cli"
+        if (project.hasProperty('nightly')) {
+          def date = new Date()
+          def formattedDate = date.format('yyyyMMddHHmmss')
+          distributionClassifier = 'nightly-' + formattedDate
+        }
         contents {
           from tasks.getByPath(':org.lflang:cli:lfc:installDist').outputs
           from tasks.getByPath(':org.lflang:cli:lff:installDist').outputs

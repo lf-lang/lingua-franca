@@ -24,11 +24,11 @@ jobs:
       - name: Prepare build environment
         uses: ./.github/actions/prepare-build-env
       - name: Build and package lf cli tools (nightly build)
-        run: .github/scripts/package-cli.sh nightly
+        run: ./gradlew build -Pnightly
         shell: bash
         if: ${{ inputs.nightly == true }}
       - name: Build and package lf cli tools (regular build)
-        run: .github/scripts/package-cli.sh
+        run: ./gradlew build
         shell: bash
         if: ${{ inputs.nightly != true }}
       - name: Deploy nightly release
@@ -39,5 +39,5 @@ jobs:
           prerelease: true
           title: "Lingua Franca Nightly"
           files: |
-            build_upload/*
+            build/distributions/*
         if: ${{ inputs.nightly == true }}
