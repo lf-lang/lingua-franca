@@ -67,7 +67,7 @@ public final class LfFormatStep {
     @Override
     public String format(
         @SuppressWarnings("NullableProblems") String rawUnix,
-        @SuppressWarnings("NullableProblems") File file)
+        File file)
         throws IOException, InterruptedException {
       StringBuilder output = new StringBuilder();
       try {
@@ -109,15 +109,6 @@ public final class LfFormatStep {
       reader = new BufferedReader(new InputStreamReader(formatter.getInputStream()));
       error = new BufferedReader(new InputStreamReader(formatter.getErrorStream()));
     }
-
-    //    /** Run the formatter on the given file and return the resulting process handle. */
-    //    private Process runFormatter(File file) throws IOException {
-    //      // It looks silly to invoke Java from Java, but it is necessary in
-    //      // order to break the circularity of needing the program to be built
-    //      // in order for it to be built.
-    //      var formatter = getFormatter();
-    //      return formatter;
-    //    }
 
     @SuppressWarnings("NullableProblems")
     @Override

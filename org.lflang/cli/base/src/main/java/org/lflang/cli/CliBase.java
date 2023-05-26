@@ -24,7 +24,6 @@ import org.eclipse.emf.common.util.URI;
 import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.emf.ecore.resource.ResourceSet;
 import org.eclipse.xtext.util.CancelIndicator;
-import org.eclipse.xtext.util.RuntimeIOException;
 import org.eclipse.xtext.validation.CheckMode;
 import org.eclipse.xtext.validation.IResourceValidator;
 import org.eclipse.xtext.validation.Issue;
@@ -180,7 +179,7 @@ public abstract class CliBase implements Runnable {
       try {
         line = reader.readLine();
       } catch (IOException e) {
-        throw new RuntimeIOException(e);
+        throw new RuntimeException(e);
       }
       if (line == null) return List.of();
       return List.of(Path.of(line));
