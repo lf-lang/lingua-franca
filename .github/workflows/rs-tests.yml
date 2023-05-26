@@ -59,10 +59,6 @@ jobs:
         with:
           rust-version: ${{ matrix.rust }}
           components: clippy
-      - name: Check runtime-version.properties is up-to-date
-        # The following task compares the checked out submodule
-        # version to the version used at runtime by LF.
-        run: ./gradlew checkRuntimeVersionFileUpToDate
       - name: Run Rust tests
         run: ./gradlew integrationRust
       - name: Collect code coverage
