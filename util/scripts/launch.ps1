@@ -14,7 +14,7 @@ $mainClassTable = @{"lfc" = "org.lflang.cli.Lfc"; "lff" = "org.lflang.cli.Lff"}
 $tool = $null
 foreach ($k in $mainClassTable.Keys) {
     if ($invokerName.EndsWith($k)) {
-        tool = $k,,,
+        $tool = $k
         break
     }
 }
