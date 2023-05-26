@@ -73,6 +73,7 @@ import org.lflang.generator.LFResource;
 import org.lflang.generator.ParameterInstance;
 import org.lflang.generator.PortInstance;
 import org.lflang.generator.ReactionInstance;
+import org.lflang.generator.ReactionInstance.Runtime;
 import org.lflang.generator.ReactorInstance;
 import org.lflang.generator.TargetTypes;
 import org.lflang.generator.TimerInstance;
@@ -416,8 +417,11 @@ public class CGenerator extends GeneratorBase {
       copyTargetFiles();
       generateHeaders();
       code.writeToFile(targetFile);
-    } catch (Exception e) {
+    } catch (IOException e) {
       errorReporter.reportError(e.getMessage());
+    } catch (RuntimeException e) {
+      errorReporter.reportError(e.getMessage());
+      throw e;
     }
 
     // Create docker file.
