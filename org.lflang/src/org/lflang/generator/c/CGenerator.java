@@ -300,7 +300,6 @@ public class CGenerator extends GeneratorBase {
   private int shutdownReactionCount = 0;
 
   private int resetReactionCount = 0;
-  private int modalReactorCount = 0;
   private int modalStateResetCount = 0;
   private int watchdogCount = 0;
 
@@ -650,7 +649,7 @@ public class CGenerator extends GeneratorBase {
       // If there are modes, create a table of mode state to be checked for transitions.
       code.pr(
           CModesGenerator.generateModeStatesTable(
-              hasModalReactors, modalReactorCount, modalStateResetCount));
+              hasModalReactors, 0, modalStateResetCount));
 
       // Generate function to initialize the trigger objects for all reactors.
       code.pr(
@@ -1908,7 +1907,7 @@ public class CGenerator extends GeneratorBase {
   private void generateModeStructure(ReactorInstance instance) {
     CModesGenerator.generateModeStructure(instance, initializeTriggerObjects);
     if (!instance.modes.isEmpty()) {
-      modalReactorCount += instance.getTotalWidth();
+      CUtil.getClosestEnclave(instance).enclaveInfo.numModalReactors += instance.getTotalWidth();
     }
   }
 
