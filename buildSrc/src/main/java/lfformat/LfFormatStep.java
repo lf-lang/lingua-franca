@@ -74,7 +74,7 @@ public final class LfFormatStep {
       } catch (IOException e) {
         formatter.waitFor();
         error.lines().forEach(System.out::println);
-        formatter = null;
+        initializeFormatter();
         throw new RuntimeException("Failed to format " + file + ".\nPlease ensure that this file passes validator checks.");
       }
       String line = reader.readLine();
