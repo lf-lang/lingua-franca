@@ -2,6 +2,7 @@ package org.lflang.tests.runtime;
 
 import java.util.List;
 import org.junit.jupiter.api.Assumptions;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.lflang.Target;
 import org.lflang.tests.Configurators;
@@ -20,6 +21,7 @@ public class CArduinoTest extends RuntimeTest {
   }
 
   @Test
+  @Tag("Integration")
   public void buildArduinoTests() {
     Assumptions.assumeFalse(isWindows(), Message.NO_WINDOWS_SUPPORT);
     super.runTestsFor(

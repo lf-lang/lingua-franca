@@ -1,5 +1,7 @@
+/* Integration tests for the C++ target. */
+
 /*************
- * Copyright (c) 2019, The University of California at Berkeley.
+ * Copyright (c) 2021, The University of California at Berkeley.
  *
  * Redistribution and use in source and binary forms, with or without modification,
  * are permitted provided that the following conditions are met:
@@ -24,108 +26,66 @@
  ***************/
 package org.lflang.tests.runtime;
 
-import org.junit.jupiter.api.Assumptions;
-import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.lflang.Target;
 import org.lflang.tests.RuntimeTest;
 
 /**
- * Collection of tests for the C target.
- *
- * <p>Tests that are implemented in the base class are still overridden so that each test can be
- * easily invoked individually from IDEs with JUnit support like Eclipse and IntelliJ. This is
- * typically done by right-clicking on the name of the test method and then clicking "Run".*
+ * Collection of tests for the Cpp target. Even though all tests are implemented in the base class,
+ * we override them here so that each test can be easily invoked individually from IDEs with JUnit
+ * support like Eclipse and IntelliJ. This is typically done by right-clicking on the name of the
+ * test method and then clicking "Run".
  *
  * @author Marten Lohstroh
  */
-public class CTest extends RuntimeTest {
+public class CppTest extends RuntimeTest {
 
-  public CTest() {
-    super(Target.C);
+  public CppTest() {
+    super(Target.CPP);
   }
 
   @Override
-  protected boolean supportsSingleThreadedExecution() {
-    return true;
-  }
-
-  @Override
-  protected boolean supportsFederatedExecution() {
-    return true;
-  }
-
-  @Override
-  protected boolean supportsDockerOption() {
+  protected boolean supportsEnclaves() {
     return true;
   }
 
   @Test
+  @Tag("Integration")
   @Override
   public void runGenericTests() {
     super.runGenericTests();
   }
 
   @Test
+  @Tag("Integration")
   @Override
   public void runTargetSpecificTests() {
-    Assumptions.assumeFalse(isWindows(), Message.NO_WINDOWS_SUPPORT);
     super.runTargetSpecificTests();
   }
 
   @Test
+  @Tag("Integration")
   @Override
   public void runMultiportTests() {
     super.runMultiportTests();
   }
 
   @Test
-  @Override
-  public void runWithThreadingOff() {
-    super.runWithThreadingOff();
-  }
-
-  @Test
-  @Disabled("TODO only 27/96 tests pass")
-  @Override
-  public void runAsFederated() {
-    Assumptions.assumeFalse(isWindows(), Message.NO_WINDOWS_SUPPORT);
-    super.runAsFederated();
-  }
-
-  @Test
+  @Tag("Integration")
   @Override
   public void runConcurrentTests() {
     super.runConcurrentTests();
   }
 
   @Test
+  @Tag("Integration")
   @Override
   public void runFederatedTests() {
-    Assumptions.assumeFalse(isWindows(), Message.NO_WINDOWS_SUPPORT);
     super.runFederatedTests();
   }
 
   @Test
-  public void runModalTests() {
-    super.runModalTests();
-  }
-
-  @Test
-  public void runNoInliningTests() {
-    super.runNoInliningTests();
-  }
-
-  @Test
-  @Override
-  public void runDockerTests() {
-    super.runDockerTests();
-  }
-
-  @Test
-  @Override
-  public void runDockerFederatedTests() {
-    Assumptions.assumeFalse(isWindows(), Message.NO_WINDOWS_SUPPORT);
-    super.runDockerFederatedTests();
-  }
+  @Tag("Integration")
+  public void runRos2Tests() {}
 }

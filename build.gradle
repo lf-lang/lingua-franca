@@ -42,17 +42,3 @@ distributions {
         }
     }
 }
-
-task jacocoRootReport(type: JacocoReport, group: 'Coverage reports') {
-    description = 'Generates an aggregate report from all subprojects'
-    dependsOn(subprojects.test)
-
-    additionalSourceDirs.from = files(subprojects.sourceSets.main.allSource.srcDirs)
-    sourceDirectories.from = files(subprojects.sourceSets.main.allSource.srcDirs)
-    classDirectories.from = files(subprojects.sourceSets.main.output)
-    executionData.from = files(subprojects.jacocoTestReport.executionData)
-
-    reports {
-        html.enabled true
-    }
-}

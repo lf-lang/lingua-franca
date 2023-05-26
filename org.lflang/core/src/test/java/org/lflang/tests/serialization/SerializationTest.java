@@ -2,6 +2,7 @@ package org.lflang.tests.serialization;
 
 import java.util.Properties;
 import org.junit.jupiter.api.Assumptions;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.lflang.Target;
 import org.lflang.tests.Configurators;
@@ -22,6 +23,7 @@ public class SerializationTest extends TestBase {
   }
 
   @Test
+  @Tag("Integration")
   public void runSerializationTestsWithThreadingOff() {
     Assumptions.assumeTrue(supportsSingleThreadedExecution(), Message.NO_SINGLE_THREADED_SUPPORT);
     runTestsForTargets(
@@ -33,6 +35,7 @@ public class SerializationTest extends TestBase {
   }
 
   @Test
+  @Tag("Integration")
   public void runSerializationTests() {
     Assumptions.assumeFalse(isWindows(), Message.NO_WINDOWS_SUPPORT);
     runTestsForTargets(

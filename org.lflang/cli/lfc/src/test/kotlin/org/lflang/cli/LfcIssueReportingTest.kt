@@ -120,7 +120,7 @@ class LfcIssueReportingTest {
         val packageName = loader.packageName.replace('.', '/')
         // relative to root of gradle project
         // TODO This should load the resources and copy them to a temp directory instead of reading directly
-        val basePath = "src/test/resources/$packageName/"
+        val basePath = "org.lflang/cli/lfc/src/test/resources/$packageName/"
         val lfFile = Paths.get("$basePath/$fileBaseName.lf")
         val expectedPath = Paths.get("$basePath/$fileBaseName.stderr")
 

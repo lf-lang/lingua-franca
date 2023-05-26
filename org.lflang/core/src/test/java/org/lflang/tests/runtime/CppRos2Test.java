@@ -1,6 +1,7 @@
 package org.lflang.tests.runtime;
 
 import org.junit.jupiter.api.Assumptions;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.lflang.Target;
 import org.lflang.ast.ASTUtils;
@@ -23,6 +24,7 @@ public class CppRos2Test extends TestBase {
 
   /** Run C++ tests with the ros2 target property set */
   @Test
+  @Tag("Integration")
   public void runWithRos2() {
     Assumptions.assumeTrue(isLinux(), "Only supported on Linux");
     Element trueLiteral = LfFactory.eINSTANCE.createElement();

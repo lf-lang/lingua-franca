@@ -28,11 +28,15 @@ dependencies {
 }
 
 test {
-    useJUnitPlatform()
+    useJUnitPlatform {
+        excludeTags 'Integration'
+    }
     testLogging {
         events "passed", "skipped", "failed"
         showStandardStreams = true
     }
+
+    workingDir = rootProject.projectDir
 }
 
 jacocoTestReport {

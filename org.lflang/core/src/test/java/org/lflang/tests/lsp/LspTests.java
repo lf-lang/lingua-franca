@@ -12,6 +12,7 @@ import java.util.function.Predicate;
 import org.eclipse.emf.common.util.URI;
 import org.eclipse.lsp4j.Diagnostic;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.lflang.LFRuntimeModule;
 import org.lflang.LFStandaloneSetup;
@@ -56,30 +57,35 @@ class LspTests {
 
   /** Test for false negatives in Python syntax-only validation. */
   @Test
+  @Tag("Integration")
   void pythonValidationTestSyntaxOnly() throws IOException {
     targetLanguageValidationTest(Target.Python, ErrorInserter.PYTHON_SYNTAX_ONLY);
   }
 
   /** Test for false negatives in C++ validation. */
   @Test
+  @Tag("Integration")
   void cppValidationTest() throws IOException {
     targetLanguageValidationTest(Target.CPP, ErrorInserter.CPP);
   }
 
   /** Test for false negatives in Python validation. */
   @Test
+  @Tag("Integration")
   void pythonValidationTest() throws IOException {
     targetLanguageValidationTest(Target.Python, ErrorInserter.PYTHON);
   }
 
   /** Test for false negatives in Rust validation. */
   @Test
+  @Tag("Integration")
   void rustValidationTest() throws IOException {
     targetLanguageValidationTest(Target.Rust, ErrorInserter.RUST);
   }
 
   /** Test for false negatives in TypeScript validation. */
   @Test
+  @Tag("Integration")
   void typescriptValidationTest() throws IOException {
     targetLanguageValidationTest(Target.TS, ErrorInserter.TYPESCRIPT);
   }

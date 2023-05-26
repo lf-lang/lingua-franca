@@ -1,6 +1,7 @@
 package org.lflang.tests.runtime;
 
 import java.util.EnumSet;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.lflang.Target;
 import org.lflang.TargetProperty.SchedulerOption;
@@ -21,6 +22,7 @@ public class CSchedulerTest extends TestBase {
    * (e.g., -Dscheduler=GEDF_NP).
    */
   @Test
+  @Tag("Integration")
   public void runWithNonDefaultSchedulers() {
     EnumSet<TestCategory> categories = EnumSet.of(TestCategory.CONCURRENT, TestCategory.MULTIPORT);
 

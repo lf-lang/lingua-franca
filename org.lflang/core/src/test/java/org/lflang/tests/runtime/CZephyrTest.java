@@ -1,7 +1,5 @@
-/* Integration tests for the C++ target. */
-
 /*************
- * Copyright (c) 2021, The University of California at Berkeley.
+ * Copyright (c) 2023, The University of California at Berkeley.
  *
  * Redistribution and use in source and binary forms, with or without modification,
  * are permitted provided that the following conditions are met:
@@ -26,59 +24,49 @@
  ***************/
 package org.lflang.tests.runtime;
 
+import java.util.List;
+import org.junit.jupiter.api.Assumptions;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.lflang.Target;
+import org.lflang.tests.Configurators;
 import org.lflang.tests.RuntimeTest;
+import org.lflang.tests.TestRegistry.TestCategory;
 
 /**
- * Collection of tests for the Cpp target. Even though all tests are implemented in the base class,
- * we override them here so that each test can be easily invoked individually from IDEs with JUnit
- * support like Eclipse and IntelliJ. This is typically done by right-clicking on the name of the
- * test method and then clicking "Run".
+ * Collection of Zephyr tests for the C target.
  *
- * @author Marten Lohstroh
+ * @author Erling Rennemo Jellum <erling.r.jellum@ntnu.no>
  */
-public class CppTest extends RuntimeTest {
+public class CZephyrTest extends RuntimeTest {
 
-  public CppTest() {
-    super(Target.CPP);
-  }
-
-  @Override
-  protected boolean supportsEnclaves() {
-    return true;
+  public CZephyrTest() {
+    super(Target.C);
   }
 
   @Test
-  @Override
-  public void runGenericTests() {
-    super.runGenericTests();
+  @Tag("Integration")
+  public void buildZephyrTests() {
+    Assumptions.assumeTrue(isLinux(), "Zephyr tests only run on Linux");
+    super.runTestsFor(
+        List.of(Target.C),
+        Message.DESC_ZEPHYR,
+        TestCategory.ZEPHYR::equals,
+        Configurators::makeZephyrCompatible,
+        TestLevel.BUILD,
+        false);
   }
 
   @Test
-  @Override
-  public void runTargetSpecificTests() {
-    super.runTargetSpecificTests();
+  @Tag("Integration")
+  public void buildGenericTests() {
+    Assumptions.assumeTrue(isLinux(), "Zephyr tests only run on Linux");
+    super.runTestsFor(
+        List.of(Target.C),
+        Message.DESC_GENERIC,
+        TestCategory.GENERIC::equals,
+        Configurators::makeZephyrCompatible,
+        TestLevel.BUILD,
+        false);
   }
-
-  @Test
-  @Override
-  public void runMultiportTests() {
-    super.runMultiportTests();
-  }
-
-  @Test
-  @Override
-  public void runConcurrentTests() {
-    super.runConcurrentTests();
-  }
-
-  @Test
-  @Override
-  public void runFederatedTests() {
-    super.runFederatedTests();
-  }
-
-  @Test
-  public void runRos2Tests() {}
 }
