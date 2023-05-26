@@ -80,20 +80,23 @@ public class Lff extends CliBase {
   /** Validates all paths and invokes the formatter on the input paths. */
   @Override
   public void doRun() {
-    List<Path> paths = getInputPaths();
-    final Path outputRoot = getOutputRoot();
+    List<Path> paths;
+    do {
+      paths = getInputPaths();
+      final Path outputRoot = getOutputRoot();
 
-    try {
-      // Format all files defined by the list of paths.
-      formatAllFiles(paths, outputRoot);
+      try {
+        // Format all files defined by the list of paths.
+        formatAllFiles(paths, outputRoot);
 
-      exitIfCollectedErrors();
-      if (!dryRun || verbose) {
-        reporter.printInfo("Done formatting.");
+        exitIfCollectedErrors();
+        if (!dryRun || verbose) {
+          reporter.printInfo("Done formatting.");
+        }
+      } catch (RuntimeException e) {
+        reporter.printFatalErrorAndExit("An unexpected error occurred:", e);
       }
-    } catch (RuntimeException e) {
-      reporter.printFatalErrorAndExit("An unexpected error occurred:", e);
-    }
+    } while (stdinMode() && !paths.isEmpty());
   }
 
   /*
@@ -155,7 +158,8 @@ public class Lff extends CliBase {
         FormattingUtils.render(resource.getContents().get(0), lineLength);
 
     if (dryRun) {
-      io.getOut().print(formattedFileContents);
+      io.getOut().println(formattedFileContents);
+      io.getOut().println("\0");
     } else {
       try {
         FileUtil.writeToFile(formattedFileContents, outputPath, true);

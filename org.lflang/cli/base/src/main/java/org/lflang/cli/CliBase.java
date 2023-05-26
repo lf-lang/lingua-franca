@@ -7,8 +7,13 @@ import com.google.gson.JsonParser;
 import com.google.inject.Inject;
 import com.google.inject.Injector;
 import com.google.inject.Provider;
+
+import java.io.BufferedInputStream;
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.io.PrintWriter;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -20,6 +25,7 @@ import org.eclipse.emf.common.util.URI;
 import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.emf.ecore.resource.ResourceSet;
 import org.eclipse.xtext.util.CancelIndicator;
+import org.eclipse.xtext.util.RuntimeIOException;
 import org.eclipse.xtext.validation.CheckMode;
 import org.eclipse.xtext.validation.IResourceValidator;
 import org.eclipse.xtext.validation.Issue;
@@ -62,6 +68,9 @@ public abstract class CliBase implements Runnable {
 
     @Option(names = "--json-file", description = "JSON file containing CLI arguments.")
     private Path jsonFile;
+
+    @Option(names = "--stdin", description = "Read paths to Lingua Franca programs from stdin.")
+    private boolean stdin;
   }
 
   @ArgGroup(exclusive = true, multiplicity = "1")
@@ -164,8 +173,22 @@ public abstract class CliBase implements Runnable {
    * @return Validated input paths.
    */
   protected List<Path> getInputPaths() {
-    List<Path> paths =
-        topLevelArg.files.stream().map(io.getWd()::resolve).collect(Collectors.toList());
+    List<Path> paths;
+    if (topLevelArg.stdin) {
+      var input = new BufferedInputStream(System.in);
+      var reader = new BufferedReader(new InputStreamReader(input, StandardCharsets.UTF_8));
+      String line;
+      try {
+        line = reader.readLine();
+      } catch (IOException e) {
+        throw new RuntimeIOException(e);
+      }
+      if (line == null) return List.of();
+      return List.of(Path.of(line));
+    } else {
+      paths =
+          topLevelArg.files.stream().map(io.getWd()::resolve).collect(Collectors.toList());
+    }
 
     for (Path path : paths) {
       if (!Files.exists(path)) {
@@ -174,6 +197,10 @@ public abstract class CliBase implements Runnable {
     }
 
     return paths;
+  }
+
+  protected final boolean stdinMode() {
+    return topLevelArg.stdin;
   }
 
   /**
