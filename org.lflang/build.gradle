@@ -42,7 +42,7 @@ dependencies {
     mwe2 "org.eclipse.xtext:org.eclipse.xtext.xtext.generator:${xtextVersion}"
 }
 
-task generateXtextLanguage(type: JavaExec) {
+tasks.register('generateXtextLanguage', JavaExec) {
     main = 'org.eclipse.emf.mwe2.launch.runtime.Mwe2Launcher'
     classpath = configurations.mwe2
     inputs.file "src/org/lflang/GenerateLinguaFranca.mwe2"
@@ -90,10 +90,10 @@ configurations {
     }
 }
 
-task getSubmoduleVersions(type: Exec) {
+tasks.register('getSubmoduleVersions', Exec) {
     description('Run a Git command to get the current status of submodules')
     workingDir project.rootDir
-   // This will make gradle execute git submodule status every time updateRustRuntime is called
+    // This will make gradle execute git submodule status every time updateRustRuntime is called
     outputs.upToDateWhen { false }
 
     def command = "git submodule status"
@@ -119,7 +119,7 @@ task getSubmoduleVersions(type: Exec) {
     }
 }
 
-task updateRustRuntime {
+tasks.register('updateRustRuntime') {
     description('Record the VCS revisions of the language runtimes into a properties file available at runtime.')
 
     dependsOn getSubmoduleVersions
@@ -138,7 +138,7 @@ task updateRustRuntime {
 sourceSets.main.output.dir tasks.updateRustRuntime.outputFile, builtBy: updateRustRuntime
 tasks.processResources.dependsOn(updateRustRuntime)
 
-task checkRuntimeVersionFileUpToDate {
+tasks.register('checkRuntimeVersionFileUpToDate') {
     description('Check that the runtime version recorded in the built Jar for LFC matches the version of the checked out submodule')
     dependsOn getSubmoduleVersions
     inputs.file updateRustRuntime.outputFile
@@ -168,13 +168,13 @@ task checkRuntimeVersionFileUpToDate {
 apply plugin: 'application'
 apply plugin: 'com.github.johnrengelman.shadow'
 
-task buildAll() {
+tasks.register('buildAll') {
     apply plugin: 'application'
     apply plugin: 'com.github.johnrengelman.shadow'
     mainClassName = 'org.lflang.cli.Lfc'
 }
 
-task jarCliTools(type: ShadowJar) {
+tasks.register('jarCliTools', ShadowJar) {
     manifest {
         attributes('Main-Class': 'org.lflang.cli.Lfc')
     }
@@ -186,7 +186,7 @@ task jarCliTools(type: ShadowJar) {
     // the classes manually, minimize does not see the dependency. While we can add an exclude
     // rule, this does not seem to work very well and causes problems when compiling for a
     // second time. Also see https://github.com/lf-lang/lingua-franca/pull/1285
-    transform(com.github.jengelman.gradle.plugins.shadow.transformers.AppendingTransformer){
+    transform(com.github.jengelman.gradle.plugins.shadow.transformers.AppendingTransformer) {
         resource = 'plugin.properties'
     }
     from sourceSets.main.output
@@ -200,7 +200,7 @@ buildAll.finalizedBy jarCliTools
 // to escape cli flags which start with --.For instance --args ' --help'.
 // Otherwise they're parsed as arguments to the Gradle CLI, not lfc.
 
-task runLfc(type: JavaExec) {
+tasks.register('runLfc', JavaExec) {
     // builds and runs lfc
     description = "Build and run lfc, use --args to pass arguments"
     group = "application"
@@ -209,7 +209,7 @@ task runLfc(type: JavaExec) {
     workingDir = '..'
 }
 
-task runLff(type: JavaExec) {
+tasks.register('runLff', JavaExec) {
     // builds and runs lff
     description = "Build and run lff, use --args to pass arguments"
     group = "application"
@@ -218,75 +218,75 @@ task runLff(type: JavaExec) {
     workingDir = '..'
 }
 
-task generateLanguageDiagramServer {
-    description 'Creates a jar that implements a language server with diagram support for LF.'    
+tasks.register('generateLanguageDiagramServer') {
+    description 'Creates a jar that implements a language server with diagram support for LF.'
 
     apply plugin: 'java'
     apply plugin: 'application'
     apply plugin: 'com.github.johnrengelman.shadow'
 
     mainClassName = "org.lflang.diagram.lsp.LanguageDiagramServer"
-    
+
     compileJava {
         options.compilerArgs << '-Xlint:unchecked'
     }
 
     shadowJar {
         archiveClassifier = 'lds'
-        
+
         // Handling of service loader registrations via META-INF/services/*
         mergeServiceFiles()
 
         // Merge properties
-        transform(com.github.jengelman.gradle.plugins.shadow.transformers.AppendingTransformer){
+        transform(com.github.jengelman.gradle.plugins.shadow.transformers.AppendingTransformer) {
             resource = 'plugin.properties'
         }
 
         // Exclude files that are known to be dispensable for a language server
         exclude(
-            '*._trace',
-            '*.ecore',
-            '*.ecorediag',
-            '*.g',
-            '*.genmodel',
-            '*.html',
-            '*.mwe2',
-            '*.profile',
-            '*.xtext',
-            '*readme.txt',
-            '.api_description',
-            '.options',
-            'about.*',
-            'about_*',
-            'about_files/*',
-            'ant_tasks/*',
-            'cheatsheets/*',
-            'com/*/*.java',
-            'de/*/*.java',
-            'docs/*',
-            'log4j.properties',
-            'META-INF/*.DSA',
-            'META-INF/*.RSA',
-            'META-INF/*.SF',
-            'META-INF/changelog.txt',
-            'META-INF/DEPENDENCIES',
-            'META-INF/eclipse.inf',
-            'META-INF/INDEX.LIST',
-            'META-INF/maven/*',
-            'META-INF/NOTICE',
-            'META-INF/NOTICE.txt',
-            'META-INF/p2.inf',
-            'META-INF/versions/*/module-info.class',
-            'modeling32.png',
-            'module-info.class',
-            'org/*/*.java',
-            'OSGI-INF/l10n/bundle.properties',
-            'plugin.xml',
-            'profile.list',
-            'schema/*',
-            'systembundle.properties',
-            'xtend-gen/*',
-            'xtext32.png',
+                '*._trace',
+                '*.ecore',
+                '*.ecorediag',
+                '*.g',
+                '*.genmodel',
+                '*.html',
+                '*.mwe2',
+                '*.profile',
+                '*.xtext',
+                '*readme.txt',
+                '.api_description',
+                '.options',
+                'about.*',
+                'about_*',
+                'about_files/*',
+                'ant_tasks/*',
+                'cheatsheets/*',
+                'com/*/*.java',
+                'de/*/*.java',
+                'docs/*',
+                'log4j.properties',
+                'META-INF/*.DSA',
+                'META-INF/*.RSA',
+                'META-INF/*.SF',
+                'META-INF/changelog.txt',
+                'META-INF/DEPENDENCIES',
+                'META-INF/eclipse.inf',
+                'META-INF/INDEX.LIST',
+                'META-INF/maven/*',
+                'META-INF/NOTICE',
+                'META-INF/NOTICE.txt',
+                'META-INF/p2.inf',
+                'META-INF/versions/*/module-info.class',
+                'modeling32.png',
+                'module-info.class',
+                'org/*/*.java',
+                'OSGI-INF/l10n/bundle.properties',
+                'plugin.xml',
+                'profile.list',
+                'schema/*',
+                'systembundle.properties',
+                'xtend-gen/*',
+                'xtext32.png',
         )
 
         // Minimizing should be enabled with caution because some classes are only
