@@ -29,4 +29,4 @@ $base="$PSScriptRoot\..\..\"
 $gradlew="${base}/gradlew.bat"
 
 # invoke script
-& "${gradlew}" -p "${base}" "org.lflang:cli:${tool}:run" --args "$@"
+& "${gradlew}" -p "${base}" "org.lflang:cli:${tool}:run" --args "$args"
