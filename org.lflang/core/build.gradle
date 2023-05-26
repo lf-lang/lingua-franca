@@ -78,3 +78,63 @@ compileKotlin.dependsOn(generateXtextLanguage)
 processResources.dependsOn(generateXtextLanguage)
 clean.dependsOn(cleanGenerateXtextLanguage)
 spotlessJava.mustRunAfter(generateXtextLanguage)
+
+tasks.register('integrationLsp') {
+    System.setProperty('integrationInclude', 'org.lflang.tests.lsp.**')
+    finalizedBy('integration')
+}
+
+tasks.register('integrationCArduino') {
+    System.setProperty('integrationInclude', 'org.lflang.tests.runtime.CArduinoTest.*')
+    finalizedBy('integration')
+}
+
+tasks.register('integrationCCpp') {
+    System.setProperty('integrationInclude', 'org.lflang.tests.runtime.CCppTest.*')
+    finalizedBy('integration')
+}
+
+tasks.register('integrationCppRos2') {
+    System.setProperty('integrationInclude', 'org.lflang.tests.runtime.CppRos2Test.*')
+    finalizedBy('integration')
+}
+
+tasks.register('integrationCpp') {
+    System.setProperty('integrationInclude', 'org.lflang.tests.runtime.CppTest.*')
+    finalizedBy('integration')
+}
+
+tasks.register('integrationCScheduler') {
+    System.setProperty('integrationInclude', 'org.lflang.tests.runtime.CSchedulerTest.*')
+    finalizedBy('integration')
+}
+
+tasks.register('integrationC') {
+    System.setProperty('integrationInclude', 'org.lflang.tests.runtime.CTest.*')
+    finalizedBy('integration')
+}
+
+tasks.register('integrationCZephyr') {
+    System.setProperty('integrationInclude', 'org.lflang.tests.runtime.CZephyr.*')
+    finalizedBy('integration')
+}
+
+tasks.register('integrationPython') {
+    System.setProperty('integrationInclude', 'org.lflang.tests.runtime.PythonTest.*')
+    finalizedBy('integration')
+}
+
+tasks.register('integrationRust') {
+    System.setProperty('integrationInclude', 'org.lflang.tests.runtime.RustTest.*')
+    finalizedBy('integration')
+}
+
+tasks.register('integrationTypeScript') {
+    System.setProperty('integrationInclude', 'org.lflang.tests.runtime.TypeScriptTest.*')
+    finalizedBy('integration')
+}
+
+tasks.register('integrationSerialization') {
+    System.setProperty('integrationInclude', 'org.lflang.tests.serialization.SerializationTest.*')
+    finalizedBy('integration')
+}

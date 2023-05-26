@@ -64,13 +64,7 @@ jobs:
         with:
           python-version: '3.10'
       - name: Run language server Python tests without PyLint
-        run: ./gradlew test --tests org.lflang.tests.lsp.LspTests.pythonValidationTestSyntaxOnly
-      - name: Report to CodeCov
-        uses: codecov/codecov-action@v3.1.1
-        with:
-          file: org.lflang.tests/build/reports/xml/jacoco
-          fail_ci_if_error: false
-          verbose: true
+        run: ./gradlew integration --tests org.lflang.tests.lsp.LspTests.pythonValidationTestSyntaxOnly
       - name: Install pylint
         run: python3 -m pip install pylint
         if: ${{ runner.os != 'macOS' }}
@@ -78,10 +72,12 @@ jobs:
         run: brew install pylint
         if: ${{ runner.os == 'macOS' }}
       - name: Run language server tests
-        run: ./gradlew clean test --tests org.lflang.tests.lsp.LspTests.*ValidationTest
+        run: ./gradlew integration --tests org.lflang.tests.lsp.LspTests.*ValidationTest
+      - name: Collect code coverage
+        run: ./gradlew jacocoTestReport
       - name: Report to CodeCov
         uses: codecov/codecov-action@v3.1.1
         with:
-          file: org.lflang.tests/build/reports/xml/jacoco
+          files: org.lflang/core/build/reports/xml/jacoco
           fail_ci_if_error: false
           verbose: true

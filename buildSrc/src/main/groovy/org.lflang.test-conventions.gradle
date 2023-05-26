@@ -35,6 +35,9 @@ test {
         events "passed", "skipped", "failed"
         showStandardStreams = true
     }
+    maxParallelForks = Runtime.runtime.availableProcessors().intdiv(2) ?: 1
+
+    failFast = true
 
     workingDir = rootProject.projectDir
 }
@@ -43,8 +46,8 @@ jacocoTestReport {
     reports {
         xml.required = true
         csv.required = false
-        html.destination file("${buildDir}/reports/html/jacoco")
-        xml.destination file("${buildDir}/reports/xml/jacoco")
+        html.outputLocation = file("${buildDir}/reports/html/jacoco")
+        xml.outputLocation = file("${buildDir}/reports/xml/jacoco")
     }
 
     afterEvaluate {
@@ -58,4 +61,29 @@ jacocoTestReport {
             )
         }))
     }
+}
+
+
+
+tasks.register('integration', Test) {
+    if (System.getProperty('integrationInclude') != null) {
+        filter {
+            includeTestsMatching System.getProperty('integrationInclude')
+        }
+    }
+    useJUnitPlatform {
+        includeTags 'Integration'
+
+    }
+    testLogging {
+        events "passed", "skipped", "failed"
+        showStandardStreams = true
+    }
+    // Pass the scheduler and runtime property on to the Java VM
+    systemProperty 'scheduler', System.getProperty('scheduler')
+    systemProperty 'runtime', System.getProperty('runtime')
+
+    failFast = true
+
+    workingDir = rootProject.projectDir
 }

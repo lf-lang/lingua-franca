@@ -55,13 +55,12 @@ jobs:
           path: org.lflang/src/lib/py/reactor-c-py
           ref: ${{ inputs.reactor-c-py-ref }}
         if: ${{ inputs.reactor-c-py-ref }}
-      - name: Run Python tests
-        run: |
-          ./gradlew test --tests org.lflang.tests.runtime.PythonTest.*
+      - name: Collect code coverage
+        run: ./gradlew jacocoTestReport
       - name: Report to CodeCov
         uses: codecov/codecov-action@v3.1.1
         with:
-          file: org.lflang.tests/build/reports/xml/jacoco
+          files: org.lflang/core/build/reports/xml/jacoco
           fail_ci_if_error: false
           verbose: true
-        if: ${{ !inputs.compiler-ref }}  # i.e., if this is part of the main repo's CI
+        if: ${{ !inputs.runtime-ref }}  # i.e., if this is part of the main repo's CI

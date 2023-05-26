@@ -43,11 +43,13 @@ jobs:
         if: ${{ inputs.runtime-ref }}
       - name: Run C++ tests;
         run: |
-          ./gradlew test --tests org.lflang.tests.runtime.CppTest.*
-      - name: Report Java coverage to CodeCov
+          ./gradlew integrationCpp
+      - name: Collect code coverage
+        run: ./gradlew jacocoTestReport
+      - name: Report to CodeCov
         uses: codecov/codecov-action@v3.1.1
         with:
-          file: org.lflang.tests/build/reports/xml/jacoco
+          files: org.lflang/core/build/reports/xml/jacoco
           fail_ci_if_error: false
           verbose: true
         if: ${{ !inputs.runtime-ref }}  # i.e., if this is part of the main repo's CI

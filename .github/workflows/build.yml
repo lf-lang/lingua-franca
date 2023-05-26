@@ -68,4 +68,3 @@ jobs:
           files: org.lflang/core/build/reports/xml/jacoco,org.lflang/cli/lfc/build/reports/xml/jacoco,org.lflang/cli/lff/build/reports/xml/jacoco
           fail_ci_if_error: false
           verbose: true
-        if: ${{ runner.os == 'Linux' }}
