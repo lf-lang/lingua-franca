@@ -330,7 +330,8 @@ public class FedGenerator {
     try {
       compileThreadPool.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
     } catch (Exception e) {
-      context.getErrorReporter().reportError("Failure during code generation.");
+      context.getErrorReporter().reportError("Failure during code generation: " + e.getMessage());
+      e.printStackTrace();
     } finally {
       finalizer.accept(subContexts);
     }
