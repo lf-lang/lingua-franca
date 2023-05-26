@@ -15,6 +15,7 @@ jobs:
           submodules: true
           fetch-depth: 0
       - name: Prepare build environment
+        uses: ./.github/actions/prepare-build-env
       - name: Test lfc bash scripts (Linux or macOS only)
         run: |
           .github/scripts/test-lfc.sh
