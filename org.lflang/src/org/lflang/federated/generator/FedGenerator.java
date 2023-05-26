@@ -161,6 +161,12 @@ public class FedGenerator {
             subContexts -> {
               createDockerFiles(context, subContexts);
               generateLaunchScript();
+              // If an error has occurred during codegen of any federate, report it.
+              subContexts.forEach(c -> {
+                if (c.getErrorReporter().getErrorsOccurred()) {
+                  context.getErrorReporter().reportError("Failure during code generation of " + c.getFileConfig().srcFile);
+                }
+              });
             });
 
     context.finish(Status.COMPILED, codeMapMap);
@@ -321,7 +327,7 @@ public class FedGenerator {
     try {
       compileThreadPool.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
     } catch (Exception e) {
-      Exceptions.sneakyThrow(e);
+      context.getErrorReporter().reportError("Failure during code generation.");
     } finally {
       finalizer.accept(subContexts);
     }
