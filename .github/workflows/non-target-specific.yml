@@ -6,9 +6,6 @@ on:
     inputs:
       all:
         type: boolean
-  pull_request:
-    branches-ignore:
-    - 'nightly'
 
 env:
   # 2020.11

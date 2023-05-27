@@ -18,38 +18,40 @@ concurrency:
   cancel-in-progress: ${{ github.ref != 'refs/heads/master' }}
 
 jobs:
+  check:
+    uses: ./.github/workflows/check-diff.yml
 
-  # Run the C tests.
   c:
-    if: ${{ !github.event.pull_request.draft  }}
     uses: ./.github/workflows/only-c.yml
     with:
       all: true
+    needs: check
+    if: ${{  !github.event.pull_request.draft || needs.check.outputs.changed-c == 1 }}
 
-  # Run the C++ tests.
   cpp:
-    if: ${{ !github.event.pull_request.draft  }}
     uses: ./.github/workflows/only-cpp.yml
     with:
       all: true
+    needs: check
+    if: ${{  !github.event.pull_request.draft || needs.check.outputs.changed-cpp == 1 }}
 
-  # Run the Python tests.
   py:
-    if: ${{ !github.event.pull_request.draft  }}
     uses: ./.github/workflows/only-py.yml
     with:
       all: true
+    needs: check
+    if: ${{  !github.event.pull_request.draft || needs.check.outputs.changed-py == 1 }}
 
-  # Run the Rust tests.
   rs:
-    if: ${{ !github.event.pull_request.draft  }}
     uses: ./.github/workflows/only-rs.yml
     with:
       all: true
+    needs: check
+    if: ${{  !github.event.pull_request.draft || needs.check.outputs.changed-rs == 1 }}
 
-  # Run the TypeScript tests.
   ts:
-    if: ${{ !github.event.pull_request.draft  }}
     uses: ./.github/workflows/only-ts.yml
     with:
       all: true
+    needs: check
+    if: ${{  !github.event.pull_request.draft || needs.check.outputs.changed-ts == 1 }}

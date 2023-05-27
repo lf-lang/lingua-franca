@@ -19,16 +19,42 @@ concurrency:
 
 jobs:
 
-  # Run the non-target-specific tests.
-  non-target-specific:
-    if: ${{ !github.event.pull_request.draft  }}
-    uses: ./.github/workflows/non-target-specific.yml
+  junit:
+    uses: ./.github/workflows/unit-tests.yml
     with:
-      all: true
+      all-platforms: ${{ !github.event.pull_request.draft  }}
 
-  # Run the non-target-specific tests.
-  non-target-specific-extended:
-    if: ${{ !github.event.pull_request.draft  }}
-    uses: ./.github/workflows/non-target-specific-extended.yml
+  # Run the serialization tests
+  serialization:
+    if: ${{ github.event.pull_request.draft }}
+    uses: ./.github/workflows/serialization-tests.yml
+
+  # Test the Gradle build.
+  building:
+    if: ${{ inputs.all || github.event.pull_request.draft }}
+    uses: ./.github/workflows/build.yml
+
+  # Build the tools used for processing execution traces
+  tracing:
+    if: ${{ inputs.all || github.event.pull_request.draft }}
+    uses: ./.github/workflows/build-trace-tools.yml
     with:
-      all: true
+      all-platforms: ${{ !github.event.pull_request.draft  }}
+
+  formatting:
+    if: ${{ inputs.all || github.event.pull_request.draft }}
+    uses: ./.github/workflows/check-format.yml
+
+  # Run tests for the standalone compiler.
+  cli:
+    if: ${{ inputs.all || github.event.pull_request.draft }}
+    uses: ./.github/workflows/cli-tests.yml
+    with:
+      all-platforms: ${{ !github.event.pull_request.draft  }}
+
+  # Run language server tests.
+  lsp:
+    if: ${{ inputs.all || github.event.pull_request.draft }}
+    uses: ./.github/workflows/lsp-tests.yml
+    with:
+      all-platforms: ${{ !github.event.pull_request.draft  }}

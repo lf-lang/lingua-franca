@@ -6,12 +6,6 @@ on:
     inputs:
       all:
         type: boolean
-  pull_request:
-    branches-ignore:
-      - 'nightly'
-    paths:
-    - 'org.lflang/src/org/lflang/generator/ts/**'
-    - 'org.lflang/src/lib/ts/**'
 
 env:
   # 2020.11

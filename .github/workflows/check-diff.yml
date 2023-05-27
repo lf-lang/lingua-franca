@@ -1,0 +1,41 @@
+name: Check diff from master
+
+on:
+  workflow_call:
+    outputs:
+      changed-c:
+        value: ${{ jobs.check.outputs.changed-c }}
+      changed-cpp:
+        value: ${{ jobs.check.outputs.changed-cpp }}
+      changed-py:
+        value: ${{ jobs.check.outputs.changed-py }}
+      changed-rs:
+        value: ${{ jobs.check.outputs.changed-rs }}
+      changed-ts:
+        value: ${{ jobs.check.outputs.changed-ts }}
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    outputs:
+      changed-c: ${{ steps.do.outputs.CHANGED_C }}
+      changed-cpp: ${{ steps.do.outputs.CHANGED_CPP }}
+      changed-py: ${{ steps.do.outputs.CHANGED_PY }}
+      changed-rs: ${{ steps.do.outputs.CHANGED_RS }}
+      changed-ts: ${{ steps.do.outputs.CHANGED_TS }}
+    steps:
+    - name: Check out lingua-franca repository
+      uses: actions/checkout@v3
+      with:
+        repository: lf-lang/lingua-franca
+        submodules: true
+        fetch-depth: 0
+    - id: do
+      run: |
+        wget https://raw.githubusercontent.com/lf-lang/lingua-franca/reduce-testing/.github/scripts/changed.sh
+        source changed.sh "org.lflang.generator.c/\|org.lflang/src/lib/c/\|org.lflang/src/lib/platform/" C
+        source changed.sh "org.lflang/src/org/lflang/generator/cpp/\|org.lflang/src/lib/cpp/" CPP
+        source changed.sh "org.lflang/src/org/lflang/generator/python/\|org.lflang/src/lib/py/" PY
+        source changed.sh "org.lflang/src/org/lflang/generator/rust/\|org.lflang/src/lib/rs/" RS
+        source changed.sh "org.lflang/src/org/lflang/generator/ts/\|org.lflang/src/lib/ts/" TS
+      shell: bash
