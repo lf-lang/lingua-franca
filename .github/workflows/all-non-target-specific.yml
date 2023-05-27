@@ -1,5 +1,5 @@
 # Non-target-specific tests to run on PRs that are ready for review.
-name: CI (main)
+name: Catch-all
 
 on:
   workflow_dispatch:

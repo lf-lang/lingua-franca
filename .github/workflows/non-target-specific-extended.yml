@@ -1,4 +1,4 @@
-name: Additional non-target-specific tests
+name: Non-target-specific extended
 
 on:
   workflow_dispatch:

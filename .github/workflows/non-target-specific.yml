@@ -1,4 +1,4 @@
-name: Non-target-specific tests
+name: Non-target-specific
 
 on:
   workflow_dispatch:
@@ -20,13 +20,13 @@ concurrency:
 
 jobs:
   # Run the unit tests.
-  unit-tests:
+  junit:
     if: ${{ inputs.all || github.event.pull_request.draft }}
     uses: ./.github/workflows/unit-tests.yml
     with:
       all-platforms: ${{ !github.event.pull_request.draft  }}
 
   # Run the serialization tests
-  serialization-tests:
+  serialization:
     if: ${{ inputs.all || github.event.pull_request.draft }}
     uses: ./.github/workflows/serialization-tests.yml
