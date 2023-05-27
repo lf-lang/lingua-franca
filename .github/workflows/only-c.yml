@@ -24,28 +24,28 @@ concurrency:
 
 jobs:
   # Run the C benchmark tests.
-  c-benchmark-tests:
+  benchmark-tests:
     if: ${{ inputs.all || github.event.pull_request.draft }}
     uses: lf-lang/benchmarks-lingua-franca/.github/workflows/benchmark-tests.yml@main
     with:
       target: 'C'
 
   # Run the C integration tests.
-  c-tests:
+  tests:
     if: ${{ inputs.all || github.event.pull_request.draft }}
     uses: ./.github/workflows/c-tests.yml
     with:
       all-platforms: ${{ !github.event.pull_request.draft  }}
 
   # Run the C Arduino integration tests.
-  c-arduino-tests:
+  arduino-tests:
     if: ${{ inputs.all || github.event.pull_request.draft }}
     uses: ./.github/workflows/c-arduino-tests.yml
     with:
       all-platforms: ${{ !github.event.pull_request.draft  }}
 
   # Run the C Zephyr integration tests.
-  c-zephyr-tests:
+  zephyr-tests:
     if: ${{ inputs.all || github.event.pull_request.draft }}
     uses: ./.github/workflows/c-zephyr-tests.yml
 

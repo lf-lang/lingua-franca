@@ -21,7 +21,7 @@ on:
         type: boolean
 
 jobs:
-  rs:
+  run:
     strategy:
       matrix:
         platform: ${{ (inputs.all-platforms && fromJSON('["ubuntu-latest", "macos-latest", "windows-latest"]')) || fromJSON('["ubuntu-latest"]') }}

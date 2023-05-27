@@ -1,4 +1,4 @@
-name: Build the tools for processing execution traces
+name: Build trace tools
 
 on:
   workflow_call:

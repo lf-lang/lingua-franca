@@ -1,4 +1,5 @@
-name: CI (target-specific)
+# Target-specific tests to run on PRs that are ready for review.
+name: CI (main)
 
 on:
   workflow_dispatch:
@@ -19,35 +20,35 @@ concurrency:
 jobs:
 
   # Run the C tests.
-  c-tests:
+  c:
     if: ${{ !github.event.pull_request.draft  }}
     uses: ./.github/workflows/only-c.yml
     with:
       all: true
 
   # Run the C++ tests.
-  cpp-tests:
+  cpp:
     if: ${{ !github.event.pull_request.draft  }}
     uses: ./.github/workflows/only-cpp.yml
     with:
       all: true
 
   # Run the Python tests.
-  py-tests:
+  py:
     if: ${{ !github.event.pull_request.draft  }}
     uses: ./.github/workflows/only-py.yml
     with:
       all: true
 
   # Run the Rust tests.
-  rs-tests:
+  rs:
     if: ${{ !github.event.pull_request.draft  }}
     uses: ./.github/workflows/only-rs.yml
     with:
       all: true
 
   # Run the TypeScript tests.
-  ts-tests:
+  ts:
     if: ${{ !github.event.pull_request.draft  }}
     uses: ./.github/workflows/only-ts.yml
     with:

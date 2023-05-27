@@ -1,4 +1,5 @@
-name: CI (non-target-specific)
+# Non-target-specific tests to run on PRs that are ready for review.
+name: CI (main)
 
 on:
   workflow_dispatch:
