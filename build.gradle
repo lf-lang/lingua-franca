@@ -57,7 +57,7 @@ subprojects {
     sourceCompatibility = JavaVersion.VERSION_17
     targetCompatibility = JavaVersion.VERSION_17
 
-    configurations.all {
+    configurations.configureEach {
         exclude group: 'asm'
     }
 
@@ -115,4 +115,4 @@ spotless {
         formatAnnotations()
     }
 }
-tasks.withType(SpotlessTask) { it.dependsOn(":org.lflang:jarCliTools") }
+tasks.withType(SpotlessTask).configureEach { it.dependsOn(":org.lflang:jarCliTools") }

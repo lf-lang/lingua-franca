@@ -216,6 +216,14 @@ public class LFValidator extends BaseLFValidator {
     }
   }
 
+  /** Resolve the port type if it is known. */
+  private Type portTypeIfResolvable(VarRef port) {
+    var portType = ((Port) port.getVariable()).getType();
+    return port.getContainer() == null
+        ? portType
+        : new TypeParameterizedReactor(port.getContainer()).resolveType(portType);
+  }
+
   @Check(CheckType.FAST)
   public void checkConnection(Connection connection) {
 
@@ -270,13 +278,9 @@ public class LFValidator extends BaseLFValidator {
         // error. Avoid a class cast exception.
         if (port.getVariable() instanceof Port) {
           if (type == null) {
-            type = ((Port) port.getVariable()).getType();
+            type = portTypeIfResolvable(port);
           } else {
-            var portType = ((Port) port.getVariable()).getType();
-            portType =
-                port.getContainer() == null
-                    ? portType
-                    : new TypeParameterizedReactor(port.getContainer()).resolveType(portType);
+            var portType = portTypeIfResolvable(port);
             if (!sameType(type, portType)) {
               error("Types do not match.", Literals.CONNECTION__LEFT_PORTS);
             }

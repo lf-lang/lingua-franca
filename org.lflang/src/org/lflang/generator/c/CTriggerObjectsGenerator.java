@@ -722,8 +722,14 @@ public class CTriggerObjectsGenerator {
             code.pr(
                 CUtil.portRefNested(port, sr, sb, sc)
                     + connector
-                    + "num_destinations = "
+                    + "_base.num_destinations = "
                     + sendingRange.getNumberOfDestinationReactors()
+                    + ";");
+            code.pr(
+                CUtil.portRefNested(port, sr, sb, sc)
+                    + connector
+                    + "_base.source_reactor = (self_base_t*)"
+                    + CUtil.reactorRef(reaction.getParent(), sb)
                     + ";");
 
             // Initialize token types.
@@ -779,8 +785,13 @@ public class CTriggerObjectsGenerator {
         code.startScopedRangeBlock(sendingRange, sr, sb, sc, sendingRange.instance.isInput());
         code.pr(
             CUtil.portRef(output, sr, sb, sc)
-                + ".num_destinations = "
+                + "._base.num_destinations = "
                 + sendingRange.getNumberOfDestinationReactors()
+                + ";");
+        code.pr(
+            CUtil.portRef(output, sr, sb, sc)
+                + "._base.source_reactor = (self_base_t*)"
+                + CUtil.reactorRef(reactor, sb)
                 + ";");
         code.endScopedRangeBlock(sendingRange);
       }
