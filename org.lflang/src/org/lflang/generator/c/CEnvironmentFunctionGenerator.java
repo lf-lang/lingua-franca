@@ -70,11 +70,19 @@ public class CEnvironmentFunctionGenerator {
     code.pr("void _lf_create_environments() {");
     code.indent();
     for (ReactorInstance enclave : enclaves) {
+      // Decide the number of workers to use. If this is the top-level
+      // use the global variable _lf_number_of_workers which accounts for federation etc.
+      String numWorkers = String.valueOf(enclave.enclaveInfo.numWorkers);
+      if (enclave.isMainOrFederated()) {
+        numWorkers = "_lf_number_of_workers";
+      }
+
+
       code.pr(
           "environment_init(&"
               + CUtil.getEnvironmentStruct(enclave) + ","
               + CUtil.getEnvironmentId(enclave)+ ","
-              + enclave.enclaveInfo.numWorkers + ","
+              + numWorkers + ","
               + enclave.enclaveInfo.numTimerTriggers + ","
               + enclave.enclaveInfo.numStartupReactions + ","
               + enclave.enclaveInfo.numShutdownReactions + ","
