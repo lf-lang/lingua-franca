@@ -8,12 +8,8 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
-import java.net.URL;
-import java.net.URLClassLoader;
 import java.nio.file.Path;
 import java.util.List;
-import java.util.Locale;
-import java.util.ResourceBundle;
 
 /**
  * {@code LfFormatStep} is used by the Spotless Gradle plugin as a custom formatting step for
@@ -23,18 +19,14 @@ public final class LfFormatStep {
   private LfFormatStep() {}
 
   /** Return a {@code FormatterStep} for LF code. */
-  public static FormatterStep create(File projectRoot) throws IOException {
-    Step.projectRoot = projectRoot.toPath();
-    return Step.getInstance();
+  public static FormatterStep create() throws IOException, InterruptedException {
+    return new Step();
   }
 
   /** Implement LF-specific formatting functionality. */
   private static class Step implements FormatterStep {
     // The use of the static keyword here is a workaround for serialization difficulties.
     /** The path to the lingua-franca repository. */
-    private static Path projectRoot;
-
-    private static Step instance;
 
     private static Process formatter;
     private static Writer writer;
@@ -42,31 +34,14 @@ public final class LfFormatStep {
     private static BufferedReader reader;
     private static BufferedReader error;
 
-    public static Step getInstance() throws IOException {
-      if (instance == null) instance = new Step();
-      return instance;
-    }
-
-    private Step() throws IOException {
-      initializeFormatter();
-      Runtime.getRuntime()
-          .addShutdownHook(
-              new Thread(
-                  () -> {
-                    try {
-                      writer.close();
-                      formatter.waitFor();
-                      reader.close();
-                      error.close();
-                    } catch (IOException | InterruptedException e) {
-                      throw new RuntimeException(e);
-                    }
-                  }));
+    private Step() throws IOException, InterruptedException {
+      terminateFormatter();
     }
 
     @Override
     public String format(@SuppressWarnings("NullableProblems") String rawUnix, File file)
         throws IOException, InterruptedException {
+      initializeFormatter();
       StringBuilder output = new StringBuilder();
       try {
         writer.write(file.getAbsoluteFile().toString().strip() + "\n");
@@ -74,6 +49,7 @@ public final class LfFormatStep {
       } catch (IOException e) {
         formatter.waitFor();
         error.lines().forEach(System.out::println);
+        formatter = null;
         initializeFormatter();
         throw new RuntimeException("Failed to format " + file + ".\nPlease ensure that this file passes validator checks.");
       }
@@ -86,7 +62,9 @@ public final class LfFormatStep {
       return output.toString();
     }
 
-    private void initializeFormatter() throws IOException {
+    /** Idempotently initialize the formatter. */
+    private static void initializeFormatter() throws IOException {
+      if (formatter != null) return;
       final Path lffPath =
           Path.of(
               "org.lflang",
@@ -106,6 +84,26 @@ public final class LfFormatStep {
       writer = new BufferedWriter(new OutputStreamWriter(formatter.getOutputStream()));
       reader = new BufferedReader(new InputStreamReader(formatter.getInputStream()));
       error = new BufferedReader(new InputStreamReader(formatter.getErrorStream()));
+      Runtime.getRuntime()
+          .addShutdownHook(
+              new Thread(
+                  () -> {
+                    try {
+                      terminateFormatter();
+                    } catch (IOException | InterruptedException e) {
+                      throw new RuntimeException(e);
+                    }
+                  }));
+    }
+
+    /** Idempotently trigger a graceful termination of the formatter. */
+    private static void terminateFormatter() throws IOException, InterruptedException {
+      if (formatter == null) return;
+      writer.close();
+      formatter.waitFor();
+      reader.close();
+      error.close();
+      formatter = null;
     }
 
     @SuppressWarnings("NullableProblems")
