@@ -31,30 +31,30 @@ concurrency:
 jobs:
 
   # Test the Gradle build.
-  build:
+  building:
     if: ${{ inputs.all || github.event.pull_request.draft }}
     uses: ./.github/workflows/build.yml
 
   # Build the tools used for processing execution traces
-  build-tracing-tools:
+  tracing:
     if: ${{ inputs.all || github.event.pull_request.draft }}
     uses: ./.github/workflows/build-trace-tools.yml
     with:
       all-platforms: ${{ !github.event.pull_request.draft  }}
 
-  check-format:
+  formatting:
     if: ${{ inputs.all || github.event.pull_request.draft }}
     uses: ./.github/workflows/check-format.yml
 
   # Run tests for the standalone compiler.
-  cli-tests:
+  cli:
     if: ${{ inputs.all || github.event.pull_request.draft }}
     uses: ./.github/workflows/cli-tests.yml
     with:
       all-platforms: ${{ !github.event.pull_request.draft  }}
 
   # Run language server tests.
-  lsp-tests:
+  lsp:
     if: ${{ inputs.all || github.event.pull_request.draft }}
     uses: ./.github/workflows/lsp-tests.yml
     with:
