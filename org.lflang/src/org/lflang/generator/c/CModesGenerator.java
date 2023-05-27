@@ -69,33 +69,6 @@ public class CModesGenerator {
   }
 
   /**
-   * Generate the declaration of modal models state table.
-   *
-   * @param hasModalReactors True if there is modal model reactors, false otherwise
-   * @param modalReactorCount The number of modal model reactors
-   * @param modalStateResetCount The number of modal model state resets
-   */
-  public static String generateModeStatesTable(
-      boolean hasModalReactors, int modalReactorCount, int modalStateResetCount) {
-    if (hasModalReactors) {
-      return String.join(
-          // FIXME: Fix the mode_state_variable_reset-data_t thingy
-          "\n",
-          (modalStateResetCount > 0
-              ? String.join(
-                  "\n",
-                  "// Array of reset data for state variables nested in modes. Used in"
-                      + " _lf_handle_mode_changes().",
-                  "mode_state_variable_reset_data_t _lf_modal_state_reset["
-                      + modalStateResetCount
-                      + "];",
-                  "int _lf_modal_state_reset_size = " + modalStateResetCount + ";")
-              : ""));
-    }
-    return "";
-  }
-
-  /**
    * Generate code for modal reactor registration and hierarchy.
    *
    * @param instance The reactor instance.
@@ -153,7 +126,7 @@ public class CModesGenerator {
       code.pr("// Register for transition handling");
       code.pr(
           CUtil.getEnvironmentStruct(instance)
-              + ".modes->modal_reactor_states[modal_reactor_state_count["+CUtil.getEnvironmentId(instance)+"]++] = &((self_base_t*)"
+              + ".modes->modal_reactor_states[modal_reactor_count["+CUtil.getEnvironmentId(instance)+"]++] = &((self_base_t*)"
               + nameOfSelfStruct
               + ")->_lf__mode_state;");
     }
@@ -169,29 +142,29 @@ public class CModesGenerator {
    * @param type The size of the initial value
    */
   public static String generateStateResetStructure(
-      String modeRef, String selfRef, String varName, String source, String type) {
+      ReactorInstance instance, String modeRef, String selfRef, String varName, String source, String type) {
+    var env = CUtil.getEnvironmentStruct(instance);
+    var envId = CUtil.getEnvironmentId(instance);
     return String.join(
         "\n",
         "// Register for automatic reset",
-        "_lf_modal_state_reset[_lf_modal_state_reset_count].mode = " + modeRef + ";",
-        "_lf_modal_state_reset[_lf_modal_state_reset_count].target = &("
+        env+".modes->state_resets[modal_state_reset_count["+envId+"]].mode = " + modeRef + ";",
+        env+".modes->state_resets[modal_state_reset_count["+envId+"]].target = &("
             + selfRef
             + "->"
             + varName
             + ");",
-        "_lf_modal_state_reset[_lf_modal_state_reset_count].source = &" + source + ";",
-        "_lf_modal_state_reset[_lf_modal_state_reset_count].size = sizeof(" + type + ");",
-        "_lf_modal_state_reset_count++;");
+        env+".modes->state_resets[modal_state_reset_count["+envId+"]].source = &" + source + ";",
+        env+".modes->state_resets[modal_state_reset_count["+envId+"]].size = sizeof(" + type + ");",
+        "modal_state_reset_count["+envId+"]++;");
   }
 
   /**
    * Generate code to call {@code _lf_process_mode_changes}.
-   *
-   * @param hasModalReactors True if there is modal model reactors, false otherwise
-   * @param modalStateResetCount The number of modal model state resets
+   ** @param hasModalReactors True if there is modal model reactors, false otherwise
    */
   public static String generateLfHandleModeChanges(
-      boolean hasModalReactors, int modalStateResetCount) {
+      boolean hasModalReactors) {
     if (!hasModalReactors) {
       return "";
     }
@@ -202,8 +175,8 @@ public class CModesGenerator {
         "        env, ",
         "        env->modes->modal_reactor_states, ",
         "        env->modes->modal_reactor_states_size, ",
-        "        " + (modalStateResetCount > 0 ? "_lf_modal_state_reset" : "NULL") + ", ",
-        "        " + (modalStateResetCount > 0 ? "_lf_modal_state_reset_size" : "0") + ", ",
+        "        env->modes->state_resets, ",
+        "        env->modes->state_resets_size, ",
         "        env->timer_triggers, ",
         "        env->timer_triggers_size",
         "    );",

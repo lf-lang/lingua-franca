@@ -7,7 +7,7 @@ public class EnclaveInfo {
   public int numTimerTriggers = 0;
   public int numResetReactions = 0;
   public int numWorkers = 1;
-  public int numModalReactors = 1;
+  public int numModalReactors = 0;
   public int numModalResetStates = 0;
 
   private ReactorInstance instance;

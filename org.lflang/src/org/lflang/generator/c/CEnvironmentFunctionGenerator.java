@@ -72,23 +72,16 @@ public class CEnvironmentFunctionGenerator {
     for (ReactorInstance enclave : enclaves) {
       code.pr(
           "environment_init(&"
-              + CUtil.getEnvironmentStruct(enclave)
-              + ","
-              + CUtil.getEnvironmentId(enclave)
-              + ","
-              + enclave.enclaveInfo.numWorkers
-              + ","
-              + enclave.enclaveInfo.numTimerTriggers
-              + ","
-              + enclave.enclaveInfo.numStartupReactions
-              + ","
-              + enclave.enclaveInfo.numShutdownReactions
-              + ","
-              + enclave.enclaveInfo.numResetReactions
-              + ","
-              + enclave.enclaveInfo.numIsPresentFields
-              + ","
-              + enclave.enclaveInfo.numModalReactors
+              + CUtil.getEnvironmentStruct(enclave) + ","
+              + CUtil.getEnvironmentId(enclave)+ ","
+              + enclave.enclaveInfo.numWorkers + ","
+              + enclave.enclaveInfo.numTimerTriggers + ","
+              + enclave.enclaveInfo.numStartupReactions + ","
+              + enclave.enclaveInfo.numShutdownReactions + ","
+              + enclave.enclaveInfo.numResetReactions + ","
+              + enclave.enclaveInfo.numIsPresentFields + ","
+              + enclave.enclaveInfo.numModalReactors + ","
+              + enclave.enclaveInfo.numModalResetStates
               + ");");
     }
     code.unindent();

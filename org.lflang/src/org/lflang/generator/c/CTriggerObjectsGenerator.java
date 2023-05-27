@@ -71,8 +71,8 @@ public class CTriggerObjectsGenerator {
             "int shutdown_reaction_count[_num_enclaves] = {0};",
             "int reset_reaction_count[_num_enclaves] = {0};",
             "int timer_triggers_count[_num_enclaves] = {0};",
-            "int modal_reactor_state_reset_count[_num_enclaves] = {0};",
-            "int modal_reactor_state_count[_num_enclaves] = {0};"));
+            "int modal_state_reset_count[_num_enclaves] = {0};",
+            "int modal_reactor_count[_num_enclaves] = {0};"));
 
     // Create the table to initialize intended tag fields to 0 between time
     // steps.

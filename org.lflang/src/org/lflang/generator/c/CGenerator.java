@@ -300,7 +300,6 @@ public class CGenerator extends GeneratorBase {
   private int shutdownReactionCount = 0;
 
   private int resetReactionCount = 0;
-  private int modalStateResetCount = 0;
   private int watchdogCount = 0;
 
   // Indicate whether the generator is in Cpp mode or not
@@ -646,11 +645,6 @@ public class CGenerator extends GeneratorBase {
       // If there are watchdogs, create a table of triggers.
       code.pr(CWatchdogGenerator.generateWatchdogTable(watchdogCount));
 
-      // If there are modes, create a table of mode state to be checked for transitions.
-      code.pr(
-          CModesGenerator.generateModeStatesTable(
-              hasModalReactors, 0, modalStateResetCount));
-
       // Generate function to initialize the trigger objects for all reactors.
       code.pr(
           CTriggerObjectsGenerator.generateInitializeTriggerObjects(
@@ -695,7 +689,7 @@ public class CGenerator extends GeneratorBase {
 
       // Generate functions for modes
       code.pr(CModesGenerator.generateLfInitializeModes(hasModalReactors));
-      code.pr(CModesGenerator.generateLfHandleModeChanges(hasModalReactors, modalStateResetCount));
+      code.pr(CModesGenerator.generateLfHandleModeChanges(hasModalReactors));
       code.pr(
           CReactionGenerator.generateLfModeTriggeredReactions(
               resetReactionCount, hasModalReactors));
@@ -1875,7 +1869,7 @@ public class CGenerator extends GeneratorBase {
         initializeTriggerObjects.pr(
             CStateGenerator.generateInitializer(instance, selfRef, stateVar, mode, types));
         if (mode != null && stateVar.isReset()) {
-          modalStateResetCount += instance.getTotalWidth();
+          CUtil.getClosestEnclave(instance).enclaveInfo.numModalResetStates += instance.getTotalWidth();
         }
       }
     }
