@@ -47,7 +47,7 @@ jobs:
           brew link openssl --force
         if: ${{ runner.os == 'macOS' }}
       - name: Setup tmate session
-        uses: mxschmitt/action-tmate@v3
+        uses: actions/checkout@v3 mxschmitt/action-tmate@v3
         if: ${{ runner.os == 'Windows'}}
       - name: Install RTI
         uses: ./.github/actions/install-rti
