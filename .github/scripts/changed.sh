@@ -3,8 +3,8 @@ changes() {
 }
 
 if changes | grep -q $1; then
-  echo "::set-output name=CHANGED_$2::1"
+  echo "CHANGED_$2=1" >> $GITHUB_OUTPUT
 else
-  echo "::set-output name=CHANGED_$2::0"
+  echo "CHANGED_$2=0" >> $GITHUB_OUTPUT
 fi
 
