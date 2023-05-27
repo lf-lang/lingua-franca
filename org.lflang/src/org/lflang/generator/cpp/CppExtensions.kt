@@ -83,7 +83,7 @@ fun WidthSpec.toCppCode(): String = terms.joinToString(" + ") {
         it.parameter != null -> "__lf_parameters." + it.parameter.name
         it.port != null      -> with(it.port) {
             if (container?.isBank == true) {
-                if ((variable as Port).isMultiport) "(${container.name}.size() * ${container.name}[0]->${variable.name}.size())"
+                if ((variable as Port).isMultiport) "  (${container.name}.size() * ${container.name}[0]->${variable.name}.size())"
                 else "${container.name}.size()"
             } else {
                 if ((variable as Port).isMultiport) "$name.size()"
