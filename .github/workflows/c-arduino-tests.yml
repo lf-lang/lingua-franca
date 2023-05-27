@@ -70,4 +70,4 @@ jobs:
           file: org.lflang.tests/build/reports/xml/jacoco
           fail_ci_if_error: false
           verbose: true
-        if: ${{ !inputs.runtime-ref && runner.os == 'Linux' }}  # i.e., if this is part of the main repo's CI
+        if: ${{ !inputs.runtime-ref && runner.os == 'Linux' && inputs.all-platforms }}  # i.e., if this is part of the main repo's CI

@@ -55,7 +55,7 @@ jobs:
           file: org.lflang.tests/build/reports/xml/jacoco
           fail_ci_if_error: false
           verbose: true
-        if: ${{ !inputs.runtime-ref }}  # i.e., if this is part of the main repo's CI
+        if: ${{ !inputs.runtime-ref && inputs.all-platforms }}  # i.e., if this is part of the main repo's CI
       - name: Collect reactor-cpp coverage data
         run: |
           lcov --capture --directory test/Cpp --output-file coverage.info
@@ -74,4 +74,4 @@ jobs:
           file: reactor-cpp.info
           fail_ci_if_error: false
           verbose: true
-        if: matrix.platform == 'ubuntu-latest'
+        if: ${{ runner.os == 'Linux' && inputs.all-platforms }}

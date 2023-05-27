@@ -13,6 +13,8 @@ on:
         value: ${{ jobs.check.outputs.changed-rs }}
       changed-ts:
         value: ${{ jobs.check.outputs.changed-ts }}
+      changed-tracing:
+        value: ${{ jobs.check.outputs.changed-tracing }}
 
 jobs:
   check:
@@ -23,6 +25,7 @@ jobs:
       changed-py: ${{ steps.do.outputs.CHANGED_PY }}
       changed-rs: ${{ steps.do.outputs.CHANGED_RS }}
       changed-ts: ${{ steps.do.outputs.CHANGED_TS }}
+      changed-tracing: ${{ steps.do.outputs.CHANGED_TRACING }}
     steps:
     - name: Check out lingua-franca repository
       uses: actions/checkout@v3
@@ -38,4 +41,5 @@ jobs:
         source changed.sh "org.lflang/src/org/lflang/generator/python/\|org.lflang/src/lib/py/" PY
         source changed.sh "org.lflang/src/org/lflang/generator/rust/\|org.lflang/src/lib/rs/" RS
         source changed.sh "org.lflang/src/org/lflang/generator/ts/\|org.lflang/src/lib/ts/" TS
+        source changed.sh "util/tracing" TRACING
       shell: bash

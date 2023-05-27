@@ -18,40 +18,45 @@ concurrency:
   cancel-in-progress: ${{ github.ref != 'refs/heads/master' }}
 
 jobs:
-  check:
+  check-diff:
     uses: ./.github/workflows/check-diff.yml
 
   c:
     uses: ./.github/workflows/only-c.yml
     with:
       all: true
-    needs: check
-    if: ${{  !github.event.pull_request.draft || needs.check.outputs.changed-c == 1 }}
+    needs: check-diff
+    if: ${{  !github.event.pull_request.draft || needs.check-diff.outputs.changed-c == 1 }}
 
   cpp:
     uses: ./.github/workflows/only-cpp.yml
     with:
       all: true
-    needs: check
-    if: ${{  !github.event.pull_request.draft || needs.check.outputs.changed-cpp == 1 }}
+    needs: check-diff
+    if: ${{  !github.event.pull_request.draft || needs.check-diff.outputs.changed-cpp == 1 }}
 
   py:
     uses: ./.github/workflows/only-py.yml
     with:
       all: true
-    needs: check
-    if: ${{  !github.event.pull_request.draft || needs.check.outputs.changed-py == 1 }}
+    needs: check-diff
+    if: ${{  !github.event.pull_request.draft || needs.check-diff.outputs.changed-py == 1 }}
 
   rs:
     uses: ./.github/workflows/only-rs.yml
     with:
       all: true
-    needs: check
-    if: ${{  !github.event.pull_request.draft || needs.check.outputs.changed-rs == 1 }}
+    needs: check-diff
+    if: ${{  !github.event.pull_request.draft || needs.check-diff.outputs.changed-rs == 1 }}
 
   ts:
     uses: ./.github/workflows/only-ts.yml
     with:
       all: true
-    needs: check
-    if: ${{  !github.event.pull_request.draft || needs.check.outputs.changed-ts == 1 }}
+    needs: check-diff
+    if: ${{  !github.event.pull_request.draft || needs.check-diff.outputs.changed-ts == 1 }}
+
+  serialization:
+    if: ${{ !github.event.pull_request.draft || needs.check-diff.outputs.changed-c == 1 || needs.check-diff.outputs.changed-py == 1 || needs.check-diff.outputs.changed-ts == 1 }}
+    needs: check-diff
+    uses: ./.github/workflows/serialization-tests.yml

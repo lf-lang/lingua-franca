@@ -76,6 +76,7 @@ jobs:
           file: org.lflang.tests/build/reports/xml/jacoco
           fail_ci_if_error: false
           verbose: true
+        if: ${{ runner.os == 'Linux' && inputs.all-platforms }}
       - name: Install pylint
         run: python3 -m pip install pylint
         if: ${{ runner.os != 'macOS' }}
@@ -90,3 +91,4 @@ jobs:
           file: org.lflang.tests/build/reports/xml/jacoco
           fail_ci_if_error: false
           verbose: true
+        if: ${{ runner.os == 'Linux' && inputs.all-platforms }}
