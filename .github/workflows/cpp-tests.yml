@@ -15,7 +15,7 @@ on:
         type: boolean
 
 jobs:
-  cpp:
+  cpp-tests:
     strategy:
       matrix:
         platform: ${{ (inputs.all-platforms && fromJSON('["ubuntu-latest", "macos-latest", "windows-latest"]')) || fromJSON('["ubuntu-latest"]') }}
