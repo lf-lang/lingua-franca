@@ -26,7 +26,6 @@ import org.eclipse.xtext.generator.JavaIoFileSystemAccess;
 import org.eclipse.xtext.resource.XtextResource;
 import org.eclipse.xtext.resource.XtextResourceSet;
 import org.eclipse.xtext.util.RuntimeIOException;
-import org.eclipse.xtext.xbase.lib.Exceptions;
 import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
 import org.lflang.LFStandaloneSetup;
@@ -161,6 +160,16 @@ public class FedGenerator {
             subContexts -> {
               createDockerFiles(context, subContexts);
               generateLaunchScript();
+              // If an error has occurred during codegen of any federate, report it.
+              subContexts.forEach(
+                  c -> {
+                    if (c.getErrorReporter().getErrorsOccurred()) {
+                      context
+                          .getErrorReporter()
+                          .reportError(
+                              "Failure during code generation of " + c.getFileConfig().srcFile);
+                    }
+                  });
             });
 
     context.finish(Status.COMPILED, codeMapMap);
@@ -321,7 +330,8 @@ public class FedGenerator {
     try {
       compileThreadPool.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
     } catch (Exception e) {
-      Exceptions.sneakyThrow(e);
+      context.getErrorReporter().reportError("Failure during code generation: " + e.getMessage());
+      e.printStackTrace();
     } finally {
       finalizer.accept(subContexts);
     }
