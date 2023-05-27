@@ -17,6 +17,7 @@
 # Created by https://www.toptal.com/developers/gitignore/api/intellij,gradle,eclipse,maven,visualstudiocode
 # Edit at https://www.toptal.com/developers/gitignore?templates=intellij,gradle,eclipse,maven,visualstudiocode
 
+
 ### Eclipse ###
 .metadata
 bin/
