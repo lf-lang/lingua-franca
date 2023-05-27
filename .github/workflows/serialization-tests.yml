@@ -8,7 +8,7 @@ on:
         type: string
 
 jobs:
-  serialization:
+  serialization-tests:
     runs-on: ubuntu-latest
     steps:
       - name: Check out lingua-franca repository
