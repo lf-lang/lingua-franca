@@ -60,7 +60,7 @@ jobs:
 
   # Run the C integration tests.
   c-tests:
-    uses: lf-lang/lingua-franca/.github/workflows/c-tests.yml@master
+    uses: lf-lang/lingua-franca/.github/workflows/c-tests.yml@enclaves-win-debug
     needs: cancel
   
   # Run the C Arduino integration tests.
