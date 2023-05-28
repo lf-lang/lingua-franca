@@ -1,5 +1,5 @@
 # Non-target-specific tests
-name: CI      (misc)
+name: CI (misc)
 
 on:
   workflow_dispatch:
