@@ -105,9 +105,10 @@ public class CActionGenerator {
       var actionName = action.getName();
       body.pr(
           action, CGenerator.variableStructType(action, tpr, false) + " _lf_" + actionName + ";");
-      // Initialize the trigger pointer in the action.
+      // Initialize the trigger pointer and the parent pointer in the action.
       constructorCode.pr(
-          action, "self->_lf_" + actionName + ".trigger = &self->_lf__" + actionName + ";");
+          action, "self->_lf_" + actionName + "._base.trigger = &self->_lf__" + actionName + ";");
+      constructorCode.pr(action, "self->_lf_" + actionName + ".parent = (self_base_t*)self;");
     }
   }
 
@@ -140,9 +141,10 @@ public class CActionGenerator {
             "token_type_t type;", // From token_template_t
             "lf_token_t* token;", // From token_template_t
             "size_t length;", // From token_template_t
-            "bool is_present;", // From lf_action_base_t
-            "bool has_value;", // From lf_action_base_t
-            "trigger_t* trigger;" // From lf_action_base_t
+            "bool is_present;", // From lf_port_or_action_t
+            "lf_action_internal_t _base;", // internal substruct
+            "self_base_t* parent;", // From lf_port_or_action_t
+            "bool has_value;" // From lf_action_base_t
             ));
     code.pr(valueDeclaration(tpr, action, target, types));
     code.pr(federatedExtension.toString());

@@ -34,6 +34,7 @@ public class CPortGenerator {
   /**
    * Generate the struct type definitions for the port of the reactor
    *
+   * @param tpr The reactor
    * @param port The port to generate the struct
    * @param target The target of the code generation (C, CCpp or Python)
    * @param errorReporter The error reporter
@@ -67,11 +68,8 @@ public class CPortGenerator {
             "token_type_t type;", // From token_template_t
             "lf_token_t* token;", // From token_template_t
             "size_t length;", // From token_template_t
-            "bool is_present;", // From lf_port_base_t
-            "lf_sparse_io_record_t* sparse_record;", // From lf_port_base_t
-            "int destination_channel;", // From lf_port_base_t
-            "int num_destinations;" // From lf_port_base_t
-            ));
+            "bool is_present;",
+            "lf_port_internal_t _base;"));
     code.pr(valueDeclaration(tpr, port, target, errorReporter, types));
     code.pr(federatedExtension.toString());
     code.unindent();
@@ -180,7 +178,7 @@ public class CPortGenerator {
 
   /**
    * For the specified port, return a declaration for port struct to contain the value of the port.
-   * A multiport output with width 4 and type int[10], for example, will result in this:
+   * A multiport output with width 4 and type {@code int[10]}, for example, will result in this:
    *
    * <pre><code>
    *     int value[10];
@@ -249,6 +247,12 @@ public class CPortGenerator {
                 "// Set input by default to an always absent default input.",
                 "self->_lf_" + inputName + " = &self->_lf_default__" + inputName + ";"));
       }
+      constructorCode.pr(
+          input,
+          String.join(
+              "\n",
+              "// Set the default source reactor pointer",
+              "self->_lf_default__" + inputName + "._base.source_reactor = (self_base_t*)self;"));
     }
   }
 

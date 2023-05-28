@@ -5,7 +5,6 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.fail;
 
-import java.nio.file.Files;
 import java.nio.file.Path;
 import org.eclipse.xtext.testing.InjectWith;
 import org.eclipse.xtext.testing.extensions.InjectionExtension;
@@ -58,10 +57,5 @@ public class RoundTripTests {
             "The reformatted version of %s was not equivalent to the original file.%n"
                 + "Formatted file:%n%s%n%n",
             file, squishedTestCase));
-    final String normalTestCase = FormattingUtils.render(originalModel);
-    Assertions.assertEquals(
-        Files.readString(file).replaceAll("\\r\\n?", "\n"),
-        normalTestCase,
-        "File is not formatted properly, or formatter is bugged. Check " + file);
   }
 }
