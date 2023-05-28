@@ -45,3 +45,12 @@ distributions {
 }
 installDist.dependsOn('installClitoolsDist')
 assemble.dependsOn('installDist')
+
+
+// Alias tasks for simpler access
+tasks.register('runLfc') {
+    dependsOn('org.lflang:cli:lfc:run')
+}
+tasks.register('runLff') {
+    dependsOn('org.lflang:cli:lff:run')
+}
