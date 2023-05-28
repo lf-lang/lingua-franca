@@ -35,11 +35,11 @@ jobs:
         fetch-depth: 0
     - id: do
       run: |
-        wget https://raw.githubusercontent.com/lf-lang/lingua-franca/reduce-testing/.github/scripts/changed.sh
-        source changed.sh "org.lflang.generator.c/\|org.lflang/src/lib/c/\|org.lflang/src/lib/platform/\|test/C" C
-        source changed.sh "org.lflang/src/org/lflang/generator/cpp/\|org.lflang/src/lib/cpp/\|test/Cpp" CPP
-        source changed.sh "org.lflang/src/org/lflang/generator/python/\|org.lflang/src/lib/py/\|test/Python" PY
-        source changed.sh "org.lflang/src/org/lflang/generator/rust/\|org.lflang/src/lib/rs/\|test/Rust" RS
-        source changed.sh "org.lflang/src/org/lflang/generator/ts/\|org.lflang/src/lib/ts/\|test/TypeScript" TS
-        source changed.sh "util/tracing" TRACING
+        wget https://raw.githubusercontent.com/lf-lang/lingua-franca/reduce-testing/.github/scripts/check-diff.sh
+        source check-diff.sh "org.lflang.generator.c/\|org.lflang/src/lib/c/\|org.lflang/src/lib/platform/\|test/C" C
+        source check-diff.sh "org.lflang/src/org/lflang/generator/cpp/\|org.lflang/src/lib/cpp/\|test/Cpp" CPP
+        source check-diff.sh "org.lflang/src/org/lflang/generator/python/\|org.lflang/src/lib/py/\|test/Python" PY
+        source check-diff.sh "org.lflang/src/org/lflang/generator/rust/\|org.lflang/src/lib/rs/\|test/Rust" RS
+        source check-diff.sh "org.lflang/src/org/lflang/generator/ts/\|org.lflang/src/lib/ts/\|test/TypeScript" TS
+        source check-diff.sh "util/tracing" TRACING
       shell: bash
