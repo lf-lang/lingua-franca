@@ -2,12 +2,17 @@ name: Language server tests
 
 on:
   workflow_call:
+    inputs:
+      all-platforms:
+        required: false
+        default: true
+        type: boolean
 
 jobs:
-  run:
+  test-lsp:
     strategy:
       matrix:
-        platform: [ubuntu-latest, macos-latest, windows-latest]
+        platform: ${{ (inputs.all-platforms && fromJSON('["ubuntu-latest", "macos-latest", "windows-latest"]')) || fromJSON('["ubuntu-latest"]') }}
     runs-on: ${{ matrix.platform }}
     steps:
       # Uninstall operations are needed because the language server is able to use multiple
@@ -71,6 +76,7 @@ jobs:
           file: org.lflang.tests/build/reports/xml/jacoco
           fail_ci_if_error: false
           verbose: true
+        if: ${{ runner.os == 'Linux' && inputs.all-platforms }}
       - name: Install pylint
         run: python3 -m pip install pylint
         if: ${{ runner.os != 'macOS' }}
@@ -85,3 +91,4 @@ jobs:
           file: org.lflang.tests/build/reports/xml/jacoco
           fail_ci_if_error: false
           verbose: true
+        if: ${{ runner.os == 'Linux' && inputs.all-platforms }}
