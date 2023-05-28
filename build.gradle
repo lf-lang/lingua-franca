@@ -21,11 +21,11 @@ spotless {
         target 'test/*/src/**/*.lf' // you have to set the target manually
         targetExclude 'test/**/failing/**'
     }
-
 }
 
-spotlessLinguaFranca.dependsOn(":org.lflang:cli:lff:installDist")
-
+// Make the LF formatting task depend on lff
+spotlessLinguaFranca.dependsOn(':org.lflang:cli:lff:installDist')
+spotlessLinguaFranca.inputs.files(tasks.getByPath(':org.lflang:cli:lff:installDist').outputs)
 
 distributions {
     clitools {
