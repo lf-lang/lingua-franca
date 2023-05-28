@@ -1,5 +1,5 @@
-# Target-specific tests to run on PRs that are ready for review.
-name: Catch-all
+# Target-specific tests
+name: CI (by target)
 
 on:
   workflow_dispatch:
