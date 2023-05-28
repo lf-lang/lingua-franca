@@ -520,7 +520,7 @@ public abstract class TestBase {
       if (!p.waitFor(MAX_EXECUTION_TIME_SECONDS, TimeUnit.SECONDS)) {
         stdout.interrupt();
         stderr.interrupt();
-        p.destroyForcibly();
+        p.destroy();
         throw new TestError(Result.TEST_TIMEOUT);
       } else {
         if (stdoutException.get() != null || stderrException.get() != null) {
