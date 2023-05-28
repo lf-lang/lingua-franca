@@ -1,8 +1,9 @@
 import lfformat.LfFormatStep
 
 plugins {
-    id "com.diffplug.spotless"
-    id "org.lflang.distribution-conventions"
+    id 'com.diffplug.spotless'
+    id 'org.lflang.distribution-conventions'
+    id 'idea'
 }
 
 spotless {
@@ -42,3 +43,5 @@ distributions {
         }
     }
 }
+installDist.dependsOn('installClitoolsDist')
+assemble.dependsOn('installDist')
