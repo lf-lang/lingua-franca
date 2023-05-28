@@ -57,6 +57,6 @@ reactor Destination(timeout: time = 1 sec) {
 
 main reactor {
     s = new Source()
-    d = new Destination(timeout = 1s)
+    d = new Destination(timeout = 1 s)
     s.y -> d.x
 }
