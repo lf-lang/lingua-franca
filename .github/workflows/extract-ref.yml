@@ -10,7 +10,7 @@ on:
     outputs:
       ref:
         description: "The extracted ref"
-        value: ${{ jobs.run.outputs.ref }}
+        value: ${{ jobs.extract-ref.outputs.ref }}
 
 jobs:
   extract-ref:
