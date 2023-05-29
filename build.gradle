@@ -48,9 +48,9 @@ assemble.dependsOn('installDist')
 
 
 // Alias tasks for simpler access
-tasks.register('runLfc') {
+tasks.register('runLfc', JavaExec) {
     dependsOn('org.lflang:cli:lfc:run')
 }
-tasks.register('runLff') {
+tasks.register('runLff', JavaExec) {
     dependsOn('org.lflang:cli:lff:run')
 }

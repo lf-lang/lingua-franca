@@ -70,4 +70,9 @@ fi
 gradlew="${base}/gradlew"
 
 # Launch the tool.
-"${gradlew}" -p "${base}" "org.lflang:cli:${tool}:run" --args "$@"
+if [ $# -eq 0 ]; then
+    "${gradlew}" -p "${base}" "org.lflang:cli:${tool}:run"
+else
+    "${gradlew}" -p "${base}" "org.lflang:cli:${tool}:run" --args="$*"
+fi
+
