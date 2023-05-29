@@ -64,7 +64,7 @@ jobs:
           rust-version: ${{ matrix.rust }}
           components: clippy
       - name: Run Rust tests
-        run: ./gradlew integrationRust
+        run: ./gradlew integration -Ptarget=Rust
       - name: Collect code coverage
         run: ./gradlew jacocoTestReport
       - name: Report to CodeCov

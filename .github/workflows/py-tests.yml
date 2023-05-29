@@ -59,6 +59,8 @@ jobs:
           path: org.lflang/src/lib/py/reactor-c-py
           ref: ${{ inputs.reactor-c-py-ref }}
         if: ${{ inputs.reactor-c-py-ref }}
+      - name: Run Python tests
+        run: ./gradlew integration -Ptarget=Python
       - name: Collect code coverage
         run: ./gradlew jacocoTestReport
       - name: Report to CodeCov

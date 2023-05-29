@@ -63,7 +63,7 @@ jobs:
           arduino-cli core install arduino:sam
           arduino-cli core install arduino:mbed
       - name: Perform Arduino tests for C target with default scheduler
-        run: ./gradlew integrationCArduino
+        run: ./gradlew integration -Ptarget=Arduino
       - name: Collect code coverage
         run: ./gradlew jacocoTestReport
       - name: Report to CodeCov

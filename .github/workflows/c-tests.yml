@@ -54,15 +54,15 @@ jobs:
         uses: ./.github/actions/install-rti
         if: ${{ runner.os == 'macOS' || runner.os == 'Linux' }}
       - name: Perform tests for C target with default scheduler
-        run: ./gradlew integrationC
+        run: ./gradlew integration -Ptarget=C
         if: ${{ !inputs.use-cpp && !inputs.scheduler }}
       - name: Perform tests for C target with specified scheduler (no LSP tests)
         run: |
           echo "Specified scheduler: ${{ inputs.scheduler }}"
-          ./gradlew integrationC -Dscheduler=${{ inputs.scheduler }}
+          ./gradlew integration -Ptarget=C -Dscheduler=${{ inputs.scheduler }}
         if: ${{ !inputs.use-cpp && inputs.scheduler }}
       - name: Perform tests for CCpp target with default scheduler
-        run: ./gradlew integrationCCpp
+        run: ./gradlew integration -Ptarget=CCpp
         if: ${{ inputs.use-cpp && !inputs.scheduler }}
       - name: Collect code coverage
         run: ./gradlew jacocoTestReport

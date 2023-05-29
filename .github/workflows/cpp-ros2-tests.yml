@@ -35,7 +35,7 @@ jobs:
       - name: Run C++ tests;
         run: |
           source /opt/ros/*/setup.bash
-          ./gradlew integrationCppRos2
+          ./gradlew integration -Ptarget=CppRos2
       - name: Collect code coverage
         run: ./gradlew jacocoTestReport
       - name: Report to CodeCov
