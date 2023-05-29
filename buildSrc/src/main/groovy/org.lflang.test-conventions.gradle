@@ -25,10 +25,27 @@ dependencies {
     testFixturesImplementation "org.eclipse.xtext:org.eclipse.xtext.xbase.testing:$xtextVersion"
 }
 
+def integrationTest = false
+tasks.register('integration') {
+    integrationTest = true
+}
+integration.finalizedBy(test)
+
 test {
     useJUnitPlatform {
-        excludeTags 'Integration'
+        if (integrationTest) {
+            includeTags 'Integration'
+        } else {
+            excludeTags 'Integration'
+        }
     }
+
+    if (integrationTest && project.hasProperty('target')) {
+        filter {
+            includeTestsMatching "org.lflang.tests.runtime.${project.property('target')}Test.*"
+        }
+    }
+
     testLogging {
         events "passed", "skipped", "failed"
         showStandardStreams = true
@@ -60,37 +77,4 @@ jacocoTestReport {
             )
         }))
     }
-}
-
-
-
-tasks.register('integration', Test) {
-    filter {
-        setFailOnNoMatchingTests(false)
-    }
-    if (System.getProperty('integrationInclude') != null) {
-        filter {
-            includeTestsMatching System.getProperty('integrationInclude')
-        }
-    }
-    useJUnitPlatform {
-        includeTags 'Integration'
-
-    }
-    testLogging {
-        events "passed", "skipped", "failed"
-        showStandardStreams = true
-        exceptionFormat "full"
-    }
-    // Pass the scheduler and runtime property on to the Java VM
-    systemProperty 'scheduler', System.getProperty('scheduler')
-    systemProperty 'runtime', System.getProperty('runtime')
-
-    filter {
-        setFailOnNoMatchingTests(false)
-    }
-
-    failFast = true
-
-    workingDir = rootProject.projectDir
 }
