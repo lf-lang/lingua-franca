@@ -66,6 +66,7 @@ public class CZephyrTest extends RuntimeTest {
         TestLevel.BUILD,
         false);
   }
+
   @Test
   public void buildConcurrentTests() {
     Assumptions.assumeTrue(isLinux(), "Zephyr tests only run on Linux");
