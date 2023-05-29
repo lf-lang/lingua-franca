@@ -2,12 +2,17 @@ name: Language server tests
 
 on:
   workflow_call:
+    inputs:
+      all-platforms:
+        required: false
+        default: true
+        type: boolean
 
 jobs:
-  run:
+  test-lsp:
     strategy:
       matrix:
-        platform: [ubuntu-latest, macos-latest, windows-latest]
+        platform: ${{ (inputs.all-platforms && fromJSON('["ubuntu-latest", "macos-latest", "windows-latest"]')) || fromJSON('["ubuntu-latest"]') }}
     runs-on: ${{ matrix.platform }}
     steps:
       # Uninstall operations are needed because the language server is able to use multiple
@@ -81,3 +86,4 @@ jobs:
           files: org.lflang/core/build/reports/xml/jacoco
           fail_ci_if_error: false
           verbose: true
+        if: ${{ runner.os == 'Linux' && inputs.all-platforms }}
