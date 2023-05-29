@@ -116,8 +116,7 @@ else
 fi
 echo "Number of passes: $num_successes"
 echo "Number of fails: $num_failures"
-echo "Skipped tests: $skip"
-
+echo "Skipped tests: ${skip[@]}"
 
 if [ "$overall_success" = false ]; then
     echo "Failed tests: $failed_tests"
