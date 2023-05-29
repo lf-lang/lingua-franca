@@ -31,6 +31,7 @@ import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -283,10 +284,6 @@ public enum TargetProperty {
       (config, value, err) -> {
         config.files = ASTUtils.elementToListOfStrings(value);
       },
-      // FIXME: This merging of lists is potentially dangerous since
-      // the incoming list of files can belong to a .lf file that is
-      // located in a different location, and keeping just filename
-      // strings like this without absolute paths is incorrect.
       (config, value, err) -> {
         config.files.addAll(ASTUtils.elementToListOfStrings(value));
       }),
@@ -995,15 +992,34 @@ public enum TargetProperty {
    *
    * @param config The configuration object to update.
    * @param properties AST node that holds all the target properties.
+   * @param relativePath The path from the main resource to the resource from which the new
+   *     properties originate.
    */
-  public static void update(TargetConfig config, List<KeyValuePair> properties, ErrorReporter err) {
+  public static void update(
+      TargetConfig config, List<KeyValuePair> properties, Path relativePath, ErrorReporter err) {
     properties.forEach(
         property -> {
           TargetProperty p = forName(property.getName());
           if (p != null) {
             // Mark the specified target property as set by the user
             config.setByUser.add(p);
-            p.updater.parseIntoTargetConfig(config, property.getValue(), err);
+            var value = property.getValue();
+            if (property.getName().equals("files")) {
+              var array = LfFactory.eINSTANCE.createArray();
+              ASTUtils.elementToListOfStrings(property.getValue()).stream()
+                  .map(relativePath::resolve) // assume all paths are relative
+                  .map(Objects::toString)
+                  .map(
+                      s -> {
+                        var element = LfFactory.eINSTANCE.createElement();
+                        element.setLiteral(s);
+                        return element;
+                      })
+                  .forEach(array.getElements()::add);
+              value = LfFactory.eINSTANCE.createElement();
+              value.setArray(array);
+            }
+            p.updater.parseIntoTargetConfig(config, value, err);
           }
         });
   }
