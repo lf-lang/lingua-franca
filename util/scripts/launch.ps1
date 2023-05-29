@@ -29,7 +29,7 @@ $base="$PSScriptRoot\..\..\"
 $gradlew="${base}/gradlew.bat"
 
 # invoke script
-if ($args.Length == 0) {
+if ($args.Length -eq 0) {
     & "${gradlew}" -p "${base}" "org.lflang:cli:${tool}:run"
 } else {
     $argsString = $args -join " "
