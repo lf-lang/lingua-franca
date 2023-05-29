@@ -75,4 +75,3 @@ if [ $# -eq 0 ]; then
 else
     "${gradlew}" -p "${base}" "org.lflang:cli:${tool}:run" --args="$*"
 fi
-

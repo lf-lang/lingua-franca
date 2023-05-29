@@ -37,4 +37,3 @@ jobs:
         run: |
           bin/lff.ps1 --help
         if: ${{ runner.os == 'Windows' }}
-

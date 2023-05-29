@@ -8,8 +8,10 @@ plugins {
 
 spotless {
     format 'misc', {
-        // define the files to apply `misc` to
-        target '*.gradle', '*.md', '.gitignore', '**/*.yml'
+        target project.fileTree(project.rootDir) {
+            include '**/*.gradle', '**/*.md', '.gitignore', '**/*.yml', '**/*.sh', '**/*.psi'
+            exclude '**/reactor-cpp/**', '**/reactor-c/**', '**/reactor-rs/**', '**/lf-python-support'
+        }
 
         // define the steps to apply to those files
         trimTrailingWhitespace()

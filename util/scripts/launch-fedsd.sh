@@ -79,8 +79,8 @@ for each_lft_file in $lft_files_list
         # Get the file name
         csv=${each_lft_file%.*}
         if [ $csv == 'rti' ]
-        then 
-            # Set the rti csv file 
+        then
+            # Set the rti csv file
             rti_csv_file='rti.csv'
         else
             # Construct the csv file name and add it to the list
@@ -97,7 +97,7 @@ if [ $rti_csv_file == '' ]
 then
     # FIXME: Support the case where no rti file is given
     python3 "${base}/util/tracing/visualization/fedsd.py" "-f" $csv_files_list
-else 
+else
     echo Building the communication diagram for the following trace files: $lft_files_list in trace_svg.html
     python3 "${base}/util/tracing/visualization/fedsd.py" "-r" "$rti_csv_file" "-f" $csv_files_list
 fi
