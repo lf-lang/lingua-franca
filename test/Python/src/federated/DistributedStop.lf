@@ -34,7 +34,7 @@ reactor Sender {
                      lf.tag().microstep))
             request_stop()
 
-        _1usec1 = Tag(time=USEC(1) + get_start_time(), microstep=1)
+        _1usec1 = Tag(time=USEC(1) + lf.time.start(), microstep=1)
         if lf.tag_compare(lf.tag(), _1usec1) == 0:
             # The reaction was invoked at (1 usec, 1) as expected
             self.reaction_invoked_correctly = True
@@ -82,7 +82,7 @@ reactor Receiver(
             # (1 usec, 1) and trigger this reaction
             self.reaction_invoked_correctly = True
 
-        _1usec1 = Tag(time=USEC(1) + get_start_time(), microstep=1)
+        _1usec1 = Tag(time=USEC(1) + lf.time.start(), microstep=1)
         if lf.tag_compare(lf.tag(), _1usec1) > 0:
             self.reaction_invoked_correctly = False
     =}
