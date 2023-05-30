@@ -28,9 +28,9 @@ To invoke only the C tests in the `concurrent` category, for example, do this:
 ./gradlew org.lflang:core:integrationTest --tests org.lflang.tests.runtime.CTest.runConcurrentTests
 ```
 
-To run a single test case, use the `runSingleTest` gradle task along with the path to the test source file:
+To run a single test case, use the `singleTest` gradle task along with the path to the test source file:
 ```
-./gradlew runSingleTest --args test/C/src/Minimal.lf
+./gradlew singleTest -PsingleTest test/C/src/Minimal.lf
 ```
 
 ### LSP tests

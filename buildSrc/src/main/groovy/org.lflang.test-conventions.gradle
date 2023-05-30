@@ -49,10 +49,20 @@ test {
         exceptionFormat "full"
     }
     integrationTest {
+        // Pass properties on to the Java VM
+        systemProperty 'scheduler', System.getProperty('scheduler')
+        systemProperty 'runtime', System.getProperty('runtime')
+        if (rootProject.hasProperty('singleTest')) {
+            systemProperty 'singleTest', rootProject.getProperty('singleTest')
+        }
 
         if (project.hasProperty('target')) {
             filter {
                 includeTestsMatching "org.lflang.tests.runtime.${project.property('target')}Test.*"
+            }
+        } else if (project.hasProperty('singleTest')) {
+            filter {
+                includeTestsMatching "org.lflang.tests.RunSingleTest.runSingleTest"
             }
         }
 

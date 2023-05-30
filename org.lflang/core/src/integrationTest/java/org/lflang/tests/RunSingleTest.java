@@ -24,11 +24,14 @@
 
 package org.lflang.tests;
 
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
+
 import java.io.FileNotFoundException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import org.junit.jupiter.api.Test;
 import org.lflang.Target;
 import org.lflang.tests.runtime.CCppTest;
 import org.lflang.tests.runtime.CTest;
@@ -38,26 +41,26 @@ import org.lflang.tests.runtime.RustTest;
 import org.lflang.tests.runtime.TypeScriptTest;
 
 /**
- * Execute a single test case. Use it with the gradle task {@code gradle runSingleTest --args
- * test/Python/src/Minimal.lf}
+ * Execute a single test case. Use it with the gradle task {@code ./gradlew singleTest -PsingleTest
+ * test/C/src/Minimal.lf}
  *
  * @author Clément Fournier
  */
-public class RunSingleTestMain {
+public class RunSingleTest {
 
   private static final Pattern TEST_FILE_PATTERN =
       Pattern.compile("(test/(\\w+))/src/([^/]++/)*(\\w+.lf)");
 
-  public static void main(String[] args) throws FileNotFoundException {
-    if (args.length != 1) {
-      throw new IllegalArgumentException("Expected 1 path to an LF file");
-    }
-    var path = Paths.get(args[0]);
+  @Test
+  public void runSingleTest() throws FileNotFoundException {
+    assumeTrue(System.getProperty("singleTest") != null);
+
+    var path = Paths.get(System.getProperty("singleTest"));
     if (!Files.exists(path)) {
       throw new FileNotFoundException("No such test file: " + path);
     }
 
-    Matcher matcher = TEST_FILE_PATTERN.matcher(args[0]);
+    Matcher matcher = TEST_FILE_PATTERN.matcher(path.toString());
     if (!matcher.matches()) {
       throw new FileNotFoundException("Not a test: " + path);
     }
