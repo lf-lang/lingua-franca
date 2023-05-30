@@ -13,7 +13,6 @@ public class CEnvironmentFunctionGenerator {
 
   public String generateDeclarations() {
     CodeBuilder code = new CodeBuilder();
-    code.pr(generateEnvironmentInclude());
     code.pr(generateEnvironmentEnum());
     code.pr(generateEnvironmentArray());
     return code.toString();
@@ -27,10 +26,6 @@ public class CEnvironmentFunctionGenerator {
   }
 
   private List<ReactorInstance> enclaves = new ArrayList<>();
-
-  private String generateEnvironmentInclude() {
-    return "#include \"environment.h\"";
-  }
 
   private String generateEnvironmentArray() {
     return String.join(
