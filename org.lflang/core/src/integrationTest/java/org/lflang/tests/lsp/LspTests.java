@@ -12,7 +12,6 @@ import java.util.function.Predicate;
 import org.eclipse.emf.common.util.URI;
 import org.eclipse.lsp4j.Diagnostic;
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.lflang.LFRuntimeModule;
 import org.lflang.LFStandaloneSetup;

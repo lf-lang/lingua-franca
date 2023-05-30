@@ -3,7 +3,6 @@ package org.lflang.tests;
 import java.util.EnumSet;
 import java.util.List;
 import org.junit.jupiter.api.Assumptions;
-import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.lflang.Target;
 import org.lflang.ast.ASTUtils;

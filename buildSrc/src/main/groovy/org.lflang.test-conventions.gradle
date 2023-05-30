@@ -49,6 +49,13 @@ test {
         exceptionFormat "full"
     }
     integrationTest {
+
+        if (project.hasProperty('target')) {
+            filter {
+                includeTestsMatching "org.lflang.tests.runtime.${project.property('target')}Test.*"
+            }
+        }
+
         testLogging {
             events "passed", "skipped", "failed"
             showStandardStreams = true

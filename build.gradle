@@ -8,7 +8,7 @@ plugins {
 
 spotless {
     format 'misc', {
-        target project.fileTree(project.rootDir) {
+        target rootProject.fileTree(rootProject.rootDir) {
             include '**/*.gradle', '**/*.md', '.gitignore', '**/*.yml', '**/*.sh', '**/*.psi'
             exclude '**/reactor-cpp/**', '**/reactor-c/**', '**/reactor-rs/**', '**/lf-python-support/**',
                     '**/src-gen/**', '**/fed-gen/**', '**/test-gen/**', '**/build/**',
@@ -29,8 +29,8 @@ spotless {
 }
 
 // Make the LF formatting task depend on lff
-spotlessLinguaFranca.dependsOn(':org.lflang:cli:lff:installDist')
-spotlessLinguaFranca.inputs.files(tasks.getByPath(':org.lflang:cli:lff:installDist').outputs)
+spotlessLinguaFranca.dependsOn('org.lflang:cli:lff:installDist')
+spotlessLinguaFranca.inputs.files(tasks.getByPath('org.lflang:cli:lff:installDist').outputs)
 
 distributions {
     clitools {
@@ -57,4 +57,12 @@ tasks.register('runLfc', JavaExec) {
 }
 tasks.register('runLff', JavaExec) {
     dependsOn('org.lflang:cli:lff:run')
+}
+tasks.register('targetTest') {
+    if (!project.hasProperty('target')) {
+        def testFiles = rootProject.fileTree("${rootProject.rootDir}/org.lflang/core/src/integrationTest/java/org/lflang/tests/runtime").files
+        def targets = testFiles.collect {it.getName().substring(0, it.getName().length() - 9);}
+        throw new GradleException("Please set the \'target\' project property using -Ptarget=<...>. You may chose any of $targets")
+    }
+    finalizedBy('org.lflang:core:integrationTest')
 }
