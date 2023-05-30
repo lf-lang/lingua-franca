@@ -21,7 +21,6 @@ public class CArduinoTest extends RuntimeTest {
   }
 
   @Test
-  @Tag("Integration")
   public void buildArduinoTests() {
     Assumptions.assumeFalse(isWindows(), Message.NO_WINDOWS_SUPPORT);
     super.runTestsFor(

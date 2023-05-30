@@ -24,32 +24,36 @@
  ***************/
 package org.lflang.tests.runtime;
 
+import java.util.Properties;
 import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.Disabled;
-import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.lflang.Target;
 import org.lflang.tests.RuntimeTest;
 
 /**
- * Collection of tests for the C target.
+ * Collection of tests for the Python target.
  *
- * <p>Tests that are implemented in the base class are still overridden so that each test can be
- * easily invoked individually from IDEs with JUnit support like Eclipse and IntelliJ. This is
- * typically done by right-clicking on the name of the test method and then clicking "Run".*
+ * <p>Even though all tests are implemented in the base class, we override them here so that each
+ * test can be easily invoked individually from IDEs with JUnit support like Eclipse and IntelliJ.
+ * This is typically done by right-clicking on the name of the test method and then clicking "Run".
  *
  * @author Marten Lohstroh
  */
-public class CTest extends RuntimeTest {
+public class PythonTest extends RuntimeTest {
 
-  public CTest() {
-    super(Target.C);
+  public PythonTest() {
+    super(Target.Python);
   }
 
   @Override
-  @Tag("Integration")
-  protected boolean supportsSingleThreadedExecution() {
-    return true;
+  protected void addExtraLfcArgs(Properties args) {
+    super.addExtraLfcArgs(args);
+    if (System.getProperty("os.name").startsWith("Windows")) {
+      // Use the RelWithDebInfo build type on Windows as the Debug/Test build type produces linker
+      // Errors in CI
+      args.setProperty("build-type", "RelWithDebInfo");
+    }
   }
 
   @Override
@@ -58,42 +62,35 @@ public class CTest extends RuntimeTest {
   }
 
   @Override
-  protected boolean supportsDockerOption() {
+  protected boolean supportsSingleThreadedExecution() {
     return true;
   }
 
+  @Override
+  protected boolean supportsDockerOption() {
+    return false; // FIXME: https://issues.lf-lang.org/1564
+  }
+
   @Test
-  @Tag("Integration")
   @Override
   public void runGenericTests() {
     super.runGenericTests();
   }
 
   @Test
-  @Tag("Integration")
   @Override
   public void runTargetSpecificTests() {
-    Assumptions.assumeFalse(isWindows(), Message.NO_WINDOWS_SUPPORT);
     super.runTargetSpecificTests();
   }
 
   @Test
-  @Tag("Integration")
   @Override
   public void runMultiportTests() {
     super.runMultiportTests();
   }
 
   @Test
-  @Tag("Integration")
-  @Override
-  public void runWithThreadingOff() {
-    super.runWithThreadingOff();
-  }
-
-  @Test
-  @Tag("Integration")
-  @Disabled("TODO only 27/96 tests pass")
+  @Disabled("TODO")
   @Override
   public void runAsFederated() {
     Assumptions.assumeFalse(isWindows(), Message.NO_WINDOWS_SUPPORT);
@@ -101,14 +98,12 @@ public class CTest extends RuntimeTest {
   }
 
   @Test
-  @Tag("Integration")
   @Override
   public void runConcurrentTests() {
     super.runConcurrentTests();
   }
 
   @Test
-  @Tag("Integration")
   @Override
   public void runFederatedTests() {
     Assumptions.assumeFalse(isWindows(), Message.NO_WINDOWS_SUPPORT);
@@ -116,26 +111,12 @@ public class CTest extends RuntimeTest {
   }
 
   @Test
-  @Tag("Integration")
-  public void runModalTests() {
-    super.runModalTests();
-  }
-
-  @Test
-  @Tag("Integration")
-  public void runNoInliningTests() {
-    super.runNoInliningTests();
-  }
-
-  @Test
-  @Tag("Integration")
   @Override
   public void runDockerTests() {
     super.runDockerTests();
   }
 
   @Test
-  @Tag("Integration")
   @Override
   public void runDockerFederatedTests() {
     Assumptions.assumeFalse(isWindows(), Message.NO_WINDOWS_SUPPORT);

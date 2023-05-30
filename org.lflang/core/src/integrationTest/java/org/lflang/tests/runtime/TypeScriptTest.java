@@ -31,35 +31,30 @@ public class TypeScriptTest extends RuntimeTest {
   }
 
   @Test
-  @Tag("Integration")
   @Override
   public void runGenericTests() {
     super.runGenericTests();
   }
 
   @Test
-  @Tag("Integration")
   @Override
   public void runTargetSpecificTests() {
     super.runTargetSpecificTests();
   }
 
   @Test
-  @Tag("Integration")
   @Override
   public void runMultiportTests() {
     super.runMultiportTests();
   }
 
   @Test
-  @Tag("Integration")
   @Override
   public void runConcurrentTests() {
     super.runConcurrentTests();
   }
 
   @Test
-  @Tag("Integration")
   @Override
   public void runFederatedTests() {
     Assumptions.assumeFalse(isWindows(), Message.NO_WINDOWS_SUPPORT);
@@ -67,14 +62,12 @@ public class TypeScriptTest extends RuntimeTest {
   }
 
   @Test
-  @Tag("Integration")
   @Override
   public void runDockerTests() {
     super.runDockerTests();
   }
 
   @Test
-  @Tag("Integration")
   @Override
   public void runDockerFederatedTests() {
     Assumptions.assumeFalse(isWindows(), Message.NO_WINDOWS_SUPPORT);
@@ -82,7 +75,6 @@ public class TypeScriptTest extends RuntimeTest {
   }
 
   @Test
-  @Tag("Integration")
   @Override
   public void runAsFederated() {}
 }

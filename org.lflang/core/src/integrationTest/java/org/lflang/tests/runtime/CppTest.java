@@ -51,41 +51,35 @@ public class CppTest extends RuntimeTest {
   }
 
   @Test
-  @Tag("Integration")
   @Override
   public void runGenericTests() {
     super.runGenericTests();
   }
 
   @Test
-  @Tag("Integration")
   @Override
   public void runTargetSpecificTests() {
     super.runTargetSpecificTests();
   }
 
   @Test
-  @Tag("Integration")
   @Override
   public void runMultiportTests() {
     super.runMultiportTests();
   }
 
   @Test
-  @Tag("Integration")
   @Override
   public void runConcurrentTests() {
     super.runConcurrentTests();
   }
 
   @Test
-  @Tag("Integration")
   @Override
   public void runFederatedTests() {
     super.runFederatedTests();
   }
 
   @Test
-  @Tag("Integration")
   public void runRos2Tests() {}
 }

@@ -25,36 +25,42 @@ dependencies {
     testFixturesImplementation "org.eclipse.xtext:org.eclipse.xtext.xbase.testing:$xtextVersion"
 }
 
-def integrationTest = false
-tasks.register('integration') {
-    integrationTest = true
+
+testing {
+    suites {
+        test {
+            useJUnitJupiter()
+        }
+
+        integrationTest(JvmTestSuite) {
+            dependencies {
+                implementation project()
+                implementation testFixtures(project())
+            }
+        }
+    }
 }
-integration.finalizedBy(test)
 
 test {
-    useJUnitPlatform {
-        if (integrationTest) {
-            includeTags 'Integration'
-        } else {
-            excludeTags 'Integration'
-        }
-    }
-
-    if (integrationTest && project.hasProperty('target')) {
-        filter {
-            includeTestsMatching "org.lflang.tests.runtime.${project.property('target')}Test.*"
-        }
-    }
 
     testLogging {
         events "passed", "skipped", "failed"
         showStandardStreams = true
         exceptionFormat "full"
     }
+    integrationTest {
+        testLogging {
+            events "passed", "skipped", "failed"
+            showStandardStreams = true
+            exceptionFormat "full"
+        }
+
+        failFast = true
+        workingDir = rootProject.projectDir
+    }
+
     maxParallelForks = Runtime.runtime.availableProcessors().intdiv(2) ?: 1
-
     failFast = true
-
     workingDir = rootProject.projectDir
 }
 

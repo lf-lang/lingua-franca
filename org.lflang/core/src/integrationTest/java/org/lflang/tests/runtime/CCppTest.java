@@ -27,7 +27,6 @@ public class CCppTest extends TestBase {
 
   /** Run C tests with the target CCpp. */
   @Test
-  @Tag("Integration")
   public void runAsCCpp() {
     Assumptions.assumeFalse(isWindows(), Message.NO_WINDOWS_SUPPORT);
     runTestsForTargets(

@@ -45,7 +45,6 @@ public class CZephyrTest extends RuntimeTest {
   }
 
   @Test
-  @Tag("Integration")
   public void buildZephyrTests() {
     Assumptions.assumeTrue(isLinux(), "Zephyr tests only run on Linux");
     super.runTestsFor(
@@ -58,7 +57,6 @@ public class CZephyrTest extends RuntimeTest {
   }
 
   @Test
-  @Tag("Integration")
   public void buildGenericTests() {
     Assumptions.assumeTrue(isLinux(), "Zephyr tests only run on Linux");
     super.runTestsFor(

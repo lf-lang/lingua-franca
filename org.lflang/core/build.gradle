@@ -4,19 +4,24 @@ plugins {
 }
 
 sourceSets {
-  main {
-    java {
-       srcDirs = ['src/main/java', 'src-gen']
+    main {
+        java {
+            srcDirs = ['src/main/java', 'src-gen']
+        }
+        resources {
+            srcDirs = ['src/main/resources', 'src-gen']
+        }
     }
-    resources {
-       srcDirs = ['src/main/resources', 'src-gen']
+    test {
+        java {
+            srcDirs = ['src/test/java', 'test-gen']
+        }
     }
-  }
-  test {
-    java {
-      srcDirs = ['src/test/java', 'test-gen']
+    testFixtures {
+        java {
+            srcDirs = ['src/testFixtures/java', 'test-gen']
+        }
     }
-  }
 }
 
 dependencies {

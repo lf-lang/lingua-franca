@@ -23,7 +23,6 @@ public class SerializationTest extends TestBase {
   }
 
   @Test
-  @Tag("Integration")
   public void runSerializationTestsWithThreadingOff() {
     Assumptions.assumeTrue(supportsSingleThreadedExecution(), Message.NO_SINGLE_THREADED_SUPPORT);
     runTestsForTargets(
@@ -35,7 +34,6 @@ public class SerializationTest extends TestBase {
   }
 
   @Test
-  @Tag("Integration")
   public void runSerializationTests() {
     Assumptions.assumeFalse(isWindows(), Message.NO_WINDOWS_SUPPORT);
     runTestsForTargets(

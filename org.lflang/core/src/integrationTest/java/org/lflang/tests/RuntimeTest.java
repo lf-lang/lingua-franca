@@ -55,7 +55,6 @@ public abstract class RuntimeTest extends TestBase {
   }
 
   @Test
-  @Tag("Integration")
   public void runGenericTests() {
     runTestsForTargets(
         Message.DESC_GENERIC,
@@ -66,7 +65,6 @@ public abstract class RuntimeTest extends TestBase {
   }
 
   @Test
-  @Tag("Integration")
   public void runTargetSpecificTests() {
     runTestsForTargets(
         Message.DESC_TARGET_SPECIFIC,
@@ -77,7 +75,6 @@ public abstract class RuntimeTest extends TestBase {
   }
 
   @Test
-  @Tag("Integration")
   public void runMultiportTests() {
     runTestsForTargets(
         Message.DESC_MULTIPORT,
@@ -88,7 +85,6 @@ public abstract class RuntimeTest extends TestBase {
   }
 
   @Test
-  @Tag("Integration")
   public void runTypeParameterTests() {
     Assumptions.assumeTrue(supportsGenericTypes(), Message.NO_GENERICS_SUPPORT);
     runTestsForTargets(
@@ -100,7 +96,6 @@ public abstract class RuntimeTest extends TestBase {
   }
 
   @Test
-  @Tag("Integration")
   public void runAsFederated() {
     Assumptions.assumeTrue(supportsFederatedExecution(), Message.NO_FEDERATION_SUPPORT);
 
@@ -122,7 +117,6 @@ public abstract class RuntimeTest extends TestBase {
   }
 
   @Test
-  @Tag("Integration")
   public void runConcurrentTests() {
     runTestsForTargets(
         Message.DESC_CONCURRENT,
@@ -133,7 +127,6 @@ public abstract class RuntimeTest extends TestBase {
   }
 
   @Test
-  @Tag("Integration")
   public void runFederatedTests() {
     Assumptions.assumeTrue(supportsFederatedExecution(), Message.NO_FEDERATION_SUPPORT);
     runTestsForTargets(
@@ -146,7 +139,6 @@ public abstract class RuntimeTest extends TestBase {
 
   /** Run the tests for modal reactors. */
   @Test
-  @Tag("Integration")
   public void runModalTests() {
     runTestsForTargets(
         Message.DESC_MODAL,
@@ -158,7 +150,6 @@ public abstract class RuntimeTest extends TestBase {
 
   /** Run the tests for non-inlined reaction bodies. */
   @Test
-  @Tag("Integration")
   public void runNoInliningTests() {
     runTestsForTargets(
         Message.DESC_MODAL,
@@ -173,7 +164,6 @@ public abstract class RuntimeTest extends TestBase {
    * platform is not Linux or target does not support Docker.
    */
   @Test
-  @Tag("Integration")
   public void runDockerTests() {
     Assumptions.assumeTrue(isLinux(), Message.NO_DOCKER_TEST_SUPPORT);
     Assumptions.assumeTrue(supportsDockerOption(), Message.NO_DOCKER_SUPPORT);
@@ -191,7 +181,6 @@ public abstract class RuntimeTest extends TestBase {
    * tests.
    */
   @Test
-  @Tag("Integration")
   public void runDockerFederatedTests() {
     Assumptions.assumeTrue(isLinux(), Message.NO_DOCKER_TEST_SUPPORT);
     Assumptions.assumeTrue(supportsDockerOption(), Message.NO_DOCKER_SUPPORT);
@@ -205,7 +194,6 @@ public abstract class RuntimeTest extends TestBase {
   }
 
   @Test
-  @Tag("Integration")
   public void runWithThreadingOff() {
     Assumptions.assumeTrue(supportsSingleThreadedExecution(), Message.NO_SINGLE_THREADED_SUPPORT);
     this.runTestsForTargets(
@@ -218,7 +206,6 @@ public abstract class RuntimeTest extends TestBase {
 
   /** Run enclave tests if the target supports enclaves. */
   @Test
-  @Tag("Integration")
   public void runEnclaveTests() {
     Assumptions.assumeTrue(supportsEnclaves(), Message.NO_ENCLAVE_SUPPORT);
     runTestsForTargets(

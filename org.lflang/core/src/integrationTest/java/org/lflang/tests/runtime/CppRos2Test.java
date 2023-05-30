@@ -24,7 +24,6 @@ public class CppRos2Test extends TestBase {
 
   /** Run C++ tests with the ros2 target property set */
   @Test
-  @Tag("Integration")
   public void runWithRos2() {
     Assumptions.assumeTrue(isLinux(), "Only supported on Linux");
     Element trueLiteral = LfFactory.eINSTANCE.createElement();

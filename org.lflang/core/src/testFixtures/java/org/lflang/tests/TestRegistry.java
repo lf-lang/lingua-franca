@@ -200,10 +200,11 @@ public class TestRegistry {
       // Walk the tree.
       try {
         Path dir = LF_TEST_PATH.resolve(target.getDirectoryName()).resolve("src");
+        System.out.println(dir.toAbsolutePath());
         if (Files.exists(dir)) {
           new TestDirVisitor(rs, target, dir).walk();
         } else {
-          System.out.println("WARNING: No test directory for target " + target + "\n");
+          System.out.println("WARNING: No test directory for target  " + target + "\n");
         }
 
       } catch (IOException e) {
