@@ -52,15 +52,14 @@ test {
         // Pass properties on to the Java VM
         systemProperty 'scheduler', System.getProperty('scheduler')
         systemProperty 'runtime', System.getProperty('runtime')
-        if (rootProject.hasProperty('singleTest')) {
-            systemProperty 'singleTest', rootProject.getProperty('singleTest')
-        }
+        systemProperty 'singleTest', System.getProperty('singleTest')
 
         if (project.hasProperty('target')) {
             filter {
                 includeTestsMatching "org.lflang.tests.runtime.${project.property('target')}Test.*"
             }
-        } else if (project.hasProperty('singleTest')) {
+        }
+        if (System.getProperty('singleTest') != null) {
             filter {
                 includeTestsMatching "org.lflang.tests.RunSingleTest.runSingleTest"
             }

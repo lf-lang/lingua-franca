@@ -67,8 +67,8 @@ tasks.register('targetTest') {
     finalizedBy('org.lflang:core:integrationTest')
 }
 tasks.register('singleTest') {
-    if (!project.hasProperty('singleTest')) {
-        throw new GradleException('Please set the \'singleTest\' project property using -PsingleTest=<...> to specify the LF test file that you would like to run.')
+    if (System.getProperty('singleTest') == null) {
+        throw new GradleException('Please set the \'singleTest\' system property using -DsingleTest=<...> to specify the LF test file that you would like to run.')
     }
     finalizedBy('org.lflang:core:integrationTest')
 }
