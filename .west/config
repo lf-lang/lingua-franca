@@ -1,4 +1,0 @@
-[manifest]
-path = /home/erling/dev/lf-west-template/deps/zephyr
-file = west.yml
-
