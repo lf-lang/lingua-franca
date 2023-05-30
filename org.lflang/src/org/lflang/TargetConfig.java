@@ -408,6 +408,12 @@ public class TargetConfig {
      * you use to flash the boards.
      */
     public boolean flash = false;
+
+    /**
+     * The int value is used to determine the number of needed threads for the user application in
+     * Zephyr.
+     */
+    public int userThreads = 0;
   }
 
   /** Settings related to tracing options. */
