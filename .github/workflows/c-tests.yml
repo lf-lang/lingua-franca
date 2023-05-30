@@ -62,7 +62,7 @@ jobs:
           ./gradlew integration -Ptarget=C -Dscheduler=${{ inputs.scheduler }}
         if: ${{ !inputs.use-cpp && inputs.scheduler }}
       - name: Perform tests for CCpp target with default scheduler
-        run: ./gradlew integration -Ptarget=CCpp
+        run: ./gradlew targetTest -Ptarget=CCpp
         if: ${{ inputs.use-cpp && !inputs.scheduler }}
       - name: Collect code coverage
         run: ./gradlew jacocoTestReport

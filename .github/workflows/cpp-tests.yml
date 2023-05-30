@@ -48,7 +48,7 @@ jobs:
         if: ${{ inputs.runtime-ref }}
       - name: Run C++ tests;
         run: |
-          ./gradlew integration -Ptarget=Cpp
+          ./gradlew targetTest -Ptarget=Cpp
       - name: Collect code coverage
         run: ./gradlew jacocoTestReport
       - name: Report to CodeCov

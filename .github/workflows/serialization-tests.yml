@@ -31,7 +31,7 @@ jobs:
       - name: Run serialization tests;
         run: |
           source /opt/ros/*/setup.bash
-          ./gradlew org.lflang:core:test --test org.lflang.test.serialization.SerializationTest.*
+          ./gradlew org.lflang:core:integrationTest --test org.lflang.test.serialization.SerializationTest.*
       - name: Collect code coverage
         run: ./gradlew jacocoTestReport
       - name: Report to CodeCov

@@ -60,7 +60,7 @@ jobs:
           ref: ${{ inputs.reactor-c-py-ref }}
         if: ${{ inputs.reactor-c-py-ref }}
       - name: Run Python tests
-        run: ./gradlew integration -Ptarget=Python
+        run: ./gradlew targetTest -Ptarget=Python
       - name: Collect code coverage
         run: ./gradlew jacocoTestReport
       - name: Report to CodeCov

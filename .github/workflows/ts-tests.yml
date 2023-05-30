@@ -33,7 +33,7 @@ jobs:
         if: ${{ runner.os == 'macOS' }}
       - name: Perform TypeScript tests
         run: |
-          ./gradlew integration -Ptarget=TypeScript -Druntime="git://github.com/lf-lang/reactor-ts.git#minor-reorg"
+          ./gradlew targetTest -Ptarget=TypeScript -Druntime="git://github.com/lf-lang/reactor-ts.git#minor-reorg"
       - name: Collect code coverage
         run: ./gradlew jacocoTestReport
       - name: Report to CodeCov
