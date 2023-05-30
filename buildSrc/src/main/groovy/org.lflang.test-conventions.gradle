@@ -82,6 +82,8 @@ test {
 }
 
 jacocoTestReport {
+    getExecutionData().setFrom(fileTree(buildDir).include("/jacoco/*.exec"))
+
     reports {
         xml.required = true
         csv.required = false
