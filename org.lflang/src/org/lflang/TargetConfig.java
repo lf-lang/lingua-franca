@@ -94,21 +94,27 @@ public class TargetConfig {
     if (cliArgs.containsKey("build-type")) {
       this.cmakeBuildType =
           (BuildType) UnionType.BUILD_TYPE_UNION.forName(cliArgs.getProperty("build-type"));
+      this.setByUser.add(TargetProperty.BUILD_TYPE);
     }
     if (cliArgs.containsKey("logging")) {
       this.logLevel = LogLevel.valueOf(cliArgs.getProperty("logging").toUpperCase());
+      this.setByUser.add(TargetProperty.LOGGING);
     }
     if (cliArgs.containsKey("workers")) {
       this.workers = Integer.parseInt(cliArgs.getProperty("workers"));
+      this.setByUser.add(TargetProperty.WORKERS);
     }
     if (cliArgs.containsKey("threading")) {
       this.threading = Boolean.parseBoolean(cliArgs.getProperty("threading"));
+      this.setByUser.add(TargetProperty.THREADING);
     }
     if (cliArgs.containsKey("target-compiler")) {
       this.compiler = cliArgs.getProperty("target-compiler");
+      this.setByUser.add(TargetProperty.COMPILER);
     }
     if (cliArgs.containsKey("tracing")) {
       this.tracing = new TracingOptions();
+      this.setByUser.add(TargetProperty.TRACING);
     }
     if (cliArgs.containsKey("scheduler")) {
       this.schedulerType = SchedulerOption.valueOf(cliArgs.getProperty("scheduler"));
@@ -119,19 +125,24 @@ public class TargetConfig {
       if (!cliArgs.getProperty("target-flags").isEmpty()) {
         this.compilerFlags.addAll(List.of(cliArgs.getProperty("target-flags").split(" ")));
       }
+      this.setByUser.add(TargetProperty.FLAGS);
     }
     if (cliArgs.containsKey("runtime-version")) {
       this.runtimeVersion = cliArgs.getProperty("runtime-version");
+      this.setByUser.add(TargetProperty.RUNTIME_VERSION);
     }
     if (cliArgs.containsKey("external-runtime-path")) {
       this.externalRuntimePath = cliArgs.getProperty("external-runtime-path");
+      this.setByUser.add(TargetProperty.EXTERNAL_RUNTIME_PATH);
     }
     if (cliArgs.containsKey(TargetProperty.KEEPALIVE.description)) {
       this.keepalive =
           Boolean.parseBoolean(cliArgs.getProperty(TargetProperty.KEEPALIVE.description));
+      this.setByUser.add(TargetProperty.KEEPALIVE);
     }
     if (cliArgs.containsKey(BuildParm.PRINT_STATISTICS.getKey())) {
       this.printStatistics = true;
+      this.setByUser.add(TargetProperty.PRINT_STATISTICS);
     }
   }
 
