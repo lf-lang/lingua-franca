@@ -24,7 +24,7 @@ reactor Source(period: time = 3000 msec) {
         if (2 * (self->count / 2) != self->count) {
             // The count variable is odd.
             // Take time to cause a deadline violation.
-            lf_sleep(MSEC(210));
+            lf_sleep(MSEC(1100));
         }
         printf("Source sends: %d.\n", self->count);
         lf_set(y, self->count);
@@ -57,6 +57,6 @@ reactor Destination(timeout: time = 1 sec) {
 
 main reactor {
     s = new Source()
-    d = new Destination(timeout = 200 msec)
+    d = new Destination(timeout = 1 s)
     s.y -> d.x
 }

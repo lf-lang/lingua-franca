@@ -18,7 +18,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  run:
+  get-latest-release:
     runs-on: ubuntu-latest
     outputs:
       ref: ${{ steps.find.outputs.ref }}
