@@ -418,8 +418,10 @@ public class CGenerator extends GeneratorBase {
       generateHeaders();
       code.writeToFile(targetFile);
     } catch (IOException e) {
-      //noinspection ThrowableNotThrown,ResultOfMethodCallIgnored
-      Exceptions.sneakyThrow(e);
+      errorReporter.reportError(e.getMessage());
+    } catch (RuntimeException e) {
+      errorReporter.reportError(e.getMessage());
+      throw e;
     }
 
     // Create docker file.
