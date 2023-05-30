@@ -97,6 +97,7 @@ public class TargetConfig {
     }
     if (cliArgs.containsKey("logging")) {
       this.logLevel = LogLevel.valueOf(cliArgs.getProperty("logging").toUpperCase());
+      this.setByUser.add(TargetProperty.LOGGING);
     }
     if (cliArgs.containsKey("workers")) {
       this.workers = Integer.parseInt(cliArgs.getProperty("workers"));
