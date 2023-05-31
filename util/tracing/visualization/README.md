@@ -1,6 +1,6 @@
 # Trace sequence diagram visualizer
 
-`fedsd` is a utility tool that reports the interactions (exchanged messages)
+`fedsd` is a utility that reports the interactions (exchanged messages)
 between federates and the RTI in a sequence-diagram-like format.
 
 To use `fedsd`, you need to first obtain an execution trace. To do this, enable the tracing mechanism in your Lingua Franca program by setting the `tracing` target property to `true` and then compile and run the program.
