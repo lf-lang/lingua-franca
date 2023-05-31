@@ -65,12 +65,12 @@ public class CTriggerObjectsGenerator {
     code.pr(
         String.join(
             "\n",
-            "int startup_reaction_count[_num_enclaves] = {0};",
-            "int shutdown_reaction_count[_num_enclaves] = {0};",
-            "int reset_reaction_count[_num_enclaves] = {0};",
-            "int timer_triggers_count[_num_enclaves] = {0};",
-            "int modal_state_reset_count[_num_enclaves] = {0};",
-            "int modal_reactor_count[_num_enclaves] = {0};"));
+            "int startup_reaction_count[_num_enclaves] = {0}; SUPPRESS_UNUSED_WARNING(startup_reaction_count);",
+            "int shutdown_reaction_count[_num_enclaves] = {0}; SUPPRESS_UNUSED_WARNING(shutdown_reaction_count);",
+            "int reset_reaction_count[_num_enclaves] = {0}; SUPPRESS_UNUSED_WARNING(reset_reaction_count);",
+            "int timer_triggers_count[_num_enclaves] = {0} SUPPRESS_UNUSED_WARNING(timer_triggers_count);;",
+            "int modal_state_reset_count[_num_enclaves] = {0}; SUPPRESS_UNUSED_WARNING(modal_state_reset_count);",
+            "int modal_reactor_count[_num_enclaves] = {0}; SUPPRESS_UNUSED_WARNING(modal_reactor_count);"));
 
     // Create the table to initialize intended tag fields to 0 between time
     // steps.
