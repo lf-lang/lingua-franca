@@ -18,15 +18,15 @@ reactor Sender {
         tag = lf.tag()
         print("Sending 42 at ({}, {}).".format(
                      lf.time.logical_elapsed(),
-                     lf.tag().microstep))
+                     tag.microstep))
         out.set(42)
-        if lf.tag().microstep == 0:
+        if tag.microstep == 0:
             # Instead of having a separate reaction
             # for 'act' like Stop.lf, we trigger the
             # same reaction to test request_stop() being
             # called multiple times
             act.schedule(0)
-        if tag.time == USEC(1):
+        if lf.time.logical_elapsed() == USEC(1):
             # Call request_stop() both at (1 usec, 0) and
             # (1 usec, 1)
             print("Requesting stop at ({}, {}).".format(
