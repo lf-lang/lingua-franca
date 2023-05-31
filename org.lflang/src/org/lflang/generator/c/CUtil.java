@@ -137,7 +137,7 @@ public class CUtil {
    * (to allow for instantiations that have the same name as the main reactor or the .lf file).
    */
   public static String getName(TypeParameterizedReactor reactor) {
-    String name = reactor.reactor().getName().toLowerCase() + reactor.hashCode();
+    String name = reactor.uniqueName();
     if (reactor.reactor().isMain()) {
       return name + "_main";
     }

@@ -18,6 +18,9 @@ import org.lflang.lf.Type;
  */
 public record TypeParameterizedReactor(Reactor reactor, Map<String, Type> typeArgs) {
 
+  private static final Map<TypeParameterizedReactor, String> uniqueNames = new HashMap<>();
+  private static final Map<String, Integer> nameCounts = new HashMap<>();
+
   /**
    * Construct the TPR corresponding to the given instantiation which syntactically appears within
    * the definition corresponding to {@code parent}.
@@ -84,9 +87,22 @@ public record TypeParameterizedReactor(Reactor reactor, Map<String, Type> typeAr
     return InferredType.fromAST(resolveType(t.astType));
   }
 
+  public String uniqueName() {
+    if (uniqueNames.containsKey(this)) return uniqueNames.get(this);
+    if (nameCounts.containsKey(reactor.getName())) {
+      int currentCount = nameCounts.get(reactor.getName());
+      nameCounts.put(reactor.getName(), currentCount + 1);
+      uniqueNames.put(this, reactor.getName() + currentCount);
+      return uniqueName();
+    }
+    nameCounts.put(reactor.getName(), 1);
+    uniqueNames.put(this, reactor.getName());
+    return uniqueName();
+  }
+
   @Override
   public int hashCode() {
-    return Math.abs(reactor.hashCode() * 31 + typeArgs.hashCode());
+    return reactor.hashCode() * 31 + typeArgs.hashCode();
   }
 
   @Override
