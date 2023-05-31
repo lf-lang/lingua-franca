@@ -56,6 +56,7 @@ Model:
     target=TargetDecl
     (imports+=Import)*
     (preambles+=Preamble)*
+    (bundles+=Bundle)*
     (reactors+=Reactor)+
     ;
 
@@ -85,6 +86,7 @@ Reactor:
         | (methods+=Method)
         | (inputs+=Input)
         | (outputs+=Output)
+        | (bundles+=BundledPort)
         | (timers+=Timer)
         | (actions+=Action)
         | (watchdogs+=Watchdog)
@@ -94,6 +96,18 @@ Reactor:
         | (modes+=Mode)
     )* '}';
 
+/*
+ * Declaration of a Bundle
+ */
+Bundle:
+    {Bundle} (attributes+=Attribute)* 'bundle' name=ID
+    ('<' typeParms+=TypeParm (',' typeParms+=TypeParm)* '>')?
+    '{'
+    (
+          (inputs+=Input)
+        | (outputs+=Output)
+        | (connections+=Connection)
+    )* '}';
 
 TypeParm:
     literal=TypeExpr | code=Code
@@ -161,6 +175,9 @@ Input:
 
 Output:
     (attributes+=Attribute)* 'output' (widthSpec=WidthSpec)? name=ID (':' type=Type)? ';'?;
+
+BundledPort:
+    (attributes+=Attribute)* 'port' (widthSpec=WidthSpec)? name=ID (':' type=Type)? ';'?;
 
 // Timing specification for a timer: (offset, period)
 // Can be empty, which means (0,0) = (NOW, ONCE).
@@ -512,6 +529,7 @@ Token:
     'startup' | 'shutdown' | 'after' | 'deadline' | 'mutation' | 'preamble' |
     'new' | 'federated' | 'at' | 'as' | 'from' | 'widthof' | 'const' | 'method' |
     'interleaved' | 'mode' | 'initial' | 'reset' | 'history' | 'watchdog' | 'named' |
+    'bundle' | 'port' |
 
     // Other terminals
     NEGINT | TRUE | FALSE |
@@ -533,6 +551,8 @@ Token:
     '_' |
     // Arrow
     '->' |
+    // BiDirectional Arrow
+    '<->' |
     // Assignment
     '=' |
     // Percentage
