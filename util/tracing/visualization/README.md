@@ -23,7 +23,7 @@ enable tracing, by adding the option `-t`:
 $ RTI -n <number_of_federates> -t
 ```
 
-For convenience, the RTI and all federates should be launched from the same directory.
+It is most convenient to launch the RTI and all federates from the same working directory so that they will all write their trace file to that directory.
 
 
 Once the federation stopped executing, run `fedsd` on all generated `.lft` files:
@@ -33,5 +33,4 @@ $ fedsd *.lft
 
 The output is an html file named `trace_svg.html` (in the current directory) that contains the sequence of interactions
 between the federates and the RTI.
-
 
