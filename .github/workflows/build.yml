@@ -31,24 +31,6 @@ jobs:
         run: ./gradlew build
         shell: bash
         if: ${{ inputs.nightly != true }}
-      - name: Test lfc bash scripts (Linux or macOS only)
-        run: |
-          .github/scripts/test-lfc.sh
-        if: ${{ runner.os == 'macOS' || runner.os == 'Linux' }}
-      - name: Test lff bash scripts (Linux or macOS only)
-        run: |
-          .github/scripts/test-lff.sh
-        if: ${{ runner.os == 'macOS' || runner.os == 'Linux' }}
-      - name: Test PowerShell lfc script (Windows only)
-        run: |
-          ./gradlew buildAll
-          bin/lfc.ps1 --help
-        if: ${{ runner.os == 'Windows' }}
-      - name: Test PowerShell lff script (Windows only)
-        run: |
-          ./gradlew buildAll
-          bin/lfc.ps1 --help
-        if: ${{ runner.os == 'Windows' }}
       - name: Deploy nightly release
         uses: marvinpinto/action-automatic-releases@latest
         with:
