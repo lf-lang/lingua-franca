@@ -87,6 +87,7 @@ Reactor:
         | (inputs+=Input)
         | (outputs+=Output)
         | (bundles+=BundledPort)
+        | (mirroredBundles+=Mirror)
         | (timers+=Timer)
         | (actions+=Action)
         | (watchdogs+=Watchdog)
@@ -178,6 +179,9 @@ Output:
 
 BundledPort:
     (attributes+=Attribute)* 'port' (widthSpec=WidthSpec)? name=ID (':' type=Type)? ';'?;
+
+Mirror:
+    'port' (widthSpec=WidthSpec)? name=ID (':' 'Mirrored') ('(' type=Type ')') ';'?;
 
 // Timing specification for a timer: (offset, period)
 // Can be empty, which means (0,0) = (NOW, ONCE).
@@ -529,7 +533,7 @@ Token:
     'startup' | 'shutdown' | 'after' | 'deadline' | 'mutation' | 'preamble' |
     'new' | 'federated' | 'at' | 'as' | 'from' | 'widthof' | 'const' | 'method' |
     'interleaved' | 'mode' | 'initial' | 'reset' | 'history' | 'watchdog' | 'named' |
-    'bundle' | 'port' |
+    'bundle' | 'port' | 'Mirrored' |
 
     // Other terminals
     NEGINT | TRUE | FALSE |
