@@ -38,7 +38,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
 grammar org.lflang.LF
-    hidden(WS, ML_COMMENT, SL_COMMENT)
+    hidden(WS, LF, CR, ML_COMMENT, SL_COMMENT)
 
 import "http://www.eclipse.org/emf/2002/Ecore" as ecore
 
@@ -64,7 +64,7 @@ Model:
 /**
  * Import declaration.
  */
-Import: 'import' reactorClasses+=ImportedReactor (',' reactorClasses+=ImportedReactor)* 'from' importURI=STRING ';'?;
+Import: 'import' reactorClasses+=ImportedReactor (',' reactorClasses+=ImportedReactor)* 'from' importURI=STRING Newline;
 
 ReactorDecl: Reactor | ImportedReactor;
 
@@ -109,7 +109,7 @@ TypeExpr:
  * YAML format to pass on configuration details to the runtime environment.
  */
 TargetDecl:
-    'target' name=ID (config=KeyValuePairs)? ';'?;
+    'target' name=ID (config=KeyValuePairs)? Newline;
 
 
 /////////// Statements
@@ -133,7 +133,7 @@ TargetDecl:
     (reset?='reset')? 'state' name=ID
     (':' type=Type)?
     init=Initializer?
-    ';'?
+    Newline
 ;
 
 // An initializer expression. Used in state vars and parameters.
@@ -149,7 +149,7 @@ Method:
     '(' (arguments+=MethodArgument (',' arguments+=MethodArgument)*)? ')'
     (':' return=Type)?
     code=Code
-    ';'?
+    Newline
 ;
 
 MethodArgument:
@@ -157,17 +157,17 @@ MethodArgument:
 ;
 
 Input:
-    (attributes+=Attribute)* mutable?='mutable'? 'input' (widthSpec=WidthSpec)? name=ID (':' type=Type)? ';'?;
+    (attributes+=Attribute)* mutable?='mutable'? 'input' (widthSpec=WidthSpec)? name=ID (':' type=Type)? Newline;
 
 Output:
-    (attributes+=Attribute)* 'output' (widthSpec=WidthSpec)? name=ID (':' type=Type)? ';'?;
+    (attributes+=Attribute)* 'output' (widthSpec=WidthSpec)? name=ID (':' type=Type)? Newline;
 
 // Timing specification for a timer: (offset, period)
 // Can be empty, which means (0,0) = (NOW, ONCE).
 // E.g. (0) or (NOW) or (NOW, ONCE) or (100, 1000)
 // The latter means fire with period 1000, offset 100.
 Timer:
-   (attributes+=Attribute)* 'timer' name=ID ('(' offset=Expression (',' period=Expression)? ')')? ';'?;
+   (attributes+=Attribute)* 'timer' name=ID ('(' offset=Expression (',' period=Expression)? ')')? Newline;
 
 Mode:
     {Mode} (initial?='initial')? 'mode' (name=ID)?
@@ -195,7 +195,7 @@ Action:
     (attributes+=Attribute)*
     (origin=ActionOrigin)? 'action' name=ID
     ('(' minDelay=Expression (',' minSpacing=Expression (',' policy=STRING)? )? ')')?
-    (':' type=Type)? ';'?;
+    (':' type=Type)? Newline;
 
 Reaction:
     (attributes+=Attribute)*
@@ -231,7 +231,7 @@ Instantiation:
     name=ID '=' 'new' (widthSpec=WidthSpec)?
     reactorClass=[ReactorDecl] ('<' typeArgs+=Type (',' typeArgs+=Type)* '>')? '('
     (parameters+=Assignment (',' parameters+=Assignment)*)? 
-    ')' (('at' host=Host ';') | ';'?);
+    ')' (('at' host=Host ';') | Newline);
 
 Connection:
     ((leftPorts += VarRef (',' leftPorts += VarRef)*)
@@ -240,7 +240,7 @@ Connection:
     rightPorts += VarRef (',' rightPorts += VarRef)*
     ('after' delay=Expression)?
     (serializer=Serializer)?
-    ';'?
+    Newline
 ;
 
 // Chooses the serializer to use for the connection
@@ -401,7 +401,9 @@ Boolean:
 //// Note that the rest of the grammar implicitly defines
 //// keywords for every string literal, eg 'reaction'.
 
-terminal WS: (' '|'\t'|'\r'|'\n')+;
+terminal WS: (' '|'\t')+;
+terminal CR: '\r';
+terminal LF: '\n';
 
 terminal TRUE:  'true' | 'True';
 terminal FALSE: 'false' | 'False';
@@ -426,6 +428,9 @@ terminal CHAR_LIT: "'" ( '\\' . | !('\\' | "'" | '\t' | '\r' | '\n') )  "'";
 
 terminal ANY_OTHER: .;
 
+
+Newline: (LF | LF CR) ';'?
+;
 
 Kebab: (ID|"physical")('-'ID)*;
 
@@ -505,7 +510,7 @@ Body:
 // the end of a target-code segment.
 Token:
     // Non-constant terminals
-    ID | INT | FLOAT_EXP_SUFFIX | LT_ANNOT | STRING | CHAR_LIT | ML_COMMENT | SL_COMMENT | WS | ANY_OTHER |
+    ID | INT | FLOAT_EXP_SUFFIX | LT_ANNOT | STRING | CHAR_LIT | ML_COMMENT | SL_COMMENT | WS | LF | CR | ANY_OTHER |
     // Keywords
     'target' | 'import' | 'main' | 'realtime' | 'reactor' | 'state' | 'time' |
     'mutable' | 'input' | 'output' | 'timer' | 'action' | 'reaction' |
