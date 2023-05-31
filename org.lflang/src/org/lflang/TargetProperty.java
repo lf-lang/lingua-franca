@@ -442,6 +442,9 @@ public enum TargetProperty {
             case PORT:
               pair.setValue(ASTUtils.toElement(config.platformOptions.port));
               break;
+            case USER_THREADS:
+              pair.setValue(ASTUtils.toElement(config.platformOptions.userThreads));
+              break;
           }
           kvp.getPairs().add(pair);
         }
@@ -485,6 +488,9 @@ public enum TargetProperty {
                 break;
               case PORT:
                 config.platformOptions.port = ASTUtils.elementToSingleString(entry.getValue());
+                break;
+              case USER_THREADS:
+                config.platformOptions.userThreads = ASTUtils.toInteger(entry.getValue());
                 break;
               default:
                 break;
@@ -1645,7 +1651,8 @@ public enum TargetProperty {
     BAUDRATE("baud-rate", PrimitiveType.NON_NEGATIVE_INTEGER),
     BOARD("board", PrimitiveType.STRING),
     FLASH("flash", PrimitiveType.BOOLEAN),
-    PORT("port", PrimitiveType.STRING);
+    PORT("port", PrimitiveType.STRING),
+    USER_THREADS("user-threads", PrimitiveType.NON_NEGATIVE_INTEGER);
 
     public final PrimitiveType type;
 

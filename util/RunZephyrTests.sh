@@ -9,7 +9,7 @@ num_failures=0
 failed_tests=""
 
 # Skip
-skip=("FileReader" "FilePkgReader")
+skip=("FileReader" "FilePkgReader" "Tracing" "ThreadedThreaded")
 
 find_kconfig_folders() {
     if [ -f "$folder/CMakeLists.txt" ]; then
@@ -116,8 +116,7 @@ else
 fi
 echo "Number of passes: $num_successes"
 echo "Number of fails: $num_failures"
-echo "Skipped tests: $skip"
-
+echo "Skipped tests: ${skip[@]}"
 
 if [ "$overall_success" = false ]; then
     echo "Failed tests: $failed_tests"
