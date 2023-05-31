@@ -685,7 +685,7 @@ public class CGenerator extends GeneratorBase {
       code.pr(
           """
                  #ifndef FEDERATED
-                 void terminate_execution() {}
+                 void terminate_execution(environment_t* env) {}
                  #endif""");
 
       // Generate functions for modes
