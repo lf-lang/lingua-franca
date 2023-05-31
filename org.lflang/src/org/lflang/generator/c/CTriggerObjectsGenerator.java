@@ -44,8 +44,6 @@ public class CTriggerObjectsGenerator {
     var code = new CodeBuilder();
     code.pr("void _lf_initialize_trigger_objects() {");
     code.indent();
-    // Initialize the LF clock.
-    code.pr(String.join("\n", "// Initialize the _lf_clock", "lf_initialize_clock();"));
 
     // Initialize tracing if it is enabled
     if (targetConfig.tracing != null) {
