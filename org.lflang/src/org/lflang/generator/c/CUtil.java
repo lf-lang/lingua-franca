@@ -556,19 +556,19 @@ public class CUtil {
         + "_trigger";
   }
 
-    /**
-     * Given a reactor Class, return a set of include names for interacting reactors which includes
-     * all instantiations of base class that it extends.
-     */
-    public static HashSet<String> allIncludes(TypeParameterizedReactor tpr) {
-      var set = new HashSet<String>();
-      for (var i : ASTUtils.allInstantiations(tpr.reactor())) {
-        set.add(getName(new TypeParameterizedReactor(i, tpr)));
-      }
-      return set;
+  /**
+   * Given a reactor Class, return a set of include names for interacting reactors which includes
+   * all instantiations of base class that it extends.
+   */
+  public static HashSet<String> allIncludes(TypeParameterizedReactor tpr) {
+    var set = new HashSet<String>();
+    for (var i : ASTUtils.allInstantiations(tpr.reactor())) {
+      set.add(getName(new TypeParameterizedReactor(i, tpr)));
     }
+    return set;
+  }
 
-    //////////////////////////////////////////////////////
+  //////////////////////////////////////////////////////
   //// FIXME: Not clear what the strategy is with the following inner interface.
   // The {@code ReportCommandErrors} interface allows the
   // method runBuildCommand to call a protected

@@ -24,9 +24,10 @@ public record TypeParameterizedReactor(Reactor reactor, Map<String, Type> typeAr
   /**
    * Construct the TPR corresponding to the given instantiation which syntactically appears within
    * the definition corresponding to {@code parent}.
+   *
    * @param i An instantiation of the TPR to be constructed.
    * @param parent The reactor in which {@code i} appears, or {@code null} if type variables are
-   * permitted instead of types in this TPR.
+   *     permitted instead of types in this TPR.
    */
   public TypeParameterizedReactor(Instantiation i, TypeParameterizedReactor parent) {
     this(
@@ -34,12 +35,14 @@ public record TypeParameterizedReactor(Reactor reactor, Map<String, Type> typeAr
         addTypeArgs(i, ASTUtils.toDefinition(i.getReactorClass()), parent));
   }
 
-  private static Map<String, Type> addTypeArgs(Instantiation instantiation, Reactor r, TypeParameterizedReactor parent) {
+  private static Map<String, Type> addTypeArgs(
+      Instantiation instantiation, Reactor r, TypeParameterizedReactor parent) {
     HashMap<String, Type> ret = new HashMap<>();
     if (instantiation.getTypeArgs() != null) {
       for (int i = 0; i < r.getTypeParms().size(); i++) {
         var arg = instantiation.getTypeArgs().get(i);
-        ret.put(r.getTypeParms().get(i).getLiteral(), parent == null ? arg : parent.resolveType(arg));
+        ret.put(
+            r.getTypeParms().get(i).getLiteral(), parent == null ? arg : parent.resolveType(arg));
       }
     }
     return ret;

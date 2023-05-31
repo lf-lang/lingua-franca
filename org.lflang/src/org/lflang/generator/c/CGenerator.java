@@ -40,10 +40,8 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -89,7 +87,6 @@ import org.lflang.lf.Reaction;
 import org.lflang.lf.Reactor;
 import org.lflang.lf.ReactorDecl;
 import org.lflang.lf.StateVar;
-import org.lflang.lf.Type;
 import org.lflang.lf.Variable;
 import org.lflang.util.ArduinoUtil;
 import org.lflang.util.FileUtil;
@@ -1035,9 +1032,7 @@ public class CGenerator extends GeneratorBase {
     src.pr("#include \"include/" + CReactorHeaderFileGenerator.outputPath(tpr) + "\"");
     src.pr("#include \"" + headerName + "\"");
     tpr.doDefines(src);
-    CUtil.allIncludes(tpr).stream()
-        .map(name -> "#include \"" + name + ".h\"")
-        .forEach(header::pr);
+    CUtil.allIncludes(tpr).stream().map(name -> "#include \"" + name + ".h\"").forEach(header::pr);
   }
 
   private void generateReactorClassBody(

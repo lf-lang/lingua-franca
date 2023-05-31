@@ -372,7 +372,8 @@ public class CReactionGenerator {
       structs.put(definition, structBuilder);
     }
     String inputStructType =
-        CGenerator.variableStructType(input, new TypeParameterizedReactor(definition, container), false);
+        CGenerator.variableStructType(
+            input, new TypeParameterizedReactor(definition, container), false);
     String defName = definition.getName();
     String defWidth = generateWidthVariable(defName);
     String inputName = input.getName();
