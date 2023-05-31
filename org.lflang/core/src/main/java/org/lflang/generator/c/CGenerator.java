@@ -56,6 +56,7 @@ import org.lflang.Target;
 import org.lflang.TargetConfig;
 import org.lflang.TargetProperty;
 import org.lflang.TargetProperty.Platform;
+import org.lflang.TargetProperty.PlatformOption;
 import org.lflang.ast.ASTUtils;
 import org.lflang.ast.DelayedConnectionTransformation;
 import org.lflang.federated.extensions.CExtensionUtils;
@@ -713,9 +714,9 @@ public class CGenerator extends GeneratorBase {
       // from the federation and close any open sockets.
       code.pr(
           """
-                #ifndef FEDERATED
-                void terminate_execution() {}
-                #endif""");
+                 #ifndef FEDERATED
+                 void terminate_execution() {}
+                 #endif""");
 
       // Generate functions for modes
       code.pr(CModesGenerator.generateLfInitializeModes(hasModalReactors));
@@ -1142,13 +1143,13 @@ public class CGenerator extends GeneratorBase {
     federatedExtension.pr(
         String.format(
             """
-            #ifdef FEDERATED
-            #ifdef FEDERATED_DECENTRALIZED
-            %s intended_tag;
-            #endif
-            %s physical_time_of_arrival;
-            #endif
-            """,
+             #ifdef FEDERATED
+             #ifdef FEDERATED_DECENTRALIZED
+             %s intended_tag;
+             #endif
+             %s physical_time_of_arrival;
+             #endif
+             """,
             types.getTargetTagType(), types.getTargetTimeType()));
     for (Port p : allPorts(tpr.reactor())) {
       builder.pr(
@@ -2009,6 +2010,19 @@ public class CGenerator extends GeneratorBase {
               + " code only.");
       targetConfig.noCompile = true;
     }
+
+    if (targetConfig.platformOptions.platform == Platform.ZEPHYR
+        && targetConfig.threading
+        && targetConfig.platformOptions.userThreads >= 0) {
+      targetConfig.compileDefinitions.put(
+          PlatformOption.USER_THREADS.name(),
+          String.valueOf(targetConfig.platformOptions.userThreads));
+    } else if (targetConfig.platformOptions.userThreads > 0) {
+      errorReporter.reportWarning(
+          "Specifying user threads is only for threaded Lingua Franca on the Zephyr platform. This"
+              + " option will be ignored.");
+    }
+
     if (targetConfig.threading) { // FIXME: This logic is duplicated in CMake
       pickScheduler();
       // FIXME: this and pickScheduler should be combined.
