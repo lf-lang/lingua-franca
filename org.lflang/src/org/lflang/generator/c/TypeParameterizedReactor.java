@@ -88,15 +88,16 @@ public record TypeParameterizedReactor(Reactor reactor, Map<String, Type> typeAr
   }
 
   public String uniqueName() {
+    String name = reactor.getName().toLowerCase();
     if (uniqueNames.containsKey(this)) return uniqueNames.get(this);
-    if (nameCounts.containsKey(reactor.getName())) {
-      int currentCount = nameCounts.get(reactor.getName());
-      nameCounts.put(reactor.getName(), currentCount + 1);
-      uniqueNames.put(this, "_" + reactor.getName() + currentCount);
+    if (nameCounts.containsKey(name)) {
+      int currentCount = nameCounts.get(name);
+      nameCounts.put(name, currentCount + 1);
+      uniqueNames.put(this, "_" + name + currentCount);
       return uniqueName();
     }
-    nameCounts.put(reactor.getName(), 1);
-    uniqueNames.put(this, "_" + reactor.getName());
+    nameCounts.put(name, 1);
+    uniqueNames.put(this, "_" + name);
     return uniqueName();
   }
 

@@ -498,9 +498,9 @@ public class CUtil {
    */
   public static String selfType(TypeParameterizedReactor reactor) {
     if (reactor.reactor().isMain()) {
-      return "_" + CUtil.getName(reactor) + "_main_self_t";
+      return CUtil.getName(reactor) + "_main_self_t";
     }
-    return "_" + CUtil.getName(reactor) + "_self_t";
+    return CUtil.getName(reactor) + "_self_t";
   }
 
   /** Construct a unique type for the "self" struct of the class of the given reactor. */
