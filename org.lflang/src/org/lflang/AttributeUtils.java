@@ -230,6 +230,11 @@ public class AttributeUtils {
   public static String getIconPath(EObject node) {
     return getAttributeValue(node, "icon");
   }
+  
+  /** Return the declared side of the port, as given by the @side annotation. */
+  public static String getPortSide(EObject node) {
+    return getAttributeValue(node, "side");
+  }
 
   /**
    * Return the {@code @enclave} attribute annotated on the given node.

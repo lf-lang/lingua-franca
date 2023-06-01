@@ -802,7 +802,7 @@ public class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
   }
 
   /** Creates the visual representation of a reactor port. */
-  public KPolygon addTrianglePort(KPort port, boolean multiport) {
+  public KPolygon addTrianglePort(KPort port, boolean multiport, boolean reverse) {
     port.setSize(8, 8);
 
     // Create triangle port
@@ -822,15 +822,15 @@ public class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
       // between parallel connections
       pointsToAdd =
           List.of(
-              _kRenderingExtensions.createKPosition(LEFT, 0, 0, TOP, 0.6f, 0),
-              _kRenderingExtensions.createKPosition(RIGHT, 1.2f, 0, TOP, 0, 0.5f),
-              _kRenderingExtensions.createKPosition(LEFT, 0, 0, BOTTOM, 0.6f, 0));
+              _kRenderingExtensions.createKPosition(reverse ? RIGHT : LEFT, 0, 0, TOP, 0.6f, 0),
+              _kRenderingExtensions.createKPosition(reverse ? LEFT: RIGHT, 1.2f, 0, TOP, 0, 0.5f),
+              _kRenderingExtensions.createKPosition(reverse ? RIGHT : LEFT, 0, 0, BOTTOM, 0.6f, 0));
     } else {
       pointsToAdd =
           List.of(
-              _kRenderingExtensions.createKPosition(LEFT, 0, 0, TOP, 0, 0),
-              _kRenderingExtensions.createKPosition(RIGHT, 0, 0, TOP, 0, 0.5f),
-              _kRenderingExtensions.createKPosition(LEFT, 0, 0, BOTTOM, 0, 0));
+              _kRenderingExtensions.createKPosition(reverse ? RIGHT : LEFT, 0, 0, TOP, 0, 0),
+              _kRenderingExtensions.createKPosition(reverse ? LEFT: RIGHT, 0, 0, TOP, 0, 0.5f),
+              _kRenderingExtensions.createKPosition(reverse ? RIGHT : LEFT, 0, 0, BOTTOM, 0, 0));
     }
     trianglePort.getPoints().addAll(pointsToAdd);
     return trianglePort;
