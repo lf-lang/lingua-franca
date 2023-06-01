@@ -67,7 +67,6 @@ public final class LfFormatStep {
       if (formatter != null) return;
       final Path lffPath =
           Path.of(
-              "org.lflang",
               "cli",
               "lff",
               "build",

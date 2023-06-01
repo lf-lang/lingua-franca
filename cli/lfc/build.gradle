@@ -4,9 +4,9 @@ plugins {
 }
 
 dependencies {
-    implementation project(':org.lflang:cli:base')
+    implementation project('cli:base')
 
-    testImplementation(testFixtures(project(":org.lflang:cli:base")))
+    testImplementation(testFixtures(project("cli:base")))
 }
 
 application {

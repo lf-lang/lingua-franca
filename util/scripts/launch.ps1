@@ -30,8 +30,8 @@ $gradlew="${base}/gradlew.bat"
 
 # invoke script
 if ($args.Length -eq 0) {
-    & "${gradlew}" -p "${base}" "org.lflang:cli:${tool}:run"
+    & "${gradlew}" -p "${base}" "cli:${tool}:run"
 } else {
     $argsString = $args -join " "
-    & "${gradlew}" -p "${base}" "org.lflang:cli:${tool}:run" --args="${argsString}"
+    & "${gradlew}" -p "${base}" "cli:${tool}:run" --args="${argsString}"
 }

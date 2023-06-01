@@ -12,7 +12,7 @@ You can specify any valid target. If you run the task without specifying the tar
 
 The `targetTest` task is essentially a convenient shortcut for the following:
 ```
-./gradew org.lflang:core:integrationTest --test org.lflang.tests.runtime.<target>Test.*
+./gradew core:integrationTest --test org.lflang.tests.runtime.<target>Test.*
 ```
 If you prefer have more control over which tests are executed, you can also use this more verbose version.
 
@@ -25,7 +25,7 @@ It is also possible to run a subset of the tests. For example, the C tests are o
 
 To invoke only the C tests in the `concurrent` category, for example, do this:
 ```
-./gradlew org.lflang:core:integrationTest --tests org.lflang.tests.runtime.CTest.runConcurrentTests
+./gradlew core:integrationTest --tests org.lflang.tests.runtime.CTest.runConcurrentTests
 ```
 
 To run a single test case, use the `singleTest` gradle task along with the path to the test source file:

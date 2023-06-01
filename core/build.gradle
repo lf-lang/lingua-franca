@@ -104,7 +104,7 @@ tasks.register('getSubmoduleVersions', Exec) {
     outputs.file(outputFile)
 
     doLast {
-        def matcher = standardOutput.toString() =~ ~"(?m)^[-+ ]?([0-9a-f]+) org.lflang/core/src/main/resources/lib/\\w+/reactor-([-a-zA-Z]+)"
+        def matcher = standardOutput.toString() =~ ~"(?m)^[-+ ]?([0-9a-f]+) core/src/main/resources/lib/\\w+/reactor-([-a-zA-Z]+)"
         def properties = new StringBuilder()
         while (matcher.find()) {
             def rev = matcher.group(1)
