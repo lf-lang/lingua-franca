@@ -48,6 +48,11 @@ test {
         showStandardStreams = true
         exceptionFormat "full"
     }
+
+    maxParallelForks = Runtime.runtime.availableProcessors().intdiv(2) ?: 1
+    failFast = true
+    workingDir = rootProject.projectDir
+
     integrationTest {
         // Pass properties on to the Java VM
         systemProperty 'scheduler', System.getProperty('scheduler')
@@ -73,11 +78,8 @@ test {
 
         failFast = true
         workingDir = rootProject.projectDir
+        maxParallelForks = 1
     }
-
-    maxParallelForks = Runtime.runtime.availableProcessors().intdiv(2) ?: 1
-    failFast = true
-    workingDir = rootProject.projectDir
 }
 
 jacocoTestReport {
