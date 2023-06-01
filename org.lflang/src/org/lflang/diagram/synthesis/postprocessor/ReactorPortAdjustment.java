@@ -24,21 +24,10 @@
  ***************/
 package org.lflang.diagram.synthesis.postprocessor;
 
-import java.util.List;
-
-import javax.inject.Inject;
-
-import org.eclipse.elk.core.options.CoreOptions;
-import org.eclipse.elk.graph.properties.Property;
-import org.eclipse.xtext.xbase.lib.Extension;
-import org.lflang.diagram.synthesis.LinguaFrancaSynthesis;
-import org.lflang.diagram.synthesis.styles.LinguaFrancaShapeExtensions;
-
 import com.google.inject.Binder;
 import com.google.inject.Guice;
 import com.google.inject.Scopes;
 import com.google.inject.TypeLiteral;
-
 import de.cau.cs.kieler.klighd.IStyleModifier;
 import de.cau.cs.kieler.klighd.IViewer;
 import de.cau.cs.kieler.klighd.internal.ILayoutRecorder;
@@ -49,9 +38,17 @@ import de.cau.cs.kieler.klighd.krendering.KRendering;
 import de.cau.cs.kieler.klighd.krendering.KRenderingFactory;
 import de.cau.cs.kieler.klighd.krendering.ViewSynthesisShared;
 import de.cau.cs.kieler.klighd.syntheses.AbstractDiagramSynthesis;
+import java.util.List;
+import javax.inject.Inject;
+import org.eclipse.elk.core.options.CoreOptions;
+import org.eclipse.elk.graph.properties.Property;
+import org.eclipse.xtext.xbase.lib.Extension;
+import org.lflang.diagram.synthesis.LinguaFrancaSynthesis;
+import org.lflang.diagram.synthesis.styles.LinguaFrancaShapeExtensions;
 
 /**
- * Adjusts the port figures of reactors when fixed side are off to keep the input output indication correct.
+ * Adjusts the port figures of reactors when fixed side are off to keep the input output indication
+ * correct.
  *
  * @author Alexander Schulz-Rosengarten
  */
@@ -63,7 +60,7 @@ public class ReactorPortAdjustment implements IStyleModifier {
   /** INTERNAL property to mark node as flipped. */
   public static final Property<Boolean> FLIPPED =
       new Property<>("org.lflang.diagram.synthesis.postprocessor.reactor.ports.flipped", false);
-  
+
   @Inject @Extension private LinguaFrancaShapeExtensions _linguaFrancaShapeExtensions;
   @Extension private KGraphFactory _kGraphFactory = KGraphFactory.eINSTANCE;
   private static KRenderingFactory _kRenderingFactory = KRenderingFactory.eINSTANCE;
@@ -79,17 +76,22 @@ public class ReactorPortAdjustment implements IStyleModifier {
     invisible.setModifierId(ID);
     rendering.getStyles().add(invisible);
   }
-  
+
   public ReactorPortAdjustment() {
     // Inject extension
     if (_linguaFrancaShapeExtensions == null) {
-      var injector = Guice.createInjector(new com.google.inject.Module() {
-        // This Module is created to satisfy ViewSynthesisShared scope of used synthesis-extensions
-        public void configure(Binder binder) {
-          binder.bindScope(ViewSynthesisShared.class, Scopes.SINGLETON);
-          binder.bind(new TypeLiteral<AbstractDiagramSynthesis<?>>(){}).toInstance(new LinguaFrancaSynthesis());
-        }
-      });
+      var injector =
+          Guice.createInjector(
+              new com.google.inject.Module() {
+                // This Module is created to satisfy ViewSynthesisShared scope of used
+                // synthesis-extensions
+                public void configure(Binder binder) {
+                  binder.bindScope(ViewSynthesisShared.class, Scopes.SINGLETON);
+                  binder
+                      .bind(new TypeLiteral<AbstractDiagramSynthesis<?>>() {})
+                      .toInstance(new LinguaFrancaSynthesis());
+                }
+              });
       _linguaFrancaShapeExtensions = injector.getInstance(LinguaFrancaShapeExtensions.class);
     }
   }
@@ -130,31 +132,32 @@ public class ReactorPortAdjustment implements IStyleModifier {
         for (var port : knode.getPorts()) {
           var isInput = port.getProperty(LinguaFrancaSynthesis.REACTOR_INPUT).booleanValue();
           if (!isInput && !port.getProperty(LinguaFrancaSynthesis.REACTOR_OUTPUT)) {
-              continue; // skip
+            continue; // skip
           }
-          
+
           var xPos = port.getXpos();
           var isLeft = xPos < 0;
           var flip = isInput != isLeft;
           var isFlipped = port.getProperty(FLIPPED).booleanValue();
           var needsUpdate = flip != isFlipped;
-          
+
           if (needsUpdate) {
             // Remove figure
             port.getData().removeIf(it -> it instanceof KRendering);
-            
+
             // Get port type
             var isMultiport = port.getProperty(LinguaFrancaSynthesis.REACTOR_MULTIPORT);
             var isBank = port.getProperty(LinguaFrancaSynthesis.REACTOR_HAS_BANK_PORT_OFFSET);
-            
+
             // Add new figure
             _linguaFrancaShapeExtensions.addTrianglePort(port, isMultiport, flip);
             port.setProperty(FLIPPED, flip);
-            
+
             // Compute new offset
             var oldOffset = port.getProperty(CoreOptions.PORT_BORDER_OFFSET);
-            var newOffset = LinguaFrancaSynthesis.getReactorPortOffset(!isLeft, isMultiport, isBank);
-            
+            var newOffset =
+                LinguaFrancaSynthesis.getReactorPortOffset(!isLeft, isMultiport, isBank);
+
             // Apply offset directly
             port.setPos((float) (port.getXpos() + (oldOffset - newOffset)), port.getYpos());
           }
