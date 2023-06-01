@@ -26,7 +26,6 @@ $ RTI -n <number_of_federates> -t
 
 It is most convenient to launch the RTI and all federates from the same working directory so that they will all write their trace file to that directory.
 
-
 Once the federation stopped executing, run `fedsd` on all generated `.lft` files:
 ```
 $ fedsd *.lft
