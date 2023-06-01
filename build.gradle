@@ -75,8 +75,12 @@ tasks.register('singleTest') {
 
 // Old deprecated tasks.
 tasks.register('buildAll') {
-    throw new GradleException('The "buildAll" task was removed. Pleas use "./gradlew build" or "./gradlew assemble instead')
+    doLast {
+        throw new GradleException('The "buildAll" task was removed. Pleas use "./gradlew build" or "./gradlew assemble instead')
+    }
 }
 tasks.register('runSingleTestl') {
-    throw new GradleException('The "runSingleTest" task was removed. Pleas use "./gradlew singleTest -DsingleTest=testFile.lf" instead')
+    doLast {
+        throw new GradleException('The "runSingleTest" task was removed. Pleas use "./gradlew singleTest -DsingleTest=testFile.lf" instead')
+    }
 }
