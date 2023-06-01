@@ -3,10 +3,10 @@
 # @author: Edward A. Lee
 
 CC=gcc
-CFLAGS=-I../../org.lflang/core/src/main/resources/lib/c/reactor-c/include/core/ \
-		-I../../org.lflang/core/src/main/resources/lib/c/reactor-c/include/core/modal_models \
-		-I../../org.lflang/core/src/main/resources/lib/c/reactor-c/include/core/platform \
-		-I../../org.lflang/core/src/main/resources/lib/c/reactor-c/include/core/utils \
+CFLAGS=-I../../core/src/main/resources/lib/c/reactor-c/include/core/ \
+		-I../../core/src/main/resources/lib/c/reactor-c/include/core/modal_models \
+		-I../../core/src/main/resources/lib/c/reactor-c/include/core/platform \
+		-I../../core/src/main/resources/lib/c/reactor-c/include/core/utils \
 		-DLF_UNTHREADED=1 \
 		-Wall
 DEPS=
