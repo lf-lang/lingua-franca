@@ -102,6 +102,7 @@ import org.lflang.diagram.synthesis.action.FilterCycleAction;
 import org.lflang.diagram.synthesis.action.MemorizingExpandCollapseAction;
 import org.lflang.diagram.synthesis.action.ShowCycleAction;
 import org.lflang.diagram.synthesis.postprocessor.ReactionPortAdjustment;
+import org.lflang.diagram.synthesis.postprocessor.ReactorPortAdjustment;
 import org.lflang.diagram.synthesis.styles.LinguaFrancaShapeExtensions;
 import org.lflang.diagram.synthesis.styles.LinguaFrancaStyleExtensions;
 import org.lflang.diagram.synthesis.styles.ReactorFigureComponents;
@@ -163,6 +164,8 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
           "org.lflang.linguafranca.diagram.synthesis.reactor.recursive.instantiation", false);
   public static final Property<Boolean> REACTOR_HAS_BANK_PORT_OFFSET =
       new Property<>("org.lflang.linguafranca.diagram.synthesis.reactor.bank.offset", false);
+  public static final Property<Boolean> REACTOR_MULTIPORT =
+          new Property<>("org.lflang.linguafranca.diagram.synthesis.reactor.multiport", false);
   public static final Property<Boolean> REACTOR_INPUT =
       new Property<>("org.lflang.linguafranca.diagram.synthesis.reactor.input", false);
   public static final Property<Boolean> REACTOR_OUTPUT =
@@ -244,6 +247,8 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
       SynthesisOption.<Integer>createRangeOption("Reactor Parameter/Variable Columns", 1, 10, 1)
           .setCategory(APPEARANCE);
 
+  public static final SynthesisOption FIXED_PORT_SIDE = 
+          SynthesisOption.createCheckOption("Fixed Port Sides", true).setCategory(LAYOUT);
   public static final SynthesisOption SPACING =
       SynthesisOption.<Integer>createRangeOption("Spacing (%)", 0, 150, 5, 75).setCategory(LAYOUT);
 
@@ -280,6 +285,7 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
         SHOW_STATE_VARIABLES,
         REACTOR_BODY_TABLE_COLS,
         LAYOUT,
+        FIXED_PORT_SIDE,
         LayoutPostProcessing.MODEL_ORDER,
         SPACING);
   }
@@ -481,6 +487,11 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
         _kRenderingExtensions.addDoubleClickAction(figure, MemorizingExpandCollapseAction.ID);
       }
       _reactorIcons.handleIcon(comps.getReactor(), reactor, false);
+      
+      if (!getBooleanValue(FIXED_PORT_SIDE)) {
+        // Port figures will need post-processing to fix IO indication if portside is not fixed
+        ReactorPortAdjustment.apply(node, comps.getFigures());
+      }
 
       if (getBooleanValue(SHOW_HYPERLINKS)) {
         // Collapse button
@@ -607,6 +618,11 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
         }
       }
       _reactorIcons.handleIcon(comps.getReactor(), reactor, true);
+      
+      if (!getBooleanValue(FIXED_PORT_SIDE)) {
+        // Port figures will need post-processing to fix IO indication if portside is not fixed
+        ReactorPortAdjustment.apply(node, comps.getFigures());
+      }
 
       if (getBooleanValue(SHOW_HYPERLINKS)) {
         // Expand button
@@ -728,16 +744,24 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
         node,
         CoreOptions.NODE_SIZE_CONSTRAINTS,
         EnumSet.of(SizeConstraint.MINIMUM_SIZE, SizeConstraint.PORTS));
-
-    // Allows to freely shuffle ports on each side
-    setLayoutOption(node, CoreOptions.PORT_CONSTRAINTS, PortConstraints.FIXED_SIDE);
-    // Adjust port label spacing to be closer to edge but not overlap with port figure
-    // TODO: Add PortLabelPlacement.NEXT_TO_PORT_IF_POSSIBLE back into the configuration, as soon as
-    // ELK provides a fix for LF issue #1273
+    
+    
+    if (getBooleanValue(FIXED_PORT_SIDE)) {
+      // Allows to freely shuffle ports on each side
+      setLayoutOption(node, CoreOptions.PORT_CONSTRAINTS, PortConstraints.FIXED_SIDE);
+    } else {
+      // Ports are no longer fixed based on input or output
+      setLayoutOption(node, CoreOptions.PORT_CONSTRAINTS, PortConstraints.FREE);
+    }
+    
     setLayoutOption(
         node,
         CoreOptions.PORT_LABELS_PLACEMENT,
         EnumSet.of(PortLabelPlacement.ALWAYS_OTHER_SAME_SIDE, PortLabelPlacement.OUTSIDE));
+    // TODO: Add PortLabelPlacement.NEXT_TO_PORT_IF_POSSIBLE back into the configuration, as soon as
+    // ELK provides a fix for LF issue #1273
+    
+    // Adjust port label spacing to be closer to edge but not overlap with port figure
     setLayoutOption(node, CoreOptions.SPACING_LABEL_PORT_HORIZONTAL, 2.0);
     setLayoutOption(node, CoreOptions.SPACING_LABEL_PORT_VERTICAL, -3.0);
 
@@ -1034,8 +1058,8 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
       int outputSize = reaction.effects.size();
       if (!getBooleanValue(REACTIONS_USE_HYPEREDGES) && (inputSize > 1 || outputSize > 1)) {
         // If this node will have more than one input/output port, the port positions must be
-        // adjusted to the
-        // pointy shape. However, this is only possible after the layout.
+        // adjusted to the pointy shape.
+        // However, this is only possible after the layout.
         ReactionPortAdjustment.apply(node, figure);
       }
 
@@ -1577,27 +1601,32 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
   }
 
   /** Translate an input/output into a port. */
-  private KPort addIOPort(
-      KNode node, PortInstance lfPort, boolean input, boolean multiport, boolean bank) {
+  private KPort addIOPort(KNode node, PortInstance lfPort, 
+          boolean input, boolean multiport, boolean bank) {
     KPort port = _kPortExtensions.createPort();
     node.getPorts().add(port);
     associateWith(port, lfPort.getDefinition());
     NamedInstanceUtil.linkInstance(port, lfPort);
     _kPortExtensions.setPortSize(port, 6, 6);
-
-    if (input) {
-      // multiports are smaller by an offset at the right, hence compensate in inputs
-      double offset = multiport ? -3.4 : -3.3;
-      setLayoutOption(port, CoreOptions.PORT_SIDE, PortSide.WEST);
-      setLayoutOption(port, CoreOptions.PORT_BORDER_OFFSET, offset);
-    } else {
-      double offset = multiport ? -2.6 : -3.3; // multiports are smaller
-      offset =
-          bank
-              ? offset - LinguaFrancaShapeExtensions.BANK_FIGURE_X_OFFSET_SUM
-              : offset; // compensate bank figure width
-      setLayoutOption(port, CoreOptions.PORT_SIDE, PortSide.EAST);
-      setLayoutOption(port, CoreOptions.PORT_BORDER_OFFSET, offset);
+    
+    var side = input ? PortSide.WEST : PortSide.EAST;
+    var userSideAttr = AttributeUtils.getPortSide(lfPort.getDefinition());
+    if (userSideAttr != null) {
+      try {
+        var userSide = PortSide.valueOf(userSideAttr.toUpperCase());
+        if (userSide != null) {
+            side = userSide;
+        }
+      } catch(Exception e) {
+        // ignore and use default
+      }
+    }
+    double offset = getReactorPortOffset(side == PortSide.WEST, multiport, bank);
+    setLayoutOption(port, CoreOptions.PORT_SIDE, side);
+    setLayoutOption(port, CoreOptions.PORT_BORDER_OFFSET, offset);
+    
+    if (multiport) {
+      node.setProperty(REACTOR_MULTIPORT, true);
     }
 
     if (bank && !node.getProperty(REACTOR_HAS_BANK_PORT_OFFSET)) { // compensate bank figure height
@@ -1608,7 +1637,9 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
       node.setProperty(REACTOR_HAS_BANK_PORT_OFFSET, true); // only once
     }
 
-    _linguaFrancaShapeExtensions.addTrianglePort(port, multiport);
+    // If fixed port sides are active and the port is put on the opposite side, reverse it
+    var reverse = getBooleanValue(FIXED_PORT_SIDE) && input != (side == PortSide.WEST);
+    _linguaFrancaShapeExtensions.addTrianglePort(port, multiport, reverse);
 
     String label = lfPort.getName();
     if (!getBooleanValue(SHOW_PORT_NAMES)) {
@@ -1621,6 +1652,21 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
     }
     associateWith(_kLabelExtensions.addOutsidePortLabel(port, label, 8), lfPort.getDefinition());
     return port;
+  }
+  
+  public static double getReactorPortOffset(boolean sideLeft, boolean multiport, boolean bank) {
+    var offset = -3.3;
+    
+    if (multiport) {
+        offset = sideLeft ? -3.4 : -2.6;
+    }
+    
+    if (bank && !sideLeft) {
+      // compensate bank figure width
+      offset -= LinguaFrancaShapeExtensions.BANK_FIGURE_X_OFFSET_SUM;
+    }
+    
+    return offset;
   }
 
   private KPort addInvisiblePort(KNode node) {
