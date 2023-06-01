@@ -1,5 +1,7 @@
 package org.lflang.diagram.synthesis;
 
+import de.cau.cs.kieler.klighd.IKlighdStartupHook;
+import de.cau.cs.kieler.klighd.KlighdDataManager;
 import org.lflang.diagram.synthesis.action.CollapseAllReactorsAction;
 import org.lflang.diagram.synthesis.action.ExpandAllReactorsAction;
 import org.lflang.diagram.synthesis.action.FilterCycleAction;
@@ -10,9 +12,6 @@ import org.lflang.diagram.synthesis.postprocessor.ReactorPortAdjustment;
 import org.lflang.diagram.synthesis.styles.LinguaFrancaShapeExtensions;
 import org.lflang.diagram.synthesis.styles.LinguaFrancaStyleExtensions;
 import org.lflang.diagram.synthesis.util.NamedInstanceUtil;
-
-import de.cau.cs.kieler.klighd.IKlighdStartupHook;
-import de.cau.cs.kieler.klighd.KlighdDataManager;
 
 /**
  * Registration of all diagram synthesis related classes in Klighd.
@@ -50,6 +49,6 @@ public class SynthesisRegistration implements IKlighdStartupHook {
     reg.registerBlacklistedProperty(LinguaFrancaShapeExtensions.REACTOR_CONTENT_CONTAINER);
     reg.registerBlacklistedProperty(LinguaFrancaStyleExtensions.LABEL_PARENT_BACKGROUND);
     // Very important since its values can not be synthesized easily!
-    reg.registerBlacklistedProperty(NamedInstanceUtil.LINKED_INSTANCE); 
+    reg.registerBlacklistedProperty(NamedInstanceUtil.LINKED_INSTANCE);
   }
 }

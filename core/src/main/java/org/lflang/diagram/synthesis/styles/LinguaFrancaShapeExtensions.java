@@ -823,13 +823,13 @@ public class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
       pointsToAdd =
           List.of(
               _kRenderingExtensions.createKPosition(reverse ? RIGHT : LEFT, 0, 0, TOP, 0.6f, 0),
-              _kRenderingExtensions.createKPosition(reverse ? LEFT: RIGHT, 1.2f, 0, TOP, 0, 0.5f),
+              _kRenderingExtensions.createKPosition(reverse ? LEFT : RIGHT, 1.2f, 0, TOP, 0, 0.5f),
               _kRenderingExtensions.createKPosition(reverse ? RIGHT : LEFT, 0, 0, BOTTOM, 0.6f, 0));
     } else {
       pointsToAdd =
           List.of(
               _kRenderingExtensions.createKPosition(reverse ? RIGHT : LEFT, 0, 0, TOP, 0, 0),
-              _kRenderingExtensions.createKPosition(reverse ? LEFT: RIGHT, 0, 0, TOP, 0, 0.5f),
+              _kRenderingExtensions.createKPosition(reverse ? LEFT : RIGHT, 0, 0, TOP, 0, 0.5f),
               _kRenderingExtensions.createKPosition(reverse ? RIGHT : LEFT, 0, 0, BOTTOM, 0, 0));
     }
     trianglePort.getPoints().addAll(pointsToAdd);
