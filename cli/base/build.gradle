@@ -6,5 +6,5 @@ plugins {
 dependencies {
     api "info.picocli:picocli:$picocliVersion"
 
-    api project('core')
+    api project(':core')
 }

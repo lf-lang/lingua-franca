@@ -4,9 +4,9 @@ plugins {
 }
 
 dependencies {
-    implementation project('cli:base')
+    implementation project(':cli:base')
 
-    testImplementation(testFixtures(project("cli:base")))
+    testImplementation(testFixtures(project(':cli:base')))
 }
 
 application {
