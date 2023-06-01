@@ -1,8 +1,5 @@
 target C
 
-reactor bundle<In, Out> {  // Hash issue Header name mismatch
-}
-
 reactor Child<T1, In, Out> {
     state k: T1
     input in: In
