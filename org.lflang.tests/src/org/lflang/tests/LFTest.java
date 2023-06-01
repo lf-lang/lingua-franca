@@ -260,7 +260,6 @@ public class LFTest implements Comparable<LFTest> {
                 builder.append(buf, 0, len);
                 if (Runtime.getRuntime().freeMemory() < Runtime.getRuntime().totalMemory() * 3 / 4) {
                   builder.delete(0, builder.length() / 2);
-                  builder.trimToSize();
                 }
               }
             } catch (IOException e) {
