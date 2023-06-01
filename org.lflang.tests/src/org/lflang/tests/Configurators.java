@@ -71,9 +71,6 @@ public class Configurators {
     test.getContext().getTargetConfig().platformOptions.platform = Platform.ZEPHYR;
     test.getContext().getTargetConfig().platformOptions.flash = false;
     test.getContext().getTargetConfig().platformOptions.board = "native_posix";
-    // FIXME: Zephyr qemu emulations fails with debug log-levels.
-    test.getContext().getTargetConfig().logLevel = LogLevel.WARN;
-    test.getContext().getArgs().setProperty("logging", "warning");
     return true;
   }
 
@@ -82,9 +79,6 @@ public class Configurators {
     test.getContext().getTargetConfig().platformOptions.platform = Platform.ZEPHYR;
     test.getContext().getTargetConfig().platformOptions.flash = false;
     test.getContext().getTargetConfig().platformOptions.board = "native_posix";
-    // FIXME: Zephyr qemu emulations fails with debug log-levels.
-    test.getContext().getTargetConfig().logLevel = LogLevel.WARN;
-    test.getContext().getArgs().setProperty("logging", "warning");
 
     return true;
   }
