@@ -1,5 +1,6 @@
 plugins {
     id 'org.lflang.java-application-conventions'
+    id 'com.github.johnrengelman.shadow'
 }
 
 dependencies {
@@ -13,4 +14,14 @@ dependencies {
 
 application {
     mainClass = 'org.lflang.diagram.lsp.LanguageDiagramServer'
+}
+
+shadowJar {
+    // Handling of service loader registrations via META-INF/services/*
+    mergeServiceFiles()
+
+    // Merge properties
+    transform(com.github.jengelman.gradle.plugins.shadow.transformers.AppendingTransformer) {
+        resource = 'plugin.properties'
+    }
 }

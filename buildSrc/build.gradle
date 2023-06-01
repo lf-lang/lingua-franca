@@ -15,4 +15,6 @@ dependencies {
 
     implementation "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion"
     implementation "com.diffplug.spotless:spotless-plugin-gradle:$spotlessVersion"
+
+    implementation "gradle.plugin.com.github.johnrengelman:shadow:$shadowJarVersion"
 }
