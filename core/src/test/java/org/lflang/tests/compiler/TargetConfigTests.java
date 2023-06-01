@@ -3,6 +3,7 @@ package org.lflang.tests.compiler;
 import com.google.inject.Inject;
 import com.google.inject.Provider;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import org.eclipse.emf.common.util.URI;
 import org.eclipse.emf.ecore.resource.ResourceSet;
 import org.eclipse.xtext.generator.JavaIoFileSystemAccess;
@@ -12,6 +13,7 @@ import org.eclipse.xtext.testing.util.ParseHelper;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.api.io.TempDir;
 import org.lflang.federated.generator.FedFileConfig;
 import org.lflang.generator.GeneratorUtils;
 import org.lflang.generator.LFGenerator;
@@ -64,7 +66,7 @@ class TargetConfigTests {
    * @throws Exception
    */
   @Test
-  public void testFederation() throws Exception {
+  public void testFederation(@TempDir Path tempDir) throws Exception {
     fileAccess.setOutputPath("src-gen");
 
     Model federation =
@@ -82,7 +84,7 @@ class TargetConfigTests {
                 b = new Foo()
             }
             """,
-            URI.createFileURI("tmp/src/Federation.lf"),
+            URI.createURI(tempDir.resolve("src/Federation.lf").toUri().toString()),
             resourceSetProvider.get());
     assertHasTargetProperty(federation, "tracing");
 
