@@ -69,7 +69,7 @@ public class Configurators {
     test.getContext().getTargetConfig().threading = false;
     test.getContext().getTargetConfig().setByUser.add(TargetProperty.THREADING);
     test.getContext().getTargetConfig().platformOptions.platform = Platform.ZEPHYR;
-    test.getContext().getTargetConfig().platformOptions.flash = false;
+    test.getContext().getTargetConfig().platformOptions.flash = true;
     test.getContext().getTargetConfig().platformOptions.board = "native_posix";
     return true;
   }
@@ -77,7 +77,7 @@ public class Configurators {
   public static boolean makeZephyrCompatible(LFTest test) {
     test.getContext().getArgs().setProperty("tracing", "false");
     test.getContext().getTargetConfig().platformOptions.platform = Platform.ZEPHYR;
-    test.getContext().getTargetConfig().platformOptions.flash = false;
+    test.getContext().getTargetConfig().platformOptions.flash = true;
     test.getContext().getTargetConfig().platformOptions.board = "native_posix";
 
     return true;

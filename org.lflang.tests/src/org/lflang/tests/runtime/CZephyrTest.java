@@ -44,7 +44,7 @@ public class CZephyrTest extends RuntimeTest {
   }
 
   @Test
-  public void buildZephyrTests() {
+  public void runZephyrTests() {
     Assumptions.assumeTrue(isLinux(), "Zephyr tests only run on Linux");
     super.runTestsFor(
         List.of(Target.C),
@@ -56,7 +56,7 @@ public class CZephyrTest extends RuntimeTest {
   }
 
   @Test
-  public void buildGenericTests() {
+  public void runGenericTests() {
     Assumptions.assumeTrue(isLinux(), "Zephyr tests only run on Linux");
     super.runTestsFor(
         List.of(Target.C),
@@ -68,7 +68,7 @@ public class CZephyrTest extends RuntimeTest {
   }
 
   @Test
-  public void buildConcurrentTests() {
+  public void runConcurrentTests() {
     Assumptions.assumeTrue(isLinux(), "Zephyr tests only run on Linux");
 
     super.runTestsFor(
