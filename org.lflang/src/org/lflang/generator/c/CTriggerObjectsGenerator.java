@@ -793,6 +793,15 @@ public class CTriggerObjectsGenerator {
                 + ";");
         code.endScopedRangeBlock(sendingRange);
       }
+      
+      if (output.eventualDestinations().size() == 0) {
+        // Dangling output. Still set the source reactor
+        code.pr(
+            CUtil.portRef(output)
+                + "._base.source_reactor = (self_base_t*)"
+                + CUtil.reactorRef(reactor)
+                + ";");
+      }
     }
     return code.toString();
   }
