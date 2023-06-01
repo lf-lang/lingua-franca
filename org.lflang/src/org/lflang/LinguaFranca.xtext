@@ -107,7 +107,6 @@ Bundle:
     (
           (inputs+=Input)
         | (outputs+=Output)
-        | (connections+=Connection)
     )* '}';
 
 TypeParm:
@@ -181,7 +180,7 @@ BundledPort:
     (attributes+=Attribute)* 'port' (widthSpec=WidthSpec)? name=ID (':' type=Type)? ';'?;
 
 Mirror:
-    'port' (widthSpec=WidthSpec)? name=ID (':' 'Mirrored') ('(' type=Type ')') ';'?;
+    (attributes+=Attribute)* 'port' (widthSpec=WidthSpec)? name=ID (':' 'Mirrored') ('(' type=Type ')') ';'?;
 
 // Timing specification for a timer: (offset, period)
 // Can be empty, which means (0,0) = (NOW, ONCE).
@@ -357,7 +356,7 @@ Time:
 ;
 
 Port:
-    Input | Output;
+    Input | Output | BundledPort | Mirror;
 
 // A type is in the target language, hence either an ID or target code.
 Type:
