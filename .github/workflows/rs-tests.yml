@@ -41,7 +41,7 @@ jobs:
         uses: actions/checkout@v3
         with:
           repository: lf-lang/reactor-rs
-          path: org.lflang/src/lib/rs/reactor-rs
+          path: core/src/main/resources/lib/rs/reactor-rs
           ref: ${{ inputs.runtime-ref }}
         if: inputs.runtime-ref
       - name: Update runtime ref if we use a custom runtime version
@@ -70,7 +70,7 @@ jobs:
       - name: Report to CodeCov
         uses: codecov/codecov-action@v3.1.1
         with:
-          files: org.lflang/core/build/reports/xml/jacoco
+          files: core/build/reports/xml/jacoco
           fail_ci_if_error: false
           verbose: true
         if: ${{ !inputs.compiler-ref && runner.os == 'Linux' && inputs.all-platforms }}  # i.e., if this is part of the main repo's CI

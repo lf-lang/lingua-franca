@@ -39,7 +39,7 @@ jobs:
       - name: Report to CodeCov
         uses: codecov/codecov-action@v3.1.1
         with:
-          files: org.lflang/core/build/reports/xml/jacoco
+          files: core/build/reports/xml/jacoco
           fail_ci_if_error: false
           verbose: true
         if: ${{ runner.os == 'Linux' && inputs.all-platforms }}

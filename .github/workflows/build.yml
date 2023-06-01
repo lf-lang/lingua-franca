@@ -47,6 +47,6 @@ jobs:
       - name: Report to CodeCov
         uses: codecov/codecov-action@v3.1.1
         with:
-          files: org.lflang/core/build/reports/xml/jacoco,org.lflang/cli/lfc/build/reports/xml/jacoco,org.lflang/cli/lff/build/reports/xml/jacoco
+          files: core/build/reports/xml/jacoco,cli/lfc/build/reports/xml/jacoco,cli/lff/build/reports/xml/jacoco
           fail_ci_if_error: false
           verbose: true
