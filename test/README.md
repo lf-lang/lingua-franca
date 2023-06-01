@@ -30,7 +30,7 @@ To invoke only the C tests in the `concurrent` category, for example, do this:
 
 To run a single test case, use the `singleTest` gradle task along with the path to the test source file:
 ```
-./gradlew singleTest -DsingleTest test/C/src/Minimal.lf
+./gradlew singleTest -DsingleTest=test/C/src/Minimal.lf
 ```
 
 ### LSP tests
