@@ -285,6 +285,7 @@ public abstract class CliBase implements Runnable {
     if (src == null) {
       reporter.printFatalErrorAndExit("JSON Parse Exception: field \"src\" not found.");
     }
+    assert src != null;
     argsList.add(src.getAsString());
     // Append output path if given.
     JsonElement out = jsonObject.get("out");
@@ -306,14 +307,12 @@ public abstract class CliBase implements Runnable {
         // Append option.
         argsList.add("--" + property);
         // Append argument for non-boolean options.
-        if (value != "true" || property == "threading") {
+        if (!value.equals("true") || property.equals("threading")) {
           argsList.add(value);
         }
       }
     }
 
-    // Return as String[].
-    String[] args = argsList.toArray(new String[argsList.size()]);
-    return args;
+    return argsList.toArray(new String[0]);
   }
 }

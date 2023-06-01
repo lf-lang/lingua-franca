@@ -4,7 +4,7 @@ on:
   workflow_call:
 
 jobs:
-  run:
+  check-format:
     runs-on: ubuntu-latest
     steps:
       - name: Check out lingua-franca repository
