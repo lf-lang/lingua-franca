@@ -1,12 +1,12 @@
 [submodule "org.lflang/src/lib/c/reactor-c"]
-	path = org.lflang/core/src/main/resources/lib/c/reactor-c
+	path = core/src/main/resources/lib/c/reactor-c
 	url = https://github.com/lf-lang/reactor-c.git
 [submodule "org.lflang/src/lib/cpp/reactor-cpp"]
-	path = org.lflang/core/src/main/resources/lib/cpp/reactor-cpp
+	path = core/src/main/resources/lib/cpp/reactor-cpp
 	url = https://github.com/lf-lang/reactor-cpp
 [submodule "org.lflang/src/lib/rs/reactor-rs"]
-	path = org.lflang/core/src/main/resources/lib/rs/reactor-rs
+	path = core/src/main/resources/lib/rs/reactor-rs
 	url = https://github.com/lf-lang/reactor-rs
 [submodule "org.lflang/src/lib/py/lf-python-support"]
-	path = org.lflang/core/src/main/resources/lib/py/lf-python-support
+	path = core/src/main/resources/lib/py/lf-python-support
 	url = https://github.com/lf-lang/lf-python-support.git
