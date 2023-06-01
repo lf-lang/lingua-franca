@@ -6,6 +6,7 @@ import org.junit.jupiter.api.Test;
 import org.lflang.Target;
 import org.lflang.tests.Configurators;
 import org.lflang.tests.RuntimeTest;
+import org.lflang.tests.TestBase;
 import org.lflang.tests.TestRegistry.TestCategory;
 
 /**
@@ -13,7 +14,7 @@ import org.lflang.tests.TestRegistry.TestCategory;
  *
  * @author Anirudh Rengarajan <arengarajan@berkeley.edu>
  */
-public class CArduinoTest extends RuntimeTest {
+public class CArduinoTest extends TestBase {
 
   public CArduinoTest() {
     super(Target.C);

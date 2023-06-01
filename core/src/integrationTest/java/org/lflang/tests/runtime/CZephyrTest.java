@@ -30,6 +30,7 @@ import org.junit.jupiter.api.Test;
 import org.lflang.Target;
 import org.lflang.tests.Configurators;
 import org.lflang.tests.RuntimeTest;
+import org.lflang.tests.TestBase;
 import org.lflang.tests.TestRegistry.TestCategory;
 
 /**
@@ -37,7 +38,7 @@ import org.lflang.tests.TestRegistry.TestCategory;
  *
  * @author Erling Rennemo Jellum <erling.r.jellum@ntnu.no>
  */
-public class CZephyrTest extends RuntimeTest {
+public class CZephyrTest extends TestBase {
 
   public CZephyrTest() {
     super(Target.C);
