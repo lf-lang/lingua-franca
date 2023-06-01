@@ -70,7 +70,7 @@ public class Configurators {
     test.getContext().getTargetConfig().setByUser.add(TargetProperty.THREADING);
     test.getContext().getTargetConfig().platformOptions.platform = Platform.ZEPHYR;
     test.getContext().getTargetConfig().platformOptions.flash = false;
-    test.getContext().getTargetConfig().platformOptions.board = "qemu_riscv32";
+    test.getContext().getTargetConfig().platformOptions.board = "qemu_cortex_m3";
     // FIXME: Zephyr qemu emulations fails with debug log-levels.
     test.getContext().getTargetConfig().logLevel = LogLevel.WARN;
     test.getContext().getArgs().setProperty("logging", "warning");
@@ -81,7 +81,7 @@ public class Configurators {
     test.getContext().getArgs().setProperty("tracing", "false");
     test.getContext().getTargetConfig().platformOptions.platform = Platform.ZEPHYR;
     test.getContext().getTargetConfig().platformOptions.flash = false;
-    test.getContext().getTargetConfig().platformOptions.board = "qemu_riscv32";
+    test.getContext().getTargetConfig().platformOptions.board = "qemu_cortex_m3";
     // FIXME: Zephyr qemu emulations fails with debug log-levels.
     test.getContext().getTargetConfig().logLevel = LogLevel.WARN;
     test.getContext().getArgs().setProperty("logging", "warning");
