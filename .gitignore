@@ -157,4 +157,4 @@ gradle-app.setting
 
 ### xtext artifaccts
 *.jar
-org.lflang/core/model/
+core/model/
