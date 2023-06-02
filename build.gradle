@@ -59,16 +59,20 @@ tasks.register('runLff', JavaExec) {
     dependsOn('cli:lff:run')
 }
 tasks.register('targetTest') {
-    if (!project.hasProperty('target')) {
-        def testFiles = rootProject.fileTree("${rootProject.rootDir}/core/src/integrationTest/java/org/lflang/tests/runtime").files
-        def targets = testFiles.collect {it.getName().substring(0, it.getName().length() - 9);}
-        throw new GradleException("Please set the \'target\' project property using -Ptarget=<...>. You may chose any of $targets")
+    doLast {
+        if (!project.hasProperty('target')) {
+            def testFiles = rootProject.fileTree("${rootProject.rootDir}/core/src/integrationTest/java/org/lflang/tests/runtime").files
+            def targets = testFiles.collect { it.getName().substring(0, it.getName().length() - 9); }
+            throw new GradleException("Please set the \'target\' project property using -Ptarget=<...>. You may chose any of $targets")
+        }
     }
     finalizedBy('core:integrationTest')
 }
 tasks.register('singleTest') {
-    if (System.getProperty('singleTest') == null) {
-        throw new GradleException('Please set the \'singleTest\' system property using -DsingleTest=<...> to specify the LF test file that you would like to run.')
+    doLast {
+        if (System.getProperty('singleTest') == null) {
+            throw new GradleException('Please set the \'singleTest\' system property using -DsingleTest=<...> to specify the LF test file that you would like to run.')
+        }
     }
     finalizedBy('core:integrationTest')
 }
