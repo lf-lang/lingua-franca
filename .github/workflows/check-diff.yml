@@ -36,7 +36,7 @@ jobs:
     - id: do
       run: |
         wget https://raw.githubusercontent.com/lf-lang/lingua-franca/master/.github/scripts/check-diff.sh
-        source check-diff.sh "core/src/main/java/generator/c\|/home/peter/lingua-franca/core/src/main/resources/lib/c\|core/src/main/resources/lib/platform\|test/C" C
+        source check-diff.sh "core/src/main/java/generator/c\|core/src/main/resources/lib/c\|core/src/main/resources/lib/platform\|test/C" C
         source check-diff.sh "core/src/main/kotlin/generator/cpp\|core/src/main/resources/lib/cpp\|test/Cpp" CPP
         source check-diff.sh "core/src/main/java/generator/python\|core/src/main/resources/lib/py\|test/Python" PY
         source check-diff.sh "core/src/main/kotlin/generator/rust\|core/src/main/java/generator/rust\|core/src/main/resources/lib/rs\|test/Rust" RS
