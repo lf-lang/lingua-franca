@@ -28,6 +28,7 @@ package org.lflang.generator.c;
 
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
@@ -36,6 +37,7 @@ import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
 import org.lflang.InferredType;
 import org.lflang.TargetConfig;
+import org.lflang.ast.ASTUtils;
 import org.lflang.generator.ActionInstance;
 import org.lflang.generator.GeneratorCommandFactory;
 import org.lflang.generator.LFGeneratorContext;
@@ -135,7 +137,7 @@ public class CUtil {
    * (to allow for instantiations that have the same name as the main reactor or the .lf file).
    */
   public static String getName(TypeParameterizedReactor reactor) {
-    String name = reactor.reactor().getName().toLowerCase() + reactor.hashCode();
+    String name = reactor.uniqueName();
     if (reactor.reactor().isMain()) {
       return name + "_main";
     }
@@ -496,9 +498,9 @@ public class CUtil {
    */
   public static String selfType(TypeParameterizedReactor reactor) {
     if (reactor.reactor().isMain()) {
-      return "_" + CUtil.getName(reactor) + "_main_self_t";
+      return CUtil.getName(reactor) + "_main_self_t";
     }
-    return "_" + CUtil.getName(reactor) + "_self_t";
+    return CUtil.getName(reactor) + "_self_t";
   }
 
   /** Construct a unique type for the "self" struct of the class of the given reactor. */
@@ -552,6 +554,18 @@ public class CUtil {
         + "."
         + port.getName()
         + "_trigger";
+  }
+
+  /**
+   * Given a reactor Class, return a set of include names for interacting reactors which includes
+   * all instantiations of base class that it extends.
+   */
+  public static HashSet<String> allIncludes(TypeParameterizedReactor tpr) {
+    var set = new HashSet<String>();
+    for (var i : ASTUtils.allInstantiations(tpr.reactor())) {
+      set.add(getName(new TypeParameterizedReactor(i, tpr)));
+    }
+    return set;
   }
 
   //////////////////////////////////////////////////////

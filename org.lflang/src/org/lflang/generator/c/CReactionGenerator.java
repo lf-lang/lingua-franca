@@ -202,7 +202,8 @@ public class CReactionGenerator {
                 reactionInitialization,
                 fieldsForStructsForContainedReactors,
                 effect.getContainer(),
-                (Input) variable);
+                (Input) variable,
+                tpr);
           } else if (variable instanceof Watchdog) {
             reactionInitialization.pr(generateWatchdogVariablesInReaction(effect));
           } else {
@@ -363,14 +364,16 @@ public class CReactionGenerator {
       CodeBuilder builder,
       Map<Instantiation, CodeBuilder> structs,
       Instantiation definition,
-      Input input) {
+      Input input,
+      TypeParameterizedReactor container) {
     CodeBuilder structBuilder = structs.get(definition);
     if (structBuilder == null) {
       structBuilder = new CodeBuilder();
       structs.put(definition, structBuilder);
     }
     String inputStructType =
-        CGenerator.variableStructType(input, new TypeParameterizedReactor(definition), false);
+        CGenerator.variableStructType(
+            input, new TypeParameterizedReactor(definition, container), false);
     String defName = definition.getName();
     String defWidth = generateWidthVariable(defName);
     String inputName = input.getName();
@@ -461,7 +464,7 @@ public class CReactionGenerator {
       Output output = (Output) port.getVariable();
       String portStructType =
           CGenerator.variableStructType(
-              output, new TypeParameterizedReactor(port.getContainer()), false);
+              output, new TypeParameterizedReactor(port.getContainer(), tpr), false);
 
       CodeBuilder structBuilder = structs.get(port.getContainer());
       if (structBuilder == null) {
@@ -773,7 +776,7 @@ public class CReactionGenerator {
           (effect.getContainer() == null)
               ? CGenerator.variableStructType(output, tpr, false)
               : CGenerator.variableStructType(
-                  output, new TypeParameterizedReactor(effect.getContainer()), false);
+                  output, new TypeParameterizedReactor(effect.getContainer(), tpr), false);
       if (!ASTUtils.isMultiport(output)) {
         // Output port is not a multiport.
         return outputStructType + "* " + outputName + " = &self->_lf_" + outputName + ";";

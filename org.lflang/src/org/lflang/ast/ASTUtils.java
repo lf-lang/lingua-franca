@@ -63,8 +63,6 @@ import org.lflang.TimeValue;
 import org.lflang.generator.CodeMap;
 import org.lflang.generator.InvalidSourceException;
 import org.lflang.generator.ReactorInstance;
-import org.lflang.generator.c.CUtil;
-import org.lflang.generator.c.TypeParameterizedReactor;
 import org.lflang.lf.Action;
 import org.lflang.lf.Assignment;
 import org.lflang.lf.Code;
@@ -407,20 +405,6 @@ public class ASTUtils {
    */
   public static List<Instantiation> allInstantiations(Reactor definition) {
     return ASTUtils.collectElements(definition, featurePackage.getReactor_Instantiations());
-  }
-
-  /**
-   * Given a reactor Class, return a set of include names for interacting reactors which includes
-   * all instantiations of base class that it extends.
-   *
-   * @param r Reactor Class
-   */
-  public static HashSet<String> allIncludes(Reactor r) {
-    var set = new HashSet<String>();
-    for (var i : allInstantiations(r)) {
-      set.add(CUtil.getName(new TypeParameterizedReactor(i)));
-    }
-    return set;
   }
 
   /*
