@@ -1,0 +1,45 @@
+name: Check diff from master
+
+on:
+  workflow_call:
+    outputs:
+      changed-c:
+        value: ${{ jobs.check.outputs.changed-c }}
+      changed-cpp:
+        value: ${{ jobs.check.outputs.changed-cpp }}
+      changed-py:
+        value: ${{ jobs.check.outputs.changed-py }}
+      changed-rs:
+        value: ${{ jobs.check.outputs.changed-rs }}
+      changed-ts:
+        value: ${{ jobs.check.outputs.changed-ts }}
+      changed-tracing:
+        value: ${{ jobs.check.outputs.changed-tracing }}
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    outputs:
+      changed-c: ${{ steps.do.outputs.CHANGED_C }}
+      changed-cpp: ${{ steps.do.outputs.CHANGED_CPP }}
+      changed-py: ${{ steps.do.outputs.CHANGED_PY }}
+      changed-rs: ${{ steps.do.outputs.CHANGED_RS }}
+      changed-ts: ${{ steps.do.outputs.CHANGED_TS }}
+      changed-tracing: ${{ steps.do.outputs.CHANGED_TRACING }}
+    steps:
+    - name: Check out lingua-franca repository
+      uses: actions/checkout@v3
+      with:
+        repository: lf-lang/lingua-franca
+        submodules: true
+        fetch-depth: 0
+    - id: do
+      run: |
+        wget https://raw.githubusercontent.com/lf-lang/lingua-franca/master/.github/scripts/check-diff.sh
+        source check-diff.sh "core/src/main/java/generator/c\|/home/peter/lingua-franca/core/src/main/resources/lib/c\|core/src/main/resources/lib/platform\|test/C" C
+        source check-diff.sh "core/src/main/kotlin/generator/cpp\|core/src/main/resources/lib/cpp\|test/Cpp" CPP
+        source check-diff.sh "core/src/main/java/generator/python\|core/src/main/resources/lib/py\|test/Python" PY
+        source check-diff.sh "core/src/main/kotlin/generator/rust\|core/src/main/java/generator/rust\|core/src/main/resources/lib/rs\|test/Rust" RS
+        source check-diff.sh "core/src/main/kotlin/generator/ts\|core/src/main/java/generator/ts\|core/src/main/resources/lib/ts\|test/TypeScript" TS
+        source check-diff.sh "util/tracing" TRACING
+      shell: bash
