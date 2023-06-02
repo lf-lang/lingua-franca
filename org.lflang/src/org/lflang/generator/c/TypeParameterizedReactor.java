@@ -90,6 +90,10 @@ public record TypeParameterizedReactor(Reactor reactor, Map<String, Type> typeAr
     return InferredType.fromAST(resolveType(t.astType));
   }
 
+  /**
+   * Return a name that is unique to this TypeParameterizedReactor (up to structural equality) and
+   * that is prefixed with exactly one underscore and that does not contain any upper-case letters.
+   */
   public String uniqueName() {
     String name = reactor.getName().toLowerCase();
     if (uniqueNames.containsKey(this)) return uniqueNames.get(this);
