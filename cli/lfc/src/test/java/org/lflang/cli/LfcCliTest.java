@@ -92,7 +92,8 @@ public class LfcCliTest {
             result -> {
               result.checkOk();
               result.checkNoErrorOutput();
-              result.checkStdOut(containsString("Usage: lfc"));
+              result.checkStdOut(containsString("Usage:"));
+              result.checkStdOut(containsString("lfc"));
             });
   }
 
