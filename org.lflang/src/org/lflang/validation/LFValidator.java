@@ -221,7 +221,7 @@ public class LFValidator extends BaseLFValidator {
     var portType = ((Port) port.getVariable()).getType();
     return port.getContainer() == null
         ? portType
-        : new TypeParameterizedReactor(port.getContainer()).resolveType(portType);
+        : new TypeParameterizedReactor(port.getContainer(), null).resolveType(portType);
   }
 
   @Check(CheckType.FAST)
