@@ -26,6 +26,6 @@ jobs:
   # Run the Rust benchmark tests.
   rs-benchmark-tests:
     if: ${{ inputs.all || github.event.pull_request.draft }}
-    uses: lf-lang/benchmarks-lingua-franca/.github/workflows/benchmark-tests.yml@main
+    uses: lf-lang/benchmarks-lingua-franca/.github/workflows/benchmark-tests.yml@gradle
     with:
       target: 'Rust'
