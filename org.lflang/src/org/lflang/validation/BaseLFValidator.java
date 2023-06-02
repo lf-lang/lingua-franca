@@ -28,55 +28,53 @@ package org.lflang.validation;
 
 import java.lang.reflect.Method;
 import java.util.Map;
-
 import org.eclipse.emf.common.util.DiagnosticChain;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.xtext.validation.Check;
 import org.eclipse.xtext.validation.CheckMode;
 import org.eclipse.xtext.validation.CheckType;
-import org.lflang.ast.ASTUtils;
 import org.lflang.TimeUnit;
+import org.lflang.ast.ASTUtils;
 import org.lflang.lf.LfPackage.Literals;
 import org.lflang.lf.Time;
 
 public class BaseLFValidator extends AbstractLFValidator {
 
-    @Check(CheckType.FAST)
-    public void checkTime(Time time) {
-        if (!ASTUtils.isValidTime(time)) {
-            error("Invalid time unit. " +
-                  "Should be one of " +
-                  TimeUnit.list() + ".", Literals.TIME__UNIT);
-        }
+  @Check(CheckType.FAST)
+  public void checkTime(Time time) {
+    if (!ASTUtils.isValidTime(time)) {
+      error(
+          "Invalid time unit. " + "Should be one of " + TimeUnit.list() + ".", Literals.TIME__UNIT);
+    }
+  }
+
+  /**
+   * Provides convenient access to the inner state of the validator.
+   *
+   * <p>The validator only gives protected access to its own state. With this class, we can grant
+   * access to the inner state to other objects.
+   *
+   * @author Christian Menard
+   */
+  protected class ValidatorStateAccess {
+    public EObject getCurrentObject() {
+      return BaseLFValidator.this.getCurrentObject();
     }
 
-    /**
-     * Provides convenient access to the inner state of the validator.
-     * <p>
-     * The validator only gives protected access to its own state. With
-     * this class, we can grant access to the inner state to other objects.
-     *
-     * @author Christian Menard
-     */
-    protected class ValidatorStateAccess {
-        public EObject getCurrentObject() {
-            return BaseLFValidator.this.getCurrentObject();
-        }
-
-        public Method getCurrentMethod() {
-            return BaseLFValidator.this.getCurrentMethod();
-        }
-
-        public DiagnosticChain getChain() {
-            return BaseLFValidator.this.getChain();
-        }
-
-        public CheckMode getCheckMode() {
-            return BaseLFValidator.this.getCheckMode();
-        }
-
-        public Map<Object, Object> getContext() {
-            return BaseLFValidator.this.getContext();
-        }
+    public Method getCurrentMethod() {
+      return BaseLFValidator.this.getCurrentMethod();
     }
+
+    public DiagnosticChain getChain() {
+      return BaseLFValidator.this.getChain();
+    }
+
+    public CheckMode getCheckMode() {
+      return BaseLFValidator.this.getCheckMode();
+    }
+
+    public Map<Object, Object> getContext() {
+      return BaseLFValidator.this.getContext();
+    }
+  }
 }

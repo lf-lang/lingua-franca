@@ -2,9 +2,7 @@ package org.lflang.tests.runtime;
 
 import java.util.List;
 import org.junit.jupiter.api.Assumptions;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
-
 import org.lflang.Target;
 import org.lflang.tests.Configurators;
 import org.lflang.tests.RuntimeTest;
@@ -17,17 +15,19 @@ import org.lflang.tests.TestRegistry.TestCategory;
  */
 public class CArduinoTest extends RuntimeTest {
 
-    public CArduinoTest() {
-        super(Target.C);
-    }
+  public CArduinoTest() {
+    super(Target.C);
+  }
 
-    @Test
-    public void buildArduinoTests() {
-        Assumptions.assumeFalse(isWindows(), Message.NO_WINDOWS_SUPPORT);
-        super.runTestsFor(List.of(Target.C),
-            Message.DESC_ARDUINO,
-            TestCategory.ARDUINO::equals, Configurators::noChanges,
-            TestLevel.BUILD,
-            false);
-    }
+  @Test
+  public void buildArduinoTests() {
+    Assumptions.assumeFalse(isWindows(), Message.NO_WINDOWS_SUPPORT);
+    super.runTestsFor(
+        List.of(Target.C),
+        Message.DESC_ARDUINO,
+        TestCategory.ARDUINO::equals,
+        Configurators::noChanges,
+        TestLevel.BUILD,
+        false);
+  }
 }
