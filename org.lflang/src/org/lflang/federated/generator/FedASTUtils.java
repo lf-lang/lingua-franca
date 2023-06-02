@@ -129,7 +129,6 @@ public class FedASTUtils {
    *
    * @param connection Network connection between two federates.
    * @param resource
-   * @param mainDef
    * @param coordination One of CoordinationType.DECENTRALIZED or CoordinationType.CENTRALIZED.
    * @param errorReporter Used to report errors encountered.
    */
@@ -203,8 +202,6 @@ public class FedASTUtils {
     } else {
       action.setOrigin(ActionOrigin.LOGICAL);
     }
-    reactionBankIndices.put(reaction, bankIndex);
-  }
 
     return action;
   }
@@ -547,7 +544,7 @@ public class FedASTUtils {
 
   /**
    * Follow reactions upstream. This is part of the algorithm of {@link
-   * #findUpstreamPortsInFederate(FederateInstance, PortInstance, Set)}.
+   * #findUpstreamPortsInFederate}.
    */
   private static void followReactionUpstream(
       FederateInstance federate,
@@ -798,7 +795,6 @@ public class FedASTUtils {
    * @param connection Network connection between two federates.
    * @param coordination One of CoordinationType.DECENTRALIZED or CoordinationType.CENTRALIZED.
    * @param resource
-   * @param mainDef
    * @param errorReporter FIXME
    * @note Used in federated execution
    */

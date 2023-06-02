@@ -416,19 +416,6 @@ public abstract class GeneratorBase extends AbstractLFValidator {
   }
 
   /**
-   * Check whether watchdogs are present and are supported.
-   *
-   * @param isSupported indicates whether or not this is a supported target and whether or not it is
-   *     a threaded runtime.
-   */
-  protected void checkWatchdogSupport(boolean isSupported) {
-    if (hasWatchdogs && !isSupported) {
-      errorReporter.reportError(
-          "Watchdogs are currently only supported for threaded programs in the C target.");
-    }
-  }
-
-  /**
    * Finds and transforms connections into forwarding reactions iff the connections have the same
    * destination as other connections or reaction in mutually exclusive modes.
    */
