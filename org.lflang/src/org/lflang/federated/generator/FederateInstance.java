@@ -312,7 +312,6 @@ public class FederateInstance { // why does this not extend ReactorInstance?
    * @param reactor The reactor declaration to find
    */
   private boolean contains(Instantiation instantiation, ReactorDecl reactor) {
-
     if (instantiation.getReactorClass().equals(ASTUtils.toDefinition(reactor))) {
       return true;
     }

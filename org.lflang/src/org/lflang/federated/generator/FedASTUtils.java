@@ -203,6 +203,8 @@ public class FedASTUtils {
     } else {
       action.setOrigin(ActionOrigin.LOGICAL);
     }
+    reactionBankIndices.put(reaction, bankIndex);
+  }
 
     return action;
   }

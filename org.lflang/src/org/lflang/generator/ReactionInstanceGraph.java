@@ -99,6 +99,7 @@ public class ReactionInstanceGraph extends PrecedenceGraph<ReactionInstance.Runt
       // throw new InvalidSourceException("Reactions form a cycle!");
     }
   }
+
   /**
    * Adds manually a set of dependent network edges as needed to nudge the level assignment
    * algorithm into creating a correct level assignment.
@@ -106,7 +107,6 @@ public class ReactionInstanceGraph extends PrecedenceGraph<ReactionInstance.Runt
    * @param main
    */
   private void addDependentNetworkEdges(ReactorInstance main) {
-
     Attribute attribute =
         AttributeUtils.findAttributeByName(main.definition.getReactorClass(), "_fed_config");
     String actionsStr =
