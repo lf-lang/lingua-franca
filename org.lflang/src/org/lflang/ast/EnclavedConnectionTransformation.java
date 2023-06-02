@@ -95,7 +95,6 @@ public class EnclavedConnectionTransformation implements AstTransformation {
 
   // Create an enclave wrapper class for a particular enclave
   private Reactor createEnclaveWrapperClass(Instantiation enclave) {
-
     Reactor enclaveClass = ASTUtils.toDefinition(enclave.getReactorClass());
     Reactor wrapperClass = factory.createReactor();
     for (int i = 0; i < enclaveClass.getInputs().size(); i++) {

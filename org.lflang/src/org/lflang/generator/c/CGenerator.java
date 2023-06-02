@@ -326,6 +326,10 @@ public class CGenerator extends GeneratorBase {
     // EnclavedConnectionTransformation(enclavedConnectionBodyGenerator, types, fileConfig.resource,
     // true, true));
     registerTransformation(
+        new CEnclavedReactorTransformation(fileConfig.resource)
+    );
+
+    registerTransformation(
         new DelayedConnectionTransformation(
             delayConnectionBodyGenerator, types, fileConfig.resource, true, true));
 
