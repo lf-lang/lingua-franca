@@ -1,5 +1,7 @@
 package org.lflang.federated.generator;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -78,7 +80,7 @@ public class FedMainEmitter {
 
 
 
-        
+
     }
 
     /**
@@ -103,7 +105,7 @@ public class FedMainEmitter {
             .stream()
             .map(Variable::getName)
             .collect(Collectors.joining(","));
-        
+
         List<String> vals = new ArrayList<>();
         for (var pair: federate.networkReactionDependencyPairs){
             vals.add(getDependencyList(federate, pair));

@@ -541,12 +541,9 @@ public class CExtension implements FedTargetExtension {
             staa_t* staa_lst[%1$s];
             size_t staa_lst_size = %1$s;
         """.formatted(numOfSTAAOffsets)));
-        
-
-        code.pr(generateSerializationPreamble(federate, fileConfig));
 
         code.pr(generateExecutablePreamble(federate, rtiConfig, errorReporter));
-        
+
         code.pr(generateSTAAInitialization(federate, rtiConfig, errorReporter));
 
         code.pr(generateInitializeTriggers(federate, errorReporter));
@@ -623,7 +620,7 @@ public class CExtension implements FedTargetExtension {
     private String generateSTAAInitialization(FederateInstance federate, RtiConfig rtiConfig, ErrorReporter errorReporter) {
         CodeBuilder code = new CodeBuilder();
         code.pr(CExtensionUtils.surroundWithIfFederatedDecentralized(CExtensionUtils.stpStructs(federate, errorReporter)));
-        
+
         //code.pr(CExtensionUtils.allocateTriggersForFederate(federate));
 
         return """
