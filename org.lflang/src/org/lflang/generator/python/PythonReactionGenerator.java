@@ -4,14 +4,14 @@ import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.stream.Collectors;
 
-import org.lflang.ASTUtils;
+import org.lflang.ast.ASTUtils;
 import org.lflang.AttributeUtils;
 import org.lflang.ErrorReporter;
 import org.lflang.Target;
 
 import org.lflang.generator.c.CReactionGenerator;
+import org.lflang.generator.c.TypeParameterizedReactor;
 import org.lflang.lf.ReactorDecl;
 import org.lflang.lf.Reaction;
 import org.lflang.lf.Reactor;
@@ -39,7 +39,7 @@ public class PythonReactionGenerator {
      * @param reactionIndex The index of the reaction
      * @param pyObjects CPython related objects
      */
-    public static String generateCPythonReactionCaller(Reactor reactor,
+    public static String generateCPythonReactionCaller(TypeParameterizedReactor reactor,
                                                         int reactionIndex,
                                                         List<String> pyObjects,
                                                         String inits) {
@@ -54,7 +54,7 @@ public class PythonReactionGenerator {
      * @param reactionIndex The index of the reaction
      * @param pyObjects CPython related objects
      */
-    public static String generateCPythonDeadlineCaller(Reactor r,
+    public static String generateCPythonDeadlineCaller(TypeParameterizedReactor r,
                                                        int reactionIndex,
                                                        List<String> pyObjects) {
         String pythonFunctionName = generatePythonDeadlineFunctionName(reactionIndex);
@@ -68,7 +68,7 @@ public class PythonReactionGenerator {
      * @param reactionIndex The index of the reaction
      * @param pyObjects CPython related objects
      */
-    public static String generateCPythonSTPCaller(Reactor r,
+    public static String generateCPythonSTPCaller(TypeParameterizedReactor r,
                                                        int reactionIndex,
                                                        List<String> pyObjects) {
         String pythonFunctionName = generatePythonSTPFunctionName(reactionIndex);
@@ -127,6 +127,7 @@ public class PythonReactionGenerator {
      */
     public static String generateCReaction(
         Reaction reaction,
+        TypeParameterizedReactor tpr,
         Reactor r,
         int reactionIndex,
         Instantiation mainDef,
@@ -139,32 +140,32 @@ public class PythonReactionGenerator {
         CodeBuilder code = new CodeBuilder();
         String cPyInit = generateCPythonInitializers(reaction, r, pyObjects, errorReporter);
         String cInit = CReactionGenerator.generateInitializationForReaction(
-                                                "", reaction, r, reactionIndex,
+                                                "", reaction, tpr, reactionIndex,
                                                 types, errorReporter, mainDef,
                                                 Target.Python.requiresTypes);
         code.pr(
             "#include " + StringUtil.addDoubleQuotes(
                 CCoreFilesUtils.getCTargetSetHeader()));
         code.pr(generateFunction(
-                    CReactionGenerator.generateReactionFunctionHeader(r, reactionIndex),
+                    CReactionGenerator.generateReactionFunctionHeader(tpr, reactionIndex),
                     cInit, reaction.getCode(),
-                    generateCPythonReactionCaller(r, reactionIndex, pyObjects, cPyInit)
+                    generateCPythonReactionCaller(tpr, reactionIndex, pyObjects, cPyInit)
         ));
 
         // Generate code for the STP violation handler, if there is one.
         if (reaction.getStp() != null) {
             code.pr(generateFunction(
-                    CReactionGenerator.generateStpFunctionHeader(r, reactionIndex),
+                    CReactionGenerator.generateStpFunctionHeader(tpr, reactionIndex),
                     cInit, reaction.getStp().getCode(),
-                    generateCPythonSTPCaller(r, reactionIndex, pyObjects)
+                    generateCPythonSTPCaller(tpr, reactionIndex, pyObjects)
                 ));
         }
         // Generate code for the deadline violation function, if there is one.
         if (reaction.getDeadline() != null) {
             code.pr(generateFunction(
-                CReactionGenerator.generateDeadlineFunctionHeader(r, reactionIndex),
+                CReactionGenerator.generateDeadlineFunctionHeader(tpr, reactionIndex),
                 cInit, reaction.getDeadline().getCode(),
-                generateCPythonDeadlineCaller(r, reactionIndex, pyObjects)
+                generateCPythonDeadlineCaller(tpr, reactionIndex, pyObjects)
             ));
         }
         code.pr(
@@ -207,8 +208,7 @@ public class PythonReactionGenerator {
         // Next, add the triggers (input and actions; timers are not needed).
         // TODO: handle triggers
         for (TriggerRef trigger : ASTUtils.convertToEmptyListIfNull(reaction.getTriggers())) {
-            if (trigger instanceof VarRef) {
-                VarRef triggerAsVarRef = (VarRef) trigger;
+            if (trigger instanceof VarRef triggerAsVarRef) {
                 code.pr(generateVariableToSendPythonReaction(triggerAsVarRef, actionsAsTriggers, decl, pyObjects));
             }
         }
@@ -272,14 +272,13 @@ public class PythonReactionGenerator {
 
         // Handle triggers
         for (TriggerRef trigger : ASTUtils.convertToEmptyListIfNull(reaction.getTriggers())) {
-            if (!(trigger instanceof VarRef)) {
+            if (!(trigger instanceof VarRef triggerAsVarRef)) {
                 continue;
             }
-            VarRef triggerAsVarRef = (VarRef) trigger;
             if (triggerAsVarRef.getVariable() instanceof Port) {
                 if (triggerAsVarRef.getVariable() instanceof Input) {
                     if (((Input) triggerAsVarRef.getVariable()).isMutable()) {
-                        generatedParams.add("mutable_"+triggerAsVarRef.getVariable().getName()+"");
+                        generatedParams.add("mutable_"+triggerAsVarRef.getVariable().getName());
 
                         // Create a deep copy
                         if (ASTUtils.isMultiport((Input) triggerAsVarRef.getVariable())) {
@@ -381,7 +380,7 @@ public class PythonReactionGenerator {
         code.pr(nameOfSelfStruct+"->_lf_name = \""+instance.uniqueID()+"_lf\";");
 
         for (ReactionInstance reaction : instance.reactions) {
-            // Reactions marked with a `@_c_body` attribute are generated in C
+            // Reactions marked with a {@code @_c_body} attribute are generated in C
             if (AttributeUtils.hasCBody(reaction.getDefinition())) continue;
             // Create a PyObject for each reaction
             code.pr(generateCPythonReactionLinker(instance, reaction, nameOfSelfStruct));
@@ -480,7 +479,7 @@ public class PythonReactionGenerator {
      * @param reaction The reaction of reactor
      */
     public static String generatePythonReaction(Reactor reactor, Reaction reaction, int reactionIndex) {
-        // Reactions marked with a `@_c_body` attribute are generated in C
+        // Reactions marked with a {@code @_c_body} attribute are generated in C
         if (AttributeUtils.hasCBody(reaction))  return "";
 
         CodeBuilder code = new CodeBuilder();

@@ -381,7 +381,7 @@ public abstract class TestBase {
     /**
      * Configure a test by applying the given configurator and return a
      * generator context. Also, if the given level is less than
-     * `TestLevel.BUILD`, add a `no-compile` flag to the generator context. If
+     * {@code TestLevel.BUILD}, add a {@code no-compile} flag to the generator context. If
      * the configurator was not applied successfully, throw an AssertionError.
      *
      * @param test the test to configure.

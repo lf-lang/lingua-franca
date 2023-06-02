@@ -26,8 +26,11 @@ package org.lflang.generator.cpp
 
 import org.lflang.*
 import org.lflang.generator.PrependOperator
+import org.lflang.generator.cpp.CppConnectionGenerator.Companion.cppType
+import org.lflang.generator.cpp.CppConnectionGenerator.Companion.isEnclaveConnection
 import org.lflang.generator.cpp.CppConnectionGenerator.Companion.name
 import org.lflang.generator.cpp.CppConnectionGenerator.Companion.requiresConnectionClass
+import org.lflang.generator.cpp.CppInstanceGenerator.Companion.isEnclave
 import org.lflang.generator.cpp.CppPortGenerator.Companion.dataType
 import org.lflang.lf.Action
 import org.lflang.lf.Connection
@@ -86,7 +89,7 @@ class CppAssembleMethodGenerator(private val reactor: Reactor) {
                     // is in a bank, but not a multiport
                     """
                         |for (auto& __lf_instance : ${container.name}) {
-                    ${" |  "..generateCode("__lf_instance->${port.name}")}
+                    ${" |  "..generateCode("__lf_instance->${if(container.isEnclave) "__lf_instance->" else ""}${port.name}")}
                         |}
                     """.trimMargin()
                 } else {
@@ -170,48 +173,51 @@ class CppAssembleMethodGenerator(private val reactor: Reactor) {
      * complex logic for finding the actual type, we return a decltype statement and let the C++ compiler do the job.
      */
     private val VarRef.portType: String
-        get() = "reactor::Port<${dataType}>*"
+        get() = "reactor::Port<typename ${dataType}>*"
 
     private fun declareMultiportConnection(c: Connection, idx: Int): String {
         // It should be safe to assume that all ports have the same type. Thus we just pick the
         // first left port to determine the type of the entire connection
         val portType = c.leftPorts[0].portType
 
-        val leftPort = c.leftPorts[0].variable as Port
-        val dataType = leftPort.inferredType.cppType
-
         // Generate code which adds all left hand ports and all right hand ports to a vector each. If we are handling multiports
         // within a bank, then we normally iterate over all banks in an outer loop and over all ports in an inner loop. However,
-        // if the connection is a cross connection, than we change the order on the right side and iterate over ports before banks.
+        // if the connection is an interleaved connection, than we change the order on the right side and iterate over ports before banks.
         return with(PrependOperator) {
-            if (!c.requiresConnectionClass) {
-                """
-                    |// connection $idx
-                    |std::vector<$portType> __lf_left_ports_$idx;
-                ${" |"..c.leftPorts.joinWithLn { addAllPortsToVector(it, "__lf_left_ports_$idx") }}
-                    |std::vector<$portType> __lf_right_ports_$idx;
-                ${" |"..c.rightPorts.joinWithLn { addAllPortsToVector(it, "__lf_right_ports_$idx") }}
-                    |lfutil::bind_multiple_ports(__lf_left_ports_$idx, __lf_right_ports_$idx, ${c.isIterated});
-                """.trimMargin()
-            } else {
-                """
-                    |// connection $idx
-                    |std::vector<$portType> __lf_left_ports_$idx;
-                ${" |"..c.leftPorts.joinWithLn { addAllPortsToVector(it, "__lf_left_ports_$idx") }}
-                    |${c.name}.reserve(__lf_left_ports_$idx.size());
-                    |for(size_t __lf_idx{0}; __lf_idx < __lf_left_ports_$idx.size(); __lf_idx++) {
-                    |  ${c.name}.emplace_back("${c.name}" + std::to_string(__lf_idx), this, ${c.delay.toCppTime()});
-                    |  ${c.name}.back().bind_upstream_port(__lf_left_ports_$idx[__lf_idx]);
-                    |}
-                    |std::vector<reactor::Connection<$dataType>*> __lf_connection_pointers_$idx;
-                    |for (auto& connection : ${c.name}) {
-                    |  __lf_connection_pointers_$idx.push_back(&connection);
-                    |}
-                    |std::vector<$portType> __lf_right_ports_$idx;
-                ${" |"..c.rightPorts.joinWithLn { addAllPortsToVector(it, "__lf_right_ports_$idx") }}
-                    |lfutil::bind_multiple_connections_with_ports(__lf_connection_pointers_$idx, __lf_right_ports_$idx, ${c.isIterated});
-                """.trimMargin()
-            }
+            """
+                |// connection $idx
+                |std::vector<$portType> __lf_left_ports_$idx;
+            ${" |"..c.leftPorts.joinWithLn { addAllPortsToVector(it, "__lf_left_ports_$idx") }}
+                |std::vector<$portType> __lf_right_ports_$idx;
+            ${" |"..c.rightPorts.joinWithLn { addAllPortsToVector(it, "__lf_right_ports_$idx") }}
+            ${" |"..if (c.requiresConnectionClass) "${c.name}.reserve(std::max(__lf_left_ports_$idx.size(), __lf_right_ports_$idx.size()));" else ""}
+                |lfutil::bind_multiple_ports<$portType>(__lf_left_ports_$idx, __lf_right_ports_$idx, ${c.isIterated},
+            ${" |"..c.getConnectionLambda(portType)}
+                |);
+            """.trimMargin()
+        }
+    }
+
+    private fun Connection.getConnectionLambda(portType: String): String {
+        return when {
+            isEnclaveConnection     -> """
+                    [this]($portType left, $portType right, std::size_t idx) {
+                      $name.push_back(std::make_unique<$cppType>(
+                          "$name" + std::to_string(idx), right->environment()${if (delay != null) ", ${delay.toCppTime()}" else ""}));
+                      $name.back()->bind_upstream_port(left);
+                      $name.back()->bind_downstream_port(right);
+                    }
+                """.trimIndent()
+
+            requiresConnectionClass -> """
+                    [this]($portType left, $portType right, std::size_t idx) {
+                      $name.push_back(std::make_unique<$cppType>("$name" + std::to_string(idx), this, ${delay.toCppTime()}));
+                      $name.back()->bind_upstream_port(left);
+                      $name.back()->bind_downstream_port(right);
+                    }
+                """.trimIndent()
+
+            else                    -> "[]($portType left, $portType right, [[maybe_unused]]std::size_t idx) {  left->bind_to(right); }"
         }
     }
 

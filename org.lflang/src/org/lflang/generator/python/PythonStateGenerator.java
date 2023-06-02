@@ -2,9 +2,8 @@ package org.lflang.generator.python;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
-import org.lflang.ASTUtils;
+import org.lflang.ast.ASTUtils;
 import org.lflang.lf.ReactorDecl;
 import org.lflang.lf.StateVar;
 

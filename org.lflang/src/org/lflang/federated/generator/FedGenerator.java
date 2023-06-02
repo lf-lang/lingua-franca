@@ -28,7 +28,7 @@ import org.eclipse.xtext.resource.XtextResourceSet;
 import org.eclipse.xtext.util.RuntimeIOException;
 import org.eclipse.xtext.xbase.lib.Exceptions;
 
-import org.lflang.ASTUtils;
+import org.lflang.ast.ASTUtils;
 import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
 import org.lflang.LFStandaloneSetup;
@@ -286,7 +286,7 @@ public class FedGenerator {
             final int id = i;
             compileThreadPool.execute(() -> {
                 Resource res = rs.getResource(URI.createFileURI(
-                    fileConfig.getSrcPath().resolve(fed.name + ".lf").toAbsolutePath().toString()
+                    FedEmitter.lfFilePath(fileConfig, fed).toAbsolutePath().toString()
                 ), true);
                 FileConfig subFileConfig = LFGenerator.createFileConfig(res, fileConfig.getSrcGenPath(), true);
                 ErrorReporter subContextErrorReporter = new LineAdjustingErrorReporter(threadSafeErrorReporter, lf2lfCodeMapMap);

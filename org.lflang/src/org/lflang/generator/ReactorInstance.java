@@ -26,8 +26,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 package org.lflang.generator;
 
-import static org.lflang.ASTUtils.belongsTo;
-import static org.lflang.ASTUtils.getLiteralTimeValue;
+import static org.lflang.ast.ASTUtils.getLiteralTimeValue;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -39,13 +38,12 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
-import org.eclipse.emf.ecore.util.EcoreUtil;
-
-import org.lflang.ASTUtils;
+import org.lflang.ast.ASTUtils;
 import org.lflang.AttributeUtils;
 import org.lflang.ErrorReporter;
 import org.lflang.TimeValue;
 import org.lflang.generator.TriggerInstance.BuiltinTriggerVariable;
+import org.lflang.generator.c.TypeParameterizedReactor;
 import org.lflang.lf.Action;
 import org.lflang.lf.Assignment;
 import org.lflang.lf.BuiltinTrigger;
@@ -55,7 +53,6 @@ import org.lflang.lf.Expression;
 import org.lflang.lf.Initializer;
 import org.lflang.lf.Input;
 import org.lflang.lf.Instantiation;
-import org.lflang.lf.LfFactory;
 import org.lflang.lf.Mode;
 import org.lflang.lf.Output;
 import org.lflang.lf.Parameter;
@@ -67,8 +64,8 @@ import org.lflang.lf.ReactorDecl;
 import org.lflang.lf.Timer;
 import org.lflang.lf.VarRef;
 import org.lflang.lf.Variable;
+import org.lflang.lf.Watchdog;
 import org.lflang.lf.WidthSpec;
-
 
 /**
  * Representation of a compile-time instance of a reactor.
@@ -150,6 +147,9 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
     /** List of reaction instances for this reactor instance. */
     public final List<ReactionInstance> reactions = new ArrayList<>();
 
+    /** List of watchdog instances for this reactor instance. */
+    public final List<WatchdogInstance> watchdogs = new ArrayList<>();
+
     /** The timer instances belonging to this reactor instance. */
     public final List<TimerInstance> timers = new ArrayList<>();
 
@@ -164,6 +164,8 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
 
     /** Indicator that this reactor has itself as a parent, an error condition. */
     public final boolean recursive;
+
+    public TypeParameterizedReactor tpr;
 
     //////////////////////////////////////////////////////
     //// Public methods.
@@ -192,7 +194,7 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
 
     /**
      * This function assigns/propagates deadlines through the Reaction Instance Graph.
-     * It performs Kahn`s algorithm in reverse, starting from the leaf nodes and
+     * It performs Kahn's algorithm in reverse, starting from the leaf nodes and
      * propagates deadlines upstream. To reduce cost, it should only be invoked when
      * there are user-specified deadlines in the program.
      * @return
@@ -317,13 +319,14 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
     /**
      * @see NamedInstance#uniqueID()
      *
-     * Append `_main` to the name of the main reactor to allow instantiations
+     * Append {@code _main} to the name of the main reactor to allow instantiations
      * within that reactor to have the same name.
      */
     @Override
     public String uniqueID() {
        if (this.isMainOrFederated()) {
-          return super.uniqueID() + "_main";
+           if (reactorDefinition.isFederated() && !super.uniqueID().startsWith("federate__")) return "federate__" + super.uniqueID() + "_main";
+           return super.uniqueID() + "_main";
        }
        return super.uniqueID();
     }
@@ -757,6 +760,21 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
         return builtinTriggers.computeIfAbsent(trigger.getType(), ref -> TriggerInstance.builtinTrigger(trigger, this));
     }
 
+    /** Create all the watchdog instances of this reactor instance. */
+    protected void createWatchdogInstances() {
+        List<Watchdog> watchdogs = ASTUtils.allWatchdogs(reactorDefinition);
+        if (watchdogs != null) {
+            for (Watchdog watchdog : watchdogs) {
+                // Create the watchdog instance.
+                var watchdogInstance = new WatchdogInstance(watchdog, this);
+
+                // Add the watchdog instance to the list of watchdogs for this
+                // reactor.
+                this.watchdogs.add(watchdogInstance);
+            }
+        }
+    }
+
     ////////////////////////////////////////
     //// Private constructors
 
@@ -768,15 +786,16 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
      * @param reporter An error reporter.
      * @param desiredDepth The depth to which to expand the hierarchy.
      */
-    private ReactorInstance(
-            Instantiation definition,
-            ReactorInstance parent,
-            ErrorReporter reporter,
-            int desiredDepth) {
+    public ReactorInstance(
+        Instantiation definition,
+        ReactorInstance parent,
+        ErrorReporter reporter,
+        int desiredDepth) {
         super(definition, parent);
         this.reporter = reporter;
         this.reactorDeclaration = definition.getReactorClass();
         this.reactorDefinition = ASTUtils.toDefinition(reactorDeclaration);
+        this.tpr = new TypeParameterizedReactor(definition);
 
         // check for recursive instantiation
         var currentParent = parent;
@@ -863,6 +882,10 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
                 mode.setupTranstions();
             }
         }
+    }
+
+    public TypeParameterizedReactor getTypeParameterizedReactor() {
+        return this.tpr;
     }
 
     //////////////////////////////////////////////////////
@@ -1010,14 +1033,14 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
      * and may be ports of a contained bank (a port representing ports of the bank
      * members) so the returned list includes ranges of banks and channels.
      *
-     * If a given port reference has the form `interleaved(b.m)`, where `b` is
-     * a bank and `m` is a multiport, then the corresponding range in the returned
+     * If a given port reference has the form {@code interleaved(b.m)}, where {@code b} is
+     * a bank and {@code m} is a multiport, then the corresponding range in the returned
      * list is marked interleaved.
      *
-     * For example, if `b` and `m` have width 2, without the interleaved keyword,
-     * the returned range represents the sequence `[b0.m0, b0.m1, b1.m0, b1.m1]`.
+     * For example, if {@code b} and {@code m} have width 2, without the interleaved keyword,
+     * the returned range represents the sequence {@code [b0.m0, b0.m1, b1.m0, b1.m1]}.
      * With the interleaved marking, the returned range represents the sequence
-     * `[b0.m0, b1.m0, b0.m1, b1.m1]`. Both ranges will have width 4.
+     * {@code [b0.m0, b1.m0, b0.m1, b1.m1]}. Both ranges will have width 4.
      *
      * @param references The variable references on one side of the connection.
      * @param connection The connection.
@@ -1147,9 +1170,6 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
      */
     public boolean isGeneratedDelay() {
         // FIXME: hacky string matching again...
-        if (this.definition.getReactorClass().getName().contains(DelayBodyGenerator.GEN_DELAY_CLASS_NAME)) {
-            return true;
-        }
-        return false;
+        return this.definition.getReactorClass().getName().contains(DelayBodyGenerator.GEN_DELAY_CLASS_NAME);
     }
 }

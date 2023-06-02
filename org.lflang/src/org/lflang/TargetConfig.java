@@ -40,6 +40,7 @@ import org.lflang.TargetProperty.LogLevel;
 import org.lflang.TargetProperty.Platform;
 import org.lflang.TargetProperty.SchedulerOption;
 import org.lflang.TargetProperty.UnionType;
+import org.lflang.generator.LFGeneratorContext.BuildParm;
 import org.lflang.generator.rust.RustTargetConfig;
 import org.lflang.lf.KeyValuePair;
 import org.lflang.lf.TargetDecl;
@@ -137,6 +138,9 @@ public class TargetConfig {
             this.keepalive = Boolean.parseBoolean(
                 cliArgs.getProperty(TargetProperty.KEEPALIVE.description));
         }
+        if (cliArgs.containsKey(BuildParm.PRINT_STATISTICS.getKey())) {
+            this.printStatistics = true;
+        }
     }
 
     /**
@@ -171,13 +175,6 @@ public class TargetConfig {
      * Optional additional extensions to include in the generated CMakeLists.txt.
      */
     public List<String> cmakeIncludes = new ArrayList<>();
-
-    /**
-     * List of cmake-includes from the cmake-include target property with no path info.
-     * Useful for copying them to remote machines. This is needed because
-     * target cmake-includes can be resources with resource paths.
-     */
-    public List<String> cmakeIncludesWithoutPath = new ArrayList<>();
 
     /**
      * The compiler to invoke, unless a build command has been specified.
@@ -237,14 +234,7 @@ public class TargetConfig {
     /**
      * List of files to be copied to src-gen.
      */
-    public List<String> fileNames = new ArrayList<>();
-
-    /**
-     * List of file names from the files target property with no path info.
-     * Useful for copying them to remote machines. This is needed because
-     * target files can be resources with resource paths.
-     */
-    public List<String> filesNamesWithoutPath = new ArrayList<>();
+    public List<String> files = new ArrayList<>();
 
     /**
      * If true, configure the execution environment to keep executing if there
@@ -282,6 +272,11 @@ public class TargetConfig {
      * of defining platform (either a string or dictionary of values)
      */
     public PlatformOptions platformOptions = new PlatformOptions();
+
+    /**
+     * If true, instruct the runtime to collect and print execution statistics.
+     */
+    public boolean printStatistics = false;
 
     /**
      * List of proto files to be processed by the code generator.

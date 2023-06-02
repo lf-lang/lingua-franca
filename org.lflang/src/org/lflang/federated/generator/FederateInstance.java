@@ -25,7 +25,6 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 package org.lflang.federated.generator;
 
-import java.io.File;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -39,17 +38,15 @@ import java.util.stream.Stream;
 
 import org.eclipse.emf.ecore.EObject;
 
-import org.lflang.ASTUtils;
+import org.lflang.ast.ASTUtils;
 import org.lflang.ErrorReporter;
 import org.lflang.TargetConfig;
 import org.lflang.TimeValue;
 import org.lflang.federated.serialization.SupportedSerializers;
 import org.lflang.generator.ActionInstance;
-import org.lflang.generator.GeneratorUtils;
 import org.lflang.generator.PortInstance;
 import org.lflang.generator.ReactionInstance;
 import org.lflang.generator.ReactorInstance;
-import org.lflang.generator.SubContext;
 import org.lflang.generator.TriggerInstance;
 import org.lflang.lf.Action;
 import org.lflang.lf.ActionOrigin;
@@ -99,8 +96,8 @@ public class FederateInstance { // why does this not extend ReactorInstance?
      * @param errorReporter The error reporter
      */
     public FederateInstance(
-            Instantiation instantiation, 
-            int id, 
+            Instantiation instantiation,
+            int id,
             int bankIndex,
             TargetConfig targetConfig,
             ErrorReporter errorReporter) {
@@ -109,31 +106,32 @@ public class FederateInstance { // why does this not extend ReactorInstance?
         this.bankIndex = bankIndex;
         this.errorReporter = errorReporter;
         this.targetConfig = targetConfig;
-        
+
         if (instantiation != null) {
-            this.name = instantiation.getName();
             // If the instantiation is in a bank, then we have to append
             // the bank index to the name.
             if (instantiation.getWidthSpec() != null) {
-                this.name = instantiation.getName() + "__" + bankIndex;
+                this.name = "federate__" + instantiation.getName() + "__" + bankIndex;
+            } else {
+                this.name = "federate__" + instantiation.getName();
             }
         }
     }
 
     /////////////////////////////////////////////
     //// Public Fields
-    
+
     /**
      * The position within a bank of reactors for this federate.
      * This is 0 if the instantiation is not a bank of reactors.
      */
     public int bankIndex = 0;
-    
+
     /**
      * A list of outputs that can be triggered directly or indirectly by physical actions.
      */
     public Set<Expression> outputsConnectedToPhysicalActions = new LinkedHashSet<>();
-    
+
     /**
      * The host, if specified using the 'at' keyword.
      */
@@ -152,7 +150,7 @@ public class FederateInstance { // why does this not extend ReactorInstance?
      * A list of individual connections between federates
      */
     public Set<FedConnectionInstance> connections = new HashSet<>();
-    
+
     /**
      * Map from the federates that this federate receives messages from
      * to the delays on connections from that federate. The delay set
@@ -160,17 +158,17 @@ public class FederateInstance { // why does this not extend ReactorInstance?
      * from the federate instance that has no delay.
      */
     public Map<FederateInstance, Set<Expression>> dependsOn = new LinkedHashMap<>();
-    
+
     /**
      * The directory, if specified using the 'at' keyword.
      */
     public String dir = null;
-    
+
     /**
      * The port, if specified using the 'at' keyword.
      */
     public int port = 0;
-    
+
     /**
      * Map from the federates that this federate sends messages to
      * to the delays on connections to that federate. The delay set
@@ -178,12 +176,12 @@ public class FederateInstance { // why does this not extend ReactorInstance?
      * from the federate instance that has no delay.
      */
     public Map<FederateInstance, Set<Expression>> sendsTo = new LinkedHashMap<>();
-    
+
     /**
      * The user, if specified using the 'at' keyword.
      */
     public String user = null;
-    
+
     /**
      * The integer ID of this federate.
      */
@@ -196,7 +194,7 @@ public class FederateInstance { // why does this not extend ReactorInstance?
      * this instance if the instantiation is of a bank of reactors.
      */
     public String name = "Unnamed";
-    
+
     /**
      * List of networkMessage actions. Each of these handles a message
      *  received from another federate over the network. The ID of
@@ -204,7 +202,7 @@ public class FederateInstance { // why does this not extend ReactorInstance?
      *  The sending federate needs to specify this ID.
      */
     public List<Action> networkMessageActions = new ArrayList<>();
-    
+
     /**
      * A set of federates with which this federate has an inbound connection
      * There will only be one physical connection even if federate A has defined multiple
@@ -213,7 +211,7 @@ public class FederateInstance { // why does this not extend ReactorInstance?
      * to help the receiver distinguish different events.
      */
     public Set<FederateInstance> inboundP2PConnections = new LinkedHashSet<>();
-    
+
     /**
      * A list of federate with which this federate has an outbound physical connection.
      * There will only be one physical connection even if federate A has defined multiple
@@ -222,17 +220,17 @@ public class FederateInstance { // why does this not extend ReactorInstance?
      * scheduling the appropriate action.
      */
     public Set<FederateInstance> outboundP2PConnections = new LinkedHashSet<>();
-    
+
     /**
      * A list of triggers for network input control reactions. This is used to trigger
      * all the input network control reactions that might be nested in a hierarchy.
      */
     public List<Action> networkInputControlReactionsTriggers = new ArrayList<>();
-    
+
     /**
      * The triggers that trigger the output control reactions of this
      * federate.
-     * 
+     *
      * The network output control reactions send a PORT_ABSENT message for a network output port,
      * if it is absent at the current tag, to notify all downstream federates that no value will
      * be present on the given network port, allowing input control reactions on those federates
@@ -244,7 +242,7 @@ public class FederateInstance { // why does this not extend ReactorInstance?
      * Indicates whether the federate is remote or local
      */
     public boolean isRemote = false;
-    
+
     /**
      * List of generated network reactions (network receivers) that belong to this federate instance.
      */
@@ -458,16 +456,16 @@ public class FederateInstance { // why does this not extend ReactorInstance?
                 }
             }
         }
-        
-        return false;        
+
+        return false;
     }
 
-    /** 
+    /**
      * Return true if the specified reaction should be included in the code generated for this
      * federate at the top-level. This means that if the reaction is triggered by or
      * sends data to a port of a contained reactor, then that reaction
      * is in the federate. Otherwise, return false.
-     * 
+     *
      * NOTE: This method assumes that it will not be called with reaction arguments
      * that are within other federates. It should only be called on reactions that are
      * either at the top level or within this federate. For this reason, for any reaction
@@ -491,15 +489,15 @@ public class FederateInstance { // why does this not extend ReactorInstance?
         if (reactionBankIndex >= 0 && this.bankIndex >= 0 && reactionBankIndex != this.bankIndex) {
             return false;
         }
-        
+
         // If this has been called before, then the result of the
         // following check is cached.
         if (excludeReactions != null) {
             return !excludeReactions.contains(reaction);
         }
-        
+
         indexExcludedTopLevelReactions(reactor);
-       
+
         return !excludeReactions.contains(reaction);
     }
 
@@ -532,17 +530,17 @@ public class FederateInstance { // why does this not extend ReactorInstance?
         return false;
     }
 
-    /** 
+    /**
      * Return true if the specified reactor instance or any parent
      * reactor instance is contained by this federate.
      * If the specified instance is the top-level reactor, return true
      * (the top-level reactor belongs to all federates).
      * If this federate instance is a singleton, then return true if the
      * instance is non null.
-     * 
+     *
      * NOTE: If the instance is bank within the top level, then this
      * returns true even though only one of the bank members is in the federate.
-     * 
+     *
      * @param instance The reactor instance.
      * @return True if this federate contains the reactor instance
      */
@@ -566,7 +564,7 @@ public class FederateInstance { // why does this not extend ReactorInstance?
      * federatedReactor) that don't belong to this federate
      * instance. This index is put in the excludeReactions
      * class variable.
-     * 
+     *
      * @param federatedReactor The top-level federated reactor
      */
     private void indexExcludedTopLevelReactions(Reactor federatedReactor) {
@@ -608,7 +606,7 @@ public class FederateInstance { // why does this not extend ReactorInstance?
             }
         }
     }
-    
+
     /**
      * Return true if all members of 'varRefs' belong to this federate.
      *
@@ -635,7 +633,7 @@ public class FederateInstance { // why does this not extend ReactorInstance?
         }
         return inFederate;
     }
-     
+
     /**
      * Find output ports that are connected to a physical action trigger upstream
      * in the same reactor. Return a list of such outputs paired with the minimum delay
@@ -667,7 +665,7 @@ public class FederateInstance { // why does this not extend ReactorInstance?
                                  .filter(e -> e.getValue().contains(null))
                                  .map(Map.Entry::getKey).toList();
     }
-    
+
     @Override
     public String toString() {
         return "Federate " + id + ": "
@@ -676,22 +674,21 @@ public class FederateInstance { // why does this not extend ReactorInstance?
 
     /////////////////////////////////////////////
     //// Private Fields
-     
+
     /**
      * Cached result of analysis of which reactions to exclude from main.
      */
     private Set<Reaction> excludeReactions = null;
-    
+
     /**
      * An error reporter
      */
     private final ErrorReporter errorReporter;
 
-    
     /**
      * Find the nearest (shortest) path to a physical action trigger from this
      * 'reaction' in terms of minimum delay.
-     * 
+     *
      * @param reaction The reaction to start with
      * @return The minimum delay found to the nearest physical action and
      *  TimeValue.MAX_VALUE otherwise
@@ -718,7 +715,7 @@ public class FederateInstance { // why does this not extend ReactorInstance?
                         }
                     }
                 }
-                
+
             } else if (trigger.getDefinition() instanceof Output) {
                 // Outputs of contained reactions
                 PortInstance outputInstance = (PortInstance) trigger;
@@ -732,7 +729,7 @@ public class FederateInstance { // why does this not extend ReactorInstance?
         }
         return minDelay;
     }
-    
+
     // TODO: Put this function into a utils file instead
     private <T> List<T> convertToEmptyListIfNull(List<T> list) {
         return list == null ? new ArrayList<>() : list;

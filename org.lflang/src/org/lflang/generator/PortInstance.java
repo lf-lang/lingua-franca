@@ -131,12 +131,14 @@ public class PortInstance extends TriggerInstance<Port> {
      * on the returned list.
      * 
      * Each item in the returned list has the following fields:
-     * * startRange The starting channel index of this port.
-     * * rangeWidth The number of channels sent to the destinations.
-     * * destinations A list of port ranges for destination ports, each
-     *   of which has the same width as rangeWidth.
-     *   
-     * Each item also has a method, getNumberOfDestinationReactors(),
+     * <ul>
+     *   <li>{@code startRange}: The starting channel index of this port.</li>
+     *   <li>{@code rangeWidth}: The number of channels sent to the destinations.</li>
+     *   <li>{@code destinations}: A list of port ranges for destination ports, each
+     *   of which has the same width as {@code rangeWidth}.</li>
+     * </ul>
+     *
+     * Each item also has a method, {@link SendRange#getNumberOfDestinationReactors()},
      * that returns the total number of unique destination reactors for
      * its range. This is not necessarily the same as the number
      * of ports in its destinations field because some of the ports may 

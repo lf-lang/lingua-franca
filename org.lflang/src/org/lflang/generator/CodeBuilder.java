@@ -333,27 +333,30 @@ public class CodeBuilder {
      * source range is reused until the destination range is filled.
      * The following integer variables will be defined within the scoped block:
      *
-     * * src_channel: The channel index for the source.
-     * * src_bank: The bank index of the source port's parent.
-     * * src_runtime: The runtime index of the source port's parent or
-     *   the parent's parent (if the source is an input).
+     * <ul>
+     * <li>src_channel: The channel index for the source.</li>
+     * <li>src_bank: The bank index of the source port&#39;s parent.</li>
+     * <li>src_runtime: The runtime index of the source port&#39;s parent or
+     * the parent&#39;s parent (if the source is an input).</li>
+     * </ul>
+     * <ul>
+     * <li>dst_channel: The channel index for the destination.</li>
+     * <li>dst_bank: The bank index of the destination port&#39;s parent.</li>
+     * <li>dst_runtime: The runtime index of the destination port&#39;s parent or
+     * the parent&#39;s parent (if destination is an output).</li>
+     * </ul>
      *
-     * * dst_channel: The channel index for the destination.
-     * * dst_bank: The bank index of the destination port's parent.
-     * * dst_runtime: The runtime index of the destination port's parent or
-     *   the parent's parent (if destination is an output).
+     * <p>For convenience, the above variable names are defined in the private
+     * class variables sc, sb, sr, and dc, db, dr.</p>
      *
-     * For convenience, the above variable names are defined in the private
-     * class variables sc, sb, sr, and dc, db, dr.
-     *
-     * This block should NOT be nested, where each block is
+     * <p>This block should NOT be nested, where each block is
      * put within a similar block for the reactor's parent.
      * Within the created block, every use of
      * {@link CUtil#reactorRef(ReactorInstance, String)}
-     * and related functions must provide the above variable names.
+     * and related functions must provide the above variable names.</p>
      *
-     * This must be followed by a call to
-     * {@link #endScopedRangeBlock(SendRange, RuntimeRange)}.
+     * <p>This must be followed by a call to
+     * {@link #endScopedRangeBlock(SendRange, RuntimeRange)}.</p>x
      *
      * @param srcRange The send range.
      * @param dstRange The destination range.

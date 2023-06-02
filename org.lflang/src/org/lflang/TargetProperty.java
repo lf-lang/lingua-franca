@@ -38,6 +38,7 @@ import org.eclipse.xtext.util.RuntimeIOException;
 import org.lflang.TargetConfig.DockerOptions;
 import org.lflang.TargetConfig.PlatformOptions;
 import org.lflang.TargetConfig.TracingOptions;
+import org.lflang.ast.ASTUtils;
 import org.lflang.generator.InvalidLfSourceException;
 import org.lflang.generator.rust.CargoDependencySpec;
 import org.lflang.generator.rust.CargoDependencySpec.CargoDependenciesPropertyType;
@@ -276,16 +277,16 @@ public enum TargetProperty {
      * processed by the code generator.
      */
     FILES("files", UnionType.FILE_OR_FILE_ARRAY, List.of(Target.C, Target.CCPP, Target.Python),
-            (config) -> ASTUtils.toElement(config.fileNames),
+            (config) -> ASTUtils.toElement(config.files),
             (config, value, err) -> {
-                config.fileNames = ASTUtils.elementToListOfStrings(value);
+                config.files = ASTUtils.elementToListOfStrings(value);
             },
             // FIXME: This merging of lists is potentially dangerous since
             // the incoming list of files can belong to a .lf file that is
             // located in a different location, and keeping just filename
             // strings like this without absolute paths is incorrect.
             (config, value, err) -> {
-                config.fileNames.addAll(ASTUtils.elementToListOfStrings(value));
+                config.files.addAll(ASTUtils.elementToListOfStrings(value));
             }),
 
     /**
@@ -407,7 +408,7 @@ public enum TargetProperty {
 
     /**
      * Directive to specify the platform for cross code generation. This is either a string of the platform
-     * or a dictionary of options that includes the string name. 
+     * or a dictionary of options that includes the string name.
      */
     PLATFORM("platform", UnionType.PLATFORM_STRING_OR_DICTIONARY, Target.ALL,
             (config) -> {
@@ -478,6 +479,16 @@ public enum TargetProperty {
                     }
                 }
             }),
+
+    /**
+     * Directive to instruct the runtime to collect and print execution statistics.
+     */
+    PRINT_STATISTICS("print-statistics", PrimitiveType.BOOLEAN,
+        Arrays.asList(Target.CPP),
+        (config) -> ASTUtils.toElement(config.printStatistics),
+        (config, value, err) -> {
+            config.printStatistics = ASTUtils.toBoolean(value);
+        }),
 
     /**
      * Directive for specifying .proto files that need to be compiled and their
@@ -655,8 +666,8 @@ public enum TargetProperty {
      * List of module files to link into the crate as top-level.
      * For instance, a {@code target Rust { rust-modules: [ "foo.rs" ] }}
      * will cause the file to be copied into the generated project,
-     * and the generated `main.rs` will include it with a `mod foo;`.
-     * If one of the paths is a directory, it must contain a `mod.rs`
+     * and the generated {@code main.rs} will include it with a {@code mod foo;}.
+     * If one of the paths is a directory, it must contain a {@code mod.rs}
      * file, and all its contents are copied.
      */
     RUST_INCLUDE("rust-include",
@@ -875,7 +886,7 @@ public enum TargetProperty {
 
     /**
      * Private constructor for target properties. This will take an additional
-     * `updater`, which will be used to merge target properties from imported resources.
+     * {@code updater}, which will be used to merge target properties from imported resources.
      *
      * @param description String representation of this property.
      * @param type        The type that values assigned to this property
@@ -1410,9 +1421,11 @@ public enum TargetProperty {
     /**
      * Enumeration of clock synchronization modes.
      *
-     * - OFF: The clock synchronization is universally off.
-     * - STARTUP: Clock synchronization occurs at startup only.
-     * - ON: Clock synchronization occurs at startup and at runtime.
+     * <ul>
+     * <li>OFF: The clock synchronization is universally off.</li>
+     * <li>STARTUP: Clock synchronization occurs at startup only.</li>
+     * <li>ON: Clock synchronization occurs at startup and at runtime.</li>
+     * </ul>
      *
      * @author Edward A. Lee
      */

@@ -25,7 +25,7 @@ package org.lflang.tests.compiler;/* Parsing unit tests. */
  SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  ***************/
 
-import static org.lflang.ASTUtils.toDefinition;
+import static org.lflang.ast.ASTUtils.toDefinition;
 
 import javax.inject.Inject;
 
@@ -38,7 +38,7 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
-import org.lflang.ASTUtils;
+import org.lflang.ast.ASTUtils;
 import org.lflang.DefaultErrorReporter;
 import org.lflang.TimeUnit;
 import org.lflang.TimeValue;

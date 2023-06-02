@@ -10,10 +10,9 @@ import static org.lflang.util.StringUtil.joinObjects;
 
 import java.util.Arrays;
 import java.util.HashSet;
-import java.util.LinkedHashMap;
 import java.util.stream.Collectors;
 
-import org.lflang.ASTUtils;
+import org.lflang.ast.ASTUtils;
 import org.lflang.AttributeUtils;
 import org.lflang.TargetConfig;
 
@@ -179,7 +178,7 @@ public class CTriggerObjectsGenerator {
     }
 
     /**
-     * * Set the reaction priorities based on dependency analysis.
+     * Set the reaction priorities based on dependency analysis.
      *
      * @param reactor The reactor on which to do this.
      */
@@ -192,7 +191,7 @@ public class CTriggerObjectsGenerator {
     }
 
     /**
-     * * Set the reaction priorities based on dependency analysis.
+     * Set the reaction priorities based on dependency analysis.
      *
      * @param reactor The reactor on which to do this.
      * @param builder Where to write the code.
@@ -685,7 +684,7 @@ public class CTriggerObjectsGenerator {
                             ));
                             code.endChannelIteration(port);
                         }
-                        
+
                         code.endScopedRangeBlock(sendingRange);
                     }
                 }
@@ -967,7 +966,7 @@ public class CTriggerObjectsGenerator {
      * to a contained reactor, then generate code to allocate
      * memory to store the data produced by those reactions.
      * The allocated memory is pointed to by a field called
-     * `_lf_containername.portname` on the self struct of the reactor.
+     * {@code _lf_containername.portname} on the self struct of the reactor.
      * @param reactor The reactor.
      */
     private static String deferredAllocationForEffectsOnInputs(

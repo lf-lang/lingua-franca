@@ -1,6 +1,6 @@
 package org.lflang.generator.c;
 
-import org.lflang.ASTUtils;
+import org.lflang.ast.ASTUtils;
 import org.lflang.AttributeUtils;
 import org.lflang.ErrorReporter;
 import org.lflang.Target;
@@ -9,8 +9,8 @@ import org.lflang.generator.PortInstance;
 import org.lflang.lf.Input;
 import org.lflang.lf.Output;
 import org.lflang.lf.Port;
-import org.lflang.lf.Reactor;
 import org.lflang.lf.ReactorDecl;
+
 import static org.lflang.generator.c.CGenerator.variableStructType;
 
 
@@ -24,27 +24,21 @@ import static org.lflang.generator.c.CGenerator.variableStructType;
 public class CPortGenerator {
     /**
      * Generate fields in the self struct for input and output ports
-     *
-     * @param reactor
-     * @param decl
-     * @param body
-     * @param constructorCode
      */
     public static void generateDeclarations(
-        Reactor reactor,
+        TypeParameterizedReactor tpr,
         ReactorDecl decl,
         CodeBuilder body,
         CodeBuilder constructorCode
     ) {
-        generateInputDeclarations(reactor, decl, body, constructorCode);
-        generateOutputDeclarations(reactor, decl, body, constructorCode);
+        generateInputDeclarations(tpr, body, constructorCode);
+        generateOutputDeclarations(tpr, body, constructorCode);
     }
 
     /**
      * Generate the struct type definitions for the port of the
      * reactor
      *
-     * @param r The reactor
      * @param port The port to generate the struct
      * @param target The target of the code generation (C, CCpp or Python)
      * @param errorReporter The error reporter
@@ -56,7 +50,7 @@ public class CPortGenerator {
      * @return The auxiliary struct for the port as a string
      */
     public static String generateAuxiliaryStruct(
-        Reactor r,
+        TypeParameterizedReactor tpr,
         Port port,
         Target target,
         ErrorReporter errorReporter,
@@ -82,11 +76,11 @@ public class CPortGenerator {
                 "int destination_channel;",  // From lf_port_base_t
                 "int num_destinations;"      // From lf_port_base_t
         ));
-        code.pr(valueDeclaration(port, target, errorReporter, types));
+        code.pr(valueDeclaration(tpr, port, target, errorReporter, types));
         code.pr(federatedExtension.toString());
         code.unindent();
         var name = decl != null ? localPortName(decl, port.getName())
-            : variableStructType(port, r, userFacing);
+            : variableStructType(port, tpr, userFacing);
         code.pr("} " + name + ";");
         return code.toString();
     }
@@ -178,15 +172,16 @@ public class CPortGenerator {
      * For the specified port, return a declaration for port struct to
      * contain the value of the port. A multiport output with width 4 and
      * type int[10], for example, will result in this:
-     * ```
+     * <pre><code>
      *     int value[10];
-     * ```
+     * </code></pre>
      * There will be an array of size 4 of structs, each containing this value
      * array.
      * @param port The port.
      * @return A string providing the value field of the port struct.
      */
     private static String valueDeclaration(
+        TypeParameterizedReactor tpr,
         Port port,
         Target target,
         ErrorReporter errorReporter,
@@ -199,7 +194,7 @@ public class CPortGenerator {
         }
         // Do not convert to lf_token_t* using lfTypeToTokenType because there
         // will be a separate field pointing to the token.
-        return types.getVariableDeclaration(ASTUtils.getInferredType(port), "value", false) + ";";
+        return types.getVariableDeclaration(tpr, ASTUtils.getInferredType(port), "value", false) + ";";
     }
 
     /**
@@ -212,31 +207,30 @@ public class CPortGenerator {
      *
      */
     private static void generateInputDeclarations(
-        Reactor reactor,
-        ReactorDecl decl,
+        TypeParameterizedReactor tpr,
         CodeBuilder body,
         CodeBuilder constructorCode
     ) {
-        for (Input input : ASTUtils.allInputs(reactor)) {
+        for (Input input : ASTUtils.allInputs(tpr.reactor())) {
             var inputName = input.getName();
             if (ASTUtils.isMultiport(input)) {
                 body.pr(input, String.join("\n",
                     "// Multiport input array will be malloc'd later.",
-                    variableStructType(input, reactor, false)+"** _lf_"+inputName+";",
+                    variableStructType(input, tpr, false)+"** _lf_"+inputName+";",
                     "int _lf_"+inputName+"_width;",
                     "// Default input (in case it does not get connected)",
-                    variableStructType(input, reactor, false)+" _lf_default__"+inputName+";",
+                    variableStructType(input, tpr, false)+" _lf_default__"+inputName+";",
                     "// Struct to support efficiently reading sparse inputs.",
                     "lf_sparse_io_record_t* _lf_"+inputName+"__sparse;"
                 ));
             } else {
                 // input is not a multiport.
                 body.pr(input, String.join("\n",
-                    variableStructType(input, reactor, false)+"* _lf_"+inputName+";",
+                    variableStructType(input, tpr, false)+"* _lf_"+inputName+";",
                     "// width of -2 indicates that it is not a multiport.",
                     "int _lf_"+inputName+"_width;",
                     "// Default input (in case it does not get connected)",
-                    variableStructType(input, reactor, false)+" _lf_default__"+inputName+";"
+                    variableStructType(input, tpr, false)+" _lf_default__"+inputName+";"
                 ));
 
                 constructorCode.pr(input, String.join("\n",
@@ -249,26 +243,20 @@ public class CPortGenerator {
 
     /**
      * Generate fields in the self struct for output ports
-     *
-     * @param reactor
-     * @param decl
-     * @param body
-     * @param constructorCode
      */
     private static void generateOutputDeclarations(
-        Reactor reactor,
-        ReactorDecl decl,
+        TypeParameterizedReactor tpr,
         CodeBuilder body,
         CodeBuilder constructorCode
     ) {
-        for (Output output : ASTUtils.allOutputs(reactor)) {
+        for (Output output : ASTUtils.allOutputs(tpr.reactor())) {
             // If the port is a multiport, create an array to be allocated
             // at instantiation.
             var outputName = output.getName();
             if (ASTUtils.isMultiport(output)) {
                 body.pr(output, String.join("\n",
                     "// Array of output ports.",
-                    variableStructType(output, reactor, false)+"* _lf_"+outputName+";",
+                    variableStructType(output, tpr, false)+"* _lf_"+outputName+";",
                     "int _lf_"+outputName+"_width;",
                     "// An array of pointers to the individual ports. Useful",
                     "// for the lf_set macros to work out-of-the-box for",
@@ -276,11 +264,11 @@ public class CPortGenerator {
                     "// value can be accessed via a -> operator (e.g.,foo[i]->value).",
                     "// So we have to handle multiports specially here a construct that",
                     "// array of pointers.",
-                    variableStructType(output, reactor, false)+"** _lf_"+outputName+"_pointers;"
+                    variableStructType(output, tpr, false)+"** _lf_"+outputName+"_pointers;"
                 ));
             } else {
                 body.pr(output, String.join("\n",
-                    variableStructType(output, reactor, false)+" _lf_"+outputName+";",
+                    variableStructType(output, tpr, false)+" _lf_"+outputName+";",
                     "int _lf_"+outputName+"_width;"
                 ));
             }

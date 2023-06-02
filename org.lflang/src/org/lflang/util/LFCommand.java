@@ -156,7 +156,7 @@ public class LFCommand {
     /**
      * Execute the command.
      * <p>
-     * Executing a process directly with `processBuilder.start()` could
+     * Executing a process directly with {@code processBuilder.start()} could
      * lead to a deadlock as the subprocess blocks when output or error
      * buffers are full. This method ensures that output and error messages
      * are continuously read and forwards them to the system output and
@@ -276,7 +276,7 @@ public class LFCommand {
      * This will check first if the command can actually be found and executed. If the command is not found, null is
      * returned. In order to find the command, different methods are applied in the following order:
      * <p>
-     * 1. Check if the given command `cmd` is an executable file within `dir`.
+     * 1. Check if the given command {@code cmd} is an executable file within {@code dir}.
      * 2. If the above fails 'which <cmd>' (or 'where <cmd>' on Windows) is executed to see if the command is available
      * on the PATH.
      * 3. If both points above fail, a third attempt is started using bash to indirectly execute the command (see below

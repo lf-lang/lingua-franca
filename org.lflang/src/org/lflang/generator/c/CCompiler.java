@@ -25,6 +25,7 @@
 
 package org.lflang.generator.c;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -222,6 +223,16 @@ public class CCompiler {
     private static List<String> cmakeOptions(TargetConfig targetConfig, FileConfig fileConfig) {
         List<String> arguments = new ArrayList<>();
         cmakeCompileDefinitions(targetConfig).forEachOrdered(arguments::add);
+        String separator = File.separator;
+        String maybeQuote = ""; // Windows seems to require extra level of quoting.
+        String srcPath = fileConfig.srcPath.toString(); // Windows requires escaping the backslashes.
+        String rootPath = fileConfig.srcPkgPath.toString();
+        if (separator.equals("\\")) {
+            separator = "\\\\\\\\";
+            maybeQuote = "\\\"";
+            srcPath = srcPath.replaceAll("\\\\", "\\\\\\\\");
+            rootPath = rootPath.replaceAll("\\\\", "\\\\\\\\");
+        }
         arguments.addAll(List.of(
             "-DCMAKE_BUILD_TYPE=" + ((targetConfig.cmakeBuildType!=null) ? targetConfig.cmakeBuildType.toString() : "Release"),
             "-DCMAKE_INSTALL_PREFIX=" + FileUtil.toUnixString(fileConfig.getOutPath()),
@@ -230,8 +241,17 @@ public class CCompiler {
                     fileConfig.binPath
                 )
             ),
-            FileUtil.toUnixString(fileConfig.getSrcGenPath())
+            "-DLF_FILE_SEPARATOR=\"" + maybeQuote + separator + maybeQuote + "\""
         ));
+        // Add #define for source file directory.
+        // Do not do this for federated programs because for those, the definition is put
+        // into the cmake file (and fileConfig.srcPath is the wrong directory anyway).
+        if (!fileConfig.srcPath.toString().contains("fed-gen")) {
+            // Do not convert to Unix path
+            arguments.add("-DLF_SOURCE_DIRECTORY=\"" + maybeQuote + srcPath + maybeQuote + "\"");
+            arguments.add("-DLF_PACKAGE_DIRECTORY=\"" + maybeQuote + rootPath + maybeQuote + "\"");
+        }
+        arguments.add(FileUtil.toUnixString(fileConfig.getSrcGenPath()));
 
         if (GeneratorUtils.isHostWindows()) {
             arguments.add("-DCMAKE_SYSTEM_VERSION=\"10.0\"");
@@ -284,7 +304,7 @@ public class CCompiler {
      * Return a flash/emulate command using west.
      * If board is null (defaults to qemu_cortex_m3) or qemu_*
      * Return a flash command which runs the target as an emulation
-     * If ordinary target, return `west flash`
+     * If ordinary target, return {@code west flash}
      */
     public LFCommand buildWestFlashCommand() {
         // Set the build directory to be "build"
@@ -313,9 +333,11 @@ public class CCompiler {
      * is shown.
      *
      * Errors currently detected:
-     * - C++ compiler used to compile C files: This error shows up as
-     *  '#error "The CMAKE_C_COMPILER is set to a C++ compiler"' in
-     *  the 'CMakeOutput' string.
+     * <ul>
+     * <li>C++ compiler used to compile C files: This error shows up as
+     * &#39;#error &quot;The CMAKE_C_COMPILER is set to a C++ compiler&quot;&#39; in
+     * the &#39;CMakeOutput&#39; string.</li>
+     * </ul>
      *
      * @param CMakeOutput The captured output from CMake.
      * @return true if the provided 'CMakeOutput' contains a known error.
@@ -392,7 +414,7 @@ public class CCompiler {
         }
 
         // If there is no main reactor, then use the -c flag to prevent linking from occurring.
-        // FIXME: we could add a `-c` flag to `lfc` to make this explicit in stand-alone mode.
+        // FIXME: we could add a {@code -c} flag to {@code lfc} to make this explicit in stand-alone mode.
         //  Then again, I think this only makes sense when we can do linking.
         if (noBinary) {
             compileArgs.add("-c"); // FIXME: revisit

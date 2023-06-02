@@ -26,19 +26,13 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 package org.lflang.generator.c;
 
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-import org.lflang.ASTUtils;
 import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
 import org.lflang.InferredType;
@@ -54,7 +48,6 @@ import org.lflang.generator.TriggerInstance;
 import org.lflang.lf.Parameter;
 import org.lflang.lf.Port;
 import org.lflang.lf.Reactor;
-import org.lflang.lf.ReactorDecl;
 import org.lflang.lf.VarRef;
 import org.lflang.lf.Variable;
 import org.lflang.lf.WidthTerm;
@@ -143,13 +136,13 @@ public class CUtil {
     }
 
     /**
-     * Return the name of the reactor. A '_main` is appended to the name if the
+     * Return the name of the reactor. A {@code _main} is appended to the name if the
      * reactor is main (to allow for instantiations that have the same name as
      * the main reactor or the .lf file).
      */
-    public static String getName(Reactor reactor) {
-        String name = reactor.getName().toLowerCase() + reactor.hashCode();
-        if (reactor.isMain()) {
+    public static String getName(TypeParameterizedReactor reactor) {
+        String name = reactor.reactor().getName().toLowerCase() + reactor.hashCode();
+        if (reactor.reactor().isMain()) {
             return name + "_main";
         }
         return name;
@@ -159,23 +152,24 @@ public class CUtil {
      * Return a reference to the specified port.
      *
      * The returned string will have one of the following forms:
+     * <ul>
+     * <li>{@code selfStructs[k]->_lf_portName}</li>
+     * <li>{@code selfStructs[k]->_lf_portName}</li>
+     * <li>{@code selfStructs[k]->_lf_portName[i]}</li>
+     * <li>{@code selfStructs[k]->_lf_parent.portName}</li>
+     * <li>{@code selfStructs[k]->_lf_parent.portName[i]}</li>
+     * <li>{@code selfStructs[k]->_lf_parent[j].portName}</li>
+     * <li>{@code selfStructs[k]->_lf_parent[j].portName[i]}</li>
+     * </ul>
      *
-     * * selfStructs[k]->_lf_portName
-     * * selfStructs[k]->_lf_portName
-     * * selfStructs[k]->_lf_portName[i]
-     * * selfStructs[k]->_lf_parent.portName
-     * * selfStructs[k]->_lf_parent.portName[i]
-     * * selfStructs[k]->_lf_parent[j].portName
-     * * selfStructs[k]->_lf_parent[j].portName[i]
-     *
-     * where k is the runtime index of either the port's parent
-     * or the port's parent's parent, the latter when isNested is true.
-     * The index j is present if the parent is a bank, and
-     * the index i is present if the port is a multiport.
+     * where {@code k} is the runtime index of either the port's parent
+     * or the port's parent's parent, the latter when isNested is {@code true}.
+     * The index {@code j} is present if the parent is a bank, and
+     * the index {@code i} is present if the port is a multiport.
      *
      * The first two forms are used if isNested is false,
      * and the remaining four are used if isNested is true.
-     * Set isNested to true when referencing a port belonging
+     * Set {@code isNested} to {@code true} when referencing a port belonging
      * to a contained reactor.
      *
      * @param port The port.
@@ -214,7 +208,7 @@ public class CUtil {
      * port's parent.  This is used when an input port triggers a reaction
      * in the port's parent or when an output port is written to by
      * a reaction in the port's parent.
-     * This is equivalent to calling `portRef(port, false, true, null, null)`.
+     * This is equivalent to calling {@code portRef(port, false, true, null, null)}.
      * @param port An instance of the port to be referenced.
      */
     public static String portRef(PortInstance port) {
@@ -227,7 +221,7 @@ public class CUtil {
      * This is used when an input port triggers a reaction
      * in the port's parent or when an output port is written to by
      * a reaction in the port's parent.
-     * This is equivalent to calling `portRef(port, false, true, bankIndex, channelIndex)`.
+     * This is equivalent to calling {@code portRef(port, false, true, bankIndex, channelIndex)}.
      * @param port An instance of the port to be referenced.
      * @param runtimeIndex A variable name to use to index the runtime instance or
      *  null to use the default, the string returned by {@link CUtil#runtimeIndex(ReactorInstance)}.
@@ -275,7 +269,7 @@ public class CUtil {
      * is written to by a reaction in the parent of the port's parent,
      * or when an output port triggers a reaction in the parent of the
      * port's parent. This is equivalent to calling
-     * `portRef(port, true, true, null, null, null)`.
+     * {@code portRef(port, true, true, null, null, null)}.
      *
      * @param port The port.
      */
@@ -289,7 +283,7 @@ public class CUtil {
      * is written to by a reaction in the parent of the port's parent,
      * or when an output port triggers a reaction in the parent of the
      * port's parent. This is equivalent to calling
-     * `portRef(port, true, true, runtimeIndex, bankIndex, channelIndex)`.
+     * {@code portRef(port, true, true, runtimeIndex, bankIndex, channelIndex)}.
      *
      * @param port The port.
      * @param runtimeIndex A variable name to use to index the runtime instance or
@@ -312,7 +306,7 @@ public class CUtil {
      * is written to by a reaction in the parent of the port's parent,
      * or when an output port triggers a reaction in the parent of the
      * port's parent.
-     * This is equivalent to calling `portRef(port, true, false, null, null, null)`.
+     * This is equivalent to calling {@code portRef(port, true, false, null, null, null)}.
      *
      * @param port The port.
      */
@@ -327,7 +321,7 @@ public class CUtil {
      * is written to by a reaction in the parent of the port's parent,
      * or when an output port triggers a reaction in the parent of the
      * port's parent. This is equivalent to calling
-     * `portRefNested(port, true, false, runtimeIndex, bankIndex, channelIndex)`.
+     * {@code portRefNested(port, true, false, runtimeIndex, bankIndex, channelIndex)}.
      *
      * @param port The port.
      * @param runtimeIndex A variable name to use to index the runtime instance or
@@ -484,7 +478,9 @@ public class CUtil {
      * by {@link #bankIndexName(ReactorInstance)} if the parent is a bank.
      * The returned expression, when evaluated, will yield the following value:
      *
+     * <pre>
      *     d0 + w0 * (d1 + w1 * ( ... (dn-1 + wn-1 * dn) ... )
+     * </pre>
      *
      * @param reactor The reactor.
      */
@@ -516,8 +512,8 @@ public class CUtil {
      * @param reactor The reactor class.
      * @return The type of a self struct for the specified reactor class.
      */
-    public static String selfType(Reactor reactor) {
-        if (reactor.isMain()) {
+    public static String selfType(TypeParameterizedReactor reactor) {
+        if (reactor.reactor().isMain()) {
             return "_" + CUtil.getName(reactor) + "_main_self_t";
         }
         return "_" + CUtil.getName(reactor) + "_self_t";
@@ -525,7 +521,7 @@ public class CUtil {
 
     /** Construct a unique type for the "self" struct of the class of the given reactor. */
     public static String selfType(ReactorInstance instance) {
-        return selfType(ASTUtils.toDefinition(instance.getDefinition().getReactorClass()));
+        return selfType(instance.tpr);
     }
 
     /**
@@ -575,69 +571,6 @@ public class CUtil {
         return reactorRefNested(port.getParent(), runtimeIndex, bankIndex) + "." + port.getName() + "_trigger";
     }
 
-    /**
-     * Copy the 'fileName' (which also could be a directory name) from the
-     * 'srcDirectory' to the 'destinationDirectory'. This function has a
-     * fallback search mechanism, where if `fileName` is not found in the
-     * `srcDirectory`, it will try to find `fileName` via the following
-     * procedure:
-     *     1- Search in LF_CLASSPATH. @see findFile()
-     *     2- Search in CLASSPATH. @see findFile()
-     *     3- Search for 'fileName' as a resource. That means the `fileName`
-     *        can be '/path/to/class/resource'. @see java.lang.Class.getResourceAsStream()
-     *
-     * @param fileName Name of the file or directory.
-     * @param srcDir   Where the file or directory is currently located.
-     * @param dstDir   Where the file or directory should be placed.
-     * @return The name of the file or directory in destinationDirectory or an empty string on failure.
-     */
-    public static String copyFileOrResource(String fileName, Path srcDir,
-            Path dstDir) {
-        // Try to copy the file or directory from the file system.
-        Path file = findFileOrDirectory(fileName, srcDir);
-        if (file != null) {
-            Path target = dstDir.resolve(file.getFileName());
-            try {
-                if (Files.isDirectory(file)) {
-                    FileUtil.copyDirectory(file, target);
-                } else if (Files.isRegularFile(file)) {
-                    Files.copy(file, target,
-                            StandardCopyOption.REPLACE_EXISTING);
-                }
-                return file.getFileName().toString();
-            } catch (IOException e) {
-                // Failed to copy the file or directory, most likely
-                // because it doesn't exist. Will try to find it as a
-                // resource before giving up.
-            }
-        }
-
-        String filenameWithoutPath = fileName;
-        int lastSeparator = fileName.lastIndexOf(File.separator);
-        if (lastSeparator > 0) {
-            // FIXME: Brittle. What if the file is in a subdirectory?
-            filenameWithoutPath = fileName.substring(lastSeparator + 1);
-        }
-        // Try to copy the file or directory as a resource.
-        try {
-            FileUtil.copyFileFromClassPath(fileName,
-                    dstDir.resolve(filenameWithoutPath));
-            return filenameWithoutPath;
-        } catch (IOException ex) {
-            // Will try one more time as a directory
-        }
-
-        try {
-            FileUtil.copyDirectoryFromClassPath(fileName,
-                    dstDir.resolve(filenameWithoutPath), false);
-            return filenameWithoutPath;
-        } catch (IOException ex) {
-            System.err.println(
-                    "WARNING: Failed to find file or directory " + fileName);
-        }
-
-        return "";
-    }
 
     //////////////////////////////////////////////////////
     //// FIXME: Not clear what the strategy is with the following inner interface.
@@ -662,57 +595,17 @@ public class CUtil {
     }
 
     /**
-     * Search for a given file or directory name in the given directory.
-     * If not found, search in directories in LF_CLASSPATH.
-     * If there is no LF_CLASSPATH environment variable, use CLASSPATH,
-     * if it is defined. The first file or directory that is found will
-     * be returned. Otherwise, null is returned.
-     *
-     * @param fileName The file or directory name or relative path + name
-     * as a String.
-     * @param directory String representation of the directory to search in.
-     * @return A Java Path or null if not found.
-     */
-    public static Path findFileOrDirectory(String fileName, Path directory) {
-        Path foundFile;
-
-        // Check in local directory
-        foundFile = directory.resolve(fileName);
-        if (Files.exists(foundFile)) {
-            return foundFile;
-        }
-
-        // Check in LF_CLASSPATH
-        // Load all the resources in LF_CLASSPATH if it is set.
-        String classpathLF = System.getenv("LF_CLASSPATH");
-        if (classpathLF == null) {
-            classpathLF = System.getenv("CLASSPATH");
-        }
-        if (classpathLF != null) {
-            String[] paths = classpathLF.split(System.getProperty("path.separator"));
-            for (String path : paths) {
-                foundFile = Paths.get(path).resolve(fileName);
-                if (Files.exists(foundFile)) {
-                    return foundFile;
-                }
-            }
-        }
-        // Not found.
-        return null;
-    }
-
-
-    /**
      * Run the custom build command specified with the "build" parameter.
      * This command is executed in the same directory as the source file.
-     *
+     * <p>
      * The following environment variables will be available to the command:
-     *
-     * * LF_CURRENT_WORKING_DIRECTORY: The directory in which the command is invoked.
-     * * LF_SOURCE_DIRECTORY: The directory containing the .lf file being compiled.
-     * * LF_SOURCE_GEN_DIRECTORY: The directory in which generated files are placed.
-     * * LF_BIN_DIRECTORY: The directory into which to put binaries.
-     *
+     * <ul>
+     * <li> {@code: LF_CURRENT_WORKING_DIRECTORY}: The directory in which the command is invoked.
+     * <li> {@code:LF_SOURCE_DIRECTORY}: The directory containing the .lf file being compiled.
+     * <li> {@code:LF_PACKAGE_DIRECTORY}: The directory that is the root of the package.
+     * <li> {@code:LF_SOURCE_GEN_DIRECTORY}: The directory in which generated files are placed.
+     * <li> {@code:LF_BIN_DIRECTORY}: The directory into which to put binaries.
+     * </ul>
      */
     public static void runBuildCommand(
         FileConfig fileConfig,
@@ -852,7 +745,7 @@ public class CUtil {
                         if (term.getParameter() != null) {
                             result.add(getTargetReference(term.getParameter()));
                         } else {
-                            result.add("" + term.getWidth());
+                            result.add(String.valueOf(term.getWidth()));
                         }
                     }
                 }
@@ -871,8 +764,8 @@ public class CUtil {
     public static boolean isTokenType(InferredType type, CTypes types) {
         if (type.isUndefined()) return false;
         // This is a hacky way to do this. It is now considered to be a bug (#657)
-        String targetType = types.getVariableDeclaration(type, "", false);
-        return type.isVariableSizeList || targetType.trim().endsWith("*");
+        return type.isVariableSizeList || type.astType != null && (!type.astType.getStars().isEmpty() ||
+            type.astType.getCode() != null && type.astType.getCode().getBody().stripTrailing().endsWith("*"));
     }
 
     public static String generateWidthVariable(String var) {

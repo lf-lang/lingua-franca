@@ -31,8 +31,10 @@ public class PythonModeGenerator {
 
     /**
      * Generate reset reactions that reset state variables in
-     * - the reactor, and,
-     * - the modes within the reactor.
+     * <ul>
+     * <li>the reactor, and,</li>
+     * <li>the modes within the reactor.</li>
+     * </ul>
      *
      * @param reactor The reactor.
      */

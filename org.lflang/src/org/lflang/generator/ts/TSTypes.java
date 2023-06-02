@@ -2,7 +2,7 @@ package org.lflang.generator.ts;
 
 import java.util.List;
 
-import org.lflang.ASTUtils;
+import org.lflang.ast.ASTUtils;
 import org.lflang.TimeValue;
 import org.lflang.generator.TargetTypes;
 import org.lflang.generator.UnsupportedGeneratorFeatureException;

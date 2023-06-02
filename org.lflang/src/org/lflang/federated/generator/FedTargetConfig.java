@@ -1,6 +1,6 @@
 package org.lflang.federated.generator;
 
-import static org.lflang.ASTUtils.convertToEmptyListIfNull;
+import static org.lflang.ast.ASTUtils.convertToEmptyListIfNull;
 
 import org.lflang.ErrorReporter;
 import org.lflang.TargetConfig;

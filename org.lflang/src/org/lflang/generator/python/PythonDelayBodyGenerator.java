@@ -1,8 +1,7 @@
 package org.lflang.generator.python;
 
 
-import org.lflang.ASTUtils;
-import org.lflang.federated.generator.FedASTUtils;
+import org.lflang.ast.ASTUtils;
 import org.lflang.generator.c.CDelayBodyGenerator;
 import org.lflang.generator.c.CUtil;
 import org.lflang.lf.Action;

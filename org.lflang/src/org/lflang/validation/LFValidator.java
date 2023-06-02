@@ -26,13 +26,13 @@
  ***************/
 package org.lflang.validation;
 
-import static org.lflang.ASTUtils.inferPortWidth;
-import static org.lflang.ASTUtils.isGeneric;
-import static org.lflang.ASTUtils.isInteger;
-import static org.lflang.ASTUtils.isOfTimeType;
-import static org.lflang.ASTUtils.isZero;
-import static org.lflang.ASTUtils.toDefinition;
-import static org.lflang.ASTUtils.toOriginalText;
+import static org.lflang.ast.ASTUtils.inferPortWidth;
+import static org.lflang.ast.ASTUtils.isGeneric;
+import static org.lflang.ast.ASTUtils.isInteger;
+import static org.lflang.ast.ASTUtils.isOfTimeType;
+import static org.lflang.ast.ASTUtils.isZero;
+import static org.lflang.ast.ASTUtils.toDefinition;
+import static org.lflang.ast.ASTUtils.toOriginalText;
 
 import java.io.File;
 import java.io.IOException;
@@ -45,6 +45,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.eclipse.emf.common.util.EList;
 import org.eclipse.emf.common.util.TreeIterator;
@@ -55,7 +56,7 @@ import org.eclipse.xtext.nodemodel.util.NodeModelUtils;
 import org.eclipse.xtext.validation.Check;
 import org.eclipse.xtext.validation.CheckType;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
-import org.lflang.ASTUtils;
+import org.lflang.ast.ASTUtils;
 import org.lflang.AttributeUtils;
 import org.lflang.InferredType;
 import org.lflang.ModelInfo;
@@ -65,6 +66,7 @@ import org.lflang.TimeValue;
 import org.lflang.federated.serialization.SupportedSerializers;
 import org.lflang.federated.validation.FedValidator;
 import org.lflang.generator.NamedInstance;
+import org.lflang.generator.c.TypeParameterizedReactor;
 import org.lflang.lf.Action;
 import org.lflang.lf.ActionOrigin;
 import org.lflang.lf.Assignment;
@@ -72,7 +74,6 @@ import org.lflang.lf.Attribute;
 import org.lflang.lf.BracedListExpression;
 import org.lflang.lf.BuiltinTrigger;
 import org.lflang.lf.BuiltinTriggerRef;
-import org.lflang.lf.CodeExpr;
 import org.lflang.lf.Connection;
 import org.lflang.lf.Deadline;
 import org.lflang.lf.Expression;
@@ -151,7 +152,7 @@ public class LFValidator extends BaseLFValidator {
         checkName(action.getName(), Literals.VARIABLE__NAME);
         if (action.getOrigin() == ActionOrigin.NONE) {
             error(
-                "Action must have modifier `logical` or `physical`.",
+                "Action must have modifier {@code logical} or {@code physical}.",
                 Literals.ACTION__ORIGIN
             );
         }
@@ -255,30 +256,20 @@ public class LFValidator extends BaseLFValidator {
         // we leave type compatibility that language's compiler or interpreter.
         if (isCBasedTarget()) {
             Type type = (Type) null;
-            for (VarRef port : connection.getLeftPorts()) {
+            for (VarRef port : (Iterable<? extends VarRef>) () -> Stream.concat(
+                        connection.getLeftPorts().stream(),
+                        connection.getRightPorts().stream()
+                    ).iterator()) {
                 // If the variable is not a port, then there is some other
                 // error. Avoid a class cast exception.
                 if (port.getVariable() instanceof Port) {
                     if (type == null) {
                         type = ((Port) port.getVariable()).getType();
                     } else {
-                        // Unfortunately, xtext does not generate a suitable equals()
-                        // method for AST types, so we have to manually check the types.
-                        if (!sameType(type, ((Port) port.getVariable()).getType())) {
+                        var portType = ((Port) port.getVariable()).getType();
+                        portType = port.getContainer() == null ? portType : new TypeParameterizedReactor(port.getContainer()).resolveType(portType);
+                        if (!sameType(type, portType)) {
                             error("Types do not match.", Literals.CONNECTION__LEFT_PORTS);
-                        }
-                    }
-                }
-            }
-            for (VarRef port : connection.getRightPorts()) {
-                // If the variable is not a port, then there is some other
-                // error. Avoid a class cast exception.
-                if (port.getVariable() instanceof Port) {
-                    if (type == null) {
-                        type = ((Port) port.getVariable()).getType();
-                    } else {
-                        if (!sameType(type, type = ((Port) port.getVariable()).getType())) {
-                            error("Types do not match.", Literals.CONNECTION__RIGHT_PORTS);
                         }
                     }
                 }
@@ -852,8 +843,74 @@ public class LFValidator extends BaseLFValidator {
     // FIXME: improve error message.
     }
 
+    public void checkReactorName(String name) throws IOException {
+        // Check for illegal names.
+        checkName(name, Literals.REACTOR_DECL__NAME);
+
+        // C++ reactors may not be called 'preamble'
+        if (this.target == Target.CPP &&  name.equalsIgnoreCase("preamble")) {
+            error(
+                "Reactor cannot be named '" + name + "'",
+                Literals.REACTOR_DECL__NAME
+            );
+        }
+    }
+
     @Check(CheckType.FAST)
     public void checkReactor(Reactor reactor) throws IOException {
+        String fileName = FileUtil.nameWithoutExtension(reactor.eResource());
+
+        if (reactor.isFederated() || reactor.isMain()) {
+            // Do not allow multiple main/federated reactors.
+            TreeIterator<EObject> iter = reactor.eResource().getAllContents();
+            int nMain = countMainOrFederated(iter);
+            if (nMain > 1) {
+                EAttribute attribute = Literals.REACTOR__MAIN;
+                if (reactor.isFederated()) {
+                    attribute = Literals.REACTOR__FEDERATED;
+                }
+                error(
+                    "Multiple definitions of main or federated reactor.",
+                    attribute
+                );
+            }
+
+            if(reactor.getName() != null && !reactor.getName().equals(fileName)) {
+                // Make sure that if the name is given, it matches the expected name.
+                error(
+                    "Name of main reactor must match the file name (or be omitted).",
+                    Literals.REACTOR_DECL__NAME
+                );
+            }
+
+            // check the reactor name indicated by the file name
+            // Skip this check if the file is named __synthetic0. This Name is used during testing,
+            // and we would get an unexpected error due to the '__' prefix otherwise.
+            if (!fileName.equals("__synthetic0")) {
+                checkReactorName(fileName);
+            }
+        } else {
+            // Not federated or main.
+            if (reactor.getName() == null) {
+                error(
+                    "Reactor must be named.",
+                    Literals.REACTOR_DECL__NAME
+                );
+            } else {
+                checkReactorName(reactor.getName());
+
+                TreeIterator<EObject> iter = reactor.eResource().getAllContents();
+                int nMain = countMainOrFederated(iter);
+                if (nMain > 0 && reactor.getName().equals(fileName)) {
+                    error(
+                        "Name conflict with main reactor.",
+                        Literals.REACTOR_DECL__NAME
+                    );
+                }
+            }
+        }
+
+
         Set<Reactor> superClasses = ASTUtils.superClasses(reactor);
         if (superClasses == null) {
             error(
@@ -862,59 +919,6 @@ public class LFValidator extends BaseLFValidator {
             );
             // Continue checks, but without any superclasses.
             superClasses = new LinkedHashSet<>();
-        }
-        String name = FileUtil.nameWithoutExtension(reactor.eResource());
-        if (reactor.getName() == null) {
-            if (!reactor.isFederated() && !reactor.isMain()) {
-                error(
-                    "Reactor must be named.",
-                    Literals.REACTOR_DECL__NAME
-                );
-                // Prevent NPE in tests below.
-                return;
-            }
-        }
-        TreeIterator<EObject> iter = reactor.eResource().getAllContents();
-        if (reactor.isFederated() || reactor.isMain()) {
-            if(reactor.getName() != null && !reactor.getName().equals(name)) {
-                // Make sure that if the name is given, it matches the expected name.
-                error(
-                    "Name of main reactor must match the file name (or be omitted).",
-                    Literals.REACTOR_DECL__NAME
-                );
-            }
-            // Do not allow multiple main/federated reactors.
-            int nMain = countMainOrFederated(iter);
-            if (nMain > 1) {
-                EAttribute attribute = Literals.REACTOR__MAIN;
-                if (reactor.isFederated()) {
-                   attribute = Literals.REACTOR__FEDERATED;
-                }
-                error(
-                    "Multiple definitions of main or federated reactor.",
-                    attribute
-                );
-            }
-        } else {
-            // Not federated or main.
-            int nMain = countMainOrFederated(iter);
-            if (nMain > 0 && reactor.getName().equals(name)) {
-                error(
-                    "Name conflict with main reactor.",
-                    Literals.REACTOR_DECL__NAME
-                );
-            }
-        }
-
-        // Check for illegal names.
-        checkName(reactor.getName(), Literals.REACTOR_DECL__NAME);
-
-        // C++ reactors may not be called 'preamble'
-        if (this.target == Target.CPP && reactor.getName().equalsIgnoreCase("preamble")) {
-            error(
-                "Reactor cannot be named '" + reactor.getName() + "'",
-                Literals.REACTOR_DECL__NAME
-            );
         }
 
         if (reactor.getHost() != null) {
@@ -932,6 +936,11 @@ public class LFValidator extends BaseLFValidator {
         variables.addAll(reactor.getOutputs());
         variables.addAll(reactor.getActions());
         variables.addAll(reactor.getTimers());
+
+        if (!reactor.getSuperClasses().isEmpty() && !target.supportsInheritance()) {
+            error("The " + target.getDisplayName() + " target does not support reactor inheritance.",
+                Literals.REACTOR__SUPER_CLASSES);
+        }
 
         // Perform checks on super classes.
         for (Reactor superClass : superClasses) {
@@ -969,6 +978,11 @@ public class LFValidator extends BaseLFValidator {
         }
 
         if (reactor.isFederated()) {
+            if (!target.supportsFederated()) {
+                error("The " + target.getDisplayName() + " target does not support federated execution.",
+                    Literals.REACTOR__FEDERATED);
+            }
+
             FedValidator.validateFederatedReactor(reactor, this.errorReporter);
         }
     }
@@ -1245,7 +1259,7 @@ public class LFValidator extends BaseLFValidator {
                         error("Parameterized widths are not supported by this target.", Literals.WIDTH_SPEC__TERMS);
                     }
                 } else if (term.getPort() != null) {
-                    // Widths given with `widthof()` are not supported (yet?).
+                    // Widths given with {@code widthof()} are not supported (yet?).
                     // This feature is currently only used for after delays.
                     error("widthof is not supported.", Literals.WIDTH_SPEC__TERMS);
                 } else if (term.getCode() != null) {

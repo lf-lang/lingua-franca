@@ -1,15 +1,15 @@
 package org.lflang.generator.python;
 
+import org.lflang.generator.c.TypeParameterizedReactor;
 import org.lflang.lf.Input;
 import org.lflang.lf.Instantiation;
 import org.lflang.lf.Output;
 import org.lflang.lf.Port;
 import org.lflang.lf.Action;
-import org.lflang.lf.Reactor;
 import org.lflang.lf.ReactorDecl;
 import org.lflang.lf.VarRef;
 import java.util.List;
-import org.lflang.ASTUtils;
+import org.lflang.ast.ASTUtils;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.generator.c.CGenerator;
 import static org.lflang.generator.c.CUtil.generateWidthVariable;
@@ -65,7 +65,7 @@ public class PythonPortGenerator {
         Output output
     ) {
         // Unfortunately, for the lf_set macros to work out-of-the-box for
-        // multiports, we need an array of *pointers* to the output structs,
+        // multiports, we need an array of <strong>pointers</strong> to the output structs,
         // but what we have on the self struct is an array of output structs.
         // So we have to handle multiports specially here a construct that
         // array of pointers.
@@ -195,8 +195,8 @@ public class PythonPortGenerator {
         );
     }
 
-    public static String generateAliasTypeDef(Reactor r, Port port, boolean isTokenType, String genericPortType) {
-        return "typedef "+genericPortType+" "+CGenerator.variableStructType(port, r, false)+";";
+    public static String generateAliasTypeDef(TypeParameterizedReactor tpr, Port port, boolean isTokenType, String genericPortType) {
+        return "typedef "+genericPortType+" "+CGenerator.variableStructType(port, tpr, false)+";";
     }
 
     private static String generateConvertCPortToPy(String port) {

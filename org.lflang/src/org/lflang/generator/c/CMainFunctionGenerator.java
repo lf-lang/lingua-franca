@@ -22,7 +22,7 @@ public class CMainFunctionGenerator {
      * Generate the code that is the entry point
      * of the program.
      *
-     * Ideally, this code would belong to its own `main.c`
+     * Ideally, this code would belong to its own {@code main.c}
      * file, but it currently lives in the same file
      * as all the code generated for reactors.
      */
@@ -34,7 +34,7 @@ public class CMainFunctionGenerator {
     }
 
     /**
-     * Generate the `main` function.
+     * Generate the {@code main} function.
      */
     private String generateMainFunction() {
         if (targetConfig.platformOptions.platform == Platform.ARDUINO) {
@@ -59,7 +59,7 @@ public class CMainFunctionGenerator {
             );
         } else if (targetConfig.platformOptions.platform == Platform.ZEPHYR) {
             // The Zephyr "runtime" does not terminate when main returns.
-            //  Rather, `exit` should be called explicitly.
+            //  Rather, {@code exit} should be called explicitly.
             return String.join("\n",
                 "void main(void) {",
                 "   int res = lf_reactor_c_main(0, NULL);",
@@ -77,7 +77,7 @@ public class CMainFunctionGenerator {
 
     /**
      * Generate code that is used to override the
-     * command line options to the `main` function
+     * command line options to the {@code main} function
      */
     private String generateSetDefaultCliOption() {
         // Generate function to set default command-line options.

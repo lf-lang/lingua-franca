@@ -13,7 +13,7 @@ import org.eclipse.xtext.generator.GeneratorDelegate;
 import org.eclipse.xtext.generator.JavaIoFileSystemAccess;
 import org.eclipse.xtext.util.CancelIndicator;
 
-import org.lflang.ASTUtils;
+import org.lflang.ast.ASTUtils;
 import org.lflang.FileConfig;
 import org.lflang.TargetProperty.UnionType;
 
@@ -98,9 +98,15 @@ public class Lfc extends CliBase {
     private boolean noCompile;
 
     @Option(
+        names = {"--print-statistics"},
+        arity = "0",
+        description = "Instruct the runtime to collect and print statistics.")
+    private boolean printStatistics;
+
+    @Option(
         names = {"-q", "--quiet"},
         arity = "0",
-        description = 
+        description =
             "Suppress output of the target compiler and other commands")
     private boolean quiet;
 
@@ -182,7 +188,7 @@ public class Lfc extends CliBase {
 
             final Resource resource = getResource(path);
             if (resource == null) {
-                reporter.printFatalErrorAndExit(path 
+                reporter.printFatalErrorAndExit(path
                     + " is not an LF file. Use the .lf file extension to"
                     + " denote LF files.");
             } else if (federated) {
@@ -265,6 +271,10 @@ public class Lfc extends CliBase {
             props.setProperty(BuildParm.LOGGING.getKey(), logging);
         }
 
+        if(printStatistics) {
+            props.setProperty(BuildParm.PRINT_STATISTICS.getKey(), "true");
+        }
+
         if (noCompile) {
             props.setProperty(BuildParm.NO_COMPILE.getKey(), "true");
         }
@@ -306,7 +316,7 @@ public class Lfc extends CliBase {
         if (workers != null) {
             props.setProperty(BuildParm.WORKERS.getKey(), workers.toString());
         }
-        
+
         return props;
     }
 }

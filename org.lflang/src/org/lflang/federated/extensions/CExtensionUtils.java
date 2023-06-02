@@ -22,7 +22,6 @@ import org.lflang.federated.launcher.RtiConfig;
 import org.lflang.federated.serialization.FedROS2CPPSerialization;
 import org.lflang.federated.serialization.SupportedSerializers;
 import org.lflang.generator.CodeBuilder;
-import org.lflang.generator.GeneratorBase;
 import org.lflang.generator.ReactorInstance;
 import org.lflang.generator.c.CTypes;
 import org.lflang.generator.c.CUtil;
@@ -42,15 +41,16 @@ public class CExtensionUtils {
     /**
      * Generate C code that allocates sufficient memory for the following two
      * critical data structures that support network control reactions:
-     * - triggers_for_network_input_control_reactions: These are triggers that
-     * are
-     * used at runtime to insert network input control reactions into the
-     * reaction queue.
-     * - trigger_for_network_output_control_reactions: Triggers for
+     * <ul>
+     *   <li>{@code triggers_for_network_input_control_reactions}: These are triggers that
+     *      are used at runtime to insert network input control reactions into the
+     *      reaction queue.</li>
+     *   <li>{@code trigger_for_network_output_control_reactions}: Triggers for
      * network output control reactions, which are unique per each output port.
      * There could be multiple network output control reactions for each
      * network
-     * output port if it is connected to multiple downstream federates.
+     * output port if it is connected to multiple downstream federates.</li>
+     * </ul>
      *
      * @param federate The top-level federate instance
      * @return A string that allocates memory for the aforementioned three
@@ -303,6 +303,9 @@ public class CExtensionUtils {
         federate.targetConfig.setByUser.add(TargetProperty.COMPILE_DEFINITIONS);
         federate.targetConfig.compileDefinitions.put("FEDERATED", "");
         federate.targetConfig.compileDefinitions.put("FEDERATED_"+federate.targetConfig.coordination.toString().toUpperCase(), "");
+        if (federate.targetConfig.auth) {
+            federate.targetConfig.compileDefinitions.put("FEDERATED_AUTHENTICATED", "");
+        }
         federate.targetConfig.compileDefinitions.put("NUMBER_OF_FEDERATES", String.valueOf(numOfFederates));
         federate.targetConfig.compileDefinitions.put("EXECUTABLE_PREAMBLE", "");
         federate.targetConfig.compileDefinitions.put("WORKERS_NEEDED_FOR_FEDERATE", String.valueOf(minThreadsToHandleInputPorts(federate)));
@@ -417,6 +420,16 @@ public class CExtensionUtils {
         CodeBuilder cmakeIncludeCode = new CodeBuilder();
 
         cmakeIncludeCode.pr(generateSerializationCMakeExtension(federate));
+        cmakeIncludeCode.pr(
+            "add_compile_definitions(LF_SOURCE_DIRECTORY=\""
+            + fileConfig.srcPath
+            + "\")"
+        );
+        cmakeIncludeCode.pr(
+            "add_compile_definitions(LF_PACKAGE_DIRECTORY=\""
+                + fileConfig.srcPkgPath
+                + "\")"
+        );
 
         try (var srcWriter = Files.newBufferedWriter(cmakeIncludePath)) {
             srcWriter.write(cmakeIncludeCode.getCode());
@@ -593,7 +606,7 @@ public class CExtensionUtils {
     /**
      * Generate preamble code needed for enabled serializers of the federate.
      */
-    public static String generateSerializationPreamble(
+    public static String generateSerializationIncludes(
         FederateInstance federate,
         FedFileConfig fileConfig
     ) {

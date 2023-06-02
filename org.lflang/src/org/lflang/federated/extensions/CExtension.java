@@ -32,10 +32,9 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.LinkedHashMap;
 import java.util.List;
 
-import org.lflang.ASTUtils;
+import org.lflang.ast.ASTUtils;
 import org.lflang.ErrorReporter;
 import org.lflang.InferredType;
 import org.lflang.Target;
@@ -49,7 +48,6 @@ import org.lflang.federated.generator.FederateInstance;
 import org.lflang.federated.launcher.RtiConfig;
 import org.lflang.federated.serialization.FedROS2CPPSerialization;
 import org.lflang.generator.CodeBuilder;
-import org.lflang.generator.GeneratorUtils;
 import org.lflang.generator.LFGeneratorContext;
 import org.lflang.generator.ReactionInstance;
 import org.lflang.generator.ReactorInstance;
@@ -64,10 +62,12 @@ import org.lflang.lf.VarRef;
  * An extension class to the CGenerator that enables certain federated
  * functionalities. Currently, this class offers the following features:
  *
- * - Allocating and initializing C structures for federated communication -
- * Creating status field for network input ports that help the receiver logic in
+ * <ul>
+ * <li>Allocating and initializing C structures for federated communication</li>
+ * <li>Creating status field for network input ports that help the receiver logic in
  * federate.c communicate the status of a network input port with network input
- * control reactions.
+ * control reactions.</li>
+ * </ul>
  *
  * @author {Soroush Bateni <soroush@berkeley.edu>}
  * @author {Hou Seng Wong <housengw@berkeley.edu>}
@@ -467,7 +467,7 @@ public class CExtension implements FedTargetExtension {
         RtiConfig rtiConfig,
         ErrorReporter errorReporter
     ) throws IOException {
-        // Put the C preamble in a `include/_federate.name + _preamble.h` file
+        // Put the C preamble in a {@code include/_federate.name + _preamble.h} file
         String cPreamble = makePreamble(federate, fileConfig, rtiConfig, errorReporter);
         String relPath = getPreamblePath(federate);
         Path fedPreamblePath = fileConfig.getSrcPath().resolve(relPath);
@@ -483,12 +483,14 @@ public class CExtension implements FedTargetExtension {
             includes.pr("#include \"core/federated/federate.h\"");
             includes.pr("#include \"core/federated/net_common.h\"");
             includes.pr("#include \"core/federated/net_util.h\"");
+            includes.pr("#include \"core/federated/clock-sync.h\"");
             includes.pr("#include \"core/threaded/reactor_threaded.h\"");
             includes.pr("#include \"core/utils/util.h\"");
             includes.pr("extern federate_instance_t _fed;");
             includes.pr("#ifdef __cplusplus\n"
                 + "}\n"
                 + "#endif");
+            includes.pr(generateSerializationIncludes(federate, fileConfig));
         }
 
         return includes.toString();
@@ -557,8 +559,8 @@ public class CExtension implements FedTargetExtension {
     /**
      * Generate preamble code needed for enabled serializers of the federate.
      */
-    protected String generateSerializationPreamble(FederateInstance federate, FedFileConfig fileConfig) {
-        return CExtensionUtils.generateSerializationPreamble(federate, fileConfig);
+    protected String generateSerializationIncludes(FederateInstance federate, FedFileConfig fileConfig) {
+        return CExtensionUtils.generateSerializationIncludes(federate, fileConfig);
     }
 
     /**

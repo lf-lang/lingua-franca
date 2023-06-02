@@ -1,7 +1,6 @@
 package org.lflang.generator.ts
 
-import org.lflang.ASTUtils
-import org.lflang.Target
+import org.lflang.ast.ASTUtils
 import org.lflang.generator.DelayBodyGenerator
 import org.lflang.lf.Action
 import org.lflang.lf.VarRef

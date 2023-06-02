@@ -61,7 +61,7 @@ public class CTypes implements TargetTypes {
      * as a type, and {@code int*} must be used instead, except when initializing
      * a variable using a static initializer, as in {@code int[] foo = {1, 2, 3};}.
      * When initializing a variable using a static initializer, use
-     * {@link #getVariableDeclaration(InferredType, String, boolean)} instead.
+     * {@link #getVariableDeclaration(TypeParameterizedReactor, InferredType, String, boolean)} instead.
      * @param type The type.
      */
     @Override
@@ -120,11 +120,12 @@ public class CTypes implements TargetTypes {
      * @param initializer True to return a form usable in a static initializer.
      */
     public String getVariableDeclaration(
+            TypeParameterizedReactor tpr,
             InferredType type,
             String variableName,
             boolean initializer
     ) {
-        String t = TargetTypes.super.getTargetType(type);
+        String t = TargetTypes.super.getTargetType(tpr.resolveType(type));
         Matcher matcher = arrayPattern.matcher(t);
         String declaration = String.format("%s %s", t, variableName);
         if (matcher.find()) {

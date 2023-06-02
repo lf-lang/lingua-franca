@@ -28,7 +28,7 @@ package org.lflang.federated.extensions;
 
 import java.io.IOException;
 
-import org.lflang.ASTUtils;
+import org.lflang.ast.ASTUtils;
 import org.lflang.ErrorReporter;
 import org.lflang.InferredType;
 import org.lflang.TargetProperty.CoordinationType;
@@ -57,7 +57,7 @@ public class PythonExtension extends CExtension {
     protected void generateCMakeInclude(FederateInstance federate, FedFileConfig fileConfig) throws IOException {}
 
     @Override
-    protected String generateSerializationPreamble(FederateInstance federate, FedFileConfig fileConfig) {
+    protected String generateSerializationIncludes(FederateInstance federate, FedFileConfig fileConfig) {
         CodeBuilder code = new CodeBuilder();
         for (SupportedSerializers serialization : federate.enabledSerializers) {
             switch (serialization) {

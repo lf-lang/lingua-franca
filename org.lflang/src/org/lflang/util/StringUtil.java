@@ -48,7 +48,7 @@ public final class StringUtil {
 
     /**
      * Convert a string in Camel case to snake case. E.g.
-     * `MinimalReactor` will be converted to `minimal_reactor`.
+     * {@code MinimalReactor} will be converted to {@code minimal_reactor}.
      * The string is assumed to be a single camel case identifier
      * (no whitespace).
      */

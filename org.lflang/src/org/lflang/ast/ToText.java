@@ -1,14 +1,10 @@
 package org.lflang.ast;
 
-import java.util.regex.Pattern;
-
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.xtext.nodemodel.ICompositeNode;
 import org.eclipse.xtext.nodemodel.ILeafNode;
-import org.eclipse.xtext.nodemodel.INode;
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils;
 
-import org.lflang.ASTUtils;
 import org.lflang.lf.ArraySpec;
 import org.lflang.lf.BracedListExpression;
 import org.lflang.lf.Code;
