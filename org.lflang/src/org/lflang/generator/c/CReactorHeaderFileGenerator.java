@@ -150,7 +150,7 @@ public class CReactorHeaderFileGenerator {
                                 reactor.reactor().getInstantiations().stream()
                                     .filter(
                                         instantiation ->
-                                            new TypeParameterizedReactor(instantiation)
+                                            new TypeParameterizedReactor(instantiation, reactor)
                                                 .equals(it.r))
                                     .findAny()
                                     .orElseThrow(),
@@ -184,7 +184,7 @@ public class CReactorHeaderFileGenerator {
                     ? new PortVariable(
                         tv,
                         it.getContainer() != null
-                            ? new TypeParameterizedReactor(it.getContainer())
+                            ? new TypeParameterizedReactor(it.getContainer(), reactorOfReaction)
                             : reactorOfReaction,
                         it.getContainer())
                     : null)

@@ -18,17 +18,31 @@ import org.lflang.lf.Type;
  */
 public record TypeParameterizedReactor(Reactor reactor, Map<String, Type> typeArgs) {
 
-  public TypeParameterizedReactor(Instantiation i) {
+  private static final Map<TypeParameterizedReactor, String> uniqueNames = new HashMap<>();
+  private static final Map<String, Integer> nameCounts = new HashMap<>();
+
+  /**
+   * Construct the TPR corresponding to the given instantiation which syntactically appears within
+   * the definition corresponding to {@code parent}.
+   *
+   * @param i An instantiation of the TPR to be constructed.
+   * @param parent The reactor in which {@code i} appears, or {@code null} if type variables are
+   *     permitted instead of types in this TPR.
+   */
+  public TypeParameterizedReactor(Instantiation i, TypeParameterizedReactor parent) {
     this(
         ASTUtils.toDefinition(i.getReactorClass()),
-        addTypeArgs(i, ASTUtils.toDefinition(i.getReactorClass())));
+        addTypeArgs(i, ASTUtils.toDefinition(i.getReactorClass()), parent));
   }
 
-  private static Map<String, Type> addTypeArgs(Instantiation instantiation, Reactor r) {
+  private static Map<String, Type> addTypeArgs(
+      Instantiation instantiation, Reactor r, TypeParameterizedReactor parent) {
     HashMap<String, Type> ret = new HashMap<>();
     if (instantiation.getTypeArgs() != null) {
       for (int i = 0; i < r.getTypeParms().size(); i++) {
-        ret.put(r.getTypeParms().get(i).getLiteral(), instantiation.getTypeArgs().get(i));
+        var arg = instantiation.getTypeArgs().get(i);
+        ret.put(
+            r.getTypeParms().get(i).getLiteral(), parent == null ? arg : parent.resolveType(arg));
       }
     }
     return ret;
@@ -76,9 +90,27 @@ public record TypeParameterizedReactor(Reactor reactor, Map<String, Type> typeAr
     return InferredType.fromAST(resolveType(t.astType));
   }
 
+  /**
+   * Return a name that is unique to this TypeParameterizedReactor (up to structural equality) and
+   * that is prefixed with exactly one underscore and that does not contain any upper-case letters.
+   */
+  public String uniqueName() {
+    String name = reactor.getName().toLowerCase();
+    if (uniqueNames.containsKey(this)) return uniqueNames.get(this);
+    if (nameCounts.containsKey(name)) {
+      int currentCount = nameCounts.get(name);
+      nameCounts.put(name, currentCount + 1);
+      uniqueNames.put(this, "_" + name + currentCount);
+      return uniqueName();
+    }
+    nameCounts.put(name, 1);
+    uniqueNames.put(this, "_" + name);
+    return uniqueName();
+  }
+
   @Override
   public int hashCode() {
-    return Math.abs(reactor.hashCode() * 31 + typeArgs.hashCode());
+    return reactor.hashCode() * 31 + typeArgs.hashCode();
   }
 
   @Override
