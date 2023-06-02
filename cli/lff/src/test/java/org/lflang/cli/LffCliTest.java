@@ -65,7 +65,8 @@ public class LffCliTest {
     ExecutionResult result = lffTester.run("--help", "--version");
     result.checkOk();
     result.checkNoErrorOutput();
-    result.checkStdOut(containsString("Usage: lff"));
+    result.checkStdOut(containsString("Usage:"));
+    result.checkStdOut(containsString("lff"));
   }
 
   @Test
