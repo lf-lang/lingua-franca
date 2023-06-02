@@ -65,6 +65,7 @@ public final class LfFormatStep {
     /** Idempotently initialize the formatter. */
     private static void initializeFormatter() throws IOException {
       if (formatter != null) return;
+      String lff = System.getProperty("os.name").startsWith("Windows") ? "lff.bat" : "lff";
       final Path lffPath =
           Path.of(
               "cli",
@@ -73,7 +74,7 @@ public final class LfFormatStep {
               "install",
               "lff",
               "bin",
-              "lff");
+              lff);
       formatter = new ProcessBuilder(
           List.of(
               lffPath.toString(),
