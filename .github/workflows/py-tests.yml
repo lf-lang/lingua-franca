@@ -49,23 +49,24 @@ jobs:
         uses: actions/checkout@v2
         with:
           repository: lf-lang/reactor-c
-          path: org.lflang/src/lib/c/reactor-c
+          path: core/src/main/resources/lib/c/reactor-c
           ref: ${{ inputs.reactor-c-ref }}
         if: ${{ inputs.reactor-c-ref }}
       - name: Check out specific ref of reactor-c-py
         uses: actions/checkout@v2
         with:
           repository: lf-lang/reactor-c-py
-          path: org.lflang/src/lib/py/reactor-c-py
+          path: core/src/main/resources/lib/py/reactor-c-py
           ref: ${{ inputs.reactor-c-py-ref }}
         if: ${{ inputs.reactor-c-py-ref }}
       - name: Run Python tests
-        run: |
-          ./gradlew test --tests org.lflang.tests.runtime.PythonTest.*
+        run: ./gradlew targetTest -Ptarget=Python
+      - name: Collect code coverage
+        run: ./gradlew jacocoTestReport
       - name: Report to CodeCov
         uses: codecov/codecov-action@v3.1.1
         with:
-          file: org.lflang.tests/build/reports/xml/jacoco
+          files: core/build/reports/xml/jacoco
           fail_ci_if_error: false
           verbose: true
         if: ${{ !inputs.compiler-ref && runner.os == 'Linux' && inputs.all-platforms }}  # i.e., if this is part of the main repo's CI
