@@ -240,7 +240,10 @@ public class AttributeUtils {
     return getAttributeValue(node, "icon");
   }
 
-  /** Return the declared side of the port, as given by the @side annotation. */
+  /**
+   * Return the {@code @side} annotation for the given node (presumably a port)
+   * or null if there is no such annotation.
+   */
   public static String getPortSide(EObject node) {
     return getAttributeValue(node, "side");
   }
