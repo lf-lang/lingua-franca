@@ -107,6 +107,8 @@ public class ReactionInstanceGraph extends PrecedenceGraph<ReactionInstance.Runt
    * @param main
    */
   private void addDependentNetworkEdges(ReactorInstance main) {
+    // FIXME: I do not think this belongs here because it pertains to federated execution. Also, it
+    // seems to relate to a design that we do not intend to use?
     Attribute attribute =
         AttributeUtils.findAttributeByName(main.definition.getReactorClass(), "_fed_config");
     String actionsStr =
