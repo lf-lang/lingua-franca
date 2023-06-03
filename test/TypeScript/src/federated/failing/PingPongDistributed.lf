@@ -8,13 +8,13 @@ reactor Ping(count: number = 10) {
     logical action serve
 
     reaction(startup, serve) -> send {=
-        console.log(`At lo${util.getElapsedLogicalTime()}, Ping sending ${pingsLeft}`);
+        console.log(`At logical time ${util.getElapsedLogicalTime()}, Ping sending ${pingsLeft}`);
         send = pingsLeft;
         pingsLeft = pingsLeft - 1;
     =}
 
     reaction(receive) -> serve {=
-        if(pingsLeft > 0){
+        if (pingsLeft > 0){
             actions.serve.schedule(0, null);
         }
         else{

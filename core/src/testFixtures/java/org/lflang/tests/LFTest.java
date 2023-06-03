@@ -258,6 +258,10 @@ public class LFTest implements Comparable<LFTest> {
               char[] buf = new char[1024];
               while ((len = reader.read(buf)) > 0) {
                 builder.append(buf, 0, len);
+                if (Runtime.getRuntime().freeMemory()
+                    < Runtime.getRuntime().totalMemory() * 3 / 4) {
+                  builder.delete(0, builder.length() / 2);
+                }
               }
             } catch (IOException e) {
               throw new RuntimeIOException(e);
