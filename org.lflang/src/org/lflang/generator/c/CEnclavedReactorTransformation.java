@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 import org.eclipse.emf.ecore.util.EcoreUtil;
 import org.eclipse.emf.ecore.EObject;
@@ -20,8 +21,10 @@ import org.lflang.generator.DelayBodyGenerator;
 import org.lflang.generator.TargetTypes;
 import org.lflang.lf.Action;
 import org.lflang.lf.ActionOrigin;
+import org.lflang.lf.Assignment;
 import org.lflang.lf.Code;
 import org.lflang.lf.Connection;
+import org.lflang.lf.Expression;
 import org.lflang.lf.Initializer;
 import org.lflang.lf.Input;
 import org.lflang.lf.Instantiation;
@@ -30,6 +33,7 @@ import org.lflang.lf.Mode;
 import org.lflang.lf.Model;
 import org.lflang.lf.Output;
 import org.lflang.lf.Parameter;
+import org.lflang.lf.ParameterReference;
 import org.lflang.lf.Preamble;
 import org.lflang.lf.Reaction;
 import org.lflang.lf.Reactor;
@@ -50,11 +54,9 @@ public class CEnclavedReactorTransformation implements AstTransformation {
         this.mainResource = mainResource;
     }
 
+    // We only need a single ConnectionReactor since it uses generics.
     Reactor connectionReactor = null;
-    Map<String, Reactor> connectionReactorDefs= new LinkedHashMap<>();
 
-    // A hashmap mapping Reactor definitions which has enclaved instances to their wrapper definition
-    // A hashmap mapping enclaved reactor instances to their wrapper instances
     public void applyTransformation(List<Reactor> reactors) {
         // This function performs the whole AST transformation consisting in
         // 1. Get all Enclave Reactors
@@ -68,20 +70,7 @@ public class CEnclavedReactorTransformation implements AstTransformation {
         Map<Instantiation, Instantiation> instMap =
             replaceEnclavesWithWrappers(enclaveInsts, defMap);
 
-        // Find all enclaved connections and partition them out. E.g.
-        // enclave1.out, normal1.out ->  enclave2.in, normal2.in
-        // is split into two separate connections.
-        isolateEnclavedConnections(reactors);
-
-        // 3.
         connectWrappers(reactors, instMap);
-
-        // 3. Create ConnectionReactors for connections between enclave and parent
-        insertConnectionReactorsForEnclaveOutputs(reactors);
-
-        setEnclaveWrapperParams(reactors);
-
-        setFreeConnectionReactorParams(reactors);
 
     }
     // Get the reactor definitions of all the enclaves
@@ -126,6 +115,10 @@ public class CEnclavedReactorTransformation implements AstTransformation {
             Type type = input.getType();
             in.setName(input.getName());
             in.setType(EcoreUtil.copy(input.getType()));
+            Parameter delayParam = createDelayParameter(input.getName() + "_delay");
+            wrapper.getParameters().add(delayParam);
+            ParameterReference delayParamRef = factory.createParameterReference();
+            delayParamRef.setParameter(delayParam);
 
             // Create Connection reactor def and inst
             Reactor connReactorDef = createEnclaveConnectionClass();
@@ -133,6 +126,14 @@ public class CEnclavedReactorTransformation implements AstTransformation {
             connReactorInst.setReactorClass(connReactorDef);
             connReactorInst.setName(connReactorDef.getName() + input.getName());
             connReactorInst.getTypeArgs().add(EcoreUtil.copy(type));
+
+            // Set the delay parameter of the ConnectionRactor
+            Assignment delayAssignment = factory.createAssignment();
+            delayAssignment.setLhs(connReactorDef.getParameters().get(0));
+            Initializer init = factory.createInitializer();
+            init.getExprs().add(Objects.requireNonNull(delayParamRef));
+            delayAssignment.setRhs(init);
+            connReactorInst.getParameters().add(delayAssignment);
 
             // Create the two actual connections between top-level, connection-reactor and wrapped enclave
             Connection conn1 = factory.createConnection();
@@ -176,21 +177,12 @@ public class CEnclavedReactorTransformation implements AstTransformation {
             out.setName(output.getName());
             out.setType(EcoreUtil.copy(type));
 
-            Reactor connReactorDef = createEnclaveConnectionClass();
-            Instantiation connReactorInst = factory.createInstantiation();
-            connReactorInst.setReactorClass(connReactorDef);
-            connReactorInst.setName(connReactorDef.getName() + output.getName()); // FIXME: Separate the name into separate func?
-            connReactorInst.getTypeArgs().add(EcoreUtil.copy(type));
-
             // Create the two actual connections between top-level, connection-reactor and wrapped enclave
             Connection conn1 = factory.createConnection();
-            Connection conn2 = factory.createConnection();
 
             // Create var-refs fpr ports
             VarRef topOutRef = factory.createVarRef();
             VarRef encOutRef = factory.createVarRef();
-            VarRef connInRef = factory.createVarRef();
-            VarRef connOutRef = factory.createVarRef();
 
             // Tie the var-refs to their ports
             topOutRef.setVariable(out);
@@ -198,24 +190,13 @@ public class CEnclavedReactorTransformation implements AstTransformation {
             encOutRef.setContainer(wrappedEnclaveInst);
             encOutRef.setVariable(output);
 
-            connInRef.setContainer(connReactorInst);
-            connInRef.setVariable(connReactorDef.getInputs().get(0));
-
-            connOutRef.setContainer(connReactorInst);
-            connOutRef.setVariable(connReactorDef.getOutputs().get(0));
-
             // Connect var-refs and connections
             conn1.getLeftPorts().add(encOutRef);
-            conn1.getRightPorts().add(connInRef);
-
-            conn2.getLeftPorts().add(connOutRef);
-            conn2.getRightPorts().add(topOutRef);
+            conn1.getRightPorts().add(topOutRef);
 
             // Add all objects to the wrapper class
             wrapper.getOutputs().add(out);
             wrapper.getConnections().add(conn1);
-            wrapper.getConnections().add(conn2);
-            wrapper.getInstantiations().add(connReactorInst);
         }
 
         return wrapper;
@@ -296,6 +277,20 @@ public class CEnclavedReactorTransformation implements AstTransformation {
         Instantiation wrapperSrc = instMap.get(src);
         Instantiation wrapperDest = instMap.get(dest);
 
+        // Set the delay parameter of the enclaved connection which is inside the wrapperDest
+        // FIXME: clean up
+        Expression connDelay = oldConn.getDelay();
+        if (connDelay != null) {
+            Assignment delayAssignment = factory.createAssignment();
+            // Hide behind function maybe?
+            delayAssignment.setLhs(getParameter(wrapperDest, oldInput.getVariable().getName() + "_delay"));
+            Initializer init = factory.createInitializer();
+            init.getExprs().add(connDelay);
+            delayAssignment.setRhs(init);
+            wrapperDest.getParameters().add(delayAssignment);
+        }
+
+
         wrapperSrcOutput.setContainer(wrapperSrc);
         wrapperSrcOutput.setVariable(getInstanceOutputPortByName(wrapperSrc, oldOutput.getVariable().getName()));
         wrapperDestInput.setContainer(wrapperDest);
@@ -330,40 +325,13 @@ public class CEnclavedReactorTransformation implements AstTransformation {
 
     private Output getInstanceOutputPortByName(Instantiation inst, String name) {
         for (Output out: ASTUtils.toDefinition(inst.getReactorClass()).getOutputs()) {
-            if (out.getName() == name) {
+            if (out.getName().equals(name)) {
                 return out;
             }
         }
         assert(false);
         return factory.createOutput();
     }
-
-    private void isolateEnclavedConnections(List<Reactor> reactors) {
-
-    }
-
-    // In the case where the output port of an enclave is not connected to the top-level port of another enclave.
-    // E.g. a contained enclave is connected to the parents output. Or it is connected to another childs input.
-    // Or it is directly connected to a reaction in the parent (this requires some more thought)
-    // In this case we must generate a ConnectionReactor and put it into the receiving environment. Which is the parent
-    // in this case.
-
-    private void insertConnectionReactorsForEnclaveOutputs(List<Reactor> reactors) {
-
-    }
-
-    // This sets the in_delay and is_physical parameters for all the enclaveWrappers.
-    // It is based on the class and any delay on the connections to its ports.
-    // The connections should be replaced with ordinary connections
-    private void setEnclaveWrapperParams(List<Reactor> reactors) {
-
-    }
-
-    // This function finds all the free ConnectionReactors and sets their parameters.
-    private void setFreeConnectionReactorParams(List<Reactor> reactors) {
-
-    }
-
 
     // FIXME: Replace with library reactor. But couldnt figure out how to load it
     private Reactor createEnclaveConnectionClass() {
@@ -383,11 +351,13 @@ public class CEnclavedReactorTransformation implements AstTransformation {
             "#include <string.h>"
         ));
 
-        String className = "EnclavecConnectionReactor";
+        String className = "EnclaveConnectionReactor";
         Reactor connReactor = factory.createReactor();
         connReactor.getTypeParms().add(typeParam);
         connReactor.getPreambles().add(preamble);
-        Parameter delayParameter = factory.createParameter();
+        Parameter delayParameter = createDelayParameter("delay");
+        var paramRef = factory.createParameterReference();
+        paramRef.setParameter(delayParameter);
 
         Action action = factory.createAction();
         VarRef triggerRef = factory.createVarRef();
@@ -400,23 +370,8 @@ public class CEnclavedReactorTransformation implements AstTransformation {
         Reaction r1 = factory.createReaction();
         Reaction r2 = factory.createReaction();
 
-        delayParameter.setName("delay");
-        delayParameter.setType(factory.createType());
-        delayParameter.getType().setId("time");
-        delayParameter.getType().setTime(true);
-        Time defaultTime = factory.createTime();
-        defaultTime.setUnit(null);
-        defaultTime.setInterval(0);
-        Initializer init = factory.createInitializer();
-        init.setParens(true);
-        init.setBraces(false);
-        init.getExprs().add(defaultTime);
-        delayParameter.setInit(init);
-
         // Name the newly created action; set its delay and type.
         action.setName("act");
-        var paramRef = factory.createParameterReference();
-        paramRef.setParameter(delayParameter);
         action.setMinDelay(paramRef);
         action.setOrigin(ActionOrigin.LOGICAL);
         action.setType(EcoreUtil.copy(type));
@@ -497,5 +452,36 @@ public class CEnclavedReactorTransformation implements AstTransformation {
        CodeBuilder code = new CodeBuilder();
        code.pr("lf_set(out, act->value);");
        return code.toString();
+    }
+
+    private Parameter createDelayParameter(String name) {
+
+        Parameter delayParameter = factory.createParameter();
+
+        delayParameter.setName(name);
+        delayParameter.setType(factory.createType());
+        delayParameter.getType().setId("time");
+        delayParameter.getType().setTime(true);
+        Time defaultTime = factory.createTime();
+        defaultTime.setUnit(null);
+        defaultTime.setInterval(0);
+        Initializer init = factory.createInitializer();
+        init.setParens(true);
+        init.setBraces(false);
+        init.getExprs().add(defaultTime);
+        delayParameter.setInit(init);
+
+        return delayParameter;
+    }
+
+    private Parameter getParameter(Instantiation inst, String name) {
+        Reactor reactorDef = ASTUtils.toDefinition(inst.getReactorClass());
+        for (Parameter p: reactorDef.getParameters()) {
+            if (p.getName().equals(name)) {
+                return p;
+            }
+        }
+        assert(false);
+        return factory.createParameter();
     }
 }
