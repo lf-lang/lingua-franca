@@ -17,11 +17,96 @@ concurrency:
 
 jobs:
   # Run the C integration tests.
-  default:
+  default0:
     if: ${{ inputs.all || github.event.pull_request.draft }}
     uses: ./.github/workflows/c-tests.yml
     with:
       all-platforms: ${{ !github.event.pull_request.draft  }}
+      selected-tests: runGenericTests
+
+  default1:
+    if: ${{ inputs.all || github.event.pull_request.draft }}
+    uses: ./.github/workflows/c-tests.yml
+    with:
+      all-platforms: ${{ !github.event.pull_request.draft  }}
+      selected-tests: runTargetSpecificTests
+
+  default2:
+    if: ${{ inputs.all || github.event.pull_request.draft }}
+    uses: ./.github/workflows/c-tests.yml
+    with:
+      all-platforms: ${{ !github.event.pull_request.draft  }}
+      selected-tests: runMultiportTests
+
+  default3:
+    if: ${{ inputs.all || github.event.pull_request.draft }}
+    uses: ./.github/workflows/c-tests.yml
+    with:
+      all-platforms: ${{ !github.event.pull_request.draft  }}
+      selected-tests: runTypeParameterTests
+
+  default4:
+    if: ${{ inputs.all || github.event.pull_request.draft }}
+    uses: ./.github/workflows/c-tests.yml
+    with:
+      all-platforms: ${{ !github.event.pull_request.draft  }}
+      selected-tests: runAsFederated
+
+  default5:
+    if: ${{ inputs.all || github.event.pull_request.draft }}
+    uses: ./.github/workflows/c-tests.yml
+    with:
+      all-platforms: ${{ !github.event.pull_request.draft  }}
+      selected-tests: runConcurrentTests
+
+  default6:
+    if: ${{ inputs.all || github.event.pull_request.draft }}
+    uses: ./.github/workflows/c-tests.yml
+    with:
+      all-platforms: ${{ !github.event.pull_request.draft  }}
+      selected-tests: runFederatedTests
+
+  default7:
+    if: ${{ inputs.all || github.event.pull_request.draft }}
+    uses: ./.github/workflows/c-tests.yml
+    with:
+      all-platforms: ${{ !github.event.pull_request.draft  }}
+      selected-tests: runModalTests
+
+  default8:
+    if: ${{ inputs.all || github.event.pull_request.draft }}
+    uses: ./.github/workflows/c-tests.yml
+    with:
+      all-platforms: ${{ !github.event.pull_request.draft  }}
+      selected-tests: runNoInliningTests
+
+  default9:
+    if: ${{ inputs.all || github.event.pull_request.draft }}
+    uses: ./.github/workflows/c-tests.yml
+    with:
+      all-platforms: ${{ !github.event.pull_request.draft  }}
+      selected-tests: runDockerTests
+
+  default10:
+    if: ${{ inputs.all || github.event.pull_request.draft }}
+    uses: ./.github/workflows/c-tests.yml
+    with:
+      all-platforms: ${{ !github.event.pull_request.draft  }}
+      selected-tests: runDockerFederatedTests
+
+  default11:
+    if: ${{ inputs.all || github.event.pull_request.draft }}
+    uses: ./.github/workflows/c-tests.yml
+    with:
+      all-platforms: ${{ !github.event.pull_request.draft  }}
+      selected-tests: runWithThreadingOff
+
+  default12:
+    if: ${{ inputs.all || github.event.pull_request.draft }}
+    uses: ./.github/workflows/c-tests.yml
+    with:
+      all-platforms: ${{ !github.event.pull_request.draft  }}
+      selected-tests: runEnclaveTests
 
   # Run the C benchmark tests.
   benchmarking:
