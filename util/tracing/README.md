@@ -14,7 +14,7 @@ directory.
 
 * trace\_to\_influxdb: A preliminary implementation that takes a binary trace file
   and uploads its data into [InfluxDB](https://en.wikipedia.org/wiki/InfluxDB).
-  
+
 * fedsd: A utility that converts trace files from a federate into sequence diagrams
   showing the interactions between federates and the RTI.
 
