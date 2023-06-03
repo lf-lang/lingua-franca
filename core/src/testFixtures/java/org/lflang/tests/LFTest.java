@@ -226,7 +226,7 @@ public class LFTest implements Comparable<LFTest> {
     /**
      * String buffer used to record the standard output and error streams from the input process.
      */
-    StringBuilder buffer = new StringBuilder();
+    StringBuffer buffer = new StringBuffer();
 
     /**
      * Return a thread responsible for recording the standard output stream of the given process. A
@@ -250,7 +250,7 @@ public class LFTest implements Comparable<LFTest> {
      * @param builder The builder to append to.
      * @param inputStream The stream to read from.
      */
-    private Thread recordStream(StringBuilder builder, InputStream inputStream) {
+    private Thread recordStream(StringBuffer builder, InputStream inputStream) {
       return new Thread(
           () -> {
             try (Reader reader = new InputStreamReader(inputStream)) {
