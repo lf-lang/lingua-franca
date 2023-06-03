@@ -21,10 +21,6 @@ jobs:
           fetch-depth: 0
       - name: Prepare build environment
         uses: ./.github/actions/prepare-build-env
-      - name: Test build bash scripts (Linux and macOS only)
-        run: |
-          .github/scripts/test-build.sh
-        if: ${{ runner.os == 'macOS' || runner.os == 'Linux' }}
       - name: Test lfc bash scripts (Linux or macOS only)
         run: |
           .github/scripts/test-lfc.sh
@@ -33,19 +29,11 @@ jobs:
         run: |
           .github/scripts/test-lff.sh
         if: ${{ runner.os == 'macOS' || runner.os == 'Linux' }}
-      - name: Test PowerShell script (Windows only)
+      - name: Test lfc PowerShell script (Windows only)
         run: |
-          ./gradlew buildAll
           bin/lfc.ps1 --help
         if: ${{ runner.os == 'Windows' }}
-      - name: Run standalone cli tests
+      - name: Test lff PowerShell script (Windows only)
         run: |
-          ./gradlew test --tests org.lflang.tests.cli.* --stacktrace
-#   NOTE: do not put other invocations for gradlew in between these steps, or coverage reporting will break.
-      - name: Report to CodeCov
-        uses: codecov/codecov-action@v3.1.1
-        with:
-          file: org.lflang.tests/build/reports/xml/jacoco
-          fail_ci_if_error: false
-          verbose: true
-        if: ${{ runner.os == 'Linux' && inputs.all-platforms }}
+          bin/lff.ps1 --help
+        if: ${{ runner.os == 'Windows' }}

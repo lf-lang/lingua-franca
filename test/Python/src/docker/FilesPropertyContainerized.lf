@@ -13,9 +13,9 @@ preamble {=
 main reactor {
   preamble {=
     try:
-        import hello
+      import hello
     except:
-        lf_request_stop()
+      request_stop()
   =}
   state passed = False
   timer t(1 msec)

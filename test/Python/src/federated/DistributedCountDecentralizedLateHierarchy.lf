@@ -13,7 +13,48 @@ target Python {
 }
 
 import Count from "../lib/Count.lf"
-import ImportantActuator, Print from "DistributedCountDecentralizedLateDownstream.lf"
+import Print from "DistributedCountDecentralizedLateDownstream.lf"
+
+reactor ImportantActuator {
+    input inp
+    # Count messages that arrive without STP violation.
+    state success = 0
+    state success_stp_violation = 0
+    # Force a timer to be invoked periodically
+    timer t(0, 10 usec)
+    # to ensure logical time will advance in the absence of incoming messages.
+    state c = 0
+
+    reaction(inp) {=
+        current_tag = lf.tag()
+        print(f"ImportantActuator: At tag ({lf.tag().time}, {lf.tag().microstep}) received {inp.value}. "
+              f"Intended tag is ({inp.intended_tag.time - lf.time.start()}, {inp.intended_tag.microstep}).")
+        if lf.tag() == Tag((SEC(1) *  self.c) + + lf.time.start(), 0):
+            self.success += 1 # Message was on-time
+        else:
+            self.sys.stderr.write("Normal reaction was invoked, but current tag doesn't match expected tag.")
+            self.sys.exit(1)
+        self.c += 1
+    =} STP(0) {=
+        current_tag = lf.tag()
+        print(f"ImportantActuator: At tag ({lf.time.logical_elapsed()}, {lf.tag().microstep}), message has violated the STP offset "
+              f"by ({lf.tag().time - inp.intended_tag.time}, {lf.tag().microstep - inp.intended_tag.microstep}).")
+        self.success_stp_violation += 1
+        self.c += 1
+    =}
+
+    reaction(t) {=
+        # Do nothing.
+    =}
+
+    reaction(shutdown) {=
+        if (self.success +  self.success_stp_violation) != 5:
+            self.sys.stderr.write("Failed to detect STP violation in messages.")
+            self.sys.exit(1)
+        else:
+            print(f"Successfully detected STP violations ({self.success_stp_violation} violations, {self.success} on-time).")
+    =}
+}
 
 reactor Receiver {
   input inp
