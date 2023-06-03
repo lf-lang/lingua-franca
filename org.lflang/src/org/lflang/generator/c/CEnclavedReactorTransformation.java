@@ -15,10 +15,12 @@ import org.eclipse.xtext.xbase.lib.IteratorExtensions;
 
 import org.lflang.ast.ASTUtils;
 import org.lflang.ast.AstTransformation;
+import org.lflang.generator.CodeBuilder;
 import org.lflang.generator.DelayBodyGenerator;
 import org.lflang.generator.TargetTypes;
 import org.lflang.lf.Action;
 import org.lflang.lf.ActionOrigin;
+import org.lflang.lf.Code;
 import org.lflang.lf.Connection;
 import org.lflang.lf.Initializer;
 import org.lflang.lf.Input;
@@ -28,12 +30,16 @@ import org.lflang.lf.Mode;
 import org.lflang.lf.Model;
 import org.lflang.lf.Output;
 import org.lflang.lf.Parameter;
+import org.lflang.lf.Preamble;
 import org.lflang.lf.Reaction;
 import org.lflang.lf.Reactor;
 import org.lflang.lf.Time;
 import org.lflang.lf.Type;
 import org.lflang.lf.TypeParm;
 import org.lflang.lf.VarRef;
+import org.lflang.util.IteratorUtil;
+
+import com.google.common.collect.Iterables;
 
 public class CEnclavedReactorTransformation implements AstTransformation {
 
@@ -44,6 +50,7 @@ public class CEnclavedReactorTransformation implements AstTransformation {
         this.mainResource = mainResource;
     }
 
+    Reactor connectionReactor = null;
     Map<String, Reactor> connectionReactorDefs= new LinkedHashMap<>();
 
     // A hashmap mapping Reactor definitions which has enclaved instances to their wrapper definition
@@ -75,6 +82,7 @@ public class CEnclavedReactorTransformation implements AstTransformation {
         setEnclaveWrapperParams(reactors);
 
         setFreeConnectionReactorParams(reactors);
+
     }
     // Get the reactor definitions of all the enclaves
     private List<Instantiation> getEnclaveInsts(List<Reactor> reactors) {
@@ -110,8 +118,7 @@ public class CEnclavedReactorTransformation implements AstTransformation {
         // TODO: Copy wrapper parameters to the inst
         Reactor wrapper = factory.createReactor();
         wrapper.setName(wrapperClassName(enclaveDef.getName()));
-        Instantiation wrappedEnclaveInst = factory.createInstantiation();
-        wrappedEnclaveInst.setReactorClass(enclaveDef);
+        Instantiation wrappedEnclaveInst = ASTUtils.createInstantiation(enclaveDef);
         wrappedEnclaveInst.setName(wrappedInstanceName(enclaveDef.getName()));
         wrapper.getInstantiations().add(wrappedEnclaveInst);
         for (Input input: enclaveDef.getInputs()) {
@@ -121,10 +128,11 @@ public class CEnclavedReactorTransformation implements AstTransformation {
             in.setType(EcoreUtil.copy(input.getType()));
 
             // Create Connection reactor def and inst
-            Reactor connReactorDef = createEnclaveConnectionClass(type);
+            Reactor connReactorDef = createEnclaveConnectionClass();
             Instantiation connReactorInst = factory.createInstantiation();
             connReactorInst.setReactorClass(connReactorDef);
             connReactorInst.setName(connReactorDef.getName() + input.getName());
+            connReactorInst.getTypeArgs().add(EcoreUtil.copy(type));
 
             // Create the two actual connections between top-level, connection-reactor and wrapped enclave
             Connection conn1 = factory.createConnection();
@@ -168,11 +176,11 @@ public class CEnclavedReactorTransformation implements AstTransformation {
             out.setName(output.getName());
             out.setType(EcoreUtil.copy(type));
 
-            // Create Connection reactor def and inst
-            Reactor connReactorDef = createEnclaveConnectionClass(type);
+            Reactor connReactorDef = createEnclaveConnectionClass();
             Instantiation connReactorInst = factory.createInstantiation();
             connReactorInst.setReactorClass(connReactorDef);
             connReactorInst.setName(connReactorDef.getName() + output.getName()); // FIXME: Separate the name into separate func?
+            connReactorInst.getTypeArgs().add(EcoreUtil.copy(type));
 
             // Create the two actual connections between top-level, connection-reactor and wrapped enclave
             Connection conn1 = factory.createConnection();
@@ -356,18 +364,31 @@ public class CEnclavedReactorTransformation implements AstTransformation {
 
     }
 
-    // FIXME: We need support for more generic types...
 
-    private Reactor createEnclaveConnectionClass(Type type) {
-
-        if (connectionReactorDefs.containsKey(type.getId())) {
-            return connectionReactorDefs.get(type.getId());
+    // FIXME: Replace with library reactor. But couldnt figure out how to load it
+    private Reactor createEnclaveConnectionClass() {
+        if (connectionReactor != null) {
+            return connectionReactor;
         }
+        Type type = factory.createType();
+        type.setId("T");
 
-        String className = "EnclavecConnectionReactor_" + type.getId();
+        TypeParm typeParam = factory.createTypeParm();
+        typeParam.setLiteral("T");
 
+        Preamble preamble = factory.createPreamble();
+        preamble.setCode(factory.createCode());
+        preamble.getCode().setBody(String.join("\n",
+            "#include \"reactor_common.h\"",
+            "#include <string.h>"
+        ));
+
+        String className = "EnclavecConnectionReactor";
         Reactor connReactor = factory.createReactor();
+        connReactor.getTypeParms().add(typeParam);
+        connReactor.getPreambles().add(preamble);
         Parameter delayParameter = factory.createParameter();
+
         Action action = factory.createAction();
         VarRef triggerRef = factory.createVarRef();
         VarRef effectRef = factory.createVarRef();
@@ -398,14 +419,14 @@ public class CEnclavedReactorTransformation implements AstTransformation {
         paramRef.setParameter(delayParameter);
         action.setMinDelay(paramRef);
         action.setOrigin(ActionOrigin.LOGICAL);
-
         action.setType(EcoreUtil.copy(type));
 
-        input.setName("inp");
-        input.setType(EcoreUtil.copy(action.getType()));
+
+        input.setName("in");
+        input.setType(EcoreUtil.copy(type));
 
         output.setName("out");
-        output.setType(EcoreUtil.copy(action.getType()));
+        output.setType(EcoreUtil.copy(type));
 
         // Establish references to the involved ports.
         inRef.setVariable(input);
@@ -423,13 +444,13 @@ public class CEnclavedReactorTransformation implements AstTransformation {
         r1.getTriggers().add(inRef);
         r1.getEffects().add(effectRef);
         r1.setCode(factory.createCode());
-        r1.getCode().setBody("// TBA: Delay Body");
+        r1.getCode().setBody(enclavedConnectionDelayBody());
 
         // Configure the first reaction, which produces the output.
         r2.getTriggers().add(triggerRef);
         r2.getEffects().add(outRef);
         r2.setCode(factory.createCode());
-        r2.getCode().setBody("// TBA: Forward body");
+        r2.getCode().setBody(enclavedConnectionForwardBody());
 
         // Add the reactions to the newly created reactor class.
         // These need to go in the opposite order in case
@@ -447,8 +468,34 @@ public class CEnclavedReactorTransformation implements AstTransformation {
             IteratorExtensions.findFirst(mainResource.getAllContents(), Model.class::isInstance);
         ((Model) node).getReactors().add(connReactor);
 
-        connectionReactorDefs.put(type.getId(), connReactor);
+        connectionReactor = connReactor;
 
         return connReactor;
+    }
+
+    private String enclavedConnectionDelayBody() {
+        CodeBuilder code = new CodeBuilder();
+        code.pr("environment_t* src_env = in->_base.source_reactor->environment;");
+        code.pr("environment_t* dest_env = self->base.environment;");
+        code.pr("// Calculate the tag at which to schedule the event at the target");
+        code.pr("tag_t target_tag = lf_delay_tag(src_env->current_tag, self->delay);");
+        code.pr("int length = 1;");
+        code.pr("if (in->token) length = in->length;");
+        code.pr("token_template_t* template = (token_template_t*)act;");
+        code.pr("lf_critical_section_enter(dest_env);");
+        code.pr("lf_token_t* token = _lf_initialize_token(template, length);");
+        code.pr("memcpy(token->value, &(in->value), template->type.element_size * length);");
+        code.pr("// Schedule event to the destination environment.");
+        code.pr("trigger_handle_t result = _lf_schedule_at_tag(dest_env, act->_base.trigger, target_tag, token);");
+        code.pr("// Notify the main thread in case it is waiting for physical time to elapse");
+        code.pr("lf_notify_of_event(dest_env);");
+        code.pr("lf_critical_section_exit(dest_env);");
+        return code.toString();
+    }
+
+    private String enclavedConnectionForwardBody() {
+       CodeBuilder code = new CodeBuilder();
+       code.pr("lf_set(out, act->value);");
+       return code.toString();
     }
 }

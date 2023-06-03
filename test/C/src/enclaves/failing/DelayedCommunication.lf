@@ -18,7 +18,7 @@ reactor Receiver {
 
     reaction(in) {=
         time_t now = lf_time_logical_elapsed();
-        lf_print("Received event t=" PRINTF_TIME", count=%u", now, self->cnt);
+        lf_print("Received event t=" PRINTF_TIME", count=%u", now, in->value);
 
         if (now - self->last != MSEC(50)) {
             lf_print_error_and_exit("now=%lli last=%lli", now, self->last);
@@ -37,5 +37,5 @@ main reactor {
     @enclave
     receiver = new Receiver()
 
-    sender.out -> receiver.in
+    sender.out -> receiver.in after 50 msec
 }
