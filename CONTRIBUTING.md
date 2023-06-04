@@ -76,13 +76,48 @@ To address feedback from code review, implement changes and push to your feature
 ### Code style and formatting
 The Lingua Franca compiler is implemented in Java and Kotlin. The overarching advice is to use each language's most widely used idioms and conventions, which are fortunately very similar. The code base is shipped with a [Spotless](https://github.com/diffplug/spotless) configuration to check and enforce style compliance. Lingua Franca code (e.g., tests) in this repository is also automatically formatted via Spotless.
 
+
+#### Formatting
+
 - To check that modified files are formatted correctly, run:
+
 ```
 ./gradlew spotlessCheck
 ```
+
 - To apply the changes recommended by the formatter, run:
+
 ```
 ./gradlew spotlessApply
+```
+
+_Java code formatting in IntelliJ_
+
+There is an [IntelliJ plugin](https://plugins.jetbrains.com/plugin/8527-google-java-format) for enforcing Google's Java
+style guide. This plugin can be enabled by going to `File` > `Settings...` > `Plugins` > `MarketPlace` and searching for
+`google-java-format`. Do not forget to update your VM options as
+explained [here](https://github.com/google/google-java-format/blob/master/README.md#intellij-android-studio-and-other-jetbrains-ides)
+and do not forget to enable the plugin by going
+to `File` > `Settings...` > `google-java-format Settings` > `Enable google-java-format`.
+
+You can enable formatting on save by going to `File` > `Settings...` > `Tools` > `Actions on Save` > `Reformat Code`. If
+you do this, you may choose to change the files formatted on save from "all file types" to just Java in order to avoid
+unnecessary conflicts.
+
+_Lingua Franca code formatting in VS Code_
+
+Formatting is provided by the Lingua Franca VS Code extension.
+
+You can enable formatting on save by going to `Settings` and searching for "format" and checking the box
+`Editor: Format on Save`. This can be either a user-level or workspace-level setting.
+
+_Checking using Git hooks_
+
+If you prefer not to use formatting on save but would still like to avoid committing unformatted code, you can add a
+file `.git/hooks/pre-commit` with the contents:
+
+```
+./gradlew spotlessCheck
 ```
 
 #### General guidelines
