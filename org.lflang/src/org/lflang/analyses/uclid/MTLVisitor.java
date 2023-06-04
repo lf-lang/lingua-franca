@@ -174,7 +174,7 @@ public class MTLVisitor extends MTLParserBaseVisitor<String> {
         long lowerBoundNanoSec = getNanoSecFromIntervalContext(ctx.timeInterval, false);
         long upperBoundNanoSec = getNanoSecFromIntervalContext(ctx.timeInterval, true);
         long currentHorizon = horizon + upperBoundNanoSec;
-        this.horizon = currentHorizon;
+        if (currentHorizon > this.horizon) this.horizon = currentHorizon;
         String timePredicate = generateTimePredicate(ctx.timeInterval, lowerBoundNanoSec,
                                                     upperBoundNanoSec, "j" + QFIdx, prefixIdx);
 
@@ -204,7 +204,7 @@ public class MTLVisitor extends MTLParserBaseVisitor<String> {
 
     public String visitNext(MTLParser.NextContext ctx,
         String prefixIdx, int QFIdx, String prevPrefixIdx, long horizon) {
-
+        // FIXME: Horizon needs to advance!
         return visitPrimary(ctx.formula, ("(" + prefixIdx + "+1)"), QFIdx, prevPrefixIdx, horizon);
     }
 
@@ -221,7 +221,7 @@ public class MTLVisitor extends MTLParserBaseVisitor<String> {
         long lowerBoundNanoSec = getNanoSecFromIntervalContext(ctx.timeInterval, false);
         long upperBoundNanoSec = getNanoSecFromIntervalContext(ctx.timeInterval, true);
         long currentHorizon = horizon + upperBoundNanoSec;
-        this.horizon = currentHorizon;
+        if (currentHorizon > this.horizon) this.horizon = currentHorizon;
         String timePredicate = generateTimePredicate(ctx.timeInterval, lowerBoundNanoSec,
                                                     upperBoundNanoSec, "j" + QFIdx, prefixIdx);        
         return "(" + "finite_forall " + "(" + "j" + QFIdx + " : integer) in indices :: "
@@ -248,7 +248,7 @@ public class MTLVisitor extends MTLParserBaseVisitor<String> {
         long lowerBoundNanoSec = getNanoSecFromIntervalContext(ctx.timeInterval, false);
         long upperBoundNanoSec = getNanoSecFromIntervalContext(ctx.timeInterval, true);
         long currentHorizon = horizon + upperBoundNanoSec;
-        this.horizon = currentHorizon;
+        if (currentHorizon > this.horizon) this.horizon = currentHorizon;
         String timePredicate = generateTimePredicate(ctx.timeInterval, lowerBoundNanoSec,
                                                     upperBoundNanoSec, "j" + QFIdx, prefixIdx);        
         return "finite_exists " + "(" + "j" + QFIdx + " : integer) in indices :: "
