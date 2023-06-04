@@ -1,6 +1,7 @@
 package org.lflang.generator.c;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import org.lflang.InferredType;
@@ -9,15 +10,17 @@ import org.lflang.generator.CodeBuilder;
 import org.lflang.lf.Instantiation;
 import org.lflang.lf.Reactor;
 import org.lflang.lf.Type;
+import org.lflang.lf.TypeParm;
 
 /**
  * A reactor class combined with concrete type arguments bound to its type parameters.
- *
- * @param reactor The syntactic reactor class definition
- * @param typeArgs The type arguments associated with this particular variant of the reactor class.
  */
-public record TypeParameterizedReactor(Reactor reactor, Map<String, Type> typeArgs) {
-
+public class TypeParameterizedReactor {
+  /** The syntactic reactor class definition. */
+  private final Reactor reactor;
+  /** The type arguments associated with this particular variant of the reactor class. */
+  private final Map<String, Type> typeArgs;
+  private final List<String> typeParams;
   /**
    * Construct the TPR corresponding to the given instantiation which syntactically appears within
    * the definition corresponding to {@code parent}.
@@ -27,19 +30,20 @@ public record TypeParameterizedReactor(Reactor reactor, Map<String, Type> typeAr
    *     permitted instead of types in this TPR.
    */
   public TypeParameterizedReactor(Instantiation i, TypeParameterizedReactor parent) {
-    this(
-        ASTUtils.toDefinition(i.getReactorClass()),
-        addTypeArgs(i, ASTUtils.toDefinition(i.getReactorClass()), parent));
+    reactor = ASTUtils.toDefinition(i.getReactorClass());
+    var definition = ASTUtils.toDefinition(i.getReactorClass());
+    typeParams = definition.getTypeParms().stream().map(TypeParm::getLiteral).toList();
+    typeArgs = addTypeArgs(i, parent);
   }
 
-  private static Map<String, Type> addTypeArgs(
-      Instantiation instantiation, Reactor r, TypeParameterizedReactor parent) {
+  private Map<String, Type> addTypeArgs(
+      Instantiation instantiation, TypeParameterizedReactor parent) {
     HashMap<String, Type> ret = new HashMap<>();
     if (instantiation.getTypeArgs() != null) {
-      for (int i = 0; i < r.getTypeParms().size(); i++) {
+      for (int i = 0; i < typeParams.size(); i++) {
         var arg = instantiation.getTypeArgs().get(i);
         ret.put(
-            r.getTypeParms().get(i).getLiteral(), parent == null ? arg : parent.resolveType(arg));
+            typeParams.get(i), parent == null ? arg : parent.resolveType(arg));
       }
     }
     return ret;
@@ -91,9 +95,9 @@ public record TypeParameterizedReactor(Reactor reactor, Map<String, Type> typeAr
    * Return a name that is unique to this TypeParameterizedReactor (up to structural equality) and
    * that is prefixed with exactly one underscore and that does not contain any upper-case letters.
    */
-  public String uniqueName() {
+  public String uniqueName(CFileConfig fileConfig) {
     var resolved = ASTUtils.toDefinition(reactor);
-    return ("_" + resolved.getName().toLowerCase() + (typeArgs.hashCode() + resolved.eResource().getURI().hashCode() * 31)).replace('-', '_');
+    return "_" + fileConfig.uniqueName(resolved) + typeParams.stream().map(it -> it + "_" + typeArgs.get(it)).collect(Collectors.joining("_"));
   }
 
   @Override
@@ -106,5 +110,9 @@ public record TypeParameterizedReactor(Reactor reactor, Map<String, Type> typeAr
     return obj instanceof TypeParameterizedReactor other
         && reactor.equals(other.reactor)
         && typeArgs.equals(other.typeArgs);
+  }
+
+  public Reactor reactor() {
+    return reactor;
   }
 }

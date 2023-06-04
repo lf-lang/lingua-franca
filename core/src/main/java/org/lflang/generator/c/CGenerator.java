@@ -319,6 +319,7 @@ public class CGenerator extends GeneratorBase {
       DelayBodyGenerator delayBodyGenerator) {
     super(context);
     this.fileConfig = (CFileConfig) context.getFileConfig();
+    fileConfig.setNameMap(reactors);
     this.CCppMode = CCppMode;
     this.types = types;
     this.cmakeGenerator = cmakeGenerator;
