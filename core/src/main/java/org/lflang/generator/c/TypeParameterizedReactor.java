@@ -1,6 +1,7 @@
 package org.lflang.generator.c;
 
 import com.google.common.collect.ImmutableMap;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -41,7 +42,11 @@ public class TypeParameterizedReactor {
   private static Map<String, Map<URI, Integer>> getNameMap(List<Reactor> reactors) {
     Map<String, Map<URI, Integer>> nameMap = new HashMap<>();
     Map<String, Integer> countMap = new HashMap<>();
-    for (var reactor : reactors) {
+    var sortedReactors =
+        reactors.stream()
+            .sorted(Comparator.comparing(a -> a.eResource().getURI().toString()))
+            .toList();
+    for (var reactor : sortedReactors) {
       var def = ASTUtils.toDefinition(reactor);
       var name = def.getName().toLowerCase();
       if (nameMap.containsKey(name)) {
