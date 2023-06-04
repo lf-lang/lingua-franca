@@ -773,7 +773,8 @@ public class CExtension implements FedTargetExtension {
           new ReactorInstance(
               FedASTUtils.findFederatedReactor(federate.instantiation.eResource()),
               errorReporter,
-              1, List.of());
+              1,
+              List.of());
       var instance = new ReactorInstance(federateClass, main, errorReporter, List.of());
       var outputDelayMap = federate.findOutputsConnectedToPhysicalActions(instance);
       var minDelay = TimeValue.MAX_VALUE;

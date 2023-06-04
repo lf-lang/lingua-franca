@@ -101,7 +101,8 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
    * @param reporter The error reporter.
    * @param desiredDepth The depth to which to go, or -1 to construct the full hierarchy.
    */
-  public ReactorInstance(Reactor reactor, ErrorReporter reporter, int desiredDepth, List<Reactor> reactors) {
+  public ReactorInstance(
+      Reactor reactor, ErrorReporter reporter, int desiredDepth, List<Reactor> reactors) {
     this(ASTUtils.createInstantiation(reactor), null, reporter, desiredDepth, reactors);
   }
 
@@ -113,7 +114,8 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
    * @param parent The parent reactor instance.
    * @param reporter The error reporter.
    */
-  public ReactorInstance(Reactor reactor, ReactorInstance parent, ErrorReporter reporter, List<Reactor> reactors) {
+  public ReactorInstance(
+      Reactor reactor, ReactorInstance parent, ErrorReporter reporter, List<Reactor> reactors) {
     this(ASTUtils.createInstantiation(reactor), parent, reporter, -1, reactors);
   }
 
@@ -788,12 +790,19 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
    * @param desiredDepth The depth to which to expand the hierarchy.
    */
   public ReactorInstance(
-      Instantiation definition, ReactorInstance parent, ErrorReporter reporter, int desiredDepth, List<Reactor> reactors) {
+      Instantiation definition,
+      ReactorInstance parent,
+      ErrorReporter reporter,
+      int desiredDepth,
+      List<Reactor> reactors) {
     super(definition, parent);
     this.reporter = reporter;
     this.reactorDeclaration = definition.getReactorClass();
     this.reactorDefinition = ASTUtils.toDefinition(reactorDeclaration);
-    this.tpr = parent == null ? new TypeParameterizedReactor(definition, reactors) : new TypeParameterizedReactor(definition, parent.tpr);
+    this.tpr =
+        parent == null
+            ? new TypeParameterizedReactor(definition, reactors)
+            : new TypeParameterizedReactor(definition, parent.tpr);
 
     // check for recursive instantiation
     var currentParent = parent;

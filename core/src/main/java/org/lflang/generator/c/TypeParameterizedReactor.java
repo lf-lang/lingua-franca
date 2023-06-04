@@ -1,26 +1,24 @@
 package org.lflang.generator.c;
 
+import com.google.common.collect.ImmutableMap;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
-
-import com.google.common.collect.ImmutableMap;
 import org.eclipse.emf.common.util.URI;
 import org.lflang.InferredType;
 import org.lflang.ast.ASTUtils;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.lf.*;
 
-/**
- * A reactor class combined with concrete type arguments bound to its type parameters.
- */
+/** A reactor class combined with concrete type arguments bound to its type parameters. */
 public class TypeParameterizedReactor {
   /** The syntactic reactor class definition. */
   private final Reactor reactor;
   /** The type arguments associated with this particular variant of the reactor class. */
   private final Map<String, Type> typeArgs;
+
   private final List<String> typeParams;
   private final ImmutableMap<String, Map<URI, Integer>> nameMap;
 
@@ -64,7 +62,8 @@ public class TypeParameterizedReactor {
     return name + (number == 0 ? "" : number);
   }
 
-  private TypeParameterizedReactor(Instantiation i, TypeParameterizedReactor parent, Map<String, Map<URI, Integer>> nameMap) {
+  private TypeParameterizedReactor(
+      Instantiation i, TypeParameterizedReactor parent, Map<String, Map<URI, Integer>> nameMap) {
     reactor = ASTUtils.toDefinition(i.getReactorClass());
     var definition = ASTUtils.toDefinition(i.getReactorClass());
     typeParams = definition.getTypeParms().stream().map(TypeParm::getLiteral).toList();
@@ -78,8 +77,7 @@ public class TypeParameterizedReactor {
     if (instantiation.getTypeArgs() != null) {
       for (int i = 0; i < typeParams.size(); i++) {
         var arg = instantiation.getTypeArgs().get(i);
-        ret.put(
-            typeParams.get(i), parent == null ? arg : parent.resolveType(arg));
+        ret.put(typeParams.get(i), parent == null ? arg : parent.resolveType(arg));
       }
     }
     return ret;
@@ -133,7 +131,11 @@ public class TypeParameterizedReactor {
    */
   public String uniqueName() {
     var resolved = ASTUtils.toDefinition(reactor);
-    return "_" + uniqueName(resolved) + typeParams.stream().map(it -> it + "_" + typeArgs.get(it)).collect(Collectors.joining("_"));
+    return "_"
+        + uniqueName(resolved)
+        + typeParams.stream()
+            .map(it -> it + "_" + typeArgs.get(it))
+            .collect(Collectors.joining("_"));
   }
 
   @Override

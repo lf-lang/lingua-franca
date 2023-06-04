@@ -2095,7 +2095,8 @@ public class CGenerator extends GeneratorBase {
     if (this.mainDef != null) {
       if (this.main == null) {
         // Recursively build instances.
-        this.main = new ReactorInstance(toDefinition(mainDef.getReactorClass()), errorReporter, reactors);
+        this.main =
+            new ReactorInstance(toDefinition(mainDef.getReactorClass()), errorReporter, reactors);
         var reactionInstanceGraph = this.main.assignLevels();
         if (reactionInstanceGraph.nodeCount() > 0) {
           errorReporter.reportError("Main reactor has causality cycles. Skipping code generation.");
