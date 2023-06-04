@@ -355,7 +355,7 @@ public class CCmakeGenerator {
     }
 
     if (targetConfig.get(ThreadingProperty.INSTANCE)
-        && platformOptions.platform() != Platform.ZEPHYR) {
+        && platformOptions.platform() != Platform.ZEPHYR) { // FIXME: invert
       // If threaded computation is requested, add the threads option.
       cMakeCode.pr("# Find threads and link to it");
       cMakeCode.pr("find_package(Threads REQUIRED)");
@@ -365,7 +365,7 @@ public class CCmakeGenerator {
 
     // Add additional flags so runtime can distinguish between multi-threaded and single-threaded
     // mode
-    if (targetConfig.get(ThreadingProperty.INSTANCE)) {
+    if (targetConfig.get(ThreadingProperty.INSTANCE)) { // FIXME: invert
       cMakeCode.pr("# Set the number of workers to enable threading/tracing");
       cMakeCode.pr(
           "target_compile_definitions(${LF_MAIN_TARGET} PUBLIC NUMBER_OF_WORKERS="

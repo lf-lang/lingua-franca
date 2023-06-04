@@ -362,7 +362,7 @@ public class CGenerator extends GeneratorBase {
           // instead
           // because it is the only one currently capable of handling asynchronous events.
           var threading = ThreadingProperty.INSTANCE;
-          if (!targetConfig.get(threading) && !targetConfig.isSet(threading)) {
+          if (!targetConfig.get(threading) && !targetConfig.isSet(threading)) { // FIXME: invert
             threading.override(targetConfig, true);
             String message =
                 "Using the threaded C runtime to allow for asynchronous handling of physical action"
@@ -470,7 +470,8 @@ public class CGenerator extends GeneratorBase {
       try {
         Path include = fileConfig.getSrcGenPath().resolve("include/");
         Path src = fileConfig.getSrcGenPath().resolve("src/");
-        FileUtil.arduinoDeleteHelper(src, targetConfig.get(ThreadingProperty.INSTANCE));
+        FileUtil.arduinoDeleteHelper(
+            src, targetConfig.get(ThreadingProperty.INSTANCE)); // FIXME: invert
         FileUtil.relativeIncludeHelper(src, include, messageReporter);
         FileUtil.relativeIncludeHelper(include, include, messageReporter);
       } catch (IOException e) {

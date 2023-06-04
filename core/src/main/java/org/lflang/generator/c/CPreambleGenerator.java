@@ -48,7 +48,7 @@ public class CPreambleGenerator {
         .forEach(it -> code.pr("#include " + StringUtil.addDoubleQuotes(it)));
     code.pr("#include \"include/core/reactor.h\"");
     code.pr("#include \"include/core/reactor_common.h\"");
-    if (targetConfig.get(ThreadingProperty.INSTANCE)) {
+    if (targetConfig.get(ThreadingProperty.INSTANCE)) { // FIXME: invert
       code.pr("#include \"include/core/threaded/scheduler.h\"");
     }
 
@@ -87,7 +87,6 @@ public class CPreambleGenerator {
     //         targetConfig.clockSyncOptions
     //     ));
     // }
-
     if (targetConfig.get(ThreadingProperty.INSTANCE)) {
       definitions.put("LF_THREADED", "1");
     } else {

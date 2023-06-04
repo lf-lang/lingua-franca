@@ -267,7 +267,9 @@ public abstract class GeneratorBase extends AbstractLFValidator {
 
     // Check for the existence and support of watchdogs
     hasWatchdogs = IterableExtensions.exists(reactors, it -> !it.getWatchdogs().isEmpty());
-    checkWatchdogSupport(getTarget() == Target.C && targetConfig.get(ThreadingProperty.INSTANCE));
+
+    checkWatchdogSupport(
+        getTarget() == Target.C && targetConfig.get(ThreadingProperty.INSTANCE)); // FIXME: invert
     additionalPostProcessingForModes();
   }
 

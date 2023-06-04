@@ -140,10 +140,10 @@ public class Lfc extends CliBase {
   private String scheduler;
 
   @Option(
-      names = {"-t", "--threading"},
-      paramLabel = "<true/false>",
-      description = "Specify whether the runtime should use multi-threading" + " (true/false).")
-  private String threading;
+      names = "--single-threaded",
+      arity = "0",
+      description = "Specify whether the runtime should be single-threaded.")
+  private Boolean singleThreaded;
 
   @Option(
       names = {"--tracing"},
@@ -331,15 +331,6 @@ public class Lfc extends CliBase {
     }
   }
 
-  /** Return whether threading has been enabled via the CLI arguments, or {@code null} otherwise. */
-  private Boolean getThreading() {
-    if (threading != null) {
-      return Boolean.parseBoolean(threading);
-    } else {
-      return null;
-    }
-  }
-
   /** Check the values of the commandline arguments and return them. */
   public GeneratorArguments getArgs() {
 
@@ -360,7 +351,7 @@ public class Lfc extends CliBase {
             new Argument<>(VerifyProperty.INSTANCE, verify),
             new Argument<>(RuntimeVersionProperty.INSTANCE, runtimeVersion),
             new Argument<>(SchedulerProperty.INSTANCE, getScheduler()),
-            new Argument<>(ThreadingProperty.INSTANCE, getThreading()),
+            new Argument<>(ThreadingProperty.INSTANCE, singleThreaded),
             new Argument<>(TracingProperty.INSTANCE, getTracingOptions()),
             new Argument<>(WorkersProperty.INSTANCE, workers)));
   }

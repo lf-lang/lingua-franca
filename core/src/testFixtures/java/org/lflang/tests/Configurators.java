@@ -84,7 +84,6 @@ public class Configurators {
             platform.baudRate(),
             false,
             platform.userThreads()));
-
     return true;
   }
 
