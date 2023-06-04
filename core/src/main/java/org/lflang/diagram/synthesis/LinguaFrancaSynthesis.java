@@ -303,8 +303,7 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
       Reactor main =
           IterableExtensions.findFirst(model.getReactors(), _utilityExtensions::isMainOrFederated);
       if (main != null) {
-        ReactorInstance reactorInstance =
-            new ReactorInstance(main, new SynthesisErrorReporter(), List.of());
+        ReactorInstance reactorInstance = new ReactorInstance(main, new SynthesisErrorReporter());
         rootNode
             .getChildren()
             .addAll(createReactorNode(reactorInstance, true, null, null, new HashMap<>()));
@@ -320,7 +319,7 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
         for (Reactor reactor : model.getReactors()) {
           if (reactor == main) continue;
           ReactorInstance reactorInstance =
-              new ReactorInstance(reactor, new SynthesisErrorReporter(), List.of());
+              new ReactorInstance(reactor, new SynthesisErrorReporter());
           reactorNodes.addAll(
               createReactorNode(
                   reactorInstance,

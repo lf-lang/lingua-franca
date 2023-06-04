@@ -593,7 +593,7 @@ public class CExtension implements FedTargetExtension {
     var federatedReactor = FedASTUtils.findFederatedReactor(federate.instantiation.eResource());
     var oldFederatedReactorName = federatedReactor.getName();
     federatedReactor.setName(federate.name);
-    var main = new ReactorInstance(federatedReactor, errorReporter, 1, List.of());
+    var main = new ReactorInstance(federatedReactor, errorReporter, 1);
     code.pr(CExtensionUtils.initializeTriggersForNetworkActions(federate, main));
     code.pr(CExtensionUtils.initializeTriggerForControlReactions(main, main, federate));
     federatedReactor.setName(oldFederatedReactorName);
@@ -773,9 +773,8 @@ public class CExtension implements FedTargetExtension {
           new ReactorInstance(
               FedASTUtils.findFederatedReactor(federate.instantiation.eResource()),
               errorReporter,
-              1,
-              List.of());
-      var instance = new ReactorInstance(federateClass, main, errorReporter, List.of());
+              1);
+      var instance = new ReactorInstance(federateClass, main, errorReporter);
       var outputDelayMap = federate.findOutputsConnectedToPhysicalActions(instance);
       var minDelay = TimeValue.MAX_VALUE;
       Output outputFound = null;

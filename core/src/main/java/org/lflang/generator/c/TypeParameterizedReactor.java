@@ -134,7 +134,7 @@ public class TypeParameterizedReactor {
     return "_"
         + uniqueName(resolved)
         + typeParams.stream()
-            .map(it -> it + "_" + typeArgs.get(it))
+            .map(it -> typeArgs.get(it).getId()) // FIXME: may be more than just an ID
             .collect(Collectors.joining("_"));
   }
 
