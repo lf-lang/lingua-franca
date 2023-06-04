@@ -15,9 +15,9 @@ reactor Source {
     =}
 }
 
-reactor Destination(expected(0)) {
+reactor Destination(expected = 0) {
     input _in
-    state received(false)
+    state received = False
 
     reaction(_in) {=
         print("Received: ", _in.value)

@@ -13,8 +13,8 @@ reactor Foo {
 }
 
 reactor Print {
-    state expected_time(10 msec)
-    state received(0)
+    state expected_time = 10 msec
+    state received = 0
     input x
 
     reaction(x) {=

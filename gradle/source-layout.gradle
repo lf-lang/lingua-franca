@@ -1,48 +1,46 @@
 if (name.endsWith(".tests")) {
-	sourceSets {
-		main {
-			java.srcDirs = []
-			kotlin.srcDirs = []
-			resources.srcDirs = []
-		}
-		test {
-			java.srcDirs = ['src', 'src-gen']
-			kotlin.srcDirs = ['src', 'src-gen']
-			resources.srcDirs = ['src', 'src-gen']
-			xtendOutputDir = 'xtend-gen'
-		}
-	}
+    sourceSets {
+        main {
+            java.srcDirs = []
+            kotlin.srcDirs = []
+            resources.srcDirs = []
+        }
+        test {
+            java.srcDirs = ['src', 'src-gen']
+            kotlin.srcDirs = ['src', 'src-gen']
+            resources.srcDirs = ['src', 'src-gen']
+        }
+    }
 } else {
-	sourceSets {
-		main {
-			java.srcDirs = ['src', 'src-gen']
-			kotlin.srcDirs = ['src', 'src-gen']
-			xtendOutputDir = 'xtend-gen'
-			resources {
-				srcDirs = ['src', 'src-gen']
-				exclude 'src/lib/rs/reactor-rust' // rust runtime does not need to be packed here.
-			}
-		}
-		test {
-			java.srcDirs = []
-			resources.srcDirs = []
-		}
-	}
+    sourceSets {
+        main {
+            java.srcDirs = ['src', 'src-gen']
+            kotlin.srcDirs = ['src', 'src-gen']
+            resources {
+                srcDirs = ['src', 'src-gen']
+                exclude 'src/lib/rs/reactor-rust' // rust runtime does not need to be packed here.
+            }
+        }
+        test {
+            java.srcDirs = []
+            resources.srcDirs = []
+        }
+    }
 }
 
 sourceSets.all {
-	resources.exclude '**/*.g', '**/*.mwe2', '**/*.xtend', '**/*._trace'
+    resources.exclude '**/*.g', '**/*.mwe2', '**/*._trace'
 }
 
 jar {
-	from('model') {
-		into('model')
-	}
-	manifest {
-		attributes 'Bundle-SymbolicName': project.name
-	}
+    from('model') {
+        into('model')
+    }
+    manifest {
+        attributes 'Bundle-SymbolicName': project.name
+    }
 }
 
 plugins.withId('war') {
-	webAppDirName = "WebRoot"
+    webAppDirName = "WebRoot"
 }

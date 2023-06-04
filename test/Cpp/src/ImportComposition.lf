@@ -16,7 +16,7 @@ main reactor ImportComposition {
     =}
 
     imp_comp = new ImportedComposition()
-    state received: bool(false)
+    state received: bool = false
 
     reaction(startup) -> imp_comp.x {= imp_comp.x.set(42); =}
 

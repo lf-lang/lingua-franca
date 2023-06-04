@@ -5,7 +5,7 @@ target C {
     fast: true
 }
 
-reactor Source(width: int(2)) {
+reactor Source(width: int = 2) {
     output[width] out: int
 
     reaction(startup) -> out {=
@@ -15,9 +15,9 @@ reactor Source(width: int(2)) {
     =}
 }
 
-reactor Destination(bank_index: int(0)) {
+reactor Destination(bank_index: int = 0) {
     input in: int
-    state received: bool(false)
+    state received: bool = false
 
     reaction(in) {=
         printf("Destination %d received %d.\n", self->bank_index, in->value);
@@ -41,7 +41,7 @@ reactor Destination(bank_index: int(0)) {
     =}
 }
 
-main reactor(width: int(3)) {
+main reactor(width: int = 3) {
     a = new Source(width = width)
     b = new[width] Destination()
     a.out -> b.in after 1 sec  // Width of the bank of delays will be inferred.

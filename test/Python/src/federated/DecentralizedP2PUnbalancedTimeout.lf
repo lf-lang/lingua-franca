@@ -12,10 +12,10 @@ target Python {
 }
 
 # reason for failing: lf_tag() not supported by the python target
-reactor Clock(offset(0), period(1 sec)) {
+reactor Clock(offset = 0, period = 1 sec) {
     output y
     timer t(offset, period)
-    state count(0)
+    state count = 0
 
     reaction(t) -> y {=
         self.count += 1
@@ -29,7 +29,7 @@ reactor Clock(offset(0), period(1 sec)) {
 reactor Destination {
     preamble {= import sys =}
     input x
-    state s(1)
+    state s = 1
     state startup_logical_time
 
     reaction(startup) {= self.startup_logical_time = lf.time.logical() =}
@@ -50,7 +50,7 @@ reactor Destination {
     =}
 }
 
-federated reactor(period(10 usec)) {
+federated reactor(period = 10 usec) {
     c = new Clock(period = period)
     d = new Destination()
     c.y -> d.x

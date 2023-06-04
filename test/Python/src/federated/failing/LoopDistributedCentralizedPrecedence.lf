@@ -16,11 +16,11 @@ target Python {
     timeout: 5 sec
 }
 
-reactor Looper(incr(1), delay(0 msec)) {
+reactor Looper(incr = 1, delay = 0 msec) {
     input in_
     output out
-    state count(0)
-    state received_count(0)
+    state count = 0
+    state received_count = 0
     timer t(0, 1 sec)
 
     reaction(t) -> out {=
@@ -50,7 +50,7 @@ reactor Looper(incr(1), delay(0 msec)) {
     =}
 }
 
-federated reactor(delay(0)) {
+federated reactor(delay = 0) {
     left = new Looper()
     right = new Looper(incr = -1)
     left.out -> right.in_

@@ -6,7 +6,7 @@ target C {
 import Count from "../lib/Count.lf"
 
 main reactor {
-    state count: int(1)
+    state count: int = 1
 
     s = new[2] Count()
 

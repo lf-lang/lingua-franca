@@ -3,7 +3,7 @@
 # violation.
 target Python
 
-reactor Deadline(threshold(100 msec)) {
+reactor Deadline(threshold = 100 msec) {
     input x
     output deadlineViolation
 

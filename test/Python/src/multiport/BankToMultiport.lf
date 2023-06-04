@@ -1,15 +1,15 @@
 # Test bank of reactors to multiport input with id parameter in the bank.
 target Python
 
-reactor Source(bank_index(0)) {
+reactor Source(bank_index = 0) {
     output out
 
     reaction(startup) -> out {= out.set(self.bank_index) =}
 }
 
-reactor Sink(width(4)) {
+reactor Sink(width = 4) {
     input[width] _in
-    state received(false)
+    state received = False
 
     reaction(_in) {=
         for (idx, port) in enumerate(_in):
@@ -28,7 +28,7 @@ reactor Sink(width(4)) {
     =}
 }
 
-main reactor BankToMultiport(width(5)) {
+main reactor BankToMultiport(width = 5) {
     source = new[width] Source()
     sink = new Sink(width = width)
     source.out -> sink._in

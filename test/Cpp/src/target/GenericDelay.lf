@@ -2,7 +2,7 @@ target Cpp
 
 import Test from "../DelayInt.lf"
 
-reactor Delay<T>(delay: time(0)) {
+reactor Delay<T>(delay: time = 0) {
     output out: T
     input in: T
     logical action a(delay): T

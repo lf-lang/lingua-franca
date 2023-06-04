@@ -8,7 +8,7 @@ target Cpp {
 
 reactor Source {
     output out: int
-    state count: int(1)
+    state count: int = 1
     timer t(0, 100 msec)
 
     reaction(t) -> out {=

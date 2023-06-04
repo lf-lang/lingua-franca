@@ -6,9 +6,9 @@ target C {
     timeout: 20 ms
 }
 
-reactor SparseSource(width: int(20)) {
+reactor SparseSource(width: int = 20) {
     output[width] out: int
-    state count: int(0)
+    state count: int = 0
     timer t(0, 1 msec)
 
     reaction(t) -> out {=
@@ -22,7 +22,7 @@ reactor SparseSource(width: int(20)) {
     =}
 }
 
-reactor SparseSink(width: int(20)) {
+reactor SparseSink(width: int = 20) {
     input[width] in: int
 
     reaction(in) {=
@@ -46,7 +46,7 @@ reactor SparseSink(width: int(20)) {
     =}
 }
 
-main reactor(width: int(10)) {
+main reactor(width: int = 10) {
     s = new SparseSource(width = width)
     d = new SparseSink(width = width)
     s.out -> d.in

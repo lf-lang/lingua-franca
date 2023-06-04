@@ -9,7 +9,7 @@ public preamble {=
     #include "include/hello.h"
 =}
 
-reactor Scale(scale: int(2)) {
+reactor Scale(scale: int = 2) {
     input in: Hello
 
     output out: Hello

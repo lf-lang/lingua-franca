@@ -1,7 +1,7 @@
 target Rust
 
-reactor Print(value: i32(42)) {
-    state v: i32(value)
+reactor Print(value: i32 = 42) {
+    state v: i32 = value
 
     reaction(startup) {=
         assert_eq!(42, self.v);

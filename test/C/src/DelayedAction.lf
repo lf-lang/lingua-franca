@@ -6,7 +6,7 @@ target C {
 main reactor DelayedAction {
     timer t(0, 1 sec)
     logical action a
-    state count: int(0)
+    state count: int = 0
 
     reaction(t) -> a {= lf_schedule(a, MSEC(100)); =}
 

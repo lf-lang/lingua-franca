@@ -6,7 +6,7 @@ target TypeScript
 
 import Source, Print from "ArrayPrint.lf"
 
-reactor Scale(scale: number(2)) {
+reactor Scale(scale: number = 2) {
     mutable input x: {= Array<number> =}
     output out: {= Array<number> =}
 

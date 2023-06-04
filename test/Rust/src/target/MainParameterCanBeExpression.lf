@@ -3,8 +3,8 @@ target Rust {
     cargo-features: ["cli"]
 }
 
-main reactor(size: u32({= 1u32 << 23 =})) {
-    state s(size)
+main reactor(size: u32 = {= 1u32 << 23 =}) {
+    state s = size
 
     reaction(startup) {=
         assert_eq!(1u32 << 23, self.s);

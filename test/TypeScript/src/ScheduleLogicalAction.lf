@@ -21,7 +21,7 @@ reactor foo {
 }
 
 reactor print {
-    state expected_time: time(0)
+    state expected_time: time = 0
     input x: number
 
     reaction(x) {=

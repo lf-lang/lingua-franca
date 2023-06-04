@@ -6,7 +6,7 @@ import Computation from "concurrent/Threaded.lf"
 
 reactor Print {
     input in: int
-    state count: int(0)
+    state count: int = 0
 
     reaction(in) {=
         std::cout << "Received: " << *in.get() << '\n';
@@ -27,7 +27,7 @@ reactor Print {
 
 main reactor Pipeline {
     timer t(0, 200 msec)
-    state count: int(0)
+    state count: int = 0
 
     c1 = new Computation()
     c2 = new Computation()

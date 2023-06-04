@@ -9,7 +9,7 @@ reactor Box<{= T: Sync =}> {
 }
 
 main reactor {
-    state done: bool(false)
+    state done: bool = false
 
     box0 = new Box<u32>()
     box1 = new Box<u32>()

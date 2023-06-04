@@ -12,7 +12,7 @@ reactor Source {
     =}
 }
 
-reactor Print(scale: int(1)) {  // The scale parameter is just for testing.
+reactor Print(scale: int = 1) {  // The scale parameter is just for testing.
     input[2] in: int
 
     reaction(in) {=
@@ -27,7 +27,7 @@ reactor Print(scale: int(1)) {  // The scale parameter is just for testing.
     =}
 }
 
-reactor Scale(scale: int(2)) {
+reactor Scale(scale: int = 2) {
     mutable input[2] in: int
     output[2] out: int
 

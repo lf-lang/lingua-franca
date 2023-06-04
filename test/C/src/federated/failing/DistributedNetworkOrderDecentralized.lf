@@ -31,11 +31,11 @@ reactor Sender {
 
 reactor Receiver {
     input in: int
-    state success: int(0)
+    state success: int = 0
 
     reaction(in) {=
         tag_t current_tag = lf_tag();
-        if (current_tag.time == (start_time + MSEC(10))) {
+        if (current_tag.time == (lf_time_start() + MSEC(10))) {
             if (current_tag.microstep == 0 && in->value == 1) {
                 self->success++;
             } else if (current_tag.microstep == 1 && in->value == 2) {

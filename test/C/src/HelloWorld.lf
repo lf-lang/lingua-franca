@@ -7,7 +7,7 @@ target C {
 }
 
 reactor HelloWorld2 {
-    state success: bool(false)
+    state success: bool = false
 
     reaction(startup) {=
         printf("Hello World.\n");

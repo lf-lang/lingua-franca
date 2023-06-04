@@ -6,11 +6,11 @@ target Python {
 }
 
 reactor A_Really_Long_Name_For_A_Source_But_Not_Quite_255_Characters_Which_Is_The_Maximum_For_The_Python_Target(
-    period(2 sec)
+    period = 2 sec
 ) {
     output y
     timer t(1 sec, period)
-    state count(0)
+    state count = 0
 
     reaction(t) -> y {=
         self.count += 1
@@ -20,7 +20,7 @@ reactor A_Really_Long_Name_For_A_Source_But_Not_Quite_255_Characters_Which_Is_Th
 
 reactor Another_Really_Long_Name_For_A_Test_Class {
     input x
-    state count(0)
+    state count = 0
 
     reaction(x) {=
         self.count += 1

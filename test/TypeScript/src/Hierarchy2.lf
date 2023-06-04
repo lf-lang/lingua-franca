@@ -14,7 +14,7 @@ reactor Source {
 reactor Count {
     output out: number
     timer t(0, 1 sec)
-    state i: number(0)
+    state i: number = 0
 
     reaction(t) -> out {=
         i++;
@@ -37,7 +37,7 @@ reactor Add {
 
 reactor Print {
     input x: number
-    state expected: number(2)
+    state expected: number = 2
 
     reaction(x) {=
         x = x as number;

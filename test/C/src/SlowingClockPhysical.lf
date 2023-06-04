@@ -11,8 +11,8 @@ target C {
 
 main reactor SlowingClockPhysical {
     physical action a(100 msec)
-    state interval: time(100 msec)
-    state expected_time: time(100 msec)
+    state interval: time = 100 msec
+    state expected_time: time = 100 msec
 
     reaction(startup) -> a {=
         self->expected_time = MSEC(100);

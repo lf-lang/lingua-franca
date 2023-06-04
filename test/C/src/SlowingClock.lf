@@ -11,8 +11,8 @@ target C {
 
 main reactor SlowingClock {
     logical action a(100 msec)
-    state interval: time(100 msec)
-    state expected_time: time(100 msec)
+    state interval: time = 100 msec
+    state expected_time: time = 100 msec
 
     reaction(startup) -> a {= lf_schedule(a, 0); =}
 

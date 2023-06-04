@@ -5,16 +5,26 @@ target C {
     timeout: 6 sec
 }
 
-reactor Source(period: time(3 sec)) {
+preamble {=
+    #ifdef __cplusplus
+    extern "C" {
+    #endif
+    #include "platform.h"
+    #ifdef __cplusplus
+    }
+    #endif
+=}
+
+reactor Source(period: time = 3 sec) {
     output y: int
     timer t(0, period)
-    state count: int(0)
+    state count: int = 0
 
     reaction(t) -> y {=
         if (2 * (self->count / 2) != self->count) {
             // The count variable is odd.
             // Take time to cause a deadline violation.
-            lf_nanosleep(MSEC(1500));
+            lf_sleep(MSEC(1500));
         }
         printf("Source sends: %d.\n", self->count);
         lf_set(y, self->count);
@@ -22,9 +32,9 @@ reactor Source(period: time(3 sec)) {
     =}
 }
 
-reactor Destination(timeout: time(1 sec)) {
+reactor Destination(timeout: time = 1 sec) {
     input x: int
-    state count: int(0)
+    state count: int = 0
 
     reaction(x) {=
         printf("Destination receives: %d\n", x->value);

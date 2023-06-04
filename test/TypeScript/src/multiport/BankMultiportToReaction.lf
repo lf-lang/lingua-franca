@@ -12,8 +12,8 @@ reactor DoubleCount {
 }
 
 main reactor {
-    state count: number(1)
-    state received: boolean(false)
+    state count: number = 1
+    state received: boolean = false
 
     s = new[2] DoubleCount()
 

@@ -3,7 +3,7 @@ target Cpp
 reactor Container {
     input in: void
 
-    state triggered: bool{false}
+    state triggered: bool = false
 
     contained = new Contained()
 
@@ -22,7 +22,7 @@ reactor Container {
 reactor Contained {
     input in: void
 
-    state triggered: bool{false}
+    state triggered: bool = false
 
     reaction(in) {= triggered = true; =}
 

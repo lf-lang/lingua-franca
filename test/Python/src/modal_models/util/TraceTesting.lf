@@ -1,13 +1,13 @@
 /** Utility reactor to record and test execution traces. */
 target Python
 
-reactor TraceTesting(events_size(0), trace({= [] =}), training(False)) {
+reactor TraceTesting(events_size = 0, trace = {= [] =}, training = False) {
     input[events_size] events
 
-    state last_reaction_time(0)
-    state trace_idx(0)
-    state recorded_events({= [] =})
-    state recorded_events_next(0)
+    state last_reaction_time = 0
+    state trace_idx = 0
+    state recorded_events = {= [] =}
+    state recorded_events_next = 0
 
     reaction(startup) {= self.last_reaction_time = lf.time.logical() =}
 

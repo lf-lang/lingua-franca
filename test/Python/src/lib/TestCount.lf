@@ -9,10 +9,10 @@
  */
 target Python
 
-reactor TestCount(start(1), stride(1), num_inputs(1)) {
+reactor TestCount(start = 1, stride = 1, num_inputs = 1) {
     preamble {= import sys =}
-    state count(start)
-    state inputs_received(0)
+    state count = start
+    state inputs_received = 0
     input in_
 
     reaction(in_) {=

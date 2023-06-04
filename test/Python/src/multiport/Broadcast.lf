@@ -3,15 +3,15 @@ target Python {
     fast: true
 }
 
-reactor Source(value(42)) {
+reactor Source(value = 42) {
     output out
 
     reaction(startup) -> out {= out.set(self.value) =}
 }
 
-reactor Destination(bank_index(0), delay(0)) {
+reactor Destination(bank_index = 0, delay = 0) {
     input _in
-    state received(false)
+    state received = False
 
     reaction(_in) {=
         print(f"Destination {self.bank_index} received {_in.value}.")

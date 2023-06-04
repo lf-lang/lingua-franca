@@ -4,7 +4,7 @@ target Cpp
 reactor GeneratedDelay {
     input y_in: int
     output y_out: int
-    state y_state: int{0}
+    state y_state: int = 0
     logical action act(100 msec): void
 
     reaction(y_in) -> act {=

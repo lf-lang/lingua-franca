@@ -5,9 +5,10 @@ target C {
 
 preamble {=
     #include "hello.h"
+    #include <stdio.h>
 =}
 
-reactor DelayPointer(delay: time(100 msec)) {
+reactor DelayPointer(delay: time = 100 msec) {
     input in: hello_t*
     output out: hello_t*
     logical action a: hello_t*
@@ -38,7 +39,7 @@ reactor Source {
     =}
 }
 
-reactor Print(expected: int(42)) {  // expected parameter is for testing.
+reactor Print(expected: int = 42) {  // expected parameter is for testing.
     input in: hello_t*
 
     reaction(in) {=

@@ -4,9 +4,11 @@ target C {
     threading: false
 }
 
-preamble {= int global_cnt = 0; =}
+preamble {= extern int global_cnt; =}
 
 reactor Source {
+    preamble {= int global_cnt = 0; =}
+
     output out: int
     timer t(0 msec, 100 msec)
 

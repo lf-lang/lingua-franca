@@ -17,7 +17,7 @@ reactor SourceExtended extends Source {
 
 reactor Test {
     input x: int
-    state count: int(0)
+    state count: int = 0
 
     reaction(x) {=
         (self->count)++;

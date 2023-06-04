@@ -9,8 +9,19 @@
  */
 target C {
     tracing: true,
-    timeout: 2 sec
+    timeout: 2 sec,
+    keepalive: true
 }
+
+preamble {=
+    #ifdef __cplusplus
+    extern "C" {
+    #endif
+    #include "platform.h"
+    #ifdef __cplusplus
+    }
+    #endif
+=}
 
 main reactor AsyncCallback {
     preamble {=
@@ -33,12 +44,12 @@ main reactor AsyncCallback {
         lf_thread_t threadId;
     =}
     timer t(0, 200 msec)
-    state thread_id: lf_thread_t(0)
-    state expected_time: time(100 msec)
-    state toggle: bool(false)
+    state thread_id: lf_thread_t = 0
+    state expected_time: time = 100 msec
+    state toggle: bool = false
 
     physical action a(100 msec): int
-    state i: int(0)
+    state i: int = 0
 
     reaction(t) -> a {=
         // start new thread, provide callback

@@ -8,8 +8,8 @@ main reactor {
     timer b(1 msec, 5 msec)
     timer c(1 msec)
 
-    state success: bool(false)
-    state tick: u32(0)
+    state success: bool = false
+    state tick: u32 = 0
 
     reaction(startup, a, b, c) {=
         match self.tick {

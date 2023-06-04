@@ -6,7 +6,7 @@ target C {
 
 import TestCount from "lib/TestCount.lf"
 
-reactor CountSelf2(delay: time(100 msec)) {
+reactor CountSelf2(delay: time = 100 msec) {
     output out: int
     logical action a: int
 

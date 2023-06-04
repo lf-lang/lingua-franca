@@ -7,13 +7,13 @@ target C {
 
 import Source, Destination from "MultiportFromBank.lf"
 
-reactor Container(port_width: int(3)) {
+reactor Container(port_width: int = 3) {
     output[port_width] out: int
     s = new[port_width] Source(check_override = 1)
     s.out -> out
 }
 
-main reactor(width: int(4)) {
+main reactor(width: int = 4) {
     a = new Container(port_width = width)
     b = new Destination(port_width = width)
     a.out -> b.in

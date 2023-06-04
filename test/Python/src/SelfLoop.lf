@@ -7,7 +7,7 @@ reactor Self {
     input x
     output y
     logical action a
-    state expected(43)
+    state expected = 43
 
     reaction(a) -> y {=
         print("a = ", a.value)

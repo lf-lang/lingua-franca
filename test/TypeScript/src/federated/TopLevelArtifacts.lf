@@ -16,7 +16,7 @@ import Count from "../lib/Count.lf"
 import TestCount from "../lib/TestCount.lf"
 
 federated reactor {
-    state successes: number(0)
+    state successes: number = 0
     logical action act
     timer t(0, 1 sec)
 

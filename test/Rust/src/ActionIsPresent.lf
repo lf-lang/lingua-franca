@@ -3,8 +3,8 @@ target Rust
 
 main reactor ActionIsPresent {
     logical action a
-    state success: bool(false)
-    state tried: bool(false)
+    state success: bool = false
+    state tried: bool = false
 
     reaction(startup, a) -> a {=
         if !ctx.is_present(a) {

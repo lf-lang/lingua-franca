@@ -1,7 +1,7 @@
 target Cpp
 
-reactor Foo<T>(bar: T(0), expected: T(14542135)) {
-    state baz: T(bar)
+reactor Foo<T>(bar: T = 0, expected: T = 14542135) {
+    state baz: T = bar
 
     reaction(startup) {=
         if (bar != expected) {

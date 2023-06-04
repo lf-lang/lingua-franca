@@ -8,7 +8,7 @@ target Python {
 reactor Source {
     timer t(0, 200 msec)
     output[2] out
-    state s(0)
+    state s = 0
 
     reaction(t) -> out {=
         for port in out:
@@ -18,7 +18,7 @@ reactor Source {
 }
 
 reactor Destination {
-    state s(15)
+    state s = 15
     input[2] _in
 
     reaction(_in) {=

@@ -4,7 +4,7 @@ target C {
     build-type: RelWithDebInfo
 }
 
-reactor DelayPointer(delay: time(100 msec)) {
+reactor DelayPointer(delay: time = 100 msec) {
     input in: int[]
     output out: int[]
     logical action a: int[]
@@ -30,7 +30,7 @@ reactor Source {
     =}
 }
 
-reactor Print(scale: int(1)) {  // The scale parameter is just for testing.
+reactor Print(scale: int = 1) {  // The scale parameter is just for testing.
     input in: int[]
 
     reaction(in) {=

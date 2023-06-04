@@ -5,7 +5,7 @@ target Python {
 
 main reactor GetMicroStep {
     preamble {= import sys =}
-    state s(1)
+    state s = 1
 
     logical action l  # timer t(0, 1 msec);
 

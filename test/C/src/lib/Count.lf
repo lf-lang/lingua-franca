@@ -1,7 +1,7 @@
 target C
 
-reactor Count(offset: time(0), period: time(1 sec)) {
-    state count: int(1)
+reactor Count(offset: time = 0, period: time = 1 sec) {
+    state count: int = 1
     output out: int
     timer t(offset, period)
 

@@ -2,7 +2,7 @@
 target Python
 
 reactor Foo {
-    state foo(2)
+    state foo = 2
 
     method add(x) {= self.foo += x =}
 
@@ -16,7 +16,7 @@ reactor Foo {
 }
 
 main reactor {
-    state foo(2)
+    state foo = 2
 
     a = new Foo()
 

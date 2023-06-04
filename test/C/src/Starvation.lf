@@ -6,10 +6,10 @@
  */
 target C
 
-reactor SuperDenseSender(number_of_iterations: int(10)) {
+reactor SuperDenseSender(number_of_iterations: int = 10) {
     logical action loop
     output out: int
-    state iterator: int(0)
+    state iterator: int = 0
 
     reaction(startup, loop) -> out {=
         if (self->iterator < self->number_of_iterations) {
@@ -21,39 +21,39 @@ reactor SuperDenseSender(number_of_iterations: int(10)) {
 
     reaction(shutdown) {=
         tag_t current_tag = lf_tag();
-        if (current_tag.time == start_time
+        if (current_tag.time == lf_time_start()
             && current_tag.microstep == self->number_of_iterations + 1) {
             printf("SUCCESS: Sender successfully detected starvation.\n");
         } else {
             fprintf(stderr, "ERROR: Failed to properly enforce starvation at sender. "
                             "Shutting down at tag (%lld, %u).\n",
-                             current_tag.time - start_time,
+                             current_tag.time - lf_time_start(),
                              current_tag.microstep);
             exit(1);
         }
     =}
 }
 
-reactor SuperDenseReceiver(number_of_iterations: int(10)) {
+reactor SuperDenseReceiver(number_of_iterations: int = 10) {
     input in: int
 
     reaction(in) {=
         tag_t current_tag = lf_tag();
         printf("Received %d at tag (%lld, %u).\n",
                 in->value,
-                current_tag.time - start_time,
+                current_tag.time - lf_time_start(),
                 current_tag.microstep);
     =}
 
     reaction(shutdown) {=
         tag_t current_tag = lf_tag();
-        if (current_tag.time == start_time
+        if (current_tag.time == lf_time_start()
             && current_tag.microstep == self->number_of_iterations + 1) {
             printf("SUCCESS: Receiver successfully detected starvation.\n");
         } else {
             fprintf(stderr, "ERROR: Failed to properly enforce starvation at receiver. "
                             "Shutting down at tag (%lld, %u).\n",
-                             current_tag.time - start_time,
+                             current_tag.time - lf_time_start(),
                              current_tag.microstep);
             exit(1);
         }

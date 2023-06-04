@@ -13,11 +13,11 @@ reactor Source {
     =}
 }
 
-reactor Destination(bank_index: usize(0)) {
+reactor Destination(bank_index: usize = 0) {
     input in: usize
 
-    state bank_index(bank_index)
-    state asserts_done: u32(0)
+    state bank_index = bank_index
+    state asserts_done: u32 = 0
 
     reaction(in) {=
         assert_eq!(ctx.get(r#in), Some(self.bank_index));

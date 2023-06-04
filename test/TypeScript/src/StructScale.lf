@@ -6,7 +6,7 @@ target TypeScript
 
 import Print, Source from "StructPrint.lf"
 
-reactor Scale(scale: number(2)) {
+reactor Scale(scale: number = 2) {
     // Mutable keyword indicates that this reactor wants a writable copy of the
     // input.
     mutable input x: hello_t

@@ -7,10 +7,10 @@
  */
 target C
 
-reactor A(bank_index: int(0)) {
+reactor A(bank_index: int = 0) {
     input[4] in: int
     output out: int
-    state received: bool(false)
+    state received: bool = false
 
     reaction(startup) -> out {= lf_set(out, self->bank_index); =}
 

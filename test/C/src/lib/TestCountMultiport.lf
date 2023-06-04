@@ -12,13 +12,13 @@
 target C
 
 reactor TestCountMultiport(
-    start: int(1),
-    stride: int(1),
-    num_inputs: int(1),
-    width: int(2)
+    start: int = 1,
+    stride: int = 1,
+    num_inputs: int = 1,
+    width: int = 2
 ) {
-    state count: int(start)
-    state inputs_received: int(0)
+    state count: int = start
+    state inputs_received: int = 0
     input[width] in: int
 
     reaction(in) {=

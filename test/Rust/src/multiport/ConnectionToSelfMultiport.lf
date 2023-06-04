@@ -1,10 +1,10 @@
 // test a connection from a multiport to another multiport of the same reactor
 target Rust
 
-reactor Node(num_nodes: usize(4)) {
+reactor Node(num_nodes: usize = 4) {
     input[num_nodes] in: usize
     output[num_nodes] out: usize
-    state num_nodes(num_nodes)
+    state num_nodes = num_nodes
 
     reaction(startup) -> out {=
         for (i, out) in out.into_iter().enumerate() {
@@ -19,7 +19,7 @@ reactor Node(num_nodes: usize(4)) {
     =}
 }
 
-main reactor(num_nodes: usize(4)) {
+main reactor(num_nodes: usize = 4) {
     nodes = new Node(num_nodes = num_nodes)
     nodes.out -> nodes.in  // todo: (nodes.out)+ -> nodes.in;
 }

@@ -2,8 +2,8 @@
 target Cpp
 
 main reactor ActionValues {
-    state r1done: bool(false)
-    state r2done: bool(false)
+    state r1done: bool = false
+    state r2done: bool = false
     logical action act(100 msec): int
 
     reaction(startup) -> act {=

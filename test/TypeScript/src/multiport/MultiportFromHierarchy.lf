@@ -4,10 +4,10 @@ target TypeScript {
     timeout: 2 sec
 }
 
-reactor Source(width: number(3)) {
+reactor Source(width: number = 3) {
     timer t(0, 200 msec)
     output[width] out: number
-    state s: number(0)
+    state s: number = 0
 
     reaction(t) -> out {=
         for(let i = 0; i < out.length; i++) {
@@ -16,8 +16,8 @@ reactor Source(width: number(3)) {
     =}
 }
 
-reactor Destination(width: number(3)) {
-    state s: number(6)
+reactor Destination(width: number = 3) {
+    state s: number = 6
     input[width] inp: number
 
     reaction(inp) {=
@@ -41,19 +41,19 @@ reactor Destination(width: number(3)) {
     =}
 }
 
-reactor Container(width: number(3)) {
+reactor Container(width: number = 3) {
     output[width] out: number
     src = new InsideContainer(width = width)
     src.out -> out
 }
 
-reactor InsideContainer(width: number(3)) {
+reactor InsideContainer(width: number = 3) {
     output[width] out: number
     src = new Source(width = width)
     src.out -> out
 }
 
-main reactor MultiportFromHierarchy(width: number(4)) {
+main reactor MultiportFromHierarchy(width: number = 4) {
     a = new Container(width = width)
     b = new Destination(width = width)
     a.out -> b.inp

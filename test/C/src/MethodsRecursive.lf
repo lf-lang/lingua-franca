@@ -2,7 +2,7 @@
 target C
 
 main reactor {
-    state foo: int(2)
+    state foo: int = 2
 
     method fib(n: int): int {=  // Return the n-th Fibonacci number.
         if (n <= 1) return 1;

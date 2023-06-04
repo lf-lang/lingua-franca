@@ -7,7 +7,7 @@ target TypeScript {
 reactor Source {
     timer t(0, 200 msec)
     output out: number
-    state s: number(0)
+    state s: number = 0
 
     reaction(t) -> out {=
         out = s;
@@ -22,8 +22,8 @@ reactor Computation {
     reaction(inp) -> out {= out = inp; =}
 }
 
-reactor Destination(width: number(1)) {
-    state s: number(0)
+reactor Destination(width: number = 1) {
+    state s: number = 0
     input[width] inp: number
 
     reaction(inp) {=

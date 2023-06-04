@@ -13,7 +13,7 @@ reactor Source {
     =}
 }
 
-reactor Print(expected(42)) {  # expected parameter is for testing.
+reactor Print(expected = 42) {  # expected parameter is for testing.
     input _in
 
     reaction(_in) {=

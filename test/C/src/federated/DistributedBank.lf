@@ -6,7 +6,7 @@ target C {
 
 reactor Node {
     timer t(0, 100 msec)
-    state count: int(0)
+    state count: int = 0
 
     reaction(t) {= lf_print("Hello world %d.", self->count++); =}
 

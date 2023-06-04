@@ -2,15 +2,16 @@
 // value.
 target C
 
+preamble {=
+    typedef struct hello_t {
+        char* name;
+        int value;
+    } hello_t;
+=}
+
 main reactor StructAsState {
-    preamble {=
-        typedef struct hello_t {
-            char* name;
-            int value;
-        } hello_t;
-    =}
     // Notice that target code delimiters are no longer necessary.
-    state s: hello_t("Earth", 42)
+    state s: hello_t = {"Earth", 42}
 
     reaction(startup) {=
         printf("State s.name=\"%s\", value=%d.\n", self->s.name, self->s.value);

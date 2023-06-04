@@ -1,6 +1,6 @@
 target Python
 
-reactor InternalDelay(delay(10 msec)) {
+reactor InternalDelay(delay = 10 msec) {
     input in_
     output out
     logical action d

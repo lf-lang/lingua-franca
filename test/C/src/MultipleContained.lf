@@ -6,7 +6,7 @@ reactor Contained {
     output trigger: int
     input in1: int
     input in2: int
-    state count: int(0)
+    state count: int = 0
 
     reaction(startup) -> trigger {= lf_set(trigger, 42); =}
 

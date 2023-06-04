@@ -8,14 +8,14 @@ reactor box {
 
     in -> struct
 
-    state foo: bool(true)  // not escaped
+    state foo: bool = true  // not escaped
 
     reaction(in) {=
         ctx.get(r#in);
     =}
 }
 
-main reactor ReservedKeywords(struct: u32(0)) {
+main reactor ReservedKeywords(struct: u32 = 0) {
     box = new box()
 
     timer t1(0)

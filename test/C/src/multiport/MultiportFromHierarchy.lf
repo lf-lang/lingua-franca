@@ -5,10 +5,10 @@ target C {
     fast: true
 }
 
-reactor Source(width: int(3)) {
+reactor Source(width: int = 3) {
     timer t(0, 200 msec)
     output[width] out: int
-    state s: int(0)
+    state s: int = 0
 
     reaction(t) -> out {=
         for(int i = 0; i < out_width; i++) {
@@ -17,8 +17,8 @@ reactor Source(width: int(3)) {
     =}
 }
 
-reactor Destination(width: int(3)) {
-    state s: int(6)
+reactor Destination(width: int = 3) {
+    state s: int = 6
     input[width] in: int
 
     reaction(in) {=
@@ -43,19 +43,19 @@ reactor Destination(width: int(3)) {
     =}
 }
 
-reactor Container(width: int(3)) {
+reactor Container(width: int = 3) {
     output[width] out: int
     src = new InsideContainer(width = width)
     src.out -> out
 }
 
-reactor InsideContainer(width: int(3)) {
+reactor InsideContainer(width: int = 3) {
     output[width] out: int
     src = new Source(width = width)
     src.out -> out
 }
 
-main reactor MultiportFromHierarchy(width: int(4)) {
+main reactor MultiportFromHierarchy(width: int = 4) {
     a = new Container(width = width)
     b = new Destination(width = width)
     a.out -> b.in

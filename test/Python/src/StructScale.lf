@@ -12,7 +12,7 @@ reactor Source {
     reaction(startup) -> out {= out.set(hello.hello("Earth", 42)) =}
 }
 
-reactor TestInput(expected(42)) {  # expected parameter is for testing.
+reactor TestInput(expected = 42) {  # expected parameter is for testing.
     input _in
 
     reaction(_in) {=
@@ -23,7 +23,7 @@ reactor TestInput(expected(42)) {  # expected parameter is for testing.
     =}
 }
 
-reactor Print(scale(2)) {
+reactor Print(scale = 2) {
     # Mutable keyword indicates that this reactor wants a writable copy of the
     # input.
     mutable input _in

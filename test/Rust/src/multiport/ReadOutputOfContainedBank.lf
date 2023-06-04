@@ -2,8 +2,8 @@
 // permutations.
 target Rust
 
-reactor Contained(bank_index: usize(0)) {
-    state bank_index(bank_index)
+reactor Contained(bank_index: usize = 0) {
+    state bank_index = bank_index
 
     output out: usize
 
@@ -12,7 +12,7 @@ reactor Contained(bank_index: usize(0)) {
 
 main reactor {
     c = new[4] Contained()
-    state count: usize(0)
+    state count: usize = 0
 
     reaction(startup) c.out {=
         for (i, chan) in c__out.iter().enumerate() {

@@ -19,7 +19,7 @@ reactor Parent {
 
 reactor Sink {
     input inp: i32
-    state done: bool(false)
+    state done: bool = false
 
     reaction(inp) {=
         assert_eq!(ctx.get(inp), Some(76600));
@@ -33,7 +33,7 @@ reactor Sink {
 main reactor {
     parent = new Parent()
 
-    state done: bool(false)
+    state done: bool = false
 
     reaction(parent.out) {=
         assert_eq!(ctx.get(parent__out), Some(76600));

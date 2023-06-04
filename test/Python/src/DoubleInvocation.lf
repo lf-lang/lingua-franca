@@ -13,7 +13,7 @@ target Python {
 reactor Ball {
     output position
     output velocity
-    state p(200)
+    state p = 200
     timer trigger(0, 1 sec)
 
     reaction(trigger) -> position, velocity {=
@@ -26,7 +26,7 @@ reactor Ball {
 reactor Print {
     input velocity
     input position
-    state previous(-1)
+    state previous = -1
 
     reaction(startup) {=
         print("####### Print startup\n")

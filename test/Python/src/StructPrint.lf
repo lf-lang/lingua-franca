@@ -12,7 +12,7 @@ reactor Print {
     reaction(startup) -> out {= out.set(hello.hello("Earth", 42)) =}
 }
 
-reactor Check(expected(42)) {  # expected parameter is for testing.
+reactor Check(expected = 42) {  # expected parameter is for testing.
     input _in
 
     reaction(_in) {=

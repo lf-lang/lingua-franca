@@ -2,7 +2,7 @@
 target Python
 
 main reactor {
-    state foo(2)
+    state foo = 2
 
     method fib(n) {=  # Return the n-th Fibonacci number.
         if n <= 1:

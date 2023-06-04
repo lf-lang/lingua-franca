@@ -14,7 +14,7 @@ target Python {
 
 reactor Count {
     timer t(200 msec, 1 sec)
-    state s(0)
+    state s = 0
     output out
 
     reaction(t) -> out {=
@@ -26,7 +26,7 @@ reactor Count {
 reactor Print {
     preamble {= import sys =}
     input in_
-    state c(0)
+    state c = 0
 
     reaction(in_) {=
         elapsed_time = lf.time.logical_elapsed()

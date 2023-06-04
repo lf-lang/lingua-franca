@@ -10,10 +10,10 @@ target TypeScript {
     timeout: 1 sec
 }
 
-reactor Sender(takeBreakAfter: number(10), breakInterval: time(550 msec)) {
+reactor Sender(takeBreakAfter: number = 10, breakInterval: time = 550 msec) {
     output out: number
     physical action act
-    state sentMessages: number(0)
+    state sentMessages: number = 0
 
     reaction(startup, act) -> act, out {=
         // Send a message on out
@@ -29,11 +29,11 @@ reactor Sender(takeBreakAfter: number(10), breakInterval: time(550 msec)) {
     =}
 }
 
-reactor Receiver(takeBreakAfter: number(10), breakInterval: time(550 msec)) {
+reactor Receiver(takeBreakAfter: number = 10, breakInterval: time = 550 msec) {
     input inp: number
-    state receivedMessages: number(0)
-    state totalReceivedMessages: number(0)
-    state breaks: number(0)
+    state receivedMessages: number = 0
+    state totalReceivedMessages: number = 0
+    state breaks: number = 0
     timer t(0, 1 msec)  // This will impact the performance
 
     // but forces the logical time to advance Comment this line for a more

@@ -1,7 +1,7 @@
 /** @author Youri Su */
 target TypeScript
 
-reactor InternalDelay(delay: TimeValue(10 msec)) {
+reactor InternalDelay(delay: TimeValue = 10 msec) {
     input inp: number
     output out: number
     logical action d: number

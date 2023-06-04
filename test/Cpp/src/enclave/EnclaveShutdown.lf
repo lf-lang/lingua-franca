@@ -1,9 +1,9 @@
 target Cpp
 
 reactor Node(
-    message: std::string("Hello"),
-    period: time(1 sec),
-    stop: time(3 sec)
+    message: std::string = "Hello",
+    period: time = 1 sec,
+    stop: time = 3 sec
 ) {
     timer t(0, period)
     timer s(stop)

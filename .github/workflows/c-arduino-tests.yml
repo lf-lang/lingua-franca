@@ -16,12 +16,16 @@ on:
       scheduler:
         required: false
         type: string
+      all-platforms:
+        required: false
+        default: true
+        type: boolean
 
 jobs:
-  run:
+  arduino-tests:
     strategy:
       matrix:
-        platform: [ubuntu-latest, macos-latest]
+        platform: ${{ (inputs.all-platforms && fromJSON('["ubuntu-latest", "macos-latest"]')) || fromJSON('["ubuntu-latest"]') }}
     runs-on: ${{ matrix.platform }}
     steps:
       - name: Check out lingua-franca repository
@@ -37,7 +41,7 @@ jobs:
         uses: actions/checkout@v3
         with:
           repository: lf-lang/reactor-c
-          path: org.lflang/src/lib/c/reactor-c
+          path: core/src/main/resources/lib/c/reactor-c
           ref: ${{ inputs.runtime-ref }}
         if: ${{ inputs.runtime-ref }}
       - name: Install dependencies OS X
@@ -59,4 +63,13 @@ jobs:
           arduino-cli core install arduino:sam
           arduino-cli core install arduino:mbed
       - name: Perform Arduino tests for C target with default scheduler
-        run: ./gradlew test --tests org.lflang.tests.runtime.CArduinoTest.runArduinoTests
+        run: ./gradlew targetTest -Ptarget=CArduino
+      - name: Collect code coverage
+        run: ./gradlew jacocoTestReport
+      - name: Report to CodeCov
+        uses: codecov/codecov-action@v3.1.1
+        with:
+          files: core/build/reports/xml/jacoco
+          fail_ci_if_error: false
+          verbose: true
+        if: ${{ !inputs.runtime-ref && runner.os == 'Linux' && inputs.all-platforms }}  # i.e., if this is part of the main repo's CI

@@ -29,7 +29,7 @@ target C {
 }
 
 /** Reactor that outputs periodically. */
-reactor Ticker(period: time(1600 msec)) {
+reactor Ticker(period: time = 1600 msec) {
     output out: int
 
     timer tick(0, period)

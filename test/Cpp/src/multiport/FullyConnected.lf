@@ -1,10 +1,10 @@
 target Cpp
 
-reactor Node(bank_index: size_t(0), num_nodes: size_t(4)) {
+reactor Node(bank_index: size_t = 0, num_nodes: size_t = 4) {
     input[num_nodes] in: size_t
     output out: size_t
 
-    state received: bool{false}
+    state received: bool = false
 
     reaction(startup) -> out {=
         std::cout << "Hello from node " << bank_index << "!\n";
@@ -36,7 +36,7 @@ reactor Node(bank_index: size_t(0), num_nodes: size_t(4)) {
     =}
 }
 
-main reactor(num_nodes: size_t(4)) {
+main reactor(num_nodes: size_t = 4) {
     nodes = new[num_nodes] Node(num_nodes = num_nodes)
     (nodes.out)+ -> nodes.in
 }
