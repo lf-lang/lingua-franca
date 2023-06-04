@@ -18,9 +18,6 @@ import org.lflang.lf.Type;
  */
 public record TypeParameterizedReactor(Reactor reactor, Map<String, Type> typeArgs) {
 
-  private static final Map<TypeParameterizedReactor, String> uniqueNames = new HashMap<>();
-  private static final Map<String, Integer> nameCounts = new HashMap<>();
-
   /**
    * Construct the TPR corresponding to the given instantiation which syntactically appears within
    * the definition corresponding to {@code parent}.
@@ -94,18 +91,9 @@ public record TypeParameterizedReactor(Reactor reactor, Map<String, Type> typeAr
    * Return a name that is unique to this TypeParameterizedReactor (up to structural equality) and
    * that is prefixed with exactly one underscore and that does not contain any upper-case letters.
    */
-  public synchronized String uniqueName() {
-    String name = reactor.getName().toLowerCase();
-    if (uniqueNames.containsKey(this)) return uniqueNames.get(this);
-    if (nameCounts.containsKey(name)) {
-      int currentCount = nameCounts.get(name);
-      nameCounts.put(name, currentCount + 1);
-      uniqueNames.put(this, "_" + name + currentCount);
-      return uniqueName();
-    }
-    nameCounts.put(name, 1);
-    uniqueNames.put(this, "_" + name);
-    return uniqueName();
+  public String uniqueName() {
+    var resolved = ASTUtils.toDefinition(reactor);
+    return "_" + resolved.getName().toLowerCase() + (typeArgs.hashCode() + resolved.eResource().getURI().hashCode() * 31);
   }
 
   @Override
