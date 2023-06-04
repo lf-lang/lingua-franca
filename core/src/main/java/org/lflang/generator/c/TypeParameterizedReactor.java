@@ -45,13 +45,14 @@ public class TypeParameterizedReactor {
     Map<String, Integer> countMap = new HashMap<>();
     for (var reactor : reactors) {
       var def = ASTUtils.toDefinition(reactor);
-      if (nameMap.containsKey(def.getName())) {
-        nameMap.get(def.getName()).put(def.eResource().getURI(), countMap.get(def.getName()));
-        countMap.put(def.getName(), countMap.get(def.getName()));
+      var name = def.getName().toLowerCase();
+      if (nameMap.containsKey(name)) {
+        nameMap.get(name).put(def.eResource().getURI(), countMap.get(name));
+        countMap.put(name, countMap.get(name));
       } else {
-        nameMap.put(def.getName(), new HashMap<>());
-        nameMap.get(def.getName()).put(def.eResource().getURI(), 0);
-        countMap.put(def.getName(), 1);
+        nameMap.put(name, new HashMap<>());
+        nameMap.get(name).put(def.eResource().getURI(), 0);
+        countMap.put(name, 1);
       }
     }
     return nameMap;
