@@ -155,7 +155,7 @@ public class CTriggerObjectsGenerator {
         ReactorInstance main,
         TargetConfig targetConfig
     ) {
-        if (!targetConfig.threading) {
+        if (targetConfig.singleThreaded) {
             return "";
         }
         var code = new CodeBuilder();

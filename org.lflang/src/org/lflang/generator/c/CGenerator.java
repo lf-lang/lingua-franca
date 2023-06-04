@@ -401,8 +401,8 @@ public class CGenerator extends GeneratorBase {
                 if (Objects.equal(action.getOrigin(), ActionOrigin.PHYSICAL)) {
                     // If the unthreaded runtime is not requested by the user, use the threaded runtime instead
                     // because it is the only one currently capable of handling asynchronous events.
-                    if (!targetConfig.threading && !targetConfig.setByUser.contains(TargetProperty.THREADING)) {
-                        targetConfig.threading = true;
+                    if (targetConfig.singleThreaded && !targetConfig.setByUser.contains(TargetProperty.SINGLE_THREADED)) {
+                        targetConfig.singleThreaded = false;
                         errorReporter.reportWarning(
                             action,
                             "Using the threaded C runtime to allow for asynchronous handling of physical action " +
@@ -508,7 +508,7 @@ public class CGenerator extends GeneratorBase {
             try {
                 Path include = fileConfig.getSrcGenPath().resolve("include/");
                 Path src = fileConfig.getSrcGenPath().resolve("src/");
-                FileUtil.arduinoDeleteHelper(src, targetConfig.threading);
+                FileUtil.arduinoDeleteHelper(src, !targetConfig.singleThreaded);
                 FileUtil.relativeIncludeHelper(src, include);
                 FileUtil.relativeIncludeHelper(include, include);
             } catch (IOException e) {
@@ -1950,11 +1950,12 @@ public class CGenerator extends GeneratorBase {
             // So that each separate compile knows about modal reactors, do this:
             targetConfig.compileDefinitions.put("MODAL_REACTORS", "TRUE");
         }
-        if (targetConfig.threading && targetConfig.platformOptions.platform == Platform.ARDUINO
+
+        if (!targetConfig.singleThreaded && targetConfig.platformOptions.platform == Platform.ARDUINO
             && (targetConfig.platformOptions.board == null || !targetConfig.platformOptions.board.contains("mbed"))) {
             //non-MBED boards should not use threading
             System.out.println("Threading is incompatible on your current Arduino flavor. Setting threading to false.");
-            targetConfig.threading = false;
+            targetConfig.singleThreaded = true;
         }
 
         if (targetConfig.platformOptions.platform == Platform.ARDUINO && !targetConfig.noCompile
@@ -1962,7 +1963,7 @@ public class CGenerator extends GeneratorBase {
             System.out.println("To enable compilation for the Arduino platform, you must specify the fully-qualified board name (FQBN) in the target property. For example, platform: {name: arduino, board: arduino:avr:leonardo}. Entering \"no-compile\" mode and generating target code only.");
             targetConfig.noCompile = true;
         }
-        if (targetConfig.threading) {  // FIXME: This logic is duplicated in CMake
+        if (!targetConfig.singleThreaded) {  // FIXME: This logic is duplicated in CMake
             pickScheduler();
             // FIXME: this and pickScheduler should be combined.
             targetConfig.compileDefinitions.put(

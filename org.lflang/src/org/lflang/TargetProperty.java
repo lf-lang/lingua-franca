@@ -546,11 +546,11 @@ public enum TargetProperty {
     /**
      * Directive to indicate whether the runtime should use multi-threading.
      */
-    THREADING("threading", PrimitiveType.BOOLEAN,
+    SINGLE_THREADED("single-threaded", PrimitiveType.BOOLEAN,
               List.of(Target.C, Target.CCPP, Target.Python),
-              (config) -> ASTUtils.toElement(config.threading),
+              (config) -> ASTUtils.toElement(config.singleThreaded),
               (config, value, err) -> {
-                  config.threading = ASTUtils.toBoolean(value);
+                  config.singleThreaded = ASTUtils.toBoolean(value);
               }),
 
     /**

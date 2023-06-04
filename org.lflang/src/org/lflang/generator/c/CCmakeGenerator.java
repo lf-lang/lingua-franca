@@ -236,7 +236,7 @@ public class CCmakeGenerator {
             cMakeCode.newLine();
         }
 
-        if (targetConfig.threading || targetConfig.tracing != null) {
+        if (!targetConfig.singleThreaded || targetConfig.tracing != null) {
             // If threaded computation is requested, add the threads option.
             cMakeCode.pr("# Find threads and link to it");
             cMakeCode.pr("find_package(Threads REQUIRED)");
@@ -251,7 +251,7 @@ public class CCmakeGenerator {
         }
 
         // Add additional flags so runtime can distinguish between multi-threaded and single-threaded mode
-        if (targetConfig.threading) {
+        if (!targetConfig.singleThreaded) {
             cMakeCode.pr("# Set flag to indicate a multi-threaded runtime");
             cMakeCode.pr("target_compile_definitions( ${LF_MAIN_TARGET} PUBLIC LF_THREADED=1)");
         } else {

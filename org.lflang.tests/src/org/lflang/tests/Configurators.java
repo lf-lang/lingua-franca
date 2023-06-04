@@ -60,15 +60,15 @@ public class Configurators {
      * @return True if successful, false otherwise.
      */
     public static boolean disableThreading(LFTest test) {
-        test.getContext().getArgs().setProperty("threading", "false");
+        test.getContext().getArgs().setProperty("single-threaded", "true");
         test.getContext().getArgs().setProperty("workers", "1");
         return true;
     }
 
     public static boolean makeZephyrCompatible(LFTest test) {
         test.getContext().getArgs().setProperty("tracing", "false");
-        test.getContext().getTargetConfig().threading = false;
-        test.getContext().getTargetConfig().setByUser.add(TargetProperty.THREADING);
+        test.getContext().getTargetConfig().singleThreaded = true;
+        test.getContext().getTargetConfig().setByUser.add(TargetProperty.SINGLE_THREADED);
         test.getContext().getTargetConfig().platformOptions.platform = Platform.ZEPHYR;
         test.getContext().getTargetConfig().platformOptions.flash = false;
         test.getContext().getTargetConfig().platformOptions.board = "qemu_cortex_a53";

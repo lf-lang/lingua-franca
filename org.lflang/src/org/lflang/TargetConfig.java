@@ -104,8 +104,9 @@ public class TargetConfig {
         if (cliArgs.containsKey("workers")) {
             this.workers = Integer.parseInt(cliArgs.getProperty("workers"));
         }
-        if (cliArgs.containsKey("threading")) {
-            this.threading = Boolean.parseBoolean(cliArgs.getProperty("threading"));
+        if (cliArgs.containsKey("single-threaded")) {
+            this.singleThreaded = Boolean.parseBoolean(
+                    cliArgs.getProperty("single-threaded"));
         }
         if (cliArgs.containsKey("target-compiler")) {
             this.compiler = cliArgs.getProperty("target-compiler");
@@ -323,7 +324,7 @@ public class TargetConfig {
     /**
      * Indicate whether the runtime should use multithreaded execution.
      */
-    public boolean threading = true;
+    public boolean singleThreaded = false;
 
     /**
      * The timeout to be observed during execution of the program.

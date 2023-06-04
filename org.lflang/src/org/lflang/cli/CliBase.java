@@ -354,7 +354,7 @@ public abstract class CliBase implements Runnable {
                 // Append option.
                 argsList.add("--" + property);
                 // Append argument for non-boolean options.
-                if (value != "true" || property == "threading") {
+                if (value != "true") {
                     argsList.add(value);
                 }
             }

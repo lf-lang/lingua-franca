@@ -399,8 +399,8 @@ public class PythonGenerator extends CGenerator {
     public void doGenerate(Resource resource, LFGeneratorContext context) {
         // Set the threading to false by default, unless the user has
         // specifically asked for it.
-        if (!targetConfig.setByUser.contains(TargetProperty.THREADING)) {
-            targetConfig.threading = false;
+        if (!targetConfig.setByUser.contains(TargetProperty.SINGLE_THREADED)) {
+            targetConfig.singleThreaded = true;
         }
         int cGeneratedPercentProgress = (IntegratedBuilder.VALIDATED_PERCENT_PROGRESS + 100) / 2;
         code.pr(PythonPreambleGenerator.generateCIncludeStatements(targetConfig, targetLanguageIsCpp(), hasModalReactors));

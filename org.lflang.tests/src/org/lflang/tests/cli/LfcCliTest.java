@@ -233,7 +233,7 @@ public class LfcCliTest {
                         "path" + File.separator + "to" + File.separator + "rti");
                 assertEquals(properties.getProperty(BuildParm.RUNTIME_VERSION.getKey()), "rs");
                 assertEquals(properties.getProperty(BuildParm.SCHEDULER.getKey()), "GEDF_NP");
-                assertEquals(properties.getProperty(BuildParm.THREADING.getKey()), "false");
+                assertEquals(properties.getProperty(BuildParm.SINGLE_THREADED.getKey()), "true");
                 assertEquals(properties.getProperty(BuildParm.WORKERS.getKey()), "1");
             });
     }

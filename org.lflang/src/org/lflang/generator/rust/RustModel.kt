@@ -486,7 +486,7 @@ object RustModelBuilder {
 
             val userRtVersion: String? = targetConfig.runtimeVersion
             // enable parallel feature if asked
-            val parallelFeature = listOf(PARALLEL_RT_FEATURE).takeIf { targetConfig.threading }
+            val parallelFeature = listOf(PARALLEL_RT_FEATURE).takeIf { !targetConfig.singleThreaded }
 
             val spec = newCargoSpec(
                 features = parallelFeature,
@@ -512,11 +512,11 @@ object RustModelBuilder {
             }
 
             // enable parallel feature if asked
-            if (targetConfig.threading) {
+            if (!targetConfig.singleThreaded) {
                 userSpec.features += PARALLEL_RT_FEATURE
             }
 
-            if (!targetConfig.threading && PARALLEL_RT_FEATURE in userSpec.features) {
+            if (targetConfig.singleThreaded && PARALLEL_RT_FEATURE in userSpec.features) {
                 errorReporter.reportWarning("Threading cannot be disabled as it was enabled manually as a runtime feature.")
             }
 

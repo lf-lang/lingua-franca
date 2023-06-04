@@ -96,8 +96,8 @@ public class CExtension implements FedTargetExtension {
         // Also, create the RTI C file and the launcher script.
         // Handle target parameters.
         // If the program is federated, then ensure that threading is enabled.
-        federate.targetConfig.threading = true;
-        federate.targetConfig.setByUser.add(TargetProperty.THREADING);
+        federate.targetConfig.singleThreaded = false;
+        federate.targetConfig.setByUser.add(TargetProperty.SINGLE_THREADED);
 
         // Include the fed setup file for this federate in the target property
         String relPath = getPreamblePath(federate);

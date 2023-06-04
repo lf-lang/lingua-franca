@@ -33,6 +33,7 @@ public class CPreambleGenerator {
     ) {
         var tracing = targetConfig.tracing;
         CodeBuilder code = new CodeBuilder();
+
         if (cppMode || targetConfig.platformOptions.platform == Platform.ARDUINO) {
             code.pr("extern \"C\" {");
         }
@@ -43,7 +44,8 @@ public class CPreambleGenerator {
         );
         code.pr("#include \"include/core/reactor.h\"");
         code.pr("#include \"include/core/reactor_common.h\"");
-        if (targetConfig.threading) {
+
+        if (!targetConfig.singleThreaded) {
             code.pr("#include \"include/core/threaded/scheduler.h\"");
         }
 
@@ -53,10 +55,12 @@ public class CPreambleGenerator {
         code.pr("#include \"include/core/mixed_radix.h\"");
         code.pr("#include \"include/core/port.h\"");
         code.pr("int lf_reactor_c_main(int argc, const char* argv[]);");
+
         if(targetConfig.fedSetupPreamble != null) {
             code.pr("#include \"include/core/federated/federate.h\"");
             code.pr("#include \"include/core/federated/net_common.h\"");
         }
+
         if (cppMode || targetConfig.platformOptions.platform == Platform.ARDUINO) {
             code.pr("}");
         }
@@ -85,16 +89,12 @@ public class CPreambleGenerator {
         //         targetConfig.clockSyncOptions
         //     ));
         // }
-        if (targetConfig.threading) {
-            targetConfig.compileDefinitions.put("LF_THREADED", "1");
-        } else {
+        if (targetConfig.singleThreaded) {
             targetConfig.compileDefinitions.put("LF_UNTHREADED", "1");
-        }
-        if (targetConfig.threading) {
-            targetConfig.compileDefinitions.put("LF_THREADED", "1");
         } else {
-            targetConfig.compileDefinitions.put("LF_UNTHREADED", "1");
+            targetConfig.compileDefinitions.put("LF_THREADED", "1");
         }
+
         code.newLine();
         return code.toString();
     }

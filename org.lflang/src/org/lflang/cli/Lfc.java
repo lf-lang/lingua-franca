@@ -299,7 +299,7 @@ public class Lfc extends CliBase {
         }
 
         if (singleThreaded) {
-            props.setProperty(BuildParm.THREADING.getKey(), "false");
+            props.setProperty(BuildParm.SINGLE_THREADED.getKey(), "true");
         }
 
         if (workers != null) {
