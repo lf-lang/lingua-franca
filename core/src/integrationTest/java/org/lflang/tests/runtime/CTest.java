@@ -68,6 +68,12 @@ public class CTest extends RuntimeTest {
 
   @Test
   @Override
+  public void runGenericsTests() {
+    super.runGenericsTests();
+  }
+
+  @Test
+  @Override
   public void runTargetSpecificTests() {
     Assumptions.assumeFalse(isWindows(), Message.NO_WINDOWS_SUPPORT);
     super.runTargetSpecificTests();

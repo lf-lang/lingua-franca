@@ -108,6 +108,13 @@ jobs:
       all-platforms: ${{ !github.event.pull_request.draft  }}
       selected-tests: runEnclaveTests
 
+  default13:
+    if: ${{ inputs.all || github.event.pull_request.draft }}
+    uses: ./.github/workflows/c-tests.yml
+    with:
+      all-platforms: ${{ !github.event.pull_request.draft  }}
+      selected-tests: runGenericsTests
+
   # Run the C benchmark tests.
   benchmarking:
     if: ${{ inputs.all || github.event.pull_request.draft }}

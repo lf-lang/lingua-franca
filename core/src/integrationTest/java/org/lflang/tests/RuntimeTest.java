@@ -64,6 +64,16 @@ public abstract class RuntimeTest extends TestBase {
   }
 
   @Test
+  public void runGenericsTests() {
+    runTestsForTargets(
+        Message.DESC_GENERICS,
+        TestCategory.GENERICS::equals,
+        Configurators::noChanges,
+        TestLevel.EXECUTION,
+        false);
+  }
+
+  @Test
   public void runTargetSpecificTests() {
     runTestsForTargets(
         Message.DESC_TARGET_SPECIFIC,
