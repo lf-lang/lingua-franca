@@ -58,7 +58,7 @@ public class TypeParameterizedReactor {
   }
 
   private String uniqueName(ReactorDecl decl) {
-    var name = decl.getName();
+    var name = decl.getName().toLowerCase();
     return name + (Objects.requireNonNull(nameMap.get(name)).get(decl.eResource().getURI()) == 0 ? "" : nameMap.get(name));
   }
 
