@@ -6,17 +6,6 @@ plugins {
     id 'idea'
 }
 
-// Antlr4
-configurations {
-    antlr4
-}
-
-dependencies {
-    antlr4 'org.antlr:antlr4:4.7.2'
-    implementation 'org.antlr:antlr4-runtime:4.7.2'
-    implementation 'org.json:json:20200518' // JSON
-}
-
 spotless {
     format 'misc', {
         target rootProject.fileTree(rootProject.rootDir) {

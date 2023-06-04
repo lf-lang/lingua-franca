@@ -24,6 +24,11 @@ sourceSets {
     }
 }
 
+// Antlr4
+configurations {
+    antlr4
+}
+
 dependencies {
     api "org.eclipse.xtext:org.eclipse.xtext:$xtextVersion"
     api "org.eclipse.xtext:org.eclipse.xtext.xbase.lib:$xtextVersion"
@@ -43,6 +48,10 @@ dependencies {
         exclude group: 'org.eclipse.platform', module: 'org.eclipse.swt.*'
         exclude group: 'org.eclipse.platform', module: 'org.eclipse.swt'
     }
+
+    antlr4 'org.antlr:antlr4:4.7.2'
+    implementation 'org.antlr:antlr4-runtime:4.7.2'
+    implementation 'org.json:json:20200518' // JSON
 
     testImplementation "org.junit.jupiter:junit-jupiter-api:$jupiterVersion"
     testImplementation "org.junit.jupiter:junit-jupiter-engine:$jupiterVersion"
@@ -79,12 +88,31 @@ tasks.register('generateXtextLanguage', JavaExec) {
     args += "rootPath=/${projectDir}/.."
 }
 
-compileJava.dependsOn(generateXtextLanguage)
-compileKotlin.dependsOn(generateXtextLanguage)
-processResources.dependsOn(generateXtextLanguage)
+// Add Antlr4 for various DSLs, including MTL for verification.
+tasks.register('runAntlr4', JavaExec) {
+   //see incremental task api, prevents rerun if nothing has changed.
+   inputs.dir "$projectDir/src/main/java/org/lflang/dsl/antlr4/"
+   outputs.dir "$projectDir/src/main/java/org/lflang/dsl/generated/antlr4/main/"
+
+   classpath = configurations.antlr4
+
+   main = "org.antlr.v4.Tool"
+
+   args = [ "-visitor",
+            "-o",  "$projectDir/src/main/java/org/lflang/dsl/generated/antlr4/main/",
+            "-package", "org.lflang.dsl",
+            "$projectDir/src/main/java/org/lflang/dsl/antlr4/MTLLexer.g4",
+            "$projectDir/src/main/java/org/lflang/dsl/antlr4/MTLParser.g4",
+            "$projectDir/src/main/java/org/lflang/dsl/antlr4/C.g4"]
+}
+
+compileJava.dependsOn(generateXtextLanguage, runAntlr4)
+compileKotlin.dependsOn(generateXtextLanguage, runAntlr4)
+processResources.dependsOn(generateXtextLanguage, runAntlr4)
 clean.dependsOn(cleanGenerateXtextLanguage)
 spotlessJava.mustRunAfter(generateXtextLanguage)
-rootProject.spotlessMisc.mustRunAfter(generateXtextLanguage)
+runAntlr4.mustRunAfter(spotlessJava)
+rootProject.spotlessMisc.mustRunAfter(generateXtextLanguage, runAntlr4)
 
 tasks.register('getSubmoduleVersions', Exec) {
     description('Run a Git command to get the current status of submodules')
