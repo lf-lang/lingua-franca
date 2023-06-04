@@ -93,16 +93,11 @@ The Lingua Franca compiler is implemented in Java and Kotlin. The overarching ad
 
 _Java code formatting in IntelliJ_
 
-There is an [IntelliJ plugin](https://plugins.jetbrains.com/plugin/8527-google-java-format) for enforcing Google's Java
-style guide. This plugin can be enabled by going to `File` > `Settings...` > `Plugins` > `MarketPlace` and searching for
-`google-java-format`. Do not forget to update your VM options as
-explained [here](https://github.com/google/google-java-format/blob/master/README.md#intellij-android-studio-and-other-jetbrains-ides)
-and do not forget to enable the plugin by going
-to `File` > `Settings...` > `google-java-format Settings` > `Enable google-java-format`.
+Follow the directions here to install the Spotless Gradle plugin. We are not currently aware of a way to run Spotless
+automatically on file save, but it is possible to configure a keybinding.
 
-You can enable formatting on save by going to `File` > `Settings...` > `Tools` > `Actions on Save` > `Reformat Code`. If
-you do this, you may choose to change the files formatted on save from "all file types" to just Java in order to avoid
-unnecessary conflicts.
+There is a [plugin](https://github.com/google/google-java-format) specifically for enforcing Google's style guide, but
+we have found difficulty getting it to work properly.
 
 _Lingua Franca code formatting in VS Code_
 
