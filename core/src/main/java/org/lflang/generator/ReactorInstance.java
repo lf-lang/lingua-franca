@@ -1,5 +1,3 @@
-/** A data structure for a reactor instance. */
-
 /*************
  * Copyright (c) 2019-2022, The University of California at Berkeley.
  *
@@ -91,8 +89,8 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
    * @param reactor The top-level reactor.
    * @param reporter The error reporter.
    */
-  public ReactorInstance(Reactor reactor, ErrorReporter reporter) {
-    this(ASTUtils.createInstantiation(reactor), null, reporter, -1);
+  public ReactorInstance(Reactor reactor, ErrorReporter reporter, List<Reactor> reactors) {
+    this(ASTUtils.createInstantiation(reactor), null, reporter, -1, reactors);
   }
 
   /**
@@ -103,8 +101,8 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
    * @param reporter The error reporter.
    * @param desiredDepth The depth to which to go, or -1 to construct the full hierarchy.
    */
-  public ReactorInstance(Reactor reactor, ErrorReporter reporter, int desiredDepth) {
-    this(ASTUtils.createInstantiation(reactor), null, reporter, desiredDepth);
+  public ReactorInstance(Reactor reactor, ErrorReporter reporter, int desiredDepth, List<Reactor> reactors) {
+    this(ASTUtils.createInstantiation(reactor), null, reporter, desiredDepth, reactors);
   }
 
   /**
@@ -115,8 +113,8 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
    * @param parent The parent reactor instance.
    * @param reporter The error reporter.
    */
-  public ReactorInstance(Reactor reactor, ReactorInstance parent, ErrorReporter reporter) {
-    this(ASTUtils.createInstantiation(reactor), parent, reporter, -1);
+  public ReactorInstance(Reactor reactor, ReactorInstance parent, ErrorReporter reporter, List<Reactor> reactors) {
+    this(ASTUtils.createInstantiation(reactor), parent, reporter, -1, reactors);
   }
 
   //////////////////////////////////////////////////////
@@ -790,12 +788,12 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
    * @param desiredDepth The depth to which to expand the hierarchy.
    */
   public ReactorInstance(
-      Instantiation definition, ReactorInstance parent, ErrorReporter reporter, int desiredDepth) {
+      Instantiation definition, ReactorInstance parent, ErrorReporter reporter, int desiredDepth, List<Reactor> reactors) {
     super(definition, parent);
     this.reporter = reporter;
     this.reactorDeclaration = definition.getReactorClass();
     this.reactorDefinition = ASTUtils.toDefinition(reactorDeclaration);
-    this.tpr = new TypeParameterizedReactor(definition, parent == null ? null : parent.tpr);
+    this.tpr = parent == null ? new TypeParameterizedReactor(definition, reactors) : new TypeParameterizedReactor(definition, parent.tpr);
 
     // check for recursive instantiation
     var currentParent = parent;
@@ -845,7 +843,7 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
       // Instantiate children for this reactor instance.
       // While doing this, assign an index offset to each.
       for (Instantiation child : ASTUtils.allInstantiations(reactorDefinition)) {
-        var childInstance = new ReactorInstance(child, this, reporter, desiredDepth);
+        var childInstance = new ReactorInstance(child, this, reporter, desiredDepth, reactors);
         this.children.add(childInstance);
       }
 
@@ -877,10 +875,6 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
         mode.setupTranstions();
       }
     }
-  }
-
-  public TypeParameterizedReactor getTypeParameterizedReactor() {
-    return this.tpr;
   }
 
   //////////////////////////////////////////////////////

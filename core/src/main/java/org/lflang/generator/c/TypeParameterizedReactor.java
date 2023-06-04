@@ -3,14 +3,15 @@ package org.lflang.generator.c;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
+
+import com.google.common.collect.ImmutableMap;
+import org.eclipse.emf.common.util.URI;
 import org.lflang.InferredType;
 import org.lflang.ast.ASTUtils;
 import org.lflang.generator.CodeBuilder;
-import org.lflang.lf.Instantiation;
-import org.lflang.lf.Reactor;
-import org.lflang.lf.Type;
-import org.lflang.lf.TypeParm;
+import org.lflang.lf.*;
 
 /**
  * A reactor class combined with concrete type arguments bound to its type parameters.
@@ -21,6 +22,8 @@ public class TypeParameterizedReactor {
   /** The type arguments associated with this particular variant of the reactor class. */
   private final Map<String, Type> typeArgs;
   private final List<String> typeParams;
+  private final ImmutableMap<String, Map<URI, Integer>> nameMap;
+
   /**
    * Construct the TPR corresponding to the given instantiation which syntactically appears within
    * the definition corresponding to {@code parent}.
@@ -30,10 +33,41 @@ public class TypeParameterizedReactor {
    *     permitted instead of types in this TPR.
    */
   public TypeParameterizedReactor(Instantiation i, TypeParameterizedReactor parent) {
+    this(i, parent, parent.nameMap);
+  }
+
+  public TypeParameterizedReactor(Instantiation i, List<Reactor> reactors) {
+    this(i, null, getNameMap(reactors));
+  }
+
+  private static Map<String, Map<URI, Integer>> getNameMap(List<Reactor> reactors) {
+    Map<String, Map<URI, Integer>> nameMap = new HashMap<>();
+    Map<String, Integer> countMap = new HashMap<>();
+    for (var reactor : reactors) {
+      var def = ASTUtils.toDefinition(reactor);
+      if (nameMap.containsKey(def.getName())) {
+        nameMap.get(def.getName()).put(def.eResource().getURI(), countMap.get(def.getName()));
+        countMap.put(def.getName(), countMap.get(def.getName()));
+      } else {
+        nameMap.put(def.getName(), new HashMap<>());
+        nameMap.get(def.getName()).put(def.eResource().getURI(), 0);
+        countMap.put(def.getName(), 1);
+      }
+    }
+    return nameMap;
+  }
+
+  private String uniqueName(ReactorDecl decl) {
+    var name = decl.getName();
+    return name + (Objects.requireNonNull(nameMap.get(name)).get(decl.eResource().getURI()) == 0 ? "" : nameMap.get(name));
+  }
+
+  private TypeParameterizedReactor(Instantiation i, TypeParameterizedReactor parent, Map<String, Map<URI, Integer>> nameMap) {
     reactor = ASTUtils.toDefinition(i.getReactorClass());
     var definition = ASTUtils.toDefinition(i.getReactorClass());
     typeParams = definition.getTypeParms().stream().map(TypeParm::getLiteral).toList();
     typeArgs = addTypeArgs(i, parent);
+    this.nameMap = ImmutableMap.copyOf(nameMap);
   }
 
   private Map<String, Type> addTypeArgs(
@@ -95,9 +129,9 @@ public class TypeParameterizedReactor {
    * Return a name that is unique to this TypeParameterizedReactor (up to structural equality) and
    * that is prefixed with exactly one underscore and that does not contain any upper-case letters.
    */
-  public String uniqueName(CFileConfig fileConfig) {
+  public String uniqueName() {
     var resolved = ASTUtils.toDefinition(reactor);
-    return "_" + fileConfig.uniqueName(resolved) + typeParams.stream().map(it -> it + "_" + typeArgs.get(it)).collect(Collectors.joining("_"));
+    return "_" + uniqueName(resolved) + typeParams.stream().map(it -> it + "_" + typeArgs.get(it)).collect(Collectors.joining("_"));
   }
 
   @Override

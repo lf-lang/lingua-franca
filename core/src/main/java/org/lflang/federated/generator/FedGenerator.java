@@ -481,7 +481,7 @@ public class FedGenerator {
     // to duplicate the rather complicated logic in that class. We specify a depth of 1,
     // so it only creates the reactors immediately within the top level, not reactors
     // that those contain.
-    ReactorInstance mainInstance = new ReactorInstance(federation, errorReporter);
+    ReactorInstance mainInstance = new ReactorInstance(federation, errorReporter, List.of());
 
     for (ReactorInstance child : mainInstance.children) {
       for (PortInstance output : child.outputs) {

@@ -108,12 +108,12 @@ public class ModelInfo {
       var main =
           model.getReactors().stream().filter(it -> it.isMain() || it.isFederated()).findFirst();
       if (main.isPresent()) {
-        var inst = new ReactorInstance(main.get(), reporter);
+        var inst = new ReactorInstance(main.get(), reporter, List.of());  // FIXME: This might work, but it breaks invariants.
         topLevelReactorInstances.add(inst);
       } else {
         model
             .getReactors()
-            .forEach(it -> topLevelReactorInstances.add(new ReactorInstance(it, reporter)));
+            .forEach(it -> topLevelReactorInstances.add(new ReactorInstance(it, reporter, List.of()))); // FIXME: This might work, but it breaks invariants.
       }
       // don't store the graph into a field, only the cycles.
       for (ReactorInstance top : topLevelReactorInstances) {
