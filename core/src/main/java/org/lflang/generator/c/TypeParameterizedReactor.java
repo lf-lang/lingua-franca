@@ -93,7 +93,7 @@ public record TypeParameterizedReactor(Reactor reactor, Map<String, Type> typeAr
    */
   public String uniqueName() {
     var resolved = ASTUtils.toDefinition(reactor);
-    return "_" + resolved.getName().toLowerCase() + (typeArgs.hashCode() + resolved.eResource().getURI().hashCode() * 31);
+    return ("_" + resolved.getName().toLowerCase() + (typeArgs.hashCode() + resolved.eResource().getURI().hashCode() * 31)).replace('-', '_');
   }
 
   @Override
