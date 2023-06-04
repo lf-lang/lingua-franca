@@ -60,7 +60,8 @@ public class TypeParameterizedReactor {
 
   private String uniqueName(ReactorDecl decl) {
     var name = decl.getName().toLowerCase();
-    return name + (Objects.requireNonNull(nameMap.get(name)).get(decl.eResource().getURI()) == 0 ? "" : nameMap.get(name));
+    var number = Objects.requireNonNull(nameMap.get(name)).get(decl.eResource().getURI());
+    return name + (number == 0 ? "" : number);
   }
 
   private TypeParameterizedReactor(Instantiation i, TypeParameterizedReactor parent, Map<String, Map<URI, Integer>> nameMap) {
