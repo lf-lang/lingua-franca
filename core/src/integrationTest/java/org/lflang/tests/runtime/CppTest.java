@@ -51,8 +51,8 @@ public class CppTest extends RuntimeTest {
 
   @Test
   @Override
-  public void runGenericTests() {
-    super.runGenericTests();
+  public void runMiscellaneousTests() {
+    super.runMiscellaneousTests();
   }
 
   @Test

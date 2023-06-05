@@ -54,10 +54,10 @@ public abstract class RuntimeTest extends TestBase {
   }
 
   @Test
-  public void runGenericTests() {
+  public void runMiscellaneousTests() {
     runTestsForTargets(
-        Message.DESC_GENERIC,
-        TestCategory.GENERIC::equals,
+        Message.DESC_MISCELLANEOUS,
+        TestCategory.MISCELLANEOUS::equals,
         Configurators::noChanges,
         TestLevel.EXECUTION,
         false);
