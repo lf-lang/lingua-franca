@@ -39,6 +39,10 @@ public class TypeParameterizedReactor {
     this(i, null, getNameMap(reactors));
   }
 
+  /**
+   * Return a map from reactor names and URIs to integers such that no two reactor names with
+   * different URIs map to the same integer.
+   */
   private static Map<String, Map<URI, Integer>> getNameMap(List<Reactor> reactors) {
     Map<String, Map<URI, Integer>> nameMap = new HashMap<>();
     Map<String, Integer> countMap = new HashMap<>();
@@ -61,23 +65,30 @@ public class TypeParameterizedReactor {
     return nameMap;
   }
 
-  private String uniqueName(ReactorDecl decl) {
-    var name = decl.getName().toLowerCase();
-    var number = Objects.requireNonNull(nameMap.get(name)).get(decl.eResource().getURI());
+  /** Return a name that is unique to the given {@code Reactor}. */
+  private String uniqueName(Reactor def) {
+    var name = def.getName().toLowerCase();
+    var number = Objects.requireNonNull(nameMap.get(name)).get(def.eResource().getURI());
     return name + (number == 0 ? "" : number);
   }
 
+  /**
+   * Construct a {@code TypeParameterizedReactor} corresponding to the reactor class of the
+   * instantiation {@code i} within the parent {@code parent} and with the given mapping of
+   * definition names and URIs to integers.
+   */
   private TypeParameterizedReactor(
       Instantiation i, TypeParameterizedReactor parent, Map<String, Map<URI, Integer>> nameMap) {
     reactor = ASTUtils.toDefinition(i.getReactorClass());
     var definition = ASTUtils.toDefinition(i.getReactorClass());
     typeParams = definition.getTypeParms().stream().map(TypeParm::getLiteral).toList();
-    typeArgs = addTypeArgs(i, parent);
+    typeArgs = addTypeArgs(i, parent, typeParams);
     this.nameMap = ImmutableMap.copyOf(nameMap);
   }
 
-  private Map<String, Type> addTypeArgs(
-      Instantiation instantiation, TypeParameterizedReactor parent) {
+  /** Return a mapping from type parameters to type arguments. */
+  private static Map<String, Type> addTypeArgs(
+      Instantiation instantiation, TypeParameterizedReactor parent, List<String> typeParams) {
     HashMap<String, Type> ret = new HashMap<>();
     if (instantiation.getTypeArgs() != null) {
       for (int i = 0; i < typeParams.size(); i++) {
