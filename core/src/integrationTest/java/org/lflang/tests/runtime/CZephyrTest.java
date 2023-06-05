@@ -56,12 +56,12 @@ public class CZephyrTest extends TestBase {
   }
 
   @Test
-  public void buildMiscellaneousTests() {
+  public void buildBasicTests() {
     Assumptions.assumeTrue(isLinux(), "Zephyr tests only run on Linux");
     super.runTestsFor(
         List.of(Target.C),
-        Message.DESC_MISCELLANEOUS,
-        TestCategory.MISCELLANEOUS::equals,
+        Message.DESC_BASIC,
+        TestCategory.BASIC::equals,
         Configurators::makeZephyrCompatibleUnthreaded,
         TestLevel.BUILD,
         false);

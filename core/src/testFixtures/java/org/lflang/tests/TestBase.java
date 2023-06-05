@@ -139,7 +139,7 @@ public abstract class TestBase {
 
     /* Descriptions of collections of tests. */
     public static final String DESC_SERIALIZATION = "Run serialization tests.";
-    public static final String DESC_MISCELLANEOUS = "Run miscellaneous tests.";
+    public static final String DESC_BASIC = "Run basic tests.";
     public static final String DESC_GENERICS = "Run generics tests.";
     public static final String DESC_TYPE_PARMS = "Run tests for reactors with type parameters.";
     public static final String DESC_MULTIPORT = "Run multiport tests.";

@@ -118,8 +118,8 @@ public class TestRegistry {
     CONCURRENT(true),
     /** Test about enclaves */
     ENCLAVE(false),
-    /** Miscellaneous tests, ie, tests that all targets are supposed to implement. */
-    MISCELLANEOUS(true),
+    /** Basic tests, i.e., tests that all targets are supposed to implement. */
+    BASIC(true),
     /** Tests about generics. */
     GENERICS(true),
     /** Tests about multiports and banks of reactors. */
@@ -313,7 +313,7 @@ public class TestRegistry {
      * @param srcBasePath The test sources directory
      */
     public TestDirVisitor(ResourceSet rs, Target target, Path srcBasePath) {
-      stack.push(TestCategory.MISCELLANEOUS);
+      stack.push(TestCategory.BASIC);
       this.rs = rs;
       this.target = target;
       this.srcBasePath = srcBasePath;
