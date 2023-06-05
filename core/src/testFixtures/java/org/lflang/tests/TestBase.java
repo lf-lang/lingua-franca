@@ -517,10 +517,10 @@ public abstract class TestBase {
 
       stderr.start();
       stdout.start();
-
-      if (!p.waitFor(MAX_EXECUTION_TIME_SECONDS, TimeUnit.SECONDS)) {
-        stdout.interrupt();
-        stderr.interrupt();
+      var timeout = !p.waitFor(MAX_EXECUTION_TIME_SECONDS, TimeUnit.SECONDS);
+      stdout.interrupt();
+      stderr.interrupt();
+      if (timeout) {
         p.destroy();
         throw new TestError(Result.TEST_TIMEOUT);
       } else {
