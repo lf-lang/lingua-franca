@@ -20,7 +20,7 @@ find_kconfig_folders() {
             echo "Skipping: $test_name"
         else
             echo "Running: $test_name"
-            if run_native_zephyr_test "$folder"; then
+            if run_qemu_zephyr_test "$folder"; then
                 echo "Test $test_name successful"
                 let "num_successes+=1"
             else
