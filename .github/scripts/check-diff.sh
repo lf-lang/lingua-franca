@@ -7,4 +7,3 @@ if changes | grep -q $1; then
 else
   echo "CHANGED_$2=0" >> $GITHUB_OUTPUT
 fi
-

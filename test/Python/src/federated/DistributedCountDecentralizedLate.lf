@@ -20,8 +20,8 @@ reactor Print {
     # STP(in, 30 msec);
     state success = 0
     state success_stp_violation = 0
-    # Force a timer to be invoke periodically
-    timer t(0, 10 usec)
+    # Force a timer to be invoked periodically
+    timer t(0, 1 msec)
     # to ensure logical time will advance in the absence of incoming messages.
     state c = 0
 

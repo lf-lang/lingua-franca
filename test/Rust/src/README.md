@@ -27,8 +27,8 @@ This is not exhaustive. Ideally each of those bullet points would have a test ca
       - [x] all test files: trigger dependencies trigger reactions
       - [x] `ActionIsPresentDouble.lf`: multiple trigger dependencies may be triggered independently
     - [x] uses-dependencies
-      - [x] `DependencyUseNonTrigger`: use dependencies do not trigger reactions 
-      - [x] `DependencyUseAccessible`: use dependencies make the port accessible within the reaction, values are observable 
+      - [x] `DependencyUseNonTrigger`: use dependencies do not trigger reactions
+      - [x] `DependencyUseAccessible`: use dependencies make the port accessible within the reaction, values are observable
       - [x] `DependencyUseOnLogicalAction.lf`: use dependencies may be declared on actions and timers
     - [x] effects-dependency
       - [x] all test files: effects dependencies allow mutation
@@ -42,8 +42,8 @@ This is not exhaustive. Ideally each of those bullet points would have a test ca
   - [x] `Preamble.lf`: preamble within reactor
   - [ ] top-level preamble
 - [x] logical actions
-    - [x] `ActionImplicitDelay.lf`: scheduling an action with no additional delay uses its implicit delay 
-    - [x] `ActionDelay.lf`: 
+    - [x] `ActionImplicitDelay.lf`: scheduling an action with no additional delay uses its implicit delay
+    - [x] `ActionDelay.lf`:
     - [x] `ActionScheduleMicrostep.lf`: an action scheduled with a zero delay is only triggered on the next microstep
     - [x] `ActionValues.lf`: scheduling an action with a value at multiple different tags preserves each value
     - [x] `ActionValuesCleanup.lf`: action value is cleaned up at the end of a tag

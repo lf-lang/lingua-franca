@@ -12,7 +12,7 @@ The [benchmark-tests.yml](https://github.com/lf-lang/lingua-franca/blob/master/.
 ### CLI tests
 The [lfc-tests.yml](https://github.com/lf-lang/lingua-franca/blob/master/.github/workflows/lfc-tests.yml) workflow tests command line access to the Lingua Franca compiler via `lfc`.
 ### Target-specific tests
-Each target has its own [reusable workflow](https://docs.github.com/en/actions/learn-github-actions/reusing-workflows). 
+Each target has its own [reusable workflow](https://docs.github.com/en/actions/learn-github-actions/reusing-workflows).
 #### C/CCpp ([c-tests.yml](https://github.com/lf-lang/lingua-franca/blob/master/.github/workflows/c-tests.yml))
 This workflow has the following (optional) arguments:
 - `compiler-ref` to specify which ref of the `lingua-franca` repository to check out; and

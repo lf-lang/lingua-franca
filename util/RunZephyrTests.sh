@@ -15,7 +15,7 @@ find_kconfig_folders() {
     if [ -f "$folder/CMakeLists.txt" ]; then
         echo "-----------------------------------------------------------------------------------------------------------"
         test_name=$(basename $folder)
-      
+
         if [[ " ${skip[*]} " == *" $test_name "* ]]; then
             echo "Skipping: $test_name"
         else
@@ -49,7 +49,7 @@ run_zephyr_test() {
     rm -f /tmp/procfifo
     rm -f res.text
     mkfifo /tmp/procfifo
-    
+
     make run | tee res.txt >  /tmp/procfifo &
     PID=$!
     SECONDS=0
@@ -91,7 +91,7 @@ run_zephyr_test() {
         echo "----------------------------------------------------------------"
         return_val=1
     fi
-    
+
     rm -f /tmp/procfifo
     popd
     return "$return_val"
