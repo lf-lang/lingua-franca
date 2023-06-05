@@ -312,24 +312,17 @@ public class CGenerator extends GeneratorBase {
       boolean CCppMode,
       CTypes types,
       CCmakeGenerator cmakeGenerator,
-      DelayBodyGenerator delayConnectionBodyGenerator,
-      DelayBodyGenerator enclavedConnectionBodyGenerator) {
+      DelayBodyGenerator delayConnectionBodyGenerator
+  ) {
     super(context);
     this.fileConfig = (CFileConfig) context.getFileConfig();
     this.CCppMode = CCppMode;
     this.types = types;
     this.cmakeGenerator = cmakeGenerator;
 
-    // Register the delayed connection transformation to be applied by GeneratorBase.
-    // transform both after delays and physical connections
-    //        registerTransformation(new
-    // EnclavedConnectionTransformation(enclavedConnectionBodyGenerator, types, fileConfig.resource,
-    // true, true));
     registerTransformation(
         new DelayedConnectionTransformation(
             delayConnectionBodyGenerator, types, fileConfig.resource, true, true));
-
-    // TODO: Register the enclaved connection transformation to be applied by generatorBase
   }
 
   public CGenerator(LFGeneratorContext context, boolean ccppMode) {
@@ -338,8 +331,8 @@ public class CGenerator extends GeneratorBase {
         ccppMode,
         new CTypes(),
         new CCmakeGenerator(context.getFileConfig(), List.of()),
-        new CDelayBodyGenerator(new CTypes()),
-        new CEnclavedConnectionBodyGenerator(new CTypes()));
+        new CDelayBodyGenerator(new CTypes())
+    );
   }
 
   /**
