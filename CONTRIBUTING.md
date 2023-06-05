@@ -93,7 +93,7 @@ The Lingua Franca compiler is implemented in Java and Kotlin. The overarching ad
 
 _Java code formatting in IntelliJ_
 
-Follow the directions here to install the Spotless Gradle plugin. We are not currently aware of a way to run Spotless
+Follow the directions [here](https://github.com/ragurney/spotless-intellij-gradle) to install the Spotless Gradle plugin. We are not currently aware of a way to run Spotless
 automatically on file save, but it is possible to configure a keybinding.
 
 There is a [plugin](https://github.com/google/google-java-format) specifically for enforcing Google's style guide, but
