@@ -113,7 +113,7 @@ public class Configurators {
             || category == TestCategory.DOCKER_FEDERATED
             || category == TestCategory.DOCKER
             || category == TestCategory.ARDUINO
-            || category == TestCategory.ZEPHYR_UNTHREADED;
+            || category == TestCategory.ZEPHYR_UNTHREADED
             || category == TestCategory.ZEPHYR_THREADED;
 
     // SERIALIZATION and TARGET tests are excluded on Windows.
