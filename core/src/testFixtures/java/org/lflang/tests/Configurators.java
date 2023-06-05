@@ -70,7 +70,7 @@ public class Configurators {
     test.getContext().getTargetConfig().threading = false;
     test.getContext().getTargetConfig().platformOptions.platform = Platform.ZEPHYR;
     test.getContext().getTargetConfig().platformOptions.flash = false;
-    test.getContext().getTargetConfig().platformOptions.board = "qemu_cortex_a53";
+    test.getContext().getTargetConfig().platformOptions.board = "qemu_cortex_m3";
 
     // FIXME: Zephyr  emulations fails with debug log-levels.
     test.getContext().getTargetConfig().logLevel = LogLevel.WARN;
@@ -82,7 +82,7 @@ public class Configurators {
     test.getContext().getArgs().setProperty("tracing", "false");
     test.getContext().getTargetConfig().platformOptions.platform = Platform.ZEPHYR;
     test.getContext().getTargetConfig().platformOptions.flash = false;
-    test.getContext().getTargetConfig().platformOptions.board = "qemu_cortex_a53";
+    test.getContext().getTargetConfig().platformOptions.board = "qemu_cortex_m3";
 
     // FIXME: Zephyr  emulations fails with debug log-levels.
     test.getContext().getTargetConfig().logLevel = LogLevel.WARN;
@@ -114,6 +114,7 @@ public class Configurators {
             || category == TestCategory.DOCKER
             || category == TestCategory.ARDUINO
             || category == TestCategory.ZEPHYR_UNTHREADED;
+            || category == TestCategory.ZEPHYR_THREADED;
 
     // SERIALIZATION and TARGET tests are excluded on Windows.
     excluded |= TestBase.isWindows() && (category == TestCategory.TARGET);
