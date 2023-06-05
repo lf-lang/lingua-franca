@@ -131,9 +131,7 @@ public class CPortGenerator {
             "    if (sparse_io_record_sizes.start == NULL) {",
             "        sparse_io_record_sizes = vector_new(1);",
             "    }",
-            "    vector_push(&sparse_io_record_sizes, (void*)&"
-                + portRefName
-                + "__sparse->size);",
+            "    vector_push(&sparse_io_record_sizes, (void*)&" + portRefName + "__sparse->size);",
             "}");
       }
       return result;

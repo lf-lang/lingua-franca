@@ -447,7 +447,8 @@ public class CExtension implements FedTargetExtension {
       result.pr("max_STP = " + CTypes.getInstance().getTargetTimeExpr(maxSTP) + ";");
     }
     result.pr("// Wait until the port status is known");
-    result.pr("wait_until_port_status_known(self->base.environment, " + receivingPortID + ", max_STP);");
+    result.pr(
+        "wait_until_port_status_known(self->base.environment, " + receivingPortID + ", max_STP);");
     return result.toString();
   }
 

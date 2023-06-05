@@ -126,7 +126,9 @@ public class CModesGenerator {
       code.pr("// Register for transition handling");
       code.pr(
           CUtil.getEnvironmentStruct(instance)
-              + ".modes->modal_reactor_states[modal_reactor_count["+CUtil.getEnvironmentId(instance)+"]++] = &((self_base_t*)"
+              + ".modes->modal_reactor_states[modal_reactor_count["
+              + CUtil.getEnvironmentId(instance)
+              + "]++] = &((self_base_t*)"
               + nameOfSelfStruct
               + ")->_lf__mode_state;");
     }
@@ -142,29 +144,51 @@ public class CModesGenerator {
    * @param type The size of the initial value
    */
   public static String generateStateResetStructure(
-      ReactorInstance instance, String modeRef, String selfRef, String varName, String source, String type) {
+      ReactorInstance instance,
+      String modeRef,
+      String selfRef,
+      String varName,
+      String source,
+      String type) {
     var env = CUtil.getEnvironmentStruct(instance);
     var envId = CUtil.getEnvironmentId(instance);
     return String.join(
         "\n",
         "// Register for automatic reset",
-        env+".modes->state_resets[modal_state_reset_count["+envId+"]].mode = " + modeRef + ";",
-        env+".modes->state_resets[modal_state_reset_count["+envId+"]].target = &("
+        env
+            + ".modes->state_resets[modal_state_reset_count["
+            + envId
+            + "]].mode = "
+            + modeRef
+            + ";",
+        env
+            + ".modes->state_resets[modal_state_reset_count["
+            + envId
+            + "]].target = &("
             + selfRef
             + "->"
             + varName
             + ");",
-        env+".modes->state_resets[modal_state_reset_count["+envId+"]].source = &" + source + ";",
-        env+".modes->state_resets[modal_state_reset_count["+envId+"]].size = sizeof(" + type + ");",
-        "modal_state_reset_count["+envId+"]++;");
+        env
+            + ".modes->state_resets[modal_state_reset_count["
+            + envId
+            + "]].source = &"
+            + source
+            + ";",
+        env
+            + ".modes->state_resets[modal_state_reset_count["
+            + envId
+            + "]].size = sizeof("
+            + type
+            + ");",
+        "modal_state_reset_count[" + envId + "]++;");
   }
 
   /**
-   * Generate code to call {@code _lf_process_mode_changes}.
-   ** @param hasModalReactors True if there is modal model reactors, false otherwise
+   * Generate code to call {@code _lf_process_mode_changes}. * @param hasModalReactors True if there
+   * is modal model reactors, false otherwise
    */
-  public static String generateLfHandleModeChanges(
-      boolean hasModalReactors) {
+  public static String generateLfHandleModeChanges(boolean hasModalReactors) {
     if (!hasModalReactors) {
       return "";
     }

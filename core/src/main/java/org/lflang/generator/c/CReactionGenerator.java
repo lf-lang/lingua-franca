@@ -1179,24 +1179,25 @@ public class CReactionGenerator {
 
   /** Generate the _lf_trigger_shutdown_reactions function. */
   public static String generateLfTriggerShutdownReactions() {
-    return String.join("\n",
+    return String.join(
+        "\n",
         "void _lf_trigger_shutdown_reactions(environment_t *env) {",
-            "    for (int i = 0; i < env->shutdown_reactions_size; i++) {",
-            "        if (env->shutdown_reactions[i] != NULL) {",
-            "#ifdef MODAL_REACTORS",
-            "            if (env->shutdown_reactions[i]->mode != NULL) {",
-            "                // Skip reactions in modes",
-            "                continue;",
-            "            }",
-            "#endif",
-            "            _lf_trigger_reaction(env, env->shutdown_reactions[i], -1);", //
-            "        }",
-            "    }",
-            "#ifdef MODAL_REACTORS",
-            "    _lf_handle_mode_shutdown_reactions(env, env->shutdown_reactions, env->shutdown_reactions_size);",
-            "#endif",
-            "}"
-    );
+        "    for (int i = 0; i < env->shutdown_reactions_size; i++) {",
+        "        if (env->shutdown_reactions[i] != NULL) {",
+        "#ifdef MODAL_REACTORS",
+        "            if (env->shutdown_reactions[i]->mode != NULL) {",
+        "                // Skip reactions in modes",
+        "                continue;",
+        "            }",
+        "#endif",
+        "            _lf_trigger_reaction(env, env->shutdown_reactions[i], -1);", //
+        "        }",
+        "    }",
+        "#ifdef MODAL_REACTORS",
+        "    _lf_handle_mode_shutdown_reactions(env, env->shutdown_reactions,"
+            + " env->shutdown_reactions_size);",
+        "#endif",
+        "}");
   }
 
   /** Generate the _lf_handle_mode_triggered_reactions function. */
