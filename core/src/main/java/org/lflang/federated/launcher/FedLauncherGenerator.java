@@ -322,6 +322,9 @@ public class FedLauncherGenerator {
     if (targetConfig.auth) {
       commands.add("                        -a \\");
     }
+    // if (targetConfig.sst) {
+    //   commands.add("                        -sst " + args + " \\"); //TODO: get config from args.
+    // }
     if (targetConfig.tracing != null) {
       commands.add("                        -t \\");
     }

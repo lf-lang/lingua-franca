@@ -227,6 +227,8 @@ public class CCmakeGenerator {
 
     if (targetConfig.auth) {
       // If security is requested, add the auth option.
+    // if(targetConfig.auth || !targetConfig.sst.isEmpty()) { //TODO: Need to add option.
+    //     // If security is requested, add the auth option or sst option.
       var osName = System.getProperty("os.name").toLowerCase();
       // if platform target was set, use given platform instead
       if (targetConfig.platformOptions.platform != Platform.AUTO) {

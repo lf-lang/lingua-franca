@@ -573,6 +573,19 @@ public enum TargetProperty {
       (config, value, err) -> {
         config.singleFileProject = ASTUtils.toBoolean(value);
       }),
+  
+  /** Directive to specify the path of the sst configuration file. */
+  SST(
+    "sst"
+        UnionType.FILE_OR_FILE_ARRAY,
+      List.of(Target.C, Target.CCPP, Target.Python),
+      (config) -> ASTUtils.toElement(config.files),
+      (config, value, err) -> {
+        config.sst = ASTUtils.elementToListOfStrings(value);
+      },
+      (config, value, err) -> {
+        config.sst.addAll(ASTUtils.elementToListOfStrings(value));
+      }),
 
   /** Directive to indicate whether the runtime should use multi-threading. */
   THREADING(
