@@ -1769,8 +1769,9 @@ public enum TargetProperty {
             Path.of("worker_assignments.h"),
             Path.of("worker_states.h"),
             Path.of("data_collection.h"))),
-    GEDF_NP(true), // Global EDF non-preemptive
-    GEDF_NP_CI(true); // Global EDF non-preemptive with chain ID
+    GEDF_NP(true),    // Global EDF non-preemptive
+    GEDF_NP_CI(true), // Global EDF non-preemptive with chain ID
+    FS(true);         // Fully static
     // PEDF_NP(true);    // Partitioned EDF non-preemptive (FIXME: To be re-added in a future PR)
 
     /** Indicate whether or not the scheduler prioritizes reactions by deadline. */

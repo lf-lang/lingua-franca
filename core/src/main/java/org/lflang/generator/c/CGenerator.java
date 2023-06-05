@@ -421,6 +421,11 @@ public class CGenerator extends GeneratorBase {
       throw e;
     }
 
+    // Create a static schedule if the static scheduler is used.
+    if (targetConfig.schedulerType == TargetProperty.SchedulerOption.FS) {
+      System.out.println("Generating a static schedule!");
+    }
+
     // Create docker file.
     if (targetConfig.dockerOptions != null && mainDef != null) {
       try {
