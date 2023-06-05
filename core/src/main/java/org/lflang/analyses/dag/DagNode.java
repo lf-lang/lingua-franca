@@ -1,4 +1,4 @@
-package org.lflang.analyses.statespace;
+package org.lflang.analyses.dag;
 
 import org.lflang.TimeValue;
 import org.lflang.generator.ReactionInstance;
@@ -37,7 +37,6 @@ public class DagNode {
      */
     public DagNode(dagNodeType type, TimeValue timeStep) {
         this.nodeType = type;
-        this.nodeReaction = null;
         this.timeStep = timeStep;
     }
 
@@ -50,6 +49,5 @@ public class DagNode {
     public DagNode(dagNodeType type, ReactionInstance reactionInstance) {
         this.nodeType = type;
         this.nodeReaction = reactionInstance;
-        this.timeStep = null;
     }
 }

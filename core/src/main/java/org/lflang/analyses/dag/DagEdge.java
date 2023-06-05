@@ -1,4 +1,4 @@
-package org.lflang.analyses.statespace;
+package org.lflang.analyses.dag;
 
 /**
  * Class defining a Dag edge.

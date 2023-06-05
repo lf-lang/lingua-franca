@@ -1,12 +1,15 @@
 
-package org.lflang.analyses.statespace;
+package org.lflang.analyses.dag;
 
 import java.util.ArrayList;
 
 import org.lflang.TimeValue;
+import org.lflang.analyses.statespace.StateSpaceDiagram;
+import org.lflang.analyses.statespace.StateSpaceNode;
+import org.lflang.generator.CodeBuilder;
 import org.lflang.generator.ReactionInstance;
 import org.lflang.generator.ReactorInstance;
-
+import org.lflang.generator.c.CFileConfig;
 
 /**
  * Constructs a Directed Acyclic Graph (Dag) from the State Space Diagram.
@@ -37,13 +40,26 @@ public class DagGenerator {
     /** Array of some of the execution times */
     public long[] maxExecutionTimes;
 
+    /** File config */
+    protected final CFileConfig fileConfig;
+
+    /**
+     * A dot file that represents the diagram
+     */
+    private CodeBuilder dot;
 
     /**
      * Constructor. Sets the amin reactor and initializes the dag
      * @param main main reactor instance
      */    
-    public DagGenerator(ReactorInstance main) {
+    public DagGenerator(
+        CFileConfig fileConfig,
+        ReactorInstance main,
+        StateSpaceDiagram stateSpaceDiagram
+    ) {
+        this.fileConfig = fileConfig;
         this.main = main;
+        this.stateSpaceDiagram = stateSpaceDiagram;
         this.dag = new Dag();
     }
 
@@ -53,16 +69,7 @@ public class DagGenerator {
      * diagram. This latter, together with the lf program topology and priorities
      * are used to generate the Dag.
      */
-    public void DagGenerate(){
-        // Start first by exploring the state space to constrcut the diagram
-        StateSpaceExplorer stateSpaceExplorer =  new StateSpaceExplorer(this.main);
-
-        // FIXME: What value for horizon? 
-        stateSpaceExplorer.explore(new Tag(0, 0, true), true);
-
-        // Then get the diagram
-        this.stateSpaceDiagram = stateSpaceExplorer.getStateSpaceDiagram();
-
+    public void generateDag(){
         // Parse the state space diagram
         StateSpaceNode currentStateSpaceNode = this.stateSpaceDiagram.head;
         TimeValue previousTime = TimeValue.ZERO;
@@ -70,21 +77,21 @@ public class DagGenerator {
         while (currentStateSpaceNode != null) {
             TimeValue time = currentStateSpaceNode.time;
             // Add SYNC node 
-            DagNode sync = this.dag.AddNode(dagNodeType.SYNC, time);
+            DagNode sync = this.dag.addNode(dagNodeType.SYNC, time);
 
             // Create DUMMY and Connect SYNC and previous SYNC to DUMMY
             if (! previousTime.equals(TimeValue.ZERO)) {
                 TimeValue timeDiff = time.sub(previousTime);
-                DagNode dummy = this.dag.AddNode(dagNodeType.DUMMY, timeDiff);
-                this.dag.AddEdge(previousSync, dummy);
-                this.dag.AddEdge(dummy, sync);
+                DagNode dummy = this.dag.addNode(dagNodeType.DUMMY, timeDiff);
+                this.dag.addEdge(previousSync, dummy);
+                this.dag.addEdge(dummy, sync);
             }
 
             // Add ReactionsInvoqued nodes, as well as the edges connecting
             // them to SYNC
             for (ReactionInstance ri : currentStateSpaceNode.reactionsInvoked) {
-                DagNode node = this.dag.AddNode(dagNodeType.REACTION, ri);
-                this.dag.AddEdge(sync, node);
+                DagNode node = this.dag.addNode(dagNodeType.REACTION, ri);
+                this.dag.addEdge(sync, node);
             }
 
             // Now add the reactions dependencies
@@ -112,9 +119,11 @@ public class DagGenerator {
     /**
      * Parses the Dag and constructs the dependency matrix
      */
-    public void DependencyMatrixGenerator () {
-        if (this.dag.isEmpty()) 
-            DagGenerate();
+    public void generateDependencyMatrix () {
+        if (this.dag.isEmpty()) {
+            System.out.println("The DAG is empty. No matrix generated.");
+            return;
+        }
 
         // Create the adjacency matrix, the node labels array and the maximum
         // execution timwes array 
@@ -154,5 +163,96 @@ public class DagGenerator {
         
         // Now, all quantities are ready to be saved in a file
         // ...
+    }
+
+    // A getter for the DAG
+    public Dag getDag() {
+        return this.dag;
+    }
+
+    /**
+     * Generate a dot file from the state space diagram.
+     * 
+     * An example dot file
+digraph dag {
+    fontname="Calibri"
+    rankdir=TB;
+    node [shape = circle, width = 1.5, height = 1.5, fixedsize = true];
+    ranksep=1.0;  // Increase distance between ranks
+    nodesep=1.0;  // Increase distance between nodes in the same rank
+    
+    0 [label="Sync@0ms", style="dotted"];
+    1 [label="Dummy=5ms", style="dotted"];
+    2 [label="Sync@5ms", style="dotted"];
+    3 [label="Dummy=5ms", style="dotted"];
+    4 [label="Sync@10ms", style="dotted"];
+    
+    // Here we are adding a new subgraph that contains nodes we want aligned.
+    {
+        rank = same;
+        0; 1; 2; 3; 4;
+    }
+    
+    5 [label="sink.0\nWCET=0.1ms\nEST=0.3ms", fillcolor=green, style=filled];
+    6 [label="source.0\nWCET=0.3ms\nEST=0ms", fillcolor=green, style=filled];
+    7 [label="source2.0\nWCET=0.3ms\nEST=0ms", fillcolor=red, style=filled];
+    8 [label="sink.1\nWCET=0.1ms\nEST=0.4ms", fillcolor=green, style=filled];
+    9 [label="sink.2\nWCET=0.1ms\nEST=0.5ms", fillcolor=green, style=filled];
+    10 [label="sink.0\nWCET=0.1ms\nEST=5ms", fillcolor=green, style=filled];
+
+    0 -> 1;
+    1 -> 2;
+    2 -> 3;
+    3 -> 4;
+    
+    0 -> 6;
+    6 -> 5;
+    0 -> 7;
+    5 -> 2;
+    5 -> 8;
+    8 -> 9;
+    7 -> 9;
+    9 -> 10;
+    2 -> 10;
+    10 -> 4;
+}
+     * 
+     * @return a CodeBuilder with the generated code
+     */
+    public CodeBuilder generateDot() {
+        if (dot == null) {
+            dot = new CodeBuilder();
+            dot.pr("digraph G {");
+            dot.indent();
+            
+            dot.pr("fontname=\"Calibri\";");
+            dot.pr("rankdir=TB;");
+            dot.pr("node [shape = circle, width = 1.5, height = 1.5, fixedsize = true];");
+            dot.pr("ranksep=1.0;  // Increase distance between ranks");
+            dot.pr("nodesep=1.0;  // Increase distance between nodes in the same rank");
+            
+            for (int i = 0; i < this.dag.dagNodes.size(); i++) {
+                DagNode node = this.dag.dagNodes.get(i);
+                String code = "";
+                String label = "";
+                if (node.nodeType == dagNodeType.SYNC) {
+                    label = "label=\"Sync@" + node.timeStep + "\", style=\"dotted\"";
+                } else if (node.nodeType == dagNodeType.DUMMY) {
+                    label = "label=\"Dummy@" + node.timeStep + "\", style=\"dotted\"";
+                } else if (node.nodeType == dagNodeType.REACTION) {
+                    label = "label=\"" + node.nodeReaction.getFullName() + "\nWCET=?ms\"";
+                } else {
+                    // Raise exception.
+                    System.out.println("UNREACHABLE");
+                    System.exit(1);
+                }
+                code += i + "[" + label + "]";
+                dot.pr(code);
+            }
+
+            dot.unindent();
+            dot.pr("}");
+        }
+        return this.dot;
     }
 }

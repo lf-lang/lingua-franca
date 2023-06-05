@@ -1,4 +1,4 @@
-package org.lflang.analyses.statespace;
+package org.lflang.analyses.dag;
 
 import org.lflang.TimeValue;
 import org.lflang.generator.ReactionInstance;
@@ -36,7 +36,7 @@ public class Dag {
      * @param timeStep either the time step or the time
      * @return the construted Dag node
      */
-    public DagNode AddNode(dagNodeType type, TimeValue timeStep) {
+    public DagNode addNode(dagNodeType type, TimeValue timeStep) {
         DagNode dagNode = new DagNode(type, timeStep);
         this.dagNodes.add(dagNode);
         return dagNode;
@@ -48,7 +48,7 @@ public class Dag {
      * @param reactionInstance 
      * @return the construted Dag node
      */
-    public DagNode AddNode(dagNodeType type, ReactionInstance reactionInstance) {
+    public DagNode addNode(dagNodeType type, ReactionInstance reactionInstance) {
         DagNode dagNode = new DagNode(type, reactionInstance);
         this.dagNodes.add(dagNode);
         return dagNode;
@@ -59,7 +59,7 @@ public class Dag {
      * @param source
      * @param sink
      */
-    public void AddEdge(DagNode source, DagNode sink) {
+    public void addEdge(DagNode source, DagNode sink) {
         DagEdge dagEdge = new DagEdge(source, sink);
         this.dagEdges.add(dagEdge);
     }

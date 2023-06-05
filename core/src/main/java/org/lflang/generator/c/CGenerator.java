@@ -423,7 +423,8 @@ public class CGenerator extends GeneratorBase {
 
     // Create a static schedule if the static scheduler is used.
     if (targetConfig.schedulerType == TargetProperty.SchedulerOption.FS) {
-      System.out.println("Generating a static schedule!");
+      System.out.println("--- Generating a static schedule");
+      generateStaticSchedule();
     }
 
     // Create docker file.
@@ -2138,5 +2139,14 @@ public class CGenerator extends GeneratorBase {
 
   private Stream<TypeParameterizedReactor> allTypeParameterizedReactors() {
     return ASTUtils.recursiveChildren(main).stream().map(it -> it.tpr).distinct();
+  }
+
+  private void generateStaticSchedule() {
+    CStaticScheduleGenerator schedGen = 
+      new CStaticScheduleGenerator(
+        this.fileConfig,
+        this.main
+      );
+    schedGen.generate();
   }
 }
