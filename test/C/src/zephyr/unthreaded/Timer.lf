@@ -1,9 +1,10 @@
 target C {
     platform: {
         name: Zephyr,
-        board: qemu_cortex_m3
+        board: native_posix
     },
-    timeout: 10 sec
+    timeout: 10 sec,
+    fast: true
 }
 
 main reactor {

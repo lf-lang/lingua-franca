@@ -115,29 +115,31 @@ public class TestRegistry {
    */
   public enum TestCategory {
     /** Tests about concurrent execution. */
-    CONCURRENT(true),
+    CONCURRENT(true, "", TestLevel.EXECUTION),
     /** Test about enclaves */
-    ENCLAVE(false),
+    ENCLAVE(false, "", TestLevel.EXECUTION),
     /** Generic tests, ie, tests that all targets are supposed to implement. */
-    GENERIC(true),
+    GENERIC(true, "", TestLevel.EXECUTION),
     /** Tests about generics, not to confuse with {@link #GENERIC}. */
-    GENERICS(true),
+    GENERICS(true, "", TestLevel.EXECUTION),
     /** Tests about multiports and banks of reactors. */
-    MULTIPORT(true),
+    MULTIPORT(true, "", TestLevel.EXECUTION),
     /** Tests about federated execution. */
-    FEDERATED(true),
+    FEDERATED(true, "", TestLevel.EXECUTION),
     /** Tests about specific target properties. */
-    PROPERTIES(true),
+    PROPERTIES(true, "", TestLevel.EXECUTION),
     /** Tests concerning modal reactors */
-    MODAL_MODELS(true),
-    NO_INLINING(false),
+    MODAL_MODELS(true, "", TestLevel.EXECUTION),
+    NO_INLINING(false, "", TestLevel.EXECUTION),
     // non-shared tests
-    DOCKER(true),
-    DOCKER_FEDERATED(true, "docker" + File.separator + "federated"),
-    SERIALIZATION(false),
-    ARDUINO(false, TestLevel.BUILD),
-    ZEPHYR(false, TestLevel.BUILD),
-    TARGET(false);
+    DOCKER(true, "", TestLevel.EXECUTION),
+    DOCKER_FEDERATED(true, "docker" + File.separator + "federated", TestLevel.EXECUTION),
+    SERIALIZATION(false, "", TestLevel.EXECUTION),
+    ARDUINO(false, "", TestLevel.BUILD),
+
+    ZEPHYR_THREADED(false, "zephyr" + File.separator + "threaded", TestLevel.BUILD),
+    ZEPHYR_UNTHREADED(false, "zephyr" + File.separator + "unthreaded", TestLevel.BUILD),
+    TARGET(false, "", TestLevel.EXECUTION);
 
     /** Whether we should compare coverage against other targets. */
     public final boolean isCommon;
@@ -146,26 +148,16 @@ public class TestRegistry {
     public final TestLevel level;
 
     /** Create a new test category. */
-    TestCategory(boolean isCommon) {
+    TestCategory(boolean isCommon, String path, TestLevel level) {
       this.isCommon = isCommon;
-      this.path = this.name().toLowerCase();
-      this.level = TestLevel.EXECUTION;
-    }
+      if (!path.isEmpty()) {
+          this.path = path;
+      } else {
+        this.path = this.name().toLowerCase();
 
-    /** Create a new test category. */
-    TestCategory(boolean isCommon, TestLevel level) {
-      this.isCommon = isCommon;
-      this.path = this.name().toLowerCase();
+      }
       this.level = level;
     }
-
-    /** Create a new test category. */
-    TestCategory(boolean isCommon, String path) {
-      this.isCommon = isCommon;
-      this.path = path;
-      this.level = TestLevel.EXECUTION;
-    }
-
     public String getPath() {
       return path;
     }
