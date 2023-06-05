@@ -1,0 +1,8 @@
+plugins {
+    id 'distribution'
+}
+
+tasks.withType(Tar) {
+    compression = Compression.GZIP
+    archiveExtension = 'tar.gz'
+}
