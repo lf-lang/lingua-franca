@@ -151,13 +151,13 @@ public class TestRegistry {
     TestCategory(boolean isCommon, String path, TestLevel level) {
       this.isCommon = isCommon;
       if (!path.isEmpty()) {
-          this.path = path;
+        this.path = path;
       } else {
         this.path = this.name().toLowerCase();
-
       }
       this.level = level;
     }
+
     public String getPath() {
       return path;
     }
