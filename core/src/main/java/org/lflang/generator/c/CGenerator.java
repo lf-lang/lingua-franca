@@ -225,15 +225,15 @@ import org.lflang.util.FileUtil;
  *       <h2 id="runtime-tables">Runtime Tables</h2>
  *       This generator creates an populates the following tables used at run time. These tables may
  *       have to be resized and adjusted when mutations occur.
- *   <li>is_present_fields: An array of pointers to booleans indicating whether an event is
- *       present. The _lf_start_time_step() function in reactor_common.c uses this to mark every
- *       event absent at the start of a time step. The size of this table is contained in the
- *       variable is_present_fields_size.
+ *   <li>is_present_fields: An array of pointers to booleans indicating whether an event is present.
+ *       The _lf_start_time_step() function in reactor_common.c uses this to mark every event absent
+ *       at the start of a time step. The size of this table is contained in the variable
+ *       is_present_fields_size.
  *       <ul>
- *         <li>This table is accompanied by another list, is_present_fields_abbreviated, which
- *             only contains the is_present fields that have been set to true in the current tag.
- *             This list can allow a performance improvement if most ports are seldom present
- *             because only fields that have been set to true need to be reset to false.
+ *         <li>This table is accompanied by another list, is_present_fields_abbreviated, which only
+ *             contains the is_present fields that have been set to true in the current tag. This
+ *             list can allow a performance improvement if most ports are seldom present because
+ *             only fields that have been set to true need to be reset to false.
  *       </ul>
  *   <li>_lf_shutdown_triggers: An array of pointers to trigger_t structs for shutdown reactions.
  *       The length of this table is in the _lf_shutdown_triggers_size variable.
@@ -312,8 +312,7 @@ public class CGenerator extends GeneratorBase {
       boolean CCppMode,
       CTypes types,
       CCmakeGenerator cmakeGenerator,
-      DelayBodyGenerator delayConnectionBodyGenerator
-  ) {
+      DelayBodyGenerator delayConnectionBodyGenerator) {
     super(context);
     this.fileConfig = (CFileConfig) context.getFileConfig();
     this.CCppMode = CCppMode;
@@ -331,8 +330,7 @@ public class CGenerator extends GeneratorBase {
         ccppMode,
         new CTypes(),
         new CCmakeGenerator(context.getFileConfig(), List.of()),
-        new CDelayBodyGenerator(new CTypes())
-    );
+        new CDelayBodyGenerator(new CTypes()));
   }
 
   /**
@@ -1601,8 +1599,8 @@ public class CGenerator extends GeneratorBase {
    * For each timer in the given reactor, generate initialization code for the offset and period
    * fields.
    *
-   * <p>This method will also populate the global timer_triggers array, which is used to start
-   * all timers at the start of execution.
+   * <p>This method will also populate the global timer_triggers array, which is used to start all
+   * timers at the start of execution.
    *
    * @param instance A reactor instance.
    */
@@ -1824,7 +1822,8 @@ public class CGenerator extends GeneratorBase {
         initializeTriggerObjects.pr(
             CStateGenerator.generateInitializer(instance, selfRef, stateVar, mode, types));
         if (mode != null && stateVar.isReset()) {
-          CUtil.getClosestEnclave(instance).enclaveInfo.numModalResetStates += instance.getTotalWidth();
+          CUtil.getClosestEnclave(instance).enclaveInfo.numModalResetStates +=
+              instance.getTotalWidth();
         }
       }
     }

@@ -72,18 +72,26 @@ public class CEnvironmentFunctionGenerator {
         numWorkers = "_lf_number_of_workers";
       }
 
-
       code.pr(
           "environment_init(&"
-              + CUtil.getEnvironmentStruct(enclave) + ","
-              + CUtil.getEnvironmentId(enclave)+ ","
-              + numWorkers + ","
-              + enclave.enclaveInfo.numTimerTriggers + ","
-              + enclave.enclaveInfo.numStartupReactions + ","
-              + enclave.enclaveInfo.numShutdownReactions + ","
-              + enclave.enclaveInfo.numResetReactions + ","
-              + enclave.enclaveInfo.numIsPresentFields + ","
-              + enclave.enclaveInfo.numModalReactors + ","
+              + CUtil.getEnvironmentStruct(enclave)
+              + ","
+              + CUtil.getEnvironmentId(enclave)
+              + ","
+              + numWorkers
+              + ","
+              + enclave.enclaveInfo.numTimerTriggers
+              + ","
+              + enclave.enclaveInfo.numStartupReactions
+              + ","
+              + enclave.enclaveInfo.numShutdownReactions
+              + ","
+              + enclave.enclaveInfo.numResetReactions
+              + ","
+              + enclave.enclaveInfo.numIsPresentFields
+              + ","
+              + enclave.enclaveInfo.numModalReactors
+              + ","
               + enclave.enclaveInfo.numModalResetStates
               + ");");
     }

@@ -247,9 +247,9 @@ public class AttributeUtils {
     return getEnclaveAttribute(node) != null;
   }
 
-
   /**
    * Annotate `node` with enclave @attribute
+   *
    * @param node
    */
   public static void setEnclaveAttribute(Instantiation node) {
