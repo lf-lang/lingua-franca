@@ -3,6 +3,7 @@ package org.lflang.analyses.dag;
 
 import java.util.ArrayList;
 
+import org.lflang.TimeUnit;
 import org.lflang.TimeValue;
 import org.lflang.analyses.statespace.StateSpaceDiagram;
 import org.lflang.analyses.statespace.StateSpaceNode;
@@ -70,47 +71,96 @@ public class DagGenerator {
      * are used to generate the Dag.
      */
     public void generateDag(){
-        // Parse the state space diagram
+        // Variables
         StateSpaceNode currentStateSpaceNode = this.stateSpaceDiagram.head;
         TimeValue previousTime = TimeValue.ZERO;
-        DagNode previousSync = null; 
+        DagNode previousSync = null;
+        int loopNodeReached = 0;
+        boolean lastIteration = false;
+        ArrayList<DagNode> allReactionNodes = new ArrayList<>();
+
         while (currentStateSpaceNode != null) {
-            TimeValue time = currentStateSpaceNode.time;
+            // Check if the current node is a loop node.
+            // The stop condition is when the loop node is encountered the 2nd time.
+            if (currentStateSpaceNode == this.stateSpaceDiagram.loopNode)
+                loopNodeReached++;
+            if (currentStateSpaceNode == this.stateSpaceDiagram.loopNode
+                && loopNodeReached >= 2) {
+                // Add previous nodes' edges to the last SYNC node.
+                lastIteration = true;
+            }
+
+            // Get the current logical time. Or, if this is the last iteration,
+            // set the loop period as the logical time.
+            TimeValue time;
+            if (!lastIteration)
+                time = currentStateSpaceNode.time;
+            else
+                time = new TimeValue(this.stateSpaceDiagram.loopPeriod, TimeUnit.NANO);
+
             // Add SYNC node 
             DagNode sync = this.dag.addNode(dagNodeType.SYNC, time);
 
             // Create DUMMY and Connect SYNC and previous SYNC to DUMMY
-            if (! previousTime.equals(TimeValue.ZERO)) {
+            if (! time.equals(TimeValue.ZERO)) {
                 TimeValue timeDiff = time.sub(previousTime);
                 DagNode dummy = this.dag.addNode(dagNodeType.DUMMY, timeDiff);
                 this.dag.addEdge(previousSync, dummy);
                 this.dag.addEdge(dummy, sync);
             }
 
-            // Add ReactionsInvoqued nodes, as well as the edges connecting
-            // them to SYNC
-            for (ReactionInstance ri : currentStateSpaceNode.reactionsInvoked) {
-                DagNode node = this.dag.addNode(dagNodeType.REACTION, ri);
+            // Do not add more reaction nodes, and add edges 
+            // from existing reactions to the last node.
+            if (lastIteration) {
+                for (DagNode n : allReactionNodes) {
+                    this.dag.addEdge(n, sync);
+                }
+                break;
+            }
+
+            // Add reaction nodes, as well as the edges connecting them to SYNC.
+            ArrayList<DagNode> currentReactionNodes = new ArrayList<>();
+            for (ReactionInstance reaction : currentStateSpaceNode.reactionsInvoked) {
+                DagNode node = this.dag.addNode(dagNodeType.REACTION, reaction);
+                currentReactionNodes.add(node);
                 this.dag.addEdge(sync, node);
             }
 
-            // Now add the reactions dependencies
-            for (ReactionInstance ri : currentStateSpaceNode.reactionsInvoked) {
-                // WIP
+            // If there is a newly released reaction found and its prior
+            // invocation is not closed, close the previous invocation to
+            // preserve a deterministic order.
+            // FIXME: Replace with a stream method.
+            ArrayList<ReactionInstance> currentReactions = new ArrayList<>();
+            for (DagNode n : currentReactionNodes) {
+                currentReactions.add(n.nodeReaction);
+            }
+            for (DagNode n : allReactionNodes) {
+                if (currentReactions.contains(n.nodeReaction)) {
+                    this.dag.addEdge(n, sync);
+                }
             }
 
-            // The stop condition is when the tail node is encountred
-            if (currentStateSpaceNode == this.stateSpaceDiagram.tail) {
-                // FIXME: Add the last DYMMY and SYNC nodes
+            // Then add all the current reaction nodes to the list of all
+            // previously seen reaction invocations.
+            allReactionNodes.addAll(currentReactionNodes);
 
-                break;
-            } 
+            // Now add the reactions dependencies
+            for (DagNode n1 : currentReactionNodes) {
+                for (DagNode n2 : currentReactionNodes) {
+                    if (n1.nodeReaction.dependentReactions().contains(n2.nodeReaction)) {
+                        this.dag.addEdge(n1, n2);
+                    }
+                }
+            }
 
             // Move to the next state space            
             currentStateSpaceNode = stateSpaceDiagram.getDownstreamNode(currentStateSpaceNode);
             previousSync = sync;
             previousTime = time;
         } 
+
+        // Add the concluding node.
+
         
         // Now iterate over the lf diagram to report the dependencies
         
@@ -173,7 +223,7 @@ public class DagGenerator {
     /**
      * Generate a dot file from the state space diagram.
      * 
-     * An example dot file
+     * An example dot file:
 digraph dag {
     fontname="Calibri"
     rankdir=TB;
@@ -222,23 +272,28 @@ digraph dag {
     public CodeBuilder generateDot() {
         if (dot == null) {
             dot = new CodeBuilder();
-            dot.pr("digraph G {");
+            dot.pr("digraph DAG {");
             dot.indent();
             
+            // Graph settings
             dot.pr("fontname=\"Calibri\";");
             dot.pr("rankdir=TB;");
             dot.pr("node [shape = circle, width = 1.5, height = 1.5, fixedsize = true];");
-            dot.pr("ranksep=1.0;  // Increase distance between ranks");
-            dot.pr("nodesep=1.0;  // Increase distance between nodes in the same rank");
+            dot.pr("ranksep=3.0;  // Increase distance between ranks");
+            dot.pr("nodesep=3.0;  // Increase distance between nodes in the same rank");
             
+            // Define nodes.
+            ArrayList<Integer> auxiliaryNodes = new ArrayList<>();
             for (int i = 0; i < this.dag.dagNodes.size(); i++) {
                 DagNode node = this.dag.dagNodes.get(i);
                 String code = "";
                 String label = "";
                 if (node.nodeType == dagNodeType.SYNC) {
-                    label = "label=\"Sync@" + node.timeStep + "\", style=\"dotted\"";
+                    label = "label=\"Sync" + "@" + node.timeStep + "\", style=\"dotted\"";
+                    auxiliaryNodes.add(i);
                 } else if (node.nodeType == dagNodeType.DUMMY) {
-                    label = "label=\"Dummy@" + node.timeStep + "\", style=\"dotted\"";
+                    label = "label=\"Dummy" + "=" + node.timeStep + "\", style=\"dotted\"";
+                    auxiliaryNodes.add(i);
                 } else if (node.nodeType == dagNodeType.REACTION) {
                     label = "label=\"" + node.nodeReaction.getFullName() + "\nWCET=?ms\"";
                 } else {
@@ -248,6 +303,23 @@ digraph dag {
                 }
                 code += i + "[" + label + "]";
                 dot.pr(code);
+            }
+
+            // Align auxiliary nodes.
+            dot.pr("{");
+            dot.indent();
+            dot.pr("rank = same;");
+            for (Integer i : auxiliaryNodes) {
+                dot.pr(i + "; ");
+            }
+            dot.unindent();
+            dot.pr("}");
+
+            // Add edges
+            for (DagEdge e : this.dag.dagEdges) {
+                int sourceIdx = this.dag.dagNodes.indexOf(e.sourceNode);
+                int sinkIdx   = this.dag.dagNodes.indexOf(e.sinkNode);
+                dot.pr(sourceIdx + " -> " + sinkIdx);
             }
 
             dot.unindent();
