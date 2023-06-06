@@ -10,7 +10,7 @@ import org.lflang.lf.Port
 import org.lflang.lf.Reactor
 import org.lflang.lf.VarRef
 
-class CppConnectionGenerator(private val reactor: Reactor) : ConnectionGenerator {
+class CppROS2ConnectionGenerator(private val reactor: Reactor) : ConnectionGenerator {
     companion object {
         val Connection.name: String
             get() =
@@ -26,20 +26,14 @@ class CppConnectionGenerator(private val reactor: Reactor) : ConnectionGenerator
             get() {
                 val leftPort = leftPorts.first()
                 return when {
-                    isEnclaveConnection -> when {
-                        isPhysical    -> "reactor::PhysicalEnclaveConnection<${leftPort.dataType}>"
-                        delay != null -> "reactor::DelayedEnclaveConnection<${leftPort.dataType}>"
-                        else          -> "reactor::EnclaveConnection<${leftPort.dataType}>"
-                    }
-
-                    isPhysical          -> "reactor::PhysicalConnection<${leftPort.dataType}>"
-                    delay != null       -> "reactor::DelayedConnection<${leftPort.dataType}>"
+                    isSubscriberConnection -> "reactor::ROS2SubscriberConnection" //<${leftPort.dataType}>"
                     else                -> throw IllegalArgumentException("Unsupported connection type")
                 }
             }
 
-        val Connection.isEnclaveConnection: Boolean
+        val Connection.isSubscriberConnection: Boolean
             get() {
+                return true
                 for (port in leftPorts + rightPorts) {
                     if (port.container?.isEnclave == true) {
                         return true
@@ -48,7 +42,6 @@ class CppConnectionGenerator(private val reactor: Reactor) : ConnectionGenerator
                 return false
             }
 
-        val Connection.requiresConnectionClass: Boolean get() = isPhysical || delay != null || isEnclaveConnection;
     }
 
     override fun generateDeclarations() =
@@ -60,20 +53,21 @@ class CppConnectionGenerator(private val reactor: Reactor) : ConnectionGenerator
 
     private fun generateDeclaration(connection: Connection): String? =
         with(connection) {
-            if (requiresConnectionClass) {
-                if (hasMultipleConnections) {
-                    "std::vector<std::unique_ptr<${connection.cppType}>> ${connection.name};"
-                } else {
-                    "${connection.cppType} ${connection.name};"
-                }
-            } else null
+            return null
+            if (hasMultipleConnections) {
+                "std::vector<std::unique_ptr<${connection.cppType}>> ${connection.name};"
+            } else {
+                "${connection.cppType} ${connection.name};"
+            }
         }
 
     private fun generateConstructorInitializer(connection: Connection): String? = with(connection) {
-        if (requiresConnectionClass && !hasMultipleConnections) {
+        return null
+        if (!hasMultipleConnections) {
             when {
-                isEnclaveConnection && delay == null -> """, $name{"$name", ${rightPorts[0].container.name}->__lf_env.get()}"""
-                isEnclaveConnection && delay != null -> """, $name{"$name", ${rightPorts[0].container.name}->__lf_env.get(), ${delay.toCppTime()}}"""
+                //isSubscriberConnection && delay == null -> """, $name{"$name", ${leftPorts[0].container.name}->__lf_env.get()}"""
+                //isSubscriberConnection && delay != null -> """, $name{"$name", ${leftPorts[0].container.name}->__lf_env.get(), ${delay.toCppTime()}}"""
+                //!isSubscriberConnection && delay == null -> """, $name{"$name", ${rightPorts[0].container.name}->__lf_env.get()}"""
                 else                                 -> """, $name{"$name", this, ${delay.toCppTime()}}"""
             }
         } else null

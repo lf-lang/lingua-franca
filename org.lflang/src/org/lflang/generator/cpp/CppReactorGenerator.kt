@@ -24,6 +24,7 @@
 package org.lflang.generator.cpp
 
 import org.lflang.ErrorReporter
+import org.lflang.TargetConfig
 import org.lflang.generator.PrependOperator
 import org.lflang.isGeneric
 import org.lflang.lf.Reactor
@@ -33,7 +34,7 @@ import org.lflang.toUnixString
 /**
  * A C++ code generator that produces a C++ class representing a single reactor
  */
-class CppReactorGenerator(private val reactor: Reactor, fileConfig: CppFileConfig, errorReporter: ErrorReporter) {
+class CppReactorGenerator(private val reactor: Reactor, fileConfig: CppFileConfig, errorReporter: ErrorReporter, targetConfig: TargetConfig) {
 
     /** Comment to be inserted at the top of generated files */
     private val fileComment = fileComment(reactor.eResource())
@@ -56,7 +57,7 @@ class CppReactorGenerator(private val reactor: Reactor, fileConfig: CppFileConfi
     private val ports = CppPortGenerator(reactor)
     private val reactions = CppReactionGenerator(reactor, ports, instances)
     private val assemble = CppAssembleMethodGenerator(reactor)
-    private val connections = CppConnectionGenerator(reactor)
+    private val connections : ConnectionGenerator = if (targetConfig.ros2) CppROS2ConnectionGenerator(reactor) else CppConnectionGenerator(reactor)
 
     private fun publicPreamble() =
         reactor.preambles.filter { it.isPublic }

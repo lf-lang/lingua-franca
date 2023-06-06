@@ -149,7 +149,7 @@ class CppGenerator(
 
         // generate header and source files for all reactors
         for (r in reactors) {
-            val generator = CppReactorGenerator(r, fileConfig, errorReporter)
+            val generator = CppReactorGenerator(r, fileConfig, errorReporter, targetConfig)
             val headerFile = fileConfig.getReactorHeaderPath(r)
             val sourceFile = if (r.isGeneric) fileConfig.getReactorHeaderImplPath(r) else fileConfig.getReactorSourcePath(r)
             val reactorCodeMap = CodeMap.fromGeneratedCode(generator.generateSource())
