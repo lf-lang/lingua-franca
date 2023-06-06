@@ -440,10 +440,10 @@ public class CEnclavedReactorTransformation implements AstTransformation {
     code.pr("tag_t target_tag = lf_delay_tag(src_env->current_tag, self->delay);");
     code.pr("int length = 1;");
     code.pr("if (in->token) length = in->length;");
-    code.pr("token_template_t* template = (token_template_t*)act;");
+    code.pr("token_template_t* tmplate = (token_template_t*)act;");
     code.pr("lf_critical_section_enter(dest_env);");
-    code.pr("lf_token_t* token = _lf_initialize_token(template, length);");
-    code.pr("memcpy(token->value, &(in->value), template->type.element_size * length);");
+    code.pr("lf_token_t* token = _lf_initialize_token(tmplate, length);");
+    code.pr("memcpy(token->value, &(in->value), tmplate->type.element_size * length);");
     code.pr("// Schedule event to the destination environment.");
     code.pr(
         "trigger_handle_t result = _lf_schedule_at_tag(dest_env, act->_base.trigger, target_tag,"
