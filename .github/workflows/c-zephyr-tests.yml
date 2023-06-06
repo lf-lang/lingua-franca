@@ -41,17 +41,17 @@ jobs:
         if: ${{ inputs.runtime-ref }}
       - name: Run Zephyr smoke tests
         run: |
-          ./gradlew core:integrationTest --test org.lflang.tests.runtime.CZephyrTest.buildZephyr*
+          ./gradlew core:integrationTest --tests org.lflang.tests.runtime.CZephyrTest.buildZephyr*
           util/RunZephyrTests.sh test/C/src-gen
           rm -r test/C/src-gen
       - name: Run basic tests
         run: |
-          ./gradlew core:integrationTest --test org.lflang.tests.runtime.CZephyrTest.buildBasic*
+          ./gradlew core:integrationTest --tests org.lflang.tests.runtime.CZephyrTest.buildBasic*
           util/RunZephyrTests.sh test/C/src-gen
           rm -r test/C/src-gen
       - name: Run concurrent tests
         run: |
-          ./gradlew core:integrationTest --test org.lflang.tests.runtime.CZephyrTest.buildConcurrent*
+          ./gradlew core:integrationTest --tests org.lflang.tests.runtime.CZephyrTest.buildConcurrent*
           util/RunZephyrTests.sh test/C/src-gen
           rm -r test/C/src-gen
       - name: Collect code coverage
