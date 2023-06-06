@@ -136,7 +136,6 @@ public class TestRegistry {
     DOCKER_FEDERATED(true, "docker" + File.separator + "federated", TestLevel.EXECUTION),
     SERIALIZATION(false, "", TestLevel.EXECUTION),
     ARDUINO(false, "", TestLevel.BUILD),
-
     ZEPHYR_THREADED(false, "zephyr" + File.separator + "threaded", TestLevel.BUILD),
     ZEPHYR_UNTHREADED(false, "zephyr" + File.separator + "unthreaded", TestLevel.BUILD),
     TARGET(false, "", TestLevel.EXECUTION);
