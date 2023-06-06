@@ -44,7 +44,7 @@ public class CZephyrTest extends TestBase {
   }
 
   @Test
-  public void runZephyrUnthreadedTests() {
+  public void buildZephyrUnthreadedTests() {
     Assumptions.assumeTrue(isLinux(), "Zephyr tests only run on Linux");
     super.runTestsFor(
         List.of(Target.C),
@@ -56,7 +56,7 @@ public class CZephyrTest extends TestBase {
   }
 
   @Test
-  public void runZephyrThreadedTests() {
+  public void buildZephyrThreadedTests() {
     Assumptions.assumeTrue(isLinux(), "Zephyr tests only run on Linux");
     super.runTestsFor(
         List.of(Target.C),
@@ -68,7 +68,7 @@ public class CZephyrTest extends TestBase {
   }
 
   @Test
-  public void runBasicTests() {
+  public void buildBasicTests() {
     Assumptions.assumeTrue(isLinux(), "Zephyr tests only run on Linux");
     super.runTestsFor(
         List.of(Target.C),
@@ -80,7 +80,7 @@ public class CZephyrTest extends TestBase {
   }
 
   @Test
-  public void runConcurrentTests() {
+  public void buildConcurrentTests() {
     Assumptions.assumeTrue(isLinux(), "Zephyr tests only run on Linux");
 
     super.runTestsFor(
