@@ -6,19 +6,17 @@ target C
 // FIXME: Handle token types also by checking whether it is a token type. I
 reactor ConnectionReactor<T>(delay: time = 0) {
     preamble {=
-
         #ifdef __cplusplus
         extern "C" {
         #endif
-        
+
         #include <string.h>
         #include "platform.h"
         #include "reactor_common.h"
-        
+
         #ifdef __cplusplus
         }
         #endif
-
     =}
     input in: T
     output out: T
