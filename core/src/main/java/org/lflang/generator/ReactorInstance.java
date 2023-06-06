@@ -815,8 +815,8 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
         parent == null
             ? new TypeParameterizedReactor(definition, reactors)
             : new TypeParameterizedReactor(definition, parent.tpr);
-    
-    // If this instance is an enclave (or the main reactor). Create an 
+
+    // If this instance is an enclave (or the main reactor). Create an
     // enclaveInfo object to track information about the enclave needed for
     // later code-generation
     if (isEnclave(definition) || this.isMainOrFederated()) {
