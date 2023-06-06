@@ -1,0 +1,15 @@
+plugins {
+    id 'org.lflang.java-application-conventions'
+    id 'org.lflang.kotlin-conventions'
+}
+
+dependencies {
+    implementation project(':cli:base')
+
+    testImplementation(testFixtures(project(':cli:base')))
+}
+
+application {
+    mainClass = 'org.lflang.cli.Lfc'
+    tasks.run.workingDir = System.getProperty("user.dir")
+}
