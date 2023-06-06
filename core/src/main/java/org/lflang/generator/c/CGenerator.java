@@ -811,7 +811,7 @@ public class CGenerator extends GeneratorBase {
     var generatedReactors = new LinkedHashSet<TypeParameterizedReactor>();
     if (this.main != null) {
       generateReactorChildren(this.main, generatedReactors);
-      generateReactorClass(this.main.getTypeParameterizedReactor());
+      generateReactorClass(new TypeParameterizedReactor(this.mainDef, reactors));
     }
     // do not generate code for reactors that are not instantiated
   }
@@ -2103,7 +2103,8 @@ public class CGenerator extends GeneratorBase {
     if (this.mainDef != null) {
       if (this.main == null) {
         // Recursively build instances.
-        this.main = new ReactorInstance(toDefinition(mainDef.getReactorClass()), errorReporter);
+        this.main =
+            new ReactorInstance(toDefinition(mainDef.getReactorClass()), errorReporter, reactors);
         var reactionInstanceGraph = this.main.assignLevels();
         if (reactionInstanceGraph.nodeCount() > 0) {
           errorReporter.reportError("Main reactor has causality cycles. Skipping code generation.");

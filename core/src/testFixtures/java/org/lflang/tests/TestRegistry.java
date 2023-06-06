@@ -305,7 +305,7 @@ public class TestRegistry {
      * @param srcBasePath The test sources directory
      */
     public TestDirVisitor(ResourceSet rs, Target target, Path srcBasePath) {
-      stack.push(TestCategory.GENERIC);
+      stack.push(TestCategory.BASIC);
       this.rs = rs;
       this.target = target;
       this.srcBasePath = srcBasePath;
