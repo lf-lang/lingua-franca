@@ -4,6 +4,7 @@ import org.lflang.TimeValue;
 import org.lflang.generator.ReactionInstance;
 
 import java.util.ArrayList;
+import java.io.IOException;
 
 /**
  * Class representing a Directed Acyclic Graph (Dag) as an array of Dag edges 
@@ -55,13 +56,32 @@ public class Dag {
     }
 
     /**
-     * Add an edge to the Dag
+     * Add an edge to the Dag, where the parameters are two DagNodes.
      * @param source
      * @param sink
      */
     public void addEdge(DagNode source, DagNode sink) {
         DagEdge dagEdge = new DagEdge(source, sink);
         this.dagEdges.add(dagEdge);
+    }
+
+    /**
+     * Add an edge to the Dag, where the parameters are the indexes of two
+     * DagNodes in the dagNodes array.
+     * @param srcNodeId index of the source DagNode
+     * @param sinkNodeId index of the sink DagNode
+     * @return true, if the indexes exist and the edge is added, false otherwise.
+     */
+    public boolean addEdge(int srcNodeId, int sinkNodeId) {
+        if (srcNodeId < this.dagEdges.size() && sinkNodeId < this.dagEdges.size()) {
+            // Get the DagNodes 
+            DagNode srcNode = this.dagNodes.get(srcNodeId);
+            DagNode sinkNode = this.dagNodes.get(sinkNodeId);
+            // Add the edge
+            this.addEdge(srcNode, sinkNode);
+            return true;
+        } 
+        return false;
     }
 
     /**
@@ -74,4 +94,25 @@ public class Dag {
         return false;
     }
 
+    /**
+     * Check if the edge already exits, based on the nodes indexes
+     * @param srcNodeId index of the source DagNode
+     * @param sinkNodeId index of the sink DagNode
+     * @return true, if the edge is already in dagEdges array, false otherwise.
+     */
+    public boolean edgeExists(int srcNodeId, int sinkNodeId) {
+        // Get the DagNodes 
+        if (srcNodeId < this.dagEdges.size() && sinkNodeId < this.dagEdges.size()) {
+            DagNode srcNode = this.dagNodes.get(srcNodeId);
+            DagNode sinkNode = this.dagNodes.get(sinkNodeId);
+            // Iterate over the dagEdges array
+            for (int i = 0; i < this.dagEdges.size(); i++) {
+                DagEdge edge = this.dagEdges.get(i);
+                if (edge.sourceNode == srcNode && edge.sinkNode == sinkNode) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
 }

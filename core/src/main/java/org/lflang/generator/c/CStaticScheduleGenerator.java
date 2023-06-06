@@ -26,6 +26,7 @@ package org.lflang.generator.c;
 
 import java.io.IOException;
 import java.nio.file.Path;
+import java.lang.ProcessBuilder;
 
 import org.eclipse.xtext.xbase.lib.Exceptions;
 import org.lflang.analyses.dag.DagGenerator;
@@ -82,8 +83,41 @@ public class CStaticScheduleGenerator {
         }
 
         // Use a DAG scheduling algorithm to partition the DAG.
+        // Construct a process to run the Python program of the RL agent
+        ProcessBuilder dagScheduler = new ProcessBuilder(
+            "python3",
+            "script.py", // FIXME: to be updated with the script file name
+            "dag.dot"
+        );
+
+        // If the partionned DAG file is generated, then read the contents
+        // and update the edges array.
+        try {
+            Process dagSchedulerProcess = dagScheduler.start();
+            
+            // Wait until the process is done
+            int exitValue = dagSchedulerProcess.waitFor();
+            
+            // FIXME: Put the correct file name
+            this.dagGenerator.updateDag("partionedDagFileName.odt");
+        } catch (InterruptedException | IOException e) {
+            Exceptions.sneakyThrow(e);
+        }
+
+        // Note: this is for double checking...
+        // Generate another dot file with the updated Dag.
+        try {
+            CodeBuilder dot = this.dagGenerator.generateDot();
+            Path srcgen = fileConfig.getSrcGenPath();
+            Path file = srcgen.resolve("dagUpdated.dot");
+            String filename = file.toString();
+            dot.writeToFile(filename);
+        } catch (IOException e) {
+            Exceptions.sneakyThrow(e);
+        }
 
         // Generate VM instructions for each DAG partition.
+        // can be something like: generateVMInstructions(partionedDag); 
     }
     
 }
