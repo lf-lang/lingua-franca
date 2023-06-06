@@ -28,7 +28,7 @@ install: trace_to_csv trace_to_chrome trace_to_influxdb
 	mv trace_to_csv ../../bin
 	mv trace_to_chrome ../../bin
 	mv trace_to_influxdb ../../bin
-	ln -f -s ../utils/scripts/launch-fedsd.sh ../../bin/fedsd
+	ln -f -s ../util/scripts/launch-fedsd.sh ../../bin/fedsd
 	chmod +x ../../bin/fedsd
 	
 clean:

@@ -2,6 +2,7 @@ package org.lflang.federated.generator;
 
 import static org.lflang.ast.ASTUtils.convertToEmptyListIfNull;
 
+import java.nio.file.Path;
 import org.eclipse.emf.ecore.resource.Resource;
 import org.lflang.ErrorReporter;
 import org.lflang.TargetConfig;
@@ -57,9 +58,18 @@ public class FedTargetConfig extends TargetConfig {
       if (targetProperties != null) {
         // Merge properties
         TargetProperty.update(
-            this, convertToEmptyListIfNull(targetProperties.getPairs()), errorReporter);
+            this,
+            convertToEmptyListIfNull(targetProperties.getPairs()),
+            getRelativePath(mainResource, federateResource),
+            errorReporter);
       }
     }
+  }
+
+  private Path getRelativePath(Resource source, Resource target) {
+    return Path.of(source.getURI().toFileString())
+        .getParent()
+        .relativize(Path.of(target.getURI().toFileString()).getParent());
   }
 
   /** Method for the removal of things that should not appear in the target config of a federate. */

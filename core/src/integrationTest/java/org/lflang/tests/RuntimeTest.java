@@ -43,7 +43,7 @@ public abstract class RuntimeTest extends TestBase {
     return false;
   }
 
-  /** Whether to enable {@link #runTypeParameterTests()}. */
+  /** Whether to enable {@link #runGenericsTests()}. */
   protected boolean supportsGenericTypes() {
     return false;
   }
@@ -54,10 +54,20 @@ public abstract class RuntimeTest extends TestBase {
   }
 
   @Test
-  public void runGenericTests() {
+  public void runBasicTests() {
     runTestsForTargets(
-        Message.DESC_GENERIC,
-        TestCategory.GENERIC::equals,
+        Message.DESC_BASIC,
+        TestCategory.BASIC::equals,
+        Configurators::noChanges,
+        TestLevel.EXECUTION,
+        false);
+  }
+
+  @Test
+  public void runGenericsTests() {
+    runTestsForTargets(
+        Message.DESC_GENERICS,
+        TestCategory.GENERICS::equals,
         Configurators::noChanges,
         TestLevel.EXECUTION,
         false);
@@ -78,17 +88,6 @@ public abstract class RuntimeTest extends TestBase {
     runTestsForTargets(
         Message.DESC_MULTIPORT,
         TestCategory.MULTIPORT::equals,
-        Configurators::noChanges,
-        TestLevel.EXECUTION,
-        false);
-  }
-
-  @Test
-  public void runTypeParameterTests() {
-    Assumptions.assumeTrue(supportsGenericTypes(), Message.NO_GENERICS_SUPPORT);
-    runTestsForTargets(
-        Message.DESC_TYPE_PARMS,
-        TestCategory.GENERICS::equals,
         Configurators::noChanges,
         TestLevel.EXECUTION,
         false);

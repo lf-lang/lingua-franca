@@ -20,6 +20,9 @@ jobs:
           fetch-depth: 0
       - name: Prepare build environment
         uses: ./.github/actions/prepare-build-env
+      - name: Install RTI
+        uses: ./.github/actions/install-rti
+        if: ${{ runner.os == 'macOS' || runner.os == 'Linux' }}
       - name: Setup ROS2
         uses: ./.github/actions/setup-ros2
       - name: Install Protobuf Ubuntu

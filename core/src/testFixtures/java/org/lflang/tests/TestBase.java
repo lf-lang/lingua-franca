@@ -139,7 +139,8 @@ public abstract class TestBase {
 
     /* Descriptions of collections of tests. */
     public static final String DESC_SERIALIZATION = "Run serialization tests.";
-    public static final String DESC_GENERIC = "Run generic tests.";
+    public static final String DESC_BASIC = "Run basic tests.";
+    public static final String DESC_GENERICS = "Run generics tests.";
     public static final String DESC_TYPE_PARMS = "Run tests for reactors with type parameters.";
     public static final String DESC_MULTIPORT = "Run multiport tests.";
     public static final String DESC_AS_FEDERATED = "Run non-federated tests in federated mode.";
@@ -516,11 +517,11 @@ public abstract class TestBase {
 
       stderr.start();
       stdout.start();
-
-      if (!p.waitFor(MAX_EXECUTION_TIME_SECONDS, TimeUnit.SECONDS)) {
-        stdout.interrupt();
-        stderr.interrupt();
-        p.destroyForcibly();
+      var timeout = !p.waitFor(MAX_EXECUTION_TIME_SECONDS, TimeUnit.SECONDS);
+      stdout.interrupt();
+      stderr.interrupt();
+      if (timeout) {
+        p.destroy();
         throw new TestError(Result.TEST_TIMEOUT);
       } else {
         if (stdoutException.get() != null || stderrException.get() != null) {
