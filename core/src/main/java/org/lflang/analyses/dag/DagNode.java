@@ -50,4 +50,8 @@ public class DagNode {
         this.nodeType = type;
         this.nodeReaction = reactionInstance;
     }
+
+    public ReactionInstance getReaction() {
+        return this.nodeReaction;
+    }
 }
