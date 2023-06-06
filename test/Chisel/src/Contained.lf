@@ -1,0 +1,38 @@
+target Chisel;
+
+reactor Add1 {
+    input in:UInt
+    output out:UInt
+
+    reaction(in) -> out {=
+        lf_set(out, lf_get(in) + 1.U)
+        return true.B
+    =}
+}
+
+reactor Add {
+    input in1:UInt
+    input in2:UInt
+
+    output out:UInt
+
+    reaction(in1,in2) -> out {=
+        lf_set(out, lf_get(in1) + lf_get(in2))
+        reaction true.B
+    =}
+}
+
+
+main reactor {
+    timer t(0, 1 usec)
+    r1 = new Add1()
+    r2 = new Add1()
+    r3 = new Add()
+
+    reaction(t) -> r1.in, r2.in {=
+        lf_set(r1.in, 1.U)
+        lf_set(r2.in, 2.U)
+    =}
+
+    r1.out, r2.out -> r3.in1, r3.in2
+}

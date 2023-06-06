@@ -1,0 +1,8 @@
+target Chisel;
+
+main reactor {
+    timer t(0, 1 usec)
+    reaction(t) {=
+      lf_print("Hello World!")
+    =}
+}

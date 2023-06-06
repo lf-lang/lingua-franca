@@ -350,6 +350,10 @@ public enum Target {
          // are those that are a valid expression. Others may be escaped
          // with the syntax r#keyword.
          Arrays.asList("self", "true", "false")
+    ),
+    Chisel("Chisel", true,
+        "chisel", "Chisel",
+        Arrays.asList("this")
     );
 
     /**
@@ -495,7 +499,7 @@ public enum Target {
      */
     public boolean buildsUsingDocker() {
         return switch (this) {
-            case TS -> false;
+            case TS, Chisel -> false;
             case C, CCPP, CPP, Python, Rust -> true;
         };
     }

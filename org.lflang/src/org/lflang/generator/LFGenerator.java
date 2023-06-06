@@ -74,6 +74,7 @@ public class LFGenerator extends AbstractGenerator {
             case Python: return new PyFileConfig(resource, srcGenBasePath, useHierarchicalBin);
             case CPP:
             case Rust:
+            case Chisel:
             case TS:
                 String className = "org.lflang.generator." + target.packageName + "." + target.classNamePrefix + "FileConfig";
                 try {
@@ -103,7 +104,7 @@ public class LFGenerator extends AbstractGenerator {
             case C -> new CGenerator(context, false);
             case CCPP -> new CGenerator(context, true);
             case Python -> new PythonGenerator(context);
-            case CPP, TS, Rust ->
+            case CPP, TS, Rust, Chisel ->
                 createKotlinBaseGenerator(target, context);
             // If no case matched, then throw a runtime exception.
             default -> throw new RuntimeException("Unexpected target!");

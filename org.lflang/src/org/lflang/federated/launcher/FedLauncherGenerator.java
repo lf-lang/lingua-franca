@@ -489,7 +489,7 @@ public class FedLauncherGenerator {
             case C, CCPP -> new CBuildConfig(federate, fileConfig, errorReporter);
             case Python -> new PyBuildConfig(federate, fileConfig, errorReporter);
             case TS -> new TsBuildConfig(federate, fileConfig, errorReporter);
-            case CPP, Rust -> throw new UnsupportedOperationException();
+            case CPP, Rust, Chisel -> throw new UnsupportedOperationException();
         };
     }
 }
