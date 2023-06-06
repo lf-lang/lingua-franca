@@ -354,7 +354,18 @@ public class CEnclavedReactorTransformation implements AstTransformation {
     preamble.setCode(factory.createCode());
     preamble
         .getCode()
-        .setBody(String.join("\n", "#include \"reactor_common.h\"", "#include <string.h>"));
+        .setBody(
+            String.join(
+                "\n",
+                "#ifdef __cplusplus",
+                "extern \"C\"",
+                "{",
+                "#endif",
+                "#include \"reactor_common.h\"",
+                "#include <string.h>",
+                "#ifdef __cplusplus",
+                "}",
+                "#endif"));
 
     String className = "EnclaveConnectionReactor";
     Reactor connReactor = factory.createReactor();
