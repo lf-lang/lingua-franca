@@ -22,7 +22,7 @@ jobs:
     uses: ./.github/workflows/c-tests.yml
     with:
       all-platforms: ${{ !github.event.pull_request.draft  }}
-      selected-tests: runGenericTests
+      selected-tests: runBasicTests
 
   default1:
     if: ${{ inputs.all || github.event.pull_request.draft }}
@@ -43,7 +43,7 @@ jobs:
     uses: ./.github/workflows/c-tests.yml
     with:
       all-platforms: ${{ !github.event.pull_request.draft  }}
-      selected-tests: runTypeParameterTests
+      selected-tests: runGenericsTests
 
   default4:
     if: ${{ inputs.all || github.event.pull_request.draft }}
@@ -113,7 +113,7 @@ jobs:
     if: ${{ inputs.all || github.event.pull_request.draft }}
     uses: lf-lang/benchmarks-lingua-franca/.github/workflows/benchmark-tests.yml@gradle
     with:
-      target: 'C'
+      target: "C"
 
   # Run the C Arduino integration tests.
   arduino:

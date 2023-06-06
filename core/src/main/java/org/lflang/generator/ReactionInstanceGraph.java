@@ -87,7 +87,7 @@ public class ReactionInstanceGraph extends PrecedenceGraph<ReactionInstance.Runt
 
     // FIXME: Use {@link TargetProperty#EXPORT_DEPENDENCY_GRAPH}.
     // System.out.println(toDOT());
-//    addDependentNetworkEdges(main);
+    //    addDependentNetworkEdges(main);
 
     // Assign a level to each reaction.
     // If there are cycles present in the graph, it will be detected here.
@@ -141,7 +141,7 @@ public class ReactionInstanceGraph extends PrecedenceGraph<ReactionInstance.Runt
   public void rebuildAndAssignDeadlines() {
     this.clear();
     addNodesAndEdges(main);
-//    addDependentNetworkEdges(main);
+    //    addDependentNetworkEdges(main);
     assignInferredDeadlines();
     this.clear();
   }
