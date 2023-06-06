@@ -61,6 +61,11 @@ public class CEnclavedReactorTransformation implements AstTransformation {
         // This function performs the whole AST transformation consisting in
         // 1. Get all Enclave Reactors
         List <Instantiation> enclaveInsts = getEnclaveInsts(reactors);
+
+        if (enclaveInsts.size() == 0) {
+            return;
+        }
+
         List <Reactor> enclaveDefs = enclaveInsts.stream().map(r -> ASTUtils.toDefinition(r.getReactorClass())).distinct().toList();
 
         // 2. create ReactorWrappers for all of them.

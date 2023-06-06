@@ -36,5 +36,5 @@ main reactor {
     @enclave
     receiver = new Receiver()
 
-    sender.out -> receiver.in after 50 msec
+    sender.out -> receiver.in
 }
