@@ -31,7 +31,6 @@ reactor Receiver {
 }
 
 main reactor {
-
     sender = new Sender()
     receiver = new Receiver()
 

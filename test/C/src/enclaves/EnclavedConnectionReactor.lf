@@ -1,21 +1,18 @@
 // This is a library reactor used to implemented connections between enclaves.
-target C;
+target C
 
-// FIXME: Handle token types also by checking whether it is a token type.
-// I guess we can just 
-reactor ConnectionReactor<T>(delay: time = 0){
-
+// FIXME: Handle token types also by checking whether it is a token type. I
+// guess we can just
+reactor ConnectionReactor<T>(delay: time = 0) {
     preamble {=
         #include "platform.h"
     =}
-    input in: T 
+    input in: T
     output out: T
 
     logical action act: T
 
-    reaction(act) -> out {=
-        lf_set(out, act->value);
-    =}
+    reaction(act) -> out {= lf_set(out, act->value); =}
 
     reaction(in) -> act {=
         environment_t* src_env = in->_base.source_reactor->environment;
@@ -35,5 +32,5 @@ reactor ConnectionReactor<T>(delay: time = 0){
 }
 
 main reactor {
-    conn = new ConnectionReactor<int>();
+    conn = new ConnectionReactor<int>()
 }
