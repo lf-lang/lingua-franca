@@ -118,8 +118,8 @@ public class TestRegistry {
     CONCURRENT(true, "", TestLevel.EXECUTION),
     /** Test about enclaves */
     ENCLAVE(false, "", TestLevel.EXECUTION),
-    /** Generic tests, ie, tests that all targets are supposed to implement. */
-    GENERIC(true, "", TestLevel.EXECUTION),
+    /** Basic tests, ie, tests that all targets are supposed to implement. */
+    BASIC(true, "", TestLevel.EXECUTION),
     /** Tests about generics, not to confuse with {@link #GENERIC}. */
     GENERICS(true, "", TestLevel.EXECUTION),
     /** Tests about multiports and banks of reactors. */
