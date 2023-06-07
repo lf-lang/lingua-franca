@@ -2,28 +2,28 @@
 target C
 
 reactor Source {
-    output out: int*
-    logical action a: int
+  output out: int*
+  logical action a: int
 
-    reaction(startup) -> a {= lf_schedule_int(a, MSEC(200), 42); =}
+  reaction(startup) -> a {= lf_schedule_int(a, MSEC(200), 42); =}
 
-    reaction(a) -> out {= lf_set_token(out, a->token); =}
+  reaction(a) -> out {= lf_set_token(out, a->token); =}
 }
 
 reactor Print(expected: int = 42) {  // expected parameter is for testing.
-    input in: int*
+  input in: int*
 
-    reaction(in) {=
-        printf("Received %d\n", *(in->value));
-        if (*(in->value) != 42) {
-            printf("ERROR: Expected value to be 42.\n");
-            exit(1);
-        }
-    =}
+  reaction(in) {=
+    printf("Received %d\n", *(in->value));
+    if (*(in->value) != 42) {
+        printf("ERROR: Expected value to be 42.\n");
+        exit(1);
+    }
+  =}
 }
 
 main reactor SetToken {
-    s = new Source()
-    p = new Print()
-    s.out -> p.in
+  s = new Source()
+  p = new Print()
+  s.out -> p.in
 }

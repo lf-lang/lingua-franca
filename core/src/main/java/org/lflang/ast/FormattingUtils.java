@@ -29,9 +29,9 @@ public class FormattingUtils {
   private static final Pattern MULTILINE_COMMENT = Pattern.compile("\\s*/\\*\\v?(\\V*\\v+)*\\V*");
 
   /** The number of spaces to prepend to a line per indentation level. */
-  private static final int INDENTATION = 4;
+  private static final int INDENTATION = 2;
 
-  public static final int DEFAULT_LINE_LENGTH = 80;
+  public static final int DEFAULT_LINE_LENGTH = 100;
 
   static final int MAX_WHITESPACE_USED_FOR_ALIGNMENT = 20;
 

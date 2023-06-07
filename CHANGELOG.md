@@ -597,8 +597,7 @@ This is the first stable release of Lingua Franca. Aside from numerous bugfixes,
 #### Python
 - Multiports and banks are now iterable in the Python target ([#713](https://github.com/lf-lang/lingua-franca/pull/713))
 - Fixed an issue where top-level custom Python classes were being serialized incorrectly
-- `bank_index` (useful for banks of reactors) is now a proper parameter ([#424](https://github.com/lf-lang/lingua-franca/pull/424))
-  that can be passed down the reactor hierarchy via parameter assignment.
+- `bank_index` (useful for banks of reactors) is now a proper parameter that can be passed down the reactor hierarchy via parameter assignment ([#424](https://github.com/lf-lang/lingua-franca/pull/424)).
 
 ### Tool support
 - Created an Language and Diagram Server that enables our new [VS Code extension](https://github.com/lf-lang/vscode-lingua-franca)
