@@ -31,8 +31,8 @@ public class TypeScriptTest extends RuntimeTest {
 
   @Test
   @Override
-  public void runGenericTests() {
-    super.runGenericTests();
+  public void runBasicTests() {
+    super.runBasicTests();
   }
 
   @Test
