@@ -157,24 +157,26 @@ public class Lff extends CliBase {
     final String formattedFileContents =
         FormattingUtils.render(resource.getContents().get(0), lineLength);
 
-    if (dryRun) {
-      io.getOut().println(formattedFileContents);
-      io.getOut().println("\0");
-    } else {
-      try {
+    try {
+      if (dryRun) {
+        io.getOut().println(formattedFileContents);
+        io.getOut().println("\0");
+      } else {
         FileUtil.writeToFile(formattedFileContents, outputPath, true);
-      } catch (IOException e) {
-        if (e instanceof FileAlreadyExistsException) {
-          // Only happens if a subdirectory is named with
-          // ".lf" at the end.
-          reporter.printFatalErrorAndExit(
-              "Error writing to "
-                  + outputPath
-                  + ": file already exists. Make sure that no file or"
-                  + " directory within provided input paths have the"
-                  + " same relative paths.");
-        }
       }
+    } catch (FileAlreadyExistsException e) {
+      // Only happens if a subdirectory is named with
+      // ".lf" at the end.
+      reporter.printFatalErrorAndExit(
+          "Error writing to "
+              + outputPath
+              + ": file already exists. Make sure that no file or"
+              + " directory within provided input paths have the"
+              + " same relative paths.");
+    } catch (IOException e) {
+      reporter.printFatalErrorAndExit(
+          "An unknown I/O exception occurred while processing " + outputPath);
+      e.printStackTrace();
     }
 
     if (!ignoreErrors) {
