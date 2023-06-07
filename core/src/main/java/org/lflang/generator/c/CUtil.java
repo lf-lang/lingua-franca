@@ -809,7 +809,6 @@ public class CUtil {
   }
 
   // Returns the ReactorInstance of the closest enclave in the containment hierarchy.
-  // FIXME: Does this work, is a ReactorInstance == an instantiation which can be enclaved?
   public static ReactorInstance getClosestEnclave(ReactorInstance inst) {
     if (inst.isMainOrFederated() || isEnclave(inst.getDefinition())) {
       return inst;
@@ -822,7 +821,7 @@ public class CUtil {
     return enclave.uniqueID();
   }
 
-  // Returns a string which represents a C literal which points to the struct of the environment
+  // Returns a string which represents a C variable which points to the struct of the environment
   // of the ReactorInstance inst.
   public static String getEnvironmentStruct(ReactorInstance inst) {
     return "envs[" + getEnvironmentId(inst) + "]";
@@ -845,30 +844,5 @@ public class CUtil {
       }
     }
     return enclaves;
-  }
-
-  // FIXME: All the functions below needs to be implemented, somehow
-  public static int numStartupReactionsInEnclave(ReactorInstance enclave) {
-    return 1;
-  }
-
-  public static int numShutdownReactionsInEnclave(ReactorInstance enclave) {
-    return 1;
-  }
-
-  public static int numResetReactionsInEnclave(ReactorInstance enclave) {
-    return 1;
-  }
-
-  public static int numWorkersInEnclave(ReactorInstance enclave) {
-    return 1;
-  }
-
-  public static int numTimerTriggersInEnclave(ReactorInstance enclave) {
-    return 1;
-  }
-
-  public static int numIsPresentFieldsInEnclave(ReactorInstance enclave) {
-    return 3;
   }
 }
