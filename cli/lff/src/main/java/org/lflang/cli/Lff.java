@@ -31,6 +31,12 @@ public class Lff extends CliBase {
 
   /** Supported CLI options for Lff. */
   @Option(
+      names = {"-c", "--check"},
+      description =
+          "Check mode. Exit with an error code if any files would change when applying formatting.")
+  private boolean check = false;
+
+  @Option(
       names = {"-d", "--dry-run"},
       description =
           "Send the formatted file contents to stdout" + " without writing to the file system.")
@@ -80,6 +86,12 @@ public class Lff extends CliBase {
   /** Validates all paths and invokes the formatter on the input paths. */
   @Override
   public void doRun() {
+    if (check && dryRun) {
+      reporter.printFatalErrorAndExit(
+          "The options --check (-c) and --dry-run (-d) are mutually exclusive. Please use only one"
+              + " at a time.");
+    }
+
     List<Path> paths;
     do {
       paths = getInputPaths();
@@ -97,6 +109,9 @@ public class Lff extends CliBase {
         reporter.printFatalErrorAndExit("An unexpected error occurred:", e);
       }
     } while (stdinMode() && !paths.isEmpty());
+
+    // return an error code if any errors were reported
+    reporter.exit();
   }
 
   /*
@@ -122,7 +137,7 @@ public class Lff extends CliBase {
                 }
               });
         } catch (IOException e) {
-          reporter.printError("IO error: " + e);
+          reporter.printFatalErrorAndExit("An unknown I/O exception occurred.", e);
         }
       } else {
         // Simple file.
@@ -158,7 +173,11 @@ public class Lff extends CliBase {
         FormattingUtils.render(resource.getContents().get(0), lineLength);
 
     try {
-      if (dryRun) {
+      if (check) {
+        if (!FileUtil.isSame(formattedFileContents, outputPath)) {
+          reporter.printError("Would reformat " + outputPath);
+        }
+      } else if (dryRun) {
         io.getOut().println(formattedFileContents);
         io.getOut().println("\0");
       } else {
@@ -175,8 +194,7 @@ public class Lff extends CliBase {
               + " same relative paths.");
     } catch (IOException e) {
       reporter.printFatalErrorAndExit(
-          "An unknown I/O exception occurred while processing " + outputPath);
-      e.printStackTrace();
+          "An unknown I/O exception occurred while processing " + outputPath, e);
     }
 
     if (!ignoreErrors) {
