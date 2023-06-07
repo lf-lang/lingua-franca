@@ -120,8 +120,7 @@ public class ReactionInstance extends NamedInstance<Reaction> {
           this.sources.add(timerInstance);
         }
       } else if (trigger instanceof BuiltinTriggerRef) {
-        var builtinTriggerInstance
-          = parent.getOrCreateBuiltinTrigger((BuiltinTriggerRef) trigger);
+        var builtinTriggerInstance = parent.getOrCreateBuiltinTrigger((BuiltinTriggerRef) trigger);
         this.triggers.add(builtinTriggerInstance);
         builtinTriggerInstance.dependentReactions.add(this);
       }

@@ -146,16 +146,18 @@ public class ASTUtils {
 
   /**
    * Get the main reactor defined in the given resource.
+   *
    * @param resource the resource to extract reactors from
    * @return An iterable over all reactors found in the resource
    */
   public static Reactor getMainReactor(Resource resource) {
-    return StreamSupport.stream(IteratorExtensions.toIterable(resource.getAllContents()).spliterator(), false)
-                        .filter(Reactor.class::isInstance)
-                        .map(Reactor.class::cast)
-                        .filter(it -> it.isMain())
-                        .findFirst()
-                        .get(); 
+    return StreamSupport.stream(
+            IteratorExtensions.toIterable(resource.getAllContents()).spliterator(), false)
+        .filter(Reactor.class::isInstance)
+        .map(Reactor.class::cast)
+        .filter(it -> it.isMain())
+        .findFirst()
+        .get();
   }
 
   /**

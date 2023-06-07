@@ -235,10 +235,7 @@ public class TargetConfig {
   /** If true, do not perform runtime validation. The default is false. */
   public boolean noRuntimeValidation = false;
 
-  /**
-   * If true, do not check the generated verification model.
-   * The default is false.
-   */
+  /** If true, do not check the generated verification model. The default is false. */
   public boolean noVerify = false;
 
   /**

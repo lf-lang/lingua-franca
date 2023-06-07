@@ -26,7 +26,6 @@ package org.lflang.generator;
 
 import com.google.common.base.Objects;
 import com.google.common.collect.Iterables;
-import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;

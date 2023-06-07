@@ -412,14 +412,14 @@ public enum TargetProperty {
         config.noRuntimeValidation = ASTUtils.toBoolean(value);
       }),
 
-  /**
-   * Directive to not check the generated verification model.
-   */
-  NO_VERIFY("no-verify", PrimitiveType.BOOLEAN,
+  /** Directive to not check the generated verification model. */
+  NO_VERIFY(
+      "no-verify",
+      PrimitiveType.BOOLEAN,
       Arrays.asList(Target.C),
       (config) -> ASTUtils.toElement(config.noVerify),
       (config, value, err) -> {
-          config.noVerify = ASTUtils.toBoolean(value);
+        config.noVerify = ASTUtils.toBoolean(value);
       }),
 
   /**

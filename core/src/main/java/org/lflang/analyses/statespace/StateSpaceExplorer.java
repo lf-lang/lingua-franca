@@ -298,7 +298,8 @@ public class StateSpaceExplorer {
         // System.out.println("DEBUG: Stopping because eventQ is empty!");
         stop = true;
       } else if (currentTag.timestamp > horizon.timestamp) {
-        // System.out.println("DEBUG: Stopping because horizon is reached! Horizon: " + horizon + "Current Tag: " + currentTag);
+        // System.out.println("DEBUG: Stopping because horizon is reached! Horizon: " + horizon +
+        // "Current Tag: " + currentTag);
         // System.out.println("DEBUG: EventQ: " + eventQ);
         stop = true;
       }

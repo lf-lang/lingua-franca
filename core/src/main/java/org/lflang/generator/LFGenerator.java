@@ -1,15 +1,13 @@
 package org.lflang.generator;
 
 import com.google.inject.Inject;
-
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.lang.reflect.Constructor;
 import java.nio.file.Path;
+import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
-import java.util.Arrays;
 import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.xtext.generator.AbstractGenerator;
 import org.eclipse.xtext.generator.IFileSystemAccess2;
@@ -24,8 +22,6 @@ import org.lflang.ast.ASTUtils;
 import org.lflang.federated.generator.FedASTUtils;
 import org.lflang.federated.generator.FedFileConfig;
 import org.lflang.federated.generator.FedGenerator;
-import org.lflang.lf.Attribute;
-import org.lflang.lf.Reactor;
 import org.lflang.generator.c.CFileConfig;
 import org.lflang.generator.c.CGenerator;
 import org.lflang.generator.cpp.CppFileConfig;
@@ -36,6 +32,8 @@ import org.lflang.generator.rust.RustFileConfig;
 import org.lflang.generator.rust.RustGenerator;
 import org.lflang.generator.ts.TSFileConfig;
 import org.lflang.generator.ts.TSGenerator;
+import org.lflang.lf.Attribute;
+import org.lflang.lf.Reactor;
 import org.lflang.scoping.LFGlobalScopeProvider;
 
 /** Generates code from your model files on save. */
@@ -139,10 +137,9 @@ public class LFGenerator extends AbstractGenerator {
   }
 
   /**
-   * Check if a clean was requested from the standalone compiler and perform
-   * the clean step.
-   * 
-   * FIXME: the signature can be reduced to only take context.
+   * Check if a clean was requested from the standalone compiler and perform the clean step.
+   *
+   * <p>FIXME: the signature can be reduced to only take context.
    */
   protected void cleanIfNeeded(LFGeneratorContext context) {
     if (context.getArgs().containsKey("clean")) {
@@ -155,19 +152,20 @@ public class LFGenerator extends AbstractGenerator {
   }
 
   /**
-   * Check if @property is used. If so, instantiate a UclidGenerator.
-   * The verification model needs to be generated before the target code
-   * since code generation changes LF program (desugar connections, etc.).
+   * Check if @property is used. If so, instantiate a UclidGenerator. The verification model needs
+   * to be generated before the target code since code generation changes LF program (desugar
+   * connections, etc.).
    */
   private void runVerifierIfPropertiesDetected(Resource resource, LFGeneratorContext lfContext) {
     Reactor main = ASTUtils.getMainReactor(resource);
-    List<Attribute> properties = AttributeUtils.getAttributes(main)
-                                .stream()
-                                .filter(attr -> attr.getAttrName().equals("property"))
-                                .collect(Collectors.toList());
+    List<Attribute> properties =
+        AttributeUtils.getAttributes(main).stream()
+            .filter(attr -> attr.getAttrName().equals("property"))
+            .collect(Collectors.toList());
     if (properties.size() > 0) {
 
-      System.out.println("*** WARNING: @property is an experimental feature. Use it with caution. ***");
+      System.out.println(
+          "*** WARNING: @property is an experimental feature. Use it with caution. ***");
 
       // Check if Uclid5 and Z3 are installed.
       if (execInstalled("uclid", "--help", "uclid 0.9.5")
@@ -189,7 +187,7 @@ public class LFGenerator extends AbstractGenerator {
 
   /**
    * A helper function for checking if a dependency is installed on the command line.
-   * 
+   *
    * @param binaryName The name of the binary
    * @param arg An argument following the binary name
    * @param expectedSubstring An expected substring in the output
