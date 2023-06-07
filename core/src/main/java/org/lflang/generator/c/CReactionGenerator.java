@@ -1127,56 +1127,6 @@ public class CReactionGenerator {
             "self->_lf__" + name + ".is_timer = false;"));
   }
 
-  public static String generateBuiltinTriggersTable(int reactionCount, String name) {
-    return String.join(
-        "\n",
-        List.of(
-            "// Array of pointers to " + name + " triggers.",
-            (reactionCount > 0
-                    ? "reaction_t* _lf_" + name + "_reactions[" + reactionCount + "]"
-                    : "reaction_t** _lf_" + name + "_reactions = NULL")
-                + ";",
-            "int _lf_" + name + "_reactions_size = " + reactionCount + ";"));
-  }
-
-  /** Generate the _lf_trigger_startup_reactions function. */
-  public static String generateLfTriggerStartupReactions(boolean hasModalReactors) {
-    var s = new StringBuilder();
-    s.append("void _lf_trigger_startup_reactions(environment_t *env) {");
-    s.append("\n");
-    if (hasModalReactors) {
-      s.append(
-          String.join(
-              "\n",
-              "    for (int i = 0; i < env->startup_reactions_size; i++) {",
-              "        if (env->startup_reactions[i] != NULL) {",
-              "            if (env->startup_reactions[i]->mode != NULL) {",
-              "                // Skip reactions in modes",
-              "                continue;",
-              "            }",
-              "            _lf_trigger_reaction(env, env->startup_reactions[i], -1);",
-              "        }",
-              "    }",
-              "    _lf_handle_mode_startup_reset_reactions(",
-              "        env,",
-              "        env->startup_reactions, env->startup_reactions_size,",
-              "        NULL, 0,",
-              "        env->modes->modal_reactor_states, env->modes->modal_reactor_states_size);"));
-    } else {
-      s.append(
-          String.join(
-              "\n",
-              "    for (int i = 0; i < env->startup_reactions_size; i++) {",
-              "        if (env->startup_reactions[i] != NULL) {",
-              "            _lf_trigger_reaction(env, env->startup_reactions[i], -1);",
-              "        }",
-              "    }"));
-    }
-    s.append("\n");
-    s.append("}\n");
-    return s.toString();
-  }
-
   /** Generate the _lf_trigger_shutdown_reactions function. */
   public static String generateLfTriggerShutdownReactions() {
     return String.join(

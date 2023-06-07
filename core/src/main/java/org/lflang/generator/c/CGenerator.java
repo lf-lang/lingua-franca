@@ -643,9 +643,6 @@ public class CGenerator extends GeneratorBase {
           CTriggerObjectsGenerator.generateInitializeTriggerObjects(
               main, targetConfig, initializeTriggerObjects, startTimeStep, types, lfModuleName));
 
-      // Generate function to trigger startup reactions for all reactors.
-      code.pr(CReactionGenerator.generateLfTriggerStartupReactions(hasModalReactors));
-
       // Generate a function that will either do nothing
       // (if there is only one federate or the coordination
       // is set to decentralized) or, if there are
