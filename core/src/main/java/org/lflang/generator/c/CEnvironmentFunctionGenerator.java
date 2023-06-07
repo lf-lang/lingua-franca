@@ -5,6 +5,10 @@ import java.util.List;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.generator.ReactorInstance;
 
+/**
+ * This class is in charge of code generating functions and global variables related to the environments
+ */
+
 public class CEnvironmentFunctionGenerator {
 
   public CEnvironmentFunctionGenerator(ReactorInstance main) {
