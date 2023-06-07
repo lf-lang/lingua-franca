@@ -21,28 +21,19 @@ jobs:
   check-diff:
     uses: ./.github/workflows/check-diff.yml
 
-  junit:
-    uses: ./.github/workflows/unit-tests.yml
-    with:
-      all-platforms: ${{ !github.event.pull_request.draft }}
-
   # Test the Gradle build.
   building:
-    if: ${{ !github.event.pull_request.draft }}
     uses: ./.github/workflows/build.yml
+    with:
+      all-platforms: ${{ !github.event.pull_request.draft }}
 
   # Build the tools used for processing execution traces
   tracing:
     if: ${{ !github.event.pull_request.draft || needs.check-diff.outputs.changed-tracing == 1 }}
     uses: ./.github/workflows/build-trace-tools.yml
-    needs:
-      check-diff
+    needs: check-diff
     with:
       all-platforms: ${{ !github.event.pull_request.draft }}
-
-  formatting:
-    if: ${{ !github.event.pull_request.draft }}
-    uses: ./.github/workflows/check-format.yml
 
   # Run tests for the standalone compiler.
   cli:

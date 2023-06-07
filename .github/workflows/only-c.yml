@@ -5,6 +5,7 @@ on:
   workflow_call:
     inputs:
       all:
+        default: true
         type: boolean
 
 env:
@@ -26,9 +27,9 @@ jobs:
   # Run the C benchmark tests.
   benchmarking:
     if: ${{ inputs.all || github.event.pull_request.draft }}
-    uses: lf-lang/benchmarks-lingua-franca/.github/workflows/benchmark-tests.yml@main
+    uses: lf-lang/benchmarks-lingua-franca/.github/workflows/benchmark-tests.yml@gradle
     with:
-      target: 'C'
+      target: "C"
 
   # Run the C Arduino integration tests.
   arduino:

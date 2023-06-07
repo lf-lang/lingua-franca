@@ -1,5 +1,5 @@
 changes() {
-  git diff --name-only --diff-filter=AMDR --cached origin/master
+  git diff --name-only HEAD $(git merge-base HEAD origin/master)
 }
 
 if changes | grep -q $1; then
@@ -7,4 +7,3 @@ if changes | grep -q $1; then
 else
   echo "CHANGED_$2=0" >> $GITHUB_OUTPUT
 fi
-

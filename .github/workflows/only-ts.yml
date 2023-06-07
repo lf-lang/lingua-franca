@@ -5,6 +5,7 @@ on:
   workflow_call:
     inputs:
       all:
+        default: true
         type: boolean
 
 env:
@@ -16,6 +17,13 @@ concurrency:
   cancel-in-progress: ${{ github.ref != 'refs/heads/master' }}
 
 jobs:
+  # Run the TypeScript benchmark tests.
+  benchmarking:
+    if: ${{ inputs.all || github.event.pull_request.draft }}
+    uses: lf-lang/benchmarks-lingua-franca/.github/workflows/benchmark-tests.yml@gradle
+    with:
+      target: "TS"
+
   # Run the TypeScript integration tests.
   ts-tests:
     if: ${{ inputs.all || github.event.pull_request.draft }}

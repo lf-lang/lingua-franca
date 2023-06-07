@@ -1,29 +1,20 @@
-# LF system tests
+# LF integration tests
 
-**System tests** are complete Lingua Franca programs that are compiled and executed automatically. A test passes if it successfully compiles and runs to completion with normal termination (return code 0). These tests are located in a subdirectory corresponding to their target language.
+**Integration tests** are complete Lingua France programs that are compiled and executed automatically. A test passes if it successfully compiles and runs to completion with normal termination (return code 0). These tests are located in a subdirectory corresponding to their target language.
 
 ### Running from the command line
 
-The simplest way to run the regression tests is to use a Bash script called `run-lf-tests` in `$LF/bin`, which takes the target language as a parameter:
+The simplest way to run integration tests for a specific target is the `targetTest` gradle task. For instance, you can use the following command to run all Rust tests:
 ```
-run-lf-tests C
-run-lf-tests Cpp
-run-lf-tests Python
-run-lf-tests TypeScript
+./gradlew targetTest -Ptarget=Rust
 ```
+You can specify any valid target. If you run the task without specifying the target property `./gradlew tagetTest` it will produce an error message and list all available targets.
 
-You can also selectively run just some of the tests. For example, to run the system tests for an individual target language, do this:
+The `targetTest` task is essentially a convenient shortcut for the following:
 ```
-./gradlew test --tests org.lflang.tests.runtime.CTest.*
-./gradlew test --tests org.lflang.tests.runtime.CppTest.*
-./gradlew test --tests org.lflang.tests.runtime.PythonTest.*
-./gradlew test --tests org.lflang.tests.runtime.TypeScriptTest.*
+./gradew core:integrationTest --test org.lflang.tests.runtime.<target>Test.*
 ```
-
-To run a single test case, use the `runSingleTest` gradle task along with the path to the test source file:
-```
-./gradlew runSingleTest --args test/C/src/Minimal.lf
-```
+If you prefer have more control over which tests are executed, you can also use this more verbose version.
 
 It is also possible to run a subset of the tests. For example, the C tests are organized into the following categories:
 
@@ -32,10 +23,14 @@ It is also possible to run a subset of the tests. For example, the C tests are o
 * **federated** tests are `.lf` files located in `$LF/test/C/src/federated`.
 * **multiport** tests are `.lf` files located in `$LF/test/C/src/multiport`.
 
-To invoke only the tests in the `concurrent` category, for example, do this:
+To invoke only the C tests in the `concurrent` category, for example, do this:
 ```
-cd $LF
-./gradlew test --tests org.lflang.tests.runtime.CTest.runConcurrentTests
+./gradlew core:integrationTest --tests org.lflang.tests.runtime.CTest.runConcurrentTests
+```
+
+To run a single test case, use the `singleTest` gradle task along with the path to the test source file:
+```
+./gradlew singleTest -DsingleTest=test/C/src/Minimal.lf
 ```
 
 ### LSP tests

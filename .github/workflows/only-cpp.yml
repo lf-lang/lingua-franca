@@ -5,6 +5,7 @@ on:
   workflow_call:
     inputs:
       all:
+        default: true
         type: boolean
 
 env:
@@ -19,9 +20,9 @@ jobs:
   # Run the C++ benchmark tests.
   cpp-benchmark-tests:
     if: ${{ inputs.all || github.event.pull_request.draft }}
-    uses: lf-lang/benchmarks-lingua-franca/.github/workflows/benchmark-tests.yml@main
+    uses: lf-lang/benchmarks-lingua-franca/.github/workflows/benchmark-tests.yml@gradle
     with:
-      target: 'Cpp'
+      target: "Cpp"
 
   # Run the C++ integration tests.
   cpp-tests:

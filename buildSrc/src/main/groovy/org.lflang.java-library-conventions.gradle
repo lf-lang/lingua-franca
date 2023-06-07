@@ -1,0 +1,5 @@
+plugins {
+    id 'org.lflang.java-conventions'
+    id 'java-library'
+    id 'org.lflang.test-conventions'
+}

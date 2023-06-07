@@ -1,0 +1,10 @@
+plugins {
+    id 'org.lflang.java-library-conventions'
+    id 'org.lflang.kotlin-conventions'
+}
+
+dependencies {
+    api "info.picocli:picocli:$picocliVersion"
+
+    api project(':core')
+}
