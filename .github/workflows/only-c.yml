@@ -50,3 +50,11 @@ jobs:
     with:
       use-cpp: true
       all-platforms: ${{ !github.event.pull_request.draft  }}
+
+  # Run the Uclid-based LF Verifier tests.
+  uclid:
+    if: ${{ inputs.all || github.event.pull_request.draft }}
+    uses: ./.github/workflows/uclid-verifier-c-tests.yml
+    with:
+      use-cpp: true
+      all-platforms: ${{ !github.event.pull_request.draft  }}
