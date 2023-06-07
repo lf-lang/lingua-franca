@@ -156,11 +156,13 @@ public class Lff extends CliBase {
             ? path // Format in place.
             : outputRoot.resolve(inputRoot.relativize(path)).normalize();
 
+    Path relativePath = io.getWd().relativize(path);
+
     final Resource resource = getResource(path);
     // Skip file if not an LF file.
     if (resource == null) {
       if (verbose) {
-        reporter.printInfo("Skipped " + path + ": not an LF file");
+        reporter.printInfo("Skipped " + relativePath + ": not an LF file");
       }
       return;
     }
@@ -205,7 +207,7 @@ public class Lff extends CliBase {
     // the position of the issue may be wrong in the formatted file.
     // issueCollector.getAllIssues().forEach(reporter::printIssue);
     if (verbose) {
-      String msg = "Formatted " + io.getWd().relativize(path);
+      String msg = "Formatted " + relativePath;
       if (path != outputPath) {
         msg += " -> " + io.getWd().relativize(outputPath);
       }
