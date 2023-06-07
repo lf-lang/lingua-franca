@@ -1,9 +1,9 @@
 name: Install Zephyr and dependencies (Linux only)
 description: Install Zephyr and dependencies (Linux only)
-env:
-  SDK_VERSION: 0.16.1
-  ZEPHYR_VERSION: 3.3.0
 runs:
+  env:
+    SDK_VERSION: 0.16.1
+    ZEPHYR_VERSION: 3.3.0
   using: "composite"
   steps:
     - name: Dependencies
