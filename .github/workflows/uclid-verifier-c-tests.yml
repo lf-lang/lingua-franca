@@ -41,7 +41,7 @@ jobs:
       - name: Install Lingua Franca
         working-directory: lingua-franca/
         run: |
-          ./bin/build-lf-cli
+          ./gradlew assemble
           ./bin/lfc --version
           echo "$(pwd)/bin" >> $GITHUB_PATH
       - name: Download Z3
