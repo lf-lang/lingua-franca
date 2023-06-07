@@ -1,7 +1,10 @@
 package org.lflang.generator;
 
 import com.google.inject.Inject;
+
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.lang.reflect.Constructor;
 import java.nio.file.Path;
 import java.util.List;
@@ -190,25 +193,8 @@ public class LFGenerator extends AbstractGenerator {
       // If "-c" or "--clean" is specified, delete any existing generated directories.
       cleanIfNeeded(lfContext);
 
-      // Check if @property is used. If so, instantiate a UclidGenerator.
-      // The verification model needs to be generated before the target code
-      // since code generation changes LF program (desugar connections, etc.).
-      Reactor main = ASTUtils.getMainReactor(resource);
-      List<Attribute> properties = AttributeUtils.getAttributes(main)
-                                  .stream()
-                                  .filter(attr -> attr.getAttrName().equals("property"))
-                                  .collect(Collectors.toList());
-      if (properties.size() > 0) {
-          UclidGenerator uclidGenerator = new UclidGenerator(lfContext, properties);
-          // Generate uclid files.
-          uclidGenerator.doGenerate(resource, lfContext);
-          if (!uclidGenerator.targetConfig.noVerify) {
-              // Invoke the generated uclid files.
-              uclidGenerator.runner.run();
-          } else {
-              System.out.println("\"no-verify\" is set to true. Skip checking the verification model.");
-          }
-      }
+      // If @property annotations are used, run the LF verifier.
+      runVerifierIfPropertiesDetected(resource, lfContext);
 
       final GeneratorBase generator = createGenerator(lfContext);
 
@@ -242,5 +228,63 @@ public class LFGenerator extends AbstractGenerator {
         System.err.println("WARNING: IO Error during clean");
       }
     }
+  }
+
+  /**
+   * Check if @property is used. If so, instantiate a UclidGenerator.
+   * The verification model needs to be generated before the target code
+   * since code generation changes LF program (desugar connections, etc.).
+   */
+  private void runVerifierIfPropertiesDetected(Resource resource, LFGeneratorContext lfContext) {
+    Reactor main = ASTUtils.getMainReactor(resource);
+    List<Attribute> properties = AttributeUtils.getAttributes(main)
+                                .stream()
+                                .filter(attr -> attr.getAttrName().equals("property"))
+                                .collect(Collectors.toList());
+    if (properties.size() > 0) {
+
+      System.out.println("*** WARNING: @property is an experimental feature. Use it with caution. ***");
+
+      // Check if Uclid5 and Z3 are installed.
+      if (execInstalled("uclid", "--help", "uclid 0.9.5")
+          && execInstalled("z3", "--version", "Z3 version")) {
+        UclidGenerator uclidGenerator = new UclidGenerator(lfContext, properties);
+        // Generate uclid files.
+        uclidGenerator.doGenerate(resource, lfContext);
+        if (!uclidGenerator.targetConfig.noVerify) {
+          // Invoke the generated uclid files.
+          uclidGenerator.runner.run();
+        } else {
+          System.out.println("\"no-verify\" is set to true. Skip checking the verification model.");
+        }
+      } else {
+        System.out.println("*** WARNING: Uclid5 or Z3 is not installed. @property is skipped. ***");
+      }
+    }
+  }
+
+  /**
+   * A helper function for checking if a dependency is installed on the command line.
+   * 
+   * @param binaryName The name of the binary
+   * @param arg An argument following the binary name
+   * @param expectedSubstring An expected substring in the output
+   * @return
+   */
+  public static boolean execInstalled(String binaryName, String arg, String expectedSubstring) {
+    ProcessBuilder processBuilder = new ProcessBuilder(binaryName, arg);
+    try {
+      Process process = processBuilder.start();
+      BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+      String line;
+      while ((line = reader.readLine()) != null) {
+        if (line.contains(expectedSubstring)) {
+          return true;
+        }
+      }
+    } catch (IOException e) {
+      return false; // binary not present
+    }
+    return false;
   }
 }
