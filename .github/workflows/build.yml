@@ -7,14 +7,21 @@ on:
         required: false
         type: boolean
         default: false
+      all-platforms:
+        required: false
+        default: false
+        type: boolean
     secrets:
       envPAT:
         required: false
   workflow_dispatch:
 
 jobs:
-  run:
-    runs-on: ubuntu-latest
+  build-toolchain:
+    strategy:
+      matrix:
+        platform: ${{ (inputs.all-platforms && fromJSON('["ubuntu-latest", "macos-latest", "windows-latest"]')) || fromJSON('["ubuntu-latest"]') }}
+    runs-on: ${{ matrix.platform }}
     steps:
       - name: Check out lingua-franca repository
         uses: actions/checkout@v3
@@ -24,11 +31,11 @@ jobs:
       - name: Prepare build environment
         uses: ./.github/actions/prepare-build-env
       - name: Build and package lf cli tools (nightly build)
-        run: .github/scripts/package-cli.sh nightly
+        run: ./gradlew build -Pnightly
         shell: bash
         if: ${{ inputs.nightly == true }}
       - name: Build and package lf cli tools (regular build)
-        run: .github/scripts/package-cli.sh
+        run: ./gradlew build
         shell: bash
         if: ${{ inputs.nightly != true }}
       - name: Deploy nightly release
@@ -39,5 +46,14 @@ jobs:
           prerelease: true
           title: "Lingua Franca Nightly"
           files: |
-            build_upload/*
+            build/distributions/*
         if: ${{ inputs.nightly == true }}
+      - name: Collect code coverage
+        run: ./gradlew jacocoTestReport
+        if: ${{ runner.os == 'Linux' }}
+      - name: Report to CodeCov
+        uses: codecov/codecov-action@v3.1.1
+        with:
+          files: core/build/reports/xml/jacoco,cli/lfc/build/reports/xml/jacoco,cli/lff/build/reports/xml/jacoco
+          fail_ci_if_error: false
+          verbose: true

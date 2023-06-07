@@ -1,0 +1,50 @@
+# Non-target-specific tests
+name: CI (misc)
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - master
+  pull_request:
+    types: [synchronize, opened, reopened, ready_for_review, converted_to_draft]
+
+env:
+  # 2020.11
+  vcpkgGitRef: 0bf3923f9fab4001c00f0f429682a0853b5749e0
+
+concurrency:
+  group: all-non-target-specific-${{ github.ref }}-${{ github.event_path }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/master' }}
+
+jobs:
+  check-diff:
+    uses: ./.github/workflows/check-diff.yml
+
+  # Test the Gradle build.
+  building:
+    uses: ./.github/workflows/build.yml
+    with:
+      all-platforms: ${{ !github.event.pull_request.draft }}
+
+  # Build the tools used for processing execution traces
+  tracing:
+    if: ${{ !github.event.pull_request.draft || needs.check-diff.outputs.changed-tracing == 1 }}
+    uses: ./.github/workflows/build-trace-tools.yml
+    needs: check-diff
+    with:
+      all-platforms: ${{ !github.event.pull_request.draft }}
+
+  # Run tests for the standalone compiler.
+  cli:
+    if: ${{ !github.event.pull_request.draft }}
+    uses: ./.github/workflows/cli-tests.yml
+    with:
+      all-platforms: ${{ !github.event.pull_request.draft }}
+
+  # Run language server tests.
+  lsp:
+    if: ${{ !github.event.pull_request.draft }}
+    uses: ./.github/workflows/lsp-tests.yml
+    with:
+      all-platforms: ${{ !github.event.pull_request.draft }}

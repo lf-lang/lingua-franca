@@ -32,6 +32,7 @@ THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #define LF_TRACE
 #include <stdio.h>
+#include <string.h>
 #include "reactor.h"
 #include "trace.h"
 #include "trace_util.h"
