@@ -45,9 +45,9 @@ public class FormattingUnitTests {
                 target C
 
                 reactor Destination {
-                    input ok: bool
-                    input in: int
-                    state last_invoked: tag_t = {= NEVER_TAG_INITIALIZER =}
+                  input ok: bool
+                  input in: int
+                  state last_invoked: tag_t = {= NEVER_TAG_INITIALIZER =}
                 }
                 """);
   }
@@ -68,9 +68,9 @@ public class FormattingUnitTests {
                 target Python
 
                 reactor Destination {
-                    state one_init: tag_t = {= NEVER_TAG_INITIALIZER =}
-                    state no_init: tag_t
-                    state list_init(1, 2)  # this syntax is deprecated
+                  state one_init: tag_t = {= NEVER_TAG_INITIALIZER =}
+                  state no_init: tag_t
+                  state list_init(1, 2)  # this syntax is deprecated
                 }
                 """);
   }
@@ -82,12 +82,12 @@ public class FormattingUnitTests {
                 target Cpp
 
                 reactor Destination {
-                    state one_init: tag_t({= NEVER_TAG_INITIALIZER =})
-                    state no_init: tag_t
-                    state assign: int = 0
-                    state paren: int(0)
-                    state brace: std::vector<int>{1, 2}
-                    state paren_list: std::vector<int>(1, 2)
+                  state one_init: tag_t({= NEVER_TAG_INITIALIZER =})
+                  state no_init: tag_t
+                  state assign: int = 0
+                  state paren: int(0)
+                  state brace: std::vector<int>{1, 2}
+                  state paren_list: std::vector<int>(1, 2)
                 }
                 """);
   }

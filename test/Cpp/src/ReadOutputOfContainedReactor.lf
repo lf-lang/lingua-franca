@@ -1,52 +1,51 @@
-// Test reacting to and reading outputs from a contained reactor in various
-// permutations.
+// Test reacting to and reading outputs from a contained reactor in various permutations.
 target Cpp
 
 reactor Contained {
-    output out: int
+  output out: int
 
-    reaction(startup) -> out {= out.set(42); =}
+  reaction(startup) -> out {= out.set(42); =}
 }
 
 main reactor ReadOutputOfContainedReactor {
-    c = new Contained()
-    state count: int = 0
+  c = new Contained()
+  state count: int = 0
 
-    reaction(startup) c.out {=
-        std::cout << "Startup reaction reading output of contained "
-                  << "reactor: " << *c.out.get() << std::endl;
-        if (*c.out.get() != 42) {
-            std::cout << "FAILURE: expected 42" << std::endl;
-            exit(2);
-        }
-        count++;
-    =}
+  reaction(startup) c.out {=
+    std::cout << "Startup reaction reading output of contained "
+              << "reactor: " << *c.out.get() << std::endl;
+    if (*c.out.get() != 42) {
+        std::cout << "FAILURE: expected 42" << std::endl;
+        exit(2);
+    }
+    count++;
+  =}
 
-    reaction(c.out) {=
-        std::cout << "Reading output of contained reactor: " << *c.out.get()
+  reaction(c.out) {=
+    std::cout << "Reading output of contained reactor: " << *c.out.get()
+              << std::endl;
+    if (*c.out.get() != 42) {
+        std::cout << "FAILURE: expected 42" << std::endl;
+        exit(2);
+    }
+    count++;
+  =}
+
+  reaction(startup, c.out) {=
+    std::cout << "Alternate triggering reading output of contained "
+              << "reactor: " << *c.out.get() << std::endl;
+    if (*c.out.get() != 42) {
+        std::cout << "FAILURE: expected 42" << std::endl;
+        exit(2);
+    }
+    count++;
+  =}
+
+  reaction(shutdown) {=
+    if (count != 3) {
+        std::cerr << "ERROR: One of the reactions failed to trigger."
                   << std::endl;
-        if (*c.out.get() != 42) {
-            std::cout << "FAILURE: expected 42" << std::endl;
-            exit(2);
-        }
-        count++;
-    =}
-
-    reaction(startup, c.out) {=
-        std::cout << "Alternate triggering reading output of contained "
-                  << "reactor: " << *c.out.get() << std::endl;
-        if (*c.out.get() != 42) {
-            std::cout << "FAILURE: expected 42" << std::endl;
-            exit(2);
-        }
-        count++;
-    =}
-
-    reaction(shutdown) {=
-        if (count != 3) {
-            std::cerr << "ERROR: One of the reactions failed to trigger."
-                      << std::endl;
-            exit(1);
-        }
-    =}
+        exit(1);
+    }
+  =}
 }
