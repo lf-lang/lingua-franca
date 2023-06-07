@@ -8,6 +8,7 @@ on:
       - master
   pull_request:
     types: [synchronize, opened, reopened, ready_for_review, converted_to_draft]
+  merge_group:
 
 env:
   # 2020.11

@@ -8,6 +8,7 @@ on:
       - master
   pull_request:
     types: [synchronize, opened, reopened, ready_for_review, converted_to_draft]
+  merge_group:
 
 env:
   # 2020.11
@@ -23,36 +24,26 @@ jobs:
 
   c:
     uses: ./.github/workflows/only-c.yml
-    with:
-      all: true
     needs: check-diff
     if: ${{  !github.event.pull_request.draft || needs.check-diff.outputs.changed-c == 1 }}
 
   cpp:
     uses: ./.github/workflows/only-cpp.yml
-    with:
-      all: true
     needs: check-diff
     if: ${{  !github.event.pull_request.draft || needs.check-diff.outputs.changed-cpp == 1 }}
 
   py:
     uses: ./.github/workflows/only-py.yml
-    with:
-      all: true
     needs: check-diff
     if: ${{  !github.event.pull_request.draft || needs.check-diff.outputs.changed-py == 1 }}
 
   rs:
     uses: ./.github/workflows/only-rs.yml
-    with:
-      all: true
     needs: check-diff
     if: ${{  !github.event.pull_request.draft || needs.check-diff.outputs.changed-rs == 1 }}
 
   ts:
     uses: ./.github/workflows/only-ts.yml
-    with:
-      all: true
     needs: check-diff
     if: ${{  !github.event.pull_request.draft || needs.check-diff.outputs.changed-ts == 1 }}
 

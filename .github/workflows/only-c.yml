@@ -3,10 +3,6 @@ name: C
 on:
   workflow_dispatch:
   workflow_call:
-    inputs:
-      all:
-        default: true
-        type: boolean
 
 env:
   # 2020.11
@@ -19,33 +15,28 @@ concurrency:
 jobs:
   # Run the C integration tests.
   default:
-    if: ${{ inputs.all || github.event.pull_request.draft }}
     uses: ./.github/workflows/c-tests.yml
     with:
       all-platforms: ${{ !github.event.pull_request.draft  }}
 
   # Run the C benchmark tests.
   benchmarking:
-    if: ${{ inputs.all || github.event.pull_request.draft }}
     uses: lf-lang/benchmarks-lingua-franca/.github/workflows/benchmark-tests.yml@gradle
     with:
       target: "C"
 
   # Run the C Arduino integration tests.
   arduino:
-    if: ${{ inputs.all || github.event.pull_request.draft }}
     uses: ./.github/workflows/c-arduino-tests.yml
     with:
       all-platforms: ${{ !github.event.pull_request.draft  }}
 
   # Run the C Zephyr integration tests.
   zephyr:
-    if: ${{ inputs.all || github.event.pull_request.draft }}
     uses: ./.github/workflows/c-zephyr-tests.yml
 
   # Run the CCpp integration tests.
   ccpp:
-    if: ${{ inputs.all || github.event.pull_request.draft }}
     uses: ./.github/workflows/c-tests.yml
     with:
       use-cpp: true
