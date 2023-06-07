@@ -38,16 +38,17 @@ import org.lflang.lf.TypeParm;
 import org.lflang.lf.VarRef;
 
 /**
- * This class implements an AST transformation enabling enclaved execution in the C target.
- * The challenge is to enable communication of data between the enclaves, which excute in different environments.
- * This is achieved through special connection Reactors which are inspired by the DelayedConnection reactors.
- * They reside in the environment of the target enclave, but is executed by the scheduler of the source enclave.
- * It implements the communication by scheduling events on the event queue of the target enclave.
- * 
- * In order to put the connection Reactors inside the target environment, we create a wrapper reactor around each enclave.
- * This wrapper will contain the enclave as well as connection reactors connected to all its inputs.
+ * This class implements an AST transformation enabling enclaved execution in the C target. The
+ * challenge is to enable communication of data between the enclaves, which excute in different
+ * environments. This is achieved through special connection Reactors which are inspired by the
+ * DelayedConnection reactors. They reside in the environment of the target enclave, but is executed
+ * by the scheduler of the source enclave. It implements the communication by scheduling events on
+ * the event queue of the target enclave.
+ *
+ * <p>In order to put the connection Reactors inside the target environment, we create a wrapper
+ * reactor around each enclave. This wrapper will contain the enclave as well as connection reactors
+ * connected to all its inputs.
  */
-
 public class CEnclavedReactorTransformation implements AstTransformation {
 
   public static final LfFactory factory = ASTUtils.factory;
@@ -77,7 +78,8 @@ public class CEnclavedReactorTransformation implements AstTransformation {
             .distinct()
             .toList();
 
-    // 2. create wrapper reactor definitions for for all of the reactors which have enclaved instances.
+    // 2. create wrapper reactor definitions for for all of the reactors which have enclaved
+    // instances.
     Map<Reactor, Reactor> defMap = createEnclaveWrappers(enclaveDefs);
 
     // 2. Replace enclave Reactor instances with wrapper instances.
@@ -349,9 +351,7 @@ public class CEnclavedReactorTransformation implements AstTransformation {
     throw new RuntimeException();
   }
 
-  /**
-   * Create the EnclavedConnectionReactor definition.
-   */
+  /** Create the EnclavedConnectionReactor definition. */
   private Reactor createEnclaveConnectionClass() {
     if (connectionReactor != null) {
       return connectionReactor;
@@ -483,9 +483,7 @@ public class CEnclavedReactorTransformation implements AstTransformation {
     return code.toString();
   }
 
-  /**
-   * Utility for creating a delay parameters initialized to 0
-   */
+  /** Utility for creating a delay parameters initialized to 0 */
   private Parameter createDelayParameter(String name) {
     Parameter delayParameter = factory.createParameter();
     delayParameter.setName(name);
@@ -504,9 +502,7 @@ public class CEnclavedReactorTransformation implements AstTransformation {
     return delayParameter;
   }
 
-  /**
-   * Utility for getting a parameter by name. Exception is thrown if it does not exist
-   */
+  /** Utility for getting a parameter by name. Exception is thrown if it does not exist */
   private Parameter getParameter(Instantiation inst, String name) {
     Reactor reactorDef = ASTUtils.toDefinition(inst.getReactorClass());
     for (Parameter p : reactorDef.getParameters()) {
