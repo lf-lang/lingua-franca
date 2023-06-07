@@ -248,7 +248,7 @@ public class AttributeUtils {
   }
 
   /**
-   * Annotate `node` with enclave @attribute
+   * Annotate @{code node} with enclave @attribute
    *
    * @param node
    */
