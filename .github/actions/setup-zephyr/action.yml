@@ -3,6 +3,10 @@ description: Install Zephyr and dependencies (Linux only)
 runs:
   using: "composite"
   steps:
+    - name: Setup environment variables
+      run: |
+        echo "SDK_VERSION=0.16.1" >> $GITHUB_ENV
+        echo "ZEPHYR_VERSION=3.3.0" >> $GITHUB_ENV
     - name: Dependencies
       run: |
         sudo apt-get update && sudo apt-get upgrade
@@ -16,20 +20,20 @@ runs:
       shell: bash
     - name: Install Zephyr SDK
       run : |
-        wget -q https://github.com/zephyrproject-rtos/sdk-ng/releases/download/v0.15.2/zephyr-sdk-0.15.2_linux-x86_64.tar.gz
-        wget -O - https://github.com/zephyrproject-rtos/sdk-ng/releases/download/v0.15.2/sha256.sum | shasum --check --ignore-missing
-        sudo tar xf zephyr-sdk-0.15.2_linux-x86_64.tar.gz --directory /opt/
-        cd /opt/zephyr-sdk-0.15.2
+        wget -q "https://github.com/zephyrproject-rtos/sdk-ng/releases/download/v${SDK_VERSION}/zephyr-sdk-${SDK_VERSION}_linux-x86_64.tar.gz"
+        wget -O - https://github.com/zephyrproject-rtos/sdk-ng/releases/download/v${SDK_VERSION}/sha256.sum | shasum --check --ignore-missing
+        sudo tar xf zephyr-sdk-${SDK_VERSION}_linux-x86_64.tar.gz --directory /opt/
+        cd /opt/zephyr-sdk-${SDK_VERSION}
         sudo ./setup.sh -t all -h -c
       shell: bash
     - name: Download and install Zephyr RTOS
       run: |
           cd $HOME
-          west init zephyrproject --mr v3.2.0
+          west init zephyrproject --mr v${ZEPHYR_VERSION}
           cd zephyrproject
           west update
           west zephyr-export
           pip install -r zephyr/scripts/requirements.txt
           echo "ZEPHYR_BASE=$HOME/zephyrproject/zephyr" >> $GITHUB_ENV
-          echo "ZEPHYR_SDK_INSTALL_DIR=/opt/zephyr-sdk-0.15.2/" >> $GITHUB_ENV
+          echo "ZEPHYR_SDK_INSTALL_DIR=/opt/zephyr-sdk-${SDK_VERSION}/" >> $GITHUB_ENV
       shell: bash
