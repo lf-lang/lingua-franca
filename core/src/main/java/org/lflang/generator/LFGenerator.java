@@ -9,7 +9,7 @@ import java.lang.reflect.Constructor;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.stream.Collectors;
-
+import java.util.Arrays;
 import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.xtext.generator.AbstractGenerator;
 import org.eclipse.xtext.generator.IFileSystemAccess2;
@@ -24,19 +24,21 @@ import org.lflang.ast.ASTUtils;
 import org.lflang.federated.generator.FedASTUtils;
 import org.lflang.federated.generator.FedFileConfig;
 import org.lflang.federated.generator.FedGenerator;
-import org.lflang.generator.c.CFileConfig;
-import org.lflang.generator.c.CGenerator;
-import org.lflang.generator.python.PyFileConfig;
-import org.lflang.generator.python.PythonGenerator;
 import org.lflang.lf.Attribute;
 import org.lflang.lf.Reactor;
+import org.lflang.generator.c.CFileConfig;
+import org.lflang.generator.c.CGenerator;
+import org.lflang.generator.cpp.CppFileConfig;
+import org.lflang.generator.cpp.CppGenerator;
+import org.lflang.generator.python.PyFileConfig;
+import org.lflang.generator.python.PythonGenerator;
+import org.lflang.generator.rust.RustFileConfig;
+import org.lflang.generator.rust.RustGenerator;
+import org.lflang.generator.ts.TSFileConfig;
+import org.lflang.generator.ts.TSGenerator;
 import org.lflang.scoping.LFGlobalScopeProvider;
 
-/**
- * Generates code from your model files on save.
- *
- * <p>See https://www.eclipse.org/Xtext/documentation/303_runtime_concepts.html#code-generation
- */
+/** Generates code from your model files on save. */
 public class LFGenerator extends AbstractGenerator {
 
   @Inject private LFGlobalScopeProvider scopeProvider;
@@ -45,19 +47,10 @@ public class LFGenerator extends AbstractGenerator {
   protected boolean generatorErrorsOccurred = false;
 
   /**
-   * Create a target-specific FileConfig object in Kotlin
-   *
-   * <p>Since the CppFileConfig and TSFileConfig class are implemented in Kotlin, the classes are
-   * not visible from all contexts. If the RCA is run from within Eclipse via "Run as Eclipse
-   * Application", the Kotlin classes are unfortunately not available at runtime due to bugs in the
-   * Eclipse Kotlin plugin. (See
-   * https://stackoverflow.com/questions/68095816/is-ist-possible-to-build-mixed-kotlin-and-java-applications-with-a-recent-eclips)
-   *
-   * <p>If the FileConfig class is found, this method returns an instance. Otherwise, it returns an
-   * Instance of FileConfig.
+   * Create a target-specific FileConfig object
    *
    * @return A FileConfig object in Kotlin if the class can be found.
-   * @throws IOException If the file config could not be created properly
+   * @throws RuntimeException If the file config could not be created properly
    */
   public static FileConfig createFileConfig(
       Resource resource, Path srcGenBasePath, boolean useHierarchicalBin) {
@@ -65,51 +58,28 @@ public class LFGenerator extends AbstractGenerator {
     final Target target = Target.fromDecl(ASTUtils.targetDecl(resource));
     assert target != null;
 
-    // Since our Eclipse Plugin uses code injection via guice, we need to
-    // play a few tricks here so that FileConfig does not appear as an
-    // import. Instead, we look the class up at runtime and instantiate it if
-    // found.
     try {
       if (FedASTUtils.findFederatedReactor(resource) != null) {
         return new FedFileConfig(resource, srcGenBasePath, useHierarchicalBin);
       }
-      switch (target) {
-        case CCPP:
-        case C:
-          return new CFileConfig(resource, srcGenBasePath, useHierarchicalBin);
-        case Python:
-          return new PyFileConfig(resource, srcGenBasePath, useHierarchicalBin);
-        case CPP:
-        case Rust:
-        case TS:
-          String className =
-              "org.lflang.generator."
-                  + target.packageName
-                  + "."
-                  + target.classNamePrefix
-                  + "FileConfig";
-          try {
-            return (FileConfig)
-                Class.forName(className)
-                    .getDeclaredConstructor(Resource.class, Path.class, boolean.class)
-                    .newInstance(resource, srcGenBasePath, useHierarchicalBin);
-          } catch (ReflectiveOperationException e) {
-            throw new RuntimeException("Exception instantiating " + className, e.getCause());
-          }
-        default:
-          throw new RuntimeException(
-              "Could not find FileConfig implementation for target " + target);
-      }
+
+      return switch (target) {
+        case CCPP, C -> new CFileConfig(resource, srcGenBasePath, useHierarchicalBin);
+        case Python -> new PyFileConfig(resource, srcGenBasePath, useHierarchicalBin);
+        case CPP -> new CppFileConfig(resource, srcGenBasePath, useHierarchicalBin);
+        case Rust -> new RustFileConfig(resource, srcGenBasePath, useHierarchicalBin);
+        case TS -> new TSFileConfig(resource, srcGenBasePath, useHierarchicalBin);
+      };
     } catch (IOException e) {
       throw new RuntimeException(
-          "Unable to create FileConfig object for target " + target + ": " + e.getStackTrace());
+          "Unable to create FileConfig object for target "
+              + target
+              + ": "
+              + Arrays.toString(e.getStackTrace()));
     }
   }
 
-  /**
-   * Create a generator object for the given target. Returns null if the generator could not be
-   * created.
-   */
+  /** Create a generator object for the given target. */
   private GeneratorBase createGenerator(LFGeneratorContext context) {
     final Target target = Target.fromDecl(ASTUtils.targetDecl(context.getFileConfig().resource));
     assert target != null;
@@ -117,56 +87,10 @@ public class LFGenerator extends AbstractGenerator {
       case C -> new CGenerator(context, false);
       case CCPP -> new CGenerator(context, true);
       case Python -> new PythonGenerator(context);
-      case CPP, TS, Rust -> createKotlinBaseGenerator(target, context);
-        // If no case matched, then throw a runtime exception.
-      default -> throw new RuntimeException("Unexpected target!");
+      case CPP -> new CppGenerator(context, scopeProvider);
+      case TS -> new TSGenerator(context, scopeProvider);
+      case Rust -> new RustGenerator(context, scopeProvider);
     };
-  }
-
-  /**
-   * Create a code generator in Kotlin.
-   *
-   * <p>Since the CppGenerator and TSGenerator class are implemented in Kotlin, the classes are not
-   * visible from all contexts. If the RCA is run from within Eclipse via "Run as Eclipse
-   * Application", the Kotlin classes are unfortunately not available at runtime due to bugs in the
-   * Eclipse Kotlin plugin. (See
-   * https://stackoverflow.com/questions/68095816/is-ist-possible-to-build-mixed-kotlin-and-java-applications-with-a-recent-eclips)
-   * In this case, the method returns null
-   *
-   * @return A Kotlin Generator object if the class can be found
-   */
-  private GeneratorBase createKotlinBaseGenerator(Target target, LFGeneratorContext context) {
-    // Since our Eclipse Plugin uses code injection via guice, we need to
-    // play a few tricks here so that Kotlin FileConfig and
-    // Kotlin Generator do not appear as an import. Instead, we look the
-    // class up at runtime and instantiate it if found.
-    String classPrefix =
-        "org.lflang.generator." + target.packageName + "." + target.classNamePrefix;
-    try {
-      Class<?> generatorClass = Class.forName(classPrefix + "Generator");
-      Constructor<?> ctor =
-          generatorClass.getDeclaredConstructor(
-              LFGeneratorContext.class, LFGlobalScopeProvider.class);
-
-      return (GeneratorBase) ctor.newInstance(context, scopeProvider);
-    } catch (ReflectiveOperationException e) {
-      generatorErrorsOccurred = true;
-      context
-          .getErrorReporter()
-          .reportError(
-              "The code generator for the "
-                  + target
-                  + " target could not be found. "
-                  + "This is likely because you built Epoch using "
-                  + "Eclipse. The "
-                  + target
-                  + " code generator is written in Kotlin and, unfortunately, the plugin that"
-                  + " Eclipse uses for compiling Kotlin code is broken. Please consider building"
-                  + " Epoch using Maven.\n"
-                  + "For step-by-step instructions, see: "
-                  + "https://github.com/icyphy/lingua-franca/wiki/Running-Lingua-Franca-IDE-%28Epoch%29-with-Kotlin-based-Code-Generators-Enabled-%28without-Eclipse-Environment%29");
-      return null;
-    }
   }
 
   @Override

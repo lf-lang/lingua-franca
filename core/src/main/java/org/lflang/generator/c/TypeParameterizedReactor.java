@@ -1,25 +1,27 @@
 package org.lflang.generator.c;
 
+import com.google.common.collect.ImmutableMap;
+import java.util.Comparator;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
+import org.eclipse.emf.common.util.URI;
 import org.lflang.InferredType;
 import org.lflang.ast.ASTUtils;
 import org.lflang.generator.CodeBuilder;
-import org.lflang.lf.Instantiation;
-import org.lflang.lf.Reactor;
-import org.lflang.lf.Type;
+import org.lflang.lf.*;
 
-/**
- * A reactor class combined with concrete type arguments bound to its type parameters.
- *
- * @param reactor The syntactic reactor class definition
- * @param typeArgs The type arguments associated with this particular variant of the reactor class.
- */
-public record TypeParameterizedReactor(Reactor reactor, Map<String, Type> typeArgs) {
+/** A reactor class combined with concrete type arguments bound to its type parameters. */
+public class TypeParameterizedReactor {
+  /** The syntactic reactor class definition. */
+  private final Reactor reactor;
+  /** The type arguments associated with this particular variant of the reactor class. */
+  private final Map<String, Type> typeArgs;
 
-  private static final Map<TypeParameterizedReactor, String> uniqueNames = new HashMap<>();
-  private static final Map<String, Integer> nameCounts = new HashMap<>();
+  private final List<String> typeParams;
+  private final ImmutableMap<String, Map<URI, Integer>> nameMap;
 
   /**
    * Construct the TPR corresponding to the given instantiation which syntactically appears within
@@ -30,19 +32,68 @@ public record TypeParameterizedReactor(Reactor reactor, Map<String, Type> typeAr
    *     permitted instead of types in this TPR.
    */
   public TypeParameterizedReactor(Instantiation i, TypeParameterizedReactor parent) {
-    this(
-        ASTUtils.toDefinition(i.getReactorClass()),
-        addTypeArgs(i, ASTUtils.toDefinition(i.getReactorClass()), parent));
+    this(i, parent, parent.nameMap);
   }
 
+  public TypeParameterizedReactor(Instantiation i, List<Reactor> reactors) {
+    this(i, null, getNameMap(reactors));
+  }
+
+  /**
+   * Return a map from reactor names and URIs to integers such that no two reactor names with
+   * different URIs map to the same integer.
+   */
+  private static Map<String, Map<URI, Integer>> getNameMap(List<Reactor> reactors) {
+    Map<String, Map<URI, Integer>> nameMap = new HashMap<>();
+    Map<String, Integer> countMap = new HashMap<>();
+    var sortedReactors =
+        reactors.stream()
+            .sorted(Comparator.comparing(a -> a.eResource().getURI().toString()))
+            .toList();
+    for (var reactor : sortedReactors) {
+      var def = ASTUtils.toDefinition(reactor);
+      var name = def.getName().toLowerCase();
+      if (nameMap.containsKey(name)) {
+        nameMap.get(name).put(def.eResource().getURI(), countMap.get(name));
+        countMap.put(name, countMap.get(name));
+      } else {
+        nameMap.put(name, new HashMap<>());
+        nameMap.get(name).put(def.eResource().getURI(), 0);
+        countMap.put(name, 1);
+      }
+    }
+    return nameMap;
+  }
+
+  /** Return a name that is unique to the given {@code Reactor}. */
+  private String uniqueName(Reactor def) {
+    var name = def.getName().toLowerCase();
+    var number = Objects.requireNonNull(nameMap.get(name)).get(def.eResource().getURI());
+    return name + (number == 0 ? "" : number);
+  }
+
+  /**
+   * Construct a {@code TypeParameterizedReactor} corresponding to the reactor class of the
+   * instantiation {@code i} within the parent {@code parent} and with the given mapping of
+   * definition names and URIs to integers.
+   */
+  private TypeParameterizedReactor(
+      Instantiation i, TypeParameterizedReactor parent, Map<String, Map<URI, Integer>> nameMap) {
+    reactor = ASTUtils.toDefinition(i.getReactorClass());
+    var definition = ASTUtils.toDefinition(i.getReactorClass());
+    typeParams = definition.getTypeParms().stream().map(TypeParm::getLiteral).toList();
+    typeArgs = addTypeArgs(i, parent, typeParams);
+    this.nameMap = ImmutableMap.copyOf(nameMap);
+  }
+
+  /** Return a mapping from type parameters to type arguments. */
   private static Map<String, Type> addTypeArgs(
-      Instantiation instantiation, Reactor r, TypeParameterizedReactor parent) {
+      Instantiation instantiation, TypeParameterizedReactor parent, List<String> typeParams) {
     HashMap<String, Type> ret = new HashMap<>();
     if (instantiation.getTypeArgs() != null) {
-      for (int i = 0; i < r.getTypeParms().size(); i++) {
+      for (int i = 0; i < typeParams.size(); i++) {
         var arg = instantiation.getTypeArgs().get(i);
-        ret.put(
-            r.getTypeParms().get(i).getLiteral(), parent == null ? arg : parent.resolveType(arg));
+        ret.put(typeParams.get(i), parent == null ? arg : parent.resolveType(arg));
       }
     }
     return ret;
@@ -94,18 +145,13 @@ public record TypeParameterizedReactor(Reactor reactor, Map<String, Type> typeAr
    * Return a name that is unique to this TypeParameterizedReactor (up to structural equality) and
    * that is prefixed with exactly one underscore and that does not contain any upper-case letters.
    */
-  public synchronized String uniqueName() {
-    String name = reactor.getName().toLowerCase();
-    if (uniqueNames.containsKey(this)) return uniqueNames.get(this);
-    if (nameCounts.containsKey(name)) {
-      int currentCount = nameCounts.get(name);
-      nameCounts.put(name, currentCount + 1);
-      uniqueNames.put(this, "_" + name + currentCount);
-      return uniqueName();
-    }
-    nameCounts.put(name, 1);
-    uniqueNames.put(this, "_" + name);
-    return uniqueName();
+  public String uniqueName() {
+    var resolved = ASTUtils.toDefinition(reactor);
+    return "_"
+        + uniqueName(resolved)
+        + typeParams.stream()
+            .map(it -> typeArgs.get(it).getId()) // FIXME: may be more than just an ID
+            .collect(Collectors.joining("_"));
   }
 
   @Override
@@ -118,5 +164,9 @@ public record TypeParameterizedReactor(Reactor reactor, Map<String, Type> typeAr
     return obj instanceof TypeParameterizedReactor other
         && reactor.equals(other.reactor)
         && typeArgs.equals(other.typeArgs);
+  }
+
+  public Reactor reactor() {
+    return reactor;
   }
 }
