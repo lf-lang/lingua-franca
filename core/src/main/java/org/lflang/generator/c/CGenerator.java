@@ -646,9 +646,6 @@ public class CGenerator extends GeneratorBase {
       // Generate function to trigger startup reactions for all reactors.
       code.pr(CReactionGenerator.generateLfTriggerStartupReactions(hasModalReactors));
 
-      // Generate function to schedule timers for all reactors.
-      code.pr(CTimerGenerator.generateLfInitializeTimer());
-
       // Generate a function that will either do nothing
       // (if there is only one federate or the coordination
       // is set to decentralized) or, if there are
