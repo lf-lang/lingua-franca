@@ -78,6 +78,7 @@ public class StateSpaceExplorer {
     // FIXME: It seems that we need to handle shutdown triggers
     // separately, because they could break the back loop.
     addInitialEvents(this.main);
+    // System.out.println("DEBUG: Event queue: " + this.eventQ);
 
     Tag previousTag = null; // Tag in the previous loop ITERATION
     Tag currentTag = null; // Tag in the current  loop ITERATION
@@ -105,6 +106,7 @@ public class StateSpaceExplorer {
         // System.out.println("DEBUG: Popped an event: " + e);
         currentEvents.add(e);
       }
+      // System.out.println("DEBUG: currentEvents: " + currentEvents);
 
       // Collect all the reactions invoked in this current LOOP ITERATION
       // triggered by the earliest events.
@@ -115,6 +117,7 @@ public class StateSpaceExplorer {
       for (Event e : currentEvents) {
         Set<ReactionInstance> dependentReactions = e.trigger.getDependentReactions();
         reactionsTemp.addAll(dependentReactions);
+        // System.out.println("DEBUG: dependentReactions: " + dependentReactions);
         // System.out.println("DEBUG: ReactionTemp: " + reactionsTemp);
 
         // If the event is a timer firing, enqueue the next firing.
@@ -295,8 +298,7 @@ public class StateSpaceExplorer {
         // System.out.println("DEBUG: Stopping because eventQ is empty!");
         stop = true;
       } else if (currentTag.timestamp > horizon.timestamp) {
-        // System.out.println("DEBUG: Stopping because horizon is reached! Horizon: " + horizon + "
-        // Current Tag: " + currentTag);
+        // System.out.println("DEBUG: Stopping because horizon is reached! Horizon: " + horizon + "Current Tag: " + currentTag);
         // System.out.println("DEBUG: EventQ: " + eventQ);
         stop = true;
       }

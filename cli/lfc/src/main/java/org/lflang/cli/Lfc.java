@@ -80,6 +80,12 @@ public class Lfc extends CliBase {
   private boolean noCompile;
 
   @Option(
+      names = {"--no-verify"},
+      arity = "0",
+      description = "Do not run the generated verification models.")
+  private boolean noVerify;
+
+  @Option(
       names = {"--print-statistics"},
       arity = "0",
       description = "Instruct the runtime to collect and print statistics.")
@@ -248,6 +254,10 @@ public class Lfc extends CliBase {
 
     if (noCompile) {
       props.setProperty(BuildParm.NO_COMPILE.getKey(), "true");
+    }
+
+    if (noVerify) {
+      props.setProperty(BuildParm.NO_VERIFY.getKey(), "true");
     }
 
     if (targetCompiler != null) {

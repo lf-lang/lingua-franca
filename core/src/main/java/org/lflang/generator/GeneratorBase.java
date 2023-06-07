@@ -180,24 +180,6 @@ public abstract class GeneratorBase extends AbstractLFValidator {
   // // Code generation functions to override for a concrete code generator.
 
   /**
-   * If there is a main or federated reactor, then create a synthetic Instantiation for that
-   * top-level reactor and set the field mainDef to refer to it.
-   */
-  private void createMainInstantiation() {
-    // Find the main reactor and create an AST node for its instantiation.
-    Iterable<EObject> nodes =
-        IteratorExtensions.toIterable(context.getFileConfig().resource.getAllContents());
-    for (Reactor reactor : Iterables.filter(nodes, Reactor.class)) {
-      if (reactor.isMain()) {
-        // Creating a definition for the main reactor because there isn't one.
-        this.mainDef = LfFactory.eINSTANCE.createInstantiation();
-        this.mainDef.setName(reactor.getName());
-        this.mainDef.setReactorClass(reactor);
-      }
-    }
-  }
-
-  /**
    * Generate code from the Lingua Franca model contained by the specified resource.
    *
    * <p>This is the main entry point for code generation. This base class finds all reactor class
@@ -210,10 +192,6 @@ public abstract class GeneratorBase extends AbstractLFValidator {
    *     object is also used to relay CLI arguments.
    */
   public void doGenerate(Resource resource, LFGeneratorContext context) {
-
-    // FIXME: the signature can be reduced to only take context.
-    // The constructor also need not take a file config because this is tied to the context as well.
-    cleanIfNeeded(context);
 
     printInfo(context.getMode());
 
@@ -292,13 +270,20 @@ public abstract class GeneratorBase extends AbstractLFValidator {
     additionalPostProcessingForModes();
   }
 
-  /** Check if a clean was requested from the standalone compiler and perform the clean step. */
-  protected void cleanIfNeeded(LFGeneratorContext context) {
-    if (context.getArgs().containsKey("clean")) {
-      try {
-        context.getFileConfig().doClean();
-      } catch (IOException e) {
-        System.err.println("WARNING: IO Error during clean");
+  /**
+   * If there is a main or federated reactor, then create a synthetic Instantiation for that
+   * top-level reactor and set the field mainDef to refer to it.
+   */
+  protected void createMainInstantiation() {
+    // Find the main reactor and create an AST node for its instantiation.
+    Iterable<EObject> nodes =
+        IteratorExtensions.toIterable(context.getFileConfig().resource.getAllContents());
+    for (Reactor reactor : Iterables.filter(nodes, Reactor.class)) {
+      if (reactor.isMain()) {
+        // Creating a definition for the main reactor because there isn't one.
+        this.mainDef = LfFactory.eINSTANCE.createInstantiation();
+        this.mainDef.setName(reactor.getName());
+        this.mainDef.setReactorClass(reactor);
       }
     }
   }

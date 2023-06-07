@@ -25,8 +25,6 @@
 /** (EXPERIMENTAL) Generator for Uclid5 models. */
 package org.lflang.analyses.uclid;
 
-import static org.lflang.ASTUtils.*;
-
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -41,7 +39,6 @@ import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
 import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.xtext.xbase.lib.Exceptions;
-import org.lflang.ASTUtils;
 import org.lflang.Target;
 import org.lflang.TimeUnit;
 import org.lflang.TimeValue;
@@ -55,6 +52,7 @@ import org.lflang.analyses.statespace.StateSpaceDiagram;
 import org.lflang.analyses.statespace.StateSpaceExplorer;
 import org.lflang.analyses.statespace.StateSpaceNode;
 import org.lflang.analyses.statespace.Tag;
+import org.lflang.ast.ASTUtils;
 import org.lflang.dsl.CLexer;
 import org.lflang.dsl.CParser;
 import org.lflang.dsl.CParser.BlockItemListContext;
@@ -1096,8 +1094,6 @@ public class UclidGenerator extends GeneratorBase {
 
         if (trigger.isStartup()) {
           // FIXME: Treat startup as a variable.
-          // triggerPresentStr = "g(i) == zero()";
-
           // Handle startup.
           code.pr(
               String.join(
@@ -1141,7 +1137,6 @@ public class UclidGenerator extends GeneratorBase {
           }
         }
 
-        // code.pr("|| (" + triggerPresentStr + exclusion + ")");
         str += "\n|| (" + triggerPresentStr + exclusion + ")";
       }
 
@@ -1524,7 +1519,7 @@ public class UclidGenerator extends GeneratorBase {
       if (this.main == null) {
         // Recursively build instances. This is done once because
         // it is the same for all federates.
-        this.main = new ReactorInstance(toDefinition(mainDef.getReactorClass()), errorReporter);
+        this.main = new ReactorInstance(ASTUtils.toDefinition(mainDef.getReactorClass()), errorReporter);
         var reactionInstanceGraph = this.main.assignLevels();
         if (reactionInstanceGraph.nodeCount() > 0) {
           errorReporter.reportError("Main reactor has causality cycles. Skipping code generation.");

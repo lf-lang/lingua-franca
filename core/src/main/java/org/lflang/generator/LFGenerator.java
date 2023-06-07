@@ -4,14 +4,19 @@ import com.google.inject.Inject;
 import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.nio.file.Path;
+import java.util.List;
+import java.util.stream.Collectors;
+
 import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.xtext.generator.AbstractGenerator;
 import org.eclipse.xtext.generator.IFileSystemAccess2;
 import org.eclipse.xtext.generator.IGeneratorContext;
 import org.eclipse.xtext.util.RuntimeIOException;
+import org.lflang.AttributeUtils;
 import org.lflang.ErrorReporter;
 import org.lflang.FileConfig;
 import org.lflang.Target;
+import org.lflang.analyses.uclid.UclidGenerator;
 import org.lflang.ast.ASTUtils;
 import org.lflang.federated.generator.FedASTUtils;
 import org.lflang.federated.generator.FedFileConfig;
@@ -20,6 +25,8 @@ import org.lflang.generator.c.CFileConfig;
 import org.lflang.generator.c.CGenerator;
 import org.lflang.generator.python.PyFileConfig;
 import org.lflang.generator.python.PythonGenerator;
+import org.lflang.lf.Attribute;
+import org.lflang.lf.Reactor;
 import org.lflang.scoping.LFGlobalScopeProvider;
 
 /**
@@ -180,6 +187,29 @@ public class LFGenerator extends AbstractGenerator {
 
     } else {
 
+      // If "-c" or "--clean" is specified, delete any existing generated directories.
+      cleanIfNeeded(lfContext);
+
+      // Check if @property is used. If so, instantiate a UclidGenerator.
+      // The verification model needs to be generated before the target code
+      // since code generation changes LF program (desugar connections, etc.).
+      Reactor main = ASTUtils.getMainReactor(resource);
+      List<Attribute> properties = AttributeUtils.getAttributes(main)
+                                  .stream()
+                                  .filter(attr -> attr.getAttrName().equals("property"))
+                                  .collect(Collectors.toList());
+      if (properties.size() > 0) {
+          UclidGenerator uclidGenerator = new UclidGenerator(lfContext, properties);
+          // Generate uclid files.
+          uclidGenerator.doGenerate(resource, lfContext);
+          if (!uclidGenerator.targetConfig.noVerify) {
+              // Invoke the generated uclid files.
+              uclidGenerator.runner.run();
+          } else {
+              System.out.println("\"no-verify\" is set to true. Skip checking the verification model.");
+          }
+      }
+
       final GeneratorBase generator = createGenerator(lfContext);
 
       if (generator != null) {
@@ -196,5 +226,21 @@ public class LFGenerator extends AbstractGenerator {
   /** Return true if errors occurred in the last call to doGenerate(). */
   public boolean errorsOccurred() {
     return generatorErrorsOccurred;
+  }
+
+  /**
+   * Check if a clean was requested from the standalone compiler and perform
+   * the clean step.
+   * 
+   * FIXME: the signature can be reduced to only take context.
+   */
+  protected void cleanIfNeeded(LFGeneratorContext context) {
+    if (context.getArgs().containsKey("clean")) {
+      try {
+        context.getFileConfig().doClean();
+      } catch (IOException e) {
+        System.err.println("WARNING: IO Error during clean");
+      }
+    }
   }
 }
