@@ -8,7 +8,7 @@ target C {
     name: "arduino",
     board: "arduino:avr:mega"
   },
-  threading: true
+  single-threaded: false
 }
 
 main reactor BlinkAttemptThreading {
