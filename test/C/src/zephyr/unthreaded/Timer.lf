@@ -1,14 +1,10 @@
 target C {
-    platform: {
-        name: Zephyr,
-        board: native_posix
-    },
+    platform: "Zephyr",
     timeout: 10 sec,
     fast: true
 }
 
 main reactor {
     timer t(0, 1 sec)
-
     reaction(t) {= printf("Hello\n"); =}
 }
