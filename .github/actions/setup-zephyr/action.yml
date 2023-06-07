@@ -7,7 +7,7 @@ runs:
       run: |
         echo "SDK_VERSION=0.16.1" >> $GITHUB_ENV
         echo "ZEPHYR_VERSION=3.3.0" >> $GITHUB_ENV
-      shell: vash
+      shell: bash
     - name: Dependencies
       run: |
         sudo apt-get update && sudo apt-get upgrade
