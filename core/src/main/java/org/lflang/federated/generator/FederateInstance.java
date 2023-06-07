@@ -41,6 +41,7 @@ import org.lflang.TargetConfig;
 import org.lflang.TimeValue;
 import org.lflang.ast.ASTUtils;
 import org.lflang.federated.serialization.SupportedSerializers;
+import org.lflang.AttributeUtils;
 import org.lflang.generator.ActionInstance;
 import org.lflang.generator.PortInstance;
 import org.lflang.generator.ReactionInstance;
@@ -96,6 +97,7 @@ public class FederateInstance { // why does this not extend ReactorInstance?
     this.bankIndex = bankIndex;
     this.errorReporter = errorReporter;
     this.targetConfig = targetConfig;
+    this.isTransient = AttributeUtils.isTransient(instantiation);
 
     if (instantiation != null) {
       // If the instantiation is in a bank, then we have to append
@@ -158,6 +160,11 @@ public class FederateInstance { // why does this not extend ReactorInstance?
 
   /** The integer ID of this federate. */
   public int id = 0;
+
+  /**
+   * Type of the federate: transient if true, and peristent if false .
+   */
+  public boolean isTransient = false;
 
   /**
    * The name of this federate instance. This will be the instantiation name, possibly appended with
