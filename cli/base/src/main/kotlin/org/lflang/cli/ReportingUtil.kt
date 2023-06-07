@@ -204,6 +204,8 @@ class ReportingBackend constructor(
     /** *Absolute* path to lines. */
     private val fileCache = mutableMapOf<Path, List<String>?>()
 
+    private var errorsOccurred = false
+
     private fun getLines(path: Path?): List<String>? =
         if (path == null) null
         else fileCache.computeIfAbsent(path.toAbsolutePath()) {
@@ -225,16 +227,18 @@ class ReportingBackend constructor(
         io.callSystemExit(1)
     }
 
-    /** Print a fatal error message to [Io.err] and exit with code 1. */
+    /** Print a fatal error message to [Io.err]. */
     @JvmOverloads
     fun printFatalError(message: String, cause: Throwable? = null) {
         io.err.println(header + colors.redAndBold("fatal error: ") + colors.bold(message))
         cause?.printStackTrace(io.err)
+        errorsOccurred = true
     }
 
     /** Print an error message to [Io.err]. */
     fun printError(message: String) {
         io.err.println(header + colors.redAndBold("error: ") + message)
+        errorsOccurred = true
     }
 
     /** Print a warning message to [Io.err]. */
@@ -415,6 +419,16 @@ class ReportingBackend constructor(
                 repeatChar('^', max(rangeLen, 1))
                 append(' ').append(message)
             }
+        }
+    }
+
+
+    /** Exit and return an error code if any errors were reported. */
+    fun exit() {
+        if (errorsOccurred) {
+            io.callSystemExit(1)
+        } else {
+            io.callSystemExit(0)
         }
     }
 

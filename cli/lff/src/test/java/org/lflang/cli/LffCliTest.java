@@ -150,6 +150,26 @@ public class LffCliTest {
     dirChecker(tempDir).checkContentsOf("out/File.lf", equalTo(FILE_AFTER_REFORMAT));
   }
 
+  @Test
+  public void testCheckAndDryRun(@TempDir Path tempDir) {
+    lffTester.run(tempDir, "foo.lf", "--check", "--dry-run").checkFailed();
+    lffTester.run(tempDir, "foo.lf", "-c", "-d").checkFailed();
+  }
+
+  @Test
+  public void testCheck(@TempDir Path tempDir) throws IOException {
+    dirBuilder(tempDir).file("src/a/File.lf", FILE_BEFORE_REFORMAT);
+    dirBuilder(tempDir).file("src/b/File.lf", FILE_AFTER_REFORMAT);
+
+    lffTester.run(tempDir, "src/a/File.lf", "--check").checkFailed();
+    lffTester.run(tempDir, "src/a/File.lf", "-c").checkFailed();
+    lffTester.run(tempDir, "src/b/File.lf", "--check").checkOk();
+    lffTester.run(tempDir, "src/b/File.lf", "-c").checkOk();
+
+    dirChecker(tempDir).checkContentsOf("src/a/File.lf", equalTo(FILE_BEFORE_REFORMAT));
+    dirChecker(tempDir).checkContentsOf("src/b/File.lf", equalTo(FILE_AFTER_REFORMAT));
+  }
+
   static class LffTestFixture extends CliToolTestFixture {
 
     @Override
