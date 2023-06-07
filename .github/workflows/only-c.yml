@@ -5,6 +5,7 @@ on:
   workflow_call:
     inputs:
       all:
+        default: true
         type: boolean
 
 env:
@@ -28,7 +29,7 @@ jobs:
     if: ${{ inputs.all || github.event.pull_request.draft }}
     uses: lf-lang/benchmarks-lingua-franca/.github/workflows/benchmark-tests.yml@gradle
     with:
-      target: 'C'
+      target: "C"
 
   # Run the C Arduino integration tests.
   arduino:
