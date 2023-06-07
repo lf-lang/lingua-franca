@@ -17,20 +17,23 @@ enum dagNodeType {
  */
 public class DagNode {
     /** Node type */ 
-    dagNodeType nodeType;
+    public dagNodeType nodeType;
 
     /** If the node type is REACTION, then point the reaction */
-    ReactionInstance nodeReaction;
+    public ReactionInstance nodeReaction;
+
+    /** Worst-Case Execution Time (WCET) of a reaction */
+    public TimeValue wcet;
 
     /** 
      * If the node type is Dummy or SYNC, then store the time step, 
      * respectiveley time 
      */
-    TimeValue timeStep;
+    public TimeValue timeStep;
 
 
     /**
-     * Contructor. Useful when it is a SYNC or DUMMY node.
+     * Constructor. Useful when it is a SYNC or DUMMY node.
      * 
      * @param type node type
      * @param timeStep if the type is DYMMY or SYNC, then record the value
@@ -41,17 +44,46 @@ public class DagNode {
     }
 
     /**
-     * Contructor. Useful when it is a REACTION node.
+     * Constructor. Useful when it is a REACTION node.
      * 
      * @param type node type
      * @param reactionInstance reference to the reaction
      */
-    public DagNode(dagNodeType type, ReactionInstance reactionInstance) {
+    public DagNode(
+        dagNodeType type,
+        ReactionInstance reactionInstance
+    ) {
         this.nodeType = type;
         this.nodeReaction = reactionInstance;
+        this.wcet = TimeValue.MAX_VALUE;
+    }
+
+    /**
+     * Constructor. Useful when it is a REACTION node
+     * and the wcet is known.
+     * 
+     * @param type node type
+     * @param reactionInstance reference to the reaction
+     */
+    public DagNode(
+        dagNodeType type,
+        ReactionInstance reactionInstance,
+        TimeValue wcet
+    ) {
+        this.nodeType = type;
+        this.nodeReaction = reactionInstance;
+        this.wcet = wcet;
     }
 
     public ReactionInstance getReaction() {
         return this.nodeReaction;
+    }
+
+    public TimeValue getWCET() {
+        return this.wcet;
+    }
+
+    public void setWCET(TimeValue wcet) {
+        this.wcet = wcet;
     }
 }

@@ -107,6 +107,12 @@ public class Lfc extends CliBase {
       description = "Specify the runtime scheduler (if supported).")
   private String scheduler;
 
+  // FIXME: Add LfcCliTest for this.
+  @Option(
+      names = {"--schedule-generator"},
+      description = "Specify the static schedule generator if the fully static (FS) scheduler is used.")
+  private String scheduleGenerator;
+
   @Option(
       names = {"-t", "--threading"},
       paramLabel = "<true/false>",

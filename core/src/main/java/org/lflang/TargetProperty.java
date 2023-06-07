@@ -564,6 +564,18 @@ public enum TargetProperty {
                 UnionType.SCHEDULER_UNION.forName(ASTUtils.elementToSingleString(value));
       }),
 
+  /** Directive for specifying a specific runtime scheduler, if supported. */
+  SCHEDULE_GENERATOR(
+      "schedule-generator",
+      UnionType.SCHEDULE_GENERATOR_UNION,
+      Arrays.asList(Target.C),
+      (config) -> ASTUtils.toElement(config.scheduleGenerator.toString()),
+      (config, value, err) -> {
+        config.scheduleGenerator =
+            (ScheduleGeneratorOption)
+                UnionType.SCHEDULE_GENERATOR_UNION.forName(ASTUtils.elementToSingleString(value));
+      }),
+
   /** Directive to specify that all code is generated in a single file. */
   SINGLE_FILE_PROJECT(
       "single-file-project",
@@ -1203,6 +1215,7 @@ public enum TargetProperty {
     BUILD_TYPE_UNION(Arrays.asList(BuildType.values()), null),
     COORDINATION_UNION(Arrays.asList(CoordinationType.values()), CoordinationType.CENTRALIZED),
     SCHEDULER_UNION(Arrays.asList(SchedulerOption.values()), SchedulerOption.getDefault()),
+    SCHEDULE_GENERATOR_UNION(Arrays.asList(ScheduleGeneratorOption.values()), ScheduleGeneratorOption.getDefault()),
     LOGGING_UNION(Arrays.asList(LogLevel.values()), LogLevel.INFO),
     PLATFORM_UNION(Arrays.asList(Platform.values()), Platform.AUTO),
     CLOCK_SYNC_UNION(Arrays.asList(ClockSyncMode.values()), ClockSyncMode.INIT),
@@ -1802,6 +1815,20 @@ public enum TargetProperty {
 
     public static SchedulerOption getDefault() {
       return NP;
+    }
+  }
+
+  /**
+   * Supported schedule generators.
+   *
+   * @author Shaokai Lin
+   */
+  public enum ScheduleGeneratorOption {
+    BASELINE,
+    RL;
+
+    public static ScheduleGeneratorOption getDefault() {
+      return BASELINE;
     }
   }
 

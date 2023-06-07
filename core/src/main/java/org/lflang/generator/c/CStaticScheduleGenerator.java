@@ -60,7 +60,9 @@ public class CStaticScheduleGenerator {
     public void generate() {
         // Generate a state space diagram for the LF program.
         // FIXME: An infinite horizon may lead to non-termination.
-        this.explorer.explore(new Tag(0, 0, true), true);
+        this.explorer.explore(
+            new Tag(0, 0, true), 
+            true);
         this.stateSpaceDiagram = this.explorer.getStateSpaceDiagram();
         this.stateSpaceDiagram.display();
 
@@ -99,7 +101,7 @@ public class CStaticScheduleGenerator {
             int exitValue = dagSchedulerProcess.waitFor();
             
             // FIXME: Put the correct file name
-            this.dagGenerator.updateDag("partionedDagFileName.odt");
+            this.dagGenerator.updateDag("partionedDagFileName.dot");
         } catch (InterruptedException | IOException e) {
             Exceptions.sneakyThrow(e);
         }
