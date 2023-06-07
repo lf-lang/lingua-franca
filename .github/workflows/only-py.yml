@@ -3,10 +3,6 @@ name: Python
 on:
   workflow_dispatch:
   workflow_call:
-    inputs:
-      all:
-        default: true
-        type: boolean
 
 env:
   # 2020.11
@@ -20,6 +16,5 @@ jobs:
   # Run the Python integration tests.
   py-tests:
     uses: ./.github/workflows/py-tests.yml
-    if: ${{ inputs.all || github.event.pull_request.draft }}
     with:
       all-platforms: ${{ !github.event.pull_request.draft  }}
