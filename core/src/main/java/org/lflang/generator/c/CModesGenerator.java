@@ -183,46 +183,4 @@ public class CModesGenerator {
             + ");",
         "modal_state_reset_count[" + envId + "]++;");
   }
-
-  /**
-   * Generate code to call {@code _lf_process_mode_changes}. * @param hasModalReactors True if there
-   * is modal model reactors, false otherwise
-   */
-  public static String generateLfHandleModeChanges(boolean hasModalReactors) {
-    if (!hasModalReactors) {
-      return "";
-    }
-    return String.join(
-        "\n",
-        "void _lf_handle_mode_changes(environment_t* env) {",
-        "    _lf_process_mode_changes(",
-        "        env, ",
-        "        env->modes->modal_reactor_states, ",
-        "        env->modes->modal_reactor_states_size, ",
-        "        env->modes->state_resets, ",
-        "        env->modes->state_resets_size, ",
-        "        env->timer_triggers, ",
-        "        env->timer_triggers_size",
-        "    );",
-        "}");
-  }
-
-  /**
-   * Generate code to call {@code _lf_initialize_modes}.
-   *
-   * @param hasModalReactors True if there is modal model reactors, false otherwise
-   */
-  public static String generateLfInitializeModes(boolean hasModalReactors) {
-    if (!hasModalReactors) {
-      return "";
-    }
-    return String.join(
-        "\n",
-        "void _lf_initialize_modes(environment_t* env) {",
-        "    _lf_initialize_mode_states(",
-        "        env, ",
-        "        env->modes->modal_reactor_states, ",
-        "        env->modes->modal_reactor_states_size);",
-        "}");
-  }
 }

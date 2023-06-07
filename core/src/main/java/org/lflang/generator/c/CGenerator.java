@@ -658,10 +658,6 @@ public class CGenerator extends GeneratorBase {
                   "        _lf_logical_tag_complete(tag_to_send);"),
               "}"));
 
-      // Generate function to schedule shutdown reactions if any
-      // reactors have reactions to shutdown.
-      code.pr(CReactionGenerator.generateLfTriggerShutdownReactions());
-
       // Generate an empty termination function for non-federated
       // execution. For federated execution, an implementation is
       // provided in federate.c.  That implementation will resign
@@ -671,13 +667,6 @@ public class CGenerator extends GeneratorBase {
                  #ifndef FEDERATED
                  void terminate_execution(environment_t* env) {}
                  #endif""");
-
-      // Generate functions for modes
-      code.pr(CModesGenerator.generateLfInitializeModes(hasModalReactors));
-      code.pr(CModesGenerator.generateLfHandleModeChanges(hasModalReactors));
-      code.pr(
-          CReactionGenerator.generateLfModeTriggeredReactions(
-              resetReactionCount, hasModalReactors));
     }
   }
 
