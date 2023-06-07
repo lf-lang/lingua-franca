@@ -241,8 +241,8 @@ public class AttributeUtils {
   }
 
   /**
-   * Return the {@code @side} annotation for the given node (presumably a port)
-   * or null if there is no such annotation.
+   * Return the {@code @side} annotation for the given node (presumably a port) or null if there is
+   * no such annotation.
    */
   public static String getPortSide(EObject node) {
     return getAttributeValue(node, "side");
