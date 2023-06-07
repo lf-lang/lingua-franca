@@ -21,7 +21,7 @@ runs:
       shell: bash
     - name: Install Zephyr SDK
       run : |
-        wget -q "https://github.com/zephyrproject-rtos/sdk-ng/releases/download/v$SDK_VERSION/zephyr-sdk-$SDK_VERSION_linux-x86_64.tar.gz"
+        wget -q "https://github.com/zephyrproject-rtos/sdk-ng/releases/download/v$SDK_VERSION/zephyr-sdk-${{SDK_VERSION}}_linux-x86_64.tar.gz"
         wget -O - "https://github.com/zephyrproject-rtos/sdk-ng/releases/download/v$SDK_VERSION/sha256.sum" | shasum --check --ignore-missing
         sudo tar xf "zephyr-sdk-$SDK_VERSION_linux-x86_64.tar.gz" --directory /opt/
         cd "/opt/zephyr-sdk-$(SDK_VERSION)"
