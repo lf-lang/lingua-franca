@@ -562,8 +562,7 @@ public class CReactionGenerator {
                 + action.getName()
                 + ", "
                 + tokenPointer
-                + ");")
-        );
+                + ");"));
     // Set the value field only if there is a type.
     if (!type.isUndefined()) {
       // The value field will either be a copy (for primitive types)
