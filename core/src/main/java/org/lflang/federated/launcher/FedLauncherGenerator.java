@@ -317,7 +317,7 @@ public class FedLauncherGenerator {
 
     // Identify the transient federates number
     int transientFederatesNumber = 0;
-    for (FederateInstance federate: federates) {
+    for (FederateInstance federate : federates) {
       if (federate.isTransient) {
         transientFederatesNumber++;
       }
@@ -337,7 +337,7 @@ public class FedLauncherGenerator {
     commands.addAll(
         List.of(
             "                        -n " + federates.size() + " \\",
-            "                        -nt "+ transientFederatesNumber + " \\",
+            "                        -nt " + transientFederatesNumber + " \\",
             "                        -c " + targetConfig.clockSync.toString() + " \\"));
     if (targetConfig.clockSync.equals(ClockSyncMode.ON)) {
       commands.add("period " + targetConfig.clockSyncOptions.period.toNanoSeconds() + " \\");

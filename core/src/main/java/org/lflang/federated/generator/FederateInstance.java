@@ -36,12 +36,12 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.eclipse.emf.ecore.EObject;
+import org.lflang.AttributeUtils;
 import org.lflang.ErrorReporter;
 import org.lflang.TargetConfig;
 import org.lflang.TimeValue;
 import org.lflang.ast.ASTUtils;
 import org.lflang.federated.serialization.SupportedSerializers;
-import org.lflang.AttributeUtils;
 import org.lflang.generator.ActionInstance;
 import org.lflang.generator.PortInstance;
 import org.lflang.generator.ReactionInstance;
@@ -161,9 +161,7 @@ public class FederateInstance { // why does this not extend ReactorInstance?
   /** The integer ID of this federate. */
   public int id = 0;
 
-  /**
-   * Type of the federate: transient if true, and peristent if false .
-   */
+  /** Type of the federate: transient if true, and peristent if false . */
   public boolean isTransient = false;
 
   /**
