@@ -2,8 +2,6 @@ package org.lflang.generator.c;
 
 import java.util.ArrayList;
 import java.util.List;
-
-import org.lflang.Target;
 import org.lflang.TargetConfig;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.generator.ReactorInstance;
@@ -15,12 +13,12 @@ import org.lflang.generator.ReactorInstance;
 public class CEnvironmentFunctionGenerator {
 
   /**
-   *
    * @param main The top-level reactor instance of the program
    * @param targetConfig The target config of the program
    * @param lfModuleName The lfModuleName of the program
    */
-  public CEnvironmentFunctionGenerator(ReactorInstance main, TargetConfig targetConfig, String lfModuleName) {
+  public CEnvironmentFunctionGenerator(
+      ReactorInstance main, TargetConfig targetConfig, String lfModuleName) {
     this.enclaves = CUtil.getEnclaves(main);
     this.targetConfig = targetConfig;
     this.lfModuleName = lfModuleName;
@@ -96,7 +94,8 @@ public class CEnvironmentFunctionGenerator {
           if (enclave.isMainOrFederated()) {
             traceFileName = "\"" + targetConfig.tracing.traceFileName + ".lft\"";
           } else {
-            traceFileName = "\"" + targetConfig.tracing.traceFileName + enclave.getName() + ".lft\"";
+            traceFileName =
+                "\"" + targetConfig.tracing.traceFileName + enclave.getName() + ".lft\"";
           }
         } else {
           if (enclave.isMainOrFederated()) {
