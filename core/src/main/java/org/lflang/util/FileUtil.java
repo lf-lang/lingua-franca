@@ -870,6 +870,21 @@ public class FileUtil {
   }
 
   /**
+   * Check if the content of a file is equal to a given string.
+   *
+   * @param text The text to compare with.
+   * @param path The file to compare with.
+   * @return true, if the given text is identical to the file content.
+   */
+  public static boolean isSame(String text, Path path) throws IOException {
+    if (Files.isRegularFile(path)) {
+      final byte[] bytes = text.getBytes();
+      return Arrays.equals(bytes, Files.readAllBytes(path));
+    }
+    return false;
+  }
+
+  /**
    * Write text to a file.
    *
    * @param text The text to be written.
@@ -879,14 +894,10 @@ public class FileUtil {
    */
   public static void writeToFile(String text, Path path, boolean skipIfUnchanged)
       throws IOException {
-    Files.createDirectories(path.getParent());
-    final byte[] bytes = text.getBytes();
-    if (skipIfUnchanged && Files.isRegularFile(path)) {
-      if (Arrays.equals(bytes, Files.readAllBytes(path))) {
-        return;
-      }
+    if (!skipIfUnchanged || !isSame(text, path)) {
+      Files.createDirectories(path.getParent());
+      Files.write(path, text.getBytes());
     }
-    Files.write(path, text.getBytes());
   }
 
   /**
