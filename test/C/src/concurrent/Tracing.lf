@@ -4,7 +4,6 @@ target C {
     tracing: true,
     // Disable compiler optimization so that TakeTime actually takes time.
     flags: "",
-    logging: DEBUG
 }
 
 preamble {=
@@ -49,7 +48,7 @@ reactor TakeTime(bank_index: int = 0) {
         for (int i = 0; i < 100000000; i++) {
             offset++;
         }
-        tracepoint_user_event(self->event);
+        tracepoint_user_event(self, self->event);
         lf_set(out, in->value + offset);
     =}
 
@@ -76,7 +75,7 @@ reactor Destination(width: int = 4) {
 
     reaction(in) {=
         self->count++;
-        tracepoint_user_value("Number of Destination invocations", self->count);
+        tracepoint_user_value(self, "Number of Destination invocations", self->count);
         int sum = 0;
         for (int i = 0; i < in_width; i++) {
             sum += in[i]->value;
