@@ -33,6 +33,10 @@ jobs:
         repository: lf-lang/lingua-franca
         submodules: true
         fetch-depth: 0
+    - name: Check for redundant runs
+      id: check
+      uses: fkirc/skip-duplicate-actions@v5.3.0
+      if: ${{ github.ref == 'refs/heads/master' }}
     - id: do
       run: |
         wget https://raw.githubusercontent.com/lf-lang/lingua-franca/master/.github/scripts/check-diff.sh
@@ -43,3 +47,4 @@ jobs:
         source check-diff.sh "core/src/main/kotlin/org/lflang/generator/ts\|core/src/main/java/org/lflang/generator/ts\|core/src/main/resources/lib/ts\|test/TypeScript" TS
         source check-diff.sh "util/tracing" TRACING
       shell: bash
+      if: ${{ steps.check.outputs.should_skip != 'true' }}

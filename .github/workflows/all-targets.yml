@@ -19,13 +19,8 @@ concurrency:
   cancel-in-progress: ${{ github.ref != 'refs/heads/master' }}
 
 jobs:
-  check-redundant:
-    uses: fkirc/skip-duplicate-actions@v5.3.0
-    if: ${{ github.ref == 'refs/heads/master' }}
-
   check-diff:
     uses: ./.github/workflows/check-diff.yml
-    needs: check-redundant
 
   c:
     uses: ./.github/workflows/only-c.yml
