@@ -55,7 +55,7 @@ public class LffCliTest {
         target Python
 
         main reactor {
-            reaction(startup) {=  =}
+          reaction(startup) {=  =}
         }
         """;
   LffTestFixture lffTester = new LffTestFixture();

@@ -274,6 +274,10 @@ public class CodeMap {
     return start.compareTo(end) <= 0 ? new Range(start, end) : new Range(start, start);
   }
 
+  public int firstNonWhitespace(int line) {
+    return getGeneratedCode().lines().skip(line - 1).findFirst().orElse("").lastIndexOf(" ") + 1;
+  }
+
   /* ------------------------- PRIVATE METHODS ------------------------- */
 
   private CodeMap(

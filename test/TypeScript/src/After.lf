@@ -1,38 +1,37 @@
-// This checks that the after keyword adjusts logical time, not using physical
-// time.
+// This checks that the after keyword adjusts logical time, not using physical time.
 target TypeScript {
-    fast: true,
-    timeout: 3 sec
+  fast: true,
+  timeout: 3 sec
 }
 
 reactor Foo {
-    input x: number
-    output y: number
+  input x: number
+  output y: number
 
-    reaction(x) -> y {= y = 2 * (x as number); =}
+  reaction(x) -> y {= y = 2 * (x as number); =}
 }
 
 reactor Print {
-    state expected_time: time = 10 msec
-    input x: number
+  state expected_time: time = 10 msec
+  input x: number
 
-    reaction(x) {=
-        let elapsed_time = util.getElapsedLogicalTime();
-        console.log("Result is " + x);
-        console.log("Current logical time is: " + elapsed_time);
-        console.log("Current physical time is: " + util.getElapsedPhysicalTime());
-        if (! elapsed_time.isEqualTo(expected_time)) {
-            util.requestErrorStop("ERROR: Expected logical time to be " + expected_time);
-        }
-        expected_time = expected_time.add(TimeValue.sec(1));
-    =}
+  reaction(x) {=
+    let elapsed_time = util.getElapsedLogicalTime();
+    console.log("Result is " + x);
+    console.log("Current logical time is: " + elapsed_time);
+    console.log("Current physical time is: " + util.getElapsedPhysicalTime());
+    if (! elapsed_time.isEqualTo(expected_time)) {
+        util.requestErrorStop("ERROR: Expected logical time to be " + expected_time);
+    }
+    expected_time = expected_time.add(TimeValue.sec(1));
+  =}
 }
 
 main reactor {
-    f = new Foo()
-    p = new Print()
-    timer t(0, 1 sec)
-    f.y -> p.x after 10 msec
+  f = new Foo()
+  p = new Print()
+  timer t(0, 1 sec)
+  f.y -> p.x after 10 msec
 
-    reaction(t) -> f.x {= f.x = 42; =}
+  reaction(t) -> f.x {= f.x = 42; =}
 }
