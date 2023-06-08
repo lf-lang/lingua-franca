@@ -1,65 +1,63 @@
-// Source produces a dynamically allocated struct, which it passes to Scale.
-// Scale requests a writable copy, which, instead of copying, it just gets
-// ownership of the original struct. It modifies it and passes it to Print. It
-// gets freed after Print is done with it.
+// Source produces a dynamically allocated struct, which it passes to Scale. Scale requests a
+// writable copy, which, instead of copying, it just gets ownership of the original struct. It
+// modifies it and passes it to Print. It gets freed after Print is done with it.
 target C {
-    files: ["include/hello.h"]
+  files: ["include/hello.h"]
 }
 
 preamble {=
-    #include "hello.h"
+  #include "hello.h"
 =}
 
 reactor Source {
-    output out: hello_t*
+  output out: hello_t*
 
-    reaction(startup) -> out {=
-        // Dynamically allocate an output struct.
-        SET_NEW(out);
-        // Above allocates a struct, which then must be populated.
-        out->value->name = "Earth";
-        out->value->value = 42;
-    =}
+  reaction(startup) -> out {=
+    // Dynamically allocate an output struct.
+    SET_NEW(out);
+    // Above allocates a struct, which then must be populated.
+    out->value->name = "Earth";
+    out->value->value = 42;
+  =}
 }
 
 reactor TestInput(expected: int = 42) {  // expected parameter is for testing.
-    input in: hello_t*
-    state invoked: bool = false
+  input in: hello_t*
+  state invoked: bool = false
 
-    reaction(in) {=
-        printf("Received: name = %s, value = %d\n", in->value->name, in->value->value);
-        if (in->value->value != self->expected) {
-            printf("ERROR: Expected value to be %d.\n", self->expected);
-            exit(1);
-        }
-        self->invoked = true;
-    =}
+  reaction(in) {=
+    printf("Received: name = %s, value = %d\n", in->value->name, in->value->value);
+    if (in->value->value != self->expected) {
+        printf("ERROR: Expected value to be %d.\n", self->expected);
+        exit(1);
+    }
+    self->invoked = true;
+  =}
 
-    reaction(shutdown) {=
-        if (self->invoked == false) {
-            fprintf(stderr, "ERROR: No data received.\n");
-            exit(2);
-        }
-    =}
+  reaction(shutdown) {=
+    if (self->invoked == false) {
+        fprintf(stderr, "ERROR: No data received.\n");
+        exit(2);
+    }
+  =}
 }
 
 reactor Print(scale: int = 2) {
-    // Mutable keyword indicates that this reactor wants a writable copy of the
-    // input.
-    mutable input in: hello_t*
+  // Mutable keyword indicates that this reactor wants a writable copy of the input.
+  mutable input in: hello_t*
 
-    output out: hello_t*
+  output out: hello_t*
 
-    reaction(in) -> out {=
-        in->value->value *= self->scale;
-        lf_set_token(out, in->token);
-    =}
+  reaction(in) -> out {=
+    in->value->value *= self->scale;
+    lf_set_token(out, in->token);
+  =}
 }
 
 main reactor StructScale {
-    s = new Source()
-    c = new Print()
-    p = new TestInput(expected = 84)
-    s.out -> c.in
-    c.out -> p.in
+  s = new Source()
+  c = new Print()
+  p = new TestInput(expected = 84)
+  s.out -> c.in
+  c.out -> p.in
 }

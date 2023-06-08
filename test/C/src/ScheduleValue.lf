@@ -1,33 +1,33 @@
 /** Test of schedule_value. */
 target C {
-    timeout: 3 sec
+  timeout: 3 sec
 }
 
 preamble {=
-    #ifdef __cplusplus
-    extern "C" {
-    #endif
-    #include <string.h>
-    #include <stdlib.h>
-    #ifdef __cplusplus
-    }
-    #endif
+  #ifdef __cplusplus
+  extern "C" {
+  #endif
+  #include <string.h>
+  #include <stdlib.h>
+  #ifdef __cplusplus
+  }
+  #endif
 =}
 
 main reactor ScheduleValue {
-    logical action a: char*
+  logical action a: char*
 
-    reaction(startup) -> a {=
-        char* value = (char*)malloc(6);
-        strcpy(value, "Hello");
-        lf_schedule_value(a, 0, value, 6);
-    =}
+  reaction(startup) -> a {=
+    char* value = (char*)malloc(6);
+    strcpy(value, "Hello");
+    lf_schedule_value(a, 0, value, 6);
+  =}
 
-    reaction(a) {=
-        printf("Received: %s\n", a->value);
-        if (strcmp(a->value, "Hello") != 0) {
-            fprintf(stderr, "FAILURE: Should have received 'Hello'\n");
-            exit(1);
-        }
-    =}
+  reaction(a) {=
+    printf("Received: %s\n", a->value);
+    if (strcmp(a->value, "Hello") != 0) {
+        fprintf(stderr, "FAILURE: Should have received 'Hello'\n");
+        exit(1);
+    }
+  =}
 }
