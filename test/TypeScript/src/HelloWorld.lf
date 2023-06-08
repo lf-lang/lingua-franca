@@ -1,11 +1,11 @@
 target TypeScript
 
 reactor HelloWorldInside {
-    timer t
+  timer t
 
-    reaction(t) {= console.log("Hello World."); =}
+  reaction(t) {= console.log("Hello World."); =}
 }
 
 main reactor HelloWorld {
-    a = new HelloWorldInside()
+  a = new HelloWorldInside()
 }

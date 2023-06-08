@@ -1,17 +1,17 @@
 /** Test the files target property. */
 target C {
-    files: ["../include", "include/dummy.h"]
+  files: ["../include", "include/dummy.h"]
 }
 
 preamble {=
-    #include "include/hello.h"
-    #include "dummy.h"
+  #include "include/hello.h"
+  #include "dummy.h"
 =}
 
 main reactor {
-    reaction(startup) {=
-        hello_t t;
-        dummy_t d;
-        lf_print("SUCCESS.");
-    =}
+  reaction(startup) {=
+    hello_t t;
+    dummy_t d;
+    lf_print("SUCCESS.");
+  =}
 }
