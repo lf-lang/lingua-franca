@@ -10,9 +10,7 @@ reactor Ping {
     state counter: int = 0
     state received: bool = false
 
-    reaction(t) -> out {= 
-        lf_set(out, self->counter++); 
-    =}
+    reaction(t) -> out {= lf_set(out, self->counter++); =}
 
     reaction(in) {=
         self->received = true;
@@ -48,7 +46,7 @@ reactor Pong {
 
 federated reactor {
     ping = new Ping()
-    @transient 
+    @transient
     pong = new Pong()
 
     ping.out -> pong.in
