@@ -578,8 +578,8 @@ public enum TargetProperty {
   SST(
     "sst"
         UnionType.FILE_OR_FILE_ARRAY,
-      List.of(Target.C, Target.CCPP, Target.Python),
-      (config) -> ASTUtils.toElement(config.files),
+      List.of(Target.C, Target.CCPP),
+      (config) -> ASTUtils.toElement(config.sst),
       (config, value, err) -> {
         config.sst = ASTUtils.elementToListOfStrings(value);
       },
