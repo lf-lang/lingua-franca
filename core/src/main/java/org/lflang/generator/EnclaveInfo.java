@@ -10,6 +10,7 @@ public class EnclaveInfo {
   public int numModalReactors = 0;
   public int numModalResetStates = 0;
 
+  public String traceFileName = null;
   private ReactorInstance instance;
 
   public EnclaveInfo(ReactorInstance inst) {

@@ -45,21 +45,6 @@ public class CTriggerObjectsGenerator {
     code.pr("void _lf_initialize_trigger_objects() {");
     code.indent();
 
-    // Initialize tracing if it is enabled
-    if (targetConfig.tracing != null) {
-      var traceFileName = lfModuleName;
-      if (targetConfig.tracing.traceFileName != null) {
-        traceFileName = targetConfig.tracing.traceFileName;
-      }
-      code.pr(
-          String.join(
-              "\n",
-              "// Initialize tracing",
-              "start_trace("
-                  + addDoubleQuotes(traceFileName + ".lft")
-                  + ");")); // .lft is for Lingua Franca trace
-    }
-
     // Create arrays of counters for managing pointer arrays of startup, shutdown, reset and
     // triggers
     code.pr(
