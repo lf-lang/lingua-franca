@@ -31,6 +31,12 @@ public class Lff extends CliBase {
 
   /** Supported CLI options for Lff. */
   @Option(
+      names = {"-c", "--check"},
+      description =
+          "Check mode. Exit with an error code if any files would change when applying formatting.")
+  private boolean check = false;
+
+  @Option(
       names = {"-d", "--dry-run"},
       description =
           "Send the formatted file contents to stdout" + " without writing to the file system.")
@@ -80,6 +86,12 @@ public class Lff extends CliBase {
   /** Validates all paths and invokes the formatter on the input paths. */
   @Override
   public void doRun() {
+    if (check && dryRun) {
+      reporter.printFatalErrorAndExit(
+          "The options --check (-c) and --dry-run (-d) are mutually exclusive. Please use only one"
+              + " at a time.");
+    }
+
     List<Path> paths;
     do {
       paths = getInputPaths();
@@ -97,6 +109,9 @@ public class Lff extends CliBase {
         reporter.printFatalErrorAndExit("An unexpected error occurred:", e);
       }
     } while (stdinMode() && !paths.isEmpty());
+
+    // return an error code if any errors were reported
+    reporter.exit();
   }
 
   /*
@@ -122,7 +137,7 @@ public class Lff extends CliBase {
                 }
               });
         } catch (IOException e) {
-          reporter.printError("IO error: " + e);
+          reporter.printFatalErrorAndExit("An unknown I/O exception occurred.", e);
         }
       } else {
         // Simple file.
@@ -141,11 +156,13 @@ public class Lff extends CliBase {
             ? path // Format in place.
             : outputRoot.resolve(inputRoot.relativize(path)).normalize();
 
+    Path relativePath = io.getWd().relativize(path);
+
     final Resource resource = getResource(path);
     // Skip file if not an LF file.
     if (resource == null) {
       if (verbose) {
-        reporter.printInfo("Skipped " + path + ": not an LF file");
+        reporter.printInfo("Skipped " + relativePath + ": not an LF file");
       }
       return;
     }
@@ -157,24 +174,29 @@ public class Lff extends CliBase {
     final String formattedFileContents =
         FormattingUtils.render(resource.getContents().get(0), lineLength);
 
-    if (dryRun) {
-      io.getOut().println(formattedFileContents);
-      io.getOut().println("\0");
-    } else {
-      try {
-        FileUtil.writeToFile(formattedFileContents, outputPath, true);
-      } catch (IOException e) {
-        if (e instanceof FileAlreadyExistsException) {
-          // Only happens if a subdirectory is named with
-          // ".lf" at the end.
-          reporter.printFatalErrorAndExit(
-              "Error writing to "
-                  + outputPath
-                  + ": file already exists. Make sure that no file or"
-                  + " directory within provided input paths have the"
-                  + " same relative paths.");
+    try {
+      if (check) {
+        if (!FileUtil.isSame(formattedFileContents, outputPath)) {
+          reporter.printError("Would reformat " + outputPath);
         }
+      } else if (dryRun) {
+        io.getOut().println(formattedFileContents);
+        io.getOut().println("\0");
+      } else {
+        FileUtil.writeToFile(formattedFileContents, outputPath, true);
       }
+    } catch (FileAlreadyExistsException e) {
+      // Only happens if a subdirectory is named with
+      // ".lf" at the end.
+      reporter.printFatalErrorAndExit(
+          "Error writing to "
+              + outputPath
+              + ": file already exists. Make sure that no file or"
+              + " directory within provided input paths have the"
+              + " same relative paths.");
+    } catch (IOException e) {
+      reporter.printFatalErrorAndExit(
+          "An unknown I/O exception occurred while processing " + outputPath, e);
     }
 
     if (!ignoreErrors) {
@@ -185,7 +207,7 @@ public class Lff extends CliBase {
     // the position of the issue may be wrong in the formatted file.
     // issueCollector.getAllIssues().forEach(reporter::printIssue);
     if (verbose) {
-      String msg = "Formatted " + io.getWd().relativize(path);
+      String msg = "Formatted " + relativePath;
       if (path != outputPath) {
         msg += " -> " + io.getWd().relativize(outputPath);
       }

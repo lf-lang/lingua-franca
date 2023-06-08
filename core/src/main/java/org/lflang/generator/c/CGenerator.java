@@ -607,7 +607,7 @@ public class CGenerator extends GeneratorBase {
     // Note that any main reactors in imported files are ignored.
     // Skip generation if there are cycles.
     if (main != null) {
-      var envFuncGen = new CEnvironmentFunctionGenerator(main);
+      var envFuncGen = new CEnvironmentFunctionGenerator(main, targetConfig, lfModuleName);
 
       code.pr(envFuncGen.generateDeclarations());
       initializeTriggerObjects.pr(
@@ -1382,10 +1382,13 @@ public class CGenerator extends GeneratorBase {
           if (targetConfig.tracing != null) {
             var description = CUtil.getShortenedName(reactor);
             var reactorRef = CUtil.reactorRef(reactor);
+            var envRef = "&" + CUtil.getEnvironmentStruct(reactor);
             temp.pr(
                 String.join(
                     "\n",
                     "_lf_register_trace_event("
+                        + envRef
+                        + ","
                         + reactorRef
                         + ", &("
                         + reactorRef

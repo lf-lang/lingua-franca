@@ -1,50 +1,50 @@
 /**
- * A test for the timeout functionality in Lingua Franca. This variant tests
- * timeout at (0,0) and uses the threaded runtime.
+ * A test for the timeout functionality in Lingua Franca. This variant tests timeout at (0,0) and
+ * uses the threaded runtime.
  *
  * @author Soroush Bateni
  */
 target C {
-    timeout: 0 sec
+  timeout: 0 sec
 }
 
 import Sender from "../lib/LoopedActionSender.lf"
 
 reactor Consumer {
-    input in: int
-    state success: bool = false
+  input in: int
+  state success: bool = false
 
-    reaction(in) {=
-        tag_t current_tag = lf_tag();
-        if (lf_tag_compare(current_tag,
-                         (tag_t) { .time = MSEC(0) + lf_time_start(), .microstep = 0}) > 0) {
-            fprintf(stderr,"ERROR: Tag (%lld, %d) received. Failed to enforce timeout.\n",
-                            current_tag.time - lf_time_start(), current_tag.microstep);
-            exit(1);
-        } else if (lf_tag_compare(current_tag,
-                         (tag_t) { .time = MSEC(0) + lf_time_start(), .microstep = 0}) == 0) {
-            self->success = true; // Successfully invoked the reaction at (timeout, 0)
-        }
-    =}
+  reaction(in) {=
+    tag_t current_tag = lf_tag();
+    if (lf_tag_compare(current_tag,
+                     (tag_t) { .time = MSEC(0) + lf_time_start(), .microstep = 0}) > 0) {
+        fprintf(stderr,"ERROR: Tag (%lld, %d) received. Failed to enforce timeout.\n",
+                        current_tag.time - lf_time_start(), current_tag.microstep);
+        exit(1);
+    } else if (lf_tag_compare(current_tag,
+                     (tag_t) { .time = MSEC(0) + lf_time_start(), .microstep = 0}) == 0) {
+        self->success = true; // Successfully invoked the reaction at (timeout, 0)
+    }
+  =}
 
-    reaction(shutdown) {=
-        tag_t current_tag = lf_tag();
-        printf("Shutdown invoked at tag (%lld, %u).\n", current_tag.time - lf_time_start(), current_tag.microstep);
-        if (lf_tag_compare(current_tag,
-            (tag_t) { .time = MSEC(0) + lf_time_start(), .microstep = 0}) == 0 &&
-            self->success == true) {
-            printf("SUCCESS: successfully enforced timeout.\n");
-        } else {
-            fprintf(stderr,"ERROR: Shutdown invoked at tag (%llu, %d). Failed to enforce timeout.\n",
-                            current_tag.time - lf_time_start(), current_tag.microstep);
-            exit(1);
-        }
-    =}
+  reaction(shutdown) {=
+    tag_t current_tag = lf_tag();
+    printf("Shutdown invoked at tag (%lld, %u).\n", current_tag.time - lf_time_start(), current_tag.microstep);
+    if (lf_tag_compare(current_tag,
+        (tag_t) { .time = MSEC(0) + lf_time_start(), .microstep = 0}) == 0 &&
+        self->success == true) {
+        printf("SUCCESS: successfully enforced timeout.\n");
+    } else {
+        fprintf(stderr,"ERROR: Shutdown invoked at tag (%llu, %d). Failed to enforce timeout.\n",
+                        current_tag.time - lf_time_start(), current_tag.microstep);
+        exit(1);
+    }
+  =}
 }
 
 main reactor {
-    consumer = new[4] Consumer()
-    producer = new[4] Sender(break_interval = 1 msec)
+  consumer = new[4] Consumer()
+  producer = new[4] Sender(break_interval = 1 msec)
 
-    producer.out -> consumer.in
+  producer.out -> consumer.in
 }

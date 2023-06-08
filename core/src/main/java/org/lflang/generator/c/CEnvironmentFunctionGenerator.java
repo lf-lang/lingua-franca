@@ -2,6 +2,7 @@ package org.lflang.generator.c;
 
 import java.util.ArrayList;
 import java.util.List;
+import org.lflang.TargetConfig;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.generator.ReactorInstance;
 
@@ -11,8 +12,16 @@ import org.lflang.generator.ReactorInstance;
  */
 public class CEnvironmentFunctionGenerator {
 
-  public CEnvironmentFunctionGenerator(ReactorInstance main) {
+  /**
+   * @param main The top-level reactor instance of the program
+   * @param targetConfig The target config of the program
+   * @param lfModuleName The lfModuleName of the program
+   */
+  public CEnvironmentFunctionGenerator(
+      ReactorInstance main, TargetConfig targetConfig, String lfModuleName) {
     this.enclaves = CUtil.getEnclaves(main);
+    this.targetConfig = targetConfig;
+    this.lfModuleName = lfModuleName;
   }
 
   public String generateDeclarations() {
@@ -30,6 +39,8 @@ public class CEnvironmentFunctionGenerator {
   }
 
   private List<ReactorInstance> enclaves = new ArrayList<>();
+  private TargetConfig targetConfig;
+  private String lfModuleName;
 
   private String generateEnvironmentArray() {
     return String.join(
@@ -76,6 +87,25 @@ public class CEnvironmentFunctionGenerator {
         numWorkers = "_lf_number_of_workers";
       }
 
+      // Figure out the name of the trace file
+      String traceFileName = "NULL";
+      if (targetConfig.tracing != null) {
+        if (targetConfig.tracing.traceFileName != null) {
+          if (enclave.isMainOrFederated()) {
+            traceFileName = "\"" + targetConfig.tracing.traceFileName + ".lft\"";
+          } else {
+            traceFileName =
+                "\"" + targetConfig.tracing.traceFileName + enclave.getName() + ".lft\"";
+          }
+        } else {
+          if (enclave.isMainOrFederated()) {
+            traceFileName = "\"" + lfModuleName + ".lft\"";
+          } else {
+            traceFileName = "\"" + lfModuleName + enclave.getName() + ".lft\"";
+          }
+        }
+      }
+
       code.pr(
           "environment_init(&"
               + CUtil.getEnvironmentStruct(enclave)
@@ -97,6 +127,8 @@ public class CEnvironmentFunctionGenerator {
               + enclave.enclaveInfo.numModalReactors
               + ","
               + enclave.enclaveInfo.numModalResetStates
+              + ","
+              + traceFileName
               + ");");
     }
     code.unindent();

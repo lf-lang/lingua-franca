@@ -827,6 +827,10 @@ public class CUtil {
     return "envs[" + getEnvironmentId(inst) + "]";
   }
 
+  public static String getEnvironmentName(ReactorInstance inst) {
+    ReactorInstance enclave = getClosestEnclave(inst);
+    return enclave.getName();
+  }
   // Given an instance, e.g. the main reactor, return a list of all enclaves in the program
   public static List<ReactorInstance> getEnclaves(ReactorInstance root) {
     List<ReactorInstance> enclaves = new ArrayList<>();

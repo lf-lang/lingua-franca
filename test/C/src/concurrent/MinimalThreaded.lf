@@ -2,7 +2,7 @@
 target C
 
 main reactor MinimalThreaded {
-    timer t
+  timer t
 
-    reaction(t) {= printf("Hello World.\n"); =}
+  reaction(t) {= printf("Hello World.\n"); =}
 }

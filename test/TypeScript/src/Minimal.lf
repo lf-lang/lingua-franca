@@ -2,7 +2,7 @@
 target TypeScript
 
 main reactor Minimal {
-    timer t
+  timer t
 
-    reaction(t) {= console.log("Hello World."); =}
+  reaction(t) {= console.log("Hello World."); =}
 }
