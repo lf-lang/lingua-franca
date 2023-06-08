@@ -1711,9 +1711,13 @@ public class ASTUtils {
       } else {
         inst.setName("");
       }
-
     } else {
       inst.setName(reactor.getName());
+    }
+    for (int i = 0; i < reactor.getTypeParms().size(); i++) {
+      Type t = LfFactory.eINSTANCE.createType();
+      t.setId("UNSPECIFIED_TYPE");
+      inst.getTypeArgs().add(t);
     }
     return inst;
   }
