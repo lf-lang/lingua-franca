@@ -133,7 +133,24 @@ public class CCmakeGenerator {
       cMakeCode.newLine();
     }
 
-    cMakeCode.pr("project(" + executableName + " LANGUAGES C)");
+    if (targetConfig.platformOptions.platform == Platform.Pico) {
+      // resolve pico-sdk path 
+      cMakeCode.pr("# Recommended to place the pico-sdk path in the shell environment variable")
+      cMakeCode.pr("if(DEFINED ENV{PICO_SDK_PATH})");
+      cMakeCode.pr("  message(Found SDK path in ENV)");
+      cMakeCode.pr("  set(PICO_SDK_PATH $ENV{PICO_SDK_PATH})");
+      cMakeCode.pr("else()");
+      cMakeCode.pr("  message(Could not find SDK path in ENV)");
+      cMakeCode.pr("  set(PICO_SDK_PATH ./pico-sdk)");
+      cMakeCode.pr("endif()");
+      cMakeCode.pr("message(PICO_SDK_PATH=\"${PICO_SDK_PATH}\")");
+      cMakeCode.newLine();
+      // include cmake
+      cMakeCode.pr("include(\"{PICO_SDK_PATH}/pico_sdk_init.cmake\")");
+      cMakeCode.newLine();
+    }
+    // FIXME: added ASM for pico platform might not be needed 
+    cMakeCode.pr("project(" + executableName + " LANGUAGES C ASM)");
     cMakeCode.newLine();
 
     // The Test build type is the Debug type plus coverage generation
@@ -204,6 +221,12 @@ public class CCmakeGenerator {
     if (targetConfig.platformOptions.platform == Platform.ZEPHYR) {
       cMakeCode.pr(
           setUpMainTargetZephyr(
+              hasMain,
+              executableName,
+              Stream.concat(additionalSources.stream(), sources.stream())));
+    } else if (targetConfig.platformOptions.platform == Platform.Pico) {
+      cMakeCode.pr(
+          setUpMainTargetPico(
               hasMain,
               executableName,
               Stream.concat(additionalSources.stream(), sources.stream())));
@@ -401,4 +424,39 @@ public class CCmakeGenerator {
     code.newLine();
     return code.toString();
   }
+
+  private static String setUpMainTargetPico(
+      boolean hasMain, String executableName, Stream<String> cSources) {
+    var code = new CodeBuilder();
+    code.pr("add_subdirectory(core)");
+    code.pr("target_link_libraries(core PUBLIC zephyr_interface)");
+    // FIXME: Linking the reactor-c corelib with the zephyr kernel lib
+    //  resolves linker issues but I am not yet sure if it is safe
+    code.pr("target_link_libraries(core PRIVATE kernel)");
+    code.newLine();
+
+    if (hasMain) {
+      code.pr("# Declare a new executable target and list all its sources");
+      code.pr("set(LF_MAIN_TARGET app)");
+      code.pr("target_sources(");
+    } else {
+      code.pr("# Declare a new library target and list all its sources");
+      code.pr("set(LF_MAIN_TARGET" + executableName + ")");
+      code.pr("add_library(");
+    }
+    code.indent();
+    code.pr("${LF_MAIN_TARGET}");
+
+    if (hasMain) {
+      code.pr("PRIVATE");
+    }
+
+    cSources.forEach(code::pr);
+    code.unindent();
+    code.pr(")");
+    code.newLine();
+    return code.toString();
+  }
 }
+
+
