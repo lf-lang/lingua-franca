@@ -1731,6 +1731,7 @@ public enum TargetProperty {
     LINUX("Linux"),
     MAC("Darwin"),
     ZEPHYR("Zephyr"),
+    PICO("Pico"),
     WINDOWS("Windows");
 
     String cMakeName;
