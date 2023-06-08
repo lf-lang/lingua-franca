@@ -31,7 +31,9 @@ reactor Receiver {
 }
 
 main reactor {
+    @enclave
     sender = new Sender()
+    @enclave
     receiver = new Receiver()
 
     sender.out -> receiver.in after 50 msec
