@@ -67,32 +67,32 @@ jobs:
         run: |
           echo '## Summary' > $GITHUB_STEP_SUMMARY
       - id: skip-redundant
-        name: "Explain skipping checks due to a prior run"
+        name: "Report skipping checks due to a prior run"
         run: |
           echo ":tada: A successful prior run has been found:" >> $GITHUB_STEP_SUMMARY
           echo "${{ steps.duplicate.outputs.skipped_by }}" >> $GITHUB_STEP_SUMMARY
-          echo ":heavy_check_mark: Skipping all tests. Only building." >> $GITHUB_STEP_SUMMARY
+          echo ":heavy_check_mark: Skipping all tests." >> $GITHUB_STEP_SUMMARY
         if: ${{ steps.duplicate.outputs.should_skip == 'true' }}
       - id: skip-ignore
-        name: "Explain skipping checks due to inconsequential changes"
+        name: "Report skipping checks due to inconsequential changes"
         run: |
           echo ":octopus: The detected changes did not affect any code." >> $GITHUB_STEP_SUMMARY
           echo ":heavy_check_mark: Skipping tests. Only building." >> $GITHUB_STEP_SUMMARY
         if: ${{ steps.duplicate.outputs.should_skip != 'true' && steps.do.outputs.changed_any == 0 }}
       - id: run-some
-        name: "Explain running some checks"
+        name: "Report running some checks"
         run: |
           echo ":octopus: No successful prior run has been found." >> $GITHUB_STEP_SUMMARY
-        if: ${{ steps.duplicate.outputs.should_skip != 'true' }}
-      - id: ready-mode
+          if: ${{ steps.duplicate.outputs.should_skip != 'true' && steps.do.outputs.changed_any != 0}}
+      - id: run-ready-mode
         name: 'Report on full test run'
         run: |
           echo ":hourglass: Performing all tests." >> $GITHUB_STEP_SUMMARY
-        if: ${{ !github.event.pull_request.draft }}
-      - id: draft-mode
+        if: ${{ steps.duplicate.outputs.should_skip != 'true' && steps.do.outputs.changed_any != 0 && !github.event.pull_request.draft}}
+      - id: run-draft-mode
         name: 'Report on partial test run'
         run: |
-          echo ":heavy_check_mark: Performing tests affected by detected changes." >> $GITHUB_STEP_SUMMARY
+          echo ":hourglass: Performing tests affected by detected changes." >> $GITHUB_STEP_SUMMARY
           echo '|         | running                                   |' >> $GITHUB_STEP_SUMMARY
           echo '|---------|-------------------------------------------|' >> $GITHUB_STEP_SUMMARY
           echo '| c       | `${{ steps.do.outputs.changed_c == 1 }}`       |' >> $GITHUB_STEP_SUMMARY
@@ -101,4 +101,4 @@ jobs:
           echo '| rs      | `${{ steps.do.outputs.changed_rs == 1 }}`      |' >> $GITHUB_STEP_SUMMARY
           echo '| ts      | `${{ steps.do.outputs.changed_ts == 1 }}`      |' >> $GITHUB_STEP_SUMMARY
           echo '| tracing | `${{ steps.do.outputs.changed_tracing == 1 }}` |' >> $GITHUB_STEP_SUMMARY
-        if: ${{ github.event.pull_request.draft }}
+        if: ${{ steps.duplicate.outputs.should_skip != 'true' && steps.do.outputs.changed_any != 0 && github.event.pull_request.draft}}
