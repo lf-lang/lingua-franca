@@ -1,24 +1,24 @@
 target C {
-    timeout: 10 s,
-    tracing: true,
-    threading: true
+  timeout: 10 s,
+  tracing: true,
+  threading: true
 }
 
 reactor Timer(period: time = 2 s) {
-    output out: int
-    timer t(0, period)
-    state count: int = 0
+  output out: int
+  timer t(0, period)
+  state count: int = 0
 
-    reaction(t) -> out {=
-        lf_set(out, self->count);
-        lf_print("Count is = %d", self->count);
-        self->count++;
-    =}
+  reaction(t) -> out {=
+    lf_set(out, self->count);
+    lf_print("Count is = %d", self->count);
+    self->count++;
+  =}
 }
 
 federated reactor {
-    @transient
-    t0 = new Timer(period = 1 s)
-    t1 = new Timer()
-    t2 = new Timer()
+  @transient
+  t0 = new Timer(period = 1 s)
+  t1 = new Timer()
+  t2 = new Timer()
 }
