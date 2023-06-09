@@ -50,6 +50,10 @@ parser.add_argument('-r','--rti', type=str, default="rti.csv",
 parser.add_argument('-f','--federates', nargs='+', action='append',
                     help='List of the federates csv trace files.')
 
+# Events matching at the sender and receiver ends depend on whether they are tagged
+# (the elapsed logical time and microstep have to be the same) or not. 
+# Set of tagged events (messages)
+non_tagged_messages = {'FED_ID', 'ACK', 'REJECT', 'ADR_RQ', 'ADR_AD', 'MSG', 'P2P_MSG'}
 
 def load_and_process_csv_file(csv_file) :
     '''
@@ -183,15 +187,25 @@ if __name__ == '__main__':
             inout = trace_df.at[index, 'inout']
 
             # Match tracepoints
-            matching_df = trace_df[\
-                (trace_df['inout'] != inout) & \
-                (trace_df['self_id'] == partner_id) & \
-                (trace_df['partner_id'] == self_id) & \
-                (trace_df['arrow'] == 'pending') & \
-                (trace_df['event'] == event) & \
-                (trace_df['logical_time'] == logical_time) & \
-                (trace_df['microstep'] == microstep) \
-            ]
+            # Depends on whether the event is tagged or not
+            if (trace_df.at[index,'event'] not in non_tagged_messages):
+                matching_df = trace_df[\
+                    (trace_df['inout'] != inout) & \
+                    (trace_df['self_id'] == partner_id) & \
+                    (trace_df['partner_id'] == self_id) & \
+                    (trace_df['arrow'] == 'pending') & \
+                    (trace_df['event'] == event) & \
+                    (trace_df['logical_time'] == logical_time) & \
+                    (trace_df['microstep'] == microstep) \
+                ]
+            else :
+                matching_df = trace_df[\
+                    (trace_df['inout'] != inout) & \
+                    (trace_df['self_id'] == partner_id) & \
+                    (trace_df['partner_id'] == self_id) & \
+                    (trace_df['arrow'] == 'pending') & \
+                    (trace_df['event'] == event)
+                ]
 
             if (matching_df.empty) :
                 # If no matching receiver, than set the arrow to 'dot',
@@ -261,9 +275,6 @@ if __name__ == '__main__':
 
             if (row['event'] in {'FED_ID', 'ACK', 'REJECT', 'ADR_RQ', 'ADR_AD', 'MSG', 'P2P_MSG'}):
                 label = row['event']
-            elif (row['logical_time'] == -1678240241788173894) :
-                # FIXME: This isn't right.  NEVER == -9223372036854775808.
-                label = row['event'] + '(NEVER)'
             else:
                 label = row['event'] + '(' + f'{int(row["logical_time"]):,}' + ', ' + str(row['microstep']) + ')'
             
