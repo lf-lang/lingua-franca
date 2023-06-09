@@ -21,32 +21,35 @@ concurrency:
 jobs:
   check-diff:
     uses: ./.github/workflows/check-diff.yml
-    needs: check-redundant
 
   # Test the Gradle build.
   building:
+    needs: check-diff
     uses: ./.github/workflows/build.yml
     with:
       all-platforms: ${{ !github.event.pull_request.draft }}
+    if: ${{ needs.check-diff.outputs.skip_all != 'true' }}
 
   # Build the tools used for processing execution traces
   tracing:
-    if: ${{ !github.event.pull_request.draft || needs.check-diff.outputs.changed-tracing == 1 }}
-    uses: ./.github/workflows/build-trace-tools.yml
     needs: check-diff
+    if: ${{ !github.event.pull_request.draft || needs.check-diff.outputs.run_tracing == 'true' }}
+    uses: ./.github/workflows/build-trace-tools.yml
     with:
       all-platforms: ${{ !github.event.pull_request.draft }}
 
   # Run tests for the standalone compiler.
   cli:
-    if: ${{ !github.event.pull_request.draft }}
+    if: ${{ !github.event.pull_request.draft && needs.check-diff.outputs.skip_all != 'true' }}
+    needs: check-diff
     uses: ./.github/workflows/cli-tests.yml
     with:
       all-platforms: ${{ !github.event.pull_request.draft }}
 
   # Run language server tests.
   lsp:
-    if: ${{ !github.event.pull_request.draft }}
+    if: ${{ !github.event.pull_request.draft && needs.check-diff.outputs.skip_all != 'true' }}
+    needs: check-diff
     uses: ./.github/workflows/lsp-tests.yml
     with:
       all-platforms: ${{ !github.event.pull_request.draft }}
