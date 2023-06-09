@@ -3,43 +3,43 @@ name: Check diff from master
 on:
   workflow_call:
     outputs:
-      build_anyway:
-        description: 'Return true if building is still needed when skipping tests'
-        value: ${{ jobs.check.outputs.build_anyway == 1 }}
       run_c:
         description: 'Return true if C tests should be run'
-        value: ${{ jobs.check.outputs.changed_c == 1 && jobs.check.outputs.skip_all != 'true' }}
+        value: ${{ jobs.check.outputs.run_c == 'true' && jobs.check.outputs.skip != 'true' }}
       run_cpp:
         description: 'Return true if C++ tests should be run'
-        value: ${{ jobs.check.outputs.changed_cpp == 1 && jobs.check.outputs.skip_all != 'true' }}
+        value: ${{ jobs.check.outputs.run_cpp == 'true' && jobs.check.outputs.skip != 'true' }}
       run_py:
         description: 'Return true if Python tests should be run'
-        value: ${{ (jobs.check.outputs.changed_py == 1 || jobs.check.outputs.changed_c == 1) && jobs.check.outputs.skip_all != 'true' }}
+        value: ${{ jobs.check.outputs.run_py == 'true' && jobs.check.outputs.skip != 'true' }}
       run_rs:
         description: 'Return true if Rust tests should be run'
-        value: ${{ jobs.check.outputs.changed_rs == 1 && jobs.check.outputs.skip_all != 'true' }}
+        value: ${{ jobs.check.outputs.run_rs == 'true' && jobs.check.outputs.skip != 'true' }}
       run_ts:
         description: 'Return true if TypeScript tests should be run'
-        value: ${{ jobs.check.outputs.changed_ts == 1 && jobs.check.outputs.skip_all != 'true' }}
+        value: ${{ jobs.check.outputs.run_ts == 'true' && jobs.check.outputs.skip != 'true' }}
       run_tracing:
         description: 'Return true if tracing tests should be run'
-        value: ${{ jobs.check.outputs.changed_tracing == 1 && jobs.check.outputs.skip_all != 'true' }}
-      skip_all:
-        description: 'Return true if tests should not be run'
-        value: ${{ jobs.check.outputs.skip_all == 'true' }}
+        value: ${{ jobs.check.outputs.run_tracing == 'true' && jobs.check.outputs.skip != 'true' }}
+      run_build:
+        description: 'Return true if the build should be run'
+        value: ${{ jobs.check.outputs.skip != 'true' }}
+      run_misc:
+            description: 'Return true if the build should be run'
+            value: ${{ jobs.check.outputs.run_misc == 'true' && jobs.check.outputs.skip != 'true' }}
 
 jobs:
   check:
     runs-on: ubuntu-latest
     outputs:
-      build_anyway: ${{ steps.skip-ignore.outputs.changed_build }}  
-      changed_c: ${{ steps.do.outputs.changed_c }}
-      changed_cpp: ${{ steps.do.outputs.changed_cpp }}
-      changed_py: ${{ steps.do.outputs.changed_py }}
-      changed_rs: ${{ steps.do.outputs.changed_rs }}
-      changed_ts: ${{ steps.do.outputs.changed_ts }}
-      changed_tracing: ${{ steps.do.outputs.changed_tracing }}
-      skip_all: ${{ steps.duplicate.outputs.should_skip == 'true' && steps.do.outputs.changed_any == 0 }}
+      skip: ${{ steps.duplicate.outputs.should_skip == 'true' }}
+      run_c: ${{ steps.do.outputs.changed_c == 1 || !github.event.pull_request.draft }}
+      run_cpp: ${{ steps.do.outputs.changed_cpp == 1 || !github.event.pull_request.draft }}
+      run_misc: ${{ steps.do.outputs.changed_any == 1 || !github.event.pull_request.draft }}
+      run_py: ${{ steps.do.outputs.changed_py == 1 || !github.event.pull_request.draft }}
+      run_rs: ${{ steps.do.outputs.changed_rs == 1 || !github.event.pull_request.draft }}
+      run_ts: ${{ steps.do.outputs.changed_ts == 1|| !github.event.pull_request.draft }}
+      run_tracing: ${{ steps.do.outputs.changed_tracing == 1 || !github.event.pull_request.draft }}
     steps:
       - name: Check out lingua-franca repository
         uses: actions/checkout@v3
@@ -67,28 +67,27 @@ jobs:
         run: |
           echo '## Summary' > $GITHUB_STEP_SUMMARY
       - id: skip-redundant
-        name: "Explain skipping all checks due to a prior run"
+        name: "Explain skipping checks due to a prior run"
         run: |
           echo ":tada: A successful prior run has been found:" >> $GITHUB_STEP_SUMMARY
           echo "${{ steps.duplicate.outputs.skipped_by }}" >> $GITHUB_STEP_SUMMARY
-          echo ":heavy_check_mark: Skipping all tests." >> $GITHUB_STEP_SUMMARY
-        if: ${{ steps.do.outputs.skip_all == 'true' }}
+          echo ":heavy_check_mark: Skipping all tests. Only building." >> $GITHUB_STEP_SUMMARY
+        if: ${{ steps.duplicate.outputs.should_skip == 'true' }}
       - id: skip-ignore
-        name: "Explain skipping all checks due to inconsequential changes"
+        name: "Explain skipping checks due to inconsequential changes"
         run: |
-          echo "The detected changes did not affect any code." >> $GITHUB_STEP_SUMMARY
-          echo ":heavy_check_mark: Skipping tests. Only running build." >> $GITHUB_STEP_SUMMARY
-          echo "build_anyway=1" >> $GITHUB_OUTPUT
-        if: ${{ steps.do.outputs.skip_all != 'true' && steps.do.outputs.changed_any == 0 }}
+          echo ":octopus: The detected changes did not affect any code." >> $GITHUB_STEP_SUMMARY
+          echo ":heavy_check_mark: Skipping tests. Only building." >> $GITHUB_STEP_SUMMARY
+        if: ${{ steps.duplicate.outputs.should_skip != 'true' && steps.do.outputs.changed_any == 0 }}
       - id: run-some
         name: "Explain running some checks"
         run: |
-          echo ":hourglass: No successful prior run has been found." >> $GITHUB_STEP_SUMMARY
-        if: ${{ steps.do.outputs.skip_all != 'true' }}
+          echo ":octopus: No successful prior run has been found." >> $GITHUB_STEP_SUMMARY
+        if: ${{ steps.duplicate.outputs.should_skip != 'true' }}
       - id: ready-mode
         name: 'Report on full test run'
         run: |
-          echo ":heavy_check_mark: Performing all tests." >> $GITHUB_STEP_SUMMARY
+          echo ":hourglass: Performing all tests." >> $GITHUB_STEP_SUMMARY
         if: ${{ !github.event.pull_request.draft }}
       - id: draft-mode
         name: 'Report on partial test run'
