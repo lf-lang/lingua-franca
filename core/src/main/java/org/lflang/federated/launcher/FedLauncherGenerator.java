@@ -203,7 +203,7 @@ public class FedLauncherGenerator {
                 "# The errors are handled separately via trap.",
                 "for pid in \"${pids[@]}\"",
                 "do",
-                "    wait $pid",
+                "    wait $pid || exit $?",
                 "done",
                 "echo \"All done.\"",
                 "EXITED_SUCCESSFULLY=true")
