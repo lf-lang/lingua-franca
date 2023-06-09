@@ -15,7 +15,7 @@ concurrency:
 jobs:
   # Run the TypeScript benchmark tests.
   benchmarking:
-    uses: lf-lang/benchmarks-lingua-franca/.github/workflows/benchmark-tests.yml@gradle
+    uses: lf-lang/benchmarks-lingua-franca/.github/workflows/benchmark-tests.yml@main
     with:
       target: "TS"
 
