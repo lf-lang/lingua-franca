@@ -68,7 +68,7 @@ public class CodeBuilder {
 
   /** Add a new line. */
   public void newLine() {
-    this.pr("");
+    this.pr("\n");
   }
 
   /**
