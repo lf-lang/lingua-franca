@@ -28,19 +28,19 @@ jobs:
     uses: ./.github/workflows/build.yml
     with:
       all-platforms: ${{ !github.event.pull_request.draft }}
-    if: ${{ needs.check-diff.outputs.skip_all != 'true' || needs.check-diff.outputs.build_anyway == 'true' }}
+    if: ${{ needs.check-diff.outputs.run_build == 'true' }}
 
   # Build the tools used for processing execution traces
   tracing:
     needs: check-diff
-    if: ${{ needs.check-diff.outputs.skip_all != 'true' && (!github.event.pull_request.draft || needs.check-diff.outputs.run_tracing == 'true') }}
+    if: ${{ needs.check-diff.outputs.run_tracing == 'true' }}
     uses: ./.github/workflows/build-trace-tools.yml
     with:
       all-platforms: ${{ !github.event.pull_request.draft }}
 
   # Run tests for the standalone compiler.
   cli:
-    if: ${{ needs.check-diff.outputs.skip_all != 'true' && !github.event.pull_request.draft }}
+    if: ${{ needs.check-diff.outputs.run_misc == 'true' }}
     needs: check-diff
     uses: ./.github/workflows/cli-tests.yml
     with:
@@ -48,7 +48,7 @@ jobs:
 
   # Run language server tests.
   lsp:
-    if: ${{ needs.check-diff.outputs.skip_all != 'true' && !github.event.pull_request.draft }}
+    if: ${{ needs.check-diff.outputs.run_misc == 'true' }}
     needs: check-diff
     uses: ./.github/workflows/lsp-tests.yml
     with:
