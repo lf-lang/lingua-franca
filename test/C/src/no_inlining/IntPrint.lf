@@ -6,13 +6,13 @@ target C {
 reactor Print {
   output out: int
 
-  reaction(startup) -> out named send
+  reaction(startup) -> out named sender
 }
 
 reactor Check(expected: int = 42) {  // expected parameter is for testing.
   input in: int
 
-  reaction(in) named receive
+  reaction(in) named receiver
 }
 
 main reactor {
