@@ -8,6 +8,7 @@ on:
       - master
   pull_request:
     types: [synchronize, opened, reopened, ready_for_review, converted_to_draft]
+  merge_group:
 
 env:
   # 2020.11
@@ -23,7 +24,6 @@ jobs:
 
   # Test the Gradle build.
   building:
-    if: ${{ !github.event.pull_request.draft }}
     uses: ./.github/workflows/build.yml
     with:
       all-platforms: ${{ !github.event.pull_request.draft }}
@@ -32,8 +32,7 @@ jobs:
   tracing:
     if: ${{ !github.event.pull_request.draft || needs.check-diff.outputs.changed-tracing == 1 }}
     uses: ./.github/workflows/build-trace-tools.yml
-    needs:
-      check-diff
+    needs: check-diff
     with:
       all-platforms: ${{ !github.event.pull_request.draft }}
 

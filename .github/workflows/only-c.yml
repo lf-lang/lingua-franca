@@ -3,9 +3,6 @@ name: C
 on:
   workflow_dispatch:
   workflow_call:
-    inputs:
-      all:
-        type: boolean
 
 env:
   # 2020.11
@@ -18,91 +15,78 @@ concurrency:
 jobs:
   # Run the C integration tests.
   default0:
-    if: ${{ inputs.all || github.event.pull_request.draft }}
     uses: ./.github/workflows/c-tests.yml
     with:
       all-platforms: ${{ !github.event.pull_request.draft  }}
       selected-tests: runBasicTests
 
   default1:
-    if: ${{ inputs.all || github.event.pull_request.draft }}
     uses: ./.github/workflows/c-tests.yml
     with:
       all-platforms: ${{ !github.event.pull_request.draft  }}
       selected-tests: runTargetSpecificTests
 
   default2:
-    if: ${{ inputs.all || github.event.pull_request.draft }}
     uses: ./.github/workflows/c-tests.yml
     with:
       all-platforms: ${{ !github.event.pull_request.draft  }}
       selected-tests: runMultiportTests
 
   default3:
-    if: ${{ inputs.all || github.event.pull_request.draft }}
     uses: ./.github/workflows/c-tests.yml
     with:
       all-platforms: ${{ !github.event.pull_request.draft  }}
       selected-tests: runGenericsTests
 
   default4:
-    if: ${{ inputs.all || github.event.pull_request.draft }}
     uses: ./.github/workflows/c-tests.yml
     with:
       all-platforms: ${{ !github.event.pull_request.draft  }}
       selected-tests: runAsFederated
 
   default5:
-    if: ${{ inputs.all || github.event.pull_request.draft }}
     uses: ./.github/workflows/c-tests.yml
     with:
       all-platforms: ${{ !github.event.pull_request.draft  }}
       selected-tests: runConcurrentTests
 
   default6:
-    if: ${{ inputs.all || github.event.pull_request.draft }}
     uses: ./.github/workflows/c-tests.yml
     with:
       all-platforms: ${{ !github.event.pull_request.draft  }}
       selected-tests: runFederatedTests
 
   default7:
-    if: ${{ inputs.all || github.event.pull_request.draft }}
     uses: ./.github/workflows/c-tests.yml
     with:
       all-platforms: ${{ !github.event.pull_request.draft  }}
       selected-tests: runModalTests
 
   default8:
-    if: ${{ inputs.all || github.event.pull_request.draft }}
     uses: ./.github/workflows/c-tests.yml
     with:
       all-platforms: ${{ !github.event.pull_request.draft  }}
       selected-tests: runNoInliningTests
 
   default9:
-    if: ${{ inputs.all || github.event.pull_request.draft }}
     uses: ./.github/workflows/c-tests.yml
     with:
       all-platforms: ${{ !github.event.pull_request.draft  }}
       selected-tests: runDockerTests
 
   default10:
-    if: ${{ inputs.all || github.event.pull_request.draft }}
     uses: ./.github/workflows/c-tests.yml
     with:
       all-platforms: ${{ !github.event.pull_request.draft  }}
       selected-tests: runDockerFederatedTests
 
   default11:
-    if: ${{ inputs.all || github.event.pull_request.draft }}
     uses: ./.github/workflows/c-tests.yml
     with:
       all-platforms: ${{ !github.event.pull_request.draft  }}
       selected-tests: runWithThreadingOff
 
   default12:
-    if: ${{ inputs.all || github.event.pull_request.draft }}
     uses: ./.github/workflows/c-tests.yml
     with:
       all-platforms: ${{ !github.event.pull_request.draft  }}
@@ -110,26 +94,22 @@ jobs:
 
   # Run the C benchmark tests.
   benchmarking:
-    if: ${{ inputs.all || github.event.pull_request.draft }}
     uses: lf-lang/benchmarks-lingua-franca/.github/workflows/benchmark-tests.yml@gradle
     with:
       target: "C"
 
   # Run the C Arduino integration tests.
   arduino:
-    if: ${{ inputs.all || github.event.pull_request.draft }}
     uses: ./.github/workflows/c-arduino-tests.yml
     with:
       all-platforms: ${{ !github.event.pull_request.draft  }}
 
   # Run the C Zephyr integration tests.
   zephyr:
-    if: ${{ inputs.all || github.event.pull_request.draft }}
     uses: ./.github/workflows/c-zephyr-tests.yml
 
   # Run the CCpp integration tests.
   ccpp:
-    if: ${{ inputs.all || github.event.pull_request.draft }}
     uses: ./.github/workflows/c-tests.yml
     with:
       use-cpp: true
