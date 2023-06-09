@@ -32,7 +32,7 @@ jobs:
   check:
     runs-on: ubuntu-latest
     outputs:
-      skip: ${{ steps.duplicate.outputs.should_skip == 'true' }}
+      skip: ${{ steps.should-skip.outputs.skip == 'true' }}
       run_c: ${{ steps.do.outputs.changed_c == 1 || !github.event.pull_request.draft }}
       run_cpp: ${{ steps.do.outputs.changed_cpp == 1 || !github.event.pull_request.draft }}
       run_misc: ${{ steps.do.outputs.changed_any == 1 || !github.event.pull_request.draft }}
