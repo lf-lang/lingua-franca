@@ -51,9 +51,11 @@ import org.lflang.generator.RuntimeRange;
 import org.lflang.generator.SendRange;
 import org.lflang.generator.SubContext;
 import org.lflang.lf.Expression;
+import org.lflang.lf.Input;
 import org.lflang.lf.Instantiation;
 import org.lflang.lf.LfFactory;
 import org.lflang.lf.Reactor;
+import org.lflang.lf.VarRef;
 import org.lflang.util.Averager;
 
 public class FedGenerator {
@@ -484,6 +486,8 @@ public class FedGenerator {
     // that those contain.
     ReactorInstance mainInstance = new ReactorInstance(federation, errorReporter);
 
+    insertIndexers(mainInstance, resource);
+
     for (ReactorInstance child : mainInstance.children) {
       for (PortInstance output : child.outputs) {
         replaceConnectionFromOutputPort(output, resource);
@@ -496,6 +500,65 @@ public class FedGenerator {
     // There will be AST transformations that invalidate some info
     // cached in ReactorInstance. FIXME: most likely not needed anymore
     mainInstance.clearCaches(false);
+  }
+
+  /**
+   * Insert reactors that split a multiport into many ports. This is necessary in order to index
+   * into specific entries of a multiport.
+   */
+  private void insertIndexers(ReactorInstance mainInstance, Resource resource) {
+    for (ReactorInstance child : mainInstance.children) {
+      for (PortInstance input : child.inputs) {
+        var indexer = indexer(child, input, resource);
+        var count = 0;
+        for (FederateInstance federate : federatesByInstantiation.get(child.getDefinition())) {
+          var outerConnection = LfFactory.eINSTANCE.createConnection();
+          var instantiation = LfFactory.eINSTANCE.createInstantiation();
+          instantiation.setReactorClass(indexer);
+          instantiation.setName(indexer.getName() + count++);
+          federate.networkHelperInstantiations.add(instantiation);
+          outerConnection.getLeftPorts().add(varRefOf(instantiation, "port"));
+          outerConnection.getRightPorts().add(varRefOf(child.getDefinition(), input.getName()));
+          federate.networkConnections.add(outerConnection);
+        }
+      }
+    }
+  }
+
+  /**
+   * Add an {@code indexer} to the model and return it. An indexer is a reactor that is an adapter
+   * from many ports to just one port
+   */
+  private Reactor indexer(ReactorInstance reactorInstance, PortInstance input, Resource resource) {
+    var indexer =
+        FedASTUtils.addReactorDefinition(
+            "_" + reactorInstance.getName() + input.getName(), resource);
+    var output = LfFactory.eINSTANCE.createOutput();
+    output.setName("port");
+    indexer.getOutputs().add(output);
+    for (int i = 0; i < (input.isMultiport() ? input.getWidth() : 1); i++) {
+      var splitInput = LfFactory.eINSTANCE.createInput();
+      splitInput.setName("port" + i);
+      indexer.getInputs().add(splitInput);
+    }
+    var innerConnection = LfFactory.eINSTANCE.createConnection();
+    indexer.getInputs().stream()
+        .map(Input::getName)
+        .map(it -> FedGenerator.varRefOf(null, it))
+        .forEach(innerConnection.getLeftPorts()::add);
+    innerConnection.getRightPorts().add(varRefOf(null, output.getName()));
+    indexer.getConnections().add(innerConnection);
+    return indexer;
+  }
+
+  /** Return a {@code VarRef} with the given name. */
+  private static VarRef varRefOf(Instantiation container, String name) {
+    var varRef = LfFactory.eINSTANCE.createVarRef();
+    var variable = LfFactory.eINSTANCE.createVariable();
+    variable.setName(name);
+    varRef.setVariable(variable);
+    varRef.setContainer(container);
+    return varRef;
   }
 
   /**

@@ -261,6 +261,11 @@ public class FederateInstance { // why does this not extend ReactorInstance?
    */
   public List<Instantiation> networkReceiverInstantiations = new ArrayList<>();
 
+  /**
+   * List of generated instantiations that serve as helpers for forming the network connections.
+   */
+  public List<Instantiation> networkHelperInstantiations = new ArrayList<>();
+
   /** Parsed target config of the federate. */
   public TargetConfig targetConfig;
 

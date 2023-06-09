@@ -206,6 +206,15 @@ public class FedASTUtils {
     return action;
   }
 
+  /** Add a reactor definition with the given name to the given resource and return it. */
+  public static Reactor addReactorDefinition(String name, Resource resource) {
+    var reactor = LfFactory.eINSTANCE.createReactor();
+    reactor.setName(name);
+    EObject node = IteratorExtensions.findFirst(resource.getAllContents(), Model.class::isInstance);
+    ((Model) node).getReactors().add(reactor);
+    return reactor;
+  }
+
   /**
    * Add a network receiver reactor for a given input port 'destination' to destination's parent
    * reactor. This reaction will react to a generated 'networkAction' (triggered asynchronously,
@@ -230,7 +239,7 @@ public class FedASTUtils {
     VarRef instRef = factory.createVarRef(); // instantiation connection
     VarRef destRef = factory.createVarRef(); // destination connection
 
-    Reactor receiver = factory.createReactor();
+    Reactor receiver = addReactorDefinition("NetworkReceiver_" + networkIDReceiver++, resource);
     Reaction networkReceiverReaction = factory.createReaction();
 
     Output out = factory.createOutput();
@@ -247,9 +256,6 @@ public class FedASTUtils {
 
     receiver.getReactions().add(networkReceiverReaction);
     receiver.getOutputs().add(out);
-    EObject node = IteratorExtensions.findFirst(resource.getAllContents(), Model.class::isInstance);
-    ((Model) node).getReactors().add(receiver);
-    receiver.setName("NetworkReceiver_" + networkIDReceiver++);
     // networkReceiverReaction.setName("NetworkReceiverReaction_" + networkIDReceiver++);
 
     networkInstance.setReactorClass(receiver);

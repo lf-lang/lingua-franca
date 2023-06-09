@@ -64,8 +64,11 @@ public class FedMainEmitter {
                     .map(renderer)
                     .collect(Collectors.joining("\n")),
                 federate.networkReceiverInstantiations.stream()
-                    .map(renderer)
-                    .collect(Collectors.joining("\n")),
+                        .map(renderer)
+                        .collect(Collectors.joining("\n")),
+                federate.networkHelperInstantiations.stream()
+                        .map(renderer)
+                        .collect(Collectors.joining("\n")),
                 federate.networkConnections.stream()
                     .map(renderer)
                     .collect(Collectors.joining("\n")))
