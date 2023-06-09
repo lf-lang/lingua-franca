@@ -123,7 +123,7 @@ public class TargetConfig {
     }
     if (cliArgs.containsKey("static-scheduler")) {
       this.staticScheduler = StaticSchedulerOption.valueOf(cliArgs.getProperty("static-scheduler"));
-      this.setByUser.add(TargetProperty.SCHEDULE_GENERATOR);
+      this.setByUser.add(TargetProperty.STATIC_SCHEDULER);
     }
     if (cliArgs.containsKey("target-flags")) {
       this.compilerFlags.clear();
@@ -268,7 +268,7 @@ public class TargetConfig {
   public SchedulerOption schedulerType = SchedulerOption.getDefault();
 
   /** What static schedule generator to use. */
-  public StaticSchedulerOption staticScheduler = null;
+  public StaticSchedulerOption staticScheduler = StaticSchedulerOption.getDefault();
 
   /**
    * The number of worker threads to deploy. The default is zero, which indicates that the runtime

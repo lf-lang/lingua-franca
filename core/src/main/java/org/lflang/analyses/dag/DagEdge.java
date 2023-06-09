@@ -5,10 +5,10 @@ package org.lflang.analyses.dag;
  */
 public class DagEdge {
     /** The source DAG node */
-    DagNode sourceNode;
+    public DagNode sourceNode;
 
     /** The sink DAG node */
-    DagNode sinkNode;
+    public DagNode sinkNode;
     
     ////////////////////////////////////////
     //// Public constructor

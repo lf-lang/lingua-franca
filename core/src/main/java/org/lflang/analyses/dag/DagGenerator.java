@@ -42,11 +42,6 @@ public class DagGenerator {
     /** File config */
     public final CFileConfig fileConfig;
 
-    /**
-     * A dot file that represents the diagram
-     */
-    private CodeBuilder dot;
-
     /** The Dag to be contructed. */
     private Dag dag;
 
@@ -254,70 +249,6 @@ public class DagGenerator {
     // A getter for the DAG
     public Dag getDag() {
         return this.dag;
-    }
-
-    /**
-     * Generate a dot file from the state space diagram.
-     * 
-     * @return a CodeBuilder with the generated code
-     */
-    public CodeBuilder generateDot() {
-        if (dot == null) {
-            dot = new CodeBuilder();
-            dot.pr("digraph DAG {");
-            dot.indent();
-            
-            // Graph settings
-            dot.pr("fontname=\"Calibri\";");
-            dot.pr("rankdir=TB;");
-            dot.pr("node [shape = circle, width = 2.5, height = 2.5, fixedsize = true];");
-            dot.pr("ranksep=2.0;  // Increase distance between ranks");
-            dot.pr("nodesep=2.0;  // Increase distance between nodes in the same rank");
-            
-            // Define nodes.
-            ArrayList<Integer> auxiliaryNodes = new ArrayList<>();
-            for (int i = 0; i < this.dag.dagNodes.size(); i++) {
-                DagNode node = this.dag.dagNodes.get(i);
-                String code = "";
-                String label = "";
-                if (node.nodeType == dagNodeType.SYNC) {
-                    label = "label=\"Sync" + "@" + node.timeStep + "\", style=\"dotted\"";
-                    auxiliaryNodes.add(i);
-                } else if (node.nodeType == dagNodeType.DUMMY) {
-                    label = "label=\"Dummy" + "=" + node.timeStep + "\", style=\"dotted\"";
-                    auxiliaryNodes.add(i);
-                } else if (node.nodeType == dagNodeType.REACTION) {
-                    label = "label=\"" + node.nodeReaction.getFullName() + "\nWCET=" + node.getWCET() + "\"";
-                } else {
-                    // Raise exception.
-                    System.out.println("UNREACHABLE");
-                    System.exit(1);
-                }
-                code += i + "[" + label + "]";
-                dot.pr(code);
-            }
-
-            // Align auxiliary nodes.
-            dot.pr("{");
-            dot.indent();
-            dot.pr("rank = same;");
-            for (Integer i : auxiliaryNodes) {
-                dot.pr(i + "; ");
-            }
-            dot.unindent();
-            dot.pr("}");
-
-            // Add edges
-            for (DagEdge e : this.dag.dagEdges) {
-                int sourceIdx = this.dag.dagNodes.indexOf(e.sourceNode);
-                int sinkIdx   = this.dag.dagNodes.indexOf(e.sinkNode);
-                dot.pr(sourceIdx + " -> " + sinkIdx);
-            }
-
-            dot.unindent();
-            dot.pr("}");
-        }
-        return this.dot;
     }
 
 }

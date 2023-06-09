@@ -1,10 +1,12 @@
 package org.lflang.analyses.dag;
 
 import org.lflang.TimeValue;
+import org.lflang.generator.CodeBuilder;
 import org.lflang.generator.ReactionInstance;
 
-import java.util.ArrayList;
 import java.io.IOException;
+import java.nio.file.Path;
+import java.util.ArrayList;
 
 /**
  * Class representing a Directed Acyclic Graph (Dag) as an array of Dag edges 
@@ -18,10 +20,21 @@ public class Dag {
      * can be duplicated at different positions. Also because the order helps 
      * with the dependency generation.
      */
-    ArrayList<DagNode> dagNodes;
+    public ArrayList<DagNode> dagNodes;
 
     /** Array of directed edges */
-    ArrayList<DagEdge> dagEdges;
+    public ArrayList<DagEdge> dagEdges;
+
+    /**
+     * Indicates whether this DAG has changed, useful for checking
+     * whether a new dot file needs to be generated. 
+     */
+    public boolean changed = false;
+
+    /**
+     * A dot file that represents the diagram
+     */
+    private CodeBuilder dot;
 
     /**
      * Constructor. Simply creates two array lists.
@@ -99,6 +112,9 @@ public class Dag {
      * @param srcNodeId index of the source DagNode
      * @param sinkNodeId index of the sink DagNode
      * @return true, if the edge is already in dagEdges array, false otherwise.
+     * 
+     * FIXME: ID is not a property of a DAG node, which should be added.
+     * The iteration is also an O(n) operation. Using a hashmap is more efficient.
      */
     public boolean edgeExists(int srcNodeId, int sinkNodeId) {
         // Get the DagNodes 
@@ -114,5 +130,83 @@ public class Dag {
             }
         }
         return false;
+    }
+
+    /**
+     * Generate a dot file from the DAG.
+     * 
+     * @return a CodeBuilder with the generated code
+     */
+    public CodeBuilder generateDot() {
+        if (dot == null || changed) {
+            dot = new CodeBuilder();
+            dot.pr("digraph DAG {");
+            dot.indent();
+            
+            // Graph settings
+            dot.pr("fontname=\"Calibri\";");
+            dot.pr("rankdir=TB;");
+            dot.pr("node [shape = circle, width = 2.5, height = 2.5, fixedsize = true];");
+            dot.pr("ranksep=2.0;  // Increase distance between ranks");
+            dot.pr("nodesep=2.0;  // Increase distance between nodes in the same rank");
+            
+            // Define nodes.
+            ArrayList<Integer> auxiliaryNodes = new ArrayList<>();
+            for (int i = 0; i < dagNodes.size(); i++) {
+                DagNode node = dagNodes.get(i);
+                String code = "";
+                String label = "";
+                if (node.nodeType == dagNodeType.SYNC) {
+                    label = "label=\"Sync" + "@" + node.timeStep + "\", style=\"dotted\"";
+                    auxiliaryNodes.add(i);
+                } else if (node.nodeType == dagNodeType.DUMMY) {
+                    label = "label=\"Dummy" + "=" + node.timeStep + "\", style=\"dotted\"";
+                    auxiliaryNodes.add(i);
+                } else if (node.nodeType == dagNodeType.REACTION) {
+                    label = "label=\"" + node.nodeReaction.getFullName() + "\nWCET=" + node.getWCET() + "\"";
+                } else {
+                    // Raise exception.
+                    System.out.println("UNREACHABLE");
+                    System.exit(1);
+                }
+                code += i + "[" + label + "]";
+                dot.pr(code);
+            }
+
+            // Align auxiliary nodes.
+            dot.pr("{");
+            dot.indent();
+            dot.pr("rank = same;");
+            for (Integer i : auxiliaryNodes) {
+                dot.pr(i + "; ");
+            }
+            dot.unindent();
+            dot.pr("}");
+
+            // Add edges
+            for (DagEdge e : dagEdges) {
+                int sourceIdx = dagNodes.indexOf(e.sourceNode);
+                int sinkIdx   = dagNodes.indexOf(e.sinkNode);
+                dot.pr(sourceIdx + " -> " + sinkIdx);
+            }
+
+            dot.unindent();
+            dot.pr("}");
+            
+            // If changed is true, now it is okay to unset this flag
+            // since we have regenerated the dot file.
+            if (changed) changed = false;
+        }
+        return this.dot;
+    }
+
+    public void generateDotFile(Path filepath) {
+        try {
+            CodeBuilder dot = generateDot();
+            String filename = filepath.toString();
+            dot.writeToFile(filename);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 }

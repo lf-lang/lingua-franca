@@ -565,7 +565,7 @@ public enum TargetProperty {
       }),
 
   /** Directive for specifying a specific runtime scheduler, if supported. */
-  SCHEDULE_GENERATOR(
+  STATIC_SCHEDULER(
       "static-scheduler",
       UnionType.STATIC_SCHEDULER_UNION,
       Arrays.asList(Target.C),

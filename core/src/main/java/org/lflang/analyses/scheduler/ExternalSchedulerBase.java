@@ -10,15 +10,17 @@ import org.lflang.generator.CodeBuilder;
 /** 
  * A base class for all schedulers that are invoked as separate processes.
  */
-public class ExternalSchedulerBase implements StaticScheduler {
+public class ExternalSchedulerBase extends StaticSchedulerBase {
 
     DagGenerator dagGenerator;
 
-    public ExternalSchedulerBase(DagGenerator dagGenerator) {
+    public ExternalSchedulerBase(Dag dagRaw, DagGenerator dagGenerator) {
+        super(dagRaw);
         this.dagGenerator = dagGenerator;
     }
     
-    public Dag generatePartitionedDag() {
+    @Override
+    public void partitionDag() {
         // Use a DAG scheduling algorithm to partition the DAG.
         // Construct a process to run the Python program of the RL agent
         ProcessBuilder dagScheduler = new ProcessBuilder(
@@ -44,19 +46,15 @@ public class ExternalSchedulerBase implements StaticScheduler {
         
         // Note: this is for double checking...
         // Generate another dot file with the updated Dag.
-        try {
-            CodeBuilder dot = this.dagGenerator.generateDot();
-            Path srcgen = this.dagGenerator.fileConfig.getSrcGenPath();
-            Path file = srcgen.resolve("dagUpdated.dot");
-            String filename = file.toString();
-            dot.writeToFile(filename);
-        } catch (IOException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        }
-
-        // FIXME
-        return null;
+        Path srcgen = this.dagGenerator.fileConfig.getSrcGenPath();
+        Path file = srcgen.resolve("dagUpdated.dot");
+        dag.generateDotFile(file);
     }
+
+	@Override
+	public void removeRedundantEdges() {
+		// TODO Auto-generated method stub
+		throw new UnsupportedOperationException("Unimplemented method 'removeRedundantEdges'");
+	}
 
 }

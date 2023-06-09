@@ -24,10 +24,8 @@
 
 package org.lflang.generator.c;
 
-import java.io.IOException;
 import java.nio.file.Path;
 
-import org.eclipse.xtext.xbase.lib.Exceptions;
 import org.lflang.TargetConfig;
 import org.lflang.analyses.dag.Dag;
 import org.lflang.analyses.dag.DagGenerator;
@@ -36,7 +34,6 @@ import org.lflang.analyses.scheduler.StaticScheduler;
 import org.lflang.analyses.statespace.StateSpaceDiagram;
 import org.lflang.analyses.statespace.StateSpaceExplorer;
 import org.lflang.analyses.statespace.Tag;
-import org.lflang.generator.CodeBuilder;
 import org.lflang.generator.ReactorInstance;
 
 public class CStaticScheduleGenerator {
@@ -100,15 +97,9 @@ public class CStaticScheduleGenerator {
         dagGenerator.generateDag();
 
         // Generate a dot file.
-        try {
-            CodeBuilder dot = dagGenerator.generateDot();
-            Path srcgen = fileConfig.getSrcGenPath();
-            Path file = srcgen.resolve("dag.dot");
-            String filename = file.toString();
-            dot.writeToFile(filename);
-        } catch (IOException e) {
-            Exceptions.sneakyThrow(e);
-        }
+        Path srcgen = fileConfig.getSrcGenPath();
+        Path file = srcgen.resolve("dag.dot");
+        dagGenerator.getDag().generateDotFile(file);
 
         return dagGenerator.getDag();
     }
@@ -117,17 +108,25 @@ public class CStaticScheduleGenerator {
      * Generate a partitioned DAG based on the number of workers.
      */
     public Dag generatePartitionsFromDag(Dag dagRaw) {
-        StaticScheduler scheduler = createStaticScheduler();
-        return scheduler.generatePartitionedDag();
+        StaticScheduler scheduler = createStaticScheduler(dagRaw);
+        scheduler.removeRedundantEdges();
+        Dag dag = scheduler.getDag();
+        
+        // Generate a dot file.
+        Path srcgen = fileConfig.getSrcGenPath();
+        Path file = srcgen.resolve("dag_pruned.dot");
+        dag.generateDotFile(file);
+        
+        return dag;
     }
 
     /** 
      * Create a static scheduler based on target property.
      */
-    public StaticScheduler createStaticScheduler() {
+    public StaticScheduler createStaticScheduler(Dag dagRaw) {
         return switch(this.targetConfig.staticScheduler) {
-            case BASELINE   -> new BaselineScheduler();
-            case RL         -> new BaselineScheduler(); // FIXME
+            case BASELINE   -> new BaselineScheduler(dagRaw);
+            case RL         -> new BaselineScheduler(dagRaw); // FIXME
         };
     }
     
