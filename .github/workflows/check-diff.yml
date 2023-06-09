@@ -25,8 +25,8 @@ on:
         description: 'Return true if the build should be run'
         value: ${{ jobs.check.outputs.skip != 'true' }}
       run_misc:
-            description: 'Return true if the build should be run'
-            value: ${{ jobs.check.outputs.run_misc == 'true' && jobs.check.outputs.skip != 'true' }}
+        description: 'Return true if the build should be run'
+        value: ${{ jobs.check.outputs.run_misc == 'true' && jobs.check.outputs.skip != 'true' }}
 
 jobs:
   check:
@@ -67,7 +67,7 @@ jobs:
         run: |
           echo '## Summary' > $GITHUB_STEP_SUMMARY
       - id: skip-redundant
-        name: "Report skipping checks due to a prior run"
+        name: "Report on skipping checks (prior run found)"
         run: |
           echo ":tada: A successful prior run has been found:" >> $GITHUB_STEP_SUMMARY
           echo "${{ steps.duplicate.outputs.skipped_by }}" >> $GITHUB_STEP_SUMMARY
@@ -80,7 +80,7 @@ jobs:
           echo ":heavy_check_mark: Skipping tests. Only building." >> $GITHUB_STEP_SUMMARY
         if: ${{ steps.duplicate.outputs.should_skip != 'true' && steps.do.outputs.changed_any == 0 }}
       - id: run-some
-        name: "Report running some checks"
+        name: "Report on running checks (no prior run found)"
         run: |
           echo ":octopus: No successful prior run has been found." >> $GITHUB_STEP_SUMMARY
         if: ${{ steps.duplicate.outputs.should_skip != 'true' && steps.do.outputs.changed_any != 0}}
