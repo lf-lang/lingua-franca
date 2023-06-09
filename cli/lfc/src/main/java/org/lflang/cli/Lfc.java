@@ -109,9 +109,9 @@ public class Lfc extends CliBase {
 
   // FIXME: Add LfcCliTest for this.
   @Option(
-      names = {"--schedule-generator"},
-      description = "Specify the static schedule generator if the fully static (FS) scheduler is used.")
-  private String scheduleGenerator;
+      names = {"--static-scheduler"},
+      description = "Select a specific static scheduler if scheduler is set to FS (fully static).")
+  private String staticScheduler;
 
   @Option(
       names = {"-t", "--threading"},

@@ -33,9 +33,6 @@ public class DagGenerator {
     /** The main reactor instance. */
     public ReactorInstance main;
 
-    /** The Dag to be contructed. */
-    public Dag dag;
-
     /**
      * State Space Diagram, to be constructed by explorer() method in 
      * StateSpaceExplorer.
@@ -43,12 +40,15 @@ public class DagGenerator {
     public StateSpaceDiagram stateSpaceDiagram;
 
     /** File config */
-    protected final CFileConfig fileConfig;
+    public final CFileConfig fileConfig;
 
     /**
      * A dot file that represents the diagram
      */
     private CodeBuilder dot;
+
+    /** The Dag to be contructed. */
+    private Dag dag;
 
     /**
      * Constructor. Sets the main reactor and initializes the dag

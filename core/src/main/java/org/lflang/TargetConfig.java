@@ -37,7 +37,7 @@ import org.lflang.TargetProperty.ClockSyncMode;
 import org.lflang.TargetProperty.CoordinationType;
 import org.lflang.TargetProperty.LogLevel;
 import org.lflang.TargetProperty.Platform;
-import org.lflang.TargetProperty.ScheduleGeneratorOption;
+import org.lflang.TargetProperty.StaticSchedulerOption;
 import org.lflang.TargetProperty.SchedulerOption;
 import org.lflang.TargetProperty.UnionType;
 import org.lflang.generator.LFGeneratorContext.BuildParm;
@@ -121,8 +121,8 @@ public class TargetConfig {
       this.schedulerType = SchedulerOption.valueOf(cliArgs.getProperty("scheduler"));
       this.setByUser.add(TargetProperty.SCHEDULER);
     }
-    if (cliArgs.containsKey("schedule-generator")) {
-      this.scheduleGenerator = ScheduleGeneratorOption.valueOf(cliArgs.getProperty("schedule-generator"));
+    if (cliArgs.containsKey("static-scheduler")) {
+      this.staticScheduler = StaticSchedulerOption.valueOf(cliArgs.getProperty("static-scheduler"));
       this.setByUser.add(TargetProperty.SCHEDULE_GENERATOR);
     }
     if (cliArgs.containsKey("target-flags")) {
@@ -268,7 +268,7 @@ public class TargetConfig {
   public SchedulerOption schedulerType = SchedulerOption.getDefault();
 
   /** What static schedule generator to use. */
-  public ScheduleGeneratorOption scheduleGenerator = null;
+  public StaticSchedulerOption staticScheduler = null;
 
   /**
    * The number of worker threads to deploy. The default is zero, which indicates that the runtime

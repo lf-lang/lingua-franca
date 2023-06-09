@@ -2145,6 +2145,7 @@ public class CGenerator extends GeneratorBase {
     CStaticScheduleGenerator schedGen = 
       new CStaticScheduleGenerator(
         this.fileConfig,
+        this.targetConfig,
         this.main
       );
     schedGen.generate();

@@ -26,10 +26,13 @@ package org.lflang.generator.c;
 
 import java.io.IOException;
 import java.nio.file.Path;
-import java.lang.ProcessBuilder;
 
 import org.eclipse.xtext.xbase.lib.Exceptions;
+import org.lflang.TargetConfig;
+import org.lflang.analyses.dag.Dag;
 import org.lflang.analyses.dag.DagGenerator;
+import org.lflang.analyses.scheduler.BaselineScheduler;
+import org.lflang.analyses.scheduler.StaticScheduler;
 import org.lflang.analyses.statespace.StateSpaceDiagram;
 import org.lflang.analyses.statespace.StateSpaceExplorer;
 import org.lflang.analyses.statespace.Tag;
@@ -38,44 +41,67 @@ import org.lflang.generator.ReactorInstance;
 
 public class CStaticScheduleGenerator {
 
-    public ReactorInstance     main;
-    public StateSpaceExplorer  explorer;
-    public StateSpaceDiagram   stateSpaceDiagram;
-    public DagGenerator        dagGenerator;
-
     /** File config */
     protected final CFileConfig fileConfig;
+
+    /** Target configuration */
+    protected TargetConfig targetConfig;
+
+    /** Main reactor instance */
+    protected ReactorInstance     main;
 
     // Constructor
     public CStaticScheduleGenerator(
         CFileConfig fileConfig,
+        TargetConfig targetConfig,
         ReactorInstance main
     ) {
         this.fileConfig = fileConfig;
+        this.targetConfig = targetConfig;
         this.main       = main;
-        this.explorer   = new StateSpaceExplorer(main);
     }
 
     // Main function for generating a static schedule file in C.
-    public void generate() {
-        // Generate a state space diagram for the LF program.
+    public void generate() { 
+
+        StateSpaceDiagram stateSpace = generateStateSpaceDiagram();
+
+        Dag dagRaw = generateDagFromStateSpaceDiagram(stateSpace);
+
+        Dag dagParitioned = generatePartitionsFromDag(dagRaw);
+        
+        generateInstructionsFromPartitions(dagParitioned);
+
+    }
+
+    /**
+     * Generate a state space diagram for the LF program.
+     */
+    public StateSpaceDiagram generateStateSpaceDiagram() {
+        StateSpaceExplorer explorer = new StateSpaceExplorer(this.main);
         // FIXME: An infinite horizon may lead to non-termination.
-        this.explorer.explore(
+        explorer.explore(
             new Tag(0, 0, true), 
             true);
-        this.stateSpaceDiagram = this.explorer.getStateSpaceDiagram();
-        this.stateSpaceDiagram.display();
+        StateSpaceDiagram stateSpaceDiagram = explorer.getStateSpaceDiagram();
+        stateSpaceDiagram.display();
+        return stateSpaceDiagram;
+    }
 
+    /** 
+     * Generate a pre-processed DAG from the state space diagram.
+     */
+    public Dag generateDagFromStateSpaceDiagram(StateSpaceDiagram stateSpace) {
         // Generate a pre-processed DAG from the state space diagram.
-        this.dagGenerator = new DagGenerator(
+        DagGenerator dagGenerator = new DagGenerator(
             this.fileConfig,
             this.main,
-            this.stateSpaceDiagram);
-        this.dagGenerator.generateDag();
+            stateSpace);
+        dagGenerator.generateDag();
 
         // Generate a dot file.
         try {
-            CodeBuilder dot = this.dagGenerator.generateDot();
+            CodeBuilder dot = dagGenerator.generateDot();
             Path srcgen = fileConfig.getSrcGenPath();
             Path file = srcgen.resolve("dag.dot");
             String filename = file.toString();
@@ -84,42 +110,32 @@ public class CStaticScheduleGenerator {
             Exceptions.sneakyThrow(e);
         }
 
-        // Use a DAG scheduling algorithm to partition the DAG.
-        // Construct a process to run the Python program of the RL agent
-        ProcessBuilder dagScheduler = new ProcessBuilder(
-            "python3",
-            "script.py", // FIXME: to be updated with the script file name
-            "dag.dot"
-        );
+        return dagGenerator.getDag();
+    }
 
-        // If the partionned DAG file is generated, then read the contents
-        // and update the edges array.
-        try {
-            Process dagSchedulerProcess = dagScheduler.start();
-            
-            // Wait until the process is done
-            int exitValue = dagSchedulerProcess.waitFor();
-            
-            // FIXME: Put the correct file name
-            this.dagGenerator.updateDag("partionedDagFileName.dot");
-        } catch (InterruptedException | IOException e) {
-            Exceptions.sneakyThrow(e);
-        }
+    /** 
+     * Generate a partitioned DAG based on the number of workers.
+     */
+    public Dag generatePartitionsFromDag(Dag dagRaw) {
+        StaticScheduler scheduler = createStaticScheduler();
+        return scheduler.generatePartitionedDag();
+    }
 
-        // Note: this is for double checking...
-        // Generate another dot file with the updated Dag.
-        try {
-            CodeBuilder dot = this.dagGenerator.generateDot();
-            Path srcgen = fileConfig.getSrcGenPath();
-            Path file = srcgen.resolve("dagUpdated.dot");
-            String filename = file.toString();
-            dot.writeToFile(filename);
-        } catch (IOException e) {
-            Exceptions.sneakyThrow(e);
-        }
-
-        // Generate VM instructions for each DAG partition.
-        // can be something like: generateVMInstructions(partionedDag); 
+    /** 
+     * Create a static scheduler based on target property.
+     */
+    public StaticScheduler createStaticScheduler() {
+        return switch(this.targetConfig.staticScheduler) {
+            case BASELINE   -> new BaselineScheduler();
+            case RL         -> new BaselineScheduler(); // FIXME
+        };
     }
     
+    /**
+     * Generate VM instructions for each DAG partition.
+     */
+    public void generateInstructionsFromPartitions(Dag dagParitioned) {
+
+    }
+
 }

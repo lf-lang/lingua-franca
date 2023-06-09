@@ -566,14 +566,14 @@ public enum TargetProperty {
 
   /** Directive for specifying a specific runtime scheduler, if supported. */
   SCHEDULE_GENERATOR(
-      "schedule-generator",
-      UnionType.SCHEDULE_GENERATOR_UNION,
+      "static-scheduler",
+      UnionType.STATIC_SCHEDULER_UNION,
       Arrays.asList(Target.C),
-      (config) -> ASTUtils.toElement(config.scheduleGenerator.toString()),
+      (config) -> ASTUtils.toElement(config.staticScheduler.toString()),
       (config, value, err) -> {
-        config.scheduleGenerator =
-            (ScheduleGeneratorOption)
-                UnionType.SCHEDULE_GENERATOR_UNION.forName(ASTUtils.elementToSingleString(value));
+        config.staticScheduler =
+            (StaticSchedulerOption)
+                UnionType.STATIC_SCHEDULER_UNION.forName(ASTUtils.elementToSingleString(value));
       }),
 
   /** Directive to specify that all code is generated in a single file. */
@@ -1215,7 +1215,7 @@ public enum TargetProperty {
     BUILD_TYPE_UNION(Arrays.asList(BuildType.values()), null),
     COORDINATION_UNION(Arrays.asList(CoordinationType.values()), CoordinationType.CENTRALIZED),
     SCHEDULER_UNION(Arrays.asList(SchedulerOption.values()), SchedulerOption.getDefault()),
-    SCHEDULE_GENERATOR_UNION(Arrays.asList(ScheduleGeneratorOption.values()), ScheduleGeneratorOption.getDefault()),
+    STATIC_SCHEDULER_UNION(Arrays.asList(StaticSchedulerOption.values()), StaticSchedulerOption.getDefault()),
     LOGGING_UNION(Arrays.asList(LogLevel.values()), LogLevel.INFO),
     PLATFORM_UNION(Arrays.asList(Platform.values()), Platform.AUTO),
     CLOCK_SYNC_UNION(Arrays.asList(ClockSyncMode.values()), ClockSyncMode.INIT),
@@ -1823,11 +1823,11 @@ public enum TargetProperty {
    *
    * @author Shaokai Lin
    */
-  public enum ScheduleGeneratorOption {
+  public enum StaticSchedulerOption {
     BASELINE,
     RL;
 
-    public static ScheduleGeneratorOption getDefault() {
+    public static StaticSchedulerOption getDefault() {
       return BASELINE;
     }
   }
