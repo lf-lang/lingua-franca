@@ -66,29 +66,33 @@ jobs:
         name: "Create summary"
         run: |
           echo '## Summary' > $GITHUB_STEP_SUMMARY
+      - id: should-skip
+        name: "Determine whether to skip checks"
+        run: |
+          echo "skip=${{ steps.duplicate.outputs.should_skip == 'true' && github.event.action != 'ready_for_review' }}" >> $GITHUB_OUTPUT
       - id: skip-redundant
         name: "Report on skipping checks (prior run found)"
         run: |
           echo ":tada: A successful prior run has been found:" >> $GITHUB_STEP_SUMMARY
           echo "${{ steps.duplicate.outputs.skipped_by }}" >> $GITHUB_STEP_SUMMARY
           echo ":heavy_check_mark: Skipping all tests." >> $GITHUB_STEP_SUMMARY
-        if: ${{ steps.duplicate.outputs.should_skip == 'true' }}
+        if: ${{ steps.should-skip.outputs.skip == 'true' }}
       - id: skip-ignore
         name: "Report skipping checks due to inconsequential changes"
         run: |
           echo ":octopus: The detected changes did not affect any code." >> $GITHUB_STEP_SUMMARY
           echo ":heavy_check_mark: Skipping tests. Only building." >> $GITHUB_STEP_SUMMARY
-        if: ${{ steps.duplicate.outputs.should_skip != 'true' && steps.do.outputs.changed_any == 0 }}
+        if: ${{ steps.should-skip.outputs.skip != 'true' && steps.do.outputs.changed_any == 0 }}
       - id: run-some
         name: "Report on running checks (no prior run found)"
         run: |
           echo ":octopus: No successful prior run has been found." >> $GITHUB_STEP_SUMMARY
-        if: ${{ steps.duplicate.outputs.should_skip != 'true' && steps.do.outputs.changed_any != 0}}
+        if: ${{ steps.should-skip.outputs.skip != 'true' && steps.do.outputs.changed_any != 0}}
       - id: run-ready-mode
         name: 'Report on full test run'
         run: |
           echo ":hourglass: Performing all tests." >> $GITHUB_STEP_SUMMARY
-        if: ${{ steps.duplicate.outputs.should_skip != 'true' && steps.do.outputs.changed_any != 0 && !github.event.pull_request.draft}}
+        if: ${{ steps.should-skip.outputs.skip != 'true' && steps.do.outputs.changed_any != 0 && !github.event.pull_request.draft}}
       - id: run-draft-mode
         name: 'Report on partial test run'
         run: |
@@ -101,4 +105,4 @@ jobs:
           echo '| rs      | `${{ steps.do.outputs.changed_rs == 1 }}`      |' >> $GITHUB_STEP_SUMMARY
           echo '| ts      | `${{ steps.do.outputs.changed_ts == 1 }}`      |' >> $GITHUB_STEP_SUMMARY
           echo '| tracing | `${{ steps.do.outputs.changed_tracing == 1 }}` |' >> $GITHUB_STEP_SUMMARY
-        if: ${{ steps.duplicate.outputs.should_skip != 'true' && steps.do.outputs.changed_any != 0 && github.event.pull_request.draft}}
+        if: ${{ steps.should-skip.outputs.skip != 'true' && steps.do.outputs.changed_any != 0 && github.event.pull_request.draft}}
