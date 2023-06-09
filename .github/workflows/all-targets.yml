@@ -25,29 +25,29 @@ jobs:
   c:
     uses: ./.github/workflows/only-c.yml
     needs: check-diff
-    if: ${{ !github.event.pull_request.draft || needs.check-diff.outputs.run_c == 'true' }}
+    if: ${{ needs.check-diff.outputs.skip_all != 'true' && (!github.event.pull_request.draft || needs.check-diff.outputs.run_c == 'true') }}
 
   cpp:
     uses: ./.github/workflows/only-cpp.yml
     needs: check-diff
-    if: ${{ !github.event.pull_request.draft || needs.check-diff.outputs.run_cpp == 'true' }}
+    if: ${{ needs.check-diff.outputs.skip_all != 'true' && (!github.event.pull_request.draft || needs.check-diff.outputs.run_cpp == 'true') }}
 
   py:
     uses: ./.github/workflows/only-py.yml
     needs: check-diff
-    if: ${{ !github.event.pull_request.draft || needs.check-diff.outputs.run_py == 'true' }}
+    if: ${{ needs.check-diff.outputs.skip_all != 'true' && (!github.event.pull_request.draft || needs.check-diff.outputs.run_py == 'true') }}
 
   rs:
     uses: ./.github/workflows/only-rs.yml
     needs: check-diff
-    if: ${{ !github.event.pull_request.draft || needs.check-diff.outputs.run_rs == 'true' }}
+    if: ${{ needs.check-diff.outputs.skip_all != 'true' && (!github.event.pull_request.draft || needs.check-diff.outputs.run_rs == 'true') }}
 
   ts:
     uses: ./.github/workflows/only-ts.yml
     needs: check-diff
-    if: ${{ !github.event.pull_request.draft || needs.check-diff.outputs.run_ts == 'true' }}
+    if: ${{ needs.check-diff.outputs.skip_all != 'true' && (!github.event.pull_request.draft || needs.check-diff.outputs.run_ts == 'true') }}
 
   serialization:
-    if: ${{ !github.event.pull_request.draft || needs.check-diff.outputs.run_c == 'true' || needs.check-diff.outputs.run_py == 'true' || needs.check-diff.outputs.run_ts == 'true' }}
+    if: ${{ needs.check-diff.outputs.skip_all != 'true' && (!github.event.pull_request.draft || needs.check-diff.outputs.run_c == 'true' || needs.check-diff.outputs.run_py == 'true' || needs.check-diff.outputs.run_ts == 'true') }}
     needs: check-diff
     uses: ./.github/workflows/serialization-tests.yml
